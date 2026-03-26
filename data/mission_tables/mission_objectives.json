@@ -1,6 +1,7 @@
 {
     "name": "mission_objectives",
     "description": "Mission Objectives (Core Rules pp.89-91). Three separate D10 tables by mission type. Quest finale is always FIGHT_OFF with +1 enemy.",
+    "core_rules_page": "89-91",
     "tables": {
         "opportunity": {
             "description": "Opportunity Mission Objectives (D10)",
@@ -40,202 +41,74 @@
     "objective_definitions": {
         "MOVE_THROUGH": {
             "name": "Move Through",
-            "description": "Push through enemy territory. At least 3 crew members must exit from the opposite table edge.",
+            "description": "At least 2 crew members must exit from the opposite battlefield edge. Driving off all enemies also counts as a Win if at least 2 crew remain.",
             "placement_rules": "Deploy on one edge, must reach opposite edge.",
-            "victory_condition": "At least 3 crew members exit from the opposite table edge."
+            "victory_condition": "At least 2 crew members exit from the opposite table edge, OR drive off all enemies with at least 2 crew remaining."
         },
         "DELIVER": {
             "name": "Deliver",
-            "description": "Transport an item to a drop point on the opposite side.",
-            "placement_rules": "Assign one crew the delivery item. Mark drop point on opposite edge center.",
-            "victory_condition": "One crew member starts with the item. Must reach drop point and spend 1 action to deliver."
+            "description": "One crew member carries a package to the table center. Costs a Combat Action to place. If the carrier becomes a casualty, roll 1D6: on 1 the package is destroyed, otherwise another crew can pick it up with a Combat Action. Drive off all enemies with package undamaged also counts as a Win.",
+            "placement_rules": "Assign one crew member the delivery package. Drop point at table center.",
+            "victory_condition": "Place the package at table center (Combat Action), OR drive off all enemies with package undamaged."
         },
         "ACCESS": {
             "name": "Access",
-            "description": "Reach a computer console at the center of the battlefield and gain access.",
-            "placement_rules": "Console placed at exact table center. Standard deployment.",
-            "victory_condition": "Reach console, roll 1D6+Savvy scoring 6+. Costs a Combat Action per attempt. Up to 2 characters per round. Soulless within 6\". Engineer/Bot add +1."
+            "description": "Reach a computer console at the center of the battlefield and gain access. Roll 1D6+Savvy, scoring 6+ to succeed. Costs a Combat Action per attempt, up to 2 characters per round. Soulless within 6 inches. Engineer/Bot add +1. A natural 1 means the system is hardened; a second natural 1 means total failure. Engineers ignore natural 1s.",
+            "placement_rules": "Console placed at exact table center.",
+            "victory_condition": "Successfully access the console (1D6+Savvy, 6+ needed)."
         },
         "PATROL": {
             "name": "Patrol",
-            "description": "Sweep the area and check all patrol markers.",
-            "placement_rules": "Place 4 markers in each table quarter. Standard deployment.",
-            "victory_condition": "Check all 4 patrol markers (move within 3\", spend 1 action). Any crew member."
+            "description": "Select 3 large terrain features at random. A crew member must end a move within 2 inches of each feature to check it. All 3 checked means a Win.",
+            "placement_rules": "Select 3 large terrain features at random as patrol points.",
+            "victory_condition": "All 3 patrol points checked (crew member ends move within 2 inches of each)."
         },
         "FIGHT_OFF": {
             "name": "Fight Off",
-            "description": "Standard engagement. Drive off or eliminate all enemies.",
+            "description": "No objective beyond driving off the enemy. Win by Holding the Field. Quest finale always uses this objective with +1 enemy.",
             "placement_rules": "Standard deployment zones on opposite edges.",
-            "victory_condition": "All enemies driven off or eliminated. Quest finale always uses this objective with +1 enemy."
+            "victory_condition": "Hold the Field (drive off or eliminate all enemies)."
         },
         "SEARCH": {
             "name": "Search",
-            "description": "Find a specific item among several search markers.",
-            "placement_rules": "Place 3 search markers in enemy half of table.",
-            "victory_condition": "Check each marker (1 action within 1\"). Roll D6: 1-2 nothing, 3-4 encounter, 5-6 item found. Find item and exit."
+            "description": "Place a token on each medium and large terrain feature. A character in contact can search as a Combat Action by rolling 1D6: on 5+ the item is found and the mission is Won. If all locations fail, the mission cannot be Won.",
+            "placement_rules": "Token on each medium/large terrain feature.",
+            "victory_condition": "Find the item by searching (1D6, 5+ per location). If all fail, mission cannot be Won."
         },
         "DEFEND": {
             "name": "Defend",
-            "description": "Hold your ground and protect a location.",
-            "placement_rules": "Place objective 12\" from your edge. Deploy within 6\" of objective.",
-            "victory_condition": "Survive 6 rounds with at least one crew within 6\" of objective. Enemies must not hold it."
+            "description": "Win by Holding the Field. If enemy AI would normally be Cautious, Defensive, or Tactical, change it to Aggressive. Add +1 to enemy numbers.",
+            "placement_rules": "Standard deployment. Enemy AI forced to Aggressive.",
+            "victory_condition": "Hold the Field. Enemy AI changed to Aggressive, +1 enemy numbers."
         },
         "ACQUIRE": {
             "name": "Acquire",
-            "description": "Grab an item at the center and escape with it.",
-            "placement_rules": "Place objective marker at table center. Standard deployment.",
-            "victory_condition": "Crew member reaches item (center), picks it up (1 action), exits from your table edge."
+            "description": "An item is located at the table center. Move into contact to grab it, spending a Combat Action, then exit the table from your edge. If the carrier becomes a casualty, roll 1D6: on 1 the item is destroyed, otherwise it can be picked up with a Combat Action.",
+            "placement_rules": "Item at table center.",
+            "victory_condition": "Pick up item (Combat Action in contact) and exit from your table edge."
         },
         "ELIMINATE": {
             "name": "Eliminate",
-            "description": "Take out a specific target among the enemy forces.",
-            "placement_rules": "Designate one enemy as the target. Standard deployment.",
-            "victory_condition": "The designated target must be eliminated."
+            "description": "A random enemy is designated as the target. Kill them to Win. If the target would Bail, they instead remain for 1 more round (cannot move, can shoot/fight). If not killed that round, the mission fails.",
+            "placement_rules": "Randomly designate one enemy as the target.",
+            "victory_condition": "Kill the designated target. Target stays 1 extra round instead of Bailing."
         },
         "SECURE": {
             "name": "Secure",
-            "description": "Clear and hold a strategic position.",
-            "placement_rules": "Mark the position at table center. Standard deployment.",
-            "victory_condition": "At least 2 crew within 3\" of the position with no enemies within 6\" at end of any round."
+            "description": "End 2 consecutive rounds with crew members within 2 inches of the table center. Crew members with an enemy within 6 inches do not count toward securing.",
+            "placement_rules": "Objective at table center.",
+            "victory_condition": "2 consecutive round-ends with crew within 2 inches of center (enemies within 6 inches disqualify crew)."
         },
         "PROTECT": {
             "name": "Protect",
-            "description": "Keep a VIP alive during the battle.",
-            "placement_rules": "VIP deploys with your crew. Has Toughness 3, no combat ability.",
-            "victory_condition": "VIP must survive. Follows a random crew member. If killed, mission fails."
+            "description": "A VIP character (Reactions 1, Speed 4 inches, Combat Skill +0, Toughness 3) is unarmed and cannot initiate Brawls. VIP sets up 12 inches from center. If the VIP spends a full round within 3 inches of the center, the mission is Won. If achieved within the first 4 rounds, gain +2 credits.",
+            "placement_rules": "VIP deploys 12 inches from center. VIP stats: Reactions 1, Speed 4, Combat +0, Toughness 3, unarmed.",
+            "victory_condition": "VIP spends a full round within 3 inches of center. Bonus: +2 credits if achieved within first 4 rounds."
         }
     },
-    "entries": [
-        {
-            "roll_range": [1, 20],
-            "result": {
-                "type": "MOVE_THROUGH",
-                "name": "Move Through",
-                "description": "Push through enemy territory.",
-                "requirements": ["combat_capability"],
-                "completion_conditions": ["exit_opposite_edge"],
-                "reward_modifier": 1.0
-            },
-            "weight": 1.0,
-            "tags": ["movement", "basic"]
-        },
-        {
-            "roll_range": [21, 40],
-            "result": {
-                "type": "FIGHT_OFF",
-                "name": "Fight Off",
-                "description": "Drive off or eliminate all enemies.",
-                "requirements": ["combat_capability"],
-                "completion_conditions": ["eliminate_threats"],
-                "reward_modifier": 1.0
-            },
-            "weight": 1.0,
-            "tags": ["combat", "basic"]
-        },
-        {
-            "roll_range": [41, 55],
-            "result": {
-                "type": "DELIVER",
-                "name": "Deliver",
-                "description": "Transport an item to a drop point.",
-                "requirements": ["combat_capability"],
-                "completion_conditions": ["deliver_item"],
-                "reward_modifier": 1.1
-            },
-            "weight": 0.8,
-            "tags": ["transport", "basic"]
-        },
-        {
-            "roll_range": [56, 65],
-            "result": {
-                "type": "ACCESS",
-                "name": "Access",
-                "description": "Reach and hack a computer console at table center.",
-                "requirements": ["tech_capability"],
-                "completion_conditions": ["access_console"],
-                "reward_modifier": 1.2
-            },
-            "weight": 0.7,
-            "tags": ["technical", "basic"]
-        },
-        {
-            "roll_range": [66, 75],
-            "result": {
-                "type": "PATROL",
-                "name": "Patrol",
-                "description": "Check all 4 patrol markers across the battlefield.",
-                "requirements": ["exploration_capability"],
-                "completion_conditions": ["check_markers"],
-                "reward_modifier": 1.0
-            },
-            "weight": 0.7,
-            "tags": ["exploration", "basic"]
-        },
-        {
-            "roll_range": [76, 85],
-            "result": {
-                "type": "DEFEND",
-                "name": "Defend",
-                "description": "Hold your ground and protect a location for 6 rounds.",
-                "requirements": ["combat_capability", "defensive_equipment"],
-                "completion_conditions": ["hold_position"],
-                "reward_modifier": 1.2
-            },
-            "weight": 0.6,
-            "tags": ["defense", "basic"]
-        },
-        {
-            "roll_range": [86, 92],
-            "result": {
-                "type": "SEARCH",
-                "name": "Search",
-                "description": "Find a specific item among search markers.",
-                "requirements": ["exploration_capability"],
-                "completion_conditions": ["find_item", "exit_battlefield"],
-                "reward_modifier": 1.1
-            },
-            "weight": 0.5,
-            "tags": ["exploration", "basic"]
-        },
-        {
-            "roll_range": [93, 100],
-            "result": {
-                "type": "ACQUIRE",
-                "name": "Acquire",
-                "description": "Grab an item at table center and escape.",
-                "requirements": ["combat_capability"],
-                "completion_conditions": ["grab_item", "exit_battlefield"],
-                "reward_modifier": 1.2
-            },
-            "weight": 0.5,
-            "tags": ["retrieval", "basic"]
-        }
-    ],
-    "validation_rules": [
-        {
-            "type": "mission_type_requirement",
-            "params": {
-                "RED_ZONE": {
-                    "allowed_objectives": ["MOVE_THROUGH", "FIGHT_OFF", "PATROL"],
-                    "reward_modifier": 1.0
-                },
-                "BLACK_ZONE": {
-                    "allowed_objectives": ["FIGHT_OFF", "ELIMINATE", "ACCESS"],
-                    "reward_modifier": 1.3
-                },
-                "PATRON": {
-                    "allowed_objectives": ["DELIVER", "ELIMINATE", "MOVE_THROUGH", "SECURE", "PROTECT", "FIGHT_OFF"],
-                    "reward_modifier": 1.2
-                }
-            }
-        }
-    ],
     "default_result": {
         "type": "FIGHT_OFF",
         "name": "Fight Off",
-        "description": "Standard engagement. Drive off all enemies.",
-        "requirements": [],
-        "completion_conditions": ["eliminate_threats"],
-        "reward_modifier": 1.0
+        "description": "Standard engagement. Drive off all enemies."
     }
 }

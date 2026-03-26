@@ -15,6 +15,13 @@ var patrons: Dictionary = {}
 var rivals: Dictionary = {}
 var locations: Dictionary = {}
 
+## Patron blacklist: worlds where patron missions failed (Core Rules p.81)
+## Key: world_id, Value: Array of patron_ids blacklisted on that world
+var patron_blacklist: Dictionary = {}
+
+signal patron_expired(patron_id: String)
+signal patron_blacklisted(patron_id: String, world_id: String)
+
 ## Patron tracking
 func track_patron_interaction(patron_id: String, event_type: String, data: Dictionary = {}) -> void:
 	if not patrons.has(patron_id):
@@ -32,6 +39,10 @@ func track_patron_interaction(patron_id: String, event_type: String, data: Dicti
 		"job_failed":
 			patron.jobs_failed += 1
 			_adjust_relationship(patron_id, -1)
+			# Core Rules p.81: Failing a patron mission = blacklisted on that world
+			var world_id: String = data.get("world_id", patron.get("world_id", ""))
+			if not world_id.is_empty():
+				blacklist_patron_on_world(patron_id, world_id)
 
 	patron.history.append({
 		"turn": data.get("turn", 0),
@@ -141,12 +152,15 @@ func _create_default_patron(patron_id: String) -> Dictionary:
 		"patron_id": patron_id,
 		"name": patron_id.capitalize(),
 		"location": "",
+		"world_id": "",
 		"relationship": 0,
 		"jobs_offered": 0,
 		"jobs_completed": 0,
 		"jobs_failed": 0,
 		"favors_owed": 0,
 		"last_contact_turn": 0,
+		"duration_turns": -1,  # -1 = persistent, >0 = turns remaining
+		"is_one_time": false,  # Core Rules: One-time Contract patrons
 		"history": []
 	}
 
@@ -173,20 +187,75 @@ func _create_default_location(location_id: String) -> Dictionary:
 		"facilities": {}
 	}
 
+## Patron Duration Processing (Core Rules p.81-88)
+## Called each turn by CampaignPhaseManager._process_turn_rollover()
+func process_patron_durations(current_turn: int) -> void:
+	var expired_ids: Array = []
+	for patron_id in patrons:
+		var patron: Dictionary = patrons[patron_id]
+		var duration: int = patron.get("duration_turns", -1)
+		if duration > 0:
+			patron["duration_turns"] = duration - 1
+			if patron["duration_turns"] <= 0:
+				expired_ids.append(patron_id)
+		# One-time contracts expire after completion
+		if patron.get("is_one_time", false) and patron.get("jobs_completed", 0) > 0:
+			if patron_id not in expired_ids:
+				expired_ids.append(patron_id)
+	for pid in expired_ids:
+		patrons.erase(pid)
+		patron_expired.emit(pid)
+
+## Blacklist a patron on a specific world (Core Rules p.81)
+## "Failing a mission means being blacklisted and you cannot get Patrons here again."
+func blacklist_patron_on_world(patron_id: String, world_id: String) -> void:
+	if not patron_blacklist.has(world_id):
+		patron_blacklist[world_id] = []
+	if patron_id not in patron_blacklist[world_id]:
+		patron_blacklist[world_id].append(patron_id)
+		patron_blacklisted.emit(patron_id, world_id)
+
+## Check if a patron is blacklisted on a world
+func is_patron_blacklisted(patron_id: String, world_id: String) -> bool:
+	if not patron_blacklist.has(world_id):
+		return false
+	return patron_id in patron_blacklist[world_id]
+
+## Check if ANY patron missions are blacklisted on a world (Corporate state rule)
+func is_world_patron_blacklisted(world_id: String) -> bool:
+	return patron_blacklist.has(world_id) and patron_blacklist[world_id].size() > 0
+
+## Clear patron availability when traveling to new world (Core Rules p.88)
+## "When you travel to a new planet, all Patrons become unavailable
+## unless they are Persistent."
+func clear_non_persistent_patrons() -> void:
+	var to_remove: Array = []
+	for patron_id in patrons:
+		var patron: Dictionary = patrons[patron_id]
+		var duration: int = patron.get("duration_turns", -1)
+		# -1 = persistent, keep them; >0 or 0 = non-persistent, remove
+		if duration != -1:
+			to_remove.append(patron_id)
+	for pid in to_remove:
+		patrons.erase(pid)
+
 ## Save/Load for persistence pipeline
 func serialize() -> Dictionary:
 	return {
 		"patrons": patrons.duplicate(true),
 		"rivals": rivals.duplicate(true),
-		"locations": locations.duplicate(true)
+		"locations": locations.duplicate(true),
+		"patron_blacklist": patron_blacklist.duplicate(true)
 	}
 
 func deserialize(data: Dictionary) -> void:
 	patrons = data.get("patrons", {})
 	rivals = data.get("rivals", {})
 	locations = data.get("locations", {})
+	patron_blacklist = data.get("patron_blacklist", {})
 
 func reset() -> void:
 	patrons.clear()
 	rivals.clear()
 	locations.clear()
+	patron_blacklist.clear()

@@ -3,7 +3,6 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 # Use explicit preloads instead of global class names
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.gd")
-const EventManager = preload("res://src/core/managers/EventManager.gd")
 
 signal story_event_selected(event_data: Dictionary)
 signal story_event_resolved(event_data: Dictionary)
@@ -14,7 +13,6 @@ signal story_event_resolved(event_data: Dictionary)
 @onready var choice_container: VBoxContainer = $VBoxContainer/ChoiceContainer
 @onready var resolve_button: Button = $VBoxContainer/ResolveButton
 
-var event_manager: EventManager
 var available_events: Array[Dictionary] = []
 var selected_event: Dictionary
 var selected_choice: Dictionary
@@ -33,29 +31,13 @@ func _ready() -> void:
 	_wrap_story_content_in_cards()
 
 	_load_story_events()
-	event_manager = get_node_or_null("/root/EventManager")
-	if event_manager:
-		if event_manager.has_signal("event_triggered"):
-			event_manager.event_triggered.connect(_on_event_triggered)
-		if event_manager.has_signal("event_resolved"):
-			event_manager.event_resolved.connect(_on_event_resolved)
-		if event_manager.has_signal("event_effects_applied"):
-			event_manager.event_effects_applied.connect(_on_event_effects_applied)
-	else:
-		push_warning("StoryPhasePanel: EventManager not found (panel has fallback event generation)")
-		# Allow skipping when no event manager — user can't be stuck
-		if resolve_button:
-			resolve_button.text = "Continue — No Events This Turn"
-			resolve_button.disabled = false
 
 	if event_list:
 		event_list.item_selected.connect(_on_event_selected)
 	if resolve_button:
 		resolve_button.pressed.connect(_on_resolve_pressed)
-		if event_manager:
-			# Only disable when event manager exists (events expected)
-			resolve_button.disabled = true
-			_style_button_disabled(resolve_button)
+		resolve_button.disabled = true
+		_style_button_disabled(resolve_button)
 		_setup_validation_hint(resolve_button)
 
 func _wrap_story_content_in_cards() -> void:
@@ -281,8 +263,13 @@ func _apply_choice_effects(effects: Dictionary) -> void:
 				if npc and npc.has_method("add_patron"):
 					var patron_id := "patron_story_%d" % Time.get_ticks_msec()
 					npc.add_patron({"name": "Story Ally", "patron_id": patron_id})
-	if effects.has("trigger_event") and event_manager and event_manager.has_method("trigger_campaign_event"):
-		event_manager.trigger_campaign_event(effects.trigger_event)
+	if effects.has("trigger_event"):
+		var event_bus = get_node_or_null(
+			"/root/CampaignTurnEventBus")
+		if event_bus:
+			event_bus.publish_event(
+				event_bus.TurnEvent.CRITICAL_EVENT_HIGHLIGHTED,
+				{"trigger_event": effects.trigger_event})
 
 func _generate_outcome() -> Dictionary:
 	# Generate outcome based on choice effects and random chance
@@ -308,8 +295,7 @@ func _generate_outcome() -> Dictionary:
 func _generate_outcome_description(success: bool) -> String:
 	if success:
 		return "Your choice led to a favorable outcome!"
-	else:
-		return "Despite your best efforts, things didn't go as planned."
+	return "Despite your best efforts, things didn't go as planned."
 
 func validate_phase_requirements() -> bool:
 	return true # No specific requirements for story phase
@@ -323,13 +309,3 @@ func get_phase_data() -> Dictionary:
 		"resolved_events": event_history,
 		"current_story_points": sp
 	}
-
-# Event Manager Signal Handlers
-func _on_event_triggered(_event_type: int) -> void:
-	_update_ui()
-
-func _on_event_resolved(_event_type: int) -> void:
-	_update_ui()
-
-func _on_event_effects_applied(_effects: Dictionary) -> void:
-	_update_ui()

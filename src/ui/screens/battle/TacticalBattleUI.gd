@@ -1256,6 +1256,13 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	_battle_initialized = true
 	_log_message("Initializing tactical battle...", UIColors.COLOR_CYAN)
 
+	# Update title header with mission name
+	var md: Dictionary = mission_data if mission_data is Dictionary else {}
+	if title_label:
+		var mission_title: String = md.get("title",
+			md.get("objective", "Tactical Companion"))
+		title_label.text = mission_title
+
 	# Show tier selection now that battle is actually starting
 	_show_tier_selection()
 
@@ -1798,6 +1805,86 @@ func _populate_setup_tab(mission_data) -> void:
 			battlefield_grid_panel.regenerate_requested.connect(
 				_on_regenerate_terrain_pressed)
 
+	# Section 0a: Mission Overview (pay, location, danger)
+	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
+	var m_location: String = mission_dict.get("location", "")
+	var m_pay: int = mission_dict.get("pay",
+		mission_dict.get("danger_pay", 0))
+	var m_danger: int = mission_dict.get("danger_level", 0)
+	if not m_location.is_empty() or m_pay > 0 or m_danger > 0:
+		_add_setup_section_header("MISSION DETAILS")
+		if not m_location.is_empty():
+			_add_setup_text(
+				"Location: %s" % m_location, Color("#E0E0E0"))
+		if m_pay > 0:
+			_add_setup_text(
+				"Pay: %d credits" % m_pay, Color("#10B981"))
+		if m_danger > 0:
+			var danger_color := Color("#10B981")
+			if m_danger >= 3:
+				danger_color = Color("#DC2626")
+			elif m_danger >= 2:
+				danger_color = Color("#D97706")
+			_add_setup_text(
+				"Danger Level: %d" % m_danger, danger_color)
+		var m_patron: String = mission_dict.get("patron", "")
+		if not m_patron.is_empty():
+			_add_setup_text(
+				"Patron: %s" % m_patron, Color("#4FC3F7"))
+		_add_setup_separator()
+
+	# Section 0b: Enemy Forces summary
+	var enemy_type_str: String = mission_dict.get(
+		"enemy_type", mission_dict.get("enemy_faction", ""))
+	var enemy_force: Dictionary = mission_dict.get(
+		"enemy_force", {})
+	var enemy_unit_count: int = enemy_force.get(
+		"count", mission_dict.get("enemy_count", 0))
+	if not enemy_type_str.is_empty() or enemy_unit_count > 0:
+		_add_setup_section_header("ENEMY FORCES")
+		if not enemy_type_str.is_empty():
+			_add_setup_text(enemy_type_str, Color("#DC2626"), 16)
+		if enemy_unit_count > 0:
+			_add_setup_text(
+				"Hostiles: %d" % enemy_unit_count,
+				Color("#E0E0E0"))
+		# List individual enemy units if available
+		var units: Array = enemy_force.get("units", [])
+		if units.size() > 0:
+			for unit_data in units:
+				if unit_data is Dictionary:
+					var u_name: String = unit_data.get(
+						"name", unit_data.get("type", "Unknown"))
+					var u_count: int = unit_data.get("count", 1)
+					_add_setup_text(
+						"  %s x%d" % [u_name, u_count],
+						Color("#9ca3af"))
+		_add_setup_separator()
+
+	# Section 0c: Patron Conditions (benefits, hazards, conditions)
+	var benefits: Array = mission_dict.get("benefits", [])
+	var hazards: Array = mission_dict.get("hazards", [])
+	var conditions: Array = mission_dict.get("conditions", [])
+	if benefits.size() > 0 or hazards.size() > 0 \
+			or conditions.size() > 0:
+		_add_setup_section_header("PATRON CONDITIONS")
+		for benefit in benefits:
+			var b_text: String = str(benefit)
+			if not b_text.is_empty():
+				_add_setup_text(
+					"+ %s" % b_text, Color("#10B981"))
+		for hazard in hazards:
+			var h_text: String = str(hazard)
+			if not h_text.is_empty():
+				_add_setup_text(
+					"! %s" % h_text, Color("#D97706"))
+		for cond in conditions:
+			var c_text: String = str(cond)
+			if not c_text.is_empty():
+				_add_setup_text(
+					"? %s" % c_text, Color("#4FC3F7"))
+		_add_setup_separator()
+
 	# Section 1: Terrain Theme
 	_add_setup_section_header("TERRAIN SETUP")
 	var theme_display: String = sector_data.get("theme_name", theme_name)
@@ -1841,15 +1928,47 @@ func _populate_setup_tab(mission_data) -> void:
 			_add_setup_text("Effects: %s" % effects_summary, Color("#DC2626"))
 		_add_setup_separator()
 
-	# Section 4: Mission Objective
-	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
-	var objective_name: String = mission_dict.get("objective", mission_dict.get("type", ""))
+	# Section 4: Mission Objective (mission_dict declared in Section 0a)
+	var objective_name: String = mission_dict.get(
+		"objective", mission_dict.get("type", ""))
 	if not objective_name.is_empty():
 		_add_setup_section_header("MISSION OBJECTIVE")
 		_add_setup_text(objective_name, Color("#10B981"), 16)
 		var obj_desc: String = mission_dict.get("description", "")
 		if not obj_desc.is_empty():
 			_add_setup_text(obj_desc, Color("#9ca3af"))
+		# Core Rules objective details (pp.89-91)
+		var obj_details: Dictionary = mission_dict.get(
+			"objective_details", {})
+		var victory_cond: String = obj_details.get(
+			"victory_condition",
+			mission_dict.get("victory_condition", ""))
+		if not victory_cond.is_empty():
+			_add_setup_text(
+				"Victory: %s" % victory_cond, Color("#f59e0b"))
+		var placement: String = obj_details.get(
+			"placement_rules",
+			mission_dict.get("placement_rules", ""))
+		if not placement.is_empty():
+			_add_setup_text(
+				"Setup: %s" % placement, Color("#9ca3af"))
+		_add_setup_separator()
+
+	# Section 4b: Notable Sight (Core Rules p.88)
+	var notable_sight: Dictionary = mission_dict.get(
+		"notable_sight", {})
+	var sight_type: String = notable_sight.get("type", "")
+	if not sight_type.is_empty() and sight_type != "NOTHING":
+		_add_setup_section_header("NOTABLE SIGHT")
+		_add_setup_text(
+			sight_type.replace("_", " ").capitalize(),
+			Color("#E879F9"), 16)
+		var sight_effect: String = notable_sight.get("effect", "")
+		if not sight_effect.is_empty():
+			_add_setup_text(sight_effect, Color("#9ca3af"))
+		_add_setup_text(
+			"Placed 2D6+2\" from center in random direction.",
+			Color("#808080"))
 		_add_setup_separator()
 
 	# Section 5: DLC Compendium Difficulty Instructions

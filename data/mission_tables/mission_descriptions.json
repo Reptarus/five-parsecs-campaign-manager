@@ -1,4 +1,5 @@
 {
+    "source": "APP_ENHANCEMENT — UI flavor, not from Core Rules",
     "name": "mission_descriptions",
     "entries": [
         {
@@ -58,45 +59,6 @@
         }
     ],
     "validation_rules": [],
-    "modifiers": [
-        {
-            "type": "mission_type_modifier",
-            "params": {
-                "RED_ZONE": {
-                    "mission_type": "combat",
-                    "skill_type": "combat",
-                    "objective_desc": [
-                        "Enemy forces are heavily entrenched.",
-                        "Resistance is expected to be significant.",
-                        "Multiple hostile elements detected.",
-                        "Heavy opposition reported in the area.",
-                        "Armed resistance is guaranteed."
-                    ]
-                },
-                "BLACK_ZONE": {
-                    "mission_type": "covert",
-                    "skill_type": "stealth",
-                    "objective_desc": [
-                        "Stealth is paramount.",
-                        "Minimal contact preferred.",
-                        "Detection must be avoided.",
-                        "Secrecy is essential.",
-                        "Silent approach required."
-                    ]
-                },
-                "PATRON": {
-                    "mission_type": "contract",
-                    "skill_type": "specialized",
-                    "objective_desc": [
-                        "The client has specific requirements.",
-                        "Precision is essential.",
-                        "Client satisfaction is priority.",
-                        "Special handling requested.",
-                        "Detailed parameters provided."
-                    ]
-                }
-            }
-        }
-    ],
+    "modifiers": [],
     "default_result": "A standard mission requiring attention to detail."
 }

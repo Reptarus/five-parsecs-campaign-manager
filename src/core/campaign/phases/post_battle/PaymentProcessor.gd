@@ -102,55 +102,20 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 	return invasion_pending
 
 func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
-	## Roll for battlefield finds using D100 table (Core Rules p.121)
-	var find_roll: int = randi_range(1, 100)
+	## Roll for battlefield finds using D100 table
+	## from mission_rewards.json (Core Rules pp.120-121).
+	var table_mgr := MissionTableManager.new()
+	var find: Dictionary = table_mgr.roll_battlefield_find()
+	var find_type: String = find.get("type", "NOTHING")
 
-	var LootConstants: Variant = null
-	if ClassDB.class_exists(&"LootSystemConstants"):
-		LootConstants = ClassDB.instantiate(&"LootSystemConstants")
-	elif ResourceLoader.exists("res://src/core/systems/LootSystemConstants.gd"):
-		var script = load("res://src/core/systems/LootSystemConstants.gd")
-		if script:
-			LootConstants = script
-
-	if LootConstants and LootConstants.has_method("get_battlefield_finds_category"):
-		var category: int = LootConstants.get_battlefield_finds_category(find_roll)
-		match category:
-			0:
-				return {"type": "weapon", "roll": find_roll, "description": "Weapon found on battlefield", "subtable": "weapon"}
-			1:
-				return {"type": "consumable", "roll": find_roll, "description": "Consumable supplies found"}
-			2:
+	# Apply special effects based on find type
+	match find_type:
+		"CURIOUS_DATA_STICK", "VITAL_INFO":
+			if ctx.has_method("add_quest_rumor"):
 				ctx.add_quest_rumor()
-				return {"type": "quest_rumor", "roll": find_roll, "description": "Quest rumor discovered"}
-			3:
-				return {"type": "ship_part", "roll": find_roll, "description": "Useful ship component found"}
-			4:
-				var credits: int = randi_range(1, 3)
-				return {"type": "trinket", "roll": find_roll, "amount": credits, "description": "Trinket worth %d credits" % credits}
-			5:
-				return {"type": "debris", "roll": find_roll, "description": "Worthless debris"}
-			6:
-				return {"type": "vital_info", "roll": find_roll, "description": "Vital information discovered"}
-			7:
-				return {"type": "nothing", "roll": find_roll, "description": "Nothing of value found"}
+		"DEBRIS":
+			find["amount"] = randi_range(1, 3)
+		"PERSONAL_TRINKET":
+			find["amount"] = 0  # Resolved per-planet later
 
-	# Fallback D100 ranges
-	if find_roll <= 15:
-		return {"type": "weapon", "roll": find_roll, "description": "Weapon found on battlefield", "subtable": "weapon"}
-	elif find_roll <= 25:
-		return {"type": "consumable", "roll": find_roll, "description": "Consumable supplies found"}
-	elif find_roll <= 35:
-		ctx.add_quest_rumor()
-		return {"type": "quest_rumor", "roll": find_roll, "description": "Quest rumor discovered"}
-	elif find_roll <= 45:
-		return {"type": "ship_part", "roll": find_roll, "description": "Useful ship component found"}
-	elif find_roll <= 60:
-		var credits: int = randi_range(1, 3)
-		return {"type": "trinket", "roll": find_roll, "amount": credits, "description": "Trinket worth %d credits" % credits}
-	elif find_roll <= 75:
-		return {"type": "debris", "roll": find_roll, "description": "Worthless debris"}
-	elif find_roll <= 90:
-		return {"type": "vital_info", "roll": find_roll, "description": "Vital information discovered"}
-	else:
-		return {"type": "nothing", "roll": find_roll, "description": "Nothing of value found"}
+	return find

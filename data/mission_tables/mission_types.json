@@ -1,131 +1,54 @@
 {
     "name": "mission_types",
-    "entries": [
-        {
-            "roll_range": [
-                1,
-                25
-            ],
-            "result": {
-                "type": "RED_ZONE",
-                "name": "Red Zone Operation",
-                "base_difficulty": 2,
-                "reward_multiplier": 1.0,
-                "available_objectives": [
-                    "SEARCH",
-                    "SECURE",
-                    "RETRIEVE",
-                    "ELIMINATE"
-                ],
-                "special_rules": [
-                    "standard_deployment",
-                    "basic_rewards"
-                ],
-                "description": "Standard mission in a contested area."
-            },
-            "weight": 1.0,
-            "tags": [
-                "standard",
-                "combat"
-            ]
+    "description": "Mission type selection (Core Rules pp.85, 87). Battles fall into five categories based on narrative context, not random rolls.",
+    "core_rules_page": "85, 87",
+    "types": {
+        "OPPORTUNITY": {
+            "name": "Opportunity Mission",
+            "description": "Always available. Default if no other mission type applies.",
+            "availability": "always",
+            "objective_table": "opportunity",
+            "deployment_column": "opportunity_patron"
         },
-        {
-            "roll_range": [
-                26,
-                45
-            ],
-            "result": {
-                "type": "BLACK_ZONE",
-                "name": "Black Zone Operation",
-                "base_difficulty": 3,
-                "reward_multiplier": 1.5,
-                "available_objectives": [
-                    "INFILTRATE",
-                    "SABOTAGE",
-                    "EXTRACT",
-                    "ELIMINATE"
-                ],
-                "special_rules": [
-                    "stealth_option",
-                    "high_risk_rewards"
-                ],
-                "description": "High-risk mission in a heavily defended area."
-            },
-            "weight": 0.8,
-            "tags": [
-                "advanced",
-                "stealth"
-            ]
+        "PATRON": {
+            "name": "Patron Mission",
+            "description": "From an accepted Patron job. Includes Danger Pay and possible Benefits/Hazards/Conditions.",
+            "availability": "active_patron_job",
+            "objective_table": "patron",
+            "deployment_column": "opportunity_patron"
         },
-        {
-            "roll_range": [
-                46,
-                60
-            ],
-            "result": {
-                "type": "PATRON",
-                "name": "Patron Contract",
-                "base_difficulty": 2,
-                "reward_multiplier": 1.2,
-                "available_objectives": [
-                    "PROTECT",
-                    "ESCORT",
-                    "RETRIEVE",
-                    "INVESTIGATE"
-                ],
-                "special_rules": [
-                    "patron_bonus",
-                    "reputation_rewards"
-                ],
-                "description": "Specialized mission for a paying client."
-            },
-            "weight": 0.6,
-            "tags": [
-                "special",
-                "patron"
-            ]
+        "RIVAL": {
+            "name": "Rival Mission",
+            "description": "Forced when Rivals track you down, or when you track them via crew task.",
+            "availability": "rival_tracked_down",
+            "objective_table": null,
+            "deployment_column": "rival",
+            "notes": "No Win condition objective. Use rival_attack_types table from rival_involvement.json."
+        },
+        "QUEST": {
+            "name": "Quest Mission",
+            "description": "Pursuing an active Quest. Quest finale always uses Fight Off with +1 enemy.",
+            "availability": "active_quest",
+            "objective_table": "quest",
+            "deployment_column": "quest"
+        },
+        "INVASION": {
+            "name": "Invasion Battle",
+            "description": "Triggered by Invasion check. No payment, no Deployment Conditions, no Notable Sights, no Battlefield Finds.",
+            "availability": "invasion_triggered",
+            "objective_table": null,
+            "deployment_column": null,
+            "restrictions": ["no_payment", "no_deployment_conditions", "no_notable_sights", "no_battlefield_finds"]
         }
-    ],
-    "validation_rules": [
-        {
-            "type": "phase_requirement",
-            "params": {
-                "EARLY_GAME": {
-                    "allowed_types": [
-                        "RED_ZONE"
-                    ],
-                    "difficulty_modifier": 0.8
-                },
-                "MID_GAME": {
-                    "allowed_types": [
-                        "RED_ZONE",
-                        "PATRON"
-                    ],
-                    "difficulty_modifier": 1.0
-                },
-                "LATE_GAME": {
-                    "allowed_types": [
-                        "RED_ZONE",
-                        "BLACK_ZONE",
-                        "PATRON"
-                    ],
-                    "difficulty_modifier": 1.2
-                }
-            }
-        }
-    ],
-    "default_result": {
-        "type": "RED_ZONE",
-        "name": "Standard Operation",
-        "base_difficulty": 1,
-        "reward_multiplier": 1.0,
-        "available_objectives": [
-            "SEARCH",
-            "SECURE"
-        ],
-        "special_rules": [
-            "standard_deployment"
-        ],
-        "description": "Basic mission with standard parameters."
+    },
+    "selection_options": {
+        "description": "Select Your Job options (Core Rules p.85). Player chooses one per campaign turn.",
+        "core_rules_page": "85",
+        "options": [
+            {"type": "OPPORTUNITY", "condition": "always", "description": "Opportunity mission — always available."},
+            {"type": "RIVAL", "condition": "tracked_rival", "description": "Attack a Rival — if you Tracked them successfully via crew task."},
+            {"type": "QUEST", "condition": "active_quest", "description": "Continue a Quest — if you have an active Quest."},
+            {"type": "PATRON", "condition": "active_patron", "description": "Patron job — if you have an active Patron with available jobs."}
+        ]
     }
 }

@@ -75,9 +75,104 @@ func set_campaign(campaign: Resource) -> void:
 
 func start_new_turn() -> void:
 	turn_number += 1
+
+	# === TURN ROLLOVER: Core Rules mechanics that trigger at turn boundary ===
+	_process_turn_rollover()
+
 	campaign_turn_started.emit(turn_number)
 	# Reset to first turn phase (UPKEEP)
 	start_phase(FiveParcsecsCampaignPhase.UPKEEP)
+
+## Process all Core Rules turn rollover mechanics before the new turn begins.
+## Called once per turn at the boundary between turns.
+func _process_turn_rollover() -> void:
+	if not game_state or not game_state.current_campaign:
+		return
+
+	var campaign: Resource = game_state.current_campaign
+
+	# --- Victory Condition Lock-In (Core Rules p.64) ---
+	# "Cannot add or change once the campaign starts."
+	# Lock on first turn so creation wizard can still set them.
+	if campaign.has_method("lock_victory_conditions"):
+		if not campaign.are_victory_conditions_locked():
+			campaign.lock_victory_conditions()
+
+	# --- Luck Recovery (Core Rules p.91) ---
+	# "All Luck is regained automatically after each battle."
+	# Unless the character used the Luck death-save (fatal injury protection),
+	# in which case ALL Luck was already set to 0 by InjuryProcessor.
+	# Characters whose luck was zeroed by death-save keep luck=0 until earned.
+	_restore_crew_luck(campaign)
+
+	# --- Sick Bay Recovery Countdown (Core Rules p.99) ---
+	# Each campaign turn, reduce recovery_turns by 1 for all injured crew.
+	# Characters with recovery_turns reaching 0 are removed from sick bay.
+	_process_sick_bay_recovery(campaign)
+
+	# --- Patron Duration Expiration (Core Rules p.81-88) ---
+	# Decrement patron job durations; expire patrons whose time has run out.
+	_process_patron_expiration()
+
+func _restore_crew_luck(campaign: Resource) -> void:
+	## Core Rules p.91: "All Luck is regained automatically after each battle."
+	## Humans max 3, non-humans max 1 (BaseCharacterResource enforces caps via setter).
+	## Characters flagged with luck_death_save_used keep luck=0 (already handled by
+	## InjuryProcessor setting luck=0 on the character directly).
+	if not campaign.has_method("get_crew_members"):
+		return
+	var crew: Array = campaign.get_crew_members()
+	for member in crew:
+		if member is Resource and "luck" in member:
+			# Skip characters who used luck death-save this turn
+			# (InjuryProcessor already set their luck to 0 permanently until earned)
+			if member.get("luck_death_save_used", false):
+				# Clear the flag — they start fresh but at 0
+				member.set("luck_death_save_used", false)
+				continue
+			# Restore to species cap: humans=3, others=1
+			var max_luck: int = 1
+			if member.get("is_human", false):
+				max_luck = 3
+			member.luck = max_luck
+
+func _process_sick_bay_recovery(campaign: Resource) -> void:
+	## Core Rules p.99: Injuries have "Campaign Turns in Sick Bay" recovery.
+	## Each turn, decrement recovery_turns by 1. Remove healed injuries.
+	## Character.process_recovery_turn() already implements this logic but was never called.
+	if not campaign.has_method("get_crew_members"):
+		return
+	var crew: Array = campaign.get_crew_members()
+	for member in crew:
+		if member is Resource and member.has_method("process_recovery_turn"):
+			member.process_recovery_turn()
+		elif member is Dictionary:
+			# Dictionary-format crew: manually decrement recovery_turns
+			var injuries: Array = member.get("injuries", [])
+			var healed: Array = []
+			for i in range(injuries.size()):
+				var inj: Dictionary = injuries[i]
+				var turns: int = inj.get("recovery_turns", 0)
+				if turns > 0:
+					inj["recovery_turns"] = turns - 1
+				if inj.get("recovery_turns", 0) == 0:
+					healed.append(i)
+			# Remove healed (reverse order)
+			healed.reverse()
+			for idx in healed:
+				if idx < injuries.size():
+					injuries.remove_at(idx)
+			# Update status if no more injuries
+			if injuries.is_empty() and member.get("status", "") == "RECOVERING":
+				member["status"] = "ACTIVE"
+
+func _process_patron_expiration() -> void:
+	## Core Rules p.81-88: Patrons have limited availability.
+	## Decrement duration_turns for tracked patrons; expire those at 0.
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	if not npc_tracker or not npc_tracker.has_method("process_patron_durations"):
+		return
+	npc_tracker.process_patron_durations(turn_number)
 
 func start_new_campaign_turn() -> void:
 	start_new_turn()

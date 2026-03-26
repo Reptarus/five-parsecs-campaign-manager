@@ -426,22 +426,45 @@ func _get_current_planet_id() -> String:
 	return "planet_" + str(campaign_phase_manager.get_turn_number())
 
 func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void:
-	## Check for rival encounters using backend RivalBattleGenerator
+	## Check for rival encounters (Core Rules pp.85-86).
+	## Roll 1D6; if <= number of Rivals, one tracks you down.
 	var rival_generator = get_node_or_null("BackendRivalGenerator")
 	if rival_generator and rival_generator.has_method("check_rival_encounter"):
 		var encounter_data = rival_generator.check_rival_encounter(planet_id, turn_number)
-		
 		if encounter_data and encounter_data.get("has_encounter", false):
-			# Store encounter data for battle sequence
 			battle_results["rival_encounter"] = encounter_data
-			
-			# Update battle UI with rival encounter information
 			if battle_transition_ui and battle_transition_ui.has_method("set_rival_encounter_data"):
 				battle_transition_ui.set_rival_encounter_data(encounter_data)
-		else:
-			pass
-	else:
-		push_warning("CampaignTurnController: RivalBattleGenerator not available for encounter checks")
+		return
+
+	# Fallback: Core Rules 1D6 <= rival count (pp.85-86)
+	var rival_count: int = 0
+	var decoy_count: int = 0
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+		rival_count = gs.current_campaign.progress_data.get(
+			"rival_count", 0)
+		decoy_count = gs.current_campaign.progress_data.get(
+			"decoy_crew_count", 0)
+	if rival_count <= 0:
+		return
+
+	var table_mgr := MissionTableManager.new()
+	var check: Dictionary = table_mgr.check_rival_tracking(
+		rival_count, decoy_count)
+	if check.get("tracked_down", false):
+		var attack: Dictionary = table_mgr.roll_rival_attack_type()
+		var encounter_data: Dictionary = {
+			"has_encounter": true,
+			"attack_type": attack.get("type", "SHOWDOWN"),
+			"attack_description": attack.get("description", ""),
+			"roll": check.get("roll", 0),
+		}
+		battle_results["rival_encounter"] = encounter_data
+		if battle_transition_ui and battle_transition_ui.has_method(
+				"set_rival_encounter_data"):
+			battle_transition_ui.set_rival_encounter_data(
+				encounter_data)
 
 ## Campaign Turn Orchestration
 func start_new_campaign_turn() -> void:
@@ -610,6 +633,35 @@ func _initiate_battle_sequence() -> void:
 	if not mission_data.has("mission_source"):
 		mission_data["mission_source"] = mission_data.get(
 			"source", "opportunity")
+
+	# Enrich with Core Rules tables (pp.88-91, 120-121)
+	var mtm := MissionTableManager.new()
+	var source: String = mission_data.get(
+		"mission_source", "opportunity")
+
+	# Roll mission objective from D10 table if not already set
+	if not mission_data.has("objective_details"):
+		var obj_table: String = mtm.get_objective_table_for_type(
+			source)
+		var objective: Dictionary = mtm.roll_mission_objective(
+			obj_table)
+		mission_data["objective_details"] = objective
+		# Enrich display fields if objective provides richer data
+		if objective.get("victory_condition", "") != "":
+			mission_data["victory_condition"] = objective[
+				"victory_condition"]
+		if objective.get("placement_rules", "") != "":
+			mission_data["placement_rules"] = objective[
+				"placement_rules"]
+
+	# Roll Notable Sight (Core Rules p.88)
+	if not mission_data.has("notable_sight") \
+			and source != "invasion":
+		var sight_col: String = mtm.get_deployment_column_for_type(
+			source)
+		mission_data["notable_sight"] = mtm.roll_notable_sight(
+			sight_col)
+
 	# Check for rival encounters before starting battle
 	_check_rival_encounter_backend(current_planet_id, current_turn)
 

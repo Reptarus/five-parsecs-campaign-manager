@@ -23,20 +23,62 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	return gathered_loot
 
 func _roll_enemy_loot(enemy: Dictionary) -> Array[Dictionary]:
-	## Roll for loot from a single defeated enemy.
+	## Roll for loot from a single defeated enemy
+	## using Core Rules Loot Table (D100, pp.131-134).
 	var loot: Array[Dictionary] = []
 	var enemy_type: String = enemy.get("type", "basic")
 
+	# Higher-tier enemies have better loot chance
+	var loot_chance: int = 5  # D6 threshold
 	match enemy_type:
 		"elite":
-			if randi_range(1, 6) >= 4:
-				loot.append({"type": "weapon", "quality": "advanced", "description": "Elite weapon"})
+			loot_chance = 4
 		"boss":
-			if randi_range(1, 6) >= 3:
-				loot.append({"type": "special", "quality": "rare", "description": "Boss loot"})
-		_:
-			if randi_range(1, 6) >= 5:
-				loot.append({"type": "equipment", "quality": "basic", "description": "Standard gear"})
+			loot_chance = 3
+
+	if randi_range(1, 6) < loot_chance:
+		return loot
+
+	# Roll on Core Rules D100 Loot Table (pp.131-134)
+	var table_mgr := MissionTableManager.new()
+	var category: Dictionary = table_mgr.roll_loot_category()
+	var cat_type: String = category.get("category", "REWARDS")
+
+	match cat_type:
+		"WEAPON":
+			loot.append({"type": "weapon",
+				"quality": "standard",
+				"description": "Weapon (Loot Table)",
+				"loot_roll": category.get("roll", 0)})
+		"DAMAGED_WEAPONS":
+			loot.append({"type": "weapon",
+				"quality": "damaged",
+				"description": "Damaged weapon (needs Repair)",
+				"needs_repair": true,
+				"loot_roll": category.get("roll", 0)})
+		"DAMAGED_GEAR":
+			loot.append({"type": "gear",
+				"quality": "damaged",
+				"description": "Damaged gear (needs Repair)",
+				"needs_repair": true,
+				"loot_roll": category.get("roll", 0)})
+		"GEAR":
+			loot.append({"type": "gear",
+				"quality": "standard",
+				"description": "Gear (Loot Table)",
+				"loot_roll": category.get("roll", 0)})
+		"ODDS_AND_ENDS":
+			loot.append({"type": "odds_and_ends",
+				"quality": "basic",
+				"description": "Odds and Ends",
+				"loot_roll": category.get("roll", 0)})
+		"REWARDS":
+			var reward: Dictionary = table_mgr.roll_rewards_subtable()
+			loot.append({"type": "reward",
+				"reward_type": reward.get("type", "SCRAP"),
+				"description": reward.get("effect", ""),
+				"loot_roll": category.get("roll", 0),
+				"reward_roll": reward.get("roll", 0)})
 
 	return loot
 

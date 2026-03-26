@@ -34,6 +34,7 @@ var patrons: Array = []
 var rivals: Array = []
 var quest_rumors: int = 0
 var victory_conditions: Dictionary = {}  # Victory condition configuration
+var victory_conditions_locked: bool = false  # Core Rules p.64: "cannot be changed once selected"
 
 # SPRINT 6.1: House rules configuration (persisted from wizard)
 var house_rules: Array = []
@@ -169,9 +170,23 @@ func get_story_track_enabled() -> bool:
 ## Victory Conditions Methods
 
 func set_victory_conditions(conditions: Dictionary) -> void:
-	## Set victory conditions configuration
+	## Set victory conditions configuration.
+	## Core Rules p.64: "cannot add or change once the campaign starts."
+	## After the first turn begins, this setter is locked and rejects changes.
+	if victory_conditions_locked:
+		push_warning("FiveParsecsCampaignCore: Victory conditions are locked (Core Rules p.64). Cannot modify after campaign starts.")
+		return
 	victory_conditions = conditions.duplicate(true)
 	_update_modified_time()
+
+func lock_victory_conditions() -> void:
+	## Lock victory conditions permanently for this campaign.
+	## Called when the campaign starts its first turn (CampaignPhaseManager.start_new_turn).
+	victory_conditions_locked = true
+	_update_modified_time()
+
+func are_victory_conditions_locked() -> bool:
+	return victory_conditions_locked
 
 func get_victory_conditions() -> Dictionary:
 	## Get victory conditions configuration
@@ -257,6 +272,7 @@ func to_dictionary() -> Dictionary:
 		"has_ship": has_ship,
 		"ship_debt": ship_debt,
 		"victory_conditions": victory_conditions.duplicate(true),
+		"victory_conditions_locked": victory_conditions_locked,
 		"qol_data": _build_qol_data()
 	}
 
@@ -354,6 +370,12 @@ func from_dictionary(data: Dictionary) -> void:
 
 	if data.has("victory_conditions"):
 		victory_conditions = data.get("victory_conditions", {}).duplicate(true)
+	if data.has("victory_conditions_locked"):
+		victory_conditions_locked = data.get("victory_conditions_locked", false)
+	elif not victory_conditions.is_empty():
+		# Legacy save migration: if victory conditions exist but no lock flag,
+		# assume campaign has started and lock them
+		victory_conditions_locked = true
 
 	# Store QoL data for deferred loading by autoloads
 	# (from_dictionary runs during GameState._init before scene tree is ready)

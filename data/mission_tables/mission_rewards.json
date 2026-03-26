@@ -1,149 +1,70 @@
 {
     "name": "mission_rewards",
-    "entries": [
-        {
-            "roll_range": [
-                1,
-                40
-            ],
-            "result": {
-                "type": "STANDARD",
-                "credits": {
-                    "base": 200,
-                    "per_difficulty": 100
-                },
-                "reputation": 1,
-                "bonus_rewards": [
-                    "common_item"
-                ],
-                "description": "Standard mission reward package."
-            },
-            "weight": 1.0,
-            "tags": [
-                "basic",
-                "common"
-            ]
-        },
-        {
-            "roll_range": [
-                41,
-                70
-            ],
-            "result": {
-                "type": "ENHANCED",
-                "credits": {
-                    "base": 400,
-                    "per_difficulty": 150
-                },
-                "reputation": 2,
-                "bonus_rewards": [
-                    "uncommon_item",
-                    "intel"
-                ],
-                "description": "Enhanced reward package with bonus items."
-            },
-            "weight": 0.8,
-            "tags": [
-                "improved",
-                "uncommon"
-            ]
-        },
-        {
-            "roll_range": [
-                71,
-                90
-            ],
-            "result": {
-                "type": "PREMIUM",
-                "credits": {
-                    "base": 600,
-                    "per_difficulty": 200
-                },
-                "reputation": 3,
-                "bonus_rewards": [
-                    "rare_item",
-                    "intel",
-                    "special_resource"
-                ],
-                "description": "Premium reward package with rare items."
-            },
-            "weight": 0.6,
-            "tags": [
-                "premium",
-                "rare"
-            ]
-        },
-        {
-            "roll_range": [
-                91,
-                100
-            ],
-            "result": {
-                "type": "LEGENDARY",
-                "credits": {
-                    "base": 1000,
-                    "per_difficulty": 300
-                },
-                "reputation": 4,
-                "bonus_rewards": [
-                    "legendary_item",
-                    "intel",
-                    "special_resource",
-                    "unique_bonus"
-                ],
-                "description": "Legendary reward package with unique bonuses."
-            },
-            "weight": 0.4,
-            "tags": [
-                "legendary",
-                "unique"
-            ]
-        }
-    ],
-    "validation_rules": [
-        {
-            "type": "mission_type_modifier",
-            "params": {
-                "RED_ZONE": {
-                    "credit_multiplier": 1.0,
-                    "reputation_multiplier": 1.0
-                },
-                "BLACK_ZONE": {
-                    "credit_multiplier": 1.5,
-                    "reputation_multiplier": 1.3
-                },
-                "PATRON": {
-                    "credit_multiplier": 1.2,
-                    "reputation_multiplier": 1.5
-                }
-            }
-        },
-        {
-            "type": "phase_modifier",
-            "params": {
-                "EARLY_GAME": {
-                    "reward_quality_modifier": 0.8,
-                    "legendary_chance": 0.1
-                },
-                "MID_GAME": {
-                    "reward_quality_modifier": 1.0,
-                    "legendary_chance": 0.2
-                },
-                "LATE_GAME": {
-                    "reward_quality_modifier": 1.2,
-                    "legendary_chance": 0.3
-                }
-            }
-        }
-    ],
-    "default_result": {
-        "type": "STANDARD",
-        "credits": {
-            "base": 100,
-            "per_difficulty": 50
-        },
-        "reputation": 1,
-        "bonus_rewards": [],
-        "description": "Basic reward package."
+    "description": "Mission Pay and Danger Pay (Core Rules pp.83, 120). Base pay is 1D6 credits with situational modifiers. Danger Pay is a separate D10 table for patron jobs.",
+    "core_rules_page": "83, 120",
+    "base_pay": {
+        "die": "D6",
+        "description": "Roll 1D6 for base mission pay in credits.",
+        "modifiers": [
+            {"condition": "quest_finale", "effect": "roll_twice_pick_higher_plus_one", "description": "Roll 1D6 twice, pick the better, and add +1."},
+            {"condition": "won_by_objective", "effect": "treat_1_2_as_3", "description": "Treat any roll of 1 or 2 as a 3. Does NOT apply to Rival missions."},
+            {"condition": "easy_mode", "effect": "add_1", "description": "Add +1 to the roll."},
+            {"condition": "invasion_battle", "effect": "no_payment", "description": "No payment for Invasion battles."},
+            {"condition": "patron_job", "effect": "add_danger_pay", "description": "Add Danger Pay bonus on top. Benefits may also apply."}
+        ]
+    },
+    "danger_pay": {
+        "die": "D10",
+        "description": "Danger Pay for patron jobs. Add +1 if Corporation patron.",
+        "core_rules_page": "83",
+        "entries": [
+            {"roll_range": [1, 4], "danger_pay": 1},
+            {"roll_range": [5, 8], "danger_pay": 2},
+            {"roll_range": [9, 9], "danger_pay": 3},
+            {"roll_range": [10, 99], "danger_pay": 3, "bonus_pay_rule": "roll_twice_pick_higher"}
+        ],
+        "modifiers": [
+            {"condition": "corporation_patron", "effect": "add_1_to_roll"}
+        ]
+    },
+    "battlefield_finds": {
+        "die": "D100",
+        "description": "Roll once after Holding the Field. Not after Invasion battles.",
+        "core_rules_page": "120-121",
+        "entries": [
+            {"roll_range": [1, 15], "type": "WEAPON", "description": "Randomly select a slain (not Bailed) enemy; keep their weapons."},
+            {"roll_range": [16, 25], "type": "USABLE_GOODS", "description": "Roll on Consumables Table, receive 1 dosage."},
+            {"roll_range": [26, 35], "type": "CURIOUS_DATA_STICK", "description": "Gain 1 Quest Rumor. Invasion Threat enemy: Invasion Evidence (+1 credit, +1 Invasion check)."},
+            {"roll_range": [36, 45], "type": "STARSHIP_PART", "description": "Redeemable as 2 credits only when installing a Starship Component."},
+            {"roll_range": [46, 60], "type": "PERSONAL_TRINKET", "description": "On each planet visited, roll 2D6; on 9+ find owner and receive a Loot roll."},
+            {"roll_range": [61, 75], "type": "DEBRIS", "description": "1D3 credits on scrap market."},
+            {"roll_range": [76, 90], "type": "VITAL_INFO", "description": "Turn in for automatic Corporate Patron on this world. Invasion Threat enemy: Invasion Evidence (+1 credit, +1 Invasion check)."},
+            {"roll_range": [91, 100], "type": "NOTHING", "description": "Nothing of value."}
+        ]
+    },
+    "loot_table": {
+        "die": "D100",
+        "description": "Main Loot Table (Core Rules pp.131-134). Three-roll process: Category, then Subtable, then Item.",
+        "core_rules_page": "131-134",
+        "categories": [
+            {"roll_range": [1, 25], "type": "WEAPON", "description": "Roll once on Weapons Category."},
+            {"roll_range": [26, 35], "type": "DAMAGED_WEAPONS", "description": "Roll twice on Weapons Category, both need Repair."},
+            {"roll_range": [36, 45], "type": "DAMAGED_GEAR", "description": "Roll twice on Gear Subtable, both need Repair."},
+            {"roll_range": [46, 65], "type": "GEAR", "description": "Roll once on Gear Subtable."},
+            {"roll_range": [66, 80], "type": "ODDS_AND_ENDS", "description": "Roll once on Odds and Ends Subtable."},
+            {"roll_range": [81, 100], "type": "REWARDS", "description": "Roll once on Rewards Subtable."}
+        ],
+        "rewards_subtable": [
+            {"roll_range": [1, 10], "type": "DOCUMENTS", "description": "1 Rumor."},
+            {"roll_range": [11, 20], "type": "DATA_FILES", "description": "2 Rumors."},
+            {"roll_range": [21, 25], "type": "SCRAP", "description": "3 credits."},
+            {"roll_range": [26, 40], "type": "CARGO_CRATE", "description": "1D6 credits."},
+            {"roll_range": [41, 55], "type": "VALUABLE_MATERIALS", "description": "1D6+2 credits."},
+            {"roll_range": [56, 70], "type": "RARE_SUBSTANCE", "description": "Roll 2D6, receive credits equal to highest die."},
+            {"roll_range": [71, 85], "type": "SHIP_PARTS", "description": "Discount next ship component by 1D6 credits."},
+            {"roll_range": [86, 90], "type": "MILITARY_SHIP_PART", "description": "Discount next ship component by 1D6+2 credits."},
+            {"roll_range": [91, 95], "type": "MYSTERIOUS_ITEMS", "description": "2 story points."},
+            {"roll_range": [96, 100], "type": "PERSONAL_ITEM", "description": "3 story points."}
+        ]
     }
 }

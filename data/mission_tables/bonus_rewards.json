@@ -1,4 +1,5 @@
 {
+    "source": "APP_ENHANCEMENT — not from Core Rules",
     "name": "bonus_rewards",
     "entries": [
         {
@@ -105,23 +106,7 @@
         }
     ],
     "validation_rules": [],
-    "modifiers": [
-        {
-            "type": "mission_type_modifier",
-            "params": {
-                "RED_ZONE": {
-                    "reputation_multiplier": 1.5
-                },
-                "BLACK_ZONE": {
-                    "reputation_multiplier": 2.0,
-                    "intel_multiplier": 1.5
-                },
-                "PATRON": {
-                    "item_value_multiplier": 1.5
-                }
-            }
-        }
-    ],
+    "modifiers": [],
     "default_result": {
         "reputation": 1
     }

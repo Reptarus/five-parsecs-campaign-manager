@@ -1,4 +1,5 @@
 {
+    "source": "APP_ENHANCEMENT — not from Core Rules",
     "name": "mission_difficulty",
     "entries": [
         {
@@ -57,31 +58,7 @@
             ]
         }
     ],
-    "validation_rules": [
-        {
-            "type": "mission_type_check",
-            "params": {
-                "RED_ZONE": {
-                    "min_difficulty": 2
-                },
-                "BLACK_ZONE": {
-                    "min_difficulty": 3
-                },
-                "PATRON": {
-                    "max_difficulty": 4
-                }
-            }
-        }
-    ],
-    "modifiers": [
-        {
-            "type": "mission_type_modifier",
-            "params": {
-                "RED_ZONE": 1,
-                "BLACK_ZONE": 2,
-                "PATRON": 0
-            }
-        }
-    ],
+    "validation_rules": [],
+    "modifiers": [],
     "default_result": 1
 }

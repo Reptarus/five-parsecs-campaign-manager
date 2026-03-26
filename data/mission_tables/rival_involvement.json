@@ -1,76 +1,48 @@
 {
     "name": "rival_involvement",
-    "entries": [
-        {
-            "roll_range": [
-                1,
-                70
-            ],
-            "result": false,
-            "weight": 1.0,
-            "tags": [
-                "none"
+    "description": "Rival tracking and encounter mechanics (Core Rules pp.85-86, 91, 119). Roll 1D6; if <= number of Rivals, one tracks you down.",
+    "core_rules_page": "85-86, 91, 119",
+    "rival_check": {
+        "die": "D6",
+        "description": "Roll 1D6. If the result is equal to or lower than the number of Rivals, one has tracked you down. Select exact Rival at random.",
+        "modifiers": [
+            {"condition": "decoy_crew_task", "effect": "add_per_decoy", "description": "Add +1 to the roll for every crew member sent as Decoy (makes it harder for rivals to find you)."}
+        ],
+        "consequences": "Prevents doing your chosen battle. Quests/Rumors remain, but Patron jobs expire on schedule."
+    },
+    "rival_attack_types": {
+        "die": "D10",
+        "description": "Rival Attack Type table (Core Rules p.91). If tracked down via crew task, always a Showdown.",
+        "core_rules_page": "91",
+        "entries": [
+            {"roll_range": [1, 1], "type": "AMBUSH", "description": "Deploy one fewer crew than standard. Cannot Seize the Initiative."},
+            {"roll_range": [2, 3], "type": "BROUGHT_FRIENDS", "description": "Add 1 additional enemy."},
+            {"roll_range": [4, 7], "type": "SHOWDOWN", "description": "Straight-up fight. No modifications."},
+            {"roll_range": [8, 8], "type": "ASSAULT", "description": "Add 1 additional enemy. Crew must set up in/adjacent to building. Fail to Hold = lose 1D3 credits."},
+            {"roll_range": [9, 10], "type": "RAID", "description": "Fail to Hold the Field = ship takes 1D6+1 Hull Point damage."}
+        ],
+        "special_rules": [
+            "If tracked down via crew task, always a Showdown.",
+            "No Win condition vs Rivals, but Holding the Field = increased chance of removing them.",
+            "Fleeing before 4 rounds: Random crew member loses random equipment."
+        ]
+    },
+    "post_battle_rival_resolution": {
+        "die": "D6",
+        "description": "Resolve rival status after battle (Core Rules p.119).",
+        "core_rules_page": "119",
+        "new_rival_check": {
+            "description": "Non-Rival opponent, Held the Field: Roll 1D6. On a 1, they become your Rivals (noted for this planet).",
+            "threshold": 1
+        },
+        "remove_rival_check": {
+            "description": "Existing Rival, Held the Field: Roll 1D6. Add +1 if you Tracked them down. Add +1 if you killed a Unique Individual. On 4+, remove from Rivals list.",
+            "threshold": 4,
+            "modifiers": [
+                {"condition": "tracked_down", "bonus": 1},
+                {"condition": "killed_unique_individual", "bonus": 1}
             ]
         },
-        {
-            "roll_range": [
-                71,
-                85
-            ],
-            "result": true,
-            "weight": 0.7,
-            "tags": [
-                "minor"
-            ]
-        },
-        {
-            "roll_range": [
-                86,
-                95
-            ],
-            "result": true,
-            "weight": 0.5,
-            "tags": [
-                "major"
-            ]
-        },
-        {
-            "roll_range": [
-                96,
-                100
-            ],
-            "result": true,
-            "weight": 0.3,
-            "tags": [
-                "critical"
-            ]
-        }
-    ],
-    "validation_rules": [
-        {
-            "type": "rival_status_check",
-            "params": {
-                "active_rivals_required": true,
-                "min_reputation": -50,
-                "max_reputation": 50
-            }
-        }
-    ],
-    "modifiers": [
-        {
-            "type": "mission_type_modifier",
-            "params": {
-                "RED_ZONE": {
-                    "involvement_chance": 1.5
-                },
-                "BLACK_ZONE": {
-                    "involvement_chance": 2.0
-                },
-                "PATRON": {
-                    "involvement_chance": 0.5
-                }
-            }
-        }
-    ],
-    "default_result": false
+        "skip_conditions": ["invasion_battle", "roving_threats_subtable"]
+    }
 }
