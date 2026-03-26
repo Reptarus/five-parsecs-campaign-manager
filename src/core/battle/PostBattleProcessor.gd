@@ -28,12 +28,44 @@ enum ProcessingStage {
 	FINALIZE_RESULTS
 }
 
-# Core Rules p.119 -- XP Awards (per character)
-const XP_BECAME_CASUALTY := 1
-const XP_SURVIVED_LOST := 2
-const XP_SURVIVED_WON := 3
-const XP_FIRST_KILL := 1
-const XP_UNIQUE_INDIVIDUAL := 1
+# Injury + XP data loaded from data/injury_results.json (Core Rules p.122-123)
+static var _injury_json: Dictionary = {}
+static var _injury_json_loaded: bool = false
+
+static func _load_injury_json() -> void:
+	if _injury_json_loaded:
+		return
+	var file := FileAccess.open("res://data/injury_results.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			_injury_json = json.data
+	if _injury_json.is_empty():
+		push_warning("PostBattleProcessor: Failed to load injury_results.json, using fallback values")
+	_injury_json_loaded = true
+
+static func _get_xp(key: String, fallback: int) -> int:
+	_load_injury_json()
+	var xp_data: Dictionary = _injury_json.get("xp_awards", {})
+	return int(xp_data.get(key, fallback))
+
+static func _get_injury_entries(table_key: String) -> Array:
+	_load_injury_json()
+	var tables: Dictionary = _injury_json.get("tables", {})
+	var table: Dictionary = tables.get(table_key, {})
+	return table.get("entries", [])
+
+# XP award accessors — canonical source: data/injury_results.json (Core Rules p.123)
+var XP_BECAME_CASUALTY: int:
+	get: return _get_xp("became_casualty", 1)
+var XP_SURVIVED_LOST: int:
+	get: return _get_xp("survived_lost_battle", 2)
+var XP_SURVIVED_WON: int:
+	get: return _get_xp("survived_won_battle", 3)
+var XP_FIRST_KILL: int:
+	get: return _get_xp("first_kill", 1)
+var XP_UNIQUE_INDIVIDUAL: int:
+	get: return _get_xp("unique_individual", 1)
 
 # System state
 @export var processing_active: bool = false
@@ -185,128 +217,96 @@ func _process_injury_table(
 				injury_processed.emit(unit.unit_name, injury_data)
 
 func _roll_human_injury_table(unit: BattlefieldTypes.UnitData) -> Dictionary:
-	## Human Injury Table -- Core Rules p.119
-	## Roll D100 per casualty
+	## Human Injury Table — data-driven from data/injury_results.json (Core Rules p.122)
 	var roll := _roll_d100()
 	var injury_data := {"unit_name": unit.unit_name, "roll": roll}
 
-	if roll <= 5:
-		# Gruesome fate -- dead, all carried equipment damaged
-		injury_data["name"] = "Gruesome fate"
-		injury_data["dead"] = true
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = [
-			"Character is dead",
-			"All carried equipment is damaged"]
-	elif roll <= 15:
-		# Death or permanent injury -- dead/removed
-		injury_data["name"] = "Death or permanent injury"
-		injury_data["dead"] = true
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = ["Dead, or removed from the campaign"]
-	elif roll == 16:
-		# Miraculous escape -- survives, +1 Luck, all items permanently lost
-		injury_data["name"] = "Miraculous escape"
-		injury_data["dead"] = false
-		injury_data["recovery_time"] = 0
-		injury_data["luck_bonus"] = 1
-		injury_data["effects"] = [
-			"Character survives and receives +1 Luck",
-			"All items carried are permanently lost"]
-	elif roll <= 30:
-		# Equipment loss -- random carried item is damaged
-		injury_data["name"] = "Equipment loss"
-		injury_data["dead"] = false
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = ["Random carried item is damaged"]
-	elif roll <= 45:
-		# Crippling wound -- 1D6 credits surgery or -1 to Speed/Toughness (highest)
-		var surgery_cost := _roll_dice_safely("d6")
-		injury_data["name"] = "Crippling wound"
-		injury_data["dead"] = false
-		injury_data["recovery_time"] = _roll_dice_safely("d6")
-		injury_data["surgery_cost"] = surgery_cost
-		injury_data["stat_reduction"] = {
-			"stats": ["speed", "toughness"],
-			"pick": "highest", "amount": -1}
-		injury_data["effects"] = [
-			"Require %d credits of surgery immediately" % surgery_cost,
-			"Or suffer -1 permanent reduction to highest of Speed or Toughness"
-		]
-	elif roll <= 54:
-		# Serious injury -- recovery 1D3+1 turns
-		injury_data["name"] = "Serious injury"
-		injury_data["dead"] = false
-		injury_data["recovery_time"] = _roll_dice_safely("d3") + 1
-		injury_data["effects"] = ["No long-term effect"]
-	elif roll <= 80:
-		# Minor injuries -- recovery 1 turn
+	var entries: Array = _get_injury_entries("human")
+	var matched := _match_injury_entry(entries, roll)
+	if matched.is_empty():
+		# Fallback if JSON unavailable
 		injury_data["name"] = "Minor injuries"
 		injury_data["dead"] = false
 		injury_data["recovery_time"] = 1
 		injury_data["effects"] = ["No long-term effect"]
-	elif roll <= 95:
-		# Knocked out -- no recovery
-		injury_data["name"] = "Knocked out"
-		injury_data["dead"] = false
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = ["No long-term effect"]
+		return injury_data
+
+	injury_data["name"] = matched.get("name", "Unknown")
+	injury_data["dead"] = matched.get("dead", false)
+	injury_data["effects"] = matched.get("effects", [])
+
+	# Handle recovery time: fixed value or dice roll
+	if matched.has("recovery_time_roll"):
+		injury_data["recovery_time"] = _resolve_dice_expression(str(matched["recovery_time_roll"]))
 	else:
-		# School of hard knocks -- earn 1 XP
-		injury_data["name"] = "School of hard knocks"
-		injury_data["dead"] = false
-		injury_data["recovery_time"] = 0
-		injury_data["xp_bonus"] = 1
-		injury_data["effects"] = ["Earn 1 XP"]
+		injury_data["recovery_time"] = int(matched.get("recovery_time", 0))
+
+	# Handle surgery cost (Crippling wound)
+	if matched.has("surgery_cost_roll"):
+		var surgery_cost: int = _resolve_dice_expression(str(matched["surgery_cost_roll"]))
+		injury_data["surgery_cost"] = surgery_cost
+		# Update effects text with actual rolled cost
+		var effects: Array = []
+		for effect in injury_data["effects"]:
+			effects.append(str(effect).replace("1D6 credits", "%d credits" % surgery_cost))
+		injury_data["effects"] = effects
+
+	# Handle stat reduction (Crippling wound)
+	if matched.has("stat_reduction"):
+		injury_data["stat_reduction"] = matched["stat_reduction"]
+
+	# Handle luck bonus (Miraculous escape)
+	if matched.has("luck_bonus"):
+		injury_data["luck_bonus"] = int(matched["luck_bonus"])
+
+	# Handle XP bonus (School of hard knocks)
+	if matched.has("xp_bonus"):
+		injury_data["xp_bonus"] = int(matched["xp_bonus"])
 
 	return injury_data
 
 func _roll_bot_injury_table(unit: BattlefieldTypes.UnitData) -> Dictionary:
-	## Bot/Soulless Injury Table -- Core Rules p.119
+	## Bot/Soulless Injury Table — data-driven from data/injury_results.json (Core Rules p.122)
 	var roll := _roll_d100()
-	var injury_data := {
-		"unit_name": unit.unit_name, "roll": roll}
+	var injury_data := {"unit_name": unit.unit_name, "roll": roll}
 
-	if roll <= 5:
-		# Obliterated -- destroyed, all equipment damaged
-		injury_data["name"] = "Obliterated"
-		injury_data["destroyed"] = true
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = [
-			"Destroyed",
-			"All carried equipment is damaged"]
-	elif roll <= 15:
-		# Destroyed
-		injury_data["name"] = "Destroyed"
-		injury_data["destroyed"] = true
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = ["Destroyed"]
-	elif roll <= 30:
-		# Equipment loss -- random carried item is damaged
-		injury_data["name"] = "Equipment loss"
-		injury_data["destroyed"] = false
-		injury_data["recovery_time"] = 0
-		injury_data["effects"] = ["Random carried item is damaged"]
-	elif roll <= 45:
-		# Severe damage -- repair 1D6 turns
-		injury_data["name"] = "Severe damage"
-		injury_data["destroyed"] = false
-		injury_data["recovery_time"] = _roll_dice_safely("d6")
-		injury_data["effects"] = ["No long-term effect"]
-	elif roll <= 65:
-		# Minor damage -- repair 1 turn
-		injury_data["name"] = "Minor damage"
-		injury_data["destroyed"] = false
-		injury_data["recovery_time"] = 1
-		injury_data["effects"] = ["No long-term effect"]
-	else:
-		# Just a few dents -- no repair needed
+	var entries: Array = _get_injury_entries("bot")
+	var matched := _match_injury_entry(entries, roll)
+	if matched.is_empty():
 		injury_data["name"] = "Just a few dents"
 		injury_data["destroyed"] = false
 		injury_data["recovery_time"] = 0
 		injury_data["effects"] = ["No long-term effect"]
+		return injury_data
+
+	injury_data["name"] = matched.get("name", "Unknown")
+	injury_data["destroyed"] = matched.get("destroyed", false)
+	injury_data["effects"] = matched.get("effects", [])
+
+	if matched.has("recovery_time_roll"):
+		injury_data["recovery_time"] = _resolve_dice_expression(str(matched["recovery_time_roll"]))
+	else:
+		injury_data["recovery_time"] = int(matched.get("recovery_time", 0))
 
 	return injury_data
+
+func _match_injury_entry(entries: Array, roll: int) -> Dictionary:
+	## Find the injury entry matching a D100 roll from JSON entries
+	for entry in entries:
+		var roll_range: Array = entry.get("roll_range", [])
+		if roll_range.size() == 2:
+			if roll >= int(roll_range[0]) and roll <= int(roll_range[1]):
+				return entry
+	return {}
+
+func _resolve_dice_expression(expr: String) -> int:
+	## Resolve a dice expression like "1d6" or "1d3+1" via DiceManager or fallback
+	var lower := expr.to_lower().strip_edges()
+	# Handle "NdX+Y" pattern
+	if "+" in lower:
+		var parts := lower.split("+")
+		return _roll_dice_safely(parts[0].strip_edges()) + int(parts[1].strip_edges())
+	return _roll_dice_safely(lower)
 
 func _is_bot_or_soulless(unit: BattlefieldTypes.UnitData) -> bool:
 	## Check if unit is a bot or soulless (uses Bot Injury Table)

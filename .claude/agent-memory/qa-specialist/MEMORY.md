@@ -53,6 +53,19 @@ Use this to cross-reference game values when promoting mechanics from MCP_VALIDA
 - `src/core/ship/ShiplessSystem.gd` — destruction, passage, acquisition, debt
 - `data/red_zone_jobs.json`, `data/black_zone_jobs.json` — data integrity
 
+## Session 11-12: Hardcoded Data Cleanup Verified (Mar 26, 2026)
+
+Comprehensive audit of hardcoded game data completed. Key fixes verified:
+
+- **KeywordDB**: Now loads 89 keywords from `data/keywords.json` (was 10 hardcoded wrong ones). 14 weapon trait definitions corrected to Core Rules p.51.
+- **BattlePhase.gd**: Fabricated payment formula removed (was 100+difficulty*25+50). PostBattlePaymentProcessor correctly does 1D6 per Core Rules p.120.
+- **BattleEventsSystem.gd**: Now loads 24 battle events from `data/event_tables.json` (was fully hardcoded, JSON ignored).
+- **Verified already correct**: PatronJobGenerator (cascades through 2 JSON files), CharacterCreator (loads from character_creation_bonuses.json), BattleCalculations constants (properly annotated).
+- **Deferred**: CharacterNameGenerator (cosmetic, no gameplay impact).
+- **Previous session fixes also verified**: Starting credits (18 files), stun mechanic (trait-based), XP multipliers removed, Dazzle Grenade Heavy trait, ship hull values, Krag/Skulker species wiring.
+
+---
+
 ## Phase 31 QA Bug Fix Sprint COMPLETE (Mar 16, 2026)
 
 6 sprints, 14 files modified, 10 bugs + 3 High UX fixed, 0 compile errors.

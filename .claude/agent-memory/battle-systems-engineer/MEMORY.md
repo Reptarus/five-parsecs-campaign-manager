@@ -75,6 +75,47 @@ CombatResolver.gd defines a 24-method + 10-property interface contract on `Chara
 
 TacticalBattleUI now hosts Battle Simulator flow too. Three modes: Standard 5PFH, Bug Hunt, Battle Simulator. All runtime-verified via MCP with zero errors.
 
+## Session 11-12: Hardcoded Data Cleanup (Mar 26, 2026)
+
+### BattlePhase.gd Fabricated Payment Removed (CRITICAL)
+Both tactical and auto-resolve paths had `base_payment=100 + difficulty*25 + success_bonus=50` — fabricated formula generating 150-200 credits per battle. `battle_setup_data` is rebuilt at line 323 without `base_payment`, so fallback always triggered. Fixed: `combat_results["payment"]` and `["credits_earned"]` now set to 0. Real payment handled by `PostBattlePaymentProcessor.process_payment()` (1D6 credits, Core Rules p.120).
+
+### BattleEventsSystem.gd Wired to JSON
+Added `_load_events_from_json()` loading 24 battle events from `data/event_tables.json["battle_events"]["entries"]`. Falls back to `_initialize_event_registry()` if JSON fails. Follows TravelPhase.gd pattern.
+
+### BattleCalculations.gd Constants — Verified Correct
+Hit thresholds (3+/5+/6+), range bands, armor/screen saves all properly annotated with Core Rules page citations. Appropriate as code constants — no JSON externalization needed. XP constants now derived from `data/injury_results.json` via static var getters (additive decomposition: PARTICIPATION + VICTORY_BONUS = survived_won_battle).
+
+### STUN_THRESHOLD Removed (Previous Session)
+`STUN_THRESHOLD := 8` was fabricated damage-based stun. Removed from both BattleCalculations.gd and CombatResolver.gd. Stun is now trait-based only per Core Rules p.40/51.
+
+## Session 13: Injury/XP/Unique Individual JSON Wiring (Mar 26, 2026)
+
+### injury_results.json — Verified & Wired (Core Rules p.122-123)
+
+Both human (9 entries) and bot (6 entries) injury tables verified against Core Rules p.122 — exact match. XP awards verified against p.123 (7 conditions). Two missing XP entries added: `easy_mode_bonus` and `quest_completion`. Page citation corrected from p.119 to p.122/123.
+
+**Wired to 3 consumers:**
+
+- `PostBattleProcessor.gd` — XP awards via static lazy loader + both injury table methods now data-driven from JSON (replaced ~75-line if/elif chains with `_match_injury_entry()` + `_resolve_dice_expression()`)
+- `ExperienceTrainingProcessor.gd` — `_calculate_crew_xp()` loads XP values from JSON
+- `BattleCalculations.gd` — XP constants derived from JSON via static var getters
+
+### unique_individual.json — Verified & Wired (Core Rules pp.64-65, 93-94)
+
+Removed fabricated `unique_individual_definition` (flat +1 bonuses don't exist). Added missing Interested Parties +1 modifier (Core Rules p.93), Invasion/Roving Threats exclusion rules.
+
+**Wired to BattlePhase.gd:**
+
+- `_determine_unique_individual()` loads threshold (9), double threshold (11), Interested Parties modifier from JSON
+- Added missing Interested Parties +1 check via `battle_setup_data.get("enemy_category", "")`
+
+### Dual injury JSON files
+
+- `data/injury_table.json` — older file, referenced by DataManager/GameDataManager
+- `data/injury_results.json` — newer file with XP awards + processing rules, now canonical source for PostBattleProcessor/ExperienceTrainingProcessor/BattleCalculations
+- Both contain identical injury table data; `injury_table.json` also has XP table in different format
+
 ---
 
 ## Mar 20-21 Runtime Verification

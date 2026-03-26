@@ -1,8 +1,8 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-03-23
+**Last Updated**: 2026-03-26
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified** — 100+ Compendium values verified against Five Parsecs Compendium PDF. 3 origin bonus bugs found+fixed (Krag, Skulker, Prison Planet). Deployment (54 D100 ranges), Escalation (42 D100 ranges), Equipment (17 items), Species profiles, Salvage mechanics all confirmed correct. See QA_RULES_ACCURACY_AUDIT.md for details.
+**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete** — KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed (was 100+difficulty*25+50, now 0 — PostBattlePaymentProcessor handles 1D6 per Core Rules p.120), BattleEventsSystem wired to event_tables.json (24 events data-driven). PatronJobGenerator confirmed already wired to JSON. See QA_RULES_ACCURACY_AUDIT.md for details.
 
 ---
 

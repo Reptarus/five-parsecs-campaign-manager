@@ -51,6 +51,18 @@ This is the root cause of "Cannot infer the type" errors project-wide. Always us
 
 ---
 
+## Session 11-12: Hardcoded Data Cleanup (Mar 26, 2026)
+
+Major cross-system data integrity pass completed:
+- **KeywordDB** (character-data domain): Wired to 89-keyword JSON, 14 weapon traits corrected to Core Rules p.51
+- **BattlePhase.gd** (battle/campaign domain): Fabricated payment formula removed. PostBattlePaymentProcessor handles real 1D6 payment.
+- **BattleEventsSystem.gd** (battle domain): Wired to event_tables.json (24 events data-driven)
+- **Audit verified**: PatronJobGenerator already wired, CharacterCreator already wired, BattleCalculations constants correct
+- **Deferred**: CharacterNameGenerator (cosmetic), patron_missions.json (dead data)
+- **Project version**: v0.9.4
+
+---
+
 ## PDF Rulebooks & Python Extraction Tools
 
 All agents can now extract data directly from source PDFs — route data verification tasks accordingly:

@@ -11,8 +11,10 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/armor.json` | GameDataManager.load_armor_database() | 9 protective devices (pp.54-55): {id, name, category (armor/screen), armor_save, effects{}, special_rules} |
 | `data/gear.json` | GameDataManager.load_gear_database() | Array of {id, name, description, effect, cost, type} |
 | `data/equipment.json` | GameDataManager.load_equipment_database() | Combined equipment catalog |
-| `data/injury_tables.json` | GameDataManager.load_injury_tables() | {table_name: [{roll_min, roll_max, result, effect, recovery_turns}]} |
-| `data/enemy_types.json` | EnemyGenerator via DataManager | 4 categories (criminal_elements, hired_muscle, interested_parties, roving_threats), 59 enemies with roll_range/numbers/panic/speed/combat_skill/toughness/ai/weapons/special_rules, 22 unique_individuals, weapon_tables, ai_types mapping (pp.94-107) |
+| `data/injury_table.json` | DataManager, GameDataManager | D100 injury tables (human 9 entries, bot 6 entries) + XP awards table. Older format — same data as injury_results.json |
+| `data/injury_results.json` | PostBattleProcessor, ExperienceTrainingProcessor, BattleCalculations | **Canonical** injury data source: D100 tables (human/bot), XP awards (7 conditions, Core Rules p.123), processing rules. Verified against Core Rules p.122-123 |
+| `data/unique_individual.json` | BattlePhase._determine_unique_individual() | Unique Individual presence mechanics: threshold (9 on 2D6), difficulty modifiers (Hardcore +1, Insanity forced), Interested Parties +1, exclusion rules (Invasion/Roving Threats). Types table is in enemy_types.json |
+| `data/enemy_types.json` | EnemyGenerator via DataManager, BattlePhase._roll_unique_individual_type() | 4 categories (criminal_elements, hired_muscle, interested_parties, roving_threats), 59 enemies with roll_range/numbers/panic/speed/combat_skill/toughness/ai/weapons/special_rules, 21 unique_individuals with D100 roll_range, weapon_tables, ai_types mapping (pp.94-107) |
 | `data/loot_tables.json` | GameDataManager.load_loot_tables() | {table_name: [{roll_min, roll_max, item_id, quantity}]} |
 | `data/mission_templates.json` | GameDataManager.load_mission_templates() | Array of {id, type, objective, enemies, rewards, deployment} |
 | `data/status_effects.json` | GameDataManager.load_status_effects() | {id: {name, duration, effect_type, modifier}} |

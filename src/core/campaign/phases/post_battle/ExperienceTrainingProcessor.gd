@@ -9,6 +9,27 @@ extends RefCounted
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 
+# XP awards loaded from data/injury_results.json (Core Rules p.123)
+static var _xp_data: Dictionary = {}
+static var _xp_loaded: bool = false
+
+static func _load_xp_data() -> void:
+	if _xp_loaded:
+		return
+	var file := FileAccess.open("res://data/injury_results.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			_xp_data = json.data.get("xp_awards", {})
+	if _xp_data.is_empty():
+		push_warning("ExperienceTrainingProcessor: Failed to load XP data from injury_results.json, using fallback values")
+		_xp_data = {"became_casualty": 1, "survived_lost_battle": 2, "survived_won_battle": 3, "first_kill": 1, "unique_individual": 1}
+	_xp_loaded = true
+
+static func _get_xp(key: String, fallback: int) -> int:
+	_load_xp_data()
+	return int(_xp_data.get(key, fallback))
+
 # Training course definitions (Core Rules p.125)
 const TRAINING_COURSES: Dictionary = {
 	"pilot": {"cost": 20, "effect": "savvy_roll_bonus", "description": "Piloting certification"},
@@ -206,7 +227,7 @@ func attempt_training_enrollment(ctx: PostBattleContextClass, crew_id: String, c
 # --- Internal XP Calculation ---
 
 func _calculate_crew_xp(ctx: PostBattleContextClass, crew_id: String) -> int:
-	## Core Rules p.89-90 XP calculation.
+	## Core Rules p.123 XP calculation. Values loaded from data/injury_results.json.
 	var xp: int = 0
 
 	if ctx.battle_result.get("fled_early", false):
@@ -215,20 +236,20 @@ func _calculate_crew_xp(ctx: PostBattleContextClass, crew_id: String) -> int:
 	var was_casualty: bool = _was_crew_casualty_in_battle(ctx, crew_id)
 
 	if was_casualty:
-		xp += 1
+		xp += _get_xp("became_casualty", 1)
 		return _apply_xp_multiplier(ctx, xp)
 
 	if ctx.mission_successful:
-		xp += 3
+		xp += _get_xp("survived_won_battle", 3)
 	else:
-		xp += 2
+		xp += _get_xp("survived_lost_battle", 2)
 
 	if ctx.battle_result.get("first_casualty_by", "") == crew_id:
-		xp += 1
+		xp += _get_xp("first_kill", 1)
 
 	var unique_kills: Array = ctx.battle_result.get("unique_kills", [])
 	if crew_id in unique_kills:
-		xp += 1
+		xp += _get_xp("unique_individual", 1)
 
 	var difficulty: int = ctx.get_campaign_difficulty()
 	var xp_bonus: int = DifficultyModifiers.get_xp_bonus(difficulty)

@@ -1,8 +1,8 @@
 # Rules-to-Code Traceability Audit
 
-**Last Updated**: 2026-03-23
+**Last Updated**: 2026-03-26
 **Purpose**: Comprehensive line-by-line verification that EVERY rule in the Core Rules book and Compendium has corresponding code, and EVERY piece of game code traces back to a specific rule
-**Status**: DATA VERIFIED, GENERATOR WIRING COMPLETE, COMPENDIUM VERIFIED — All 12/12 data domains verified against source text (925/925 values). Generator wiring audit (Mar 23) found 10/16 generators; all fixed. Cleanup sprint (Mar 23): Dazzle Grenade data sync, PatronJobGenerator preferred_jobs, game CharacterCreator 21 classes, SpeciesList.json 6 corrections. Compendium verification (Mar 23): 100+ values verified against Five Parsecs Compendium PDF. Found and fixed 3 origin bonus bugs (Krag SAVVY -1 spurious, Skulker SPEED/TOUGHNESS/SAVVY all wrong, Prison Planet COMBAT→COMBAT_SKILL key). Deployment D100 (54 ranges), Escalation D100 (42 ranges), Equipment (17 items), Species (2 profiles + rules), Salvage mechanics all confirmed correct.
+**Status**: DATA VERIFIED, GENERATOR WIRING COMPLETE, COMPENDIUM VERIFIED, HARDCODED DATA CLEANUP COMPLETE — All 12/12 data domains verified against source text (925/925 values). Generator wiring audit (Mar 23) found 10/16 generators; all fixed. Cleanup sprint (Mar 23): Dazzle Grenade data sync, PatronJobGenerator preferred_jobs, game CharacterCreator 21 classes, SpeciesList.json 6 corrections. Compendium verification (Mar 23): 100+ values verified against Five Parsecs Compendium PDF. Found and fixed 3 origin bonus bugs. Hardcoded data cleanup (Mar 26): KeywordDB wired to 89-keyword JSON, 14 weapon traits corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json, 18 files had 1000-credit defaults replaced with 0, starting credits formula corrected to Core Rules p.28, stun mechanic changed from fabricated damage threshold to trait-based per Core Rules p.51.
 
 > **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. Every rule statement, every conditional ("and"/"or"), every table, every formula in the Core Rules book must map to specific code. Every game data value in code must trace back to a specific page and paragraph in the book.
 
@@ -44,6 +44,25 @@
 5. ~~**Phantom properties**~~ — FIXED: Expanded to all 23+6 classes
 6. ~~**Incomplete coverage**~~ — FIXED: All Core Rules classes covered
 7. ~~**Category ID mismatch**~~ — FIXED: `CATEGORY_IDS` const maps UI to JSON IDs
+
+### Hardcoded Data Cleanup (ALL RESOLVED — Mar 26, 2026)
+
+8. ~~**KeywordDB ignoring JSON**~~ — FIXED: `_load_keywords_from_json()` loads 89 keywords from `data/keywords.json`. 14 weapon trait definitions corrected to Core Rules p.51.
+9. ~~**BattlePhase fabricated payment**~~ — FIXED: Removed `base_payment=100 + difficulty*25 + success_bonus=50`. PostBattlePaymentProcessor handles real 1D6 payment (Core Rules p.120).
+10. ~~**BattleEventsSystem ignoring JSON**~~ — FIXED: `_load_events_from_json()` loads 24 battle events from `data/event_tables.json`. Falls back to hardcoded if JSON fails.
+11. ~~**Starting credits 1000**~~ — FIXED: 18 files had hardcoded 1000-credit defaults → changed to 0. EquipmentPanel credits formula corrected to Core Rules p.28.
+12. ~~**STUN_THRESHOLD fabricated**~~ — FIXED: Removed from BattleCalculations.gd and CombatResolver.gd. Stun now trait-based per Core Rules p.40/51.
+13. ~~**XP difficulty multipliers fabricated**~~ — FIXED: Removed 0.75x/1.25x/1.5x multipliers from ExperienceTrainingProcessor. Easy mode +1 XP handled correctly via DifficultyModifiers.
+14. ~~**Ship hull defaults wrong**~~ — FIXED: ShipData.gd (8-20 → 20-40), base_ship.gd (100 → 25).
+15. ~~**Dazzle Grenade missing Heavy**~~ — FIXED: Added to `data/weapons.json`.
+16. ~~**Krag/Skulker not wired**~~ — FIXED: Added to CharacterGeneration.gd + SimpleCharacterCreator.gd.
+
+### Verified Already Correct (Mar 26, 2026 audit)
+
+- **PatronJobGenerator.gd**: Cascades through `patron_generation.json` → `patron_jobs.json` → hardcoded fallback. Working correctly.
+- **CharacterCreator.gd**: Loads all bonuses from `character_creation_bonuses.json` via `_lookup_bonuses()`. Working correctly.
+- **BattleCalculations.gd**: Constants (hit thresholds, range bands, armor/screen saves) properly annotated with Core Rules page citations. Appropriate as code constants.
+- **PostBattlePaymentProcessor.gd**: Correctly does 1D6 credits per Core Rules p.120. Unchanged.
 
 ### Detailed Per-Generator Breakdown
 

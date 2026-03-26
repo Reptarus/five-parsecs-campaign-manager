@@ -43,6 +43,15 @@ All battle mechanics MUST be verified against `data/RulesReference/` files. Key 
 
 **NEVER invent combat values, enemy stats, or weapon modifiers.** Verify against RulesReference before implementing.
 
+## JSON-Driven Battle Data
+
+| JSON File | Consumer(s) | Contents |
+|-----------|-------------|----------|
+| `data/injury_results.json` | PostBattleProcessor, ExperienceTrainingProcessor, BattleCalculations | D100 injury tables (human/bot), XP awards (Core Rules p.122-123) |
+| `data/injury_table.json` | DataManager, GameDataManager | Older injury table format (same data, different structure) |
+| `data/unique_individual.json` | BattlePhase._determine_unique_individual() | Presence thresholds, difficulty modifiers, Interested Parties +1, exclusion rules |
+| `data/enemy_types.json` | BattlePhase._roll_unique_individual_type(), EnemyGenerator | 21 unique individual types (D100 table), 59 enemy types, AI mappings |
+
 ## Critical Gotchas
 
 1. **Tabletop companion, not simulator** — output is text instructions, not automatic movement

@@ -7,7 +7,7 @@ class_name InjurySystemConstants
 ## Architecture: Pure constants class - no state, no dependencies
 
 ## Injury type enumeration (matches Five Parsecs rulebook categories)
-## Split per Core Rules p.122 / injury_table.json:
+## Split per Core Rules p.122 / injury_results.json:
 ##   1-5 Gruesome Fate (dead + ALL equipment damaged)
 ##   6-15 Death/permanent injury (dead, equipment intact)
 enum InjuryType {

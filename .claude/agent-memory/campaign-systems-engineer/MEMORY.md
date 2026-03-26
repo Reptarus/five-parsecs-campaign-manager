@@ -80,6 +80,16 @@ Saves go to `user://campaigns/` (NOT `user://saves/`). Format is `.fpcs` JSON wi
 
 New campaigns jump directly to World Phase (Upkeep) — Story and Travel phases auto-complete. `StoryPhasePanel` warns "EventManager not found" and uses fallback generation.
 
+## Session 11-12: BattlePhase Payment Fix (Mar 26, 2026)
+
+BattlePhase.gd had fabricated payment formula (`base_payment=100 + difficulty*25 + success_bonus=50`) in both tactical and auto-resolve paths. `battle_setup_data` rebuilt at line 323 without `base_payment` key, so fallback always triggered → 150-200 credits per battle. Fixed: `combat_results["payment"]` and `["credits_earned"]` now 0. Real payment handled by PostBattlePaymentProcessor (1D6 credits, Core Rules p.120). PostBattleSummarySheet will show 0 for credits — real payment goes through `payment_received` signal. Future UI pass could wire summary to show actual PostBattle payment.
+
+## Session 13: Post-Battle XP JSON Wiring (Mar 26, 2026)
+
+ExperienceTrainingProcessor._calculate_crew_xp() now loads XP values from `data/injury_results.json` instead of hardcoded 1/2/3/1/1. Static lazy loader with fallback defaults. Same JSON also wired into PostBattleProcessor (XP awards + data-driven injury tables) and BattleCalculations (derived XP constants). All values verified against Core Rules p.123.
+
+---
+
 ## Mar 20-21 Runtime Verification
 
 ### PostBattlePhase Decomposition — Runtime Verified

@@ -73,7 +73,53 @@ const CLOCK_END_ROLL := 6  # Roll this on d6 to end battle
 var event_registry: Dictionary = {}
 
 func _init() -> void:
-	_initialize_event_registry()
+	if not _load_events_from_json():
+		_initialize_event_registry()
+
+## Load battle events from event_tables.json (Core Rules pp.116-117)
+func _load_events_from_json() -> bool:
+	var path := "res://data/event_tables.json"
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return false
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("BattleEventsSystem: Failed to parse event_tables.json")
+		return false
+	file.close()
+
+	var data: Variant = json.get_data()
+	if not data is Dictionary:
+		return false
+
+	var battle_section: Dictionary = data.get("battle_events", {})
+	var entries: Array = battle_section.get("entries", [])
+	if entries.is_empty():
+		return false
+
+	event_registry.clear()
+	for entry in entries:
+		if not entry is Dictionary or not entry.has("roll_range"):
+			continue
+		var name_str: String = entry.get("name", "Unknown")
+		var event_id: String = name_str.to_upper().replace(" ", "_").replace("!", "").replace("'", "").replace("?", "").replace(".", "")
+		var effect_str: String = entry.get("effect", "")
+		var roll_range: Array = entry.get("roll_range", [1, 1])
+
+		# Infer target_type from event content
+		var target_type := "battlefield"
+		var effect_lower := effect_str.to_lower()
+		if "crew" in effect_lower or "your" in effect_lower:
+			target_type = "crew"
+		elif "enemy" in effect_lower:
+			target_type = "enemy"
+
+		event_registry[event_id] = _create_event(
+			event_id, name_str, roll_range, effect_str,
+			{"target_type": target_type}
+		)
+
+	return event_registry.size() > 0
 
 ## Initialize system for a new battle
 func initialize_battle() -> void:

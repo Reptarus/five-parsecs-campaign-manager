@@ -87,7 +87,25 @@ _clear_round_status(units: Array) -> void
 _execute_unit_attacks(attackers, defenders, is_crew, battlefield, conditions, dice) -> Dictionary
 ```
 
+## PostBattleProcessor — Data-Driven from JSON
+
+`FPCM_PostBattleProcessor` (`src/core/battle/PostBattleProcessor.gd`) now loads injury tables and XP awards from `data/injury_results.json`:
+
+- **XP awards**: Static lazy loader `_load_injury_json()` → accessor `_get_xp(key, fallback)`. Properties `XP_BECAME_CASUALTY`, `XP_SURVIVED_WON`, etc. are getters.
+- **Injury tables**: `_roll_human_injury_table()` and `_roll_bot_injury_table()` iterate JSON entries via `_match_injury_entry(entries, roll)`. Dynamic dice expressions (`"1d6"`, `"1d3+1"`) resolved via `_resolve_dice_expression()`.
+- **Fallbacks**: If JSON unavailable, hardcoded defaults used (Minor injuries / Just a few dents).
+
+## BattlePhase — Unique Individual from JSON
+
+`BattlePhase._determine_unique_individual()` loads thresholds from `data/unique_individual.json`:
+
+- `_get_ui_threshold()` → base roll threshold (default 9)
+- `_get_ui_double_threshold()` → Insanity double check (default 11)
+- `_get_ui_interested_parties_modifier()` → +1 when `enemy_category == "interested_parties"`
+- Difficulty modifiers still via `DifficultyModifiers` (Hardcore +1, Insanity forced)
+
 ## Debug Logging
+
 ```
 BattleResolver.enable_debug_logging() -> void
 BattleResolver.disable_debug_logging() -> void

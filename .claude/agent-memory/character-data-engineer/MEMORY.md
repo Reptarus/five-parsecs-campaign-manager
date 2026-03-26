@@ -67,7 +67,19 @@ Always extract from the PDF when `data/RulesReference/` doesn't have the value y
 - Property aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`
 - Transient battle state: `_action_points`, `_combat_modifiers`, `position`, `in_cover`, `elevation`, `active_effects`, `has_moved_this_turn`, `is_player_controlled`, `is_swift`
 
-### 7. Godot 4.6 Type Inference
+### 7. KeywordDB Now Loads from JSON (Session 11-12, Mar 26)
+
+`KeywordDB.gd` now loads 89 keywords from `data/keywords.json` at startup via `_load_keywords_from_json()`. Hardcoded defaults are fallback only. 14 weapon trait definitions in keywords.json corrected to Core Rules p.51. CharacterCreator.gd already correctly loads bonuses from `character_creation_bonuses.json` — no changes needed.
+
+### 8. Injury/XP JSON Data Files (Session 13, Mar 26)
+
+Two injury-related JSON files exist — both verified against Core Rules p.122-123:
+
+- `data/injury_results.json` — Canonical source for PostBattleProcessor, ExperienceTrainingProcessor, BattleCalculations. Contains human (9) + bot (6) injury tables, XP awards (7 conditions), processing rules.
+- `data/injury_table.json` — Older format, referenced by DataManager/GameDataManager. Same injury data, different structure.
+- `data/unique_individual.json` — Unique Individual presence mechanics (threshold 9, difficulty modifiers, exclusions). Wired to BattlePhase.gd. Types table is in `data/enemy_types.json["unique_individuals"]` (21 types).
+
+### 9. Godot 4.6 Type Inference
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.

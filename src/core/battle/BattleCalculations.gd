@@ -55,12 +55,46 @@ const SCREEN_SAVE_ADVANCED := 4  # Advanced screen technology
 # STUN_THRESHOLD was fabricated (removed). Stun is trait-based per Core Rules p.51.
 const SUPPRESS_THRESHOLD := 6  # APP_SPECIFIC — not in Core Rules
 
-# Experience awards
-const XP_PARTICIPATION := 1
-const XP_VICTORY_BONUS := 2
-const XP_DEFEAT_BONUS := 1
-const XP_FIRST_KILL := 1
-const XP_SURVIVAL_INJURY := 1
+# Experience awards — loaded from data/injury_results.json (Core Rules p.123)
+# Additive decomposition: participation + bonus = Core Rules flat values
+# survived_won_battle(3) = PARTICIPATION(1) + VICTORY_BONUS(2)
+# survived_lost_battle(2) = PARTICIPATION(1) + DEFEAT_BONUS(1)
+static var _bc_xp_data: Dictionary = {}
+static var _bc_xp_loaded: bool = false
+
+static func _load_bc_xp() -> void:
+	if _bc_xp_loaded:
+		return
+	var file := FileAccess.open("res://data/injury_results.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			_bc_xp_data = json.data.get("xp_awards", {})
+	_bc_xp_loaded = true
+
+# Derived from JSON: participation = became_casualty (base XP for any participant)
+static var XP_PARTICIPATION: int:
+	get:
+		_load_bc_xp()
+		return int(_bc_xp_data.get("became_casualty", 1))
+# Derived from JSON: victory_bonus = survived_won_battle - became_casualty
+static var XP_VICTORY_BONUS: int:
+	get:
+		_load_bc_xp()
+		return int(_bc_xp_data.get("survived_won_battle", 3)) - int(_bc_xp_data.get("became_casualty", 1))
+# Derived from JSON: defeat_bonus = survived_lost_battle - became_casualty
+static var XP_DEFEAT_BONUS: int:
+	get:
+		_load_bc_xp()
+		return int(_bc_xp_data.get("survived_lost_battle", 2)) - int(_bc_xp_data.get("became_casualty", 1))
+static var XP_FIRST_KILL: int:
+	get:
+		_load_bc_xp()
+		return int(_bc_xp_data.get("first_kill", 1))
+static var XP_SURVIVAL_INJURY: int:
+	get:
+		_load_bc_xp()
+		return int(_bc_xp_data.get("became_casualty", 1))
 
 #region Hit Calculations
 

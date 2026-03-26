@@ -24,6 +24,38 @@ var dice_manager: Variant = null
 var game_state_manager: Variant = null
 var enemy_generator: EnemyGenerator = null
 
+# Unique Individual mechanics — loaded from data/unique_individual.json (Core Rules pp.64-65, 93-94)
+static var _ui_mechanics: Dictionary = {}
+static var _ui_mechanics_loaded: bool = false
+
+static func _load_unique_individual_mechanics() -> void:
+	if _ui_mechanics_loaded:
+		return
+	var file := FileAccess.open("res://data/unique_individual.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			_ui_mechanics = json.data
+	if _ui_mechanics.is_empty():
+		push_warning("BattlePhase: Failed to load unique_individual.json, using fallback values")
+	_ui_mechanics_loaded = true
+
+static func _get_ui_threshold() -> int:
+	_load_unique_individual_mechanics()
+	var base_roll: Dictionary = _ui_mechanics.get("presence_mechanics", {}).get("base_roll", {})
+	return int(base_roll.get("threshold", 9))
+
+static func _get_ui_interested_parties_modifier() -> int:
+	_load_unique_individual_mechanics()
+	var mods: Dictionary = _ui_mechanics.get("presence_mechanics", {}).get("modifiers", {})
+	return int(mods.get("interested_parties", {}).get("value", 1))
+
+static func _get_ui_double_threshold() -> int:
+	_load_unique_individual_mechanics()
+	var insanity: Dictionary = _ui_mechanics.get("presence_mechanics", {}).get("insanity_mode", {})
+	var double_check: Dictionary = insanity.get("double_check", {})
+	return int(double_check.get("threshold", 11))
+
 ## Battle Phase Signals
 ## Sprint 25.3: ready_for_battle signals async initialization complete (for tests/late subscribers)
 ## Note: This is NOT a phase lifecycle signal like battle_phase_started()
@@ -533,13 +565,16 @@ func _determine_deployment_conditions() -> Dictionary:
 	return result
 
 func _determine_unique_individual(difficulty: int, mission_type: int) -> Dictionary:
-	## Determine if a Unique Individual is present (Core Rules pp.64-65, 94)
+	## Determine if a Unique Individual is present (Core Rules pp.64-65, 93-94)
+	## Thresholds loaded from data/unique_individual.json.
 	##
 	## - Standard: Roll 2D6, on 9+ a Unique Individual is present
-	## - Hardcore: +1 to the roll
+	## - +1 if fighting Interested Parties (Core Rules p.93)
+	## - Hardcore: +1 to the roll (Core Rules p.65)
 	## - Insanity: Always forced. On 2D6 roll of 11-12, TWO Unique Individuals
 	## - Invasion battles and Roving Threats: no Unique Individual (standard rules)
 	var result: Dictionary = {"present": false, "count": 0, "forced": false, "individuals": []}
+	var threshold: int = _get_ui_threshold()  # Default 9, from JSON
 
 	# Check if Unique Individual is forced (Insanity mode)
 	if DifficultyModifiers.is_unique_individual_forced(difficulty):
@@ -548,10 +583,11 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 		result.forced = true
 		# Insanity: Roll 2D6, on 11-12 include TWO Unique Individuals
 		if DifficultyModifiers.can_have_double_unique_individual(difficulty):
+			var double_threshold: int = _get_ui_double_threshold()  # Default 11, from JSON
 			var double_roll: int = randi_range(1, 6) + randi_range(1, 6)
-			if double_roll >= 11:
+			if double_roll >= double_threshold:
 				result.count = 2
-				print_verbose("BattlePhase: INSANITY — Double Unique Individual! (rolled %d)" % double_roll)
+				print_verbose("BattlePhase: INSANITY — Double Unique Individual! (rolled %d >= %d)" % [double_roll, double_threshold])
 		print_verbose("BattlePhase: INSANITY — Forced Unique Individual (count: %d)" % result.count)
 		# Roll on the Unique Individual table for each
 		for i in range(result.count):
@@ -560,24 +596,30 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 				result.individuals.append(individual)
 		return result
 
-	# Standard roll: 2D6, 9+ = Unique Individual present
+	# Standard roll: 2D6, threshold+ = Unique Individual present
 	var roll: int = randi_range(1, 6) + randi_range(1, 6)
 
-	# Hardcore: +1 to roll for Unique Individual
+	# Difficulty modifier: Hardcore +1 (Core Rules p.65)
 	var modifier: int = DifficultyModifiers.get_unique_individual_roll_modifier(difficulty)
+
+	# Interested Parties modifier: +1 (Core Rules p.93)
+	var enemy_category: String = battle_setup_data.get("enemy_category", "")
+	if enemy_category == "interested_parties":
+		modifier += _get_ui_interested_parties_modifier()
+
 	var final_roll: int = roll + modifier
 
-	if final_roll >= 9:
+	if final_roll >= threshold:
 		result.present = true
 		result.count = 1
 		var individual: Dictionary = _roll_unique_individual_type()
 		if not individual.is_empty():
 			result.individuals.append(individual)
-		print_verbose("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= 9) — %s" % [
-			roll, modifier, final_roll,
+		print_verbose("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= %d) — %s" % [
+			roll, modifier, final_roll, threshold,
 			individual.get("name", "unknown")])
 	else:
-		print_verbose("BattlePhase: No Unique Individual (roll %d + mod %d = %d < 9)" % [roll, modifier, final_roll])
+		print_verbose("BattlePhase: No Unique Individual (roll %d + mod %d = %d < %d)" % [roll, modifier, final_roll, threshold])
 
 	return result
 
@@ -956,11 +998,8 @@ func _finalize_tactical_battle_results() -> void:
 				"cause": "tactical_combat"
 			})
 
-	# Calculate rewards
-	var base_payment = battle_setup_data.get("base_payment", 100)
-	var difficulty_bonus = battle_setup_data.get("difficulty", 2) * 25
-	var success_bonus = 50 if success else 0
-	var payment = base_payment + difficulty_bonus + success_bonus
+	# Payment calculated by PostBattlePaymentProcessor (Core Rules p.120: 1D6 credits)
+	# Do NOT calculate payment here — PostBattle handles all credit awards.
 
 	combat_results = {
 		"success": success,
@@ -972,8 +1011,8 @@ func _finalize_tactical_battle_results() -> void:
 		"defeated_enemy_list": defeated_enemy_list,
 		"loot_opportunities": enemies_defeated,
 		"battlefield_finds": randi_range(0, 2),
-		"payment": payment,
-		"credits_earned": payment,
+		"payment": 0,
+		"credits_earned": 0,
 		"xp_per_participant": 1,
 		"xp_victory_bonus": 2 if success else 0,
 		"injured_crew": [],
@@ -1064,11 +1103,8 @@ func _simulate_battle_outcome() -> void:
 			enemy["defeated"] = true
 			defeated_enemy_list.append(enemy)
 
-	# Calculate payment based on mission type and difficulty
-	var base_payment = battle_setup_data.get("base_payment", 100)
-	var difficulty_bonus = battle_setup_data.get("difficulty", 2) * 25
-	var success_bonus = 50 if success else 0
-	var payment = base_payment + difficulty_bonus + success_bonus
+	# Payment calculated by PostBattlePaymentProcessor (Core Rules p.120: 1D6 credits)
+	# Do NOT calculate payment here — PostBattle handles all credit awards.
 
 	combat_results = {
 		# Victory status
@@ -1087,8 +1123,8 @@ func _simulate_battle_outcome() -> void:
 		# Loot and rewards (Core Rules p.85-87)
 		"loot_opportunities": resolver_result.get("loot_opportunities", enemies_defeated_count),
 		"battlefield_finds": resolver_result.get("battlefield_finds", 0),
-		"payment": payment,
-		"credits_earned": payment,
+		"payment": 0,
+		"credits_earned": 0,
 
 		# XP tracking
 		"xp_per_participant": 1,

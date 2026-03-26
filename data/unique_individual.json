@@ -1,0 +1,44 @@
+{
+  "source": "Core Rules pp.64-65, 93-94",
+  "presence_mechanics": {
+    "base_roll": {
+      "dice": "2d6",
+      "threshold": 9,
+      "description": "Roll 2D6. On 9+, a Unique Individual is present (in addition to normal enemies)"
+    },
+    "modifiers": {
+      "interested_parties": {
+        "value": 1,
+        "description": "Add +1 if fighting opponents from the Interested Parties Subtable",
+        "source": "Core Rules p.93"
+      },
+      "hardcore": {
+        "value": 1,
+        "description": "Add +1 in Hardcore difficulty",
+        "source": "Core Rules p.65"
+      }
+    },
+    "exclusions": {
+      "invasion_battles": "No Unique Individual roll for Invasion battles",
+      "roving_threats": "No Unique Individual roll for Roving Threats (standard/hardcore only)",
+      "source": "Core Rules p.93"
+    },
+    "insanity_mode": {
+      "forced": true,
+      "description": "Insanity: A Unique Individual is always present, even for Roving Threats",
+      "double_check": {
+        "dice": "2d6",
+        "threshold": 11,
+        "description": "Roll 2D6 without modifiers. On 11-12, TWO Unique Individuals are present"
+      },
+      "source": "Core Rules pp.65, 94"
+    }
+  },
+  "general_rules": {
+    "fearless": "All Unique Individuals are Fearless",
+    "additional": "Unique Individual is always in addition to normally encountered enemies",
+    "guardian_attachment": "If the Unique Individual has Guardian AI, attach to Lieutenant if present; otherwise random non-Specialist",
+    "types_table": "See enemy_types.json unique_individuals array for D100 type table",
+    "source": "Core Rules p.94"
+  }
+}

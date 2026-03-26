@@ -1,0 +1,196 @@
+{
+  "source": "Core Rules p.122 (Injury Tables), p.123 (XP Awards)",
+  "tables": {
+    "human": {
+      "description": "D100 Human Injury Table - Roll for each casualty (Core Rules p.122)",
+      "entries": [
+        {
+          "roll_range": [1, 5],
+          "name": "Gruesome fate",
+          "dead": true,
+          "recovery_time": 0,
+          "effects": [
+            "Character is dead",
+            "All carried equipment is damaged"
+          ]
+        },
+        {
+          "roll_range": [6, 15],
+          "name": "Death or permanent injury",
+          "dead": true,
+          "recovery_time": 0,
+          "effects": [
+            "Dead, or removed from the campaign"
+          ]
+        },
+        {
+          "roll_range": [16, 16],
+          "name": "Miraculous escape",
+          "dead": false,
+          "recovery_time": 0,
+          "luck_bonus": 1,
+          "effects": [
+            "Character survives and receives +1 Luck",
+            "All items carried are permanently lost"
+          ]
+        },
+        {
+          "roll_range": [17, 30],
+          "name": "Equipment loss",
+          "dead": false,
+          "recovery_time": 0,
+          "effects": [
+            "Random carried item is damaged"
+          ]
+        },
+        {
+          "roll_range": [31, 45],
+          "name": "Crippling wound",
+          "dead": false,
+          "recovery_time_roll": "1d6",
+          "surgery_cost_roll": "1d6",
+          "stat_reduction": {
+            "stats": ["speed", "toughness"],
+            "pick": "highest",
+            "amount": -1
+          },
+          "effects": [
+            "Require 1D6 credits of surgery immediately",
+            "Or suffer -1 permanent reduction to highest of Speed or Toughness"
+          ]
+        },
+        {
+          "roll_range": [46, 54],
+          "name": "Serious injury",
+          "dead": false,
+          "recovery_time_roll": "1d3+1",
+          "effects": [
+            "No long-term effect"
+          ]
+        },
+        {
+          "roll_range": [55, 80],
+          "name": "Minor injuries",
+          "dead": false,
+          "recovery_time": 1,
+          "effects": [
+            "No long-term effect"
+          ]
+        },
+        {
+          "roll_range": [81, 95],
+          "name": "Knocked out",
+          "dead": false,
+          "recovery_time": 0,
+          "effects": [
+            "No long-term effect"
+          ]
+        },
+        {
+          "roll_range": [96, 100],
+          "name": "School of hard knocks",
+          "dead": false,
+          "recovery_time": 0,
+          "xp_bonus": 1,
+          "effects": [
+            "Earn 1 XP"
+          ]
+        }
+      ]
+    },
+    "bot": {
+      "description": "D100 Bot/Soulless Injury Table - Roll for each casualty (Core Rules p.122)",
+      "entries": [
+        {
+          "roll_range": [1, 5],
+          "name": "Obliterated",
+          "destroyed": true,
+          "recovery_time": 0,
+          "effects": [
+            "Destroyed",
+            "All carried equipment is damaged"
+          ]
+        },
+        {
+          "roll_range": [6, 15],
+          "name": "Destroyed",
+          "destroyed": true,
+          "recovery_time": 0,
+          "effects": [
+            "Destroyed"
+          ]
+        },
+        {
+          "roll_range": [16, 30],
+          "name": "Equipment loss",
+          "destroyed": false,
+          "recovery_time": 0,
+          "effects": [
+            "Random carried item is damaged"
+          ]
+        },
+        {
+          "roll_range": [31, 45],
+          "name": "Severe damage",
+          "destroyed": false,
+          "recovery_time_roll": "1d6",
+          "effects": [
+            "No long-term effect"
+          ]
+        },
+        {
+          "roll_range": [46, 65],
+          "name": "Minor damage",
+          "destroyed": false,
+          "recovery_time": 1,
+          "effects": [
+            "No long-term effect"
+          ]
+        },
+        {
+          "roll_range": [66, 100],
+          "name": "Just a few dents",
+          "destroyed": false,
+          "recovery_time": 0,
+          "effects": [
+            "No long-term effect"
+          ]
+        }
+      ]
+    }
+  },
+  "xp_awards": {
+    "source": "Core Rules p.123",
+    "became_casualty": 1,
+    "survived_lost_battle": 2,
+    "survived_won_battle": 3,
+    "first_kill": 1,
+    "unique_individual": 1,
+    "easy_mode_bonus": 1,
+    "quest_completion": 1,
+    "no_xp_rule": "Any character that flees the battlefield in the first 2 rounds receives no XP",
+    "bot_rule": "Bots do not receive XP"
+  },
+  "processing_rules": {
+    "luck_override": {
+      "description": "A character with Luck survives a fatal injury but loses all Luck points",
+      "source": "Core Rules p.122"
+    },
+    "recovery_time_calculation": {
+      "description": "Recovery time in campaign turns. Roll dice specified in recovery_time_roll field",
+      "source": "Core Rules p.122"
+    },
+    "surgery_cost": {
+      "description": "Credits required for immediate surgery on crippling wound. Roll 1D6 for cost amount",
+      "source": "Core Rules p.122"
+    },
+    "damaged_equipment": {
+      "description": "Damaged equipment cannot be used until it has been Repaired (see p.78)",
+      "source": "Core Rules p.122"
+    },
+    "knockout_exemption": {
+      "description": "If a character was merely knocked out (from suffering 3 Stun results simultaneously), no injury roll is required",
+      "source": "Core Rules p.122"
+    }
+  }
+}
