@@ -105,6 +105,21 @@ Battle context terrain data must be structured with terrain_guide inside the `te
 
 `BattlefieldShapeLibrary.classify_feature()` now sets `is_scatter = true` for scatter-type terrain. `BattlefieldMapView` skips scatter items in SVS rendering and label drawing (BUG-040). Features also carry a `size_category` key ("Large", "Small", "Linear", "Scatter") used for label prefixes (BUG-041).
 
+### CombatResolver Interface Contract (Session 10)
+
+CombatResolver.gd validates 24 methods + 10 properties on `CharacterScript` (= `BaseCharacterResource`) in `_ready()`. All methods now implemented on BaseCharacterResource:
+
+**Equipment**: `get_equipped_weapon()`, `get_combat_skill()`
+**Damage**: `get_melee_damage()`, `get_ranged_damage()`, `get_armor_value()`, `apply_damage()`, `heal_damage()`
+**Actions**: `add_action_points()`, `reduce_action_points()`, `can_perform_action()`, `get_speed()`
+**Abilities**: `get_active_ability()`, `get_ability_cooldown()`, `is_ability_on_cooldown()`
+**Status**: `is_mechanical()`, `is_suppressed()`, `is_pinned()`, `has_overwatch()`, `add_combat_modifier()`
+**Reactions**: `can_counter_attack()`, `can_dodge()`, `can_suppress()`
+**Lifecycle**: `reset_battle_state()` — clears action points, modifiers, effects between rounds
+
+Property aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`
+Transient combat state: `position`, `in_cover`, `elevation`, `active_effects`, `has_moved_this_turn`, `is_player_controlled`, `is_swift`
+
 ### Shared Between Modes
 TacticalBattleUI is shared between Standard 5PFH, Bug Hunt, and Battle Simulator. Bug Hunt mode detection happens at higher level (BugHuntBattleSetup, temp_data `"bug_hunt_*"` keys). Battle Simulator passes lightweight crew/enemy dicts (not Character resources). Any modifications must preserve all three modes.
 

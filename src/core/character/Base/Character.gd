@@ -61,6 +61,33 @@ var psionic_power_enhanced: bool = false
 # Additional traits for Five Parsecs
 var traits: Array = []
 
+# Combat interface properties (transient — used by CombatResolver during battle)
+var position: Vector2i = Vector2i.ZERO
+var in_cover: bool = false
+var elevation: int = 0
+var active_effects: Array = []
+var has_moved_this_turn: bool = false
+var is_player_controlled: bool = true
+var _action_points: int = 2
+var _combat_modifiers: Array = []
+var _active_ability: String = ""
+var _ability_cooldowns: Dictionary = {}
+
+# CombatResolver expects "name", "bot", "soulless" as property names
+var name: String:
+	get: return character_name
+	set(value): character_name = value
+
+var bot: bool:
+	get: return is_bot
+	set(value): is_bot = value
+
+var soulless: bool:
+	get: return is_soulless
+	set(value): is_soulless = value
+
+var is_swift: bool = false
+
 # Signals
 signal experience_changed(old_value, new_value)
 signal level_changed(old_value, new_value)
@@ -462,6 +489,158 @@ func deserialize(data: Dictionary) -> void:
 		is_human = data.is_human
 	if "traits" in data:
 		traits = data.traits
+
+## ─── Combat Interface Methods (required by CombatResolver) ──────────────────
+
+## Returns the currently equipped weapon as a Dictionary with keys:
+## range, damage, traits, melee_damage. Empty dict if no weapon equipped.
+func get_equipped_weapon() -> Dictionary:
+	if weapons.is_empty():
+		return {}
+	var w = weapons[0]
+	if w is Dictionary:
+		return w
+	# If weapon is a Resource, extract relevant fields
+	var result := {}
+	for key in ["range", "damage", "traits", "melee_damage", "name"]:
+		if key in w:
+			result[key] = w.get(key)
+	if not result.has("traits"):
+		result["traits"] = []
+	return result
+
+## Returns the combat skill modifier (Core Rules: added to hit rolls).
+func get_combat_skill() -> int:
+	return combat
+
+## Returns character speed stat.
+func get_speed() -> int:
+	return speed
+
+## Returns melee damage output based on equipped weapon or base combat stat.
+func get_melee_damage() -> int:
+	var w := get_equipped_weapon()
+	if w.has("melee_damage"):
+		return int(w["melee_damage"])
+	# Fallback: 1 base + combat skill (Core Rules brawl)
+	return 1 + combat
+
+## Returns ranged damage from equipped weapon, or 0 if none.
+func get_ranged_damage() -> int:
+	var w := get_equipped_weapon()
+	if w.has("damage"):
+		return int(w["damage"])
+	return 0
+
+## Returns armor defense value from first equipped armor piece.
+func get_armor_value() -> int:
+	if armor.is_empty():
+		return 0
+	var a = armor[0]
+	if a is Dictionary:
+		return int(a.get("saving_throw", 0))
+	if "saving_throw" in a:
+		return int(a.saving_throw)
+	return 0
+
+## Applies damage to this character, marking wounded/dead as appropriate.
+func apply_damage(amount: int) -> void:
+	var old_health := health
+	health = maxi(0, health - amount)
+	if health <= 0:
+		is_wounded = true
+		if health <= -toughness:
+			is_dead = true
+	health_changed.emit(old_health, health)
+
+## Heals this character by the given amount, capped at max_health.
+func heal_damage(amount: int) -> void:
+	var old_health := health
+	health = mini(max_health, health + amount)
+	if health > 0:
+		is_wounded = false
+	health_changed.emit(old_health, health)
+
+## Adds action points (used by special abilities granting extra actions).
+func add_action_points(amount: int) -> void:
+	_action_points += amount
+
+## Reduces action points (consumed when performing actions).
+func reduce_action_points(amount: int) -> void:
+	_action_points = maxi(0, _action_points - amount)
+
+## Returns true if the character can perform the given action type.
+func can_perform_action(_action) -> bool:
+	return _action_points > 0 and not is_dead
+
+## Returns the currently active ability name, or empty string.
+func get_active_ability() -> String:
+	return _active_ability
+
+## Returns remaining cooldown turns for the given ability.
+func get_ability_cooldown(ability: String) -> int:
+	return _ability_cooldowns.get(ability, 0)
+
+## Returns true if the ability is on cooldown.
+func is_ability_on_cooldown(ability: String) -> bool:
+	return get_ability_cooldown(ability) > 0
+
+## Adds a combat modifier (buff/debuff enum value).
+func add_combat_modifier(modifier) -> void:
+	_combat_modifiers.append(modifier)
+
+## Returns true if this character is mechanical (bot).
+func is_mechanical() -> bool:
+	return is_bot
+
+## Returns true if a "suppress" effect is active.
+func is_suppressed() -> bool:
+	for effect in active_effects:
+		if effect is Dictionary and effect.get("effect") == "suppress":
+			return true
+		elif effect is String and effect == "suppress":
+			return true
+	return false
+
+## Returns true if a "pinned" effect is active.
+func is_pinned() -> bool:
+	for effect in active_effects:
+		if effect is Dictionary and effect.get("effect") == "pinned":
+			return true
+		elif effect is String and effect == "pinned":
+			return true
+	return false
+
+## Returns true if character has overwatch readied.
+func has_overwatch() -> bool:
+	for effect in active_effects:
+		if effect is Dictionary and effect.get("effect") == "overwatch":
+			return true
+		elif effect is String and effect == "overwatch":
+			return true
+	return false
+
+## Returns true if character can counter-attack (not stunned/suppressed/dead).
+func can_counter_attack() -> bool:
+	return not is_dead and not is_suppressed() and not is_pinned()
+
+## Returns true if character can dodge (has speed > 0, not pinned).
+func can_dodge() -> bool:
+	return speed > 0 and not is_pinned() and not is_dead
+
+## Returns true if character can lay suppressing fire (has ranged weapon, not stunned).
+func can_suppress() -> bool:
+	var w := get_equipped_weapon()
+	return not w.is_empty() and w.has("range") and not is_dead
+
+## Resets transient battle state for a new battle round.
+func reset_battle_state() -> void:
+	_action_points = 2
+	_combat_modifiers.clear()
+	has_moved_this_turn = false
+	active_effects.clear()
+
+## ─── End Combat Interface ───────────────────────────────────────────────────
 
 # Add a static type check method to help prevent assignment errors
 static func is_valid_node_target(node: Node) -> bool:

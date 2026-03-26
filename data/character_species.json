@@ -354,6 +354,41 @@
 			"page_reference": "p.23"
 		}
 	],
+	"compendium_species": [
+		{
+			"id": "krag",
+			"name": "Krag",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Cannot take Dash moves under any circumstances",
+				"When fighting Rivals, may reroll a natural 1 once on firing or Brawl dice",
+				"If character creation generates 1+ Patrons, must add 1 Rival",
+				"Armor from Trade must be designated Krag-armor or not. Non-Trade armor must be modified (2 credits)"
+			],
+			"rolls_creation_tables": true,
+			"dlc_flag": "SPECIES_KRAG",
+			"page_reference": "Compendium p.12-15"
+		},
+		{
+			"id": "skulker",
+			"name": "Skulker",
+			"base_stats": {"reactions": 1, "speed": 6, "combat_skill": 0, "toughness": 3, "savvy": 1},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 2, "savvy": 1, "reactions": 0},
+			"special_rules": [
+				"Character creation 1D6 Credits results grant only 1D3 Credits",
+				"Ignore first Rival during character creation",
+				"Do not suffer movement reductions from difficult ground",
+				"Ignore obstacles up to 1\" height, first 1\" of climb is free",
+				"Poison/toxin/virus/gas resistance: 3+ on D6 to shrug off",
+				"Drug resistance: Booster Pills, Combat Serum, Rage Out, Still require 3+ to take effect. Stim-packs work normally",
+				"Can use all armor/equipment without adaptation"
+			],
+			"rolls_creation_tables": true,
+			"dlc_flag": "SPECIES_SKULKER",
+			"page_reference": "Compendium p.14-17"
+		}
+	],
 	"species_compatibility": {
 		"note": "All species roll on Background, Motivation, and Class tables unless specifically noted otherwise. Bot and Assault Bot do not roll on any creation tables."
 	}

@@ -60,9 +60,9 @@
     },
     "heavy": {
       "term": "Heavy",
-      "definition": "Cannot be used after moving at combat speed. Requires setup, but typically offers increased damage or range.",
-      "related": ["bulky", "cumbersome", "setup"],
-      "rule_page": 59,
+      "definition": "-1 penalty to Hit if firer moved this round.",
+      "related": ["bulky", "focused"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "bulky": {
@@ -74,93 +74,93 @@
     },
     "pistol": {
       "term": "Pistol",
-      "definition": "Can be fired while engaged in brawling without penalty. Easy to conceal and quick to draw.",
-      "related": ["assault", "melee", "brawling"],
-      "rule_page": 60,
+      "definition": "+1 to Brawling rolls.",
+      "related": ["melee", "brawling"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "melee": {
       "term": "Melee",
-      "definition": "Close combat weapon. Used in brawling attacks. Cannot be used for ranged attacks.",
-      "related": ["pistol", "brawling", "blade"],
-      "rule_page": 60,
+      "definition": "+2 to Brawling rolls.",
+      "related": ["pistol", "brawling"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "snap_shot": {
       "term": "Snap Shot",
-      "definition": "Can fire as a reaction during enemy movement within line of sight. Useful for area denial.",
-      "related": ["assault", "overwatch", "reactions"],
-      "rule_page": 61,
+      "definition": "+1 to Hit within 6\".",
+      "related": ["range", "pistol"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "area": {
       "term": "Area",
-      "definition": "Affects all figures within the blast radius. Roll to hit for each target in the area. Ignores cover.",
-      "related": ["blast", "explosive", "grenade"],
-      "rule_page": 61,
+      "definition": "Resolve all shots on target, then 1 shot vs every figure within 2\".",
+      "related": ["single_use", "focused"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "clumsy": {
       "term": "Clumsy",
-      "definition": "Awkward to use. -1 to hit rolls with this weapon.",
-      "related": ["bulky", "heavy"],
-      "rule_page": 62,
+      "definition": "-1 to Brawling rolls if opponent has higher Speed.",
+      "related": ["melee", "brawling"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "critical": {
       "term": "Critical",
-      "definition": "On a natural 6 to hit, add +1 damage. Devastating against high-Toughness targets.",
+      "definition": "Natural 6 on Hit roll inflicts 2 Hits on target.",
       "related": ["damage", "piercing"],
-      "rule_page": 62,
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "elegant": {
       "term": "Elegant",
-      "definition": "Precision weapon. +1 to hit rolls. Often associated with refined or ancient weapons.",
-      "related": ["critical", "blade"],
-      "rule_page": 62,
+      "definition": "May reroll the die when Brawling.",
+      "related": ["melee", "brawling"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "focused": {
       "term": "Focused",
-      "definition": "If the shooter does not move, gains +1 to hit. Rewards careful aim over mobility.",
-      "related": ["heavy", "snap_shot"],
-      "rule_page": 63,
+      "definition": "All shots must be against a single target.",
+      "related": ["heavy", "area"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "impact": {
       "term": "Impact",
-      "definition": "+1 damage at point blank range. Devastating in close quarters.",
-      "related": ["critical", "piercing", "damage"],
-      "rule_page": 63,
+      "definition": "If target already Stunned, place a second Stun marker.",
+      "related": ["stun", "stunned"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "piercing": {
       "term": "Piercing",
-      "definition": "Ignores armor saves. Effective against heavily armored targets.",
-      "related": ["damage", "armor", "critical"],
-      "rule_page": 64,
+      "definition": "Ignore Armor Saving Throws.",
+      "related": ["armor_save", "damage"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "stun": {
       "term": "Stun",
-      "definition": "On hit, target must pass Savvy test or become Stunned. Does not deal damage.",
-      "related": ["stunned", "savvy", "status_effect"],
-      "rule_page": 64,
+      "definition": "Targets hit are Stunned (Toughness ignored, Saves apply).",
+      "related": ["stunned", "impact"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "terrifying": {
       "term": "Terrifying",
-      "definition": "Enemies within sight must pass morale test or become Pinned. Powerful psychological effect.",
-      "related": ["pinned", "morale", "fear"],
-      "rule_page": 65,
+      "definition": "Target hit must retreat 1D6\" away from firer.",
+      "related": ["morale", "brawling"],
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "single_use": {
       "term": "Single Use",
-      "definition": "Can only be used once per battle. After firing, the item is expended.",
+      "definition": "Can only be used once per battle.",
       "related": ["grenade", "consumable"],
-      "rule_page": 65,
+      "rule_page": 51,
       "category": "weapon_trait"
     },
     "stunned": {

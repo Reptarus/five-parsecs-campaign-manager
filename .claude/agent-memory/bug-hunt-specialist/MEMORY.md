@@ -63,7 +63,15 @@ Bug Hunt rules are in the Compendium — extract directly instead of guessing:
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
 - **Python**: `py` launcher (NOT `python`), PyMuPDF installed. Example: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
 
-### 7. Godot 4.6 Type Inference
+### 7. Bug Hunt Equipment Step Auto-Complete (Session 10)
+
+`BugHuntCreationCoordinator.go_to_step()` auto-marks EQUIPMENT as complete when entering step 2. Bug Hunt uses standard issue equipment (read-only panel) — the panel never emits `equipment_updated`, so without auto-complete the Next button won't appear and the wizard gets stuck at step 3.
+
+### 8. TacticalBattleUI Now Serves Three Modes
+
+TacticalBattleUI is shared between Standard 5PFH, Bug Hunt, and **Battle Simulator** (new standalone mode). Battle Simulator passes lightweight crew/enemy dicts. Any changes to TacticalBattleUI must work in all three modes.
+
+### 9. Godot 4.6 Type Inference
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.

@@ -29,6 +29,50 @@ var luck: int = 0
 ```
 These are direct properties on Character. There is NO `stats` Dictionary or sub-object. `CharacterStats.gd` exists as a separate Resource class but is NOT used as a character property.
 
+### Combat Interface (BaseCharacterResource — Session 10)
+
+`BaseCharacterResource` implements 22 combat methods required by `CombatResolver._validate_character_interface()`:
+
+```gdscript
+# Equipment
+get_equipped_weapon() -> Dictionary   # weapons[0] as dict, or {}
+get_combat_skill() -> int             # returns combat stat
+get_speed() -> int                    # returns speed stat
+
+# Damage
+get_melee_damage() -> int             # weapon melee_damage or 1+combat
+get_ranged_damage() -> int            # weapon damage or 0
+get_armor_value() -> int              # armor[0].saving_throw or 0
+apply_damage(amount: int) -> void     # health -= amount, marks wounded/dead
+heal_damage(amount: int) -> void      # health += amount, capped at max
+
+# Actions
+add_action_points(amount: int) -> void
+reduce_action_points(amount: int) -> void
+can_perform_action(_action) -> bool   # action_points > 0 and not dead
+
+# Abilities
+get_active_ability() -> String
+get_ability_cooldown(ability: String) -> int
+is_ability_on_cooldown(ability: String) -> bool
+add_combat_modifier(modifier) -> void
+
+# Status checks (scan active_effects array)
+is_mechanical() -> bool               # returns is_bot
+is_suppressed() -> bool
+is_pinned() -> bool
+has_overwatch() -> bool
+can_counter_attack() -> bool
+can_dodge() -> bool
+can_suppress() -> bool
+
+# Lifecycle
+reset_battle_state() -> void          # clears transient combat state
+```
+
+Property aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`
+Transient state: `position`, `in_cover`, `elevation`, `active_effects`, `has_moved_this_turn`, `is_player_controlled`, `is_swift`, `_action_points`, `_combat_modifiers`, `_active_ability`, `_ability_cooldowns`
+
 ### Identity & Status Properties
 ```gdscript
 var name: String

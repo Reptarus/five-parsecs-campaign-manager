@@ -146,6 +146,20 @@ The battle system is a **tabletop companion assistant** (NOT a tactical simulato
 - `CharacterStats.gd` exists as a separate Resource but is NOT used as a property on characters
 - Implants: 11 types (Core Rules p.55), max 2 per character. `Character.create_implant_from_loot()` does name-match scan (no separate map constant)
 
+### BaseCharacterResource Combat Interface (Session 10)
+
+`BaseCharacterResource` implements the full `CombatResolver` interface contract (22 methods + 13 properties). Methods delegate to existing data:
+
+- `get_equipped_weapon()` → returns `weapons[0]` as Dictionary
+- `get_combat_skill()` → returns `combat` stat
+- `get_speed()` → returns `speed` stat
+- `apply_damage(amount)` / `heal_damage(amount)` → modify health, mark wounded/dead
+- `is_mechanical()` → returns `is_bot`
+- Status checks (`is_suppressed`, `is_pinned`, `has_overwatch`) → scan `active_effects` array
+- Property aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`
+- Transient battle state: `_action_points`, `_combat_modifiers`, `_active_ability`, `_ability_cooldowns`
+- `reset_battle_state()` clears transient state between rounds
+
 ### DLC/Compendium System
 - 33 ContentFlags across 3 DLC packs (Trailblazer's Toolkit=7, Freelancer's Handbook=17, Fixer's Guidebook=9)
 - DLC gating pattern:
@@ -473,6 +487,8 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 - **Bug Hunt ↔ 5PFH campaign types are incompatible**: `BugHuntCampaignCore` has `main_characters`/`grunts` (flat Arrays), `FiveParsecsCampaignCore` has `crew_data["members"]` (nested Dict). Always validate `"main_characters" in campaign` before Bug Hunt code. `GameState.load_campaign()` currently only loads FiveParsecsCampaignCore — Bug Hunt uses separate SceneRouter-based loading
 - **Bug Hunt temp_data keys use `"bug_hunt_*"` prefix**: `"bug_hunt_battle_context"`, `"bug_hunt_battle_result"`, `"bug_hunt_mission"`. Standard keys: `"world_phase_results"`, `"return_screen"`, `"selected_character"`. No collisions
 - **TacticalBattleUI shared between both modes**: Bug Hunt code is guarded by `battle_mode == "bug_hunt"` and `_check_bug_hunt_launch()` validation. Standard flow unaffected
+- **Bug Hunt equipment step auto-completes**: `BugHuntCreationCoordinator.go_to_step()` marks EQUIPMENT complete automatically since Bug Hunt uses standard issue (read-only panel). Without this, the Next button won't appear on step 3
+- **CombatResolver `_validate_character_interface()`**: Runs in `_ready()` via `assert()`. Will crash if `BaseCharacterResource` is missing any of the 24 required methods. All 22 previously-missing methods were added in Session 10
 - **TweenFX pivot_offset**: TweenFX NEVER sets `pivot_offset`. Must call `node.pivot_offset = node.size / 2` before any scale/rotation animation (`press`, `pop_in`, `pulsate`, `punch_in`, `breathe`, `tada`, `critical_hit`, `upgrade`, `attract`, `headshake`). Safe without: `fade_in`, `fade_out`, `blink`, `spotlight`, `alarm`, `shake`
 - **TweenFX looping cleanup**: Looping animations (`alarm`, `breathe`, `attract`, `glow_pulse`) must be explicitly stopped with `TweenFX.stop(node, TweenFX.Animations.X)` or `TweenFX.stop_all(node)` in cleanup/hide code
 - **TweenFX.tada() signature**: Takes only 2 args `(node, duration)` — no scale parameter

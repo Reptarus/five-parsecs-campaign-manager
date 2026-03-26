@@ -55,9 +55,11 @@ MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntT
 
 ### Steps
 1. **BugHuntConfigPanel** — Campaign name, regiment, difficulty
-2. **BugHuntSquadPanel** — 3-4 main characters (create/select)
-3. **BugHuntEquipmentPanel** — Assign equipment
+2. **BugHuntSquadPanel** — 3-4 main characters (D100 generation)
+3. **BugHuntEquipmentPanel** — Standard issue display (READ-ONLY, auto-completes)
 4. **BugHuntReviewPanel** — Validate & launch
+
+**GOTCHA**: Equipment step is read-only (Bug Hunt uses standard issue). `BugHuntCreationCoordinator.go_to_step()` auto-marks EQUIPMENT complete when entering step 2, otherwise the Next button won't appear since the panel never emits `equipment_updated`.
 
 ### Signal Wiring
 - Coordinator emits `navigation_updated`, `step_changed`

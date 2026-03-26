@@ -943,6 +943,15 @@ static func set_character_flags(character: Character) -> void:
 			# Swift: Sp+1 (Core Rules p.18). Glide/leap. Multi-shot same target.
 			character.speed = clampi(character.speed + 1, 4, 8)
 			character.add_trait("Swift: Glide to lower position, leap 4\" gaps, jump from any height, multi-shot same target")
+		"KRAG":
+			# Krag: T+1 (Compendium p.12-15). Cannot Dash. Reroll 1 vs Rivals.
+			character.toughness = clampi(character.toughness + 1, 3, 6)
+			character.add_trait("Krag: Cannot Dash, reroll natural 1 vs Rivals")
+		"SKULKER":
+			# Skulker: Sp+2, Sv+1 (Compendium p.14-17). Ignore difficult ground. Poison resist 3+.
+			character.speed = clampi(character.speed + 2, 4, 8)
+			character.savvy = clampi(character.savvy + 1, 0, 5)
+			character.add_trait("Skulker: Ignore difficult ground, ignore obstacles up to 1\", poison resist 3+")
 
 ## Grant a random psionic power to a Precursor character (Core Rules p.17)
 static func _grant_precursor_psionic_power(character: Character) -> void:

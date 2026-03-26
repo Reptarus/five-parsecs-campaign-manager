@@ -58,6 +58,25 @@ Terrain labels were missing LARGE/SMALL/LINEAR type prefixes. Added `size_catego
 - `src/ui/components/battle/BattlefieldMapView.gd` — scatter skip, size prefix labels
 - `src/ui/screens/campaign/CampaignTurnController.gd` — terrain_guide merge into terrain sub-dict
 
+## Session 10: CombatResolver Interface Fix (Mar 26, 2026)
+
+CombatResolver.gd defines a 24-method + 10-property interface contract on `CharacterScript` (= `BaseCharacterResource`). Previously, 22 of 24 methods were completely missing — `_validate_character_interface()` in `_ready()` would crash via `assert()`.
+
+**Fix**: All 22 methods added to `src/core/character/Base/Character.gd`:
+- Equipment: `get_equipped_weapon()`, `get_combat_skill()`
+- Damage: `get_melee_damage()`, `get_ranged_damage()`, `get_armor_value()`, `apply_damage()`, `heal_damage()`
+- Actions: `add_action_points()`, `reduce_action_points()`, `can_perform_action()`, `get_speed()`
+- Abilities: `get_active_ability()`, `get_ability_cooldown()`, `is_ability_on_cooldown()`
+- Status: `is_mechanical()`, `is_suppressed()`, `is_pinned()`, `has_overwatch()`, `add_combat_modifier()`
+- Reactions: `can_counter_attack()`, `can_dodge()`, `can_suppress()`
+- Lifecycle: `reset_battle_state()`
+
+13 combat properties also added (transient state + aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`).
+
+TacticalBattleUI now hosts Battle Simulator flow too. Three modes: Standard 5PFH, Bug Hunt, Battle Simulator. All runtime-verified via MCP with zero errors.
+
+---
+
 ## Mar 20-21 Runtime Verification
 
 ### TacticalBattleUI Type Inference Fix

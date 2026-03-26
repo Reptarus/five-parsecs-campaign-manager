@@ -73,10 +73,13 @@ Route all QA-related questions through the qa-specialist agent, which now has 4 
 
 After any sprint that fixes bugs or adds features, remind the assigned agent to update the dashboard and core rules plan.
 
-## Project Status (Mar 21, 2026)
+## Project Status (Mar 26, 2026) — v0.9.3
 
-- **0 open bugs** — First time at zero. 4 deferred items remain (architectural).
-- **Phase 33 runtime-validated**: PostBattlePhase (19/19 signals), WorldPhaseComponent (9/9), 3 runtime fixes applied
-- **5-turn MCP playthrough PASS**: Turns 3-5, all counters consistent, 0 crashes, event bus cleanup working
-- **~99 uncommitted files** — Phase 33 optimization + QA bug fixes + runtime fixes. Needs commit.
-- **Next priorities**: Commit, 47 NOT_TESTED mechanics (focus: Compendium DLC), RULES_VERIFIED pass, character type shadowing fix
+- **Zero compile errors, zero runtime errors** (MCP-verified)
+- **Battle Simulator**: Standalone battle mode — 5 files, wired to MainMenu, runtime-verified
+- **CombatResolver interface**: 22 combat methods + 13 properties added to BaseCharacterResource (Session 10)
+- **Bug Hunt wizard fix**: Equipment step auto-complete — unblocked 4-step creation flow
+- **Bug Hunt**: Fully wired, 4-step wizard runtime-verified via MCP
+- **TacticalBattleUI**: Now serves 3 modes (Standard, Bug Hunt, Battle Simulator)
+- **7 uncommitted files**, 1 unpushed commit. Ready to commit + push.
+- **Next priorities**: Commit all, push, DLC gating for Battle Simulator + Bug Hunt, crew customization enhancements

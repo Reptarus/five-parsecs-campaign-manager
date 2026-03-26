@@ -108,76 +108,101 @@ func search_keywords(query: String) -> Array[Dictionary]:
 
 ## Internal methods
 func _load_keywords() -> void:
-	## Load keyword definitions from data file or initialize defaults
-	# NOTE: Deferred — load keywords from JSON data file instead of hardcoded defaults
-	_initialize_default_keywords()
+	## Load keyword definitions from data/keywords.json, fall back to hardcoded defaults
+	var loaded := _load_keywords_from_json("res://data/keywords.json")
+	if not loaded:
+		push_warning("KeywordDB: Could not load keywords.json, using hardcoded defaults")
+		_initialize_default_keywords()
 	keywords_loaded.emit()
 
+func _load_keywords_from_json(path: String) -> bool:
+	## Parse data/keywords.json and populate _keywords dictionary
+	if not FileAccess.file_exists(path):
+		return false
+
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return false
+
+	var json := JSON.new()
+	var parse_result := json.parse(file.get_as_text())
+	file.close()
+
+	if parse_result != OK:
+		push_warning("KeywordDB: Failed to parse keywords.json: %s" % json.get_error_message())
+		return false
+
+	var data: Variant = json.get_data()
+	if not data is Dictionary or not data.has("keywords"):
+		push_warning("KeywordDB: keywords.json missing 'keywords' key")
+		return false
+
+	var keywords_dict: Dictionary = data["keywords"]
+	for key in keywords_dict:
+		var entry: Dictionary = keywords_dict[key]
+		var term: String = entry.get("term", key)
+		var definition: String = entry.get("definition", "")
+		var related: Array = entry.get("related", [])
+		var rule_page: int = int(entry.get("rule_page", 0))
+		var category: String = entry.get("category", "")
+		_add_keyword(term, definition, related, rule_page, category)
+
+	return _keywords.size() > 0
+
 func _initialize_default_keywords() -> void:
-	## Initialize common Five Parsecs keywords
-	# Weapon traits
-	_add_keyword("Assault", 
-		"Can be fired without penalty while moving at combat speed.",
-		["Auto", "Heavy", "Pistol"],
-		42,
-		"weapon_trait")
-	
-	_add_keyword("Bulky",
-		"Cannot be carried by Soulless. Takes up 2 equipment slots.",
-		["Heavy", "Cumbersome"],
-		43,
-		"weapon_trait")
-	
-	_add_keyword("Auto",
-		"Fires multiple shots per action. +1 shot per activation.",
-		["Assault", "Rapid Fire"],
-		42,
-		"weapon_trait")
-	
+	## Fallback: Core Rules p.51 weapon traits (used only if keywords.json fails to load)
+	_add_keyword("Area",
+		"Resolve all shots on target, then 1 shot vs every figure within 2\".",
+		["Single Use", "Focused"], 51, "weapon_trait")
+	_add_keyword("Clumsy",
+		"-1 to Brawling rolls if opponent has higher Speed.",
+		["Melee", "Brawling"], 51, "weapon_trait")
+	_add_keyword("Critical",
+		"Natural 6 on Hit roll inflicts 2 Hits on target.",
+		["Damage", "Piercing"], 51, "weapon_trait")
+	_add_keyword("Elegant",
+		"May reroll the die when Brawling.",
+		["Melee", "Brawling"], 51, "weapon_trait")
+	_add_keyword("Focused",
+		"All shots must be against a single target.",
+		["Heavy", "Area"], 51, "weapon_trait")
 	_add_keyword("Heavy",
-		"Cannot be used after moving at combat speed. Requires setup.",
-		["Bulky", "Cumbersome"],
-		44,
-		"weapon_trait")
-	
-	_add_keyword("Pistol",
-		"Can be fired while engaged in brawling. Easy to conceal.",
-		["Assault", "Melee"],
-		45,
-		"weapon_trait")
-	
-	_add_keyword("Snap Shot",
-		"Can fire as a reaction during enemy movement.",
-		["Assault", "Overwatch"],
-		46,
-		"weapon_trait")
-	
+		"-1 penalty to Hit if firer moved this round.",
+		["Bulky", "Focused"], 51, "weapon_trait")
+	_add_keyword("Impact",
+		"If target already Stunned, place a second Stun marker.",
+		["Stun", "Stunned"], 51, "weapon_trait")
 	_add_keyword("Melee",
-		"Close combat weapon. Used in brawling.",
-		["Pistol", "Blade"],
-		47,
-		"weapon_trait")
-	
-	# Combat rules
+		"+2 to Brawling rolls.",
+		["Pistol", "Brawling"], 51, "weapon_trait")
+	_add_keyword("Piercing",
+		"Ignore Armor Saving Throws.",
+		["Damage", "Armor"], 51, "weapon_trait")
+	_add_keyword("Pistol",
+		"+1 to Brawling rolls.",
+		["Melee", "Brawling"], 51, "weapon_trait")
+	_add_keyword("Single Use",
+		"Can only be used once per battle.",
+		["Grenade", "Consumable"], 51, "weapon_trait")
+	_add_keyword("Snap Shot",
+		"+1 to Hit within 6\".",
+		["Range", "Pistol"], 51, "weapon_trait")
+	_add_keyword("Stun",
+		"Targets hit are Stunned (Toughness ignored, Saves apply).",
+		["Stunned", "Impact"], 51, "weapon_trait")
+	_add_keyword("Terrifying",
+		"Target hit must retreat 1D6\" away from firer.",
+		["Morale", "Brawling"], 51, "weapon_trait")
+	# Status effects (Core Rules p.40)
 	_add_keyword("Stunned",
-		"Cannot activate this round. Move at half speed if activated.",
-		["Suppressed", "Pinned"],
-		68,
-		"status_effect")
-	
+		"Cannot activate this round. Clears at end of round. Can defend in brawling.",
+		["Pinned", "Stun"], 40, "status_effect")
 	_add_keyword("Pinned",
 		"Cannot move or shoot. Must pass Savvy test to recover.",
-		["Stunned", "Suppressed"],
-		69,
-		"status_effect")
-	
+		["Stunned", "Morale"], 40, "status_effect")
 	_add_keyword("Brawling",
-		"Close combat between adjacent figures. Roll Combat skill.",
-		["Melee", "Combat"],
-		70,
-		"combat_rule")
-	
-	pass
+		"Close combat between adjacent figures. Both roll 1d6 + Combat Skill.",
+		["Melee", "Combat Skill"], 44, "combat_rule")
 
 func _add_keyword(term: String, definition: String, related: Array, rule_page: int, category: String) -> void:
 	## Add keyword to database

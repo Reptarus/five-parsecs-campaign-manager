@@ -26,6 +26,9 @@ func go_to_step(step: int) -> void:
 	if step < 0 or step >= total_steps:
 		return
 	current_step = step
+	# Equipment panel is read-only (Bug Hunt uses standard issue) — auto-complete
+	if current_step == 2:
+		state_manager.mark_step_complete(BugHuntStateManager.Step.EQUIPMENT)
 	step_changed.emit(current_step, total_steps)
 	_update_navigation()
 

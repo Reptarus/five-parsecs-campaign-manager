@@ -192,25 +192,23 @@ func _show_weapon_details(weapon: WeaponTableSystem.WeaponData) -> void:
 	details_label.text = text
 
 func _get_trait_description(trait_name: String) -> String:
+	## Core Rules p.51 weapon trait descriptions
 	match trait_name:
-		"Critical": return "+1 to Injury roll"
-		"Piercing": return "Ignores armor saves"
-		"Area": return "Hits all in blast radius"
-		"Burn": return "Target catches fire on hit"
-		"Heavy": return "Requires both actions to fire"
-		"Stabilize": return "Must set up before firing"
-		"Melee": return "Close combat only"
-		"Natural": return "Cannot be disarmed"
-		"Clumsy": return "-1 to hit in melee"
-		"Elegant": return "+1 to hit in melee"
-		"Stun": return "Target is Stunned"
-		"Blind": return "Target cannot shoot this round"
-		"Overheat": return "Roll 1 = weapon disabled"
-		"Silent": return "No alert generated"
-		"Focused": return "+1 at close range"
-		"Smoke": return "Blocks line of sight"
-		"Grenade": return "Thrown once per battle"
-		_: return "Special trait"
+		"Area": return "Resolve all shots on target, then 1 shot vs every figure within 2\""
+		"Clumsy": return "-1 to Brawling rolls if opponent has higher Speed"
+		"Critical": return "Natural 6 on Hit roll inflicts 2 Hits on target"
+		"Elegant": return "May reroll the die when Brawling"
+		"Focused": return "All shots must be against a single target"
+		"Heavy": return "-1 penalty to Hit if firer moved this round"
+		"Impact": return "If target already Stunned, place a second Stun marker"
+		"Melee": return "+2 to Brawling rolls"
+		"Piercing": return "Ignore Armor Saving Throws"
+		"Pistol": return "+1 to Brawling rolls"
+		"Single use": return "Can only be used once per battle"
+		"Snap Shot": return "+1 to Hit within 6\""
+		"Stun": return "Targets hit are Stunned (Toughness ignored, Saves apply)"
+		"Terrifying": return "Target hit must retreat 1D6\" away from firer"
+		_: return trait_name
 
 ## Show specific weapon by ID
 func show_weapon(weapon_id: String) -> void:

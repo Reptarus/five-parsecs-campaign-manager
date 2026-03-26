@@ -58,7 +58,16 @@ Source PDFs are available for direct data extraction — NEVER guess game values
 
 Always extract from the PDF when `data/RulesReference/` doesn't have the value you need.
 
-### 6. Godot 4.6 Type Inference
+### 6. BaseCharacterResource Combat Interface (Session 10)
+
+`BaseCharacterResource` now implements 22 combat methods required by `CombatResolver._validate_character_interface()`. Methods delegate to existing flat stats and equipment arrays. Key mappings:
+- `get_combat_skill()` → `combat`, `get_speed()` → `speed`, `is_mechanical()` → `is_bot`
+- `get_equipped_weapon()` → `weapons[0]` as Dictionary
+- `apply_damage()`/`heal_damage()` → modify `health`, set `is_wounded`/`is_dead`
+- Property aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`
+- Transient battle state: `_action_points`, `_combat_modifiers`, `position`, `in_cover`, `elevation`, `active_effects`, `has_moved_this_turn`, `is_player_controlled`, `is_swift`
+
+### 7. Godot 4.6 Type Inference
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.
