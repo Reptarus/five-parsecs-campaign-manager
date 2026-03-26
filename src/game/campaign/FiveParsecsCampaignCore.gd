@@ -292,6 +292,18 @@ func _build_qol_data() -> Dictionary:
 	var checklist = root.get_node_or_null("/root/TurnPhaseChecklist")
 	if checklist and checklist.has_method("save_to_dict"):
 		qol["turn_checklist"] = checklist.save_to_dict()
+	# WorldEconomyManager: credits + transaction history
+	var economy = root.get_node_or_null("/root/WorldEconomyManager")
+	if economy and economy.has_method("serialize"):
+		qol["world_economy"] = economy.serialize()
+	# PlanetDataManager: per-planet progression data
+	var planet_mgr = root.get_node_or_null("/root/PlanetDataManager")
+	if planet_mgr and planet_mgr.has_method("serialize_all"):
+		qol["planet_data"] = planet_mgr.serialize_all()
+	# GalacticWarManager: war track progress
+	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
+	if war_mgr and war_mgr.has_method("get_save_data"):
+		qol["galactic_war"] = war_mgr.get_save_data()
 	return qol
 
 func from_dictionary(data: Dictionary) -> void:
@@ -392,18 +404,36 @@ func apply_pending_qol_data() -> void:
 	var root = tree.root if tree else null
 	if not root:
 		return
+	var qol: Dictionary = _pending_qol_data.get("qol_data", {})
 	var journal = root.get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("load_from_save"):
 		journal.load_from_save(_pending_qol_data)
 	var npc_tracker = root.get_node_or_null("/root/NPCTracker")
 	if npc_tracker and npc_tracker.has_method("deserialize"):
-		var qol: Dictionary = _pending_qol_data.get("qol_data", {})
 		var npc_data: Dictionary = qol.get("npc_tracker", {})
 		if not npc_data.is_empty():
 			npc_tracker.deserialize(npc_data)
 	var checklist = root.get_node_or_null("/root/TurnPhaseChecklist")
 	if checklist and checklist.has_method("load_from_save"):
 		checklist.load_from_save(_pending_qol_data)
+	# WorldEconomyManager: restore credits + transaction history
+	var economy = root.get_node_or_null("/root/WorldEconomyManager")
+	if economy and economy.has_method("deserialize"):
+		var econ_data: Dictionary = qol.get("world_economy", {})
+		if not econ_data.is_empty():
+			economy.deserialize(econ_data)
+	# PlanetDataManager: restore per-planet progression
+	var planet_mgr = root.get_node_or_null("/root/PlanetDataManager")
+	if planet_mgr and planet_mgr.has_method("deserialize_all"):
+		var planet_data: Dictionary = qol.get("planet_data", {})
+		if not planet_data.is_empty():
+			planet_mgr.deserialize_all(planet_data)
+	# GalacticWarManager: restore war track progress
+	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
+	if war_mgr and war_mgr.has_method("load_save_data"):
+		var war_data: Dictionary = qol.get("galactic_war", {})
+		if not war_data.is_empty():
+			war_mgr.load_save_data(war_data)
 	_pending_qol_data = {}
 
 ## Campaign Management Methods

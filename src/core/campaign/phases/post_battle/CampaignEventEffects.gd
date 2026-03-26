@@ -45,6 +45,17 @@ func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 	if event.has("type") and event.type != "none":
 		var event_name: String = event.get("name", event.get("title", "Unknown"))
 		apply_effect(event_name, ctx)
+		# Journal: log campaign event result
+		if ctx.campaign_journal \
+				and ctx.campaign_journal.has_method("create_entry"):
+			ctx.campaign_journal.create_entry({
+				"type": "campaign_event",
+				"auto_generated": true,
+				"title": "Campaign Event: %s" % event_name,
+				"description": event.get("description", ""),
+				"tags": ["campaign_event", "d100"],
+				"stats": {"roll": event.get("roll", 0)},
+			})
 
 func _get_campaign_event(roll: int) -> Dictionary:
 	## Get campaign event based on D100 roll from JSON data file (Core Rules p.126-128)

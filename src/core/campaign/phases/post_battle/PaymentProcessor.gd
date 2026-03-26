@@ -54,6 +54,18 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	if total_payment > 0 and ctx.game_state and ctx.game_state.has_method("add_credits"):
 		ctx.game_state.add_credits(total_payment)
 
+	# Journal: log payment earned
+	if total_payment > 0 and ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "payment",
+			"auto_generated": true,
+			"title": "Mission Pay: %d credits" % total_payment,
+			"description": "Earned %d credits (base %d + danger pay %d)" % [
+				total_payment, credit_roll, danger_pay],
+			"mood": "triumph" if total_payment >= 5 else "neutral",
+			"tags": ["payment", "credits"],
+		})
+
 	return total_payment
 
 func process_battlefield_finds(ctx: PostBattleContextClass) -> Array[Dictionary]:

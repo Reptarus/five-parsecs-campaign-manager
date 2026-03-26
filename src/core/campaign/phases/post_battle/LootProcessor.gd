@@ -20,6 +20,21 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	for loot_item in gathered_loot:
 		_add_loot_to_inventory(ctx, loot_item)
 
+	# Journal: log loot gathered
+	if gathered_loot.size() > 0 and ctx.campaign_journal \
+			and ctx.campaign_journal.has_method("create_entry"):
+		var item_names: Array = []
+		for item in gathered_loot:
+			item_names.append(item.get("description", item.get("type", "item")))
+		ctx.campaign_journal.create_entry({
+			"type": "loot",
+			"auto_generated": true,
+			"title": "Loot: %d items gathered" % gathered_loot.size(),
+			"description": ", ".join(item_names),
+			"tags": ["loot", "post_battle"],
+			"stats": {"item_count": gathered_loot.size()},
+		})
+
 	return gathered_loot
 
 func _roll_enemy_loot(enemy: Dictionary) -> Array[Dictionary]:

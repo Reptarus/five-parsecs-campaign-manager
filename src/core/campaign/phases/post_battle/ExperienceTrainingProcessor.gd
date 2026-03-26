@@ -49,6 +49,21 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 			if ctx.game_state and ctx.game_state.has_method("add_crew_experience"):
 				ctx.game_state.add_crew_experience(crew_id, xp_earned)
 
+	# Journal: log XP awards
+	if xp_awards.size() > 0 and ctx.campaign_journal \
+			and ctx.campaign_journal.has_method("create_entry"):
+		var total_xp: int = 0
+		for award in xp_awards:
+			total_xp += award.get("xp", 0)
+		ctx.campaign_journal.create_entry({
+			"type": "experience",
+			"auto_generated": true,
+			"title": "XP Awarded: %d total" % total_xp,
+			"description": "%d crew members gained experience" % xp_awards.size(),
+			"tags": ["experience", "post_battle"],
+			"stats": {"total_xp": total_xp, "crew_count": xp_awards.size()},
+		})
+
 	return xp_awards
 
 func process_training(ctx: PostBattleContextClass) -> Array[Dictionary]:

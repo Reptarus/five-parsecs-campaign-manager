@@ -45,6 +45,17 @@ func get_transaction_history() -> Array:
 func clear_history() -> void:
 	_transaction_history.clear()
 
+## Serialization for campaign save/load persistence
+func serialize() -> Dictionary:
+	return {
+		"current_credits": _current_credits,
+		"transaction_history": _transaction_history.duplicate(true)
+	}
+
+func deserialize(data: Dictionary) -> void:
+	_current_credits = data.get("current_credits", 0)
+	_transaction_history = data.get("transaction_history", [])
+
 # Market functions
 func calculate_price_adjustment(location_type: String) -> float:
 	var base_adjustment := 1.0

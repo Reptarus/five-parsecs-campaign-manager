@@ -61,6 +61,21 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 		"enemy_type": ctx.battle_result.get("enemy_type", "Unknown")
 	})
 
+func record_planet_mission(ctx: PostBattleContextClass) -> void:
+	## Record mission completion on current planet (PlanetDataManager)
+	var tree = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root = tree.root if tree else null
+	if not root:
+		return
+	var pdm = root.get_node_or_null("/root/PlanetDataManager")
+	if not pdm or not pdm.has_method("complete_mission"):
+		return
+	var world_id: String = ctx.battle_result.get(
+		"world_id", ctx.battle_result.get("location", "")
+	)
+	if not world_id.is_empty():
+		pdm.complete_mission(world_id, ctx.battle_result)
+
 func apply_post_battle_morale(ctx: PostBattleContextClass) -> void:
 	## Apply crew morale adjustments after battle using MoraleSystem.
 	var campaign = ctx.campaign

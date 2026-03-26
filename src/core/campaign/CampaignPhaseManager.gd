@@ -6,6 +6,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload("res://src/core/campaign/PostBattlePhase.gd")
+const VictoryChecker = preload("res://src/core/victory/VictoryChecker.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -113,6 +114,31 @@ func _process_turn_rollover() -> void:
 	# --- Patron Duration Expiration (Core Rules p.81-88) ---
 	# Decrement patron job durations; expire patrons whose time has run out.
 	_process_patron_expiration()
+
+	# --- Story Point Auto-Award (Core Rules p.66-67) ---
+	# "+1 story point every 3rd campaign turn"
+	if turn_number > 0 and turn_number % 3 == 0:
+		if "story_points" in campaign:
+			campaign.story_points += 1
+
+	# --- Planet Temporary Effects Expiry ---
+	# Decrement temporary planet effects each turn
+	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
+	if planet_mgr and planet_mgr.has_method("process_turn_effects"):
+		planet_mgr.process_turn_effects(turn_number)
+
+	# --- Victory Condition Check (Core Rules p.64) ---
+	# Evaluate whether any victory condition has been met
+	var vc_result: Dictionary = VictoryChecker.check_victory(
+		campaign, turn_number
+	)
+	if vc_result.get("achieved", false):
+		phase_event_triggered.emit({
+			"type": "victory_achieved",
+			"message": vc_result.get("message", ""),
+			"progress": vc_result.get("progress", 0),
+			"required": vc_result.get("required", 0)
+		})
 
 func _restore_crew_luck(campaign: Resource) -> void:
 	## Core Rules p.91: "All Luck is regained automatically after each battle."

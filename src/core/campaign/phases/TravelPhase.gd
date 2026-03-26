@@ -771,6 +771,12 @@ func _process_world_arrival() -> void:
 	elif license_roll >= 3:
 		license_cost = 10
 
+	# Core Rules p.88: "When you travel to a new planet, all Patrons
+	# become unavailable unless they are Persistent."
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	if npc_tracker and npc_tracker.has_method("clear_non_persistent_patrons"):
+		npc_tracker.clear_non_persistent_patrons()
+
 	# Build world data dictionary
 	_last_world_data = {
 		"name": world_name,

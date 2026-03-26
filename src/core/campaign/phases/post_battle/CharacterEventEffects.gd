@@ -93,6 +93,16 @@ func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 		var species_exceptions: Dictionary = event.get("species_exceptions", {})
 		if crew:
 			apply_effect(event_name, crew, ctx, origin, species_exceptions)
+			# Journal: log character event
+			if ctx.campaign_journal \
+					and ctx.campaign_journal.has_method("auto_create_character_event"):
+				var crew_id: String = crew if crew is String else str(crew)
+				ctx.campaign_journal.auto_create_character_event(
+					crew_id, "character_event", {
+						"turn": ctx.battle_result.get("turn", 0),
+						"event_name": event_name,
+						"description": event.get("description", ""),
+					})
 
 func apply_effect(event_title: String, character: Variant, ctx: PostBattleContextClass, character_origin: String = "", species_exceptions: Dictionary = {}) -> String:
 	## Apply character event effects based on event title (Core Rules p.128-130)

@@ -91,6 +91,23 @@ func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 		var war_events: Array = ctx.galactic_war_manager.process_turn_war_progression()
 		progress["war_track_events"] = war_events
 
+	# Journal: log galactic war progress
+	if progress["planet_results"].size() > 0 and ctx.campaign_journal \
+			and ctx.campaign_journal.has_method("create_entry"):
+		var desc_parts: Array = []
+		for result in progress["planet_results"]:
+			desc_parts.append("%s: %s" % [
+				result.get("planet_name", "?"),
+				result.get("result", "contested")])
+		ctx.campaign_journal.create_entry({
+			"type": "galactic_war",
+			"auto_generated": true,
+			"title": "Galactic War: %d conflicts" % progress["conflicts_active"],
+			"description": "; ".join(desc_parts),
+			"tags": ["galactic_war", "post_battle"],
+			"stats": progress,
+		})
+
 	return progress
 
 func _get_invaded_planets(ctx: PostBattleContextClass) -> Array:
