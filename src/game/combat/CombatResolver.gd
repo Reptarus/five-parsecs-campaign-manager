@@ -789,7 +789,7 @@ func _apply_berserker_bonus(character: CharacterScript) -> void:
 
 func _apply_medic_bonus(character: CharacterScript, target: CharacterScript) -> void:
 	if target and _is_character_wounded(target):
-		var heal_amount := 2
+		var heal_amount := 22
 		target.heal_damage(heal_amount)
 		target.remove_status_effect("bleeding")
 		target.remove_status_effect("poison")

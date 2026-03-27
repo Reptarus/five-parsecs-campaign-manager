@@ -43,6 +43,10 @@ func _ready() -> void:
 		_connect_tutorial_signals()
 	update_continue_button_visibility()
 
+	# Responsive layout
+	get_viewport().size_changed.connect(_on_viewport_resized)
+	_on_viewport_resized()
+
 func _validate_required_nodes() -> bool:
 	var required_nodes := [
 		continue_button,
@@ -316,6 +320,42 @@ func show_message(text: String) -> void:
 	if is_instance_valid(dialog):
 		dialog.queue_free()
 	_active_dialogs.erase(dialog)
+
+func _on_viewport_resized() -> void:
+	var vp := get_viewport()
+	if not vp:
+		return
+	var vp_size := vp.get_visible_rect().size
+	var is_narrow := vp_size.x < 768
+	var menu_buttons := $MenuButtons
+	var title := $Title
+
+	if is_narrow:
+		# Portrait/narrow: center buttons, scale down title
+		menu_buttons.anchor_left = 0.5
+		menu_buttons.anchor_right = 0.5
+		menu_buttons.anchor_top = 0.5
+		menu_buttons.anchor_bottom = 0.5
+		menu_buttons.offset_left = -160
+		menu_buttons.offset_right = 160
+		menu_buttons.offset_top = -200
+		menu_buttons.offset_bottom = 200
+		title.add_theme_font_size_override("font_size", 36)
+		title.offset_left = -180
+		title.offset_right = 180
+	else:
+		# Landscape/wide: right-aligned buttons (original layout)
+		menu_buttons.anchor_left = 1.0
+		menu_buttons.anchor_right = 1.0
+		menu_buttons.anchor_top = 0.5
+		menu_buttons.anchor_bottom = 0.5
+		menu_buttons.offset_left = -400
+		menu_buttons.offset_right = -50
+		menu_buttons.offset_top = -250
+		menu_buttons.offset_bottom = 250
+		title.add_theme_font_size_override("font_size", 75)
+		title.offset_left = -400
+		title.offset_right = 400
 
 func request_scene_change(scene_name: String) -> void:
 	var router = get_node_or_null("/root/SceneRouter")

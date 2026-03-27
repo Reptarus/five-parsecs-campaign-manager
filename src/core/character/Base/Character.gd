@@ -54,6 +54,9 @@ var is_bot: bool = false
 var is_soulless: bool = false
 var is_human: bool = false
 
+# Portrait path (custom image or empty for fallback)
+var portrait_path: String = ""
+
 # Psionic powers (Precursor species start with one)
 var psionic_power: String = ""
 var psionic_power_enhanced: bool = false

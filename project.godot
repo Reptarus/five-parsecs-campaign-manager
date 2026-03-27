@@ -44,6 +44,7 @@ PlanetDataManager="*res://src/core/world/PlanetDataManager.gd"
 ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
 ThemeManager="*res://src/ui/themes/ThemeManager.gd"
 TransitionManager="res://src/autoload/TransitionManager.gd"
+SettingsOverlay="*res://src/autoload/SettingsOverlay.gd"
 NotificationManager="res://src/autoload/NotificationManager.gd"
 StoreManager="*res://src/core/store/StoreManager.gd"
 ReviewManager="*res://src/core/store/ReviewManager.gd"
@@ -86,11 +87,16 @@ enabled=PackedStringArray("res://addons/TweenFX/plugin.cfg", "res://addons/curve
 
 [gui]
 
+theme/custom="res://src/ui/themes/sci_fi_theme.tres"
 common/default_scroll_deadzone=16
 
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
+
+[accessibility]
+
+general/accessibility_driver="accesskit"
 
 [logging]
 

@@ -13,6 +13,7 @@ const COLOR_BASE := Color("#1A1A2E")
 const COLOR_TEXT := Color("#E0E0E0")
 const COLOR_TEXT_SEC := Color("#808080")
 const COLOR_ACCENT := Color("#2D5A7B")
+const MAX_FORM_WIDTH := 800
 
 var coordinator: CoordinatorScript
 var panels: Array[Control] = []
@@ -23,6 +24,7 @@ var _next_button: Button
 var _back_button: Button
 var _finish_button: Button
 var _panel_container: Control
+var _content_margin: MarginContainer
 
 
 func _ready() -> void:
@@ -32,6 +34,8 @@ func _ready() -> void:
 	_connect_signals()
 	_show_panel(0)
 	_update_buttons(false, true, false)
+	get_viewport().size_changed.connect(_apply_content_max_width)
+	_apply_content_max_width()
 
 
 func _build_layout() -> void:
@@ -41,14 +45,13 @@ func _build_layout() -> void:
 	bg.color = COLOR_BASE
 	add_child(bg)
 
-	# Main margin
+	# Main margin (stored for dynamic max-width adjustment)
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 20)
 	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_bottom", 20)
 	add_child(margin)
+	_content_margin = margin
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 16)
@@ -218,3 +221,18 @@ func _on_cancel_pressed() -> void:
 		router.navigate_to("main_menu")
 	else:
 		push_error("BugHuntCreationUI: SceneRouter not found")
+
+func _apply_content_max_width() -> void:
+	if not _content_margin:
+		return
+	var vp := get_viewport()
+	if not vp:
+		return
+	var vp_width := vp.get_visible_rect().size.x
+	if vp_width > MAX_FORM_WIDTH + 64:
+		var side := int((vp_width - MAX_FORM_WIDTH) / 2.0)
+		_content_margin.add_theme_constant_override("margin_left", side)
+		_content_margin.add_theme_constant_override("margin_right", side)
+	else:
+		_content_margin.add_theme_constant_override("margin_left", 20)
+		_content_margin.add_theme_constant_override("margin_right", 20)

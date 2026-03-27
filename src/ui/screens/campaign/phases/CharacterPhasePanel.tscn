@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://c4h8r2qat1e6x"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
-[ext_resource type="Script" uid="uid://dkw7m3n5v2q8y" path="res://src/ui/screens/campaign/phases/CharacterPhasePanel.gd" id="1_chr_panel"]
+[ext_resource type="Script" uid="uid://cy3jhu8yva31v" path="res://src/ui/screens/campaign/phases/CharacterPhasePanel.gd" id="1_chr_panel"]
 
 [node name="CharacterPhasePanel" type="PanelContainer"]
 anchors_preset = 15

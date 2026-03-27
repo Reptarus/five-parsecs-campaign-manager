@@ -69,7 +69,7 @@ const SCENE_PATHS = {
 	"save_load": "res://src/ui/screens/utils/SaveLoadUI.tscn",
 	"game_over": "res://src/ui/screens/utils/GameOverScreen.tscn",
 	"logbook": "res://src/ui/screens/utils/logbook.tscn",
-	"settings": "res://src/ui/dialogs/SettingsDialog.tscn",
+	"settings": "res://src/ui/screens/settings/SettingsScreen.tscn",
 
 	# Tutorial
 	"tutorial_selection": "res://src/ui/screens/tutorial/TutorialSelection.tscn",

@@ -491,7 +491,8 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 func _create_character_card(
 		char_name: String,
 		subtitle: String,
-		stats: Dictionary = {}) -> PanelContainer:
+		stats: Dictionary = {},
+		portrait_path: String = "") -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.custom_minimum_size.y = 80
@@ -499,10 +500,56 @@ func _create_character_card(
 
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", SPACING_MD)
-	var portrait := ColorRect.new()
-	portrait.custom_minimum_size = Vector2(48, 48)
-	portrait.color = COLOR_BORDER
-	hbox.add_child(portrait)
+
+	# Portrait (custom image or colored initials)
+	var p_size := 48
+	var p_container := Control.new()
+	p_container.custom_minimum_size = Vector2(p_size, p_size)
+	p_container.clip_contents = true
+
+	var avatar_colors := [
+		Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
+		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"),
+		Color("#ec4899"), Color("#14b8a6")]
+	var c_idx := char_name.hash() % avatar_colors.size()
+	if c_idx < 0:
+		c_idx += avatar_colors.size()
+
+	var bg := ColorRect.new()
+	bg.custom_minimum_size = Vector2(p_size, p_size)
+	bg.color = avatar_colors[c_idx]
+	p_container.add_child(bg)
+
+	var has_img := false
+	if not portrait_path.is_empty():
+		var tex: Texture2D = null
+		if portrait_path.begins_with("res://"):
+			if ResourceLoader.exists(portrait_path):
+				tex = load(portrait_path)
+		elif FileAccess.file_exists(portrait_path):
+			var img := Image.new()
+			if img.load(portrait_path) == OK:
+				tex = ImageTexture.create_from_image(img)
+		if tex:
+			var tr := TextureRect.new()
+			tr.texture = tex
+			tr.custom_minimum_size = Vector2(p_size, p_size)
+			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			p_container.add_child(tr)
+			has_img = true
+
+	if not has_img:
+		var il := Label.new()
+		il.text = char_name.substr(0, 1).to_upper() if char_name else "?"
+		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		il.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		il.add_theme_font_size_override("font_size", int(p_size * 0.45))
+		il.add_theme_color_override("font_color", Color.WHITE)
+		il.custom_minimum_size = Vector2(p_size, p_size)
+		p_container.add_child(il)
+
+	hbox.add_child(p_container)
 
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1,6 +1,5 @@
-[gd_scene load_steps=3 format=3 uid="uid://b4q8j6q8j6q8j"]
+[gd_scene load_steps=2 format=3 uid="uid://b4q8j6q8j6q8j"]
 
-[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_ubhx7"]
 [ext_resource type="Script" uid="uid://coorx85tp2aps" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="2_e34t7"]
 
 [node name="CampaignDashboard" type="Control"]
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("1_ubhx7")
 script = ExtResource("2_e34t7")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -142,9 +140,8 @@ layout_mode = 2
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="ButtonContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-columns = 3
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 8
 

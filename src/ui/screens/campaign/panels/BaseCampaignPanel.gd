@@ -219,6 +219,24 @@ func _on_viewport_resized() -> void:
 	if current_layout_mode != previous_mode:
 		pass # Layout mode changed
 
+func _apply_content_max_width() -> void:
+	## Constrain form content to MAX_FORM_WIDTH on wide screens.
+	## Prevents absurdly long text fields and dropdowns on desktop.
+	var cm := get_node_or_null("ContentMargin")
+	if not cm:
+		return
+	var viewport := get_viewport()
+	if not viewport:
+		return
+	var vp_width := viewport.get_visible_rect().size.x
+	if vp_width > MAX_FORM_WIDTH + SPACING_XL * 2:
+		var side := int((vp_width - MAX_FORM_WIDTH) / 2.0)
+		cm.add_theme_constant_override("margin_left", side)
+		cm.add_theme_constant_override("margin_right", side)
+	else:
+		cm.add_theme_constant_override("margin_left", SPACING_XL)
+		cm.add_theme_constant_override("margin_right", SPACING_XL)
+
 func _apply_responsive_layout() -> void:
 	## Apply responsive layout based on current viewport width
 	# SPRINT 26 FIX: Guard against null viewport during scene transitions
@@ -243,6 +261,9 @@ func _apply_responsive_layout() -> void:
 	if new_mode != current_layout_mode:
 		current_layout_mode = new_mode
 		_update_layout_for_mode()
+
+	# Always update content max-width (viewport may resize without mode change)
+	_apply_content_max_width()
 
 func _update_layout_for_mode() -> void:
 	## Update UI layout based on current mode - override in derived panels
@@ -611,6 +632,9 @@ const BREAKPOINT_MOBILE := UIColors.BREAKPOINT_MOBILE
 const BREAKPOINT_TABLET := UIColors.BREAKPOINT_TABLET
 const BREAKPOINT_DESKTOP := UIColors.BREAKPOINT_DESKTOP
 
+## Max content width for form panels (prevents absurdly wide inputs on desktop)
+const MAX_FORM_WIDTH := 800
+
 # Responsive layout state
 enum LayoutMode { MOBILE, TABLET, DESKTOP }
 var current_layout_mode: LayoutMode = LayoutMode.DESKTOP
@@ -844,8 +868,8 @@ func _create_button_group_selector(options: Array, selected_index: int = 0) -> H
 	return container
 
 
-func _create_character_card(char_name: String, subtitle: String, stats: Dictionary = {}) -> PanelContainer:
-	## Create a character card with portrait placeholder, name, and stats.
+func _create_character_card(char_name: String, subtitle: String, stats: Dictionary = {}, portrait_path: String = "") -> PanelContainer:
+	## Create a character card with portrait (custom image or colored initials).
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.custom_minimum_size.y = 100
@@ -861,11 +885,52 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", SPACING_MD)
 
-	# Portrait placeholder
-	var portrait := ColorRect.new()
-	portrait.custom_minimum_size = Vector2(64, 64)
-	portrait.color = COLOR_BORDER
-	hbox.add_child(portrait)
+	# Portrait (custom image or colored initials)
+	var portrait_size := 64
+	var portrait_container := Control.new()
+	portrait_container.custom_minimum_size = Vector2(portrait_size, portrait_size)
+	portrait_container.clip_contents = true
+
+	var avatar_colors := [Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
+		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"), Color("#ec4899"), Color("#14b8a6")]
+	var color_idx := char_name.hash() % avatar_colors.size()
+	if color_idx < 0:
+		color_idx += avatar_colors.size()
+
+	var bg := ColorRect.new()
+	bg.custom_minimum_size = Vector2(portrait_size, portrait_size)
+	bg.color = avatar_colors[color_idx]
+	portrait_container.add_child(bg)
+
+	var has_portrait := false
+	if not portrait_path.is_empty():
+		var tex: Texture2D = null
+		if portrait_path.begins_with("res://") and ResourceLoader.exists(portrait_path):
+			tex = load(portrait_path)
+		elif FileAccess.file_exists(portrait_path):
+			var img := Image.new()
+			if img.load(portrait_path) == OK:
+				tex = ImageTexture.create_from_image(img)
+		if tex:
+			var tex_rect := TextureRect.new()
+			tex_rect.texture = tex
+			tex_rect.custom_minimum_size = Vector2(portrait_size, portrait_size)
+			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			portrait_container.add_child(tex_rect)
+			has_portrait = true
+
+	if not has_portrait:
+		var initial_label := Label.new()
+		initial_label.text = char_name.substr(0, 1).to_upper() if not char_name.is_empty() else "?"
+		initial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		initial_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		initial_label.add_theme_font_size_override("font_size", int(portrait_size * 0.45))
+		initial_label.add_theme_color_override("font_color", Color.WHITE)
+		initial_label.custom_minimum_size = Vector2(portrait_size, portrait_size)
+		portrait_container.add_child(initial_label)
+
+	hbox.add_child(portrait_container)
 
 	# Info column
 	var info := VBoxContainer.new()

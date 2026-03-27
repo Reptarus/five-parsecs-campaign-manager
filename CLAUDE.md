@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-03-23
+**Last Updated**: 2026-03-27
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -233,6 +233,10 @@ Cross-platform in-app review prompts via ReviewManager autoload:
 ## UI Design System - Deep Space Theme
 
 **Source**: `src/ui/screens/campaign/panels/BaseCampaignPanel.gd`
+**Project Theme**: `src/ui/themes/sci_fi_theme.tres` (set in `project.godot` → `gui/theme/custom`)
+**Fonts**: Montserrat-Regular (body), Montserrat-SemiBold (buttons), Montserrat-Bold (titles), CourierPrime-Regular (monospace)
+**Max Form Width**: `BaseCampaignPanel.MAX_FORM_WIDTH := 800` (centered on wide screens via `_apply_content_max_width()`)
+**Portrait Avatars**: `CharacterCard._update_portrait()` prefers `portrait_path`, falls back to colored initials (8 deterministic colors from name hash)
 
 ### Spacing (8px Grid)
 ```gdscript
@@ -497,6 +501,12 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 - **BasePhasePanel + BaseCampaignPanel auto-background**: Both inject a `COLOR_BASE` ColorRect in `_ready()` with `show_behind_parent = true`. Named `"__phase_bg"` / `"__panel_bg"` to prevent duplicates. New panels inheriting either base get correct background automatically
 - **TransitionManager overlay blocks MCP screenshots**: `TransitionOverlay` (full-screen ColorRect) must be disabled (`visible = false`) for MCP take_screenshot to work during scene transitions. Safe to disable for automated testing
 - **UI/UX issues tracker**: `docs/QA_UI_UX_ISSUES.md` — 30 issues found, 21 fixed, 9 deferred (card containers, dialog backdrop, max-width, disabled button contrast)
+- **Project-wide theme**: `sci_fi_theme.tres` is set via `gui/theme/custom` in `project.godot`. All controls inherit fonts and styles unless overridden. Per-element `add_theme_*_override()` calls always take priority over the project theme
+- **Legacy `5PFH.tres` theme removed from CampaignDashboard**: Was a sprite-based theme with empty textures and a different color palette. Dashboard now inherits the project-wide Deep Space theme
+- **Bug Hunt panels extend Control (not BaseCampaignPanel)**: `BugHuntCreationUI` has its own `MAX_FORM_WIDTH` and `_apply_content_max_width()` since it doesn't inherit from BaseCampaignPanel
+- **Portrait path existence check**: Use `ResourceLoader.exists()` for `res://` paths, `FileAccess.file_exists()` for `user://` paths. `FileAccess.file_exists()` fails for `res://` in exported PCK builds
+- **CharacterCard portrait priority**: `_update_portrait()` checks `portrait_path` first (custom image), falls back to colored initials (8 deterministic colors from `name.hash() % 8`). IconRegistry class icons are no longer the default
+- **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
 
 ---
 

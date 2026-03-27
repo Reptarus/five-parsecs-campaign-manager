@@ -363,19 +363,79 @@ func _create_portrait(size: int) -> TextureRect:
 	portrait.add_child(clip)
 	return portrait
 
+## Deterministic avatar background colors (Deep Space palette)
+const AVATAR_COLORS: Array[Color] = [
+	Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"), Color("#10b981"),
+	Color("#f59e0b"), Color("#ef4444"), Color("#ec4899"), Color("#14b8a6"),
+]
+
 func _update_portrait() -> void:
-	## Set portrait icon based on character class
+	## Set portrait: prefer custom image, fall back to colored initials
 	if not _portrait or not character_data:
 		return
-	var icon_node = _portrait.find_child("PortraitIcon", true, false)
+	var icon_node: TextureRect = _portrait.find_child("PortraitIcon", true, false)
 	if not icon_node:
 		return
-	var class_key: String = _get_enum_string(character_data.character_class, "CharacterClass").to_lower()
-	var tex = IconRegistry.get_icon("class", class_key)
-	if not tex:
-		tex = IconRegistry.get_icon("class", "none")
-	if tex:
-		icon_node.texture = tex
+
+	# Try custom portrait first
+	var pp: String = character_data.portrait_path if character_data.portrait_path else ""
+	if not pp.is_empty() and _portrait_file_exists(pp):
+		var img := Image.new()
+		if img.load(pp) == OK:
+			var custom_tex := ImageTexture.create_from_image(img)
+			icon_node.texture = custom_tex
+			icon_node.modulate = Color.WHITE
+			icon_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			icon_node.position = Vector2.ZERO
+			icon_node.custom_minimum_size = _portrait.custom_minimum_size
+			# Hide initials if they exist
+			var initials: Label = _portrait.find_child("InitialsLabel", true, false)
+			if initials:
+				initials.visible = false
+			return
+
+	# No custom portrait — show colored initials
+	icon_node.texture = null
+	_show_initials_fallback()
+
+static func _portrait_file_exists(path: String) -> bool:
+	if path.begins_with("res://"):
+		return ResourceLoader.exists(path)
+	return FileAccess.file_exists(path)
+
+func _show_initials_fallback() -> void:
+	if not _portrait or not character_data:
+		return
+	var char_name: String = character_data.character_name if character_data.character_name else "?"
+	var initial := char_name.substr(0, 1).to_upper()
+	var color_idx := char_name.hash() % AVATAR_COLORS.size()
+	if color_idx < 0:
+		color_idx += AVATAR_COLORS.size()
+	var bg_color: Color = AVATAR_COLORS[color_idx]
+
+	# Find or create the initials label inside the clip container
+	var initials_label: Label = _portrait.find_child("InitialsLabel", true, false)
+	if not initials_label:
+		initials_label = Label.new()
+		initials_label.name = "InitialsLabel"
+		initials_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		initials_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var clip: Control = _portrait.get_child(0) if _portrait.get_child_count() > 0 else _portrait
+		clip.add_child(initials_label)
+
+	initials_label.text = initial
+	initials_label.add_theme_font_size_override("font_size", int(_portrait.custom_minimum_size.x * 0.45))
+	initials_label.add_theme_color_override("font_color", Color.WHITE)
+	initials_label.custom_minimum_size = _portrait.custom_minimum_size
+	initials_label.size = _portrait.custom_minimum_size
+	initials_label.visible = true
+
+	# Update background color on the ColorRect
+	if _portrait.get_child_count() > 0:
+		var clip: Control = _portrait.get_child(0)
+		if clip.get_child_count() > 0 and clip.get_child(0) is ColorRect:
+			(clip.get_child(0) as ColorRect).color = bg_color
 
 func _create_key_stats_row() -> HBoxContainer:
 	## Create compact horizontal stats row for STANDARD variant

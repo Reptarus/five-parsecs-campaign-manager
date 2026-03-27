@@ -260,9 +260,9 @@ func _start_pulse_animation() -> void:
 	if not circle:
 		return
 	
-	# Create pulsing scale animation
+	# Create pulsing scale animation (bounded to avoid Godot "Infinite loop" warning)
 	_pulse_tween = create_tween()
-	_pulse_tween.set_loops()  # Infinite loop
+	_pulse_tween.set_loops(9999)
 	_pulse_tween.tween_property(circle, "scale", Vector2(1.1, 1.1), 0.6).set_ease(Tween.EASE_IN_OUT)
 	_pulse_tween.tween_property(circle, "scale", Vector2(1.0, 1.0), 0.6).set_ease(Tween.EASE_IN_OUT)
 

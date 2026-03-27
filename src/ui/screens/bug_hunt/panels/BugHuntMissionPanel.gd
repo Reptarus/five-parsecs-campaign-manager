@@ -142,11 +142,13 @@ func _generate_mission() -> void:
 	var priority: int = _calculate_priority(turn, difficulty)
 	var spawn_rating: int = maxi(priority - 1, 1)
 
-	# Roll objective
-	var objectives: Array = _missions_data.get("objectives", [])
-	var objective: Dictionary = {}
-	if objectives.size() > 0:
-		objective = objectives[randi() % objectives.size()]
+	# Roll objective — objectives is a Dictionary with "types" Array inside
+	var objectives_data: Dictionary = _missions_data.get("objectives", {})
+	var objective_types: Array = objectives_data.get("types", [])
+	var objective: Dictionary = objectives_data.duplicate()
+	objective.erase("types")  # Keep metadata (description, placement_rule, etc.)
+	if objective_types.size() > 0:
+		objective["selected_type"] = objective_types[randi() % objective_types.size()]
 
 	# Roll contact markers
 	var base_contacts: int = _missions_data.get("base_contact_markers", 4)
@@ -171,8 +173,9 @@ func _generate_mission() -> void:
 	_add_row(briefing_card, "Priority", str(priority))
 	_add_row(briefing_card, "Spawn Rating", str(spawn_rating))
 	_add_row(briefing_card, "Contact Markers", str(total_contacts))
-	_add_row(briefing_card, "Objective", objective.get("name", "Patrol"))
-	_add_row(briefing_card, "Objective Goal", objective.get("description", "Complete the patrol route"))
+	var sel_type: Dictionary = objective.get("selected_type", {})
+	_add_row(briefing_card, "Objective", sel_type.get("name", "Patrol"))
+	_add_row(briefing_card, "Objective Goal", sel_type.get("achieved_when", objective.get("description", "Complete the objective")))
 
 	# Difficulty modifiers
 	var diff_settings: Dictionary = _get_difficulty_settings(difficulty)

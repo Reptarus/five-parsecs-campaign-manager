@@ -91,7 +91,7 @@ func _populate_theme_options() -> void:
 
 	# Set current theme if ThemeManager available
 	if _theme_manager:
-		var current = _theme_manager.get_current_theme()
+		var current: int = int(_theme_manager.get_theme_variant())
 		_theme_option_button.select(current)
 		_update_preview(current)
 
@@ -111,11 +111,9 @@ func _update_preview(theme_variant: ThemeManager.ThemeVariant) -> void:
 	for child in _preview_container.get_children():
 		child.queue_free()
 
-	# Get theme description
-	if _theme_manager:
-		_description_label.text = _theme_manager.get_theme_description(theme_variant)
-	else:
-		_description_label.text = AccessibilityThemes.get_theme_description(_get_theme_name_from_variant(theme_variant))
+	# Get theme description via static AccessibilityThemes helper
+	var theme_name: String = _get_theme_name_from_variant(theme_variant)
+	_description_label.text = AccessibilityThemes.get_theme_description(theme_name)
 
 	# Get theme colors
 	var colors: Dictionary
@@ -205,7 +203,7 @@ func _on_apply_pressed() -> void:
 	var selected_index = _theme_option_button.selected
 	var theme_variant = _theme_option_button.get_item_id(selected_index)
 
-	if _theme_manager:
-		_theme_manager.apply_theme(theme_variant)
+	if _theme_manager and _theme_manager.has_method("set_theme_variant"):
+		_theme_manager.set_theme_variant(theme_variant)
 
 	theme_selected.emit(theme_variant)

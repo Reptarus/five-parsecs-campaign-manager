@@ -250,6 +250,13 @@ func _build_crew_card(member) -> PanelContainer:
 			"L": member.luck if "luck" in member else 0,
 		}
 
+	# Get portrait path
+	var pp: String = ""
+	if is_dict:
+		pp = str(member.get("portrait_path", ""))
+	elif "portrait_path" in member:
+		pp = member.portrait_path
+
 	# Build card
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -257,8 +264,60 @@ func _build_crew_card(member) -> PanelContainer:
 		else "elevated"
 	_apply_panel_style(panel, card_style)
 
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", SPACING_SM)
+
+	# Portrait avatar (custom image or colored initials)
+	var av_size := 40
+	var av := Control.new()
+	av.custom_minimum_size = Vector2(av_size, av_size)
+	av.clip_contents = true
+	var av_colors := [
+		Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
+		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"),
+		Color("#ec4899"), Color("#14b8a6")]
+	var ci := char_name.hash() % av_colors.size()
+	if ci < 0:
+		ci += av_colors.size()
+	var av_bg := ColorRect.new()
+	av_bg.custom_minimum_size = Vector2(av_size, av_size)
+	av_bg.color = av_colors[ci]
+	av.add_child(av_bg)
+
+	var has_img := false
+	if not pp.is_empty():
+		var tex: Texture2D = null
+		if pp.begins_with("res://") and ResourceLoader.exists(pp):
+			tex = load(pp)
+		elif FileAccess.file_exists(pp):
+			var img := Image.new()
+			if img.load(pp) == OK:
+				tex = ImageTexture.create_from_image(img)
+		if tex:
+			var tr := TextureRect.new()
+			tr.texture = tex
+			tr.custom_minimum_size = Vector2(av_size, av_size)
+			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			av.add_child(tr)
+			has_img = true
+
+	if not has_img:
+		var il := Label.new()
+		var init_ch := char_name.substr(0, 1).to_upper()
+		il.text = init_ch if not init_ch.is_empty() else "?"
+		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		il.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		il.add_theme_font_size_override("font_size", 18)
+		il.add_theme_color_override("font_color", Color.WHITE)
+		il.custom_minimum_size = Vector2(av_size, av_size)
+		av.add_child(il)
+
+	hbox.add_child(av)
+
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_XS)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	# Name row
 	var name_row := HBoxContainer.new()
@@ -295,7 +354,8 @@ func _build_crew_card(member) -> PanelContainer:
 	stat_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 	vbox.add_child(stat_lbl)
 
-	panel.add_child(vbox)
+	hbox.add_child(vbox)
+	panel.add_child(hbox)
 	return panel
 
 # ── Center Column: Ship + Equipment ────────────────────────────────
@@ -1439,11 +1499,6 @@ func _apply_desktop_layout() -> void:
 	_set_column_layout(3 if not should_use_single_column() else 2)
 
 func _set_column_layout(columns: int) -> void:
-	# MainContent is a GridContainer after Step 4
 	var main_content = left_column.get_parent() if left_column else null
 	if main_content and main_content is GridContainer:
 		main_content.columns = columns
-	# ButtonContainer is the parent of action_button
-	var btn_container = action_button.get_parent() if action_button else null
-	if btn_container and btn_container is GridContainer:
-		btn_container.columns = 3 if columns == 1 else 6
