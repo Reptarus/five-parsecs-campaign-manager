@@ -221,6 +221,8 @@ func _exit_tree() -> void:
 
 func _on_backend_payment_received(amount: int) -> void:
 	## Handle payment received from backend
+	battle_results["payment"] = amount
+	battle_results["credits_earned"] = amount
 	_add_result_to_log("Payment received: %d credits" % amount)
 
 func _on_backend_quest_progress(progress: int) -> void:

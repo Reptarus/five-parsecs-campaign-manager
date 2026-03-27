@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-23",
-  "current_phase": "UI/UX Audit COMPLETE — 21 screens audited, 30 issues documented (docs/QA_UI_UX_ISSUES.md), 21 fixed. Enum sync (7 enums), 10 panel backgrounds, 3 dashboard data flow bugs, victory float fix, story phase skip, end phase summary cards. MCP Scenarios 1+3+9 PASS. Zero compile errors.",
+  "last_updated": "2026-03-26",
+  "current_phase": "JSON Parity COMPLETE (v0.9.5) — All hardcoded game data audited and wired to JSON sources. KeywordDB→keywords.json (89 keywords), BattleEventsSystem→event_tables.json (24 events), PostBattleProcessor/ExperienceTrainingProcessor/BattleCalculations→injury_results.json (XP awards + injury tables), BattlePhase→unique_individual.json. Fabricated payment formula removed from BattlePhase. Starting credits, stun mechanic, XP multipliers, ship hulls all corrected to Core Rules. Zero compile errors.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -92,7 +92,7 @@
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "next_priority": "9 deferred UI/UX issues remain (card containers for Captain/Crew/World panels, dialog backdrop, max-width, disabled button contrast). See docs/QA_UI_UX_ISSUES.md. ~100 Compendium values still need physical book verification.",
+    "next_priority": "9 deferred UI/UX issues remain. CharacterNameGenerator cosmetic (hardcoded names, no JSON). patron_missions.json dead data (800-1200 credits, not wired). PostBattleSummarySheet shows 0 credits (real payment via signal, could wire to display). ~100 Compendium values still need physical book verification.",
     "remaining_pdf_verification": "~100 Compendium/DLC values in 11 compendium_*.gd files (Core Rules domains 100% complete)",
     "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed. Dazzle Grenade synced across weapons.json + equipment_database.json.",
     "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "5 phantom non-Core weapons confirmed non-existent"],

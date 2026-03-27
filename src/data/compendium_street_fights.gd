@@ -1,6 +1,6 @@
 class_name CompendiumStreetFights
 extends RefCounted
-## Street Fights — Compendium pp.123-138
+## Street Fights — Compendium pp.125-138
 ##
 ## Urban combat with Suspect markers, City markers, pistol Shootout mechanics,
 ## Evasion, unique enemy tables, and street combatants. Confused, chaotic

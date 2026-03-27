@@ -1,0 +1,31 @@
+{
+  "_source": "Cosmetic character names for random generation. Not Core Rules data.",
+  "_note": "first_names and last_names used by CharacterTableRoller. titles have 20% chance to prefix.",
+
+  "first_names": [
+    "Alex", "Blake", "Casey", "Drew", "Ellis",
+    "Finn", "Gray", "Harper", "Indigo", "Jules",
+    "Kai", "Lee", "Morgan", "Nova", "Orion",
+    "Parker", "Quinn", "Remy", "Sage", "Tate",
+    "Uri", "Val", "Winter", "Xen", "Yuri", "Zephyr",
+    "Ash", "Bryn", "Cael", "Dex", "Ember",
+    "Flint", "Haven", "Jace", "Kira", "Lyric",
+    "Mars", "Nyx", "Pike", "Rowan", "Sable"
+  ],
+
+  "last_names": [
+    "Adler", "Blackwood", "Chen", "Drake", "Evans",
+    "Flynn", "Graves", "Hayes", "Ivanov", "Jones",
+    "Kim", "Liang", "Mercer", "Nash", "Ortiz",
+    "Park", "Quill", "Reyes", "Smith", "Thorne",
+    "Udall", "Vega", "Ward", "Xu", "Yang", "Zhang",
+    "Ashford", "Cortez", "Frost", "Harker", "Ito",
+    "Kovac", "Mendez", "Okafor", "Russo", "Stark"
+  ],
+
+  "titles": [
+    "Captain", "Commander", "Doctor", "Lieutenant",
+    "Major", "Officer", "Pilot", "Ranger", "Scout",
+    "Sergeant", "Specialist", "Trooper", "Veteran"
+  ]
+}
