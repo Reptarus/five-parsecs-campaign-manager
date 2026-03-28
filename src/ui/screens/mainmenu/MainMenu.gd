@@ -214,31 +214,75 @@ func _on_load_campaign_pressed() -> void:
 	if not gs:
 		show_message("Game state not available.")
 		return
-	# Show dialog with saved campaigns + import from file option
 	var campaigns: Array = gs.get_available_campaigns()
+
+	# ISSUE-048: Backdrop dimming
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.name = "__load_backdrop"
+	add_child(backdrop)
+
 	var dialog := AcceptDialog.new()
 	dialog.title = "Load Campaign"
 	dialog.ok_button_text = "Cancel"
+
+	# Wrap campaign list in ScrollContainer for many saves
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(450, 0)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size.y = mini(campaigns.size() * 56 + 80, 420)
 	var vbox := VBoxContainer.new()
-	vbox.custom_minimum_size = Vector2(400, 0)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 4)
 	for info in campaigns:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		vbox.add_child(row)
+
 		var btn := Button.new()
-		btn.text = "%s  (%s)" % [info.get("name", "Unnamed"), info.get("date_string", "")]
-		var p: String = info.get("path", "")
-		btn.pressed.connect(_load_and_go_to_dashboard.bind(p, dialog))
-		vbox.add_child(btn)
+		# ISSUE-049: Show campaign type tag
+		var type_tag := ""
+		var save_path: String = info.get("path", "")
+		if save_path.find("bug_hunt") >= 0 or info.get("type", "") == "bug_hunt":
+			type_tag = "[BH] "
+		btn.text = "%s%s  (%s)" % [type_tag, info.get("name", "Unnamed"), info.get("date_string", "")]
+		btn.custom_minimum_size.y = 48
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.pressed.connect(_load_and_go_to_dashboard.bind(save_path, dialog, backdrop))
+		row.add_child(btn)
+
+		# ISSUE-050: Delete button per save
+		var del_btn := Button.new()
+		del_btn.text = "X"
+		del_btn.custom_minimum_size = Vector2(40, 48)
+		del_btn.tooltip_text = "Delete this save"
+		del_btn.pressed.connect(
+			_on_delete_save.bind(save_path, row, info.get("name", ""), dialog))
+		row.add_child(del_btn)
+
 	var sep := HSeparator.new()
 	vbox.add_child(sep)
 	var import_btn := Button.new()
 	import_btn.text = "Import from File..."
+	import_btn.custom_minimum_size.y = 48
 	import_btn.pressed.connect(_on_import_from_file.bind(dialog))
 	vbox.add_child(import_btn)
-	dialog.add_child(vbox)
+	scroll.add_child(vbox)
+	dialog.add_child(scroll)
+	# Clean up backdrop when dialog closes
+	dialog.canceled.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
 	add_child(dialog)
 	_active_dialogs.append(dialog)
 	dialog.popup_centered()
 
-func _load_and_go_to_dashboard(path: String, dialog: Node) -> void:
+func _load_and_go_to_dashboard(path: String, dialog: Node, backdrop: Node = null) -> void:
+	push_warning("MainMenu: Loading campaign from path: %s" % path)
+	if is_instance_valid(backdrop):
+		backdrop.queue_free()
 	if is_instance_valid(dialog):
 		dialog.queue_free()
 		_active_dialogs.erase(dialog)
@@ -251,6 +295,28 @@ func _load_and_go_to_dashboard(path: String, dialog: Node) -> void:
 		request_scene_change("campaign_turn_controller")
 	else:
 		show_message("Load failed: %s" % result.get("message", "Unknown error"))
+
+func _on_delete_save(path: String, row: Node, save_name: String, dialog: Node) -> void:
+	# ISSUE-050: Delete save with confirmation
+	var confirm := ConfirmationDialog.new()
+	confirm.dialog_text = "Delete save \"%s\"?\nThis cannot be undone." % save_name
+	confirm.ok_button_text = "Delete"
+	confirm.confirmed.connect(func():
+		if DirAccess.remove_absolute(path) == OK:
+			if is_instance_valid(row):
+				row.queue_free()
+			push_warning("MainMenu: Deleted save: %s" % path)
+		else:
+			show_message("Failed to delete: %s" % path)
+		confirm.queue_free()
+	)
+	confirm.canceled.connect(func(): confirm.queue_free())
+	if is_instance_valid(dialog):
+		dialog.add_child(confirm)
+	else:
+		add_child(confirm)
+	confirm.popup_centered()
+
 
 func _on_import_from_file(load_dialog: Node) -> void:
 	if is_instance_valid(load_dialog):

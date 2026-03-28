@@ -30,11 +30,16 @@ const MarkdownToRichTextScript = preload("res://src/ui/help/MarkdownToRichText.g
 
 
 func _setup_screen() -> void:
+	push_warning("HelpScreen: _setup_screen starting")
 	_content_loader = HelpContentLoaderScript.new()
 	_md_converter = MarkdownToRichTextScript.new()
 
 	_build_ui()
-	_populate_toc()
+	if _content_loader:
+		_populate_toc()
+	else:
+		push_error("HelpScreen: HelpContentLoader failed to initialize")
+	push_warning("HelpScreen: _setup_screen complete")
 
 	# Check if we should open a specific chapter from SceneRouter context
 	var router := get_node_or_null("/root/SceneRouter")

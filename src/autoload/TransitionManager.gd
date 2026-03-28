@@ -69,8 +69,11 @@ func _on_viewport_size_changed() -> void:
 func fade_to_scene(scene_path: String, duration: float = DEFAULT_DURATION, fade_color: Color = COLOR_FADE_BLACK) -> void:
 	## Fade out, change scene, fade in
 	if _is_transitioning:
-		push_warning("TransitionManager: Already transitioning, ignoring request")
-		return
+		push_warning("TransitionManager: Cancelling stale transition for: "
+			+ scene_path)
+		cancel_transition()
+		# Allow a frame for cleanup before starting new transition
+		await get_tree().process_frame
 
 	if not ResourceLoader.exists(scene_path):
 		push_error("TransitionManager: Scene file not found: " + scene_path)

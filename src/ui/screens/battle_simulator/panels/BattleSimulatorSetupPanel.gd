@@ -235,7 +235,7 @@ func _create_card(title_text: String, parent: VBoxContainer) -> PanelContainer:
 	var title := Label.new()
 	title.text = title_text
 	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
-	title.add_theme_color_override("font_color", COLOR_FOCUS)
+	title.add_theme_color_override("font_color", COLOR_ACCENT_HOVER)  # ISSUE-052: consistent accent
 	content.add_child(title)
 
 	panel.set_meta("content", content)
@@ -312,18 +312,16 @@ func _refresh_previews() -> void:
 	# Generate a preview battle context to show crew/enemy stats
 	var context: Dictionary = _setup.generate_battle_context(_current_config)
 
-	# Crew preview
+	# Crew preview — ISSUE-051: stat badge style
 	if _crew_preview:
 		var crew_text := ""
 		for member in context.get("crew", []):
-			crew_text += "[color=#4FC3F7]%s[/color] — Combat: %d  Tough: %d  Savvy: %d  React: %d  Spd: %d\n" % [
-				member.get("character_name", "?"),
-				member.get("combat_skill", 0),
-				member.get("toughness", 0),
-				member.get("savvy", 0),
-				member.get("reactions", 0),
-				member.get("speed", 0),
-			]
+			crew_text += "[color=#4FC3F7]%s[/color]  " % member.get("character_name", "?")
+			crew_text += "[color=#808080]CS[/color] %d  " % member.get("combat_skill", 0)
+			crew_text += "[color=#808080]React[/color] %d  " % member.get("reactions", 0)
+			crew_text += "[color=#808080]Tough[/color] %d  " % member.get("toughness", 0)
+			crew_text += "[color=#808080]Spd[/color] %d  " % member.get("speed", 0)
+			crew_text += "[color=#808080]Savvy[/color] %d\n" % member.get("savvy", 0)
 		_crew_preview.text = crew_text.strip_edges()
 
 	# Enemy preview

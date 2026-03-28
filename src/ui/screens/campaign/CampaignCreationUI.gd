@@ -66,6 +66,14 @@ func _connect_navigation_signals() -> void:
 	next_button.pressed.connect(_on_next_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 	finish_button.pressed.connect(_on_finish_pressed)
+	# ISSUE-057: TweenFX press feedback on navigation buttons
+	var tweenfx := get_node_or_null("/root/TweenFX")
+	if tweenfx and tweenfx.has_method("press"):
+		for btn: Button in [next_button, back_button, finish_button]:
+			btn.pressed.connect(func():
+				btn.pivot_offset = btn.size / 2
+				tweenfx.press(btn, 0.2)
+			)
 
 func _connect_panel_signals() -> void:
 	var config_panel = panels[0]
@@ -188,12 +196,19 @@ func _show_panel(step: int) -> void:
 		current_panel.hide()
 	if step >= 0 and step < panels.size():
 		current_panel = panels[step]
+		current_panel.modulate.a = 0.0
 		current_panel.show()
+		# ISSUE-057: Smooth panel transition
+		var tweenfx := get_node_or_null("/root/TweenFX")
+		if tweenfx and tweenfx.has_method("fade_in"):
+			tweenfx.fade_in(current_panel, 0.2)
+		else:
+			current_panel.modulate.a = 1.0
 		# QA-FIX: Force panel to fit within StepPanels bounds. PanelContainer
 		# (BaseCampaignPanel root) enforces minimum size from children, which can
-		# overflow StepPanels and push Navigation off-screen. Explicitly sizing
-		# the panel allows its internal ScrollContainer to activate scrolling.
-		_fit_panel_to_step_bounds()
+		# overflow StepPanels and push Navigation off-screen. Anchors (0,0,1,1)
+		# constrain the panel; call_deferred lets layout resolve first.
+		call_deferred("_fit_panel_to_step_bounds")
 
 func _fit_panel_to_step_bounds() -> void:
 	if current_panel:
@@ -210,7 +225,9 @@ func _fit_panel_to_step_bounds() -> void:
 		current_panel.offset_bottom = 0
 		# Override minimum size to allow shrinking below content height
 		current_panel.custom_minimum_size = Vector2.ZERO
-		current_panel.size = step_panels.size
+		# Anchors (0,0,1,1) with zero offsets handle sizing — do NOT set
+		# current_panel.size explicitly as it conflicts with anchor layout
+		# and prevents internal ScrollContainers from activating.
 
 func _on_step_panels_resized() -> void:
 	_fit_panel_to_step_bounds()
@@ -219,6 +236,11 @@ func _update_step_label() -> void:
 	var phase_name = coordinator.get_current_phase_name()
 	var step_num = coordinator.current_step + 1
 	step_label.text = "Step %d of %d: %s" % [step_num, coordinator.total_steps, phase_name]
+	# ISSUE-057: Subtle punch animation on step change
+	var tweenfx := get_node_or_null("/root/TweenFX")
+	if tweenfx and tweenfx.has_method("punch_in"):
+		step_label.pivot_offset = step_label.size / 2
+		tweenfx.punch_in(step_label, 0.15, 0.15)
 
 func _on_next_pressed() -> void:
 	coordinator.advance_to_next_phase()

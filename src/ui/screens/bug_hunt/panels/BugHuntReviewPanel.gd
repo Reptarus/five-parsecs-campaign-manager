@@ -61,11 +61,14 @@ func _display_summary() -> void:
 	var squad: Dictionary = state.squad_data
 	var characters: Array = squad.get("main_characters", [])
 
-	# Campaign info card
+	# Campaign info card — ISSUE-043: show placeholders for empty fields
 	var info_card := _create_card("Campaign", _summary_container)
-	_add_row(info_card, "Name", config.get("campaign_name", "Unnamed"))
-	_add_row(info_card, "Regiment", config.get("regiment_name", "No regiment"))
-	_add_row(info_card, "Uniform", config.get("uniform_color", "—"))
+	var name_val: String = config.get("campaign_name", "")
+	_add_row(info_card, "Name", name_val if not name_val.is_empty() else "Not set")
+	var regiment_val: String = config.get("regiment_name", "")
+	_add_row(info_card, "Regiment", regiment_val if not regiment_val.is_empty() else "Not set")
+	var uniform_val: String = config.get("uniform_color", "")
+	_add_row(info_card, "Uniform", uniform_val if not uniform_val.is_empty() else "—")
 	_add_row(info_card, "Difficulty", config.get("difficulty", "mess_me_up").replace("_", " ").capitalize())
 	if config.get("use_campaign_escalation", false):
 		_add_row(info_card, "Escalation", "Fixed Priority sequence")

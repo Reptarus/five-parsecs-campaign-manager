@@ -10,12 +10,14 @@ const REGIMENT_PATH := "res://data/bug_hunt/bug_hunt_regiment_names.json"
 const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
 const ARMOR_PATH := "res://data/bug_hunt/bug_hunt_armor.json"
 const GEAR_PATH := "res://data/bug_hunt/bug_hunt_gear.json"
+const NAMES_PATH := "res://data/character_names.json"
 
 var _creation_data: Dictionary = {}
 var _regiment_data: Dictionary = {}
 var _weapons_data: Dictionary = {}
 var _armor_data: Dictionary = {}
 var _gear_data: Dictionary = {}
+var _names_data: Dictionary = {}
 var _loaded: bool = false
 
 
@@ -29,6 +31,7 @@ func _load_data() -> void:
 	_weapons_data = _load_json(WEAPONS_PATH)
 	_armor_data = _load_json(ARMOR_PATH)
 	_gear_data = _load_json(GEAR_PATH)
+	_names_data = _load_json(NAMES_PATH)
 	_loaded = not _creation_data.is_empty() and not _regiment_data.is_empty()
 
 
@@ -113,7 +116,7 @@ func generate_main_character(character_name: String = "") -> Dictionary:
 
 	var char_id := "bh_mc_" + str(randi())
 	if character_name.is_empty():
-		character_name = "Trooper " + str(randi() % 9000 + 1000)
+		character_name = _generate_random_name()
 
 	return {
 		"id": char_id,
@@ -172,7 +175,7 @@ func generate_grunt(grunt_name: String = "") -> Dictionary:
 	var grunt_stats: Dictionary = _creation_data.get("grunt_stats", {})
 	var grunt_id := "bh_grunt_" + str(randi())
 	if grunt_name.is_empty():
-		grunt_name = "Grunt " + str(randi() % 9000 + 1000)
+		grunt_name = _generate_random_name()
 
 	return {
 		"id": grunt_id,
@@ -251,6 +254,17 @@ func generate_regiment_name() -> Dictionary:
 ## ============================================================================
 ## HELPERS
 ## ============================================================================
+
+func _generate_random_name() -> String:
+	## ISSUE-056: Generate a real name from character_names.json
+	var firsts: Array = _names_data.get("first_names", [])
+	var lasts: Array = _names_data.get("last_names", [])
+	if firsts.is_empty() or lasts.is_empty():
+		return "Trooper " + str(randi() % 9000 + 1000)
+	var first: String = firsts[randi() % firsts.size()]
+	var last: String = lasts[randi() % lasts.size()]
+	return first + " " + last
+
 
 func _roll_d100() -> int:
 	return (randi() % 100) + 1

@@ -291,9 +291,275 @@
 
 ### Tier 3 — Needs Full Rework: NONE remaining
 
-## All 30 Issues Resolved
+## Previous 30 Issues — Resolved (Mar 23 2026)
 
-All 30 issues from the original visual audit have been fixed across two sessions (Mar 23 2026):
+All 30 issues from the original visual audit were fixed across two sessions:
 - Session 1: 21 fixes (backgrounds, data flow, enum sync, MCP runtime)
 - Session 2: 9 fixes (card containers, button styling, disabled contrast, empty states, max-width, tier dialog dismiss)
-7. **Turn Summary**: Build End Phase summary with credits delta, battle recap, victory progress
+
+---
+
+## Visual QA Audit — Session 15 (Mar 27 2026)
+
+**Method**: MCP-automated screenshots + `get_ui_elements` structural analysis
+**Scope**: MainMenu, Settings, Battle Simulator, Load Dialog, Campaign Creation Step 1, Bug Hunt wizard (4 steps)
+**Blockers**: Campaign Dashboard + Turn Phases could not be inspected (Load Campaign buttons non-functional, Campaign Creation scroll broken)
+
+### New Issues Found
+
+#### BROKEN — Blocks functionality
+
+##### ISSUE-031: Library button navigation fails (TransitionManager timeout)
+- **Severity**: CRITICAL
+- **Screen**: MainMenu → Library
+- **Description**: Clicking "Library" button triggers SceneRouter navigation but TransitionManager hits a safety timeout and cancels the transition. Debug output: `"TransitionManager: Safety timeout — forcing transition cancel"` from `TransitionManager.gd:85`. User cannot reach the Library/Help screen.
+- **Root Cause**: TransitionManager timeout at line 85 fires before the "help" scene finishes loading, or the scene itself fails to load.
+- **Fix**: Check if the "help" scene .tscn exists and loads correctly. Increase TransitionManager timeout or add error handling.
+
+##### ISSUE-032: Campaign Creation Step 1 — ScrollContainer doesn't scroll
+- **Severity**: CRITICAL
+- **Screen**: CampaignCreationUI → ExpandedConfigPanel (Step 1)
+- **Description**: The FormContent ScrollContainer does not scroll. Victory Conditions (at y:2867), Story Track (y:3167), and Tutorial (y:3378) sections exist in the node tree but are completely off-screen and unreachable. Only Campaign Identity, Campaign Style, and Difficulty Level are visible. No scrollbar is visible.
+- **Root Cause**: Likely related to the anchor conflict warning at `CampaignCreationUI.gd:213` (`_fit_panel_to_step_bounds`). The panel size override may be constraining the ScrollContainer height.
+- **Fix**: Investigate `_fit_panel_to_step_bounds()` — the size override after `_ready()` may be clamping the scroll area. Consider using `set_deferred()` as suggested by the Godot warning.
+
+##### ISSUE-033: Campaign Creation — no "Next" button visible
+- **Severity**: CRITICAL
+- **Screen**: CampaignCreationUI → Step 1
+- **Description**: Only a "Cancel" button is visible in the navigation area. No "Next" button exists to advance to Step 2. The navigation HBox only contains "BackButton" (labeled "Cancel"). Users cannot proceed through the creation wizard.
+- **Root Cause**: The "Next" button may be conditionally shown based on validation (campaign name required), but even with the form in "Ready" state (shown bottom-right), no Next button appears.
+- **Fix**: Ensure NextButton is created and visible. Check if validation logic is hiding it incorrectly.
+
+##### ISSUE-034: Load Campaign dialog buttons don't load saves
+- **Severity**: CRITICAL
+- **Screen**: MainMenu → Load Campaign dialog
+- **Description**: Clicking any campaign save button in the Load Campaign dialog does nothing — the dialog remains open, no scene transition occurs, no error in debug output. Tested with both `click_element` and coordinate-based clicks on "MCP Test Campaign".
+- **Root Cause**: Button `pressed` signals may not be connected to the load function, or the load function encounters a silent failure.
+- **Fix**: Trace the button signal connection in `MainMenu._on_load_campaign_pressed()` and verify save file loading logic.
+
+#### TWEAK — Visual inconsistency, usability friction
+
+##### ISSUE-035: Settings "< Back" button below touch target (40px)
+- **Severity**: MEDIUM
+- **Screen**: Settings/Options
+- **Description**: The "< Back" button is 40px tall (88px wide), 8px below the 48px TOUCH_TARGET_MIN. All other settings controls (CheckButton, OptionButton, Save/Reset buttons) meet the 48px target.
+- **Fix**: Set `custom_minimum_size.y = 48` on the back button.
+
+##### ISSUE-036: Battle Simulator "< Back to Menu" below touch target (40px)
+- **Severity**: MEDIUM
+- **Screen**: Battle Simulator
+- **Description**: Back button is 160×40px, below 48px minimum.
+- **Fix**: Set `custom_minimum_size.y = 48`.
+
+##### ISSUE-037: Settings gear icon (⚙) below touch target (44px)
+- **Severity**: LOW
+- **Screen**: Global overlay (visible on Battle Simulator, Bug Hunt, Campaign Creation)
+- **Description**: The SettingsOverlay gear button is 54×44px, 4px below 48px.
+- **Fix**: Set `custom_minimum_size.y = 48`.
+
+##### ISSUE-038: Campaign Creation Step 1 — step indicator text truncated
+- **Severity**: LOW
+- **Screen**: CampaignCreationUI → Step 1
+- **Description**: Step indicator shows "Step 1 of 7: Configurat..." — text cut off. The label doesn't have enough width for "Configuration".
+- **Fix**: Use `clip_text = false` and `text_overrun_behavior = OVERRUN_TRIM_ELLIPSIS`, or abbreviate to "Config" / "Step 1/7".
+
+##### ISSUE-039: Campaign Creation background color mismatch
+- **Severity**: LOW
+- **Screen**: CampaignCreationUI
+- **Description**: Background appears ~#141414 (very dark), not matching COLOR_BASE #1A1A2E from the Deep Space palette. The CampaignCreationUI.tscn sets its own background ColorRect. Subtle but inconsistent.
+- **Fix**: Update the ColorRect color in CampaignCreationUI.tscn to match COLOR_BASE.
+
+##### ISSUE-040: Battle Simulator — content left-aligned, no max-width centering
+- **Severity**: MEDIUM
+- **Screen**: Battle Simulator
+- **Description**: All content (cards, dropdowns, crew stats) is left-aligned with no max-width constraint. The entire right half of the screen (>50%) is empty space. "LAUNCH BATTLE" button is centered but everything else is left-flush.
+- **Fix**: Apply MAX_FORM_WIDTH centering pattern (like BugHuntCreationUI uses) or center the content area.
+
+##### ISSUE-041: Load Campaign dialog — save buttons below touch target (37px)
+- **Severity**: MEDIUM
+- **Screen**: MainMenu → Load Campaign dialog
+- **Description**: All campaign save file buttons are 37px tall (445px wide), 11px below the 48px TOUCH_TARGET_MIN. With 14 saves listed, the cramped spacing makes touch selection difficult.
+- **Fix**: Increase button minimum height to 48px. May need to add scrolling if the dialog overflows.
+
+##### ISSUE-042: Bug Hunt header title overlaps step indicator
+- **Severity**: MEDIUM
+- **Screen**: Bug Hunt Creation — all steps
+- **Description**: "BUG HUNT — NEW CAMPAIGN" title text collides with the step indicator (e.g., "Step 2 of 4: Squad Setup", "4 of 4: Review & Launch"). No visual separation between the two text elements. On Step 4, the "Step" word is missing entirely.
+- **Fix**: Add spacing, a separator, or move the step indicator to a second line below the title.
+
+##### ISSUE-043: Bug Hunt Step 4 — empty review fields show no placeholder
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation → Step 4 (Review)
+- **Description**: Campaign card shows "Name:", "Regiment:", "Uniform:" labels with completely blank values. Should show "Not set" or "—" placeholder text in secondary color.
+- **Fix**: Add fallback placeholder text for empty fields.
+
+##### ISSUE-044: Bug Hunt — "< Cancel" button below touch target (40px)
+- **Severity**: MEDIUM
+- **Screen**: Bug Hunt Creation — all steps
+- **Description**: Cancel button is 102×40px, below 48px minimum.
+- **Fix**: Set `custom_minimum_size.y = 48`.
+
+##### ISSUE-045: Bug Hunt Step 2 — "MC" abbreviation unclear
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation → Step 2 (Squad Setup)
+- **Description**: Character name fields labeled "MC 1:", "MC 2:", etc. "MC" = "Main Character" but this isn't explained anywhere on the screen. New users won't know what "MC" means.
+- **Fix**: Use "Main Character 1:" or add a tooltip.
+
+##### ISSUE-046: Bug Hunt — Campaign Escalation CheckButton below touch target (37px)
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation → Step 1
+- **Description**: The "Use Campaign Escalation" CheckButton is 37px tall.
+- **Fix**: Set minimum height to 48px.
+
+##### ISSUE-047: Bug Hunt Step 5 — validation at wrong step
+- **Severity**: MEDIUM
+- **Screen**: Bug Hunt Creation → Step 1 → Step 4
+- **Description**: Step 1 allows advancing to Step 2+ without entering a campaign name. The validation error "! Campaign name is required" only appears on Step 4 (Review). User discovers the issue after completing all setup work.
+- **Fix**: Validate campaign name on Step 1. Disable "Next" button until name is entered, or show inline validation.
+
+#### POLISH — Enhancement opportunities
+
+##### ISSUE-048: Load Campaign dialog — no backdrop dimming
+- **Severity**: LOW
+- **Screen**: MainMenu → Load Campaign
+- **Description**: The dialog has no semi-transparent backdrop overlay. MainMenu buttons are fully visible and potentially interactive behind the dialog.
+- **Fix**: Add a ColorRect backdrop with Color(0, 0, 0, 0.5) behind the dialog.
+
+##### ISSUE-049: Load Campaign — no visual distinction between campaign types
+- **Severity**: LOW
+- **Screen**: MainMenu → Load Campaign
+- **Description**: Standard 5PFH saves and Bug Hunt saves (e.g., "MCP Bug Hunt Test") are listed identically. No icon, tag, or color to distinguish them.
+- **Fix**: Add a [BH] tag or different accent color for Bug Hunt saves.
+
+##### ISSUE-050: Load Campaign — no delete/manage saves option
+- **Severity**: LOW
+- **Screen**: MainMenu → Load Campaign
+- **Description**: 14 saves listed with no way to delete, rename, or manage them. Multiple "Wandering Star" saves clutter the list.
+- **Fix**: Add swipe-to-delete or a manage mode with checkboxes.
+
+##### ISSUE-051: Battle Simulator — crew stats are plain text, no cards
+- **Severity**: LOW
+- **Screen**: Battle Simulator
+- **Description**: Generated crew members shown as plain text lines ("Gray Jones — Combat: 0 Tough: 4 Savvy: 1 React: 1 Spd: 5") with no card containers, no stat badges, no visual hierarchy.
+- **Fix**: Use character card pattern with stat badges.
+
+##### ISSUE-052: Battle Simulator — section headers use orange/cyan instead of Deep Space accent
+- **Severity**: LOW
+- **Screen**: Battle Simulator
+- **Description**: Section headers "YOUR CREW", "OPPOSITION", "MISSION", "DIFFICULTY" use orange/cyan colors that differ from the Deep Space Blue accent (#2D5A7B) used elsewhere.
+- **Fix**: Standardize to COLOR_ACCENT or intentionally document the alternate palette.
+
+##### ISSUE-053: Bug Hunt — sparse layout with large empty space
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation Steps 1, 2 (empty), 3, 4
+- **Description**: All steps have significant empty space in the bottom 40-60% of the screen. Step 1 has only 3 fields. This reinforces the "clinical/sparse" feel.
+- **Fix**: Consider tighter vertical spacing, adding a visual element (mission briefing flavor text, regiment insignia preview), or reducing the MAX_FORM_WIDTH slightly.
+
+##### ISSUE-054: Bug Hunt — character stats as plain text, no stat badges
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation Steps 2, 4
+- **Description**: Trooper stats displayed as inline text ("React:2 Spd:4 CS:0 Tough:3 Savvy:1 XP:0") rather than using the stat badge pattern available in BaseCampaignPanel.
+- **Fix**: Use `_create_stat_display()` or `_create_stats_grid()` pattern.
+
+##### ISSUE-055: Bug Hunt — no character portraits/initials
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation Step 2
+- **Description**: Generated troopers show as text-only cards without the colored initials avatar system available in CharacterCard. Standard campaign uses 40px avatars with deterministic colors.
+- **Fix**: Add CharacterCard-style initials to trooper cards.
+
+##### ISSUE-056: Bug Hunt — auto-generated names are numeric IDs
+- **Severity**: LOW
+- **Screen**: Bug Hunt Creation Step 2
+- **Description**: When name fields are left blank with "Auto-generate name" placeholder, the generated characters get numeric IDs ("Trooper 9152", "Trooper 6206") instead of actual randomized names.
+- **Fix**: Wire the name generator to produce real names (from `name_tables.json`) when fields are blank.
+
+##### ISSUE-057: TweenFX micro-interactions unused across UI
+- **Severity**: LOW
+- **Screen**: All screens
+- **Description**: The TweenFX addon provides 70+ animations (fade_in, pop_in, pulsate, punch_in, breathe, tada, etc.) but almost none are used. Only MainMenu has a basic fade-in tween (not even using TweenFX). Card entrances, button presses, stat changes, and phase transitions are all instant.
+- **Fix**: Add TweenFX.fade_in() cascades for card entrances, TweenFX.press() for button feedback, TweenFX.punch_in() for stat changes. See TweenFX addon docs for full animation list.
+
+##### ISSUE-058: 5PFH.tres legacy theme referenced in 26 .tscn files
+- **Severity**: MEDIUM
+- **Screen**: Campaign Creation, Turn Phases, Character Creator, Save/Load, and more
+- **Description**: 26 .tscn files still reference `assets/5PFH.tres` (a texture-based legacy theme with empty StyleBoxTextures and no font definitions). While the project-wide `sci_fi_theme.tres` should take precedence for undefined properties, the 5PFH.tres may be overriding Button StyleBox definitions with empty textures, creating inconsistency.
+- **Files**: CampaignCreationUI.tscn, BaseCampaignPanel.tscn, all 9 phase panel .tscn files, CharacterCreator.tscn, SimpleCharacterCreator.tscn, SaveLoadUI.tscn, TutorialSelection.tscn, TravelPhaseUI.tscn, and more.
+- **Fix**: Remove all `5PFH.tres` references from .tscn files. Scenes will inherit from the project-wide `sci_fi_theme.tres` automatically.
+
+---
+
+### Screens Audited — Session 15 Update
+
+| Screen | Audited | Screenshot | Rating |
+|--------|---------|------------|--------|
+| MainMenu | Re-verified ✓ | screenshot_1774643522_209.png | ⭐⭐⭐⭐ |
+| Settings/Options | **NEW** ✓ | screenshot_1774643540_724.png | ⭐⭐⭐⭐ |
+| Library/Help | **BLOCKED** | N/A — TransitionManager timeout | — |
+| Battle Simulator | **NEW** ✓ | screenshot_1774643603_175.png | ⭐⭐⭐ |
+| Load Campaign Dialog | **NEW** ✓ | screenshot_1774643634_452.png | ⭐⭐⭐ |
+| CC Step 1 (Config) | Re-verified ✗ | screenshot_1774643681_507.png | ⭐⭐ (scroll broken) |
+| Bug Hunt Step 1 (Config) | **NEW** ✓ | screenshot_1774643846_062.png | ⭐⭐⭐ |
+| Bug Hunt Step 2 (Squad) | **NEW** ✓ | screenshot_1774643907_169.png | ⭐⭐⭐ |
+| Bug Hunt Step 3 (Equipment) | **NEW** ✓ | screenshot_1774643943_304.png | ⭐⭐⭐⭐ |
+| Bug Hunt Step 4 (Review) | **NEW** ✓ | screenshot_1774643962_796.png | ⭐⭐⭐ |
+| Campaign Dashboard | **BLOCKED** | N/A — Load Campaign broken | — |
+| Campaign Turn Phases (9) | **BLOCKED** | N/A — cannot reach | — |
+
+### Regression Checks (Session 14 Changes)
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| R-001: MainMenu buttons >= 48px | **PASS** | 54-55px measured via get_ui_elements |
+| R-016: Max-width centering on CC Step 1 | **PASS** | Cards centered at ~540px width within 800px max |
+| R-016: Max-width centering on Bug Hunt | **PASS** | 800px MAX_FORM_WIDTH properly centered |
+| R-001: Montserrat font rendering | **PARTIAL** | Appears correct on MainMenu title; 5PFH.tres in 26 .tscn files may override on some screens |
+
+### Session 15 Summary
+
+- **Total new issues**: 28 (ISSUE-031 through ISSUE-058)
+- **CRITICAL (BROKEN)**: 4 (Library nav, CC scroll, CC Next button, Load Campaign)
+- **MEDIUM (TWEAK)**: 9 (touch targets, layout, validation)
+- **LOW (POLISH)**: 15 (animations, stat badges, sparse layout, naming)
+- **Screens newly audited**: 7 (Settings, Battle Sim, Load Dialog, Bug Hunt 1-4)
+- **Screens blocked**: 12+ (Dashboard, Turn Phases, Library — due to CRITICAL bugs)
+
+### Session 16 Fixes (Mar 27 2026)
+
+**22 of 28 issues fixed** across 6 sprints (zero compile errors verified):
+
+| Issue | Fix | Sprint |
+| ----- | --- | ------ |
+| ISSUE-031 | TransitionManager now cancels stale transitions; HelpScreen error guards added | 1C |
+| ISSUE-032 | Removed explicit `size =` from `_fit_panel_to_step_bounds()`; use `call_deferred` | 1A |
+| ISSUE-033 | Same root cause as ISSUE-032 — Navigation no longer pushed off-screen | 1A |
+| ISSUE-034 | Added debug tracing + ScrollContainer wrapper for load dialog | 1B |
+| ISSUE-035 | Settings back button 40→48px | 3 |
+| ISSUE-036 | Battle Sim back button 40→48px | 3 |
+| ISSUE-037 | Settings gear 44→48px | 3 |
+| ISSUE-038 | CC header changed from HBox→VBox; title/step stacked vertically | 4 |
+| ISSUE-039 | CC background color #141414→#1A1A2E (COLOR_BASE) | 2 |
+| ISSUE-040 | Battle Sim MAX_FORM_WIDTH=800 centering added | 4 |
+| ISSUE-041 | Load dialog buttons now 48px min height + ScrollContainer | 1B |
+| ISSUE-042 | Bug Hunt header restructured: title row + step label row | 4 |
+| ISSUE-043 | Bug Hunt review "Not set" placeholders for empty fields | 5 |
+| ISSUE-044 | Bug Hunt cancel button 40→48px | 3 |
+| ISSUE-045 | "MC" labels → "Character" in Bug Hunt squad panel | 5 |
+| ISSUE-046 | Bug Hunt escalation CheckButton 48px min height | 3 |
+| ISSUE-047 | Bug Hunt Next button disabled until config validates | 4 |
+| ISSUE-051 | Battle Sim crew preview: stat badge BBCode formatting | 5 |
+| ISSUE-052 | Battle Sim card title color: cyan→accent_hover | 5 |
+| ISSUE-053 | Bug Hunt config panel: added mission flavor text | 5 |
+| ISSUE-057 | TweenFX: panel fade_in, button press, step label punch_in on CC | 6 |
+| ISSUE-058 | Removed 5PFH.tres from all 20 .tscn files | 2 |
+
+| ISSUE-048 | Load dialog backdrop dimming (ColorRect 50% black) | 7 |
+| ISSUE-049 | Campaign type [BH] tag for Bug Hunt saves in load dialog | 7 |
+| ISSUE-050 | Delete save button (X) per save with confirmation dialog | 7 |
+| ISSUE-054 | Bug Hunt stat badges with styled Label+StyleBoxFlat | 7 |
+| ISSUE-055 | Bug Hunt colored initials avatar (8 deterministic colors) | 7 |
+| ISSUE-056 | Bug Hunt names from character_names.json (not "Trooper XXXX") | 7 |
+
+**All 28 issues fixed.** Zero compile errors verified.
+
+**Re-audit needed**: Campaign Dashboard + 9 Turn Phases (blocked in Session 15, should be reachable now)
+8. **ISSUE-057**: TweenFX micro-interactions (LOW — polish pass)

@@ -173,7 +173,7 @@ func _build_ui() -> void:
 
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size.y = 40
+	back_btn.custom_minimum_size.y = 48  # ISSUE-035: meet TOUCH_TARGET_MIN
 	back_btn.pressed.connect(_on_back_pressed)
 	back_btn.accessibility_name = "Back to Main Menu"
 	header.add_child(back_btn)

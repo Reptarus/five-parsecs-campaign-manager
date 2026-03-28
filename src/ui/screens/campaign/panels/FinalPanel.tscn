@@ -1,11 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://b2y8k8g7q3yk4"]
+[gd_scene load_steps=2 format=3 uid="uid://b2y8k8g7q3yk4"]
 
 [ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
-[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_theme"]
 [ext_resource type="Script" path="res://src/ui/screens/campaign/panels/FinalPanel.gd" id="3_script"]
 
 [node name="FinalPanel" instance=ExtResource("1_base")]
-theme = ExtResource("2_theme")
 script = ExtResource("3_script")
 
 [editable path="ContentMargin/MainContent/FormContent/FormContainer"]

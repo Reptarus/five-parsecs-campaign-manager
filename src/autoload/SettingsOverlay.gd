@@ -8,7 +8,7 @@ extends CanvasLayer
 const COLOR_GEAR_BG := Color("#252542")
 const COLOR_GEAR_BG_HOVER := Color("#3A3A5C")
 const COLOR_GEAR_TEXT := Color("#E0E0E0")
-const GEAR_SIZE := 44
+const GEAR_SIZE := 48  # ISSUE-037: meet TOUCH_TARGET_MIN
 const GEAR_MARGIN := 12
 
 var _gear_button: Button

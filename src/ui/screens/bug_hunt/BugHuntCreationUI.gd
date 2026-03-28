@@ -33,7 +33,7 @@ func _ready() -> void:
 	_create_panels()
 	_connect_signals()
 	_show_panel(0)
-	_update_buttons(false, true, false)
+	_update_buttons(false, false, false)  # ISSUE-047: disable Next until config validates
 	get_viewport().size_changed.connect(_apply_content_max_width)
 	_apply_content_max_width()
 
@@ -57,26 +57,30 @@ func _build_layout() -> void:
 	vbox.add_theme_constant_override("separation", 16)
 	margin.add_child(vbox)
 
-	# Header
-	var header := HBoxContainer.new()
+	# Header — stacked: top row (cancel + title), bottom row (step indicator)
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", 4)
 	vbox.add_child(header)
+
+	var header_row := HBoxContainer.new()
+	header.add_child(header_row)
 
 	var cancel_button := Button.new()
 	cancel_button.text = "< Cancel"
-	cancel_button.custom_minimum_size = Vector2(100, 40)
+	cancel_button.custom_minimum_size = Vector2(100, 48)  # ISSUE-044: TOUCH_TARGET_MIN
 	cancel_button.pressed.connect(_on_cancel_pressed)
-	header.add_child(cancel_button)
+	header_row.add_child(cancel_button)
 
 	var title := Label.new()
 	title.text = "BUG HUNT — NEW CAMPAIGN"
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title)
+	header_row.add_child(title)
 
 	_step_label = Label.new()
 	_step_label.text = "Step 1 of 4: Campaign Config"
-	_step_label.add_theme_font_size_override("font_size", 20)
+	_step_label.add_theme_font_size_override("font_size", 16)
 	_step_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	header.add_child(_step_label)
 

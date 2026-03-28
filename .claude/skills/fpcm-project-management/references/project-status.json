@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-27",
-  "current_phase": "UI Modernization (v0.9.6) — Project-wide Montserrat/CourierPrime fonts via sci_fi_theme.tres, responsive max-width forms (800px centered), dashboard HFlowContainer buttons, column collapse, MainMenu portrait/landscape adaptation, colored initials avatar system for character cards, legacy 5PFH.tres removed. Zero compile errors.",
+  "current_phase": "UI Modernization (v0.9.6) — Session 15 Visual QA found 4 CRITICAL nav bugs (Library, CC scroll, CC Next btn, Load Campaign), 28 total issues. Fonts/max-width/portraits from Session 14 committed. Next: fix CRITICALs, remove 5PFH.tres from 26 .tscn files, batch touch target fixes, then re-audit Dashboard + Turn Phases.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",

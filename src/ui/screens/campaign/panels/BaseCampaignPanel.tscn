@@ -1,7 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://bxkj8l2nan6r5"]
+[gd_scene load_steps=1 format=3 uid="uid://bxkj8l2nan6r5"]
 
 [ext_resource type="Script" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.gd" id="1_base"]
-[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_theme"]
 
 
 [node name="BaseCampaignPanel" type="PanelContainer"]
@@ -11,7 +10,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
 theme_type_variation = &"CampaignPanel"
 script = ExtResource("1_base")
 

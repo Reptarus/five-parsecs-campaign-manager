@@ -1,6 +1,5 @@
-[gd_scene load_steps=3 format=3 uid="uid://bjdo0o2bet0av"]
+[gd_scene load_steps=2 format=3 uid="uid://bjdo0o2bet0av"]
 
-[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_nq7n0"]
 [ext_resource type="Script" path="res://src/ui/screens/campaign/TravelPhase.gd" id="2_script"]
 
 [node name="TravelPhaseUI" type="Control"]
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("1_nq7n0")
 script = ExtResource("2_script")
 
 [node name="Background" type="TextureRect" parent="."]

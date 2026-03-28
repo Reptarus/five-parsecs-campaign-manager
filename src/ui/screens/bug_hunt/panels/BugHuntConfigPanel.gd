@@ -64,6 +64,16 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
+	# ISSUE-053: Flavor text to fill sparse layout
+	var flavor := Label.new()
+	flavor.text = "Military deployment in hostile territory. " \
+		+ "Your squad faces waves of alien threats with limited support."
+	flavor.add_theme_font_size_override("font_size", 14)
+	flavor.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	flavor.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flavor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(flavor)
+
 	# Campaign Name
 	var name_card := _create_card("Campaign Name", vbox)
 	_name_edit = LineEdit.new()
@@ -105,6 +115,7 @@ func _build_ui() -> void:
 	# Campaign Escalation
 	_escalation_check = CheckButton.new()
 	_escalation_check.text = "Use Campaign Escalation (fixed Priority sequence)"
+	_escalation_check.custom_minimum_size.y = 48  # ISSUE-046: TOUCH_TARGET_MIN
 	_escalation_check.add_theme_color_override("font_color", COLOR_TEXT)
 	_escalation_check.toggled.connect(_on_escalation_toggled)
 	diff_card.add_child(_escalation_check)

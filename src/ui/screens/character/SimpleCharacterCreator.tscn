@@ -1,6 +1,5 @@
-[gd_scene load_steps=2 format=3 uid="uid://bq8x7y203w4v5"]
+[gd_scene load_steps=1 format=3 uid="uid://bq8x7y203w4v5"]
 
-[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
 [ext_resource type="Script" path="res://src/core/character/Generation/SimpleCharacterCreator.gd" id="2_script"]
 
 [node name="SimpleCharacterCreator" type="Control"]
@@ -10,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("1_theme")
 script = ExtResource("2_script")
 
 [node name="Background" type="ColorRect" parent="."]

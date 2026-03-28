@@ -64,9 +64,9 @@ func _build_ui() -> void:
 		names_card.add_child(hbox)
 
 		var lbl := Label.new()
-		lbl.text = "MC %d:" % (i + 1)
+		lbl.text = "Character %d:" % (i + 1)  # ISSUE-045: spell out, not "MC"
 		lbl.add_theme_color_override("font_color", COLOR_TEXT)
-		lbl.custom_minimum_size.x = 48
+		lbl.custom_minimum_size.x = 90
 		hbox.add_child(lbl)
 
 		var edit := LineEdit.new()
@@ -168,38 +168,95 @@ func _add_character_card(mc: Dictionary) -> void:
 	panel.add_theme_stylebox_override("panel", style)
 	_characters_container.add_child(panel)
 
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
-	panel.add_child(vbox)
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 12)
+	panel.add_child(hbox)
+
+	# ISSUE-055: Colored initials avatar (matches CharacterCard pattern)
+	var char_name: String = mc.get("name", "?")
+	var avatar := Label.new()
+	var initials := ""
+	var parts := char_name.split(" ")
+	for part in parts:
+		if not part.is_empty():
+			initials += part[0]
+	if initials.is_empty():
+		initials = "?"
+	avatar.text = initials.substr(0, 2).to_upper()
+	avatar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	avatar.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	avatar.custom_minimum_size = Vector2(40, 40)
+	avatar.add_theme_font_size_override("font_size", 16)
+	# Deterministic color from name hash (8 colors like CharacterCard)
+	var avatar_colors := [
+		Color("#4FC3F7"), Color("#81C784"), Color("#FFB74D"),
+		Color("#E57373"), Color("#BA68C8"), Color("#4DD0E1"),
+		Color("#AED581"), Color("#FF8A65"),
+	]
+	var color_idx: int = char_name.hash() % avatar_colors.size()
+	if color_idx < 0:
+		color_idx += avatar_colors.size()
+	var avatar_bg := StyleBoxFlat.new()
+	avatar_bg.bg_color = avatar_colors[color_idx].darkened(0.4)
+	avatar_bg.set_corner_radius_all(20)
+	avatar_bg.set_content_margin_all(4)
+	avatar.add_theme_stylebox_override("normal", avatar_bg)
+	avatar.add_theme_color_override("font_color", avatar_colors[color_idx])
+	hbox.add_child(avatar)
+
+	var info := VBoxContainer.new()
+	info.add_theme_constant_override("separation", 4)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(info)
 
 	var name_lbl := Label.new()
-	name_lbl.text = mc.get("name", "Unknown")
+	name_lbl.text = char_name
 	name_lbl.add_theme_font_size_override("font_size", 18)
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	vbox.add_child(name_lbl)
+	info.add_child(name_lbl)
 
 	var bg_lbl := Label.new()
 	bg_lbl.text = "%s | %s | %s" % [
-		mc.get("origin", "?"), mc.get("basic_training", "?"), mc.get("service_history", "?")]
+		mc.get("origin", "?"), mc.get("basic_training", "?"),
+		mc.get("service_history", "?")]
 	bg_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	bg_lbl.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(bg_lbl)
+	bg_lbl.add_theme_font_size_override("font_size", 13)
+	info.add_child(bg_lbl)
 
-	var stats_text := "React: %d  Spd: %d  CS: %d  Tough: %d  Savvy: %d  XP: %d" % [
-		mc.get("reactions", 0), mc.get("speed", 0), mc.get("combat_skill", 0),
-		mc.get("toughness", 0), mc.get("savvy", 0), mc.get("xp", 0)]
-	var stats_lbl := Label.new()
-	stats_lbl.text = stats_text
-	stats_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	stats_lbl.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(stats_lbl)
+	# ISSUE-054: Stat badges in a flow container
+	var stats_row := HBoxContainer.new()
+	stats_row.add_theme_constant_override("separation", 6)
+	info.add_child(stats_row)
+	var stat_pairs := [
+		["CS", mc.get("combat_skill", 0)],
+		["React", mc.get("reactions", 0)],
+		["Tough", mc.get("toughness", 0)],
+		["Spd", mc.get("speed", 0)],
+		["Savvy", mc.get("savvy", 0)],
+		["XP", mc.get("xp", 0)],
+	]
+	for pair in stat_pairs:
+		var badge := Label.new()
+		badge.text = " %s %d " % [pair[0], pair[1]]
+		badge.add_theme_font_size_override("font_size", 12)
+		badge.add_theme_color_override("font_color", COLOR_TEXT)
+		var badge_style := StyleBoxFlat.new()
+		badge_style.bg_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+		badge_style.set_corner_radius_all(4)
+		badge_style.content_margin_left = 4
+		badge_style.content_margin_right = 4
+		badge_style.content_margin_top = 2
+		badge_style.content_margin_bottom = 2
+		badge.add_theme_stylebox_override("normal", badge_style)
+		stats_row.add_child(badge)
 
 	if mc.get("commendation_xp", 0) > 0 or mc.get("commendation_rep", 0) > 0:
 		var comm_lbl := Label.new()
-		comm_lbl.text = "Commendation: +%d XP, +%d Rep" % [mc.get("commendation_xp", 0), mc.get("commendation_rep", 0)]
+		comm_lbl.text = "Commendation: +%d XP, +%d Rep" % [
+			mc.get("commendation_xp", 0), mc.get("commendation_rep", 0)]
 		comm_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 		comm_lbl.add_theme_font_size_override("font_size", 12)
-		vbox.add_child(comm_lbl)
+		info.add_child(comm_lbl)
 
 
 func _emit_update() -> void:

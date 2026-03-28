@@ -11,7 +11,9 @@ const COLOR_BASE := Color("#1A1A2E")
 const COLOR_TEXT := Color("#E0E0E0")
 const COLOR_TEXT_SEC := Color("#808080")
 const COLOR_ACCENT := Color("#2D5A7B")
+const MAX_FORM_WIDTH := 800  # ISSUE-040: responsive centering
 
+var _content_margin: MarginContainer
 var _setup_panel: Control
 var _results_panel: Control
 var _battle_ui: Node = null
@@ -34,18 +36,20 @@ func _build_layout() -> void:
 	bg.color = COLOR_BASE
 	add_child(bg)
 
-	# Main margin
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 20)
-	add_child(margin)
+	# Main margin — responsive centering via _apply_content_max_width()
+	_content_margin = MarginContainer.new()
+	_content_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_content_margin.add_theme_constant_override("margin_left", 20)
+	_content_margin.add_theme_constant_override("margin_top", 20)
+	_content_margin.add_theme_constant_override("margin_right", 20)
+	_content_margin.add_theme_constant_override("margin_bottom", 20)
+	add_child(_content_margin)
+	get_viewport().size_changed.connect(_apply_content_max_width)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 16)
-	margin.add_child(vbox)
+	_content_margin.add_child(vbox)
+	call_deferred("_apply_content_max_width")
 
 	# Header
 	_header = HBoxContainer.new()
@@ -53,7 +57,7 @@ func _build_layout() -> void:
 
 	var back_button := Button.new()
 	back_button.text = "< Back to Menu"
-	back_button.custom_minimum_size = Vector2(160, 40)
+	back_button.custom_minimum_size = Vector2(160, 48)  # ISSUE-036: TOUCH_TARGET_MIN
 	back_button.pressed.connect(_on_back_to_menu)
 	_header.add_child(back_button)
 
@@ -164,3 +168,19 @@ func _on_back_to_menu() -> void:
 		router.navigate_to("main_menu")
 	else:
 		push_error("BattleSimulatorUI: SceneRouter not found")
+
+
+func _apply_content_max_width() -> void:
+	if not _content_margin:
+		return
+	var vp := get_viewport()
+	if not vp:
+		return
+	var vp_width := vp.get_visible_rect().size.x
+	if vp_width > MAX_FORM_WIDTH + 64:
+		var side := int((vp_width - MAX_FORM_WIDTH) / 2.0)
+		_content_margin.add_theme_constant_override("margin_left", side)
+		_content_margin.add_theme_constant_override("margin_right", side)
+	else:
+		_content_margin.add_theme_constant_override("margin_left", 20)
+		_content_margin.add_theme_constant_override("margin_right", 20)
