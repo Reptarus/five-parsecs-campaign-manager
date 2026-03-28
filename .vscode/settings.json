@@ -70,5 +70,6 @@
         "**/.mcp/**": true,
         "**/node_modules/**": true,
         "**/mcp-servers/**": true
-    }
+    },
+    "peacock.color": "#2D5A7B"
 }

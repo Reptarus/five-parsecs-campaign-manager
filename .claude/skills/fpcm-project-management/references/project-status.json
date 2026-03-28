@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-27",
-  "current_phase": "UI Modernization (v0.9.6) — Session 15 Visual QA found 4 CRITICAL nav bugs (Library, CC scroll, CC Next btn, Load Campaign), 28 total issues. Fonts/max-width/portraits from Session 14 committed. Next: fix CRITICALs, remove 5PFH.tres from 26 .tscn files, batch touch target fixes, then re-audit Dashboard + Turn Phases.",
+  "current_phase": "UI Modernization (v0.9.6) — Session 16 fixed ALL 28 issues from Visual QA (ISSUE-031–058). 36 files changed. 5PFH.tres removed from 20 .tscn files. CRITICAL scroll/nav bugs fixed. Touch targets, layout, TweenFX, stat badges, name gen, delete saves all done. Next: MCP runtime re-audit of Dashboard + 9 Turn Phases (blocked in Session 15, should be reachable now).",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -92,7 +92,7 @@
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "next_priority": "9 deferred UI/UX issues remain. CharacterNameGenerator cosmetic (hardcoded names, no JSON). patron_missions.json dead data (800-1200 credits, not wired). PostBattleSummarySheet shows 0 credits (real payment via signal, could wire to display). ~100 Compendium values still need physical book verification.",
+    "next_priority": "MCP re-audit Dashboard + 9 Turn Phases (12+ screens unaudited). All 28 UI issues from Session 15 resolved. patron_missions.json dead data (800-1200 credits, not wired). PostBattleSummarySheet shows 0 credits (real payment via signal, could wire to display). ~100 Compendium values still need physical book verification.",
     "remaining_pdf_verification": "~100 Compendium/DLC values in 11 compendium_*.gd files (Core Rules domains 100% complete)",
     "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed. Dazzle Grenade synced across weapons.json + equipment_database.json.",
     "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "5 phantom non-Core weapons confirmed non-existent"],
