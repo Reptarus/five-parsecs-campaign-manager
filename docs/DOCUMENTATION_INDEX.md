@@ -1,133 +1,99 @@
 # Five Parsecs Campaign Manager - Documentation Index
 
-**Last Updated**: March 12, 2026
+**Last Updated**: March 30, 2026
 **Engine**: Godot 4.6-stable (pure GDScript)
 **Test Framework**: gdUnit4 v6.0.3
 
 ---
 
-## Getting Started
+## Root Documents (Start Here)
+
+- **[Project Status](PROJECT_STATUS_2026.md)** - Current state, completed phases, risk areas
 - **[Quick Start Guide](QUICK_START.md)** - Developer setup and onboarding
-- **[Project Status](PROJECT_STATUS_2026.md)** - Current state (Mar 2026)
-- **[README](README.md)** - Main documentation hub
+- **[Game Mechanics Map](GAME_MECHANICS_IMPLEMENTATION_MAP.md)** - 100% compliance (170/170)
+- **[QA Status Dashboard](QA_STATUS_DASHBOARD.md)** - Consolidated QA health overview
+- **[QA Rules Accuracy Audit](QA_RULES_ACCURACY_AUDIT.md)** - Master data verification (925 values)
+- **[Core Rules](core_rules.md)** / **[Compendium](compendium.md)** - Digitized rulebook references
 
-## Core Game Documentation
-- **[Game Mechanics Implementation Map](GAME_MECHANICS_IMPLEMENTATION_MAP.md)** - 100% compliance (170/170 incl. Compendium)
-- **[Core Rules](core_rules.md)** - Core rulebook reference
-- **[Compendium](compendium.md)** - Expansion content reference
-- **[Implants System](IMPLANTS_SYSTEM_IMPLEMENTATION.md)** - Implant types and pipeline
-- **[Data File Reference](DATA_FILE_REFERENCE.md)** - Game data files
-- **[Event Effects Reference](EVENT_EFFECTS_REFERENCE.md)** - Campaign/character events
-- **[Data Contracts](DATA_CONTRACTS.md)** - Data structure contracts
+## Technical Architecture (`technical/`)
 
-## Gameplay Documentation
-- **[Official Campaign Rules](gameplay/OFFICIAL_CAMPAIGN_RULES_IMPLEMENTATION.md)** - 9-phase campaign turn
-- **[Rules Implementation Guide](gameplay/RULES_IMPLEMENTATION_GUIDE.md)** - Tabletop-to-digital mapping
-- **[Compendium Implementation](gameplay/COMPENDIUM_IMPLEMENTATION.md)** - Expansion content guide
-- **[Compendium Roadmap](features/COMPENDIUM_ROADMAP.md)** - Historical planning doc (all 10 sprints complete)
-- **[Dice System Guide](gameplay/DICE_SYSTEM_GUIDE.md)** - Random number generation
-- **[Victory Conditions](gameplay/VICTORY_CONDITIONS.md)** - 21 victory types
-- **[Rules-Based File Budget](gameplay/RULES_BASED_FILE_BUDGET.md)** - Architecture constraints
-- **[QoL Features](gameplay/qol/)** - Quality of life features (9 docs)
-  - **[Campaign Journal](gameplay/qol/Campaign_Journal.md)** - Journal, timeline, history (IMPLEMENTED)
-
-## Technical Documentation
-- **[Architecture Guide](technical/ARCHITECTURE.md)** - System design and patterns
+- **[Architecture Guide](technical/ARCHITECTURE.md)** - System design and coordinator patterns
+- **[Battle System Architecture](technical/BATTLE_SYSTEM_ARCHITECTURE.md)** - Battle state machine, resolver
+- **[Tactical Battle UI Architecture](technical/TACTICAL_BATTLE_UI_ARCHITECTURE.md)** - TacticalBattleUI deep dive
+- **[Battle HUD Signal Architecture](technical/BATTLE_HUD_SIGNAL_ARCHITECTURE.md)** - Signal patterns
 - **[Data Architecture](technical/data_architecture.md)** - Data flow and storage
 - **[Data Model & Save System](technical/DATA_MODEL_AND_SAVE_SYSTEM.md)** - Persistence layer
 - **[System Architecture Deep Dive](technical/SYSTEM_ARCHITECTURE_DEEP_DIVE.md)** - Detailed systems
-- **[Battle HUD Signal Architecture](technical/BATTLE_HUD_SIGNAL_ARCHITECTURE.md)** - Signal patterns
+- **[Data Flow Consistency Tracker](technical/DATA_FLOW_CONSISTENCY_TRACKER.md)** - Data flow audit (45 issues, all resolved)
+- **[Data File Reference](technical/DATA_FILE_REFERENCE.md)** - Game data files catalog
+- **[Data Contracts](technical/DATA_CONTRACTS.md)** - Data structure contracts
+- **[Screen Map](technical/SCREEN_MAP.md)** - Scene/screen inventory
+- **[Codebase Optimization Audit](technical/CODEBASE_OPTIMIZATION_AUDIT.md)** - Optimization opportunities
+- **[Connection Validation Template](technical/UNIVERSAL_CONNECTION_VALIDATION_TEMPLATE.md)** - Signal validation patterns
 
-## Development
+## Testing & QA (`testing/`)
 
-- **[Core Rules Compliance Report](development/core_rules_compliance_report.md)** - 11/11 systems verified
-- **[Development Implementation Guide](development/DEVELOPMENT_IMPLEMENTATION_GUIDE.md)** - Dev workflow
-- **[Codebase Cleanup List](development/CODEBASE_CLEANUP_LIST.md)** - Cleanup tracking
-
-## Agent & Skill Architecture (Claude Code Token Optimization)
-
-Seven specialized agents with three-tier model routing (Haiku/Sonnet/Opus) for token-optimized task handling.
-
-- **[Agent Roster](../.claude/skills/fpcm-project-management/references/agent-roster.md)** - All 7 agents: domain, model, files owned, routing rules
-- **[Task Decomposition](../.claude/skills/fpcm-project-management/references/task-decomposition.md)** - Dependency order, decomposition framework, worked examples
-- **[Project Status (Agent View)](../.claude/skills/fpcm-project-management/references/project-status.md)** - Per-system status for agent routing
-
-### Agent Definitions (`.claude/agents/`)
-
-| Agent | Model | Skill |
-| ----- | ----- | ----- |
-| `fpcm-project-manager` | opus | `fpcm-project-management` (3 references) |
-| `battle-systems-engineer` | opus | `battle-systems` (4 references) |
-| `campaign-systems-engineer` | sonnet | `campaign-systems` (4 references) |
-| `character-data-engineer` | sonnet | `character-data` (4 references) |
-| `bug-hunt-specialist` | sonnet | `bug-hunt-gamemode` (3 references) |
-| `qa-specialist` | sonnet | `qa-specialist` (6 references) |
-| `ui-panel-developer` | haiku | `ui-development` (4 references) |
-
-### Skill Reference Files (`.claude/skills/`)
-
-- **character-data**: character-model.md, enum-systems.md, json-data-catalog.md, equipment-world.md
-- **campaign-systems**: campaign-creation-flow.md, campaign-turn-phases.md, save-load-persistence.md, autoload-contracts.md
-- **battle-systems**: battle-state-machine.md, combat-resolution.md, deployment-victory.md, battle-ui-wiring.md
-- **ui-development**: deep-space-theme.md, panel-patterns.md, tweenfx-guide.md, scene-router.md
-- **bug-hunt-gamemode**: bug-hunt-data-model.md, bug-hunt-turn-flow.md, cross-mode-safety.md
-- **fpcm-project-management**: agent-roster.md, task-decomposition.md, project-status.md
-- **qa-specialist**: 6 existing reference files (unchanged)
-
-## Testing
 - **[Testing Guide](../tests/TESTING_GUIDE.md)** - gdUnit4 test methodology
-- **[UI/UX Test Results](UIUX_TEST_RESULTS.md)** - MCP automated runtime testing: 71 bugs found & fixed across 12 sessions
-- **[Demo QA Script](testing/DEMO_QA_SCRIPT.md)** - Demo recording QA gate: Campaign Creation → Two Turns → Save & Reload (all sections VERIFIED)
+- **[Demo QA Script](testing/DEMO_QA_SCRIPT.md)** - Demo recording QA gate
+- **[UX/UI Test Plan](testing/QA_UX_UI_TEST_PLAN.md)** - Systematic UI coverage
+- **[Integration Scenarios](testing/QA_INTEGRATION_SCENARIOS.md)** - 10 end-to-end workflow test scripts
+- **[Playtesting Strategy](testing/EFFICIENT_PLAYTESTING_STRATEGY.md)** - Testing methodology
+- **[Sprint T1 Results](testing/SPRINT_T1_RESULTS.md)** - Sprint test results
+- **[Battle Companion QA Sprint](testing/BATTLE_COMPANION_QA_SPRINT.md)** - 4 sprints of battle UI overhaul
+- **[Battle UI Component Audit](testing/BATTLE_UI_COMPONENT_AUDIT.md)** - 28 user-facing components
+- **[Battle UI QA Bugs](testing/BATTLE_UI_QA_BUGS.md)** - Battle-specific bug tracker
+- **[UIUX Test Results](testing/UIUX_TEST_RESULTS.md)** - MCP automated: 71 bugs found & fixed
 
-## Design
-- **[UI Overview](design/ui_overview.md)** - User interface design
+## Gameplay Documentation (`gameplay/`)
+
+- **[Official Campaign Rules](gameplay/OFFICIAL_CAMPAIGN_RULES_IMPLEMENTATION.md)** - 9-phase campaign turn
+- **[Rules Implementation Guide](gameplay/RULES_IMPLEMENTATION_GUIDE.md)** - Tabletop-to-digital mapping
+- **[Compendium Implementation](gameplay/COMPENDIUM_IMPLEMENTATION.md)** - Expansion content guide
+- **[Dice System Guide](gameplay/DICE_SYSTEM_GUIDE.md)** - Random number generation
+- **[Victory Conditions](gameplay/VICTORY_CONDITIONS.md)** - 21 victory types
+- **[Event Effects Reference](gameplay/EVENT_EFFECTS_REFERENCE.md)** - Campaign/character events
+- **[QoL Features](gameplay/qol/)** - QOL roadmap, Campaign Journal, Keyword System
+
+## Design (`design/`)
+
+- **[UI Overview](design/ui_overview.md)** - Design tokens, Deep Space palette
+- **[UI/UX Component Guide](design/UI_UX_COMPONENT_GUIDE.md)** - Component patterns
 - **[Battlefield Data Schema](design/BATTLEFIELD_DATA_SCHEMA.md)** - Battlefield generation
-- **[Portrait System Guide](design/PORTRAIT_SYSTEM_GUIDE.md)** - Character portraits
+- **[Battlefield Visualization](design/battlefield_visualization.md)** - Tactical grid rendering
+- **[Portrait System](design/PORTRAIT_SYSTEM_GUIDE.md)** - Character portraits
 - **[Accessibility](design/accessibility_automation.md)** - A11y implementation
 - **[Visual Fidelity Options](design/visual_fidelity_options.md)** - Graphics settings
-- **[UIColors](../src/ui/components/base/UIColors.gd)** - Canonical design tokens (Deep Space theme, spacing, typography, touch targets)
-- **[IconRegistry](../src/ui/components/base/IconRegistry.gd)** - Game concept → Lorc RPG icon mapping with static cache
-- **[ResponsiveManager](../src/autoload/ResponsiveManager.gd)** - Breakpoint detection autoload (MOBILE/TABLET/DESKTOP/WIDE)
-- **[TweenFX](../addons/TweenFX/)** - Animation addon (v1.2, 70 animations), autoloaded as `TweenFX`. Used across 23 UI files for interaction feedback, transitions, and game event celebrations. Requires `pivot_offset = size / 2` before scale/rotation animations
 
-## Systems (Implemented February 2026)
-- **[Galactic War System](features/GALACTIC_WAR_SYSTEM.md)** - 4 war tracks with faction conflicts
-- **[DLC/Compendium System](features/COMPENDIUM_ROADMAP.md)** - 35 ContentFlags across 3 DLC packs
-  - DLCManager autoload, 6 compendium data files, DLCManagementDialog UI
-- **[Battle Phase Manager](../src/core/battle/)** - Three-tier tracking (LOG_ONLY / ASSISTED / FULL_ORACLE)
-- **[Planet Persistence](../src/core/world/PlanetDataManager.gd)** - PlanetDataManager autoload, per-planet contacts
-- **[Campaign Journal](../src/core/campaign/CampaignJournal.gd)** - Autoloaded journal with auto-entries, timeline, export
-- **[Morale System](../src/core/systems/MoraleSystem.gd)** - 0-100 crew morale with post-battle effects
-- **[Import/Export](../src/ui/components/export/)** - ExportPanel + ImportPanel (JSON/Markdown)
-- **[History/Timeline UI](../src/ui/components/history/)** - CharacterHistoryPanel + CampaignTimelinePanel
-- **[PatronSystem](../src/core/systems/PatronSystem.gd)** - Job generation (WorldPhase) + completion (PostBattlePhase)
-- **[FactionSystem](../src/core/systems/FactionSystem.gd)** - Rival reputation + faction missions
-- **[Equipment Comparison](../src/ui/components/inventory/EquipmentComparisonPanel.gd)** - Side-by-side stat comparison in TradePhasePanel
-- **[StoryTrackSystem](../src/core/story/)** - DLC-gated 6-tick story clock with evidence collection
-- **[KeywordSystem](../src/qol/KeywordSystem.gd)** - Enriches story events with keyword matches
-- **[LegacySystem](../src/core/campaign/LegacySystem.gd)** - Archives campaigns on victory, legacy bonus on new campaigns (upgraded Feb 9)
-- **[NPCTracker](../src/core/campaign/NPCTracker.gd)** - Patron/rival/location tracking with relationships and serialize/deserialize (upgraded Feb 9)
-- **[BattleSetupWizard](../src/qol/BattleSetupWizard.gd)** - One-click battle generation from EnemyGenerator + crew data (wired Feb 9)
-- **[QOL Persistence](../src/core/services/PersistenceService.gd)** - Save/load pipeline for QOL autoloads (CampaignJournal, TurnPhaseChecklist, NPCTracker, LegacySystem)
-- **[Accessibility](../src/ui/accessibility/AccessibilityManager.gd)** - Focus indicator, automation settings panel
-- **[Scene Routing & Navigation](../src/ui/screens/SceneRouter.gd)** - All screen transitions via SceneRouter (36 registered scenes, navigation history, back buttons, per-turn auto-save)
-- **[VictoryChecker](../src/core/victory/VictoryChecker.gd)** - Centralized victory condition checking (18 types), extracted from EndPhasePanel (Phase 5)
-- **[Character Events Data](../src/data/character_events.gd)** - Character phase event table with weighted random selection, extracted from CharacterPhasePanel (Phase 5)
+## Features (`features/`)
 
-## Features (Specs)
-- **[Features Directory](features/)** - Feature specifications organized by system:
-  - bug_hunt/, campaign/, combat/, difficulty/, enemy/, missions/, psionics/, species/, world/
-  - Galactic War, DLC Gating, Character Creation, Combat System, Compendium Roadmap
+- **[Implants System](features/IMPLANTS_SYSTEM_IMPLEMENTATION.md)** - Implant types and pipeline
+- **[DLC Gating](features/dlc_gating_mechanism.md)** / **[Compendium Roadmap](features/COMPENDIUM_ROADMAP.md)**
+- **[Galactic War](features/GALACTIC_WAR_SYSTEM.md)** / **[Character Creation](features/character_creation.md)**
+- Subdirectories: `bug_hunt/`, `campaign/`, `combat/`, `difficulty/`, `enemy/`, `missions/`, `psionics/`, `species/`, `world/`
 
-## Release & Deployment
-- **[Deployment Guide](releases/DEPLOYMENT_GUIDE.md)** - Production deployment
-- **[Deployment Checklist](releases/DEPLOYMENT_CHECKLIST.md)** - Pre-release checks
-- **[Build & Versioning](releases/build_and_versioning_process.md)** - Version management
-- **[Multi-Platform Release](releases/multi_platform_release_checklist.md)** - Platform support
+## UI Components (`ui/`)
 
-## Modding
-- **[Content Creation Guide](modding/CONTENT_CREATION_GUIDE.md)** - Modding documentation
+- **[Character Card Spec](ui/CHARACTER_CARD_COMPONENT_SPEC.md)** - 3 visual variants
+- **[Galactic War UI Mockup](ui/GALACTIC_WAR_UI_MOCKUP.md)** - End-game UI
 
-## Archived Documentation
-Located in `docs/archive/` (~160 files) - Historical reference from earlier development phases.
-Includes: GUT guides, Godot mastery references, premature deployment/marketing/legal docs, player guide, support plans.
+## Development (`development/`)
+
+- **[Core Rules Compliance Report](development/core_rules_compliance_report.md)** - 11/11 systems verified
+- **[Development Guide](development/DEVELOPMENT_IMPLEMENTATION_GUIDE.md)** - Dev workflow
+- **[MCP Setup](development/MCP_Setup_Summary.md)** - MCP integration
+
+## Other
+
+- **[User Guide](user_guide/00_index.md)** - 16-chapter player guide
+- **[Modding Guide](modding/CONTENT_CREATION_GUIDE.md)** - Custom content creation
+- **[Release & Deployment](releases/)** - Deployment guide, checklists, versioning
+- **[Rules PDFs](rules/)** - Core Rules + Compendium source material
+
+## Agent Architecture
+
+- **[Agent Roster](../.claude/skills/fpcm-project-management/references/agent-roster.md)** - 7 agents with Haiku/Sonnet/Opus tiers
+- **[Task Decomposition](../.claude/skills/fpcm-project-management/references/task-decomposition.md)** - Dependency order
+
+## Archived (`archive/`)
+
+Historical reference: QA sprint phases 29-32, test plans, verification reports, stale development files, QOL stubs, legacy docs.

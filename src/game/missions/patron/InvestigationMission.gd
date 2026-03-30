@@ -290,7 +290,7 @@ func _generate_evidence_requirements() -> void:
 	}
 	
 	# Select required evidence
-	var available_evidence: Array[String] = base_evidence + specific_evidence.get(investigation_type, [])
+	var available_evidence: Array = base_evidence + specific_evidence.get(investigation_type, [])
 	for i in range(required_evidence_count):
 		if not available_evidence.is_empty():
 			var evidence: String = available_evidence[randi() % available_evidence.size()]

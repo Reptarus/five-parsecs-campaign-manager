@@ -498,7 +498,11 @@ func deserialize_all(data: Dictionary) -> void:
 		visited_planets[planet_id] = planet
 	
 	current_planet_id = data.get("current_planet_id", "")
-	travel_history = data.get("travel_history", [])
+	var raw_history: Array = data.get("travel_history", [])
+	travel_history.clear()
+	for entry in raw_history:
+		if entry is Dictionary:
+			travel_history.append(entry)
 
 ## Get debug info
 func get_debug_info() -> Dictionary:

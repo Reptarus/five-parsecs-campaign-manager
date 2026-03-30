@@ -543,9 +543,9 @@ Agents frequently return inaccurate search results — claiming files are stubs,
 
 ## Key Documentation
 
+- `docs/DOCUMENTATION_INDEX.md` — Master documentation hub (all docs indexed here)
 - `docs/PROJECT_STATUS_2026.md` — Current project status
 - `docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md` — 100% compliance tracker (170/170)
-- `docs/DOCUMENTATION_INDEX.md` — Documentation hub
 - `tests/TESTING_GUIDE.md` — Test methodology (needs update for 4.6)
 
 ### QA Documentation Suite (Mar 2026)
@@ -553,8 +553,10 @@ Agents frequently return inaccurate search results — claiming files are stubs,
 | Document | Purpose |
 |----------|---------|
 | `docs/QA_STATUS_DASHBOARD.md` | Consolidated QA health — open bugs, coverage %, risk areas, next priorities |
-| `docs/QA_CORE_RULES_TEST_PLAN.md` | All 170 mechanics mapped to test verification status |
-| `docs/QA_INTEGRATION_SCENARIOS.md` | 9 end-to-end workflow scripts with MCP command templates |
-| `docs/QA_UX_UI_TEST_PLAN.md` | Systematic theme/responsive/animation/accessibility coverage |
+| `docs/QA_RULES_ACCURACY_AUDIT.md` | Master data verification (925 values, 131 files) |
+| `docs/testing/QA_INTEGRATION_SCENARIOS.md` | 10 end-to-end workflow scripts with MCP command templates |
+| `docs/testing/QA_UX_UI_TEST_PLAN.md` | Systematic theme/responsive/animation/accessibility coverage |
 
-Update the dashboard and core rules plan after each QA sprint.
+Historical QA docs (sprint results, test plans, verification reports) archived in `docs/archive/qa-historical/`.
+
+Update the dashboard after each QA sprint.

@@ -51,6 +51,16 @@ This is the root cause of "Cannot infer the type" errors project-wide. Always us
 
 ---
 
+## Session 18: Rules Audit Complete + Schema Unification (Mar 30, 2026)
+
+QA_RULES_ACCURACY_AUDIT.md: **0 UNVERIFIED entries** (was 308). 925/925 data values verified.
+
+Fixes: Rival following (campaign-systems-engineer domain, TravelPhase.gd), license costs (same), 3 generator schema unifications (cross-domain: mission generators now delegate to Compendium canonical data classes instead of maintaining duplicate const tables). StreetFightPanel UI updated for new schema.
+
+**Routing note**: Stealth/Street/Salvage generators (`src/core/mission/`) now depend on Compendium data classes (`src/data/compendium_*.gd`). Any data table changes go to `compendium_*.gd` files — generators are thin orchestration wrappers.
+
+---
+
 ## Session 11-12: Hardcoded Data Cleanup (Mar 26, 2026)
 
 Major cross-system data integrity pass completed:

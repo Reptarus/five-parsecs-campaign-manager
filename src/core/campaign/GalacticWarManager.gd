@@ -352,7 +352,10 @@ func load_save_data(data: Dictionary) -> void:
 		war_tracks = data.war_tracks.duplicate(true)
 	
 	if "active_track_ids" in data:
-		active_track_ids = data.active_track_ids.duplicate()
+		active_track_ids.clear()
+		for id in data.active_track_ids:
+			if id is String:
+				active_track_ids.append(id)
 	
 	if "current_effects" in data:
 		current_effects = data.current_effects.duplicate(true)

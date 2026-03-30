@@ -221,7 +221,8 @@ func _on_roll_suspect_identity() -> void:
 	_suspects_identified += 1
 
 	# Start police timer on first weapon fire (suspect identification may lead to combat)
-	if _police_timer == 0 and result.get("hostile", false):
+	var suspect_id: String = result.get("id", "")
+	if _police_timer == 0 and suspect_id in ["enemy", "ambush"]:
 		_police_timer = 1
 		_status_label.text = "Police: Active (5+ on D6)"
 		_status_label.add_theme_color_override("font_color", COLOR_POLICE)

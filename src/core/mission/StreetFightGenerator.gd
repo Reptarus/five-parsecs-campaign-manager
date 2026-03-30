@@ -8,100 +8,19 @@ extends RefCounted
 ## All output is TEXT INSTRUCTIONS for the tabletop companion model.
 ## Gated behind DLCManager.ContentFlag.STREET_FIGHTS.
 ##
+## CANONICAL DATA: CompendiumStreetFights (src/data/compendium_street_fights.gd)
+## This generator adds orchestration and text formatting on top of the compendium data layer.
+##
 ## Key mechanics:
-##   - Suspect markers placed on buildings (3-6 markers)
+##   - Suspect markers placed on buildings (crew size markers)
 ##   - Building types rolled per marker (D6)
-##   - Identification: Move within 4" with LoS, spend 1 action
+##   - Identification: Within LoS and (4 + Savvy) inches
 ##   - Police response timer: D6 each round, accumulates
 ##   - Evasion: D6+Savvy to avoid police when fleeing
 
 
 ## ============================================================================
-## STREET FIGHT OBJECTIVES (D100 table)
-## ============================================================================
-
-const STREET_FIGHT_OBJECTIVES: Array[Dictionary] = [
-	{
-		"roll_min": 1, "roll_max": 20,
-		"id": "gang_raid",
-		"name": "Gang Raid",
-		"description": "Eliminate a gang presence in the district.",
-		"win_condition": "Eliminate all identified gang members or force them to flee.",
-		"suspect_count": 5,
-	},
-	{
-		"roll_min": 21, "roll_max": 35,
-		"id": "protection_racket",
-		"name": "Break Protection Racket",
-		"description": "Locate and confront the racket enforcers.",
-		"win_condition": "Identify and eliminate/capture the racket leader (marked suspect).",
-		"suspect_count": 4,
-	},
-	{
-		"roll_min": 36, "roll_max": 50,
-		"id": "bounty_hunt",
-		"name": "Street Bounty Hunt",
-		"description": "Track down a target hiding in the district.",
-		"win_condition": "Identify the target among suspects and move them off-table.",
-		"suspect_count": 6,
-	},
-	{
-		"roll_min": 51, "roll_max": 65,
-		"id": "turf_war",
-		"name": "Turf War",
-		"description": "Claim territory from a rival gang.",
-		"win_condition": "Control 3+ buildings (crew member inside, no enemies) by end of Round 6.",
-		"suspect_count": 5,
-	},
-	{
-		"roll_min": 66, "roll_max": 80,
-		"id": "evidence_gathering",
-		"name": "Evidence Gathering",
-		"description": "Collect evidence from multiple locations.",
-		"win_condition": "Search 3+ buildings (1 action per building) and extract.",
-		"suspect_count": 4,
-	},
-	{
-		"roll_min": 81, "roll_max": 100,
-		"id": "ambush_response",
-		"name": "Ambush Response",
-		"description": "Respond to an ambush on a contact.",
-		"win_condition": "Reach the contact (center marker) within 4 rounds and extract together.",
-		"suspect_count": 5,
-	},
-]
-
-
-## ============================================================================
-## BUILDING TYPES (D6 per suspect marker)
-## ============================================================================
-
-const BUILDING_TYPES: Array[Dictionary] = [
-	{"roll": 1, "name": "Hab Block", "cover": "heavy", "floors": 2, "instruction": "HAB BLOCK: 2 floors, heavy cover. May contain civilians."},
-	{"roll": 2, "name": "Shop Front", "cover": "light", "floors": 1, "instruction": "SHOP FRONT: 1 floor, light cover. Glass windows (destructible)."},
-	{"roll": 3, "name": "Warehouse", "cover": "heavy", "floors": 1, "instruction": "WAREHOUSE: 1 floor, heavy cover. Large open interior, crates for cover."},
-	{"roll": 4, "name": "Bar / Cantina", "cover": "moderate", "floors": 1, "instruction": "BAR/CANTINA: 1 floor, moderate cover. Tables and bar for cover."},
-	{"roll": 5, "name": "Office Block", "cover": "moderate", "floors": 3, "instruction": "OFFICE BLOCK: 3 floors, moderate cover. Multiple rooms per floor."},
-	{"roll": 6, "name": "Alleyway", "cover": "light", "floors": 0, "instruction": "ALLEYWAY: Narrow passage, light cover. Dumpsters and debris."},
-]
-
-
-## ============================================================================
-## SUSPECT IDENTIFICATION (D6 when identified)
-## ============================================================================
-
-const SUSPECT_IDENTITY: Array[Dictionary] = [
-	{"roll": 1, "id": "civilian", "name": "Civilian", "hostile": false, "instruction": "IDENTIFIED: Civilian. No threat. Moves away next round."},
-	{"roll": 2, "id": "civilian_panicked", "name": "Panicked Civilian", "hostile": false, "instruction": "IDENTIFIED: Panicked Civilian. Runs D6\" in random direction each round."},
-	{"roll": 3, "id": "gang_basic", "name": "Gang Member", "hostile": true, "instruction": "IDENTIFIED: Gang Member! Combat +0, Toughness 3, Pistol. Hostile!"},
-	{"roll": 4, "id": "gang_armed", "name": "Armed Gang Member", "hostile": true, "instruction": "IDENTIFIED: Armed Gang Member! Combat +1, Toughness 4, Auto Rifle. Hostile!"},
-	{"roll": 5, "id": "gang_leader", "name": "Gang Lieutenant", "hostile": true, "instruction": "IDENTIFIED: Gang Lieutenant! Combat +1, Toughness 4, Shotgun + Blade. Hostile!"},
-	{"roll": 6, "id": "target", "name": "Target / VIP", "hostile": false, "instruction": "IDENTIFIED: TARGET FOUND! This is the objective. Secure immediately."},
-]
-
-
-## ============================================================================
-## POLICE RESPONSE TABLE
+## POLICE RESPONSE TEXT (generator-only instruction data)
 ## ============================================================================
 
 const POLICE_RESPONSE_TEXT: Array[String] = [
@@ -141,31 +60,6 @@ static func get_street_fight_rules() -> Dictionary:
 	var missions: Dictionary = _ref_data.get("special_missions", {})
 	return missions.get("street_fights", {})
 
-## Enrich a const-based roll result with canonical JSON description.
-## section_key supports dot-traversal: "suspect_markers.identification"
-static func _enrich_from_ref(section_key: String, match_field: String,
-		match_value, result: Dictionary) -> Dictionary:
-	if _ref_data.is_empty():
-		return result
-	var sf: Dictionary = _ref_data.get("special_missions", {})
-	sf = sf.get("street_fights", {})
-	# Traverse dotted path
-	for key in section_key.split("."):
-		sf = sf.get(key, {})
-		if sf.is_empty():
-			return result
-	var table: Array = sf.get("table", [])
-	for entry in table:
-		if entry.get(match_field, null) == match_value:
-			if entry.has("result"):
-				result["canonical_text"] = entry["result"]
-			if entry.has("description"):
-				result["canonical_description"] = entry["description"]
-			if entry.has("action"):
-				result["canonical_action"] = entry["action"]
-			break
-	return result
-
 
 ## ============================================================================
 ## DLC GATING
@@ -180,6 +74,7 @@ static func _is_enabled() -> bool:
 
 ## ============================================================================
 ## MISSION GENERATION
+## Delegates to CompendiumStreetFights for canonical data tables.
 ## ============================================================================
 
 static func generate_street_fight() -> Dictionary:
@@ -188,8 +83,10 @@ static func generate_street_fight() -> Dictionary:
 
 	_ensure_ref_loaded()
 	var objective := _roll_objective()
+	# Compendium doesn't specify per-objective suspect count; use crew size per deployment rules
+	var suspect_count: int = 6  # Default; actual count set by deployment rules (= crew size)
 	var buildings: Array[Dictionary] = []
-	for i in range(objective.suspect_count):
+	for i in range(suspect_count):
 		buildings.append(_roll_building())
 
 	return {
@@ -203,30 +100,39 @@ static func generate_street_fight() -> Dictionary:
 
 
 static func _roll_objective() -> Dictionary:
+	var result := CompendiumStreetFights.roll_objective()
+	if not result.is_empty():
+		return result
+	# Fallback
 	var roll := randi_range(1, 100)
-	for obj in STREET_FIGHT_OBJECTIVES:
+	for obj in CompendiumStreetFights.STREET_FIGHT_OBJECTIVES:
 		if roll >= obj.roll_min and roll <= obj.roll_max:
-			return _enrich_from_ref("objectives", "objective",
-				obj.get("name", ""), obj.duplicate())
-	return STREET_FIGHT_OBJECTIVES[0].duplicate()
+			return obj.duplicate()
+	return CompendiumStreetFights.STREET_FIGHT_OBJECTIVES[0].duplicate()
 
 
 static func _roll_building() -> Dictionary:
+	var result := CompendiumStreetFights.roll_building_type()
+	if not result.is_empty():
+		return result
+	# Fallback
 	var roll := randi_range(1, 6)
-	for b in BUILDING_TYPES:
-		if b.roll == roll:
-			return b
-	return BUILDING_TYPES[0]
+	for b in CompendiumStreetFights.BUILDING_TYPES:
+		if roll >= b.roll_min and roll <= b.roll_max:
+			return b.duplicate()
+	return CompendiumStreetFights.BUILDING_TYPES[0].duplicate()
 
 
 static func roll_suspect_identity() -> Dictionary:
-	_ensure_ref_loaded()
+	var result := CompendiumStreetFights.roll_suspect_identification()
+	if not result.is_empty():
+		return result
+	# Fallback
 	var roll := randi_range(1, 6)
-	for s in SUSPECT_IDENTITY:
-		if s.roll == roll:
-			return _enrich_from_ref("suspect_markers.identification", "roll",
-				roll, s.duplicate())
-	return SUSPECT_IDENTITY[0].duplicate()
+	for s in CompendiumStreetFights.SUSPECT_IDENTIFICATION:
+		if roll >= s.roll_min and roll <= s.roll_max:
+			return s.duplicate()
+	return CompendiumStreetFights.SUSPECT_IDENTIFICATION[0].duplicate()
 
 
 ## ============================================================================
@@ -235,35 +141,38 @@ static func roll_suspect_identity() -> Dictionary:
 
 static func generate_setup_instructions(mission: Dictionary) -> String:
 	var obj: Dictionary = mission.get("objective", {})
+	var obj_name: String = obj.get("id", "unknown").replace("_", " ").capitalize()
 	var buildings: Array = mission.get("buildings", [])
 
 	var lines: Array[String] = [
 		"[b]STREET FIGHT SETUP[/b]",
 		"",
-		"[b]Objective:[/b] %s" % obj.get("name", "Unknown"),
-		obj.get("description", ""),
+		"[b]Objective:[/b] %s" % obj_name,
+		obj.get("instruction", ""),
 		"",
-		"[b]Table Setup:[/b]",
-		"  - Dense urban terrain: buildings, alleys, streets",
-		"  - Place %d suspect markers on buildings:" % buildings.size(),
+		"[b]Deployment:[/b]",
+		CompendiumStreetFights.DEPLOYMENT_RULES,
+		"",
+		"[b]Buildings (%d rolled):[/b]" % buildings.size(),
 	]
 
 	for i in range(buildings.size()):
 		var b: Dictionary = buildings[i]
-		lines.append("    Marker %d: %s" % [i + 1, b.get("instruction", "")])
+		lines.append("    %d: %s" % [i + 1, b.get("instruction", b.get("name", "Unknown"))])
 
 	lines.append_array([
 		"",
-		"[b]Crew Deployment:[/b] Within 6\" of your table edge.",
-		"",
-		"[b]Identification:[/b] Move within 4\" with LoS, spend 1 action. Roll D6 for identity.",
+		"[b]Identification:[/b] Move within (4\" + Savvy) with LoS. Roll D6 on Suspect table.",
 		"",
 		"[b]Police Response:[/b] After any weapon is fired, police timer starts.",
 		"  Round after first shot: Roll D6. On 5+, police arrive.",
 		"  Each subsequent round: Threshold decreases by 1 (4+, 3+, 2+, auto).",
-		"",
-		"[b]Win Condition:[/b] %s" % obj.get("win_condition", "Complete the objective."),
 	])
+
+	if obj.get("has_individual", false):
+		lines.append("")
+		lines.append("[b]Individual:[/b]")
+		lines.append(CompendiumStreetFights.INDIVIDUAL_RULES)
 
 	return "\n".join(lines)
 
@@ -274,7 +183,7 @@ static func generate_round_instructions(round_num: int, police_timer: int) -> St
 		"",
 		"[b]Actions:[/b]",
 		"  - Move + Action (standard combat rules)",
-		"  - Identify suspect: Move within 4\" with LoS, 1 action, roll D6",
+		"  - Identify suspect: Move within (4\" + Savvy) with LoS, roll D6",
 		"  - Search building: Enter building, 1 action, roll D6 for contents",
 		"",
 	]

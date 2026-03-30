@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: March 23, 2026 (Phase 48: Full Book Verification Complete)
+**Last Updated**: March 30, 2026 (Documentation Consolidation & Archive)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -12,7 +12,7 @@
 | Metric | Value |
 |--------|-------|
 | Game Mechanics Compliance (incl. Compendium) | **100%** (170/170 mechanics) |
-| Data Values Verified | **~900/925** (97%) against Core Rules + Compendium source text |
+| Data Values Verified | **925/925** (100%) against Core Rules + Compendium source text |
 | Data Fixes Applied (Phase 48) | **190+** fixes, **145+** fabricated values removed |
 | Core Rules Systems | **11/11** verified correct |
 | Campaign Turn Phases | **9/9** fully wired |
@@ -20,6 +20,7 @@
 | Tech Debt + Feature Gaps | **ALL cleared** (12 sprints Feb 9) |
 | Compile Errors (Godot 4.6) | **0** |
 | UI/UX Design System | **7/7** sprints + **8/8** integration audit |
+| UI/UX Visual QA | **28/28** issues found & fixed (Session 16, Mar 27) |
 | Scene Routing & Navigation | **100%** — 20 calls migrated, back buttons, per-turn auto-save |
 | Core/Compendium Wiring Audit | **6/6** sprints — Dashboard fix, phase data, loans, psionics, names |
 | Compendium Mechanics Wiring | **10/10** sprints (C-1 to C-10) — 22/37 flags fully wired, 12 files modified |
@@ -42,7 +43,7 @@
 | MCP Bug Fix Sprint | **Complete** — 15 bugs fixed in 1 session: auto-generate UX redesign, stat/enum display fixes, world phase checkpoint restore |
 | Demo QA Runtime Testing (10 sessions) | **Complete** — Full re-run PASS: CC-1→CC-11, Turn 1 all phases, Turn 2 all phases, SR-1→SR-6. 18/18 bugs confirmed fixed. Zero regressions. Save file integrity verified (credits, crew stats, ship, world, patrons, equipment). |
 | Data Rewrite Sprint (Phase 47) | **Complete** — 7 fabricated JSON files rewritten from Core Rules. Payment formula fixed (was 100x inflated). 17 JSON files wired to consumers. Species exception handling added. |
-| Full Book Verification (Phase 48) | **Complete** — All 12 data domains cross-referenced against core_rulebook.txt + compendium_source.txt. ~900/925 values verified. 190+ fixes: motivation table (13 errors), 3 Strange Characters added, 5 fabricated weapons removed, 4 Compendium tables rewritten, salvage rules rewritten, starting credits/upkeep fixed. |
+| Full Book Verification (Phase 48) | **Complete** — All 12 data domains cross-referenced against core_rulebook.txt + compendium_source.txt. 925/925 values verified. 190+ fixes: motivation table (13 errors), 3 Strange Characters added, 5 fabricated weapons removed, 4 Compendium tables rewritten, salvage rules rewritten, starting credits/upkeep fixed. Session 18 (Mar 30): rival following 5+ FIXED, license 2-roll FIXED, 3 generator schemas unified onto compendium. 0 UNVERIFIED entries remain. |
 
 ---
 

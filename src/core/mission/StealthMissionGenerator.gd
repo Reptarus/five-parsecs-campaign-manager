@@ -8,6 +8,9 @@ extends RefCounted
 ## All output is TEXT INSTRUCTIONS for the tabletop companion model.
 ## Gated behind DLCManager.ContentFlag.STEALTH_MISSIONS.
 ##
+## CANONICAL DATA: CompendiumStealthMissions (src/data/compendium_stealth_missions.gd)
+## This generator adds orchestration and text formatting on top of the compendium data layer.
+##
 ## Key mechanics:
 ##   - Crew Quick Actions: Move base speed +1" (no Dashing)
 ##   - Enemy patrol: Random direction per sentry
@@ -17,87 +20,8 @@ extends RefCounted
 
 
 ## ============================================================================
-## STEALTH OBJECTIVES (D100 table)
-## ============================================================================
-
-const STEALTH_OBJECTIVES: Array[Dictionary] = [
-	{
-		"roll_min": 1, "roll_max": 20,
-		"id": "locate_retrieve",
-		"name": "Locate and Retrieve",
-		"uses_finding": true,
-		"description": "Find a specific item using Finding rules, then extract.",
-		"setup": "Place 3 search markers on the battlefield. Item is at one of them (determined when searched).",
-		"win_condition": "Locate the item (Finding roll) and move it off your table edge.",
-	},
-	{
-		"roll_min": 21, "roll_max": 35,
-		"id": "deliver_item",
-		"name": "Deliver Item",
-		"uses_finding": false,
-		"description": "Deliver a package to a specific location on the battlefield.",
-		"setup": "One crew member carries the item. Place delivery marker at center or far edge.",
-		"win_condition": "Move the carrier within 2\" of the delivery marker without being detected.",
-	},
-	{
-		"roll_min": 36, "roll_max": 50,
-		"id": "locate_contact",
-		"name": "Locate and Contact",
-		"uses_finding": true,
-		"description": "Find a specific individual using Finding rules.",
-		"setup": "Place 3 potential contact markers. Contact is at one (determined when reached).",
-		"win_condition": "Locate the contact (Finding roll) and move both off your table edge.",
-	},
-	{
-		"roll_min": 51, "roll_max": 70,
-		"id": "rescue",
-		"name": "Rescue Individual",
-		"uses_finding": false,
-		"description": "Rescue a captive held by enemies.",
-		"setup": "Place captive marker in enemy deployment zone. Guarded by 2 sentries.",
-		"win_condition": "Reach the captive, free them (1 action), and exit the table together.",
-	},
-	{
-		"roll_min": 71, "roll_max": 85,
-		"id": "transmit_message",
-		"name": "Transmit Message",
-		"uses_finding": false,
-		"description": "Reach a comm relay and transmit a message.",
-		"setup": "Place comm relay marker near center of enemy zone.",
-		"win_condition": "Reach comm relay, spend 1 action to transmit, then extract.",
-	},
-	{
-		"roll_min": 86, "roll_max": 100,
-		"id": "retrieve_package",
-		"name": "Retrieve Package",
-		"uses_finding": false,
-		"description": "Retrieve a package from a fixed location.",
-		"setup": "Place package marker at a specific point (roll for exact location).",
-		"win_condition": "Reach the package, pick it up (1 action), exit the table.",
-	},
-]
-
-
-## ============================================================================
-## INDIVIDUAL TYPES (for contact/rescue objectives, D100)
-## ============================================================================
-
-const INDIVIDUAL_TYPES: Array[Dictionary] = [
-	{"roll_min": 1, "roll_max": 15, "name": "Criminal Kingpin", "profile": "Reactions 1, Speed 4\", Combat +0, Toughness 4, Savvy +1"},
-	{"roll_min": 16, "roll_max": 30, "name": "Corporate Agent", "profile": "Reactions 1, Speed 4\", Combat +0, Toughness 3, Savvy +2"},
-	{"roll_min": 31, "roll_max": 40, "name": "Political Dissident", "profile": "Reactions 1, Speed 4\", Combat +0, Toughness 3, Savvy +1"},
-	{"roll_min": 41, "roll_max": 50, "name": "Scientist", "profile": "Reactions 1, Speed 4\", Combat +0, Toughness 3, Savvy +2"},
-	{"roll_min": 51, "roll_max": 60, "name": "Informant", "profile": "Reactions 2, Speed 5\", Combat +0, Toughness 3, Savvy +1"},
-	{"roll_min": 61, "roll_max": 70, "name": "Military Deserter", "profile": "Reactions 2, Speed 4\", Combat +1, Toughness 4, Savvy +0"},
-	{"roll_min": 71, "roll_max": 80, "name": "Smuggler", "profile": "Reactions 1, Speed 5\", Combat +1, Toughness 3, Savvy +1"},
-	{"roll_min": 81, "roll_max": 90, "name": "Diplomat", "profile": "Reactions 1, Speed 4\", Combat +0, Toughness 3, Savvy +2"},
-	{"roll_min": 91, "roll_max": 95, "name": "Bounty Target", "profile": "Reactions 2, Speed 5\", Combat +1, Toughness 4, Savvy +1"},
-	{"roll_min": 96, "roll_max": 100, "name": "Alien VIP", "profile": "Reactions 2, Speed 4\", Combat +0, Toughness 5, Savvy +2"},
-]
-
-
-## ============================================================================
 ## SENTRY PATROL TABLE (D6 per sentry each stealth round)
+## Generator-only instruction data — not in compendium const tables.
 ## ============================================================================
 
 const SENTRY_PATROL: Array[Dictionary] = [
@@ -112,6 +36,7 @@ const SENTRY_PATROL: Array[Dictionary] = [
 
 ## ============================================================================
 ## SPOTTING CHECK MODIFIERS
+## Generator-only instruction data — not in compendium const tables.
 ## ============================================================================
 
 const SPOTTING_MODIFIERS: Array[Dictionary] = [
@@ -154,28 +79,6 @@ static func get_stealth_rules() -> Dictionary:
 	var missions: Dictionary = _ref_data.get("special_missions", {})
 	return missions.get("stealth", {})
 
-## Enrich a const-based roll result with canonical JSON description.
-## section_key supports dot-traversal within stealth section.
-static func _enrich_from_ref(section_key: String, match_field: String,
-		match_value, result: Dictionary) -> Dictionary:
-	if _ref_data.is_empty():
-		return result
-	var st: Dictionary = _ref_data.get("special_missions", {})
-	st = st.get("stealth", {})
-	for key in section_key.split("."):
-		st = st.get(key, {})
-		if st.is_empty():
-			return result
-	var table: Array = st.get("table", [])
-	for entry in table:
-		if entry.get(match_field, null) == match_value:
-			if entry.has("description"):
-				result["canonical_description"] = entry["description"]
-			if entry.has("objective"):
-				result["canonical_objective"] = entry["objective"]
-			break
-	return result
-
 
 ## ============================================================================
 ## DLC GATING
@@ -190,6 +93,7 @@ static func _is_enabled() -> bool:
 
 ## ============================================================================
 ## MISSION GENERATION
+## Delegates to CompendiumStealthMissions for canonical data tables.
 ## ============================================================================
 
 ## Generate a complete stealth mission. Returns empty dict if DLC disabled.
@@ -201,7 +105,7 @@ static func generate_stealth_mission() -> Dictionary:
 	var objective := _roll_objective()
 	var sentry_count := randi_range(3, 6)
 	var individual := {}
-	if objective.id in ["locate_contact", "rescue"]:
+	if objective.get("has_individual", false):
 		individual = _roll_individual_type()
 
 	return {
@@ -215,20 +119,29 @@ static func generate_stealth_mission() -> Dictionary:
 
 
 static func _roll_objective() -> Dictionary:
+	# Delegate to canonical compendium data
+	var result := CompendiumStealthMissions.roll_objective()
+	if not result.is_empty():
+		return result
+	# Fallback: roll against compendium const directly (DLC might be disabled)
 	var roll := randi_range(1, 100)
-	for obj in STEALTH_OBJECTIVES:
+	for obj in CompendiumStealthMissions.STEALTH_OBJECTIVES:
 		if roll >= obj.roll_min and roll <= obj.roll_max:
-			return _enrich_from_ref("objectives", "objective",
-				obj.get("name", ""), obj.duplicate())
-	return STEALTH_OBJECTIVES[0].duplicate()
+			return obj.duplicate()
+	return CompendiumStealthMissions.STEALTH_OBJECTIVES[0].duplicate()
 
 
 static func _roll_individual_type() -> Dictionary:
+	# Delegate to canonical compendium data
+	var result := CompendiumStealthMissions.roll_individual_type()
+	if not result.is_empty():
+		return result
+	# Fallback
 	var roll := randi_range(1, 100)
-	for ind in INDIVIDUAL_TYPES:
+	for ind in CompendiumStealthMissions.INDIVIDUAL_TYPES:
 		if roll >= ind.roll_min and roll <= ind.roll_max:
-			return ind
-	return INDIVIDUAL_TYPES[0]
+			return ind.duplicate()
+	return CompendiumStealthMissions.INDIVIDUAL_TYPES[0].duplicate()
 
 
 ## ============================================================================
@@ -238,32 +151,37 @@ static func _roll_individual_type() -> Dictionary:
 ## Generate full setup text for the stealth mission.
 static func generate_setup_instructions(mission: Dictionary) -> String:
 	var obj: Dictionary = mission.get("objective", {})
+	var obj_name: String = obj.get("id", "unknown").replace("_", " ").capitalize()
 	var lines: Array[String] = [
 		"[b]STEALTH MISSION SETUP[/b]",
 		"",
-		"[b]Objective:[/b] %s" % obj.get("name", "Unknown"),
-		obj.get("description", ""),
-		"",
-		"[b]Table Setup:[/b]",
-		obj.get("setup", "Standard deployment."),
+		"[b]Objective:[/b] %s" % obj_name,
+		obj.get("instruction", ""),
 		"",
 		"[b]Sentries:[/b] Place %d sentry markers on the battlefield." % mission.get("sentry_count", 4),
 		"  - Space sentries at least 6\" apart",
 		"  - Each sentry faces a random direction (roll D6 for clock position)",
 		"  - Sentries have: Reactions 1, Speed 4\", Combat +0, Toughness 3",
 		"",
-		"[b]Crew Deployment:[/b]",
-		"  - Deploy within 6\" of your table edge",
-		"  - All crew start in Stealth mode",
+		"[b]Deployment:[/b]",
+		CompendiumStealthMissions.DEPLOYMENT_RULES,
 		"",
-		"[b]Win Condition:[/b] %s" % obj.get("win_condition", "Complete the objective and extract."),
+		"[b]Finding the Target:[/b]" if obj.get("requires_finding", false) else "",
+		CompendiumStealthMissions.FINDING_TARGET_RULES if obj.get("requires_finding", false) else "",
 	]
 
 	var individual: Dictionary = mission.get("individual", {})
 	if not individual.is_empty():
 		lines.append("")
 		lines.append("[b]Target Individual:[/b] %s" % individual.get("name", "Unknown"))
-		lines.append("  Profile: %s" % individual.get("profile", "Standard"))
+		var profile: Dictionary = individual.get("profile", CompendiumStealthMissions.INDIVIDUAL_PROFILE)
+		if profile is Dictionary:
+			lines.append("  Profile: R:%d Sp:%d\" C:+%d T:%d Sv:+%d" % [
+				profile.get("reactions", 1), profile.get("speed", 4),
+				profile.get("combat_skill", 0), profile.get("toughness", 4),
+				profile.get("savvy", 1)])
+		else:
+			lines.append("  Profile: %s" % str(profile))
 
 	return "\n".join(lines)
 
@@ -298,7 +216,7 @@ static func generate_stealth_round_instructions(round_num: int, mission: Diction
 		lines.append("    %+d: %s" % [mod.modifier, mod.description])
 
 	var obj: Dictionary = mission.get("objective", {})
-	if obj.get("uses_finding", false):
+	if obj.get("requires_finding", false):
 		lines.append("")
 		lines.append("[b]4. Finding (if within 6\" of search marker with LoS):[/b]")
 		lines.append("  - Roll D6 + Savvy")
@@ -324,10 +242,11 @@ static func generate_detection_result() -> String:
 ## Generate extraction success text.
 static func generate_extraction_text(mission: Dictionary) -> String:
 	var obj: Dictionary = mission.get("objective", {})
+	var obj_name: String = obj.get("id", "unknown").replace("_", " ").capitalize()
 	return "\n".join([
 		"[color=#10B981][b]MISSION COMPLETE![/b][/color]",
 		"",
-		"Objective achieved: %s" % obj.get("name", ""),
+		"Objective achieved: %s" % obj_name,
 		"",
 		"[b]Rewards:[/b]",
 		"  - Standard mission credits",

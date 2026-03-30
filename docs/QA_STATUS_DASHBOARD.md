@@ -1,8 +1,8 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-03-26
+**Last Updated**: 2026-03-30
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete** — KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed (was 100+difficulty*25+50, now 0 — PostBattlePaymentProcessor handles 1D6 per Core Rules p.120), BattleEventsSystem wired to event_tables.json (24 events data-driven). PatronJobGenerator confirmed already wired to JSON. See QA_RULES_ACCURACY_AUDIT.md for details.
+**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete**, **28/28 UI issues fixed (Session 16)**. KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json (24 events data-driven). See QA_RULES_ACCURACY_AUDIT.md for details.
 
 ---
 
@@ -12,9 +12,9 @@
 |--------|-------|
 | Game Mechanics Implemented | 170/170 (100%) |
 | Mechanics Runtime-Verified | 170/170 (100%) |
-| Open Bugs | 0 code bugs + 9 deferred UI/UX (see QA_UI_UX_ISSUES.md) |
+| Open Bugs | 0 code bugs, 0 UI/UX blockers |
 | UI/UX Screens Audited | 21/21 screenshotted + structurally analyzed |
-| UI/UX Issues Found | 30 total: 21 fixed, 9 deferred |
+| UI/UX Issues Found | 30 total: all resolved (Session 15: 21 fixed, Session 16: 28/28 visual fixes) |
 | MCP Integration Scenarios | 3/10 PASS (S1 Campaign Lifecycle, S3 Save/Load, S9 Enum Sync) |
 | Data Values Verified | 925/925 (100%) against Core Rules + Compendium source text |
 | Rules-Verified Mechanics | **170/170 (100%)** — PyPDF2 cross-reference against Core Rules + Compendium PDFs (218+ values, 0 mismatches) |
@@ -94,13 +94,13 @@ None — all UX issues resolved as of 2026-03-20.
 | Loot Tables | ~60 | ~55 | **VERIFIED** — 14 missing ship items added |
 | Economy & Upkeep | ~30 | ~30 | **VERIFIED** — payment REWRITTEN, WorldEconomyManager 1000→0, starting credits FIXED |
 | Campaign Events | ~100 | ~100 | **VERIFIED** — 28 campaign + 30 character events confirmed |
-| Travel & World | ~40 | ~41 | **VERIFIED** — 41 world traits D100 confirmed |
+| Travel & World | ~40 | ~41 | **VERIFIED** — 41 world traits D100, rival following 5+ FIXED (was ≤3), license 2-roll FIXED (was fabricated tiers) |
 | Battle & Enemies | ~60 | ~60 | **VERIFIED** |
 | Char Creation Tables | ~80 | ~80 | **VERIFIED** — Background (25) + Class (23) + Motivation (17 FIXED) |
 | Missions | ~50 | ~50 | **VERIFIED** — patron/danger pay/BHC all confirmed |
 | Ships | ~20 | ~20 | **VERIFIED** |
 | Victory Conditions | ~17 | ~17 | **VERIFIED** — 17 conditions + easy mode restrictions |
-| Compendium/DLC | ~100 | ~100 | **VERIFIED** — 11 GDScript files cross-referenced. 4 tables REWRITTEN. 5 fabricated weapons REMOVED. |
+| Compendium/DLC | ~100 | ~100 | **VERIFIED** — 11 GDScript files cross-referenced. 4 tables REWRITTEN. 5 fabricated weapons REMOVED. 3 generator data duplications FIXED (stealth/street/salvage unified onto compendium schema). |
 | **TOTAL** | **~925+** | **~925+** | **DATA VERIFIED + GENERATOR WIRING COMPLETE** |
 
 **Data Verification Complete (Mar 23, 2026)**: All JSON/GDScript data values cross-referenced against source text. 190+ fixes applied, 145+ fabricated values removed.
@@ -121,7 +121,7 @@ None — all UX issues resolved as of 2026-03-20.
 |------|------|--------|------------|
 | ~~Generator Wiring Gap~~ | **RESOLVED** | All 16/16 generators fixed (Mar 23 sprint). Data + wiring both verified. | `QA_RULES_ACCURACY_AUDIT.md` "Generator Wiring Gap" |
 | ~~Data Accuracy — AI Hallucination~~ | **RESOLVED** | 925/925 data values verified against source text. Fabricated values removed. | Data audit + generator wiring both complete |
-| ~~Duplicate Data Sources~~ | **RESOLVED** | Generators now use `_enrich_from_ref()` pattern — JSON overlays const fallbacks. | Fixed as part of generator wiring sprint |
+| ~~Duplicate Data Sources~~ | **RESOLVED** | Generators now delegate to `Compendium*` canonical data classes — no duplicate const tables. Stealth/Street/Salvage generators unified Mar 30. | Fixed: generator wiring sprint + schema unification |
 | Save/Load dual-sync | **HIGH** | BUG-031 was systemic — all setters must sync to 3 targets | Dual-sync regression test in integration scenarios |
 | Three-enum sync | **HIGH** | GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned manually | Automated enum comparison test needed |
 | ~~Character type shadowing~~ | **RESOLVED** | 7 files fixed Mar 21 — removed `const Character := preload(Base/Character.gd)` shadowing class_name | Fixed: consts removed, global class_name used |
@@ -136,6 +136,7 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Phase | Date | Scope | Bugs Found | Bugs Fixed |
 |-------|------|-------|------------|------------|
+| Session 18: Rules Audit + Schema Unification | Mar 30, 2026 | Full QA_RULES_ACCURACY_AUDIT.md pass: 308→0 UNVERIFIED entries. PDF-verified all remaining items. 2 rules bugs FIXED (rival follow ≤3→≥5 per p.72, license cost single-roll→two-roll per p.72). 3 data duplication CONFLICTs FIXED (Stealth/Street/Salvage generators unified onto Compendium schema). StreetFightPanel hostile check updated for new schema. EquipmentPanel credits warning threshold fixed (500→1). Headless compile verified: 0 errors. | 2 rules bugs + 3 conflicts | 5 (all fixed) |
 | Runtime QA Wave 5 (Cross-Mode + DLC) | Mar 23, 2026 | Bug Hunt data model isolation MCP-verified: main_characters/grunts (flat), NO ship/patrons/rivals, campaign_type="bug_hunt". Serialization roundtrip: squad/meta keys correct, no ship data. DLC 2-layer gating: 33 flags across 3 packs (TT=7, FH=17, FG=9), ownership+toggle verified, unowned-pack gate blocks correctly, serialize/deserialize roundtrip PASS. Difficulty: EASY(+1 XP), HARDCORE(+1 enemy, -2 seize), INSANITY(story disabled, -3 seize, unique individual forced) all correct. Enum sync: GlobalEnums(31)=GameEnums(31), FPGameEnums(37, +6 expected). Cross-load gap: `_detect_campaign_type()` added to GameState (Mar 23 fix). | 0 bugs | 0 (cross-load fixed) |
 | Runtime QA Wave 4 (Battle System) | Mar 23, 2026 | BattleResolver MCP-tested: 4v5 combat resolved (5 rounds, crew victory, held field, all 10 result keys). Injury D100: full coverage verified (zero gaps/overlaps), GRUESOME_FATE(1-5)/FATAL(6-15) confirmed. Bot injury table verified. Post-battle 14-step pipeline: all 10 subsystems loaded+instantiated as RefCounted, Steps 4/7/8/9 exercised end-to-end (payment 8cr, loot 1 item, injury processed, 3 XP each). Oracle tiers: 3-tier cumulative architecture (5→12→14 components), purely UI layer. BUG-040 found+fixed. 2 weapon values flagged for book check. | 1 bug | 1 (BUG-040 InjuryProcessor turn_number) |
 | Runtime QA Sprint (Waves 1-3) | Mar 23, 2026 | User-facing campaign creation + turn + save/load. BUG-036 psionic fully fixed (BaseCharacterResource property added). Upkeep formula verified (4 crew + 1 ship = 5 credits). Save roundtrip: psionic, equipment key, dual-sync all PASS. EliteEnemies.json truncation fixed. credit_rewards.json deleted (fabricated dead code). | 2 bugs | 2 (BUG-036 root cause, EliteEnemies.json truncation) |
@@ -180,21 +181,16 @@ All 5 previous priority items are now verified:
 
 | Document | Location | Purpose |
 |----------|----------|---------|
-| **Rules Accuracy Audit** | `docs/QA_RULES_ACCURACY_AUDIT.md` | Master rulebook verification checklist (925 values, 131 files). Data + generator wiring COMPLETE |
-| **Core Rules Test Plan** | `docs/QA_CORE_RULES_TEST_PLAN.md` | Per-mechanic test status (170 mechanics) |
-| **Integration Scenarios** | `docs/QA_INTEGRATION_SCENARIOS.md` | 10 end-to-end workflow test scripts (incl. Scenario 10: Rules Accuracy Spot Check) |
-| **UX/UI Test Plan** | `docs/QA_UX_UI_TEST_PLAN.md` | Systematic UI coverage (theme, responsive, animations, §8: rules-faithful display + flow) |
-| UI/UX Session Walkthroughs | `docs/testing/UI_UX_TEST_PLAN.md` | 8-session walkthrough plan (~200 tests) |
+| **Rules Accuracy Audit** | `docs/QA_RULES_ACCURACY_AUDIT.md` | Master rulebook verification (925 values). Data + generator wiring COMPLETE |
+| **Integration Scenarios** | `docs/testing/QA_INTEGRATION_SCENARIOS.md` | 10 end-to-end workflow test scripts |
+| **UX/UI Test Plan** | `docs/testing/QA_UX_UI_TEST_PLAN.md` | Systematic UI coverage (theme, responsive, animations) |
 | Demo QA Script | `docs/testing/DEMO_QA_SCRIPT.md` | Demo recording gate script |
-| UIUX Test Results | `docs/UIUX_TEST_RESULTS.md` | Historical MCP results (106 bugs) |
-| Battle UI Bugs | `docs/BATTLE_UI_QA_BUGS.md` | 18 battle-specific bugs |
-| QA Sprint Results | `docs/QA_SPRINT_PHASE{29-32}_RESULTS.md` | Sprint-by-sprint findings |
+| UIUX Test Results | `docs/testing/UIUX_TEST_RESULTS.md` | Historical MCP results (71 bugs) |
+| Battle UI Bugs | `docs/testing/BATTLE_UI_QA_BUGS.md` | Battle-specific bug tracker |
 | Game Mechanics Map | `docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md` | 170 mechanics implementation status |
 | Test Matrices | `.claude/skills/qa-specialist/references/test-matrices.md` | 1,355 combinatorial test cases |
 | Edge Cases | `.claude/skills/qa-specialist/references/edge-cases.md` | 120+ boundary conditions |
 | MCP Testing Guide | `.claude/skills/qa-specialist/references/mcp-testing-guide.md` | Automation recipes |
 | gdUnit4 Patterns | `.claude/skills/qa-specialist/references/gdunit4-patterns.md` | Unit test templates |
-| Data Consistency | `.claude/skills/qa-specialist/references/data-consistency.md` | Save/load schema validation |
-| Signal Contracts | `.claude/skills/qa-specialist/references/cross-system-verification.md` | Cross-system signal verification |
-| Bug Tracker | `.claude/skills/qa-specialist/references/bug-notes.md` | Canonical bug list (15 issues) |
+| Bug Tracker | `.claude/skills/qa-specialist/references/bug-notes.md` | Canonical bug list |
 | Playtesting Strategy | `docs/testing/EFFICIENT_PLAYTESTING_STRATEGY.md` | Testing methodology |

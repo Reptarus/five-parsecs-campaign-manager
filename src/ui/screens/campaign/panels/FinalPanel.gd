@@ -1034,7 +1034,13 @@ func _on_create_campaign_pressed() -> void:
 		var service = FinalizationScript.new()
 		var state_manager = coordinator.state_manager if coordinator and "state_manager" in coordinator else null
 		
-		var result = await service.finalize_campaign(campaign_data, state_manager)
+		# Run coordinator finalization first to aggregate equipment distribution
+		var finalization_data := campaign_data
+		if coordinator and coordinator.has_method("finalize_campaign"):
+			var coord_result: Dictionary = coordinator.finalize_campaign()
+			if coord_result.get("success", false):
+				finalization_data = coord_result.get("campaign_data", campaign_data)
+		var result = await service.finalize_campaign(finalization_data, state_manager)
 
 		if result.success:
 			# SPRINT 26.23: Extract the finalized Campaign resource from result

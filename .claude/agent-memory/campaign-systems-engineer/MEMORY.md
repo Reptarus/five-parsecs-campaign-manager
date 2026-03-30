@@ -27,6 +27,16 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 18: TravelPhase Rules Fixes (Mar 30, 2026)
+
+Two Core Rules p.72 bugs fixed in `_process_world_arrival()`:
+- **Rival following**: Was `follow_roll <= 3` (50%). Book says "On a 5+, they opt to follow." Now `follow_roll >= 5` (33%).
+- **License costs**: Was single roll with fabricated tiers (3-4=10cr, 5-6=20cr). Book says D6 5-6 = license required, then roll further D6 for cost. Now two separate rolls.
+
+Also: 3 Compendium mission generators (Stealth/Street/Salvage) unified onto `Compendium*` canonical data classes. Generators no longer have duplicate const tables.
+
+---
+
 ## Phase 31 QA Bug Fix Sprint (Mar 16, 2026)
 
 10 bugs + 3 UX issues fixed across 14 files, 0 compile errors. Key campaign-domain fixes below.

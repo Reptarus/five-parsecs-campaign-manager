@@ -1592,7 +1592,7 @@ func validate() -> Array[String]:
 func set_data(data: Dictionary) -> void:
 	## Set panel data - generic interface method
 	if data.has("crew"):
-		var crew: Array[CharacterClass] = data.get("crew", [])
+		var crew: Array = data.get("crew", [])
 		set_crew_data(crew)
 	elif data.has("crew_size"):
 		crew_size = data.crew_size
@@ -1757,8 +1757,8 @@ func _validate_equipment_data() -> Array[String]:
 	# Credits validation 
 	if starting_credits < 0:
 		errors.append("Starting credits cannot be negative")
-	elif starting_credits < 500:
-		# Warn if credits are suspiciously low
+	elif starting_credits < 1:
+		# Core Rules p.28: minimum 1 credit per crew member, so 0 is suspicious
 		push_warning("EquipmentPanel: Starting credits unusually low: %d" % starting_credits)
 	
 	# FIVE PARSECS RULE VALIDATION: Ensure crew has basic coverage

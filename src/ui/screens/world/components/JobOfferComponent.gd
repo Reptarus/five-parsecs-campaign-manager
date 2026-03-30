@@ -390,9 +390,9 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		push_warning("JobOfferComponent: No job type for roll %d, using fallback" % job_roll)
 		return _create_job_offer(patron_data, location, job_index)
 	
-	# Extract job type data
-	var job_type = job_result.get("job_type", "DELIVERY")
-	var job_description = job_result.get("description", "Unknown job")
+	# Extract job type data — JSON uses "objective" key, not "job_type"
+	var job_type = job_result.get("job_type", job_result.get("objective", "DELIVERY"))
+	var job_description = job_result.get("description", job_result.get("objective", "Unknown job"))
 	var base_pay = job_result.get("base_pay", 4)
 	var danger_level = job_result.get("danger_level", 1)
 	var requirements = job_result.get("typical_requirements", [])

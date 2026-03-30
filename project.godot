@@ -8,6 +8,10 @@
 
 config_version=5
 
+[accessibility]
+
+general/accessibility_driver="accesskit"
+
 [animation]
 
 compatibility/default_parent_skeleton_in_mesh_instance_3d=true
@@ -21,6 +25,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://assets/iconnew.png"
 
 [autoload]
+
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
@@ -87,16 +92,12 @@ enabled=PackedStringArray("res://addons/TweenFX/plugin.cfg", "res://addons/curve
 
 [gui]
 
-theme/custom="res://src/ui/themes/sci_fi_theme.tres"
 common/default_scroll_deadzone=16
+theme/custom="res://src/ui/themes/sci_fi_theme.tres"
 
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
-
-[accessibility]
-
-general/accessibility_driver="accesskit"
 
 [logging]
 

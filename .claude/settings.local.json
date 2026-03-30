@@ -25,6 +25,7 @@
       "Bash(mv:*)",
       "Bash(cmd:*)",
       "Bash(python3:*)",
+      "Bash(py:*)",
       "Bash(powershell:*)",
       "Bash(powershell.exe:*)",
       "Bash(head:*)",

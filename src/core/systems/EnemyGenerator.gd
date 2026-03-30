@@ -274,7 +274,7 @@ func _create_enemy(category: String, difficulty: int) -> Resource:
 		return _create_enemy_from_template(enemy_template, difficulty)
 
 	# Fallback to legacy system
-	var enemy_types: Array[String] = enemy_categories.get(category, ["Thug"])
+	var enemy_types: Array = enemy_categories.get(category, ["Thug"])
 	var enemy_type: String = enemy_types.pick_random()
 
 	var base_stats = enemy_stats_base.get(enemy_type, {

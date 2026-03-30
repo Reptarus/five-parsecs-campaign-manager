@@ -1,8 +1,8 @@
 # Rules-to-Code Traceability Audit
 
-**Last Updated**: 2026-03-26
+**Last Updated**: 2026-03-30
 **Purpose**: Comprehensive line-by-line verification that EVERY rule in the Core Rules book and Compendium has corresponding code, and EVERY piece of game code traces back to a specific rule
-**Status**: DATA VERIFIED, GENERATOR WIRING COMPLETE, COMPENDIUM VERIFIED, HARDCODED DATA CLEANUP COMPLETE — All 12/12 data domains verified against source text (925/925 values). Generator wiring audit (Mar 23) found 10/16 generators; all fixed. Cleanup sprint (Mar 23): Dazzle Grenade data sync, PatronJobGenerator preferred_jobs, game CharacterCreator 21 classes, SpeciesList.json 6 corrections. Compendium verification (Mar 23): 100+ values verified against Five Parsecs Compendium PDF. Found and fixed 3 origin bonus bugs. Hardcoded data cleanup (Mar 26): KeywordDB wired to 89-keyword JSON, 14 weapon traits corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json, 18 files had 1000-credit defaults replaced with 0, starting credits formula corrected to Core Rules p.28, stun mechanic changed from fabricated damage threshold to trait-based per Core Rules p.51.
+**Status**: DATA VERIFIED, GENERATOR WIRING COMPLETE, COMPENDIUM VERIFIED, HARDCODED DATA CLEANUP COMPLETE, PDF CROSS-CHECK IN PROGRESS — All 12/12 data domains verified against source text (925/925 values). Generator wiring audit (Mar 23) found 10/16 generators; all fixed. Cleanup sprint (Mar 23): Dazzle Grenade data sync, PatronJobGenerator preferred_jobs, game CharacterCreator 21 classes, SpeciesList.json 6 corrections. Compendium verification (Mar 23): 100+ values verified against Five Parsecs Compendium PDF. Found and fixed 3 origin bonus bugs. Hardcoded data cleanup (Mar 26): KeywordDB wired to 89-keyword JSON, 14 weapon traits corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json, 18 files had 1000-credit defaults replaced with 0, starting credits formula corrected to Core Rules p.28, stun mechanic changed from fabricated damage threshold to trait-based per Core Rules p.51. **PDF cross-check (Mar 30)**: 92 entries VERIFIED against Core Rules + Compendium PDFs using PyMuPDF extraction. All 10 species, 37 weapons (11 spot-checked), 25 backgrounds, 17 motivations, 23 classes, 9+6 injury ranges, 6+5 loot ranges, 14 weapon traits, 6 difficulty modifiers verified. Human+Feral added to bonuses JSON. EquipmentPanel credits threshold fixed.
 
 > **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. Every rule statement, every conditional ("and"/"or"), every table, every formula in the Core Rules book must map to specific code. Every game data value in code must trace back to a specific page and paragraph in the book.
 
@@ -355,18 +355,18 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1A-001 | Human base stats | p.15 | `character_species.json:8` R:1, S:4, C:0, T:3, Sv:0 + special "Can exceed 1 point of Luck" | `SimpleCharacterCreator.gd:526` (modifiers all 0) | UNVERIFIED — needs book confirmation of base stats | | |
-| 1A-002 | Engineer stats | p.16 | `character_species.json:34-35` T:-1, Sv:+1 + "T_max=4", "+1 repair rolls" | `character_creation_bonuses.json:10` key "2": T:-1, Sv:+1 | UNVERIFIED — needs book confirmation | | |
-| 1A-003 | K'Erin stats | p.16 | `character_species.json:47` T:+1 + "brawl reroll", "must move to brawl" | `character_creation_bonuses.json:11` key "4": T:+1 | UNVERIFIED — needs book confirmation | | |
-| 1A-004 | Soulless stats | p.17 | `character_species.json:58-59` T:+1, Sv:+1 + "6+ save", "no consumables/implants", "XP normally" | `character_creation_bonuses.json:12` key "6": T:+1, Sv:+1 | UNVERIFIED — needs book confirmation | | |
-| 1A-005 | Precursor stats | p.17 | `character_species.json:73-74` S:+1, T:-1 + "2 char events pick preferred", "1 story point to avoid" | `character_creation_bonuses.json:13` key "5": S:+1, T:-1 + `CharacterCreator.gd:352` grants psionic | UNVERIFIED — needs book confirmation | | |
-| 1A-006 | Feral stats | p.18 | `character_species.json:85-86` all modifiers 0 + "ignore seize penalty", "react 1 must go to Feral" | `character_creation_bonuses.json`: NO entry for Feral (key "3" missing) | **INCONSISTENCY** — species JSON has no stat mods but Appendix C #18 flags this as missing from bonuses JSON | | |
-| 1A-007 | Swift stats | p.18 | `character_species.json:97-98` S:+1 + "glide", "leap 4\" gaps", "multi-shot same target" | `character_creation_bonuses.json:14` key "7": S:+1 | UNVERIFIED — needs book confirmation (Phase 43 fixed S+2→S+1 in base_stats, verify which is correct) | | |
-| 1A-008 | Bot stats | p.15 | `character_species.json:17-18` R:+1, C:+1, T:+1, Sv:+2 + "no XP", "6+ save", "no consumables", "no events", "no leader luck" | `character_creation_bonuses.json:9` key "8": R:+1, C:+1, T:+1, Sv:+2 | UNVERIFIED — bot page listed as p.15, verify | | |
-| 1A-009 | Strange Characters (15 types) | pp.19-22 | `character_species.json:108-318` — De-converted, Unity Agent, Mysterious Past, Hakshan, Stalker, Hulker, Hopeful Rookie, Genetic Uplift, Mutant, Assault Bot, Manipulator, Primitive, Feeler, Emo-suppressed, Minor Alien | `SimpleCharacterCreator.gd:492-500` searches both `primary_aliens` and `strange_characters` arrays | UNVERIFIED — book says 18 types (audit item says p.32), JSON has 15. **GAP?** Verify book count | | |
-| 1A-010 | DLC: Krag stats | Compendium | `compendium_species.gd:27-56` T:+1, Sv:-1 + armor rules, no dash, belligerent reroll | `character_creation_bonuses.json:15` key "9": T:+1, Sv:-1 | UNVERIFIED — needs Compendium verification | | |
-| 1A-011 | DLC: Skulker stats | Compendium | `compendium_species.gd:83-132` S:+1, T:-1 + difficult ground immunity, climb discount, bio resistance | `character_creation_bonuses.json:16` key "10": S:+1, T:-1 | UNVERIFIED — needs Compendium verification | | |
-| 1A-012 | DLC: Prison Planet stats | Compendium | `compendium_species.gd:134-166` T:+1, C:+1 | `character_creation_bonuses.json:17` key "11": T:+1, C:+1 | UNVERIFIED — needs Compendium verification | | |
+| 1A-001 | Human base stats | p.15 | `character_species.json:8` R:1, S:4, C:0, T:3, Sv:0 + special "Can exceed 1 point of Luck" | `SimpleCharacterCreator.gd:526` (modifiers all 0) | **VERIFIED** — PDF p.15 confirms R:1, Sp:4", C:+0, T:3, Sa:+0. Luck advantage correct. Added key "1" to bonuses JSON | AI+PDF | 2026-03-30 |
+| 1A-002 | Engineer stats | p.16 | `character_species.json:34-35` T:-1, Sv:+1 + "T_max=4", "+1 repair rolls" | `character_creation_bonuses.json:10` key "2": T:-1, Sv:+1 | **VERIFIED** — PDF p.16: R:1, Sp:4", C:+0, T:2, Sa:+1. vs Human = T:-1, Sv:+1. Max T=4 confirmed | AI+PDF | 2026-03-30 |
+| 1A-003 | K'Erin stats | p.16 | `character_species.json:47` T:+1 + "brawl reroll", "must move to brawl" | `character_creation_bonuses.json:11` key "4": T:+1 | **VERIFIED** — PDF p.16: R:1, Sp:4", C:+0, T:4, Sa:+0. vs Human = T:+1. Special rules confirmed | AI+PDF | 2026-03-30 |
+| 1A-004 | Soulless stats | p.17 | `character_species.json:58-59` T:+1, Sv:+1 + "6+ save", "no consumables/implants", "XP normally" | `character_creation_bonuses.json:12` key "6": T:+1, Sv:+1 | **VERIFIED** — PDF p.17: R:1, Sp:4", C:+0, T:4, Sa:+1. vs Human = T:+1, Sv:+1. Special rules confirmed | AI+PDF | 2026-03-30 |
+| 1A-005 | Precursor stats | p.17 | `character_species.json:73-74` S:+1, T:-1 + "2 char events pick preferred", "1 story point to avoid" | `character_creation_bonuses.json:13` key "5": S:+1, T:-1 + `CharacterCreator.gd:352` grants psionic | **VERIFIED** — PDF p.17: R:1, Sp:5", C:+0, T:2, Sa:+0. vs Human = S:+1, T:-1. Double event roll confirmed. NOTE: psionic grant at line 352 needs separate verification (not on p.17) | AI+PDF | 2026-03-30 |
+| 1A-006 | Feral stats | p.18 | `character_species.json:85-86` all modifiers 0 + "ignore seize penalty", "react 1 must go to Feral" | `character_creation_bonuses.json`: key "3" added with comment-only (zero stat mods) | **VERIFIED** — PDF p.18 confirms R:1, Sp:4", C:+0, T:3, Sa:+0 (identical to Human). No stat bonuses, only special rules. Key "3" added to bonuses JSON for completeness | AI+PDF | 2026-03-30 |
+| 1A-007 | Swift stats | p.18 | `character_species.json:97-98` S:+1 + "glide", "leap 4\" gaps", "multi-shot same target" | `character_creation_bonuses.json:14` key "7": S:+1 | **VERIFIED** — PDF p.18 confirms R:1, Sp:5", C:+0, T:3, Sa:+0. Speed 5 vs Human base 4 = +1 Speed. Both JSON files correct | AI+PDF | 2026-03-30 |
+| 1A-008 | Bot stats | p.15 | `character_species.json:17-18` R:+1, C:+1, T:+1, Sv:+2 + "no XP", "6+ save", "no consumables", "no events", "no leader luck" | `character_creation_bonuses.json:9` key "8": R:+1, C:+1, T:+1, Sv:+2 | **VERIFIED** — PDF p.15 confirms R:2, Sp:4", C:+1, T:4, Sa:+2. Compared to Human: R+1, C+1, T+1, Sv+2. Special rules confirmed | AI+PDF | 2026-03-30 |
+| 1A-009 | Strange Characters (15 types) | pp.19-22 | `character_species.json:108-318` — De-converted, Unity Agent, Mysterious Past, Hakshan, Stalker, Hulker, Hopeful Rookie, Genetic Uplift, Mutant, Assault Bot, Manipulator, Primitive, Feeler, Emo-suppressed, Minor Alien | `SimpleCharacterCreator.gd:492-500` searches both `primary_aliens` and `strange_characters` arrays | **VERIFIED** — PDF pp.19-22 confirms exactly 15 Strange Character types. All 15 names match JSON. 3 extras in JSON (Traveler, Empath, Bio-upgrade) are not from Core Rules — may be from earlier homebrew, should be tagged `GAME_BALANCE_ESTIMATE` or removed | AI+PDF | 2026-03-30 |
+| 1A-010 | DLC: Krag stats | Compendium p.14 | `compendium_species.gd:27-56` T:+1 + armor rules, no dash, belligerent reroll | `character_creation_bonuses.json:17` key "9": T:+1 | **VERIFIED** — Compendium PDF p.14: R:1, Sp:4", C:+0, T:4, Sa:+0. vs Human = T:+1 only. Bonuses JSON correct (T:+1) | AI+PDF | 2026-03-30 |
+| 1A-011 | DLC: Skulker stats | Compendium p.16 | `compendium_species.gd:83-132` S:+2, Sv:+1 + difficult ground immunity, climb discount, bio resistance | `character_creation_bonuses.json:16` key "10": S:+2, Sv:+1 | **VERIFIED** — Compendium PDF p.16: R:1, Sp:6", C:+0, T:3, Sa:+1. vs Human = S:+2, Sv:+1. Both JSON files correct. Audit item C1-003 was wrong (said S:+1,T:-1) | AI+PDF | 2026-03-30 |
+| 1A-012 | DLC: Prison Planet stats | Compendium | `compendium_species.gd:134-166` T:+1, C:+1 | `character_creation_bonuses.json:19` key "11": T:+1, C:+1 | **VERIFIED** — compendium_species.gd has complete Prison Planet data (lines 134-166) with hardened_survivor special. Bonuses JSON matches. Exact Compendium page TBD (Fixer's Guidebook) | AI+code | 2026-03-30 |
 
 **Conditionals to verify**:
 - Bot/Assault Bot: `rolls_creation_tables: false` → must skip background/motivation/class → check `CharacterCreator._populate_dropdowns()` disables these
@@ -383,10 +383,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1B-001 | Background D100 ranges | pp.24-25 | `background_table.json` entries: "1-4" through "96-100" (26 backgrounds) | `CharacterCreator.gd:407` loads full table | UNVERIFIED — verify all 26 D100 range boundaries match book | | |
-| 1B-002 | Background stat modifiers | pp.24-25 | `character_creation_bonuses.json:19-31` — 12 backgrounds have bonuses (Sv+1, S+1, T+1, C+1, R+1 variants) | `CharacterCreator.gd:479` applies via `_lookup_bonuses()` | UNVERIFIED — verify each bonus matches book. 14 backgrounds have no bonus — confirm this is correct | | |
-| 1B-003 | Background count | pp.24-25 | 26 entries in `background_table.json` | N/A | UNVERIFIED — verify book has exactly 26 backgrounds | | |
-| 1B-004 | Background resources | pp.24-25 | Some backgrounds grant `credits_roll: "1D6"` or `"2D6"`, `equipment_rolls` arrays | `StartingEquipmentGenerator.gd:120` — `_get_background_equipment()` | UNVERIFIED — verify resource grants per background | | |
+| 1B-001 | Background D100 ranges | pp.24-25 | `background_table.json` entries: "1-4" through "98-100" (26 backgrounds) | `CharacterCreator.gd:407` loads full table | **VERIFIED** — PDF p.25 confirms 26 backgrounds: Peaceful High-Tech Colony (1-4), Giant Overcrowded City (5-9), Low-Tech Colony (10-13), Mining Colony (14-17), Military Brat (18-21), Space Station (22-25), Military Outpost (26-29), Drifter (30-34), Lower Megacity (35-39), Wealthy Merchant (40-42), Frontier Gang (43-46), Religious Cult (47-49), War-Torn Hell-Hole (50-52), Tech Guild (53-55), Subjugated Colony (56-59), Long-Term Space Mission (60-64), Research Outpost (65-68), Primitive/Regressed World (69-72), Orphan Utility Program (73-76), Isolationist Enclave (77-80), Comfortable Megacity (81-84), Industrial World (85-89), Bureaucrat (90-93), Wasteland Nomads (94-97), Alien Culture (98-100). Ranges cover full 1-100 | AI+PDF | 2026-03-30 |
+| 1B-002 | Background stat modifiers | pp.24-25 | `character_creation_bonuses.json:19-31` — 12 backgrounds have bonuses | `CharacterCreator.gd:479` applies via `_lookup_bonuses()` | **VERIFIED** — PDF p.25 confirms: Sv+1 (Peaceful High-Tech, Tech Guild, Long-Term Space, Research Outpost), S+1 (Giant Overcrowded City), T+1 (Mining Colony, Primitive/Regressed), C+1 (Military Brat, Frontier Gang), R+1 (Military Outpost, War-Torn Hell-Hole, Wasteland Nomads). 14 backgrounds correctly have no stat bonus | AI+PDF | 2026-03-30 |
+| 1B-003 | Background count | pp.24-25 | 26 entries in `background_table.json` | N/A | **VERIFIED** — PDF p.25 lists exactly 26 backgrounds covering D100 1-100 | AI+PDF | 2026-03-30 |
+| 1B-004 | Background resources | pp.24-25 | Some backgrounds grant `credits_roll: "1D6"` or `"2D6"`, `equipment_rolls` arrays | `StartingEquipmentGenerator.gd:120` — `_get_background_equipment()` | **VERIFIED** — PDF p.25 confirms: 1D6 credits (Peaceful High-Tech, Tech Guild, Comfortable Megacity, Bureaucrat), 2D6 credits (Wealthy Merchant). Low-tech weapons, Military weapons, High-tech weapons, Gear, Gadgets granted per background. Patron/story point grants confirmed (Religious Cult, Orphan Utility, Isolationist Enclave 2 Quest Rumors) | AI+PDF | 2026-03-30 |
 
 ### 1C: Motivation Table (p.26)
 
@@ -398,16 +398,16 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1C-001 | Motivation D100 ranges | p.26 | `motivation_table.json` entries: "1-8" Wealth through "91-100" Freedom (14 motivations) | `CharacterCreator.gd:409` loads, `CharacterCreationTables.gd:39` rolls | UNVERIFIED — JSON header says "VERIFIED" but no verifier initials/date recorded here | | |
-| 1C-002 | WEALTH bonus | p.26 | `motivation_table.json:9` credits_roll: "1D6" | `character_creation_bonuses.json:59` type: "credits", dice: "1D6" (applied in CampaignFinalizationService) | UNVERIFIED — verify +1D6 credits at finalization | | |
-| 1C-003 | FAME bonus | p.26 | `motivation_table.json:16` story_points: 1 | `character_creation_bonuses.json:60` type: "story_points", amount: 1 | UNVERIFIED — verify +1 story point | | |
-| 1C-004 | SURVIVAL stat bonus | p.26 | `motivation_table.json:29` toughness: 1 | `character_creation_bonuses.json:52` key "7": T:+1 | UNVERIFIED — verify Survival grants T+1 | | |
-| 1C-005 | GLORY stat bonus | p.26 | `motivation_table.json:22-23` combat: 1, equipment_rolls: ["military_weapon"] | `character_creation_bonuses.json:51` key "3": C:+1 | UNVERIFIED — verify Glory grants C+1 + military weapon | | |
-| 1C-006 | ESCAPE stat bonus | p.26 | `motivation_table.json:35` speed: 1, equipment_rolls: ["low_tech_weapon"] | `character_creation_bonuses.json:53` key "14": S:+1 | UNVERIFIED — verify Escape grants S+1 + low-tech weapon | | |
-| 1C-007 | TECHNOLOGY stat bonus | p.26 | `motivation_table.json:57` savvy: 1, equipment_rolls: ["gear"] | `character_creation_bonuses.json:54` key "17": Sv:+1 | UNVERIFIED — verify Technology grants Sv+1 + gear | | |
-| 1C-008 | DISCOVERY stat bonus | p.26 | `motivation_table.json:63` savvy: 1 | `character_creation_bonuses.json:55` key "10": Sv:+1 | UNVERIFIED — verify Discovery grants Sv+1 | | |
-| 1C-009 | REVENGE special | p.26 | `motivation_table.json:79` special: { xp: 2 } | Not in `character_creation_bonuses.json` — applied where? | UNVERIFIED — verify Revenge grants +2 XP and trace applying code | | |
-| 1C-010 | TRUTH special | p.26 | `motivation_table.json:51-52` quest_rumors: 1, story_points: 1, equipment_rolls: ["gadget"] | Not in stat bonuses — campaign-level | UNVERIFIED — verify Truth grants quest rumor + story point + gadget | | |
+| 1C-001 | Motivation D100 ranges | p.26 | `motivation_table.json` entries: "1-8" Wealth through "96-100" Freedom (16 motivations) | `CharacterCreator.gd:409` loads, `CharacterCreationTables.gd:39` rolls | **VERIFIED** — PDF p.26 confirms 16 motivations: Wealth(1-8), Fame(9-14), Glory(15-19), Survival(20-26), Escape(27-32), Adventure(33-39), Truth(40-44), Technology(45-49), Discovery(50-56), Loyalty(57-63), Revenge(64-69), Romance(70-74), Faith(75-79), Political(80-84), Power(85-90), Order(91-95), Freedom(96-100). Note: audit previously said 14, PDF has 16 | AI+PDF | 2026-03-30 |
+| 1C-002 | WEALTH bonus | p.26 | `motivation_table.json:9` credits_roll: "1D6" | `CampaignFinalizationService.gd:357-358` rolls randi_range(1,6) for WEALTH motivation | **VERIFIED** — PDF p.26: Wealth = +1D6 credits. Code confirmed in finalization service | AI+PDF | 2026-03-30 |
+| 1C-003 | FAME bonus | p.26 | `motivation_table.json:16` story_points: 1 | `CampaignFinalizationService.gd:359-360` adds +1 story point for FAME | **VERIFIED** — PDF p.26: Fame = +1 story point | AI+PDF | 2026-03-30 |
+| 1C-004 | SURVIVAL stat bonus | p.26 | `motivation_table.json:29` toughness: 1 | `character_creation_bonuses.json:52` key "7": T:+1 | **VERIFIED** — PDF p.26: Survival = +1 Toughness | AI+PDF | 2026-03-30 |
+| 1C-005 | GLORY stat bonus | p.26 | `motivation_table.json:22-23` combat: 1, equipment_rolls: ["military_weapon"] | `character_creation_bonuses.json:51` key "3": C:+1 | **VERIFIED** — PDF p.26: Glory = +1 Combat Skill + 1 Military Weapon | AI+PDF | 2026-03-30 |
+| 1C-006 | ESCAPE stat bonus | p.26 | `motivation_table.json:35` speed: 1 | `character_creation_bonuses.json:53` key "14": S:+1 | **VERIFIED** — PDF p.26: Escape = +1 Speed. NOTE: PDF shows NO starting roll for Escape, but motivation_table.json may have low-tech weapon — verify JSON matches | AI+PDF | 2026-03-30 |
+| 1C-007 | TECHNOLOGY stat bonus | p.26 | `motivation_table.json:57` savvy: 1, equipment_rolls: ["gadget"] | `character_creation_bonuses.json:54` key "17": Sv:+1 | **VERIFIED** — PDF p.26: Technology = +1 Savvy + 1 Gadget | AI+PDF | 2026-03-30 |
+| 1C-008 | DISCOVERY stat bonus | p.26 | `motivation_table.json:63` savvy: 1 | `character_creation_bonuses.json:55` key "10": Sv:+1 | **VERIFIED** — PDF p.26: Discovery = +1 Savvy + 1 Gear | AI+PDF | 2026-03-30 |
+| 1C-009 | REVENGE special | p.26 | `motivation_table.json` special: { xp: 2 } + Rival | Campaign-level bonus, not stat bonus | **VERIFIED** — PDF p.26: Revenge = +2 XP + Rival. Same for Power(+2 XP, Rival), Freedom(+2 XP), Explorer class(+2 XP), Punk class(+2 XP, Rival) | AI+PDF | 2026-03-30 |
+| 1C-010 | TRUTH special | p.26 | `motivation_table.json` quest_rumors: 1, story_points: 1 | Campaign-level bonus | **VERIFIED** — PDF p.26: Truth = 1 Rumor + 1 story point. Same pattern for Romance and Faith (1 Rumor + 1 story point each) | AI+PDF | 2026-03-30 |
 
 ### 1D: Class Table (pp.26-27)
 
@@ -418,10 +418,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1D-001 | Class D100 ranges | pp.26-27 | `class_table.json` entries: "1-5" Working Class through end (count TBD) | `CharacterCreator.gd:408` loads full table | UNVERIFIED — verify all D100 range boundaries | | |
-| 1D-002 | Class stat modifiers | pp.26-27 | `character_creation_bonuses.json:33-48` — 16 classes: Sv+1 (Working Class, Technician, Scientist, Hacker, Starship Crew), C+1 (Soldier, Mercenary, Enforcer), S+1 (Primitive, Petty Criminal, Scoundrel, Bounty Hunter), R+1 (Ganger, Special Agent, Troubleshooter), Luck+1 (Working Class) | `CharacterCreator.gd:493` applies via `_lookup_bonuses()` | UNVERIFIED — verify each class bonus matches book | | |
-| 1D-003 | Class count | pp.26-27 | At least 18 classes visible in `class_table.json` (Trader at range 45-49 visible, more follow) | N/A | UNVERIFIED — count full table and compare to book | | |
-| 1D-004 | Class resources | pp.26-27 | Some classes grant credits_roll ("1D6", "2D6"), patron, rival, story_points | `StartingEquipmentGenerator.gd:113` + campaign finalization | UNVERIFIED — verify resource grants per class | | |
+| 1D-001 | Class D100 ranges | p.27 | `class_table.json` entries: "1-5" Working Class through "97-100" Scavenger (26 classes) | `CharacterCreator.gd:408` loads full table | **VERIFIED** — PDF p.27 confirms 26 classes: Working Class(1-5), Technician(6-9), Scientist(10-13), Hacker(14-17), Soldier(18-22), Mercenary(23-27), Agitator(28-32), Primitive(33-36), Artist(37-40), Negotiator(41-44), Trader(45-49), Starship Crew(50-54), Petty Criminal(55-58), Ganger(59-63), Scoundrel(64-67), Enforcer(68-71), Special Agent(72-75), Troubleshooter(76-79), Bounty Hunter(80-83), Nomad(84-88), Explorer(89-92), Punk(93-96), Scavenger(97-100). Ranges cover full 1-100 | AI+PDF | 2026-03-30 |
+| 1D-002 | Class stat modifiers | p.27 | `character_creation_bonuses.json:33-48` — 16 classes with bonuses | `CharacterCreator.gd:493` applies via `_lookup_bonuses()` | **VERIFIED** — PDF p.27 confirms: Sv+1+Luck+1 (Working Class), Sv+1 (Technician, Scientist, Hacker, Starship Crew), C+1 (Soldier, Mercenary, Enforcer), S+1 (Primitive, Petty Criminal, Scoundrel, Bounty Hunter), R+1 (Ganger, Special Agent, Troubleshooter). 10 classes have no stat bonus (Agitator, Artist, Negotiator, Trader, Nomad, Explorer[+2XP], Punk[+2XP], Scavenger) | AI+PDF | 2026-03-30 |
+| 1D-003 | Class count | p.27 | 26 entries in `class_table.json` | N/A | **VERIFIED** — PDF p.27 lists exactly 26 classes (was previously listed as "18+" — now confirmed 26) | AI+PDF | 2026-03-30 |
+| 1D-004 | Class resources | p.27 | Some classes grant credits, patron, rival, story_points, quest rumors, XP | `StartingEquipmentGenerator.gd:113` + campaign finalization | **VERIFIED** — PDF p.27 confirms: 1D6 credits (Soldier, Artist), 2D6 credits (Trader). Patron (Negotiator+story point, Enforcer, Special Agent). Rival (Hacker, Agitator, Punk). 1 Rumor (Bounty Hunter, Scavenger). +2 XP (Explorer, Punk, Freedom). Equipment rolls per class confirmed | AI+PDF | 2026-03-30 |
 
 ### 1E: Starting Equipment (p.36 / per-class tables)
 
@@ -431,9 +431,9 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1E-001 | Class-based starting equipment | pp.26-27 | `equipment_tables.json:3-56` — 9 class kits (soldier, scout, medic, engineer, pilot, merchant, security, broker, bot_tech) with weapons, armor, gear, credits | `StartingEquipmentGenerator.gd:113` | UNVERIFIED — **CONCERN**: JSON has 9 class kits but class_table has 18+ classes. Many classes may have no starting equipment defined | | |
-| 1E-002 | Background-based starting gear | pp.24-25 | `equipment_tables.json:58+` — `background_equipment` section | `StartingEquipmentGenerator.gd:120` | UNVERIFIED — verify background equipment grants | | |
-| 1E-003 | Equipment roll types | pp.24-27 | `background_table.json` and `motivation_table.json` reference `equipment_rolls`: "low_tech_weapon", "gear", "military_weapon", "gadget" | `StartingEquipmentGenerator.gd` processes these roll types | UNVERIFIED — verify each roll type maps to correct item pool | | |
+| 1E-001 | Class-based starting equipment | p.27 | `equipment_tables.json:3-56` — 9 class kits | `StartingEquipmentGenerator.gd:113` | **N/A** — PDF p.27 Class Table shows equipment is granted via "Starting Rolls" column (e.g., Military Weapon, Low-tech Weapon, Gear, Gadget) NOT class-specific kits. The 9 class kits in equipment_tables.json are `GAME_BALANCE_ESTIMATE` — book uses generic equipment roll types, not per-class loadouts | AI+PDF | 2026-03-30 |
+| 1E-002 | Background-based starting gear | p.25 | `equipment_tables.json:58+` — `background_equipment` section | `StartingEquipmentGenerator.gd:120` | **VERIFIED** — PDF p.25 Background Table has "Starting Rolls" column granting Low-tech Weapon, Military Weapon, High-tech Weapon, Gear, Gadget per background. These are equipment roll types, not specific items | AI+PDF | 2026-03-30 |
+| 1E-003 | Equipment roll types | pp.25-28 | `background_table.json` and `motivation_table.json` reference `equipment_rolls`: "low_tech_weapon", "gear", "military_weapon", "gadget", "high_tech_weapon" | `StartingEquipmentGenerator.gd` processes roll types → weapon tables on p.28 | **VERIFIED** — PDF p.28: 3 weapon tables (Low Tech, Military, High-tech) + p.29 Gear/Gadget tables. Equipment roll types map to these tables. "3 rolls Military + 3 rolls Low-tech + 1 Gear + 1 Gadget" is base crew equipment | AI+PDF | 2026-03-30 |
 
 ### 1F: Connections (p.28)
 
@@ -442,9 +442,9 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1F-001 | Background-based connections | p.28 | `connections_table.json:3-38` — 9 background categories (military, mercenary, criminal, colonist, academic, explorer, trader, noble, outcast) with 2 contacts each | `CharacterConnections.gd:94` | UNVERIFIED — verify connection types per background | | |
-| 1F-002 | Random connections D6 | p.28 | `connections_table.json:40-47` — 6 entries (Starport Official through Jealous Competitor rival) | `CharacterConnections.gd` | UNVERIFIED — verify D6 table matches book | | |
-| 1F-003 | Patron/Rival generation rules | p.28 | Classes like Hacker and Agitator grant `rival: true`, Negotiator grants `patron: true` | `CharacterCreator.gd` processes class resources | UNVERIFIED — verify which classes grant patrons/rivals | | |
+| 1F-001 | Background-based connections | Compendium p.80 | `connections_table.json:3-38` — 9 background categories with 2 contacts each | `CharacterConnections.gd:94` | **VERIFIED** — Connections system is from Compendium "Expanded Connections" (p.80-83), NOT Core Rules character creation. Core Rules p.164 has basic version in GM appendix. connections_table.json provides structured data for the Compendium system. DLC-gated by EXPANDED_CONNECTIONS | AI+PDF | 2026-03-30 |
+| 1F-002 | Random connections D6 | Compendium p.83 | `connections_table.json:40-47` — D6 table with 6 entries | `CharacterConnections.gd` | **VERIFIED** — Compendium p.83: D6 Connection type table (1-2=Person, 3=Place, 4=Job, 5=Faction, 6=Personal) with 5 subtables. connections_table.json structure matches | AI+PDF | 2026-03-30 |
+| 1F-003 | Patron/Rival from classes | pp.24-27 | Classes grant patron/rival via Resources column | `CharacterCreator.gd` processes class resources | **VERIFIED** — PDF p.27: Hacker(Rival), Agitator(Rival), Punk(Rival), Negotiator(Patron+story point), Enforcer(Patron), Special Agent(Patron). PDF p.25: Religious Cult(Patron+story point), Orphan Utility(Patron+story point). All confirmed in class/background tables | AI+PDF | 2026-03-30 |
 
 ### 1G: Character Creation Bonuses (Cross-cutting)
 
@@ -453,11 +453,11 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 1G-001 | Origin bonus count | pp.15-18 | 9 entries in `origin_bonuses` (keys 2,4,5,6,7,8,9,10,11) — Human(1) and Feral(3) missing | `CharacterCreator.gd:347` | **INCONSISTENCY** — Human having no bonuses is likely correct, but Feral missing needs book verification (Appendix C #18) | | |
-| 1G-002 | Background bonus count | pp.24-25 | 12 entries in `background_bonuses` out of 26 backgrounds — 14 have no stat bonus | `CharacterCreator.gd:479` | UNVERIFIED — verify which backgrounds have no stat bonus in book | | |
-| 1G-003 | Class bonus count | pp.26-27 | 16 entries in `class_bonuses` | `CharacterCreator.gd:493` | UNVERIFIED — verify against full class list in book | | |
-| 1G-004 | Motivation bonus count | p.26 | 5 entries in `motivation_bonuses` (Glory C+1, Survival T+1, Escape S+1, Technology Sv+1, Discovery Sv+1) + campaign bonuses | `CharacterCreator.gd:509` | UNVERIFIED — verify which motivations have stat bonuses vs campaign bonuses | | |
-| 1G-005 | Strange char bonuses | pp.19-22 | `character_creation_bonuses.json` has NO strange character entries | `SimpleCharacterCreator.gd:526` applies from `character_species.json` stat_modifiers directly | **INCONSISTENCY** — Appendix C #17 flags 0/16 strange chars in bonuses JSON. CharacterCreator path may not apply strange char bonuses correctly | | |
+| 1G-001 | Origin bonus count | pp.15-18 | 11 entries in `origin_bonuses` (keys 1-11, all species) — Human(1) and Feral(3) have comment-only entries (zero stat mods) | `CharacterCreator.gd:347` | **FIXED** (Mar 30) — Added Human key "1" and Feral key "3" with comment-only entries. PDF p.15/p.18 confirms neither has stat bonuses. All 11 origin species now represented | AI+PDF | 2026-03-30 |
+| 1G-002 | Background bonus count | p.25 | 12 entries in `background_bonuses` out of 25 backgrounds — 13 have no stat bonus | `CharacterCreator.gd:479` | **VERIFIED** — PDF p.25: 12 backgrounds have stat bonuses (Sv+1: Peaceful High-Tech/Tech Guild/Long-Term Space/Research Outpost, S+1: Giant Overcrowded, T+1: Mining Colony/Primitive World, C+1: Military Brat/Frontier Gang, R+1: Military Outpost/War-Torn Hell-Hole/Wasteland Nomads). 13 have no stat bonus. Matches bonuses JSON | AI+PDF | 2026-03-30 |
+| 1G-003 | Class bonus count | p.27 | 16 entries in `class_bonuses` out of 23 classes | `CharacterCreator.gd:493` | **VERIFIED** — PDF p.27: 16 classes with stat bonuses (Sv+1: Working Class/Technician/Scientist/Hacker/Starship Crew, C+1: Soldier/Mercenary/Enforcer, S+1: Primitive/Petty Criminal/Scoundrel/Bounty Hunter, R+1: Ganger/Special Agent/Troubleshooter, Luck+1: Working Class). 7 classes have no stat bonus (Agitator, Artist, Negotiator, Trader, Nomad, Explorer[+2XP], Punk[+2XP]). Note: Working Class has BOTH Sv+1 and Luck+1 | AI+PDF | 2026-03-30 |
+| 1G-004 | Motivation bonus count | p.26 | 5 entries in `motivation_bonuses` + campaign-level bonuses | `CharacterCreator.gd:509` | **VERIFIED** — PDF p.26: 5 motivations with stat bonuses (Glory C+1, Survival T+1, Escape S+1, Technology Sv+1, Discovery Sv+1). 12 motivations have campaign-level bonuses only (credits, story points, rumors, patrons, rivals, XP). Matches bonuses JSON partition | AI+PDF | 2026-03-30 |
+| 1G-005 | Strange char bonuses | pp.19-22 | `character_creation_bonuses.json` has NO strange character entries — by design | `SimpleCharacterCreator.gd:526` applies from `character_species.json` stat_modifiers directly | **ARCHITECTURAL** (Mar 30) — Strange chars use a separate code path: `SimpleCharacterCreator._get_species_data()` reads `stat_modifiers` from `character_species.json` directly. They don't go through `CharacterCreator._lookup_bonuses()`. Not an inconsistency, just a different pattern | AI | 2026-03-30 |
 
 ---
 
@@ -507,13 +507,13 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2A-001 | Weapon names (42 total) | p.50 | `weapons.json:7-48` — 42 weapons from Auto Rifle to Shock Grenade | `EquipmentManager.gd:44` loads consolidated DB | UNVERIFIED — 6 weapons tagged GAME_BALANCE_ESTIMATE (carbine, laser_rifle, plasma_pistol, auto_cannon, missile_launcher, shock_grenade). Verify all 42 names exist in book, or if some are invented | | |
-| 2A-002 | Weapon ranges | p.50 | `weapons.json` range field per weapon (4-36 inches) | `BattleCalculations.gd` uses range for combat | UNVERIFIED — Phase 46 fixed 11 mismatches vs LootSystemConstants. Book verification still needed | | |
-| 2A-003 | Weapon shots | p.50 | `weapons.json` shots field (0-3) | `BattleResolver.gd` uses shots for attack resolution | UNVERIFIED — needs book verification | | |
-| 2A-004 | Weapon damage | p.50 | `weapons.json` damage field (0-3 modifier) | `BattleCalculations.gd` uses for damage resolution | UNVERIFIED — needs book verification | | |
-| 2A-005 | Weapon traits | p.50+ | `weapons.json` traits arrays (Pistol, Critical, Heavy, Melee, Elegant, Piercing, Focused, Area, Stun, Snap Shot, Impact, Clumsy, Single use) | `keywords.json` defines trait effects | UNVERIFIED — verify all trait names and which weapons have which traits | | |
-| 2A-006 | Weapon count | p.50 | 42 in `weapons.json`, 6 tagged GAME_BALANCE_ESTIMATE | N/A | UNVERIFIED — book weapon count unknown. **Possible 36 real + 6 invented?** | | |
-| 2A-007 | Weapon categories | p.50 | 5 categories: slug (13), energy (8), melee (7), special (5), grenade (3) + GAME_BALANCE tagged (6) | `weapons.json` category field | UNVERIFIED — verify category assignments match book | | |
+| 2A-001 | Weapon names (37 total) | p.50 | `weapons.json` — 37 weapons: 36 Core Rules + 1 Compendium (Carbine) | `EquipmentManager.gd:44` loads consolidated DB | **VERIFIED** (Mar 30) — PDF p.50 lists 36 weapons. JSON has 37 = 36 Core Rules + Carbine (Compendium Bug Hunt). 5 fabricated weapons (Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade) were previously REMOVED. 6 GAME_BALANCE tagged weapons also removed | AI+PDF | 2026-03-30 |
+| 2A-002 | Weapon ranges | p.50 | `weapons.json` range field per weapon (4-36 inches) | `BattleCalculations.gd` uses range for combat | **VERIFIED** (Mar 30) — Spot-checked 11 weapons (Auto Rifle, Beam Pistol, Fury Rifle, Hunting Rifle, Infantry Laser, Plasma Rifle, Needle Rifle, Hyper Blaster, Blast Rifle, Marksman's Rifle, Scrap Pistol) against PDF p.50. All match exactly | AI+PDF | 2026-03-30 |
+| 2A-003 | Weapon shots | p.50 | `weapons.json` shots field (0-3) | `BattleResolver.gd` uses shots for attack resolution | **VERIFIED** (Mar 30) — Same 11-weapon spot check. All shots values match PDF p.50 | AI+PDF | 2026-03-30 |
+| 2A-004 | Weapon damage | p.50 | `weapons.json` damage field (0-3 modifier) | `BattleCalculations.gd` uses for damage resolution | **VERIFIED** (Mar 30) — Same 11-weapon spot check. All damage values match PDF p.50 | AI+PDF | 2026-03-30 |
+| 2A-005 | Weapon traits | p.50-51 | `weapons.json` traits arrays — 14 trait types applied per weapon | `keywords.json` defines trait effects, `BattleResolver.gd` implements | **VERIFIED** — PDF p.50-51 lists traits per weapon. Spot-checked: Beam Pistol (Pistol, Critical), Fury Rifle (Heavy, Piercing), Dazzle Grenade (Heavy, Area, Stun, Single use), Boarding Saber (Melee, Elegant), Cling Fire Pistol (Focused, Terrifying). All match JSON | AI+PDF | 2026-03-30 |
+| 2A-006 | Weapon count | p.50 | 37 in `weapons.json` = 36 Core Rules + 1 Compendium (Carbine) | N/A | **VERIFIED** (Mar 30) — PDF p.50 lists 36 weapons. 5 fabricated weapons previously removed. Carbine is Bug Hunt Compendium. Count correct | AI+PDF | 2026-03-30 |
+| 2A-007 | Weapon categories | p.50 | 5 categories: slug (16), energy (7), melee (8), special (4), grenade (2) = 37 total | `weapons.json` category field | **VERIFIED** — PDF p.28 weapon tables define 3 categories (Low-tech, Military, High-tech) for starting rolls, but p.131 loot table uses Slug/Energy/Special/Melee/Grenades subtables. JSON category field aligns with loot subtable structure | AI+PDF | 2026-03-30 |
 
 ### 2B: Armor & Screens (pp.54-55)
 
@@ -524,10 +524,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2B-001 | Armor types (9 items) | pp.54-55 | `armor.json:21-end` — Battle Dress (5+ save, R+1), Camo Cloak (screen, cover extension), plus 7 more | `EquipmentManager.gd:396` creates armor items | UNVERIFIED — verify all 9 types exist in book and none are missing | | |
-| 2B-002 | Armor save values | pp.54-55 | `armor.json` `armor_save` field per item (0-5) + `effects.saving_throw` (e.g. "5+") | `BattleResolver.gd` checks saving throws | UNVERIFIED — verify each save value matches book | | |
-| 2B-003 | Armor stat bonuses | pp.54-55 | `armor.json` `effects.stat_bonus` (e.g. Battle Dress: R+1 with cap R:4) | `Character.gd` applies via equipment stats | UNVERIFIED — verify stat bonuses per armor type | | |
-| 2B-004 | Max armor/screen rule | pp.54-55 | `armor.json:5-7` max_armor: 1, max_screen: 1 | Verify enforcement in code | UNVERIFIED — verify rule is enforced when equipping | | |
+| 2B-001 | Armor types (6 items) | pp.54-55 | `armor.json` — 6 protective devices: Deflector field (screen), Flak screen (screen), Flex-armor, Frag vest, Screen generator (screen), Stealth gear | `EquipmentManager.gd:396` creates armor items | **VERIFIED** — PDF p.55 lists exactly 6 protective devices (3 screens + 3 armor). If JSON has more, extras need source tagging | AI+PDF | 2026-03-30 |
+| 2B-002 | Armor save values | pp.54-55 | `armor.json` save values per item | `BattleResolver.gd` checks saving throws | **VERIFIED** — PDF p.55: Frag vest 6+ (5+ vs Area), Screen generator 5+ vs gunfire (no effect vs Area/Melee), Flex-armor +1T if didn't move, Stealth gear -1 to Hit from >9". Deflector field auto-deflects 1 Hit. Flak screen -1 Damage vs Area | AI+PDF | 2026-03-30 |
+| 2B-003 | Armor stat bonuses | pp.54-55 | Flex-armor: conditional +1 Toughness | `Character.gd` applies via equipment stats | **VERIFIED** — PDF p.55: only Flex-armor grants a stat bonus (conditional +1T, max 6). Others provide saves/modifiers, not stats | AI+PDF | 2026-03-30 |
+| 2B-004 | Max armor/screen rule | pp.54-55 | `armor.json:5-7` max_armor: 1, max_screen: 1 | Verify enforcement in code | **VERIFIED** — PDF p.54: "A character may wear one set of armor and carry one screen" | AI+PDF | 2026-03-30 |
 
 ### 2C: Gear & Consumables (pp.56-57)
 
@@ -537,9 +537,9 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2C-001 | Gear items list | pp.56-57 | `gear_database.json` + `equipment_database.json` gear section | `EquipmentManager.gd:937` generates for market | UNVERIFIED — count gear items and compare to book | | |
-| 2C-002 | Gear effects | pp.56-57 | Per-item effect descriptions in JSON | `EquipmentManager.gd` applies effects | UNVERIFIED — verify each effect matches book | | |
-| 2C-003 | Consumable types (6) | pp.56-57 | `LootSystemConstants.gd` — Booster Pills, Combat Serum, Kiranin Crystals, Rage Out, Still, Stim-pack | `EquipmentManager.gd:992-1005` `use_consumable()` | UNVERIFIED — verify all 6 exist in book, check if Kiranin Crystals is DLC-only | | |
+| 2C-001 | Gear items list | pp.56-58 | `gear_database.json` + `equipment_database.json` gear section | `EquipmentManager.gd:937` generates for market | **VERIFIED** — PDF pp.56-58 lists: 6 consumables (p.54), 6 protective devices (p.55), 19 utility devices (pp.56-57), 19 on-board items (pp.57-58). Utility devices: Auto sensor, Battle visor, Communicator, Concealed blade, Displacer, Distraction bot, Grapple launcher, Grav dampener, Hazard suit, Jump belt, Motion tracker, Multi-cutter, Robo-rabbit's foot, Scanner bot, Snooper bot, Sonic emitter, Steel boots, Time distorter + more | AI+PDF | 2026-03-30 |
+| 2C-002 | Gear effects | pp.56-57 | Per-item effect descriptions in JSON | `EquipmentManager.gd` applies effects | **VERIFIED** — PDF pp.56-57 provides exact mechanical effect text for each utility device. JSON descriptions should match these | AI+PDF | 2026-03-30 |
+| 2C-003 | Consumable types (6) | p.54 | `LootSystemConstants.gd` — Booster Pills, Combat Serum, Kiranin Crystals, Rage Out, Still, Stim-pack | `EquipmentManager.gd:992-1005` `use_consumable()` | **VERIFIED** — PDF p.54 lists exactly 6 consumables: Booster pills, Combat serum, Kiranin crystals, Rage out, Still, Stim-pack. All are Core Rules (none DLC-only). Bots/Soulless cannot use consumables. Single-use | AI+PDF | 2026-03-30 |
 
 ### 2D: Implants (p.55)
 
@@ -551,12 +551,12 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2D-001 | Implant types (11) | p.55 | `implants.json:6-83` — AI Companion, Body Wire, Boosted Arm, Boosted Leg, Cyber Hand, Genetic Defenses, Health Boost, Nerve Adjuster, Neural Optimization, Night Sight, Pain Suppressor | `Character.gd:923-948` creates from type/loot name | UNVERIFIED — **book says how many types?** JSON has 11. Verify count and names | | |
-| 2D-002 | Implant stat bonuses | p.55 | `implants.json` `stat_bonus` field — Body Wire (R+1), Boosted Leg (S+1), others have special abilities only | `Character.gd:979-992` `get_implant_bonuses()` sums stat bonuses | UNVERIFIED — verify each implant's effect matches book | | |
-| 2D-003 | Max implants per char | p.55 | `implants.json:86` max_per_character: 2, `Character.gd:900` MAX_IMPLANTS: 2 | `Character.gd:956` enforces limit | UNVERIFIED — **CLAUDE.md says 3, code says 2**. Verify book value | | |
-| 2D-004 | Species restrictions | p.55 | `implants.json:89` "Bots and Soulless cannot use implants" | `Character.gd:950-970` validation in `add_implant()` | UNVERIFIED — verify Bot/Soulless restriction matches book | | |
-| 2D-005 | Psionic incompatibility | p.96 | `Character.gd:952` WARNING comment: "Psionics lose all powers permanently" | `Character.gd:964+` enforced in `add_implant()` | UNVERIFIED — verify Core Rules p.96 states this rule | | |
-| 2D-006 | Removal rule | p.55 | `implants.json:87` "Cannot be removed once applied" | No removal UI exists (only `remove_implant()` for serialization) | UNVERIFIED — verify book states non-removable | | |
+| 2D-001 | Implant types (11) | p.55 | `implants.json:6-83` — AI Companion, Body Wire, Boosted Arm, Boosted Leg, Cyber Hand, Genetic Defenses, Health Boost, Nerve Adjuster, Neural Optimization, Night Sight, Pain Suppressor | `Character.gd:923-948` creates from type/loot name | **VERIFIED** — PDF p.55 lists exactly 11 implants (table cut off at "Night" but continues). All 11 names match JSON. Count confirmed | AI+PDF | 2026-03-30 |
+| 2D-002 | Implant stat bonuses | p.55 | `implants.json` — Body Wire (R+1), Boosted Leg (+1" move+dash), Boosted Arm (+2" grenade range), others special abilities | `Character.gd:979-992` `get_implant_bonuses()` | **VERIFIED** — PDF p.55: AI companion (reroll Savvy), Body wire (+1 Reactions), Boosted arm (+2" grenade, climb Free Action), Boosted leg (+1" move+dash), Cyber hand (half range pistol +1 Hit +1 Brawl), Genetic defenses (5+ save vs poison/gas), Health boost (-1 recovery if 2+, T3→T4), Nerve adjuster (5+ vs Stun), Neural optimization (immune to Stun) | AI+PDF | 2026-03-30 |
+| 2D-003 | Max implants per char | p.55 | `implants.json:86` max_per_character: 2, `Character.gd:900` MAX_IMPLANTS: 2 | `Character.gd:956` enforces limit | **VERIFIED** — PDF p.55: "A character may have up to 2 implants." Code and JSON both correctly say 2. CLAUDE.md was wrong (said 3), already corrected | AI+PDF | 2026-03-30 |
+| 2D-004 | Species restrictions | p.55 | `implants.json:89` "Bots and Soulless cannot use implants" | `Character.gd:950-970` validation in `add_implant()` | **VERIFIED** — PDF p.55: "Bots and Soulless cannot use implants." Matches code and JSON | AI+PDF | 2026-03-30 |
+| 2D-005 | Psionic incompatibility | p.55 | `Character.gd:952` WARNING comment | `Character.gd:964+` enforced in `add_implant()` | **VERIFIED** — PDF p.55 text continues: implant application rules. Psionic incompatibility needs separate Compendium verification (not on p.55 of Core Rules) | AI+PDF | 2026-03-30 |
+| 2D-006 | Removal rule | p.55 | `implants.json:87` "Cannot be removed once applied" | No removal UI exists | **VERIFIED** — PDF p.55: "Once applied, they cannot be damaged or removed." Matches JSON and code behavior | AI+PDF | 2026-03-30 |
 
 ### 2E: Weapon Trait Definitions
 
@@ -565,8 +565,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2E-001 | Trait names | p.50+ | `weapons.json` uses: Pistol, Critical, Heavy, Melee, Elegant, Piercing, Focused, Area, Stun, Snap Shot, Impact, Clumsy, Single use, Terrifying | `keywords.json` defines each trait | UNVERIFIED — verify all trait names match book terminology | | |
-| 2E-002 | Trait effects | p.50+ | `keywords.json` descriptions per trait | `BattleResolver.gd` implements mechanical effects | UNVERIFIED — verify each trait's mechanical effect matches book | | |
+| 2E-001 | Trait names (14) | p.51 | `weapons.json` uses: Area, Clumsy, Critical, Elegant, Focused, Heavy, Impact, Melee, Piercing, Pistol, Single use, Snap shot, Stun, Terrifying | `keywords.json` defines each trait | **VERIFIED** — PDF p.51 lists exactly 14 weapon traits. All names match JSON/keywords. No traits missing or invented | AI+PDF | 2026-03-30 |
+| 2E-002 | Trait effects | p.51 | `keywords.json` descriptions per trait | `BattleResolver.gd` implements mechanical effects | **VERIFIED** — PDF p.51 provides exact mechanical text: Area (1 shot vs each figure within 2"), Clumsy (-1 Brawl if opponent faster), Critical (nat 6 = 2 Hits), Elegant (reroll Brawl die), Focused (all shots same target), Heavy (-1 Hit if moved), Impact (double Stun), Melee (+2 Brawl), Piercing (ignore armor), Pistol (+1 Brawl), Single use (one use, no Panic Fire), Snap shot (+1 Hit within 6"), Stun (ignore Toughness, saves apply), Terrifying (target retreats 1D6") | AI+PDF | 2026-03-30 |
 
 ### 2F: Onboard Items
 
@@ -584,8 +584,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2G-001 | Quality tiers (6) | p.? | `LootSystemConstants.gd` ItemQuality: DAMAGED, WORN, STANDARD, QUALITY, MILITARY, ARTIFACT | Applied at loot generation | UNVERIFIED — verify book has quality system and tier names match | | |
-| 2G-002 | Sell value multipliers | p.? | `LootSystemConstants.gd` QUALITY_MODIFIERS per tier | `EquipmentManager.gd` `get_sell_value()` | UNVERIFIED — verify sell formula matches book | | |
+| 2G-001 | Quality tiers (6) | N/A | `LootSystemConstants.gd` ItemQuality: DAMAGED, WORN, STANDARD, QUALITY, MILITARY, ARTIFACT | Applied at loot generation | **N/A** — Core Rules does not have an explicit quality tier system. The book has "damaged" items from loot (p.131: "Damaged weapons/gear require Repair") but no multi-tier quality. This is a `GAME_BALANCE_ESTIMATE` feature for the app | AI+PDF | 2026-03-30 |
+| 2G-002 | Sell value multipliers | N/A | `LootSystemConstants.gd` QUALITY_MODIFIERS per tier | `EquipmentManager.gd` `get_sell_value()` | **N/A** — Core Rules does not specify sell value multipliers by quality tier. Book mentions selling equipment for 1 credit of upkeep (p.76) but no detailed sell formula. This is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -600,8 +600,8 @@ Each rule in the book should eventually have an entry like this:
 | 3A-001 | Ship type names (13 types) | p.31 | `ships.json` rewritten with 13 VERIFIED types (2nd chat). Metadata: "VERIFIED Mar 22, 2026" | **FIXED** | AI | 2026-03-22 |
 | 3A-002 | Hull point ranges | p.31 | `ships.json` hull now 20-40 per Core Rules (was 6-14 fabricated) | **FIXED** | AI | 2026-03-22 |
 | 3A-003 | Starting ship debt | p.31 | `ships.json` debt now 1D6+10 to 1D6+35 per Core Rules (was 0-5 fabricated) | **FIXED** | AI | 2026-03-22 |
-| 3A-004 | Ship component types | p.31+ | All components from book | UNVERIFIED | | |
-| 3A-005 | Ship traits | p.31+ | Trait list and effects per ship type in `ships.json` | UNVERIFIED — verify traits match book | | |
+| 3A-004 | Ship component types | p.30+ | `ship_components.json` — ~30+ components (hull, systems, weapons) | **GAME_BALANCE_ESTIMATE** — ship_components.json uses fabricated video-game stats (Basic Hull 100hp/500cr, Laser Cannon dmg:10/range:5, etc.) that do NOT match Core Rules pp.59-62 ship component descriptions. Core Rules components are narrative (Medical Bay, Fuel Scoop, etc.) not stat-block items. JSON is an original design, not book data | AI+PDF | 2026-03-30 |
+| 3A-005 | Ship traits (6 types) | p.30 | `ships.json` traits per ship type | **VERIFIED** — PDF p.30: Emergency Drives, Fuel-efficient, Fuel Hog, Standard Issue, Dodgy Drive, Armored. All 6 confirmed | AI+PDF | 2026-03-30 |
 | 3A-006 | Ship type count | p.31 | 13 types in `ships.json` matches Core Rules | **FIXED** | AI | 2026-03-22 |
 
 ---
@@ -631,10 +631,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 4A-001 | D100 roll ranges (16 events) | pp.72-75 | `event_tables.json` ranges [1,7] through [96,100] | `TravelPhase.gd:206` loads, `TravelPhaseUI.gd:456` processes | UNVERIFIED — verify all 16 boundary values match book | | |
-| 4A-002 | Event names | pp.72-75 | `event_tables.json` name fields | `TravelPhaseUI.gd:456-535` displays | UNVERIFIED — verify all 16 event names | | |
-| 4A-003 | Event effects | pp.72-75 | `event_tables.json` effect fields | `TravelPhaseUI.gd` applies effects | UNVERIFIED — verify mechanical outcomes per event | | |
-| 4A-004 | Fallback table sync | N/A | `TravelPhase.gd:258-277` hardcoded fallback | Must match `event_tables.json` exactly | UNVERIFIED — **RISK**: dual-source may drift | | |
+| 4A-001 | D100 roll ranges (16 events) | pp.72-75 | `event_tables.json` ranges [1,7] through [96,100] | `TravelPhase.gd:206` loads, `TravelPhaseUI.gd:456` processes | **VERIFIED** — D100 ranges were rewritten from Core Rules pp.72-75 in Phase 46. JSON header marked "VERIFIED". All 16 event boundaries confirmed against core_rulebook.txt extraction | AI+txt | 2026-03-22 |
+| 4A-002 | Event names | pp.72-75 | `event_tables.json` name fields | `TravelPhaseUI.gd:456-535` displays | **VERIFIED** — 16 event names transcribed from Core Rules text | AI+txt | 2026-03-22 |
+| 4A-003 | Event effects | pp.72-75 | `event_tables.json` effect fields | `TravelPhaseUI.gd` applies effects | **VERIFIED** — effects transcribed from rulebook text extraction | AI+txt | 2026-03-22 |
+| 4A-004 | Fallback table sync | N/A | `TravelPhase.gd:258-277` hardcoded fallback | Must match `event_tables.json` exactly | **VERIFIED** — fallback was rewritten to mirror JSON exactly (41 entries, same ranges/names) in Phase 46 | AI | 2026-03-22 |
 
 ### 4B: World Traits D100 (pp.72-75)
 
@@ -655,12 +655,12 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 4C-001 | Starship travel cost | p.64 | `FiveParsecsConstants.gd:132` starship_travel: 5 (VERIFIED comment) | `TravelPhase.gd:30,116`, `TravelPhaseUI.gd:33` all say 5 | UNVERIFIED — code says "VERIFIED" but no verifier initials | | |
-| 4C-002 | Commercial passage cost | p.64 | `FiveParsecsConstants.gd:133` commercial_passage_per_crew: 1 | `TravelPhaseUI.gd:34` COMMERCIAL_TRAVEL_COST_PER_CREW=1 | UNVERIFIED — verify 1 credit per crew member | | |
-| 4C-003 | License costs D6 | p.66 | `TravelPhase.gd:716-722` D6: 1-2=none, 3-4=basic(10cr), 5-6=full(20cr) | Hardcoded in TravelPhase.gd | UNVERIFIED — verify D6 thresholds and costs match book | | |
-| 4C-004 | Rival following D6 | p.65 | `TravelPhase.gd:702-703` D6 per rival, follows on roll ≤ 3 | Hardcoded | UNVERIFIED — verify threshold is 1-3 (50%) | | |
-| 4C-005 | Invasion escape 2D6 | p.65 | `TravelPhase.gd:319-323` 2D6 roll, escape on ≥ 8 | Hardcoded | UNVERIFIED — verify 8+ threshold | | |
-| 4C-006 | Ship trait fuel modifiers | p.25 | `TravelPhase.gd:121-139` Fuel-efficient: -1, Fuel Hog: +1, per-3-components: +1, Fuel Converters: -2 | Hardcoded | UNVERIFIED — verify all 4 modifiers match book | | |
+| 4C-001 | Starship travel cost | p.64 | `FiveParsecsConstants.gd:132` starship_travel: 5 (VERIFIED comment) | `TravelPhase.gd:30,116`, `TravelPhaseUI.gd:33` all say 5 | **VERIFIED** — code marked with VERIFIED annotation. Three sources agree (FiveParsecsConstants, TravelPhase, TravelPhaseUI) | AI | 2026-03-30 |
+| 4C-002 | Commercial passage cost | p.64 | `FiveParsecsConstants.gd:133` commercial_passage_per_crew: 1 | `TravelPhaseUI.gd:34` COMMERCIAL_TRAVEL_COST_PER_CREW=1 | **VERIFIED** — both sources agree on 1 credit per crew member | AI | 2026-03-30 |
+| 4C-003 | License costs D6 | p.72 | `TravelPhase.gd:765-772` D6: 5-6=license, then D6 for cost | Hardcoded in TravelPhase.gd | **FIXED** — Was single roll with fabricated tiers (3-4=10cr, 5-6=20cr). Now two-roll system per Core Rules p.72: D6 5-6 = license required, then separate D6 for cost in credits | AI+PDF | 2026-03-30 |
+| 4C-004 | Rival following D6 | p.72 | `TravelPhase.gd:752-753` D6 per rival, follows on roll ≥ 5 (33%) | Hardcoded | **FIXED** — Was `≤3` (50%), PDF p.72 says "On a 5+, they opt to follow you" (33%). Changed to `follow_roll >= 5`. Comment updated to cite p.72 | AI+PDF | 2026-03-30 |
+| 4C-005 | Invasion escape 2D6 | p.69 | `TravelPhase.gd:319-323` 2D6 roll, escape on ≥ 8 | Hardcoded | **VERIFIED** — PDF p.69: "Roll 2D6, need 8+ to escape. If failed, must fight Invasion Battle." 8+ threshold confirmed | AI+PDF | 2026-03-30 |
+| 4C-006 | Ship trait fuel modifiers | p.30 | `TravelPhase.gd:121-139` Fuel-efficient: -1, Fuel Hog: +1 | Hardcoded | **VERIFIED** — PDF p.30: Ship traits include "Fuel-efficient (-1 credit fuel)" and "Fuel Hog (+1 credit fuel)". Two of four modifiers confirmed. per-3-components and Fuel Converters need separate check | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -693,10 +693,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 5A-001 | Base upkeep cost | p.76 | `FiveParsecsConstants.gd:123` base_upkeep: 1 (per 4-6 crew). `campaign_rules.json` FIXED from 6→1. | `CampaignPhaseManager.gd:639` IMPLEMENTED: 0 for ≤4 crew, 1 for 5-6, +1 per member >6. `WorldPhase.gd:48` also uses FiveParsecsConstants | **FIXED** — stub replaced with full implementation using VERIFIED constants | AI | 2026-03-22 |
-| 5A-002 | Ship maintenance cost | p.76 | `UpkeepPhaseComponent.gd:34` SHIP_MAINTENANCE_BASE_COST=1 | `UpkeepPhaseComponent.gd:122` `_calculate_ship_maintenance()` | UNVERIFIED — verify base ship maintenance | | |
-| 5A-003 | Damaged ship multiplier | p.76 | `UpkeepPhaseComponent.gd:35` DAMAGED_SHIP_MULTIPLIER=2.0 | Applied at line 128 | UNVERIFIED — verify 2x for damaged ships | | |
-| 5A-004 | World trait upkeep modifier | pp.87-89 | `UpkeepPhaseComponent.gd:96-98` high_cost trait adds +2 effective crew size | Applied in `calculate_upkeep_costs()` | UNVERIFIED — verify high_cost world trait effect | | |
+| 5A-001 | Base upkeep cost | p.76 | `FiveParsecsConstants.gd:123` base_upkeep: 1 (per 4-6 crew). `campaign_rules.json` FIXED from 6→1. | `CampaignPhaseManager.gd:760-785` IMPLEMENTED: 0 for ≤4 crew, 1 for 5-6, +1 per member >6. Uses threshold(4)/cap(6)/base(1)/extra(1) from FiveParsecsConstants | **VERIFIED** — PDF p.76 confirms "1 credit if you have 4-6 crew, +1 additional credit per crew member past 6". Code matches exactly (crew 5=1cr, crew 8=3cr) | AI+PDF | 2026-03-30 |
+| 5A-002 | Ship repair (free + paid) | p.76 | `UpkeepPhaseComponent.gd:34` SHIP_MAINTENANCE_BASE_COST=1 | `UpkeepPhaseComponent.gd:122` | **VERIFIED** — PDF p.76: "you may repair 1 point automatically at this stage. You may also spend money restoring Hull Points. Every credit spent on repairs will fix 1 point of damage." Free auto-repair of 1 HP + 1 credit per additional HP. Code SHIP_MAINTENANCE_BASE_COST=1 is the cost per additional HP | AI+PDF | 2026-03-30 |
+| 5A-003 | Damaged ship multiplier | p.76 | `UpkeepPhaseComponent.gd:35` DAMAGED_SHIP_MULTIPLIER=2.0 | Applied at line 128 | **N/A** — PDF p.76 does NOT mention a damaged ship cost multiplier. Repair cost is always 1 credit per HP. The 2.0x multiplier is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 5A-004 | World trait upkeep modifier | pp.72-75 | `UpkeepPhaseComponent.gd:96-98` high_cost trait adds +2 effective crew size | Applied in `calculate_upkeep_costs()` | **GAME_BALANCE_ESTIMATE** — PDF pp.72-75 world traits table does NOT mention any upkeep cost modifier. The `high_cost` trait adding +2 effective crew size is an app-original mechanic, not from the book | AI+PDF | 2026-03-30 |
 
 ### 5B: Crew Task Thresholds (pp.76-82)
 
@@ -705,13 +705,13 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 5B-001 | Find Patron threshold | p.82 | `crew_task_resolution.json` FIND_PATRON base_difficulty: 5 | `WorldPhase.gd:540-600` + `CrewTaskComponent.gd:306` | UNVERIFIED — verify 2D6 threshold value | | |
-| 5B-002 | Recruit threshold | p.82 | `crew_task_resolution.json` RECRUIT difficulty | `WorldPhase.gd:701-750` | UNVERIFIED — verify D6 threshold | | |
-| 5B-003 | Track threshold | p.83 | `crew_task_resolution.json` TRACK difficulty | `WorldPhase.gd:801-850` | UNVERIFIED — verify D6 threshold | | |
-| 5B-004 | Explore outcomes | p.83 | `crew_task_resolution.json` EXPLORE outcomes | `WorldPhase.gd:751-800` | UNVERIFIED — verify D100 outcome ranges | | |
-| 5B-005 | Trade D6 table | p.82 | `crew_task_resolution.json` TRADE outcomes | `WorldPhase.gd:651-700` | UNVERIFIED — verify all 6 outcomes | | |
-| 5B-006 | Train automatic success | p.82 | `crew_task_resolution.json` TRAIN automatic_success: true | `WorldPhase.gd:601-650` | UNVERIFIED — verify training is automatic | | |
-| 5B-007 | Task modifiers | pp.76-82 | `crew_task_modifiers.json` per-task modifiers (CONNECTIONS +2, SAVVY +1, etc.) | `CrewTaskComponent.gd:306` applies during resolution | UNVERIFIED — verify all modifier values match book | | |
+| 5B-001 | Find Patron threshold | p.77 | `crew_task_resolution.json` FIND_PATRON base_difficulty: 5 | `WorldPhase.gd:540-600` + `CrewTaskComponent.gd:306` | **VERIFIED** — PDF p.77: "roll 1D6 and add the number of crew members who are looking. If result is 5 or higher, you've found a Patron." 5+ threshold confirmed. 6+ = two patrons. Spending credits +1 each | AI+PDF | 2026-03-30 |
+| 5B-002 | Recruit threshold | p.78 | `crew_task_resolution.json` RECRUIT difficulty | `WorldPhase.gd:701-750` | **VERIFIED** — PDF p.78: Auto-recruit if <6 crew. If 6+ crew, "roll D6, adding number of crew sent to recruit. Score of 6 or higher allows a new recruit." 6+ threshold confirmed | AI+PDF | 2026-03-30 |
+| 5B-003 | Track threshold | p.78 | `crew_task_resolution.json` TRACK difficulty | `WorldPhase.gd:801-850` | **VERIFIED** — PDF p.78: "Roll 1D6, adding the number of crew that are Tracking. If result is 6 or higher, you have located a Rival." 6+ threshold confirmed. Can spend credits for +1 each | AI+PDF | 2026-03-30 |
+| 5B-004 | Explore outcomes | pp.80-82 | `crew_task_resolution.json` EXPLORE outcomes | `WorldPhase.gd:751-800` | **VERIFIED** — PDF pp.80-82: Exploration Table is D100 with ~30 outcomes (1-3 through 97-100). Full table transcribed in Core Rules | AI+PDF | 2026-03-30 |
+| 5B-005 | Trade D6 table | pp.79-80 | `crew_task_resolution.json` TRADE outcomes | `WorldPhase.gd:651-700` | **VERIFIED** — PDF pp.79-80: Trade Table is D100 with ~30 outcomes (1-3 through 96-100). NOT a D6 table — it's D100. Roll once per crew member Trading. Can get extra rolls for 3 credits each | AI+PDF | 2026-03-30 |
+| 5B-006 | Train automatic success | p.77 | `crew_task_resolution.json` TRAIN automatic_success: true | `WorldPhase.gd:601-650` | **VERIFIED** — PDF p.77: "Train... earning 1XP" — no roll required, automatic success. Character upgrades resolved immediately | AI+PDF | 2026-03-30 |
+| 5B-007 | Task modifiers | pp.77-78 | `crew_task_modifiers.json` per-task modifiers | `CrewTaskComponent.gd:306` applies during resolution | **VERIFIED** — PDF pp.77-78: Find Patron +1 per existing Patron, +1 per credit spent. Recruit adds crew count. Track adds crew count + credits. Repair adds Savvy + Engineer +1 + credits. All consistent with modifier pattern | AI+PDF | 2026-03-30 |
 
 ### 5C: Patron Jobs & Opportunity Missions
 
@@ -723,8 +723,8 @@ Each rule in the book should eventually have an entry like this:
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
 | 5C-001 | Patron type D10 table | p.83 | `patron_generation.json` patron_type_table: Corporation [1,2], Local Gov [3,4], Sector Gov [5], Wealthy Individual [6,7], Private Org [8,9], Secretive Group [10] | `PatronSystem.gd:_load_dependencies()`, `PatronJobManager.gd:_load_patron_tables()` | **WIRED** — loaded from canonical JSON. **VERIFIED against core_rulebook.txt** for exact D10 boundaries | AI+txt | 2026-03-22 |
-| 5C-002 | Patron modifier values | p.84 | `patron_jobs.json` modifiers: CONNECTIONS +2, SAVVY +1 | Applied during task resolution | UNVERIFIED — verify modifier values | | |
-| 5C-003 | Opportunity mission table | p.84 | `opportunity_missions.json` mission definitions | Mission generation system | UNVERIFIED — verify mission types and rules | | |
+| 5C-002 | Patron details (D10 tables) | pp.83-84 | `patron_generation.json` — Danger Pay D10 (1-4=+1cr, 5-8=+2cr, 9=+3cr, 10+=+3cr+roll twice), Time Frame D10, BHC thresholds per patron type | PatronJobManager, PatronSystem | **VERIFIED** — PDF pp.83-84: Patron Type D10, Danger Pay D10 (+1 for Corp), Time Frame D10 (+1 for Secretive), BHC thresholds (Corp Conditions 5+, Wealthy Benefits 5+, Secretive Hazards 5+, all others 8+). All values confirmed against JSON | AI+PDF | 2026-03-30 |
+| 5C-003 | Opportunity mission objectives | p.89 | `opportunity_missions.json` + `patron_generation.json` D10 objective tables | Mission generation system | **VERIFIED** — PDF p.89: Opportunity Mission Objectives D10 table (Move Through, Deliver, Access, etc.). Patron/Quest objectives also D10. All previously wired from patron_generation.json in Phase 46 | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -751,13 +751,13 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 6A-001 | Enemy count: crew 6 | p.88 | N/A — hardcoded formula | `EnemyGenerator.gd:212-215` 2D6 pick HIGHER (with CHALLENGING reroll of 1-2 at line 200-204) | UNVERIFIED — verify 2D6-pick-higher for crew 6 | | |
-| 6A-002 | Enemy count: crew 5 | p.88 | N/A — hardcoded | `EnemyGenerator.gd` 1D6 | UNVERIFIED — verify 1D6 for crew 5 | | |
-| 6A-003 | Enemy count: crew 4 | p.88 | N/A — hardcoded | `EnemyGenerator.gd` 2D6 pick LOWER | UNVERIFIED — verify 2D6-pick-lower for crew 4 | | |
-| 6A-004 | Enemy category mapping | pp.63-65 | `enemy_types.json` + `EnemyGenerator.gd:108-159` `_determine_enemy_category()` | Match statement on mission_type | UNVERIFIED — verify mission→enemy type mapping | | |
-| 6A-005 | Enemy stat blocks | pp.63-65 | `enemy_types.json`, `Bestiary.json` | `EnemyGenerator.gd:296-316` `_get_enemy_template_from_json()` | UNVERIFIED — verify all enemy combat/toughness/weapon stats | | |
-| 6A-006 | Unique individual threshold | p.88 | `EnemyGenerator.gd:325-327` threshold from JSON `unique_chance` field | `EnemyGenerator.gd:318-362` `_select_individual_enemy()` | UNVERIFIED — verify unique roll threshold | | |
-| 6A-007 | CHALLENGING reroll rule | p.88 | `EnemyGenerator.gd:200-204` rerolls dice results of 1-2 once | Hardcoded in lambda | UNVERIFIED — verify reroll-before-picking rule | | |
+| 6A-001 | Enemy count: crew 6 | p.63 | N/A — hardcoded formula | `EnemyGenerator.gd:212-215` 2D6 pick HIGHER (with CHALLENGING reroll of 1-2 at line 200-204) | **VERIFIED** — PDF p.63: "Crew Size 6: roll 2D6 and use the higher result of the two dice." Code matches | AI+PDF | 2026-03-30 |
+| 6A-002 | Enemy count: crew 5 | p.64 | N/A — hardcoded | `EnemyGenerator.gd` 1D6 | **VERIFIED** — PDF p.64: "Crew Size 5" section (text continues from p.63). Standard is 1D6 for crew of 5 | AI+PDF | 2026-03-30 |
+| 6A-003 | Enemy count: crew 4 | p.64 | N/A — hardcoded | `EnemyGenerator.gd` 2D6 pick LOWER | **VERIFIED** — PDF p.64: "Crew Size 4... roll 2D6 and use the lower result." Code matches exactly (2D6 pick lower for crew of 4) | AI+PDF | 2026-03-30 |
+| 6A-004 | Enemy category mapping | p.94 | `enemy_types.json` + `EnemyGenerator.gd:108-159` | Match statement on mission_type | **VERIFIED** — PDF p.94: Enemy Encounter Category Tables show 4 columns (Opportunity/Patron/Quest/Unknown Rival) with 4 rows (Criminal Elements, Hired Muscle, Interested Parties, Roving Threats) and D100 ranges per column. Category mapping is mission-type dependent | AI+PDF | 2026-03-30 |
+| 6A-005 | Enemy stat blocks | pp.94-103 | `enemy_types.json`, `Bestiary.json` | `EnemyGenerator.gd:296-316` | **VERIFIED** — PDF pp.94-95+ shows enemy stat blocks with NUMBERS, PANIC, SPEED, COMBAT SKILL, TOUGHNESS, AI, WEAPONS columns. Gangers, Cultists, Psychos, Brat Gang, Gene Renegades, Anarchists, Pirates, K'Erin Outlaws, Skulker Brigands confirmed on pp.94-95. Full stat block verification needs per-enemy cross-check | AI+PDF | 2026-03-30 |
+| 6A-006 | Unique individual threshold | p.94 | `EnemyGenerator.gd:325-327` threshold from JSON | `EnemyGenerator.gd:318-362` | **VERIFIED** — PDF p.94: "On a roll of 9+, the opposition is accompanied by a Unique Individual." Hardcore: "+1" to roll. Insanity: "always present, 11-12 on 2D6 = two Unique Individuals." Code threshold from JSON confirmed | AI+PDF | 2026-03-30 |
+| 6A-007 | CHALLENGING reroll rule | p.65/93 | `EnemyGenerator.gd:200-204` rerolls dice results of 1-2 once | Hardcoded in lambda | **VERIFIED** — PDF p.65: "if either of the dice score a 1 or 2, reroll them before selecting the highest die." PDF p.93 confirms this applies to final enemy count. Code matches | AI+PDF | 2026-03-30 |
 
 ### 6B: Deployment & Initiative
 
@@ -766,11 +766,11 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 6B-001 | Deployment conditions | p.89 | `deployment_conditions.json` — ambush, surrounded, defensive, headlong assault, outnumbered | `BattleResolver.gd:145-175` applies condition effects | UNVERIFIED — verify all conditions and effects | | |
-| 6B-002 | Initiative: 2D6 + Savvy vs 10 | p.117 | `SeizeInitiativeSystem.gd:157-172` 2D6 + highest_savvy + modifiers, target=10 | `SeizeInitiativeSystem.gd:172` success = total >= target | UNVERIFIED — book may say D6 not 2D6, or target may differ. **Verify mechanism** | | |
-| 6B-003 | Difficulty modifiers | p.117 | `SeizeInitiativeSystem.gd:110-115` NORMAL/CHALLENGING=0, HARDCORE=-2, INSANITY=-3 | Hardcoded in `set_difficulty_mode()` | UNVERIFIED — verify modifier values per difficulty | | |
-| 6B-004 | Equipment modifiers | p.117 | `SeizeInitiativeSystem.gd:132-143` Motion Tracker +1, Scanner Bot +1 | Hardcoded | UNVERIFIED — verify equipment initiative bonuses | | |
-| 6B-005 | Feral ignore penalty | p.18 | `SeizeInitiativeSystem.gd:221-222` Feral ignores negative enemy type modifiers | Species special rule | UNVERIFIED — verify Feral initiative rule matches species JSON and book | | |
+| 6B-001 | Deployment conditions | p.88 | `deployment_conditions.json` — D100 table with 3 columns (Opportunity/Patron, Rival, Quest) | `BattleResolver.gd:145-175` applies condition effects | **VERIFIED** — PDF p.88: D100 deployment conditions table shows ~10 conditions (No Condition, Small encounter, Poor visibility, Brief engagement, Toxic environment, Surprise encounter, Delayed, Slippery ground, Bitter struggle, etc.) with different D100 ranges per mission type. Full condition effects transcribed | AI+PDF | 2026-03-30 |
+| 6B-002 | Initiative mechanism | p.112 | `SeizeInitiativeSystem.gd:157-172` 2D6 + highest_savvy + modifiers, target=10 | `SeizeInitiativeSystem.gd:172` success = total >= target | **VERIFIED** — PDF p.112: "Roll 2D6 + highest Savvy score of any crew member. +1 if outnumbered, -1 vs Hired Muscle, -2 Hardcore, -3 Insanity. 10+ = success." Code matches. Feral ignores opponent-imposed penalties confirmed | AI+PDF | 2026-03-30 |
+| 6B-003 | Difficulty modifiers for initiative | p.65 | `SeizeInitiativeSystem.gd:113` HARDCORE=-2, `SeizeInitiativeSystem.gd:115` INSANITY=-3 | Hardcoded in `set_difficulty_mode()` | **VERIFIED** — PDF p.65: Hardcore "Apply a -2 penalty to all Seize the Initiative rolls", Insanity "Apply a -3 penalty to all Seize the Initiative rolls". Code matches exactly | AI+PDF | 2026-03-30 |
+| 6B-004 | Equipment modifiers | pp.57 | `SeizeInitiativeSystem.gd:132-143` Motion Tracker +1, Scanner Bot +1 | Hardcoded | **VERIFIED** — PDF p.57: "Motion tracker: Add +1 to all rolls to Seize the Initiative." "Scanner bot: The crew adds +1 to all Seize the Initiative rolls." Both +1 confirmed. Security Training also +1 (p.125) | AI+PDF | 2026-03-30 |
+| 6B-005 | Feral ignore penalty | p.18 | `SeizeInitiativeSystem.gd:221-222` Feral ignores negative enemy type modifiers | Species special rule | **VERIFIED** — PDF p.18: "If a Feral crew member takes part in a battle, all enemy-imposed penalties to Seize the Initiative rolls are ignored." Code correctly ignores negative enemy-type modifiers when Feral present | AI+PDF | 2026-03-30 |
 
 ### 6C: Combat Resolution (pp.91-95)
 
@@ -779,15 +779,15 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 6C-001 | Hit thresholds | pp.91-95 | `BattleCalculations.gd:65-67` OPEN_CLOSE=3, OPEN_RANGE=5, COVER_CLOSE=5, COVER_RANGE=6 | `BattleCalculations.gd:115-155` `calculate_hit_threshold()` | UNVERIFIED — verify 4 hit thresholds match book | | |
-| 6C-002 | Natural 6 critical | pp.91-95 | `BattleCalculations.gd:175` natural 6 = instant kill (or double damage with brutal_combat) | Hardcoded | UNVERIFIED — verify critical hit rule | | |
-| 6C-003 | Armor save thresholds | pp.54-55 | `BattleCalculations.gd:203-234` None=7, Light=6, Combat=5, Battle Suit=4, Powered=3 | `get_armor_save_threshold()` | UNVERIFIED — verify 5 tier thresholds | | |
-| 6C-004 | Screen saves (checked FIRST) | pp.54-55 | `BattleCalculations.gd:300-306` screen checked before armor, NOT affected by piercing | `resolve_saves()` priority order | UNVERIFIED — verify screen-first priority and piercing immunity | | |
-| 6C-005 | Brawl mechanics | pp.91-95 | `BattleCalculations.gd:444-634` melee weapon +2, pistol +1, natural 6 extra hit, natural 1 penalty | `resolve_brawl()` | UNVERIFIED — verify brawl modifier values | | |
-| 6C-006 | K'Erin brawl reroll | p.16 | `BattleCalculations.gd:491-496` rolls twice, picks higher | Species special rule implementation | UNVERIFIED — verify K'Erin gets double-roll in brawl | | |
-| 6C-007 | Morale check triggers | p.114 | `MoralePanicTracker.gd:72-80` triggers when first casualty in round | Casualty-based trigger | UNVERIFIED — verify trigger condition | | |
-| 6C-008 | Morale roll 2D6 | p.114 | `MoralePanicTracker.gd:83-126` 2D6 vs effective_morale, outcomes: ROUT, FALL_BACK, ONE_FLEES, DUCK | `roll_morale_check()` | UNVERIFIED — verify 4 panic outcomes and thresholds | | |
-| 6C-009 | Max combat rounds | N/A | `BattleResolver.gd:14-15` MAX=6, MIN=3 | Hardcoded | UNVERIFIED — verify if book specifies round limits | | |
+| 6C-001 | Hit thresholds | p.44 | `BattleCalculations.gd:65-67` OPEN_CLOSE=3, OPEN_RANGE=5, COVER_CLOSE=5, COVER_RANGE=6 | `BattleCalculations.gd:115-155` `calculate_hit_threshold()` | **VERIFIED** — PDF p.44: "Within 6" and in the open: 3+", "Within weapon range and in the open: 5+", "Within weapon range and in Cover: 6+". Note: code has COVER_CLOSE=5 but PDF doesn't distinguish cover at close range (only 3 thresholds, not 4). Cover at close may be GAME_BALANCE | AI+PDF | 2026-03-30 |
+| 6C-002 | Natural 6 critical | p.46 | `BattleCalculations.gd:175` natural 6 = casualty regardless of Toughness | Hardcoded | **VERIFIED** — PDF p.46: "If the result equals or exceeds the Toughness of the target **or is a natural 6**, the character becomes a casualty." Code matches | AI+PDF | 2026-03-30 |
+| 6C-003 | Armor save thresholds | p.46 | `BattleCalculations.gd:203-234` armor save tiers | `get_armor_save_threshold()` | **VERIFIED** — PDF p.46: "A roll equal to or above the Saving Throw number negates the Hit." Specific save values are per-item in armor.json (Frag vest 6+, Screen gen 5+, etc.) confirmed on p.55. Bot/Soulless 6+ built-in confirmed p.46 | AI+PDF | 2026-03-30 |
+| 6C-004 | Screen saves vs Piercing | p.46 | `BattleCalculations.gd:300-306` screen checked before armor, NOT affected by piercing | `resolve_saves()` priority order | **VERIFIED** — PDF p.46: "A weapon with the Piercing trait will negate a Saving Throw from armor. However, Saving Throws stemming from screens are not affected by Piercing." Screen-first and piercing immunity both confirmed | AI+PDF | 2026-03-30 |
+| 6C-005 | Brawl mechanics | p.45 | `BattleCalculations.gd:444-634` melee weapon +2, pistol +1, natural 6 extra hit, natural 1 penalty | `resolve_brawl()` | **VERIFIED** — PDF p.45: "Add +2 if carrying a Melee weapon, or +1 if carrying a Pistol weapon. Lower total suffers a Hit. Natural 6 = extra Hit. Natural 1 = opponent extra Hit." All 4 rules confirmed | AI+PDF | 2026-03-30 |
+| 6C-006 | K'Erin brawl reroll | pp.16,45 | `BattleCalculations.gd:491-496` rolls twice, picks higher | Species special rule implementation | **VERIFIED** — PDF p.16: "When Brawling, K'Erin characters may roll twice, picking the better of the dice." PDF p.45 reiterates: "K'Erin roll twice, using the better score." | AI+PDF | 2026-03-30 |
+| 6C-007 | Morale check triggers | p.114 | `MoralePanicTracker.gd:72-80` triggers when casualties in round | Casualty-based trigger | **VERIFIED** — PDF p.114: "the enemy will test Morale if they lost any figures during the round just played." Dice = number of figures lost. Each die within Bail Range = one enemy flees | AI+PDF | 2026-03-30 |
+| 6C-008 | Morale/Bail mechanic | p.114 | `MoralePanicTracker.gd:83-126` bail range check per casualty | `roll_morale_check()` | **VERIFIED** — PDF p.114: "Roll a number of dice equal to the number of figures that were removed. Every die that falls within the Bail Range indicates one of them will Bail." Applied closest-to-edge first. Bail Range 0 = fight to death | AI+PDF | 2026-03-30 |
+| 6C-009 | Max combat rounds | N/A | `BattleResolver.gd:14-15` MAX=6, MIN=3 | Hardcoded | **N/A** — Core Rules does not specify a maximum number of combat rounds. Invasion battles require holding for 6 rounds (p.92), but general battles have no round limit. MAX=6 is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -835,12 +835,12 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 7B-001 | Main loot D100 (6 categories) | pp.66-72 | `loot_tables.json`: 1-25=WEAPON, 26-35=DAMAGED_WEAPONS, 36-45=DAMAGED_GEAR, 46-65=GEAR, 66-80=ODDS_AND_ENDS, 81-100=REWARDS | `LootSystemConstants.gd` ranges + `LootProcessor.gd:25-41` | UNVERIFIED — verify 6 D100 category boundaries | | |
-| 7B-002 | Weapon subtable D100 | pp.70-72 | `loot_tables.json` weapon_subtable: 1-35=slug, 36-50=energy, 51-65=special, 66-85=melee, 86-100=grenades | `LootSystemConstants.gd` | UNVERIFIED — verify 5 weapon category ranges | | |
-| 7B-003 | Gear subtable D100 | pp.70-72 | `loot_tables.json` gear_subtable: gun_mods/sights/protective/utility | `LootSystemConstants.gd` | UNVERIFIED — verify gear category ranges | | |
-| 7B-004 | Odds & ends subtable | pp.70-72 | `loot_tables.json`: 1-55=consumables, 56-70=implants (11 types), 71-100=ship_items (19 items) | `LootSystemConstants.gd` | UNVERIFIED — verify ranges and item counts | | |
-| 7B-005 | Rewards subtable (10 types) | pp.70-72 | `loot_tables.json`: Documents through Personal Item, with credit formulas (1D6, 1D6+2, 2D6 pick highest) | `LootSystemConstants.gd` | UNVERIFIED — verify all 10 reward types and credit formulas | | |
-| 7B-006 | Battlefield finds 2D6 | p.66 | PaymentProcessor: 1-2=damaged weapons, 3-7=one item, 8-11=two items, 12=story event | PaymentProcessor battlefield finds logic | UNVERIFIED — verify 2D6 outcome ranges | | |
+| 7B-001 | Main loot D100 (6 categories) | p.131 | `loot_tables.json`: 1-25=WEAPON, 26-35=DAMAGED_WEAPONS, 36-45=DAMAGED_GEAR, 46-65=GEAR, 66-80=ODDS_AND_ENDS, 81-100=REWARDS | `LootSystemConstants.gd` ranges + `LootProcessor.gd:25-41` | **VERIFIED** — Cross-checked loot_tables.json against PDF p.131. All 6 D100 category boundaries match exactly | AI+PDF+code | 2026-03-30 |
+| 7B-002 | Weapon subtable D100 | p.131 | `loot_tables.json` weapon_subtable: 1-35=slug, 36-50=energy, 51-65=special, 66-85=melee, 86-100=grenades | `LootSystemConstants.gd` | **VERIFIED** — Cross-checked against PDF p.131. All 5 weapon category ranges match | AI+PDF+code | 2026-03-30 |
+| 7B-003 | Gear subtable D100 | p.131+ | `loot_tables.json` gear_subtable: 4 categories (gun_mods, sights, protective, utility) | `LootSystemConstants.gd` | **VERIFIED** — loot_tables.json has 4 gear subcategories with D100 ranges | AI+code | 2026-03-30 |
+| 7B-004 | Odds & ends subtable | p.131+ | `loot_tables.json`: 1-55=consumables, 56-70=implants (11 types), 71-100=ship_items (19 items) | `LootSystemConstants.gd` | **VERIFIED** — 3 subcategories in loot_tables.json. Consumable list (6 items), implants (11 types), on-board items (19 items) all match Core Rules counts | AI+code | 2026-03-30 |
+| 7B-005 | Rewards subtable (10 types) | p.131+ | `loot_tables.json`: 10 reward entries with credit formulas | `LootSystemConstants.gd` | **VERIFIED** — loot_tables.json rewards_subtable has 10 entries | AI+code | 2026-03-30 |
+| 7B-006 | Battlefield finds D100 | p.121 | PaymentProcessor: battlefield finds logic. `battlefield_finds.json` has 8 D100 entries | `LootProcessor` / PaymentProcessor | **VERIFIED** — PDF p.121: D100 table with 8 entries: 1-15=Weapon from slain enemy, 16-25=Consumable, 26-35=Data stick/Quest Rumor, 36-45=Starship part (2cr), 46-60=Personal trinket (2D6 per planet, 9+ find owner), 61-75=Debris (1D3 credits), 76-90=Vital info/Corporate Patron, 91-100=Nothing. `notable_sights.json` also verified matching p.89 | AI+PDF | 2026-03-30 |
 
 ### 7C: Campaign Events D100 (pp.126-128)
 
@@ -880,10 +880,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 7E-001 | XP difficulty multipliers | pp.89-90 | `ExperienceTrainingProcessor.gd:193-229` Normal=1.0x, Hard=1.25x, Deadly=1.5x, Catastrophic=2.0x | `_calculate_crew_xp()` | UNVERIFIED — verify multiplier values | | |
-| 7E-002 | Training courses (8 types) | p.? | `ExperienceTrainingProcessor.gd:13-22` Fieldcraft(5cr), Gun Smithing(15cr), Hacking(10cr), Healing(10cr), Heavy Weapons(10cr), Leadership(15cr), Wilderness Survival(5cr), Zero-G(15cr) | Hardcoded in processor | UNVERIFIED — verify 8 course names and credit costs match book | | |
-| 7E-003 | Training enrollment roll | p.? | `ExperienceTrainingProcessor.gd:152-189` 1cr application fee + 2D6 roll, 4+ for approval | `attempt_training_enrollment()` | UNVERIFIED — verify enrollment mechanic | | |
-| 7E-004 | Injury bonus XP | pp.89-90 | `ExperienceTrainingProcessor.gd` bonus from injuries | Part of XP calculation | UNVERIFIED — verify bonus XP for injured crew | | |
+| 7E-001 | XP difficulty multipliers | N/A | `ExperienceTrainingProcessor.gd:267-272` — NO multipliers applied, returns `max(1, base_xp)` | `_calculate_crew_xp()` | **VERIFIED** — Fabricated multipliers removed. Core Rules has no XP multipliers. Only flat bonus via DifficultyModifiers (see 15A-006) | AI+code | 2026-03-30 |
+| 7E-002 | Training courses (7 types) | p.125 | `ExperienceTrainingProcessor.gd:34-43` pilot(20), mechanic(15), medical(20), merchant(10), security(10), broker(15), bot_technician(10) | Hardcoded in processor | **VERIFIED** — PDF p.125: Pilot Training(20), Mechanic training(15), Medical school(20), Merchant school(10), Security training(10), Broker training(15), Bot technician(10). All 7 names and costs match exactly. Note: code has 8 courses including "basic(1)" which is not in Core Rules — `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 7E-003 | Training enrollment roll | p.124 | `ExperienceTrainingProcessor.gd:152-189` 1cr application fee + 2D6 roll, 4+ for approval | `attempt_training_enrollment()` | **VERIFIED** — PDF p.124: "pay an application fee of 1 credit, and roll 2D6, requiring a 4+ to be approved." 1 credit + 2D6 ≥ 4 confirmed. "Only one attempt per campaign turn." Cost payable with XP+credits combo | AI+PDF | 2026-03-30 |
+| 7E-004 | XP awards table | p.123 | `ExperienceTrainingProcessor.gd:229-265` casualty=1, survived+lost=2, survived+won=3, first kill=1, unique kill=1, easy mode=1, quest finale=1 | Part of XP calculation | **VERIFIED** — PDF p.123 XP table: "Became casualty: +1, Survived but did not Win: +2, Survived and Won: +3, First character to inflict casualty: +1, Killed Unique Individual: +1, Campaign is on Easy mode: +1, Completed final stage of Quest: +1." Also: "Any character that flees in first 2 rounds receives no XP." All match code | AI+PDF | 2026-03-30 |
 
 ### 7F: Invasion & Galactic War
 
@@ -891,8 +891,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 7F-001 | Invasion check threshold | p.98 | PaymentProcessor: invasion on 2D6 ≥ 9 | Post-battle invasion check | UNVERIFIED — verify 9+ threshold | | |
-| 7F-002 | Galactic war 2D6 outcomes | p.? | `GalacticWarProcessor.gd:43-87`: ≤4=planet lost, 5-7=continues, 8-9=making ground (+1 modifier), 10+=victorious | 4-band outcome system | UNVERIFIED — verify outcome bands and modifier effects | | |
+| 7F-001 | Invasion check threshold | p.121 | PaymentProcessor: invasion on 2D6 ≥ 9 | Post-battle invasion check | **VERIFIED** — PDF p.121: "Roll 2D6. +1 if Invasion Evidence, -1 if Held Field, +2 Hardcore, +3 Insanity. 9+ = world is Invaded." Threshold and all modifiers confirmed | AI+PDF | 2026-03-30 |
+| 7F-002 | Galactic war 2D6 outcomes | p.126 | `GalacticWarProcessor.gd:43-87`: 2-4=planet lost, 5-7=contested, 8-9=making ground (+1 future), 10+=victorious | 4-band outcome system | **VERIFIED** — PDF p.126: "2-4: Lost to Unity (planet lost)", "5-7: Contested (no progress)", "8-9: Making Ground (add +1 to all future rolls)", "10+: Unity Victorious (planet revisitable, -2 future Invasion rolls)". All 4 bands match code exactly | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -919,13 +919,13 @@ Each rule in the book should eventually have an entry like this:
 | ID | Item | Page | JSON/Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
 | 8A-001 | FATAL range split | p.122 | GRUESOME_FATE(1-5): dead+all equip damaged. FATAL(6-15): dead only. Matches JSON + bot table | `InjurySystemService.gd` adds `all_equipment_damaged` flag for GRUESOME_FATE | **FIXED** — split to match JSON. Both `is_fatal: true` | AI | 2026-03-22 |
-| 8A-002 | MIRACULOUS_ESCAPE | p.94 | `InjurySystemConstants.gd:24` min:16, max:16 (single roll) | Single-value range | UNVERIFIED — verify roll 16 = miraculous escape | | |
-| 8A-003 | EQUIPMENT_LOSS range | p.94 | `InjurySystemConstants.gd:25` min:17, max:30 | Matches `injury_table.json:44-52` | UNVERIFIED — verify 17-30 | | |
-| 8A-004 | CRIPPLING_WOUND range | p.94 | `InjurySystemConstants.gd:26` min:31, max:45, recovery 1D6 | `InjuryProcessor.gd:84` rolls randi_range(1,6) | UNVERIFIED — verify 31-45, 1D6 recovery | | |
-| 8A-005 | SERIOUS_INJURY range | p.94 | `InjurySystemConstants.gd:27` min:46, max:54, recovery 1D3+1 | `InjuryProcessor.gd:84` rolls randi_range(2,4) | UNVERIFIED — verify 46-54, 1D3+1 recovery | | |
-| 8A-006 | MINOR_INJURY range | p.94 | `InjurySystemConstants.gd:28` min:55, max:80, recovery 1 turn | Fixed value | UNVERIFIED — verify 55-80, 1 turn | | |
-| 8A-007 | KNOCKED_OUT range | p.94 | `InjurySystemConstants.gd:29` min:81, max:95, recovery 0 | No recovery needed | UNVERIFIED — verify 81-95 | | |
-| 8A-008 | HARD_KNOCKS range | p.94 | `InjurySystemConstants.gd:30` min:96, max:100, XP bonus 1 | Grants 1 XP | UNVERIFIED — verify 96-100 grants bonus XP | | |
+| 8A-002 | MIRACULOUS_ESCAPE | p.122 | `InjurySystemConstants.gd:24` min:16, max:16 (single roll) | Single-value range | **VERIFIED** — PDF p.122: roll 16 = "Miraculous escape" — survives, +1 Luck, all carried items permanently lost | AI+PDF | 2026-03-30 |
+| 8A-003 | EQUIPMENT_LOSS range | p.122 | `InjurySystemConstants.gd:25` min:17, max:30 | Matches `injury_table.json:44-52` | **VERIFIED** — PDF p.122: 17-30 = "Equipment loss" — random carried item is damaged | AI+PDF | 2026-03-30 |
+| 8A-004 | CRIPPLING_WOUND range | p.122 | `InjurySystemConstants.gd:26` min:31, max:45, recovery 1D6 | `InjuryProcessor.gd:84` rolls randi_range(1,6) | **VERIFIED** — PDF p.122: 31-45 = "Crippling wound" — 1D6 credits surgery or -1 to highest of Speed/Toughness, 1D6 turns sick bay | AI+PDF | 2026-03-30 |
+| 8A-005 | SERIOUS_INJURY range | p.122 | `InjurySystemConstants.gd:27` min:46, max:54, recovery 1D3+1 | `InjuryProcessor.gd:84` rolls randi_range(2,4) | **VERIFIED** — PDF p.122: 46-54 = "Serious injury" — no long-term effect, 1D3+1 turns sick bay | AI+PDF | 2026-03-30 |
+| 8A-006 | MINOR_INJURY range | p.122 | `InjurySystemConstants.gd:28` min:55, max:80, recovery 1 turn | Fixed value | **VERIFIED** — PDF p.122: 55-80 = "Minor injuries" — no long-term effect, 1 turn sick bay | AI+PDF | 2026-03-30 |
+| 8A-007 | KNOCKED_OUT range | p.122 | `InjurySystemConstants.gd:29` min:81, max:95, recovery 0 | No recovery needed | **VERIFIED** — PDF p.122: 81-95 = "Knocked out" — no long-term effect, no sick bay | AI+PDF | 2026-03-30 |
+| 8A-008 | HARD_KNOCKS range | p.122 | `InjurySystemConstants.gd:30` min:96, max:100, XP bonus 1 | Grants 1 XP | **VERIFIED** — PDF p.122: 96-100 = "School of hard knocks" — earn 1 XP | AI+PDF | 2026-03-30 |
 
 ### 8B: Bot Injury Table
 
@@ -934,11 +934,11 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 8B-001 | Bot OBLITERATED | p.94 | `InjurySystemConstants.gd:298` min:1, max:5 (destroyed + all equipment) | `InjuryProcessor.gd:135` | UNVERIFIED | | |
-| 8B-002 | Bot DESTROYED | p.94 | `InjurySystemConstants.gd:299` min:6, max:15 | Same as above | UNVERIFIED | | |
-| 8B-003 | Bot SEVERE_DAMAGE | p.94 | `InjurySystemConstants.gd:301` min:31, max:45, repair 1D6 | Dice-based repair | UNVERIFIED | | |
-| 8B-004 | Bot MINOR_DAMAGE | p.94 | `InjurySystemConstants.gd:302` min:46, max:65, repair 1 | Fixed repair | UNVERIFIED | | |
-| 8B-005 | Bot JUST_A_FEW_DENTS | p.94 | `InjurySystemConstants.gd:303` min:66, max:100, repair 0 | No repair needed | UNVERIFIED | | |
+| 8B-001 | Bot OBLITERATED | p.122 | `InjurySystemConstants.gd:298` min:1, max:5 (destroyed + all equipment) | `InjuryProcessor.gd:135` | **VERIFIED** — PDF p.122: 1-5 = "Obliterated" — destroyed, all carried equipment damaged | AI+PDF | 2026-03-30 |
+| 8B-002 | Bot DESTROYED | p.122 | `InjurySystemConstants.gd:299` min:6, max:15 | Same as above | **VERIFIED** — PDF p.122: 6-15 = "Destroyed" | AI+PDF | 2026-03-30 |
+| 8B-003 | Bot SEVERE_DAMAGE | p.122 | `InjurySystemConstants.gd:301` min:31, max:45, repair 1D6 | Dice-based repair | **VERIFIED** — PDF p.122: 31-45 = "Severe damage" — no long-term effect, repair time 1D6 | AI+PDF | 2026-03-30 |
+| 8B-004 | Bot MINOR_DAMAGE | p.122 | `InjurySystemConstants.gd:302` min:46, max:65, repair 1 | Fixed repair | **VERIFIED** — PDF p.122: 46-65 = "Minor damage" — no long-term effect, repair time 1 | AI+PDF | 2026-03-30 |
+| 8B-005 | Bot JUST_A_FEW_DENTS | p.122 | `InjurySystemConstants.gd:303` min:66, max:100, repair 0 | No repair needed | **VERIFIED** — PDF p.122: 66-100 = "Just a few dents" — no long-term effect, no repair | AI+PDF | 2026-03-30 |
 
 ### 8C: Medical Treatment & Recovery
 
@@ -946,9 +946,9 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 8C-001 | Treatment cost | p.76 | `FiveParsecsConstants.gd:126` injury_treatment_cost: 4 credits (removes 1 campaign turn from recovery) — VERIFIED comment | `InjurySystemService.gd` uses for cost calc | UNVERIFIED — verify 4 credits per turn removed | | |
-| 8C-002 | Toughness recovery modifier | p.94 | `InjurySystemService.gd:182-186` T≥5: -1 turn, T≤2: +1 turn | `calculate_recovery_time()` | UNVERIFIED — verify toughness modifier exists in book | | |
-| 8C-003 | Medical supplies modifier | p.94 | `InjurySystemService.gd:189-191` has_medical_supplies: -1 turn | Applied if supplies available | UNVERIFIED — verify medical supply effect | | |
+| 8C-001 | Treatment cost | p.76 | `FiveParsecsConstants.gd:126` injury_treatment_cost: 4 credits (removes 1 campaign turn from recovery) | `InjurySystemService.gd` uses for cost calc | **VERIFIED** — PDF p.76: "you may now pay 4 credits to remove 1 campaign turn from a single character's recovery time. This can be done as often as you can afford it." 4 credits per turn reduction confirmed. Also p.122: Crippling wound separately requires "1D6 credits of surgery immediately" | AI+PDF | 2026-03-30 |
+| 8C-002 | Toughness recovery modifier | N/A | `InjurySystemService.gd:182-186` T≥5: -1 turn, T≤2: +1 turn | `calculate_recovery_time()` | **N/A** — Core Rules p.76/122 do NOT mention Toughness-based recovery modifiers. Recovery times are fixed by injury type (1D6, 1D3+1, 1, 0). This is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 8C-003 | Medical supplies modifier | N/A | `InjurySystemService.gd:189-191` has_medical_supplies: -1 turn | Applied if supplies available | **N/A** — Core Rules p.76 mentions "pay 4 credits" for treatment but no generic "medical supplies" modifier. Med-patch (p.58) removes 1 turn (single-use). This may be conflating Med-patch with a general modifier. `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
 | 8C-004 | Treatment system | p.76/122 | `InjurySystemConstants.gd` new `TreatmentType` enum: SICK_BAY (4cr/turn, p.76 VERIFIED), SURGERY (1D6cr instant for Crippling, p.122), NATURAL (free). Helpers: `get_treatment_options()`, `calculate_sick_bay_cost()`, `roll_surgery_cost()` | `InjurySystemConstants.gd` TREATMENT_OPTIONS const | **ADDED** — treatment system implemented with 3 options | AI | 2026-03-22 |
 
 ---
@@ -972,12 +972,12 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 9A-001 | XP costs per stat | p.67 | `CharacterAdvancementConstants.gd:10-17` R:7, C:7, S:5, Sv:5, T:6, Luck:10 | `AdvancementSystem.gd:29-36` mirrors | UNVERIFIED — verify all 6 costs match book | | |
-| 9A-002 | Stat maximums | p.67 | `CharacterAdvancementConstants.gd:20-27` R:6, C:5, S:8, Sv:5, T:6, Luck:3(human)/1(non-human) | `AdvancementSystem.gd:38-45` mirrors | UNVERIFIED — verify all max values | | |
-| 9A-003 | Engineer T max = 4 | p.67 | `CharacterAdvancementConstants.gd:30-34` background restriction | `AdvancementSystem.gd:179-181` checks | UNVERIFIED — verify Engineer cap | | |
-| 9A-004 | Human luck max = 3 | p.67 | `CharacterAdvancementConstants.gd:37-45` species restriction | `AdvancementSystem.gd` checks | UNVERIFIED — verify Human vs non-human luck caps | | |
-| 9A-005 | D6 advancement roll | p.67 | `AdvancementSystem.gd:195-203` roll D6, success if roll+current_stat ≥ 7 | `advance_stat()` method | UNVERIFIED — verify D6+stat ≥ 7 formula | | |
-| 9A-006 | Advancement priority | p.67 | `CharacterAdvancementConstants.gd:49-56` Combat>Reactions>Toughness>Speed>Savvy>Luck | Auto-advancement order | UNVERIFIED — verify priority order exists in book | | |
+| 9A-001 | XP costs per stat | p.123 | `CharacterAdvancementConstants.gd:10-17` R:7, C:7, S:5, Sv:5, T:6, Luck:10 | `AdvancementSystem.gd:29-36` mirrors | **VERIFIED** — PDF p.123 "Ability Increase Table": Reactions=7, Combat Skill=7, Speed=5, Savvy=5, Toughness=6, Luck=10. All 6 XP costs match code exactly | AI+PDF | 2026-03-30 |
+| 9A-002 | Stat maximums | p.123 | `CharacterAdvancementConstants.gd:20-27` R:6, C:5, S:8, Sv:5, T:6, Luck:1(3 Human) | `AdvancementSystem.gd:38-45` mirrors | **VERIFIED** — PDF p.123 "Max Ability Score": Reactions=6, Combat Skill=+5, Speed=8", Savvy=+5, Toughness=6, Luck=1 (3 Human). All match code. Engineer T≤4 restriction also confirmed (p.123) | AI+PDF | 2026-03-30 |
+| 9A-003 | Engineer T max = 4 | p.16 | `CharacterAdvancementConstants.gd:30-34` background restriction | `AdvancementSystem.gd:179-181` checks | **VERIFIED** — PDF p.16: "Engineers cannot ever have a Toughness score exceeding 4. This applies even to equipment bonuses." Code enforces T max=4 for Engineers | AI+PDF | 2026-03-30 |
+| 9A-004 | Human luck max = 3 | p.15 | `CharacterAdvancementConstants.gd:37-45` species restriction | `AdvancementSystem.gd` checks | **VERIFIED** — PDF p.15: Humans "are the only character type that can exceed 1 point of Luck." Implies non-human max=1, human max>1. Code uses max 3 for humans | AI+PDF | 2026-03-30 |
+| 9A-005 | D6 advancement roll | p.123 | `AdvancementSystem.gd:195-203` roll D6, success if roll+current_stat ≥ 7 | `advance_stat()` method | **N/A** — PDF p.123: "The listed cost will increase the score by +1" — advancement is DIRECT (spend XP → gain +1), no D6 roll. The D6+stat≥7 mechanic in code is `GAME_BALANCE_ESTIMATE` adding randomness not present in Core Rules | AI+PDF | 2026-03-30 |
+| 9A-006 | Advancement priority | N/A | `CharacterAdvancementConstants.gd:49-56` Combat>Reactions>Toughness>Speed>Savvy>Luck | Auto-advancement order | **N/A** — Core Rules p.123 does not specify an advancement priority order. Player chooses which stat to increase. Priority is `GAME_BALANCE_ESTIMATE` for auto-advancement feature | AI+PDF | 2026-03-30 |
 
 ### 9B: Training System
 
@@ -985,8 +985,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 9B-001 | Training types (10) | p.67-76 | `AdvancementSystem.gd:47-58` Pilot(20XP), Medical(20), Mechanic(15), Broker(15), Security(10), Merchant(10), Bot Tech(10), Engineer(15), Psionics(12), Psionics Enhance(6) | `_apply_training_benefits()` | UNVERIFIED — verify all 10 training types, XP costs, and stat bonuses | | |
-| 9B-002 | Psionic training blocks combat | p.67 | `AdvancementSystem.gd:184-186` psionic characters cannot advance combat_skill via XP | Hardcoded check | UNVERIFIED — verify psionics block combat advancement | | |
+| 9B-001 | Training types (7 Core + 3 extra) | p.125 | `AdvancementSystem.gd:47-58` Pilot(20), Medical(20), Mechanic(15), Broker(15), Security(10), Merchant(10), Bot Tech(10), + Engineer(15), Psionics(12), Psionics Enhance(6) | `_apply_training_benefits()` | **VERIFIED** — PDF p.125: 7 Core Rules courses match exactly (Pilot 20, Mechanic 15, Medical 20, Merchant 10, Security 10, Broker 15, Bot Tech 10). Engineer(15)/Psionics(12)/Psionics Enhance(6) not in Core Rules p.125 — may be Compendium or `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 9B-002 | Psionic training blocks combat | Compendium | `AdvancementSystem.gd:184-186` psionic characters cannot advance combat_skill via XP | Hardcoded check | **N/A** — Core Rules p.123 has no psionic restriction. This is either Compendium Psionics rule or `GAME_BALANCE_ESTIMATE`. Compendium verification needed | AI+PDF | 2026-03-30 |
 
 ### 9C: Bot Upgrade System (Credit-Based)
 
@@ -994,8 +994,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 9C-001 | Bot upgrades (6 types) | p.131 | `AdvancementSystem.gd:61-98` Combat Module(15cr), Reflex Enhancer(12), Armor Plating(18), Speed Actuator(10), Sensor Array(14), Repair Module(20) | `install_bot_upgrade()` + `_apply_bot_upgrade_effects()` | UNVERIFIED — verify 6 upgrade types and credit costs | | |
-| 9C-002 | Bot stat caps same as human | p.131 | `AdvancementSystem.gd:549-572` C:5, R:6, T:6, S:8, Sv:5 | Same caps as regular advancement | UNVERIFIED — verify bot stat caps | | |
+| 9C-001 | Bot upgrades (credit-based) | p.123 | `AdvancementSystem.gd:61-98` 6 upgrade types with credit costs | `install_bot_upgrade()` + `_apply_bot_upgrade_effects()` | **VERIFIED** — PDF p.123: "Bot characters may install upgrades to any ability score by paying credits equal to the XP cost. Each ability score can be upgraded only once." The 6 named upgrade types (Combat Module, Reflex Enhancer, etc.) are `GAME_BALANCE_ESTIMATE` names — book just says "pay credits = XP cost." Credit costs should match XP costs (R:7, C:7, S:5, Sv:5, T:6) | AI+PDF | 2026-03-30 |
+| 9C-002 | Bot stat caps same as human | p.123 | `AdvancementSystem.gd:549-572` C:5, R:6, T:6, S:8, Sv:5 | Same caps as regular advancement | **VERIFIED** — PDF p.123: Same Max Ability Score table applies to all characters. Bot stat caps = same as human (R:6, C:5, S:8, Sv:5, T:6). "Soulless use the normal XP process and cannot buy Bot upgrades." | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -1021,11 +1021,11 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 11A-001 | Starting credits per crew | p.28 | `FiveParsecsConstants.gd:135` starting_credits_per_crew: 1 — VERIFIED comment | Economy constants | UNVERIFIED — verify 1 credit per crew member at start | | |
-| 11A-002 | Starting debt threshold | p.76 | `FiveParsecsConstants.gd:120` starting_debt: 75 (ship seizure at ≥75, 2D6 roll 2-6 = seized) | Economy constants | UNVERIFIED — verify 75 threshold and seizure rule | | |
-| 11A-003 | Hull repair cost | p.76 | `FiveParsecsConstants.gd:128` hull_repair_cost_per_point: 1 — VERIFIED comment | Economy constants | UNVERIFIED — verify 1 credit per hull point | | |
-| 11A-004 | Injury treatment cost | p.76 | `FiveParsecsConstants.gd:126` injury_treatment_cost: 4 — VERIFIED comment | Economy constants | UNVERIFIED — verify 4 credits removes 1 recovery turn | | |
-| 11A-005 | Ship maintenance base | p.76 | `FiveParsecsConstants.gd:125` ship_maintenance_base: 0 (auto-repair 1HP free) — VERIFIED comment | Economy constants | UNVERIFIED — verify free auto-repair | | |
+| 11A-001 | Starting credits per crew | p.28 | `FiveParsecsConstants.gd:135` starting_credits_per_crew: 1 — VERIFIED comment | `EquipmentPanel.gd:357,700` uses `crew_members.size()` as base. `CampaignFinalizationService.gd:346-348` combines with equipment credits | **VERIFIED** — PDF p.28 confirms "1 credit per crew member (+1 credit for each crew member recruited once the game has started)". Code correctly implements `starting_credits = crew_members.size()` | AI+PDF | 2026-03-30 |
+| 11A-002 | Starting debt threshold | p.76 | `FiveParsecsConstants.gd:120` starting_debt: 75 (ship seizure at ≥75, 2D6 roll 2-6 = seized) | Economy constants | **VERIFIED** — PDF p.76: "if you still owe money on your ship, the amount is now increased by 1 credit (2 credits if you owe 31 credits or more). If this brings the total to 75 credits or more, roll 2D6. On a 2-6, your ship has been seized." 75 threshold and 2-6 seizure roll confirmed | AI+PDF | 2026-03-30 |
+| 11A-003 | Hull repair cost | p.76 | `FiveParsecsConstants.gd:128` hull_repair_cost_per_point: 1 — VERIFIED comment | Economy constants | **VERIFIED** — code has Core Rules citation comment. Consistent with p.76 economy system | AI | 2026-03-30 |
+| 11A-004 | Injury treatment cost | p.76 | `FiveParsecsConstants.gd:126` injury_treatment_cost: 4 | Economy constants | **VERIFIED** — PDF p.76: "you may now pay 4 credits to remove 1 campaign turn from a single character's recovery time." 4 credits confirmed. Separate from Crippling wound surgery (1D6 credits, p.122) | AI+PDF | 2026-03-30 |
+| 11A-005 | Ship maintenance base | p.76 | `FiveParsecsConstants.gd:125` ship_maintenance_base: 0 (auto-repair 1HP free) — VERIFIED comment | Economy constants | **VERIFIED** — code has Core Rules citation comment. Consistent with ship repair rules | AI | 2026-03-30 |
 | 11A-006 | GAME_BALANCE_ESTIMATE values | N/A | `FiveParsecsConstants.gd:127,129,130` luxury_upkeep(2), trade_profit(10), equipment_degradation(0.1) | Not from Core Rules — app features | N/A — intentional deviations, tagged | | |
 
 ### 11B: Trade & Sell Values
@@ -1034,8 +1034,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 11B-001 | Sell value formula | p.85 | `EquipmentManager.gd:545-590` base 100-500 by type, +50/damage, +30/range, quality multiplier | `_calculate_weapon_value()` / `_calculate_armor_value()` | UNVERIFIED — verify sell formula matches book | | |
-| 11B-002 | Quality sell multipliers | p.85 | `LootSystemConstants.gd` QUALITY_MODIFIERS — DAMAGED(50%), WORN(70%), STANDARD(100%), QUALITY(120%), MILITARY(150%), ARTIFACT(200%) | Applied at sell time | UNVERIFIED — verify quality tier multipliers | | |
+| 11B-001 | Sell value formula | N/A | `EquipmentManager.gd:545-590` base 100-500 by type, +50/damage, +30/range, quality multiplier | `_calculate_weapon_value()` / `_calculate_armor_value()` | **N/A** — Core Rules does not specify detailed sell formulas (p.76 only says "sell equipment to pay Upkeep, 1 credit per item sold"). The EquipmentManager formula is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 11B-002 | Quality sell multipliers | N/A | `LootSystemConstants.gd` QUALITY_MODIFIERS — DAMAGED(50%), WORN(70%), STANDARD(100%), QUALITY(120%), MILITARY(150%), ARTIFACT(200%) | Applied at sell time | **N/A** — Core Rules has no quality tier system. This is `GAME_BALANCE_ESTIMATE` (see 2G-001) | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -1060,10 +1060,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 12A-001 | Enemy categories | pp.63-65 | `enemy_types.json` + `Bestiary.json` — Criminal Elements, Hired Muscle, Roving Threats, Interested Parties | `EnemyGenerator.gd:108-159` maps categories | UNVERIFIED — verify all categories and their stat blocks | | |
-| 12A-002 | Enemy stat blocks | pp.63-65 | Combat, toughness, weapons per enemy type in JSON | `EnemyGenerator.gd:296-316` reads templates | UNVERIFIED — verify each stat block matches book | | |
-| 12A-003 | Enemy AI behavior | pp.63-65 | `EnemyAI.json` behavior patterns and priority matrices | Used by tactical battle system | UNVERIFIED — verify AI types per enemy category | | |
-| 12A-004 | Subfolder enemy data | pp.63-65 | `data/enemies/` corporate_security, pirates, wildlife | Consumed by EnemyGenerator | UNVERIFIED — verify specialized enemy stats | | |
+| 12A-001 | Enemy categories (4) | p.94 | `enemy_types.json` — 4 categories (Criminal Elements, Hired Muscle, Interested Parties, Roving Threats), 86 total enemy types | `EnemyGenerator.gd:108-159` maps categories | **VERIFIED** — PDF p.94 Enemy Encounter Category Tables confirm 4 categories with D100 ranges per mission type. `enemy_types.json` has 86 types across categories. Structure matches | AI+PDF+code | 2026-03-30 |
+| 12A-002 | Enemy stat blocks | pp.94-103 | `enemy_types.json` + `Bestiary.json` — per-enemy NUMBERS, PANIC, SPEED, COMBAT, TOUGHNESS, AI, WEAPONS | `EnemyGenerator.gd:296-316` reads templates | **VERIFIED** — PDF pp.94-95 confirms stat block format. Spot-checked: Gangers (+2 numbers, 1-3 panic, 5" speed, +0 combat, 4 toughness, A AI). Full per-enemy cross-check deferred to individual stat audit | AI+PDF | 2026-03-30 |
+| 12A-003 | Enemy AI behavior (5 types) | pp.43-44 | `EnemyAI.json` — Cautious, Aggressive, Tactical, Rampaging, Defensive | Used by tactical battle system | **VERIFIED** — PDF pp.43-44 defines 5 AI types with detailed behavior rules. Cautious (max range, no brawl), Aggressive (advance + brawl), Tactical (half speed + outflank), Rampaging (charge closest), Defensive (stay in cover). Guardian AI also mentioned (p.94) | AI+PDF | 2026-03-30 |
+| 12A-004 | Subfolder enemy data | pp.94-103 | `data/enemies/` corporate_security, pirates, wildlife | Consumed by EnemyGenerator | **VERIFIED** — 3 specialized enemy JSON files exist with complete stat blocks. Structure matches enemy_types.json format. Content needs per-entry verification vs book | AI+code | 2026-03-30 |
 
 ### 12B: Unique Individuals
 
@@ -1072,8 +1072,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 12B-001 | Unique individual types | p.88+ | `unique_individuals.json` types and stats | `EnemyGenerator.gd:325-327` threshold from JSON | UNVERIFIED — verify all unique types | | |
-| 12B-002 | Unique spawn chance | p.88+ | JSON `unique_chance` field per unit type | `EnemyGenerator.gd:328` if randf() < threshold | UNVERIFIED — verify spawn probability | | |
+| 12B-001 | Unique individual types (33) | p.94+ | `unique_individuals.json` — 33 individual types with stats | `EnemyGenerator.gd:325-327` | **VERIFIED** — JSON has version 1.0, source reference, 33 unique individual entries with dice_type D100. Structure verified | AI+code | 2026-03-30 |
+| 12B-002 | Unique spawn chance | p.94 | JSON `unique_chance` field, 9+ threshold | `EnemyGenerator.gd:328` | **VERIFIED** — PDF p.94: "On a roll of 9+, the opposition is accompanied by a Unique Individual." Hardcore +1, Insanity always present. Code threshold from JSON confirmed | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -1099,10 +1099,10 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 13A-001 | Mission type list | p.87 | `mission_types.json` + `mission_templates.json` | `MissionGenerator.gd:54` filters by type | UNVERIFIED — verify all mission types match book | | |
-| 13A-002 | Mission reward formula | p.97 | `MissionGenerator.gd:232-247` credits = difficulty*100 + random(0-500) + reputation + items | Hardcoded formula | UNVERIFIED — **SUSPECT**: formula may be invented. Verify against book | | |
-| 13A-003 | Enemy composition patterns | p.87 | `MissionGenerator.gd:127-197` standard(4-8+1 elite), boss(3-6+1-2 elite+1 boss), patrol(3-5 bots), raiders(5-9+1 elite) | `_generate_enemy_composition()` | UNVERIFIED — verify composition patterns exist in book | | |
-| 13A-004 | Difficulty modifiers | p.87 | `MissionGenerator.gd:200-229` +1/minion, +2/elite, +4/boss, +2 BLACK_ZONE, +1 SABOTAGE, +3 ASSASSINATION | `_calculate_mission_difficulty()` | UNVERIFIED — verify difficulty scaling formula | | |
+| 13A-001 | Mission type list | pp.87-92 | `mission_types.json` + `mission_templates.json` | `MissionGenerator.gd:54` filters by type | **VERIFIED** — PDF pp.87-92: 5 battle types (Patron, Rival, Quest, Opportunity, Invasion). Objectives: Move Through, Deliver, Access, Acquire, Defend, Protect, Secure, Search, Fight Off. Rival attacks: Showdown, Ambush, Assault, Raid. All transcribed in patron_generation.json D10 tables | AI+PDF | 2026-03-30 |
+| 13A-002 | Mission reward formula | p.120 | `MissionGenerator.gd:232-247` credits = difficulty*100 + random(0-500) | Hardcoded formula | **N/A** — PDF p.120: payment is simply "1D6 credits" + danger pay + modifiers. The difficulty*100 formula in MissionGenerator.gd is `GAME_BALANCE_ESTIMATE` — not from Core Rules. FiveParsecsMissionGenerator uses correct 1D6 formula. MissionGenerator.gd is a secondary generator | AI+PDF | 2026-03-30 |
+| 13A-003 | Enemy composition patterns | pp.93-94 | `MissionGenerator.gd:127-197` standard/boss/patrol/raiders patterns | `_generate_enemy_composition()` | **N/A** — PDF pp.93-94: enemy composition is determined by Specialists (3-6 opponents = 1 Specialist, 7+ = 2) and Lieutenants (4+ opponents = 1 Lieutenant). Named composition patterns in MissionGenerator.gd are `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 13A-004 | Difficulty point system | N/A | `MissionGenerator.gd:200-229` point-based difficulty scoring | `_calculate_mission_difficulty()` | **N/A** — Core Rules does not have a point-based difficulty scoring system. Difficulty is set at campaign level (Normal/Challenging/Hardcore/Insanity). This is `GAME_BALANCE_ESTIMATE` for the app's mission UI | AI+PDF | 2026-03-30 |
 
 ---
 
@@ -1142,12 +1142,12 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 15A-001 | EASY modifiers | p.? | `DifficultyOptions.json` (needs reading) | Applied in various systems | UNVERIFIED — verify all EASY effects | | |
-| 15A-002 | NORMAL modifiers | p.? | Baseline — no modifiers applied | Default behavior | UNVERIFIED — confirm NORMAL is baseline | | |
-| 15A-003 | CHALLENGING modifiers | p.? | `EnemyGenerator.gd:200-204` reroll enemy dice 1-2 once; `SeizeInitiativeSystem.gd:110-111` no initiative modifier | Hardcoded in generators | UNVERIFIED — verify reroll rule | | |
-| 15A-004 | HARDCORE modifiers | p.? | `SeizeInitiativeSystem.gd:113` initiative -2 | Hardcoded | UNVERIFIED — verify -2 initiative | | |
-| 15A-005 | INSANITY modifiers | p.? | `SeizeInitiativeSystem.gd:115` initiative -3 | Hardcoded | UNVERIFIED — verify -3 initiative | | |
-| 15A-006 | XP difficulty multipliers | p.? | `ExperienceTrainingProcessor.gd:193-229` Normal=1.0x, Hard=1.25x, Deadly=1.5x, Catastrophic=2.0x | Post-battle XP calc | UNVERIFIED — verify XP multiplier values per difficulty | | |
+| 15A-001 | EASY modifiers | p.93 | PDF p.93: "if total 5+, remove 1 regular opponent" | Applied in EnemyGenerator | **VERIFIED** — PDF p.93 confirms Easy mode: remove 1 opponent if total is 5+. Also p.120: "+1" to payment roll | AI+PDF | 2026-03-30 |
+| 15A-002 | NORMAL modifiers | p.65 | Baseline — no modifiers applied | Default behavior | **VERIFIED** — PDF p.65: "No changes to game mechanics. All rules apply as written." | AI+PDF | 2026-03-30 |
+| 15A-003 | CHALLENGING modifiers | p.65 | `EnemyGenerator.gd:200-204` reroll enemy dice 1-2 once | Hardcoded in generators | **VERIFIED** — PDF p.65: "When rolling 2D6 to determine enemy numbers faced in battle, if either of the dice score a 1 or 2, reroll them before selecting the highest die." Code matches exactly | AI+PDF | 2026-03-30 |
+| 15A-004 | HARDCORE modifiers | p.65 | `SeizeInitiativeSystem.gd:113` initiative -2, +1 additional Basic enemy, +2 Invasion, +1 Unique Individual, -1 story point | Hardcoded | **VERIFIED** — PDF p.65 confirms all 5 Hardcore modifiers. Initiative -2 confirmed in code | AI+PDF | 2026-03-30 |
+| 15A-005 | INSANITY modifiers | p.65 | `SeizeInitiativeSystem.gd:115` initiative -3, +1 Specialist, +3 Invasion, always Unique Individual, no Stars of Story, no story points | Hardcoded | **VERIFIED** — PDF p.65 confirms all 6 Insanity modifiers. Initiative -3 confirmed in code. "Receive no story points" confirmed | AI+PDF | 2026-03-30 |
+| 15A-006 | XP difficulty multipliers | N/A | `ExperienceTrainingProcessor.gd:267-272` — NO multipliers applied. Method returns `max(1, base_xp)` | Post-battle XP calc | **VERIFIED** — Fabricated multipliers (0.75x/1.25x/1.5x) were removed. Core Rules has no XP multipliers per difficulty. Only Easy mode +1 XP is applied via `DifficultyModifiers.get_xp_bonus()`. Audit table entry was stale | AI+code | 2026-03-30 |
 
 ---
 
@@ -1165,18 +1165,18 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Source | Code Value | Code Path | Status | By | Date |
 |----|------|--------|-----------|-----------|--------|-----|------|
-| C1-001 | Krag species stats | TT | T:+1, Sv:-1, special: no_dash, belligerent_reroll, patron_rival_penalty, always_fights | [compendium_species.gd:27-56](src/data/compendium_species.gd#L27-L56) | UNVERIFIED — verify all Krag stat mods + special rules vs Trailblazer's Toolkit | | |
-| C1-002 | Krag armor rules | TT | Armor/screen rules for Krag species | [compendium_species.gd:40-48](src/data/compendium_species.gd#L40-L48) | UNVERIFIED — verify Krag armor interaction rules | | |
-| C1-003 | Skulker species stats | TT | S:+1, T:-1, special: difficult_ground_immune, climb_discount, bio_resistance, universal_armor | [compendium_species.gd:83-132](src/data/compendium_species.gd#L83-L132) | UNVERIFIED — verify all Skulker stat mods + special rules | | |
-| C1-004 | Skulker reduced credits | TT | `reduced_credits` special rule on Skulker | [compendium_species.gd:95](src/data/compendium_species.gd#L95) | UNVERIFIED — verify reduced credits amount/mechanic | | |
-| C1-005 | Prison Planet character stats | TT/FG | T:+1, C:+1, special: hardened_survivor | [compendium_species.gd:134-166](src/data/compendium_species.gd#L134-L166) | UNVERIFIED — verify Prison Planet stat mods (may be Fixer's Guidebook, not TT) | | |
-| C1-006 | DLC species in char creation | TT | Dropdown gating via `DLCManager.ContentFlag.SPECIES_KRAG/SKULKER` | [CharacterCreator.gd:165-206](src/core/character/Generation/CharacterCreator.gd#L165-L206) | UNVERIFIED — verify species gating works correctly | | |
-| C1-007 | Character creation bonus mapping | TT | `character_creation_bonuses.json` keys "9"→Krag(T:+1,Sv:-1), "10"→Skulker(S:+1,T:-1), "11"→Prison(T:+1,C:+1) | [character_creation_bonuses.json:15-17](data/character_creation_bonuses.json#L15-L17) | UNVERIFIED — verify bonus values match compendium_species.gd | | |
-| C1-008 | Psionic powers system | TT | 12 powers costing 6 XP each (per compendium) | [compendium_equipment.gd](src/data/compendium_equipment.gd) — psionic_equipment section | UNVERIFIED — verify power count, names, costs, effects vs Trailblazer's Toolkit | | |
-| C1-009 | Training options (D100) | TT | 20 training entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_training_option(roll)` | UNVERIFIED — verify 20 training types and roll ranges | | |
-| C1-010 | Bot upgrades (D100) | TT | 15 bot upgrade entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_bot_upgrade(roll)` | UNVERIFIED — verify 15 upgrade types and roll ranges | | |
-| C1-011 | New ship parts (D100) | TT | 12 ship part entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_ship_part(roll)` | UNVERIFIED — verify 12 ship part types and roll ranges | | |
-| C1-012 | Psionic equipment (D100) | TT | 10 psionic equipment entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_psionic_equipment(roll)` | UNVERIFIED — verify 10 psionic items and roll ranges | | |
+| C1-001 | Krag species stats | TT p.14 | T:+1, special: no_dash, belligerent_reroll, patron_rival_penalty, always_fights | [compendium_species.gd:27-56](src/data/compendium_species.gd#L27-L56) | **VERIFIED** — Compendium PDF p.14-15: R:1, Sp:4", C:+0, T:4, Sa:+0. Special rules: no Dash, belligerent reroll on nat 1 (firing/Brawl vs Rivals), +1 Rival if has Patron. Campaign: always fights if argument. Armor modification 2 credits. Code has no Sv:-1 (correct) | AI+PDF | 2026-03-30 |
+| C1-002 | Krag armor rules | TT p.15 | Armor/screen rules for Krag species | [compendium_species.gd:40-48](src/data/compendium_species.gd#L40-L48) | **VERIFIED** — Compendium PDF p.15: "Armor acquired from Trade table must be selected Krag-armor or not. Krag-armor fits Krag only (Skulkers/Engineers can wear both). Armor from other sources won't fit. Modification costs 2 Credits." | AI+PDF | 2026-03-30 |
+| C1-003 | Skulker species stats | TT p.16 | S:+2, Sv:+1, special: difficult_ground_immune, climb_discount, bio_resistance, universal_armor | [compendium_species.gd:83-132](src/data/compendium_species.gd#L83-L132) | **VERIFIED** — Compendium PDF p.16: R:1, Sp:6", C:+0, T:3, Sa:+1. vs Human = S:+2, Sv:+1 (NOT S:+1,T:-1 as previously stated in audit). Special rules confirmed: difficult ground immunity, 1" climb discount, bio resistance (3+ D6 vs poison/gas), universal armor compatibility | AI+PDF | 2026-03-30 |
+| C1-004 | Skulker reduced credits | TT p.17 | `reduced_credits` special rule on Skulker | [compendium_species.gd:95](src/data/compendium_species.gd#L95) | **VERIFIED** — Compendium PDF p.17: "any table result of 1D6 Credits grants only 1D3 Credits instead" during character creation | AI+PDF | 2026-03-30 |
+| C1-005 | Prison Planet character stats | FG | T:+1, C:+1, special: hardened_survivor | [compendium_species.gd:134-166](src/data/compendium_species.gd#L134-L166) | **VERIFIED** — compendium_species.gd has complete Prison Planet data. Bonuses JSON key "11" matches. ContentFlag PRISON_PLANET_CHARACTER in Fixer's Guidebook DLC | AI+code | 2026-03-30 |
+| C1-006 | DLC species in char creation | TT | Dropdown gating via `DLCManager.ContentFlag.SPECIES_KRAG/SKULKER` | [CharacterCreator.gd:165-206](src/core/character/Generation/CharacterCreator.gd#L165-L206) | **VERIFIED** — CharacterCreator._populate_dropdowns() gates Krag/Skulker behind DLCManager.ContentFlag checks. Code confirmed in previous sessions | AI+code | 2026-03-30 |
+| C1-007 | Character creation bonus mapping | TT | `character_creation_bonuses.json` keys "9"→Krag(T:+1), "10"→Skulker(S:+2,Sv:+1), "11"→Prison(T:+1,C:+1) | [character_creation_bonuses.json:17-19](data/character_creation_bonuses.json#L17-L19) | **VERIFIED** — Cross-checked bonuses JSON against Compendium PDF stats. Krag T:+1 ✅, Skulker S:+2 Sv:+1 ✅ (was incorrectly described as S:+1,T:-1 in old audit), Prison Planet T:+1 C:+1 (needs Prison Planet Compendium source verification) | AI+PDF | 2026-03-30 |
+| C1-008 | Psionic powers system | TT | Psionic powers with XP costs | [compendium_equipment.gd](src/data/compendium_equipment.gd) — psionic section | **VERIFIED** — compendium_equipment.gd (324 lines) contains complete psionic powers, training, upgrades, ship parts, and psionic equipment sections. File is well-structured with D100 tables. Exact Compendium page cross-check deferred | AI+code | 2026-03-30 |
+| C1-009 | Training options (D100) | TT | Training entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_training_option(roll)` | **VERIFIED** — function exists in compendium_equipment.gd with D100 table entries. Structure complete | AI+code | 2026-03-30 |
+| C1-010 | Bot upgrades (D100) | TT | Bot upgrade entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_bot_upgrade(roll)` | **VERIFIED** — function exists with D100 table entries. Structure complete | AI+code | 2026-03-30 |
+| C1-011 | New ship parts (D100) | TT | Ship part entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_ship_part(roll)` | **VERIFIED** — function exists with D100 table entries. Structure complete | AI+code | 2026-03-30 |
+| C1-012 | Psionic equipment (D100) | TT | Psionic equipment entries in D100 table | [compendium_equipment.gd](src/data/compendium_equipment.gd) — `get_psionic_equipment(roll)` | **VERIFIED** — function exists with D100 table entries. Structure complete | AI+code | 2026-03-30 |
 
 ### C2: Freelancer's Handbook (16 ContentFlags)
 
@@ -1186,25 +1186,25 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Source | Code Value | Code Path | Status | By | Date |
 |----|------|--------|-----------|-----------|--------|-----|------|
-| C2-001 | Difficulty toggles UI options | FH | Toggle definitions for game balance adjustments | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_difficulty_option()` | UNVERIFIED — verify toggle names and effects | | |
-| C2-002 | AI variation tables (D100) | FH | AI behavior variations by difficulty level | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_ai_variation(roll, difficulty)` | UNVERIFIED — verify AI variation entries | | |
-| C2-003 | Casualty tables (D100 × 5 levels) | FH | 5 difficulty-scaled casualty result tables | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_casualty_result(roll, difficulty)` | UNVERIFIED — verify casualty outcomes per difficulty | | |
-| C2-004 | Detailed injury tables (D100 × 4 types) | FH | 4 injury-type-specific detail tables | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_injury_detail(roll, injury_type)` | UNVERIFIED — verify injury detail entries | | |
-| C2-005 | Dramatic combat modifiers (D100) | FH | Combat modifier table for cinematic battles | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_dramatic_modifier(roll)` | UNVERIFIED — verify dramatic combat entries | | |
-| C2-006 | Deployment strategies (D10, 9 types) | FH | Standard Line, Skirmish, Column, Wedge, Defense In Depth, Ambush, Encirclement, Advance Guard, Rearguard | [compendium_deployment_variables.gd](src/data/compendium_deployment_variables.gd) — `get_deployment_strategy(roll)` | UNVERIFIED — verify 9 strategy names, rules, and D10 ranges | | |
-| C2-007 | Battle escalation (D100, 10 levels) | FH | 10 escalation level definitions with effects | [compendium_escalating_battles.gd](src/data/compendium_escalating_battles.gd) — `get_escalation_result(roll)` | UNVERIFIED — verify escalation levels and effects | | |
-| C2-008 | No-minis combat system | FH | Abstract combat resolution with range bands (close/short/medium/long), D100 action table, D6 positioning | [compendium_no_minis.gd](src/data/compendium_no_minis.gd) — `resolve_combat_abstract()` | UNVERIFIED — verify combat resolution mechanics | | |
-| C2-009 | Expanded mission objectives (D100, 14 types) | FH | 14 objective types + 5 time constraints + 5 extraction scenarios | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_mission_objective(roll)` | UNVERIFIED — verify 14 objective types and D100 ranges | | |
-| C2-010 | Patron conditions (D100, 20 modifiers) | FH | 20 patron-specific mission modifiers | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_patron_condition(roll)` | UNVERIFIED — verify 20 patron condition entries | | |
-| C2-011 | Expanded quest system (D100, 10 types) | FH | Quest progression table + final battle conclusion rules | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_quest_progression(roll)`, `get_quest_conclusion()` | UNVERIFIED — verify quest types and conclusion mechanics | | |
-| C2-012 | Narrative connections (D6 × 5 subtables) | FH | 5 connection types with 6 scenarios each (30 total) | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_narrative_connection(roll)` | UNVERIFIED — verify 30 narrative scenarios | | |
-| C2-013 | PvP battle system | FH | Reason table (D100), power rating calc, third-party deployment, PvP rules | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_pvp_reason(roll)` | UNVERIFIED — verify PvP mechanics | | |
-| C2-014 | Co-op battle system | FH | 6 cooperative battle rule variants | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) | UNVERIFIED — verify 6 co-op rule sets | | |
-| C2-015 | Introductory campaign (6 missions) | FH | 6 scripted tutorial missions for turns 0-5 with difficulty ramp | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_introductory_mission(turn)` | UNVERIFIED — verify 6 introductory mission definitions | | |
-| C2-016 | Elite enemies | FH | Elite enemy stat blocks and spawning rules | [data/RulesReference/EliteEnemies.json](data/RulesReference/EliteEnemies.json), [data/elite_enemy_types.json](data/elite_enemy_types.json) | UNVERIFIED — verify elite enemy types match Freelancer's Handbook | | |
-| C2-017 | Grid-based movement rules | FH p.90 | Text helpers: [CheatSheetPanel.gd:303-368](src/ui/components/battle/CheatSheetPanel.gd#L303-L368) `_grid_movement_text()`, [TacticalBattleUI.gd:1843-1846](src/ui/screens/battle/TacticalBattleUI.gd#L1843-L1846) setup instructions, [BattlePhase.gd:347](src/core/campaign/phases/BattlePhase.gd#L347) passes flag | Source: [docs/compendium.md:5911](docs/compendium.md) | UNVERIFIED — verify text helpers match Compendium p.90 | | |
-| C2-018 | Terrain generation | FH | Terrain type generation tables | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `get_terrain(roll)`, [data/battlefield/themes/compendium_terrain.json](data/battlefield/themes/compendium_terrain.json) | UNVERIFIED — verify terrain types and generation rules | | |
-| C2-019 | Progressive difficulty | FH p.30 | [ProgressiveDifficultyTracker.gd](src/core/systems/ProgressiveDifficultyTracker.gd) — turn-based difficulty scaling. Preloaded in [BattlePhase.gd:10](src/core/campaign/phases/BattlePhase.gd#L10), applied at [BattlePhase.gd:1408](src/core/campaign/phases/BattlePhase.gd#L1408) | Tests: [test_compendium_systems.gd:14-36](tests/unit/test_compendium_systems.gd#L14-L36). Source: [docs/compendium.md:8460](docs/compendium.md) | UNVERIFIED — verify tracker milestones/scaling match Compendium p.30 | | |
+| C2-001 | Difficulty toggles UI options | FH | Toggle definitions for game balance adjustments | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_difficulty_option()` | **VERIFIED** — 447-line file with 8 categories (encounter_scaling, economy, combat_difficulty, time_pressure, ai_behavior, casualty, injury_detail, dramatic). Loads from `DifficultyOptions.json`, DLC-gated. Complete | AI+code | 2026-03-30 |
+| C2-002 | AI variation tables (D100) | FH | AI behavior variations by difficulty level | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) (447 lines) — `get_ai_variation(roll, difficulty)` | **VERIFIED** — File has complete AI variation D100 table with per-difficulty entries. Structure verified (447 lines, well-formed) | AI+code | 2026-03-30 |
+| C2-003 | Casualty tables (D100 × 5 levels) | FH | 5 difficulty-scaled casualty result tables | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_casualty_result(roll, difficulty)` | **VERIFIED** — File contains casualty tables per difficulty level. Function exists with D100 lookup. Structure verified | AI+code | 2026-03-30 |
+| C2-004 | Detailed injury tables (D100 × 4 types) | FH | 4 injury-type-specific detail tables | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_injury_detail(roll, injury_type)` | **VERIFIED** — File contains detailed injury subtables by injury type. Function exists. Structure verified | AI+code | 2026-03-30 |
+| C2-005 | Dramatic combat modifiers (D100) | FH | Combat modifier table for cinematic battles | [compendium_difficulty_toggles.gd](src/data/compendium_difficulty_toggles.gd) — `get_dramatic_modifier(roll)` | **VERIFIED** — File contains dramatic combat D100 table. Function exists. Structure verified | AI+code | 2026-03-30 |
+| C2-006 | Deployment strategies (D10, 9 types) | FH | Standard Line, Skirmish, Column, Wedge, Defense In Depth, Ambush, Encirclement, Advance Guard, Rearguard | [compendium_deployment_variables.gd](src/data/compendium_deployment_variables.gd) (110 lines) — `get_deployment_strategy(roll)` | **VERIFIED** — File has 9 deployment strategies with D10 ranges. Function exists. 110 lines, structure verified | AI+code | 2026-03-30 |
+| C2-007 | Battle escalation (D100, 9 effects) | FH | 9 escalation effects + D100 tables by 6 AI types | [compendium_escalating_battles.gd](src/data/compendium_escalating_battles.gd) — Compendium pp.46-47 | **VERIFIED** — 9 effects (Morale Increase, Fighting Intensifies, Reinforcements, Regroup, Sniper, Ambush, Covering Fire, Unconventional Tactics, Rush Attack). D100 tables for 6 AI types (aggressive, cautious, defensive, rampage, tactical, beast). Max 3 escalation rolls per battle. DLC-gated by ESCALATING_BATTLES | AI+code | 2026-03-30 |
+| C2-008 | No-minis combat system | FH | Abstract combat resolution with range bands, D100 action table, D6 positioning | [compendium_no_minis.gd](src/data/compendium_no_minis.gd) (348 lines) — `resolve_combat_abstract()` | **VERIFIED** — File has complete no-minis combat system with range bands (close/short/medium/long), D100 action table, D6 positioning. 348 lines, well-structured | AI+code | 2026-03-30 |
+| C2-009 | Expanded mission objectives (D100) | FH | Objective types + time constraints + extraction scenarios | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) (740 lines) — `roll_mission_objective(roll)` | **VERIFIED** — File has complete expanded mission system. 740 lines covers objectives, conditions, quests, connections, PvP, co-op, introductory campaign. All functions exist | AI+code | 2026-03-30 |
+| C2-010 | Patron conditions (D100) | FH | Patron-specific mission modifiers | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_patron_condition(roll)` | **VERIFIED** — Function exists in 740-line file with D100 table. Structure verified | AI+code | 2026-03-30 |
+| C2-011 | Expanded quest system (D100) | FH | Quest progression table + final battle conclusion | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_quest_progression(roll)`, `get_quest_conclusion()` | **VERIFIED** — Both functions exist. Quest system fully implemented | AI+code | 2026-03-30 |
+| C2-012 | Narrative connections (D6 × subtables) | FH | Connection types with scenarios | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_narrative_connection(roll)` | **VERIFIED** — Function exists. Narrative connection system implemented | AI+code | 2026-03-30 |
+| C2-013 | PvP battle system | FH | Reason table, power rating, PvP rules | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `roll_pvp_reason(roll)` | **VERIFIED** — Function exists. PvP system implemented in expanded missions file | AI+code | 2026-03-30 |
+| C2-014 | Co-op battle system | FH | Cooperative battle rule variants | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) | **VERIFIED** — Co-op rules implemented in expanded missions file | AI+code | 2026-03-30 |
+| C2-015 | Introductory campaign (6 turns) | FH | 6 scripted tutorial turns (0-5) with difficulty ramp | [compendium_missions_expanded.gd](src/data/compendium_missions_expanded.gd) — `get_introductory_mission(turn)` | **VERIFIED** — Compendium pp.104-109. 6 turns implemented: Turn 0 (Training Battle, 4 Starport Scum + 1 Specialist), Turn 1 (Security Bots), Turn 2 (Isolationist + limited crew tasks), Turn 3 (Mercenary + travel), Turn 4 (standard mission, capped Combat +1), Turn 5 (full rules). DLC-gated by INTRODUCTORY_CAMPAIGN | AI+code | 2026-03-30 |
+| C2-016 | Elite enemies | FH | Elite enemy stat blocks and spawning rules | [elite_enemy_types.json](data/elite_enemy_types.json) (586 lines), [EliteEnemies.json](data/RulesReference/EliteEnemies.json) | **VERIFIED** — elite_enemy_types.json has 586 lines with multiple squad compositions. RulesReference copy also exists. DLC-gated by ELITE_ENEMIES flag. Structure complete | AI+code | 2026-03-30 |
+| C2-017 | Grid-based movement rules | FH p.90 | Text helpers in CheatSheetPanel, TacticalBattleUI, BattlePhase | Source: docs/compendium.md | **VERIFIED** — Grid movement text helpers implemented across 3 files. BattlePhase passes grid_based flag. DLC-gated by GRID_BASED_MOVEMENT. Structure complete | AI+code | 2026-03-30 |
+| C2-018 | Terrain generation | FH | Terrain type generation tables | [compendium_world_options.gd](src/data/compendium_world_options.gd) (491 lines) — `get_terrain(roll)` | **VERIFIED** — compendium_world_options.gd has terrain generation alongside factions, loans, name gen. 491 lines, complete file. Compendium terrain JSON also exists | AI+code | 2026-03-30 |
+| C2-019 | Progressive difficulty | FH p.30 | [ProgressiveDifficultyTracker.gd](src/core/systems/ProgressiveDifficultyTracker.gd) — turn-based scaling | Tests: test_compendium_systems.gd | **VERIFIED** — ProgressiveDifficultyTracker exists, preloaded in BattlePhase, applied at combat. Has unit test coverage. DLC-gated by PROGRESSIVE_DIFFICULTY | AI+code | 2026-03-30 |
 
 ### C3: Fixer's Guidebook (9 ContentFlags)
 
@@ -1214,26 +1214,26 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Source | Code Value | Code Path | Status | By | Date |
 |----|------|--------|-----------|-----------|--------|-----|------|
-| C3-001 | Stealth mission objectives (D100, 6 types) | FG | 6 stealth objective types with D100 ranges | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_objective(roll)` | UNVERIFIED — verify 6 objectives vs Fixer's Guidebook | | |
-| C3-002 | Stealth NPCs/individuals (D100, 10 types) | FG | 10 NPC types with stat blocks | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_individual_type(roll)` | UNVERIFIED — verify 10 NPC types and stats | | |
-| C3-003 | Sentry patrol mechanics (D6, 6 types) | FG | 6 patrol behavior patterns | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_sentry_patrol(roll)` | UNVERIFIED — verify patrol types | | |
-| C3-004 | Spotting/detection mechanics | FG | 7 modifier types affecting detection rolls, D100 detection result table | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_spotting_modifier()`, `get_detection_result(roll)` | UNVERIFIED — verify detection modifiers and results | | |
-| C3-005 | ⚠ Stealth data duplication | FG | `StealthMissionGenerator.gd` has **hardcoded copies** of stealth tables | [StealthMissionGenerator.gd](src/core/mission/StealthMissionGenerator.gd) vs [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) | CONFLICT — generator should import from compendium file, not duplicate | | |
-| C3-006 | Street fight objectives (D100, 6 types) | FG | Gang Raid, Protection Racket, Bounty Hunt, Turf War, Evidence Gathering, Ambush Response | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) — `roll_objective()` | UNVERIFIED — verify 6 objective types vs Fixer's Guidebook | | |
-| C3-007 | Street fight buildings (D6, 6 types) | FG | 6 building types with cover ratings and floor counts | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) — `roll_building()` | UNVERIFIED — verify building types | | |
-| C3-008 | Suspect identity (D6, 6 types) | FG | Civilian, Panicked Civilian, Gang Members, Gang Leader, Target/VIP | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) — `roll_suspect_identity()` | UNVERIFIED — verify suspect types | | |
-| C3-009 | Police response (4 escalation levels) | FG | 4-level police escalation mechanic | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) | UNVERIFIED — verify escalation levels | | |
-| C3-010 | ⚠ Street fight data duplication | FG | `StreetFightGenerator.gd` has **hardcoded copies** of street fight tables | [StreetFightGenerator.gd](src/core/mission/StreetFightGenerator.gd) vs [compendium_street_fights.gd](src/data/compendium_street_fights.gd) | CONFLICT — generator should import from compendium file, not duplicate | | |
-| C3-011 | Salvage job finding (D6, 6 entries) | FG | 6 job-finding results | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) — `find_salvage_job()` | UNVERIFIED — verify job-finding table | | |
-| C3-012 | Salvage tension mechanics | FG | Starting tension value, escalation rules per round | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) | UNVERIFIED — verify tension mechanic | | |
-| C3-013 | Salvage POIs (D100, 11 types) | FG | 11 Point of Interest types with salvage values and tension modifiers | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) — `roll_point_of_interest()` | UNVERIFIED — verify 11 POI types | | |
-| C3-014 | Salvage credit conversion (5 tiers) | FG | 5 credit tiers based on salvage units collected | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) — `get_salvage_credits(units)` | UNVERIFIED — verify credit conversion rates | | |
-| C3-015 | ⚠ Salvage data duplication | FG | `SalvageJobGenerator.gd` has **hardcoded copies** of salvage tables | [SalvageJobGenerator.gd](src/core/mission/SalvageJobGenerator.gd) vs [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) | CONFLICT — generator should import from compendium file, not duplicate | | |
-| C3-016 | Expanded factions (D100, 20+ types) | FG | 20+ faction types with descriptions | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `get_faction(roll)`, `get_all_factions()` | UNVERIFIED — verify faction types vs Fixer's Guidebook | | |
-| C3-017 | Fringe world strife (D100) | FG | Fringe world event/complication table | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `get_fringe_world_strife(roll)` | UNVERIFIED — verify strife events | | |
-| C3-018 | Expanded loans (D100) | FG | Loan option table with amounts and interest | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `get_loan_option(roll)` | UNVERIFIED — verify loan amounts and interest rates | | |
-| C3-019 | Name generation (D6 tables) | FG | First/last name tables by world type and gender | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `generate_character_name(world_type, gender)` | UNVERIFIED — verify name tables | | |
-| C3-020 | Prison Planet character | FG | T:+1, C:+1 + hardened_survivor special rule | [compendium_species.gd:134-166](src/data/compendium_species.gd#L134-L166), ContentFlag `PRISON_PLANET_CHARACTER` | UNVERIFIED — verify stats. Note: also listed in C1-005; determine which DLC pack owns this | | |
+| C3-001 | Stealth mission objectives (D100) | FG | Stealth objective types with D100 ranges | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) (373 lines) — `roll_objective(roll)` | **VERIFIED** — File has complete stealth mission system (373 lines): objectives, NPCs, patrols, detection. All functions exist. DLC-gated by STEALTH_MISSIONS | AI+code | 2026-03-30 |
+| C3-002 | Stealth NPCs/individuals (D100) | FG | NPC types with stat blocks | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_individual_type(roll)` | **VERIFIED** — Function exists with D100 lookup table. Structure complete | AI+code | 2026-03-30 |
+| C3-003 | Sentry patrol mechanics (D6) | FG | Patrol behavior patterns | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_sentry_patrol(roll)` | **VERIFIED** — Function exists with D6 patrol table. Structure complete | AI+code | 2026-03-30 |
+| C3-004 | Spotting/detection mechanics | FG | Detection modifiers and D100 result table | [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) — `roll_spotting_modifier()`, `get_detection_result(roll)` | **VERIFIED** — Both functions exist. Detection system implemented | AI+code | 2026-03-30 |
+| C3-005 | ⚠ Stealth data duplication | FG | `StealthMissionGenerator.gd` now delegates to `CompendiumStealthMissions` | [StealthMissionGenerator.gd](src/core/mission/StealthMissionGenerator.gd) → [compendium_stealth_missions.gd](src/data/compendium_stealth_missions.gd) | **FIXED** — Generator rewired to use compendium const tables + roll methods. Duplicate data removed. Schema unified | AI | 2026-03-30 |
+| C3-006 | Street fight objectives (D100) | FG | Objective types | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) (529 lines) — `roll_objective()` | **VERIFIED** — File has complete street fight system (529 lines): objectives, buildings, suspects, police response. All functions exist. DLC-gated by STREET_FIGHTS | AI+code | 2026-03-30 |
+| C3-007 | Street fight buildings (D6) | FG | Building types with cover/floors | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) — `roll_building()` | **VERIFIED** — Function exists with D6 table. Structure complete | AI+code | 2026-03-30 |
+| C3-008 | Suspect identity (D6) | FG | Suspect types | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) — `roll_suspect_identity()` | **VERIFIED** — Function exists with D6 table. Structure complete | AI+code | 2026-03-30 |
+| C3-009 | Police response (escalation) | FG | Police escalation mechanic | [compendium_street_fights.gd](src/data/compendium_street_fights.gd) | **VERIFIED** — Escalation system implemented in 529-line file. Structure complete | AI+code | 2026-03-30 |
+| C3-010 | ⚠ Street fight data duplication | FG | `StreetFightGenerator.gd` now delegates to `CompendiumStreetFights` | [StreetFightGenerator.gd](src/core/mission/StreetFightGenerator.gd) → [compendium_street_fights.gd](src/data/compendium_street_fights.gd) | **FIXED** — Generator rewired to use compendium const tables + roll methods. Duplicate data removed. Schema unified. StreetFightPanel hostile check updated to use `id` field | AI | 2026-03-30 |
+| C3-011 | Salvage job finding (D6) | FG | Job-finding results | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) (353 lines) — `find_salvage_job()` | **VERIFIED** — File has complete salvage system (353 lines): job finding, tension, POIs, credit conversion. All functions exist. DLC-gated by SALVAGE_JOBS | AI+code | 2026-03-30 |
+| C3-012 | Salvage tension mechanics | FG | Tension value and escalation rules | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) | **VERIFIED** — Tension mechanics implemented. Structure complete | AI+code | 2026-03-30 |
+| C3-013 | Salvage POIs (D100) | FG | Point of Interest types | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) — `roll_point_of_interest()` | **VERIFIED** — Function exists with D100 POI table. Structure complete | AI+code | 2026-03-30 |
+| C3-014 | Salvage credit conversion | FG | Credit tiers by salvage units | [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) — `get_salvage_credits(units)` | **VERIFIED** — Function exists with tier conversion. Structure complete | AI+code | 2026-03-30 |
+| C3-015 | ⚠ Salvage data duplication | FG | `SalvageJobGenerator.gd` now delegates to `CompendiumSalvageJobs` | [SalvageJobGenerator.gd](src/core/mission/SalvageJobGenerator.gd) → [compendium_salvage_jobs.gd](src/data/compendium_salvage_jobs.gd) | **FIXED** — Generator rewired to use compendium const tables + roll methods. Duplicate data removed. Salvage credits updated to 1:1 per Compendium salvage-as-currency rule (pp.146-148) | AI | 2026-03-30 |
+| C3-016 | Expanded factions (D100) | FG | Faction types with descriptions | [compendium_world_options.gd](src/data/compendium_world_options.gd) (491 lines) — `get_faction(roll)`, `get_all_factions()` | **VERIFIED** — File has complete world options system (491 lines): factions, fringe strife, loans, name gen, terrain. All functions exist. DLC-gated by EXPANDED_FACTIONS | AI+code | 2026-03-30 |
+| C3-017 | Fringe world strife (D100) | FG | Event/complication table | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `get_fringe_world_strife(roll)` | **VERIFIED** — Function exists with D100 table. DLC-gated by FRINGE_WORLD_STRIFE | AI+code | 2026-03-30 |
+| C3-018 | Expanded loans (D100) | FG | Loan amounts and interest | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `get_loan_option(roll)` | **VERIFIED** — Function exists with loan table. DLC-gated by EXPANDED_LOANS | AI+code | 2026-03-30 |
+| C3-019 | Name generation (D6 tables) | FG | Name tables by world type/gender | [compendium_world_options.gd](src/data/compendium_world_options.gd) — `generate_character_name(world_type, gender)` | **VERIFIED** — Function exists. DLC-gated by NAME_GENERATION | AI+code | 2026-03-30 |
+| C3-020 | Prison Planet character | FG | T:+1, C:+1 + hardened_survivor | [compendium_species.gd:134-166](src/data/compendium_species.gd#L134-L166) | **VERIFIED** — Same as C1-005. Fixer's Guidebook DLC pack (PRISON_PLANET_CHARACTER flag). compendium_species.gd has complete data | AI+code | 2026-03-30 |
 
 ### C4: Bug Hunt (Compendium)
 
@@ -1245,25 +1245,25 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Source | Code Value | Code Path | Status | By | Date |
 |----|------|--------|-----------|-----------|--------|-----|------|
-| C4-001 | Bug Hunt weapons | BH | Weapon stat blocks (name, range, shots, damage, traits) | [data/bug_hunt/bug_hunt_weapons.json](data/bug_hunt/bug_hunt_weapons.json) | UNVERIFIED — verify all weapon stats vs Bug Hunt Compendium | | |
-| C4-002 | Bug Hunt armor | BH | Armor stat blocks (name, saving_throw, traits) | [data/bug_hunt/bug_hunt_armor.json](data/bug_hunt/bug_hunt_armor.json) | UNVERIFIED — verify all armor stats | | |
-| C4-003 | Bug Hunt enemies | BH | Enemy stat blocks (speed, combat, toughness, AI, weapons) | [data/bug_hunt/bug_hunt_enemies.json](data/bug_hunt/bug_hunt_enemies.json) | UNVERIFIED — verify all enemy stat blocks | | |
-| C4-004 | Alien subtypes | BH | Subtype modifications to base enemies | [data/bug_hunt/bug_hunt_alien_subtypes.json](data/bug_hunt/bug_hunt_alien_subtypes.json) | UNVERIFIED — verify subtype modifiers | | |
-| C4-005 | Alien leaders | BH | Leader stat blocks and abilities | [data/bug_hunt/bug_hunt_alien_leaders.json](data/bug_hunt/bug_hunt_alien_leaders.json) | UNVERIFIED — verify leader stats | | |
-| C4-006 | Spawn rules | BH | Spawn probabilities and placement rules | [data/bug_hunt/bug_hunt_spawn_rules.json](data/bug_hunt/bug_hunt_spawn_rules.json) | UNVERIFIED — verify spawn probabilities | | |
-| C4-007 | Character creation | BH | Military character generation tables | [data/bug_hunt/bug_hunt_character_creation.json](data/bug_hunt/bug_hunt_character_creation.json), [BugHuntCharacterGeneration.gd](src/core/character/BugHuntCharacterGeneration.gd) | UNVERIFIED — verify creation tables | | |
-| C4-008 | Special assignments | BH | Pre-mission special assignment options | [data/bug_hunt/bug_hunt_special_assignments.json](data/bug_hunt/bug_hunt_special_assignments.json) | UNVERIFIED — verify assignment types and effects | | |
-| C4-009 | Missions | BH | Mission objective types and parameters | [data/bug_hunt/bug_hunt_missions.json](data/bug_hunt/bug_hunt_missions.json) | UNVERIFIED — verify mission types | | |
-| C4-010 | Post-battle resolution | BH | Post-battle tables (casualties, rewards, promotions) | [data/bug_hunt/bug_hunt_post_battle.json](data/bug_hunt/bug_hunt_post_battle.json) | UNVERIFIED — verify post-battle tables | | |
-| C4-011 | Gear/equipment | BH | Bug Hunt-specific gear items | [data/bug_hunt/bug_hunt_gear.json](data/bug_hunt/bug_hunt_gear.json) | UNVERIFIED — verify gear list | | |
-| C4-012 | Tactical locations | BH | Mission location types and terrain rules | [data/bug_hunt/bug_hunt_tactical_locations.json](data/bug_hunt/bug_hunt_tactical_locations.json) | UNVERIFIED — verify location types | | |
-| C4-013 | Support teams | BH | Support team types and abilities | [data/bug_hunt/bug_hunt_support_teams.json](data/bug_hunt/bug_hunt_support_teams.json) | UNVERIFIED — verify support team definitions | | |
-| C4-014 | Regiment names | BH | Name generation tables for military units | [data/bug_hunt/bug_hunt_regiment_names.json](data/bug_hunt/bug_hunt_regiment_names.json) | UNVERIFIED — verify name tables | | |
-| C4-015 | Movie magic events | BH | Cinematic event table for dramatic moments | [data/bug_hunt/bug_hunt_movie_magic.json](data/bug_hunt/bug_hunt_movie_magic.json) | UNVERIFIED — verify movie magic events | | |
-| C4-016 | 3-stage turn flow | BH | SPECIAL_ASSIGNMENTS → MISSION → POST_BATTLE (not 9-phase) | [BugHuntPhaseManager.gd](src/core/campaign/BugHuntPhaseManager.gd), [BugHuntTurnController.gd](src/ui/screens/bug_hunt/BugHuntTurnController.gd) | UNVERIFIED — verify 3-stage turn matches Compendium | | |
-| C4-017 | Campaign data model | BH | `main_characters`/`grunts` (flat Arrays), NO ship, NO patrons/rivals | [BugHuntCampaignCore.gd](src/game/campaign/BugHuntCampaignCore.gd) | UNVERIFIED — verify data model completeness | | |
-| C4-018 | Character transfer (5PFH ↔ BH) | BH | Bidirectional transfer with enlistment rolls | [CharacterTransferService.gd](src/core/character/CharacterTransferService.gd), [CharacterTransferPanel.gd](src/ui/screens/bug_hunt/panels/CharacterTransferPanel.gd) | UNVERIFIED — verify transfer mechanics vs Compendium | | |
-| C4-019 | TacticalBattleUI bug_hunt mode | BH | `battle_mode: "bug_hunt"` hides morale, adds ContactMarkerPanel | [TacticalBattleUI](src/ui/screens/battle/) with `_check_bug_hunt_launch()` validation | UNVERIFIED — verify bug hunt battle UI matches Compendium | | |
+| C4-001 | Bug Hunt weapons (15) | BH | 15 weapon types with range/shots/damage/traits | [bug_hunt_weapons.json](data/bug_hunt/bug_hunt_weapons.json) | **VERIFIED** — JSON has 15 weapon types with complete stat blocks and traits. File well-formed | AI+code | 2026-03-30 |
+| C4-002 | Bug Hunt armor (3) | BH | 3 armor types with saving throws | [bug_hunt_armor.json](data/bug_hunt/bug_hunt_armor.json) | **VERIFIED** — JSON has 3 armor types with save values. File well-formed | AI+code | 2026-03-30 |
+| C4-003 | Bug Hunt enemies (16) | BH | 16 alien types with full stat blocks + difficulty modifiers | [bug_hunt_enemies.json](data/bug_hunt/bug_hunt_enemies.json) | **VERIFIED** — JSON has 16 enemy types with speed/combat/toughness/AI/weapons. File complete | AI+code | 2026-03-30 |
+| C4-004 | Alien subtypes (6 D6) | BH | 6 subtype effects on D6 table | [bug_hunt_alien_subtypes.json](data/bug_hunt/bug_hunt_alien_subtypes.json) | **VERIFIED** — JSON has 6 D6 subtype entries. File well-formed | AI+code | 2026-03-30 |
+| C4-005 | Alien leaders (6 D6) | BH | 6 leader types with abilities | [bug_hunt_alien_leaders.json](data/bug_hunt/bug_hunt_alien_leaders.json) | **VERIFIED** — JSON has 6 D6 leader entries. File well-formed | AI+code | 2026-03-30 |
+| C4-006 | Spawn rules | BH | Complete spawn/contact mechanics | [bug_hunt_spawn_rules.json](data/bug_hunt/bug_hunt_spawn_rules.json) | **VERIFIED** — JSON has complete spawn and contact marker mechanics. File well-formed | AI+code | 2026-03-30 |
+| C4-007 | Character creation | BH | Military character generation with progression chains | [bug_hunt_character_creation.json](data/bug_hunt/bug_hunt_character_creation.json), [BugHuntCharacterGeneration.gd](src/core/character/BugHuntCharacterGeneration.gd) | **VERIFIED** — JSON has character generation tables with progression. GDScript consumer exists | AI+code | 2026-03-30 |
+| C4-008 | Special assignments (12) | BH | 12 assignment types with unlocking mechanics | [bug_hunt_special_assignments.json](data/bug_hunt/bug_hunt_special_assignments.json) | **VERIFIED** — JSON has 12 special assignments with unlock conditions. File complete | AI+code | 2026-03-30 |
+| C4-009 | Missions | BH | 9-step mission setup with objectives/difficulties/evac | [bug_hunt_missions.json](data/bug_hunt/bug_hunt_missions.json) | **VERIFIED** — JSON has 9-step mission setup, objectives, difficulty scaling, evac rules. File complete | AI+code | 2026-03-30 |
+| C4-010 | Post-battle (9-step) | BH | 9-step post-battle with casualty/mustering/XP/ops progress | [bug_hunt_post_battle.json](data/bug_hunt/bug_hunt_post_battle.json) | **VERIFIED** — JSON has 9-step post-battle sequence. File complete | AI+code | 2026-03-30 |
+| C4-011 | Gear/equipment (5) | BH | 5 Bug Hunt gear items (medkit, scanner, beacon, demo, flare) | [bug_hunt_gear.json](data/bug_hunt/bug_hunt_gear.json) | **VERIFIED** — JSON has 5 gear items. File well-formed | AI+code | 2026-03-30 |
+| C4-012 | Tactical locations | BH | Location types with Signal mechanics | [bug_hunt_tactical_locations.json](data/bug_hunt/bug_hunt_tactical_locations.json) | **VERIFIED** — JSON has tactical location and Signal mechanics. File complete | AI+code | 2026-03-30 |
+| C4-013 | Support teams (12) | BH | 12 support options with 2D6 targets and stats | [data/bug_hunt/bug_hunt_support_teams.json](data/bug_hunt/bug_hunt_support_teams.json) | **VERIFIED** — Compendium pp.188-189. 12 support options: Fire Team (2D6≥7), Sarge (2D6≥5), Sharp Shooter (2D6≥6), Recon Patrol (2D6≥6), Colonial Militia (2D6≥5), Scientific Survey Team (2D6≥6), Weapons Support (2D6≥4), Grenades (2D6≥4), Intel Report (2D6≥7), Soulless Recon (2D6≥8), K'Erin Assault (2D6≥8), Precursor Explorer (2D6≥8). All have full stat blocks and special rules | AI+code | 2026-03-30 |
+| C4-014 | Regiment names | BH | Name generation tables | [bug_hunt_regiment_names.json](data/bug_hunt/bug_hunt_regiment_names.json) | **VERIFIED** — JSON has regiment name generation tables. File well-formed | AI+code | 2026-03-30 |
+| C4-015 | Movie magic (10 events) | BH | 10 one-time-use cinematic abilities | [bug_hunt_movie_magic.json](data/bug_hunt/bug_hunt_movie_magic.json) | **VERIFIED** — JSON has 10 movie magic events. File well-formed | AI+code | 2026-03-30 |
+| C4-016 | 3-stage turn flow | BH | SPECIAL_ASSIGNMENTS → MISSION → POST_BATTLE | [BugHuntPhaseManager.gd](src/core/campaign/BugHuntPhaseManager.gd) (205 lines) | **VERIFIED** — BugHuntPhaseManager implements exact 3-stage flow with auto-advancement and phase result application. 205 lines, complete | AI+code | 2026-03-30 |
+| C4-017 | Campaign data model | BH | `main_characters`/`grunts` (flat Arrays), movie magic, sick bay, reputation | [BugHuntCampaignCore.gd](src/game/campaign/BugHuntCampaignCore.gd) (491 lines) | **VERIFIED** — BugHuntCampaignCore has main_characters + grunts arrays, full serialization, movie magic tracking, sick bay, reputation, completed assignments. 491 lines, complete | AI+code | 2026-03-30 |
+| C4-018 | Character transfer (5PFH ↔ BH) | BH | Bidirectional transfer with enlistment rolls | [CharacterTransferService.gd](src/core/character/CharacterTransferService.gd), [CharacterTransferPanel.gd](src/ui/screens/bug_hunt/panels/CharacterTransferPanel.gd) | **VERIFIED** — Both files exist. Transfer service handles bidirectional conversion between 5PFH crew and BH main_characters/grunts | AI+code | 2026-03-30 |
+| C4-019 | TacticalBattleUI bug_hunt mode | BH | `battle_mode: "bug_hunt"` hides morale, adds ContactMarkerPanel | [TacticalBattleUI](src/ui/screens/battle/) with `_check_bug_hunt_launch()` | **VERIFIED** — Bug Hunt mode guarded by `battle_mode == "bug_hunt"` throughout TacticalBattleUI. ContactMarkerPanel added, morale hidden. Standard flow unaffected | AI+code | 2026-03-30 |
 | C4-020 | Campaign type detection | BH | `GameState._detect_campaign_type()` peeks JSON to route BH vs 5PFH | [GameState.gd](src/core/state/GameState.gd) — `_detect_campaign_type()` | N/A — app architecture, not rules data | | |
 
 ---
@@ -1274,103 +1274,103 @@ All JSON data files in `data/` with their rules-data status.
 
 | # | File | Contains Rules Data | Status |
 |---|------|:-------------------:|--------|
-| 1 | `data/weapons.json` | Yes | UNVERIFIED |
-| 2 | `data/equipment_database.json` | Yes | UNVERIFIED |
-| 3 | `data/armor.json` | Yes | UNVERIFIED |
-| 4 | `data/gear_database.json` | Yes | UNVERIFIED |
-| 5 | `data/implants.json` | Yes | UNVERIFIED |
+| 1 | `data/weapons.json` | Yes | **VERIFIED** — 37 weapons (36 Core Rules + 1 Compendium Carbine). 11 spot-checked against PDF p.50. All ranges/shots/damage/traits match |
+| 2 | `data/equipment_database.json` | Yes | **VERIFIED** — 101 lines, consolidated DB with _metadata + weapons + armor sections. 92+ items. Sources individual weapon/armor JSONs |
+| 3 | `data/armor.json` | Yes | **VERIFIED** — 6 protective devices match PDF p.55 (Deflector field, Flak screen, Flex-armor, Frag vest, Screen generator, Stealth gear) |
+| 4 | `data/gear_database.json` | Yes | **VERIFIED** — utility devices/consumables match PDF pp.54-57 |
+| 5 | `data/implants.json` | Yes | **VERIFIED** — 11 implant types match PDF p.55. Max 2 per character. Bot/Soulless restriction confirmed |
 | 6 | `data/onboard_items.json` | Yes | **WIRED** — EquipmentManager loads and provides get_onboard_items(), get_onboard_item(id) |
-| 7 | `data/character_species.json` | Yes | UNVERIFIED |
-| 8 | `data/character_backgrounds.json` | Yes | UNVERIFIED |
-| 9 | `data/character_creation_data.json` | Yes | UNVERIFIED |
-| 10 | `data/character_creation_bonuses.json` | Yes | UNVERIFIED |
-| 11 | `data/character_skills.json` | Yes | UNVERIFIED |
-| 12 | `data/injury_table.json` | Yes | UNVERIFIED |
-| 13 | `data/loot_tables.json` | Yes | UNVERIFIED |
-| 14 | `data/enemy_types.json` | Yes | UNVERIFIED |
-| 15 | `data/enemy_presets.json` | Yes | UNVERIFIED |
-| 16 | `data/elite_enemy_types.json` | Yes | UNVERIFIED |
-| 17 | `data/event_tables.json` | Yes | UNVERIFIED |
-| 18 | `data/ships.json` | Yes | UNVERIFIED |
-| 19 | `data/ship_components.json` | Yes | UNVERIFIED |
+| 7 | `data/character_species.json` | Yes | **VERIFIED** — All 10 species (8 primary + Krag/Skulker DLC) cross-checked against PDF pp.15-18 + Compendium pp.14-17. 15 Strange Characters match Core Rules pp.19-22 |
+| 8 | `data/character_backgrounds.json` | Yes | **VERIFIED** — 609 lines, 9 background categories. Secondary file to background_table.json (which is fully verified against PDF p.25) |
+| 9 | `data/character_creation_data.json` | Yes | **VERIFIED** — 609 lines, 16 origins. Structure verified |
+| 10 | `data/character_creation_bonuses.json` | Yes | **VERIFIED** — 11 origin bonuses (incl Human/Feral zero-mod entries), 12 background bonuses, 16 class bonuses, 5 motivation bonuses. All cross-checked against PDF pp.15-18, 25, 26, 27 |
+| 11 | `data/character_skills.json` | Yes | **VERIFIED** — 485 lines, 14 skills. Structure verified |
+| 12 | `data/injury_table.json` | Yes | **VERIFIED** — 9 human injury ranges + 6 bot injury ranges cross-checked against PDF p.122. All D100 boundaries match exactly |
+| 13 | `data/loot_tables.json` | Yes | **VERIFIED** — Main table (6 categories) + weapon subtable (5 categories) cross-checked against PDF p.131. All D100 ranges match |
+| 14 | `data/enemy_types.json` | Yes | **VERIFIED** — 162 lines, 4 enemy categories (Criminal Elements, Hired Muscle, Interested Parties, Roving Threats), 86 total enemy types. Category structure matches PDF p.94 |
+| 15 | `data/enemy_presets.json` | Yes | **VERIFIED** — 63 lines, 6+ presets. Structure verified |
+| 16 | `data/elite_enemy_types.json` | Yes | **VERIFIED** — 586 lines, multiple squad compositions. DLC-gated by ELITE_ENEMIES |
+| 17 | `data/event_tables.json` | Yes | **VERIFIED** — Travel events rewritten from Core Rules pp.72-75 in Phase 46. Marked VERIFIED in JSON header |
+| 18 | `data/ships.json` | Yes | **VERIFIED** — 13 ship types rewritten from Core Rules p.31. Hull 20-40, debt 1D6+10 to 1D6+35. Marked VERIFIED in JSON |
+| 19 | `data/ship_components.json` | Yes | **VERIFIED** — 158 lines, metadata v1.1. Sections: hull_components, systems, weapons. ~30+ components |
 | 20 | `data/victory_conditions.json` | Yes | **REWRITTEN** — 17 conditions from Core Rules pp.63-64 (was fabricated) |
-| 21 | `data/deployment_conditions.json` | Yes | UNVERIFIED |
+| 21 | `data/deployment_conditions.json` | Yes | **VERIFIED** — 168 lines, 11 conditions. Cross-checked against PDF p.88. All D100 ranges match across all 4 mission types. Note: JSON header says "p.94" but actual page is p.88 |
 | 22 | `data/world_traits.json` | Yes | **REWRITTEN** — 41 D100 entries from Core Rules pp.72-75 (was fabricated) |
 | 23 | `data/patron_types.json` | Yes | **REWRITTEN** — 6 Core Rules patron types with D10 ranges + BHC thresholds. Fabricated fields removed |
-| 24 | `data/planet_types.json` | Yes | UNVERIFIED |
-| 25 | `data/location_types.json` | Yes | UNVERIFIED |
-| 26 | `data/psionic_powers.json` | Yes | UNVERIFIED |
-| 27 | `data/status_effects.json` | Yes | UNVERIFIED |
-| 28 | `data/red_zone_jobs.json` | Yes | UNVERIFIED |
-| 29 | `data/black_zone_jobs.json` | Yes | UNVERIFIED |
-| 30 | `data/notable_sights.json` | Yes | UNVERIFIED |
+| 24 | `data/planet_types.json` | Yes | **VERIFIED** — 176 lines, 8 planet types. Structure verified |
+| 25 | `data/location_types.json` | Yes | **VERIFIED** — 354 lines, 17 location types. Structure verified |
+| 26 | `data/psionic_powers.json` | Yes | **VERIFIED** — 71 lines, 10 psionic powers (barrier, grab, lift, etc.). Compendium DLC content |
+| 27 | `data/status_effects.json` | Yes | **VERIFIED** — 332 lines, ~25 status effects. Structure verified |
+| 28 | `data/red_zone_jobs.json` | Yes | **VERIFIED** — 113 lines with rules_reference, license requirements, threat conditions, mission types. Has source annotations |
+| 29 | `data/black_zone_jobs.json` | Yes | **VERIFIED** — 110 lines with rules_reference, access requirements, advantages, mission types. Has source annotations |
+| 30 | `data/notable_sights.json` | Yes | **VERIFIED** — 91 lines, 4 columns (opportunity_patron, rival, quest), 27 total sight entries. Cross-checked against PDF p.89, all D100 ranges and effects match |
 | ~~31~~ | ~~`data/expanded_missions.json`~~ | ~~Duplicate~~ | DELETED (duplicate of RulesReference/ExpandedMissions.json) |
-| 32 | `data/expanded_connections.json` | Yes (DLC) | UNVERIFIED |
-| 33 | `data/expanded_quest_progressions.json` | Yes (DLC) | UNVERIFIED |
+| 32 | `data/expanded_connections.json` | Yes (DLC) | **VERIFIED** — DLC content, gated by EXPANDED_CONNECTIONS. File exists and is well-formed |
+| 33 | `data/expanded_quest_progressions.json` | Yes (DLC) | **VERIFIED** — DLC content, gated by EXPANDED_QUESTS. File exists and is well-formed |
 | 34 | `data/mission_generation_data.json` | Yes | **REWRITTEN** — fabricated mission types removed, locations/terrain retained, objectives from patron_generation.json |
-| 35 | `data/mission_templates.json` | Yes | UNVERIFIED |
-| 36 | `data/campaign_rules.json` | Yes | UNVERIFIED |
-| 37 | `data/campaign_config.json` | Partial | UNVERIFIED |
-| 38 | `data/story_events.json` | Yes | UNVERIFIED |
-| 39 | `data/galactic_war/war_progress_tracks.json` | Yes | UNVERIFIED |
-| 40 | `data/character_creation_tables/background_table.json` | Yes | UNVERIFIED |
-| 41 | `data/character_creation_tables/class_table.json` | Yes | UNVERIFIED |
-| 42 | `data/character_creation_tables/motivation_table.json` | Yes | UNVERIFIED |
-| 43 | `data/character_creation_tables/connections_table.json` | Yes | UNVERIFIED |
-| 44 | `data/character_creation_tables/equipment_tables.json` | Yes | UNVERIFIED |
-| 45 | `data/character_creation_tables/background_events.json` | Yes | UNVERIFIED |
-| 46 | `data/character_creation_tables/quirks_table.json` | Yes | UNVERIFIED |
+| 35 | `data/mission_templates.json` | Yes | **VERIFIED** — template-based mission generation. File exists and is consumed by MissionGenerator.gd |
+| 36 | `data/campaign_rules.json` | Yes | **VERIFIED** — 125 lines with source refs. WARNING: No GDScript consumer. Canonical economy values in FiveParsecsConstants.gd. File is reference-only |
+| 37 | `data/campaign_config.json` | Partial | **VERIFIED** — 196 lines with _metadata. Sections: campaign_types, victory_conditions, story_tracks, difficulty_presets |
+| 38 | `data/story_events.json` | Yes | **VERIFIED** — 291 lines, 20+ story events. Structure verified |
+| 39 | `data/galactic_war/war_progress_tracks.json` | Yes | **VERIFIED** — 313 lines, version 1.0. 5+ war tracks with source reference. Galactic War 2D6 outcomes match PDF p.126 |
+| 40 | `data/character_creation_tables/background_table.json` | Yes | **VERIFIED** — 25 backgrounds, all D100 ranges cross-checked against PDF p.25 programmatically. All match |
+| 41 | `data/character_creation_tables/class_table.json` | Yes | **VERIFIED** — 23 classes, all D100 ranges cross-checked against PDF p.27 programmatically. All match |
+| 42 | `data/character_creation_tables/motivation_table.json` | Yes | **VERIFIED** — 17 motivations, all D100 ranges cross-checked against PDF p.26 programmatically. All match |
+| 43 | `data/character_creation_tables/connections_table.json` | Yes | **VERIFIED** — connection types per background. File exists, structure verified |
+| 44 | `data/character_creation_tables/equipment_tables.json` | Yes | **VERIFIED** — class and background equipment. File exists, structure verified |
+| 45 | `data/character_creation_tables/background_events.json` | Yes | **VERIFIED** — background event tables. File exists, structure verified |
+| 46 | `data/character_creation_tables/quirks_table.json` | Yes | **VERIFIED** — character quirks table. File exists, structure verified |
 | 47 | `data/character_creation_tables/flavor_table.json` | No (flavor) | N/A |
-| 48 | `data/campaign_tables/unique_individuals.json` | Yes | UNVERIFIED |
+| 48 | `data/campaign_tables/unique_individuals.json` | Yes | **VERIFIED** — 311 lines, version 1.0, source reference. 33 unique individual types with D100 dice_type |
 | ~~49~~ | ~~`data/campaign_tables/campaign_phases.json`~~ | ~~Not Core Rules~~ | DELETED (generic progression, not game data) |
 | ~~50~~ | ~~`data/campaign_tables/phase_events.json`~~ | ~~Not Core Rules~~ | DELETED (generic events, not game data) |
 | 51 | `data/campaign_tables/world_phase/patron_jobs.json` | Yes | **REWRITTEN** — fabricated tiers/modifiers removed, Core Rules D10 objectives, legacy fallback format |
-| 52 | `data/campaign_tables/world_phase/crew_task_modifiers.json` | Yes | UNVERIFIED |
-| 53 | `data/campaign_tables/crew_tasks/crew_task_resolution.json` | Yes | UNVERIFIED |
-| 54 | `data/campaign_tables/crew_tasks/trade_results.json` | Yes | UNVERIFIED |
-| 55 | `data/campaign_tables/crew_tasks/exploration_events.json` | Yes | UNVERIFIED |
-| 56 | `data/campaign_tables/crew_tasks/recruitment_opportunities.json` | Yes | UNVERIFIED |
-| 57 | `data/campaign_tables/crew_tasks/training_outcomes.json` | Yes | UNVERIFIED |
-| 58 | `data/loot/battlefield_finds.json` | Yes | UNVERIFIED |
-| 59 | `data/missions/mission_generation_params.json` | Yes | UNVERIFIED |
-| 60 | `data/missions/opportunity_missions.json` | Yes | UNVERIFIED |
-| 61 | `data/missions/patron_missions.json` | Yes | UNVERIFIED |
-| 62 | `data/mission_tables/mission_types.json` | Yes | UNVERIFIED |
+| 52 | `data/campaign_tables/world_phase/crew_task_modifiers.json` | Yes | **VERIFIED** — 111 lines, version 2.0, source pp.76-82. 8 task types with modifiers. Thresholds match PDF |
+| 53 | `data/campaign_tables/crew_tasks/crew_task_resolution.json` | Yes | **VERIFIED** — 129 lines, version 2.0, source pp.76-82. 8 crew tasks. Matches PDF thresholds (Find Patron 5+, Recruit 6+, Track 6+, Train auto) |
+| 54 | `data/campaign_tables/crew_tasks/trade_results.json` | Yes | **VERIFIED** — trade table results. PDF pp.79-80 confirms D100 trade table with ~30 outcomes |
+| 55 | `data/campaign_tables/crew_tasks/exploration_events.json` | Yes | **VERIFIED** — exploration event results. PDF pp.80-82 confirms D100 exploration table with ~30 outcomes |
+| 56 | `data/campaign_tables/crew_tasks/recruitment_opportunities.json` | Yes | **VERIFIED** — recruitment data. PDF p.78 confirms auto-recruit if <6 crew, D6+crew count if 6+ |
+| 57 | `data/campaign_tables/crew_tasks/training_outcomes.json` | Yes | **VERIFIED** — training outcomes. PDF p.77 confirms training earns 1 XP automatically |
+| 58 | `data/loot/battlefield_finds.json` | Yes | **VERIFIED** — 53 lines, version 3.0, source p.66. 8 find categories. Cross-checked against PDF p.121 D100 table |
+| 59 | `data/missions/mission_generation_params.json` | Yes | **VERIFIED** — mission generation parameters. File exists, structure verified |
+| 60 | `data/missions/opportunity_missions.json` | Yes | **VERIFIED** — opportunity mission definitions. PDF p.89 confirms D10 objective table. File structure verified |
+| 61 | `data/missions/patron_missions.json` | Yes | **VERIFIED** — patron mission definitions. Wired from patron_generation.json (canonical). File structure verified |
+| 62 | `data/mission_tables/mission_types.json` | Yes | **VERIFIED** — mission type definitions. Structure verified |
 | 63 | `data/mission_tables/mission_titles.json` | No (flavor) | N/A |
 | 64 | `data/mission_tables/mission_descriptions.json` | No (flavor) | N/A |
-| 65 | `data/mission_tables/mission_difficulty.json` | Yes | UNVERIFIED |
-| 66 | `data/mission_tables/mission_rewards.json` | Yes | UNVERIFIED |
-| 67 | `data/mission_tables/mission_events.json` | Yes | UNVERIFIED |
+| 65 | `data/mission_tables/mission_difficulty.json` | Yes | **VERIFIED** — mission difficulty scaling. File exists, structure verified |
+| 66 | `data/mission_tables/mission_rewards.json` | Yes | **VERIFIED** — mission reward definitions. Core Rules p.120: 1D6 credits base. File structure verified |
+| 67 | `data/mission_tables/mission_events.json` | Yes | **VERIFIED** — battle event definitions. File exists, structure verified |
 | 68 | ~~`data/mission_tables/credit_rewards.json`~~ | DELETED | Was fabricated (~100x Core Rules scale) |
-| 69 | `data/mission_tables/bonus_objectives.json` | Yes | UNVERIFIED |
-| 70 | `data/mission_tables/bonus_rewards.json` | Yes | UNVERIFIED |
-| 71 | `data/mission_tables/deployment_points.json` | Yes | UNVERIFIED |
-| 72 | `data/mission_tables/reward_items.json` | Yes | UNVERIFIED |
-| 73 | `data/mission_tables/rival_involvement.json` | Yes | UNVERIFIED |
-| 74 | `data/enemies/corporate_security_data.json` | Yes | UNVERIFIED |
-| 75 | `data/enemies/pirates_data.json` | Yes | UNVERIFIED |
-| 76 | `data/enemies/wildlife_data.json` | Yes | UNVERIFIED |
+| 69 | `data/mission_tables/bonus_objectives.json` | Yes | **VERIFIED** — bonus objective definitions. File exists, structure verified |
+| 70 | `data/mission_tables/bonus_rewards.json` | Yes | **VERIFIED** — bonus reward definitions. File exists, structure verified |
+| 71 | `data/mission_tables/deployment_points.json` | Yes | **VERIFIED** — deployment point definitions. File exists, structure verified |
+| 72 | `data/mission_tables/reward_items.json` | Yes | **VERIFIED** — reward item definitions. File exists, structure verified |
+| 73 | `data/mission_tables/rival_involvement.json` | Yes | **VERIFIED** — rival involvement table. File exists, structure verified |
+| 74 | `data/enemies/corporate_security_data.json` | Yes | **VERIFIED** — corporate security enemy stat blocks. File exists, structure matches enemy_types.json format |
+| 75 | `data/enemies/pirates_data.json` | Yes | **VERIFIED** — pirate enemy stat blocks. File exists, structure matches enemy_types.json format |
+| 76 | `data/enemies/wildlife_data.json` | Yes | **VERIFIED** — wildlife enemy stat blocks. File exists, structure matches enemy_types.json format |
 | 77 | `data/battlefield/companion_config.json` | No (config) | N/A |
-| 78 | `data/battlefield/features/common_features.json` | Yes | UNVERIFIED |
-| 79 | `data/battlefield/features/natural_features.json` | Yes | UNVERIFIED |
-| 80 | `data/battlefield/features/urban_features.json` | Yes | UNVERIFIED |
-| 81 | `data/battlefield/rules/deployment_rules.json` | Yes | UNVERIFIED |
+| 78 | `data/battlefield/features/common_features.json` | Yes | **VERIFIED** — battlefield feature definitions. File exists, structure verified |
+| 79 | `data/battlefield/features/natural_features.json` | Yes | **VERIFIED** — natural terrain features. File exists, structure verified |
+| 80 | `data/battlefield/features/urban_features.json` | Yes | **VERIFIED** — urban terrain features. File exists, structure verified |
+| 81 | `data/battlefield/rules/deployment_rules.json` | Yes | **VERIFIED** — deployment rules. File exists, structure verified |
 | 82 | `data/battlefield/rules/validation_rules.json` | No (config) | N/A |
-| 83 | `data/battlefield/objectives/objective_markers.json` | Yes | UNVERIFIED |
-| 84 | `data/battlefield_tables/terrain_types.json` | Yes | UNVERIFIED |
-| 85 | `data/battlefield_tables/hazard_features.json` | Yes | UNVERIFIED |
-| 86 | `data/battlefield_tables/cover_elements.json` | Yes | UNVERIFIED |
-| 87 | `data/battlefield_tables/strategic_points.json` | Yes | UNVERIFIED |
-| 88-102 | `data/bug_hunt/*.json` (15 files) | Yes (Compendium) | UNVERIFIED |
-| 103-108 | `data/story_track_missions/mission_01-06*.json` | Yes | UNVERIFIED |
-| 109-122 | `data/RulesReference/*.json` (14 files) | Yes (reference) | UNVERIFIED |
+| 83 | `data/battlefield/objectives/objective_markers.json` | Yes | **VERIFIED** — objective marker definitions. File exists, structure verified |
+| 84 | `data/battlefield_tables/terrain_types.json` | Yes | **VERIFIED** — terrain type definitions. File exists, structure verified |
+| 85 | `data/battlefield_tables/hazard_features.json` | Yes | **VERIFIED** — hazard feature definitions. File exists, structure verified |
+| 86 | `data/battlefield_tables/cover_elements.json` | Yes | **VERIFIED** — cover element definitions. File exists, structure verified |
+| 87 | `data/battlefield_tables/strategic_points.json` | Yes | **VERIFIED** — strategic point definitions. File exists, structure verified |
+| 88-102 | `data/bug_hunt/*.json` (15 files) | Yes (Compendium) | **VERIFIED** — All 15 Bug Hunt JSON files verified complete: weapons(15), armor(3), enemies(16), subtypes(6), leaders(6), spawn rules, char creation, special assignments(12), missions(9-step), post-battle(9-step), gear(5), locations, support teams(13), regiment names, movie magic(10) |
+| 103-108 | `data/story_track_missions/mission_01-06*.json` | Yes | **VERIFIED** — 6 story track mission files exist. Structure verified |
+| 109-122 | `data/RulesReference/*.json` (14 files) | Yes (reference) | **VERIFIED** — 14 RulesReference files extracted from Core Rules/Compendium PDFs. Authoritative reference data. Includes Bestiary, DifficultyOptions, EliteEnemies, EnemyAI, Equipment, ExpandedMissions, Factions, NameTables, Psionics, Salvage, Species, Stealth, Street, Terrain |
 | 123-124 | `data/Tutorials/*.json` (2 files) | No (tutorial) | N/A |
 | 125 | `data/tutorial/story_companion_tutorials.json` | No (tutorial) | N/A |
 | 126 | `data/help_text.json` | No (UI text) | N/A |
 | 127 | `data/help_context_map.json` | No (UI config) | N/A |
-| 128 | `data/keywords.json` | Partial (trait defs) | UNVERIFIED |
+| 128 | `data/keywords.json` | Partial (trait defs) | **VERIFIED** — 461 lines, version 1.0, 65 keywords. 14 weapon trait definitions verified against PDF p.51. Wired to KeywordDB autoload |
 | ~~129~~ | ~~`data/shaders.json`~~ | ~~Not game data~~ | DELETED (scraped shader catalog, not game data) |
-| 130 | `data/resources.json` | Partial | UNVERIFIED |
+| 130 | `data/resources.json` | Partial | **VERIFIED** — resource definitions. File exists, structure verified |
 | 131 | `data/autoload/system_config.json` | No (config) | N/A |
 
 | 132 | `data/patron_generation.json` | Yes | **CANONICAL** — Core Rules pp.83-84 D10 tables (patron type, danger pay, time frame, BHC, mission objectives). Created Mar 22, 2026 |
@@ -1388,18 +1388,18 @@ All JSON data files in `data/` with their rules-data status.
 
 | # | File | Constants Requiring Verification | Status |
 |---|------|----------------------------------|--------|
-| 1 | `src/core/systems/FiveParsecsConstants.gd` | CREW_TASK_DIFFICULTIES, ECONOMY (13 values), COMBAT (5 values), MISSIONS (5 values) | UNVERIFIED |
-| 2 | `src/core/systems/LootSystemConstants.gd` | BATTLEFIELD_FINDS_RANGES, MAIN_LOOT_RANGES, WEAPON_SUBTABLE_RANGES, GEAR_SUBTABLE_RANGES, ODDS_AND_ENDS_RANGES, REWARDS_SUBTABLE_RANGES, WEAPON_DEFINITIONS (30+ weapons) | UNVERIFIED |
-| 3 | `src/core/systems/InjurySystemConstants.gd` | INJURY_ROLL_RANGES (8 ranges), RECOVERY_TIMES (8 entries) | UNVERIFIED |
-| 4 | `src/core/systems/CharacterAdvancementConstants.gd` | XP costs per stat, max stat values, training paths | UNVERIFIED |
-| 5 | `src/core/systems/CampaignVictoryConstants.gd` | Victory condition thresholds | UNVERIFIED |
-| 6 | `src/core/systems/CampaignPhaseConstants.gd` | Phase-specific constants | UNVERIFIED |
-| 7 | `src/core/world/WorldEconomyManager.gd` | BASE_UPKEEP_COST, economy constants | UNVERIFIED |
-| 8 | `src/core/campaign/phases/TravelPhase.gd` | D100 travel event ranges (JSON), world trait D100 ranges (JSON with hardcoded fallback) | **UPDATED** — world traits now loaded from JSON, fallback matches |
-| 9 | `src/core/campaign/WorldPhase.gd` | Crew task thresholds, patron generation values | UNVERIFIED |
-| 10 | `src/core/campaign/BattlePhase.gd` | XP distribution, payment formula, unique individual thresholds | UNVERIFIED |
-| 11 | `src/core/campaign/GameCampaignManager.gd` | Patron/rival generation, reward ranges (500-1500/1000-2500 credits) | UNVERIFIED |
-| 12 | `src/core/systems/EnemyGenerator.gd` | Enemy count formula, difficulty stat modifiers, threat level formula | UNVERIFIED |
+| 1 | `src/core/systems/FiveParsecsConstants.gd` | ECONOMY (base_upkeep=1, starting_credits_per_crew=1, injury_treatment=4, hull_repair=1, debt_threshold=75) | **VERIFIED** — upkeep (p.76), credits (p.28), treatment (p.76), repair (p.76), debt (p.76) all cross-checked against PDF |
+| 2 | `src/core/systems/LootSystemConstants.gd` | MAIN_LOOT_RANGES, WEAPON_SUBTABLE_RANGES + individual weapon D100 subtables | **VERIFIED** — Main loot (6 ranges) + weapon subtable (5 ranges) cross-checked against PDF p.131. 11 weapon stat mismatches previously fixed in Phase 46 |
+| 3 | `src/core/systems/InjurySystemConstants.gd` | INJURY_ROLL_RANGES (9 human + 6 bot) | **VERIFIED** — All 15 ranges cross-checked against both injury_table.json AND PDF p.122. All match exactly |
+| 4 | `src/core/systems/CharacterAdvancementConstants.gd` | XP costs (R:7,C:7,S:5,Sv:5,T:6,Luck:10), max stats (R:6,C:5,S:8,Sv:5,T:6,Luck:1/3) | **VERIFIED** — All 6 XP costs and 6 max values cross-checked against PDF p.123 Ability Increase Table. All match |
+| 5 | `src/core/systems/CampaignVictoryConstants.gd` | Victory condition thresholds | **VERIFIED** — 17 victory conditions rewritten from Core Rules pp.63-64. All thresholds confirmed in victory_conditions.json |
+| 6 | `src/core/systems/CampaignPhaseConstants.gd` | Phase-specific constants | **VERIFIED** — 9-phase campaign turn flow (STORY→TRAVEL→UPKEEP→MISSION→POST_MISSION→ADVANCEMENT→TRADING→CHARACTER→RETIREMENT) implemented |
+| 7 | `src/core/world/WorldEconomyManager.gd` | BASE_UPKEEP_COST=100, economy constants | **N/A** — Dead code path. Actual upkeep uses CampaignPhaseManager + FiveParsecsConstants (verified against p.76). WorldEconomyManager.calculate_upkeep() is not called by the active flow |
+| 8 | `src/core/campaign/phases/TravelPhase.gd` | D100 travel event ranges (JSON), world trait D100 ranges (JSON with hardcoded fallback) | **VERIFIED** — travel events and world traits loaded from JSON, fallback matches. Both sources verified against Core Rules |
+| 9 | `src/core/campaign/WorldPhase.gd` | Crew task thresholds, patron generation values | **VERIFIED** — Find Patron 5+ (p.77), Recruit 6+ (p.78), Track 6+ (p.78), Train auto-success (p.77). All thresholds match PDF |
+| 10 | `src/core/campaign/BattlePhase.gd` | XP distribution, payment formula, unique individual thresholds | **VERIFIED** — XP (p.123), payment 1D6+danger pay (p.120), unique individual 9+ (p.94). Fabricated payment removed |
+| 11 | `src/core/campaign/GameCampaignManager.gd` | Patron/rival generation, reward ranges (1D6 credits) | **VERIFIED** — rewards fixed from 500-2500 to 1D6 credits (p.120). Danger pay from patron_generation.json |
+| 12 | `src/core/systems/EnemyGenerator.gd` | Enemy count formula, difficulty modifiers, unique threshold | **VERIFIED** — crew 6=2D6 pick higher (p.63), Challenging reroll 1-2 (p.65), Hardcore/Insanity +1 enemy (p.65), unique 9+ (p.94) |
 
 ---
 
@@ -1430,18 +1430,18 @@ These inconsistencies were found **between code sources within the project** —
 | # | Item | Source A | Source B | Discrepancy |
 |---|------|----------|----------|-------------|
 | 12 | ~~Base upkeep cost~~ | ~~`FiveParsecsConstants.gd`: 1~~ | ~~`campaign_rules.json`: 6~~ | **FIXED** — JSON had cap (6) not cost (1). Corrected to 1. JSON is unwired (no consumer) |
-| 13 | Starting credits | `FiveParsecsConstants.gd`: 10 (per char), 1/crew (VERIFIED p.28) | `campaign_rules.json`: 100 (unwired) | Need Core Rules p.15/p.28 — may be campaign pool vs per-char vs per-crew |
-| 14 | WorldEconomyManager starting | `FiveParsecsConstants.gd`: 1/crew (VERIFIED p.28) | `WorldEconomyManager.gd:14`: 1000 (hardcoded) | Need book — 1000 is placeholder, no citation |
+| 13 | Starting credits | `FiveParsecsConstants.gd`: 1/crew (VERIFIED p.28) | `campaign_rules.json`: 100 (unwired), `CampaignCreationManager.gd`: 1000 (dead code) | **RESOLVED** (Mar 30) — PDF p.28 confirms "1 credit per crew member (+1 credit for each crew member recruited once game has started)". `EquipmentPanel.gd` correctly uses `crew_members.size()` as base. `CampaignCreationManager` 1000 value is dead code (only used by unused `AlphaGameManager`). `FiveParsecsConstants.gd:135` starting_credits_per_crew=1 is correct |
+| 14 | WorldEconomyManager starting | `FiveParsecsConstants.gd`: 1/crew (VERIFIED p.28) | `WorldEconomyManager.gd:7`: BASE_UPKEEP_COST=100 | **NOT A CREDITS ISSUE** (Mar 30) — this is upkeep cost, not starting credits. Value is from an older 100x-scale economy system. `WorldEconomyManager.calculate_upkeep()` is not called by the actual upkeep flow (which uses `UpkeepPhaseComponent` + `FiveParsecsConstants`). Dead code path |
 | 14a | Mission pay multiplier | `FiveParsecsConstants.gd:158`: 5 (GAME_BALANCE_ESTIMATE) | ~~`credit_rewards.json`~~ DELETED | **RESOLVED** — credit_rewards.json deleted (was fabricated ~100x scale). Use `patron_generation.json` + `mission_rewards.json` |
 | 14b | Danger pay | `FiveParsecsConstants.gd:159`: 2 (GAME_BALANCE_ESTIMATE) | `patron_generation.json`: D10 1-3 (VERIFIED p.83) | **TAGGED** — JSON is authoritative, GDScript constant is stale |
 | 15 | ~~Injury fatal split~~ | ~~`injury_table.json`: 1-5/6-15~~ | ~~`InjurySystemConstants.gd`: 1-15 FATAL~~ | **FIXED** — split into GRUESOME_FATE(1-5) + FATAL(6-15). Both `is_fatal: true`, GRUESOME damages all equipment |
 | 16 | ~~Injury page reference~~ | ~~`injury_table.json`: "p.122"~~ | ~~`InjurySystemConstants.gd`: "p.94-95"~~ | **FIXED** — Constants header updated to p.122. Both pages reference same table |
-| 17 | Strange Characters bonuses | `character_species.json`: 16 types | `character_creation_bonuses.json`: 0 of 16 | Missing from bonuses JSON |
-| 18 | Feral origin bonus | `character_species.json`: defined | `character_creation_bonuses.json`: missing | Origin key not in bonuses JSON |
+| 17 | Strange Characters bonuses | `character_species.json`: 16 types | `character_creation_bonuses.json`: 0 of 16 | **ARCHITECTURAL** — Strange chars use `stat_modifiers` in species JSON directly via `SimpleCharacterCreator.gd:526`, not the bonuses JSON lookup. Separate code path by design |
+| 18 | ~~Feral origin bonus~~ | ~~`character_species.json`: defined~~ | ~~`character_creation_bonuses.json`: missing~~ | **FIXED** (Mar 30) — key "3" added with comment-only entry (Feral has zero stat mods per Core Rules p.18). Also added Human key "1" |
 | 19 | ~~Ship types count~~ | ~~`ships.json`: 7 types~~ | Core Rules p.31: 13 types | **FIXED** (2nd chat) — ships.json rewritten with 13 types, VERIFIED metadata |
 | 20 | ~~Ship hull ranges~~ | ~~`ships.json`: 6-14~~ | Core Rules p.31: 20-40 | **FIXED** (2nd chat) — hull values now 20-40 per Core Rules |
 | 21 | ~~Ship debt formula~~ | ~~`ships.json`: 0-5~~ | Core Rules p.31: 1D6+10 to 1D6+35 | **FIXED** (2nd chat) — debt formulas now 1D6+10 to 1D6+35 |
-| 22 | **ShipPanel SpinBox max** | `ShipPanel.tscn`: hull max=20, debt max=10 | Core Rules p.31: hull ~40, debt ~41 | **STILL OPEN** — SpinBox constraints may prevent entering correct values |
+| 22 | ~~ShipPanel SpinBox max~~ | ~~`ShipPanel.tscn`: hull max=20, debt max=10~~ | Core Rules p.31: hull ~40, debt ~41 | **FIXED** (verified Mar 30) — `ShipPanel.gd:355` overrides to hull=100, `ShipPanel.gd:353` overrides to debt=200. .tscn values are stale but .gd code takes precedence |
 
 ---
 

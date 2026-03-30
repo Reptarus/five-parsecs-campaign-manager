@@ -6,6 +6,8 @@
 		"version": "1.0"
 	},
 	"origin_bonuses": {
+		"1": {"_comment": "Human (p.15) — no stat bonuses, only Luck >1 advantage"},
+		"3": {"_comment": "Feral (p.18) — no stat bonuses, only Seize Initiative and Reaction special rules"},
 		"8": {"REACTIONS": 1, "COMBAT_SKILL": 1, "TOUGHNESS": 1, "SAVVY": 2, "_comment": "Bot (p.15)"},
 		"2": {"TOUGHNESS": -1, "SAVVY": 1, "_comment": "Engineer (p.16)"},
 		"4": {"TOUGHNESS": 1, "_comment": "K'Erin (p.16)"},

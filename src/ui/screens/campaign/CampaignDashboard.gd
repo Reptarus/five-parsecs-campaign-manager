@@ -438,7 +438,7 @@ func _build_ship_section(campaign) -> void:
 	# Fuel / Cargo
 	center_vbox.add_child(
 		_create_info_row(
-			"Fuel", str(sd.get("fuel", "—"))
+			"Fuel", str(sd.get("fuel_units", sd.get("fuel", "—")))
 		)
 	)
 	var cargo_cap: int = sd.get("cargo_capacity", 0)
@@ -606,7 +606,7 @@ func _build_world_section(campaign) -> void:
 		_create_info_row("Name", wd.get("name", "Unknown"))
 	)
 	right_vbox.add_child(
-		_create_info_row("Type", wd.get("type", "Unknown"))
+		_create_info_row("Type", wd.get("type_name", wd.get("type", "Unknown")))
 	)
 
 	# Traits
@@ -614,7 +614,7 @@ func _build_world_section(campaign) -> void:
 	if not traits.is_empty():
 		right_vbox.add_child(
 			_create_info_row(
-				"Traits", ", ".join(traits), COLOR_PURPLE
+				"Traits", ", ".join(traits.map(func(t): return str(t).capitalize())), COLOR_PURPLE
 			)
 		)
 

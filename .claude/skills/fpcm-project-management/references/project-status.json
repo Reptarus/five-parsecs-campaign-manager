@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-27",
-  "current_phase": "UI Modernization (v0.9.6) — Session 16 fixed ALL 28 issues from Visual QA (ISSUE-031–058). 36 files changed. 5PFH.tres removed from 20 .tscn files. CRITICAL scroll/nav bugs fixed. Touch targets, layout, TweenFX, stat badges, name gen, delete saves all done. Next: MCP runtime re-audit of Dashboard + 9 Turn Phases (blocked in Session 15, should be reachable now).",
+  "last_updated": "2026-03-30",
+  "current_phase": "Rules Audit Complete (v0.9.6) — Session 18 completed full QA_RULES_ACCURACY_AUDIT.md pass (0 UNVERIFIED, 925/925 values). 2 rules bugs fixed (rival follow p.72, license costs p.72). 3 generator schemas unified (Stealth/Street/Salvage → Compendium canonical). Ready for Planetfall + Tactics expansion work.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",

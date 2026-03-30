@@ -720,10 +720,10 @@ func _handle_travel_event_with_effects(event: Dictionary) -> String:
 	##
 
 func _process_world_arrival() -> void:
-	## Step 4: New World Arrival Steps (Core Rules pp.64-67)
+	## Step 4: New World Arrival Steps (Core Rules p.72)
 	## 1. Generate world traits (D100)
-	## 2. Check if rivals follow (D6 per rival, 1-3 = follows)
-	## 3. Check licensing requirements (D6 for type)
+	## 2. Check if rivals follow (D6 per rival, 5+ = follows)
+	## 3. Check licensing requirements (D6: 5-6 = license, then D6 for cost)
 	## 4. Emit world_arrival_completed with full world data
 
 	# Roll D100 for world trait (Core Rules pp.72-75)
@@ -743,14 +743,14 @@ func _process_world_arrival() -> void:
 	# Generate a world name (fallback — Compendium name gen wired in Sprint 2)
 	var world_name: String = "World-%03d" % randi_range(1, 999)
 
-	# Check if rivals follow to new world (Core Rules p.65: D6 per rival, 1-3 = follows)
+	# Check if rivals follow to new world (Core Rules p.72: D6 per rival, 5+ = follows)
 	_rival_follows = false
 	var rivals_that_follow: Array[String] = []
 	if game_state_manager and game_state_manager.has_method("get_rivals"):
 		var rivals: Array = game_state_manager.get_rivals()
 		for rival in rivals:
 			var follow_roll: int = randi_range(1, 6)
-			if follow_roll <= 3:
+			if follow_roll >= 5:
 				_rival_follows = true
 				var rival_name: String = ""
 				if rival is Dictionary:
@@ -761,15 +761,13 @@ func _process_world_arrival() -> void:
 					rival_name = str(rival)
 				rivals_that_follow.append(rival_name)
 
-	# Check licensing requirements (Core Rules p.66: some worlds need a license)
-	# D6: 1-2 = no license, 3-4 = basic license (10cr), 5-6 = full license (20cr)
+	# Check licensing requirements (Core Rules p.72: D6, 5-6 = license required)
+	# Then roll a further D6 to determine how many credits it costs
 	var license_roll: int = randi_range(1, 6)
-	_license_required = license_roll >= 3
+	_license_required = license_roll >= 5
 	var license_cost: int = 0
-	if license_roll >= 5:
-		license_cost = 20
-	elif license_roll >= 3:
-		license_cost = 10
+	if _license_required:
+		license_cost = randi_range(1, 6)  # Core Rules p.72: "Roll a further 1D6"
 
 	# Core Rules p.88: "When you travel to a new planet, all Patrons
 	# become unavailable unless they are Persistent."

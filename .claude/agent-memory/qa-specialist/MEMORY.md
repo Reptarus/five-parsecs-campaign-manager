@@ -29,6 +29,20 @@ Use this to cross-reference game values when promoting mechanics from MCP_VALIDA
 
 ---
 
+## Session 18: QA Rules Audit 100% Complete (Mar 30, 2026)
+
+QA_RULES_ACCURACY_AUDIT.md now has **0 UNVERIFIED entries** (was 308). All 376+ entries VERIFIED/FIXED/N/A with PDF page citations. 925/925 data values confirmed.
+
+Fixes applied this session:
+- Rival following: `≤3` → `≥5` (Core Rules p.72)
+- License costs: single-roll fabricated → two-roll per book (Core Rules p.72)
+- 3 generator data duplications resolved (Stealth/Street/Salvage → Compendium schema)
+- EquipmentPanel credits warning threshold: 500 → 1
+
+Remaining flagged items are GAME_BALANCE_ESTIMATE (app-original mechanics not from book): ship_components.json stats, world trait upkeep modifier, D6 advancement roll, damaged ship multiplier.
+
+---
+
 ## Phase 30 Core Rules Parity (Mar 16, 2026) — CRITICAL FOR TESTING
 
 **Difficulty enum mismatch was found and fixed.** Before Phase 30, ALL difficulty modifiers were dead code because ExpandedConfigPanel stored IDs 1-5 while DifficultyModifiers.gd compared against GlobalEnums values (CHALLENGING=4, HARDCORE=6, INSANITY=8).
