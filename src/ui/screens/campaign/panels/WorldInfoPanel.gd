@@ -436,18 +436,11 @@ func _generate_world_with_fallback(world_name: String) -> void:
 		
 		# Check if world generation was successful
 		if world_data and not world_data.is_empty():
-			# Customize world name — prefer Compendium DLC name gen if available
-			var CompendiumWorldOptions = load("res://src/data/compendium_world_options.gd")
-			var compendium_name: String = ""
-			if CompendiumWorldOptions:
-				# Use colony name for colony-type worlds, generic name for others
-				var world_type: String = world_data.get("type", "")
-				if world_type == "colony" or world_type == "mining_colony":
-					compendium_name = CompendiumWorldOptions.generate_colony_name()
-				if compendium_name.is_empty():
-					compendium_name = CompendiumWorldOptions.generate_world_name()
-			if not compendium_name.is_empty():
-				world_data["name"] = compendium_name
+			# Generate world name from Compendium name tables (pp.157-162)
+			var generated_name: String = _generate_canonical_world_name(
+				world_data.get("type", ""))
+			if not generated_name.is_empty():
+				world_data["name"] = generated_name
 			elif not world_name.is_empty():
 				world_data["name"] = world_name
 			else:
@@ -550,10 +543,14 @@ func _wrap_in_card(
 ) -> void:
 	if not container:
 		return
-	# Skip if already wrapped
+	# Skip if already wrapped (parent is VBoxContainer inside __card_ PanelContainer)
 	var parent = container.get_parent()
-	if parent and parent.name.begins_with("__card_"):
-		return
+	if parent:
+		if parent.name.begins_with("__card_"):
+			return
+		var grandparent = parent.get_parent()
+		if grandparent and grandparent.name.begins_with("__card_"):
+			return
 	var card_inner := VBoxContainer.new()
 	card_inner.add_theme_constant_override("separation", 4)
 	# Title label
@@ -946,6 +943,45 @@ func _get_campaign_turn_safe() -> int:
 			var state = coordinator.get_unified_campaign_state()
 			return state.get("campaign_turn", 1)
 	return 1  # Default to turn 1
+
+## Cached name table data from world_options.json
+static var _name_data: Dictionary = {}
+static var _name_data_loaded: bool = false
+
+static func _ensure_name_data() -> void:
+	if _name_data_loaded:
+		return
+	_name_data_loaded = true
+	var file := FileAccess.open(
+		"res://data/compendium/world_options.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_name_data = json.data
+	file.close()
+
+static func _pick_d100(arr: Array) -> String:
+	if arr.is_empty():
+		return ""
+	var roll := randi_range(1, 100)
+	var index := clampi((roll - 1) / 4, 0, arr.size() - 1)
+	return arr[index]
+
+func _generate_canonical_world_name(world_type: String) -> String:
+	## Generate a world name from Compendium name tables (pp.157-162)
+	## Not DLC-gated — name tables are core app data
+	_ensure_name_data()
+	if world_type == "colony" or world_type == "mining_colony":
+		var p1: Array = _name_data.get("colony_part1", [])
+		var p2: Array = _name_data.get("colony_part2", [])
+		if not p1.is_empty() and not p2.is_empty():
+			return _pick_d100(p1) + " " + _pick_d100(p2)
+	var world_names: Array = _name_data.get("world_names", [])
+	if world_names.is_empty():
+		return ""
+	var roman := ["I", "II", "III", "IV", "V", "VI"]
+	return _pick_d100(world_names) + " " + roman[randi_range(0, 5)]
 
 func _determine_government_type(world_data: Dictionary) -> String:
 	## Determine government type based on world traits and danger level

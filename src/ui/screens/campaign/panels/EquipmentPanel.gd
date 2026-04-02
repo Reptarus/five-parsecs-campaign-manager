@@ -60,6 +60,9 @@ var equipment_assignments: Dictionary = {}  # equipment_index -> character_name
 # Equipment data loaded from JSON
 var equipment_tables: Dictionary = {}
 
+# Cached gear_database.json for canonical D100 tables + starting_rolls lookups
+var _gear_db_cache: Dictionary = {}
+
 # Coordinator and state management references
 var coordinator: Node = null  # Store coordinator reference properly
 var state_manager: Node = null  # Store state manager reference
@@ -69,6 +72,10 @@ var _completion_emitted: bool = false
 
 # Track crew composition for change detection
 var _last_crew_size: int = 0
+
+# Savvy substitution tracking (Core Rules p.28)
+var _savvy_subs_available: int = 0
+var _savvy_subs_used: int = 0
 
 func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	## Override from base class - handle campaign state updates
@@ -394,11 +401,13 @@ func _ready() -> void:
 	call_deferred("_initialize_components")
 
 func _load_equipment_tables() -> void:
-	## Load equipment data from equipment_tables.json
-	var file_path = "res://data/character_creation_tables/equipment_tables.json"
+	## Load canonical character creation data from gear_database.json
+	## Contains: backgrounds, motivations, classes (with starting_rolls + credits_dice),
+	## weapon_tables (D100 tables), crew_starting_equipment config
+	var file_path = "res://data/gear_database.json"
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
-		push_warning("EquipmentPanel: Failed to open equipment_tables.json at %s" % file_path)
+		push_warning("EquipmentPanel: Failed to open gear_database.json at %s" % file_path)
 		return
 
 	var json = JSON.new()
@@ -406,10 +415,11 @@ func _load_equipment_tables() -> void:
 	file.close()
 
 	if error != OK:
-		push_error("EquipmentPanel: Failed to parse equipment_tables.json: %s" % json.get_error_message())
+		push_error("EquipmentPanel: Failed to parse gear_database.json: %s" % json.get_error_message())
 		return
 
-	equipment_tables = json.get_data()
+	_gear_db_cache = json.get_data()
+	equipment_tables = _gear_db_cache
 
 # NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
@@ -694,72 +704,87 @@ func set_generated_equipment(equipment: Array, credits: int) -> void:
 	_validate_and_complete()
 
 func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
-	## Generate equipment for actual crew from campaign state (CRITICAL FIX)
+	## Generate equipment using Core Rules pp.27-28 canonical D100 tables
+	## Two parts: crew base pool (shared) + per-character bonus rolls
+	## Credits: 1 per crew + background/motivation/class credits_dice rolls
 	generated_equipment.clear()
-	# Core Rules p.28: 1 credit per crew member + background bonuses
+	_ensure_gear_db()
+
+	# ── CREDITS: Core Rules p.28 ──────────────────────────────────────
+	# Base: 1 credit per crew member
 	starting_credits = crew_members.size()
+	# Add credits_dice from each character's background/motivation/class
 	for cm in crew_members:
-		var bg: String = ""
-		if cm is Dictionary:
-			bg = str(cm.get("background", "")).to_lower()
-		elif cm is Character:
-			bg = cm.background.to_lower() if cm.background else ""
-		var roll_type: String = _get_background_credits_roll(bg)
-		if roll_type == "2D6":
-			starting_credits += randi_range(1, 6) + randi_range(1, 6)
-		elif roll_type == "1D6":
-			starting_credits += randi_range(1, 6)
-	
+		var contributions: Array[Dictionary] = _lookup_credits_dice_for_character(cm)
+		for contrib in contributions:
+			starting_credits += _roll_credits_dice(contrib.dice)
+
+	# ── PART 1: Crew base pool ────────────────────────────────────────
+	# 3 military + 3 low-tech + 1 gear + 1 gadget (Core Rules p.28)
+	var base_pool: Array = StartingEquipmentGenerator.generate_crew_base_pool(
+		dice_manager)
+	for item in base_pool:
+		var equip_item: Dictionary = {
+			"name": item.get("name", "Unknown"),
+			"type": item.get("type", "Gear"),
+			"source": "shared_pool",
+			"source_table": item.get("source", ""),
+			"owner": "Unassigned",
+			"condition": "standard",
+			"quality_modifier": 0
+		}
+		if dice_manager:
+			var cond_roll: int = dice_manager.roll_d6("Condition")
+			equip_item.condition = _determine_condition_from_roll(cond_roll)
+			equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
+		generated_equipment.append(equip_item)
+
+	# ── PART 2: Per-character bonus rolls ─────────────────────────────
+	# Look up starting_rolls from gear_database.json for each character's
+	# background, motivation, and class (Core Rules pp.25-27)
 	for crew_member in crew_members:
-		# Handle Character, BaseCharacterResource, and Dictionary
-		var character: Character = null
+		var char_name: String = ""
 		if crew_member is Character:
-			character = crew_member
-		else:
-			# Convert BaseCharacterResource or Dictionary to Character
-			character = Character.new()
-			if "character_name" in crew_member:
-				character.character_name = str(crew_member.character_name)
-			elif crew_member is Dictionary and crew_member.has("character_name"):
-				character.character_name = str(crew_member["character_name"])
-			else:
-				character.character_name = "Unknown"
-			# Convert int enum → string name for character_class
-			var raw_class = crew_member.character_class if "character_class" in crew_member else 0
-			if raw_class is int:
-				var cls_keys: Array = GlobalEnums.CharacterClass.keys()
-				if raw_class >= 0 and raw_class < cls_keys.size():
-					character.character_class = cls_keys[raw_class].to_lower()
-				else:
-					character.character_class = "soldier"
-			elif raw_class is String:
-				character.character_class = raw_class.to_lower()
-			# Convert int enum → string name for background
-			var raw_bg = crew_member.background if "background" in crew_member else 0
-			if raw_bg is int:
-				var bg_keys: Array = GlobalEnums.Background.keys()
-				if raw_bg >= 0 and raw_bg < bg_keys.size():
-					character.background = bg_keys[raw_bg].to_lower()
-				else:
-					character.background = "military"
-			elif raw_bg is String:
-				character.background = raw_bg.to_lower()
+			char_name = crew_member.character_name
+		elif crew_member is Dictionary:
+			char_name = str(crew_member.get("character_name",
+				crew_member.get("name", "Unknown")))
+		if char_name.is_empty():
+			char_name = "Unknown"
 
-		if not character:
-			push_warning("EquipmentPanel: Invalid crew member data type: %s" % typeof(crew_member))
-			continue
+		# Look up starting_rolls from background + motivation + class
+		var member_starting_rolls: Array = _lookup_starting_rolls_for_character(crew_member)
 
-		var char_equipment: Dictionary = StartingEquipmentGenerator.generate_starting_equipment(character, dice_manager)
-		StartingEquipmentGenerator.apply_equipment_condition(char_equipment, dice_manager)
+		# Generate bonus items via D100 table rolls
+		var bonus_items: Array = StartingEquipmentGenerator.generate_bonus_equipment(
+			member_starting_rolls, dice_manager)
+		for item in bonus_items:
+			var equip_item: Dictionary = {
+				"name": item.get("name", "Unknown"),
+				"type": item.get("type", "Gear"),
+				"source": "bonus",
+				"source_character": char_name,
+				"owner": char_name,
+				"condition": "standard",
+				"quality_modifier": 0
+			}
+			if dice_manager:
+				var cond_roll: int = dice_manager.roll_d6("Condition")
+				equip_item.condition = _determine_condition_from_roll(cond_roll)
+				equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
+			generated_equipment.append(equip_item)
 
-		# Merge equipment into a single list with proper attribution
-		_merge_character_equipment(char_equipment, character.character_name)
-		starting_credits += char_equipment.get("credits", 0)
-	
+	# ── SAVVY SUBSTITUTION: Count eligible crew ──────────────────
+	# Core Rules p.28: "For each crew member who rolled at least one
+	# Savvy increase, you may take one Military roll on the High-tech table"
+	_savvy_subs_available = _count_savvy_eligible(crew_members)
+	_savvy_subs_used = 0
+
 	_update_equipment_display()
 	_update_summary()
+	_build_generation_summary()
 	equipment_generated.emit(generated_equipment)
-	
+
 	# Emit granular signal for real-time integration
 	equipment_data_changed.emit(get_panel_data())
 	_validate_and_complete()
@@ -1122,36 +1147,39 @@ func _update_equipment_display() -> void:
 	# Build crew options for dropdown
 	var crew_options = _get_crew_assignment_options()
 	
-	# Add equipment items to the visible list with assignment dropdowns (GLASS MORPHISM)
+	# Add equipment items with stats display + assignment dropdowns
 	for i in range(generated_equipment.size()):
 		var item: Dictionary = generated_equipment[i]
 		var item_type: String = str(item.get("type", "Misc"))
-		
+		var item_name: String = str(item.get("name", "Unknown Item"))
+
 		# GLASS MORPHISM: Create styled equipment card
 		var item_container: PanelContainer = PanelContainer.new()
 		item_container.add_theme_stylebox_override("panel", _create_glass_card_style(0.7))
-		item_container.custom_minimum_size.y = TOUCH_TARGET_MIN
-		
-		var item_hbox: HBoxContainer = HBoxContainer.new()
-		item_hbox.add_theme_constant_override("separation", SPACING_SM)
-		
-		# SEMANTIC TYPE BADGE: Visual equipment type indicator
+
+		var card_vbox: VBoxContainer = VBoxContainer.new()
+		card_vbox.add_theme_constant_override("separation", SPACING_XS)
+
+		# ── ROW 1: Type badge + Name + Condition + Dropdown ──────────
+		var header_row: HBoxContainer = HBoxContainer.new()
+		header_row.add_theme_constant_override("separation", SPACING_SM)
+		header_row.custom_minimum_size.y = TOUCH_TARGET_MIN
+
 		var type_badge: PanelContainer = _create_equipment_type_badge(item_type)
-		item_hbox.add_child(type_badge)
-		
-		# Equipment name
+		header_row.add_child(type_badge)
+
 		var name_label: Label = Label.new()
-		name_label.text = str(item.get("name", "Unknown Item"))
-		name_label.custom_minimum_size.x = 180
+		name_label.text = item_name
+		name_label.custom_minimum_size.x = 150
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 		name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-		item_hbox.add_child(name_label)
-		
-		# Condition indicator (smaller badge style)
+		header_row.add_child(name_label)
+
+		# Condition badge
 		var condition: String = str(item.get("condition", "standard"))
 		var condition_badge: PanelContainer = PanelContainer.new()
-		condition_badge.custom_minimum_size = Vector2(80, 24)
+		condition_badge.custom_minimum_size = Vector2(72, 24)
 		var cond_style := StyleBoxFlat.new()
 		cond_style.bg_color = Color(_get_condition_color(condition), 0.2)
 		cond_style.border_color = _get_condition_color(condition)
@@ -1159,38 +1187,108 @@ func _update_equipment_display() -> void:
 		cond_style.set_corner_radius_all(4)
 		cond_style.set_content_margin_all(SPACING_XS)
 		condition_badge.add_theme_stylebox_override("panel", cond_style)
-		
 		var condition_label: Label = Label.new()
 		condition_label.text = condition.capitalize()
 		condition_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
 		condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
 		condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		condition_badge.add_child(condition_label)
-		item_hbox.add_child(condition_badge)
-		
-		# PHASE 1: Assignment dropdown (styled)
+		header_row.add_child(condition_badge)
+
+		# Assignment dropdown
 		var assign_dropdown: OptionButton = OptionButton.new()
-		assign_dropdown.custom_minimum_size.x = 150
+		assign_dropdown.custom_minimum_size.x = 140
 		assign_dropdown.name = "AssignDropdown_%d" % i
 		_style_option_button(assign_dropdown)
-		
-		# Add options
 		assign_dropdown.add_item("Unassigned", 0)
 		assign_dropdown.add_item("Ship Stash", 1)
 		for j in range(crew_options.size()):
 			assign_dropdown.add_item(crew_options[j], j + 2)
-		
-		# Set current selection based on item owner
 		var current_owner: String = str(item.get("owner", "Unassigned"))
-		var selected_index: int = _get_owner_dropdown_index(current_owner, crew_options)
-		assign_dropdown.select(selected_index)
-		
-		# Connect signal with item index
+		assign_dropdown.select(_get_owner_dropdown_index(current_owner, crew_options))
 		assign_dropdown.item_selected.connect(_on_equipment_assignment_changed.bind(i))
-		
-		item_hbox.add_child(assign_dropdown)
-		
-		item_container.add_child(item_hbox)
+		header_row.add_child(assign_dropdown)
+
+		card_vbox.add_child(header_row)
+
+		# ── ROW 2: Stats from equipment_database.json ────────────────
+		var db_entry: Dictionary = _lookup_equipment_stats(item_name)
+		if not db_entry.is_empty():
+			var stats_row: HBoxContainer = HBoxContainer.new()
+			stats_row.add_theme_constant_override("separation", SPACING_SM)
+
+			var type_lower: String = item_type.to_lower()
+			if "weapon" in type_lower or db_entry.has("damage"):
+				# Weapon stats: Range / Shots / Damage
+				var rng_val: int = db_entry.get("range", 0)
+				var shots_val: int = db_entry.get("shots", 0)
+				var dmg_val: int = db_entry.get("damage", 0)
+
+				stats_row.add_child(_create_inline_stat("RNG", str(rng_val) + '"', COLOR_FOCUS))
+				stats_row.add_child(_create_inline_stat("SHT", str(shots_val), COLOR_TEXT_SECONDARY))
+				var dmg_text: String = "+%d" % dmg_val if dmg_val >= 0 else str(dmg_val)
+				stats_row.add_child(_create_inline_stat("DMG", dmg_text, COLOR_WARNING))
+
+				# Traits
+				var traits: Array = db_entry.get("traits", [])
+				if traits.size() > 0:
+					var traits_label: Label = Label.new()
+					var trait_strings: Array[String] = []
+					for t in traits:
+						trait_strings.append(str(t))
+					traits_label.text = " / ".join(trait_strings)
+					traits_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+					traits_label.add_theme_color_override("font_color", Color("#8b5cf6"))
+					traits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					stats_row.add_child(traits_label)
+
+			elif db_entry.has("saving_throw"):
+				# Armor stats
+				var save: String = str(db_entry.get("saving_throw", "none"))
+				if save != "none":
+					stats_row.add_child(_create_inline_stat("SAVE", save, COLOR_SUCCESS))
+				var desc: String = db_entry.get("description", "")
+				if not desc.is_empty():
+					var desc_label: Label = Label.new()
+					desc_label.text = desc
+					desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+					desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+					desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					stats_row.add_child(desc_label)
+
+			else:
+				# Gear/Gadget: show description
+				var desc: String = db_entry.get("description", "")
+				if not desc.is_empty():
+					var desc_label: Label = Label.new()
+					desc_label.text = desc
+					desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+					desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+					desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					stats_row.add_child(desc_label)
+
+			if stats_row.get_child_count() > 0:
+				card_vbox.add_child(stats_row)
+
+		# ── ROW 3: Source provenance (if available) ──────────────────
+		var source: String = item.get("source", "")
+		if not source.is_empty():
+			var source_label: Label = Label.new()
+			if source == "shared_pool":
+				var table_name: String = item.get("source_table", "")
+				source_label.text = "Shared Pool" + (" - %s Table" % table_name.capitalize() if not table_name.is_empty() else "")
+			elif source == "bonus":
+				var src_char: String = item.get("source_character", "")
+				source_label.text = "Bonus - %s" % src_char if not src_char.is_empty() else "Bonus Roll"
+			else:
+				source_label.text = source.capitalize()
+			source_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			source_label.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
+			card_vbox.add_child(source_label)
+
+		item_container.add_child(card_vbox)
 		equipment_list.add_child(item_container)
 	
 	# Update summary and credits labels
@@ -1268,6 +1366,456 @@ func _get_condition_color(condition: String) -> Color:
 			return Color(1.0, 0.4, 0.4)  # Red
 		_:
 			return Color(0.8, 0.8, 0.8)
+
+func _determine_condition_from_roll(roll: int) -> String:
+	## Core Rules p.28: d6 condition roll
+	match roll:
+		1:
+			return "damaged"
+		6:
+			return "superior"
+		_:
+			return "standard"
+
+func _get_quality_mod(condition: String) -> int:
+	match condition:
+		"damaged":
+			return -1
+		"superior":
+			return 1
+		_:
+			return 0
+
+func _count_savvy_eligible(crew: Array) -> int:
+	## Count crew members who gained at least one Savvy increase
+	## from their background, motivation, or class (Core Rules pp.25-27)
+	_ensure_gear_db()
+	var count: int = 0
+	for member in crew:
+		var bg_name: String = ""
+		var mot_name: String = ""
+		var cls_name: String = ""
+		if member is Character:
+			bg_name = member.background if member.background else ""
+			mot_name = member.motivation if member.motivation else ""
+			cls_name = member.character_class if member.character_class else ""
+		elif member is Dictionary:
+			bg_name = str(member.get("background", ""))
+			mot_name = str(member.get("motivation", ""))
+			cls_name = str(member.get("character_class", ""))
+
+		var has_savvy: bool = false
+		for table_key in ["backgrounds", "motivations", "classes"]:
+			var name_to_check: String = bg_name if table_key == "backgrounds" else (mot_name if table_key == "motivations" else cls_name)
+			if name_to_check.is_empty():
+				continue
+			var name_lower: String = name_to_check.to_lower().strip_edges()
+			for entry in _gear_db_cache.get(table_key, []):
+				if entry is Dictionary:
+					var entry_name: String = entry.get("name", "").to_lower()
+					var entry_id: String = entry.get("id", "").to_lower()
+					if entry_name == name_lower or entry_id == name_lower or name_lower.replace(" ", "_") == entry_id:
+						var bonuses: Dictionary = entry.get("stat_bonuses", {})
+						if bonuses.get("savvy", 0) > 0:
+							has_savvy = true
+						break
+		if has_savvy:
+			count += 1
+	return count
+
+func _build_generation_summary() -> void:
+	## Build the generation summary bar above the equipment list
+	## Shows: provenance tags, credits breakdown, savvy substitution UI, reroll buttons
+	var summary_node: VBoxContainer = get_node_or_null("%GenerationSummary")
+	if not summary_node:
+		# Create dynamically if not in .tscn
+		var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
+		if not content_node:
+			return
+		summary_node = VBoxContainer.new()
+		summary_node.name = "GenerationSummary"
+		summary_node.add_theme_constant_override("separation", SPACING_SM)
+		# Insert at top of Content
+		content_node.add_child(summary_node)
+		content_node.move_child(summary_node, 0)
+
+	# Clear existing
+	for child in summary_node.get_children():
+		child.queue_free()
+
+	# ── Provenance tags row ──────────────────────────────────────
+	var tags_row: HFlowContainer = HFlowContainer.new()
+	tags_row.add_theme_constant_override("h_separation", SPACING_SM)
+	tags_row.add_theme_constant_override("v_separation", SPACING_XS)
+
+	# Count items by source_table
+	var table_counts: Dictionary = {}
+	var bonus_counts: Dictionary = {}
+	for item in generated_equipment:
+		var src: String = item.get("source", "")
+		if src == "shared_pool":
+			var tbl: String = item.get("source_table", "unknown")
+			table_counts[tbl] = table_counts.get(tbl, 0) + 1
+		elif src == "bonus":
+			var char_name: String = item.get("source_character", "")
+			bonus_counts[char_name] = bonus_counts.get(char_name, 0) + 1
+
+	# Add pool tags
+	var pool_colors: Dictionary = {
+		"crew_base": COLOR_BLUE,
+		"military_weapon": COLOR_BLUE,
+		"low_tech_weapon": COLOR_CYAN,
+		"gear": COLOR_AMBER,
+		"gadget": Color("#8b5cf6")
+	}
+	# If source_table isn't set, count by type from shared pool
+	if table_counts.is_empty():
+		# Fallback: count shared pool items
+		var shared_count: int = 0
+		for item in generated_equipment:
+			if item.get("source", "") == "shared_pool":
+				shared_count += 1
+		if shared_count > 0:
+			tags_row.add_child(_create_prov_tag("%d Shared Pool" % shared_count, COLOR_BLUE))
+	else:
+		for tbl_name in table_counts:
+			var display_name: String = tbl_name.replace("_", " ").capitalize()
+			var color: Color = pool_colors.get(tbl_name, COLOR_TEXT_SECONDARY)
+			tags_row.add_child(_create_prov_tag(
+				"%d\u00d7 %s" % [table_counts[tbl_name], display_name], color))
+
+	# Add bonus tags per character
+	for char_name in bonus_counts:
+		tags_row.add_child(_create_prov_tag(
+			"%s: +%d bonus" % [char_name, bonus_counts[char_name]],
+			COLOR_SUCCESS))
+
+	summary_node.add_child(tags_row)
+
+	# ── Savvy substitution row ───────────────────────────────────
+	if _savvy_subs_available > 0:
+		var savvy_row: HBoxContainer = HBoxContainer.new()
+		savvy_row.add_theme_constant_override("separation", SPACING_SM)
+
+		var savvy_label: Label = Label.new()
+		var remaining: int = _savvy_subs_available - _savvy_subs_used
+		savvy_label.text = "Savvy Substitution: Swap Military \u2192 High-Tech (%d available)" % remaining
+		savvy_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		savvy_label.add_theme_color_override("font_color", COLOR_FOCUS)
+		savvy_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		savvy_row.add_child(savvy_label)
+
+		# Add swap buttons for each military weapon in shared pool
+		if remaining > 0:
+			for idx in range(generated_equipment.size()):
+				var item: Dictionary = generated_equipment[idx]
+				# Military weapons from the shared pool can be swapped
+				if item.get("source_table", "") == "military_weapon":
+					var swap_btn: Button = Button.new()
+					swap_btn.text = "Swap: %s" % item.get("name", "")
+					swap_btn.custom_minimum_size.y = 32
+					swap_btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+					swap_btn.pressed.connect(_on_savvy_swap_pressed.bind(idx))
+					savvy_row.add_child(swap_btn)
+
+		summary_node.add_child(savvy_row)
+
+	# ── Credits summary row ──────────────────────────────────────
+	var credits_row: HBoxContainer = HBoxContainer.new()
+	credits_row.add_theme_constant_override("separation", SPACING_SM)
+	var credits_lbl: Label = Label.new()
+	credits_lbl.text = "Starting Credits: %d" % starting_credits
+	credits_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	credits_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	credits_row.add_child(credits_lbl)
+
+	var credits_detail: Label = Label.new()
+	credits_detail.text = "(%d base + bonus rolls from backgrounds/motivations/classes)" % crew_members.size()
+	credits_detail.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	credits_detail.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	credits_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	credits_row.add_child(credits_detail)
+	summary_node.add_child(credits_row)
+
+	# ── Action buttons row ───────────────────────────────────────
+	var actions_row: HBoxContainer = HBoxContainer.new()
+	actions_row.add_theme_constant_override("separation", SPACING_SM)
+
+	var reroll_pool_btn: Button = Button.new()
+	reroll_pool_btn.text = "Reroll Shared Pool"
+	reroll_pool_btn.tooltip_text = "Re-roll the 8 shared items (3 Military + 3 Low-Tech + 1 Gear + 1 Gadget). Keeps bonus items."
+	reroll_pool_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	reroll_pool_btn.pressed.connect(_on_reroll_shared_pool)
+	_style_button(reroll_pool_btn, false)
+	actions_row.add_child(reroll_pool_btn)
+
+	var reroll_all_btn: Button = Button.new()
+	reroll_all_btn.text = "Reroll Everything"
+	reroll_all_btn.tooltip_text = "Re-generate all equipment including bonus items and credits."
+	reroll_all_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	reroll_all_btn.pressed.connect(_on_reroll_all)
+	_style_button(reroll_all_btn, false)
+	actions_row.add_child(reroll_all_btn)
+
+	summary_node.add_child(actions_row)
+
+func _create_prov_tag(text: String, color: Color) -> PanelContainer:
+	## Create a colored provenance pill badge
+	var pill: PanelContainer = PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.2)
+	style.border_color = color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.content_margin_left = SPACING_SM
+	style.content_margin_right = SPACING_SM
+	style.content_margin_top = SPACING_XS
+	style.content_margin_bottom = SPACING_XS
+	pill.add_theme_stylebox_override("panel", style)
+
+	var lbl: Label = Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_color_override("font_color", color)
+	pill.add_child(lbl)
+	return pill
+
+func _on_savvy_swap_pressed(equipment_index: int) -> void:
+	## Swap a military weapon for a High-Tech weapon (Core Rules p.28)
+	if _savvy_subs_used >= _savvy_subs_available:
+		return
+	if equipment_index < 0 or equipment_index >= generated_equipment.size():
+		return
+
+	# Roll on high_tech_weapon table
+	var new_item_name: String = ""
+	_ensure_gear_db()
+	var ht_table: Array = _gear_db_cache.get("weapon_tables", {}).get("high_tech_weapon", [])
+	if ht_table.is_empty():
+		return
+	var roll: int = randi_range(1, 100)
+	for entry in ht_table:
+		var rr: Array = entry.get("roll_range", [0, 0])
+		if roll >= rr[0] and roll <= rr[1]:
+			new_item_name = entry.get("name", "")
+			break
+	if new_item_name.is_empty():
+		return
+
+	# Replace the item
+	var old_name: String = generated_equipment[equipment_index].get("name", "")
+	generated_equipment[equipment_index]["name"] = new_item_name
+	generated_equipment[equipment_index]["source_table"] = "high_tech_weapon"
+	# Re-roll condition
+	if dice_manager:
+		var cond_roll: int = dice_manager.roll_d6("Condition")
+		generated_equipment[equipment_index]["condition"] = _determine_condition_from_roll(cond_roll)
+		generated_equipment[equipment_index]["quality_modifier"] = _get_quality_mod(
+			generated_equipment[equipment_index]["condition"])
+
+	_savvy_subs_used += 1
+
+	_update_equipment_display()
+	_build_generation_summary()
+	equipment_data_changed.emit(get_panel_data())
+
+func _on_reroll_shared_pool() -> void:
+	## Re-roll only the 8 shared pool items, keep bonus items and assignments
+	var bonus_items: Array = []
+	for item in generated_equipment:
+		if item.get("source", "") == "bonus":
+			bonus_items.append(item)
+
+	generated_equipment.clear()
+
+	# Regenerate shared pool
+	var base_pool: Array = StartingEquipmentGenerator.generate_crew_base_pool(dice_manager)
+	for item in base_pool:
+		var equip_item: Dictionary = {
+			"name": item.get("name", "Unknown"),
+			"type": item.get("type", "Gear"),
+			"source": "shared_pool",
+			"source_table": item.get("source", ""),
+			"owner": "Unassigned",
+			"condition": "standard",
+			"quality_modifier": 0
+		}
+		if dice_manager:
+			var cond_roll: int = dice_manager.roll_d6("Condition")
+			equip_item.condition = _determine_condition_from_roll(cond_roll)
+			equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
+		generated_equipment.append(equip_item)
+
+	# Re-add bonus items
+	generated_equipment.append_array(bonus_items)
+
+	_savvy_subs_used = 0
+
+	_update_equipment_display()
+	_update_summary()
+	_build_generation_summary()
+	equipment_data_changed.emit(get_panel_data())
+	_validate_and_complete()
+
+func _on_reroll_all() -> void:
+	## Full regeneration of everything
+	if crew_members.size() > 0:
+		_generate_equipment_for_actual_crew(crew_members)
+	else:
+		_generate_starting_equipment()
+
+func _ensure_gear_db() -> void:
+	## Ensure gear_database.json is loaded into cache
+	if not _gear_db_cache.is_empty():
+		return
+	_load_equipment_tables()
+
+func _lookup_starting_rolls_for_character(crew_member) -> Array:
+	## Look up combined starting_rolls from background + motivation + class
+	## using canonical gear_database.json tables (Core Rules pp.25-27)
+	_ensure_gear_db()
+
+	var all_rolls: Array = []
+	var bg_name: String = ""
+	var mot_name: String = ""
+	var cls_name: String = ""
+
+	# Extract names from Character or Dictionary
+	if crew_member is Character:
+		bg_name = crew_member.background if crew_member.background else ""
+		mot_name = crew_member.motivation if crew_member.motivation else ""
+		cls_name = crew_member.character_class if crew_member.character_class else ""
+	elif crew_member is Dictionary:
+		bg_name = str(crew_member.get("background", ""))
+		mot_name = str(crew_member.get("motivation", ""))
+		cls_name = str(crew_member.get("character_class", ""))
+
+	# Look up in each table by name match (case-insensitive)
+	all_rolls.append_array(_find_starting_rolls_in_table(
+		_gear_db_cache.get("backgrounds", []), bg_name))
+	all_rolls.append_array(_find_starting_rolls_in_table(
+		_gear_db_cache.get("motivations", []), mot_name))
+	all_rolls.append_array(_find_starting_rolls_in_table(
+		_gear_db_cache.get("classes", []), cls_name))
+
+	return all_rolls
+
+func _find_starting_rolls_in_table(table: Array, name: String) -> Array:
+	## Find starting_rolls for a given name in a gear_database.json table array
+	if name.is_empty():
+		return []
+	var name_lower: String = name.to_lower().strip_edges()
+	for entry in table:
+		if entry is Dictionary:
+			var entry_name: String = entry.get("name", "").to_lower()
+			var entry_id: String = entry.get("id", "").to_lower()
+			if entry_name == name_lower or entry_id == name_lower:
+				return entry.get("starting_rolls", [])
+			# Also try matching underscore-separated form
+			if name_lower.replace(" ", "_") == entry_id:
+				return entry.get("starting_rolls", [])
+	return []
+
+func _lookup_credits_dice_for_character(crew_member) -> Array[Dictionary]:
+	## Look up credits_dice contributions from background + motivation + class
+	## Returns array of {source: String, dice: String} for credits breakdown
+	_ensure_gear_db()
+
+	var contributions: Array[Dictionary] = []
+	var bg_name: String = ""
+	var mot_name: String = ""
+	var cls_name: String = ""
+
+	if crew_member is Character:
+		bg_name = crew_member.background if crew_member.background else ""
+		mot_name = crew_member.motivation if crew_member.motivation else ""
+		cls_name = crew_member.character_class if crew_member.character_class else ""
+	elif crew_member is Dictionary:
+		bg_name = str(crew_member.get("background", ""))
+		mot_name = str(crew_member.get("motivation", ""))
+		cls_name = str(crew_member.get("character_class", ""))
+
+	var bg_dice: String = _find_credits_dice_in_table(
+		_gear_db_cache.get("backgrounds", []), bg_name)
+	if not bg_dice.is_empty():
+		contributions.append({"source": "background", "dice": bg_dice, "name": bg_name})
+
+	var mot_dice: String = _find_credits_dice_in_table(
+		_gear_db_cache.get("motivations", []), mot_name)
+	if not mot_dice.is_empty():
+		contributions.append({"source": "motivation", "dice": mot_dice, "name": mot_name})
+
+	var cls_dice: String = _find_credits_dice_in_table(
+		_gear_db_cache.get("classes", []), cls_name)
+	if not cls_dice.is_empty():
+		contributions.append({"source": "class", "dice": cls_dice, "name": cls_name})
+
+	return contributions
+
+func _find_credits_dice_in_table(table: Array, name: String) -> String:
+	## Find credits_dice for a given name in a gear_database.json table array
+	if name.is_empty():
+		return ""
+	var name_lower: String = name.to_lower().strip_edges()
+	for entry in table:
+		if entry is Dictionary:
+			var entry_name: String = entry.get("name", "").to_lower()
+			var entry_id: String = entry.get("id", "").to_lower()
+			if entry_name == name_lower or entry_id == name_lower or name_lower.replace(" ", "_") == entry_id:
+				var resources: Dictionary = entry.get("resources", {})
+				return resources.get("credits_dice", "")
+	return ""
+
+func _roll_credits_dice(dice_str: String) -> int:
+	## Roll credits dice string like "1d6" or "2d6"
+	var lower: String = dice_str.to_lower().strip_edges()
+	if lower == "2d6":
+		return randi_range(1, 6) + randi_range(1, 6)
+	elif lower == "1d6" or lower == "d6":
+		return randi_range(1, 6)
+	return 0
+
+var _equipment_db_cache: Dictionary = {}
+
+func _lookup_equipment_stats(item_name: String) -> Dictionary:
+	## Look up full item stats from equipment_database.json by name
+	## Returns the item dict (range, shots, damage, traits, etc.) or empty dict
+	if _equipment_db_cache.is_empty():
+		_equipment_db_cache = _load_equipment_db()
+	var name_lower: String = item_name.to_lower().strip_edges()
+	for category in ["weapons", "armor", "gear"]:
+		for entry in _equipment_db_cache.get(category, []):
+			if entry is Dictionary and entry.get("name", "").to_lower() == name_lower:
+				return entry
+	return {}
+
+func _create_inline_stat(stat_name: String, value: String, color: Color) -> PanelContainer:
+	## Create a compact inline stat badge (e.g., RNG:24)
+	var badge: PanelContainer = PanelContainer.new()
+	badge.custom_minimum_size = Vector2(54, 22)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.15)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_XS)
+	badge.add_theme_stylebox_override("panel", style)
+
+	var hbox: HBoxContainer = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 2)
+
+	var name_lbl: Label = Label.new()
+	name_lbl.text = stat_name
+	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_color_override("font_color", Color(color, 0.7))
+	hbox.add_child(name_lbl)
+
+	var val_lbl: Label = Label.new()
+	val_lbl.text = value
+	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_color_override("font_color", color)
+	hbox.add_child(val_lbl)
+
+	badge.add_child(hbox)
+	return badge
 
 func _get_crew_assignment_options() -> Array[String]:
 	## Get list of crew member names for assignment dropdown
@@ -1621,19 +2169,11 @@ func _force_display_update() -> void:
 ## Look up background credit bonus from character_creation_tables/background_table.json
 ## Returns "1D6", "2D6", or "" (no bonus) per Core Rules pp.24-27
 func _get_background_credits_roll(background_name: String) -> String:
-	# Backgrounds that give +2D6 credits (Core Rules pp.25, 27)
-	var two_d6_backgrounds := ["wealthy merchant family", "trader"]
-	# Backgrounds that give +1D6 credits (Core Rules pp.24-27)
-	var one_d6_backgrounds := [
-		"peaceful high-tech colony", "tech guild", "comfortable megacity class",
-		"bureaucrat", "wealth", "adventure", "soldier", "artist"
-	]
-	var bg_lower := background_name.to_lower().strip_edges()
-	if bg_lower in two_d6_backgrounds:
-		return "2D6"
-	if bg_lower in one_d6_backgrounds:
-		return "1D6"
-	return ""
+	## Look up credits_dice for a background name from gear_database.json
+	## Returns "1d6", "2d6", or "" (no bonus)
+	_ensure_gear_db()
+	return _find_credits_dice_in_table(
+		_gear_db_cache.get("backgrounds", []), background_name)
 
 func _validate_and_complete() -> void:
 	local_equipment_data.equipment = generated_equipment

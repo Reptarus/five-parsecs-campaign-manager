@@ -22,6 +22,7 @@ signal ship_validation_failed(errors: Array[String])
 # Granular signals for real-time integration
 signal ship_data_changed(data: Dictionary)
 signal ship_configuration_complete(ship: Dictionary)
+signal crew_flavor_updated(flavor: Dictionary)
 
 var local_ship_data: Dictionary = {
 	"ship": {},
@@ -58,6 +59,24 @@ var available_ships: Array[Dictionary] = []
 
 # Ship data loaded from ships.json (Core Rules pp.68-71)
 var _ships_db: Dictionary = {}
+
+# Flavor data loaded from flavor_table.json (Core Rules p.32)
+var _flavor_db: Dictionary = {}
+var flavor_data: Dictionary = {
+	"we_met_through": "",
+	"we_met_through_details": "",
+	"best_characterized_as": "",
+	"best_characterized_as_details": "",
+	"is_complete": false
+}
+
+# Flavor UI refs
+var flavor_met_label: Label
+var flavor_met_details_label: Label
+var flavor_char_label: Label
+var flavor_char_details_label: Label
+var flavor_met_reroll_button: Button
+var flavor_char_reroll_button: Button
 
 # Guard variable to prevent duplicate panel_completed emissions
 var _completion_emitted: bool = false
@@ -97,6 +116,7 @@ func _ready() -> void:
 
 	# Load ship data from JSON
 	_load_ships_database()
+	_load_flavor_database()
 
 	# Apply design system styling to scene-defined inputs
 	call_deferred("_apply_input_styling")
@@ -205,6 +225,10 @@ func _wrap_form_in_cards() -> void:
 		content_node.remove_child(traits_section)
 		traits_content.add_child(traits_section)
 		cards_container.add_child(traits_card)
+
+	# === CREW FLAVOR CARD (Core Rules p.32) ===
+	var flavor_card := _create_flavor_section()
+	cards_container.add_child(flavor_card)
 
 	# === ACTION BUTTONS (no card, centered) ===
 	var controls_section = content_node.get_node_or_null("Controls")
@@ -601,6 +625,193 @@ func _load_ships_database() -> void:
 	if json.data is Dictionary:
 		_ships_db = json.data
 
+func _load_flavor_database() -> void:
+	var path := "res://data/character_creation_tables/flavor_table.json"
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_warning("ShipPanel: Failed to open flavor_table.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("ShipPanel: Failed to parse flavor_table.json")
+		return
+	if json.data is Dictionary:
+		_flavor_db = json.data
+
+func _roll_flavor_table(table_name: String) -> Dictionary:
+	## Roll D100 against a flavor table, returns entry dict
+	var table: Dictionary = _flavor_db.get(table_name, {})
+	var entries: Dictionary = table.get("entries", {})
+	if entries.is_empty():
+		return {"description": "Unknown", "details": ""}
+	var roll: int = randi_range(1, 100)
+	for range_key in entries.keys():
+		var parts: PackedStringArray = range_key.split("-")
+		if parts.size() == 2:
+			var low: int = int(parts[0])
+			var high: int = int(parts[1])
+			if roll >= low and roll <= high:
+				return entries[range_key]
+	# Fallback: return last entry
+	var keys: Array = entries.keys()
+	return entries[keys[keys.size() - 1]]
+
+func _roll_crew_flavor() -> void:
+	## Roll both flavor tables (Core Rules p.32)
+	var met_result: Dictionary = _roll_flavor_table("we_met_through")
+	flavor_data["we_met_through"] = met_result.get("description", "")
+	flavor_data["we_met_through_details"] = met_result.get("details", "")
+	var char_result: Dictionary = _roll_flavor_table(
+		"best_characterized_as")
+	flavor_data["best_characterized_as"] = char_result.get(
+		"description", "")
+	flavor_data["best_characterized_as_details"] = char_result.get(
+		"details", "")
+	flavor_data["is_complete"] = true
+	_update_flavor_display()
+	crew_flavor_updated.emit(flavor_data)
+
+func _on_reroll_met_pressed() -> void:
+	var met_result: Dictionary = _roll_flavor_table("we_met_through")
+	flavor_data["we_met_through"] = met_result.get("description", "")
+	flavor_data["we_met_through_details"] = met_result.get("details", "")
+	_update_flavor_display()
+	crew_flavor_updated.emit(flavor_data)
+
+func _on_reroll_char_pressed() -> void:
+	var char_result: Dictionary = _roll_flavor_table(
+		"best_characterized_as")
+	flavor_data["best_characterized_as"] = char_result.get(
+		"description", "")
+	flavor_data["best_characterized_as_details"] = char_result.get(
+		"details", "")
+	_update_flavor_display()
+	crew_flavor_updated.emit(flavor_data)
+
+func _update_flavor_display() -> void:
+	if flavor_met_label:
+		flavor_met_label.text = flavor_data.get(
+			"we_met_through", "Not rolled yet")
+	if flavor_met_details_label:
+		flavor_met_details_label.text = flavor_data.get(
+			"we_met_through_details", "")
+	if flavor_char_label:
+		flavor_char_label.text = flavor_data.get(
+			"best_characterized_as", "Not rolled yet")
+	if flavor_char_details_label:
+		flavor_char_details_label.text = flavor_data.get(
+			"best_characterized_as_details", "")
+
+func _create_flavor_section() -> PanelContainer:
+	## Build CREW FLAVOR card (Core Rules p.32)
+	var card := _create_form_section_card(
+		"CREW FLAVOR",
+		"How your crew came together and what defines them (Core Rules p.32).")
+	var card_content := card.get_node("CardMargin/CardContent")
+
+	# --- "We met through" sub-section ---
+	var met_section := VBoxContainer.new()
+	met_section.add_theme_constant_override("separation", SPACING_XS)
+
+	var met_header_row := HBoxContainer.new()
+	met_header_row.add_theme_constant_override("separation", SPACING_SM)
+	var met_header := Label.new()
+	met_header.text = "We met through..."
+	met_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	met_header.add_theme_color_override(
+		"font_color", COLOR_TEXT_PRIMARY)
+	met_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	met_header_row.add_child(met_header)
+
+	flavor_met_reroll_button = Button.new()
+	flavor_met_reroll_button.text = "Re-roll"
+	flavor_met_reroll_button.custom_minimum_size = Vector2(
+		80, TOUCH_TARGET_MIN)
+	_style_button(flavor_met_reroll_button, false)
+	flavor_met_reroll_button.pressed.connect(_on_reroll_met_pressed)
+	met_header_row.add_child(flavor_met_reroll_button)
+	met_section.add_child(met_header_row)
+
+	var met_result_panel := PanelContainer.new()
+	met_result_panel.add_theme_stylebox_override(
+		"panel", _create_glass_card_style(0.6))
+	var met_vbox := VBoxContainer.new()
+	met_vbox.add_theme_constant_override("separation", SPACING_XS)
+
+	flavor_met_label = Label.new()
+	flavor_met_label.text = "Not rolled yet"
+	flavor_met_label.add_theme_font_size_override(
+		"font_size", FONT_SIZE_MD)
+	flavor_met_label.add_theme_color_override(
+		"font_color", COLOR_ACCENT)
+	met_vbox.add_child(flavor_met_label)
+
+	flavor_met_details_label = Label.new()
+	flavor_met_details_label.text = ""
+	flavor_met_details_label.add_theme_font_size_override(
+		"font_size", FONT_SIZE_XS)
+	flavor_met_details_label.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
+	flavor_met_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	met_vbox.add_child(flavor_met_details_label)
+
+	met_result_panel.add_child(met_vbox)
+	met_section.add_child(met_result_panel)
+	card_content.add_child(met_section)
+
+	# --- "Best characterized as" sub-section ---
+	var char_section := VBoxContainer.new()
+	char_section.add_theme_constant_override("separation", SPACING_XS)
+
+	var char_header_row := HBoxContainer.new()
+	char_header_row.add_theme_constant_override(
+		"separation", SPACING_SM)
+	var char_header := Label.new()
+	char_header.text = "Best characterized as..."
+	char_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	char_header.add_theme_color_override(
+		"font_color", COLOR_TEXT_PRIMARY)
+	char_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	char_header_row.add_child(char_header)
+
+	flavor_char_reroll_button = Button.new()
+	flavor_char_reroll_button.text = "Re-roll"
+	flavor_char_reroll_button.custom_minimum_size = Vector2(
+		80, TOUCH_TARGET_MIN)
+	_style_button(flavor_char_reroll_button, false)
+	flavor_char_reroll_button.pressed.connect(_on_reroll_char_pressed)
+	char_header_row.add_child(flavor_char_reroll_button)
+	char_section.add_child(char_header_row)
+
+	var char_result_panel := PanelContainer.new()
+	char_result_panel.add_theme_stylebox_override(
+		"panel", _create_glass_card_style(0.6))
+	var char_vbox := VBoxContainer.new()
+	char_vbox.add_theme_constant_override("separation", SPACING_XS)
+
+	flavor_char_label = Label.new()
+	flavor_char_label.text = "Not rolled yet"
+	flavor_char_label.add_theme_font_size_override(
+		"font_size", FONT_SIZE_MD)
+	flavor_char_label.add_theme_color_override(
+		"font_color", COLOR_ACCENT)
+	char_vbox.add_child(flavor_char_label)
+
+	flavor_char_details_label = Label.new()
+	flavor_char_details_label.text = ""
+	flavor_char_details_label.add_theme_font_size_override(
+		"font_size", FONT_SIZE_XS)
+	flavor_char_details_label.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
+	flavor_char_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	char_vbox.add_child(flavor_char_details_label)
+
+	char_result_panel.add_child(char_vbox)
+	char_section.add_child(char_result_panel)
+	card_content.add_child(char_section)
+
+	return card
+
 func _get_ship_type_data(ship_name: String) -> Dictionary:
 	## Look up ship type data from ships.json by display name
 	for entry in _ships_db.get("ship_types", []):
@@ -721,31 +932,52 @@ func _update_traits_display() -> void:
 
 	# Add trait labels - defensive check for traits array
 	if ship_data.has("traits") and ship_data.traits is Array:
+		var trait_defs: Dictionary = _ships_db.get(
+			"ship_trait_definitions", {})
 		for ship_trait in ship_data.traits:
 			if ship_trait is String:
-				# GLASS MORPHISM: Create styled trait badge
 				var trait_panel = PanelContainer.new()
-				trait_panel.add_theme_stylebox_override("panel", _create_glass_card_style(0.6))
-				trait_panel.custom_minimum_size.y = 32
-				
+				trait_panel.add_theme_stylebox_override(
+					"panel", _create_glass_card_style(0.6))
+
 				var trait_hbox = HBoxContainer.new()
-				trait_hbox.add_theme_constant_override("separation", SPACING_SM)
-				
-				# Trait icon (visual indicator)
+				trait_hbox.add_theme_constant_override(
+					"separation", SPACING_SM)
+
 				var icon_label = Label.new()
-				icon_label.text = "⭐"  # Star icon for traits
-				icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-				icon_label.add_theme_color_override("font_color", COLOR_ACCENT)
+				icon_label.text = ">"
+				icon_label.add_theme_font_size_override(
+					"font_size", FONT_SIZE_MD)
+				icon_label.add_theme_color_override(
+					"font_color", COLOR_ACCENT)
 				trait_hbox.add_child(icon_label)
-				
-				# Trait name
-				var label = Label.new()
-				label.text = ship_trait
-				label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-				label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-				label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				trait_hbox.add_child(label)
-				
+
+				# Trait name + description in VBox
+				var text_vbox = VBoxContainer.new()
+				text_vbox.add_theme_constant_override(
+					"separation", SPACING_XS)
+				text_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+				var name_label = Label.new()
+				name_label.text = ship_trait
+				name_label.add_theme_font_size_override(
+					"font_size", FONT_SIZE_SM)
+				name_label.add_theme_color_override(
+					"font_color", COLOR_TEXT_PRIMARY)
+				text_vbox.add_child(name_label)
+
+				var desc_text: String = trait_defs.get(ship_trait, "")
+				if not desc_text.is_empty():
+					var desc_label = Label.new()
+					desc_label.text = desc_text
+					desc_label.add_theme_font_size_override(
+						"font_size", FONT_SIZE_XS)
+					desc_label.add_theme_color_override(
+						"font_color", COLOR_TEXT_SECONDARY)
+					desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					text_vbox.add_child(desc_label)
+
+				trait_hbox.add_child(text_vbox)
 				trait_panel.add_child(trait_hbox)
 				traits_container.add_child(trait_panel)
 	else:
@@ -899,6 +1131,7 @@ func _build_ship_data() -> Dictionary:
 	data["completion_level"] = _calculate_completion_level()
 	data["cargo_capacity"] = _calculate_cargo_capacity(
 		data.get("type", "Worn Freighter"))
+	data["crew_flavor"] = flavor_data.duplicate()
 	data["metadata"] = {
 		"last_modified": Time.get_unix_time_from_system(),
 		"version": "1.0",
@@ -992,6 +1225,7 @@ func _generate_ship() -> void:
 		ship_data.name = _generate_ship_name()
 
 	_update_ship_display()
+	_roll_crew_flavor()
 	ship_updated.emit(ship_data)
 
 	# Validate and emit completion signal after generation
@@ -1179,6 +1413,19 @@ func cleanup_panel() -> void:
 	# Clear ship data
 	ship_data.clear()
 	available_ships.clear()
+
+	# Clear flavor state
+	flavor_data = {
+		"we_met_through": "",
+		"we_met_through_details": "",
+		"best_characterized_as": "",
+		"best_characterized_as_details": "",
+		"is_complete": false
+	}
+	flavor_met_label = null
+	flavor_met_details_label = null
+	flavor_char_label = null
+	flavor_char_details_label = null
 	
 
 func _validate_ship_data() -> Array[String]:

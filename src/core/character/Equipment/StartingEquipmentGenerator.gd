@@ -3,18 +3,70 @@ class_name StartingEquipmentGenerator
 extends RefCounted
 
 ## Five Parsecs starting equipment generation system
-## Implements Core Rules equipment tables with class, background, and random bonuses
+## Uses canonical weapon_tables from gear_database.json (Core Rules pp.27-28)
+##
+## Equipment generation has two parts:
+## 1. CREW BASE POOL (shared): 3 military + 3 low-tech + 1 gear + 1 gadget
+## 2. PER-CHARACTER BONUS: Each character's starting_rolls from background/motivation/class tables
 
-# Safe imports
 const UniversalResourceLoader := preload("res://src/core/systems/UniversalResourceLoader.gd")
-const UniversalDataAccess := preload("res://src/core/systems/UniversalDataAccess.gd")
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-# Cached equipment data
-static var _equipment_tables: Dictionary = {}
+# Cached data from gear_database.json
+static var _weapon_tables: Dictionary = {}
+static var _crew_starting_config: Dictionary = {}
 static var _tables_loaded: bool = false
 
-## Generate complete starting equipment following Core Rules
+## Generate the shared crew base equipment pool (Core Rules p.27)
+## Returns: Array of {name, type, owner: "Unassigned"}
+static func generate_crew_base_pool(dice_manager: Node) -> Array:
+	_ensure_tables_loaded()
+
+	var pool: Array = []
+
+	var military_rolls: int = _crew_starting_config.get("military_weapon_rolls", 3)
+	var low_tech_rolls: int = _crew_starting_config.get("low_tech_weapon_rolls", 3)
+	var gear_rolls: int = _crew_starting_config.get("gear_rolls", 1)
+	var gadget_rolls: int = _crew_starting_config.get("gadget_rolls", 1)
+
+	for i in military_rolls:
+		var item_name: String = _roll_on_subtable("military_weapon", dice_manager)
+		if not item_name.is_empty():
+			pool.append({"name": item_name, "type": "Weapon", "source": "crew_base", "source_table": "military_weapon"})
+
+	for i in low_tech_rolls:
+		var item_name: String = _roll_on_subtable("low_tech_weapon", dice_manager)
+		if not item_name.is_empty():
+			pool.append({"name": item_name, "type": "Weapon", "source": "crew_base", "source_table": "low_tech_weapon"})
+
+	for i in gear_rolls:
+		var item_name: String = _roll_on_subtable("gear", dice_manager)
+		if not item_name.is_empty():
+			pool.append({"name": item_name, "type": "Gear", "source": "crew_base", "source_table": "gear"})
+
+	for i in gadget_rolls:
+		var item_name: String = _roll_on_subtable("gadget", dice_manager)
+		if not item_name.is_empty():
+			pool.append({"name": item_name, "type": "Gadget", "source": "crew_base", "source_table": "gadget"})
+
+	return pool
+
+## Generate per-character bonus equipment from their starting_rolls
+## starting_rolls: Array like ["low_tech_weapon", "gadget"] from character creation tables
+## Returns: Array of {name, type, source: "bonus"}
+static func generate_bonus_equipment(starting_rolls: Array, dice_manager: Node) -> Array:
+	_ensure_tables_loaded()
+
+	var items: Array = []
+	for roll_type in starting_rolls:
+		var roll_str: String = str(roll_type)
+		var item_name: String = _roll_on_subtable(roll_str, dice_manager)
+		if not item_name.is_empty():
+			var item_type: String = _get_item_type(roll_str)
+			items.append({"name": item_name, "type": item_type, "source": "bonus"})
+	return items
+
+## Legacy API — generate starting equipment for a single character
+## Now delegates to bonus equipment from starting_rolls
 static func generate_starting_equipment(character: Character, dice_manager: Node) -> Dictionary:
 	_ensure_tables_loaded()
 
@@ -26,178 +78,98 @@ static func generate_starting_equipment(character: Character, dice_manager: Node
 		"condition_modifiers": {}
 	}
 
-	# Base class equipment
-	var class_gear: Dictionary = _get_class_equipment(character.character_class)
-	equipment = _merge_equipment(equipment, class_gear)
+	# Get starting_rolls from character if available
+	var starting_rolls: Array = []
+	if "starting_rolls" in character and character.starting_rolls is Array:
+		starting_rolls = character.starting_rolls
 
-	# Background bonuses  
-	var background_gear: Dictionary = _get_background_equipment(character.background)
-	equipment = _merge_equipment(equipment, background_gear)
+	# Roll on each subtable
+	for roll_type in starting_rolls:
+		var roll_str: String = str(roll_type)
+		var item_name: String = _roll_on_subtable(roll_str, dice_manager)
+		if item_name.is_empty():
+			continue
 
-	# Random bonus items (d66 roll)
-	if dice_manager and dice_manager.has_method("roll_d66"):
-		var bonus_roll: int = dice_manager.roll_d66("Bonus Equipment")
-		var bonus_gear: Dictionary = _lookup_bonus_equipment(bonus_roll)
-		equipment = _merge_equipment(equipment, bonus_gear)
+		match roll_str:
+			"low_tech_weapon", "military_weapon", "high_tech_weapon":
+				equipment.weapons.append(item_name)
+			"gear":
+				equipment.gear.append(item_name)
+			"gadget":
+				equipment.gear.append(item_name)
 
-	# Starting credits are set by campaign creation (1 credit per crew, Core Rules p.28).
-	# Equipment generation does NOT add bonus credits — items only.
+	# Credits set by campaign creation (Core Rules p.28: 1/crew + background rolls)
 	equipment.credits = 0
 
 	return equipment
 
-## Apply equipment condition and quality
+## Apply equipment condition rolls (d6 per item)
 static func apply_equipment_condition(equipment: Dictionary, dice_manager: Node) -> void:
 	if not dice_manager:
-		push_warning("DiceManager not provided to apply_equipment_condition. Skipping.")
 		return
 
-	# Apply condition to weapons
-	var weapons: Array = equipment.get("weapons", [])
-	for i: int in range(weapons.size()):
-		if weapons[i] is Dictionary:
-			var condition_roll: int = dice_manager.roll_d6("Weapon Condition")
-			weapons[i]["condition"] = _determine_condition(condition_roll)
-			weapons[i]["quality_modifier"] = _get_quality_modifier(weapons[i]["condition"])
-		elif weapons[i] is String:
-			# Convert string to dictionary with condition
-			var weapon_name: String = weapons[i]
-			var condition_roll: int = dice_manager.roll_d6("Weapon Condition")
+	for key: String in ["weapons", "armor", "gear"]:
+		var items: Array = equipment.get(key, [])
+		for i: int in range(items.size()):
+			var condition_roll: int = dice_manager.roll_d6("%s Condition" % key.capitalize())
 			var condition: String = _determine_condition(condition_roll)
-			weapons[i] = {
-				"name": weapon_name,
-				"condition": condition,
-				"quality_modifier": _get_quality_modifier(condition)
-			}
+			if items[i] is String:
+				items[i] = {
+					"name": items[i],
+					"condition": condition,
+					"quality_modifier": _get_quality_modifier(condition)
+				}
+			elif items[i] is Dictionary:
+				items[i]["condition"] = condition
+				items[i]["quality_modifier"] = _get_quality_modifier(condition)
 
-	# Apply condition to armor
-	var armor_items: Array = equipment.get("armor", [])
-	for i: int in range(armor_items.size()):
-		if armor_items[i] is Dictionary:
-			var condition_roll: int = dice_manager.roll_d6("Armor Condition")
-			armor_items[i]["condition"] = _determine_condition(condition_roll)
-			armor_items[i]["quality_modifier"] = _get_quality_modifier(armor_items[i]["condition"])
-		elif armor_items[i] is String:
-			# Convert string to dictionary with condition
-			var armor_name: String = armor_items[i]
-			var condition_roll: int = dice_manager.roll_d6("Armor Condition")
-			var condition: String = _determine_condition(condition_roll)
-			armor_items[i] = {
-				"name": armor_name,
-				"condition": condition,
-				"quality_modifier": _get_quality_modifier(condition)
-			}
+## Roll D100 on a named subtable from weapon_tables
+static func _roll_on_subtable(table_name: String, dice_manager: Node) -> String:
+	if not _weapon_tables.has(table_name):
+		push_warning("StartingEquipmentGenerator: No subtable '%s' in weapon_tables" % table_name)
+		return ""
 
-	# Apply condition to gear items
-	var gear_items: Array = equipment.get("gear", [])
-	for i: int in range(gear_items.size()):
-		if gear_items[i] is Dictionary:
-			var condition_roll: int = dice_manager.roll_d6("Gear Condition")
-			gear_items[i]["condition"] = _determine_condition(condition_roll)
-			gear_items[i]["quality_modifier"] = _get_quality_modifier(gear_items[i]["condition"])
-		elif gear_items[i] is String:
-			# Convert string to dictionary with condition
-			var gear_name: String = gear_items[i]
-			var condition_roll: int = dice_manager.roll_d6("Gear Condition")
-			var condition: String = _determine_condition(condition_roll)
-			gear_items[i] = {
-				"name": gear_name,
-				"condition": condition,
-				"quality_modifier": _get_quality_modifier(condition)
-			}
+	var table: Array = _weapon_tables[table_name]
+	var roll: int = 0
+	if dice_manager and dice_manager.has_method("roll_d100"):
+		roll = dice_manager.roll_d100("Equipment: %s" % table_name)
+	else:
+		roll = randi_range(1, 100)
 
-## Get class-specific equipment
-static func _get_class_equipment(character_class: String) -> Dictionary:
-	var class_tables: Dictionary = _equipment_tables.get("class_equipment", {})
-	# Character class is now a string, use directly
-	var class_name_str: String = character_class.to_lower()
-	return class_tables.get(class_name_str, {})
+	for entry in table:
+		var roll_range: Array = entry.get("roll_range", [0, 0])
+		if roll >= roll_range[0] and roll <= roll_range[1]:
+			return entry.get("name", "")
 
-## Get background-specific equipment bonuses
-static func _get_background_equipment(background: String) -> Dictionary:
-	var bg_tables: Dictionary = _equipment_tables.get("background_equipment", {})
-	# Background is now a string, use directly
-	var bg_name: String = background.to_lower()
-	return bg_tables.get(bg_name, {})
+	# Fallback to last entry if roll somehow out of range
+	if table.size() > 0:
+		return table[table.size() - 1].get("name", "")
+	return ""
 
-## Lookup bonus equipment from d66 roll
-static func _lookup_bonus_equipment(roll: int) -> Dictionary:
-	var bonus_table: Dictionary = _equipment_tables.get("bonus_equipment", {})
-	var roll_str: String = str(roll)
-
-	if bonus_table.has(roll_str):
-		var bonus_data: Dictionary = bonus_table[roll_str]
-		return _convert_bonus_to_equipment(bonus_data)
-
-	return {}
-
-## Convert bonus table entry to equipment format
-static func _convert_bonus_to_equipment(bonus_data: Dictionary) -> Dictionary:
-	var equipment: Dictionary = {
-		"weapons": [],
-		"armor": [],
-		"gear": [],
-		"credits": 0
-	}
-
-	var item_type: String = bonus_data.get("type", "")
-	var item_name: String = bonus_data.get("item", "")
-	var condition: String = bonus_data.get("condition", "standard")
-
-	match item_type:
-		"weapon":
-			equipment.weapons.append({
-				"name": item_name,
-				"condition": condition,
-				"quality_modifier": _get_quality_modifier(condition)
-			})
-		"armor":
-			equipment.armor.append({
-				"name": item_name,
-				"condition": condition,
-				"quality_modifier": _get_quality_modifier(condition)
-			})
+## Map subtable name to equipment type category
+static func _get_item_type(table_name: String) -> String:
+	match table_name:
+		"low_tech_weapon", "military_weapon", "high_tech_weapon":
+			return "Weapon"
 		"gear":
-			equipment.gear.append({
-				"name": item_name,
-				"condition": condition,
-				"quality_modifier": _get_quality_modifier(condition)
-			})
-		"credits":
-			equipment.credits = bonus_data.get("amount", 0)
+			return "Gear"
+		"gadget":
+			return "Gadget"
+		_:
+			return "Gear"
 
-	return equipment
-
-## Load equipment tables safely
+## Load weapon_tables from gear_database.json
 static func _ensure_tables_loaded() -> void:
 	if _tables_loaded:
 		return
 
-	var tables_path := "res://data/character_creation_tables/equipment_tables.json"
-	_equipment_tables = UniversalResourceLoader.load_json_safe(tables_path, "StartingEquipmentGenerator equipment tables")
+	var db_path := "res://data/gear_database.json"
+	var data: Dictionary = UniversalResourceLoader.load_json_safe(db_path, "StartingEquipmentGenerator")
+	_weapon_tables = data.get("weapon_tables", {})
+	_crew_starting_config = data.get("crew_starting_equipment", {})
 	_tables_loaded = true
 
-	pass
-
-## Merge equipment dictionaries safely
-static func _merge_equipment(base: Dictionary, addition: Dictionary) -> Dictionary:
-	var result: Dictionary = base.duplicate()
-
-	# Merge arrays
-	for key: String in ["weapons", "armor", "gear"]:
-		if addition.has(key):
-			var base_array: Array = result.get(key, [])
-			var add_array: Array = addition.get(key, [])
-			base_array.append_array(add_array)
-			result[key] = base_array
-
-	# Add credits
-	if addition.has("credits"):
-		result.credits = result.get("credits", 0) + addition.credits
-
-	return result
-
-## Determine equipment condition from d6 roll
+## Determine equipment condition from d6 roll (Core Rules p.28)
 static func _determine_condition(roll: int) -> String:
 	match roll:
 		1:
@@ -221,65 +193,31 @@ static func _get_quality_modifier(condition: String) -> int:
 		_:
 			return 0
 
-## Test equipment generation for specific character
-static func test_equipment_generation(class_type: String, background: String, dice_manager: Node) -> Dictionary:
-	# Create a minimal character for testing
-	var character: Character = Character.new()
-	character.character_class = class_type
-	character.background = background
+## Get starting credits per crew member (Core Rules p.28)
+static func get_credits_per_member() -> int:
+	_ensure_tables_loaded()
+	return _crew_starting_config.get("credits_per_member", 1)
 
-	var equipment = generate_starting_equipment(character, dice_manager)
-	apply_equipment_condition(equipment, dice_manager)
+## Validate tables loaded correctly
+static func validate_equipment_tables() -> bool:
+	_ensure_tables_loaded()
 
-	return equipment
+	var required_tables := ["low_tech_weapon", "military_weapon", "high_tech_weapon", "gear", "gadget"]
+	var is_valid := true
+	for table_name: String in required_tables:
+		if not _weapon_tables.has(table_name):
+			push_error("StartingEquipmentGenerator: Missing required table: %s" % table_name)
+			is_valid = false
+		elif _weapon_tables[table_name].is_empty():
+			push_error("StartingEquipmentGenerator: Empty table: %s" % table_name)
+			is_valid = false
+
+	return is_valid
 
 ## Get equipment statistics for debugging
 static func get_equipment_statistics() -> Dictionary:
 	_ensure_tables_loaded()
-
-	var stats: Dictionary = {
-		"class_equipment": {},
-		"background_equipment": {},
-		"bonus_equipment_entries": 0
-	}
-
-	# Count class equipment
-	var class_eq: Dictionary = _equipment_tables.get("class_equipment", {})
-	for class_name_key in class_eq.keys():
-		var class_data: Dictionary = class_eq[class_name_key]
-		if class_data is Dictionary:
-			stats.class_equipment[class_name_key] = class_data.size()
-
-	# Count background equipment
-	var bg_eq: Dictionary = _equipment_tables.get("background_equipment", {})
-	for bg_name_key in bg_eq.keys():
-		var bg_data: Dictionary = bg_eq[bg_name_key]
-		if bg_data is Dictionary:
-			stats.background_equipment[bg_name_key] = bg_data.size()
-
-	# Count bonus equipment
-	var bonus_eq: Dictionary = _equipment_tables.get("bonus_equipment", {})
-	stats.bonus_equipment_entries = bonus_eq.size()
-
+	var stats: Dictionary = {}
+	for table_name: String in _weapon_tables.keys():
+		stats[table_name] = _weapon_tables[table_name].size()
 	return stats
-
-## Validate all equipment tables
-static func validate_equipment_tables() -> bool:
-	_ensure_tables_loaded()
-
-	var is_valid := true
-
-	# Check required sections exist
-	var required_sections = ["class_equipment", "background_equipment", "bonus_equipment"]
-	for section: String in required_sections:
-		if not _equipment_tables.has(section):
-			push_error("StartingEquipmentGenerator: Missing required section: " + section)
-			is_valid = false
-		elif _equipment_tables[section].is_empty():
-			push_error("StartingEquipmentGenerator: Empty section: " + section)
-			is_valid = false
-
-	if is_valid:
-		pass
-
-	return is_valid

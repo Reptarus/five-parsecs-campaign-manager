@@ -72,7 +72,7 @@ static func _load_d100_table(path: String) -> Array:
 		if resources.has("credits_roll"):
 			converted["credits_dice"] = 1
 		if resources.has("story_points"):
-			converted["story_points"] = resources["story_points"]
+			converted["story_points"] = int(resources["story_points"])
 		var equip_rolls: Array = entry.get("equipment_rolls", [])
 		if not equip_rolls.is_empty():
 			converted["starting_rolls"] = equip_rolls

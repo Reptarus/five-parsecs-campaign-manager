@@ -66,6 +66,7 @@ var unified_campaign_state: Dictionary = {
 		"hull_points": 0,
 		"max_hull": 0,
 		"debt": 0,
+		"traits": [],
 		"is_complete": false
 	},
 	"captain": {
@@ -261,6 +262,10 @@ func update_ship_state(ship_data: Dictionary) -> void:
 		unified_campaign_state.ship.max_hull = actual_ship_data.max_hull
 	if actual_ship_data.has("debt"):
 		unified_campaign_state.ship.debt = actual_ship_data.debt
+	if actual_ship_data.has("traits"):
+		unified_campaign_state.ship["traits"] = actual_ship_data["traits"]
+	if ship_data.has("crew_flavor") and ship_data["crew_flavor"] is Dictionary:
+		unified_campaign_state["crew_flavor"] = ship_data["crew_flavor"]
 
 	# Handle is_complete from both top-level (wrapper) and nested (actual ship data)
 	if ship_data.has("is_complete"):
@@ -1331,6 +1336,7 @@ func _aggregate_all_phase_data() -> Dictionary:
 		"ship": unified_campaign_state.get("ship", {}).duplicate(true),
 		"equipment": unified_campaign_state.get("equipment", {}).duplicate(true),
 		"world": unified_campaign_state.get("world", {}).duplicate(true),
+		"crew_flavor": unified_campaign_state.get("crew_flavor", {}).duplicate(true),
 		"phase_completion": phase_completion_status.duplicate()
 	}
 

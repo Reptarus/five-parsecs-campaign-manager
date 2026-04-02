@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "version": "2.0",
-    "source": "Five Parsecs from Home Core Rules 3e pp.30-31 — VERIFIED Mar 22, 2026",
-    "last_updated": "2026-03-22",
-    "notes": "Hull 20-40, Debt 1D6+10 to 1D6+35. Previous version had fabricated 6-14 hull / 0-5 debt."
+    "version": "2.1",
+    "source": "Five Parsecs from Home Core Rules 3e pp.30-31 — VERIFIED Apr 2, 2026",
+    "last_updated": "2026-04-02",
+    "notes": "Hull 20-40, Debt 1D6+10 to 1D6+35. v2.1: Fixed trait alignment — traits were shifted up by one row (9/13 ships affected). Verified against Core Rules p.31 PDF extraction."
   },
   "ship_types": [
     {
@@ -12,7 +12,7 @@
       "hull_points": 30,
       "debt_formula": "1D6+20",
       "debt_base": 20,
-      "traits": ["Emergency Drives"]
+      "traits": []
     },
     {
       "id": "retired_troop_transport",
@@ -20,7 +20,7 @@
       "hull_points": 35,
       "debt_formula": "1D6+30",
       "debt_base": 30,
-      "traits": []
+      "traits": ["Emergency Drives"]
     },
     {
       "id": "strange_alien_vessel",
@@ -28,7 +28,7 @@
       "hull_points": 25,
       "debt_formula": "1D6+15",
       "debt_base": 15,
-      "traits": ["Fuel-efficient"]
+      "traits": []
     },
     {
       "id": "upgraded_shuttle",
@@ -44,7 +44,7 @@
       "hull_points": 25,
       "debt_formula": "1D6+20",
       "debt_base": 20,
-      "traits": ["Fuel Hog"]
+      "traits": ["Fuel-efficient"]
     },
     {
       "id": "repurposed_science_vessel",
@@ -60,7 +60,7 @@
       "hull_points": 35,
       "debt_formula": "1D6+20",
       "debt_base": 20,
-      "traits": ["Dodgy Drive"]
+      "traits": ["Fuel Hog"]
     },
     {
       "id": "unreliable_merchant_cruiser",
@@ -76,7 +76,7 @@
       "hull_points": 25,
       "debt_formula": "1D6+15",
       "debt_base": 15,
-      "traits": ["Standard Issue"]
+      "traits": []
     },
     {
       "id": "ancient_low_tech_craft",
@@ -84,7 +84,7 @@
       "hull_points": 35,
       "debt_formula": "1D6+20",
       "debt_base": 20,
-      "traits": ["Armored"]
+      "traits": ["Dodgy Drive"]
     },
     {
       "id": "built_from_salvaged_wrecks",
@@ -100,7 +100,7 @@
       "hull_points": 25,
       "debt_formula": "1D6+20",
       "debt_base": 20,
-      "traits": []
+      "traits": ["Standard Issue"]
     },
     {
       "id": "retired_military_patrol_ship",
@@ -108,7 +108,7 @@
       "hull_points": 40,
       "debt_formula": "1D6+35",
       "debt_base": 35,
-      "traits": []
+      "traits": ["Armored"]
     }
   ],
   "generation_table": [

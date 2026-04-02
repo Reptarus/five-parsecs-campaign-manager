@@ -558,7 +558,7 @@
 			{"roll_range": [6, 15], "name": "Hand Cannon"},
 			{"roll_range": [16, 30], "name": "Hand Laser"},
 			{"roll_range": [31, 45], "name": "Beam Pistol"},
-			{"roll_range": [46, 55], "name": "Military Laser"},
+			{"roll_range": [46, 55], "name": "Infantry Laser"},
 			{"roll_range": [56, 70], "name": "Blast Pistol"},
 			{"roll_range": [71, 80], "name": "Blast Rifle"},
 			{"roll_range": [81, 85], "name": "Plasma Rifle"},

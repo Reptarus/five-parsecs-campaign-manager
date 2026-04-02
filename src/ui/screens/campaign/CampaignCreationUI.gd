@@ -148,6 +148,12 @@ func _connect_panel_signals() -> void:
 		ship_panel.ship_data_complete.connect(func(data: Dictionary):
 			coordinator.update_ship_state(data)
 		)
+	if ship_panel.has_signal("crew_flavor_updated"):
+		ship_panel.crew_flavor_updated.connect(
+			func(flavor: Dictionary):
+				coordinator.update_ship_state(
+					{"crew_flavor": flavor})
+		)
 
 	# WorldInfoPanel (extends FiveParsecsCampaignPanel)
 	if world_panel.has_signal("world_generated"):

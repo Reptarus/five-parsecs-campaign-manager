@@ -122,6 +122,41 @@ Game data values must originate from the rulebooks, never be invented. PDFs and 
 
 Always check `data/RulesReference/` first, then the PDFs, before adding or modifying any game data value.
 
+## KNOWN HARDCODED GAME DATA — NOT YET MIGRATED TO JSON
+
+**WARNING**: Previous sessions falsely claimed "full migration complete". The following files
+STILL contain hardcoded game data that should load from JSON. Do NOT mark these as done until
+the hardcoded values are DELETED and replaced with JSON loading.
+
+### CRITICAL — Core Rules Combat/Character Data
+| File | Lines | Hardcoded Data | Should Load From |
+|------|-------|----------------|------------------|
+| `src/core/battle/BattleCalculations.gd` | 26-52 | To-hit modifiers (3/5/5/6), range bands (6/8/24/6/36), armor saves (6/5/4/3), screen saves (6/5/4) | `data/battle_rules.json` (NEW) |
+| `src/core/battle/BattlefieldData.gd` | 503-521 | Injury d6 outcome table, recovery times | `data/injury_results.json` (EXPAND) |
+| `src/core/character/CharacterCreator.gd` | 30-113 | ORIGIN_ITEMS (8), BACKGROUND_ITEMS (25), CLASS_ITEMS (21), MOTIVATION_ITEMS (17) | `data/gear_database.json` (EXISTS) |
+| `src/core/ship/ShipManager.gd` | ?? | Fabricated upgrade list — NOT Core Rules items | `data/ship_components.json` (VERIFY) |
+
+### MEDIUM — World/Mission/Ship Data
+| File | Lines | Hardcoded Data | Should Load From |
+|------|-------|----------------|------------------|
+| `src/core/world/WorldGenerator.gd` | 129-141 | Government type d10 table (10 types) | `data/world_traits.json` (EXPAND) |
+| `src/core/battle/PreBattleLoop.gd` | 454-555 | Fallback terrain/objective/quest arrays | `data/mission_templates.json` (EXISTS) |
+| `src/core/battle/CardOracleSystem.gd` | 30-126 | AI behavior instructions (51 sets), joker events (6) | `data/card_oracle.json` (NEW) |
+
+### PREVIOUSLY FIXED (Apr 2, Session 22)
+| File | What Was Wrong | Fix |
+|------|---------------|-----|
+| `data/character_creation_tables/equipment_tables.json` | Entirely AI-fabricated items (Precursor Weapon, Nano Armor, etc.) | DELETED, rewired to `gear_database.json` |
+| `data/character_creation_tables/{background,motivation,class}_table.json` | `"patron": true` booleans instead of int counts | Fixed to `1`, added `int()` casts |
+| `StartingEquipmentGenerator.gd` | Loaded from fabricated equipment_tables.json | Rewired to `gear_database.json` weapon_tables |
+
+### VERIFICATION RULE FOR FUTURE MIGRATIONS
+A migration is NOT complete until:
+1. The hardcoded data is **DELETED** from the .gd file (not just "also loads from JSON")
+2. The JSON file values are **VERIFIED against the Core Rules PDF** (page citation required)
+3. ALL consumers of that data are **GREP'd and rewired** (not just one)
+4. A **headless compile check** passes with 0 errors
+
 ## Validation Rules
 
 - All JSON files must be valid JSON (use `JSON.new().parse()`)
