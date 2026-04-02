@@ -1858,7 +1858,7 @@ func _populate_setup_tab(mission_data) -> void:
 				"Patron: %s" % m_patron, Color("#4FC3F7"))
 		_add_setup_separator()
 
-	# Section 0b: Enemy Forces summary
+	# Section 0b: Enemy Forces summary with stats from enemy_types.json
 	var enemy_type_str: String = mission_dict.get(
 		"enemy_type", mission_dict.get("enemy_faction", ""))
 	var enemy_force: Dictionary = mission_dict.get(
@@ -1873,17 +1873,33 @@ func _populate_setup_tab(mission_data) -> void:
 			_add_setup_text(
 				"Hostiles: %d" % enemy_unit_count,
 				Color("#E0E0E0"))
-		# List individual enemy units if available
+		# List individual enemy units with stats from enemy_types.json
 		var units: Array = enemy_force.get("units", [])
 		if units.size() > 0:
+			var enemy_db: Dictionary = _load_enemy_types_db()
 			for unit_data in units:
 				if unit_data is Dictionary:
 					var u_name: String = unit_data.get(
 						"name", unit_data.get("type", "Unknown"))
 					var u_count: int = unit_data.get("count", 1)
 					_add_setup_text(
-						"  %s x%d" % [u_name, u_count],
-						Color("#9ca3af"))
+						"%s  x%d" % [u_name, u_count],
+						Color("#E0E0E0"), 16)
+					# Look up stats from enemy_types.json
+					var stats: Dictionary = _lookup_enemy_stats(
+						enemy_db, u_name)
+					if not stats.is_empty():
+						_add_enemy_stat_line(stats)
+					# Show special rules
+					var rules: Array = stats.get(
+						"special_rules",
+						unit_data.get("special_rules", []))
+					for rule in rules:
+						var rule_str: String = str(rule)
+						if not rule_str.is_empty():
+							_add_setup_text(
+								"    %s" % rule_str,
+								Color("#D97706"), 11)
 		_add_setup_separator()
 
 	# Section 0c: Patron Conditions (benefits, hazards, conditions)
@@ -2193,6 +2209,58 @@ func _add_setup_text(text: String, color: Color = Color("#9ca3af"), font_size: i
 	label.add_theme_color_override("font_color", color)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	setup_content.add_child(label)
+
+func _add_enemy_stat_line(stats: Dictionary) -> void:
+	## Add a compact stat line for an enemy type: SPD/CMB/TGH/AI/Panic/Weapons
+	var spd: int = stats.get("speed", 0)
+	var cmb: int = stats.get("combat_skill", 0)
+	var tgh: int = stats.get("toughness", 0)
+	var ai_type: String = str(stats.get("ai", ""))
+	var panic_str: String = str(stats.get("panic", ""))
+	var weapons: String = str(stats.get("weapons", ""))
+	var numbers: String = str(stats.get("numbers", ""))
+
+	var line: String = "    SPD:%d  CMB:+%d  TGH:%d  AI:%s" \
+		% [spd, cmb, tgh, ai_type]
+	if not panic_str.is_empty():
+		line += "  Panic:%s" % panic_str
+	if not weapons.is_empty():
+		line += "  Wpns:%s" % weapons
+	if not numbers.is_empty():
+		line += "  Numbers:%s" % numbers
+
+	_add_setup_text(line, Color("#4FC3F7"), 12)
+
+var _enemy_types_cache: Dictionary = {}
+
+func _load_enemy_types_db() -> Dictionary:
+	## Load and cache enemy_types.json
+	if not _enemy_types_cache.is_empty():
+		return _enemy_types_cache
+	var file := FileAccess.open(
+		"res://data/enemy_types.json", FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	file.close()
+	if json.data is Dictionary:
+		_enemy_types_cache = json.data
+	return _enemy_types_cache
+
+func _lookup_enemy_stats(db: Dictionary, enemy_name: String) -> Dictionary:
+	## Find an enemy entry by name across all categories
+	var name_lower: String = enemy_name.to_lower().strip_edges()
+	for cat in db.get("enemy_categories", []):
+		if cat is Dictionary:
+			for entry in cat.get("enemies", []):
+				if entry is Dictionary:
+					var entry_name: String = entry.get(
+						"name", "").to_lower()
+					if entry_name == name_lower:
+						return entry
+	return {}
 
 func _add_setup_separator() -> void:
 	## Add a thin separator to the Setup tab

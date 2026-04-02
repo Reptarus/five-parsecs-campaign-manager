@@ -637,9 +637,14 @@ func _handle_roll_for_bonus() -> void:
 	_action_taken = true
 
 func _handle_roll_for_credits() -> void:
-	var roll: int = randi() % 6 + 1
-	_show_outcome("Rolled %d — %d credits" % [roll, roll], COLOR_TEXT_GOLD)
-	_outcome = {"credits": roll, "roll": roll}
+	# Some events (Fuel, Starship repair parts) are rolled here in the dialog.
+	# Others (Contraband, etc.) were pre-rolled — use _event_data["credits"] if set.
+	var credits: int = _event_data.get("credits", 0)
+	if credits == 0:
+		# Not pre-rolled — this is the interactive roll moment
+		credits = randi() % 6 + 1
+	_show_outcome("Rolled %d — %d credits" % [credits, credits], COLOR_TEXT_GOLD)
+	_outcome = {"credits": credits, "roll": credits}
 	_action_taken = true
 
 func _handle_roll_on_table() -> void:

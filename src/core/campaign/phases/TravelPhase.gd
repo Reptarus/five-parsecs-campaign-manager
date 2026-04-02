@@ -473,14 +473,26 @@ func _make_travel_decision(travel_decision: bool) -> void:
 
 func _charge_travel_costs() -> void:
 	## Charge appropriate travel costs (rules pp.25,64,67)
+	## Core Rules p.79: Fuel trade result offsets travel costs
 	if not game_state_manager:
 		return
 	if not game_state_manager.has_method("remove_credits"):
 		return
 
 	var final_cost: int = _calculate_final_travel_cost()
-	game_state_manager.remove_credits(final_cost)
-	pass
+
+	# Apply fuel credits offset (Core Rules p.79: "credits worth of fuel,
+	# which can be used to offset travel costs")
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.campaign and "progress_data" in gs.campaign:
+		var fuel: int = int(gs.campaign.progress_data.get("fuel_credits", 0))
+		if fuel > 0:
+			var offset: int = mini(fuel, final_cost)
+			final_cost -= offset
+			gs.campaign.progress_data["fuel_credits"] = fuel - offset
+
+	if final_cost > 0:
+		game_state_manager.remove_credits(final_cost)
 
 func _process_travel_event() -> void:
 	## Step 3: Starship Travel Event (if applicable)

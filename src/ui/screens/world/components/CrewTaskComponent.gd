@@ -638,9 +638,8 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 			else:
 				result.effect += " - Rolled %d: Worthless" % d6
 		"Fuel":
-			var d6: int = randi() % 6 + 1
-			result.credits = d6
-			result.effect = "Secured %d credits worth of fuel" % d6
+			# D6 roll happens in the dialog (ROLL_FOR_CREDITS) — don't pre-roll
+			result.effect = "Roll D6 for credits worth of fuel to offset travel costs"
 		"Odd device":
 			var d6: int = randi() % 6 + 1
 			result.credits = -1
@@ -650,9 +649,8 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 			else:
 				result.effect = "Paid 1 credit - Rolled %d: Complete garbage" % d6
 		"Starship repair parts":
-			var d6: int = randi() % 6 + 1
-			result.credits = d6
-			result.effect = "Worth %d credits for Hull Point repairs" % d6
+			# D6 roll happens in the dialog (ROLL_FOR_CREDITS) — don't pre-roll
+			result.effect = "Roll D6 for credits worth of Hull Point repair parts"
 
 func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
 	## Apply runtime dice rolls for Exploration Table entries with dynamic outcomes
@@ -1016,6 +1014,20 @@ func _on_grenades_chosen(
 	_choice_popup = null
 	_update_progress_display()
 	_show_next_choice_popup()
+
+func _add_consumable_credits(pool_key: String, amount: int) -> void:
+	## Store special-purpose credits in campaign progress_data.
+	## Core Rules p.79: Fuel = offset travel costs. Repair parts = Hull Point repairs.
+	## These are consumed when the relevant cost is paid, not general credits.
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.campaign or not "progress_data" in gs.campaign:
+		# Fallback: add as general credits if no progress_data
+		var gsm = get_node_or_null("/root/GameStateManager")
+		if gsm:
+			gsm.add_credits(amount)
+		return
+	var current: int = int(gs.campaign.progress_data.get(pool_key, 0))
+	gs.campaign.progress_data[pool_key] = current + amount
 
 func _add_item_to_stash(item_name: String) -> void:
 	## Add an item to the ship stash via EquipmentManager
@@ -1590,11 +1602,19 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 			events.append(event)
 			return events
 
-	# ── Roll-based events (already resolved by _apply_runtime_rolls) ──
+	# ── Roll-based events ──
 	if requires_roll:
-		# These were pre-resolved — show as roll results
 		var credits: int = tr.get("credits", 0)
 		var sp: int = tr.get("story_points", 0)
+
+		# Events where the dialog IS the roll (not pre-rolled)
+		if event_name in ["Fuel", "Starship repair parts"]:
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS
+			events.append(event)
+			return events
+
+		# Pre-resolved roll events — show results
 		if credits != 0 and sp == 0:
 			var event := base.duplicate()
 			event["type"] = CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS
@@ -1751,8 +1771,16 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 
 		CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS:
 			var credits: int = outcome.get("credits", 0)
-			if credits > 0 and gsm:
-				gsm.add_credits(credits)
+			var event_name_str: String = str(event_data.get("event_name", ""))
+			if credits > 0:
+				if event_name_str == "Fuel":
+					# Core Rules p.79: Fuel offsets travel costs, not general credits
+					_add_consumable_credits("fuel_credits", credits)
+				elif event_name_str == "Starship repair parts":
+					# Core Rules p.79: Repair parts only for Hull Point damage
+					_add_consumable_credits("repair_part_credits", credits)
+				elif gsm:
+					gsm.add_credits(credits)
 
 		CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS_RISK:
 			if not outcome.get("declined", false):

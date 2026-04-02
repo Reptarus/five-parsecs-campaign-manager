@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-03-27
+**Last Updated**: 2026-04-02
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -19,19 +19,20 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 
 ---
 
-## Project Status (March 2026)
+## Project Status (April 2026)
 
 | Metric | Value |
 |--------|-------|
+| Version | **0.9.7-dev** |
 | Game Mechanics Compliance | **100%** (170/170 mechanics) |
 | Core Rules Systems | 11/11 verified |
+| QA Rules Accuracy Audit | **925/925 values verified** (0 UNVERIFIED) |
 | Campaign Turn Phases | 9/9 fully wired |
 | Campaign Creation | 7-phase coordinator system |
 | Bug Hunt Gamemode | Phases 1-7 complete (38 files) |
 | Store/Paywall System (Phase 24) | Tri-platform (Steam/Android/iOS) |
-| Script Consolidation (Phase 5) | 9/9 sprints complete |
-| World→Battle Data Flow (Phase 21) | 3 sub-phases complete |
-| Functional Gaps Cleanup | 7/7 sprints (F-1 to F-7) |
+| Fabricated Data Purge | Complete — MoraleSystem deleted, equipment/loot/advancement rewritten |
+| Event Queue System | CrewTaskEventDialog (26 event types, state mutations wired) |
 | Compile Errors | 0 |
 | GDScript Files | ~900 (excl. addons) |
 
@@ -120,6 +121,26 @@ MainMenu → "Battle Simulator" button
 - **Critical timing**: `initialize_battle()` must be called sync after `add_child()` — TacticalBattleUI `call_deferred("_check_standalone_mode")` fires otherwise
 - **Results don't persist** — no campaign to save to, just Play Again / Main Menu
 - **SceneRouter key**: `battle_simulator`
+
+### Crew Task Event Queue (Session 21)
+
+Interactive dialog system for World Phase crew task results — every Trade/Explore outcome is a player-facing moment.
+
+```
+_on_resolve_all_pressed()
+  → resolve tasks (D100 rolls — unchanged)
+  → _build_event_queue() → classify each result into typed events
+  → _process_event_queue() → serial dialog chain
+      → CrewTaskEventDialog.show_event() → player interacts
+      → _on_event_completed() → applies state mutation
+      → next dialog...
+  → _finalize_task_resolution() → publish completion event
+```
+
+- **CrewTaskEventDialog.gd** (~700 lines): Universal dialog for 26 EventType enum values. Deep Space theme, art placeholder ready
+- **State mutations**: Credits, story points, XP, items, sick bay, rivals, rumors, patrons, discard/sell, military weapons, recruitment
+- Dialog is purely presentational — ALL state mutation in `_on_event_completed()` callback
+- Art placeholder (`ColorRect`) ready for `TextureRect` swap via `res://assets/event_art/{name}.png`
 
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
@@ -461,6 +482,7 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
   - `docs/rules/5PCompendium/` — Compendium source directory
   - Text extractions may have OCR artifacts — verify against the PDF when precision matters
 - **NEVER "fix" data without the book**: Phase 30 changed ship hull from 20-35 to 6-14, documenting it as a "Core Rules correction." The Core Rules actually says 20-40. The "fix" made it WORSE. Never assume a value is wrong without checking the source material.
+- **`GAME_BALANCE_ESTIMATE` = fabricated = REMOVE**: Sessions 22-23 purged 20+ fabricated mechanics that were tagged `GAME_BALANCE_ESTIMATE` and treated as "resolved." Deleted systems include: MoraleSystem (no campaign morale in Core Rules), equipment upgrade/pricing formulas, per-enemy loot generators, fabricated XP sources, and named bot upgrades. If the book doesn't have it, the code shouldn't either.
 - **NEVER create duplicate data sources**: If a value already exists in a JSON file, load it from there. Do not create a parallel constant in GDScript. Single Source of Truth: JSON file is canonical for each data domain.
 - **All data changes require book page citation**: Include the Core Rules page number in commit messages when modifying game data. Example: `"Fix Infantry Laser range to 30" (Core Rules p.50)"`
 - **Data Source Authority Hierarchy (absolute, no exceptions)**:
@@ -514,6 +536,9 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 - **Portrait path existence check**: Use `ResourceLoader.exists()` for `res://` paths, `FileAccess.file_exists()` for `user://` paths. `FileAccess.file_exists()` fails for `res://` in exported PCK builds
 - **CharacterCard portrait priority**: `_update_portrait()` checks `portrait_path` first (custom image), falls back to colored initials (8 deterministic colors from `name.hash() % 8`). IconRegistry class icons are no longer the default
 - **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
+- **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory — all removed. Do NOT reference or re-create these
+- **Equipment data sources**: `gear_database.json` = D100 tables for character creation (backgrounds, weapon_tables, starting_rolls). `equipment_database.json` = weapon/armor/gear STATS (range, shots, damage, traits). These are separate files with different purposes
+- **Trade sell value is flat**: Core Rules p.125 — items sell for 1 credit each. No condition tiers, no quality multipliers, no percentage-of-purchase formulas
 
 ---
 
