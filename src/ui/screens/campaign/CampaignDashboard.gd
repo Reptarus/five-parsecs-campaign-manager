@@ -656,6 +656,116 @@ func _build_world_section(campaign) -> void:
 			_create_info_row("Danger", danger_dots, dcolor)
 		)
 
+	# ── Enriched planet data from PlanetDataManager ──
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	if pdm and pdm.has_method("get_current_planet"):
+		var planet = pdm.get_current_planet()
+		if planet:
+			# Visit history
+			if planet.visit_count > 0:
+				right_vbox.add_child(_create_info_row(
+					"Visits",
+					"%d (since Turn %d)" % [
+						planet.visit_count,
+						planet.discovered_on_turn
+					]
+				))
+			# Missions completed on this world
+			if planet.missions_completed > 0:
+				right_vbox.add_child(_create_info_row(
+					"Missions",
+					str(planet.missions_completed),
+					COLOR_EMERALD
+				))
+			# Exploration progress bar
+			if planet.exploration_progress > 0.0:
+				_add_exploration_bar(planet.exploration_progress)
+			# Special features
+			if not planet.special_features.is_empty():
+				right_vbox.add_child(_create_info_row(
+					"Features",
+					", ".join(planet.special_features),
+					COLOR_PURPLE
+				))
+			# Discovered locations
+			if not planet.locations.is_empty():
+				var loc_header := Label.new()
+				loc_header.text = "Locations:"
+				loc_header.add_theme_font_size_override(
+					"font_size", FONT_SIZE_SM
+				)
+				loc_header.add_theme_color_override(
+					"font_color", COLOR_TEXT_MUTED
+				)
+				right_vbox.add_child(loc_header)
+				for loc in planet.locations:
+					var loc_name: String = loc.get(
+						"name", "Unknown"
+					) if loc is Dictionary else str(loc)
+					right_vbox.add_child(
+						_create_info_row(
+							"  •", loc_name, COLOR_CYAN
+						)
+					)
+			# Most recent world event
+			if not planet.world_events.is_empty():
+				var recent: Dictionary = planet.world_events[-1]
+				var evt_desc: String = str(recent.get(
+					"description",
+					recent.get("type", "Event")
+				))
+				right_vbox.add_child(_create_info_row(
+					"Event", evt_desc, COLOR_AMBER
+				))
+
+	# ── Galactic War status ──
+	var gwm = get_node_or_null("/root/GalacticWarManager")
+	if gwm and gwm.active_track_ids.size() > 0:
+		var war_sep := HSeparator.new()
+		war_sep.modulate = COLOR_BORDER
+		right_vbox.add_child(war_sep)
+		right_vbox.add_child(
+			_create_section_header("GALACTIC WAR")
+		)
+		for track_id in gwm.active_track_ids:
+			var track: Dictionary = gwm.war_tracks.get(
+				track_id, {}
+			)
+			var track_name: String = track.get(
+				"name", str(track_id)
+			)
+			var progress: int = track.get(
+				"current_progress", 0
+			)
+			var max_val: int = track.get("max_progress", 10)
+			var war_color: Color = COLOR_AMBER
+			if progress > max_val * 0.7:
+				war_color = COLOR_RED
+			right_vbox.add_child(_create_info_row(
+				track_name,
+				"%d / %d" % [progress, max_val],
+				war_color
+			))
+
+	# ── View World Log button ──
+	var world_btn := Button.new()
+	world_btn.text = "View World Log"
+	world_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	world_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	world_btn.pressed.connect(_on_view_world_log)
+	var wbtn_style := StyleBoxFlat.new()
+	wbtn_style.bg_color = COLOR_ACCENT
+	wbtn_style.set_corner_radius_all(8)
+	wbtn_style.set_content_margin_all(SPACING_SM)
+	world_btn.add_theme_stylebox_override("normal", wbtn_style)
+	var wbtn_hover := wbtn_style.duplicate()
+	wbtn_hover.bg_color = COLOR_ACCENT_HOVER
+	world_btn.add_theme_stylebox_override("hover", wbtn_hover)
+	world_btn.add_theme_color_override(
+		"font_color", COLOR_TEXT_PRIMARY
+	)
+	right_vbox.add_child(world_btn)
+
 func _build_patrons_section(campaign) -> void:
 	var p_sep := HSeparator.new()
 	p_sep.modulate = COLOR_BORDER
@@ -680,6 +790,13 @@ func _build_patrons_section(campaign) -> void:
 		right_vbox.add_child(empty)
 		return
 
+	var pdm_p = get_node_or_null("/root/PlanetDataManager")
+	var local_contacts_p: Array = []
+	if pdm_p and pdm_p.has_method("get_current_planet"):
+		var planet_p = pdm_p.get_current_planet()
+		if planet_p:
+			local_contacts_p = planet_p.contact_ids
+
 	for patron in patrons_arr:
 		if patron is Dictionary:
 			var p_name: String = patron.get("name", "Unknown")
@@ -692,6 +809,18 @@ func _build_patrons_section(campaign) -> void:
 				"%s (missions: %d)" % [p_type, missions],
 				COLOR_EMERALD
 			)
+			# Tag local patrons (on current world)
+			var p_id: String = patron.get("id", "")
+			if p_id in local_contacts_p:
+				var badge := Label.new()
+				badge.text = " LOCAL"
+				badge.add_theme_font_size_override(
+					"font_size", FONT_SIZE_XS
+				)
+				badge.add_theme_color_override(
+					"font_color", COLOR_CYAN
+				)
+				row.add_child(badge)
 			right_vbox.add_child(row)
 
 func _build_rivals_section(campaign) -> void:
@@ -718,6 +847,13 @@ func _build_rivals_section(campaign) -> void:
 		right_vbox.add_child(empty)
 		return
 
+	var pdm_r = get_node_or_null("/root/PlanetDataManager")
+	var local_contacts_r: Array = []
+	if pdm_r and pdm_r.has_method("get_current_planet"):
+		var planet_r = pdm_r.get_current_planet()
+		if planet_r:
+			local_contacts_r = planet_r.contact_ids
+
 	for rival in rivals_arr:
 		if rival is Dictionary:
 			var r_name: String = rival.get("name", "Unknown")
@@ -728,6 +864,18 @@ func _build_rivals_section(campaign) -> void:
 			var row := _create_info_row(
 				r_name, r_type, COLOR_RED
 			)
+			# Tag local rivals (on current world)
+			var r_id: String = rival.get("id", "")
+			if r_id in local_contacts_r:
+				var badge := Label.new()
+				badge.text = " LOCAL"
+				badge.add_theme_font_size_override(
+					"font_size", FONT_SIZE_XS
+				)
+				badge.add_theme_color_override(
+					"font_color", COLOR_CYAN
+				)
+				row.add_child(badge)
 			panel.add_child(row)
 			right_vbox.add_child(panel)
 
@@ -743,6 +891,222 @@ func _build_rumors_section(campaign) -> void:
 			"Quest Rumors", str(rumors), COLOR_PURPLE
 		)
 	)
+
+# ── World Section Helpers ─────────────────────────────────────────
+
+func _add_exploration_bar(progress: float) -> void:
+	## Add a styled exploration progress bar to the world section.
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", SPACING_SM)
+	var lbl := Label.new()
+	lbl.text = "Explored"
+	lbl.custom_minimum_size.x = 90
+	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+	row.add_child(lbl)
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 16)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.max_value = 1.0
+	bar.value = progress
+	bar.show_percentage = false
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = COLOR_BORDER
+	bg.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("background", bg)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = COLOR_EMERALD
+	fill.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("fill", fill)
+	row.add_child(bar)
+	var pct := Label.new()
+	pct.text = "%d%%" % int(progress * 100)
+	pct.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	pct.add_theme_color_override("font_color", COLOR_EMERALD)
+	row.add_child(pct)
+	right_vbox.add_child(row)
+
+func _on_view_world_log() -> void:
+	## Open a world log overlay showing full planet details + journal.
+	if _history_overlay == null:
+		return
+	# Clear previous content
+	for child in _history_overlay.get_children():
+		child.queue_free()
+
+	var panel := _build_world_log_panel()
+	_history_overlay.add_child(panel)
+	_history_overlay.visible = true
+
+func _build_world_log_panel() -> PanelContainer:
+	## Build the World Log overlay panel (similar to contacts panel).
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.97)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(SPACING_XL)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", SPACING_MD)
+	scroll.add_child(vbox)
+
+	# Title + close button
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", SPACING_SM)
+	var title := Label.new()
+	title.text = "WORLD LOG"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_color_override("font_color", COLOR_CYAN)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	close_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	close_btn.pressed.connect(func():
+		_history_overlay.visible = false
+	)
+	title_row.add_child(close_btn)
+	vbox.add_child(title_row)
+
+	# Get planet data
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	if not pdm or not pdm.has_method("get_current_planet"):
+		var no_data := Label.new()
+		no_data.text = "No planet data available."
+		no_data.add_theme_color_override(
+			"font_color", COLOR_TEXT_MUTED
+		)
+		vbox.add_child(no_data)
+		return panel
+
+	var planet = pdm.get_current_planet()
+	if not planet:
+		var no_data := Label.new()
+		no_data.text = "No current planet."
+		no_data.add_theme_color_override(
+			"font_color", COLOR_TEXT_MUTED
+		)
+		vbox.add_child(no_data)
+		return panel
+
+	# Planet header
+	vbox.add_child(_create_section_header("PLANET INFO"))
+	vbox.add_child(_create_info_row("Name", planet.name))
+	vbox.add_child(_create_info_row(
+		"Type", planet.type_name if planet.type_name else planet.type
+	))
+	if not planet.traits.is_empty():
+		vbox.add_child(_create_info_row(
+			"Traits",
+			", ".join(
+				planet.traits.map(
+					func(t): return str(t).capitalize()
+				)
+			),
+			COLOR_PURPLE
+		))
+	vbox.add_child(_create_info_row(
+		"Danger Level", str(planet.danger_level)
+	))
+	vbox.add_child(_create_info_row(
+		"Discovered", "Turn %d" % planet.discovered_on_turn
+	))
+	vbox.add_child(_create_info_row(
+		"Last Visited", "Turn %d" % planet.last_visited_turn
+	))
+	vbox.add_child(_create_info_row(
+		"Total Visits", str(planet.visit_count)
+	))
+	vbox.add_child(_create_info_row(
+		"Missions Completed", str(planet.missions_completed),
+		COLOR_EMERALD
+	))
+	if planet.exploration_progress > 0.0:
+		vbox.add_child(_create_info_row(
+			"Exploration",
+			"%d%%" % int(planet.exploration_progress * 100),
+			COLOR_EMERALD
+		))
+
+	# Special features
+	if not planet.special_features.is_empty():
+		vbox.add_child(HSeparator.new())
+		vbox.add_child(_create_section_header("SPECIAL FEATURES"))
+		for feat in planet.special_features:
+			vbox.add_child(_create_info_row("•", str(feat), COLOR_PURPLE))
+
+	# Locations
+	if not planet.locations.is_empty():
+		vbox.add_child(HSeparator.new())
+		vbox.add_child(_create_section_header("LOCATIONS"))
+		for loc in planet.locations:
+			var loc_name: String = loc.get(
+				"name", "Unknown"
+			) if loc is Dictionary else str(loc)
+			var loc_type: String = loc.get(
+				"type", ""
+			) if loc is Dictionary else ""
+			vbox.add_child(_create_info_row(
+				loc_name, loc_type, COLOR_CYAN
+			))
+
+	# World events
+	if not planet.world_events.is_empty():
+		vbox.add_child(HSeparator.new())
+		vbox.add_child(_create_section_header("WORLD EVENTS"))
+		for evt in planet.world_events:
+			var evt_turn: int = evt.get("turn", 0)
+			var evt_desc: String = str(evt.get(
+				"description", evt.get("type", "Event")
+			))
+			vbox.add_child(_create_info_row(
+				"Turn %d" % evt_turn, evt_desc, COLOR_AMBER
+			))
+
+	# Journal entries for this world
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and not journal.entries.is_empty():
+		var world_entries: Array = []
+		for entry in journal.entries:
+			if entry.get("location", "") == planet.name:
+				world_entries.append(entry)
+		if not world_entries.is_empty():
+			vbox.add_child(HSeparator.new())
+			vbox.add_child(_create_section_header(
+				"JOURNAL (%d entries)" % world_entries.size()
+			))
+			for entry in world_entries:
+				var e_turn: int = entry.get("turn_number", 0)
+				var e_title: String = entry.get(
+					"title", "Untitled"
+				)
+				var e_type: String = entry.get("type", "")
+				var type_color: Color = COLOR_TEXT_SECONDARY
+				match e_type:
+					"battle":
+						type_color = COLOR_RED
+					"story":
+						type_color = COLOR_PURPLE
+					"purchase":
+						type_color = COLOR_EMERALD
+					"injury":
+						type_color = COLOR_AMBER
+				vbox.add_child(_create_info_row(
+					"T%d [%s]" % [e_turn, e_type],
+					e_title,
+					type_color
+				))
+
+	return panel
 
 # ── Progress Strip ─────────────────────────────────────────────────
 

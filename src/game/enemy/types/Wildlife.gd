@@ -267,16 +267,31 @@ func get_environmental_adaptation(environment_type: String) -> Dictionary:
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("wildlife", {})
+
 func _setup_wildlife() -> void:
 	enemy_name = "Wildlife"
-	
-	# Wildlife varies dramatically in capability
-	_max_health = 50 # Will be modified by size and type
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 50))
 	_current_health = _max_health
-	movement_range = 4
-	weapon_range = 1 # Most wildlife uses natural weapons (melee)
-	
-	# Basic wildlife characteristics
+	movement_range = int(stats.get("movement_range", 4))
+	weapon_range = int(stats.get("weapon_range", 1))
+
 	pack_coordination = 0
 	territorial_bonus = 0
 

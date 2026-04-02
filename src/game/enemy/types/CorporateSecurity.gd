@@ -200,19 +200,34 @@ func process_communication_event(event_type: String, data: Dictionary) -> Dictio
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("corporate_security", {})
+
 func _setup_corporate_security() -> void:
 	enemy_name = "Corporate Security"
-	
-	# Set default stats for corporate security
-	_max_health = 80 # Professional but not military-grade
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 80))
 	_current_health = _max_health
-	movement_range = 4
-	weapon_range = 6 # Professional weapons with good range
-	
-	# Professional training provides baseline competence
-	discipline_level = 3
-	threat_assessment_skill = 2
-	coordination_bonus = 1
+	movement_range = int(stats.get("movement_range", 4))
+	weapon_range = int(stats.get("weapon_range", 6))
+
+	discipline_level = int(stats.get("discipline_level", 3))
+	threat_assessment_skill = int(stats.get("threat_assessment_skill", 2))
+	coordination_bonus = int(stats.get("coordination_bonus", 1))
 
 func _load_corporate_equipment() -> void:
 	if _equipment_loaded:

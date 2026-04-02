@@ -344,16 +344,31 @@ func get_mercenary_loot_table() -> Dictionary:
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("mercenaries", {})
+
 func _setup_mercenary() -> void:
 	enemy_name = "Mercenary"
-	
-	# Mercenaries are professional soldiers with good equipment
-	_max_health = 80
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 80))
 	_current_health = _max_health
-	movement_range = 4
-	weapon_range = 6 # Professional military weapons
-	
-	# Professional characteristics
+	movement_range = int(stats.get("movement_range", 4))
+	weapon_range = int(stats.get("weapon_range", 6))
+
 	unit_cohesion = 3
 	contract_loyalty = 3
 	pragmatism_level = 4

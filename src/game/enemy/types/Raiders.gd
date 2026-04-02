@@ -339,18 +339,33 @@ func get_raider_loot_table() -> Dictionary:
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("raiders", {})
+
 func _setup_raider() -> void:
 	enemy_name = "Raider"
-	
-	# Raiders are tough survivors but poorly equipped
-	_max_health = 60 # Tough but not well-fed or medically cared for
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 60))
 	_current_health = _max_health
-	movement_range = 5 # Mobile and fast
-	weapon_range = 3 # Poor quality weapons with limited range
-	
-	# Survival characteristics
-	retreat_threshold = 40
-	salvage_priority = 4
+	movement_range = int(stats.get("movement_range", 5))
+	weapon_range = int(stats.get("weapon_range", 3))
+
+	retreat_threshold = int(stats.get("retreat_threshold", 40))
+	salvage_priority = int(stats.get("salvage_priority", 4))
 	scavenging_expertise = 3
 
 func _apply_raider_modifiers() -> void:

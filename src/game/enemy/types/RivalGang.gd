@@ -355,16 +355,31 @@ func process_gang_event(event_type: String, event_data: Dictionary) -> Dictionar
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("rival_gang", {})
+
 func _setup_rival_gang() -> void:
 	enemy_name = "Rival Gang Member"
-	
-	# Gang members are typically better equipped than common criminals
-	_max_health = 70
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 70))
 	_current_health = _max_health
-	movement_range = 4
-	weapon_range = 5 # Access to better weapons through black market
-	
-	# Criminal characteristics
+	movement_range = int(stats.get("movement_range", 4))
+	weapon_range = int(stats.get("weapon_range", 5))
+
 	loyalty_cohesion = 3
 	leadership_quality = 2
 	discipline_level = 2

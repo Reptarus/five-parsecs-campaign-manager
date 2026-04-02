@@ -334,18 +334,33 @@ func get_enforcer_loot_table() -> Dictionary:
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("enforcers", {})
+
 func _setup_enforcer() -> void:
 	enemy_name = "Enforcer"
-	
-	# Enforcers have good training and equipment
-	_max_health = 75
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 75))
 	_current_health = _max_health
-	movement_range = 4
-	weapon_range = 5 # Professional law enforcement weapons
-	
-	# Professional law enforcement characteristics
-	backup_response_time = 5
-	surveillance_access = 3
+	movement_range = int(stats.get("movement_range", 4))
+	weapon_range = int(stats.get("weapon_range", 5))
+
+	backup_response_time = int(stats.get("backup_response_time", 5))
+	surveillance_access = int(stats.get("surveillance_access", 3))
 	civilian_protection = 4
 
 func _set_enforcer_ai_behavior() -> void:

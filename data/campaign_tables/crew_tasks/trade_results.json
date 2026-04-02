@@ -218,7 +218,8 @@
       "effect": "Gain 1 Quest Rumor",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
-      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "rumor": true
     },
     {
       "roll_min": 70, "roll_max": 71,

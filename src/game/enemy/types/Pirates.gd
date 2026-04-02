@@ -244,57 +244,69 @@ func process_pirate_event(event_type: String, event_data: Dictionary) -> Diction
 
 ## Private Methods
 
+## Enemy type data loaded from res://data/enemy_type_details.json
+static var _type_data: Dictionary = {}
+static var _type_loaded: bool = false
+
+static func _load_type_data() -> Dictionary:
+	if not _type_loaded:
+		_type_loaded = true
+		var file := FileAccess.open("res://data/enemy_type_details.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_type_data = json.data
+			file.close()
+	return _type_data.get("pirates", {})
+
 func _setup_pirate() -> void:
 	enemy_name = "Pirate"
-	
-	# Set pirate default stats (generally lower than professional forces)
-	_max_health = 70 # Tough but not military-trained
+	var cfg: Dictionary = _load_type_data()
+	var stats: Dictionary = cfg.get("base_stats", {})
+
+	_max_health = int(stats.get("max_health", 70))
 	_current_health = _max_health
-	movement_range = 5 # Mobile and fast
-	weapon_range = 4 # Variable scavenged weapons
-	
-	# Pirate characteristics
-	greed_factor = 1.2
-	cowardice_threshold = 25
+	movement_range = int(stats.get("movement_range", 5))
+	weapon_range = int(stats.get("weapon_range", 4))
+
+	greed_factor = float(stats.get("greed_factor", 1.2))
+	cowardice_threshold = int(stats.get("cowardice_threshold", 25))
 	aggression_bonus = 1
 	scavenging_skill = 2
 
 func _apply_pirate_modifiers() -> void:
+	var cfg: Dictionary = _load_type_data()
 	# Experience affects base capabilities
+	var exp_levels: Dictionary = cfg.get("experience_levels", {})
+	var exp_data: Dictionary = exp_levels.get(crew_experience, {})
+	var health_mult: float = float(exp_data.get("health_mult", 1.0))
+	_max_health = roundi(_max_health * health_mult)
 	match crew_experience:
 		"green":
-			_max_health = roundi(_max_health * 0.8)
 			loyalty_level = maxi(loyalty_level - 1, 1)
-		"seasoned":
-			# No modifier - baseline
-			pass
 		"veteran":
-			_max_health = roundi(_max_health * 1.2)
 			aggression_bonus += 1
 			scavenging_skill += 1
 		"legendary":
-			_max_health = roundi(_max_health * 1.4)
 			aggression_bonus += 2
 			scavenging_skill += 2
 			loyalty_level = mini(loyalty_level + 1, 5)
-	
+
 	# Ship quality affects equipment and support
+	var ship_data: Dictionary = cfg.get("ship_quality", {}).get(ship_quality, {})
+	var ship_health_mult: float = float(ship_data.get("health_mult", 1.0))
+	if ship_health_mult != 1.0:
+		_max_health = roundi(_max_health * ship_health_mult)
 	match ship_quality:
 		"scavenged":
-			# Equipment penalties but better scavenging
 			weapon_range -= 1
 			scavenging_skill += 1
 		"modified":
-			# Balanced improvements
 			movement_range += 1
 		"custom":
-			# Superior performance
-			_max_health = roundi(_max_health * 1.1)
 			weapon_range += 1
 			movement_range += 1
 		"flagship":
-			# Command ship bonuses
-			_max_health = roundi(_max_health * 1.3)
 			weapon_range += 2
 			loyalty_level = mini(loyalty_level + 2, 5)
 	
@@ -373,14 +385,10 @@ func _generate_contraband_cargo() -> void:
 			possible_contraband.erase(item)
 
 func _calculate_pirate_wealth() -> int:
-	var base_credits: int = 100
-	
-	# Experience affects wealth
-	match crew_experience:
-		"green": base_credits = 50
-		"seasoned": base_credits = 100
-		"veteran": base_credits = 200
-		"legendary": base_credits = 400
+	var cfg: Dictionary = _load_type_data()
+	var exp_levels: Dictionary = cfg.get("experience_levels", {})
+	var exp_data: Dictionary = exp_levels.get(crew_experience, {})
+	var base_credits: int = int(exp_data.get("credits", 100))
 	
 	# Ship quality affects available funds
 	match ship_quality:

@@ -8,6 +8,7 @@ class_name CrewTaskComponent
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
 const GrenadeCombinationPopupScript = preload("res://src/ui/components/dialogs/GrenadeCombinationPopup.gd")
+const CrewTaskEventDialogScript = preload("res://src/ui/components/dialogs/CrewTaskEventDialog.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -35,6 +36,10 @@ var all_tasks_resolved: bool = false
 var _pending_choice_results: Array = []  # Queue of {result, item_string, options}
 var _choice_popup: Window = null
 var _auto_resolve_mode: bool = false
+
+# Event queue — interactive dialog for each crew task result
+var _event_queue: Array[Dictionary] = []
+var _current_event_dialog: Window = null
 
 # Five Parsecs crew tasks — loaded from data/crew_tasks.json (Core Rules pp.76-82)
 var available_crew_tasks: Array[Dictionary] = []
@@ -626,6 +631,15 @@ func _build_result_from_json(json_entry: Dictionary) -> Dictionary:
 	var json_items: Array = json_entry.get("items", [])
 	for item in json_items:
 		result.items.append(str(item))
+
+	# Pass through metadata fields for event processing
+	# These drive species immunity, purchases, bonuses, and narrative effects
+	for key in ["immune_species", "recruit", "track_rival", "kerin_bonus",
+			"precursor_bonus", "engineer_bonus", "buy_rumors", "buy_weapons",
+			"pay_or_lose"]:
+		if json_entry.has(key):
+			result[key] = json_entry[key]
+
 	return result
 
 func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:

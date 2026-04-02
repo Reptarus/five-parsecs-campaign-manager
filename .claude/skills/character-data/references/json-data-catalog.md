@@ -31,6 +31,28 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/onboard_items.json` | LootSystemConstants | 19 book on-board items (pp.57-58) |
 | `data/character_creation_tables/` | CharacterCreationTables.gd | background_events.json, motivation_table.json, quirks_table.json |
 
+### New JSON Files (Apr 2, 2026 — Hardcoded→JSON Migration)
+| File | Consumer | Schema |
+|------|----------|--------|
+| `data/difficulty_modifiers.json` | GameSettings.gd | Per-difficulty-level modifiers: enemy_strength, loot, credits, xp, story_points, invasion, initiative, etc. (8 levels) |
+| `data/character_advancement.json` | CharacterAdvancementConstants.gd | advancement_costs (6 stats), base_stat_maximums, background/species restrictions, priority order |
+| `data/training_courses.json` | ExperienceTrainingProcessor.gd | 8 training courses with cost/effect/description (Core Rules p.125) |
+| `data/battle_rewards.json` | BattleResultsManager.gd | outcome_rewards (victory/draw/defeat/retreat), mission_type_bonuses, loot_value ranges |
+| `data/progressive_difficulty.json` | ProgressiveDifficultyTracker.gd | basic_milestones (8 entries), advanced_milestones (8 entries) — Compendium pp.56-60 |
+| `data/battle_keywords.json` | BattleKeywordDB.gd | 32 combat terms with definition/page/category for auto-linking |
+| `data/enemy_type_details.json` | 8 enemy type files in src/game/enemy/types/ | Per-type base_stats, experience_levels, loot values, behavior thresholds |
+
+### Updated JSON Files (Apr 2, 2026)
+| File | Added Data |
+|------|-----------|
+| `data/loot_tables.json` | battlefield_finds table, weapon/gear_definitions, consumable_items, quality_modifiers, trade_goods |
+| `data/injury_results.json` | treatment_options (sick_bay/surgery/natural) |
+| `data/campaign_config.json` | morale_system, upkeep, story_points, luck, stat_ranges, character_creation, campaign_turns_config, economy, combat |
+| `data/victory_conditions.json` | achievement_thresholds (8), difficulty_multipliers (4 levels), common_target_turns |
+| `data/mission_tables/mission_difficulty.json` | crew_experience_weights, equipment_quality_modifiers, campaign_turn_scaling |
+| `data/mission_tables/mission_rewards.json` | performance_multipliers, patron_relationship_bonuses, danger_pay_scaling |
+| `data/RulesReference/StealthAndStreet.json` | sentry_patrol (D6), spotting_modifiers (7), police_response (4 texts) |
+
 ### Campaign Data
 | File | Consumer | Schema |
 |------|----------|--------|

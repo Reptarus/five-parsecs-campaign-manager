@@ -1,0 +1,157 @@
+{
+  "name": "Enemy Type Details",
+  "source": "APP_ENHANCEMENT — enemy type stat modifiers, loot values, behavior thresholds",
+  "description": "Per-enemy-type data extracted from src/game/enemy/types/*.gd. These are app-level values, not Core Rules tables (Core Rules enemy stats are in enemy_types.json).",
+  "corporate_security": {
+    "base_stats": {"max_health": 80, "movement_range": 4, "weapon_range": 6, "coordination_bonus": 1, "discipline_level": 3, "threat_assessment_skill": 2},
+    "equipment_quality": {
+      "basic": {"health_mult": 0.8, "weapon_range_adj": -1},
+      "standard": {"health_mult": 1.0, "weapon_range_adj": 0},
+      "advanced": {"health_mult": 1.2, "weapon_range_adj": 1, "discipline_adj": 1},
+      "prototype": {"health_mult": 1.4, "weapon_range_adj": 2, "discipline_adj": 2, "threat_adj": 1}
+    },
+    "security_clearance": {
+      "standard": {},
+      "high": {"coordination_adj": 1, "threat_adj": 1},
+      "executive": {"coordination_adj": 2, "threat_adj": 2, "discipline_adj": 1}
+    },
+    "loot": {
+      "base_credits": {"standard": 150, "high": 300, "executive": 500},
+      "affiliation_multipliers": {"military": 1.3, "tech": 1.3, "pharma": 1.2, "mining": 1.1, "generic": 1.0}
+    }
+  },
+  "pirates": {
+    "base_stats": {"max_health": 70, "movement_range": 5, "weapon_range": 4, "greed_factor": 1.2, "cowardice_threshold": 25},
+    "experience_levels": {
+      "green": {"health_mult": 0.8, "credits": 50},
+      "seasoned": {"health_mult": 1.0, "credits": 100},
+      "veteran": {"health_mult": 1.2, "credits": 200},
+      "legendary": {"health_mult": 1.4, "credits": 400}
+    },
+    "ship_quality": {
+      "scavenged": {"health_mult": 0.9},
+      "modified": {"health_mult": 1.0},
+      "custom": {"health_mult": 1.1},
+      "flagship": {"health_mult": 1.3}
+    },
+    "loot": {
+      "stolen_goods_chance": 0.5,
+      "contraband_chance": 0.3,
+      "intelligence_data_chance": 0.2,
+      "rare_artifacts_chance": 0.1
+    }
+  },
+  "wildlife": {
+    "base_stats": {"max_health": 50, "movement_range": 4, "weapon_range": 1},
+    "size_modifiers": {
+      "tiny": {"max_health": 10},
+      "small": {"max_health": 25},
+      "medium": {"max_health": 50},
+      "large": {"max_health": 100},
+      "huge": {"max_health": 200},
+      "colossal": {"max_health": 400}
+    },
+    "creature_types": {
+      "predator": {"health_mult": 1.2, "aggression_bonus": 2},
+      "herbivore": {"health_mult": 1.4, "flee_tendency": 0.8},
+      "scavenger": {"health_mult": 0.8},
+      "apex": {"health_mult": 1.6, "intelligence_bonus": 2}
+    },
+    "loot": {
+      "creature_material_chance": 0.4,
+      "useful_item_chance": 0.2,
+      "rare_component_chance": 0.1,
+      "exotic_trophy_chance": 0.05
+    }
+  },
+  "cultists": {
+    "base_stats": {"max_health": 60, "movement_range": 4, "weapon_range": 3},
+    "mutation_levels": {
+      "level_1": {"health_addition": 10},
+      "level_2": {"health_addition": 20},
+      "level_3": {"health_addition": 35}
+    },
+    "hierarchy": {
+      "initiate": {"health_addition": 0},
+      "adept": {"health_addition": 10},
+      "priest": {"health_addition": 25, "ritual_charge_bonus": 1},
+      "high_priest": {"health_addition": 50, "ritual_charge_bonus": 1}
+    },
+    "zealot": {"health_mult": 1.3, "fanaticism_bonus": 2},
+    "loot": {
+      "cultist_artifact_chance": 0.3,
+      "forbidden_texts_chance": 0.2,
+      "ritual_components_chance": 0.25,
+      "blasphemous_idol_chance": 0.1
+    }
+  },
+  "enforcers": {
+    "base_stats": {"max_health": 75, "movement_range": 4, "weapon_range": 5, "backup_response_time": 5, "surveillance_access": 3},
+    "authority_levels": {
+      "patrol": {"backup_response_time": 5, "surveillance_access": 2},
+      "detective": {"backup_response_time": 4, "surveillance_access": 3},
+      "captain": {"backup_response_time": 3, "surveillance_access": 4},
+      "commander": {"backup_response_time": 2, "surveillance_access": 5}
+    },
+    "loot": {
+      "base_credits": 200,
+      "credits_per_authority_level": 100,
+      "jurisdiction_multipliers": {"local": 0.8, "planetary": 1.0, "system": 1.3, "sector": 1.6, "federal": 2.0}
+    }
+  },
+  "mercenaries": {
+    "base_stats": {"max_health": 80, "movement_range": 4, "weapon_range": 6},
+    "experience_levels": {
+      "green": {"health_mult": 0.8, "credits": 150},
+      "regular": {"health_mult": 1.0, "credits": 300},
+      "veteran": {"health_mult": 1.2, "credits": 500},
+      "elite": {"health_mult": 1.4, "credits": 800},
+      "legendary": {"health_mult": 1.6, "credits": 1200}
+    },
+    "contract_multipliers": {
+      "standard": 1.0,
+      "high_value": 1.5,
+      "suicide": 2.0,
+      "personal": 1.2
+    },
+    "loot": {
+      "mercenary_weapon_chance": 0.5,
+      "military_hardware_chance": 0.3,
+      "confidential_data_chance": 0.2,
+      "contract_holochip_chance": 0.1
+    }
+  },
+  "raiders": {
+    "base_stats": {"max_health": 60, "movement_range": 5, "weapon_range": 3, "retreat_threshold": 40, "salvage_priority": 4},
+    "survival_experience": {"health_addition_per_level": 3},
+    "affiliation": {
+      "wasteland_tribe": {"health_addition": 10, "environmental_adaptation": 1},
+      "scavenger_clan": {"salvage_skill_bonus": 2},
+      "nomad_band": {"movement_range_addition": 1}
+    },
+    "loot": {
+      "scrap_metal_chance": 0.6,
+      "useful_components_chance": 0.3,
+      "stolen_goods_chance": 0.2,
+      "rare_salvage_chance": 0.1
+    }
+  },
+  "rival_gang": {
+    "base_stats": {"max_health": 70, "movement_range": 4, "weapon_range": 5},
+    "gang_size": {
+      "small": {"base_credits": 150, "coordination_penalty": 1},
+      "medium": {"base_credits": 300, "coordination_bonus": 1, "unit_multiplier": 1.5},
+      "large": {"base_credits": 500, "coordination_bonus": 2, "unit_multiplier": 2.0},
+      "syndicate": {"base_credits": 1000, "coordination_bonus": 3, "unit_multiplier": 3.0}
+    },
+    "specialization_multipliers": {
+      "smuggling": 1.3,
+      "tech": 1.2,
+      "enforcement": 1.1,
+      "generic": 1.0
+    },
+    "loot": {
+      "base_credits_by_size": {"small": 150, "medium": 300, "large": 500, "syndicate": 1000}
+    }
+  }
+}
