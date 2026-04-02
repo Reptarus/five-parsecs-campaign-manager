@@ -1,136 +1,115 @@
 class_name CharacterAdvancementConstants
 ## Character Advancement Constants for Five Parsecs Campaign Manager
-## Transferred from test helpers to production code
-## Based on Five Parsecs Core Rulebook p.67-76 (Character Advancement rules)
+## Data loaded from res://data/character_advancement.json (Core Rules pp.67-76)
 ##
 ## Usage: Reference these constants in CharacterManager and advancement systems
-## Architecture: Pure constants class - no state, no dependencies
+## Architecture: Lazy-loads JSON data, keeps static helper API
 
-## XP costs for stat advancement (Five Parsecs rulebook p.67)
-const ADVANCEMENT_COSTS: Dictionary = {
-	"reactions": 7,
-	"combat_skill": 7,
-	"speed": 5,
-	"savvy": 5,
-	"toughness": 6,
-	"luck": 10
-}
+const _DATA_PATH := "res://data/character_advancement.json"
 
-## Base stat maximum values (without species/background modifications)
-const BASE_STAT_MAXIMUMS: Dictionary = {
-	"reactions": 6,
-	"combat_skill": 5,  # +5 combat modifier maximum
-	"speed": 8,
-	"savvy": 5,  # +5 savvy modifier maximum
-	"toughness": 6,  # Normal maximum (Engineers limited to 4)
-	"luck": 3  # Human maximum (non-humans limited to 1)
-}
+static var _data: Dictionary = {}
+static var _loaded: bool = false
 
-## Background-specific stat restrictions
-const BACKGROUND_RESTRICTIONS: Dictionary = {
-	"Engineer": {
-		"toughness": 4  # Engineers max out at Toughness 4
-	}
-}
+static func _ensure_loaded() -> void:
+	if _loaded:
+		return
+	_loaded = true
+	var file := FileAccess.open(_DATA_PATH, FileAccess.READ)
+	if not file:
+		push_error("CharacterAdvancementConstants: Failed to open %s" % _DATA_PATH)
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_data = json.data
+	else:
+		push_error("CharacterAdvancementConstants: Failed to parse %s" % _DATA_PATH)
+	file.close()
 
-## Species-specific stat restrictions
-const SPECIES_RESTRICTIONS: Dictionary = {
-	"Human": {
-		"luck": 3  # Humans can reach Luck 3
-	},
-	# All non-human species default to luck maximum of 1
-	"non_human_default": {
-		"luck": 1
-	}
-}
 
-## Priority order for auto-advancement (most important first)
-## Used in campaign turn processing for characters with sufficient XP
-const ADVANCEMENT_PRIORITY: Array[String] = [
-	"combat_skill",  # Most important for combat effectiveness
-	"reactions",     # Initiative in combat
-	"toughness",     # Survivability
-	"speed",         # Movement and positioning
-	"savvy",         # Task rolls and world interactions
-	"luck"           # Rerolls and critical saves
-]
+## Backward-compatible property accessors
 
-## Minimum XP required for first advancement
-const MIN_ADVANCEMENT_XP: int = 5  # Cheapest stat (speed/savvy) is 5 XP
+static var ADVANCEMENT_COSTS: Dictionary:
+	get:
+		_ensure_loaded()
+		return _data.get("advancement_costs", {})
 
-## Maximum possible stat value (absolute ceiling)
-const ABSOLUTE_STAT_MAX: int = 8  # Speed maximum, no stat can exceed this
+static var BASE_STAT_MAXIMUMS: Dictionary:
+	get:
+		_ensure_loaded()
+		return _data.get("base_stat_maximums", {})
 
-## Helper function: Get advancement cost for a stat
+static var BACKGROUND_RESTRICTIONS: Dictionary:
+	get:
+		_ensure_loaded()
+		return _data.get("background_restrictions", {})
+
+static var SPECIES_RESTRICTIONS: Dictionary:
+	get:
+		_ensure_loaded()
+		return _data.get("species_restrictions", {})
+
+static var ADVANCEMENT_PRIORITY: Array[String]:
+	get:
+		_ensure_loaded()
+		var raw: Array = _data.get("advancement_priority", [])
+		var result: Array[String] = []
+		for item in raw:
+			result.append(str(item))
+		return result
+
+static var MIN_ADVANCEMENT_XP: int:
+	get:
+		_ensure_loaded()
+		return int(_data.get("min_advancement_xp", 5))
+
+static var ABSOLUTE_STAT_MAX: int:
+	get:
+		_ensure_loaded()
+		return int(_data.get("absolute_stat_max", 8))
+
+
+## Helper functions (unchanged public API)
+
 static func get_advancement_cost(stat: String) -> int:
-	## Get XP cost for advancing a stat
-	##
-	## Args:
-	## stat: Stat name (reactions, combat_skill, speed, savvy, toughness, luck)
-	##
-	## Returns:
-	## XP cost, or 999 if invalid stat name
 	return ADVANCEMENT_COSTS.get(stat.to_lower(), 999)
 
-## Helper function: Get stat maximum for a character
-static func get_stat_maximum(stat: String, character_data: Dictionary) -> int:
-
-	## Args:
-	## 	stat: Stat name
-	## 	character_data: Dictionary with "background" and "species" keys
-	##
-	## Returns:
-	## 	Maximum value for the stat, considering character restrictions
-	##
+static func get_stat_maximum(
+	stat: String, character_data: Dictionary
+) -> int:
 	var stat_lower: String = stat.to_lower()
 
-	# Check Engineer Toughness restriction
 	if stat_lower == "toughness":
 		var background: String = character_data.get("background", "")
-		if background == "Engineer":
-			return BACKGROUND_RESTRICTIONS.Engineer.toughness
-		return BASE_STAT_MAXIMUMS.toughness
+		var bg_restrictions: Dictionary = BACKGROUND_RESTRICTIONS
+		if bg_restrictions.has(background) and bg_restrictions[background].has("toughness"):
+			return bg_restrictions[background]["toughness"]
+		return BASE_STAT_MAXIMUMS.get("toughness", ABSOLUTE_STAT_MAX)
 
-	# Check species Luck restriction
 	if stat_lower == "luck":
 		var species: String = character_data.get("species", "Human")
-		if species == "Human":
-			return SPECIES_RESTRICTIONS.Human.luck
-		return SPECIES_RESTRICTIONS.non_human_default.luck
+		var sp_restrictions: Dictionary = SPECIES_RESTRICTIONS
+		if sp_restrictions.has(species) and sp_restrictions[species].has("luck"):
+			return sp_restrictions[species]["luck"]
+		if sp_restrictions.has("non_human_default"):
+			return sp_restrictions["non_human_default"].get("luck", 1)
+		return 1
 
-	# Return base maximum for other stats
 	return BASE_STAT_MAXIMUMS.get(stat_lower, ABSOLUTE_STAT_MAX)
 
-## Helper function: Check if character can advance a stat
-static func can_advance_stat(character_data: Dictionary, stat: String) -> bool:
-	## Check if character has enough XP and hasn't reached maximum
-	##
-	## Args:
-	## character_data: Dictionary with "experience" and stat value keys
-	## stat: Stat to check for advancement
-	##
-	## Returns:
-	## True if character can advance the stat
+static func can_advance_stat(
+	character_data: Dictionary, stat: String
+) -> bool:
 	var current_xp: int = character_data.get("experience", 0)
 	var cost: int = get_advancement_cost(stat)
 	var current_value: int = character_data.get(stat, 0)
 	var max_value: int = get_stat_maximum(stat, character_data)
-
 	return current_xp >= cost and current_value < max_value
 
-## Helper function: Get all available advancements for a character
-static func get_available_advancements(character_data: Dictionary) -> Array[String]:
-
-	## Args:
-	## 	character_data: Dictionary with character stats and experience
-	##
-	## Returns:
-	## 	Array of stat names that can be advanced
-	##
+static func get_available_advancements(
+	character_data: Dictionary,
+) -> Array[String]:
 	var available: Array[String] = []
-
 	for stat in ADVANCEMENT_COSTS.keys():
 		if can_advance_stat(character_data, stat):
 			available.append(stat)
-
 	return available

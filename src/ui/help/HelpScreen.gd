@@ -258,7 +258,10 @@ func _on_toc_button_pressed(chapter_id: String) -> void:
 func _on_back_pressed() -> void:
 	var router := get_node_or_null("/root/SceneRouter")
 	if router:
-		router.navigate_back()
+		if router.get_navigation_history().is_empty():
+			router.navigate_to("main_menu")
+		else:
+			router.navigate_back()
 
 
 func _on_search_submitted(query: String) -> void:

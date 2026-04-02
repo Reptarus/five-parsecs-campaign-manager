@@ -160,6 +160,11 @@ func _create_character_card_entry(character) -> void:
 			display_name, subtitle, stats)
 		crew_grid.add_child(card)
 
+		# Make dict-based cards clickable → navigate to character details
+		card.gui_input.connect(
+			_on_dict_card_clicked.bind(character)
+		)
+
 func _update_crew_count() -> void:
 	if not crew_count_label:
 		return
@@ -182,7 +187,7 @@ func _on_card_view_details(character: Character) -> void:
 		gsm.navigate_to_screen("character_details")
 
 func _on_card_edit(character: Character) -> void:
-	push_warning("CrewManagementScreen: Character editing not yet implemented")
+	_on_card_view_details(character)
 
 func _on_card_remove(character: Character) -> void:
 	var char_name = character.get_display_name()
@@ -200,7 +205,7 @@ func _on_card_remove(character: Character) -> void:
 	dialog.popup_centered()
 
 func _on_card_tapped(character: Character) -> void:
-	pass
+	_on_card_view_details(character)
 
 func _actually_remove_character(character: Character) -> void:
 	if not current_campaign:
@@ -239,11 +244,23 @@ func _on_back_pressed() -> void:
 			gsm.clear_temp_data(gsm.TEMP_KEY_SELECTED_CHARACTER)
 	var router = get_node_or_null("/root/SceneRouter")
 	if router:
-		router.navigate_to("campaign_turn_controller")
+		router.navigate_to("campaign_dashboard")
 	else:
 		get_tree().change_scene_to_file(
-			"res://src/ui/screens/campaign/CampaignTurnController.tscn"
+			"res://src/ui/screens/campaign/CampaignDashboard.tscn"
 		)
+
+func _on_dict_card_clicked(event: InputEvent, char_dict: Dictionary) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		# Convert dict to Character Resource for the details screen
+		var character := Character.new()
+		character.from_dictionary(char_dict)
+		var gsm = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("set_temp_data"):
+			gsm.set_temp_data(gsm.TEMP_KEY_SELECTED_CHARACTER, character)
+			# Store the source dict so CharacterDetailsScreen can write changes back
+			gsm.set_temp_data("source_crew_dict", char_dict)
+			gsm.navigate_to_screen("character_details")
 
 # ============ DATA RESOLUTION HELPERS ============
 

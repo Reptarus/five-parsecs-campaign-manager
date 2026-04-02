@@ -209,6 +209,21 @@ func _get_crew_members(campaign) -> Array:
 		return campaign.crew_data.get("members", [])
 	return []
 
+func _enum_to_display(value, enum_dict: Dictionary) -> String:
+	## Convert an enum int (or string) to a readable display name.
+	## e.g. 6 → "Soulless", "WORKING_CLASS" → "Working Class"
+	if value is String:
+		if value.is_empty() or value == "Unknown":
+			return "Unknown"
+		# Already a string name — just clean it up
+		return value.replace("_", " ").to_pascal_case().replace("  ", " ")
+	var int_val := int(value)
+	for key in enum_dict:
+		if enum_dict[key] == int_val:
+			# key is like "SOULLESS" or "WORKING_CLASS" — make readable
+			return str(key).replace("_", " ").capitalize()
+	return str(value)
+
 func _build_crew_card(member) -> PanelContainer:
 	var is_dict := member is Dictionary
 	var char_name: String
@@ -221,8 +236,12 @@ func _build_crew_card(member) -> PanelContainer:
 		char_name = member.get(
 			"character_name", member.get("name", "Unknown")
 		)
-		species = str(member.get("origin", member.get("species", "Unknown")))
-		char_class = str(member.get("character_class", member.get("class", "Unknown")))
+		species = _enum_to_display(
+			member.get("origin", member.get("species", "Unknown")),
+			GlobalEnums.Origin)
+		char_class = _enum_to_display(
+			member.get("character_class", member.get("class", "Unknown")),
+			GlobalEnums.CharacterClass)
 		is_captain = member.get("is_captain", false)
 		stats = {
 			"C": member.get("combat", 0),
@@ -235,10 +254,12 @@ func _build_crew_card(member) -> PanelContainer:
 	else:
 		char_name = member.character_name \
 			if "character_name" in member else str(member)
-		species = member.species \
-			if "species" in member else "Unknown"
-		char_class = str(member.character_class) \
-			if "character_class" in member else "Unknown"
+		species = _enum_to_display(
+			member.species if "species" in member else "Unknown",
+			GlobalEnums.Origin)
+		char_class = _enum_to_display(
+			member.character_class if "character_class" in member else "Unknown",
+			GlobalEnums.CharacterClass)
 		is_captain = member.is_captain \
 			if "is_captain" in member else false
 		stats = {
@@ -851,18 +872,13 @@ func _get_next_phase(current) -> int:
 # ── Button handlers ────────────────────────────────────────────────
 
 func _on_action_pressed() -> void:
-	if not phase_manager:
-		return
-	var next_phase = _get_next_phase(
-		phase_manager.current_phase
-	)
-	var FPC = GameEnums.FiveParcsecsCampaignPhase
-	if next_phase != FPC.NONE:
-		var success: bool = phase_manager.start_phase(next_phase)
-		if success:
-			_update_phase_ui(next_phase)
-		else:
-			_show_message("Cannot advance to next phase.")
+	## Navigate directly to the World Phase wizard (WorldPhaseController)
+	## The wizard handles all turn phases internally as steps
+	var router = get_node_or_null("/root/SceneRouter")
+	if router:
+		router.navigate_to("world_phase")
+	else:
+		_show_message("Cannot navigate to World Phase.")
 
 func _on_manage_crew_pressed() -> void:
 	var router = get_node_or_null("/root/SceneRouter")

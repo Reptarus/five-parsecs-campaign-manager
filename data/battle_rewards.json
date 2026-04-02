@@ -1,0 +1,15 @@
+{
+  "name": "Battle Outcome Rewards",
+  "source": "APP_ENHANCEMENT — reward scaling by battle outcome and mission type",
+  "outcome_rewards": {
+    "victory": {"credits_min": 100, "credits_range": 100, "reputation": 5},
+    "draw": {"credits_min": 50, "credits_range": 50, "reputation": 2},
+    "defeat": {"credits_min": 25, "credits_range": 0, "reputation": 0},
+    "retreat": {"credits_min": 0, "credits_range": 0, "reputation": -2}
+  },
+  "mission_type_bonuses": {
+    "BLACK_ZONE": {"credits": 100, "tech_parts_min": 1, "tech_parts_range": 3},
+    "RESCUE": {"credits": 50, "reputation": 3}
+  },
+  "loot_value": {"min": 50, "range": 200}
+}

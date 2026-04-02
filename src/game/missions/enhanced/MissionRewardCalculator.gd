@@ -16,26 +16,38 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const REWARDS_DATA_PATH: String = "res://data/mission_tables/mission_rewards.json"
 static var _rewards_data: Dictionary = {}
 
-# Performance multipliers based on mission completion quality
-const PERFORMANCE_MULTIPLIERS: Dictionary = {
-	"failed": 0.0,
-	"partial": 0.5,
-	"completed": 1.0,
-	"exceptional": 1.3,
-	"legendary": 1.5
-}
+# Reward constants loaded from mission_rewards.json
+static var PERFORMANCE_MULTIPLIERS: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_rewards_data_loaded()
+		var d: Dictionary = _rewards_data.get("performance_multipliers", {})
+		var result := {}
+		for k in d:
+			if k != "source":
+				result[k] = d[k]
+		if result.is_empty():
+			return {"failed": 0.0, "partial": 0.5, "completed": 1.0, "exceptional": 1.3, "legendary": 1.5}
+		return result
 
-# Patron relationship bonuses (Five Parsecs patron system)
-const PATRON_RELATIONSHIP_BONUSES: Dictionary = {
-	"hostile": 0.5,
-	"neutral": 1.0,
-	"friendly": 1.2,
-	"loyal": 1.4,
-	"devoted": 1.6
-}
+static var PATRON_RELATIONSHIP_BONUSES: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_rewards_data_loaded()
+		var d: Dictionary = _rewards_data.get("patron_relationship_bonuses", {})
+		var result := {}
+		for k in d:
+			if k != "source":
+				result[k] = d[k]
+		if result.is_empty():
+			return {"hostile": 0.5, "neutral": 1.0, "friendly": 1.2, "loyal": 1.4, "devoted": 1.6}
+		return result
 
-# Danger pay scaling (Five Parsecs core rule)
-const DANGER_PAY_SCALING: Array[int] = [0, 100, 250, 500, 750, 1000]
+static var DANGER_PAY_SCALING: Array: # @no-lint:variable-name
+	get:
+		_ensure_rewards_data_loaded()
+		var a: Array = _rewards_data.get("danger_pay_scaling", [])
+		if a.is_empty():
+			return [0, 100, 250, 500, 750, 1000]
+		return a
 
 ## Load reward data if not already loaded
 static func _ensure_rewards_data_loaded() -> void:

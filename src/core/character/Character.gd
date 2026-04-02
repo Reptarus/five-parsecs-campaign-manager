@@ -155,6 +155,7 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 @export var battles_survived: int = 0            # Battles not KO'd
 @export var critical_hits_landed: int = 0        # Critical successes
 @export var advancement_history: Array[Dictionary] = []  # {turn, stat, old_value, new_value}
+@export var player_notes: String = ""  # User-editable notes/lore/story for this character
 
 # Game-Specific Properties (merged from game/character/Character.gd)
 @export var portrait_path: String = ""
@@ -1083,6 +1084,7 @@ func to_dictionary() -> Dictionary:
 		"battles_survived": battles_survived,
 		"critical_hits_landed": critical_hits_landed,
 		"advancement_history": advancement_history.duplicate(),
+		"player_notes": player_notes,
 		# Game-specific
 		"portrait_path": portrait_path,
 		"faction_relations": faction_relations.duplicate(),
@@ -1212,6 +1214,8 @@ func from_dictionary(data: Dictionary) -> void:
 	for entry in advancement_history_data:
 		if entry is Dictionary:
 			advancement_history.append(entry)
+
+	player_notes = data.get("player_notes", "")
 
 	# Game-specific properties
 	portrait_path = data.get("portrait_path", "")

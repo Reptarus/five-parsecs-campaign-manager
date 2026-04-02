@@ -174,10 +174,10 @@ func check_crew_readiness() -> Dictionary:
 		readiness.is_ready = false
 		readiness.warnings.append("Error: Mission requires at least %d crew members" % required_crew)
 
-	# UX-091 FIX: Don't show READY if no crew have any equipment assigned
+	# Equipment assignment is optional — the tabletop player handles physical equip.
+	# Show a warning but don't block proceeding to battle.
 	if readiness.crew_count > 0 and readiness.equipped_crew == 0:
-		readiness.is_ready = false
-		readiness.warnings.append("Error: No crew members have equipment assigned")
+		readiness.warnings.append("Warning: No crew members have equipment assigned in-app")
 
 	return readiness
 

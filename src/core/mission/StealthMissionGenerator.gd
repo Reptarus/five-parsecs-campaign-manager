@@ -24,30 +24,22 @@ extends RefCounted
 ## Generator-only instruction data — not in compendium const tables.
 ## ============================================================================
 
-const SENTRY_PATROL: Array[Dictionary] = [
-	{"roll": 1, "instruction": "Sentry turns LEFT 90 degrees, moves 2\"."},
-	{"roll": 2, "instruction": "Sentry turns RIGHT 90 degrees, moves 2\"."},
-	{"roll": 3, "instruction": "Sentry moves FORWARD 3\"."},
-	{"roll": 4, "instruction": "Sentry moves FORWARD 2\", then turns to face nearest terrain."},
-	{"roll": 5, "instruction": "Sentry HOLDS POSITION, scans area (-1 to spotting distance)."},
-	{"roll": 6, "instruction": "Sentry moves to NEAREST cover, faces random direction."},
-]
+## Sentry patrol and spotting data loaded from StealthAndStreet.json
+static var SENTRY_PATROL: Array: # @no-lint:variable-name
+	get:
+		_ensure_ref_loaded()
+		var a: Array = _ref_data.get("sentry_patrol", [])
+		if a.is_empty():
+			return [{"roll": 1, "instruction": "Unknown"}]
+		return a
 
-
-## ============================================================================
-## SPOTTING CHECK MODIFIERS
-## Generator-only instruction data — not in compendium const tables.
-## ============================================================================
-
-const SPOTTING_MODIFIERS: Array[Dictionary] = [
-	{"id": "partial_cover", "modifier": -2, "description": "Target behind partial cover"},
-	{"id": "full_cover", "modifier": -4, "description": "Target behind full cover (edge visible)"},
-	{"id": "scanning", "modifier": -1, "description": "Sentry is scanning (rolled 5 on patrol)"},
-	{"id": "intervening", "modifier": -1, "description": "Per intervening terrain feature"},
-	{"id": "darkness", "modifier": -2, "description": "Low light / darkness conditions"},
-	{"id": "running", "modifier": 2, "description": "Target moved more than 3\" this round"},
-	{"id": "fired_weapon", "modifier": 3, "description": "Target fired a weapon this round"},
-]
+static var SPOTTING_MODIFIERS: Array: # @no-lint:variable-name
+	get:
+		_ensure_ref_loaded()
+		var a: Array = _ref_data.get("spotting_modifiers", [])
+		if a.is_empty():
+			return [{"id": "unknown", "modifier": 0, "description": "Unknown"}]
+		return a
 
 
 ## ============================================================================

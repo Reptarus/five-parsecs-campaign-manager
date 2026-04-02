@@ -23,12 +23,14 @@ extends RefCounted
 ## POLICE RESPONSE TEXT (generator-only instruction data)
 ## ============================================================================
 
-const POLICE_RESPONSE_TEXT: Array[String] = [
-	"POLICE: No response yet. Tension building.",
-	"POLICE: Sirens in the distance. Response imminent.",
-	"POLICE: Police arriving! D3 enforcers deploy at random table edge next round.",
-	"POLICE: Full response! D6 enforcers deploy. All crew gain 'Wanted' status if still present.",
-]
+## Police response text loaded from StealthAndStreet.json
+static var POLICE_RESPONSE_TEXT: Array: # @no-lint:variable-name
+	get:
+		_ensure_ref_loaded()
+		var a: Array = _ref_data.get("police_response", [])
+		if a.is_empty():
+			return ["POLICE: Response data unavailable."]
+		return a
 
 
 ## ============================================================================

@@ -15,9 +15,30 @@ extends RefCounted
 ##   var new_roll = LuckSystem.spend_luck_reroll(character, original_roll, dice_roller)
 ##   LuckSystem.refresh_luck_for_mission(crew)
 
-# Species Luck caps (Core Rules p.91)
-const HUMAN_LUCK_CAP := 3
-const NONHUMAN_LUCK_CAP := 1
+# Species Luck caps loaded from res://data/campaign_config.json (Core Rules p.91)
+static var _luck_data: Dictionary = {}
+static var _luck_loaded: bool = false
+
+static func _ensure_luck_loaded() -> void:
+	if _luck_loaded:
+		return
+	_luck_loaded = true
+	var file := FileAccess.open("res://data/campaign_config.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_luck_data = json.data.get("luck", {})
+	file.close()
+
+static var HUMAN_LUCK_CAP: int: # @no-lint:variable-name
+	get:
+		_ensure_luck_loaded()
+		return int(_luck_data.get("human_cap", 3))
+static var NONHUMAN_LUCK_CAP: int: # @no-lint:variable-name
+	get:
+		_ensure_luck_loaded()
+		return int(_luck_data.get("nonhuman_cap", 1))
 
 # Luck spent tracking (per-mission)
 static var luck_spent_this_mission: Dictionary = {}  # character_id -> spent_count

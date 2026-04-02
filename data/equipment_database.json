@@ -62,6 +62,7 @@
 		{"id": "rage_out", "name": "Rage Out", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Uncommon", "description": "+2\" Speed and +1 Brawling for this and next round. K'Erin: rest of battle."},
 		{"id": "still", "name": "Still", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Common", "description": "+1 to Hit, but cannot Move this and next round."},
 		{"id": "stim_pack", "name": "Stim-pack", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Common", "description": "Prevent casualty — remain on table with 1 Stun. Reflexive, no action required."},
+		{"id": "med_patch", "name": "Med-patch", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Common", "description": "A character recovering from an Injury may subtract one campaign turn from the recovery duration required. If this reduces the time to zero turns, they may act normally this campaign turn. Single-use."},
 		{"id": "auto_sensor", "name": "Auto Sensor", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Fire one Pistol shot at enemies beginning/ending move within 4\" and LoS. Hits on natural 6 only."},
 		{"id": "battle_visor", "name": "Battle Visor", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "When shooting, reroll any 1s on the firing dice."},
 		{"id": "communicator", "name": "Communicator", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "Roll one additional Reaction die, then discard one."},

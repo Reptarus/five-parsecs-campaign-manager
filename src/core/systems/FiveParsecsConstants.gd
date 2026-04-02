@@ -86,63 +86,75 @@ const PROCESSING_LIMITS = {
 	"phase_transition": 1000 # Phase change animation
 }
 
-# Five Parsecs Character Stat Ranges
-const STAT_RANGES = {
-	"min": 1, # Minimum stat value
-	"max": 6, # Maximum stat value
-	"average": 3, # Average stat value
-	"elite": 5 # Elite character threshold
-}
+# Game data loaded from res://data/campaign_config.json
+static var _cc_data: Dictionary = {}
+static var _cc_loaded: bool = false
 
-# Character Generation Constants (Core Rules)
-const CHARACTER_CREATION = {
-	"starting_credits": 1, # 1 credit per crew member (Core Rules p.28)
-	"max_crew_size": 8, # Maximum crew members
-	"min_crew_size": 4, # Minimum crew members
-	"attribute_dice": "2d6", # Dice for attribute generation
-	"attribute_divisor": 3 # Divide by 3, round up
-}
+static func _ensure_cc_loaded() -> void:
+	if _cc_loaded:
+		return
+	_cc_loaded = true
+	var file := FileAccess.open("res://data/campaign_config.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_cc_data = json.data
+	file.close()
 
-# Campaign Turn Constants
-const CAMPAIGN_TURNS = {
-	"max_turns": 100, # Standard campaign length
-	"short_campaign": 20, # Quick campaign
-	"medium_campaign": 50, # Standard campaign
-	"long_campaign": 100, # Extended campaign
-	"story_quest_minimum": 3 # Minimum story quests for victory
-}
+# Five Parsecs Character Stat Ranges (loaded from JSON)
+static var STAT_RANGES: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_cc_loaded()
+		var d: Dictionary = _cc_data.get("stat_ranges", {})
+		if d.is_empty():
+			return {"min": 1, "max": 6, "average": 3, "elite": 5}
+		return d
 
-# Economic System Constants — VERIFIED against Core Rules 3e (Mar 22, 2026)
-const ECONOMY = {
-	"starting_debt": 75, # Ship seizure threshold (Core Rules p.76: debt ≥75 → 2D6 roll, 2-6 seized)
-	"upkeep_threshold": 4, # Crew size at which upkeep starts (Core Rules p.76) VERIFIED
-	"upkeep_cap": 6, # Crew size above which extra upkeep cost applies (Core Rules p.76) VERIFIED
-	"base_upkeep": 1, # Base upkeep cost: 1 credit for 4-6 crew (Core Rules p.76) VERIFIED
-	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (Core Rules p.76) VERIFIED
-	"ship_maintenance_base": 0, # Ship auto-repairs 1 HP free per turn (Core Rules p.76) VERIFIED — no base cost
-	"injury_treatment_cost": 4, # 4 credits removes 1 campaign turn from recovery (Core Rules p.76) VERIFIED
-	"luxury_upkeep_modifier": 2, # APP_SPECIFIC — not in Core Rules, controls luxury ship upkeep
-	"hull_repair_cost_per_point": 1, # 1 credit per hull point (Core Rules p.76) VERIFIED
-	"trade_profit_multiplier": 10, # APP_SPECIFIC — not in Core Rules, controls trade UI scaling
-	"equipment_degradation": 0.1, # APP_SPECIFIC — not in Core Rules, controls app equipment wear
-	# Travel costs (Core Rules p.64)
-	"starship_travel": 5, # Cost to travel via own starship (Core Rules p.64) VERIFIED
-	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage (Core Rules p.64) VERIFIED
-	# Starting resources (Core Rules p.28)
-	"starting_credits_per_crew": 1, # 1 credit per crew member at start (Core Rules p.28) VERIFIED
-}
+# Character Generation Constants (loaded from JSON)
+static var CHARACTER_CREATION: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_cc_loaded()
+		var d: Dictionary = _cc_data.get("character_creation", {})
+		if d.is_empty():
+			return {"starting_credits": 1, "max_crew_size": 8, "min_crew_size": 4, "attribute_dice": "2d6", "attribute_divisor": 3}
+		return d
 
-# Combat System Constants — APP ABSTRACTIONS, not direct Core Rules values.
-# Core Rules uses: Seize Initiative = 2D6+Savvy, 10+ (p.112). Reaction Roll = D6 per crew vs Reaction score (p.112).
-# To-Hit: within 6" open=3+, weapon range open OR 6" cover=5+, weapon range cover=6+ (p.44).
-# Stun: removed 1/activation after acting, 3+ stuns = knocked out (p.40). Panic: per-enemy-type ranges.
-const COMBAT = {
-	"seize_initiative_target": 10, # 2D6 + highest Savvy, 10+ to seize (Core Rules p.112) VERIFIED
-	"stun_knockout_threshold": 3, # 3+ stun markers = knocked out (Core Rules p.40) VERIFIED
-	"to_hit_open_close": 3, # Within 6" and in the open (Core Rules p.44) VERIFIED
-	"to_hit_standard": 5, # Within weapon range open, OR within 6" cover (Core Rules p.44) VERIFIED
-	"to_hit_cover": 6, # Within weapon range and in Cover (Core Rules p.44) VERIFIED
-}
+# Campaign Turn Constants (loaded from JSON)
+static var CAMPAIGN_TURNS: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_cc_loaded()
+		var d: Dictionary = _cc_data.get("campaign_turns_config", {})
+		if d.is_empty():
+			return {"max_turns": 100, "short_campaign": 20, "medium_campaign": 50, "long_campaign": 100, "story_quest_minimum": 3}
+		return d
+
+# Economic System Constants (loaded from JSON) — VERIFIED against Core Rules 3e
+static var ECONOMY: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_cc_loaded()
+		var d: Dictionary = _cc_data.get("economy", {})
+		# Strip metadata
+		var result := {}
+		for k in d:
+			if k != "source":
+				result[k] = d[k]
+		if result.is_empty():
+			return {"starting_debt": 75, "upkeep_threshold": 4, "upkeep_cap": 6, "base_upkeep": 1}
+		return result
+
+# Combat System Constants (loaded from JSON) — Core Rules pp.40, 44, 112
+static var COMBAT: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_cc_loaded()
+		var d: Dictionary = _cc_data.get("combat", {})
+		var result := {}
+		for k in d:
+			if k != "source":
+				result[k] = d[k]
+		if result.is_empty():
+			return {"seize_initiative_target": 10, "stun_knockout_threshold": 3, "to_hit_open_close": 3, "to_hit_standard": 5, "to_hit_cover": 6}
+		return result
 
 # Mission Generation Constants — Use patron_generation.json for canonical D10 tables.
 # These are app-level defaults; JSON data is authoritative where it exists.

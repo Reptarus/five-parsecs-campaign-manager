@@ -11,16 +11,40 @@ signal insufficient_funds(required: int, available: int)
 # Economy system reference for credit management
 var economy_system: Node = null
 
-# Upkeep costs from Five Parsecs rules (p.76)
-# Rulebook: 1 credit for 4-6 crew, +1 per crew past 6
-const CREW_UPKEEP_THRESHOLD = 4 # Crew size at which upkeep starts
-const CREW_UPKEEP_CAP = 6 # Crew size above which extra cost applies
-const SHIP_MAINTENANCE_BASE = 1 # Base ship maintenance cost
-const INJURY_TREATMENT_COST = 2 # Cost per injured crew member
-const LUXURY_UPKEEP_MODIFIER = 2 # Multiplier for luxury living
+# Upkeep costs loaded from res://data/campaign_config.json upkeep section
+# Canonical source: Five Parsecs Core Rules p.76
+static var _upkeep_data: Dictionary = {}
+static var _upkeep_loaded: bool = false
 
-# Ship repair costs
-const HULL_REPAIR_COST_PER_POINT = 3 # Credits per hull point to repair
+static func _ensure_upkeep_loaded() -> void:
+	if _upkeep_loaded:
+		return
+	_upkeep_loaded = true
+	var file := FileAccess.open("res://data/campaign_config.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_upkeep_data = json.data.get("upkeep", {})
+	file.close()
+
+static func _get_upkeep_val(key: String, default_val: int) -> int:
+	_ensure_upkeep_loaded()
+	return int(_upkeep_data.get(key, default_val))
+
+# Backward-compatible accessors (loaded from JSON)
+static var CREW_UPKEEP_THRESHOLD: int: # @no-lint:variable-name
+	get: return _get_upkeep_val("crew_upkeep_threshold", 4)
+static var CREW_UPKEEP_CAP: int: # @no-lint:variable-name
+	get: return _get_upkeep_val("crew_upkeep_cap", 6)
+static var SHIP_MAINTENANCE_BASE: int: # @no-lint:variable-name
+	get: return _get_upkeep_val("ship_maintenance_base", 1)
+static var INJURY_TREATMENT_COST: int: # @no-lint:variable-name
+	get: return _get_upkeep_val("injury_treatment_cost", 2)
+static var LUXURY_UPKEEP_MODIFIER: int: # @no-lint:variable-name
+	get: return _get_upkeep_val("luxury_upkeep_modifier", 2)
+static var HULL_REPAIR_COST_PER_POINT: int: # @no-lint:variable-name
+	get: return _get_upkeep_val("hull_repair_cost_per_point", 3)
 
 func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	## Calculate total upkeep costs for the campaign turn

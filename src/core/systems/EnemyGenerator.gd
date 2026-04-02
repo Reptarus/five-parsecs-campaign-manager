@@ -80,18 +80,18 @@ func _build_legacy_compatibility() -> void:
 	for category_data in enemy_data.get("enemy_categories", []):
 		var category_id = category_data.get("id", "")
 		var enemies = []
-		
+
 		for enemy in category_data.get("enemies", []):
 			enemies.append(enemy.get("name", "Unknown"))
-			
-			# Also populate legacy stats
+
+			# Populate legacy stats — JSON uses flat properties, not nested "stats"/"equipment"
 			enemy_stats_base[enemy.get("name", "Unknown")] = {
-				"combat_skill": enemy.get("stats", {}).get("combat", 3),
-				"toughness": enemy.get("stats", {}).get("toughness", 3),
-				"speed": enemy.get("stats", {}).get("speed", 4),
-				"weapons": enemy.get("equipment", {}).get("weapons", ["Basic Weapon"])
+				"combat_skill": enemy.get("combat_skill", 0),
+				"toughness": enemy.get("toughness", 3),
+				"speed": enemy.get("speed", 4),
+				"weapons": _resolve_weapon_code(enemy.get("weapons", "1 A"))
 			}
-		
+
 		enemy_categories[category_id] = enemies
 
 func generate_enemies_for_mission(mission: Resource, crew_size: int = 4) -> Array[Resource]:
@@ -300,101 +300,93 @@ func _create_enemy(category: String, difficulty: int) -> Resource:
 
 	return enemy
 
-func _get_enemy_template_from_json(category: String, difficulty: int) -> Dictionary:
-	## Get enemy template from JSON data based on category and difficulty
-	for category_data in enemy_data.get("enemy_categories", []):
-		if category_data.get("id", "") == category:
-			var enemies = category_data.get("enemies", [])
-
-			# Filter enemies by difficulty if available
-			var suitable_enemies = []
-			for enemy in enemies:
-				var enemy_threat = _calculate_enemy_threat_level(enemy)
-				if enemy_threat <= difficulty:
-					suitable_enemies.append(enemy)
-
-			# If no suitable enemies found, use any from the category
-			if suitable_enemies.is_empty():
-				suitable_enemies = enemies
-
-			if not suitable_enemies.is_empty():
-				return suitable_enemies.pick_random()
-
-	return {}
+func _get_enemy_template_from_json(
+	category: String, _difficulty: int
+) -> Dictionary:
+	## Get enemy template from JSON using D100 roll_range (book-accurate).
+	## difficulty parameter preserved for API compatibility but not used
+	## for selection — the Core Rules use flat D100 tables per category.
+	return _roll_enemy_in_category(category)
 
 func _calculate_enemy_threat_level(enemy_template: Dictionary) -> int:
 	## Calculate threat level of enemy template
-	var stats = enemy_template.get("stats", {})
-	var combat = stats.get("combat", 3)
-	var toughness = stats.get("toughness", 3)
+	## JSON uses flat properties: combat_skill, toughness (not nested stats)
+	var combat: int = enemy_template.get("combat_skill", 0)
+	var toughness: int = enemy_template.get("toughness", 3)
 
 	# Simple threat calculation: (combat + toughness) / 2
 	return max(1, (combat + toughness) / 2)
 
-func _create_enemy_from_template(template: Dictionary, difficulty: int) -> Resource:
+func _create_enemy_from_template(
+	template: Dictionary, difficulty: int
+) -> Resource:
 	## Create enemy from JSON template with difficulty adjustments
 	var enemy := Resource.new()
 
 	# Basic information
 	enemy.set_meta("id", template.get("id", "unknown"))
 	enemy.set_meta("name", template.get("name", "Unknown Enemy"))
-	enemy.set_meta("description", template.get("description", ""))
 
-	# Stats with difficulty modifiers
-	var base_stats = template.get("stats", {})
-	var modified_stats = _apply_json_difficulty_modifiers(base_stats, difficulty)
+	# Stats — JSON uses flat properties, not nested "stats" sub-dict
+	var base_stats := {
+		"combat_skill": template.get("combat_skill", 0),
+		"toughness": template.get("toughness", 3),
+		"speed": template.get("speed", 4),
+	}
+	var modified_stats = _apply_json_difficulty_modifiers(
+		base_stats, difficulty
+	)
 
-	enemy.set_meta("combat", modified_stats.get("combat", 3))
+	enemy.set_meta("combat_skill", modified_stats.get("combat_skill", 0))
 	enemy.set_meta("toughness", modified_stats.get("toughness", 3))
 	enemy.set_meta("speed", modified_stats.get("speed", 4))
-	enemy.set_meta("savvy", modified_stats.get("savvy", 2))
 
-	# Equipment
-	var equipment = template.get("equipment", {})
-	var weapons = equipment.get("weapons", ["Basic Weapon"])
+	# Weapons — JSON stores Core Rules notation (e.g., "2 A")
+	var weapons: Array = _resolve_weapon_code(
+		template.get("weapons", "1 A")
+	)
 
-	# HOUSE RULE: varied_armaments - Each enemy gets individually rolled weapons
+	# HOUSE RULE: varied_armaments
 	if HouseRulesHelper.is_enabled("varied_armaments"):
 		weapons = _roll_varied_weapons(weapons)
 
 	enemy.set_meta("weapons", weapons)
-	enemy.set_meta("armor", equipment.get("armor", "No Armor"))
-	enemy.set_meta("gear", equipment.get("gear", []))
 
-	# Abilities
-	enemy.set_meta("abilities", template.get("abilities", []))
-
-	# XP and loot
-	enemy.set_meta("xp_value", template.get("xp_value", 1))
-	enemy.set_meta("loot_table", template.get("loot_table", "common"))
-	enemy.set_meta("tags", template.get("tags", []))
+	# AI type and special rules from JSON
+	enemy.set_meta("ai", template.get("ai", "A"))
+	enemy.set_meta("panic", template.get("panic", "1-2"))
+	enemy.set_meta("numbers", template.get("numbers", "+0"))
+	enemy.set_meta(
+		"special_rules", template.get("special_rules", [])
+	)
 
 	# Difficulty and category tracking
 	enemy.set_meta("difficulty", difficulty)
-	enemy.set_meta("threat_level", _calculate_enemy_threat_level(template))
+	enemy.set_meta(
+		"threat_level", _calculate_enemy_threat_level(template)
+	)
 
 	return enemy
 
-func _apply_json_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dictionary:
-	## Apply difficulty modifiers to JSON enemy stats
+func _apply_json_difficulty_modifiers(
+	base_stats: Dictionary, difficulty: int
+) -> Dictionary:
+	## Apply difficulty modifiers to enemy stats
 	var modified = base_stats.duplicate()
 
-	# Use spawn rules if available
-	var difficulty_rules = spawn_rules.get("difficulty", {})
-	var difficulty_name = _get_difficulty_name(difficulty)
-
-	if difficulty_rules.has(difficulty_name):
-		var rules = difficulty_rules[difficulty_name]
-		var modifier = rules.get("enemy_count_modifier", 1.0)
-
-		# Apply stat modifications based on difficulty
-		if modifier < 1.0:  # Easy difficulty
-			modified["combat"] = max(1, modified.get("combat", 3) - 1)
-			modified["toughness"] = max(1, modified.get("toughness", 3) - 1)
-		elif modifier > 1.3:  # Hard or higher difficulty
-			modified["combat"] = modified.get("combat", 3) + 1
-			modified["toughness"] = modified.get("toughness", 3) + 1
-			modified["savvy"] = modified.get("savvy", 2) + 1
+	# Difficulty uses GlobalEnums.DifficultyLevel values
+	match difficulty:
+		1: # Easy
+			modified["combat_skill"] = max(
+				0, modified.get("combat_skill", 0) - 1
+			)
+		3, 4, 5: # Hard, Veteran, Elite
+			modified["combat_skill"] = (
+				modified.get("combat_skill", 0) + 1
+			)
+			modified["toughness"] = (
+				modified.get("toughness", 3) + 1
+			)
 
 	return modified
 
@@ -452,57 +444,68 @@ func _roll_varied_weapons(base_weapons: Array) -> Array:
 
 	return varied_weapons
 
-func generate_enemies_as_dicts(mission_data: Dictionary, crew_size: int = 4) -> Array[Dictionary]:
-	## Generate enemies as Dictionary array for Dictionary-based mission data.
-	## Uses same JSON data (enemy_types.json) and Core Rules enemy count calculation.
+func generate_enemies_as_dicts(
+	mission_data: Dictionary, crew_size: int = 4
+) -> Array[Dictionary]:
+	## Generate enemies as Dictionary array using JSON data.
 	var objective: String = mission_data.get("objective", "patrol")
 	var danger_level: int = mission_data.get("danger_level", 1)
-	var enemy_type_hint: String = mission_data.get("enemy_type", "")
+	var mission_source: String = mission_data.get(
+		"mission_source", "patron"
+	)
 
-	# Determine enemy category from objective (reuses existing logic)
-	var category: String = _determine_enemy_category(objective.capitalize())
+	# Use D100 encounter table if mission_source is available
+	var category: String
+	if not mission_source.is_empty():
+		category = _roll_encounter_category(mission_source)
+	else:
+		category = _determine_enemy_category(objective.capitalize())
 
-	# Calculate count using Core Rules p.63 dice rules
-	var enemy_count: int = _calculate_enemy_count(danger_level, crew_size)
+	var enemy_count: int = _calculate_enemy_count(
+		danger_level, crew_size
+	)
 
 	var enemies: Array[Dictionary] = []
 	for i in range(enemy_count):
-		var template: Dictionary = _get_enemy_template_from_json(category, danger_level)
+		var template: Dictionary = _roll_enemy_in_category(category)
 		var is_leader: bool = (i == 0)
 
 		if not template.is_empty():
-			var stats: Dictionary = template.get("stats", {})
-			var equip: Dictionary = template.get("equipment", {})
-			var weapons: Array = equip.get("weapons", ["Hand Gun"])
+			var combat_val: int = template.get("combat_skill", 0)
+			var tough_val: int = template.get("toughness", 3)
+			var spd: int = template.get("speed", 4)
+			var weapons: Array = _resolve_weapon_code(
+				template.get("weapons", "1 A")
+			)
+			var enemy_name: String = template.get("name", "Enemy")
 			enemies.append({
-				"type": enemy_type_hint if not enemy_type_hint.is_empty() else template.get("name", "Unknown"),
-				"name": ("%s Leader" % template.get("name", "Enemy")) if is_leader else template.get("name", "Enemy #%d" % i),
-				"combat": stats.get("combat", 3) + (1 if is_leader else 0),
-				"toughness": stats.get("toughness", 3) + (1 if is_leader else 0),
+				"type": enemy_name,
+				"name": ("%s Leader" % enemy_name) if is_leader else enemy_name,
+				"combat_skill": combat_val + (1 if is_leader else 0),
+				"toughness": tough_val + (1 if is_leader else 0),
 				"reactions": 2 if is_leader else 1,
-				"speed": stats.get("speed", 4),
-				"savvy": stats.get("savvy", 2),
+				"speed": spd,
 				"weapons": weapons,
-				"armor": equip.get("armor", ""),
-				"abilities": template.get("abilities", []),
+				"ai": template.get("ai", "A"),
+				"panic": template.get("panic", "1-2"),
+				"special_rules": template.get("special_rules", []),
 				"is_leader": is_leader,
-				"xp_value": template.get("xp_value", 1) + (1 if is_leader else 0)
+				"category": category,
 			})
 		else:
-			# Fallback if no JSON template found
 			enemies.append({
-				"type": enemy_type_hint if not enemy_type_hint.is_empty() else "Unknown Hostiles",
-				"name": ("%s Leader" % enemy_type_hint) if is_leader else ("%s #%d" % [enemy_type_hint, i]),
-				"combat": (danger_level + 1) if is_leader else danger_level,
+				"type": "Unknown Hostiles",
+				"name": "Unknown Leader" if is_leader else "Unknown #%d" % i,
+				"combat_skill": (danger_level + 1) if is_leader else danger_level,
 				"toughness": 4 if is_leader else 3,
 				"reactions": 2 if is_leader else 1,
 				"speed": 4,
-				"savvy": 2,
 				"weapons": ["Military Rifle"] if is_leader else ["Hand Gun"],
-				"armor": "",
-				"abilities": [],
+				"ai": "T",
+				"panic": "1-2",
+				"special_rules": [],
 				"is_leader": is_leader,
-				"xp_value": 2 if is_leader else 1
+				"category": category,
 			})
 
 	return enemies
@@ -549,6 +552,148 @@ func get_enemy_threat_level(enemies: Array) -> String:
 	else:
 		return "High"
 
+
+## ═══════════════════════════════════════════════════════════════════════════════
+## D100 ENCOUNTER TABLE METHODS — Core Rules pp.94-103
+## ═══════════════════════════════════════════════════════════════════════════════
+
+func select_enemy_for_mission(mission_source: String) -> Dictionary:
+	## Roll on D100 encounter tables to select enemy type for a mission.
+	## Returns full enemy template dict with "category" key added.
+	## mission_source: "patron", "opportunity", "quest", "unknown_rival"
+	var category: String = _roll_encounter_category(mission_source)
+	var template: Dictionary = _roll_enemy_in_category(category)
+	if template.is_empty():
+		# Fallback: pick any enemy from any category
+		template = _roll_enemy_in_category("criminal_elements")
+	template["category"] = category
+	# Look up category-level rules (seize initiative modifier, etc.)
+	for cat_data in enemy_data.get("enemy_categories", []):
+		if cat_data.get("id", "") == category:
+			template["category_name"] = cat_data.get("name", "")
+			template["category_rules"] = cat_data.get(
+				"category_rules", ""
+			)
+			template["seize_initiative_modifier"] = cat_data.get(
+				"seize_initiative_modifier", 0
+			)
+			break
+	return template
+
+func _roll_encounter_category(mission_source: String) -> String:
+	## Roll D100 on enemy_encounter_categories table (Core Rules p.94).
+	## Returns category ID like "criminal_elements", "hired_muscle", etc.
+	var tables: Dictionary = enemy_data.get(
+		"enemy_encounter_categories", {}
+	)
+	var source_table: Dictionary = tables.get(
+		mission_source, tables.get("patron", {})
+	)
+
+	if source_table.is_empty():
+		return "criminal_elements"
+
+	var roll: int = randi_range(1, 100)
+	for category_id in source_table:
+		var range_arr: Array = source_table[category_id]
+		if range_arr.size() >= 2:
+			if roll >= range_arr[0] and roll <= range_arr[1]:
+				return category_id
+
+	# Shouldn't reach here if D100 ranges are complete
+	return "criminal_elements"
+
+func _roll_enemy_in_category(category_id: String) -> Dictionary:
+	## Roll D100 within a category to pick specific enemy type.
+	## Uses per-enemy roll_range fields for book-accurate selection.
+	for category_data in enemy_data.get("enemy_categories", []):
+		if category_data.get("id", "") == category_id:
+			var enemies: Array = category_data.get("enemies", [])
+			if enemies.is_empty():
+				return {}
+
+			var roll: int = randi_range(1, 100)
+			for enemy in enemies:
+				var r: Array = enemy.get("roll_range", [0, 0])
+				if r.size() >= 2 and roll >= r[0] and roll <= r[1]:
+					return enemy
+
+			# Fallback if roll didn't match (shouldn't happen)
+			return enemies.pick_random()
+
+	return {}
+
+## ═══════════════════════════════════════════════════════════════════════════════
+## WEAPON CODE RESOLUTION — Core Rules weapon tables
+## ═══════════════════════════════════════════════════════════════════════════════
+
+func _resolve_weapon_code(weapon_code) -> Array:
+	## Convert Core Rules weapon notation (e.g., "2 A") to weapon names.
+	## Format: "N X" where N = weapon count column, X = table letter.
+	## A = basic weapon_1, B = basic weapon_2, C = basic weapon_3.
+	## Also handles already-resolved arrays and plain weapon names.
+	if weapon_code is Array:
+		return weapon_code
+
+	var code_str: String = str(weapon_code).strip_edges()
+	if code_str.is_empty():
+		return ["Hand Gun"]
+
+	# Check if it's a Core Rules notation like "1 A", "2 B", "3 C"
+	var parts: PackedStringArray = code_str.split(" ")
+	if parts.size() == 2 and parts[0].is_valid_int():
+		var count: int = parts[0].to_int()
+		var table_letter: String = parts[1].to_upper()
+		return _roll_weapons_from_table(count, table_letter)
+
+	# Plain weapon name (e.g., "Shotgun, Blade")
+	if "," in code_str:
+		var weapons: Array = []
+		for w in code_str.split(","):
+			weapons.append(w.strip_edges())
+		return weapons
+
+	return [code_str]
+
+func _roll_weapons_from_table(
+	count: int, table_letter: String
+) -> Array:
+	## Roll on weapon tables from enemy_types.json.
+	## table_letter: A=weapon_1, B=weapon_2, C=weapon_3
+	var weapon_tables: Dictionary = enemy_data.get(
+		"weapon_tables", {}
+	)
+	var basic_table: Array = weapon_tables.get("basic", [])
+
+	# Map table letter to column name
+	var column: String
+	match table_letter:
+		"A":
+			column = "weapon_1"
+		"B":
+			column = "weapon_2"
+		"C":
+			column = "weapon_3"
+		_:
+			column = "weapon_1"
+
+	var weapons: Array = []
+	for i in range(count):
+		if basic_table.is_empty():
+			weapons.append("Hand Gun")
+			continue
+
+		# Roll D6 for weapon table row
+		var roll: int = randi_range(1, 6)
+		var weapon_name: String = "Hand Gun"
+		for row in basic_table:
+			if row.get("roll", 0) == roll:
+				weapon_name = row.get(column, "Hand Gun")
+				# Handle combo weapons like "Scrap Pistol + Blade"
+				break
+		weapons.append(weapon_name)
+
+	return weapons
 
 ## ═══════════════════════════════════════════════════════════════════════════════
 ## DEBUG LOGGING - Sprint 26.5: Enemy Count Calculation Tracing

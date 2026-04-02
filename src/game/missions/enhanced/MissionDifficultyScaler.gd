@@ -14,29 +14,35 @@ const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTyp
 const DIFFICULTY_DATA_PATH: String = "res://data/mission_tables/mission_difficulty.json"
 static var _difficulty_data: Dictionary = {}
 
-# Difficulty scaling factors
-const CREW_EXPERIENCE_WEIGHTS: Dictionary = {
-	"rookie": 0.8,
-	"regular": 1.0,
-	"veteran": 1.2,
-	"elite": 1.4
-}
+# Difficulty scaling factors loaded from mission_difficulty.json
+static var CREW_EXPERIENCE_WEIGHTS: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_difficulty_data_loaded()
+		var w: Dictionary = _difficulty_data.get("crew_experience_weights", {})
+		if w.is_empty():
+			return {"rookie": 0.8, "regular": 1.0, "veteran": 1.2, "elite": 1.4}
+		return w
 
-const EQUIPMENT_QUALITY_MODIFIERS: Dictionary = {
-	"basic": 0.9,
-	"standard": 1.0,
-	"advanced": 1.1,
-	"military": 1.3,
-	"exotic": 1.5
-}
+static var EQUIPMENT_QUALITY_MODIFIERS: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_difficulty_data_loaded()
+		var m: Dictionary = _difficulty_data.get("equipment_quality_modifiers", {})
+		if m.is_empty():
+			return {"basic": 0.9, "standard": 1.0, "advanced": 1.1, "military": 1.3, "exotic": 1.5}
+		return m
 
-# Campaign turn modifiers (Five Parsecs progression)
-const CAMPAIGN_TURN_SCALING: Array[Dictionary] = [
-	{"turn_range": [1, 5], "modifier": 0.7, "description": "Early campaign - reduced difficulty"},
-	{"turn_range": [6, 15], "modifier": 1.0, "description": "Mid campaign - standard difficulty"},
-	{"turn_range": [16, 30], "modifier": 1.2, "description": "Late campaign - increased difficulty"},
-	{"turn_range": [31, 999], "modifier": 1.4, "description": "Extended campaign - high difficulty"}
-]
+static var CAMPAIGN_TURN_SCALING: Array: # @no-lint:variable-name
+	get:
+		_ensure_difficulty_data_loaded()
+		var s: Array = _difficulty_data.get("campaign_turn_scaling", [])
+		if s.is_empty():
+			return [
+				{"turn_range": [1, 5], "modifier": 0.7},
+				{"turn_range": [6, 15], "modifier": 1.0},
+				{"turn_range": [16, 30], "modifier": 1.2},
+				{"turn_range": [31, 999], "modifier": 1.4},
+			]
+		return s
 
 ## Load difficulty data if not already loaded
 static func _ensure_difficulty_data_loaded() -> void:

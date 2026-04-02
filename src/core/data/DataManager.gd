@@ -179,11 +179,12 @@ func _load_resource_data() -> void:
 
 func _load_json_databases() -> void:
 	## Load game data from JSON files - working system
-	
+
 	# Load essential JSON data that exists and works
 	_load_character_creation_data()
-	_load_equipment_data() 
+	_load_equipment_data()
 	_load_basic_game_data()
+	_load_crew_task_system()
 
 	# Default database initialization removed - unused schemas deleted in Phase 2B
 
@@ -400,6 +401,28 @@ func _load_crew_task_system() -> bool:
 		return false
 
 	return true
+
+## Crew Task Table Lookup — used by CrewTaskComponent for JSON-driven resolution
+func get_trade_table_result(roll: int) -> Dictionary:
+	## Look up a D100 roll on the Trade Table (Core Rules p.79)
+	return _lookup_table_result("trade", roll)
+
+func get_exploration_table_result(roll: int) -> Dictionary:
+	## Look up a D100 roll on the Exploration Table (Core Rules p.80)
+	return _lookup_table_result("exploration", roll)
+
+func _lookup_table_result(table_key: String, roll: int) -> Dictionary:
+	## Generic table lookup: find the result entry matching a D100 roll
+	var table_data: Dictionary = _crew_task_data.get(table_key, {})
+	var results: Array = table_data.get("results", [])
+	for entry in results:
+		if entry is Dictionary:
+			var roll_min: int = entry.get("roll_min", 0) as int
+			var roll_max: int = entry.get("roll_max", 0) as int
+			if roll >= roll_min and roll <= roll_max:
+				return entry.duplicate()
+	push_warning("DataManager: No %s table result found for roll %d" % [table_key, roll])
+	return {}
 
 ## Safe JSON Loading with Validation
 func _load_json_safe(file_path: String, context: String) -> Dictionary:

@@ -30,17 +30,26 @@ static func _get_xp(key: String, fallback: int) -> int:
 	_load_xp_data()
 	return int(_xp_data.get(key, fallback))
 
-# Training course definitions (Core Rules p.125)
-const TRAINING_COURSES: Dictionary = {
-	"pilot": {"cost": 20, "effect": "savvy_roll_bonus", "description": "Piloting certification"},
-	"mechanic": {"cost": 15, "effect": "hull_repair_bonus", "description": "Ship repair training"},
-	"medical": {"cost": 20, "effect": "injury_reroll", "description": "Medical certification"},
-	"merchant": {"cost": 10, "effect": "trade_reroll", "description": "Trade negotiation"},
-	"security": {"cost": 10, "effect": "seize_initiative_bonus", "description": "Combat tactics"},
-	"broker": {"cost": 15, "effect": "search_bonus", "description": "Information broker"},
-	"bot_technician": {"cost": 10, "effect": "bot_upgrade_discount", "description": "Bot maintenance"},
-	"basic": {"cost": 1, "effect": "xp_bonus", "description": "Basic training (+1 XP)"},
-}
+# Training course definitions loaded from JSON (Core Rules p.125)
+static var _training_data: Dictionary = {}
+static var _training_loaded: bool = false
+
+static func _ensure_training_loaded() -> void:
+	if _training_loaded:
+		return
+	_training_loaded = true
+	var file := FileAccess.open("res://data/training_courses.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_training_data = json.data
+	file.close()
+
+static var TRAINING_COURSES: Dictionary: # @no-lint:variable-name
+	get:
+		_ensure_training_loaded()
+		return _training_data.get("courses", {})
 
 func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	## Step 9: Award XP to participating crew. Returns xp_awards array.

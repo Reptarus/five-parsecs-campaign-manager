@@ -23,29 +23,75 @@ signal morale_changed(old_value: int, new_value: int)
 signal desertion_check(crew_member_name: String, deserted: bool)
 signal morale_event(message: String)
 
-## Morale thresholds
-const MORALE_MAX := 100
-const MORALE_HIGH := 70
-const MORALE_LOW := 30
-const MORALE_CRITICAL := 10
-const MORALE_MIN := 0
-const MORALE_DEFAULT := 50
+## Data loaded from res://data/campaign_config.json morale_system section
+static var _morale_data: Dictionary = {}
+static var _morale_loaded: bool = false
 
-## Morale adjustment values
-const VICTORY_BONUS := 10
-const VICTORY_DECISIVE_BONUS := 15
-const LOSS_PENALTY := -10
-const LOSS_ROUT_PENALTY := -15
-const CREW_DEATH_PENALTY := -15
-const CREW_INJURY_PENALTY := -3
-const UPKEEP_PAID_BONUS := 2
-const UPKEEP_FAILED_PENALTY := -10
-const LUXURY_LIVING_BONUS := 5
-const NATURAL_RECOVERY := 3  # Per turn toward 50
+static func _ensure_morale_loaded() -> void:
+	if _morale_loaded:
+		return
+	_morale_loaded = true
+	var file := FileAccess.open("res://data/campaign_config.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_morale_data = json.data.get("morale_system", {})
+	file.close()
 
-## Desertion chance at low morale (percentage per crew member per turn)
-const DESERTION_CHANCE_LOW := 10      # 10% at morale 10-29
-const DESERTION_CHANCE_CRITICAL := 25  # 25% at morale 0-9
+static func _get_threshold(key: String, default_val: int) -> int:
+	_ensure_morale_loaded()
+	return int(_morale_data.get("thresholds", {}).get(key, default_val))
+
+static func _get_adjustment(key: String, default_val: int) -> int:
+	_ensure_morale_loaded()
+	return int(_morale_data.get("adjustments", {}).get(key, default_val))
+
+static func _get_desertion(key: String, default_val: int) -> int:
+	_ensure_morale_loaded()
+	return int(_morale_data.get("desertion", {}).get(key, default_val))
+
+## Morale thresholds (loaded from JSON)
+static var MORALE_MAX: int:
+	get: return _get_threshold("max", 100)
+static var MORALE_HIGH: int:
+	get: return _get_threshold("high", 70)
+static var MORALE_LOW: int:
+	get: return _get_threshold("low", 30)
+static var MORALE_CRITICAL: int:
+	get: return _get_threshold("critical", 10)
+static var MORALE_MIN: int:
+	get: return _get_threshold("min", 0)
+static var MORALE_DEFAULT: int:
+	get: return _get_threshold("default", 50)
+
+## Morale adjustment values (loaded from JSON)
+static var VICTORY_BONUS: int:
+	get: return _get_adjustment("victory", 10)
+static var VICTORY_DECISIVE_BONUS: int:
+	get: return _get_adjustment("victory_decisive", 15)
+static var LOSS_PENALTY: int:
+	get: return _get_adjustment("loss", -10)
+static var LOSS_ROUT_PENALTY: int:
+	get: return _get_adjustment("loss_rout", -15)
+static var CREW_DEATH_PENALTY: int:
+	get: return _get_adjustment("crew_death", -15)
+static var CREW_INJURY_PENALTY: int:
+	get: return _get_adjustment("crew_injury", -3)
+static var UPKEEP_PAID_BONUS: int:
+	get: return _get_adjustment("upkeep_paid", 2)
+static var UPKEEP_FAILED_PENALTY: int:
+	get: return _get_adjustment("upkeep_failed", -10)
+static var LUXURY_LIVING_BONUS: int:
+	get: return _get_adjustment("luxury_living", 5)
+static var NATURAL_RECOVERY: int:
+	get: return _get_adjustment("natural_recovery", 3)
+
+## Desertion chance at low morale (loaded from JSON)
+static var DESERTION_CHANCE_LOW: int:
+	get: return _get_desertion("chance_low", 10)
+static var DESERTION_CHANCE_CRITICAL: int:
+	get: return _get_desertion("chance_critical", 25)
 
 
 ## Adjust morale on a campaign, clamping to valid range

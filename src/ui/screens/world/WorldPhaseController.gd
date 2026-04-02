@@ -736,7 +736,7 @@ func _on_back_to_dashboard_pressed() -> void:
 	return_to_dashboard.emit()
 
 	# Navigate back to dashboard
-	SceneRouter.navigate_to("campaign_turn_controller")
+	SceneRouter.navigate_to("campaign_dashboard")
 
 ## Component Event Handlers - centralized coordination
 func _on_crew_task_resolved(data: Dictionary) -> void:

@@ -23,8 +23,83 @@ static var _backgrounds_data: Dictionary = {}
 static var _skills_data: Dictionary = {}
 static var _is_data_loaded: bool = false
 
-## D100 Background Table (Core Rules p.24)
-## Each entry: {name, effect, stat_bonus, credits_dice, story_points, patron, rumors, starting_rolls}
+# JSON-loaded creation tables (lazy-loaded on first access)
+static var _creation_tables_loaded: bool = false
+
+static func _ensure_creation_tables_loaded() -> void:
+	if _creation_tables_loaded:
+		return
+	_creation_tables_loaded = true
+	BACKGROUND_TABLE = _load_d100_table("res://data/character_creation_tables/background_table.json")
+	MOTIVATION_TABLE = _load_d100_table("res://data/character_creation_tables/motivation_table.json")
+	CLASS_TABLE = _load_d100_table("res://data/character_creation_tables/class_table.json")
+
+## Load a D100 table from JSON and convert to the {roll_min, roll_max, name, ...} format
+static func _load_d100_table(path: String) -> Array:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_error("CharacterGeneration: Failed to open %s" % path)
+		return []
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		push_error("CharacterGeneration: Failed to parse %s" % path)
+		file.close()
+		return []
+	file.close()
+	var data: Dictionary = json.data
+	var entries: Dictionary = data.get("entries", {})
+	var result: Array = []
+	for range_key in entries:
+		var entry: Dictionary = entries[range_key]
+		var parts: PackedStringArray = range_key.split("-")
+		if parts.size() != 2:
+			continue
+		var roll_min: int = parts[0].to_int()
+		var roll_max: int = parts[1].to_int()
+		var converted := {"roll_min": roll_min, "roll_max": roll_max, "name": entry.get("name", "")}
+		# Map JSON keys to the format expected by _roll_on_table consumers
+		var stat_bonuses: Dictionary = entry.get("stat_bonuses", {})
+		var special: Dictionary = entry.get("special", {})
+		# Merge stat_bonuses and special into stat_bonus
+		var stat_bonus := {}
+		for k in stat_bonuses:
+			stat_bonus[k] = stat_bonuses[k]
+		for k in special:
+			stat_bonus[k] = special[k]
+		if not stat_bonus.is_empty():
+			converted["stat_bonus"] = stat_bonus
+		var resources: Dictionary = entry.get("resources", {})
+		if resources.has("credits_roll"):
+			converted["credits_dice"] = 1
+		if resources.has("story_points"):
+			converted["story_points"] = resources["story_points"]
+		var equip_rolls: Array = entry.get("equipment_rolls", [])
+		if not equip_rolls.is_empty():
+			converted["starting_rolls"] = equip_rolls
+		# Pass through special keys from JSON
+		if entry.has("patron"):
+			converted["patron"] = entry["patron"]
+		if entry.has("rival"):
+			converted["rival"] = entry["rival"]
+		if entry.has("rumors"):
+			converted["rumors"] = entry["rumors"]
+		if entry.has("xp"):
+			converted["xp"] = entry["xp"]
+		if resources.has("patron"):
+			converted["patron"] = resources["patron"]
+		if resources.has("rival"):
+			converted["rival"] = resources["rival"]
+		if resources.has("rumors"):
+			converted["rumors"] = resources["rumors"]
+		if resources.has("xp"):
+			converted["xp"] = resources["xp"]
+		result.append(converted)
+	# Sort by roll_min
+	result.sort_custom(func(a, b): return a["roll_min"] < b["roll_min"])
+	return result
+
+## D100 Background Table (Core Rules p.24) — loaded from JSON
+## Each entry: {roll_min, roll_max, name, stat_bonus, credits_dice, story_points, patron, rumors, starting_rolls}
 static var BACKGROUND_TABLE: Array = [
 	# 1-4: Peaceful, High-Tech Colony
 	{"roll_min": 1, "roll_max": 4, "name": "Peaceful, High-Tech Colony", "stat_bonus": {"savvy": 1}, "credits_dice": 1},
@@ -170,18 +245,21 @@ static var CLASS_TABLE: Array = [
 static func _roll_on_table(table: Array) -> Dictionary:
 	var roll = randi_range(1, 100)
 	for entry in table:
-		if roll >= entry.roll_min and roll <= entry.roll_max:
+		if roll >= entry.get("roll_min", 0) and roll <= entry.get("roll_max", 0):
 			var result = entry.duplicate(true)
 			result["roll"] = roll
 			return result
 	# Fallback to first entry if no match (shouldn't happen)
-	var fallback = table[0].duplicate(true)
-	fallback["roll"] = roll
-	return fallback
+	if table.size() > 0:
+		var fallback = table[0].duplicate(true)
+		fallback["roll"] = roll
+		return fallback
+	return {"roll": roll, "name": "Unknown"}
 
 ## Roll on all three character creation tables and aggregate resources
 ## Returns: {background_result, motivation_result, class_result, resources}
 static func roll_character_tables() -> Dictionary:
+	_ensure_creation_tables_loaded()
 	var bg_result = _roll_on_table(BACKGROUND_TABLE)
 	var mot_result = _roll_on_table(MOTIVATION_TABLE)
 	var class_result = _roll_on_table(CLASS_TABLE)

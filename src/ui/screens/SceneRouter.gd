@@ -184,11 +184,13 @@ func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: b
 
 ## Navigate back to the previous scene
 func navigate_back() -> void:
-	## Navigate back to the previous scene in history
+	## Navigate back to the previous scene in history.
+	## Falls back to main_menu if history is empty.
 	if navigation_history.is_empty():
-		push_warning("SceneRouter: No navigation history to go back to")
+		if current_scene != "main_menu":
+			navigate_to("main_menu", {}, false)
 		return
-	
+
 	var previous_scene = navigation_history.pop_back()
 	@warning_ignore("unsafe_call_argument")
 	navigate_to(previous_scene, {}, false) # Don't add to history when going back

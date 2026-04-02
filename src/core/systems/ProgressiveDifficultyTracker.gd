@@ -22,56 +22,26 @@ enum ProgressionType {
 ## Turn-based text modifiers applied to each battle
 ## ============================================================================
 
-const BASIC_MILESTONES: Array[Dictionary] = [
-	{
-		"turn": 4,
-		"id": "respawn_1",
-		"label": "Respawn 1",
-		"instruction": "RESPAWN 1: Replace the first basic enemy slain at end of each round.",
-	},
-	{
-		"turn": 5,
-		"id": "strength_1",
-		"label": "Strength 1",
-		"instruction": "STRENGTH 1: +1 basic enemy per encounter.",
-	},
-	{
-		"turn": 8,
-		"id": "respawn_2",
-		"label": "Respawn 2",
-		"instruction": "RESPAWN 2: Replace the first TWO basic enemies slain at end of each round.",
-	},
-	{
-		"turn": 10,
-		"id": "strength_2",
-		"label": "Strength 2",
-		"instruction": "STRENGTH 2: +2 basic enemies per encounter.",
-	},
-	{
-		"turn": 12,
-		"id": "respawn_3",
-		"label": "Respawn 3",
-		"instruction": "RESPAWN 3: Replace the first THREE basic enemies slain at end of each round.",
-	},
-	{
-		"turn": 15,
-		"id": "strength_3",
-		"label": "Strength 3",
-		"instruction": "STRENGTH 3: +2 basic enemies, +1 Lieutenant per encounter.",
-	},
-	{
-		"turn": 16,
-		"id": "respawn_4",
-		"label": "Respawn 4",
-		"instruction": "RESPAWN 4: Replace the first FOUR basic enemies slain at end of each round.",
-	},
-	{
-		"turn": 20,
-		"id": "respawn_5_strength_4",
-		"label": "Respawn 5 + Strength 4",
-		"instruction": "RESPAWN 5 + STRENGTH 4: Replace first FIVE slain. +2 basic, +1 specialist, +1 Lieutenant per encounter.",
-	},
-]
+## Milestone data loaded from res://data/progressive_difficulty.json
+static var _pd_data: Dictionary = {}
+static var _pd_loaded: bool = false
+
+static func _ensure_pd_loaded() -> void:
+	if _pd_loaded:
+		return
+	_pd_loaded = true
+	var file := FileAccess.open("res://data/progressive_difficulty.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_pd_data = json.data
+	file.close()
+
+static var BASIC_MILESTONES: Array: # @no-lint:variable-name
+	get:
+		_ensure_pd_loaded()
+		return _pd_data.get("basic_milestones", [])
 
 
 ## ============================================================================
@@ -79,56 +49,10 @@ const BASIC_MILESTONES: Array[Dictionary] = [
 ## Unlocks difficulty toggles automatically by turn
 ## ============================================================================
 
-const ADVANCED_MILESTONES: Array[Dictionary] = [
-	{
-		"turn": 3,
-		"id": "strength_adjusted",
-		"label": "Strength-Adjusted Enemies",
-		"instruction": "PROGRESSIVE: Enable Strength-Adjusted Enemies. Enemy count = crew size + modifiers.",
-	},
-	{
-		"turn": 4,
-		"id": "deployment_variables",
-		"label": "Deployment Variables",
-		"instruction": "PROGRESSIVE: Enable Deployment Variables. Roll D6 for deployment modifications.",
-	},
-	{
-		"turn": 5,
-		"id": "actually_specialized",
-		"label": "Actually Specialized + Better Leadership",
-		"instruction": "PROGRESSIVE: Specialists get min Combat +1, Toughness 4. Unique Individuals roll 7+ (not 9+).",
-	},
-	{
-		"turn": 6,
-		"id": "escalating_battles",
-		"label": "Escalating Battles",
-		"instruction": "PROGRESSIVE: Enable Escalating Battles. Check for reinforcements each round.",
-	},
-	{
-		"turn": 8,
-		"id": "armored_leaders",
-		"label": "Armored Leaders + Veteran",
-		"instruction": "PROGRESSIVE: Lieutenants get 5+ Armor Save. 1 basic enemy gets +1 Combat Skill.",
-	},
-	{
-		"turn": 14,
-		"id": "elite_4plus",
-		"label": "Elite Enemies (4+)",
-		"instruction": "PROGRESSIVE: Roll D6 for each enemy group - on 4+, upgrade to Elite.",
-	},
-	{
-		"turn": 16,
-		"id": "elite_3plus",
-		"label": "Elite Enemies (3+)",
-		"instruction": "PROGRESSIVE: Roll D6 for each enemy group - on 3+, upgrade to Elite.",
-	},
-	{
-		"turn": 20,
-		"id": "elite_always",
-		"label": "Elite Enemies (Always)",
-		"instruction": "PROGRESSIVE: ALL enemy groups are Elite.",
-	},
-]
+static var ADVANCED_MILESTONES: Array: # @no-lint:variable-name
+	get:
+		_ensure_pd_loaded()
+		return _pd_data.get("advanced_milestones", [])
 
 
 ## ============================================================================

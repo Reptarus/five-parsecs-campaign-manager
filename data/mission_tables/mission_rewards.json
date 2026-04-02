@@ -42,6 +42,23 @@
             {"roll_range": [91, 100], "type": "NOTHING", "description": "Nothing of value."}
         ]
     },
+    "performance_multipliers": {
+        "source": "APP_ENHANCEMENT — scaling for mission performance",
+        "failed": 0.0,
+        "partial": 0.5,
+        "completed": 1.0,
+        "exceptional": 1.3,
+        "legendary": 1.5
+    },
+    "patron_relationship_bonuses": {
+        "source": "APP_ENHANCEMENT — patron relationship scaling",
+        "hostile": 0.5,
+        "neutral": 1.0,
+        "friendly": 1.2,
+        "loyal": 1.4,
+        "devoted": 1.6
+    },
+    "danger_pay_scaling": [0, 100, 250, 500, 750, 1000],
     "loot_table": {
         "die": "D100",
         "description": "Main Loot Table (Core Rules pp.131-134). Three-roll process: Category, then Subtable, then Item.",

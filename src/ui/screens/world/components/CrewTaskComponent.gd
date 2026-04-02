@@ -6,6 +6,8 @@ class_name CrewTaskComponent
 ## Implements Core Rules pp.76-82 - Crew task assignment and resolution
 
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
+const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
+const GrenadeCombinationPopupScript = preload("res://src/ui/components/dialogs/GrenadeCombinationPopup.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -28,6 +30,11 @@ var crew_data: Array = []
 var assigned_tasks: Dictionary = {} # crew_member_id -> task_data
 var completed_tasks: Array = []
 var all_tasks_resolved: bool = false
+
+# Choice popup state — tracks pending item choices from task results
+var _pending_choice_results: Array = []  # Queue of {result, item_string, options}
+var _choice_popup: Window = null
+var _auto_resolve_mode: bool = false
 
 # Five Parsecs crew tasks — loaded from data/crew_tasks.json (Core Rules pp.76-82)
 var available_crew_tasks: Array[Dictionary] = []
@@ -287,18 +294,57 @@ func _on_resolve_all_pressed() -> void:
 	# Update completion state
 	all_tasks_resolved = _check_all_tasks_resolved()
 	completed_tasks = resolution_results
-	
+
 	_update_progress_display()
 	_update_ui_state()
-	
+
+	# Scan for choice items that need player input before publishing event
+	_pending_choice_results.clear()
+	for result in completed_tasks:
+		if result.has("table_result"):
+			var items: Array = result.table_result.get("items", [])
+			for item_str in items:
+				var s: String = str(item_str)
+				if _is_grenade_combination(s):
+					_pending_choice_results.append({
+						"result": result,
+						"item_string": s,
+						"type": "grenade_combo"
+					})
+				elif _is_choice_item(s):
+					_pending_choice_results.append({
+						"result": result,
+						"item_string": s,
+						"options": _parse_choice_options(s),
+						"type": "item_choice"
+					})
+
+	if _pending_choice_results.size() > 0:
+		_show_next_choice_popup()
+		return  # Don't publish event yet — wait for all choices
+
+	_finalize_task_resolution()
+
+func _finalize_task_resolution() -> void:
+	## Complete task resolution: add non-choice items to stash and publish event
+	# Add non-choice items to ship stash — skip items already handled by popups
+	for result in completed_tasks:
+		if result.has("table_result"):
+			for item_str in result.table_result.get("items", []):
+				var s: String = str(item_str)
+				if s.is_empty():
+					continue
+				# Skip items that needed/got player input
+				if _is_choice_item(s) or _is_grenade_combination(s):
+					continue
+				_add_item_to_stash(s)
+
 	# Publish completion event
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_RESOLVED, {
-			"results": resolution_results,
+			"results": completed_tasks,
 			"all_resolved": all_tasks_resolved
 		})
-	
-	pass # All tasks resolved
 
 func _resolve_single_task(crew_id: String, task_data: Dictionary) -> Dictionary:
 	## Resolve a single crew task using Five Parsecs Core Rules
@@ -533,369 +579,146 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	return result
 
 func _get_trade_table_result(roll: int) -> Dictionary:
-	## Get result from Trade Table (Core Rules p.79) - Full D100 table
-	var result: Dictionary = {
-		"name": "",
-		"effect": "",
-		"credits": 0,
-		"xp": 0,
-		"items": [],
-		"story_points": 0,
-		"deferred_trigger": "",  # Trigger type for deferred events
-		"single_use": false,
-		"requires_roll": false,
-		"roll_info": ""
-	}
-
-	if roll <= 3:
-		result.name = "A personal weapon"
-		result.effect = "Roll once on the Low Tech Weapon Table"
-		result.items = ["Low Tech Weapon (random)"]
-	elif roll <= 6:
-		result.name = "Sell some cargo"
-		result.effect = "Earn 2 credits"
-		result.credits = 2
-	elif roll <= 9:
-		result.name = "Find something useful"
-		result.effect = "Roll once on the Gear Table"
-		result.items = ["Gear (random)"]
-	elif roll <= 11:
-		result.name = "Quality food and booze"
-		result.effect = "Recruit a new character to your crew"
-		result.single_use = true
-	elif roll <= 14:
-		result.name = "Instruction book"
-		result.effect = "A crew member of choice can read it and earn +1 XP"
-		result.xp = 1
-		result.single_use = true
-	elif roll <= 18:
-		result.name = "Bits of scrap"
-		result.effect = "You sell it on, earning 1 credit"
-		result.credits = 1
-	elif roll <= 22:
-		result.name = "Medical pack"
-		result.effect = "Receive your choice of a Stim-pack or Med-patch"
-		result.items = ["Stim-pack OR Med-patch"]
-	elif roll <= 24:
-		result.name = "Worthless trinket"
-		result.effect = "Roll 1D6. On a 6, earn +1 story point"
-		result.requires_roll = true
-		result.roll_info = "1D6, on 6: +1 story point"
-		var trinket_roll = randi() % 6 + 1
-		if trinket_roll == 6:
-			result.story_points = 1
-			result.effect += " - Rolled %d: SUCCESS!" % trinket_roll
-		else:
-			result.effect += " - Rolled %d: No luck" % trinket_roll
-	elif roll <= 26:
-		result.name = "Local maps"
-		result.effect = "If you receive a Quest on this or the following world, add 1 Rumor"
-		result.single_use = true
-		result.deferred_trigger = "ON_QUEST"
-	elif roll <= 28:
-		result.name = "Luxury trinket"
-		result.effect = "+2 bonus to Recruiting roll, OR sell it (roll twice on Trade Table)"
-		result.single_use = true
-		result.deferred_trigger = "ON_RECRUIT"
-	elif roll <= 30:
-		result.name = "Basic supplies"
-		result.effect = "Skip Upkeep costs for one campaign turn"
-		result.single_use = true
-		result.deferred_trigger = "NEXT_TURN"
-	elif roll <= 34:
-		result.name = "Contraband"
-		result.effect = "Accept to earn 1D6 credits (on 4-6, also gain a Rival)"
-		result.requires_roll = true
-		var contra_roll = randi() % 6 + 1
-		result.credits = contra_roll
-		if contra_roll >= 4:
-			result.effect = "Earned %d credits, but gained a Rival!" % contra_roll
-		else:
-			result.effect = "Earned %d credits safely" % contra_roll
-	elif roll <= 37:
-		result.name = "Gun Upgrade Kit"
-		result.effect = "Receive your choice of a Laser Sight, Bipod or Beam Light"
-		result.items = ["Laser Sight OR Bipod OR Beam Light"]
-	elif roll <= 39:
-		result.name = "Useless trinket"
-		result.effect = "Roll 1D6. On a 6, earn +1 story point"
-		result.requires_roll = true
-		var useless_roll = randi() % 6 + 1
-		if useless_roll == 6:
-			result.story_points = 1
-			result.effect += " - Rolled %d: SUCCESS!" % useless_roll
-		else:
-			result.effect += " - Rolled %d: No luck" % useless_roll
-	elif roll <= 44:
-		result.name = "Trade goods"
-		result.effect = "On each new planet, roll 1D6 to see how many credits they sell for. On 1, they perish"
-		result.items = ["Trade Goods"]
-		result.deferred_trigger = "PERSISTENT"
-	elif roll <= 48:
-		result.name = "Something interesting"
-		result.effect = "Roll once on the Loot Table"
-		result.items = ["Loot (random)"]
-	elif roll <= 51:
-		result.name = "Fuel"
-		result.effect = "Roll 1D6 for credits worth of fuel"
-		var fuel_roll = randi() % 6 + 1
-		result.credits = fuel_roll
-		result.effect = "Secured %d credits worth of fuel" % fuel_roll
-	elif roll <= 53:
-		result.name = "Spare parts"
-		result.effect = "+1 when making a Repair attempt. On natural 1, parts are used up"
-		result.items = ["Spare Parts"]
-	elif roll <= 55:
-		result.name = "Tourist garbage"
-		result.effect = "Roll 1D6. On 5-6, add 1 story point"
-		result.requires_roll = true
-		var tourist_roll = randi() % 6 + 1
-		if tourist_roll >= 5:
-			result.story_points = 1
-			result.effect += " - Rolled %d: +1 story point!" % tourist_roll
-		else:
-			result.effect += " - Rolled %d: Worthless" % tourist_roll
-	elif roll == 56:
-		result.name = "Don't usually see these for sale"
-		result.effect = "Pay 3 credits to roll on the Loot Table (must be used by this crew member)"
-		result.requires_roll = true
-	elif roll <= 59:
-		result.name = "Ordnance"
-		result.effect = "Receive 3 grenades (Frakk or Dazzle in any combination)"
-		result.items = ["3x Grenades"]
-	elif roll <= 62:
-		result.name = "Basic firearms"
-		result.effect = "Your choice of a Handgun, Colony Rifle, or Shotgun"
-		result.items = ["Handgun OR Colony Rifle OR Shotgun"]
-	elif roll == 63:
-		result.name = "Odd device"
-		result.effect = "Pay 1 credit, then roll 1D6. On 6, roll on Loot Table. Otherwise garbage"
-		result.requires_roll = true
-		var odd_roll = randi() % 6 + 1
-		if odd_roll == 6:
-			result.items = ["Loot (random)"]
-			result.effect = "Paid 1 credit - Rolled %d: It works!" % odd_roll
-		else:
-			result.effect = "Paid 1 credit - Rolled %d: Complete garbage" % odd_roll
-		result.credits = -1
-	elif roll <= 65:
-		result.name = "Military fuel cell"
-		result.effect = "Zero travel costs when jumping to a new planet"
-		result.items = ["Military Fuel Cell"]
-		result.single_use = true
-		result.deferred_trigger = "NEW_PLANET"
-	elif roll <= 69:
-		result.name = "Hot tip"
-		result.effect = "Gain 1 Quest Rumor"
-	elif roll <= 71:
-		result.name = "Insider information"
-		result.effect = "Automatically obtain a Patron next campaign turn if you look for one"
-		result.single_use = true
-		result.deferred_trigger = "NEXT_TURN"
-	elif roll <= 75:
-		result.name = "Army surplus"
-		result.effect = "Your choice of an Auto Rifle, Blast Pistol or Glare Sword"
-		result.items = ["Auto Rifle OR Blast Pistol OR Glare Sword"]
-	elif roll <= 78:
-		result.name = "A chance to unload some stuff"
-		result.effect = "A revolutionary will buy any weapons for 2 credits each (not damaged)"
-	elif roll <= 81:
-		result.name = "A lot of blinking lights"
-		result.effect = "Roll once on the Gear subsection of the Loot Table"
-		result.items = ["Gear Loot (random)"]
-	elif roll <= 86:
-		result.name = "\"Gently used\""
-		result.effect = "Roll once on the Gear subsection of the Loot Table (item is damaged)"
-		result.items = ["Gear Loot (random, damaged)"]
-	elif roll <= 91:
-		result.name = "\"Pre-owned\""
-		result.effect = "Roll once on the Loot Table (item is damaged)"
-		result.items = ["Loot (random, damaged)"]
-	elif roll <= 95:
-		result.name = "Medical reserves"
-		result.effect = "Obtain 2 Stim-packs and 2 Med-patches"
-		result.items = ["2x Stim-pack", "2x Med-patch"]
-	else:  # 96-100
-		result.name = "Starship repair parts"
-		result.effect = "Count as 1D6 credits for repairing Hull Point damage"
-		var repair_roll = randi() % 6 + 1
-		result.credits = repair_roll
-		result.effect = "Worth %d credits for Hull Point repairs" % repair_roll
-		result.single_use = true
-		result.deferred_trigger = "PERSISTENT"
-
-	return result
+	## Get result from Trade Table (Core Rules p.79) — loaded from JSON via DataManager
+	var dm: Node = get_node_or_null("/root/DataManager")
+	if dm and dm.has_method("get_trade_table_result"):
+		var json_result: Dictionary = dm.get_trade_table_result(roll)
+		if not json_result.is_empty():
+			var result: Dictionary = _build_result_from_json(json_result)
+			_apply_runtime_rolls_trade(result, roll)
+			return result
+	# Fallback: return minimal result if DataManager unavailable
+	push_warning("CrewTaskComponent: DataManager unavailable for trade table lookup (roll %d)" % roll)
+	return {"name": "Unknown Trade Result", "effect": "DataManager unavailable", "credits": 0, "xp": 0, "items": [], "story_points": 0, "deferred_trigger": "", "single_use": false, "requires_roll": false, "roll_info": ""}
 
 func _get_exploration_table_result(roll: int) -> Dictionary:
-	## Get result from Exploration Table (Core Rules p.80) - Full D100 table
+	## Get result from Exploration Table (Core Rules p.80) — loaded from JSON via DataManager
+	var dm: Node = get_node_or_null("/root/DataManager")
+	if dm and dm.has_method("get_exploration_table_result"):
+		var json_result: Dictionary = dm.get_exploration_table_result(roll)
+		if not json_result.is_empty():
+			var result: Dictionary = _build_result_from_json(json_result)
+			_apply_runtime_rolls_exploration(result, roll)
+			return result
+	push_warning("CrewTaskComponent: DataManager unavailable for exploration table lookup (roll %d)" % roll)
+	return {"name": "Unknown Exploration Result", "effect": "DataManager unavailable", "credits": 0, "xp": 0, "items": [], "story_points": 0, "deferred_trigger": "", "single_use": false, "requires_roll": false, "roll_info": "", "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false}
+
+func _build_result_from_json(json_entry: Dictionary) -> Dictionary:
+	## Convert a JSON table entry into the standard result Dictionary format
 	var result: Dictionary = {
-		"name": "",
-		"effect": "",
-		"credits": 0,
-		"xp": 0,
+		"name": str(json_entry.get("name", "")),
+		"effect": str(json_entry.get("effect", "")),
+		"credits": json_entry.get("credits", 0) as int,
+		"xp": json_entry.get("xp", 0) as int,
 		"items": [],
-		"story_points": 0,
-		"deferred_trigger": "",  # Trigger type for deferred events
-		"single_use": false,
-		"requires_roll": false,
-		"roll_info": "",
-		"sick_bay_turns": 0,
-		"rumor": false,
-		"rival": false,
-		"patron": false
+		"story_points": json_entry.get("story_points", 0) as int,
+		"deferred_trigger": str(json_entry.get("deferred_trigger", "")),
+		"single_use": json_entry.get("single_use", false),
+		"requires_roll": json_entry.get("requires_roll", false),
+		"roll_info": str(json_entry.get("roll_info", "")),
+		# Exploration-specific fields
+		"sick_bay_turns": json_entry.get("sick_bay_turns", 0) as int,
+		"rumor": json_entry.get("rumor", false),
+		"rival": json_entry.get("rival", false),
+		"patron": json_entry.get("patron", false),
 	}
-
-	if roll <= 3:
-		result.name = "I know a good deal when I see one"
-		result.effect = "Roll on the Trade Table instead"
-		# Recursively roll on trade table
-		var trade_roll = randi() % 100 + 1
-		var trade_result = _get_trade_table_result(trade_roll)
-		result.name = "Good Deal: " + trade_result.name
-		result.effect = trade_result.effect
-		result.credits = trade_result.credits
-		result.xp = trade_result.xp
-		result.items = trade_result.items
-		result.story_points = trade_result.story_points
-	elif roll <= 6:
-		result.name = "Meet a Patron"
-		result.effect = "You are offered a Patron job"
-		result.patron = true
-	elif roll <= 8:
-		result.name = "Must've been something I ate"
-		result.effect = "Character must spend 1 campaign turn in Sick Bay (Soulless and K'Erin ignore)"
-		result.sick_bay_turns = 1
-	elif roll <= 11:
-		result.name = "Meet someone interesting"
-		result.effect = "Gain a Quest Rumor. Precursor: roll 1D6, on 5+ get second Rumor"
-		result.rumor = true
-	elif roll <= 15:
-		result.name = "Had a nice chat"
-		result.effect = "Roll 1D6+Savvy. On 5+ gain +1 story point"
-		result.requires_roll = true
-		var chat_roll = randi() % 6 + 1
-		# Assume average Savvy of 0 for now
-		if chat_roll >= 5:
-			result.story_points = 1
-			result.effect = "Nice chat - Rolled %d: +1 story point!" % chat_roll
-		else:
-			result.effect = "Nice chat - Rolled %d: Pleasant but unproductive" % chat_roll
-	elif roll <= 18:
-		result.name = "See the sights, enjoy the view"
-		result.effect = "No effects - but a nice day out"
-	elif roll <= 21:
-		result.name = "Make a new friend"
-		result.effect = "Roll up a new character and add them to the crew (Feral finds Feral)"
-	elif roll <= 24:
-		result.name = "Time to relax"
-		result.effect = "No effects - character takes it easy"
-	elif roll <= 28:
-		result.name = "Possible bargain"
-		result.effect = "Give up a weapon, roll 1D6. On 6: Loot Table roll. Otherwise: 1 credit"
-		result.requires_roll = true
-		var bargain_roll = randi() % 6 + 1
-		if bargain_roll == 6:
-			result.items = ["Loot (random)"]
-			result.effect = "Traded weapon - Rolled %d: Got something good!" % bargain_roll
-		else:
-			result.credits = 1
-			result.effect = "Traded weapon - Rolled %d: Got 1 credit" % bargain_roll
-	elif roll <= 31:
-		result.name = "Alien merchant"
-		result.effect = "Give him any item, then roll on the Loot Table"
-		result.items = ["Loot (random)"]
-	elif roll <= 34:
-		result.name = "Got yourself noticed"
-		result.effect = "If you have Rivals, select one at random - you must fight them this turn"
-		result.rival = true
-	elif roll <= 37:
-		result.name = "You hear a tip"
-		result.effect = "You may opt to automatically track down a Rival to fight this campaign turn"
-	elif roll <= 40:
-		result.name = "Completely lost"
-		result.effect = "Roll 1D6+Savvy. On 4+ find way back, otherwise miss battle. Roll again on this table"
-		result.requires_roll = true
-		var lost_roll = randi() % 6 + 1
-		if lost_roll >= 4:
-			result.effect = "Got lost - Rolled %d: Found way back in time" % lost_roll
-		else:
-			result.effect = "Got lost - Rolled %d: Unable to participate in battle" % lost_roll
-	elif roll <= 44:
-		result.name = "Someone wants a package delivered"
-		result.effect = "On new world: earn 3 credits. On 1-2, gain Rival and +1 story point"
-		result.credits = 3
-		result.deferred_trigger = "NEW_PLANET"
-	elif roll <= 47:
-		result.name = "A tech fanatic offers to help out"
-		result.effect = "Pick damaged item, roll 1D6. On 5-6: free repair. Engineer gets +2 XP instead"
-		result.requires_roll = true
-		var tech_roll = randi() % 6 + 1
-		if tech_roll >= 5:
-			result.effect = "Tech help - Rolled %d: Item repaired for free!" % tech_roll
-		else:
-			result.effect = "Tech help - Rolled %d: No luck with repair" % tech_roll
-	elif roll <= 50:
-		result.name = "Got a few drinks"
-		result.effect = "No effects - a quiet drink"
-	elif roll <= 53:
-		result.name = "I don't have a gambling problem!"
-		result.effect = "Discard one item from character's equipment or Stash (Soulless ignore)"
-	elif roll <= 57:
-		result.name = "Overheard some talk"
-		result.effect = "Gain a Rumor"
-		result.rumor = true
-	elif roll <= 60:
-		result.name = "Pick a fight"
-		result.effect = "Add a Rival. K'Erin: first battle has -1 enemy (you knocked one out)"
-		result.rival = true
-	elif roll <= 64:
-		result.name = "Found a trainer"
-		result.effect = "Character earns +2 XP"
-		result.xp = 2
-	elif roll <= 68:
-		result.name = "Information broker"
-		result.effect = "Buy up to 3 Rumors for 2 credits each"
-	elif roll <= 71:
-		result.name = "Arms dealer"
-		result.effect = "Purchase any number of rolls on Military Weapons Table for 3 credits each"
-	elif roll <= 75:
-		result.name = "Promising lead"
-		result.effect = "Earn +3 credits if you do an Opportunity mission this campaign turn"
-		result.credits = 3
-	elif roll <= 79:
-		result.name = "Just needs a little love"
-		result.effect = "Roll on Gadget Table (item damaged, needs repair). Engineer: works right away"
-		result.items = ["Gadget (random, damaged)"]
-	elif roll <= 82:
-		result.name = "Get in a bad fight"
-		result.effect = "Character spends 1D3 turns in Sick Bay and loses one carried item"
-		var bad_fight_turns = (randi() % 3) + 1
-		result.sick_bay_turns = bad_fight_turns
-		result.effect = "Bad fight - %d turns in Sick Bay, lose one item" % bad_fight_turns
-	elif roll <= 86:
-		result.name = "Offered a small job"
-		result.effect = "Select random enemy figure. If your crew kills them, earn 2 credits"
-		result.credits = 2
-		result.deferred_trigger = "THIS_BATTLE"
-	elif roll <= 90:
-		result.name = "Offered a reward"
-		result.effect = "Select random terrain feature. If crew member reaches it, earn 2 credits"
-		result.credits = 2
-		result.deferred_trigger = "THIS_BATTLE"
-	elif roll <= 94:
-		result.name = "You make a useful contact"
-		result.effect = "Add +1 to any Recruit, Find Patron, or Track roll next campaign turn"
-		result.deferred_trigger = "NEXT_TURN"
-	elif roll <= 96:
-		result.name = "Who left this lying around?"
-		result.effect = "Receive your choice of a Handgun, Blade, Colony Rifle, or Shotgun"
-		result.items = ["Handgun OR Blade OR Colony Rifle OR Shotgun"]
-	else:  # 97-100
-		result.name = "This place is rather nice, really"
-		result.effect = "Pay 1 story point or the crew member decides to stay behind and leaves the crew"
-		result.story_points = -1
-
+	# Copy items array (JSON stores as Array of Strings)
+	var json_items: Array = json_entry.get("items", [])
+	for item in json_items:
+		result.items.append(str(item))
 	return result
+
+func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
+	## Apply runtime dice rolls for Trade Table entries that have dynamic outcomes
+	## These entries have requires_roll=true and need actual dice resolution
+	var entry_name: String = result.get("name", "")
+
+	match entry_name:
+		"Worthless trinket", "Useless trinket":
+			var d6: int = randi() % 6 + 1
+			if d6 == 6:
+				result.story_points = 1
+				result.effect += " - Rolled %d: SUCCESS!" % d6
+			else:
+				result.effect += " - Rolled %d: No luck" % d6
+		"Contraband":
+			var d6: int = randi() % 6 + 1
+			result.credits = d6
+			if d6 >= 4:
+				result.effect = "Earned %d credits, but gained a Rival!" % d6
+				result.rival = true
+			else:
+				result.effect = "Earned %d credits safely" % d6
+		"Tourist garbage":
+			var d6: int = randi() % 6 + 1
+			if d6 >= 5:
+				result.story_points = 1
+				result.effect += " - Rolled %d: +1 story point!" % d6
+			else:
+				result.effect += " - Rolled %d: Worthless" % d6
+		"Fuel":
+			var d6: int = randi() % 6 + 1
+			result.credits = d6
+			result.effect = "Secured %d credits worth of fuel" % d6
+		"Odd device":
+			var d6: int = randi() % 6 + 1
+			result.credits = -1
+			if d6 == 6:
+				result.items = ["Loot (random)"]
+				result.effect = "Paid 1 credit - Rolled %d: It works!" % d6
+			else:
+				result.effect = "Paid 1 credit - Rolled %d: Complete garbage" % d6
+		"Starship repair parts":
+			var d6: int = randi() % 6 + 1
+			result.credits = d6
+			result.effect = "Worth %d credits for Hull Point repairs" % d6
+
+func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
+	## Apply runtime dice rolls for Exploration Table entries with dynamic outcomes
+	var entry_name: String = result.get("name", "")
+
+	match entry_name:
+		"I know a good deal":
+			# Recursively roll on trade table
+			var trade_roll: int = randi() % 100 + 1
+			var trade_result: Dictionary = _get_trade_table_result(trade_roll)
+			result.name = "Good Deal: " + trade_result.name
+			result.effect = trade_result.effect
+			result.credits = trade_result.credits
+			result.xp = trade_result.xp
+			result.items = trade_result.items
+			result.story_points = trade_result.story_points
+		"Had a nice chat":
+			var d6: int = randi() % 6 + 1
+			if d6 >= 5:
+				result.story_points = 1
+				result.effect = "Nice chat - Rolled %d: +1 story point!" % d6
+			else:
+				result.effect = "Nice chat - Rolled %d: Pleasant but unproductive" % d6
+		"Possible bargain":
+			var d6: int = randi() % 6 + 1
+			if d6 == 6:
+				result.items = ["Loot (random)"]
+				result.effect = "Traded weapon - Rolled %d: Got something good!" % d6
+			else:
+				result.credits = 1
+				result.effect = "Traded weapon - Rolled %d: Got 1 credit" % d6
+		"Completely lost":
+			var d6: int = randi() % 6 + 1
+			if d6 >= 4:
+				result.effect = "Got lost - Rolled %d: Found way back in time" % d6
+			else:
+				result.effect = "Got lost - Rolled %d: Unable to participate in battle" % d6
+		"Tech fanatic":
+			var d6: int = randi() % 6 + 1
+			if d6 >= 5:
+				result.effect = "Tech help - Rolled %d: Item repaired for free!" % d6
+			else:
+				result.effect = "Tech help - Rolled %d: No luck with repair" % d6
+		"Get in a bad fight":
+			var turns: int = (randi() % 3) + 1
+			result.sick_bay_turns = turns
+			result.effect = "Bad fight - %d turns in Sick Bay, lose one item" % turns
 
 ## Deferred Event System - cache events for future triggers
 func _get_current_turn_number() -> int:
@@ -1107,6 +930,302 @@ func _update_progress_display() -> void:
 		separator.modulate = Color(0.3, 0.3, 0.3)
 		progress_container.add_child(separator)
 
+## Choice Popup Flow — handles item choices from Trade/Explore task results
+
+func _is_choice_item(item_string: String) -> bool:
+	## Check if an item string contains OR-separated choices
+	return " OR " in item_string
+
+func _is_grenade_combination(item_string: String) -> bool:
+	## Check if an item is the grenade combination special case
+	return "Grenades" in item_string and ("Frakk" in item_string or "Dazzle" in item_string)
+
+func _needs_player_input(item_string: String) -> bool:
+	## Check if an item requires any form of player input (choice or grenade picker)
+	return _is_choice_item(item_string) or _is_grenade_combination(item_string)
+
+func _parse_choice_options(item_string: String) -> Array:
+	## Split "A OR B OR C" into ["A", "B", "C"]
+	var parts: Array = []
+	for part in item_string.split(" OR "):
+		parts.append(part.strip_edges())
+	return parts
+
+func _show_next_choice_popup() -> void:
+	## Show the next pending choice popup, or finalize if none remain
+	if _pending_choice_results.is_empty():
+		_finalize_task_resolution()
+		return
+
+	var choice_data: Dictionary = _pending_choice_results[0]
+	var choice_type: String = choice_data.get("type", "item_choice")
+
+	# Auto-resolve mode: pick defaults without showing popup
+	if _auto_resolve_mode:
+		if choice_type == "grenade_combo":
+			_on_grenades_chosen(3, 0, choice_data)
+		else:
+			var opts: Array = choice_data.get("options", [])
+			var first: String = opts[0] if opts.size() > 0 else ""
+			if not first.is_empty():
+				_on_choice_made(first, choice_data)
+			else:
+				_pending_choice_results.erase(choice_data)
+				_show_next_choice_popup()
+		return
+
+	if choice_type == "grenade_combo":
+		var popup: Window = GrenadeCombinationPopupScript.new()
+		popup.grenades_chosen.connect(
+			_on_grenades_chosen.bind(choice_data)
+		)
+		add_child(popup)
+		_choice_popup = popup
+		popup.show_grenade_picker()
+	else:
+		var popup: Window = ItemChoicePopupScript.new()
+		popup.item_chosen.connect(_on_choice_made.bind(choice_data))
+		add_child(popup)
+		_choice_popup = popup
+		var result_name: String = ""
+		if choice_data.result.has("table_result"):
+			result_name = choice_data.result.table_result.get("name", "")
+		popup.show_choices(
+			result_name, choice_data.get("options", [])
+		)
+
+func _on_choice_made(item_name: String, choice_data: Dictionary) -> void:
+	## Handle player's item choice — add to stash and advance queue
+	_add_item_to_stash(item_name)
+
+	# Replace "A OR B OR C" with chosen item name in the result for display
+	var items: Array = choice_data.result.table_result.get("items", [])
+	var idx: int = items.find(choice_data.item_string)
+	if idx >= 0:
+		items[idx] = item_name
+
+	_pending_choice_results.erase(choice_data)
+	_choice_popup = null
+	_update_progress_display()
+	_show_next_choice_popup()
+
+func _on_grenades_chosen(
+	frakk: int, dazzle: int, choice_data: Dictionary
+) -> void:
+	## Handle grenade combination choice — add grenades to stash
+	for i in range(frakk):
+		_add_item_to_stash("Frakk Grenade")
+	for i in range(dazzle):
+		_add_item_to_stash("Dazzle Grenade")
+
+	# Update display text
+	var items: Array = choice_data.result.table_result.get("items", [])
+	var idx: int = items.find(choice_data.item_string)
+	var summary: String = ""
+	if frakk > 0:
+		summary += "%dx Frakk" % frakk
+	if dazzle > 0:
+		if not summary.is_empty():
+			summary += " + "
+		summary += "%dx Dazzle" % dazzle
+	if idx >= 0:
+		items[idx] = summary
+
+	_pending_choice_results.erase(choice_data)
+	_choice_popup = null
+	_update_progress_display()
+	_show_next_choice_popup()
+
+func _add_item_to_stash(item_name: String) -> void:
+	## Add an item to the ship stash via EquipmentManager
+	## Resolves "(random)" items via loot table rolls first
+	var equip_mgr: Node = get_node_or_null("/root/EquipmentManager")
+	if not equip_mgr or not equip_mgr.has_method("add_equipment"):
+		push_warning(
+			"CrewTaskComponent: No EquipmentManager for '%s'" % item_name
+		)
+		return
+
+	# Handle quantity prefixes like "2x Stim-pack"
+	var quantity: int = 1
+	var clean_name: String = item_name
+	if item_name.begins_with("2x ") or item_name.begins_with("3x "):
+		quantity = item_name.substr(0, 1).to_int()
+		clean_name = item_name.substr(3)
+
+	# Resolve random loot items
+	if "(random" in clean_name:
+		var is_damaged: bool = "damaged" in clean_name
+		var resolved: Array = _resolve_random_loot(clean_name)
+		for resolved_name in resolved:
+			var item_dict: Dictionary = _lookup_equipment_from_db(
+				equip_mgr, resolved_name
+			)
+			item_dict["id"] = "task_reward_%d_%d" % [
+				Time.get_ticks_msec(), randi() % 10000
+			]
+			if is_damaged:
+				item_dict["condition"] = "damaged"
+			equip_mgr.add_equipment(item_dict)
+		return
+
+	# Standard item addition (with quantity support)
+	for i in range(quantity):
+		var item_dict: Dictionary = _lookup_equipment_from_db(
+			equip_mgr, clean_name
+		)
+		item_dict["id"] = "task_reward_%d_%d" % [
+			Time.get_ticks_msec(), randi() % 10000
+		]
+		if not equip_mgr.add_equipment(item_dict):
+			push_warning(
+				"CrewTaskComponent: Failed to add '%s' to stash"
+				% clean_name
+			)
+
+func _lookup_equipment_from_db(
+	equip_mgr: Node, item_name: String
+) -> Dictionary:
+	## Search EquipmentManager's loaded DB arrays by name
+	for db_list in [
+		equip_mgr._db_weapons,
+		equip_mgr._db_armor,
+		equip_mgr._db_gear
+	]:
+		for item in db_list:
+			if item is Dictionary and item.get("name", "") == item_name:
+				return item.duplicate()
+	# Fallback: minimal dict for items not in DB
+	return {"name": item_name}
+
+## Loot Table Resolution — rolls on loot_tables.json subtables
+
+var _loot_tables_cache: Dictionary = {}
+
+func _get_loot_tables() -> Dictionary:
+	## Load and cache loot_tables.json
+	if not _loot_tables_cache.is_empty():
+		return _loot_tables_cache
+	var path := "res://data/loot_tables.json"
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_warning("CrewTaskComponent: Cannot open loot_tables.json")
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("CrewTaskComponent: Failed to parse loot_tables.json")
+		return {}
+	file.close()
+	if json.data is Dictionary:
+		_loot_tables_cache = json.data
+	return _loot_tables_cache
+
+func _resolve_random_loot(item_string: String) -> Array:
+	## Resolve a "(random)" item string into actual item names
+	## Returns Array of item name strings
+	var tables: Dictionary = _get_loot_tables()
+	if tables.is_empty():
+		return [item_string]  # Can't resolve, return as-is
+
+	var all_tables: Dictionary = tables.get("tables", {})
+
+	# Determine which subtable to roll on
+	if item_string.begins_with("Gear Loot") or item_string == "Gear (random)":
+		return [_roll_on_subtable(all_tables.get("gear_subtable", []))]
+	elif item_string.begins_with("Gadget"):
+		# Gadgets are gun_mods + gun_sights from gear subtable
+		var gear_sub: Array = all_tables.get("gear_subtable", [])
+		var gadget_items: Array = []
+		for entry in gear_sub:
+			if entry is Dictionary:
+				var cat: String = str(entry.get("category", ""))
+				if cat in ["gun_mods", "gun_sights"]:
+					var items: Array = entry.get("items", [])
+					gadget_items.append_array(items)
+		if gadget_items.size() > 0:
+			return [gadget_items[randi() % gadget_items.size()]]
+		return [item_string]
+	elif item_string.begins_with("Low Tech Weapon"):
+		# Low Tech weapons are melee from weapon subtable
+		var wpn_sub: Array = all_tables.get("weapon_subtable", [])
+		for entry in wpn_sub:
+			if entry is Dictionary and entry.get("category") == "melee_weapons":
+				var items: Array = entry.get("items", [])
+				if items.size() > 0:
+					return [items[randi() % items.size()]]
+		return [item_string]
+	else:
+		# Full loot table: roll D100 on main, then roll on subtable
+		return _roll_main_loot_table(all_tables)
+
+func _roll_main_loot_table(all_tables: Dictionary) -> Array:
+	## Roll on the main loot table and resolve to actual items
+	var main_table: Array = all_tables.get("main_loot", [])
+	var roll: int = randi() % 100 + 1
+	var category: String = ""
+	var count: int = 1
+
+	for entry in main_table:
+		if entry is Dictionary:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if r.size() >= 2 and roll >= (r[0] as int) and roll <= (r[1] as int):
+				category = str(entry.get("category", ""))
+				count = entry.get("count", 1) as int
+				break
+
+	var results: Array = []
+	match category:
+		"WEAPON", "DAMAGED_WEAPONS":
+			var sub: Array = all_tables.get("weapon_subtable", [])
+			for i in range(count):
+				results.append(_roll_on_subtable(sub))
+		"GEAR", "DAMAGED_GEAR":
+			var sub: Array = all_tables.get("gear_subtable", [])
+			for i in range(count):
+				results.append(_roll_on_subtable(sub))
+		"ODDS_AND_ENDS":
+			var sub: Array = all_tables.get("odds_and_ends_subtable", [])
+			results.append(_roll_on_subtable(sub))
+		"REWARDS":
+			# Rewards give credits/rumors, not equipment items
+			var sub: Array = all_tables.get("rewards_subtable", [])
+			var reward: Dictionary = _roll_on_reward_subtable(sub)
+			if reward.get("credits", 0) > 0:
+				var gsm: Node = get_node_or_null("/root/GameStateManager")
+				if gsm and gsm.has_method("add_credits"):
+					gsm.add_credits(reward.credits)
+			# Rewards don't produce stash items
+			return []
+		_:
+			return ["Loot (unknown category)"]
+
+	return results
+
+func _roll_on_subtable(subtable: Array) -> String:
+	## Roll D100 on a loot subtable and return a random item name
+	var roll: int = randi() % 100 + 1
+	for entry in subtable:
+		if entry is Dictionary:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if r.size() >= 2 and roll >= (r[0] as int) and roll <= (r[1] as int):
+				var items: Array = entry.get("items", [])
+				if items.size() > 0:
+					return str(items[randi() % items.size()])
+				var item: String = str(entry.get("item", ""))
+				if not item.is_empty():
+					return item
+	return "Unknown Loot"
+
+func _roll_on_reward_subtable(subtable: Array) -> Dictionary:
+	## Roll on reward subtable — returns credits/rumors dict
+	var roll: int = randi() % 100 + 1
+	for entry in subtable:
+		if entry is Dictionary:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if r.size() >= 2 and roll >= (r[0] as int) and roll <= (r[1] as int):
+				return entry.duplicate()
+	return {}
+
 ## Event Handlers
 func _on_crew_member_selected(index: int) -> void:
 	## Handle crew member selection
@@ -1124,9 +1243,12 @@ func _on_phase_started(data: Dictionary) -> void:
 
 func _on_automation_toggled(data: Dictionary) -> void:
 	## Handle automation toggle - auto-assign and resolve tasks
+	## When automated, choice items auto-pick the first option (no popup shown)
 	var automation_enabled = data.get("enabled", false)
 	if automation_enabled and not assigned_tasks.is_empty():
+		_auto_resolve_mode = true
 		_on_resolve_all_pressed()
+		_auto_resolve_mode = false
 
 ## Public API for integration
 func are_tasks_completed() -> bool:
@@ -1159,7 +1281,14 @@ func reset_crew_tasks() -> void:
 func complete_crew_task_phase() -> void:
 	## Mark the crew task phase as complete and publish event
 	if not all_tasks_resolved and not assigned_tasks.is_empty():
+		_auto_resolve_mode = true  # Auto-pick choices when force-completing
 		_on_resolve_all_pressed()
+		_auto_resolve_mode = false
+
+	# Don't publish phase completion if choices are still pending
+	if not _pending_choice_results.is_empty():
+		push_warning("CrewTaskComponent: Cannot complete phase — choices still pending")
+		return
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {

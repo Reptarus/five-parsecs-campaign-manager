@@ -309,7 +309,7 @@ func _process_battle_setup() -> void:
 		])
 	else:
 		enemy_count = _determine_enemy_count()
-	var enemy_types = _generate_enemies(enemy_count)
+	var enemy_types = _generate_enemies(enemy_count, mission_source)
 
 	# Get difficulty for Unique Individual and specialist modifiers
 	var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL
@@ -320,12 +320,20 @@ func _process_battle_setup() -> void:
 	var specialist_bonus: int = DifficultyModifiers.get_specialist_enemy_modifier(difficulty)
 	if specialist_bonus > 0:
 		for i in range(specialist_bonus):
+			# Use EnemyGenerator for specialist type selection too
+			var spec_template: Dictionary = {}
+			if enemy_generator:
+				spec_template = enemy_generator.select_enemy_for_mission(
+					mission_source if not mission_source.is_empty() else "patron"
+				)
+			var spec_name: String = spec_template.get("name", "Specialist")
 			var specialist: Dictionary = {
 				"id": "specialist_bonus_%d" % i,
-				"type": _get_random_enemy_type(),
-				"combat_skill": randi_range(1, 3),
-				"toughness": randi_range(4, 5),
-				"speed": randi_range(4, 6),
+				"type": spec_name,
+				"name": spec_name + " Specialist",
+				"combat_skill": spec_template.get("combat_skill", randi_range(1, 3)),
+				"toughness": spec_template.get("toughness", randi_range(4, 5)),
+				"speed": spec_template.get("speed", randi_range(4, 6)),
 				"weapons": ["Military Rifle"],
 				"weapon_traits": ["ranged"],
 				"is_specialist": true
@@ -472,47 +480,88 @@ func _determine_enemy_count() -> int:
 	return max(1, base_count)
 
 
-func _generate_enemies(count: int) -> Array[Dictionary]:
-	## Generate enemy force composition
+func _generate_enemies(
+	count: int, mission_source: String = "patron"
+) -> Array[Dictionary]:
+	## Generate enemy force composition using EnemyGenerator D100 tables.
+	## Pulls stats from enemy_types.json instead of random ranges.
 	var enemies: Array[Dictionary] = []
 
 	# Check DLC flags for enemy modifiers
 	var elite_enabled := false
 	var krag_enabled := false
 	var skulker_enabled := false
-	var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-	if dlc and dlc.has_method("is_feature_enabled"):
-		elite_enabled = dlc.is_feature_enabled(dlc.ContentFlag.ELITE_ENEMIES)
-		krag_enabled = dlc.is_feature_enabled(dlc.ContentFlag.SPECIES_KRAG)
-		skulker_enabled = dlc.is_feature_enabled(dlc.ContentFlag.SPECIES_SKULKER)
+	var dlc_node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc_node and dlc_node.has_method("is_feature_enabled"):
+		elite_enabled = dlc_node.is_feature_enabled(
+			dlc_node.ContentFlag.ELITE_ENEMIES
+		)
+		krag_enabled = dlc_node.is_feature_enabled(
+			dlc_node.ContentFlag.SPECIES_KRAG
+		)
+		skulker_enabled = dlc_node.is_feature_enabled(
+			dlc_node.ContentFlag.SPECIES_SKULKER
+		)
+
+	# Roll once on encounter category table for this battle
+	# (all enemies in a battle are from the same category per Core Rules)
+	var category: String = "criminal_elements"
+	if enemy_generator:
+		category = enemy_generator._roll_encounter_category(
+			mission_source if not mission_source.is_empty() else "patron"
+		)
 
 	for i in range(count):
-		var enemy = {
+		# Roll specific enemy type within category using D100 roll_range
+		var template: Dictionary = {}
+		if enemy_generator:
+			template = enemy_generator._roll_enemy_in_category(category)
+
+		var enemy_name: String = template.get("name", "Unknown Hostiles")
+		var weapons: Array = []
+		if enemy_generator and not template.is_empty():
+			weapons = enemy_generator._resolve_weapon_code(
+				template.get("weapons", "1 A")
+			)
+		else:
+			weapons = ["Basic Rifle"]
+
+		var enemy: Dictionary = {
 			"id": "enemy_%d" % i,
-			"type": _get_random_enemy_type(),
-			"combat_skill": randi_range(0, 2),
-			"toughness": randi_range(3, 5),
-			"speed": randi_range(4, 6),
-			"weapons": ["Basic Rifle"],
-			"weapon_traits": ["ranged"]
+			"type": enemy_name,
+			"name": enemy_name,
+			"combat_skill": template.get("combat_skill", 0),
+			"toughness": template.get("toughness", 3),
+			"speed": template.get("speed", 4),
+			"weapons": weapons,
+			"weapon_traits": ["ranged"],
+			"ai": template.get("ai", "A"),
+			"panic": template.get("panic", "1-2"),
+			"special_rules": template.get("special_rules", []),
+			"category": category,
 		}
-		# ELITE_ENEMIES: upgrade enemy stats per Compendium elite rules
+
+		# ELITE_ENEMIES: upgrade stats per Compendium elite rules
 		if elite_enabled:
 			enemy["combat_skill"] += 1
 			enemy["toughness"] += 1
 			if randi_range(1, 6) >= 4:
 				enemy["weapons"] = ["Military Rifle"]
-			# Some elite enemies carry melee weapons
 			elif randi_range(1, 6) == 6:
 				enemy["weapons"] = ["Power Blade"]
 				enemy["weapon_traits"] = ["melee"]
 			enemy["is_elite"] = true
+
 		# SPECIES: 20% chance per enemy to be Krag or Skulker variant
 		if krag_enabled and randi_range(1, 10) <= 2:
 			enemy["species"] = "krag"
 			enemy["toughness"] = max(enemy["toughness"], 4)
 			enemy["speed"] = min(enemy["speed"], 4)
-			enemy["special_rules"] = ["no_dash", "belligerent_reroll"]
+			enemy["special_rules"] = [
+				"no_dash", "belligerent_reroll"
+			]
 		elif skulker_enabled and randi_range(1, 10) <= 2:
 			enemy["species"] = "skulker"
 			enemy["toughness"] = min(enemy["toughness"], 3)
@@ -521,18 +570,6 @@ func _generate_enemies(count: int) -> Array[Dictionary]:
 		enemies.append(enemy)
 
 	return enemies
-
-func _get_random_enemy_type() -> int:
-	## Get random enemy type
-	if GlobalEnums:
-		var enemy_types = [
-			GlobalEnums.EnemyType.GANGERS,
-			GlobalEnums.EnemyType.RAIDERS,
-			GlobalEnums.EnemyType.PIRATES,
-			GlobalEnums.EnemyType.CULTISTS
-		]
-		return enemy_types[randi() % enemy_types.size()]
-	return 0
 
 func _determine_terrain() -> int:
 	## Determine terrain type for battle

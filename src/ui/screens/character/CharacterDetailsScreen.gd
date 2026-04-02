@@ -59,11 +59,16 @@ const COLOR_DANGER := Color("#DC2626")   # Red
 @onready var cancel_button: Button = %CancelButton
 @onready var keyword_tooltip: KeywordTooltip = %KeywordTooltip
 @onready var advancement_section: VBoxContainer = %AdvancementSection
+@onready var char_info_panel: PanelContainer = %CharacterInfoPanel
+@onready var stats_panel: PanelContainer = %StatsPanel
+@onready var equipment_panel: PanelContainer = %EquipmentPanel
+@onready var notes_panel: PanelContainer = %NotesPanel
 
 # State
 var current_character = null
 var original_data: Dictionary = {}
 var _history_overlay: Control = null
+var _equipment_db_cache: Dictionary = {}
 
 # Advancement UI references (created dynamically)
 var stat_advancement_buttons: Dictionary = {}
@@ -97,6 +102,9 @@ func _ready() -> void:
 		fill_style.set_corner_radius_all(4)
 		xp_progress_bar.add_theme_stylebox_override("fill", fill_style)
 
+	# Apply visual polish (buttons, panels, stat badges, headers, notes)
+	_apply_ui_styling()
+
 	# Sprint 26.9 Phase 8.3: Connect viewport resize for responsive stats grid
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_apply_responsive_stats_grid()
@@ -104,6 +112,114 @@ func _ready() -> void:
 	# Load character data
 	load_character_data()
 
+
+func _apply_ui_styling() -> void:
+	## Apply Deep Space theme polish to all UI elements.
+	## Patterns sourced from ConfirmationDialog.gd and CharacterCard.gd.
+
+	# -- Save button: primary green (ConfirmationDialog confirm pattern)
+	if save_button:
+		var s := StyleBoxFlat.new()
+		s.bg_color = COLOR_SUCCESS
+		s.set_corner_radius_all(6)
+		s.set_content_margin_all(SPACING_SM)
+		save_button.add_theme_stylebox_override("normal", s)
+		var h := s.duplicate()
+		h.bg_color = COLOR_ACCENT_HOVER
+		save_button.add_theme_stylebox_override("hover", h)
+
+	# -- Cancel button: subdued border (ConfirmationDialog cancel pattern)
+	if cancel_button:
+		var s := StyleBoxFlat.new()
+		s.bg_color = COLOR_BORDER
+		s.set_corner_radius_all(6)
+		s.set_content_margin_all(SPACING_SM)
+		cancel_button.add_theme_stylebox_override("normal", s)
+
+	# -- Equipment buttons: accent-bordered
+	for btn in [add_equipment_button, remove_equipment_button]:
+		if btn:
+			var s := StyleBoxFlat.new()
+			s.bg_color = COLOR_ELEVATED
+			s.border_color = COLOR_ACCENT
+			s.set_border_width_all(1)
+			s.set_corner_radius_all(6)
+			s.set_content_margin_all(SPACING_SM)
+			btn.add_theme_stylebox_override("normal", s)
+			var h := s.duplicate()
+			h.bg_color = COLOR_ACCENT
+			btn.add_theme_stylebox_override("hover", h)
+
+	# -- Panel containers: elevated card with border
+	for panel in [
+		char_info_panel, stats_panel,
+		equipment_panel, notes_panel
+	]:
+		if panel:
+			var s := StyleBoxFlat.new()
+			s.bg_color = COLOR_ELEVATED
+			s.border_color = COLOR_BORDER
+			s.set_border_width_all(1)
+			s.set_corner_radius_all(8)
+			s.set_content_margin_all(SPACING_MD)
+			panel.add_theme_stylebox_override("panel", s)
+
+	# -- Section headers: cyan accent color
+	_style_section_header(char_info_panel, "InfoTitle")
+	_style_section_header(stats_panel, "StatsTitle")
+	_style_section_header(equipment_panel, "EquipmentTitle")
+	_style_section_header(notes_panel, "NotesTitle")
+
+	# -- Stat cells: badge backgrounds (CharacterCard badge pattern)
+	_style_stat_cells()
+
+	# -- Notes TextEdit: input background with focus ring
+	if notes_edit:
+		var s := StyleBoxFlat.new()
+		s.bg_color = COLOR_INPUT
+		s.border_color = COLOR_BORDER
+		s.set_border_width_all(1)
+		s.set_corner_radius_all(6)
+		s.set_content_margin_all(SPACING_SM)
+		notes_edit.add_theme_stylebox_override("normal", s)
+		var f := s.duplicate()
+		f.border_color = COLOR_FOCUS
+		notes_edit.add_theme_stylebox_override("focus", f)
+
+func _style_section_header(panel: PanelContainer, label_name: String) -> void:
+	## Find a section title Label inside a panel and style it cyan.
+	if not panel:
+		return
+	var label = panel.find_child(label_name, true, false)
+	if label and label is Label:
+		label.add_theme_color_override("font_color", COLOR_FOCUS)
+
+func _style_stat_cells() -> void:
+	## Add badge-style backgrounds to each stat cell in the StatsGrid.
+	if not stats_grid:
+		return
+	var badge_style := StyleBoxFlat.new()
+	badge_style.bg_color = Color(
+		COLOR_FOCUS.r, COLOR_FOCUS.g, COLOR_FOCUS.b, 0.08
+	)
+	badge_style.border_color = COLOR_BORDER
+	badge_style.set_border_width_all(1)
+	badge_style.set_corner_radius_all(6)
+	badge_style.set_content_margin_all(SPACING_XS)
+	for child in stats_grid.get_children():
+		if child is VBoxContainer:
+			# Add a styled ColorRect behind the cell content
+			var bg := ColorRect.new()
+			bg.name = "__stat_bg"
+			bg.color = Color(
+				COLOR_FOCUS.r, COLOR_FOCUS.g, COLOR_FOCUS.b, 0.06
+			)
+			bg.show_behind_parent = true
+			bg.set_anchors_and_offsets_preset(
+				Control.PRESET_FULL_RECT
+			)
+			child.add_child(bg)
+			child.move_child(bg, 0)
 
 func load_character_data() -> void:
 	## Load character from GameStateManager temp storage
@@ -134,12 +250,11 @@ func populate_ui() -> void:
 	if not current_character:
 		return
 
-	# Hero Card (EXPANDED variant with portrait, name, class, stats)
+	# Hero Card (STANDARD variant — portrait + name + stats + equipment + XP, no action buttons)
 	if hero_card and hero_card.has_method("set_character"):
 		hero_card.set_character(current_character)
-		# Ensure EXPANDED variant for full stats display
 		if hero_card.has_method("set_variant"):
-			hero_card.set_variant(CharacterCard.CardVariant.EXPANDED)
+			hero_card.set_variant(CharacterCard.CardVariant.STANDARD)
 	
 	# XP Progress Bar
 	_update_xp_display()
@@ -247,13 +362,19 @@ func populate_ui() -> void:
 	# Implants display (after equipment)
 	_update_implants_display()
 
-	# Notes (if we add a notes field to Character)
+	# Player Notes — persisted on Character.player_notes
 	if notes_edit:
-		notes_edit.text = ""  # Placeholder for future notes system
+		notes_edit.text = current_character.player_notes if "player_notes" in current_character else ""
+		notes_edit.placeholder_text = "Write notes, lore, or story for this character..."
+		notes_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	
+	# Character History — lifetime stats, advancement timeline, journal entries
+	_populate_history_section()
+
 	# Advancement Section (stat upgrades and training) OR Bot Upgrades (for bots)
 	if advancement_section:
-		if current_character.is_bot():
+		var is_bot: bool = current_character.is_bot if "is_bot" in current_character else false
+		if is_bot:
 			_populate_bot_upgrade_section()
 		else:
 			_populate_advancement_section()
@@ -294,24 +415,21 @@ func _update_stats_grid() -> void:
 	if not current_character or not stats_grid:
 		return
 	
-	# Get stat cells (VBoxContainer with Label children)
-	var combat_cell = stats_grid.get_node_or_null("CombatCell/Value")
-	var reactions_cell = stats_grid.get_node_or_null("ReactionsCell/Value")
-	var toughness_cell = stats_grid.get_node_or_null("ToughnessCell/Value")
-	var savvy_cell = stats_grid.get_node_or_null("SavvyCell/Value")
-	var speed_cell = stats_grid.get_node_or_null("SpeedCell/Value")
-	
-	# Update stat values
-	if combat_cell:
-		combat_cell.text = str(current_character.combat if "combat" in current_character else 0)
-	if reactions_cell:
-		reactions_cell.text = str(current_character.reactions if "reactions" in current_character else 0)
-	if toughness_cell:
-		toughness_cell.text = str(current_character.toughness if "toughness" in current_character else 0)
-	if savvy_cell:
-		savvy_cell.text = str(current_character.savvy if "savvy" in current_character else 0)
-	if speed_cell:
-		speed_cell.text = str(current_character.speed if "speed" in current_character else 4)
+	# Stat cells ordered to match the physical Crew Log: Reactions, Speed, Combat, Toughness, Savvy, Luck
+	var stat_cells := {
+		"ReactionsCell/ReactionsValue": ["reactions", 0],
+		"SpeedCell/SpeedValue": ["speed", 4],
+		"CombatCell/CombatValue": ["combat", 0],
+		"ToughnessCell/ToughnessValue": ["toughness", 0],
+		"SavvyCell/SavvyValue": ["savvy", 0],
+		"LuckCell/LuckValue": ["luck", 0],
+	}
+	for path in stat_cells:
+		var label = stats_grid.get_node_or_null(path)
+		if label:
+			var stat_name: String = stat_cells[path][0]
+			var default_val: int = stat_cells[path][1]
+			label.text = str(current_character.get(stat_name) if stat_name in current_character else default_val)
 
 ## Sprint 26.9 Phase 8.3: Responsive stats grid to prevent horizontal scroll on mobile
 func _on_viewport_resized() -> void:
@@ -329,27 +447,27 @@ func _apply_responsive_stats_grid() -> void:
 
 	var viewport_width := viewport.get_visible_rect().size.x
 
-	# Determine column count based on screen size
-	# Mobile (<768px): 2 columns - fits well on small screens
+	# Determine column count based on screen size (6 stats: REA, SPD, COM, TOU, SAV, LCK)
+	# Mobile (<768px): 3 columns (2 rows of 3) - readable on small screens
 	# Tablet (768-1024px): 3 columns - balanced layout
-	# Desktop (>1024px): 5 columns - original layout, all stats visible
+	# Desktop (>1024px): 6 columns - all stats in one row, matches Crew Log
 	var columns: int
 	var h_spacing: int
 	var v_spacing: int
 
 	if viewport_width < 768:
-		# Mobile: 2 columns, compact spacing
-		columns = 2
+		# Mobile: 3 columns (2 rows), compact spacing
+		columns = 3
 		h_spacing = 8
 		v_spacing = 8
 	elif viewport_width < 1024:
-		# Tablet: 3 columns, moderate spacing
+		# Tablet: 3 columns (2 rows), moderate spacing
 		columns = 3
 		h_spacing = 12
 		v_spacing = 8
 	else:
-		# Desktop: 5 columns (all stats in one row), full spacing
-		columns = 5
+		# Desktop: 6 columns (all stats in one row), full spacing
+		columns = 6
 		h_spacing = 16
 		v_spacing = 8
 
@@ -360,23 +478,91 @@ func _apply_responsive_stats_grid() -> void:
 
 
 func _update_equipment_display() -> void:
-	## Update equipment list with BBCode keyword links
+	## Update equipment list — separates Weapons (with stats) from Gear/Armor, matching Crew Log layout
 	if not current_character or not equipment_rich_text:
 		return
-	
+
 	if not "equipment" in current_character or current_character.equipment.size() == 0:
 		equipment_rich_text.text = "[color=#808080]No equipment[/color]"
 		return
-	
-	var equipment_bbcode := ""
+
+	# Load equipment database for weapon detail lookups
+	var equip_db: Dictionary = _load_equipment_database()
+
+	var weapons_bbcode := ""
+	var gear_bbcode := ""
+
 	for item in current_character.equipment:
 		var item_str := str(item)
-		
-		# Format equipment with clickable keywords
-		var formatted_item := _format_equipment_with_keywords(item_str)
-		equipment_bbcode += "• %s\n" % formatted_item
-	
-	equipment_rich_text.text = equipment_bbcode.strip_edges()
+		var db_entry: Dictionary = _find_equipment_entry(item_str, equip_db)
+
+		if not db_entry.is_empty() and db_entry.get("type", "") not in ["Armor", "Screen", "Consumable", "Gadget", "Utility"]:
+			# Weapon — show detailed stats like the Crew Log
+			var name_formatted := _format_equipment_with_keywords(item_str)
+			var range_val: String = str(db_entry.get("range", 0)) + "\""
+			var shots_val: String = str(db_entry.get("shots", 0))
+			var dmg_val: String = "+" + str(db_entry.get("damage", 0)) if db_entry.get("damage", 0) > 0 else str(db_entry.get("damage", 0))
+			var traits_arr: Array = db_entry.get("traits", [])
+			var traits_str := ""
+			for i in range(traits_arr.size()):
+				var t: String = str(traits_arr[i])
+				traits_str += "[url=keyword:%s][color=#4FC3F7]%s[/color][/url]" % [t, t]
+				if i < traits_arr.size() - 1:
+					traits_str += ", "
+			if traits_str.is_empty():
+				traits_str = "[color=#808080]—[/color]"
+
+			weapons_bbcode += "  %s\n" % name_formatted
+			weapons_bbcode += "    [color=#808080]Range:[/color] %s  [color=#808080]Shots:[/color] %s  [color=#808080]Dmg:[/color] %s  [color=#808080]Traits:[/color] %s\n" % [range_val, shots_val, dmg_val, traits_str]
+		else:
+			# Gear / Armor / Unknown — simple bullet
+			var formatted_item := _format_equipment_with_keywords(item_str)
+			gear_bbcode += "  • %s\n" % formatted_item
+
+	var bbcode := ""
+	if not weapons_bbcode.is_empty():
+		bbcode += "[color=#4FC3F7]WEAPONS[/color]\n" + weapons_bbcode
+	if not gear_bbcode.is_empty():
+		if not bbcode.is_empty():
+			bbcode += "\n"
+		bbcode += "[color=#4FC3F7]GEAR & ARMOR[/color]\n" + gear_bbcode
+
+	if bbcode.is_empty():
+		bbcode = "[color=#808080]No equipment[/color]"
+
+	equipment_rich_text.text = bbcode.strip_edges()
+
+func _load_equipment_database() -> Dictionary:
+	## Load equipment_database.json (cached after first load)
+	if _equipment_db_cache and not _equipment_db_cache.is_empty():
+		return _equipment_db_cache
+	var path := "res://data/equipment_database.json"
+	if not ResourceLoader.exists(path) and not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	_equipment_db_cache = json.data if json.data is Dictionary else {}
+	return _equipment_db_cache
+
+func _find_equipment_entry(item_name: String, db: Dictionary) -> Dictionary:
+	## Look up an equipment item by name across all categories in equipment_database.json
+	var search_name := item_name.to_lower().strip_edges()
+	# Strip parenthetical keywords: "Infantry Laser (Snap Shot)" → "infantry laser"
+	var paren_pos := search_name.find("(")
+	if paren_pos > 0:
+		search_name = search_name.substr(0, paren_pos).strip_edges()
+	for category in ["weapons", "armor", "gear", "gadgets"]:
+		var items: Array = db.get(category, [])
+		for entry in items:
+			if entry is Dictionary:
+				var entry_name: String = entry.get("name", "").to_lower()
+				if entry_name == search_name:
+					return entry
+	return {}
 
 func _format_equipment_with_keywords(item_name: String) -> String:
 	## Format equipment name with BBCode keyword links for weapon keywords
@@ -467,18 +653,22 @@ func _update_implants_display() -> void:
 
 func _on_save_pressed() -> void:
 	## Save character changes and return
-	
+
 	if not current_character:
 		return
-	
-	# Equipment changes are now read-only (managed through dedicated UI)
-	# Notes can still be edited
-	
+
+	# Save player notes back to character
+	if notes_edit and current_character and "player_notes" in current_character:
+		current_character.player_notes = notes_edit.text
+
+	# Write changes back to the source crew dict (if this was a dict-based character).
+	# Without this, notes/edits are lost because _on_dict_card_clicked creates a copy.
+	_sync_character_to_source_dict()
+
 	# Mark campaign as modified (needs save)
 	if GameStateManager:
 		GameStateManager.mark_campaign_modified()
-	
-	
+
 	# Return to crew management
 	return_to_crew_management()
 
@@ -492,6 +682,78 @@ func _on_cancel_pressed() -> void:
 
 	# Return to crew management
 	return_to_crew_management()
+
+func _populate_history_section() -> void:
+	## Add character history panel (stats, advancement, journal)
+	if not current_character:
+		return
+
+	# Find the main content VBox (parent of NotesPanel)
+	var main_vbox: VBoxContainer = null
+	if notes_edit:
+		# NotesEdit → VBoxContainer → NotesPanel → main VBoxContainer
+		var notes_panel = notes_edit.get_parent().get_parent()
+		if notes_panel:
+			main_vbox = notes_panel.get_parent()
+	if not main_vbox:
+		return
+
+	# Remove old history panel if re-populating
+	var old_panel = main_vbox.get_node_or_null("__CharacterHistory")
+	if old_panel:
+		old_panel.queue_free()
+
+	var char_id: String = ""
+	if "character_id" in current_character:
+		char_id = current_character.character_id
+
+	var history_panel = CharacterHistoryPanelClass.new()
+	history_panel.name = "__CharacterHistory"
+	history_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.add_child(history_panel)
+
+	# Move it after NotesPanel (before AdvancementPanel)
+	var notes_panel_node = notes_edit.get_parent().get_parent()
+	if notes_panel_node:
+		var idx: int = notes_panel_node.get_index() + 1
+		main_vbox.move_child(history_panel, idx)
+
+	history_panel.setup(current_character, char_id)
+
+	# Hide the panel's built-in header/back button — we have Save/Cancel
+	var header_hbox = history_panel.get_node_or_null("ScrollContainer/VBoxContainer/HBoxContainer")
+	if not header_hbox:
+		# Try first child of the scroll's vbox
+		var scroll = history_panel.get_child(0) if history_panel.get_child_count() > 0 else null
+		if scroll and scroll.get_child_count() > 0:
+			var vbox = scroll.get_child(0)
+			if vbox and vbox.get_child_count() > 0:
+				var first_child = vbox.get_child(0)
+				if first_child is HBoxContainer:
+					first_child.visible = false
+
+func _sync_character_to_source_dict() -> void:
+	## Write modified character data back to the source dict in campaign crew_data.
+	## This ensures notes and other edits persist through save/load when the character
+	## was opened from a dictionary-based crew card (not a Character Resource).
+	if not current_character or not GameStateManager:
+		return
+	if not GameStateManager.has_temp_data("source_crew_dict"):
+		return
+
+	var source_dict: Dictionary = GameStateManager.get_temp_data("source_crew_dict")
+	if source_dict.is_empty():
+		return
+
+	# Serialize current character state and merge back into the source dict.
+	# The source dict is a reference into campaign.crew_data["members"], so
+	# updating it in-place updates the campaign's live data.
+	if current_character.has_method("to_dictionary"):
+		var updated: Dictionary = current_character.to_dictionary()
+		for key in updated:
+			source_dict[key] = updated[key]
+
+	GameStateManager.clear_temp_data("source_crew_dict")
 
 func return_to_crew_management() -> void:
 	## Navigate back to crew management screen

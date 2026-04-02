@@ -150,59 +150,9 @@ func _load_keywords_from_json(path: String) -> bool:
 	return _keywords.size() > 0
 
 func _initialize_default_keywords() -> void:
-	## Fallback: Core Rules p.51 weapon traits (used only if keywords.json fails to load)
-	_add_keyword("Area",
-		"Resolve all shots on target, then 1 shot vs every figure within 2\".",
-		["Single Use", "Focused"], 51, "weapon_trait")
-	_add_keyword("Clumsy",
-		"-1 to Brawling rolls if opponent has higher Speed.",
-		["Melee", "Brawling"], 51, "weapon_trait")
-	_add_keyword("Critical",
-		"Natural 6 on Hit roll inflicts 2 Hits on target.",
-		["Damage", "Piercing"], 51, "weapon_trait")
-	_add_keyword("Elegant",
-		"May reroll the die when Brawling.",
-		["Melee", "Brawling"], 51, "weapon_trait")
-	_add_keyword("Focused",
-		"All shots must be against a single target.",
-		["Heavy", "Area"], 51, "weapon_trait")
-	_add_keyword("Heavy",
-		"-1 penalty to Hit if firer moved this round.",
-		["Bulky", "Focused"], 51, "weapon_trait")
-	_add_keyword("Impact",
-		"If target already Stunned, place a second Stun marker.",
-		["Stun", "Stunned"], 51, "weapon_trait")
-	_add_keyword("Melee",
-		"+2 to Brawling rolls.",
-		["Pistol", "Brawling"], 51, "weapon_trait")
-	_add_keyword("Piercing",
-		"Ignore Armor Saving Throws.",
-		["Damage", "Armor"], 51, "weapon_trait")
-	_add_keyword("Pistol",
-		"+1 to Brawling rolls.",
-		["Melee", "Brawling"], 51, "weapon_trait")
-	_add_keyword("Single Use",
-		"Can only be used once per battle.",
-		["Grenade", "Consumable"], 51, "weapon_trait")
-	_add_keyword("Snap Shot",
-		"+1 to Hit within 6\".",
-		["Range", "Pistol"], 51, "weapon_trait")
-	_add_keyword("Stun",
-		"Targets hit are Stunned (Toughness ignored, Saves apply).",
-		["Stunned", "Impact"], 51, "weapon_trait")
-	_add_keyword("Terrifying",
-		"Target hit must retreat 1D6\" away from firer.",
-		["Morale", "Brawling"], 51, "weapon_trait")
-	# Status effects (Core Rules p.40)
-	_add_keyword("Stunned",
-		"Cannot activate this round. Clears at end of round. Can defend in brawling.",
-		["Pinned", "Stun"], 40, "status_effect")
-	_add_keyword("Pinned",
-		"Cannot move or shoot. Must pass Savvy test to recover.",
-		["Stunned", "Morale"], 40, "status_effect")
-	_add_keyword("Brawling",
-		"Close combat between adjacent figures. Both roll 1d6 + Combat Skill.",
-		["Melee", "Combat Skill"], 44, "combat_rule")
+	## Minimal fallback — all keywords should be in data/keywords.json
+	## This only runs if JSON loading completely fails
+	push_warning("KeywordDB: Using minimal fallback — keywords.json failed to load")
 
 func _add_keyword(term: String, definition: String, related: Array, rule_page: int, category: String) -> void:
 	## Add keyword to database

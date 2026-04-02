@@ -192,5 +192,84 @@
 			"name": "Advanced Tutorial",
 			"description": "Master all systems with comprehensive guidance"
 		}
+	},
+	"morale_system": {
+		"source": "App-level morale system (not in Core Rules)",
+		"thresholds": {"max": 100, "high": 70, "low": 30, "critical": 10, "min": 0, "default": 50},
+		"adjustments": {
+			"victory": 10, "victory_decisive": 15,
+			"loss": -10, "loss_rout": -15,
+			"crew_death": -15, "crew_injury": -3,
+			"upkeep_paid": 2, "upkeep_failed": -10,
+			"luxury_living": 5, "natural_recovery": 3
+		},
+		"desertion": {"chance_low": 10, "chance_critical": 25}
+	},
+	"upkeep": {
+		"source": "Core Rules p.76",
+		"crew_upkeep_threshold": 4,
+		"crew_upkeep_cap": 6,
+		"ship_maintenance_base": 1,
+		"injury_treatment_cost": 2,
+		"luxury_upkeep_modifier": 2,
+		"hull_repair_cost_per_point": 3
+	},
+	"story_points": {
+		"source": "Core Rules pp.66-67",
+		"starting_points_base_min": 2,
+		"starting_points_base_max": 7,
+		"hardcore_penalty": -1,
+		"turn_earning_interval": 3,
+		"battle_earning_amount": 1,
+		"credits_reward": 3,
+		"xp_reward": 3,
+		"spend_cost": 1
+	},
+	"luck": {
+		"source": "Core Rules pp.91-92",
+		"human_cap": 3,
+		"nonhuman_cap": 1
+	},
+	"stat_ranges": {
+		"min": 1, "max": 6, "average": 3, "elite": 5
+	},
+	"character_creation": {
+		"starting_credits": 1,
+		"max_crew_size": 8,
+		"min_crew_size": 4,
+		"attribute_dice": "2d6",
+		"attribute_divisor": 3
+	},
+	"campaign_turns_config": {
+		"max_turns": 100,
+		"short_campaign": 20,
+		"medium_campaign": 50,
+		"long_campaign": 100,
+		"story_quest_minimum": 3
+	},
+	"economy": {
+		"source": "Core Rules 3e pp.28, 64, 76 — VERIFIED Mar 22, 2026",
+		"starting_debt": 75,
+		"upkeep_threshold": 4,
+		"upkeep_cap": 6,
+		"base_upkeep": 1,
+		"additional_crew_cost": 1,
+		"ship_maintenance_base": 0,
+		"injury_treatment_cost": 4,
+		"luxury_upkeep_modifier": 2,
+		"hull_repair_cost_per_point": 1,
+		"trade_profit_multiplier": 10,
+		"equipment_degradation": 0.1,
+		"starship_travel": 5,
+		"commercial_passage_per_crew": 1,
+		"starting_credits_per_crew": 1
+	},
+	"combat": {
+		"source": "Core Rules 3e pp.40, 44, 112 — VERIFIED Mar 22, 2026",
+		"seize_initiative_target": 10,
+		"stun_knockout_threshold": 3,
+		"to_hit_open_close": 3,
+		"to_hit_standard": 5,
+		"to_hit_cover": 6
 	}
 }

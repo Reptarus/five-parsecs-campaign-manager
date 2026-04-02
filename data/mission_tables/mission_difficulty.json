@@ -60,5 +60,24 @@
     ],
     "validation_rules": [],
     "modifiers": [],
-    "default_result": 1
+    "default_result": 1,
+    "crew_experience_weights": {
+        "rookie": 0.8,
+        "regular": 1.0,
+        "veteran": 1.2,
+        "elite": 1.4
+    },
+    "equipment_quality_modifiers": {
+        "basic": 0.9,
+        "standard": 1.0,
+        "advanced": 1.1,
+        "military": 1.3,
+        "exotic": 1.5
+    },
+    "campaign_turn_scaling": [
+        {"turn_range": [1, 5], "modifier": 0.7, "description": "Early campaign - reduced difficulty"},
+        {"turn_range": [6, 15], "modifier": 1.0, "description": "Mid campaign - standard difficulty"},
+        {"turn_range": [16, 30], "modifier": 1.2, "description": "Late campaign - increased difficulty"},
+        {"turn_range": [31, 999], "modifier": 1.4, "description": "Extended campaign - high difficulty"}
+    ]
 }

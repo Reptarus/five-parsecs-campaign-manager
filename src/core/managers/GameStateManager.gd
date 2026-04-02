@@ -186,9 +186,15 @@ func has_active_campaign() -> bool:
 	return false
 
 func start_new_campaign() -> void:
-	# Campaign creation wizard handles actual campaign creation
-	# via CampaignCreationUI → GameState.set_current_campaign()
-	pass
+	# Clear all residual state from previous sessions
+	# (Battle Simulator, Bug Hunt, etc.) so campaign creation
+	# starts with a clean slate
+	clear_all_temp_data()
+
+	# Null out any stale campaign reference in GameState
+	var gs = get_node_or_null("/root/GameState")
+	if gs:
+		gs.current_campaign = null
 
 func set_tutorial_state(enabled: bool) -> void:
 	settings["tutorial_active"] = enabled
@@ -205,6 +211,9 @@ func has_temp_data(key: String) -> bool:
 
 func clear_temp_data(key: String) -> void:
 	_temp_data.erase(key)
+
+func clear_all_temp_data() -> void:
+	_temp_data.clear()
 
 func mark_campaign_modified() -> void:
 	pass

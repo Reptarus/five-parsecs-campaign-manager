@@ -514,6 +514,10 @@ func _show_phase_ui(phase: int) -> void:
 
 	# Show appropriate phase UI based on enum value
 	match phase:
+		GlobalEnums.FiveParsecsCampaignPhase.NONE, \
+		GlobalEnums.FiveParsecsCampaignPhase.SETUP:
+			pass # Internal transition phases — no UI to show
+
 		GlobalEnums.FiveParsecsCampaignPhase.STORY:
 			if story_phase_panel:
 				story_phase_panel.show()

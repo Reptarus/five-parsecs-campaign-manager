@@ -49,15 +49,43 @@ enum SpendType {
 	EXTRA_ACTION          ## Take additional campaign action (once per turn)
 }
 
-## Constants
-const STARTING_POINTS_BASE_MIN := 2  # 1D6+1 minimum
-const STARTING_POINTS_BASE_MAX := 7  # 1D6+1 maximum
-const HARDCORE_PENALTY := -1
-const TURN_EARNING_INTERVAL := 3     # Earn point every 3rd turn
-const BATTLE_EARNING_AMOUNT := 1     # Points from held field + death
-const CREDITS_REWARD := 3            # Credits per story point spent
-const XP_REWARD := 3                 # XP per story point spent
-const SPEND_COST := 1                # All spending costs 1 point
+## Constants loaded from res://data/campaign_config.json story_points section
+## Source: Core Rules pp.66-67
+static var _sp_data: Dictionary = {}
+static var _sp_loaded: bool = false
+
+static func _ensure_sp_loaded() -> void:
+	if _sp_loaded:
+		return
+	_sp_loaded = true
+	var file := FileAccess.open("res://data/campaign_config.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_sp_data = json.data.get("story_points", {})
+	file.close()
+
+static func _sp_val(key: String, default_val: int) -> int:
+	_ensure_sp_loaded()
+	return int(_sp_data.get(key, default_val))
+
+static var STARTING_POINTS_BASE_MIN: int: # @no-lint:variable-name
+	get: return _sp_val("starting_points_base_min", 2)
+static var STARTING_POINTS_BASE_MAX: int: # @no-lint:variable-name
+	get: return _sp_val("starting_points_base_max", 7)
+static var HARDCORE_PENALTY: int: # @no-lint:variable-name
+	get: return _sp_val("hardcore_penalty", -1)
+static var TURN_EARNING_INTERVAL: int: # @no-lint:variable-name
+	get: return _sp_val("turn_earning_interval", 3)
+static var BATTLE_EARNING_AMOUNT: int: # @no-lint:variable-name
+	get: return _sp_val("battle_earning_amount", 1)
+static var CREDITS_REWARD: int: # @no-lint:variable-name
+	get: return _sp_val("credits_reward", 3)
+static var XP_REWARD: int: # @no-lint:variable-name
+	get: return _sp_val("xp_reward", 3)
+static var SPEND_COST: int: # @no-lint:variable-name
+	get: return _sp_val("spend_cost", 1)
 
 ## Current story point balance
 var _current_points: int = 0

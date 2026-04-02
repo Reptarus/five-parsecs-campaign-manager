@@ -1,5 +1,5 @@
 {
-	"description": "Core Rules terrain themes for tabletop setup. Features are categorized as Large/Small/Linear per the Standard Terrain Set (p.44-45). Total features capped at 13 for a 3x3 table.",
+	"description": "Core Rules terrain themes for tabletop setup. Features are categorized as Large/Small/Linear per the Standard Terrain Set (p.44-45). Total features capped at 12 for a 3x3 table (Core Rules p.109).",
 	"sector_grid": {
 		"columns": 4,
 		"rows": 4,
@@ -8,8 +8,8 @@
 	"standard_terrain_set": {
 		"large": 3,
 		"small": 6,
-		"linear": 4,
-		"total": 13
+		"linear": 3,
+		"total": 12
 	},
 	"themes": {
 		"industrial_zone": {

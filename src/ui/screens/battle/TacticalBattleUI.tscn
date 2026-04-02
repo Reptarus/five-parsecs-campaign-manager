@@ -60,43 +60,50 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="MainContainer" type="VBoxContainer" parent="." unique_id=1688165942]
+[node name="EdgeMargin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
 
-[node name="TopBar" type="HBoxContainer" parent="MainContainer" unique_id=222416739]
+[node name="MainContainer" type="VBoxContainer" parent="EdgeMargin" unique_id=1688165942]
+layout_mode = 2
+
+[node name="TopBar" type="HBoxContainer" parent="EdgeMargin/MainContainer" unique_id=222416739]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="MainContainer/TopBar" unique_id=940067805]
+[node name="TitleLabel" type="Label" parent="EdgeMargin/MainContainer/TopBar" unique_id=940067805]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
 theme_override_font_sizes/font_size = 22
 text = "Tactical Companion"
 
-[node name="TierBadge" type="Label" parent="MainContainer/TopBar" unique_id=1714057206]
+[node name="TierBadge" type="Label" parent="EdgeMargin/MainContainer/TopBar" unique_id=1714057206]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 theme_override_font_sizes/font_size = 14
 text = "[LOG ONLY]"
 
-[node name="PhaseBreadcrumb" type="HBoxContainer" parent="MainContainer/TopBar" unique_id=1716940600]
+[node name="PhaseBreadcrumb" type="HBoxContainer" parent="EdgeMargin/MainContainer/TopBar" unique_id=1716940600]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Spacer" type="Control" parent="MainContainer/TopBar" unique_id=975687842]
+[node name="Spacer" type="Control" parent="EdgeMargin/MainContainer/TopBar" unique_id=975687842]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ReturnButton" type="Button" parent="MainContainer/TopBar" unique_id=597556608]
+[node name="ReturnButton" type="Button" parent="EdgeMargin/MainContainer/TopBar" unique_id=597556608]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 44)
@@ -107,7 +114,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_2")
 theme_override_styles/hover = SubResource("StyleBoxFlat_2")
 text = "Return"
 
-[node name="AutoResolveButton" type="Button" parent="MainContainer/TopBar" unique_id=374806947]
+[node name="AutoResolveButton" type="Button" parent="EdgeMargin/MainContainer/TopBar" unique_id=374806947]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 44)
@@ -118,39 +125,39 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_2")
 theme_override_styles/hover = SubResource("StyleBoxFlat_2")
 text = "Auto Resolve"
 
-[node name="ContentArea" type="HBoxContainer" parent="MainContainer" unique_id=74507662]
+[node name="ContentArea" type="HBoxContainer" parent="EdgeMargin/MainContainer" unique_id=74507662]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 4
 
-[node name="LeftPanel" type="PanelContainer" parent="MainContainer/ContentArea" unique_id=1639494840]
+[node name="LeftPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea" unique_id=1639494840]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
-[node name="LeftScroll" type="ScrollContainer" parent="MainContainer/ContentArea/LeftPanel" unique_id=1828104885]
+[node name="LeftScroll" type="ScrollContainer" parent="EdgeMargin/MainContainer/ContentArea/LeftPanel" unique_id=1828104885]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="CrewContent" type="VBoxContainer" parent="MainContainer/ContentArea/LeftPanel/LeftScroll" unique_id=124886413]
+[node name="CrewContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/ContentArea/LeftPanel/LeftScroll" unique_id=124886413]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="CenterPanel" type="VBoxContainer" parent="MainContainer/ContentArea" unique_id=1934020739]
+[node name="CenterPanel" type="VBoxContainer" parent="EdgeMargin/MainContainer/ContentArea" unique_id=1934020739]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 3.0
 theme_override_constants/separation = 4
 
-[node name="BattlefieldGridPanel" type="PanelContainer" parent="MainContainer/ContentArea/CenterPanel" unique_id=1629979660]
+[node name="BattlefieldGridPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea/CenterPanel" unique_id=1629979660]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
@@ -158,27 +165,27 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("2_grid")
 
-[node name="PhaseContentPanel" type="PanelContainer" parent="MainContainer/ContentArea/CenterPanel" unique_id=1579137282]
+[node name="PhaseContentPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea/CenterPanel" unique_id=1579137282]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 180)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
-[node name="PhaseContentScroll" type="ScrollContainer" parent="MainContainer/ContentArea/CenterPanel/PhaseContentPanel" unique_id=1211146587]
+[node name="PhaseContentScroll" type="ScrollContainer" parent="EdgeMargin/MainContainer/ContentArea/CenterPanel/PhaseContentPanel" unique_id=1211146587]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PhaseContent" type="VBoxContainer" parent="MainContainer/ContentArea/CenterPanel/PhaseContentPanel/PhaseContentScroll" unique_id=1435866972]
+[node name="PhaseContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/ContentArea/CenterPanel/PhaseContentPanel/PhaseContentScroll" unique_id=1435866972]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="FallbackLog" type="RichTextLabel" parent="MainContainer/ContentArea/CenterPanel/PhaseContentPanel/PhaseContentScroll/PhaseContent" unique_id=1291947755]
+[node name="FallbackLog" type="RichTextLabel" parent="EdgeMargin/MainContainer/ContentArea/CenterPanel/PhaseContentPanel/PhaseContentScroll/PhaseContent" unique_id=1291947755]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
@@ -188,34 +195,34 @@ theme_override_font_sizes/normal_font_size = 14
 bbcode_enabled = true
 scroll_following = true
 
-[node name="RightPanel" type="PanelContainer" parent="MainContainer/ContentArea" unique_id=52812964]
+[node name="RightPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea" unique_id=52812964]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
-[node name="RightTabs" type="TabContainer" parent="MainContainer/ContentArea/RightPanel" unique_id=1336736706]
+[node name="RightTabs" type="TabContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel" unique_id=1336736706]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 current_tab = 0
 
-[node name="Setup" type="ScrollContainer" parent="MainContainer/ContentArea/RightPanel/RightTabs" unique_id=1707289435]
+[node name="Setup" type="ScrollContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel/RightTabs" unique_id=1707289435]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 metadata/_tab_index = 0
 
-[node name="SetupContent" type="VBoxContainer" parent="MainContainer/ContentArea/RightPanel/RightTabs/Setup" unique_id=1741463486]
+[node name="SetupContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel/RightTabs/Setup" unique_id=1741463486]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="Tools" type="ScrollContainer" parent="MainContainer/ContentArea/RightPanel/RightTabs" unique_id=1253397515]
+[node name="Tools" type="ScrollContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel/RightTabs" unique_id=1253397515]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
@@ -223,14 +230,14 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 metadata/_tab_index = 1
 
-[node name="ToolsContent" type="VBoxContainer" parent="MainContainer/ContentArea/RightPanel/RightTabs/Tools" unique_id=589793601]
+[node name="ToolsContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel/RightTabs/Tools" unique_id=589793601]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="Reference" type="ScrollContainer" parent="MainContainer/ContentArea/RightPanel/RightTabs" unique_id=736946801]
+[node name="Reference" type="ScrollContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel/RightTabs" unique_id=736946801]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
@@ -238,29 +245,28 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 metadata/_tab_index = 2
 
-[node name="ReferenceContent" type="VBoxContainer" parent="MainContainer/ContentArea/RightPanel/RightTabs/Reference" unique_id=1255763190]
+[node name="ReferenceContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel/RightTabs/Reference" unique_id=1255763190]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="BottomBar" type="PanelContainer" parent="MainContainer" unique_id=1654327444]
-custom_minimum_size = Vector2(0, 110)
+[node name="BottomBar" type="PanelContainer" parent="EdgeMargin/MainContainer" unique_id=1654327444]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_3")
 
-[node name="BottomContent" type="VBoxContainer" parent="MainContainer/BottomBar" unique_id=644975370]
+[node name="BottomContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/BottomBar" unique_id=644975370]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="PhaseHUD" type="HBoxContainer" parent="MainContainer/BottomBar/BottomContent" unique_id=22526720]
+[node name="PhaseHUD" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent" unique_id=22526720]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="TurnIndicator" type="Label" parent="MainContainer/BottomBar/BottomContent/PhaseHUD" unique_id=414951207]
+[node name="TurnIndicator" type="Label" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/PhaseHUD" unique_id=414951207]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
@@ -268,19 +274,19 @@ theme_override_font_sizes/font_size = 16
 text = "Setting Up"
 horizontal_alignment = 1
 
-[node name="ActionBar" type="HBoxContainer" parent="MainContainer/BottomBar/BottomContent" unique_id=828223857]
+[node name="ActionBar" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent" unique_id=828223857]
 layout_mode = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="PhaseButtonsContainer" type="HBoxContainer" parent="MainContainer/BottomBar/BottomContent/ActionBar" unique_id=943699151]
+[node name="PhaseButtonsContainer" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=943699151]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="EndTurnButton" type="Button" parent="MainContainer/BottomBar/BottomContent/ActionBar" unique_id=1793506733]
+[node name="EndTurnButton" type="Button" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=1793506733]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2

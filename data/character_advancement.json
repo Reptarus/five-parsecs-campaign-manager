@@ -1,0 +1,43 @@
+{
+  "name": "Character Advancement",
+  "source": "Core Rules pp.67-76 (Character Advancement rules)",
+  "advancement_costs": {
+    "reactions": 7,
+    "combat_skill": 7,
+    "speed": 5,
+    "savvy": 5,
+    "toughness": 6,
+    "luck": 10
+  },
+  "base_stat_maximums": {
+    "reactions": 6,
+    "combat_skill": 5,
+    "speed": 8,
+    "savvy": 5,
+    "toughness": 6,
+    "luck": 3
+  },
+  "background_restrictions": {
+    "Engineer": {
+      "toughness": 4
+    }
+  },
+  "species_restrictions": {
+    "Human": {
+      "luck": 3
+    },
+    "non_human_default": {
+      "luck": 1
+    }
+  },
+  "advancement_priority": [
+    "combat_skill",
+    "reactions",
+    "toughness",
+    "speed",
+    "savvy",
+    "luck"
+  ],
+  "min_advancement_xp": 5,
+  "absolute_stat_max": 8
+}

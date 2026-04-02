@@ -13,63 +13,29 @@ signal keywords_registered(count: int)
 var _battle_keywords: Dictionary = {}
 
 func _init() -> void:
-	_populate_battle_keywords()
+	_load_battle_keywords()
 
-## Populate all Five Parsecs battle combat terms.
-func _populate_battle_keywords() -> void:
-	# Turn Sequence (Core Rules p.38)
-	_add("Reaction Roll", "Roll 1d6 per crew member. Result <= Reactions stat = Quick Action this round.", 38, "turn_sequence")
-	_add("Quick Actions", "Crew members who passed their Reaction Roll act first. Each can Move + Act.", 38, "turn_sequence")
-	_add("Slow Actions", "Crew members who failed their Reaction Roll act after enemies. Each can Move + Act.", 38, "turn_sequence")
-	_add("Enemy Actions", "All enemy figures act between Quick and Slow Actions. See AI behavior type.", 38, "turn_sequence")
-	_add("End Phase", "Check morale (if casualties this round), resolve conditions, check battle events.", 38, "turn_sequence")
-
-	# Movement (Core Rules p.39)
-	_add("Dash", "Move up to full Speed in inches. Cannot fire weapons this activation.", 39, "movement")
-	_add("Combat Speed", "Move up to half Speed (round up). Can fire weapons after moving.", 39, "movement")
-	_add("Bail", "Move 1\" in any direction as a free action when enemy enters brawling range. Cannot Bail if Stunned.", 39, "movement")
-
-	# Shooting (Core Rules p.40-41)
-	_add("Aim", "+1 to Hit. Requires not moving this activation. Stacks with other modifiers.", 40, "shooting")
-	_add("Snap Fire", "Fire at an enemy that moves through line of sight during their activation. -1 to Hit.", 40, "shooting")
-	_add("Focused Fire", "When 2+ crew fire at same target in one round, second and subsequent shots get +1 to Hit.", 40, "shooting")
-	_add("Cover", "Target in cover: -1 to Hit. Must be behind terrain that blocks at least 50% of the figure.", 41, "shooting")
-	_add("Line of Sight", "Draw imaginary line from firing figure's head to any part of target. If unobstructed, target is visible.", 41, "shooting")
-
-	# Combat Resolution (Core Rules p.42-44)
-	_add("Brawl", "Close combat when figures are within 1\". Both roll 1d6 + Combat Skill. Highest wins. Loser takes a hit.", 42, "combat")
-	_add("Hit", "When a figure is hit: roll weapon Damage vs target Toughness. If Damage >= Toughness, figure is a casualty.", 43, "combat")
-	_add("Casualty", "Figure removed from play. Crew casualties roll on Injury Table after battle.", 44, "combat")
-	_add("Stun", "Figure is Stunned: cannot act next activation. If Stunned again while Stunned, becomes a casualty.", 44, "combat")
-	_add("Armor Save", "Some armor grants a save roll. Roll 1d6: if result >= save value, hit is negated.", 44, "combat")
-
-	# Morale (Core Rules p.114)
-	_add("Morale Check", "When first casualty occurs each round, enemy checks morale. Roll 2d6 vs Morale value.", 114, "morale")
-	_add("Panic", "Failed morale: 1d3 enemies flee the battlefield immediately. Remove from play.", 114, "morale")
-
-	# Initiative (Core Rules p.38)
-	_add("Seize Initiative", "At battle start, roll 1d6. On 6 (modified by crew size), crew acts before deployment.", 38, "initiative")
-
-	# Weapons (Core Rules p.45-47)
-	_add("Range", "Maximum distance in inches a weapon can fire. Targets beyond range cannot be hit.", 45, "weapons")
-	_add("Shots", "Number of attack rolls per activation with this weapon. Each shot is resolved separately.", 45, "weapons")
-	_add("Damage", "Roll this value vs target Toughness when a hit is scored. Damage >= Toughness = casualty.", 45, "weapons")
-
-	# Status Effects
-	_add("Suppressed", "Cannot advance toward enemy. Can only fire at -1 to Hit or take cover.", 44, "status")
-	_add("Wounded", "Crew member injured in battle. Roll on Injury Table after battle to determine severity.", 44, "status")
-
-	# Battle Events (Core Rules p.116-118)
-	_add("Battle Event", "Random event on rounds 2 and 4. Roll d100 on the Battle Events Table.", 116, "events")
-	_add("Escalation", "After round 4: roll d6 each round. On 1-2 battle ends. On 6 escalation event occurs.", 118, "events")
-	_add("Reinforcements", "Additional enemies arrive at table edge. Place d6 figures at a random board edge.", 118, "events")
-
-	# Deployment (Core Rules p.36-37)
-	_add("Deployment Zone", "Area where figures are initially placed. Standard: 6\" from your table edge.", 36, "deployment")
-	_add("Notable Sighting", "Roll d100 before battle. May encounter unique enemies or situations.", 37, "deployment")
-
-	# Objectives
-	_add("Objective", "Mission goal on the battlefield. Must be reached and held to complete mission objectives.", 60, "objectives")
+## Load battle keywords from res://data/battle_keywords.json
+func _load_battle_keywords() -> void:
+	var file := FileAccess.open("res://data/battle_keywords.json", FileAccess.READ)
+	if not file:
+		push_warning("BattleKeywordDB: Failed to open battle_keywords.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		push_warning("BattleKeywordDB: Failed to parse battle_keywords.json")
+		file.close()
+		return
+	file.close()
+	var keywords: Array = json.data.get("keywords", [])
+	for entry in keywords:
+		if entry is Dictionary and entry.has("term"):
+			_add(
+				entry.get("term", ""),
+				entry.get("definition", ""),
+				int(entry.get("page", 0)),
+				entry.get("category", "unknown"),
+			)
 
 ## Look up a keyword by term (case-insensitive).
 func lookup(term: String) -> Dictionary:

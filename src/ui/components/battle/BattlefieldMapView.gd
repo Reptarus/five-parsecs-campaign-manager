@@ -263,6 +263,9 @@ func _rebuild_terrain_shapes() -> void:
 	var sector_h: float = SECTOR_ROWS * base_cs
 	var scale_factor: float = SHAPE_SCALE_MULT
 
+	# Cross-sector collision tracking (absolute coordinates)
+	var all_placed_rects: Array[Rect2] = []
+
 	for sr: int in range(4):
 		for sc: int in range(4):
 			var shapes: Array = _sector_shapes[sr][sc]
@@ -270,12 +273,14 @@ func _rebuild_terrain_shapes() -> void:
 				_sector_placements[sr][sc] = []
 				continue
 
+			# Inset placement area to account for rotation overflow
+			var rot_margin: float = 16.0
 			var sector_origin := Vector2(
-				sc * sector_w + 4.0,
-				sr * sector_h + 14.0  # Leave room for sector label
+				sc * sector_w + 4.0 + rot_margin,
+				sr * sector_h + 14.0 + rot_margin
 			)
-			var avail_w: float = sector_w - 8.0
-			var avail_h: float = sector_h - 18.0
+			var avail_w: float = sector_w - 8.0 - rot_margin * 2.0
+			var avail_h: float = sector_h - 18.0 - rot_margin * 2.0
 
 			var placed_rects: Array[Rect2] = []
 			var positions: Array = []
@@ -288,6 +293,11 @@ func _rebuild_terrain_shapes() -> void:
 				var w: float = shape.get("width", 30.0) * scale_factor
 				var h: float = shape.get("height", 20.0) * scale_factor
 
+				# Compute rotation-aware collision padding for this shape
+				var shape_type_str: String = shape.get("shape", "rect")
+				var max_rot: float = BattlefieldShapeLibrary.get_rotation_range(shape_type_str)
+				var rot_padding: float = maxf(w, h) * sin(minf(absf(max_rot), PI / 4.0)) * 0.5
+
 				# Try random positions within sector
 				var placed: bool = false
 				for attempt: int in range(PLACEMENT_ATTEMPTS):
@@ -295,48 +305,63 @@ func _rebuild_terrain_shapes() -> void:
 					var try_y: float = placement_rng.randf() * maxf(avail_h - h, 1.0)
 					var candidate := Rect2(try_x, try_y, w, h)
 
-					# Check collision with already-placed shapes
+					# Check collision with same-sector shapes (rotation-aware)
 					var collides: bool = false
 					for placed_rect: Rect2 in placed_rects:
-						if candidate.grow(PLACEMENT_PADDING).intersects(placed_rect):
+						if candidate.grow(PLACEMENT_PADDING + rot_padding).intersects(placed_rect):
 							collides = true
 							break
+
+					# Check collision with shapes from other sectors (absolute coords)
+					if not collides:
+						var abs_candidate := Rect2(
+							sector_origin.x + try_x, sector_origin.y + try_y, w, h)
+						for global_rect: Rect2 in all_placed_rects:
+							if abs_candidate.grow(PLACEMENT_PADDING + rot_padding).intersects(global_rect):
+								collides = true
+								break
 
 					if not collides:
 						placed_rects.append(candidate)
 						positions.append(sector_origin + Vector2(try_x, try_y))
+						all_placed_rects.append(Rect2(
+							sector_origin.x + try_x, sector_origin.y + try_y,
+						w, h).grow(rot_padding))
 						placed = true
 						break
 
-				# Fallback: flow-layout (avoids overlap by accumulating offsets)
+				# Fallback: flow-layout with rotation-aware spacing
 				if not placed:
+					var total_pad: float = PLACEMENT_PADDING + rot_padding
 					var fallback_x: float = 0.0
 					var fallback_y: float = 0.0
-					# Find next open position by flowing past already-placed shapes
 					for existing: Rect2 in placed_rects:
-						var candidate_x: float = existing.position.x + existing.size.x + PLACEMENT_PADDING
+						var candidate_x: float = existing.position.x + existing.size.x + total_pad
 						if candidate_x + w <= avail_w:
 							fallback_x = candidate_x
 							fallback_y = existing.position.y
 						else:
-							# Wrap to next row below the tallest shape so far
 							fallback_x = 0.0
-							fallback_y = maxf(fallback_y, existing.end.y + PLACEMENT_PADDING)
+							fallback_y = maxf(fallback_y, existing.end.y + total_pad)
 					fallback_x = clampf(fallback_x, 0.0, maxf(avail_w - w, 0.0))
 					fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
 					var fb_rect := Rect2(fallback_x, fallback_y, w, h)
 					placed_rects.append(fb_rect)
 					positions.append(sector_origin + Vector2(fallback_x, fallback_y))
+					all_placed_rects.append(Rect2(
+						sector_origin.x + fallback_x,
+						sector_origin.y + fallback_y, w, h).grow(rot_padding))
 
-				# Create the SVS terrain node
+				# Create the SVS terrain node — position at shape center for symmetric rotation
 				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
 					shape, scale_factor)
-				svs.position = positions[positions.size() - 1]
+				var top_left: Vector2 = positions[positions.size() - 1]
+				svs.position = top_left + Vector2(w / 2.0, h / 2.0)
 				_terrain_container.add_child(svs)
+				# Set offset AFTER add_child so _ready() wires dimensions_changed first
+				svs.offset = Vector2(-w / 2.0, -h / 2.0)
 
-				# Apply random rotation for organic look
-				var shape_type_str: String = shape.get("shape", "rect")
-				var max_rot: float = BattlefieldShapeLibrary.get_rotation_range(shape_type_str)
+				# Apply random rotation (now pivots around shape center)
 				if max_rot > 0.0:
 					svs.rotation = placement_rng.randf_range(-max_rot, max_rot)
 

@@ -98,12 +98,15 @@ func _show_setup() -> void:
 	_results_panel.hide()
 	_setup_panel.show()
 	_header.show()
+	_restore_margins()
 
 
 func _show_battle(context: Dictionary) -> void:
 	_setup_panel.hide()
 	_results_panel.hide()
 	_header.hide()
+	# Give battle UI full screen — no wrapper margins
+	_set_margins(0)
 
 	# Instantiate TacticalBattleUI from scene
 	_battle_ui = TacticalBattleScene.instantiate()
@@ -129,8 +132,20 @@ func _show_battle(context: Dictionary) -> void:
 func _show_results(result) -> void:
 	_cleanup_battle_ui()
 	_header.show()
+	_restore_margins()
 	_results_panel.show_results(result)
 	_results_panel.show()
+
+
+func _set_margins(px: int) -> void:
+	_content_margin.add_theme_constant_override("margin_left", px)
+	_content_margin.add_theme_constant_override("margin_top", px)
+	_content_margin.add_theme_constant_override("margin_right", px)
+	_content_margin.add_theme_constant_override("margin_bottom", px)
+
+
+func _restore_margins() -> void:
+	_set_margins(20)
 
 
 func _cleanup_battle_ui() -> void:
@@ -163,6 +178,11 @@ func _on_play_again() -> void:
 
 func _on_back_to_menu() -> void:
 	_cleanup_battle_ui()
+	# Clear residual temp data to prevent state leakage
+	# into Campaign Creation or other modes
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("clear_all_temp_data"):
+		gsm.clear_all_temp_data()
 	var router = get_node_or_null("/root/SceneRouter")
 	if router:
 		router.navigate_to("main_menu")

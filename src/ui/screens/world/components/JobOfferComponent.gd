@@ -15,7 +15,6 @@ const CompendiumMissionsExpanded = preload("res://src/data/compendium_missions_e
 @onready var job_list: ItemList = %AvailableJobsList
 @onready var job_details_label: Label = %JobDetailsLabel
 @onready var accept_button: Button = %AcceptJobButton
-@onready var decline_button: Button = %DeclineJobButton
 @onready var reroll_button: Button = %RerollJobsButton
 
 # Job offer state
@@ -24,8 +23,12 @@ var selected_job_index: int = -1
 var job_accepted: bool = false
 var automation_enabled: bool = false
 
+# Enemy generation — uses JSON D100 tables instead of hardcoded list
+var _enemy_generator: EnemyGenerator = null
+
 func _ready() -> void:
 	name = "JobOfferComponent"
+	_enemy_generator = EnemyGenerator.new()
 	super._ready()
 
 func _subscribe_to_events() -> void:
@@ -42,8 +45,6 @@ func _connect_ui_signals() -> void:
 		push_warning("JobOfferComponent: job_list (AvailableJobsList) not found")
 	if accept_button:
 		accept_button.pressed.connect(_on_accept_job_pressed)
-	if decline_button:
-		decline_button.pressed.connect(_on_decline_job_pressed)
 	if reroll_button:
 		reroll_button.pressed.connect(_on_reroll_jobs_pressed)
 
@@ -377,67 +378,148 @@ func _generate_patron_name(tier: String) -> String:
 
 ## Create job offer using JSON data tables
 func _create_job_offer_from_table(patron_data: Dictionary, location: String, job_index: int, job_type_table: Dictionary, patron_table: Dictionary) -> Dictionary:
-	## Create job using patron_jobs.json table data
+	## Create job using patron_jobs.json table data (Core Rules pp.83-84)
 	if job_type_table.is_empty():
-		# Fallback to original method
 		return _create_job_offer(patron_data, location, job_index)
-	
+
+	var dice_manager = get_node_or_null("/root/DiceManager")
+
+	# Resolve patron type — roll on patron_type_table if not provided
+	var patron_type: String = str(patron_data.get("patron_type", ""))
+	var patron_name: String = str(patron_data.get("patron_name", ""))
+	var danger_pay_bonus: int = 0
+	var time_frame_bonus: int = 0
+
+	if patron_type.is_empty() or patron_type == "generic":
+		# Roll on patron_type_table from JSON (Core Rules p.83)
+		var type_table: Dictionary = patron_table.get(
+			"patron_type_table", {}
+		)
+		var type_entries: Array = type_table.get("entries", [])
+		if not type_entries.is_empty():
+			var type_roll: int = _roll_d10(dice_manager)
+			for entry in type_entries:
+				if entry is Dictionary:
+					var r: Array = entry.get("roll_range", [0, 0])
+					if r.size() >= 2 and type_roll >= (r[0] as int) and type_roll <= (r[1] as int):
+						patron_type = str(entry.get("type", "Private Organization"))
+						break
+		else:
+			var info: Dictionary = _roll_patron_type(dice_manager)
+			patron_type = info.type
+		# Generate a proper name based on patron type tier
+		var name_tier: String = _patron_type_to_name_tier(patron_type)
+		patron_name = _generate_patron_name(name_tier)
+
+	# Apply patron type bonuses (Core Rules p.83)
+	if patron_type == "Corporation":
+		danger_pay_bonus = 1
+	elif patron_type == "Secretive Group":
+		time_frame_bonus = 1
+
 	# Roll on job type table (d10)
-	var job_roll = GameDataLoader.roll_d10()
-	var job_result = GameDataLoader.roll_on_table(job_type_table, job_roll)
-	
+	var job_roll: int = GameDataLoader.roll_d10()
+	var job_result: Dictionary = GameDataLoader.roll_on_table(
+		job_type_table, job_roll
+	)
+
 	if job_result.is_empty():
-		push_warning("JobOfferComponent: No job type for roll %d, using fallback" % job_roll)
+		push_warning(
+			"JobOfferComponent: No job type for roll %d, fallback"
+			% job_roll
+		)
 		return _create_job_offer(patron_data, location, job_index)
-	
-	# Extract job type data — JSON uses "objective" key, not "job_type"
-	var job_type = job_result.get("job_type", job_result.get("objective", "DELIVERY"))
-	var job_description = job_result.get("description", job_result.get("objective", "Unknown job"))
-	var base_pay = job_result.get("base_pay", 4)
-	var danger_level = job_result.get("danger_level", 1)
-	var requirements = job_result.get("typical_requirements", [])
-	
-	# Apply patron tier multiplier
-	var payment_modifiers = patron_table.get("job_payment_modifiers", {})
-	var tier_multipliers = payment_modifiers.get("patron_tier_multipliers", {})
-	var patron_tier = patron_data.get("tier", patron_data.get("patron_type", "regular"))
-	var tier_multiplier = tier_multipliers.get(patron_tier, 1.0)
-	
+
+	# Extract job type data
+	var job_type: String = str(job_result.get(
+		"job_type", job_result.get("objective", "DELIVERY")
+	))
+	var job_description: String = str(job_result.get(
+		"description", job_result.get("objective", "Unknown job")
+	))
+	var base_pay: int = job_result.get("base_pay", 4) as int
+	var danger_level: int = job_result.get("danger_level", 1) as int
+	var requirements: Array = job_result.get("typical_requirements", [])
+
+	# Roll danger pay with patron bonus (Core Rules p.83)
+	var danger_pay_result: Dictionary = _roll_danger_pay(
+		dice_manager, danger_pay_bonus
+	)
+	var danger_pay_credits: int = danger_pay_result.credits
+
+	# Apply patron tier multiplier to base pay
+	var payment_modifiers: Dictionary = patron_table.get(
+		"job_payment_modifiers", {}
+	)
+	var tier_multipliers: Dictionary = payment_modifiers.get(
+		"patron_tier_multipliers", {}
+	)
+	var patron_tier: String = patron_data.get(
+		"tier", patron_type.to_lower()
+	)
+	var tier_multiplier: float = tier_multipliers.get(patron_tier, 1.0)
+
 	# Apply danger level bonus
-	var danger_bonuses = payment_modifiers.get("danger_level_bonuses", {})
-	var danger_bonus = danger_bonuses.get(str(danger_level), 0)
-	
-	# Calculate final payment
-	var final_pay = int(base_pay * tier_multiplier) + danger_bonus
-	
+	var danger_bonuses: Dictionary = payment_modifiers.get(
+		"danger_level_bonuses", {}
+	)
+	var danger_bonus: int = danger_bonuses.get(str(danger_level), 0) as int
+
+	# Final pay = base × tier + danger level bonus + danger pay roll
+	var final_pay: int = int(base_pay * tier_multiplier) + danger_bonus + danger_pay_credits
+
+	# Roll time frame with patron bonus (Core Rules p.83)
+	var time_frame: String = _roll_time_frame(
+		dice_manager, time_frame_bonus
+	)
+
 	# Derive mission source for Compendium battle type selection (p.118)
 	var mission_source: String = _derive_mission_source(patron_data)
 
-	# Build job structure
-	var job = {
+	var job: Dictionary = {
 		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
 		"location": location,
-		"patron_type": patron_data.get("patron_type", "generic"),
-		"patron_name": patron_data.get("patron_name", "Unknown Patron"),
+		"patron_type": patron_type,
+		"patron_name": patron_name,
 		"job_type": job_type,
 		"objective": job_type.capitalize(),
 		"objective_description": job_description,
 		"danger_pay": final_pay,
 		"pay": final_pay,
 		"danger_level": danger_level,
-		"time_frame": _roll_time_frame(null, 0),  # Use existing function
+		"time_frame": time_frame,
 		"requirements": requirements,
 		"benefits": [],
 		"hazards": [],
 		"conditions": [],
-		"enemy_type": _determine_enemy_type(),
-		"double_roll_bonus": false,
-		"patron": patron_data.get("patron_name", "Unknown"),
+		"enemy_type": _determine_enemy_type(mission_source),
+		"double_roll_bonus": danger_pay_result.double_roll_bonus,
+		"patron": patron_name,
 		"source": mission_source,
 		"mission_source": mission_source,
 	}
 
 	return job
+
+func _roll_d10(dice_manager) -> int:
+	## Roll a D10 using DiceManager or fallback to randi
+	if dice_manager and dice_manager.has_method("roll_d10"):
+		return dice_manager.roll_d10()
+	return (randi() % 10) + 1
+
+func _patron_type_to_name_tier(patron_type: String) -> String:
+	## Map Core Rules patron type to name generation tier
+	match patron_type:
+		"Corporation", "Sector Government":
+			return "major"
+		"Local Government", "Wealthy Individual":
+			return "regular"
+		"Private Organization":
+			return "regular"
+		"Secretive Group":
+			return "elite"
+		_:
+			return "regular"
 
 ## Original job creation method (fallback)
 func _create_job_offer(patron_data: Dictionary, location: String, job_index: int) -> Dictionary:
@@ -480,7 +562,7 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 		"benefits": bhc.benefits,
 		"hazards": bhc.hazards,
 		"conditions": bhc.conditions,
-		"enemy_type": _determine_enemy_type(),
+		"enemy_type": _determine_enemy_type(mission_source),
 		# Legacy fields for compatibility
 		"pay": danger_pay.credits,
 		"danger_level": (dice_manager.roll_d6() % 3) + 1 if dice_manager else 1,
@@ -708,23 +790,28 @@ func _roll_condition_subtable(dice_manager) -> Dictionary:
 		10, _:
 			return {"name": "Reputation Required", "effect": "Need prior job on this world"}
 
-func _determine_enemy_type() -> String:
-	## Determine enemy type for job
-	var enemy_types = [
-		"Raiders",
-		"Rivals",
-		"Criminals",
-		"Pirates",
-		"Bounty Hunters",
-		"Unknown Hostiles"
-	]
+func _determine_enemy_type(mission_source: String = "patron") -> String:
+	## Determine enemy type using D100 encounter tables from enemy_types.json.
+	## Rolls on enemy_encounter_categories to pick a category, then
+	## rolls within that category using per-enemy roll_range fields.
+	## Core Rules pp.94-103.
+	if _enemy_generator:
+		var template: Dictionary = _enemy_generator.select_enemy_for_mission(
+			mission_source
+		)
+		if not template.is_empty():
+			return template.get("name", "Unknown Hostiles")
 
+	# Fallback if EnemyGenerator unavailable
+	var fallback_types := [
+		"Raiders", "Rivals", "Criminals",
+		"Pirates", "Bounty Hunters", "Unknown Hostiles"
+	]
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	if dice_manager:
-		var index = dice_manager.roll_d6() - 1
-		return enemy_types[index % enemy_types.size()]
-
-	return enemy_types[0]
+		var index: int = dice_manager.roll_d6() - 1
+		return fallback_types[index % fallback_types.size()]
+	return fallback_types[randi() % fallback_types.size()]
 
 ## Derive mission source category for Compendium battle type selection (p.118)
 ## Maps patron_type to source: "patron", "opportunity", "rival", "faction", "quest"
@@ -760,19 +847,6 @@ func accept_selected_job() -> bool:
 	_update_ui_display()
 	return true
 
-func decline_selected_job() -> void:
-	## Decline the currently selected job
-	if selected_job_index < 0 or selected_job_index >= available_jobs.size():
-		return
-
-	var job = available_jobs[selected_job_index]
-
-	# Remove job from available list
-	available_jobs.remove_at(selected_job_index)
-	selected_job_index = -1
-
-	_update_ui_display()
-
 ## UI Event Handlers
 func _on_job_selected(index: int) -> void:
 	## Handle job selection from list
@@ -783,10 +857,6 @@ func _on_job_selected(index: int) -> void:
 func _on_accept_job_pressed() -> void:
 	## Handle accept job button press
 	accept_selected_job()
-
-func _on_decline_job_pressed() -> void:
-	## Handle decline job button press
-	decline_selected_job()
 
 func _on_reroll_jobs_pressed() -> void:
 	## Handle reroll jobs button press (costs 1 credit)
@@ -820,8 +890,6 @@ func _update_ui_display() -> void:
 	var has_selection = selected_job_index >= 0 and selected_job_index < available_jobs.size()
 	if accept_button:
 		accept_button.disabled = not has_selection or job_accepted
-	if decline_button:
-		decline_button.disabled = not has_selection or job_accepted
 
 	_update_job_details()
 

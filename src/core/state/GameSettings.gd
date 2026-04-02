@@ -19,6 +19,43 @@ const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 var completed_tutorials: Array[String] = []
 
+## Difficulty data loaded from res://data/difficulty_modifiers.json
+static var _diff_data: Dictionary = {}
+static var _diff_loaded: bool = false
+
+static func _ensure_diff_loaded() -> void:
+	if _diff_loaded:
+		return
+	_diff_loaded = true
+	var file := FileAccess.open("res://data/difficulty_modifiers.json", FileAccess.READ)
+	if not file:
+		push_error("GameSettings: Failed to open difficulty_modifiers.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_diff_data = json.data
+	file.close()
+
+## Map DifficultyLevel enum → JSON key
+static func _get_diff_key(level: int) -> String:
+	match level:
+		GameEnums.DifficultyLevel.NONE: return "NONE"
+		GameEnums.DifficultyLevel.EASY: return "EASY"
+		GameEnums.DifficultyLevel.NORMAL: return "NORMAL"
+		GameEnums.DifficultyLevel.CHALLENGING: return "CHALLENGING"
+		GameEnums.DifficultyLevel.HARD: return "HARD"
+		GameEnums.DifficultyLevel.HARDCORE: return "HARDCORE"
+		GameEnums.DifficultyLevel.NIGHTMARE: return "NIGHTMARE"
+		GameEnums.DifficultyLevel.ELITE: return "ELITE"
+		_: return "NORMAL"
+
+## Get a modifier value from JSON for the given difficulty level
+static func _get_diff_value(level: int, key: String, default_value: Variant = 0) -> Variant:
+	_ensure_diff_loaded()
+	var levels: Dictionary = _diff_data.get("difficulty_levels", {})
+	var level_data: Dictionary = levels.get(_get_diff_key(level), {})
+	return level_data.get(key, default_value)
+
 func _init() -> void:
 	pass
 
@@ -26,49 +63,13 @@ func set_difficulty(level: GameEnums.DifficultyLevel) -> void:
 	difficulty_level = level
 
 func get_enemy_strength_modifier() -> float:
-	match difficulty_level:
-		GameEnums.DifficultyLevel.EASY:
-			return 0.8
-		GameEnums.DifficultyLevel.HARD:
-			return 1.5
-		GameEnums.DifficultyLevel.NIGHTMARE:
-			return 2.0
-		GameEnums.DifficultyLevel.HARDCORE:
-			return 2.5
-		GameEnums.DifficultyLevel.ELITE:
-			return 3.0
-		_:
-			return 1.0
+	return float(_get_diff_value(difficulty_level, "enemy_strength_multiplier", 1.0))
 
 func get_loot_modifier() -> float:
-	match difficulty_level:
-		GameEnums.DifficultyLevel.EASY:
-			return 1.2
-		GameEnums.DifficultyLevel.HARD:
-			return 0.8
-		GameEnums.DifficultyLevel.NIGHTMARE:
-			return 0.6
-		GameEnums.DifficultyLevel.HARDCORE:
-			return 0.5
-		GameEnums.DifficultyLevel.ELITE:
-			return 0.4
-		_:
-			return 1.0
+	return float(_get_diff_value(difficulty_level, "loot_modifier", 1.0))
 
 func get_credit_modifier() -> float:
-	match difficulty_level:
-		GameEnums.DifficultyLevel.EASY:
-			return 1.2
-		GameEnums.DifficultyLevel.HARD:
-			return 0.7
-		GameEnums.DifficultyLevel.NIGHTMARE:
-			return 0.5
-		GameEnums.DifficultyLevel.HARDCORE:
-			return 0.4
-		GameEnums.DifficultyLevel.ELITE:
-			return 0.3
-		_:
-			return 1.0
+	return float(_get_diff_value(difficulty_level, "credit_modifier", 1.0))
 
 func set_campaign_type(type: GameEnums.FiveParcsecsCampaignType) -> void:
 	campaign_type = type

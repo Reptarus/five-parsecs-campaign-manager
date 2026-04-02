@@ -64,6 +64,14 @@ func _ready() -> void:
 	_build_ui()
 	_update_display()
 
+func _get_minimum_size() -> Vector2:
+	## Propagate internal VBox minimum size so parent containers allocate enough space.
+	## BattleRoundHUD extends Control (not Container), so this override is required.
+	var vbox: VBoxContainer = get_node_or_null("MainVBox")
+	if vbox:
+		return vbox.get_combined_minimum_size()
+	return Vector2.ZERO
+
 ## Connect to BattleRoundTracker signals
 func connect_to_tracker(tracker: BattleRoundTrackerClass) -> void:
 	## Wire up signals from BattleRoundTracker (call-down pattern)

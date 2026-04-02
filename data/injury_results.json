@@ -171,6 +171,30 @@
     "no_xp_rule": "Any character that flees the battlefield in the first 2 rounds receives no XP",
     "bot_rule": "Bots do not receive XP"
   },
+  "treatment_options": {
+    "source": "Core Rules p.76, p.122",
+    "sick_bay": {
+      "name": "Sick Bay Treatment",
+      "cost_per_turn": 4,
+      "description": "Pay 4 credits to reduce recovery by 1 turn",
+      "applicable_injuries": ["CRIPPLING_WOUND", "SERIOUS_INJURY", "MINOR_INJURY"]
+    },
+    "surgery": {
+      "name": "Emergency Surgery",
+      "cost_dice": "1d6",
+      "cost_min": 1,
+      "cost_max": 6,
+      "description": "Pay 1D6 credits for instant recovery",
+      "applicable_injuries": ["CRIPPLING_WOUND"],
+      "effect": "instant_recovery"
+    },
+    "natural": {
+      "name": "Natural Recovery",
+      "cost_per_turn": 0,
+      "description": "Wait out recovery turns at no cost",
+      "applicable_injuries": ["CRIPPLING_WOUND", "SERIOUS_INJURY", "MINOR_INJURY"]
+    }
+  },
   "processing_rules": {
     "luck_override": {
       "description": "A character with Luck survives a fatal injury but loses all Luck points",

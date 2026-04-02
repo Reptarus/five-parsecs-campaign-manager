@@ -378,36 +378,52 @@ func _process_retreat() -> void:
 	# Additional processing for retreat conditions
 	pass
 
+## Battle reward data loaded from res://data/battle_rewards.json
+static var _br_data: Dictionary = {}
+static var _br_loaded: bool = false
+
+static func _ensure_br_loaded() -> void:
+	if _br_loaded:
+		return
+	_br_loaded = true
+	var file := FileAccess.open("res://data/battle_rewards.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_br_data = json.data
+	file.close()
+
 func _calculate_rewards() -> void:
+	_ensure_br_loaded()
 	var reward_data = {}
-	
+	var outcomes: Dictionary = _br_data.get("outcome_rewards", {})
+
 	# Base rewards based on outcome
-	match _current_battle.outcome:
-		OUTCOME_VICTORY:
-			reward_data["credits"] = 100 + randi() % 100
-			reward_data["reputation"] = 5
-		OUTCOME_DRAW:
-			reward_data["credits"] = 50 + randi() % 50
-			reward_data["reputation"] = 2
-		OUTCOME_DEFEAT:
-			reward_data["credits"] = 25
-			reward_data["reputation"] = 0
-		OUTCOME_RETREAT:
-			reward_data["credits"] = 0
-			reward_data["reputation"] = -2
-			
+	var outcome_key: String = _current_battle.outcome
+	var outcome_data: Dictionary = outcomes.get(outcome_key, {})
+	var credits_min: int = int(outcome_data.get("credits_min", 0))
+	var credits_range: int = int(outcome_data.get("credits_range", 0))
+	reward_data["credits"] = credits_min + (randi() % (credits_range + 1) if credits_range > 0 else 0)
+	reward_data["reputation"] = int(outcome_data.get("reputation", 0))
+
 	# Additional rewards based on mission type
+	var type_bonuses: Dictionary = _br_data.get("mission_type_bonuses", {})
 	match _current_battle.mission_type:
 		GlobalEnums.MissionType.BLACK_ZONE:
-			reward_data["credits"] += 100
-			reward_data["tech_parts"] = 1 + randi() % 3
+			var bz: Dictionary = type_bonuses.get("BLACK_ZONE", {})
+			reward_data["credits"] += int(bz.get("credits", 100))
+			var tp_min: int = int(bz.get("tech_parts_min", 1))
+			var tp_range: int = int(bz.get("tech_parts_range", 3))
+			reward_data["tech_parts"] = tp_min + randi() % tp_range
 		GlobalEnums.MissionType.RESCUE:
-			reward_data["credits"] += 50
-			reward_data["reputation"] += 3
-			
+			var rc: Dictionary = type_bonuses.get("RESCUE", {})
+			reward_data["credits"] += int(rc.get("credits", 50))
+			reward_data["reputation"] += int(rc.get("reputation", 3))
+
 	# Calculate loot drops
 	reward_data["loot"] = _generate_battle_loot()
-		
+
 	_current_battle.rewards = reward_data
 	rewards_calculated.emit(reward_data)
 	

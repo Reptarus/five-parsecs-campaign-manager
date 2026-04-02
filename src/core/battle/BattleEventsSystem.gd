@@ -74,7 +74,7 @@ var event_registry: Dictionary = {}
 
 func _init() -> void:
 	if not _load_events_from_json():
-		_initialize_event_registry()
+		push_error("BattleEventsSystem: Failed to load event_tables.json — battle events will be empty")
 
 ## Load battle events from event_tables.json (Core Rules pp.116-117)
 func _load_events_from_json() -> bool:
@@ -513,83 +513,8 @@ func _deserialize_hazards(data: Array) -> Array[EnvironmentalHazard]:
 			hazards.append(hazard)
 	return hazards
 
-## Initialize the complete Core Rules event registry (p.116-117)
-func _initialize_event_registry() -> void:
-	# Complete Core Rules Battle Events (1-100 range)
-	event_registry = {
-		"RENEWED_EFFORTS": _create_event("RENEWED_EFFORTS", "Renewed Efforts", [1, 5],
-			"The enemy is making a concerted effort to push you back. For the rest of the battle, after all enemy figures have acted, select a random figure that may immediately take a second Move and second Combat Action.",
-			{"target_type": "enemy"}),
-		"ENEMY_REINFORCEMENTS": _create_event("ENEMY_REINFORCEMENTS", "Enemy Reinforcements", [6, 9],
-			"An additional 2 enemy figures arrive at the center of the opposing battlefield edge. One is armed as a Specialist (if applicable to the enemy type).",
-			{"target_type": "enemy"}),
-		"CHANGE_OF_PLANS": _create_event("CHANGE_OF_PLANS", "Change of Plans", [10, 13],
-			"The enemy switches to the Cautious AI type for the rest of the battle. If they were already Cautious, they instead switch to Tactical AI. Enemies with no ranged attacks are unaffected by this event.",
-			{"target_type": "enemy"}),
-		"LOST_HEART": _create_event("LOST_HEART", "Lost Heart", [14, 16],
-			"The enemy has had enough of this fight. At the end of the next round, they will leave the field.",
-			{"target_type": "enemy"}),
-		"SEIZED_MOMENT": _create_event("SEIZED_MOMENT", "Seized the Moment", [17, 20],
-			"Select a crew member who may move and act in both the Quick and Slow Actions phases next round.",
-			{"target_type": "crew"}),
-		"CRITTERS": _create_event("CRITTERS", "Critters!", [21, 26],
-			"Place 1D3 Vent Crawlers in the center of the table, and move each of them 1D6\" in a random direction. At the beginning of the Enemy Actions phase, they will move towards the nearest figure and attack, regardless of which side the figure is on.",
-			{"target_type": "enemy"}),
-		"AMMO_FAULT": _create_event("AMMO_FAULT", "Ammo Fault", [27, 30],
-			"Select a random figure in your crew. If they fired a weapon last round, it cannot be used for the rest of the battle. If they did not, select a random carried weapon, which can be fired only once this battle.",
-			{"target_type": "crew"}),
-		"VISIBILITY_CHANGE": _create_event("VISIBILITY_CHANGE", "Visibility Change", [31, 34],
-			"If visibility is currently reduced, increase the vision range by +1D6\". If visibility is currently unlimited, reduce it to 1D6+6\".",
-			{"target_type": "battlefield"}),
-		"TOUGHER_THAN_EXPECTED": _create_event("TOUGHER_THAN_EXPECTED", "Tougher than Expected", [35, 38],
-			"Select a random enemy figure. They receive +1 Toughness (to a maximum of 6) and remove all current stun markers on that figure.",
-			{"target_type": "enemy"}),
-		"SNAP_SHOT": _create_event("SNAP_SHOT", "Snap Shot", [39, 42],
-			"Select a figure in your crew. They may fire a weapon immediately. If the weapon is a Pistol, it Hits automatically, otherwise roll to Hit normally.",
-			{"target_type": "crew"}),
-		"CUNNING_PLAN": _create_event("CUNNING_PLAN", "Cunning Plan", [43, 46],
-			"In the next round, do not roll for Initiative. Each of your crew acts in the Quick or Slow Actions phase as you prefer.",
-			{"target_type": "crew"}),
-		"POSSIBLE_REINFORCEMENTS": _create_event("POSSIBLE_REINFORCEMENTS", "Possible Reinforcements", [47, 50],
-			"Place 3 markers evenly spaced along the opposing battlefield edge. At the start of the Enemy Actions phase next round, select a random marker, and roll 1D6. On a 5-6, a new basic enemy figure is placed on the marker, otherwise it is removed. Roll for one marker per round until they are all gone. If a crew member moves within 3\" of a marker, it is removed instantly.",
-			{"target_type": "enemy"}),
-		"CLOCK_RUNNING_OUT": _create_event("CLOCK_RUNNING_OUT", "Clock is Running Out", [51, 54],
-			"At the end of the next round and each round thereafter, roll 1D6. On a 6, the game ends immediately, and you are unable to complete any objectives. You will not count as Holding the Field unless you clear the table of enemies before this happens.",
-			{"target_type": "battlefield"}),
-		"ENVIRONMENTAL_HAZARD": _create_event("ENVIRONMENTAL_HAZARD", "Environmental Hazard", [55, 60],
-			"Select a random terrain feature. Any figure currently in, on, or within 1\" of the feature must roll 1D6+Savvy and achieve a 5+ (enemies roll 1D6 and must roll a 4+) or take a Damage +1 Hit, ignoring any Armor Saving Throws. The feature is safe afterwards.",
-			{"target_type": "battlefield"}),
-		"DESPERATE_PLAN": _create_event("DESPERATE_PLAN", "A Desperate Plan", [61, 65],
-			"A random figure in your crew cannot act next round, but instead select another figure of choice that may act in both the Quick and Slow Actions phases.",
-			{"target_type": "crew"}),
-		"MOMENT_OF_HESITATION": _create_event("MOMENT_OF_HESITATION", "A Moment of Hesitation", [66, 70],
-			"Next round, select a single figure that acts in the Quick Actions phase (if any Feral are in the squad, you must select a Feral). All other figures act in the Slow Actions phase.",
-			{"target_type": "crew"}),
-		"FUMBLED_GRENADE": _create_event("FUMBLED_GRENADE", "Fumbled Grenade", [71, 73],
-			"A random enemy fumbles a grenade. The figure in question runs 6\" in a random direction and is then Stunned. Every figure, crew and enemy within 4\" of the initial position will immediately run 4\" directly away. The grenade then goes off harmlessly. If the enemy is one that would not use grenades, nothing happens.",
-			{"target_type": "enemy"}),
-		"BACK_UP": _create_event("BACK_UP", "Back Up", [74, 77],
-			"If you have spare crew not taking part in the battle, you may have one crew member arrive. Place them on the center of your own battlefield edge.",
-			{"target_type": "crew"}),
-		"ENEMY_VIP": _create_event("ENEMY_VIP", "Enemy VIP", [78, 80],
-			"A Unique Individual immediately joins the enemy force. Place them on the center of their battlefield edge.",
-			{"target_type": "enemy"}),
-		"FOG_CLOUD": _create_event("FOG_CLOUD", "Fog Cloud", [81, 85],
-			"A dense cloud of fog envelops the center of the table for the rest of the battle. It extends 6\" in every direction and blocks all visibility past 2\".",
-			{"target_type": "battlefield"}),
-		"LOST": _create_event("LOST", "Lost!", [86, 89],
-			"A random crew member loses their way and misses the rest of the battle. Remove the figure from the battlefield. They rejoin you safely afterwards, looking a bit sheepish. Ignore this event if you are currently outnumbered.",
-			{"target_type": "crew"}),
-		"FOUND_SOMETHING": _create_event("FOUND_SOMETHING", "I Found Something!", [90, 93],
-			"Randomly select a crew member, then place a marker 1D6\" from them in a random direction. The enemy will ignore it. If any crew member moves into contact and spends a non-Combat Action, roll for a Loot item and claim it for use immediately.",
-			{"target_type": "crew"}),
-		"LOOKS_VALUABLE": _create_event("LOOKS_VALUABLE", "Looks Valuable", [94, 97],
-			"Randomly select a crew member, then place a marker 1D6\" from them in a random direction. The enemy will ignore it. If any crew member moves into contact and spends a non-Combat Action, obtain 1D3 credits.",
-			{"target_type": "crew"}),
-		"CHECK_THAT_OUT": _create_event("CHECK_THAT_OUT", "You Want Me to Check That Out?", [98, 100],
-			"Select a random crew member. They may opt to go check out something they insist they saw. If they do, they are removed from the battle. After the battle ends, they may roll once on the Loot table. If you opt not to go, you cannot send a different character, and the chance is lost.",
-			{"target_type": "crew"})
-	}
+## Hardcoded event registry removed — all events now loaded from res://data/event_tables.json
+## See Core Rules pp.116-117 for the 24 battle events (roll_range [1, 100])
 
 ## Helper to create battle events
 func _create_event(id: String, title: String, roll_range: Array, description: String, effects: Dictionary) -> BattleEvent:

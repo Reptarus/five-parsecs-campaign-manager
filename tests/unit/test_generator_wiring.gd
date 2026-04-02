@@ -17,6 +17,8 @@ const PatronJobGen = preload(
 	"res://src/core/patrons/PatronJobGenerator.gd")
 const StreetFightGen = preload(
 	"res://src/core/mission/StreetFightGenerator.gd")
+const CompendiumStreetFightsData = preload(
+	"res://src/data/compendium_street_fights.gd")
 const SalvageJobGen = preload(
 	"res://src/core/mission/SalvageJobGenerator.gd")
 const StealthMissionGen = preload(
@@ -208,7 +210,7 @@ func test_street_fight_d100_range_complete() -> void:
 	# STREET_FIGHT_OBJECTIVES must cover full D100 1-100
 	var min_roll: int = 999
 	var max_roll: int = 0
-	for obj in StreetFightGen.STREET_FIGHT_OBJECTIVES:
+	for obj in CompendiumStreetFightsData.STREET_FIGHT_OBJECTIVES:
 		if obj.roll_min < min_roll:
 			min_roll = obj.roll_min
 		if obj.roll_max > max_roll:

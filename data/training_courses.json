@@ -1,0 +1,14 @@
+{
+  "name": "Training Courses",
+  "source": "Core Rules p.125 (Advanced Training)",
+  "courses": {
+    "pilot": {"cost": 20, "effect": "savvy_roll_bonus", "description": "Piloting certification"},
+    "mechanic": {"cost": 15, "effect": "hull_repair_bonus", "description": "Ship repair training"},
+    "medical": {"cost": 20, "effect": "injury_reroll", "description": "Medical certification"},
+    "merchant": {"cost": 10, "effect": "trade_reroll", "description": "Trade negotiation"},
+    "security": {"cost": 10, "effect": "seize_initiative_bonus", "description": "Combat tactics"},
+    "broker": {"cost": 15, "effect": "search_bonus", "description": "Information broker"},
+    "bot_technician": {"cost": 10, "effect": "bot_upgrade_discount", "description": "Bot maintenance"},
+    "basic": {"cost": 1, "effect": "xp_bonus", "description": "Basic training (+1 XP)"}
+  }
+}

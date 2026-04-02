@@ -86,7 +86,7 @@ func _get_res(key: String) -> Resource:
 @onready var setup_content: VBoxContainer = %SetupContent
 
 # Bottom bar (two rows: PhaseHUD + ActionBar)
-@onready var bottom_bar: PanelContainer = $MainContainer/BottomBar
+@onready var bottom_bar: PanelContainer = $EdgeMargin/MainContainer/BottomBar
 @onready var phase_hud: HBoxContainer = %PhaseHUD
 @onready var turn_indicator: Label = %TurnIndicator
 @onready var action_buttons: HBoxContainer = %PhaseButtonsContainer
@@ -455,12 +455,25 @@ func _instance_log_only_components() -> void:
 	if tools_content:
 		tools_content.add_child(combat_calculator)
 
-	# BattleRoundHUD → Bottom bar (before action buttons)
+	# BattleRoundHUD → Bottom bar's VBoxContainer (before PhaseHUD and ActionBar)
 	battle_round_hud = _get_res("battle_round_hud").new()
 	battle_round_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if action_buttons and action_buttons.get_parent():
-		action_buttons.get_parent().add_child(battle_round_hud)
-		action_buttons.get_parent().move_child(battle_round_hud, 0)
+	var bottom_content: VBoxContainer = bottom_bar.get_child(0) if bottom_bar and bottom_bar.get_child_count() > 0 else null
+	if bottom_content and bottom_content is VBoxContainer:
+		bottom_content.add_child(battle_round_hud)
+		bottom_content.move_child(battle_round_hud, 0)
+		# Hide PhaseHUD container (redundant) but reparent TurnIndicator
+		# to ActionBar so stage context text ("Set Up Your Battlefield") stays visible
+		if phase_hud:
+			phase_hud.visible = false
+		if turn_indicator and turn_indicator.get_parent() == phase_hud:
+			phase_hud.remove_child(turn_indicator)
+			turn_indicator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			turn_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			var action_bar: HBoxContainer = end_turn_button.get_parent() if end_turn_button else null
+			if action_bar:
+				action_bar.add_child(turn_indicator)
+				action_bar.move_child(turn_indicator, 0)
 
 	# CombatSituationPanel → Right / "Tools" tab
 	combat_situation_panel = _get_res("combat_situation").instantiate()
@@ -1294,6 +1307,10 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# BUG-042 FIX: Pass crew data to initiative calculator for equipment auto-detection
 	if initiative_calculator and initiative_calculator.has_method("set_crew"):
 		initiative_calculator.set_crew(crew_members)
+
+	# Pass crew data to CharacterQuickRollPanel for dice rolling with stats
+	if character_quick_roll and character_quick_roll.has_method("set_crew"):
+		character_quick_roll.set_crew(crew_members)
 
 	# Log to journal if available
 	if battle_journal:

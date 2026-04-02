@@ -61,10 +61,10 @@ func generate_terrain_suggestions(theme: String = "wilderness") -> Dictionary:
 	var local_rng := RandomNumberGenerator.new()
 	local_rng.seed = Time.get_unix_time_from_system()
 
-	# Core Rules Standard Terrain Set counts (3x3 table)
+	# Core Rules Standard Terrain Set counts (p.109, 3x3 table)
 	var large_count: int = terrain_set.get("large", 3)
 	var small_count: int = terrain_set.get("small", 6)
-	var linear_count: int = terrain_set.get("linear", 4)
+	var linear_count: int = terrain_set.get("linear", 3)
 
 	# Load categorized feature pools
 	var large_pool: Array = theme_data.get("large_features", [])
@@ -76,6 +76,11 @@ func generate_terrain_suggestions(theme: String = "wilderness") -> Dictionary:
 	var selected_large: Array[String] = _pick_unique(large_pool, large_count, local_rng)
 	var selected_small: Array[String] = _pick_unique(small_pool, small_count, local_rng)
 	var selected_linear: Array[String] = _pick_unique(linear_pool, linear_count, local_rng)
+
+	# Core Rules p.109: Validate feature-type minimums
+	# At least 2 climbable, 1 elevated, 1 enterable
+	_validate_terrain_minimums(selected_large, selected_small,
+		large_pool, small_pool, local_rng)
 
 	# Build a flat list of all features with their category tags
 	var all_features: Array[Dictionary] = []
@@ -187,6 +192,72 @@ func _shuffle_array(arr: Array, local_rng: RandomNumberGenerator) -> void:
 		var temp: Variant = arr[i]
 		arr[i] = arr[j]
 		arr[j] = temp
+
+## Core Rules p.109 feature-type validation.
+## Ensures at least 2 climbable, 1 elevated, 1 enterable after random selection.
+## Best-effort: swaps from pool if available, no-op if pool lacks variety.
+func _validate_terrain_minimums(
+		selected_large: Array[String], selected_small: Array[String],
+		large_pool: Array, small_pool: Array,
+		local_rng: RandomNumberGenerator) -> void:
+	var has_elevated: bool = false
+	var has_enterable: bool = false
+	var climbable_count: int = 0
+
+	for feat: String in selected_large + selected_small:
+		var lower: String = feat.to_lower()
+		if _text_has_terrain_keyword(lower, ["hill", "elevated", "platform", "ridge"]):
+			has_elevated = true
+		if _text_has_terrain_keyword(lower, ["forest", "rubble", "cluster", "bushes", "enter"]):
+			has_enterable = true
+		if _text_has_terrain_keyword(lower, ["building", "structure", "outcrop", "climb", "tower"]):
+			climbable_count += 1
+
+	if not has_elevated:
+		_try_swap_for_keyword(selected_small, small_pool, large_pool,
+			["hill", "elevated", "ridge"], local_rng)
+	if not has_enterable:
+		_try_swap_for_keyword(selected_small, small_pool, large_pool,
+			["forest", "rubble", "bushes", "cluster"], local_rng)
+	while climbable_count < 2:
+		if _try_swap_for_keyword(selected_small, small_pool, large_pool,
+				["building", "structure", "outcrop", "tower"], local_rng):
+			climbable_count += 1
+		else:
+			break
+
+## Check if text contains any of the given keywords.
+func _text_has_terrain_keyword(text: String, keywords: Array) -> bool:
+	for kw: String in keywords:
+		if kw in text:
+			return true
+	return false
+
+## Swap a non-matching item in selected list for a matching item from pools.
+## Returns true if a swap was made.
+func _try_swap_for_keyword(
+		selected: Array[String], pool_a: Array, pool_b: Array,
+		keywords: Array, local_rng: RandomNumberGenerator) -> bool:
+	# Find a matching item in either pool that isn't already selected
+	var candidate: String = ""
+	for pool: Array in [pool_a, pool_b]:
+		for item in pool:
+			var lower: String = str(item).to_lower()
+			if _text_has_terrain_keyword(lower, keywords) and str(item) not in selected:
+				candidate = str(item)
+				break
+		if not candidate.is_empty():
+			break
+
+	if candidate.is_empty():
+		return false
+
+	# Swap with last non-matching item in selected
+	for i: int in range(selected.size() - 1, -1, -1):
+		if not _text_has_terrain_keyword(selected[i].to_lower(), keywords):
+			selected[i] = candidate
+			return true
+	return false
 
 ## Regenerate a single sector's features.
 func regenerate_sector(

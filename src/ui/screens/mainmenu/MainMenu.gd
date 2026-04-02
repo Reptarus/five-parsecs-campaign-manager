@@ -149,7 +149,7 @@ func _on_continue_pressed() -> void:
 		return
 	
 	if game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
-		request_scene_change("campaign_turn_controller")
+		request_scene_change("campaign_dashboard")
 	else:
 		show_message("No active campaign to continue")
 
@@ -229,7 +229,7 @@ func _on_load_campaign_pressed() -> void:
 
 	# Wrap campaign list in ScrollContainer for many saves
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(450, 0)
+	scroll.custom_minimum_size = Vector2(520, 0)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.custom_minimum_size.y = mini(campaigns.size() * 56 + 80, 420)
 	var vbox := VBoxContainer.new()
@@ -254,9 +254,11 @@ func _on_load_campaign_pressed() -> void:
 
 		# ISSUE-050: Delete button per save
 		var del_btn := Button.new()
-		del_btn.text = "X"
-		del_btn.custom_minimum_size = Vector2(40, 48)
+		del_btn.text = "\u2715"  # ✕ unicode multiply sign — cleaner than "X"
+		del_btn.custom_minimum_size = Vector2(48, 48)
 		del_btn.tooltip_text = "Delete this save"
+		del_btn.add_theme_color_override("font_color", Color("#DC2626"))
+		del_btn.add_theme_color_override("font_hover_color", Color("#FF4444"))
 		del_btn.pressed.connect(
 			_on_delete_save.bind(save_path, row, info.get("name", ""), dialog))
 		row.add_child(del_btn)
@@ -435,7 +437,7 @@ func request_scene_change(scene_name: String) -> void:
 		"campaign_setup": "campaign_creation",
 		"tutorial_setup": "tutorial_selection",
 		"options": "settings",
-		"campaign_dashboard": "campaign_turn_controller",
+		"campaign_dashboard": "campaign_dashboard",
 		"campaign_turn_controller": "campaign_turn_controller",
 		"bug_hunt_creation": "bug_hunt_creation",
 		"battle_simulator": "battle_simulator",
