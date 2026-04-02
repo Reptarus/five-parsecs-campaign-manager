@@ -584,8 +584,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 2G-001 | Quality tiers (6) | N/A | `LootSystemConstants.gd` ItemQuality: DAMAGED, WORN, STANDARD, QUALITY, MILITARY, ARTIFACT | Applied at loot generation | **N/A** — Core Rules does not have an explicit quality tier system. The book has "damaged" items from loot (p.131: "Damaged weapons/gear require Repair") but no multi-tier quality. This is a `GAME_BALANCE_ESTIMATE` feature for the app | AI+PDF | 2026-03-30 |
-| 2G-002 | Sell value multipliers | N/A | `LootSystemConstants.gd` QUALITY_MODIFIERS per tier | `EquipmentManager.gd` `get_sell_value()` | **N/A** — Core Rules does not specify sell value multipliers by quality tier. Book mentions selling equipment for 1 credit of upkeep (p.76) but no detailed sell formula. This is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 2G-001 | Quality tiers (6) | N/A | REMOVED — `ItemQuality` enum, `_QUALITY_MAP`, `roll_item_quality()`, `QUALITY_MODIFIERS` all deleted from `LootSystemConstants.gd`. `quality_modifiers` section removed from `loot_tables.json` | N/A | **REMOVED** — Fabricated mechanic, not in Core Rules. Core Rules has "damaged" items (p.131) but no 6-tier quality system | AI+PDF | 2026-04-02 |
+| 2G-002 | Sell value multipliers | N/A | REMOVED — quality-based sell multipliers deleted with quality tier system | N/A | **REMOVED** — Core Rules p.76: sell = 1 credit per item, no formula | AI+PDF | 2026-04-02 |
 
 ---
 
@@ -600,7 +600,7 @@ Each rule in the book should eventually have an entry like this:
 | 3A-001 | Ship type names (13 types) | p.31 | `ships.json` rewritten with 13 VERIFIED types (2nd chat). Metadata: "VERIFIED Mar 22, 2026" | **FIXED** | AI | 2026-03-22 |
 | 3A-002 | Hull point ranges | p.31 | `ships.json` hull now 20-40 per Core Rules (was 6-14 fabricated) | **FIXED** | AI | 2026-03-22 |
 | 3A-003 | Starting ship debt | p.31 | `ships.json` debt now 1D6+10 to 1D6+35 per Core Rules (was 0-5 fabricated) | **FIXED** | AI | 2026-03-22 |
-| 3A-004 | Ship component types | p.30+ | `ship_components.json` — ~30+ components (hull, systems, weapons) | **GAME_BALANCE_ESTIMATE** — ship_components.json uses fabricated video-game stats (Basic Hull 100hp/500cr, Laser Cannon dmg:10/range:5, etc.) that do NOT match Core Rules pp.59-62 ship component descriptions. Core Rules components are narrative (Medical Bay, Fuel Scoop, etc.) not stat-block items. JSON is an original design, not book data | AI+PDF | 2026-03-30 |
+| 3A-004 | Ship component types | pp.60-62 | `ship_components.json` v2.0 — 14 narrative Core Rules components (Medical Bay, Cargo Hold, etc.) with costs from pp.60-62. Fabricated stat-blocks removed Apr 2, 2026 | **VERIFIED** — All 14 components match Core Rules pp.60-62 exactly | AI+PDF | 2026-04-02 |
 | 3A-005 | Ship traits (6 types) | p.30 | `ships.json` traits per ship type | **VERIFIED** — PDF p.30: Emergency Drives, Fuel-efficient, Fuel Hog, Standard Issue, Dodgy Drive, Armored. All 6 confirmed | AI+PDF | 2026-03-30 |
 | 3A-006 | Ship type count | p.31 | 13 types in `ships.json` matches Core Rules | **FIXED** | AI | 2026-03-22 |
 
@@ -695,8 +695,8 @@ Each rule in the book should eventually have an entry like this:
 |----|------|------|-----------|-----------|--------|-----|------|
 | 5A-001 | Base upkeep cost | p.76 | `FiveParsecsConstants.gd:123` base_upkeep: 1 (per 4-6 crew). `campaign_rules.json` FIXED from 6→1. | `CampaignPhaseManager.gd:760-785` IMPLEMENTED: 0 for ≤4 crew, 1 for 5-6, +1 per member >6. Uses threshold(4)/cap(6)/base(1)/extra(1) from FiveParsecsConstants | **VERIFIED** — PDF p.76 confirms "1 credit if you have 4-6 crew, +1 additional credit per crew member past 6". Code matches exactly (crew 5=1cr, crew 8=3cr) | AI+PDF | 2026-03-30 |
 | 5A-002 | Ship repair (free + paid) | p.76 | `UpkeepPhaseComponent.gd:34` SHIP_MAINTENANCE_BASE_COST=1 | `UpkeepPhaseComponent.gd:122` | **VERIFIED** — PDF p.76: "you may repair 1 point automatically at this stage. You may also spend money restoring Hull Points. Every credit spent on repairs will fix 1 point of damage." Free auto-repair of 1 HP + 1 credit per additional HP. Code SHIP_MAINTENANCE_BASE_COST=1 is the cost per additional HP | AI+PDF | 2026-03-30 |
-| 5A-003 | Damaged ship multiplier | p.76 | `UpkeepPhaseComponent.gd:35` DAMAGED_SHIP_MULTIPLIER=2.0 | Applied at line 128 | **N/A** — PDF p.76 does NOT mention a damaged ship cost multiplier. Repair cost is always 1 credit per HP. The 2.0x multiplier is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
-| 5A-004 | World trait upkeep modifier | pp.72-75 | `UpkeepPhaseComponent.gd:96-98` high_cost trait adds +2 effective crew size | Applied in `calculate_upkeep_costs()` | **GAME_BALANCE_ESTIMATE** — PDF pp.72-75 world traits table does NOT mention any upkeep cost modifier. The `high_cost` trait adding +2 effective crew size is an app-original mechanic, not from the book | AI+PDF | 2026-03-30 |
+| 5A-003 | Damaged ship multiplier | p.76 | REMOVED — `DAMAGED_SHIP_MULTIPLIER` constant and usage deleted from `UpkeepPhaseComponent.gd` | N/A | **REMOVED** — Fabricated mechanic. Core Rules p.76 has no damage multiplier on maintenance | AI+PDF | 2026-04-02 |
+| 5A-004 | World trait upkeep modifier | p.75 | `UpkeepPhaseComponent.gd:102-106` high_cost trait adds +2 effective crew size | Applied in `calculate_upkeep_costs()` | **VERIFIED** — Core Rules p.75 roll 87-89: "High cost: Your crew size counts as being 2 higher for the purpose of Upkeep costs" | AI+PDF | 2026-04-02 |
 
 ### 5B: Crew Task Thresholds (pp.76-82)
 
@@ -787,7 +787,7 @@ Each rule in the book should eventually have an entry like this:
 | 6C-006 | K'Erin brawl reroll | pp.16,45 | `BattleCalculations.gd:491-496` rolls twice, picks higher | Species special rule implementation | **VERIFIED** — PDF p.16: "When Brawling, K'Erin characters may roll twice, picking the better of the dice." PDF p.45 reiterates: "K'Erin roll twice, using the better score." | AI+PDF | 2026-03-30 |
 | 6C-007 | Morale check triggers | p.114 | `MoralePanicTracker.gd:72-80` triggers when casualties in round | Casualty-based trigger | **VERIFIED** — PDF p.114: "the enemy will test Morale if they lost any figures during the round just played." Dice = number of figures lost. Each die within Bail Range = one enemy flees | AI+PDF | 2026-03-30 |
 | 6C-008 | Morale/Bail mechanic | p.114 | `MoralePanicTracker.gd:83-126` bail range check per casualty | `roll_morale_check()` | **VERIFIED** — PDF p.114: "Roll a number of dice equal to the number of figures that were removed. Every die that falls within the Bail Range indicates one of them will Bail." Applied closest-to-edge first. Bail Range 0 = fight to death | AI+PDF | 2026-03-30 |
-| 6C-009 | Max combat rounds | N/A | `BattleResolver.gd:14-15` MAX=6, MIN=3 | Hardcoded | **N/A** — Core Rules does not specify a maximum number of combat rounds. Invasion battles require holding for 6 rounds (p.92), but general battles have no round limit. MAX=6 is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 6C-009 | Max combat rounds | N/A | REMOVED — `MAX_COMBAT_ROUNDS` and `MIN_COMBAT_ROUNDS` deleted from `BattleResolver.gd`. Battle loop now runs until one side eliminated (with safety cap of 100) | N/A | **REMOVED** — Core Rules has no round limit. Battles end on elimination/withdrawal | AI+PDF | 2026-04-02 |
 
 ---
 
@@ -947,8 +947,8 @@ Each rule in the book should eventually have an entry like this:
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
 | 8C-001 | Treatment cost | p.76 | `FiveParsecsConstants.gd:126` injury_treatment_cost: 4 credits (removes 1 campaign turn from recovery) | `InjurySystemService.gd` uses for cost calc | **VERIFIED** — PDF p.76: "you may now pay 4 credits to remove 1 campaign turn from a single character's recovery time. This can be done as often as you can afford it." 4 credits per turn reduction confirmed. Also p.122: Crippling wound separately requires "1D6 credits of surgery immediately" | AI+PDF | 2026-03-30 |
-| 8C-002 | Toughness recovery modifier | N/A | `InjurySystemService.gd:182-186` T≥5: -1 turn, T≤2: +1 turn | `calculate_recovery_time()` | **N/A** — Core Rules p.76/122 do NOT mention Toughness-based recovery modifiers. Recovery times are fixed by injury type (1D6, 1D3+1, 1, 0). This is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
-| 8C-003 | Medical supplies modifier | N/A | `InjurySystemService.gd:189-191` has_medical_supplies: -1 turn | Applied if supplies available | **N/A** — Core Rules p.76 mentions "pay 4 credits" for treatment but no generic "medical supplies" modifier. Med-patch (p.58) removes 1 turn (single-use). This may be conflating Med-patch with a general modifier. `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
+| 8C-002 | Toughness recovery modifier | N/A | REMOVED — toughness modifier deleted from `InjurySystemService.calculate_recovery_time()`. Now returns base time only | N/A | **REMOVED** — Fabricated. Core Rules p.76/122: recovery times fixed by injury type, no toughness modifier | AI+PDF | 2026-04-02 |
+| 8C-003 | Medical supplies modifier | N/A | REMOVED — medical supplies modifier deleted from `InjurySystemService.calculate_recovery_time()`. Pay 4cr reduction handled in upkeep phase | N/A | **REMOVED** — Fabricated. Core Rules p.76: only reduction is paying 4 credits per turn | AI+PDF | 2026-04-02 |
 | 8C-004 | Treatment system | p.76/122 | `InjurySystemConstants.gd` new `TreatmentType` enum: SICK_BAY (4cr/turn, p.76 VERIFIED), SURGERY (1D6cr instant for Crippling, p.122), NATURAL (free). Helpers: `get_treatment_options()`, `calculate_sick_bay_cost()`, `roll_surgery_cost()` | `InjurySystemConstants.gd` TREATMENT_OPTIONS const | **ADDED** — treatment system implemented with 3 options | AI | 2026-03-22 |
 
 ---
@@ -976,8 +976,8 @@ Each rule in the book should eventually have an entry like this:
 | 9A-002 | Stat maximums | p.123 | `CharacterAdvancementConstants.gd:20-27` R:6, C:5, S:8, Sv:5, T:6, Luck:1(3 Human) | `AdvancementSystem.gd:38-45` mirrors | **VERIFIED** — PDF p.123 "Max Ability Score": Reactions=6, Combat Skill=+5, Speed=8", Savvy=+5, Toughness=6, Luck=1 (3 Human). All match code. Engineer T≤4 restriction also confirmed (p.123) | AI+PDF | 2026-03-30 |
 | 9A-003 | Engineer T max = 4 | p.16 | `CharacterAdvancementConstants.gd:30-34` background restriction | `AdvancementSystem.gd:179-181` checks | **VERIFIED** — PDF p.16: "Engineers cannot ever have a Toughness score exceeding 4. This applies even to equipment bonuses." Code enforces T max=4 for Engineers | AI+PDF | 2026-03-30 |
 | 9A-004 | Human luck max = 3 | p.15 | `CharacterAdvancementConstants.gd:37-45` species restriction | `AdvancementSystem.gd` checks | **VERIFIED** — PDF p.15: Humans "are the only character type that can exceed 1 point of Luck." Implies non-human max=1, human max>1. Code uses max 3 for humans | AI+PDF | 2026-03-30 |
-| 9A-005 | D6 advancement roll | p.123 | `AdvancementSystem.gd:195-203` roll D6, success if roll+current_stat ≥ 7 | `advance_stat()` method | **N/A** — PDF p.123: "The listed cost will increase the score by +1" — advancement is DIRECT (spend XP → gain +1), no D6 roll. The D6+stat≥7 mechanic in code is `GAME_BALANCE_ESTIMATE` adding randomness not present in Core Rules | AI+PDF | 2026-03-30 |
-| 9A-006 | Advancement priority | N/A | `CharacterAdvancementConstants.gd:49-56` Combat>Reactions>Toughness>Speed>Savvy>Luck | Auto-advancement order | **N/A** — Core Rules p.123 does not specify an advancement priority order. Player chooses which stat to increase. Priority is `GAME_BALANCE_ESTIMATE` for auto-advancement feature | AI+PDF | 2026-03-30 |
+| 9A-005 | D6 advancement roll | p.123 | REMOVED — dice roll deleted from `AdvancementSystem.advance_stat()`. Now direct-spend: pay XP cost, stat +1, always succeeds | N/A | **REMOVED** — Core Rules p.123: "spend XP to acquire a Character Upgrade" = direct, no roll | AI+PDF | 2026-04-02 |
+| 9A-006 | Advancement priority | N/A | REMOVED — `ADVANCEMENT_PRIORITY` deleted from `CharacterAdvancementConstants.gd` and `character_advancement.json`. `CharacterAdvancementService` now iterates `ADVANCEMENT_COSTS.keys()` | N/A | **REMOVED** — Core Rules p.123: player freely chooses which stat to increase | AI+PDF | 2026-04-02 |
 
 ### 9B: Training System
 
@@ -985,8 +985,8 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 9B-001 | Training types (7 Core + 3 extra) | p.125 | `AdvancementSystem.gd:47-58` Pilot(20), Medical(20), Mechanic(15), Broker(15), Security(10), Merchant(10), Bot Tech(10), + Engineer(15), Psionics(12), Psionics Enhance(6) | `_apply_training_benefits()` | **VERIFIED** — PDF p.125: 7 Core Rules courses match exactly (Pilot 20, Mechanic 15, Medical 20, Merchant 10, Security 10, Broker 15, Bot Tech 10). Engineer(15)/Psionics(12)/Psionics Enhance(6) not in Core Rules p.125 — may be Compendium or `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
-| 9B-002 | Psionic training blocks combat | Compendium | `AdvancementSystem.gd:184-186` psionic characters cannot advance combat_skill via XP | Hardcoded check | **N/A** — Core Rules p.123 has no psionic restriction. This is either Compendium Psionics rule or `GAME_BALANCE_ESTIMATE`. Compendium verification needed | AI+PDF | 2026-03-30 |
+| 9B-001 | Training types (7 Core + 2 Compendium) | p.125, Comp. p.22 | `AdvancementSystem.gd:47-57` Pilot(20), Medical(20), Mechanic(15), Broker(15), Security(10), Merchant(10), Bot Tech(10), Psionics(12 XP), Psionics Enhance(6 XP) | `_apply_training_benefits()` | **FIXED** — Engineer(15) REMOVED (fabricated, not in Core Rules or Compendium). Psionics(12)/Enhance(6) KEPT (Compendium p.22 confirmed). Training benefits rewritten from fabricated stat bonuses to boolean flags matching Core Rules p.125 rule modifications | AI+PDF | 2026-04-02 |
+| 9B-002 | Psionic training blocks combat | Compendium p.20 | `AdvancementSystem.gd:184-186` psionic characters cannot advance combat_skill via XP | Hardcoded check | **VERIFIED** — Compendium p.20: "they are unable to increase Combat Skill any further through Experience Points" | AI+PDF | 2026-04-02 |
 
 ### 9C: Bot Upgrade System (Credit-Based)
 
@@ -994,7 +994,7 @@ Each rule in the book should eventually have an entry like this:
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 9C-001 | Bot upgrades (credit-based) | p.123 | `AdvancementSystem.gd:61-98` 6 upgrade types with credit costs | `install_bot_upgrade()` + `_apply_bot_upgrade_effects()` | **VERIFIED** — PDF p.123: "Bot characters may install upgrades to any ability score by paying credits equal to the XP cost. Each ability score can be upgraded only once." The 6 named upgrade types (Combat Module, Reflex Enhancer, etc.) are `GAME_BALANCE_ESTIMATE` names — book just says "pay credits = XP cost." Credit costs should match XP costs (R:7, C:7, S:5, Sv:5, T:6) | AI+PDF | 2026-03-30 |
+| 9C-001 | Bot upgrades (credit-based) | p.123 | `AdvancementSystem.gd` — bot pays credits = stat XP cost, each stat upgradable once | `install_bot_upgrade()` | **FIXED** — 6 fabricated named items (Combat Module, Reflex Enhancer, etc.) REMOVED. Replaced with Core Rules p.123 mechanic: "pay credits equal to the XP cost. Each ability score can be upgraded only once." Costs now match stat_advancement_costs (R:7, C:7, S:5, Sv:5, T:6, L:10). Compendium p.28 has separate functional bot upgrades (not stat boosts) — deferred | AI+PDF | 2026-04-02 |
 | 9C-002 | Bot stat caps same as human | p.123 | `AdvancementSystem.gd:549-572` C:5, R:6, T:6, S:8, Sv:5 | Same caps as regular advancement | **VERIFIED** — PDF p.123: Same Max Ability Score table applies to all characters. Bot stat caps = same as human (R:6, C:5, S:8, Sv:5, T:6). "Soulless use the normal XP process and cannot buy Bot upgrades." | AI+PDF | 2026-03-30 |
 
 ---
@@ -1026,16 +1026,16 @@ Each rule in the book should eventually have an entry like this:
 | 11A-003 | Hull repair cost | p.76 | `FiveParsecsConstants.gd:128` hull_repair_cost_per_point: 1 — VERIFIED comment | Economy constants | **VERIFIED** — code has Core Rules citation comment. Consistent with p.76 economy system | AI | 2026-03-30 |
 | 11A-004 | Injury treatment cost | p.76 | `FiveParsecsConstants.gd:126` injury_treatment_cost: 4 | Economy constants | **VERIFIED** — PDF p.76: "you may now pay 4 credits to remove 1 campaign turn from a single character's recovery time." 4 credits confirmed. Separate from Crippling wound surgery (1D6 credits, p.122) | AI+PDF | 2026-03-30 |
 | 11A-005 | Ship maintenance base | p.76 | `FiveParsecsConstants.gd:125` ship_maintenance_base: 0 (auto-repair 1HP free) — VERIFIED comment | Economy constants | **VERIFIED** — code has Core Rules citation comment. Consistent with ship repair rules | AI | 2026-03-30 |
-| 11A-006 | GAME_BALANCE_ESTIMATE values | N/A | `FiveParsecsConstants.gd:127,129,130` luxury_upkeep(2), trade_profit(10), equipment_degradation(0.1) | Not from Core Rules — app features | N/A — intentional deviations, tagged | | |
+| 11A-006 | Fabricated economy constants | N/A | REMOVED — `luxury_upkeep_modifier`, `trade_profit_multiplier`, `equipment_degradation` deleted from `campaign_config.json`. `LUXURY_UPKEEP_MODIFIER` removed from `UpkeepSystem.gd`. Luxury living system removed from `UpkeepSystem.gd` and `MoraleSystem.gd` | N/A | **REMOVED** — None of these are Core Rules mechanics | AI+PDF | 2026-04-02 |
 
 ### 11B: Trade & Sell Values
 
-**Implementing Code**: [EquipmentManager.gd:545-567](src/core/equipment/EquipmentManager.gd#L545-L567) (`_calculate_weapon_value()`), [EquipmentManager.gd:569-590](src/core/equipment/EquipmentManager.gd#L569-L590) (`_calculate_armor_value()`)
+**Implementing Code**: [EquipmentManager.gd:248-262](src/core/equipment/EquipmentManager.gd#L248-L262) (`sell_equipment()` — flat 1 credit), [TradePhasePanel.gd:325](src/ui/screens/campaign/phases/TradePhasePanel.gd#L325) (`_calculate_sell_value()` — flat 1 credit). Fabricated pricing functions (`_calculate_weapon_value`, `_calculate_armor_value`, `_calculate_gear_value`) and entire weapon/armor upgrade system DELETED Apr 2 2026
 
 | ID | Item | Page | Code Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
-| 11B-001 | Sell value formula | N/A | `EquipmentManager.gd:545-590` base 100-500 by type, +50/damage, +30/range, quality multiplier | `_calculate_weapon_value()` / `_calculate_armor_value()` | **N/A** — Core Rules does not specify detailed sell formulas (p.76 only says "sell equipment to pay Upkeep, 1 credit per item sold"). The EquipmentManager formula is `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
-| 11B-002 | Quality sell multipliers | N/A | `LootSystemConstants.gd` QUALITY_MODIFIERS — DAMAGED(50%), WORN(70%), STANDARD(100%), QUALITY(120%), MILITARY(150%), ARTIFACT(200%) | Applied at sell time | **N/A** — Core Rules has no quality tier system. This is `GAME_BALANCE_ESTIMATE` (see 2G-001) | AI+PDF | 2026-03-30 |
+| 11B-001 | Sell value formula | p.76 | FIXED — `EquipmentManager.sell_equipment()` now returns flat 1 credit per item | N/A | **FIXED** — Core Rules p.76: "For each item sold, you gain 1 credit worth of Upkeep" | AI+PDF | 2026-04-02 |
+| 11B-002 | Quality sell multipliers | N/A | REMOVED — quality tier system deleted entirely (see 2G-001) | N/A | **REMOVED** — see 2G-001/2G-002 | AI+PDF | 2026-04-02 |
 
 ---
 
@@ -1100,9 +1100,9 @@ Each rule in the book should eventually have an entry like this:
 | ID | Item | Page | JSON Value | Code Path | Status | By | Date |
 |----|------|------|-----------|-----------|--------|-----|------|
 | 13A-001 | Mission type list | pp.87-92 | `mission_types.json` + `mission_templates.json` | `MissionGenerator.gd:54` filters by type | **VERIFIED** — PDF pp.87-92: 5 battle types (Patron, Rival, Quest, Opportunity, Invasion). Objectives: Move Through, Deliver, Access, Acquire, Defend, Protect, Secure, Search, Fight Off. Rival attacks: Showdown, Ambush, Assault, Raid. All transcribed in patron_generation.json D10 tables | AI+PDF | 2026-03-30 |
-| 13A-002 | Mission reward formula | p.120 | `MissionGenerator.gd:232-247` credits = difficulty*100 + random(0-500) | Hardcoded formula | **N/A** — PDF p.120: payment is simply "1D6 credits" + danger pay + modifiers. The difficulty*100 formula in MissionGenerator.gd is `GAME_BALANCE_ESTIMATE` — not from Core Rules. FiveParsecsMissionGenerator uses correct 1D6 formula. MissionGenerator.gd is a secondary generator | AI+PDF | 2026-03-30 |
-| 13A-003 | Enemy composition patterns | pp.93-94 | `MissionGenerator.gd:127-197` standard/boss/patrol/raiders patterns | `_generate_enemy_composition()` | **N/A** — PDF pp.93-94: enemy composition is determined by Specialists (3-6 opponents = 1 Specialist, 7+ = 2) and Lieutenants (4+ opponents = 1 Lieutenant). Named composition patterns in MissionGenerator.gd are `GAME_BALANCE_ESTIMATE` | AI+PDF | 2026-03-30 |
-| 13A-004 | Difficulty point system | N/A | `MissionGenerator.gd:200-229` point-based difficulty scoring | `_calculate_mission_difficulty()` | **N/A** — Core Rules does not have a point-based difficulty scoring system. Difficulty is set at campaign level (Normal/Challenging/Hardcore/Insanity). This is `GAME_BALANCE_ESTIMATE` for the app's mission UI | AI+PDF | 2026-03-30 |
+| 13A-002 | Mission reward formula | p.120 | FIXED — `MissionGenerator._generate_rewards()` now returns `randi_range(1,6)` credits (1D6 per Core Rules p.120) | N/A | **FIXED** — Core Rules p.120: "You earn 1D6 credits in pay, loot, bounty or salvage" | AI+PDF | 2026-04-02 |
+| 13A-003 | Enemy composition patterns | pp.93-94 | REMOVED — `MissionGenerator._generate_enemy_composition()` now returns empty array. Enemy composition resolved at battle setup using enemy_types.json per Core Rules | N/A | **REMOVED** — Fabricated templates replaced with deferred resolution | AI+PDF | 2026-04-02 |
+| 13A-004 | Difficulty point system | N/A | REMOVED — `MissionGenerator._calculate_mission_difficulty()` now returns template difficulty directly, no point calculation | N/A | **REMOVED** — Core Rules has no difficulty point system | AI+PDF | 2026-04-02 |
 
 ---
 

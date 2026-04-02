@@ -161,7 +161,7 @@ static func create_narrative_injury(selected_injury_type: int) -> Dictionary:
 ## ==========================================
 
 ## Calculate actual recovery time with modifiers
-static func calculate_recovery_time(injury_type: int, character_toughness: int = 3, has_medical_supplies: bool = false) -> int:
+static func calculate_recovery_time(injury_type: int, _character_toughness: int = 3, _has_medical_supplies: bool = false) -> int:
 
 	## Args:
 	## 	injury_type: InjurySystemConstants.InjuryType enum value
@@ -175,24 +175,10 @@ static func calculate_recovery_time(injury_type: int, character_toughness: int =
 	if InjurySystemConstants.is_fatal(injury_type) or injury_type == InjurySystemConstants.InjuryType.MIRACULOUS_ESCAPE:
 		return 0
 
-	# Get base recovery time
-	var base_time := InjurySystemConstants.get_base_recovery_turns(injury_type)
-
-	# Apply toughness modifier (higher toughness = faster recovery)
-	var toughness_modifier := 0
-	if character_toughness >= 5:
-		toughness_modifier = -1  # Tough characters recover 1 turn faster
-	elif character_toughness <= 2:
-		toughness_modifier = 1  # Weak characters take 1 turn longer
-
-	# Apply medical supplies modifier
-	var medical_modifier := 0
-	if has_medical_supplies:
-		medical_modifier = -1  # Medical supplies reduce recovery by 1 turn
-
-	# Calculate final time (minimum 1 turn)
-	var final_time := base_time + toughness_modifier + medical_modifier
-	return maxi(1, final_time)
+	# Core Rules p.76: Recovery time comes from the injury table only.
+	# The only way to reduce recovery is paying 4 credits per turn removed
+	# during the Upkeep phase (handled in UpkeepPhaseComponent, not here).
+	return InjurySystemConstants.get_base_recovery_turns(injury_type)
 
 ## Check if character is recovered
 static func is_recovered(turns_elapsed: int, recovery_time: int) -> bool:

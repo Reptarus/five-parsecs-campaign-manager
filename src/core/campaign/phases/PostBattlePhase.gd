@@ -318,7 +318,7 @@ func _complete_post_battle_phase() -> void:
 	_completion.update_character_lifetime_statistics(_ctx)
 	_completion.create_battle_journal_entry(_ctx)
 	_completion.record_planet_mission(_ctx)
-	_completion.apply_post_battle_morale(_ctx)
+	# Morale system removed — Core Rules has no campaign-level morale mechanic
 	post_battle_phase_completed.emit()
 
 func _emit_substep(substep: int) -> void:

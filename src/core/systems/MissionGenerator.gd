@@ -124,159 +124,26 @@ func _generate_objective(objective_template: Dictionary) -> Dictionary:
 	return objective
 
 ## Generate enemy composition based on template
-func _generate_enemy_composition(template: String) -> Array:
-	var enemies = []
-	
-	match template:
-		"standard":
-			# Generate standard enemy composition
-			var enemy_count = rng.randi_range(4, 8)
-			for i in range(enemy_count):
-				var enemy = {
-					"type": GlobalEnums.EnemyType.GANGERS,
-					"rank": GlobalEnums.EnemyRank.MINION
-				}
-				enemies.append(enemy)
-			
-			# Add an elite
-			enemies.append({
-				"type": GlobalEnums.EnemyType.GANGERS,
-				"rank": GlobalEnums.EnemyRank.ELITE
-			})
-		
-		"boss":
-			# Generate boss enemy composition
-			var minion_count = rng.randi_range(3, 6)
-			for i in range(minion_count):
-				var enemy = {
-					"type": GlobalEnums.EnemyType.GANGERS,
-					"rank": GlobalEnums.EnemyRank.MINION
-				}
-				enemies.append(enemy)
-			
-			# Add elite guards
-			var elite_count = rng.randi_range(1, 2)
-			for i in range(elite_count):
-				enemies.append({
-					"type": GlobalEnums.EnemyType.GANGERS,
-					"rank": GlobalEnums.EnemyRank.ELITE
-				})
-			
-			# Add the boss
-			enemies.append({
-				"type": GlobalEnums.EnemyType.BOSS,
-				"rank": GlobalEnums.EnemyRank.BOSS
-			})
-		
-		"patrol":
-			# Generate patrol enemy composition
-			var enemy_count = rng.randi_range(3, 5)
-			for i in range(enemy_count):
-				var enemy = {
-					"type": GlobalEnums.EnemyType.SECURITY_BOTS,
-					"rank": GlobalEnums.EnemyRank.MINION
-				}
-				enemies.append(enemy)
-		
-		"raiders":
-			# Generate raider enemy composition
-			var enemy_count = rng.randi_range(5, 9)
-			for i in range(enemy_count):
-				var enemy = {
-					"type": GlobalEnums.EnemyType.RAIDERS,
-					"rank": GlobalEnums.EnemyRank.MINION
-				}
-				enemies.append(enemy)
-			
-			# Add an elite
-			enemies.append({
-				"type": GlobalEnums.EnemyType.RAIDERS,
-				"rank": GlobalEnums.EnemyRank.ELITE
-			})
-	
-	return enemies
+## NOTE: Enemy composition is determined at battle setup time using enemy_types.json
+## and Core Rules encounter tables (pp.93-94), not at mission generation time.
+## This returns an empty placeholder — actual composition is resolved by the battle pipeline.
+func _generate_enemy_composition(_template: String) -> Array:
+	return []
 
-## Calculate mission difficulty
+## Return mission difficulty from template data
+## Core Rules has no difficulty point system — difficulty is narrative/contextual.
 func _calculate_mission_difficulty(mission: Dictionary) -> int:
-	var base_difficulty = 1
-	
-	# Adjust based on enemy composition
-	if mission.has("enemy_composition"):
-		for enemy in mission["enemy_composition"]:
-			match enemy.get("rank", GlobalEnums.EnemyRank.MINION):
-				GlobalEnums.EnemyRank.MINION:
-					base_difficulty += 1
-				GlobalEnums.EnemyRank.ELITE:
-					base_difficulty += 2
-				GlobalEnums.EnemyRank.BOSS:
-					base_difficulty += 4
-	
-	# Adjust based on mission type
-	if mission.has("type"):
-		match mission["type"]:
-			GlobalEnums.MissionType.BLACK_ZONE:
-				base_difficulty += 2
-			GlobalEnums.MissionType.SABOTAGE:
-				base_difficulty += 1
-			GlobalEnums.MissionType.ASSASSINATION:
-				base_difficulty += 3
-	
-	# Adjust based on objective count
-	if mission.has("objectives"):
-		base_difficulty += mission["objectives"].size() - 1
-	
-	# Cap difficulty between 1 and 5
-	return clampi(base_difficulty, 1, 5)
+	return int(mission.get("difficulty", 1))
 
-## Generate rewards based on difficulty
-func _generate_rewards(difficulty: int) -> Dictionary:
-	var rewards = {
-		"credits": difficulty * 100 + rng.randi_range(0, 50) * 10,
-		"reputation": difficulty,
-		"items": []
+## Generate rewards for a mission (Core Rules p.120)
+## Base pay is 1D6 credits. Modifiers (Easy +1, objective win, patron pay) are
+## applied at post-battle resolution, not at mission generation time.
+func _generate_rewards(_difficulty: int) -> Dictionary:
+	return {
+		"credits": rng.randi_range(1, 6),  # Core Rules p.120: 1D6 credits
+		"reputation": 0,  # Handled by post-battle sequence
+		"items": []  # Loot handled by LootSystemConstants tables
 	}
-	
-	# Add bonus items based on difficulty
-	var item_count = difficulty / 2
-	for i in range(item_count):
-		rewards["items"].append({
-			"type": "random",
-			"rarity": _get_rarity_for_difficulty(difficulty)
-		})
-	
-	return rewards
-
-## Get appropriate rarity for difficulty
-func _get_rarity_for_difficulty(difficulty: int) -> int:
-	match difficulty:
-		1, 2:
-			return GlobalEnums.ItemRarity.COMMON if rng.randf() < 0.8 else GlobalEnums.ItemRarity.UNCOMMON
-		3:
-			var roll = rng.randf()
-			if roll < 0.6:
-				return GlobalEnums.ItemRarity.COMMON
-			elif roll < 0.9:
-				return GlobalEnums.ItemRarity.UNCOMMON
-			else:
-				return GlobalEnums.ItemRarity.RARE
-		4:
-			var roll = rng.randf()
-			if roll < 0.4:
-				return GlobalEnums.ItemRarity.UNCOMMON
-			elif roll < 0.8:
-				return GlobalEnums.ItemRarity.RARE
-			else:
-				return GlobalEnums.ItemRarity.EPIC
-		5:
-			var roll = rng.randf()
-			if roll < 0.3:
-				return GlobalEnums.ItemRarity.RARE
-			elif roll < 0.7:
-				return GlobalEnums.ItemRarity.EPIC
-			else:
-				return GlobalEnums.ItemRarity.LEGENDARY
-		_:
-			return GlobalEnums.ItemRarity.COMMON
 
 ## Generate a random object name
 func _generate_random_object() -> String:

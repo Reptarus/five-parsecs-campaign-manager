@@ -726,17 +726,19 @@ func _instance_oracle_components() -> void:
 func _connect_assisted_signals() -> void:
 	## Connect ASSISTED component signals to journal/hub
 	if morale_tracker and battle_journal:
-		morale_tracker.morale_check_triggered.connect(
-			func(enemies: int, casualties: int) -> void:
+		morale_tracker.morale_check_performed.connect(
+			func(result: Dictionary) -> void:
 				battle_journal.log_morale(
-					"Check: %d enemies, %d casualties" % [
-						enemies, casualties
+					"Panic Check: %d kills, %d bailed (%s)" % [
+						result.get("kills", 0),
+						result.get("bails", 0),
+						result.get("enemy_type", "")
 					]
 				)
 		)
-		morale_tracker.enemy_fled.connect(
-			func(fled: int) -> void:
-				battle_journal.log_morale("Fled", fled)
+		morale_tracker.enemies_bailed.connect(
+			func(bail_count: int) -> void:
+				battle_journal.log_morale("Bailed", bail_count)
 		)
 
 	if event_resolution and battle_journal:

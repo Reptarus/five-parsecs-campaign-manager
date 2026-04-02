@@ -23,16 +23,6 @@ enum LootCategory {
 	NOTHING
 }
 
-## Item quality tiers
-enum ItemQuality {
-	DAMAGED,     # -1 to stats, needs repair
-	WORN,        # No modifier, fragile (breaks on 1)
-	STANDARD,    # Normal stats
-	QUALITY,     # +1 to one stat
-	MILITARY,    # +1 to all stats
-	ARTIFACT     # Special properties
-}
-
 ## ==========================================
 ## JSON DATA LOADING
 ## ==========================================
@@ -78,15 +68,6 @@ const _CATEGORY_MAP: Dictionary = {
 	"NOTHING": LootCategory.NOTHING,
 }
 
-const _QUALITY_MAP: Dictionary = {
-	"DAMAGED": ItemQuality.DAMAGED,
-	"WORN": ItemQuality.WORN,
-	"STANDARD": ItemQuality.STANDARD,
-	"QUALITY": ItemQuality.QUALITY,
-	"MILITARY": ItemQuality.MILITARY,
-	"ARTIFACT": ItemQuality.ARTIFACT,
-}
-
 
 ## ==========================================
 ## DATA ACCESSORS (lazy-loaded from JSON)
@@ -127,10 +108,6 @@ static func get_gear_definitions() -> Dictionary:
 static func get_consumable_items() -> Dictionary:
 	_ensure_loaded()
 	return _data.get("consumable_items", {})
-
-static func get_quality_modifiers_data() -> Dictionary:
-	_ensure_loaded()
-	return _data.get("quality_modifiers", {})
 
 static func get_trade_goods() -> Dictionary:
 	_ensure_loaded()
@@ -237,17 +214,6 @@ static var CONSUMABLE_ITEMS: Dictionary:
 	get:
 		return get_consumable_items()
 
-## Quality modifiers as ItemQuality-keyed dict (old format)
-static var QUALITY_MODIFIERS: Dictionary:
-	get:
-		_ensure_loaded()
-		var raw := get_quality_modifiers_data()
-		var result := {}
-		for key in raw:
-			var quality: ItemQuality = _QUALITY_MAP.get(key, ItemQuality.STANDARD)
-			result[quality] = raw[key]
-		return result
-
 ## Trade goods dict (direct passthrough)
 static var TRADE_GOODS: Dictionary:
 	get:
@@ -327,21 +293,3 @@ static func get_reward_from_subtable(roll: int) -> Dictionary:
 		"category": "unknown"
 	}
 
-## Quality roll: D6
-## 1 = Damaged, 2 = Worn, 3-4 = Standard, 5 = Quality, 6 = Roll again (Military on 5+, Artifact on 6)
-static func roll_item_quality() -> ItemQuality:
-	var roll: int = randi_range(1, 6)
-	match roll:
-		1: return ItemQuality.DAMAGED
-		2: return ItemQuality.WORN
-		3, 4: return ItemQuality.STANDARD
-		5: return ItemQuality.QUALITY
-		6:
-			var bonus_roll: int = randi_range(1, 6)
-			if bonus_roll == 6:
-				return ItemQuality.ARTIFACT
-			elif bonus_roll >= 5:
-				return ItemQuality.MILITARY
-			else:
-				return ItemQuality.QUALITY
-	return ItemQuality.STANDARD

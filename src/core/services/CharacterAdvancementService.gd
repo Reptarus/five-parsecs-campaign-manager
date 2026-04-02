@@ -86,8 +86,8 @@ static func get_available_advancements(character: Dictionary) -> Array[Dictionar
 	##
 	var available: Array[Dictionary] = []
 
-	# Check each stat in priority order
-	for stat in CharacterAdvancementConstants.ADVANCEMENT_PRIORITY:
+	# Core Rules p.123: Player freely chooses which stat to advance (no priority)
+	for stat in CharacterAdvancementConstants.ADVANCEMENT_COSTS.keys():
 		var check_result = can_advance_stat(character, stat)
 		if check_result.can_advance:
 			available.append({

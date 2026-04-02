@@ -161,14 +161,6 @@
     "Still": {"uses": 1, "effect": "+1 to Hit, but cannot Move this and next round.", "duration": "2_rounds"},
     "Stim-pack": {"uses": 1, "effect": "If character would become casualty, remain with 1 Stun marker. Reflexive, no action required.", "duration": "instant"}
   },
-  "quality_modifiers": {
-    "DAMAGED": {"stat_mod": -1, "description": "Damaged (needs repair)", "sell_value_mod": 0.25},
-    "WORN": {"stat_mod": 0, "description": "Worn (breaks on 1)", "sell_value_mod": 0.5},
-    "STANDARD": {"stat_mod": 0, "description": "Standard issue", "sell_value_mod": 1.0},
-    "QUALITY": {"stat_mod": 1, "description": "Quality (+1 to one stat)", "sell_value_mod": 1.5},
-    "MILITARY": {"stat_mod": 1, "description": "Military grade (+1 all)", "sell_value_mod": 2.0},
-    "ARTIFACT": {"stat_mod": 2, "description": "Alien artifact", "sell_value_mod": 3.0}
-  },
   "trade_goods": {
     "Common Supplies": {"base_value": 1, "weight": 1, "legal": true},
     "Medical Supplies": {"base_value": 3, "weight": 1, "legal": true},

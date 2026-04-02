@@ -322,20 +322,9 @@ func load_inventory() -> void:
 		inventory_items.add_item("No items to sell")
 		inventory_items.set_item_disabled(0, true)
 
-func _calculate_sell_value(item: Dictionary) -> int:
-	var base_value: int = int(item.get("value", 50))
-	var raw_condition = item.get("condition", 100)
-	var condition: int = 100
-	if raw_condition is int or raw_condition is float:
-		condition = int(raw_condition)
-	elif raw_condition is String:
-		match raw_condition.to_lower():
-			"standard", "good", "new": condition = 100
-			"worn": condition = 75
-			"damaged": condition = 50
-			"broken": condition = 25
-			_: condition = 100
-	return int(base_value * (condition / 100.0) * 0.5)
+func _calculate_sell_value(_item: Dictionary) -> int:
+	# Core Rules p.125: "You may sell up to 3 items, earning 1 credit for each."
+	return 1
 
 func update_credits_display() -> void:
 	if credits_label:

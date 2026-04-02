@@ -18,7 +18,6 @@ const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)
 signal experience_gained(character: Resource, amount: int, source: String)
 signal training_completed(character: Resource, training_type: String)
-signal advancement_roll_made(character: Resource, stat: String, roll_result: int, success: bool)
 signal bot_upgrade_installed(bot: Resource, upgrade_id: String, upgrade_data: Dictionary)
 
 # Manager references
@@ -45,6 +44,7 @@ var stat_max_values: Dictionary = {
 }
 
 var training_costs: Dictionary = {
+	# Core Rules p.125 — 7 Advanced Training courses
 	"pilot": 20,
 	"medical": 20,
 	"mechanic": 15,
@@ -52,61 +52,28 @@ var training_costs: Dictionary = {
 	"security": 10,
 	"merchant": 10,
 	"bot_tech": 10,
-	"engineer": 15,
-	"psionics": 12, # Acquire new psionic power (Core Rules p.101)
-	"psionics_enhance": 6 # Enhance existing psionic power (Core Rules p.101)
+	# Compendium p.22 — Psionic advancement (XP cost, not credits)
+	"psionics": 12, # Acquire new psionic power (Compendium p.22)
+	"psionics_enhance": 6 # Enhance existing psionic power (Compendium p.22)
 }
 
-# Bot upgrades (credits-based, not XP) - Five Parsecs Core Rules p.98
-var bot_upgrades: Dictionary = {
-	"combat_module": {
-		"name": "Combat Module",
-		"cost": 15,
-		"effects": {"combat_skill": 1},
-		"description": "+1 Combat Skill"
-	},
-	"reflex_enhancer": {
-		"name": "Reflex Enhancer",
-		"cost": 12,
-		"effects": {"reactions": 1},
-		"description": "+1 Reactions"
-	},
-	"armor_plating": {
-		"name": "Armor Plating",
-		"cost": 18,
-		"effects": {"toughness": 1},
-		"description": "+1 Toughness"
-	},
-	"speed_actuator": {
-		"name": "Speed Actuator",
-		"cost": 10,
-		"effects": {"speed": 1},
-		"description": "+1 Speed"
-	},
-	"sensor_array": {
-		"name": "Sensor Array",
-		"cost": 14,
-		"effects": {"savvy": 1},
-		"description": "+1 Savvy"
-	},
-	"repair_module": {
-		"name": "Self-Repair Module",
-		"cost": 20,
-		"effects": {"special": "self_repair"},
-		"description": "Reduces recovery time by 1 turn"
-	}
-}
+# Bot stat upgrades — Core Rules p.123:
+# "Bot characters may install upgrades to any ability score by paying credits
+#  equal to the XP cost. Each ability score can be upgraded only once."
+# Cost in credits = stat_advancement_costs value for that stat.
+# Compendium p.28 has separate functional upgrades (Built-in weapon, Jump module,
+# etc.) — those are NOT stat boosts and should be implemented separately if needed.
 
-# Experience gain rates
+# Experience gain rates — Core Rules p.123 XP table
+# Characters that flee in the first 2 rounds receive 0 XP.
 var experience_sources: Dictionary = {
-	"mission_victory": 3,
-	"mission_failure": 1,
-	"injury_survival": 1,
-	"story_event": 2,
-	"rival_encounter": 2,
-	"patron_mission": 4,
-	"discovery": 1,
-	"combat_kill": 1
+	"casualty": 1,              # Became a casualty
+	"survived_no_win": 2,       # Survived, but did not Win
+	"survived_and_won": 3,      # Survived and Won
+	"first_casualty": 1,        # First character to inflict a casualty
+	"killed_unique_individual": 1, # Killed Unique Individual
+	"easy_mode": 1,             # Campaign is on Easy mode
+	"final_quest_stage": 1,     # Crew completed the final stage of a Quest
 }
 
 func _init() -> void:
@@ -150,16 +117,12 @@ func can_afford_advancement(character: Resource, advancement_type: String, advan
 
 ## Get the cost of an advancement
 func _get_advancement_cost(advancement_type: String, target: String = "") -> int:
-	## Get the XP cost for a specific advancement
+	## Get the XP cost for a specific advancement (Core Rules p.123-125)
 	match advancement_type:
 		"stat":
 			return stat_advancement_costs.get(target, 0)
 		"training":
 			return training_costs.get(target, 0)
-		"equipment_training":
-			return 5 # General equipment proficiency
-		"ability":
-			return 15 # Special abilities
 		_:
 			return 0
 
@@ -179,7 +142,7 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	if char_class.to_upper() == "ENGINEER" and stat_name == "toughness":
 		max_stat = mini(max_stat, 4)
 
-	# Psionic restriction: Cannot increase Combat Skill through XP (Core Rules p.96)
+	# Psionic restriction: Cannot increase Combat Skill through XP (Compendium p.20)
 	var psionic_power_val: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
 	if psionic_power_val != "" and stat_name == "combat_skill":
 		return false
@@ -191,32 +154,13 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	if current_stat >= max_stat:
 		return false
 
-	# Make advancement roll (D6 + current stat vs 7+)
-	var advancement_roll = _roll_dice("Advancement: " + str(stat_name), "D6")
-	var total_roll = advancement_roll + current_stat
-	var success = total_roll >= 7
+	# Core Rules p.123: Direct spend — pay XP cost, increase stat by +1. No roll needed.
+	var new_stat_value = current_stat + 1
+	if character and character.has_method("set"): character.set(stat_name, new_stat_value)
+	if character and character.has_method("set"): character.set("experience_points", current_xp - cost)
 
-	advancement_roll_made.emit(character, stat_name, advancement_roll, success)
-
-	if success:
-		# Successful advancement
-		var new_stat_value = current_stat + 1
-		if character and character.has_method("set"): character.set(stat_name, new_stat_value)
-		if character and character.has_method("set"): character.set("experience_points", current_xp - cost)
-
-		character_advanced.emit(character, "stat_" + str(stat_name), new_stat_value)
-
-		pass # Stat advanced
-
-		return true
-	else:
-		# Failed advancement - half XP cost is still consumed
-		var xp_lost = cost / 2.0
-		if character and character.has_method("set"): character.set("experience_points", current_xp - xp_lost)
-
-		pass # Advancement failed
-
-		return false
+	character_advanced.emit(character, "stat_" + str(stat_name), new_stat_value)
+	return true
 
 ## Purchase training for a character
 func purchase_training(character: Resource, training_type: String) -> bool:
@@ -250,55 +194,53 @@ func purchase_training(character: Resource, training_type: String) -> bool:
 	return true
 
 ## Apply benefits from completed training
+## Core Rules p.125: Training effects are rule modifications checked during
+## specific game phases, NOT generic stat bonuses. We set boolean flags here;
+## the actual effects are applied at the relevant game phases.
 func _apply_training_benefits(character: Resource, training_type: String) -> void:
-	## Apply the benefits of completed training
+	if not character or not character.has_method("set"):
+		return
+
 	match training_type:
 		"pilot":
-			# Pilot training provides bonuses to ship operations
-			var pilot_bonus = Godot4Utils.safe_get_property(character, "pilot_bonus", 0) + 1
-			if character and character.has_method("set"): character.set("pilot_bonus", pilot_bonus)
+			# Core Rules p.125: If Starship Travel event calls for Savvy test,
+			# roll 2D6 pick better die + add +2 to score.
+			character.set("has_pilot_training", true)
 
 		"medical":
-			# Medical training allows healing actions
-			if character and character.has_method("set"): character.set("can_heal", true)
-			var medical_skill = Godot4Utils.safe_get_property(character, "medical_skill", 0) + 2
-			if character and character.has_method("set"): character.set("medical_skill", medical_skill)
+			# Core Rules p.125: After battle, nominate a casualty to roll twice
+			# on Injury Table, pick better result. Crew member must have been in
+			# battle and not become a casualty. Shuttle allows remote application.
+			character.set("has_medical_training", true)
 
 		"mechanic":
-			# Mechanic training allows equipment repair
-			if character and character.has_method("set"): character.set("can_repair", true)
-			var repair_skill = Godot4Utils.safe_get_property(character, "repair_skill", 0) + 2
-			if character and character.has_method("set"): character.set("repair_skill", repair_skill)
+			# Core Rules p.125: Ship in need of Repairs: repair +1 Hull Point per
+			# campaign turn (2 total per turn). Engineers count XP spent as double.
+			character.set("has_mechanic_training", true)
 
 		"broker":
-			# Broker training provides trade bonuses
-			var trade_bonus = Godot4Utils.safe_get_property(character, "trade_bonus", 0) + 1
-			if character and character.has_method("set"): character.set("trade_bonus", trade_bonus)
+			# Core Rules p.125: Add +1 when rolling for licenses, Advanced
+			# Training applications, or searching for Patrons.
+			character.set("has_broker_training", true)
 
 		"security":
-			# Security training provides combat bonuses
-			var security_bonus = Godot4Utils.safe_get_property(character, "security_bonus", 0) + 1
-			if character and character.has_method("set"): character.set("security_bonus", security_bonus)
+			# Core Rules p.125: If this crew member is in your squad, add +1 to
+			# Seize the Initiative roll. Ferals obtain at -2 cost.
+			character.set("has_security_training", true)
 
 		"merchant":
-			# Merchant training provides market bonuses
-			var market_bonus = Godot4Utils.safe_get_property(character, "market_bonus", 0) + 1
-			if character and character.has_method("set"): character.set("market_bonus", market_bonus)
+			# Core Rules p.125: When this crew member Trades, reroll one Trade
+			# roll per campaign turn. Must accept new roll.
+			character.set("has_merchant_training", true)
 
 		"bot_tech":
-			# Bot tech training allows bot management
-			if character and character.has_method("set"): character.set("can_manage_bots", true)
-			var bot_skill = Godot4Utils.safe_get_property(character, "bot_skill", 0) + 2
-			if character and character.has_method("set"): character.set("bot_skill", bot_skill)
-
-		"engineer":
-			# Engineer training provides ship upgrade bonuses
-			var engineering_bonus = Godot4Utils.safe_get_property(character, "engineering_bonus", 0) + 1
-			if character and character.has_method("set"): character.set("engineering_bonus", engineering_bonus)
+			# Core Rules p.125: All Bot upgrades cost 1 credit less. If Bot/Soulless
+			# rolls for post-battle injury, roll twice pick better.
+			character.set("has_bot_tech_training", true)
 
 		"psionics":
-			# Acquire new psionic power (Core Rules p.101, 12 XP)
-			# Roll D10 for power. If duplicate of existing, modify roll ±1
+			# Compendium p.22: Acquire Psionic Power (12 XP)
+			# Roll D10 for power. If duplicate, modify roll ±1.
 			var psionic_data: Dictionary = _load_psionic_powers_json()
 			var power_ids: Array = psionic_data.keys()
 			if power_ids.is_empty():
@@ -308,17 +250,15 @@ func _apply_training_benefits(character: Resource, training_type: String) -> voi
 			var new_power_id: String = power_ids[roll_index]
 			var current_power: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
 			if new_power_id == current_power and power_ids.size() > 1:
-				# Duplicate — modify roll ±1 (Core Rules)
 				var alt_index: int = (roll_index + 1) % power_ids.size()
 				new_power_id = power_ids[alt_index]
-			if character and character.has_method("set"):
-				character.set("psionic_power", new_power_id)
+			character.set("psionic_power", new_power_id)
 
 		"psionics_enhance":
-			# Enhance existing psionic power (Core Rules p.101, 6 XP)
-			# +1D6 to projection roll for chosen power
+			# Compendium p.22: Power Enhancement (6 XP)
+			# +1D6 to projection roll for chosen power. One enhancement per power.
 			var has_power: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
-			if has_power != "" and character and character.has_method("set"):
+			if has_power != "":
 				character.set("psionic_power_enhanced", true)
 
 ## Get available advancements for a character
@@ -339,7 +279,7 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 		if adv_char_class.to_upper() == "ENGINEER" and stat_name == "toughness":
 			max_stat = mini(max_stat, 4)
 
-		# Psionic restriction: Cannot increase Combat Skill through XP (Core Rules p.96)
+		# Psionic restriction: Cannot increase Combat Skill through XP (Compendium p.20)
 		var adv_psionic: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
 		if adv_psionic != "" and stat_name == "combat_skill":
 			continue
@@ -369,25 +309,43 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 
 	return advancements
 
-## Calculate experience from battle results
+## Calculate experience from battle results — Core Rules p.123 XP table
+## Characters that flee in the first 2 rounds receive 0 XP.
 func calculate_battle_experience(character: Resource, battle_result: Dictionary) -> int:
-	## Calculate experience gained from battle results
+	var char_name: String = Godot4Utils.safe_get_property(character, "character_name", "")
+
+	# Core Rules p.123: Characters that flee in first 2 rounds get nothing
+	var fled_early: Array = battle_result.get("fled_early", [])
+	if char_name in fled_early:
+		return 0
+
 	var xp_gained: int = 0
+	var is_casualty: bool = char_name in battle_result.get("crew_casualties", [])
+	var victory: bool = battle_result.get("victory", false)
 
-	# Base experience for participating in battle
-	if battle_result.get("victory", false):
-		xp_gained += experience_sources["mission_victory"]
+	# Core Rules p.123 XP table:
+	if is_casualty:
+		xp_gained += experience_sources["casualty"]  # +1
+	elif victory:
+		xp_gained += experience_sources["survived_and_won"]  # +3
 	else:
-		xp_gained += experience_sources["mission_failure"]
+		xp_gained += experience_sources["survived_no_win"]  # +2
 
-	# Experience for injuries survived
-	if Godot4Utils.safe_get_property(character, "character_name", "") in battle_result.get("crew_injuries", []):
-		xp_gained += experience_sources["injury_survival"]
+	# First character to inflict a casualty: +1
+	if char_name == battle_result.get("first_to_inflict_casualty", ""):
+		xp_gained += experience_sources["first_casualty"]
 
-	# Experience for enemies defeated (if tracked)
-	var enemies_defeated = battle_result.get("enemies_defeated_by_character", {})
-	var personal_kills = enemies_defeated.get(Godot4Utils.safe_get_property(character, "character_name", ""), 0)
-	xp_gained += personal_kills * experience_sources["combat_kill"]
+	# Killed Unique Individual: +1
+	if char_name in battle_result.get("killed_unique_individual", []):
+		xp_gained += experience_sources["killed_unique_individual"]
+
+	# Easy mode bonus: +1 (campaign difficulty check)
+	if battle_result.get("easy_mode", false):
+		xp_gained += experience_sources["easy_mode"]
+
+	# Completed final stage of a Quest: +1
+	if battle_result.get("final_quest_stage", false):
+		xp_gained += experience_sources["final_quest_stage"]
 
 	return xp_gained
 
@@ -435,151 +393,109 @@ func _roll_dice(context: String, pattern: String) -> int:
 			"D10": return randi_range(1, 10)
 			_: return randi_range(1, 6)
 
-## Bot Upgrade System (Five Parsecs Core Rules p.98)
-## Bots don't gain XP - they purchase upgrades with credits instead
+## Bot Stat Upgrade System — Core Rules p.123:
+## "Bot characters may install upgrades to any ability score by paying credits
+##  equal to the XP cost. Each ability score can be upgraded only once."
+## Bots do NOT receive XP. Soulless use the normal XP process and cannot buy
+## Bot upgrades. Bot Tech training reduces all bot upgrade costs by 1 credit.
 
 func get_available_bot_upgrades(bot: Resource) -> Array[Dictionary]:
-	## Get list of available bot upgrades for purchase
+	## Get list of available stat upgrades for a bot (Core Rules p.123)
 	var available: Array[Dictionary] = []
-	
+
 	if not bot or not _is_bot(bot):
 		return available
-	
-	var installed_upgrades: Array = Godot4Utils.safe_get_property(bot, "bot_upgrades", [])
-	
-	# Return upgrades not yet installed
-	for upgrade_id in bot_upgrades.keys():
-		if upgrade_id not in installed_upgrades:
-			var upgrade_data: Dictionary = bot_upgrades[upgrade_id].duplicate()
-			upgrade_data["id"] = upgrade_id
-			available.append(upgrade_data)
-	
+
+	var upgraded_stats: Array = Godot4Utils.safe_get_property(bot, "bot_upgraded_stats", [])
+
+	for stat_name in stat_advancement_costs.keys():
+		if stat_name in upgraded_stats:
+			continue  # Each stat can only be upgraded once
+
+		var cost: int = stat_advancement_costs[stat_name]
+		var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
+		var max_val: int = stat_max_values.get(stat_name, 6)
+
+		if current_val >= max_val:
+			continue
+
+		available.append({
+			"id": stat_name,
+			"name": "+1 %s" % stat_name.capitalize(),
+			"cost": cost,
+			"effects": {stat_name: 1},
+			"description": "+1 %s (credits = XP cost)" % stat_name.capitalize()
+		})
+
 	return available
 
-func can_install_bot_upgrade(bot: Resource, upgrade_id: String, campaign_credits: int) -> bool:
-	## Check if bot can install upgrade (has credits and doesn't already have it)
+func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits: int) -> bool:
+	## Check if bot can upgrade a stat (Core Rules p.123)
 	if not bot or not _is_bot(bot):
 		return false
-	
-	if not bot_upgrades.has(upgrade_id):
+
+	if not stat_advancement_costs.has(stat_name):
 		return false
-	
-	var installed_upgrades: Array = Godot4Utils.safe_get_property(bot, "bot_upgrades", [])
-	if upgrade_id in installed_upgrades:
+
+	var upgraded_stats: Array = Godot4Utils.safe_get_property(bot, "bot_upgraded_stats", [])
+	if stat_name in upgraded_stats:
 		return false
-	
-	var cost: int = bot_upgrades[upgrade_id].get("cost", 0)
+
+	var cost: int = stat_advancement_costs[stat_name]
 	return campaign_credits >= cost
 
-func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource) -> bool:
-	## Install a bot upgrade by spending credits (Five Parsecs Core Rules p.98)
-	##
-	## Bots don't gain XP like regular characters - they purchase upgrades with credits.
-	##
-	## Args:
-	## bot: The bot character Resource to upgrade
-	## upgrade_id: The ID of the upgrade from bot_upgrades dictionary
-	## game_state: GameState Resource to deduct credits from
-	##
-	## Returns:
-	## bool: True if upgrade was successfully installed, False otherwise
-	if not bot or not game_state:
-		push_error("AdvancementSystem: Cannot install bot upgrade - missing bot or game_state")
+func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resource) -> bool:
+	## Install a bot stat upgrade by spending credits (Core Rules p.123)
+	if not bot or not game_state_ref:
 		return false
 
 	if not _is_bot(bot):
-		push_error("AdvancementSystem: Cannot install bot upgrade - character is not a bot")
 		return false
 
-	if not bot_upgrades.has(upgrade_id):
-		push_error("AdvancementSystem: Unknown bot upgrade ID: %s" % upgrade_id)
+	if not stat_advancement_costs.has(stat_name):
 		return false
 
-	# Check if bot already has this upgrade
-	var installed_upgrades: Array = Godot4Utils.safe_get_property(bot, "bot_upgrades", [])
-	if upgrade_id in installed_upgrades:
-		push_warning("AdvancementSystem: Bot already has upgrade: %s" % upgrade_id)
+	var upgraded_stats: Array = Godot4Utils.safe_get_property(bot, "bot_upgraded_stats", [])
+	if stat_name in upgraded_stats:
 		return false
 
-	# Get upgrade data and cost
-	var upgrade_data: Dictionary = bot_upgrades[upgrade_id]
-	var cost: int = upgrade_data.get("cost", 0)
+	var cost: int = stat_advancement_costs[stat_name]
 
-	# Check if campaign can afford upgrade
+	# Core Rules p.125 Bot Tech training: "All Bot upgrades cost 1 credit less."
+	# Check if any crew member has bot_tech training (caller should pass this)
+	# For now, cost is the base XP cost in credits.
+
 	var current_credits: int = 0
-	if game_state.has_method("get_credits"):
-		current_credits = game_state.get_credits()
+	if game_state_ref.has_method("get_credits"):
+		current_credits = game_state_ref.get_credits()
 	else:
-		current_credits = Godot4Utils.safe_get_property(game_state, "credits", 0)
+		current_credits = Godot4Utils.safe_get_property(game_state_ref, "credits", 0)
 
 	if current_credits < cost:
-		push_warning("AdvancementSystem: Cannot afford bot upgrade. Cost: %d, Available: %d" % [cost, current_credits])
 		return false
 
-	# Deduct credits from campaign
-	if game_state.has_method("remove_credits"):
-		if not game_state.remove_credits(cost):
-			push_error("AdvancementSystem: Failed to deduct credits for bot upgrade")
+	# Deduct credits
+	if game_state_ref.has_method("remove_credits"):
+		if not game_state_ref.remove_credits(cost):
 			return false
-	else:
-		# Fallback: direct property set
-		if game_state.has_method("set"):
-			game_state.set("credits", current_credits - cost)
+	elif game_state_ref.has_method("set"):
+		game_state_ref.set("credits", current_credits - cost)
 
-	# Install the upgrade on the bot
-	if bot.has_method("add_bot_upgrade"):
-		bot.add_bot_upgrade(upgrade_id)
-	else:
-		# Fallback: direct array modification
-		installed_upgrades.append(upgrade_id)
-		if bot.has_method("set"):
-			bot.set("bot_upgrades", installed_upgrades)
+	# Apply +1 to the stat
+	var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
+	var max_val: int = stat_max_values.get(stat_name, 6)
+	var new_val: int = mini(current_val + 1, max_val)
 
-	# Apply stat effects immediately
-	_apply_bot_upgrade_effects(bot, upgrade_data)
+	if bot.has_method("set"):
+		bot.set(stat_name, new_val)
 
-	# Emit signal for UI/logging
-	bot_upgrade_installed.emit(bot, upgrade_id, upgrade_data)
+	# Track that this stat has been upgraded (each stat only once)
+	upgraded_stats.append(stat_name)
+	if bot.has_method("set"):
+		bot.set("bot_upgraded_stats", upgraded_stats)
 
-	pass # Bot upgrade installed
-
+	bot_upgrade_installed.emit(bot, stat_name, {"stat": stat_name, "cost": cost, "new_value": new_val})
 	return true
-
-
-func _apply_bot_upgrade_effects(bot: Resource, upgrade_data: Dictionary) -> void:
-	## Apply the stat effects from a bot upgrade
-	var effects: Dictionary = upgrade_data.get("effects", {})
-
-	for stat_name in effects.keys():
-		var bonus: Variant = effects[stat_name]
-
-		if stat_name == "special":
-			# Handle special abilities
-			_apply_special_bot_ability(bot, bonus)
-		else:
-			# Apply stat bonuses
-			var current_value: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
-			var new_value: int = current_value + int(bonus)
-
-			# Respect stat maximums
-			var max_value: int = stat_max_values.get(stat_name, 10)
-			new_value = mini(new_value, max_value)
-
-			if bot.has_method("set"):
-				bot.set(stat_name, new_value)
-
-			pass # Bot stat increased
-
-
-func _apply_special_bot_ability(bot: Resource, ability_id: String) -> void:
-	## Apply special bot abilities that aren't simple stat bonuses
-	match ability_id:
-		"self_repair":
-			# Self-repair reduces recovery time by 1 turn
-			if bot.has_method("set"):
-				bot.set("has_self_repair", true)
-		_:
-			push_warning("Unknown special bot ability: %s" % ability_id)
 
 
 func _is_bot(character: Resource) -> bool:

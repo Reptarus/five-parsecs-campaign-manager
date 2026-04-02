@@ -10,9 +10,9 @@ extends RefCounted
 ##   var result = BattleResolver.resolve_battle(crew_deployed, enemies_deployed, battlefield_data, deployment_condition, dice_roller)
 ##   # Returns: {success: bool, crew_casualties: int, enemies_defeated: int, held_field: bool, ...}
 
-# Combat round limit (Five Parsecs p.118 - battles last 3-6 rounds typically)
-const MAX_COMBAT_ROUNDS := 6
-const MIN_COMBAT_ROUNDS := 3
+# Safety cap to prevent infinite loops (Core Rules has no round limit —
+# battles end when one side is eliminated or crew withdraws)
+const _SAFETY_MAX_ROUNDS := 100
 
 # Victory conditions (Core Rules p.119)
 const HOLD_FIELD_ENEMY_THRESHOLD := 3  # Must eliminate 3+ enemies to hold field on retreat
@@ -56,11 +56,10 @@ static func resolve_battle(
 	# Step 1: Initialize battle state
 	var battle_state := initialize_battle(crew_deployed, enemies_deployed, deployment_condition)
 	
-	# Step 2: Execute combat rounds
+	# Step 2: Execute combat rounds (no round limit per Core Rules — ends on elimination)
 	var round_number := 1
-	var max_rounds := randi_range(MIN_COMBAT_ROUNDS, MAX_COMBAT_ROUNDS)
-	
-	while round_number <= max_rounds:
+
+	while round_number <= _SAFETY_MAX_ROUNDS:
 		var round_result := execute_combat_round(
 			round_number,
 			battle_state["crew_units"],

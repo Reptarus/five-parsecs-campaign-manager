@@ -11,40 +11,41 @@ signal insufficient_funds(required: int, available: int)
 # Economy system reference for credit management
 var economy_system: Node = null
 
-# Upkeep costs loaded from res://data/campaign_config.json upkeep section
+# Upkeep costs loaded from res://data/campaign_config.json "economy" section
 # Canonical source: Five Parsecs Core Rules p.76
-static var _upkeep_data: Dictionary = {}
-static var _upkeep_loaded: bool = false
+static var _economy_data: Dictionary = {}
+static var _economy_loaded: bool = false
 
-static func _ensure_upkeep_loaded() -> void:
-	if _upkeep_loaded:
+static func _ensure_economy_loaded() -> void:
+	if _economy_loaded:
 		return
-	_upkeep_loaded = true
+	_economy_loaded = true
 	var file := FileAccess.open("res://data/campaign_config.json", FileAccess.READ)
 	if not file:
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
-		_upkeep_data = json.data.get("upkeep", {})
+		_economy_data = json.data.get("economy", {})
 	file.close()
 
-static func _get_upkeep_val(key: String, default_val: int) -> int:
-	_ensure_upkeep_loaded()
-	return int(_upkeep_data.get(key, default_val))
+static func _get_economy_val(key: String, default_val: int) -> int:
+	_ensure_economy_loaded()
+	return int(_economy_data.get(key, default_val))
 
-# Backward-compatible accessors (loaded from JSON)
+# Backward-compatible accessors (loaded from economy section of campaign_config.json)
+# Core Rules p.76: Upkeep = 1 credit for 4-6 crew, +1 per crew past 6
 static var CREW_UPKEEP_THRESHOLD: int: # @no-lint:variable-name
-	get: return _get_upkeep_val("crew_upkeep_threshold", 4)
+	get: return _get_economy_val("upkeep_threshold", 4)
 static var CREW_UPKEEP_CAP: int: # @no-lint:variable-name
-	get: return _get_upkeep_val("crew_upkeep_cap", 6)
+	get: return _get_economy_val("upkeep_cap", 6)
 static var SHIP_MAINTENANCE_BASE: int: # @no-lint:variable-name
-	get: return _get_upkeep_val("ship_maintenance_base", 1)
+	get: return _get_economy_val("ship_maintenance_base", 0)
+# Core Rules p.76: "pay 4 credits to remove 1 campaign turn from recovery"
 static var INJURY_TREATMENT_COST: int: # @no-lint:variable-name
-	get: return _get_upkeep_val("injury_treatment_cost", 2)
-static var LUXURY_UPKEEP_MODIFIER: int: # @no-lint:variable-name
-	get: return _get_upkeep_val("luxury_upkeep_modifier", 2)
+	get: return _get_economy_val("injury_treatment_cost", 4)
+# Core Rules p.76: "Every credit spent on repairs will fix 1 point of damage"
 static var HULL_REPAIR_COST_PER_POINT: int: # @no-lint:variable-name
-	get: return _get_upkeep_val("hull_repair_cost_per_point", 3)
+	get: return _get_economy_val("hull_repair_cost_per_point", 1)
 
 func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	## Calculate total upkeep costs for the campaign turn
@@ -52,14 +53,12 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 		"crew_upkeep": 0,
 		"ship_maintenance": 0,
 		"injury_treatment": 0,
-		"luxury_costs": 0,
 		"total": 0
 	}
 
 	# Get campaign _data
 	var crew_members = _get_crew_members(campaign_data)
 	var ship_data = _get_ship_data(campaign_data)
-	var living_standard = _get_living_standard(campaign_data)
 
 	# Calculate crew upkeep (rulebook p.76: 1 credit for 4-6 crew, +1 per crew past 6)
 	var crew_size: int = crew_members.size()
@@ -75,12 +74,8 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	# Calculate injury treatment costs
 	breakdown.injury_treatment = _calculate_injury_costs(crew_members)
 
-	# Apply living standard modifiers
-	if living_standard == "luxury":
-		breakdown.luxury_costs = breakdown.crew_upkeep * LUXURY_UPKEEP_MODIFIER
-
-	# Calculate total
-	breakdown.total = breakdown.crew_upkeep + breakdown.ship_maintenance + breakdown.injury_treatment + breakdown.luxury_costs
+	# Calculate total (Core Rules p.76: crew upkeep + ship maintenance + injury treatment)
+	breakdown.total = breakdown.crew_upkeep + breakdown.ship_maintenance + breakdown.injury_treatment
 
 	upkeep_calculated.emit(breakdown.total, breakdown) # warning: return value discarded (intentional)
 	return breakdown
@@ -165,10 +160,6 @@ func handle_upkeep_failure(campaign_data: Resource, credits_short: int = 1) -> D
 func calculate_optional_expenses(campaign_data: Resource) -> Dictionary:
 	## Calculate optional expenses crew can pay for benefits
 	var options = {
-		"luxury_living": {
-			"cost": _get_crew_members(campaign_data).size() * 2,
-			"benefit": "+1 to next campaign event roll"
-		},
 		"medical_care": {
 			"cost": 4,
 			"benefit": "Reduce injury recovery time by 1 turn"
@@ -221,25 +212,6 @@ func _get_ship_data(campaign_data: Resource) -> Resource:
 
 	return null
 
-func _get_living_standard(campaign_data: Resource) -> String:
-	## Get current living standard
-	if not campaign_data:
-		return "normal"
-
-	# Try get_meta method first (standard Godot API)
-	if campaign_data.has_method("has_meta") and campaign_data.has_meta("living_standard"):
-		var value = campaign_data.get_meta("living_standard")
-		if value != null:
-			return value
-
-	# Try direct property access
-	if "living_standard" in campaign_data:
-		var value = campaign_data.get("living_standard")
-		if value is String:
-			return value
-
-	return "normal"
-
 func _get_credits(campaign_data: Resource) -> int:
 	## Get current credits from EconomySystem or campaign data
 	# PRIORITY 1: Use EconomySystem if available (proper integration)
@@ -289,9 +261,6 @@ func _apply_upkeep_effects(campaign_data: Resource, upkeep_costs: Dictionary) ->
 	if upkeep_costs.injury_treatment > 0:
 		_reduce_injury_recovery_time(campaign_data)
 
-	# Apply luxury living benefits
-	if upkeep_costs.luxury_costs > 0:
-		_apply_luxury_benefits(campaign_data)
 
 func _apply_crew_morale_penalty(campaign_data: Resource) -> void:
 	## Apply morale penalty for poor upkeep
@@ -338,12 +307,3 @@ func _reduce_injury_recovery_time(campaign_data: Resource) -> void:
 		if recovery_time > 0:
 			crew_member.set_meta("recovery_time", max(0, recovery_time - 1))
 
-func _apply_luxury_benefits(campaign_data: Resource) -> void:
-	## Apply benefits of luxury living
-	if campaign_data and campaign_data.has_method("set_meta"):
-		campaign_data.set_meta("luxury_bonus", true) # +1 to next event roll
-
-func _apply_luxury_lifestyle_bonus(campaign_data: Resource) -> void:
-	## Apply luxury lifestyle bonus to campaign
-	if campaign_data and campaign_data.has_method("set_meta"):
-		campaign_data.set_meta("luxury_bonus", true) # +1 to next event roll

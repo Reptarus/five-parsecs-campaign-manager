@@ -1,12 +1,11 @@
 class_name PostBattleCompletion
 extends RefCounted
 
-## Completion, statistics, journal entries, and morale for Post-Battle Phase.
+## Completion, statistics, and journal entries for Post-Battle Phase.
 ## Handles Step 14b: finalization after all 14 steps complete.
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
-const MoraleSystemRef = preload("res://src/core/systems/MoraleSystem.gd")
 
 func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 	## Update character lifetime statistics from battle results (kills, damage, participation)
@@ -76,26 +75,9 @@ func record_planet_mission(ctx: PostBattleContextClass) -> void:
 	if not world_id.is_empty():
 		pdm.complete_mission(world_id, ctx.battle_result)
 
-func apply_post_battle_morale(ctx: PostBattleContextClass) -> void:
-	## Apply crew morale adjustments after battle using MoraleSystem.
-	var campaign = ctx.campaign
-	if not campaign and ctx.game_state:
-		campaign = ctx.game_state.current_campaign if "current_campaign" in ctx.game_state else null
-	if not campaign or not "crew_morale" in campaign:
-		return
-
-	var crew_deaths := 0
-	var crew_injuries := ctx.injuries_sustained.size()
-	for injury in ctx.injuries_sustained:
-		if injury is Dictionary and injury.get("is_fatal", false):
-			crew_deaths += 1
-	crew_injuries = maxi(0, crew_injuries - crew_deaths)
-
-	var held := ctx.battle_result.get("held_field", false) if ctx.battle_result is Dictionary else false
-
-	MoraleSystemRef.apply_post_battle_morale(
-		campaign, ctx.mission_successful, crew_deaths, crew_injuries, held
-	)
+## Morale system removed — Core Rules has no campaign-level morale mechanic.
+## Combat morale (Panic checks) is a separate in-battle mechanic handled by
+## BattleCalculations, not a post-battle campaign stat.
 
 func _create_character_battle_journal_event(ctx: PostBattleContextClass, member: Variant, char_id: String, kills: int) -> void:
 	if not ctx.campaign_journal or not ctx.campaign_journal.has_method("auto_create_character_event"):

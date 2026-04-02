@@ -33,7 +33,6 @@ var upkeep_completed: bool = false
 # Five Parsecs upkeep constants (Core Rules p.76)
 const BASE_CREW_UPKEEP_PER_MEMBER: int = 1  # 1 credit per crew member
 const SHIP_MAINTENANCE_BASE_COST: int = 1   # 1 credit base maintenance
-const DAMAGED_SHIP_MULTIPLIER: float = 2.0  # Double cost if ship damaged
 
 func _ready() -> void:
 	name = "UpkeepPhaseComponent"
@@ -120,20 +119,17 @@ func calculate_upkeep_costs() -> Dictionary:
 	return results
 
 func _calculate_ship_maintenance() -> int:
-	## Calculate ship maintenance costs based on ship condition
+	## Calculate ship maintenance costs (Core Rules p.76)
+	## Note: Core Rules has no damage multiplier on maintenance.
+	## Ship damage is repaired by paying credits per hull point (separate from maintenance).
 	var maintenance_cost = SHIP_MAINTENANCE_BASE_COST
-	
-	# Check if ship is damaged (Core Rules p.76)
-	var ship_condition = ship_data.get("condition", "good")
-	if ship_condition == "damaged":
-		maintenance_cost = int(maintenance_cost * DAMAGED_SHIP_MULTIPLIER)
-	
+
 	# Check for special ship equipment that affects maintenance
 	var ship_equipment = ship_data.get("equipment", [])
 	for equipment in ship_equipment:
 		if equipment.get("increases_maintenance", false):
 			maintenance_cost += equipment.get("maintenance_cost", 0)
-	
+
 	return maintenance_cost
 
 func _get_current_world_traits() -> Array:

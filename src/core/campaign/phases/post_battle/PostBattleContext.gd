@@ -8,7 +8,6 @@ extends RefCounted
 # Preloaded class references (same as PostBattlePhase.gd)
 const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
-const MoraleSystemRef = preload("res://src/core/systems/MoraleSystem.gd")
 const CharacterRef = preload("res://src/core/character/Character.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")

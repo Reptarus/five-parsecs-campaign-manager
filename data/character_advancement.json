@@ -30,14 +30,6 @@
       "luck": 1
     }
   },
-  "advancement_priority": [
-    "combat_skill",
-    "reactions",
-    "toughness",
-    "speed",
-    "savvy",
-    "luck"
-  ],
   "min_advancement_xp": 5,
   "absolute_stat_max": 8
 }

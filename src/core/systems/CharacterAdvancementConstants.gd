@@ -48,15 +48,6 @@ static var SPECIES_RESTRICTIONS: Dictionary:
 		_ensure_loaded()
 		return _data.get("species_restrictions", {})
 
-static var ADVANCEMENT_PRIORITY: Array[String]:
-	get:
-		_ensure_loaded()
-		var raw: Array = _data.get("advancement_priority", [])
-		var result: Array[String] = []
-		for item in raw:
-			result.append(str(item))
-		return result
-
 static var MIN_ADVANCEMENT_XP: int:
 	get:
 		_ensure_loaded()
