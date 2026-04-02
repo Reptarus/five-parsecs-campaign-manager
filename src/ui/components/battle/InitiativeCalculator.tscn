@@ -74,3 +74,10 @@ layout_mode = 2
 bbcode_enabled = true
 text = "Roll result will appear here."
 fit_content = true
+
+[node name="ContinueButton" type="Button" parent="VBox"]
+visible = false
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Continue"

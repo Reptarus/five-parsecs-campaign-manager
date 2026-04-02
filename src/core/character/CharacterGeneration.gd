@@ -76,23 +76,25 @@ static func _load_d100_table(path: String) -> Array:
 		var equip_rolls: Array = entry.get("equipment_rolls", [])
 		if not equip_rolls.is_empty():
 			converted["starting_rolls"] = equip_rolls
-		# Pass through special keys from JSON
+		# Pass through resource counts from JSON (cast to int — JSON may store as bool)
 		if entry.has("patron"):
-			converted["patron"] = entry["patron"]
+			converted["patron"] = int(entry["patron"])
 		if entry.has("rival"):
-			converted["rival"] = entry["rival"]
+			converted["rival"] = int(entry["rival"])
 		if entry.has("rumors"):
-			converted["rumors"] = entry["rumors"]
+			converted["rumors"] = int(entry["rumors"])
 		if entry.has("xp"):
-			converted["xp"] = entry["xp"]
+			converted["xp"] = int(entry["xp"])
 		if resources.has("patron"):
-			converted["patron"] = resources["patron"]
+			converted["patron"] = int(resources["patron"])
 		if resources.has("rival"):
-			converted["rival"] = resources["rival"]
+			converted["rival"] = int(resources["rival"])
 		if resources.has("rumors"):
-			converted["rumors"] = resources["rumors"]
+			converted["rumors"] = int(resources["rumors"])
+		if resources.has("quest_rumors"):
+			converted["rumors"] = int(resources["quest_rumors"])
 		if resources.has("xp"):
-			converted["xp"] = resources["xp"]
+			converted["xp"] = int(resources["xp"])
 		result.append(converted)
 	# Sort by roll_min
 	result.sort_custom(func(a, b): return a["roll_min"] < b["roll_min"])

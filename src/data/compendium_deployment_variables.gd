@@ -45,55 +45,36 @@ static func _is_enabled() -> bool:
 	return dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.DEPLOYMENT_VARIABLES)
 
 
+
 ## ============================================================================
-## DEPLOYMENT TYPES (Compendium p.45)
+## COMPENDIUM DATA LOADING (from JSON)
 ## ============================================================================
 
-const DEPLOYMENT_TYPES: Array[Dictionary] = [
-	{"id": "line", "name": "Line",
-	 "instruction": "DEPLOY: Line. Enemy deployment remains as is (standard)."},
-	{"id": "half_flank", "name": "Half Flank",
-	 "instruction": "DEPLOY: Half Flank. Random neutral edge. Half of enemy closest to that edge redeploys near center of selected edge. No enemy closer than 12\" to crew."},
-	{"id": "improved_positions", "name": "Improved Positions",
-	 "instruction": "DEPLOY: Improved Positions. Each enemy moves to nearest terrain feature providing Cover with a firing position."},
-	{"id": "forward_positions", "name": "Forward Positions",
-	 "instruction": "DEPLOY: Forward Positions. Each enemy moves to closest terrain feature ahead of their current position."},
-	{"id": "bolstered_line", "name": "Bolstered Line",
-	 "instruction": "DEPLOY: Bolstered Line. Standard deployment. If outnumbered or equal: +1 basic enemy. If crew outnumbers enemy: +1 basic + 1 specialist."},
-	{"id": "infiltration", "name": "Infiltration",
-	 "instruction": "DEPLOY: Infiltration. Remove half the enemies. End of Round 2, roll D6: 1=tallest terrain, 2=left edge terrain, 3=right edge terrain, 4=nearest to most forward enemy, 5=center terrain, 6=nearest to your edge. Place within/behind feature with LoS to crew."},
-	{"id": "reinforced", "name": "Reinforced",
-	 "instruction": "DEPLOY: Reinforced. Remove half the enemies. Each round end, D6: if <= round number, removed figures arrive from enemy edge center + 2 additional basic enemies. If table empty after roll, mission ends."},
-	{"id": "bolstered_flank", "name": "Bolstered Flank",
-	 "instruction": "DEPLOY: Bolstered Flank. Random neutral edge. Half of enemy redeploys near center of that edge + 1 additional specialist for flanking force. No enemy closer than 12\" to crew."},
-	{"id": "concealed", "name": "Concealed",
-	 "instruction": "DEPLOY: Concealed. Remove all enemies, divide into 3 groups. Mark 6 largest terrain features (1-6). End of Rounds 2, 3, 4: randomly select marked feature, place one group within it."},
-]
+static var _data: Dictionary = {}
+static var _loaded: bool = false
 
-## D100 ranges by AI type. Keys = AI type, values = array of [deployment_index, roll_min, roll_max]
-## Deployment indices: 0=line, 1=half_flank, 2=improved, 3=forward, 4=bolstered_line,
-## 5=infiltration, 6=reinforced, 7=bolstered_flank, 8=concealed
-const DEPLOYMENT_TABLES: Dictionary = {
-	"aggressive": [
-		[0, 1, 20], [1, 21, 35], [3, 36, 50], [4, 51, 60],
-		[5, 61, 80], [7, 81, 90], [8, 91, 100]],
-	"cautious": [
-		[0, 1, 30], [1, 31, 40], [2, 41, 50], [4, 51, 70],
-		[6, 71, 90], [8, 91, 100]],
-	"defensive": [
-		[0, 1, 25], [2, 26, 40], [3, 41, 45], [4, 46, 60],
-		[5, 61, 70], [6, 71, 85], [7, 86, 90], [8, 91, 100]],
-	"rampage": [
-		[0, 1, 20], [1, 21, 25], [3, 26, 45], [4, 46, 65],
-		[5, 66, 75], [6, 76, 80], [7, 81, 90], [8, 91, 100]],
-	"tactical": [
-		[0, 1, 20], [1, 21, 30], [2, 31, 40], [3, 41, 50],
-		[4, 51, 60], [5, 61, 70], [6, 71, 80], [7, 81, 90], [8, 91, 100]],
-	"beast": [
-		[1, 1, 15], [2, 16, 20], [3, 21, 35], [4, 36, 45],
-		[5, 46, 65], [6, 66, 70], [7, 71, 80], [8, 81, 100]],
-}
+static func _ensure_loaded() -> void:
+	if _loaded:
+		return
+	_loaded = true
+	var file := FileAccess.open("res://data/compendium/deployment_variables.json", FileAccess.READ)
+	if not file:
+		push_warning("CompendiumDeploymentVariables: Could not load deployment_variables.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_data = json.data
+	file.close()
 
+static var DEPLOYMENT_TYPES: Array:
+	get:
+		_ensure_loaded()
+		return _data.get("deployment_types", [])
+
+static var DEPLOYMENT_TABLES: Dictionary:
+	get:
+		_ensure_loaded()
+		return _data.get("deployment_tables", {})
 
 ## ============================================================================
 ## QUERY METHODS

@@ -28,7 +28,7 @@
     "14-17": {
       "name": "Hacker",
       "stat_bonuses": { "savvy": 1 },
-      "resources": { "rival": true },
+      "resources": { "rival": 1 },
       "equipment_rolls": [],
       "description": "Expert at infiltrating computer systems, has made enemies."
     },
@@ -49,7 +49,7 @@
     "28-32": {
       "name": "Agitator",
       "stat_bonuses": {},
-      "resources": { "rival": true },
+      "resources": { "rival": 1 },
       "equipment_rolls": [],
       "description": "Political activist who has made powerful enemies."
     },
@@ -70,7 +70,7 @@
     "41-44": {
       "name": "Negotiator",
       "stat_bonuses": {},
-      "resources": { "patron": true, "story_points": 1 },
+      "resources": { "patron": 1, "story_points": 1 },
       "equipment_rolls": [],
       "description": "Skilled at making deals and building relationships."
     },
@@ -112,14 +112,14 @@
     "68-71": {
       "name": "Enforcer",
       "stat_bonuses": { "combat": 1 },
-      "resources": { "patron": true },
+      "resources": { "patron": 1 },
       "equipment_rolls": [],
       "description": "Muscle for hire, has connections to employers."
     },
     "72-75": {
       "name": "Special Agent",
       "stat_bonuses": { "reactions": 1 },
-      "resources": { "patron": true },
+      "resources": { "patron": 1 },
       "equipment_rolls": ["gadget"],
       "description": "Covert operative with agency backing and special equipment."
     },
@@ -156,7 +156,7 @@
       "name": "Punk",
       "stat_bonuses": {},
       "special": { "xp": 2 },
-      "resources": { "rival": true },
+      "resources": { "rival": 1 },
       "equipment_rolls": [],
       "description": "Anti-establishment rebel with experience and enemies."
     },

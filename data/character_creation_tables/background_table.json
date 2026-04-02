@@ -83,7 +83,7 @@
     "47-49": {
       "name": "Religious Cult",
       "stat_bonuses": {},
-      "resources": { "patron": true, "story_points": 1 },
+      "resources": { "patron": 1, "story_points": 1 },
       "equipment_rolls": [],
       "description": "Raised in a tight-knit religious community with shared purpose."
     },
@@ -132,7 +132,7 @@
     "73-76": {
       "name": "Orphan Utility Program",
       "stat_bonuses": {},
-      "resources": { "patron": true, "story_points": 1 },
+      "resources": { "patron": 1, "story_points": 1 },
       "equipment_rolls": [],
       "description": "Raised in a state program, has connections to institutional support."
     },

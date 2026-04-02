@@ -34,167 +34,36 @@ static func get_ref_data() -> Dictionary:
 
 
 ## ============================================================================
-## SPECIES DATA
-## ============================================================================
-
-const SPECIES: Dictionary = {
-	"krag": {
-		"id": "krag",
-		"name": "Krag",
-		"origin_enum": "KRAG",
-		"base_stats": {
-			"reactions": 1,
-			"speed": 4,
-			"toughness": 4,
-			# combat_skill and savvy are "+" (determined by class/background roll)
-		},
-		"movement_speed": 4,
-		"special_rules": [
-			{
-				"id": "no_dash",
-				"type": "movement_restriction",
-				"description": "Cannot take Dash moves under ANY circumstances.",
-			},
-			{
-				"id": "belligerent_reroll",
-				"type": "combat_modifier",
-				"trigger": "vs_rival",
-				"effect": "reroll_natural_1",
-				"applies_to": ["firing", "brawl"],
-				"uses_per_battle": 1,
-				"description": "When fighting Rivals: May reroll a natural 1 once on firing or Brawl dice.",
-			},
-			{
-				"id": "patron_rival_penalty",
-				"type": "creation_modifier",
-				"effect": "if_patrons_add_rival",
-				"count": 1,
-				"description": "If character creation generates any Patrons, add 1 Rival.",
-			},
-			{
-				"id": "always_fights",
-				"type": "event_modifier",
-				"effect": "always_selected_for_fights",
-				"bypass_story_points": false,
-				"description": "If a random crew member gets into a fight, it is ALWAYS a Krag. Cannot bypass with Story Points.",
-			},
-		],
-		"armor_rules": {
-			"requires_modification": true,
-			"modification_cost": 2,
-			"revert_cost": 2,
-			"trade_table_choice": true,  # Player must designate trade-table armor as Krag or non-Krag
-			"non_trade_fits": false,  # Armor from other sources does NOT fit Krag
-			"compatible_species": ["krag", "skulker", "engineer"],  # These species can wear Krag armor
-			"description": "Trade-table armor must be designated Krag or non-Krag. Non-trade armor doesn't fit. Modification: 2 Credits (reversible for 2 Credits). Skulkers and Engineers can wear Krag armor.",
-		},
-		"colony_world": {
-			"discovery_cost_story_points": 1,
-			"forced_traits": ["busy_markets", "vendetta_system"],
-			"description": "Krag colonies are rare. Always have Busy Markets and Vendetta System traits. Cost: 1 Story Point to add to known worlds.",
-		},
-	},
-	"skulker": {
-		"id": "skulker",
-		"name": "Skulker",
-		"origin_enum": "SKULKER",
-		"base_stats": {
-			"reactions": 1,
-			"speed": 6,
-			"toughness": 3,
-			# combat_skill and savvy are "+" (determined by class/background roll)
-		},
-		"movement_speed": 6,
-		"special_rules": [
-			{
-				"id": "reduced_credits",
-				"type": "creation_modifier",
-				"effect": "d6_becomes_d3",
-				"applies_to": "credits",
-				"description": "During character creation, any 1D6 Credits result grants only 1D3 Credits.",
-			},
-			{
-				"id": "ignore_first_rival",
-				"type": "creation_modifier",
-				"effect": "ignore_first_rival",
-				"description": "Ignore the first instance of rolling a Rival during character creation.",
-			},
-			{
-				"id": "difficult_ground_immune",
-				"type": "movement_modifier",
-				"effect": "ignore_difficult_ground",
-				"description": "Not subject to movement reductions from difficult ground, mud, slippery ground, or similar.",
-			},
-			{
-				"id": "low_obstacle_ignore",
-				"type": "movement_modifier",
-				"effect": "ignore_obstacles_up_to_1in",
-				"description": "When moving, may ignore any obstacle up to 1\" in height.",
-			},
-			{
-				"id": "climb_discount",
-				"type": "movement_modifier",
-				"effect": "first_1in_climb_free",
-				"description": "Do not count the first 1\" of any climb for movement reduction.",
-			},
-			{
-				"id": "biological_resistance",
-				"type": "defense_modifier",
-				"trigger": "poison_toxin_gas",
-				"save": "d6_3plus",
-				"per_round": true,
-				"also_affects_beneficial": ["booster_pills", "combat_serum", "rage_out", "still"],
-				"exceptions": ["stim_packs"],
-				"salvage_poi_protection": true,  # Also protects vs Points of Interest hazards in Salvage missions
-				"description": "D6 3+ to shrug off poison, toxin, gas, or biological hazard (re-roll each round). Also affects: Booster Pills, Combat Serum, Rage Out, Still. Exception: Stim-packs work normally.",
-			},
-			{
-				"id": "universal_armor",
-				"type": "equipment_modifier",
-				"effect": "all_armor_fits",
-				"description": "All armor and equipment fits due to flexible skeletal structure.",
-			},
-		],
-		"armor_rules": {
-			"requires_modification": false,
-			"universal_fit": true,
-			"description": "All armor fits without modification (flexible skeleton).",
-		},
-		"colony_world": {
-			"forced_traits": ["adventurous"],
-			"alien_restricted_override": "no_result",
-			"second_trait": "rolled_normally",
-			"description": "Skulker home worlds always have Adventurous trait + one rolled normally. 'Alien species restricted' = no result.",
-		},
-	},
-	# NOTE: "Prison Planet" is a Compendium Background Table entry (D100 57-61), NOT a species.
-	# Kept here for code compatibility (enums, DLC flags, CharacterCreator all reference it).
-	# Stat bonuses are correct: +1 Toughness, +1 Combat Skill (Compendium p.XX).
-	# The "hardened_survivor" special rule is a FABRICATED narrative — only the stat bonuses exist in the book.
-	"prison_planet": {
-		"id": "prison_planet",
-		"name": "Prison Planet",
-		"origin_enum": "PRISON_PLANET",
-		"_classification": "background_entry_not_species",
-		"base_stats": {
-			"toughness": 1,   # +1 Toughness (Compendium Background Table D100 57-61)
-			"combat_skill": 1, # +1 Combat Skill (Compendium Background Table D100 57-61)
-		},
-		"special_rules": [],
-		"armor_rules": {
-			"requires_modification": false,
-			"universal_fit": false,
-			"description": "Standard armor compatibility.",
-		},
-	},
-}
-
-
-## ============================================================================
 ## STATIC HELPER METHODS
 ## ============================================================================
 
 ## Get a species definition by ID. Returns empty dict if not found or DLC not enabled.
+
+## ============================================================================
+## COMPENDIUM DATA LOADING (from JSON)
+## ============================================================================
+
+static var _data: Dictionary = {}
+static var _loaded: bool = false
+
+static func _ensure_loaded() -> void:
+	if _loaded:
+		return
+	_loaded = true
+	var file := FileAccess.open("res://data/compendium/species.json", FileAccess.READ)
+	if not file:
+		push_warning("CompendiumSpecies: Could not load species.json")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_data = json.data
+	file.close()
+
+static var SPECIES: Dictionary:
+	get:
+		_ensure_loaded()
+		return _data.get("species", {})
+
 static func get_species(id: String) -> Dictionary:
 	if not id in SPECIES:
 		return {}

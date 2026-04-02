@@ -14,6 +14,7 @@ const FiveParsecsCampaignPanel = preload("res://src/ui/screens/campaign/panels/B
 # Signals
 signal initiative_calculated(result: SeizeInitiativeSystem.InitiativeResult)
 signal roll_requested()
+signal continue_requested()
 
 # UI References
 @onready var title_label: Label = $VBox/TitleLabel
@@ -23,6 +24,7 @@ signal roll_requested()
 @onready var roll_button: Button = $VBox/ButtonRow/RollButton
 @onready var result_panel: PanelContainer = $VBox/ResultPanel
 @onready var result_label: RichTextLabel = $VBox/ResultPanel/ResultLabel
+@onready var continue_button: Button = $VBox/ContinueButton
 
 # Modifier checkboxes
 var outnumbered_check: CheckBox
@@ -112,6 +114,8 @@ func _setup_modifiers_ui() -> void:
 func _setup_buttons() -> void:
 	if roll_button:
 		roll_button.pressed.connect(_on_roll_pressed)
+	if continue_button:
+		continue_button.pressed.connect(func(): continue_requested.emit())
 
 ## Set crew data for automatic savvy detection
 func set_crew(crew: Array) -> void:
@@ -293,12 +297,18 @@ func _display_result(result: SeizeInitiativeSystem.InitiativeResult) -> void:
 	result_style.content_margin_bottom = 8
 	result_panel.add_theme_stylebox_override("panel", result_style)
 
+	# Show continue button so player can dismiss the overlay
+	if continue_button:
+		continue_button.visible = true
+
 ## Reset the calculator
 func reset() -> void:
 	last_result = null
 
 	if result_panel:
 		result_panel.hide()
+	if continue_button:
+		continue_button.visible = false
 
 	if outnumbered_check:
 		outnumbered_check.button_pressed = false

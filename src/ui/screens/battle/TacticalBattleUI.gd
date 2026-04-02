@@ -810,13 +810,15 @@ func _connect_assisted_signals() -> void:
 				battle_journal.log_action("Deployment", "Reroll requested")
 		)
 
-	# InitiativeCalculator — initiative results
-	if initiative_calculator and battle_journal:
-		initiative_calculator.initiative_calculated.connect(
-			func(result) -> void:
-				var seized: String = "Seized!" if result and result.success else "Normal"
-				battle_journal.log_action("Initiative", seized)
-		)
+	# InitiativeCalculator — initiative results + overlay dismiss
+	if initiative_calculator:
+		initiative_calculator.continue_requested.connect(_hide_overlay)
+		if battle_journal:
+			initiative_calculator.initiative_calculated.connect(
+				func(result) -> void:
+					var seized: String = "Seized!" if result and result.success else "Normal"
+					battle_journal.log_action("Initiative", seized)
+			)
 
 func _connect_component_signals() -> void:
 	## Connect component signals so actions log to BattleJournal
@@ -887,7 +889,10 @@ func _hide_overlay() -> void:
 	overlay_bg.visible = false
 	overlay_center.visible = false
 	for child in overlay_content.get_children():
-		child.queue_free()
+		if child == initiative_calculator:
+			overlay_content.remove_child(child)
+		else:
+			child.queue_free()
 
 ## Tier Selection + Pre-Battle Checklist Flow
 
@@ -1088,6 +1093,7 @@ func _on_round_phase_changed(phase: int, phase_name: String) -> void:
 	# Show InitiativeCalculator overlay at REACTION_ROLL phase
 	if phase == 0 and initiative_calculator and tier_controller:
 		if tier_controller.current_tier >= 1:
+			initiative_calculator.reset()
 			_show_overlay(initiative_calculator)
 
 func _on_round_started(round_number: int) -> void:

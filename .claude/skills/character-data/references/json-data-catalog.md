@@ -54,6 +54,21 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/RulesReference/StealthAndStreet.json` | sentry_patrol (D6), spotting_modifiers (7), police_response (4 texts) |
 | `data/RulesReference/Factions.json` | Expanded Factions (Compendium pp.110-117): D100 type table (7 types), loyalty, jobs (D6<=Influence), 6 favors, D100 activity table (11), D100 event table (15), destruction rules. Consumer: FactionSystem._load_faction_data() |
 
+### Compendium Data Files (Apr 2, 2026 — DLC-Gated)
+| File | Consumer | Contents |
+|------|----------|----------|
+| `data/compendium/no_minis_combat.json` | CompendiumNoMinisCombat | Initiative actions (8), firefight rules, D100 battle flow events (14), mission notes (11), variants |
+| `data/compendium/escalating_battles.json` | CompendiumEscalatingBattles | Trigger rules, escalation effects (9), D100 tables by AI type (6) |
+| `data/compendium/compendium_equipment.json` | CompendiumEquipment | Advanced training (5), bot upgrades (6), ship parts (3), psionic equipment (3) |
+| `data/compendium/stealth_missions.json` | CompendiumStealthMissions | D100 objectives (6), individual types (8), detection/alarm/exfiltration rules, tools (3), mission type selection |
+| `data/compendium/salvage_jobs.json` | CompendiumSalvageJobs | D6 availability, D100 POI reveals (22), D100 hostiles (4), contact results, tension rules, discovery table |
+| `data/compendium/deployment_variables.json` | CompendiumDeploymentVariables | 9 deployment types, D100 tables by AI type (6) |
+| `data/compendium/street_fights.json` | CompendiumStreetFights | D100 objectives (7), enemies (12), combatants (11), suspect/city markers, shootout/evasion/law rules |
+| `data/compendium/difficulty_toggles.json` | CompendiumDifficultyToggles | 12 toggles, AI variation tables (4 types), casualty tables (3 creature types), D100 detailed injuries (12), dramatic combat |
+| `data/compendium/species.json` | CompendiumSpecies | Krag/Skulker/PrisonPlanet: base_stats, special_rules, armor_rules, colony_world |
+| `data/compendium/world_options.json` | CompendiumWorldOptions | D100 strife events (10), loan system (origins/rates/enforcement), D100 name tables (worlds/colonies/ships/corps) |
+| `data/compendium/missions_expanded.json` | CompendiumMissionsExpanded | D100 objectives (15), time constraints, extraction, patron conditions (20), quest progression (9), connections (5 subtables), PvP/Co-op rules, introductory campaign (6 turns) |
+
 ### Campaign Data
 | File | Consumer | Schema |
 |------|----------|--------|
