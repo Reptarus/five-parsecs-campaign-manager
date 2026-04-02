@@ -170,6 +170,27 @@
       "stars_of_story_disabled": true,
       "only_basic_victory_conditions": false,
       "easy_enemy_reduction_threshold": 0
+    },
+    "INSANITY": {
+      "enemy_strength_multiplier": 2.5,
+      "loot_modifier": 0.5,
+      "credit_modifier": 0.4,
+      "xp_bonus": 0,
+      "enemy_count_modifier": 0,
+      "specialist_enemy_modifier": 1,
+      "reroll_low_enemy_dice": false,
+      "starting_story_points_modifier": -999,
+      "story_points_disabled": true,
+      "max_story_points": 0,
+      "invasion_roll_modifier": 3,
+      "seize_initiative_modifier": -3,
+      "rival_resistance_modifier": 0,
+      "unique_individual_roll_modifier": 0,
+      "unique_individual_forced": true,
+      "double_unique_possible": true,
+      "stars_of_story_disabled": true,
+      "only_basic_victory_conditions": false,
+      "easy_enemy_reduction_threshold": 0
     }
   }
 }

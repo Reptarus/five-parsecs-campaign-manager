@@ -1,65 +1,73 @@
-﻿class_name DifficultyModifiers
+class_name DifficultyModifiers
 extends RefCounted
 
 ## Campaign Difficulty Modifiers System for Five Parsecs Campaign Manager
 ##
 ## Implements all difficulty level modifiers from Five Parsecs core rules (p.65).
-## Provides centralized logic for difficulty-based gameplay adjustments.
-##
-## DIFFICULTY LEVELS:
-## 1. STORY (Easy) - +1 XP per battle, basic victory conditions only
-## 2. STANDARD (Normal) - Default rules, no modifications
-## 3. CHALLENGING - Reroll enemy dice showing 1 or 2
-## 4. HARDCORE - +1 enemy per battle, -1 starting story points, -2 rival resistance
-## 5. NIGHTMARE (Insanity) - +1 specialist per battle, +3 invasion rolls, -3 initiative, NO story points
+## All numeric values loaded from data/difficulty_modifiers.json — see that file
+## for the canonical per-level values.
 ##
 ## Usage:
 ##   var xp_bonus = DifficultyModifiers.get_xp_bonus(difficulty_level)
 ##   var can_earn_story_points = not DifficultyModifiers.are_story_points_disabled(difficulty_level)
 
+# MARK: - JSON Data Loading
+
+## Maps DifficultyLevel enum ordinals to JSON key names.
+## Order MUST match GlobalEnums.DifficultyLevel: NONE=0, EASY=1, NORMAL=2, HARD=3,
+## CHALLENGING=4, NIGHTMARE=5, HARDCORE=6, ELITE=7, INSANITY=8
+const _LEVEL_KEYS: Array[String] = [
+	"NONE", "EASY", "NORMAL", "HARD", "CHALLENGING",
+	"NIGHTMARE", "HARDCORE", "ELITE", "INSANITY"
+]
+
+static var _levels: Dictionary = {}
+static var _loaded: bool = false
+
+static func _ensure_loaded() -> void:
+	if _loaded:
+		return
+	_loaded = true
+	var file := FileAccess.open("res://data/difficulty_modifiers.json", FileAccess.READ)
+	if not file:
+		push_warning("DifficultyModifiers: Could not open difficulty_modifiers.json, using empty defaults")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_levels = json.data.get("difficulty_levels", {})
+	file.close()
+
+## Get the modifier dict for a difficulty level, with safe fallback.
+static func _get_level_data(difficulty: int) -> Dictionary:
+	_ensure_loaded()
+	if difficulty >= 0 and difficulty < _LEVEL_KEYS.size():
+		var key: String = _LEVEL_KEYS[difficulty]
+		if key in _levels:
+			return _levels[key]
+	return {}
+
 # MARK: - Public API - XP & Progression
 
-## Get XP bonus awarded after each battle based on difficulty level.
-## Returns:
-##   +1 for STORY mode, 0 for all other difficulties
 static func get_xp_bonus(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.EASY:
-		return 1
-	return 0
+	return int(_get_level_data(difficulty).get("xp_bonus", 0))
 
-## Get description of XP bonus for UI display
 static func get_xp_bonus_description(difficulty: int) -> String:
-	var bonus = get_xp_bonus(difficulty)
+	var bonus := get_xp_bonus(difficulty)
 	if bonus > 0:
 		return "+%d XP after each battle" % bonus
 	return "Standard XP progression"
 
 # MARK: - Public API - Enemy Generation
 
-## Get enemy count modifier for battle generation.
-## Returns:
-##   +1 for HARDCORE, 0 for other difficulties (NIGHTMARE uses specialist modifier instead)
 static func get_enemy_count_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		return 1
-	return 0
+	return int(_get_level_data(difficulty).get("enemy_count_modifier", 0))
 
-## Check if low enemy dice rolls should be rerolled (CHALLENGING mode).
-## Returns:
-##   true for CHALLENGING difficulty, false otherwise
 static func should_reroll_low_enemy_dice(difficulty: int) -> bool:
-	return difficulty == GlobalEnums.DifficultyLevel.CHALLENGING
+	return bool(_get_level_data(difficulty).get("reroll_low_enemy_dice", false))
 
-## Get specialist enemy modifier (NIGHTMARE mode only).
-## Returns:
-##   +1 for NIGHTMARE, 0 otherwise
 static func get_specialist_enemy_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.INSANITY:
-		return 1
-	return 0
+	return int(_get_level_data(difficulty).get("specialist_enemy_modifier", 0))
 
-## Get complete enemy generation modifiers for a difficulty level.
-## Returns Dictionary with all enemy-related modifiers.
 static func get_enemy_generation_modifiers(difficulty: int) -> Dictionary:
 	return {
 		"base_enemy_count_modifier": get_enemy_count_modifier(difficulty),
@@ -70,265 +78,174 @@ static func get_enemy_generation_modifiers(difficulty: int) -> Dictionary:
 
 # MARK: - Public API - Story Points
 
-## Get starting story points modifier.
-## Returns:
-##   -1 for HARDCORE, -999 for NIGHTMARE (disabled), 0 otherwise
 static func get_starting_story_points_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.INSANITY:
-		return -999 # Story points disabled entirely
-	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		return -1
-	return 0
+	return int(_get_level_data(difficulty).get("starting_story_points_modifier", 0))
 
-## Check if story points are completely disabled (NIGHTMARE mode).
-## Returns:
-##   true for NIGHTMARE difficulty, false otherwise
 static func are_story_points_disabled(difficulty: int) -> bool:
-	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
+	return bool(_get_level_data(difficulty).get("story_points_disabled", false))
 
-## Get maximum story points allowed for difficulty level.
-## Returns:
-##   0 for NIGHTMARE (disabled), standard max (10) otherwise
 static func get_max_story_points(difficulty: int) -> int:
-	if are_story_points_disabled(difficulty):
-		return 0
-	return 10 # Five Parsecs standard maximum
+	return int(_get_level_data(difficulty).get("max_story_points", 10))
 
-## Apply starting story points modifier to a campaign.
-## Returns the final story point count after modifier applied.
 static func apply_starting_story_points_modifier(base_story_points: int, difficulty: int) -> int:
 	if are_story_points_disabled(difficulty):
 		return 0
-
-	var modifier = get_starting_story_points_modifier(difficulty)
+	var modifier := get_starting_story_points_modifier(difficulty)
 	return maxi(0, base_story_points + modifier)
 
 # MARK: - Public API - Battle Mechanics
 
-## Get Invasion roll modifier (Core Rules pp.64-65).
-## Returns:
-##   +2 for HARDCORE, +3 for INSANITY, 0 otherwise
 static func get_invasion_roll_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.INSANITY:
-		return 3
-	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		return 2
-	return 0
+	return int(_get_level_data(difficulty).get("invasion_roll_modifier", 0))
 
-## Get Seize the Initiative roll modifier (Core Rules pp.64-65).
-## Returns:
-##   -2 for HARDCORE, -3 for INSANITY, 0 otherwise
 static func get_seize_initiative_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.INSANITY:
-		return -3
-	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		return -2
-	return 0
+	return int(_get_level_data(difficulty).get("seize_initiative_modifier", 0))
 
-## Get Rival resistance roll modifier (for Rival battles).
-## Returns:
-##   -2 for HARDCORE, 0 otherwise (NIGHTMARE doesn't modify rivals)
 static func get_rival_resistance_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		return -2
-	return 0
+	return int(_get_level_data(difficulty).get("rival_resistance_modifier", 0))
 
 # MARK: - Public API - Unique Individual (Core Rules pp.64-65)
 
-## Get modifier to Unique Individual presence roll.
-## Returns:
-##   +1 for HARDCORE, 0 otherwise. INSANITY forces presence instead (see below).
 static func get_unique_individual_roll_modifier(difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		return 1
-	return 0
+	return int(_get_level_data(difficulty).get("unique_individual_roll_modifier", 0))
 
-## Check if a Unique Individual is forced in every battle (INSANITY mode).
-## Core Rules: "The opposing side always includes a Unique Individual, even for Roving Threats."
 static func is_unique_individual_forced(difficulty: int) -> bool:
-	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
+	return bool(_get_level_data(difficulty).get("unique_individual_forced", false))
 
-## Check if double Unique Individuals are possible (INSANITY mode).
-## Core Rules: "Roll 2D6. On an 11-12, they include two Unique Individuals."
 static func can_have_double_unique_individual(difficulty: int) -> bool:
-	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
+	return bool(_get_level_data(difficulty).get("double_unique_possible", false))
 
 # MARK: - Public API - Easy Mode Enemy Reduction
 
-## Get number of Basic enemies to remove for Easy mode (Core Rules p.64).
-## Core Rules: "When setting up a tabletop battle, if you would face 5+ opponents, remove one Basic enemy."
-## Returns:
-##   1 if EASY mode and total_enemies >= 5, 0 otherwise
 static func get_easy_enemy_reduction(total_enemies: int, difficulty: int) -> int:
-	if difficulty == GlobalEnums.DifficultyLevel.EASY and total_enemies >= 5:
+	var threshold := int(_get_level_data(difficulty).get("easy_enemy_reduction_threshold", 0))
+	if threshold > 0 and total_enemies >= threshold:
 		return 1
 	return 0
 
 # MARK: - Public API - Stars of the Story
 
-## Check if Stars of the Story options are disabled (INSANITY mode).
-## Core Rules: "Receive no 'Stars of the Story' options."
 static func are_stars_of_story_disabled(difficulty: int) -> bool:
-	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
+	return bool(_get_level_data(difficulty).get("stars_of_story_disabled", false))
 
 # MARK: - Public API - Victory Conditions
 
-## Check if only basic victory conditions are available (STORY mode).
-## Returns:
-##   true for STORY difficulty, false otherwise
 static func are_only_basic_victory_conditions_available(difficulty: int) -> bool:
-	return difficulty == GlobalEnums.DifficultyLevel.EASY
+	return bool(_get_level_data(difficulty).get("only_basic_victory_conditions", false))
 
-## Get list of allowed victory condition types for difficulty level.
-## Returns array of GlobalEnums.FiveParsecsCampaignVictoryType values.
 static func get_allowed_victory_conditions(difficulty: int) -> Array[int]:
 	var allowed: Array[int] = []
-
 	if are_only_basic_victory_conditions_available(difficulty):
-		# STORY mode: Only basic victory conditions (simpler targets)
 		allowed.append(GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20)
 		allowed.append(GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20)
 		allowed.append(GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K)
 	else:
-		# All other modes: All victory conditions available
-		# Return all enum values (dynamically get from GlobalEnums)
 		for i in range(GlobalEnums.FiveParsecsCampaignVictoryType.size()):
 			allowed.append(i)
-
 	return allowed
 
 # MARK: - Public API - Comprehensive Modifier Queries
 
-## Get all modifiers for a difficulty level as a complete dictionary.
-## Useful for displaying in UI or applying all modifiers at once.
 static func get_all_modifiers(difficulty: int) -> Dictionary:
 	return {
 		"difficulty_level": difficulty,
 		"difficulty_name": _get_difficulty_name(difficulty),
-
-		# XP & Progression
 		"xp_bonus": get_xp_bonus(difficulty),
 		"xp_description": get_xp_bonus_description(difficulty),
-
-		# Enemy Generation
 		"enemy_count_modifier": get_enemy_count_modifier(difficulty),
 		"reroll_low_enemy_dice": should_reroll_low_enemy_dice(difficulty),
 		"specialist_enemy_modifier": get_specialist_enemy_modifier(difficulty),
-
-		# Story Points
 		"starting_story_points_modifier": get_starting_story_points_modifier(difficulty),
 		"story_points_disabled": are_story_points_disabled(difficulty),
 		"max_story_points": get_max_story_points(difficulty),
-
-		# Battle Mechanics
 		"invasion_roll_modifier": get_invasion_roll_modifier(difficulty),
 		"seize_initiative_modifier": get_seize_initiative_modifier(difficulty),
 		"rival_resistance_modifier": get_rival_resistance_modifier(difficulty),
-
-		# Unique Individuals
 		"unique_individual_roll_modifier": get_unique_individual_roll_modifier(difficulty),
 		"unique_individual_forced": is_unique_individual_forced(difficulty),
 		"double_unique_possible": can_have_double_unique_individual(difficulty),
-
-		# Stars of the Story
 		"stars_of_story_disabled": are_stars_of_story_disabled(difficulty),
-
-		# Victory Conditions
 		"only_basic_victory_conditions": are_only_basic_victory_conditions_available(difficulty),
 		"allowed_victory_conditions": get_allowed_victory_conditions(difficulty),
-
-		# Summary
 		"summary": get_difficulty_summary(difficulty)
 	}
 
-## Get human-readable summary of difficulty modifiers for UI display.
 static func get_difficulty_summary(difficulty: int) -> String:
-	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Easy mode: +1 XP per battle, basic victory conditions only"
+	var data := _get_level_data(difficulty)
+	if data.is_empty():
+		return "Unknown difficulty level"
+	var parts: Array[String] = []
+	var name := _get_difficulty_name(difficulty)
+	if int(data.get("xp_bonus", 0)) > 0:
+		parts.append("+%d XP per battle" % int(data.get("xp_bonus", 0)))
+	if bool(data.get("only_basic_victory_conditions", false)):
+		parts.append("basic victory conditions only")
+	if bool(data.get("reroll_low_enemy_dice", false)):
+		parts.append("reroll enemy dice 1-2")
+	if int(data.get("enemy_count_modifier", 0)) > 0:
+		parts.append("+%d enemy" % int(data.get("enemy_count_modifier", 0)))
+	if int(data.get("specialist_enemy_modifier", 0)) > 0:
+		parts.append("+%d specialist" % int(data.get("specialist_enemy_modifier", 0)))
+	if bool(data.get("unique_individual_forced", false)):
+		parts.append("forced Unique Individual")
+	if int(data.get("invasion_roll_modifier", 0)) != 0:
+		parts.append("%+d invasion" % int(data.get("invasion_roll_modifier", 0)))
+	if int(data.get("seize_initiative_modifier", 0)) != 0:
+		parts.append("%+d initiative" % int(data.get("seize_initiative_modifier", 0)))
+	if bool(data.get("story_points_disabled", false)):
+		parts.append("NO story points")
+	elif int(data.get("starting_story_points_modifier", 0)) != 0:
+		parts.append("%+d starting story points" % int(data.get("starting_story_points_modifier", 0)))
+	if int(data.get("rival_resistance_modifier", 0)) != 0:
+		parts.append("%+d rival resistance" % int(data.get("rival_resistance_modifier", 0)))
+	if bool(data.get("stars_of_story_disabled", false)):
+		parts.append("NO Stars of the Story")
+	if parts.is_empty():
+		return "%s: Standard rules with no modifications" % name
+	return "%s: %s" % [name, ", ".join(parts)]
 
-		GlobalEnums.DifficultyLevel.NORMAL:
-			return "Standard rules with no modifications"
-
-		GlobalEnums.DifficultyLevel.CHALLENGING:
-			return "Increased challenge: Reroll enemy dice showing 1 or 2"
-
-		GlobalEnums.DifficultyLevel.HARDCORE:
-			return "Hard mode: +1 enemy, +1 Unique Individual roll, +2 invasion, -2 initiative, -1 story point, -2 rival resistance"
-
-		GlobalEnums.DifficultyLevel.INSANITY:
-			return "Extreme: +1 specialist, forced Unique Individual, +3 invasion, -3 initiative, NO story points, NO Stars of the Story"
-
-		_:
-			return "Unknown difficulty level"
-
-## Get detailed description with all modifiers listed.
 static func get_difficulty_detailed_description(difficulty: int) -> String:
 	var details: Array[String] = []
-	var modifiers = get_all_modifiers(difficulty)
-
+	var modifiers := get_all_modifiers(difficulty)
 	details.append("Difficulty: %s" % modifiers.difficulty_name)
 	details.append("")
-
-	# XP Modifiers
 	if modifiers.xp_bonus != 0:
 		details.append("• XP Bonus: %s" % modifiers.xp_description)
-
-	# Enemy Modifiers
 	if modifiers.enemy_count_modifier != 0:
 		details.append("• Enemy Count: +%d per battle" % modifiers.enemy_count_modifier)
-
 	if modifiers.reroll_low_enemy_dice:
 		details.append("• Enemy Dice: Reroll results of 1-2")
-
 	if modifiers.specialist_enemy_modifier != 0:
 		details.append("• Specialist Enemies: +%d per battle" % modifiers.specialist_enemy_modifier)
-
-	# Story Point Modifiers
 	if modifiers.story_points_disabled:
 		details.append("• Story Points: DISABLED")
 	elif modifiers.starting_story_points_modifier != 0:
 		details.append("• Starting Story Points: %+d" % modifiers.starting_story_points_modifier)
-
-	# Battle Modifiers
 	if modifiers.invasion_roll_modifier != 0:
 		details.append("• Invasion Rolls: %+d" % modifiers.invasion_roll_modifier)
-
 	if modifiers.seize_initiative_modifier != 0:
 		details.append("• Seize Initiative: %+d" % modifiers.seize_initiative_modifier)
-
 	if modifiers.rival_resistance_modifier != 0:
 		details.append("• Rival Resistance: %+d" % modifiers.rival_resistance_modifier)
-
-	# Unique Individual
 	if modifiers.unique_individual_forced:
 		details.append("• Unique Individual: FORCED in every battle")
 		if modifiers.double_unique_possible:
 			details.append("• Double Unique: 2D6, on 11-12 TWO Unique Individuals")
 	elif modifiers.unique_individual_roll_modifier != 0:
 		details.append("• Unique Individual Roll: %+d" % modifiers.unique_individual_roll_modifier)
-
-	# Stars of the Story
 	if modifiers.stars_of_story_disabled:
 		details.append("• Stars of the Story: DISABLED")
-
-	# Victory Conditions
 	if modifiers.only_basic_victory_conditions:
 		details.append("• Victory Conditions: Basic only (Play 20 / Win 20)")
-
-	if details.size() == 2: # Only header + empty line
+	if details.size() == 2:
 		details.append("• No special modifiers (standard rules)")
-
 	return "\n".join(details)
 
 # MARK: - Public API - Validation
 
-## Validate if a difficulty level is valid.
 static func is_valid_difficulty(difficulty: int) -> bool:
-	return difficulty >= GlobalEnums.DifficultyLevel.NONE and \
-		   difficulty <= GlobalEnums.DifficultyLevel.INSANITY
+	return difficulty >= 0 and difficulty < _LEVEL_KEYS.size()
 
-## Get default difficulty level (STANDARD).
 static func get_default_difficulty() -> int:
 	return GlobalEnums.DifficultyLevel.NORMAL
 
@@ -336,62 +253,44 @@ static func get_default_difficulty() -> int:
 
 static func _get_difficulty_name(difficulty: int) -> String:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.NONE:
-			return "None"
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Story (Easy)"
-		GlobalEnums.DifficultyLevel.NORMAL:
-			return "Standard (Normal)"
-		GlobalEnums.DifficultyLevel.CHALLENGING:
-			return "Challenging"
-		GlobalEnums.DifficultyLevel.HARDCORE:
-			return "Hardcore"
-		GlobalEnums.DifficultyLevel.INSANITY:
-			return "Nightmare (Insanity)"
-		_:
-			return "Unknown"
+		GlobalEnums.DifficultyLevel.NONE: return "None"
+		GlobalEnums.DifficultyLevel.EASY: return "Story (Easy)"
+		GlobalEnums.DifficultyLevel.NORMAL: return "Standard (Normal)"
+		GlobalEnums.DifficultyLevel.HARD: return "Hard"
+		GlobalEnums.DifficultyLevel.CHALLENGING: return "Challenging"
+		GlobalEnums.DifficultyLevel.NIGHTMARE: return "Nightmare"
+		GlobalEnums.DifficultyLevel.HARDCORE: return "Hardcore"
+		GlobalEnums.DifficultyLevel.ELITE: return "Elite"
+		GlobalEnums.DifficultyLevel.INSANITY: return "Insanity"
+		_: return "Unknown"
 
 static func _get_enemy_modifier_description(difficulty: int) -> String:
-	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Standard enemy generation"
-		GlobalEnums.DifficultyLevel.NORMAL:
-			return "Standard enemy generation"
-		GlobalEnums.DifficultyLevel.CHALLENGING:
-			return "Reroll enemy dice showing 1 or 2 (increases minimum enemy count)"
-		GlobalEnums.DifficultyLevel.HARDCORE:
-			return "+1 basic enemy added to every battle"
-		GlobalEnums.DifficultyLevel.INSANITY:
-			return "+1 specialist enemy added to every battle (higher threat)"
-		_:
-			return "Unknown difficulty"
+	var data := _get_level_data(difficulty)
+	if data.is_empty():
+		return "Unknown difficulty"
+	if bool(data.get("reroll_low_enemy_dice", false)):
+		return "Reroll enemy dice showing 1 or 2 (increases minimum enemy count)"
+	if int(data.get("specialist_enemy_modifier", 0)) > 0:
+		return "+%d specialist enemy added to every battle (higher threat)" % int(data.get("specialist_enemy_modifier", 0))
+	if int(data.get("enemy_count_modifier", 0)) > 0:
+		return "+%d basic enemy added to every battle" % int(data.get("enemy_count_modifier", 0))
+	return "Standard enemy generation"
 
 # MARK: - Integration Helpers for Existing Systems
 
-## Calculate final enemy count with difficulty modifier applied.
-## Used by EnemyGenerator.gd during battle setup.
 static func calculate_final_enemy_count(base_count: int, difficulty: int) -> int:
 	return base_count + get_enemy_count_modifier(difficulty)
 
-## Check if an enemy dice roll should be rerolled (for CHALLENGING mode).
-## Used by EnemyGenerator during enemy number determination.
 static func should_reroll_enemy_die(die_result: int, difficulty: int) -> bool:
 	if not should_reroll_low_enemy_dice(difficulty):
 		return false
+	return die_result <= 2
 
-	return die_result <= 2 # Reroll 1s and 2s
-
-## Calculate final invasion roll with difficulty modifier.
-## Used by battle setup systems when generating Invasion battles.
 static func calculate_invasion_roll(base_roll: int, difficulty: int) -> int:
 	return base_roll + get_invasion_roll_modifier(difficulty)
 
-## Calculate final Seize the Initiative roll with difficulty modifier.
-## Used by SeizeInitiativeSystem.gd during battle start.
 static func calculate_seize_initiative_roll(base_roll: int, difficulty: int) -> int:
 	return base_roll + get_seize_initiative_modifier(difficulty)
 
-## Calculate final rival resistance roll with difficulty modifier.
-## Used by rival battle generation systems.
 static func calculate_rival_resistance_roll(base_roll: int, difficulty: int) -> int:
 	return base_roll + get_rival_resistance_modifier(difficulty)

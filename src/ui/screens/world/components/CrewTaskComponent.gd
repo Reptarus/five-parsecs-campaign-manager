@@ -303,46 +303,14 @@ func _on_resolve_all_pressed() -> void:
 	_update_progress_display()
 	_update_ui_state()
 
-	# Scan for choice items that need player input before publishing event
-	_pending_choice_results.clear()
-	for result in completed_tasks:
-		if result.has("table_result"):
-			var items: Array = result.table_result.get("items", [])
-			for item_str in items:
-				var s: String = str(item_str)
-				if _is_grenade_combination(s):
-					_pending_choice_results.append({
-						"result": result,
-						"item_string": s,
-						"type": "grenade_combo"
-					})
-				elif _is_choice_item(s):
-					_pending_choice_results.append({
-						"result": result,
-						"item_string": s,
-						"options": _parse_choice_options(s),
-						"type": "item_choice"
-					})
-
-	if _pending_choice_results.size() > 0:
-		_show_next_choice_popup()
-		return  # Don't publish event yet — wait for all choices
-
-	_finalize_task_resolution()
+	# Build event queue — each result becomes an interactive dialog
+	_build_event_queue()
+	_process_event_queue()
 
 func _finalize_task_resolution() -> void:
-	## Complete task resolution: add non-choice items to stash and publish event
-	# Add non-choice items to ship stash — skip items already handled by popups
-	for result in completed_tasks:
-		if result.has("table_result"):
-			for item_str in result.table_result.get("items", []):
-				var s: String = str(item_str)
-				if s.is_empty():
-					continue
-				# Skip items that needed/got player input
-				if _is_choice_item(s) or _is_grenade_combination(s):
-					continue
-				_add_item_to_stash(s)
+	## Complete task resolution — items/credits/effects already applied by event queue.
+	## Just publish the completion event and update display.
+	_update_progress_display()
 
 	# Publish completion event
 	if event_bus:
@@ -1299,9 +1267,9 @@ func complete_crew_task_phase() -> void:
 		_on_resolve_all_pressed()
 		_auto_resolve_mode = false
 
-	# Don't publish phase completion if choices are still pending
-	if not _pending_choice_results.is_empty():
-		push_warning("CrewTaskComponent: Cannot complete phase — choices still pending")
+	# Don't publish phase completion if events are still pending
+	if not _event_queue.is_empty() or _current_event_dialog != null:
+		push_warning("CrewTaskComponent: Cannot complete phase — events still pending")
 		return
 
 	if event_bus:
@@ -1422,3 +1390,769 @@ func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String
 			return
 
 	push_warning("CrewTaskComponent: Character %s not found in crew" % character_id)
+
+# ══════════════════════════════════════════════════════════════════════
+# EVENT QUEUE SYSTEM — Interactive dialogs for crew task results
+# ══════════════════════════════════════════════════════════════════════
+
+func _build_event_queue() -> void:
+	## Scan completed_tasks and build event descriptors for each table result.
+	## Each descriptor drives a CrewTaskEventDialog instance.
+	_event_queue.clear()
+
+	for result in completed_tasks:
+		if not result.has("table_result"):
+			continue
+
+		var tr: Dictionary = result.table_result
+		var crew_id: String = str(result.get("crew_id", ""))
+		var crew_name: String = str(result.get("crew_name", ""))
+		var task_type: String = str(result.get("task_name", ""))
+		var crew_member = _get_crew_member_by_id(crew_id)
+
+		# Base event data shared by all types
+		var base := {
+			"crew_id": crew_id,
+			"crew_name": crew_name,
+			"crew_member": crew_member,
+			"task_type": task_type,
+			"event_name": tr.get("name", "Event"),
+			"effect_text": tr.get("effect", ""),
+			"table_result": tr,
+			"result_ref": result,
+		}
+
+		# Check species immunity first
+		if _check_species_immunity(tr, crew_member):
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.IMMUNE
+			_event_queue.append(event)
+			continue
+
+		# Detect event type(s) from result fields — build events in order
+		var events: Array[Dictionary] = _classify_result(base, tr, crew_member)
+		_event_queue.append_array(events)
+
+func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Dictionary]:
+	## Classify a single table result into one or more event descriptors.
+	var events: Array[Dictionary] = []
+	var event_name: String = str(tr.get("name", ""))
+
+	# ── Deferred events (show info badge, already cached by _resolve_table_task) ──
+	var deferred: String = str(tr.get("deferred_trigger", ""))
+	if not deferred.is_empty():
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.DEFERRED
+		event["deferred_trigger"] = deferred
+		events.append(event)
+		return events # Deferred events don't have immediate effects
+
+	# ── Runtime roll events (requires_roll=true, already resolved by _apply_runtime_rolls) ──
+	# These were pre-rolled — show the result in the dialog
+	var requires_roll: bool = tr.get("requires_roll", false)
+
+	# ── Check for specific named events with complex behavior ──
+	match event_name:
+		"A chance to unload some stuff":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.SELL_WEAPONS
+			event["credits_per_item"] = 2
+			event["equipment"] = _get_crew_weapons(crew_member)
+			events.append(event)
+			return events
+
+		"Gambling problem":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.DISCARD_ITEM
+			event["equipment"] = _get_crew_equipment(crew_member)
+			events.append(event)
+			return events
+
+		"Get in a bad fight":
+			# Compound: sick bay + discard
+			var sick_event := base.duplicate()
+			sick_event["type"] = CrewTaskEventDialog.EventType.SICK_BAY
+			sick_event["sick_bay_turns"] = tr.get("sick_bay_turns", 1)
+			events.append(sick_event)
+			var discard_event := base.duplicate()
+			discard_event["type"] = CrewTaskEventDialog.EventType.DISCARD_ITEM
+			discard_event["equipment"] = _get_crew_equipment(crew_member)
+			discard_event["event_name"] = "Get in a bad fight — Lose an item"
+			events.append(discard_event)
+			return events
+
+		"Contraband":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS_RISK
+			events.append(event)
+			return events
+
+		"Possible bargain":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ITEM_TRADE
+			event["trade_type"] = "weapon"
+			event["equipment"] = _get_crew_weapons(crew_member)
+			events.append(event)
+			return events
+
+		"Alien merchant":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ITEM_TRADE
+			event["trade_type"] = "item"
+			event["equipment"] = _get_crew_equipment(crew_member)
+			events.append(event)
+			return events
+
+		"This place is rather nice, really":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.PAY_OR_LOSE
+			event["pay_or_lose_data"] = tr.get("pay_or_lose", {"cost": "1 story point", "penalty": "crew member leaves"})
+			events.append(event)
+			return events
+
+		"Tech fanatic":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.TECH_FANATIC
+			var char_class: String = _get_crew_class(crew_member)
+			event["is_engineer"] = char_class.to_lower() == "engineer"
+			var equip: Array = _get_crew_equipment(crew_member)
+			if equip.size() > 0:
+				event["random_damaged_item"] = equip[randi() % equip.size()]
+			events.append(event)
+			return events
+
+		"Completely lost":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.SKILL_CHECK
+			event["stat_name"] = "Savvy"
+			event["stat_modifier"] = _get_crew_stat(crew_member, "savvy")
+			event["success_threshold"] = 4
+			event["failure_text"] = "Lost — will miss the battle this turn"
+			events.append(event)
+			return events
+
+		"Odd device":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.CONDITIONAL_PURCHASE
+			event["purchase_cost"] = 1
+			events.append(event)
+			return events
+
+		"Don't usually see these for sale":
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.CONDITIONAL_PURCHASE
+			event["purchase_cost"] = 3
+			events.append(event)
+			return events
+
+	# ── Check for buy_rumors / buy_weapons metadata ──
+	if tr.has("buy_rumors"):
+		var buy_data: Dictionary = tr.get("buy_rumors", {})
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.BUY_RUMORS
+		event["max_quantity"] = buy_data.get("max", 3)
+		event["cost_each"] = buy_data.get("cost_each", 2)
+		events.append(event)
+		return events
+
+	if tr.has("buy_weapons"):
+		var buy_data: Dictionary = tr.get("buy_weapons", {})
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.BUY_WEAPONS
+		event["max_quantity"] = buy_data.get("max_rolls", 3)
+		event["cost_each"] = buy_data.get("cost_each", 3)
+		events.append(event)
+		return events
+
+	# ── Check for items with OR choices ──
+	var items: Array = tr.get("items", [])
+	for item_str in items:
+		var s: String = str(item_str)
+		if "Grenades" in s and ("Frakk" in s or "Dazzle" in s):
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.GRENADE_COMBO
+			events.append(event)
+			return events
+		elif " OR " in s:
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.CHOICE_ITEM
+			event["choice_options"] = _parse_choice_options(s)
+			event["choice_item_string"] = s
+			events.append(event)
+			return events
+
+	# ── Items with (random) — roll on table ──
+	for item_str in items:
+		var s: String = str(item_str)
+		if "(random" in s:
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ROLL_ON_TABLE
+			event["items_to_resolve"] = [s]
+			events.append(event)
+			return events
+
+	# ── Roll-based events (already resolved by _apply_runtime_rolls) ──
+	if requires_roll:
+		# These were pre-resolved — show as roll results
+		var credits: int = tr.get("credits", 0)
+		var sp: int = tr.get("story_points", 0)
+		if credits != 0 and sp == 0:
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS
+			event["credits"] = credits
+			events.append(event)
+		elif sp != 0 or event_name in ["Worthless trinket", "Useless trinket", "Tourist garbage", "Had a nice chat"]:
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.ROLL_FOR_BONUS
+			event["story_points"] = sp
+			events.append(event)
+		else:
+			var event := base.duplicate()
+			event["type"] = CrewTaskEventDialog.EventType.INFO_ONLY
+			events.append(event)
+		# Also check for rival flag from roll results (e.g., contraband)
+		if tr.get("rival", false):
+			var rival_event := base.duplicate()
+			rival_event["type"] = CrewTaskEventDialog.EventType.GAIN_RIVAL
+			rival_event["event_name"] = event_name + " — Rival"
+			events.append(rival_event)
+		return events
+
+	# ── Simple non-choice items — roll on table silently ──
+	if items.size() > 0:
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.ROLL_ON_TABLE
+		event["items_to_resolve"] = items
+		events.append(event)
+		return events
+
+	# ── Narrative flags ──
+	if tr.get("recruit", false):
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.RECRUIT
+		events.append(event)
+		return events
+
+	if tr.get("patron", false):
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.GAIN_PATRON
+		events.append(event)
+		return events
+
+	if tr.get("rival", false):
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.GAIN_RIVAL
+		event["kerin_bonus"] = str(tr.get("kerin_bonus", ""))
+		events.append(event)
+		return events
+
+	if tr.get("rumor", false):
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.GAIN_RUMOR
+		event["precursor_bonus"] = str(tr.get("precursor_bonus", ""))
+		events.append(event)
+		return events
+
+	if tr.get("sick_bay_turns", 0) > 0:
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.SICK_BAY
+		event["sick_bay_turns"] = tr.get("sick_bay_turns", 1)
+		events.append(event)
+		return events
+
+	# ── Static resource gains ──
+	var credits: int = tr.get("credits", 0)
+	var xp: int = tr.get("xp", 0)
+	var sp: int = tr.get("story_points", 0)
+
+	if credits > 0:
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.GAIN_CREDITS
+		event["credits"] = credits
+		events.append(event)
+	if xp > 0:
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.GAIN_XP
+		event["xp"] = xp
+		events.append(event)
+	if sp > 0:
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.GAIN_STORY_POINT
+		event["story_points"] = sp
+		events.append(event)
+
+	# If nothing matched, show as info only
+	if events.is_empty():
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.INFO_ONLY
+		events.append(event)
+
+	return events
+
+# ── Event Queue Processing ────────────────────────────────────────────
+
+func _process_event_queue() -> void:
+	## Start processing the event queue — shows first dialog
+	if _event_queue.is_empty():
+		_finalize_task_resolution()
+		return
+	_show_next_event_dialog()
+
+func _show_next_event_dialog() -> void:
+	## Pop front of queue and show dialog, or finalize if empty
+	if _event_queue.is_empty():
+		_finalize_task_resolution()
+		return
+
+	var event_data: Dictionary = _event_queue.pop_front()
+
+	# Auto-resolve mode: skip dialogs, apply defaults
+	if _auto_resolve_mode:
+		_auto_resolve_event(event_data)
+		_show_next_event_dialog()
+		return
+
+	var dialog: Window = CrewTaskEventDialogScript.new()
+	dialog.event_completed.connect(_on_event_completed.bind(event_data))
+	add_child(dialog)
+	_current_event_dialog = dialog
+	dialog.show_event(event_data)
+
+func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
+	## Apply game state changes based on event outcome, then process next event
+	_current_event_dialog = null
+	var event_type: int = event_data.get("type", CrewTaskEventDialog.EventType.INFO_ONLY)
+	var crew_member = event_data.get("crew_member")
+	var gsm = get_node_or_null("/root/GameStateManager")
+
+	match event_type:
+		CrewTaskEventDialog.EventType.GAIN_CREDITS:
+			var credits: int = event_data.get("credits", 0)
+			if credits > 0 and gsm:
+				gsm.add_credits(credits)
+
+		CrewTaskEventDialog.EventType.GAIN_XP:
+			var xp: int = event_data.get("xp", 0)
+			if xp > 0:
+				_apply_xp_to_character(
+					event_data.get("table_result", {}),
+					xp,
+					"crew_task_event"
+				)
+
+		CrewTaskEventDialog.EventType.GAIN_STORY_POINT:
+			var sp: int = event_data.get("story_points", 0)
+			if sp > 0 and gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(sp)
+
+		CrewTaskEventDialog.EventType.ROLL_FOR_BONUS:
+			var sp: int = outcome.get("story_points", 0)
+			if sp > 0 and gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(sp)
+
+		CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS:
+			var credits: int = outcome.get("credits", 0)
+			if credits > 0 and gsm:
+				gsm.add_credits(credits)
+
+		CrewTaskEventDialog.EventType.ROLL_FOR_CREDITS_RISK:
+			if not outcome.get("declined", false):
+				var credits: int = outcome.get("credits", 0)
+				if credits > 0 and gsm:
+					gsm.add_credits(credits)
+				# Rival is handled by the roll — check if roll >= 4
+				# The dialog stores this in the outcome
+				if outcome.get("rival", false):
+					_apply_rival(event_data)
+
+		CrewTaskEventDialog.EventType.ROLL_ON_TABLE:
+			# Resolve loot items and add to stash
+			var items_to_resolve: Array = event_data.get("items_to_resolve", [])
+			for item_str in items_to_resolve:
+				_add_item_to_stash(str(item_str))
+
+		CrewTaskEventDialog.EventType.CONDITIONAL_PURCHASE:
+			if outcome.get("purchased", false):
+				var cost: int = event_data.get("purchase_cost", 0)
+				if gsm:
+					gsm.remove_credits(cost)
+				# Roll on loot table (the dialog signals roll_requested)
+				_add_item_to_stash("Loot (random)")
+
+		CrewTaskEventDialog.EventType.CHOICE_ITEM:
+			var item_name: String = str(outcome.get("item_name", ""))
+			if not item_name.is_empty():
+				_add_item_to_stash(item_name)
+
+		CrewTaskEventDialog.EventType.GRENADE_COMBO:
+			var frakk: int = outcome.get("frakk", 0)
+			var dazzle: int = outcome.get("dazzle", 0)
+			for i in range(frakk):
+				_add_item_to_stash("Frakk Grenade")
+			for i in range(dazzle):
+				_add_item_to_stash("Dazzle Grenade")
+
+		CrewTaskEventDialog.EventType.DISCARD_ITEM:
+			var discarded: String = str(outcome.get("discarded_item", ""))
+			if not discarded.is_empty():
+				_remove_from_crew_equipment(crew_member, discarded)
+
+		CrewTaskEventDialog.EventType.SELL_WEAPONS:
+			var sold: Array = outcome.get("sold_items", [])
+			for item in sold:
+				_remove_from_crew_equipment(crew_member, str(item))
+			var credits: int = outcome.get("credits", 0)
+			if credits > 0 and gsm:
+				gsm.add_credits(credits)
+
+		CrewTaskEventDialog.EventType.SICK_BAY:
+			var turns: int = event_data.get("sick_bay_turns", 1)
+			_apply_sick_bay(crew_member, turns)
+
+		CrewTaskEventDialog.EventType.GAIN_RIVAL:
+			_apply_rival(event_data)
+
+		CrewTaskEventDialog.EventType.GAIN_RUMOR:
+			_apply_rumor(event_data, outcome)
+
+		CrewTaskEventDialog.EventType.GAIN_PATRON:
+			_generate_and_add_patron(1)
+
+		CrewTaskEventDialog.EventType.RECRUIT:
+			if outcome.get("recruit", false):
+				_apply_recruit()
+
+		CrewTaskEventDialog.EventType.BUY_RUMORS:
+			var qty: int = outcome.get("quantity", 0)
+			var total_cost: int = outcome.get("total_cost", 0)
+			if total_cost > 0 and gsm:
+				gsm.remove_credits(total_cost)
+			for i in range(qty):
+				_apply_rumor(event_data, {})
+
+		CrewTaskEventDialog.EventType.BUY_WEAPONS:
+			var qty: int = outcome.get("quantity", 0)
+			var total_cost: int = outcome.get("total_cost", 0)
+			if total_cost > 0 and gsm:
+				gsm.remove_credits(total_cost)
+			for i in range(qty):
+				var weapon: String = _roll_on_military_weapons_table()
+				_add_item_to_stash(weapon)
+
+		CrewTaskEventDialog.EventType.SKILL_CHECK:
+			if not outcome.get("success", true):
+				# Failed skill check — apply penalty
+				if crew_member:
+					if crew_member is Dictionary:
+						crew_member["misses_battle"] = true
+					elif "misses_battle" in crew_member:
+						crew_member.misses_battle = true
+
+		CrewTaskEventDialog.EventType.ITEM_TRADE:
+			if outcome.get("traded", false):
+				var traded_item: String = str(outcome.get("traded_item", ""))
+				if not traded_item.is_empty():
+					_remove_from_crew_equipment(crew_member, traded_item)
+				# Roll result handled by dialog → roll_requested
+				# For "Possible bargain": roll already determined credits vs loot
+				var credits: int = outcome.get("credits", 0)
+				if credits > 0 and gsm:
+					gsm.add_credits(credits)
+
+		CrewTaskEventDialog.EventType.PAY_OR_LOSE:
+			if outcome.get("paid", false):
+				if gsm and gsm.has_method("modify_story_progress"):
+					gsm.modify_story_progress(-1)
+			elif outcome.get("crew_lost", false):
+				_remove_crew_member(crew_member, event_data.get("crew_id", ""))
+
+		CrewTaskEventDialog.EventType.TECH_FANATIC:
+			if outcome.get("engineer_bonus", false):
+				_apply_xp_to_character(
+					event_data.get("table_result", {}),
+					2,
+					"tech_fanatic_engineer"
+				)
+			# Damage/repair handled by dialog outcome
+
+	_update_progress_display()
+	_show_next_event_dialog()
+
+func _auto_resolve_event(event_data: Dictionary) -> void:
+	## Auto-resolve an event without showing dialog — sensible defaults
+	var event_type: int = event_data.get("type", CrewTaskEventDialog.EventType.INFO_ONLY)
+	var gsm = get_node_or_null("/root/GameStateManager")
+	var crew_member = event_data.get("crew_member")
+
+	match event_type:
+		CrewTaskEventDialog.EventType.GAIN_CREDITS:
+			var credits: int = event_data.get("credits", 0)
+			if credits > 0 and gsm:
+				gsm.add_credits(credits)
+		CrewTaskEventDialog.EventType.GAIN_XP:
+			var xp: int = event_data.get("xp", 0)
+			if xp > 0:
+				_apply_xp_to_character(event_data.get("table_result", {}), xp, "auto")
+		CrewTaskEventDialog.EventType.GAIN_STORY_POINT:
+			var sp: int = event_data.get("story_points", 0)
+			if sp > 0 and gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(sp)
+		CrewTaskEventDialog.EventType.ROLL_ON_TABLE:
+			for item_str in event_data.get("items_to_resolve", []):
+				_add_item_to_stash(str(item_str))
+		CrewTaskEventDialog.EventType.CHOICE_ITEM:
+			var opts: Array = event_data.get("choice_options", [])
+			if opts.size() > 0:
+				_add_item_to_stash(str(opts[0]))
+		CrewTaskEventDialog.EventType.GRENADE_COMBO:
+			for i in range(3):
+				_add_item_to_stash("Frakk Grenade")
+		CrewTaskEventDialog.EventType.GAIN_RIVAL:
+			_apply_rival(event_data)
+		CrewTaskEventDialog.EventType.GAIN_RUMOR:
+			_apply_rumor(event_data, {})
+		CrewTaskEventDialog.EventType.GAIN_PATRON:
+			_generate_and_add_patron(1)
+		CrewTaskEventDialog.EventType.SICK_BAY:
+			_apply_sick_bay(crew_member, event_data.get("sick_bay_turns", 1))
+		# Skip interactive types in auto mode (no selling, no discarding, no purchases)
+
+# ── State Mutation Helpers ────────────────────────────────────────────
+
+func _check_species_immunity(table_result: Dictionary, crew_member) -> bool:
+	## Check if crew member's species makes them immune to this result
+	var immune_list: Array = table_result.get("immune_species", [])
+	if immune_list.is_empty():
+		return false
+	var species_name: String = _get_species_name(crew_member)
+	for immune_species in immune_list:
+		if str(immune_species).to_lower() == species_name.to_lower():
+			return true
+	return false
+
+func _get_crew_member_by_id(crew_id: String):
+	## Find crew member in crew_data by character_id
+	for member in crew_data:
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str(member.get("character_id", member.get("id", "")))
+		elif member is Object and "character_id" in member:
+			mid = str(member.character_id)
+		elif member is Object and "id" in member:
+			mid = str(member.id)
+		if mid == crew_id:
+			return member
+	return null
+
+func _get_species_name(crew_member) -> String:
+	## Get species/origin name as string from crew member (Object or Dict)
+	if crew_member == null:
+		return ""
+	var origin = null
+	if crew_member is Dictionary:
+		origin = crew_member.get("origin", crew_member.get("species", ""))
+	elif crew_member is Object:
+		if "origin" in crew_member:
+			origin = crew_member.origin
+		elif "species" in crew_member:
+			origin = crew_member.species
+	if origin == null:
+		return ""
+	# Handle enum ordinal → string
+	if origin is int:
+		var keys: Array = GlobalEnums.Origin.keys()
+		if origin >= 0 and origin < keys.size():
+			return str(keys[origin])
+		return ""
+	return str(origin)
+
+func _get_crew_equipment(crew_member) -> Array:
+	## Get equipment array from crew member
+	if crew_member == null:
+		return []
+	if crew_member is Dictionary:
+		var equip = crew_member.get("equipment", [])
+		return equip.duplicate() if equip is Array else []
+	if crew_member is Object and "equipment" in crew_member:
+		return crew_member.equipment.duplicate()
+	return []
+
+func _get_crew_weapons(crew_member) -> Array:
+	## Get only weapon items from crew member's equipment
+	var all_equip: Array = _get_crew_equipment(crew_member)
+	var weapons: Array = []
+	for item_name in all_equip:
+		if _is_weapon(str(item_name)):
+			weapons.append(item_name)
+	return weapons
+
+func _is_weapon(item_name: String) -> bool:
+	## Check if item name is a weapon (matches Character.weapons getter heuristic)
+	var lower: String = item_name.to_lower()
+	for keyword in ["weapon", "rifle", "pistol", "blade", "gun", "sword",
+			"flamer", "cannon", "laser", "saber", "axe", "maul", "claw"]:
+		if keyword in lower:
+			return true
+	return false
+
+func _get_crew_class(crew_member) -> String:
+	## Get character class as string
+	if crew_member == null:
+		return ""
+	if crew_member is Dictionary:
+		return str(crew_member.get("character_class", crew_member.get("class", "")))
+	if crew_member is Object and "character_class" in crew_member:
+		return str(crew_member.character_class)
+	return ""
+
+func _get_crew_stat(crew_member, stat_name: String) -> int:
+	## Get a stat value from crew member
+	if crew_member == null:
+		return 0
+	if crew_member is Dictionary:
+		return crew_member.get(stat_name, 0) as int
+	if crew_member is Object and stat_name in crew_member:
+		return crew_member.get(stat_name) as int
+	return 0
+
+func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
+	## Remove an item by name from crew member's equipment array
+	if crew_member == null:
+		return
+	if crew_member is Dictionary:
+		var equip: Array = crew_member.get("equipment", [])
+		if item_name in equip:
+			equip.erase(item_name)
+	elif crew_member is Object and "equipment" in crew_member:
+		if item_name in crew_member.equipment:
+			crew_member.equipment.erase(item_name)
+
+func _apply_sick_bay(crew_member, turns: int) -> void:
+	## Place crew member in sick bay
+	if crew_member == null:
+		return
+	if crew_member is Dictionary:
+		crew_member["in_sick_bay"] = true
+		crew_member["sick_bay_turns_remaining"] = turns
+		crew_member["status"] = "injured"
+	elif crew_member is Object:
+		if "status" in crew_member:
+			crew_member.status = "injured"
+		if "in_sick_bay" in crew_member:
+			crew_member.in_sick_bay = true
+
+func _apply_rival(event_data: Dictionary) -> void:
+	## Add a rival to the campaign via NPCTracker
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	var rival_types: Array = ["Criminal", "Corporate", "Military", "Pirate", "Cult"]
+	var rival_data: Dictionary = {
+		"rival_id": "rival_task_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
+		"name": "Rival %d" % (randi() % 100 + 1),
+		"type": rival_types[randi() % rival_types.size()],
+		"source": "crew_task",
+		"hostility": randi() % 3 + 3,
+		"resources": randi() % 3 + 1,
+	}
+	var kerin_bonus: String = str(event_data.get("kerin_bonus", ""))
+	if not kerin_bonus.is_empty():
+		rival_data["kerin_bonus"] = kerin_bonus
+
+	if npc_tracker and npc_tracker.has_method("add_rival"):
+		npc_tracker.add_rival(rival_data)
+	else:
+		# Fallback: add directly to campaign
+		var gs = get_node_or_null("/root/GameState")
+		if gs and gs.current_campaign:
+			var campaign = gs.current_campaign
+			if campaign is Dictionary:
+				if not campaign.has("rivals"):
+					campaign["rivals"] = []
+				campaign["rivals"].append(rival_data)
+			elif "rivals" in campaign:
+				campaign.rivals.append(rival_data)
+
+func _apply_rumor(event_data: Dictionary, outcome: Dictionary) -> void:
+	## Add a quest rumor to the campaign
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		return
+	var campaign = gs.current_campaign
+	var rumor_types: Array = [
+		"An extracted data file", "An extracted data file",
+		"Notebook with secret information", "Notebook with secret information",
+		"Old map showing a location", "Old map showing a location",
+		"A tip from a contact", "A tip from a contact",
+		"An intercepted transmission", "An intercepted transmission"
+	]
+	var rumor_roll: int = randi() % 10
+	var new_rumor: Dictionary = {
+		"id": "rumor_task_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
+		"type": rumor_roll + 1,
+		"description": rumor_types[rumor_roll],
+		"source": "crew_task",
+		"created_turn": _get_current_turn_number()
+	}
+	if campaign is Dictionary:
+		if not campaign.has("rumors"):
+			campaign["rumors"] = []
+		campaign["rumors"].append(new_rumor)
+	elif "rumors" in campaign:
+		campaign.rumors.append(new_rumor)
+
+func _apply_recruit() -> void:
+	## Recruit a new crew member
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		push_warning("CrewTaskComponent: Cannot recruit — no campaign")
+		return
+	var campaign = gs.current_campaign
+
+	# Check crew size limit
+	var crew_size: int = 0
+	if campaign.has_method("get_crew_size"):
+		crew_size = campaign.get_crew_size()
+	if crew_size >= 8:
+		push_warning("CrewTaskComponent: Crew is full (8 members)")
+		return
+
+	# Generate new character via CharacterGeneration
+	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
+	if CharGen and CharGen.has_method("create_character"):
+		var new_char = CharGen.create_character({})
+		if new_char and campaign.has_method("add_crew_member"):
+			if new_char.has_method("to_dictionary"):
+				campaign.add_crew_member(new_char.to_dictionary())
+			else:
+				campaign.add_crew_member(new_char)
+
+func _remove_crew_member(crew_member, crew_id: String) -> void:
+	## Remove a crew member from the campaign (for pay_or_lose penalty)
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		return
+	var campaign = gs.current_campaign
+	if campaign.has_method("get_crew_members"):
+		var members = campaign.get_crew_members()
+		for i in range(members.size() - 1, -1, -1):
+			var m = members[i]
+			var mid: String = ""
+			if m is Dictionary:
+				mid = str(m.get("character_id", m.get("id", "")))
+			elif m is Object and "character_id" in m:
+				mid = str(m.character_id)
+			if mid == crew_id:
+				members.remove_at(i)
+				break
+
+func _roll_on_military_weapons_table() -> String:
+	## Roll D100 on the Military Weapons table (gear_database.json)
+	var roll: int = randi() % 100 + 1
+	# Military weapons table from gear_database.json
+	if roll <= 25: return "Military Rifle"
+	if roll <= 45: return "Infantry Laser"
+	if roll <= 50: return "Marksman's Rifle"
+	if roll <= 60: return "Needle Rifle"
+	if roll <= 75: return "Auto Rifle"
+	if roll <= 80: return "Rattle Gun"
+	if roll <= 95: return "Boarding Saber"
+	return "Shatter Axe"

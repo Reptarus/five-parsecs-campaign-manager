@@ -45,10 +45,24 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 				new_rivals.append(new_rival_id)
 
 	if faction_sys and faction_sys.has_method("modify_faction_standing"):
-		var faction_id = ctx.battle_result.get("faction_id", "")
+		var faction_id: String = ctx.battle_result.get("faction_id", "")
 		if faction_id != "":
-			var standing_change = 5.0 if ctx.mission_successful else -3.0
+			var standing_change: float = 5.0 if ctx.mission_successful else -3.0
 			faction_sys.modify_faction_standing(faction_id, standing_change)
+
+			# Loyalty gain on faction job win (Compendium p.114)
+			if ctx.mission_successful and faction_sys.has_method("roll_loyalty_gain"):
+				var is_affiliated: bool = ctx.battle_result.get(
+					"is_affiliated_patron_job", false
+				)
+				faction_sys.roll_loyalty_gain(faction_id, is_affiliated)
+				# Mark successful job for faction activity bonuses
+				if faction_sys.has_method("has_faction") and faction_sys.has_faction(faction_id):
+					var factions_dict: Dictionary = faction_sys.get(
+						"active_factions"
+					) if faction_sys.get("active_factions") is Dictionary else {}
+					if factions_dict.has(faction_id):
+						factions_dict[faction_id]["successful_job_this_turn"] = true
 
 	return {"rivals_removed": rivals_removed, "new_rivals": new_rivals}
 

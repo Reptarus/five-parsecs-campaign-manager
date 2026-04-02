@@ -274,6 +274,31 @@ func _process_character_event_step() -> void:
 		_character_events.finalize_event(character_event, _ctx)
 	character_event_occurred.emit(character_event)
 
+	# Step 13b: Faction Event (Compendium pp.115-117, after character events)
+	var faction_sys = Engine.get_main_loop().root.get_node_or_null(
+		"/root/FactionSystem"
+	) if Engine.get_main_loop() else null
+	if faction_sys and faction_sys.has_method("process_faction_event"):
+		var faction_event: Dictionary = faction_sys.process_faction_event()
+		if not faction_event.is_empty():
+			# Log to journal
+			var journal = get_node_or_null("/root/CampaignJournal")
+			if journal and journal.has_method("create_entry"):
+				journal.create_entry({
+					"type": "story",
+					"title": "Faction: " + faction_event.get("event", ""),
+					"description": faction_event.get("effect", ""),
+					"auto_generated": true,
+					"turn_number": _ctx.battle_result.get("turn", 0),
+				})
+
+	# Step 13c: Faction Activities (Compendium p.115, during Check for Invasion)
+	if faction_sys and faction_sys.has_method("process_faction_activities"):
+		var job_faction_id: String = _ctx.battle_result.get(
+			"faction_job_id", ""
+		)
+		faction_sys.process_faction_activities(job_faction_id)
+
 	# Step 14: Galactic War
 	_emit_substep(GlobalEnums.PostBattleSubPhase.GALACTIC_WAR)
 	var war_progress: Dictionary = _galactic_war.process_galactic_war(_ctx)

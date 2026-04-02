@@ -340,6 +340,57 @@ func create_faction(faction_type: String, custom_name: String = "") -> Dictionar
 	faction_created.emit(faction)
 	return faction
 
+# ── Loyalty System (Compendium pp.113-114) ────────────────────────
+
+func get_faction_loyalty(faction_id: String) -> int:
+	## Get crew's Loyalty score with a faction.
+	var faction: Dictionary = active_factions.get(faction_id, {})
+	return faction.get("loyalty", 0)
+
+func set_faction_loyalty(faction_id: String, value: int) -> void:
+	## Set crew's Loyalty score with a faction.
+	if active_factions.has(faction_id):
+		active_factions[faction_id]["loyalty"] = max(0, value)
+
+func roll_loyalty_gain(
+	faction_id: String, is_affiliated: bool = false
+) -> bool:
+	## Roll to gain loyalty after winning a faction job (Compendium p.114).
+	## Direct job: D6 >= current loyalty → +1.
+	## Affiliated patron job: only roll of 6 → +1.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return false
+	var dice = get_node_or_null("/root/DiceManager")
+	if not dice:
+		return false
+	var current: int = get_faction_loyalty(faction_id)
+	var roll: int = dice.roll_d6("Faction Loyalty Gain")
+	if is_affiliated:
+		if roll == 6:
+			set_faction_loyalty(faction_id, current + 1)
+			return true
+	else:
+		if roll >= current:
+			set_faction_loyalty(faction_id, current + 1)
+			return true
+	return false
+
+func get_highest_loyalty_faction() -> String:
+	## Return the faction_id with the highest loyalty score.
+	var best_id: String = ""
+	var best_val: int = 0
+	for fid in active_factions:
+		var loy: int = active_factions[fid].get("loyalty", 0)
+		if loy > best_val:
+			best_val = loy
+			best_id = fid
+	return best_id
+
 func get_faction_standing(faction_id: String) -> float:
 	## Get current standing with faction
 	return faction_standings.get(faction_id, 0.0)
@@ -350,12 +401,53 @@ func modify_faction_standing(faction_id: String, amount: float) -> void:
 	faction_standings[faction_id] = clamp(current + amount, -100.0, 100.0)
 	faction_relation_changed.emit(faction_id, faction_standings[faction_id])
 
-func process_faction_activities() -> void:
-	## Process faction activities for all active factions
-	for faction_id in active_factions.keys():
-		if randf() < faction_update_chance:
-			var faction = active_factions[faction_id]
-			_perform_faction_activity(faction)
+func process_faction_activities(
+	job_faction_id: String = ""
+) -> Array[Dictionary]:
+	## Process faction activities (Compendium p.115).
+	## Called during Check for Invasion step.
+	## 1. If crew did a job for a faction, always perform Faction Struggle.
+	## 2. One randomly selected faction performs a D100 activity.
+	## Returns array of activity results.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return []
+	var results: Array[Dictionary] = []
+	var faction_ids: Array = active_factions.keys()
+	if faction_ids.is_empty():
+		return results
+
+	# Step 1: Mandatory Faction Struggle if crew did a job
+	if job_faction_id != "" and active_factions.has(job_faction_id):
+		var job_faction: Dictionary = active_factions[job_faction_id]
+		if job_faction.get("power", 0) >= 3:
+			_faction_struggle(job_faction)
+			results.append({
+				"faction": job_faction.get("name", ""),
+				"activity": "Faction struggle (mandatory)"
+			})
+
+	# Step 2: One random faction performs an activity
+	var random_id: String = faction_ids.pick_random()
+	var random_faction: Dictionary = active_factions[random_id]
+	if not random_faction.get("cannot_act_next_turn", false):
+		_perform_faction_activity(random_faction)
+		results.append({
+			"faction": random_faction.get("name", ""),
+			"activity": "D100 activity"
+		})
+
+	# Reset per-turn flags
+	for fid in faction_ids:
+		active_factions[fid]["successful_job_this_turn"] = false
+		active_factions[fid]["cannot_act_next_turn"] = false
+		active_factions[fid]["offers_job_next_turn"] = false
+
+	return results
 
 func resolve_faction_conflict(attacker_id: String, defender_id: String) -> Dictionary:
 	## Resolve conflict between two factions
@@ -368,21 +460,25 @@ func resolve_faction_conflict(attacker_id: String, defender_id: String) -> Dicti
 	if not attacker or not defender:
 		return {"success": false, "reason": "Invalid faction IDs"}
 
-	var attacker_roll = randi_range(1, 6) + attacker.get("power", 3)
-	var defender_roll = randi_range(1, 6) + defender.get("power", 3)
+	var att_power: int = attacker.get("power", 0)
+	var def_power: int = defender.get("power", 0)
+	var attacker_roll: int = randi_range(1, 6) + att_power
+	var defender_roll: int = randi_range(1, 6) + def_power
 
+	if attacker.get("successful_job_this_turn", false):
+		attacker_roll += 1
+	if defender.get("successful_job_this_turn", false):
+		defender_roll += 1
 	if defender.get("temporary_defense", false):
 		defender_roll += 2
-		defender.temporary_defense = false
+		defender["temporary_defense"] = false
 
 	var result: Dictionary = {}
 	if attacker_roll > defender_roll:
-		defender.strength = max(MIN_FACTION_STRENGTH, defender.strength - 1)
-		attacker.influence = min(MAX_FACTION_INFLUENCE, attacker.influence + 1)
+		_decrease_highest_stat(defender)
 		result = {"winner": attacker_id, "loser": defender_id, "type": "attacker_victory"}
 	elif defender_roll > attacker_roll:
-		attacker.strength = max(MIN_FACTION_STRENGTH, attacker.strength - 1)
-		defender.influence = min(MAX_FACTION_INFLUENCE, defender.influence + 1)
+		_decrease_highest_stat(attacker)
 		result = {"winner": defender_id, "loser": attacker_id, "type": "defender_victory"}
 	else:
 		result = {"winner": "none", "loser": "none", "type": "stalemate"}
@@ -469,21 +565,55 @@ func _initialize_default_data() -> void:
 				create_faction(category)
 
 func _generate_faction_data(faction_type: String) -> Dictionary:
-	## Generate faction data based on type
-	var base_data = faction_data.get(faction_type, {})
+	## Generate faction using Compendium D100 table (pp.112-113).
+	## Falls back to legacy generation if JSON data unavailable.
+	var dice = get_node_or_null("/root/DiceManager")
+	var gen_data: Dictionary = faction_data.get(
+		"generation", {}
+	)
+	var type_table: Array = gen_data.get("type_table", [])
+
+	# Roll D100 on type table if available
+	var faction_type_name: String = faction_type
+	var infl_mod: int = 0
+	var power_mod: int = 0
+	if not type_table.is_empty() and dice:
+		var roll: int = dice.roll_d100("Faction Type")
+		for entry in type_table:
+			var r: Array = _parse_roll_range(
+				entry.get("roll", "01-100")
+			)
+			if roll >= r[0] and roll <= r[1]:
+				faction_type_name = entry.get(
+					"type", faction_type
+				)
+				infl_mod = entry.get("influence_mod", 0)
+				power_mod = entry.get("power_mod", 0)
+				break
+
+	# Compendium: 1D3+1 for each stat + type modifier
+	var base_infl: int = randi_range(1, 3) + 1 + infl_mod
+	var base_power: int = randi_range(1, 3) + 1 + power_mod
 
 	return {
-		"name": _generate_faction_name(faction_type),
-		"type": faction_type,
-		"strength": randi_range(MIN_FACTION_STRENGTH, MAX_FACTION_STRENGTH),
-		"power": randi_range(MIN_FACTION_POWER, MAX_FACTION_POWER),
-		"influence": base_data.get("base_influence", randi_range(MIN_FACTION_INFLUENCE, MAX_FACTION_INFLUENCE)),
-		"tech_level": randi_range(MIN_TECH_LEVEL, MAX_TECH_LEVEL),
-		"loyalty": {},
+		"name": _generate_faction_name(faction_type_name),
+		"type": faction_type_name,
+		"influence": base_infl,
+		"power": base_power,
+		"loyalty": 0,
 		"temporary_defense": false,
-		"mission_types": base_data.get("mission_types", ["generic"]),
+		"successful_job_this_turn": false,
+		"cannot_act_next_turn": false,
+		"offers_job_next_turn": false,
 		"created_at": Time.get_unix_time_from_system()
 	}
+
+func _parse_roll_range(range_str: String) -> Array:
+	## Parse "01-10" style roll range into [min, max] array.
+	var parts: PackedStringArray = range_str.split("-")
+	if parts.size() >= 2:
+		return [int(parts[0]), int(parts[1])]
+	return [1, 100]
 
 func _generate_rival_name() -> String:
 	## Generate random rival name
@@ -512,8 +642,17 @@ func _generate_rival_characteristics() -> Array[String]:
 	return characteristics
 
 func _generate_faction_name(faction_type: String) -> String:
-	## Generate faction name based on type
-	var prefixes = {
+	## Generate faction name based on Compendium type (7 types) or legacy (8 types).
+	var prefixes := {
+		# Compendium types (pp.112)
+		"Charismatic leader": ["The", "Grand", "Supreme", "Beloved", "Rising"],
+		"Merchant cartel": ["Stellar", "Galactic", "Prime", "Universal", "Trans-System"],
+		"Criminal enterprise": ["Black", "Shadow", "Iron", "Blood", "Void"],
+		"Advocacy group": ["People's", "United", "Free", "Open", "Citizens'"],
+		"Political movement": ["New", "Progressive", "Federal", "Reform", "Liberty"],
+		"Religious movement": ["Sacred", "Holy", "Divine", "Blessed", "Righteous"],
+		"Secretive organization": ["Silent", "Hidden", "Covert", "Phantom", "Unknown"],
+		# Legacy types (backwards compat)
 		"government": ["United", "Federal", "Imperial", "Republic of", "Commonwealth of"],
 		"corporate": ["Mega", "Stellar", "Galactic", "Universal", "Prime"],
 		"criminal": ["Black", "Shadow", "Dark", "Blood", "Iron"],
@@ -521,10 +660,16 @@ func _generate_faction_name(faction_type: String) -> String:
 		"religious": ["Sacred", "Holy", "Divine", "Blessed", "Righteous"],
 		"mercenary": ["Free", "Independent", "Elite", "Professional", "Veteran"],
 		"pirate": ["Red", "Crimson", "Skull", "Void", "Savage"],
-		"alien": ["Star", "Void", "Crystal", "Plasma", "Quantum"]
+		"alien": ["Star", "Void", "Crystal", "Plasma", "Quantum"],
 	}
-
-	var suffixes = {
+	var suffixes := {
+		"Charismatic leader": ["Movement", "Following", "Circle", "Cause", "Path"],
+		"Merchant cartel": ["Cartel", "Trading Co.", "Consortium", "Exchange", "Ventures"],
+		"Criminal enterprise": ["Syndicate", "Family", "Ring", "Brotherhood", "Network"],
+		"Advocacy group": ["Alliance", "Coalition", "Front", "League", "Assembly"],
+		"Political movement": ["Party", "Movement", "Bloc", "Union", "Congress"],
+		"Religious movement": ["Order", "Sect", "Faith", "Brotherhood", "Covenant"],
+		"Secretive organization": ["Hand", "Circle", "Cabal", "Order", "Lodge"],
 		"government": ["Coalition", "Alliance", "Federation", "Union", "Empire"],
 		"corporate": ["Corporation", "Industries", "Enterprises", "Syndicate", "Group"],
 		"criminal": ["Syndicate", "Cartel", "Brotherhood", "Family", "Order"],
@@ -532,12 +677,11 @@ func _generate_faction_name(faction_type: String) -> String:
 		"religious": ["Order", "Sect", "Faith", "Brotherhood", "Covenant"],
 		"mercenary": ["Company", "Battalion", "Corps", "Legion", "Guard"],
 		"pirate": ["Fleet", "Armada", "Raiders", "Corsairs", "Buccaneers"],
-		"alien": ["Collective", "Hive", "Confederation", "Assembly", "Consortium"]
+		"alien": ["Collective", "Hive", "Confederation", "Assembly", "Consortium"],
 	}
 
-	var prefix_list = prefixes.get(faction_type, ["Generic"])
-	var suffix_list = suffixes.get(faction_type, ["Organization"])
-
+	var prefix_list: Array = prefixes.get(faction_type, ["Generic"])
+	var suffix_list: Array = suffixes.get(faction_type, ["Organization"])
 	return prefix_list.pick_random() + " " + suffix_list.pick_random()
 
 func _get_rival_by_id(rival_id: String) -> Dictionary:
@@ -641,15 +785,17 @@ func _consolidate_power(faction: Dictionary) -> void:
 		faction.power = min(MAX_FACTION_POWER, faction.power + 1)
 
 func _undermine_faction(faction: Dictionary) -> void:
-	## Faction undermines another faction
+	## Faction undermines another (Compendium p.115).
+	## D6 roll 5-6: decrease target's highest score by -1.
 	var targets = _get_other_factions(faction)
 	if targets.is_empty():
 		return
 
 	var target = targets.pick_random()
+	if target.get("temporary_defense", false):
+		return
 	if randi_range(1, 6) >= 5:
-		var stat_to_decrease = "power" if randi() % 2 == 0 else "influence"
-		target[stat_to_decrease] = max(1, target[stat_to_decrease] - 1)
+		_decrease_highest_stat(target)
 
 func _hostile_takeover(faction: Dictionary) -> void:
 	## Faction attempts hostile takeover
@@ -669,9 +815,11 @@ func _public_relations_campaign(faction: Dictionary) -> void:
 		faction.influence = min(MAX_FACTION_INFLUENCE, faction.influence + 1)
 
 func _capitalize_on_events(faction: Dictionary) -> void:
-	## Faction capitalizes on events
-	var stat_to_increase = "influence" if faction.get("influence", 0) <= faction.get("power", 0) else "power"
-	faction[stat_to_increase] = min(MAX_FACTION_POWER, faction[stat_to_increase] + 1)
+	## Faction capitalizes on events (Compendium p.115).
+	## Requires: successful job this turn. Add +1 to lowest stat.
+	if not faction.get("successful_job_this_turn", false):
+		return
+	_increase_lowest_stat(faction)
 
 func _lay_low(faction: Dictionary) -> void:
 	## Faction lays low
@@ -684,12 +832,27 @@ func _defensive_posture(faction: Dictionary) -> void:
 		faction.temporary_defense = true
 
 func _faction_struggle(faction: Dictionary) -> void:
-	## Faction engages in struggle
-	if faction.get("power", 0) >= 3:
-		var targets = _get_other_factions(faction)
-		if not targets.is_empty():
-			var target = targets.pick_random()
-			resolve_faction_conflict(faction.get("name", ""), target.get("name", ""))
+	## Faction struggle (Compendium p.115). Requires Power 3+.
+	## D6+Power each, +1 for successful job. Loser: -1 highest stat.
+	if faction.get("power", 0) < 3:
+		return
+	var targets = _get_other_factions(faction)
+	if targets.is_empty():
+		return
+	var target = targets.pick_random()
+	if target.get("temporary_defense", false):
+		target["temporary_defense"] = false
+		return
+	var att_roll: int = randi_range(1, 6) + faction.get("power", 0)
+	var def_roll: int = randi_range(1, 6) + target.get("power", 0)
+	if faction.get("successful_job_this_turn", false):
+		att_roll += 1
+	if target.get("successful_job_this_turn", false):
+		def_roll += 1
+	if att_roll > def_roll:
+		_decrease_highest_stat(target)
+	elif def_roll > att_roll:
+		_decrease_highest_stat(faction)
 
 func _office_party(faction: Dictionary) -> void:
 	## Faction throws office party
@@ -814,6 +977,298 @@ func _generate_faction_mission_bonus(faction: Dictionary) -> Dictionary:
 
 	return bonuses.get(faction_type, {})
 
+# ── Invasion Handling (Compendium p.116) ──────────────────────────
+
+func process_invasion(destination_world_id: String = "") -> Array[Dictionary]:
+	## Process faction responses to world invasion (Compendium p.116).
+	## Power <= 4: roll D6 < Power → flee (with stat loss), else destroyed.
+	## Power 5+: help fight (+1 to Galactic War Progress).
+	## Returns array of results per faction.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return []
+	var results: Array[Dictionary] = []
+	var to_remove: Array[String] = []
+
+	for fid in active_factions:
+		var f: Dictionary = active_factions[fid]
+		var power: int = f.get("power", 0)
+		var result: Dictionary = {"faction": f.get("name", fid), "id": fid}
+
+		if power >= 5:
+			# Help fight — +1 Galactic War Progress
+			result["action"] = "fights"
+			result["war_bonus"] = 1
+			results.append(result)
+		else:
+			var roll: int = randi_range(1, 6)
+			if roll < power:
+				# Flee to same destination, with stat loss
+				f["power"] = max(1, power - 1)
+				f["influence"] = max(1, f.get("influence", 1) - 1)
+				result["action"] = "flees"
+				results.append(result)
+			else:
+				# Destroyed
+				result["action"] = "destroyed"
+				to_remove.append(fid)
+				results.append(result)
+
+	for fid in to_remove:
+		_destroy_faction(fid, "")
+
+	return results
+
+func process_invasion_recovery(
+	surviving_faction_ids: Array
+) -> void:
+	## After invasion ends, surviving Power 5+ factions: -2 Power, +1 Influence.
+	## Generate 2 new factions.
+	for fid in surviving_faction_ids:
+		if active_factions.has(fid):
+			var f: Dictionary = active_factions[fid]
+			f["power"] = max(1, f.get("power", 0) - 2)
+			f["influence"] = f.get("influence", 0) + 1
+	# Generate 2 new factions
+	for i in range(2):
+		create_faction("Secretive organization")
+
+# ── Fringe World Strife (Compendium p.116) ────────────────────────
+
+func process_strife_effects(strife_type: int) -> void:
+	## Apply Fringe World Strife effects on factions (Compendium p.116).
+	if active_factions.is_empty():
+		return
+	## Crackdown: prevents all faction activities this turn.
+	## Economic Collapse: all factions -1 Influence.
+	## Civil War: factions go to ground (no activities until war ends).
+	match strife_type:
+		GlobalEnums.StrifeType.CIVIL_WAR:
+			for fid in active_factions:
+				active_factions[fid]["cannot_act_next_turn"] = true
+		GlobalEnums.StrifeType.INVASION:
+			# Invasion handling done via process_invasion()
+			pass
+		_:
+			# Check for crackdown/economic collapse by name
+			# (these are compendium world options, not StrifeType enum values)
+			pass
+
+func process_strife_by_name(strife_name: String) -> void:
+	## Handle named strife effects from compendium_world_options.
+	match strife_name.to_lower():
+		"crackdown":
+			for fid in active_factions:
+				active_factions[fid]["cannot_act_next_turn"] = true
+		"economic_collapse":
+			for fid in active_factions:
+				var f: Dictionary = active_factions[fid]
+				f["influence"] = max(1, f.get("influence", 1) - 1)
+		"civil_war":
+			for fid in active_factions:
+				active_factions[fid]["cannot_act_next_turn"] = true
+
+# ── Faction Destruction (Compendium p.117) ────────────────────────
+
+func _destroy_faction(
+	faction_id: String, destroyer_id: String = ""
+) -> void:
+	## Destroy a faction (Compendium p.117, bottom of Factions.json).
+	## - All Loyalty removed.
+	## - If destroyed by struggle and crew had 4+ loyalty to winner, gain Rival.
+	## - Every remaining faction rolls D6+Power; highest gains +1 Influence.
+	if not active_factions.has(faction_id):
+		return
+
+	var destroyed: Dictionary = active_factions[faction_id]
+
+	# Remove faction
+	active_factions.erase(faction_id)
+	faction_standings.erase(faction_id)
+	faction_relations.erase(faction_id)
+
+	# Remaining factions compete for influence
+	if not active_factions.is_empty():
+		var best_roll: int = 0
+		var best_ids: Array[String] = []
+		for fid in active_factions:
+			var f: Dictionary = active_factions[fid]
+			var roll: int = randi_range(1, 6) + f.get("power", 0)
+			if roll > best_roll:
+				best_roll = roll
+				best_ids = [fid]
+			elif roll == best_roll:
+				best_ids.append(fid)
+		for winner_id in best_ids:
+			active_factions[winner_id]["influence"] = (
+				active_factions[winner_id].get("influence", 0) + 1
+			)
+
+	# Emit event
+	faction_event_occurred.emit({
+		"event": "Faction destroyed",
+		"faction": destroyed.get("name", faction_id),
+		"destroyer": destroyer_id,
+	})
+
+func _check_faction_destruction(faction: Dictionary) -> bool:
+	## Check if a faction should be destroyed (Power or Influence <= 0).
+	var infl: int = faction.get("influence", 1)
+	var power: int = faction.get("power", 1)
+	if infl <= 0 or power <= 0:
+		# Find faction_id
+		for fid in active_factions:
+			if active_factions[fid] == faction:
+				_destroy_faction(fid)
+				return true
+	return false
+
+# ── Faction Events (Compendium pp.115-117) ────────────────────────
+
+func process_faction_event() -> Dictionary:
+	## Roll D100 on the Faction Event table (Compendium pp.115-117).
+	## Called after crew/campaign events each turn.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return {}
+	if active_factions.is_empty():
+		return {}
+
+	var dice = get_node_or_null("/root/DiceManager")
+	if not dice:
+		return {}
+
+	var events_data: Dictionary = faction_data.get(
+		"faction_events", {}
+	)
+	var event_table: Array = events_data.get("table", [])
+	if event_table.is_empty():
+		return {}
+
+	var roll: int = dice.roll_d100("Faction Event")
+	for entry in event_table:
+		var r: Array = _parse_roll_range(
+			entry.get("roll", "01-100")
+		)
+		if roll >= r[0] and roll <= r[1]:
+			var result: Dictionary = {
+				"roll": roll,
+				"event": entry.get("event", "Unknown"),
+				"effect": entry.get("effect", ""),
+			}
+			# Apply the event
+			_apply_faction_event(result)
+			faction_event_occurred.emit(result)
+			return result
+	return {"roll": roll, "event": "No match", "effect": ""}
+
+func _apply_faction_event(event: Dictionary) -> void:
+	## Apply a faction event's mechanical effects.
+	var event_name: String = event.get("event", "")
+	var faction_ids: Array = active_factions.keys()
+	if faction_ids.is_empty():
+		return
+
+	match event_name:
+		"New Faction":
+			var new_f: Dictionary = _generate_faction_data("Secretive organization")
+			new_f["influence"] = randi_range(1, 3)
+			new_f["power"] = randi_range(1, 3)
+			new_f["offers_job_next_turn"] = true
+			var fid: String = new_f["name"].replace(
+				" ", "_"
+			).to_lower()
+			active_factions[fid] = new_f
+			faction_standings[fid] = 0.0
+			faction_created.emit(new_f)
+		"Shoot out":
+			if faction_ids.size() >= 2:
+				faction_ids.shuffle()
+				var f1: Dictionary = active_factions[faction_ids[0]]
+				var f2: Dictionary = active_factions[faction_ids[1]]
+				var r1: int = randi_range(1, 6) + f1.get("power", 0)
+				var r2: int = randi_range(1, 6) + f2.get("power", 0)
+				var loser: Dictionary = f2 if r1 >= r2 else f1
+				loser["cannot_act_next_turn"] = true
+				_decrease_highest_stat(loser)
+		"Power base":
+			var fid: String = faction_ids.pick_random()
+			var f: Dictionary = active_factions[fid]
+			_increase_lowest_stat(f)
+		"Tip off":
+			event["grants_quest_clue"] = true
+		"Befriending the leadership":
+			event["grants_story_point"] = true
+		"New Leadership":
+			var fid: String = faction_ids.pick_random()
+			var f: Dictionary = active_factions[fid]
+			var ri: int = randi_range(1, 6)
+			var rp: int = randi_range(1, 6)
+			if ri == 1:
+				f["influence"] = max(1, f.get("influence", 2) - 1)
+			elif ri == 6:
+				f["influence"] = f.get("influence", 2) + 1
+			if rp == 1:
+				f["power"] = max(1, f.get("power", 2) - 1)
+			elif rp == 6:
+				f["power"] = f.get("power", 2) + 1
+		"Outside interference":
+			var fid: String = faction_ids.pick_random()
+			var f: Dictionary = active_factions[fid]
+			if randi_range(1, 6) > f.get("power", 0):
+				f["influence"] = max(1, f.get("influence", 2) - 1)
+		"Internal struggle":
+			var fid: String = faction_ids.pick_random()
+			var f: Dictionary = active_factions[fid]
+			var r: int = randi_range(1, 6)
+			if r == 1:
+				f["influence"] = max(1, f.get("influence", 2) - 1)
+			elif r == 6:
+				f["power"] = max(1, f.get("power", 2) - 1)
+		"Public display of support":
+			var fid: String = faction_ids.pick_random()
+			active_factions[fid]["influence"] = active_factions[fid].get("influence", 2) + 1
+		"Armed to the teeth":
+			var fid: String = faction_ids.pick_random()
+			active_factions[fid]["power"] = active_factions[fid].get("power", 2) + 1
+		"A little visit":
+			event["enforcer_rival"] = true
+		"We thought we would do you a favor":
+			event["eliminates_rival"] = true
+		"Dark secrets":
+			event["dark_secrets_quest"] = true
+
+func _decrease_highest_stat(faction: Dictionary) -> void:
+	## Decrease the highest of Power or Influence by 1 (Power if equal).
+	var infl: int = faction.get("influence", 0)
+	var power: int = faction.get("power", 0)
+	if power >= infl:
+		faction["power"] = max(1, power - 1)
+	else:
+		faction["influence"] = max(1, infl - 1)
+
+func _increase_lowest_stat(faction: Dictionary) -> void:
+	## Increase the lowest of Power or Influence by 1 (random if equal).
+	var infl: int = faction.get("influence", 0)
+	var power: int = faction.get("power", 0)
+	if infl < power:
+		faction["influence"] = infl + 1
+	elif power < infl:
+		faction["power"] = power + 1
+	else:
+		if randi() % 2 == 0:
+			faction["influence"] = infl + 1
+		else:
+			faction["power"] = power + 1
+
 # Public API methods
 func get_all_factions() -> Dictionary:
 	## Get all active factions
@@ -844,14 +1299,98 @@ func has_faction(faction_id: String) -> bool:
 	## Check if faction exists
 	return active_factions.has(faction_id)
 
-func get_faction_mission_opportunities() -> Array[Dictionary]:
-	## Get available faction missions
-	var opportunities: Array[Dictionary] = []
+func check_faction_job_available(faction_id: String) -> bool:
+	## Check if a faction has a job available (Compendium p.113).
+	## Roll D6: if <= Influence, job is available.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return false
+	var faction: Dictionary = active_factions.get(faction_id, {})
+	if faction.is_empty():
+		return false
+	var dice = get_node_or_null("/root/DiceManager")
+	if not dice:
+		return false
+	var influence: int = faction.get("influence", 0)
+	var roll: int = dice.roll_d6("Faction Job Check")
+	return roll <= influence
 
-	for faction in active_factions.values():
-		if randf() < 0.3: # 30% chance per faction
-			var mission = generate_faction_mission(faction.get("name", ""))
+func get_faction_mission_opportunities() -> Array[Dictionary]:
+	## Get available faction missions using Compendium D6<=Influence check.
+	var opportunities: Array[Dictionary] = []
+	for faction_id in active_factions:
+		if check_faction_job_available(faction_id):
+			var mission: Dictionary = generate_faction_mission(
+				faction_id
+			)
 			if not mission.is_empty():
 				opportunities.append(mission)
-
 	return opportunities
+
+func check_affiliated_patron(patron: Dictionary) -> String:
+	## Check if a patron job is affiliated with a faction (Compendium p.114).
+	## Roll D6: 1-4 normal, 5-6 affiliated with random faction.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return ""
+	var dice = get_node_or_null("/root/DiceManager")
+	if not dice or active_factions.is_empty():
+		return ""
+	var roll: int = dice.roll_d6("Affiliated Patron Check")
+	if roll >= 5:
+		var faction_ids: Array = active_factions.keys()
+		return faction_ids.pick_random()
+	return ""
+
+# ── Faction Favors (Compendium p.114) ─────────────────────────────
+
+func attempt_faction_favor(faction_id: String) -> Dictionary:
+	## Captain attempts to call in a faction favor.
+	## Roll D6: if <= Loyalty, reduce Loyalty by die roll and grant favor.
+	## Returns {success, roll, favor_options} or {success: false}.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(
+		dlc.ContentFlag.EXPANDED_FACTIONS
+	):
+		return {"success": false, "reason": "DLC not enabled"}
+
+	var dice = get_node_or_null("/root/DiceManager")
+	if not dice:
+		return {"success": false, "reason": "No DiceManager"}
+
+	var loyalty: int = get_faction_loyalty(faction_id)
+	if loyalty <= 0:
+		return {"success": false, "reason": "No loyalty"}
+
+	var roll: int = dice.roll_d6("Faction Favor")
+	if roll > loyalty:
+		return {
+			"success": false, "roll": roll,
+			"reason": "Roll %d > Loyalty %d" % [roll, loyalty]
+		}
+
+	# Success — reduce loyalty by the die roll
+	set_faction_loyalty(faction_id, loyalty - roll)
+
+	# Load favor options from JSON
+	var favors_data: Dictionary = faction_data.get(
+		"faction_favors", {}
+	)
+	var favor_list: Array = favors_data.get("favors", [])
+
+	return {
+		"success": true,
+		"roll": roll,
+		"loyalty_spent": roll,
+		"favor_options": favor_list
+	}

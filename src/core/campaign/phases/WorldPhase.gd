@@ -932,18 +932,16 @@ func _generate_job_offers() -> Array[Dictionary]:
 		salvage_job["name"] = "Salvage Job"
 		offers.append(salvage_job)
 
-	# Add faction missions via FactionSystem (if available)
-	var faction_sys = Engine.get_main_loop().root.get_node_or_null("/root/FactionSystem") if Engine.get_main_loop() else null
-	if faction_sys:
-		# Process faction activities each world step
-		if faction_sys.has_method("process_faction_activities"):
-			faction_sys.process_faction_activities()
-		# Generate faction-specific missions
-		if faction_sys.has_method("generate_faction_mission"):
-			for faction_id in faction_sys.get("active_factions", {}).keys():
-				var faction_mission = faction_sys.generate_faction_mission(faction_id)
-				if not faction_mission.is_empty():
-					offers.append(faction_mission)
+	# Add faction job offers via FactionSystem (if available)
+	# Note: faction activities are processed in PostBattlePhase (Compendium p.115)
+	var faction_sys = Engine.get_main_loop().root.get_node_or_null(
+		"/root/FactionSystem"
+	) if Engine.get_main_loop() else null
+	if faction_sys and faction_sys.has_method("get_faction_mission_opportunities"):
+		var faction_offers: Array = faction_sys.get_faction_mission_opportunities()
+		for fo in faction_offers:
+			if fo is Dictionary and not fo.is_empty():
+				offers.append(fo)
 
 	return offers
 
