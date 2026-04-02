@@ -109,21 +109,21 @@ var confirm_assignments_button: Button = null
 ## battlefield_manager removed — terrain handled by BattlefieldGenerator + GridPanel
 var dice_manager: Node = null
 var alpha_manager: Node = null
-var battle_tracker: Node = null  # For reaction economy tracking
+var battle_tracker: Node = null # For reaction economy tracking
 
 ## Sprint 11.4: BattleRoundTracker integration for phase-based combat
-var round_tracker: Node = null  # BattleRoundTracker instance for Five Parsecs combat rounds
+var round_tracker: Node = null # BattleRoundTracker instance for Five Parsecs combat rounds
 var _round_tracker_connected: bool = false
 
 # Tier controller for component visibility (wired in Sprint 2)
-var tier_controller: Resource = null  # FPCM_BattleTierController instance
+var tier_controller: Resource = null # FPCM_BattleTierController instance
 
 # LOG_ONLY component instances (Sprint 3)
 var battle_journal: PanelContainer = null
 var dice_dashboard: Control = null
 var combat_calculator: Control = null
 var battle_round_hud: Control = null
-var character_cards: Array = []  # Array of CharacterStatusCard instances
+var character_cards: Array = [] # Array of CharacterStatusCard instances
 
 # ASSISTED component instances (Sprint 4)
 var morale_tracker: PanelContainer = null
@@ -182,12 +182,12 @@ enum BattleStage {
 }
 var current_stage: int = BattleStage.TIER_SELECT
 var battle_phase: String = "deployment" # legacy compat — will migrate fully to BattleStage
-var _battle_initialized: bool = false  # Tracks whether initialize_battle() was called
+var _battle_initialized: bool = false # Tracks whether initialize_battle() was called
 
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
 var _dlc_escalation_count: int = 0
-var _dlc_escalation_history: Array[String] = []  # Track for variation mode
+var _dlc_escalation_history: Array[String] = [] # Track for variation mode
 
 ## Grid/positioning/deployment_zones removed — handled by BattlefieldGenerator
 
@@ -272,7 +272,7 @@ func _check_standalone_mode() -> void:
 	var ancestor := get_parent()
 	while ancestor:
 		if ancestor.name == "PhaseContainer":
-			return  # Embedded in campaign turn flow — not standalone
+			return # Embedded in campaign turn flow — not standalone
 		ancestor = ancestor.get_parent()
 	_log_message("Standalone mode — no campaign data. Set up your table manually.", UIColors.COLOR_WARNING)
 	_show_tier_selection()
@@ -304,7 +304,7 @@ func _apply_stage_visibility(stage: int) -> void:
 			if battlefield_grid_panel: battlefield_grid_panel.visible = true
 			if phase_content_panel: phase_content_panel.visible = false
 			if right_panel: right_panel.visible = true
-			if right_tabs: right_tabs.current_tab = 0  # Setup tab
+			if right_tabs: right_tabs.current_tab = 0 # Setup tab
 			if return_button: return_button.visible = false
 			if auto_resolve_button: auto_resolve_button.visible = false
 			if end_turn_button:
@@ -324,7 +324,7 @@ func _apply_stage_visibility(stage: int) -> void:
 			if battlefield_grid_panel: battlefield_grid_panel.visible = true
 			if phase_content_panel: phase_content_panel.visible = false
 			if right_panel: right_panel.visible = true
-			if right_tabs: right_tabs.current_tab = 0  # Setup tab
+			if right_tabs: right_tabs.current_tab = 0 # Setup tab
 			if return_button: return_button.visible = false
 			if auto_resolve_button: auto_resolve_button.visible = false
 			if end_turn_button:
@@ -346,7 +346,7 @@ func _apply_stage_visibility(stage: int) -> void:
 			if battlefield_grid_panel: battlefield_grid_panel.visible = true
 			if phase_content_panel: phase_content_panel.visible = true
 			if right_panel: right_panel.visible = true
-			if right_tabs: right_tabs.current_tab = 1  # Tools tab
+			if right_tabs: right_tabs.current_tab = 1 # Tools tab
 			if return_button: return_button.visible = true
 			if auto_resolve_button: auto_resolve_button.visible = true
 			if end_turn_button:
@@ -902,7 +902,7 @@ func _on_tier_selected(tier: int) -> void:
 	## Handle tier selection — store tier, transition to SETUP stage
 	# Create tier controller
 	tier_controller = BattleTierControllerClass.new()
-	tier_controller.set_tier(tier, true)  # force = true at battle start
+	tier_controller.set_tier(tier, true) # force = true at battle start
 
 	_apply_tier_visibility(tier)
 	_hide_overlay()
@@ -1135,22 +1135,22 @@ func _update_action_buttons_for_phase(phase: int) -> void:
 	# Map BattleRoundTracker phases to appropriate UI states
 	# 0: REACTION_ROLL, 1: QUICK_ACTIONS, 2: ENEMY_ACTIONS, 3: SLOW_ACTIONS, 4: END_PHASE
 	match phase:
-		0:  # REACTION_ROLL
+		0: # REACTION_ROLL
 			_show_reaction_roll_ui()
-		1:  # QUICK_ACTIONS
+		1: # QUICK_ACTIONS
 			_show_quick_actions_ui()
-		2:  # ENEMY_ACTIONS
+		2: # ENEMY_ACTIONS
 			_show_enemy_actions_ui()
-		3:  # SLOW_ACTIONS
+		3: # SLOW_ACTIONS
 			_show_slow_actions_ui()
-		4:  # END_PHASE
+		4: # END_PHASE
 			_show_end_phase_ui()
 
 func _show_reaction_roll_ui() -> void:
 	## REACTION ROLL — surface ReactionDicePanel if available
 	_clear_action_buttons()
 	_surface_phase_component(reaction_dice_panel)
-	if right_tabs: right_tabs.current_tab = 1  # Tools tab — dice needed
+	if right_tabs: right_tabs.current_tab = 1 # Tools tab — dice needed
 	var roll_button := Button.new()
 	roll_button.text = "Roll Reactions"
 	roll_button.pressed.connect(_on_roll_reactions_pressed)
@@ -1174,10 +1174,10 @@ func _show_enemy_actions_ui() -> void:
 	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle
 	if tier_controller and tier_controller.current_tier >= 2:
 		_surface_phase_component(enemy_intent_panel)
-		if right_tabs: right_tabs.current_tab = 2  # Reference tab — enemy AI info
+		if right_tabs: right_tabs.current_tab = 2 # Reference tab — enemy AI info
 	else:
-		_surface_phase_component(null)  # Clear phase content
-		if right_tabs: right_tabs.current_tab = 1  # Tools tab
+		_surface_phase_component(null) # Clear phase content
+		if right_tabs: right_tabs.current_tab = 1 # Tools tab
 	_log_message(
 		"Enemy Actions — move each enemy toward closest, shoot if in range.",
 		UIColors.COLOR_RED)
@@ -1996,13 +1996,13 @@ func _populate_setup_tab(mission_data) -> void:
 			if instruction.is_empty():
 				continue
 			# Color code by instruction type
-			var color := Color("#4FC3F7")  # Default cyan
+			var color := Color("#4FC3F7") # Default cyan
 			if instruction.begins_with("AI:"):
-				color = Color("#D97706")  # Orange for AI behavior
+				color = Color("#D97706") # Orange for AI behavior
 			elif instruction.begins_with("TOGGLE:"):
-				color = Color("#DC2626")  # Red for difficulty toggles
+				color = Color("#DC2626") # Red for difficulty toggles
 			elif instruction.begins_with("MILESTONE:"):
-				color = Color("#10B981")  # Green for milestones
+				color = Color("#10B981") # Green for milestones
 			_add_setup_text(instruction, color)
 		# Store AI type for escalation checks
 		_dlc_ai_type = mission_dict.get("dlc_ai_type", "")
@@ -2022,7 +2022,7 @@ func _populate_setup_tab(mission_data) -> void:
 		for effect in dramatic_effects:
 			var effect_str: String = str(effect)
 			if not effect_str.is_empty():
-				_add_setup_text(effect_str, Color("#E879F9"))  # Purple for dramatic
+				_add_setup_text(effect_str, Color("#E879F9")) # Purple for dramatic
 		_add_setup_separator()
 
 	# Section 5c: Grid Movement instructions (Compendium DLC)
@@ -2032,7 +2032,7 @@ func _populate_setup_tab(mission_data) -> void:
 		for grid_inst in grid_instructions:
 			var inst_str: String = str(grid_inst)
 			if not inst_str.is_empty():
-				_add_setup_text(inst_str, Color("#38BDF8"))  # Sky blue for grid
+				_add_setup_text(inst_str, Color("#38BDF8")) # Sky blue for grid
 		_add_setup_separator()
 
 	# Section 6: Regenerate button
@@ -2213,7 +2213,7 @@ func _check_escalating_battles(round_number: int) -> void:
 
 	# Determine trigger conditions
 	var enemies_removed: bool = enemy_units.any(func(u): return u.health <= 0)
-	var objective_reached: bool = false  # Set by objective system if wired
+	var objective_reached: bool = false # Set by objective system if wired
 	var crew_count: int = crew_units.filter(func(u): return u.health > 0).size()
 	var enemy_count: int = enemy_units.filter(func(u): return u.health > 0).size()
 	var outnumber_by: int = crew_count - enemy_count
@@ -2236,7 +2236,7 @@ func _check_escalating_battles(round_number: int) -> void:
 		var variation_text: String = EscalatingBattlesManagerRef.generate_variation_text(
 			result.get("name", ""))
 		_log_message(variation_text, Color("#D97706"))
-		_dlc_escalation_count -= 1  # Doesn't count toward the 3-roll limit
+		_dlc_escalation_count -= 1 # Doesn't count toward the 3-roll limit
 		if battle_journal:
 			battle_journal.add_entry(variation_text)
 		return
@@ -2550,4 +2550,4 @@ class TacticalUnit:
 			elif "_origin" in original_character:
 				origin_str = str(original_character._origin).to_lower()
 			if "swift" in origin_str:
-				max_reactions_per_round = 1  # Swift limited to 1 reaction
+				max_reactions_per_round = 1 # Swift limited to 1 reaction

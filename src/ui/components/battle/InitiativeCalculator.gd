@@ -47,12 +47,12 @@ func _ready() -> void:
 
 func _setup_panel_style() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = FiveParsecsCampaignPanel.COLOR_ELEVATED  # Design system: card backgrounds
+	style.bg_color = FiveParsecsCampaignPanel.COLOR_ELEVATED # Design system: card backgrounds
 	style.set_corner_radius_all(8)
 	style.set_border_width_all(1)
-	style.border_width_left = 3  # Accent border (initiative indicator)
-	style.border_color = FiveParsecsCampaignPanel.COLOR_FOCUS  # Design system: cyan focus color
-	style.set_content_margin_all(FiveParsecsCampaignPanel.SPACING_MD)  # Design system: 16px
+	style.border_width_left = 3 # Accent border (initiative indicator)
+	style.border_color = FiveParsecsCampaignPanel.COLOR_FOCUS # Design system: cyan focus color
+	style.set_content_margin_all(FiveParsecsCampaignPanel.SPACING_MD) # Design system: 16px
 	add_theme_stylebox_override("panel", style)
 
 func _setup_modifiers_ui() -> void:

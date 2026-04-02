@@ -25,6 +25,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://assets/iconnew.png"
 
 [autoload]
+
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"

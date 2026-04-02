@@ -10,32 +10,32 @@ signal event_completed(outcome: Dictionary)
 
 # ── Event Types ───────────────────────────────────────────────────────
 enum EventType {
-	INFO_ONLY,             # No mechanical effect, flavor text
-	GAIN_CREDITS,          # Static credit gain
-	GAIN_XP,               # Static XP gain
-	GAIN_STORY_POINT,      # Static story point gain
-	ROLL_FOR_BONUS,        # Roll for conditional bonus (trinkets, nice chat)
-	ROLL_FOR_CREDITS,      # Roll for variable credits (fuel, repair parts)
+	INFO_ONLY, # No mechanical effect, flavor text
+	GAIN_CREDITS, # Static credit gain
+	GAIN_XP, # Static XP gain
+	GAIN_STORY_POINT, # Static story point gain
+	ROLL_FOR_BONUS, # Roll for conditional bonus (trinkets, nice chat)
+	ROLL_FOR_CREDITS, # Roll for variable credits (fuel, repair parts)
 	ROLL_FOR_CREDITS_RISK, # Roll for credits + possible rival (contraband)
-	ROLL_ON_TABLE,         # Roll on loot/weapon/gear subtable
-	CONDITIONAL_PURCHASE,  # Pay credits for a roll (odd device, rare items)
-	CHOICE_ITEM,           # Choose between OR-separated items
-	GRENADE_COMBO,         # Frakk/Dazzle quantity picker
-	DISCARD_ITEM,          # Must discard 1 item from equipment
-	SELL_WEAPONS,          # Sell weapons for credits each
-	SICK_BAY,              # Enter sick bay for N turns
-	GAIN_RIVAL,            # Gain a rival
-	GAIN_RUMOR,            # Gain a quest rumor
-	GAIN_PATRON,           # Gain a patron
-	RECRUIT,               # Add new crew member
-	BUY_RUMORS,            # Purchase rumors at a price
-	BUY_WEAPONS,           # Purchase weapon rolls at a price
-	SKILL_CHECK,           # Roll + stat for pass/fail
-	ITEM_TRADE,            # Trade item for something else
-	PAY_OR_LOSE,           # Pay cost or suffer penalty
-	TECH_FANATIC,          # Complex conditional (damage + repair + engineer)
-	DEFERRED,              # Cached for future trigger
-	IMMUNE,                # Species immunity — skip with badge
+	ROLL_ON_TABLE, # Roll on loot/weapon/gear subtable
+	CONDITIONAL_PURCHASE, # Pay credits for a roll (odd device, rare items)
+	CHOICE_ITEM, # Choose between OR-separated items
+	GRENADE_COMBO, # Frakk/Dazzle quantity picker
+	DISCARD_ITEM, # Must discard 1 item from equipment
+	SELL_WEAPONS, # Sell weapons for credits each
+	SICK_BAY, # Enter sick bay for N turns
+	GAIN_RIVAL, # Gain a rival
+	GAIN_RUMOR, # Gain a quest rumor
+	GAIN_PATRON, # Gain a patron
+	RECRUIT, # Add new crew member
+	BUY_RUMORS, # Purchase rumors at a price
+	BUY_WEAPONS, # Purchase weapon rolls at a price
+	SKILL_CHECK, # Roll + stat for pass/fail
+	ITEM_TRADE, # Trade item for something else
+	PAY_OR_LOSE, # Pay cost or suffer penalty
+	TECH_FANATIC, # Complex conditional (damage + repair + engineer)
+	DEFERRED, # Cached for future trigger
+	IMMUNE, # Species immunity — skip with badge
 }
 
 # ── Deep Space Theme ──────────────────────────────────────────────────
@@ -86,7 +86,7 @@ func _init() -> void:
 	transient = true
 	exclusive = true
 	unresizable = true
-	close_requested.connect(func(): pass) # Must interact
+	close_requested.connect(func(): pass ) # Must interact
 
 # ── Public API ────────────────────────────────────────────────────────
 

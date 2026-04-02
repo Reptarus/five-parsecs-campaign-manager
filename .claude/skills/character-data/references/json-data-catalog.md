@@ -52,6 +52,7 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/mission_tables/mission_difficulty.json` | crew_experience_weights, equipment_quality_modifiers, campaign_turn_scaling |
 | `data/mission_tables/mission_rewards.json` | performance_multipliers, patron_relationship_bonuses, danger_pay_scaling |
 | `data/RulesReference/StealthAndStreet.json` | sentry_patrol (D6), spotting_modifiers (7), police_response (4 texts) |
+| `data/RulesReference/Factions.json` | Expanded Factions (Compendium pp.110-117): D100 type table (7 types), loyalty, jobs (D6<=Influence), 6 favors, D100 activity table (11), D100 event table (15), destruction rules. Consumer: FactionSystem._load_faction_data() |
 
 ### Campaign Data
 | File | Consumer | Schema |

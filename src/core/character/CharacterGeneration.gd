@@ -1342,7 +1342,6 @@ static func _roll_random_origin() -> int:
 
 ## Enhanced equipment generation with DiceManager integration
 static func _generate_starting_equipment_enhanced(character: Character) -> Dictionary:
-	
 	# Get DiceManager through AutoloadManager for safe access
 	var dice_manager = AutoloadManager.get_autoload_safe("DiceManager")
 	if not dice_manager:
@@ -1370,12 +1369,11 @@ static func _generate_starting_equipment_enhanced(character: Character) -> Dicti
 
 ## Fallback equipment generation when DiceManager/StartingEquipmentGenerator unavailable
 static func _generate_fallback_equipment(character: Character) -> Dictionary:
-	
 	var equipment = {
 		"weapons": [],
 		"armor": [],
 		"gear": [],
-		"credits": 0,  # Credits set by campaign creation (Core Rules p.28)
+		"credits": 0, # Credits set by campaign creation (Core Rules p.28)
 		"condition_modifiers": {}
 	}
 
@@ -1407,7 +1405,6 @@ static func generate_starting_equipment_enhanced(character: Character) -> Dictio
 
 ## Generate patron relationships using GameStateManager systems
 static func _generate_patrons(character: Character) -> Array:
-	
 	var patrons = []
 	
 	# Get GameStateManager through AutoloadManager
@@ -1446,7 +1443,6 @@ static func _generate_patrons(character: Character) -> Array:
 
 ## Generate rival relationships using GameStateManager systems
 static func _generate_rivals(character: Character) -> Array:
-	
 	var rivals = []
 	
 	# Get GameStateManager through AutoloadManager

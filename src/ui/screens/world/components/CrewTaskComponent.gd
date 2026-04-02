@@ -33,7 +33,7 @@ var completed_tasks: Array = []
 var all_tasks_resolved: bool = false
 
 # Choice popup state — tracks pending item choices from task results
-var _pending_choice_results: Array = []  # Queue of {result, item_string, options}
+var _pending_choice_results: Array = [] # Queue of {result, item_string, options}
 var _choice_popup: Window = null
 var _auto_resolve_mode: bool = false
 
@@ -73,9 +73,8 @@ func _load_crew_tasks() -> void:
 		})
 
 # Track crew per task for multi-assignment
-var task_assignments: Dictionary = {}  # task_id -> Array of crew_ids
-var credits_spent_on_tasks: Dictionary = {}  # task_id -> credits spent
-
+var task_assignments: Dictionary = {} # task_id -> Array of crew_ids
+var credits_spent_on_tasks: Dictionary = {} # task_id -> credits spent
 
 
 func _ready() -> void:
@@ -470,7 +469,7 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 	var d100_roll: int = randi() % 100 + 1
 	result.roll = d100_roll
 	result.modified_roll = d100_roll
-	result.success = true  # Table rolls always "succeed" - just determine outcome
+	result.success = true # Table rolls always "succeed" - just determine outcome
 
 	var table_result: Dictionary = {}
 	match task.id:
@@ -478,12 +477,12 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 			table_result = _get_trade_table_result(d100_roll)
 			result.details = "Trade Table roll: %d - %s" % [d100_roll, table_result.name]
 			result.reward = table_result.effect
-			result.table_result = table_result  # Store full result for UI
+			result.table_result = table_result # Store full result for UI
 		"explore":
 			table_result = _get_exploration_table_result(d100_roll)
 			result.details = "Exploration Table roll: %d - %s" % [d100_roll, table_result.name]
 			result.reward = table_result.effect
-			result.table_result = table_result  # Store full result for UI
+			result.table_result = table_result # Store full result for UI
 
 	# Cache deferred events if result has a trigger
 	if table_result.has("deferred_trigger") and table_result.deferred_trigger != "":
@@ -737,7 +736,7 @@ func _cache_deferred_event(trigger_type: String, event_name: String, crew_id: St
 		"crew_id": crew_id,
 		"effect": effect.duplicate(true),
 		"turn_created": _get_current_turn_number(),
-		"expires_turn": null,  # null = never expires
+		"expires_turn": null, # null = never expires
 		"consumed": false
 	}
 
@@ -822,11 +821,11 @@ func _update_progress_display() -> void:
 		summary_label.text = summary_text
 		summary_label.add_theme_font_size_override("font_size", 16)
 		if success_count == completed_tasks.size():
-			summary_label.modulate = Color(0.063, 0.725, 0.506)  # Emerald
+			summary_label.modulate = Color(0.063, 0.725, 0.506) # Emerald
 		elif success_count > 0:
-			summary_label.modulate = Color(0.851, 0.467, 0.024)  # Orange
+			summary_label.modulate = Color(0.851, 0.467, 0.024) # Orange
 		else:
-			summary_label.modulate = Color(0.863, 0.149, 0.149)  # Red
+			summary_label.modulate = Color(0.863, 0.149, 0.149) # Red
 		progress_container.add_child(summary_label)
 
 		var summary_sep = HSeparator.new()
@@ -857,12 +856,12 @@ func _update_progress_display() -> void:
 			# Result name and effect
 			var detail_label = Label.new()
 			detail_label.text = "   → %s" % table_data.name
-			detail_label.modulate = Color(0.8, 0.8, 1.0)  # Light blue
+			detail_label.modulate = Color(0.8, 0.8, 1.0) # Light blue
 			result_container.add_child(detail_label)
 
 			var effect_label = Label.new()
 			effect_label.text = "      %s" % table_data.effect
-			effect_label.modulate = Color(0.7, 0.7, 0.7)  # Gray
+			effect_label.modulate = Color(0.7, 0.7, 0.7) # Gray
 			effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			result_container.add_child(effect_label)
 
@@ -889,7 +888,7 @@ func _update_progress_display() -> void:
 			if rewards.size() > 0:
 				var reward_label = Label.new()
 				reward_label.text = "      Rewards: %s" % ", ".join(rewards)
-				reward_label.modulate = Color(1.0, 0.9, 0.5)  # Gold
+				reward_label.modulate = Color(1.0, 0.9, 0.5) # Gold
 				result_container.add_child(reward_label)
 		else:
 			# Standard result for non-table tasks
@@ -1107,7 +1106,7 @@ func _resolve_random_loot(item_string: String) -> Array:
 	## Returns Array of item name strings
 	var tables: Dictionary = _get_loot_tables()
 	if tables.is_empty():
-		return [item_string]  # Can't resolve, return as-is
+		return [item_string] # Can't resolve, return as-is
 
 	var all_tables: Dictionary = tables.get("tables", {})
 
@@ -1263,7 +1262,7 @@ func reset_crew_tasks() -> void:
 func complete_crew_task_phase() -> void:
 	## Mark the crew task phase as complete and publish event
 	if not all_tasks_resolved and not assigned_tasks.is_empty():
-		_auto_resolve_mode = true  # Auto-pick choices when force-completing
+		_auto_resolve_mode = true # Auto-pick choices when force-completing
 		_on_resolve_all_pressed()
 		_auto_resolve_mode = false
 
