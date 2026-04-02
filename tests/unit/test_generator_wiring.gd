@@ -9,8 +9,7 @@ const FiveParsecsMissionGen = preload(
 	"res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const StartingEquipGen = preload(
 	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
-const LootEconIntegrator = preload(
-	"res://src/game/economy/loot/LootEconomyIntegrator.gd")
+# LootEconomyIntegrator removed — fabricated economy layer (Apr 2 2026)
 const GameItemClass = preload(
 	"res://src/core/economy/loot/GameItem.gd")
 const PatronJobGen = preload(

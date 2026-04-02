@@ -5,7 +5,7 @@ extends Control
 const FPCM_InjuryService = preload("res://src/core/services/InjurySystemService.gd")
 const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
-const LootGenerator = preload("res://src/game/economy/loot/EnemyLootGenerator.gd")
+const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.gd")
 const DataLoader = preload("res://src/utils/GameDataLoader.gd")
 const WarPanel = preload("res://src/ui/components/postbattle/GalacticWarPanel.tscn")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
@@ -633,18 +633,18 @@ func _add_invasion_check_content() -> void:
 	step_content.add_child(label)
 
 func _add_loot_content() -> void:
-	## Add loot content with EnemyLootGenerator integration
+	## Add loot content — Core Rules pp.120-121, 131-133
+	## Step 5: Battlefield Finds (if Held Field) — D100 roll
+	## Step 7: Gather the Loot — D100 roll on Main Loot Table
 	var label: Label = Label.new()
-	label.text = "Roll on loot tables for items found from defeated enemies."
+	label.text = "Roll on the Loot Table (Core Rules p.131) for items earned."
 	step_content.add_child(label)
 
-	# Add button to generate loot
 	var loot_button: Button = Button.new()
-	loot_button.text = "Generate Loot from Defeated Enemies"
+	loot_button.text = "Roll on Loot Tables"
 	loot_button.pressed.connect(_on_generate_loot_pressed)
 	step_content.add_child(loot_button)
 
-	# Display area for loot results
 	var loot_results_container: VBoxContainer = VBoxContainer.new()
 	loot_results_container.name = "LootResultsContainer"
 	step_content.add_child(loot_results_container)
@@ -1500,126 +1500,290 @@ func _apply_injury_result(type: String, num: int, injury_data: Dictionary, roll:
 	_add_result_to_log("%s %d: %s" % [type, num, result_text])
 
 func _on_generate_loot_pressed() -> void:
-	## Generate loot using EnemyLootGenerator
-	# Note: EnemyLootGenerator requires Enemy objects, but we only have battle results
-	# For now, generate generic loot based on enemy count
-	var enemies_defeated = battle_results.get("enemy_defeated", 0)
-	var enemy_type = battle_results.get("enemy_type", "Unknown Hostiles")
-
+	## Core Rules pp.120-121, 131-133:
+	## Step 5: Battlefield Finds — if Held the Field, roll D100 once
+	## Step 7: Gather the Loot — roll D100 once on Main Loot Table
+	##   (3 rolls if final Quest stage; 0 if Invasion Battle)
 	var loot_results_container = step_content.find_child("LootResultsContainer")
 	if not loot_results_container:
 		return
 
-	# Clear previous results
 	for child in loot_results_container.get_children():
 		child.queue_free()
 
-	# Generate loot for each defeated enemy
-	var loot_generator = EnemyLootGenerator.new()
 	var total_loot: Array = []
+	var held_field: bool = battle_results.get("held_field", false)
+	var is_invasion: bool = battle_results.get("is_invasion", false)
+	var is_final_quest: bool = battle_results.get("final_quest_stage", false)
 
-	for i in range(enemies_defeated):
-		# Simple D6 roll for loot quality
-		var quality_roll = randi_range(1, 6)
-		var loot_desc = ""
+	# Step 5: Battlefield Finds (Core Rules p.121)
+	if held_field and not is_invasion:
+		var bf_roll: int = randi_range(1, 100)
+		var bf_result: Dictionary = _resolve_battlefield_find(bf_roll)
+		var bf_label: Label = Label.new()
+		bf_label.text = "Battlefield Finds (D100: %d): %s" % [bf_roll, bf_result.get("description", "Nothing")]
+		loot_results_container.add_child(bf_label)
+		total_loot.append(bf_result)
 
-		if quality_roll >= 5:
-			loot_desc = "Equipment found!"
-			total_loot.append({"type": "equipment", "enemy": i + 1})
-		elif quality_roll >= 3:
-			loot_desc = "Supplies found"
-			total_loot.append({"type": "supplies", "enemy": i + 1})
-		else:
-			loot_desc = "Nothing useful"
+	# Step 7: Gather the Loot (Core Rules p.121, pp.131-133)
+	if not is_invasion:
+		var loot_rolls: int = 1
+		if is_final_quest:
+			loot_rolls = 3  # Core Rules p.121: "roll three times and claim all"
+		for i in range(loot_rolls):
+			var loot_roll: int = randi_range(1, 100)
+			var loot_result: Dictionary = _resolve_main_loot(loot_roll)
+			var loot_label: Label = Label.new()
+			loot_label.text = "Loot roll %d (D100: %d): %s" % [
+				i + 1, loot_roll, loot_result.get("description", "Nothing")]
+			loot_results_container.add_child(loot_label)
+			total_loot.append(loot_result)
+	else:
+		var no_loot: Label = Label.new()
+		no_loot.text = "Invasion Battle — no loot or battlefield finds (Core Rules p.121)"
+		loot_results_container.add_child(no_loot)
 
-		var loot_label = Label.new()
-		loot_label.text = "Enemy %d: %s (rolled %d)" % [i + 1, loot_desc, quality_roll]
-		loot_results_container.add_child(loot_label)
+	# Persist loot to campaign inventory
+	_add_loot_to_inventory(total_loot)
 
-	# Store loot data for campaign integration
 	if current_step >= 0 and current_step < step_results.size():
 		step_results[current_step]["loot_found"] = total_loot
 
-	# Persist loot to EquipmentManager
-	_add_loot_to_inventory(total_loot)
+	_add_result_to_log("Loot: %d items found" % total_loot.size())
 
-	_add_result_to_log("Generated loot from %d enemies: %d items found" % [enemies_defeated, total_loot.size()])
+
+## ==========================================
+## LOOT TABLE RESOLUTION (Core Rules pp.121, 131-133)
+## ==========================================
+
+## Resolve a D100 roll on the Battlefield Finds table (Core Rules p.121)
+## Returns a dict with the resolved item/effect ready for persistence.
+func _resolve_battlefield_find(roll: int) -> Dictionary:
+	var bf_data: Array = LootSystemConstants.get_battlefield_finds_data()
+	for entry in bf_data:
+		var r: Array = entry.get("roll_range", [0, 0])
+		if roll >= r[0] and roll <= r[1]:
+			var cat: String = entry.get("category", "NOTHING")
+			var result: Dictionary = {
+				"source": "battlefield_finds",
+				"roll": roll,
+				"category": cat,
+				"description": entry.get("description", "Nothing"),
+			}
+			match cat:
+				"WEAPON":
+					# Core Rules p.121: "Randomly select a slain enemy. Keep their weapons."
+					var item_name: String = _roll_on_subtable(
+						LootSystemConstants.get_weapon_subtable_data())
+					result["item_name"] = item_name
+					result["description"] = "Weapon: %s" % item_name
+				"CONSUMABLE":
+					var item_name: String = _roll_on_subtable(
+						LootSystemConstants.get_odds_and_ends_data())
+					result["item_name"] = item_name
+					result["description"] = "Consumable: %s" % item_name
+				"QUEST_RUMOR":
+					result["quest_rumor"] = true
+					result["description"] = "Quest Rumor gained"
+				"SHIP_PART":
+					result["credits"] = 2
+					result["description"] = "Starship part (worth 2 credits for components)"
+				"TRINKET":
+					result["description"] = "Personal trinket (future loot roll on 9+ per planet)"
+				"DEBRIS":
+					var debris_credits: int = randi_range(1, 3)
+					result["credits"] = debris_credits
+					result["description"] = "Debris: %d credits" % debris_credits
+				"VITAL_INFO":
+					result["patron_opportunity"] = true
+					result["description"] = "Vital info (free Corporate Patron on this world)"
+				"NOTHING":
+					result["description"] = "Nothing of value"
+			return result
+	return {"source": "battlefield_finds", "roll": roll, "category": "NOTHING",
+		"description": "Nothing of value"}
+
+## Resolve a D100 roll on the Main Loot Table (Core Rules pp.131-133)
+## Rolls the main table, then the appropriate subtable to get the specific item.
+func _resolve_main_loot(roll: int) -> Dictionary:
+	var main_data: Array = LootSystemConstants.get_main_loot_data()
+	for entry in main_data:
+		var r: Array = entry.get("roll_range", [0, 0])
+		if roll >= r[0] and roll <= r[1]:
+			var cat: String = entry.get("category", "NOTHING")
+			var needs_repair: bool = entry.get("requires_repair", false)
+			var count: int = entry.get("count", 1)
+			var result: Dictionary = {
+				"source": "main_loot",
+				"roll": roll,
+				"category": cat,
+				"needs_repair": needs_repair,
+			}
+			match cat:
+				"WEAPON", "DAMAGED_WEAPONS":
+					var items: Array = []
+					for _i in range(count):
+						var name: String = _roll_on_subtable(
+							LootSystemConstants.get_weapon_subtable_data())
+						items.append(name)
+					result["items"] = items
+					var suffix: String = " (damaged)" if needs_repair else ""
+					result["description"] = "Weapon: %s%s" % [", ".join(items), suffix]
+				"GEAR", "DAMAGED_GEAR":
+					var items: Array = []
+					for _i in range(count):
+						var name: String = _roll_on_subtable(
+							LootSystemConstants.get_gear_subtable_data())
+						items.append(name)
+					result["items"] = items
+					var suffix: String = " (damaged)" if needs_repair else ""
+					result["description"] = "Gear: %s%s" % [", ".join(items), suffix]
+				"ODDS_AND_ENDS":
+					var item_name: String = _roll_on_subtable(
+						LootSystemConstants.get_odds_and_ends_data())
+					result["items"] = [item_name]
+					result["description"] = "Odds & Ends: %s" % item_name
+				"REWARDS":
+					result = _resolve_rewards_subtable(result)
+			return result
+	return {"source": "main_loot", "roll": roll, "category": "NOTHING",
+		"description": "Nothing of value"}
+
+## Roll on a subtable that has roll_range + items arrays.
+## Picks a random item from the matched range's items list.
+func _roll_on_subtable(subtable_data: Array) -> String:
+	var sub_roll: int = randi_range(1, 100)
+	for entry in subtable_data:
+		var r: Array = entry.get("roll_range", [0, 0])
+		if sub_roll >= r[0] and sub_roll <= r[1]:
+			var items: Array = entry.get("items", [])
+			if items.is_empty():
+				return entry.get("item", "Unknown item")
+			return items[randi() % items.size()]
+	return "Unknown item"
+
+## Resolve the Rewards subtable (Core Rules p.133) — credits, rumors, story points
+func _resolve_rewards_subtable(result: Dictionary) -> Dictionary:
+	var rewards_data: Array = LootSystemConstants.get_rewards_subtable_data()
+	var sub_roll: int = randi_range(1, 100)
+	for entry in rewards_data:
+		var r: Array = entry.get("roll_range", [0, 0])
+		if sub_roll >= r[0] and sub_roll <= r[1]:
+			var item_name: String = entry.get("item", "Reward")
+			result["reward_name"] = item_name
+			if entry.has("rumors"):
+				result["quest_rumors"] = entry["rumors"]
+				result["description"] = "%s: +%d Quest Rumor(s)" % [item_name, entry["rumors"]]
+			elif entry.has("credits"):
+				result["credits"] = entry["credits"]
+				result["description"] = "%s: +%d credits" % [item_name, entry["credits"]]
+			elif entry.has("credits_dice"):
+				var dice_str: String = entry["credits_dice"]
+				var credits: int = _roll_credits_dice(dice_str)
+				result["credits"] = credits
+				result["description"] = "%s: +%d credits (%s)" % [item_name, credits, dice_str]
+			elif entry.has("discount_dice"):
+				var dice_str: String = entry["discount_dice"]
+				var discount: int = _roll_credits_dice(dice_str)
+				result["ship_discount"] = discount
+				result["description"] = "%s: %d credits ship component discount" % [
+					item_name, discount]
+			elif entry.has("story_points"):
+				result["story_points"] = entry["story_points"]
+				result["description"] = "%s: +%d story point(s)" % [
+					item_name, entry["story_points"]]
+			return result
+	result["description"] = "Nothing notable"
+	return result
+
+## Roll dice strings like "1d6", "1d6+2", "2d6_pick_highest", "1d3"
+func _roll_credits_dice(dice_str: String) -> int:
+	match dice_str:
+		"1d6":
+			return randi_range(1, 6)
+		"1d3":
+			return randi_range(1, 3)
+		"1d6+2":
+			return randi_range(1, 6) + 2
+		"2d6_pick_highest":
+			return maxi(randi_range(1, 6), randi_range(1, 6))
+		_:
+			return randi_range(1, 6)
+
+
+## ==========================================
+## LOOT PERSISTENCE — add resolved items to campaign inventory
+## ==========================================
 
 func _add_loot_to_inventory(loot_items: Array) -> void:
-	## Persist battle loot to EquipmentManager ship stash
 	var equipment_manager = get_node_or_null("/root/EquipmentManager")
-	if not equipment_manager:
-		push_error("PostBattle: EquipmentManager not found - loot will be LOST!")
-		_add_result_to_log("[ERROR] EquipmentManager missing - loot not saved!")
-		return
-	
+	var game_state_ref = get_node_or_null("/root/GameState")
 	var credits_gained: int = 0
 	var items_added: int = 0
-	var items_lost: int = 0  # Stash full
-	
-	for loot_item: Dictionary in loot_items:
-		var loot_type: String = loot_item.get("type", "unknown")
-		
-		# Handle credits separately (if loot has credits value)
-		if loot_type == "credits" or loot_item.has("credits"):
-			var credit_amount: int = loot_item.get("credits", 10)  # Default 10 credits
-			credits_gained += credit_amount
-			# Add credits to campaign treasury
-			var gs = get_node_or_null("/root/GameState")
-			if gs and gs.campaign and "credits" in gs.campaign:
-				gs.campaign.credits += credit_amount
-			continue
-		
-		# Handle equipment items - convert to proper equipment data format
-		if loot_type == "equipment" or loot_type == "supplies":
-			var equipment_data: Dictionary = {
-				"id": "loot_%d_%d" % [Time.get_ticks_msec(), loot_item.get("enemy", randi() % 1000)],
-				"name": _generate_loot_item_name(loot_type),
-				"category": "GEAR" if loot_type == "supplies" else "WEAPON",
-				"description": "Found on battlefield from Enemy %d" % loot_item.get("enemy", 0),
-				"value": 10 if loot_type == "supplies" else 20,
-				"location": "ship_stash"
-			}
-			
-			# Try to add to ship stash
-			var added: bool = equipment_manager.add_to_ship_stash(equipment_data)
-			if added:
-				items_added += 1
-				# Also persist to campaign equipment pool for save/load
-				var gs_ref = get_node_or_null("/root/GameState")
-				if gs_ref and gs_ref.campaign and "equipment_data" in gs_ref.campaign:
-					var pool: Array = []
-					if gs_ref.campaign.has_method("get_all_equipment"):
-						pool = gs_ref.campaign.get_all_equipment()
-					else:
-						pool = gs_ref.campaign.equipment_data.get("equipment", [])
-					pool.append(equipment_data.duplicate())
-					gs_ref.campaign.equipment_data["equipment"] = pool
-			else:
-				items_lost += 1
-				push_warning("PostBattle: Ship stash full - lost %s" % equipment_data.get("name", "item"))
-	
-	# Show summary in results log
-	var summary: String = "Loot Summary: "
-	if credits_gained > 0:
-		summary += "+%d credits, " % credits_gained
-	if items_added > 0:
-		summary += "+%d items added to stash" % items_added
-	if items_lost > 0:
-		summary += " (%d items lost - stash full)" % items_lost
-	
-	_add_result_to_log(summary)
+	var rumors_gained: int = 0
+	var story_points_gained: int = 0
 
-func _generate_loot_item_name(loot_type: String) -> String:
-	## Generate procedural loot item names based on type
-	if loot_type == "equipment":
-		var weapons: Array[String] = ["Rusty Blade", "Salvaged Pistol", "Combat Knife", "Energy Cell"]
-		return weapons[randi() % weapons.size()]
-	elif loot_type == "supplies":
-		var supplies: Array[String] = ["Medkit", "Ration Pack", "Ammo Clip", "Tool Kit"]
-		return supplies[randi() % supplies.size()]
-	else:
-		return "Unknown Item"
+	for loot: Dictionary in loot_items:
+		# Credits
+		if loot.has("credits"):
+			credits_gained += int(loot["credits"])
+
+		# Quest Rumors
+		if loot.get("quest_rumor", false):
+			rumors_gained += 1
+		if loot.has("quest_rumors"):
+			rumors_gained += int(loot["quest_rumors"])
+
+		# Story Points
+		if loot.has("story_points"):
+			story_points_gained += int(loot["story_points"])
+
+		# Equipment items — add to ship stash
+		var item_names: Array = loot.get("items", [])
+		var needs_repair: bool = loot.get("needs_repair", false)
+		for item_name in item_names:
+			if equipment_manager:
+				var eq_data: Dictionary = {
+					"id": "loot_%d_%d" % [Time.get_ticks_msec(), randi() % 10000],
+					"name": str(item_name),
+					"category": loot.get("category", "GEAR"),
+					"description": "Found as battle loot",
+					"needs_repair": needs_repair,
+					"location": "ship_stash",
+					"value": 1,  # Core Rules p.125: sell value = 1 credit
+				}
+				if equipment_manager.add_equipment(eq_data):
+					items_added += 1
+
+	# Apply credits to campaign
+	if credits_gained > 0 and game_state_ref:
+		if game_state_ref.has_method("add_credits"):
+			game_state_ref.add_credits(credits_gained)
+		elif game_state_ref.campaign and "credits" in game_state_ref.campaign:
+			game_state_ref.campaign.credits += credits_gained
+
+	# Apply quest rumors
+	if rumors_gained > 0 and game_state_ref:
+		if game_state_ref.has_method("add_quest_rumors"):
+			game_state_ref.add_quest_rumors(rumors_gained)
+
+	# Apply story points
+	if story_points_gained > 0 and game_state_ref:
+		if game_state_ref.has_method("add_story_points"):
+			game_state_ref.add_story_points(story_points_gained)
+
+	# Log summary
+	var parts: Array[String] = []
+	if credits_gained > 0:
+		parts.append("+%d credits" % credits_gained)
+	if items_added > 0:
+		parts.append("+%d items to stash" % items_added)
+	if rumors_gained > 0:
+		parts.append("+%d quest rumor(s)" % rumors_gained)
+	if story_points_gained > 0:
+		parts.append("+%d story point(s)" % story_points_gained)
+	if not parts.is_empty():
+		_add_result_to_log("Added to campaign: %s" % ", ".join(parts))
 
 func _on_experience_roll(crew_member: Dictionary) -> void:
 	## Handle experience advancement roll
