@@ -77,6 +77,9 @@ var _last_crew_size: int = 0
 var _savvy_subs_available: int = 0
 var _savvy_subs_used: int = 0
 
+# Phase 5: Click-to-expand assignment tracking
+var _expanded_card_index: int = -1  # Which equipment card is currently expanded (-1 = none)
+
 func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	## Override from base class - handle campaign state updates
 	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
@@ -171,216 +174,6 @@ func _extract_crew_members(state_data) -> Array:
 		crew_members = state_data.get("crew_members", [])
 	
 	return crew_members
-
-## New Five Parsecs compliant equipment generation
-func _generate_five_parsecs_equipment(crew_members: Array) -> void:
-	## Generate equipment according to Five Parsecs core rules
-	generated_equipment.clear()
-	
-	# Core rules: Starting equipment
-	# - 3 rolls on Military Weapon Table
-	# - 3 rolls on Low-tech Weapon Table  
-	# - 1 roll on Gear Table
-	# - 1 roll on Gadget Table
-	# - 1 credit per crew member
-	
-	# Load from equipment_database.json instead of hardcoded arrays
-	var eq_db: Dictionary = _load_equipment_db()
-	var db_weapons: Array = eq_db.get("weapons", [])
-	var db_gear: Array = eq_db.get("gear", [])
-	var db_attachments: Array = eq_db.get("attachments", [])
-
-	# Military weapons: non-Pistol, non-Melee ranged weapons (Core Rules p.28)
-	var military_weapons: Array[String] = []
-	for w in db_weapons:
-		if w is Dictionary:
-			var traits: Array = w.get("traits", [])
-			var wtype: String = w.get("type", "")
-			if "Pistol" not in traits and wtype != "Melee" and wtype != "Grenade":
-				military_weapons.append(w.get("name", ""))
-	if military_weapons.is_empty():
-		military_weapons = ["Military Rifle", "Infantry Laser", "Auto Rifle"]
-
-	# Low-tech weapons: Pistols, basic slug weapons, melee (Core Rules p.28)
-	var low_tech_weapons: Array[String] = []
-	for w in db_weapons:
-		if w is Dictionary:
-			var traits: Array = w.get("traits", [])
-			var wtype: String = w.get("type", "")
-			var rarity: String = w.get("rarity", "")
-			if ("Pistol" in traits or wtype == "Melee") and rarity == "Common":
-				low_tech_weapons.append(w.get("name", ""))
-	if low_tech_weapons.is_empty():
-		low_tech_weapons = ["Hand Gun", "Blade", "Colony Rifle", "Shotgun"]
-
-	# Gear items: armor + utility devices + consumables
-	var gear_items: Array[String] = []
-	for g in db_gear:
-		if g is Dictionary:
-			gear_items.append(g.get("name", ""))
-	# Also include attachments as gear rolls
-	for a in db_attachments:
-		if a is Dictionary:
-			gear_items.append(a.get("name", ""))
-	if gear_items.is_empty():
-		gear_items = ["Frag Vest", "Communicator", "Booster Pills"]
-
-	# Gadget items: Uncommon/Rare utility devices (Core Rules p.28)
-	var gadget_items: Array[String] = []
-	for g in db_gear:
-		if g is Dictionary:
-			var rarity: String = g.get("rarity", "")
-			var gtype: String = g.get("type", "")
-			if gtype == "Utility Device" and rarity != "Common":
-				gadget_items.append(g.get("name", ""))
-	if gadget_items.is_empty():
-		gadget_items = ["Battle Visor", "Deflector Field", "Jump Belt"]
-	
-	# Generate 3 military weapons
-	for i in range(3):
-		var weapon = military_weapons[randi() % military_weapons.size()]
-		generated_equipment.append({
-			"name": weapon,
-			"type": "Military Weapon",
-			"owner": "Unassigned",
-			"condition": "standard",
-			"quality_modifier": 0
-		})
-	
-	# Generate 3 low-tech weapons
-	for i in range(3):
-		var weapon = low_tech_weapons[randi() % low_tech_weapons.size()]
-		generated_equipment.append({
-			"name": weapon,
-			"type": "Low-tech Weapon",
-			"owner": "Unassigned",
-			"condition": "standard",
-			"quality_modifier": 0
-		})
-	
-	# Generate 1 gear item
-	var gear = gear_items[randi() % gear_items.size()]
-	generated_equipment.append({
-		"name": gear,
-		"type": "Gear",
-		"owner": "Unassigned",
-		"condition": "standard",
-		"quality_modifier": 0
-	})
-	
-	# Generate 1 gadget item
-	var gadget = gadget_items[randi() % gadget_items.size()]
-	generated_equipment.append({
-		"name": gadget,
-		"type": "Gadget",
-		"owner": "Unassigned",
-		"condition": "standard",
-		"quality_modifier": 0
-	})
-	
-	# Add character-specific equipment based on backgrounds using JSON data
-	var background_equipment = equipment_tables.get("background_equipment", {})
-
-	for crew_member in crew_members:
-		var member_name = ""
-		var background = ""
-
-		# Handle both Character objects and Dictionary data
-		member_name = crew_member.character_name if "character_name" in crew_member else (crew_member.name if "name" in crew_member else "Unknown")
-		var bg_raw = crew_member.background if "background" in crew_member else 0
-		if bg_raw is int:
-			var bg_keys: Array = GlobalEnums.Background.keys()
-			if bg_raw >= 0 and bg_raw < bg_keys.size():
-				background = bg_keys[bg_raw].to_lower()
-			else:
-				background = ""
-		elif bg_raw is String:
-			background = bg_raw.to_lower() if bg_raw else ""
-		else:
-			background = ""
-		# Use JSON background equipment if available
-		if background_equipment.has(background):
-			var bg_equip = background_equipment[background]
-
-			# Add weapons from background
-			for weapon in bg_equip.get("weapons", []):
-				generated_equipment.append({
-					"name": weapon,
-					"type": "Weapon",
-					"owner": member_name,
-					"condition": "standard",
-					"quality_modifier": 0
-				})
-
-			# Add gear from background
-			for gear_item in bg_equip.get("gear", []):
-				generated_equipment.append({
-					"name": gear_item,
-					"type": "Gear",
-					"owner": member_name,
-					"condition": "standard",
-					"quality_modifier": 0
-				})
-
-			# Add background credits to total
-			starting_credits += bg_equip.get("credits", 0)
-		else:
-			# Fallback to hardcoded logic for unrecognized backgrounds
-			# Military background gets extra military weapon
-			if background == "military" or background == "soldier":
-				var bonus_weapon = military_weapons[randi() % military_weapons.size()]
-				generated_equipment.append({
-					"name": bonus_weapon,
-					"type": "Military Weapon",
-					"owner": member_name,
-					"condition": "standard",
-					"quality_modifier": 0
-				})
-
-			# Tech/Engineer background gets extra gadget
-			elif background == "tech" or background == "engineer" or background == "scientist":
-				var bonus_gadget = gadget_items[randi() % gadget_items.size()]
-				generated_equipment.append({
-					"name": bonus_gadget,
-					"type": "Gadget",
-					"owner": member_name,
-					"condition": "standard",
-					"quality_modifier": 0
-				})
-
-			# Explorer/Scout gets extra gear
-			elif background == "explorer" or background == "scout":
-				var bonus_gear = gear_items[randi() % gear_items.size()]
-				generated_equipment.append({
-					"name": bonus_gear,
-					"type": "Gear",
-					"owner": member_name,
-					"condition": "standard",
-					"quality_modifier": 0
-				})
-	
-	# Calculate starting credits (Core Rules p.28):
-	# 1 credit per crew member + background resource bonuses (1D6 or 2D6 per character)
-	starting_credits = crew_members.size()  # Base: 1 per crew member
-	for member in crew_members:
-		var bg: String = ""
-		if member is Dictionary:
-			bg = str(member.get("background", "")).to_lower()
-		elif member is Character:
-			bg = member.background.to_lower() if member.background else ""
-		# Roll background credits bonus from data (most backgrounds give 1D6)
-		var bg_credits_roll: String = _get_background_credits_roll(bg)
-		if bg_credits_roll == "2D6":
-			starting_credits += randi_range(1, 6) + randi_range(1, 6)
-		elif bg_credits_roll == "1D6":
-			starting_credits += randi_range(1, 6)
-	
-	# Update display and emit signals
-	_update_equipment_display()
-	_update_summary()
-	equipment_generated.emit(generated_equipment)
-	equipment_data_changed.emit(get_panel_data())
-	_validate_and_complete()
 
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
@@ -1126,11 +919,11 @@ func is_setup_complete() -> bool:
 	return generated_equipment.size() > 0
 
 func _update_equipment_display() -> void:
-	## Update the equipment list display with assignment dropdowns
+	## Update the equipment list display with click-to-expand assignment + stats
 	if not equipment_list:
 		push_error("EquipmentPanel: No equipment_list container found!")
 		return
-	
+
 	# Clear existing children
 	for child in equipment_list.get_children():
 		child.queue_free()
@@ -1143,11 +936,11 @@ func _update_equipment_display() -> void:
 	# Double-check we're still in tree after await
 	if not is_inside_tree():
 		return
-	
-	# Build crew options for dropdown
-	var crew_options = _get_crew_assignment_options()
-	
-	# Add equipment items with stats display + assignment dropdowns
+
+	# Build crew options for dropdown (fallback)
+	var crew_options: Array[String] = _get_crew_assignment_options()
+
+	# Add equipment items with stats display + click-to-expand assignment
 	for i in range(generated_equipment.size()):
 		var item: Dictionary = generated_equipment[i]
 		var item_type: String = str(item.get("type", "Misc"))
@@ -1160,7 +953,7 @@ func _update_equipment_display() -> void:
 		var card_vbox: VBoxContainer = VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", SPACING_XS)
 
-		# ── ROW 1: Type badge + Name + Condition + Dropdown ──────────
+		# ── ROW 1: Type badge + Name + Condition + Owner/Expand ──────
 		var header_row: HBoxContainer = HBoxContainer.new()
 		header_row.add_theme_constant_override("separation", SPACING_SM)
 		header_row.custom_minimum_size.y = TOUCH_TARGET_MIN
@@ -1170,7 +963,7 @@ func _update_equipment_display() -> void:
 
 		var name_label: Label = Label.new()
 		name_label.text = item_name
-		name_label.custom_minimum_size.x = 150
+		name_label.custom_minimum_size.x = 120
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 		name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
@@ -1178,99 +971,30 @@ func _update_equipment_display() -> void:
 
 		# Condition badge
 		var condition: String = str(item.get("condition", "standard"))
-		var condition_badge: PanelContainer = PanelContainer.new()
-		condition_badge.custom_minimum_size = Vector2(72, 24)
-		var cond_style := StyleBoxFlat.new()
-		cond_style.bg_color = Color(_get_condition_color(condition), 0.2)
-		cond_style.border_color = _get_condition_color(condition)
-		cond_style.set_border_width_all(1)
-		cond_style.set_corner_radius_all(4)
-		cond_style.set_content_margin_all(SPACING_XS)
-		condition_badge.add_theme_stylebox_override("panel", cond_style)
-		var condition_label: Label = Label.new()
-		condition_label.text = condition.capitalize()
-		condition_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
-		condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
-		condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		condition_badge.add_child(condition_label)
+		var condition_badge: PanelContainer = _create_condition_badge(condition)
 		header_row.add_child(condition_badge)
 
-		# Assignment dropdown
-		var assign_dropdown: OptionButton = OptionButton.new()
-		assign_dropdown.custom_minimum_size.x = 140
-		assign_dropdown.name = "AssignDropdown_%d" % i
-		_style_option_button(assign_dropdown)
-		assign_dropdown.add_item("Unassigned", 0)
-		assign_dropdown.add_item("Ship Stash", 1)
-		for j in range(crew_options.size()):
-			assign_dropdown.add_item(crew_options[j], j + 2)
+		# Current owner label (clickable to expand)
 		var current_owner: String = str(item.get("owner", "Unassigned"))
-		assign_dropdown.select(_get_owner_dropdown_index(current_owner, crew_options))
-		assign_dropdown.item_selected.connect(_on_equipment_assignment_changed.bind(i))
-		header_row.add_child(assign_dropdown)
+		var owner_btn: Button = Button.new()
+		owner_btn.custom_minimum_size = Vector2(130, 32)
+		owner_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		if current_owner == "Unassigned" or current_owner.is_empty():
+			owner_btn.text = "Assign..."
+			owner_btn.add_theme_color_override("font_color", COLOR_WARNING)
+		else:
+			owner_btn.text = current_owner
+			owner_btn.add_theme_color_override("font_color", COLOR_SUCCESS)
+		owner_btn.tooltip_text = "Click to assign this item to a crew member"
+		owner_btn.pressed.connect(_on_toggle_expand_card.bind(i))
+		header_row.add_child(owner_btn)
 
 		card_vbox.add_child(header_row)
 
 		# ── ROW 2: Stats from equipment_database.json ────────────────
-		var db_entry: Dictionary = _lookup_equipment_stats(item_name)
-		if not db_entry.is_empty():
-			var stats_row: HBoxContainer = HBoxContainer.new()
-			stats_row.add_theme_constant_override("separation", SPACING_SM)
-
-			var type_lower: String = item_type.to_lower()
-			if "weapon" in type_lower or db_entry.has("damage"):
-				# Weapon stats: Range / Shots / Damage
-				var rng_val: int = db_entry.get("range", 0)
-				var shots_val: int = db_entry.get("shots", 0)
-				var dmg_val: int = db_entry.get("damage", 0)
-
-				stats_row.add_child(_create_inline_stat("RNG", str(rng_val) + '"', COLOR_FOCUS))
-				stats_row.add_child(_create_inline_stat("SHT", str(shots_val), COLOR_TEXT_SECONDARY))
-				var dmg_text: String = "+%d" % dmg_val if dmg_val >= 0 else str(dmg_val)
-				stats_row.add_child(_create_inline_stat("DMG", dmg_text, COLOR_WARNING))
-
-				# Traits
-				var traits: Array = db_entry.get("traits", [])
-				if traits.size() > 0:
-					var traits_label: Label = Label.new()
-					var trait_strings: Array[String] = []
-					for t in traits:
-						trait_strings.append(str(t))
-					traits_label.text = " / ".join(trait_strings)
-					traits_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
-					traits_label.add_theme_color_override("font_color", Color("#8b5cf6"))
-					traits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					stats_row.add_child(traits_label)
-
-			elif db_entry.has("saving_throw"):
-				# Armor stats
-				var save: String = str(db_entry.get("saving_throw", "none"))
-				if save != "none":
-					stats_row.add_child(_create_inline_stat("SAVE", save, COLOR_SUCCESS))
-				var desc: String = db_entry.get("description", "")
-				if not desc.is_empty():
-					var desc_label: Label = Label.new()
-					desc_label.text = desc
-					desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
-					desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-					desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-					desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					stats_row.add_child(desc_label)
-
-			else:
-				# Gear/Gadget: show description
-				var desc: String = db_entry.get("description", "")
-				if not desc.is_empty():
-					var desc_label: Label = Label.new()
-					desc_label.text = desc
-					desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
-					desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-					desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-					desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					stats_row.add_child(desc_label)
-
-			if stats_row.get_child_count() > 0:
-				card_vbox.add_child(stats_row)
+		var stats_row: HBoxContainer = _build_stats_row(item_name, item_type)
+		if stats_row:
+			card_vbox.add_child(stats_row)
 
 		# ── ROW 3: Source provenance (if available) ──────────────────
 		var source: String = item.get("source", "")
@@ -1288,15 +1012,264 @@ func _update_equipment_display() -> void:
 			source_label.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
 			card_vbox.add_child(source_label)
 
+		# ── ROW 4: Expanded crew assignment buttons (Phase 5) ────────
+		var expand_panel: VBoxContainer = VBoxContainer.new()
+		expand_panel.name = "ExpandPanel_%d" % i
+		expand_panel.visible = (_expanded_card_index == i)
+		expand_panel.add_theme_constant_override("separation", SPACING_XS)
+
+		if expand_panel.visible:
+			_populate_expand_panel(expand_panel, i, crew_options)
+
+		card_vbox.add_child(expand_panel)
+
+		# ── Fallback dropdown (hidden, for accessibility/keyboard) ───
+		var assign_dropdown: OptionButton = OptionButton.new()
+		assign_dropdown.custom_minimum_size.x = 0
+		assign_dropdown.visible = false  # Hidden — use expand panel instead
+		assign_dropdown.name = "AssignDropdown_%d" % i
+		assign_dropdown.add_item("Unassigned", 0)
+		assign_dropdown.add_item("Ship Stash", 1)
+		for j in range(crew_options.size()):
+			assign_dropdown.add_item(crew_options[j], j + 2)
+		assign_dropdown.select(_get_owner_dropdown_index(current_owner, crew_options))
+		assign_dropdown.item_selected.connect(_on_equipment_assignment_changed.bind(i))
+		card_vbox.add_child(assign_dropdown)
+
 		item_container.add_child(card_vbox)
 		equipment_list.add_child(item_container)
-	
+
 	# Update summary and credits labels
 	_update_summary_labels()
-	
+
 	# Update crew loadout display
 	_update_crew_loadout_display()
-	
+
+func _create_condition_badge(condition: String) -> PanelContainer:
+	## Create a styled condition badge (extracted for reuse)
+	var badge: PanelContainer = PanelContainer.new()
+	badge.custom_minimum_size = Vector2(72, 24)
+	var cond_style := StyleBoxFlat.new()
+	cond_style.bg_color = Color(_get_condition_color(condition), 0.2)
+	cond_style.border_color = _get_condition_color(condition)
+	cond_style.set_border_width_all(1)
+	cond_style.set_corner_radius_all(4)
+	cond_style.set_content_margin_all(SPACING_XS)
+	badge.add_theme_stylebox_override("panel", cond_style)
+	var condition_label: Label = Label.new()
+	condition_label.text = condition.capitalize()
+	condition_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
+	condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.add_child(condition_label)
+	return badge
+
+func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
+	## Build weapon/armor/gear stats row from equipment_database.json
+	var db_entry: Dictionary = _lookup_equipment_stats(item_name)
+	if db_entry.is_empty():
+		return null
+
+	var stats_row: HBoxContainer = HBoxContainer.new()
+	stats_row.add_theme_constant_override("separation", SPACING_SM)
+
+	var type_lower: String = item_type.to_lower()
+	if "weapon" in type_lower or db_entry.has("damage"):
+		var rng_val: int = db_entry.get("range", 0)
+		var shots_val: int = db_entry.get("shots", 0)
+		var dmg_val: int = db_entry.get("damage", 0)
+
+		stats_row.add_child(_create_inline_stat("RNG", str(rng_val) + '"', COLOR_FOCUS))
+		stats_row.add_child(_create_inline_stat("SHT", str(shots_val), COLOR_TEXT_SECONDARY))
+		var dmg_text: String = "+%d" % dmg_val if dmg_val >= 0 else str(dmg_val)
+		stats_row.add_child(_create_inline_stat("DMG", dmg_text, COLOR_WARNING))
+
+		var traits: Array = db_entry.get("traits", [])
+		if traits.size() > 0:
+			var traits_label: Label = Label.new()
+			var trait_strings: Array[String] = []
+			for t in traits:
+				trait_strings.append(str(t))
+			traits_label.text = " / ".join(trait_strings)
+			traits_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			traits_label.add_theme_color_override("font_color", Color("#8b5cf6"))
+			traits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			stats_row.add_child(traits_label)
+
+	elif db_entry.has("saving_throw"):
+		var save: String = str(db_entry.get("saving_throw", "none"))
+		if save != "none":
+			stats_row.add_child(_create_inline_stat("SAVE", save, COLOR_SUCCESS))
+		var desc: String = db_entry.get("description", "")
+		if not desc.is_empty():
+			var desc_label: Label = Label.new()
+			desc_label.text = desc
+			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			stats_row.add_child(desc_label)
+
+	else:
+		var desc: String = db_entry.get("description", "")
+		if not desc.is_empty():
+			var desc_label: Label = Label.new()
+			desc_label.text = desc
+			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			stats_row.add_child(desc_label)
+
+	if stats_row.get_child_count() > 0:
+		return stats_row
+	stats_row.queue_free()
+	return null
+
+func _on_toggle_expand_card(equipment_index: int) -> void:
+	## Toggle the expanded crew assignment panel on an equipment card
+	if _expanded_card_index == equipment_index:
+		_expanded_card_index = -1  # Collapse
+	else:
+		_expanded_card_index = equipment_index  # Expand this one
+
+	# Refresh all expand panels without full rebuild
+	if not equipment_list:
+		return
+	var crew_options: Array[String] = _get_crew_assignment_options()
+	for idx in range(equipment_list.get_child_count()):
+		var card_container = equipment_list.get_child(idx)
+		if not card_container or not is_instance_valid(card_container):
+			continue
+		var card_vbox = card_container.get_child(0) if card_container.get_child_count() > 0 else null
+		if not card_vbox:
+			continue
+		var expand_panel = card_vbox.get_node_or_null("ExpandPanel_%d" % idx)
+		if not expand_panel:
+			continue
+		var should_show: bool = (_expanded_card_index == idx)
+		expand_panel.visible = should_show
+		if should_show and expand_panel.get_child_count() == 0:
+			_populate_expand_panel(expand_panel, idx, crew_options)
+		elif not should_show:
+			# Clear children when collapsing to save memory
+			for child in expand_panel.get_children():
+				child.queue_free()
+
+func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_options: Array[String]) -> void:
+	## Populate the expanded assignment panel with crew buttons + stats
+	# Clear existing
+	for child in panel.get_children():
+		child.queue_free()
+
+	# Separator
+	var sep: HSeparator = HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	panel.add_child(sep)
+
+	# Label
+	var assign_label: Label = Label.new()
+	assign_label.text = "Assign to:"
+	assign_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	assign_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	panel.add_child(assign_label)
+
+	# Crew buttons with stats
+	var buttons_flow: HFlowContainer = HFlowContainer.new()
+	buttons_flow.add_theme_constant_override("h_separation", SPACING_SM)
+	buttons_flow.add_theme_constant_override("v_separation", SPACING_XS)
+
+	# "Unassigned" button
+	var unassign_btn: Button = Button.new()
+	unassign_btn.text = "Unassigned"
+	unassign_btn.custom_minimum_size = Vector2(100, 36)
+	unassign_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	unassign_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, "Unassigned"))
+	buttons_flow.add_child(unassign_btn)
+
+	# "Ship Stash" button
+	var stash_btn: Button = Button.new()
+	stash_btn.text = "Ship Stash"
+	stash_btn.custom_minimum_size = Vector2(100, 36)
+	stash_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	stash_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, "Ship Stash"))
+	buttons_flow.add_child(stash_btn)
+
+	# Crew member buttons with combat stats
+	for member in crew_members:
+		var char_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+		if char_name.is_empty():
+			continue
+
+		var combat_val: int = _get_member_stat(member, "combat")
+		var reactions_val: int = _get_member_stat(member, "reactions")
+		var toughness_val: int = _get_member_stat(member, "toughness")
+
+		var crew_btn: Button = Button.new()
+		crew_btn.custom_minimum_size = Vector2(160, 40)
+		crew_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+
+		# Show name + compact stats
+		var stats_text: String = ""
+		if combat_val > 0 or reactions_val > 0 or toughness_val > 0:
+			stats_text = " [C:%d R:%d T:%d]" % [combat_val, reactions_val, toughness_val]
+		crew_btn.text = char_name + stats_text
+		crew_btn.tooltip_text = "%s — Combat: %d, Reactions: %d, Toughness: %d" % [
+			char_name, combat_val, reactions_val, toughness_val]
+
+		# Highlight current owner
+		var current_owner: String = str(generated_equipment[equipment_index].get("owner", ""))
+		if current_owner == char_name:
+			var btn_style := StyleBoxFlat.new()
+			btn_style.bg_color = Color(COLOR_SUCCESS, 0.3)
+			btn_style.border_color = COLOR_SUCCESS
+			btn_style.set_border_width_all(1)
+			btn_style.set_corner_radius_all(6)
+			btn_style.set_content_margin_all(SPACING_XS)
+			crew_btn.add_theme_stylebox_override("normal", btn_style)
+
+		crew_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, char_name))
+		buttons_flow.add_child(crew_btn)
+
+	panel.add_child(buttons_flow)
+
+func _get_member_stat(member, stat_name: String) -> int:
+	## Get a stat value from a crew member (Character or Dictionary)
+	if member is Character:
+		match stat_name:
+			"combat":
+				return member.combat if "combat" in member else 0
+			"reactions":
+				return member.reactions if "reactions" in member else 0
+			"toughness":
+				return member.toughness if "toughness" in member else 0
+			"speed":
+				return member.speed if "speed" in member else 0
+			"savvy":
+				return member.savvy if "savvy" in member else 0
+			"luck":
+				return member.luck if "luck" in member else 0
+	elif member is Dictionary:
+		return int(member.get(stat_name, 0))
+	return 0
+
+func _on_assign_via_button(equipment_index: int, new_owner: String) -> void:
+	## Assign equipment via the expanded crew button panel
+	if equipment_index < 0 or equipment_index >= generated_equipment.size():
+		return
+
+	generated_equipment[equipment_index]["owner"] = new_owner
+
+	# Collapse the expand panel
+	_expanded_card_index = -1
+
+	# Refresh display
+	_update_equipment_display()
+	_update_summary()
+	_build_generation_summary()
+	equipment_data_changed.emit(get_panel_data())
+	panel_data_changed.emit(get_panel_data())
+	_validate_and_complete()	
 
 func _get_type_color(item_type: String) -> Color:
 	## Get color for equipment type display using design system semantic colors
@@ -1557,7 +1530,32 @@ func _build_generation_summary() -> void:
 	_style_button(reroll_all_btn, false)
 	actions_row.add_child(reroll_all_btn)
 
+	# Manual selection button (Phase 6: moved from bottom Controls)
+	var manual_sel_btn: Button = Button.new()
+	manual_sel_btn.text = "Manual Selection"
+	manual_sel_btn.tooltip_text = "Open equipment manager for manual distribution"
+	manual_sel_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	manual_sel_btn.pressed.connect(_on_manual_select_pressed)
+	_style_button(manual_sel_btn, false)
+	actions_row.add_child(manual_sel_btn)
+
 	summary_node.add_child(actions_row)
+
+	# Phase 6: Hide bottom Controls when summary bar is active
+	_toggle_bottom_controls(false)
+
+func _toggle_bottom_controls(show: bool) -> void:
+	## Show/hide the bottom Controls and SummarySection
+	## Phase 6: These are redundant when GenerationSummary bar is active
+	var controls = get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
+	if controls:
+		controls.visible = show
+
+	var summary_section = get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection")
+	if summary_section:
+		summary_section.visible = show
 
 func _create_prov_tag(text: String, color: Color) -> PanelContainer:
 	## Create a colored provenance pill badge
@@ -1934,10 +1932,13 @@ func _update_crew_loadout_display() -> void:
 				loadouts[owner] = []
 			loadouts[owner].append(item)
 
-	# Create UI for each character
-	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+	# Create UI for each character (Phase 5: pass member for stats)
 	for member in crew_members:
-		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+		var mname: String = ""
+		if "character_name" in member:
+			mname = member.character_name
+		elif "name" in member:
+			mname = member.name
 		var bg_val = member.background if "background" in member else 0
 		var background: String = ""
 		if bg_val is int:
@@ -1947,50 +1948,73 @@ func _update_crew_loadout_display() -> void:
 		elif bg_val is String:
 			background = bg_val
 
-		if name.is_empty():
+		if mname.is_empty():
 			continue
 
-		var char_panel = _create_character_loadout_panel(name, background, loadouts.get(name, []))
+		var char_panel = _create_character_loadout_panel(
+			mname, background, loadouts.get(mname, []), member)
 		crew_loadout_container.add_child(char_panel)
-	
+
 	# Add ship stash section
 	if loadouts.get("Ship Stash", []).size() > 0:
-		var stash_panel = _create_character_loadout_panel("Ship Stash", "spare equipment", loadouts["Ship Stash"])
+		var stash_panel = _create_character_loadout_panel(
+			"Ship Stash", "spare equipment",
+			loadouts["Ship Stash"], null)
 		crew_loadout_container.add_child(stash_panel)
 
-func _create_character_loadout_panel(char_name: String, background: String, equipment: Array) -> PanelContainer:
+func _create_character_loadout_panel(char_name: String, background: String, equipment: Array, member = null) -> PanelContainer:
 	## Create a loadout display panel for a character (GLASS MORPHISM)
+	## Phase 5: Now shows combat stats and unassign buttons
 	var panel = PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _create_glass_card_style(0.8))
-	
+
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
-	
+
 	# Header with character name and background
 	var header = HBoxContainer.new()
 	header.add_theme_constant_override("separation", SPACING_XS)
-	
+
 	var name_label = Label.new()
 	name_label.text = char_name
 	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(name_label)
-	
+
 	if not background.is_empty():
 		var bg_label = Label.new()
 		bg_label.text = "(%s)" % background.capitalize()
 		bg_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		bg_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header.add_child(bg_label)
-	
+
 	vbox.add_child(header)
-	
+
+	# Phase 5: Combat stats row (if member data available)
+	if member != null:
+		var stats_hbox: HBoxContainer = HBoxContainer.new()
+		stats_hbox.add_theme_constant_override("separation", SPACING_SM)
+
+		var combat_val: int = _get_member_stat(member, "combat")
+		var reactions_val: int = _get_member_stat(member, "reactions")
+		var toughness_val: int = _get_member_stat(member, "toughness")
+		var speed_val: int = _get_member_stat(member, "speed")
+
+		stats_hbox.add_child(_create_inline_stat("CMB", str(combat_val), COLOR_FOCUS))
+		stats_hbox.add_child(_create_inline_stat("RCT", str(reactions_val), COLOR_WARNING))
+		stats_hbox.add_child(_create_inline_stat("TGH", str(toughness_val), COLOR_SUCCESS))
+		stats_hbox.add_child(_create_inline_stat("SPD", str(speed_val), COLOR_TEXT_SECONDARY))
+
+		vbox.add_child(stats_hbox)
+
 	# Separator
 	var sep = HSeparator.new()
 	sep.modulate = COLOR_BORDER
 	vbox.add_child(sep)
-	
-	# Equipment list
+
+	# Equipment list with unassign buttons
+	var has_weapon: bool = false
 	if equipment.size() == 0:
 		var empty_label = Label.new()
 		empty_label.text = "No equipment assigned"
@@ -2001,25 +2025,72 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 		for item in equipment:
 			var item_hbox = HBoxContainer.new()
 			item_hbox.add_theme_constant_override("separation", SPACING_XS)
-			
+
 			# Equipment type badge
 			var item_type: String = item.get("type", "")
 			var type_badge = _create_equipment_type_badge(item_type)
-			type_badge.custom_minimum_size = Vector2(24, 24)  # Smaller for list
+			type_badge.custom_minimum_size = Vector2(24, 24)
 			item_hbox.add_child(type_badge)
-			
+
+			# Track weapons
+			if "weapon" in item_type.to_lower():
+				has_weapon = true
+
 			# Equipment name
 			var item_label = Label.new()
 			var item_name: String = item.get("name", "Unknown")
 			item_label.text = item_name
 			item_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 			item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+			item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			item_hbox.add_child(item_label)
-			
+
+			# Phase 5: Unassign button
+			if char_name != "Ship Stash":
+				var unassign_btn: Button = Button.new()
+				unassign_btn.text = "x"
+				unassign_btn.custom_minimum_size = Vector2(28, 28)
+				unassign_btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+				unassign_btn.tooltip_text = "Unassign %s" % item_name
+				# Find the equipment index in generated_equipment
+				var eq_idx: int = _find_equipment_index(item)
+				if eq_idx >= 0:
+					unassign_btn.pressed.connect(_on_unassign_item.bind(eq_idx))
+				item_hbox.add_child(unassign_btn)
+
 			vbox.add_child(item_hbox)
-	
+
+	# Phase 5: "No weapon!" warning for unarmed crew
+	if char_name != "Ship Stash" and not has_weapon and member != null:
+		var warning_label: Label = Label.new()
+		warning_label.text = "No weapon!"
+		warning_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		warning_label.add_theme_color_override("font_color", COLOR_DANGER)
+		vbox.add_child(warning_label)
+
 	panel.add_child(vbox)
 	return panel
+
+func _find_equipment_index(item: Dictionary) -> int:
+	## Find the index of an equipment item in generated_equipment by name + owner
+	var item_name: String = item.get("name", "")
+	var item_owner: String = item.get("owner", "")
+	for i in range(generated_equipment.size()):
+		if generated_equipment[i].get("name", "") == item_name and \
+		   generated_equipment[i].get("owner", "") == item_owner:
+			return i
+	return -1
+
+func _on_unassign_item(equipment_index: int) -> void:
+	## Unassign an equipment item (set owner to "Unassigned")
+	if equipment_index < 0 or equipment_index >= generated_equipment.size():
+		return
+	generated_equipment[equipment_index]["owner"] = "Unassigned"
+	_update_equipment_display()
+	_update_summary()
+	equipment_data_changed.emit(get_panel_data())
+	panel_data_changed.emit(get_panel_data())
+	_validate_and_complete()
 
 func _on_auto_assign_pressed() -> void:
 	## Auto-assign equipment to crew based on backgrounds
@@ -2397,64 +2468,7 @@ func _log_panel_initialization_debug() -> void:
 	pass
 	
 
-# ============ FALLBACK UI CREATION METHODS ============
-
-func _create_generate_button() -> Button:
-	## Create generate equipment button
-	var button = Button.new()
-	button.name = "GenerateButton"
-	button.text = "Generate Equipment"
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	return button
-
-func _create_reroll_button() -> Button:
-	## Create reroll equipment button
-	var button = Button.new()
-	button.name = "RerollButton"
-	button.text = "Reroll Equipment"
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	return button
-
-func _create_manual_button() -> Button:
-	## Create manual selection button
-	var button = Button.new()
-	button.name = "ManualButton"
-	button.text = "Manual Selection"
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	return button
-
-func _create_summary_label() -> Label:
-	## Create equipment summary label
-	var label = Label.new()
-	label.name = "Label"
-	label.text = "Equipment Summary"
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
-	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	return label
-
-func _create_credits_label() -> Label:
-	## Create credits display label
-	var label = Label.new()
-	label.name = "Value"
-	label.text = "Credits: 0"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	label.add_theme_color_override("font_color", COLOR_ACCENT)
-	return label
-
-## Missing Signal Handlers - Added to prevent parse errors
-
-func _on_reroll_pressed() -> void:
-	## Handle reroll equipment button press
-	_generate_starting_equipment()
-	_validate_equipment_selection()
-
-func _on_manual_pressed() -> void:
-	## Handle manual selection button press
-	_on_manual_select_pressed()
+# (Fallback UI creation methods and legacy signal handlers removed — Phase 6 cleanup)
 
 # --- Manual Equipment Distribution Support ---
 
@@ -2546,16 +2560,7 @@ func _on_equipment_dialog_closed(popup: AcceptDialog) -> void:
 	equipment_data["manual_mode"] = true
 	# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
 
-func _validate_equipment_selection() -> void:
-	## Validate current equipment selection
-	var equipment_data = get_panel_data()
-	var total_value = equipment_data.get("total_value", 0)
-	var is_valid = total_value > 0
-
-	if is_valid:
-		pass  # Completion handled by _validate_and_complete()
-	else:
-		pass
+# _validate_equipment_selection removed — validation handled by _validate_and_complete()
 
 ## Responsive Layout Overrides
 

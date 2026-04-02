@@ -442,10 +442,7 @@ static func _validate_ship_data(ship: Dictionary) -> ValidationResult:
 	elif debt > 10:
 		errors.append("Ship debt cannot exceed 10")
 	
-	# Validate traits
-	var traits = ship.get("traits", [])
-	if traits.is_empty():
-		warnings.append("Ship has no traits - consider adding ship characteristics")
+	# Note: 7 of 13 Core Rules ships have no traits (p.31) — not a warning
 	
 	var result = ValidationResult.new(errors.is_empty(),
 		errors[0] if not errors.is_empty() else "")

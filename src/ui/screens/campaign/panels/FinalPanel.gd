@@ -420,8 +420,46 @@ func _create_ship_summary_card() -> PanelContainer:
 	stats_hbox.add_child(debt_badge)
 
 	content.add_child(stats_hbox)
-	
-	return _create_section_card("Ship Details", content, "", "🚀")
+
+	# Ship Traits (Core Rules p.30)
+	var traits: Array = ship_data.get("traits", [])
+	if not traits.is_empty():
+		var traits_label := Label.new()
+		traits_label.text = "Traits: " + ", ".join(traits)
+		traits_label.add_theme_font_size_override(
+			"font_size", FONT_SIZE_SM)
+		traits_label.add_theme_color_override(
+			"font_color", COLOR_TEXT_SECONDARY)
+		traits_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(traits_label)
+
+	# Crew Flavor (Core Rules p.32)
+	var flavor: Dictionary = campaign_data.get("crew_flavor", {})
+	var met: String = flavor.get("we_met_through", "")
+	var char_as: String = flavor.get("best_characterized_as", "")
+	if not met.is_empty() or not char_as.is_empty():
+		var flavor_vbox := VBoxContainer.new()
+		flavor_vbox.add_theme_constant_override(
+			"separation", SPACING_XS)
+		if not met.is_empty():
+			var met_label := Label.new()
+			met_label.text = "Met through: " + met
+			met_label.add_theme_font_size_override(
+				"font_size", FONT_SIZE_SM)
+			met_label.add_theme_color_override(
+				"font_color", COLOR_TEXT_SECONDARY)
+			flavor_vbox.add_child(met_label)
+		if not char_as.is_empty():
+			var char_label := Label.new()
+			char_label.text = "Known as: " + char_as
+			char_label.add_theme_font_size_override(
+				"font_size", FONT_SIZE_SM)
+			char_label.add_theme_color_override(
+				"font_color", COLOR_TEXT_SECONDARY)
+			flavor_vbox.add_child(char_label)
+		content.add_child(flavor_vbox)
+
+	return _create_section_card("Ship Details", content, "", "")
 
 ## Data Contract Helpers - Standardized captain data access
 

@@ -105,6 +105,14 @@ func _crew_has_ship() -> bool:
 		return _campaign.has_ship
 	return true  # Default: assume has ship
 
+func calculate_emergency_takeoff_damage() -> int:
+	## Emergency takeoff: 3D6 hull damage (Core Rules p.60)
+	## Emergency Drives trait: reduce by 3 (Core Rules p.30)
+	if game_state_manager and game_state_manager.has_method(
+			"get_emergency_takeoff_damage"):
+		return game_state_manager.get_emergency_takeoff_damage()
+	return randi_range(1, 6) + randi_range(1, 6) + randi_range(1, 6)
+
 func _calculate_final_travel_cost() -> int:
 	# Shipless: commercial passage at 1cr/member (Core Rules p.59)
 	if not _crew_has_ship():

@@ -68,7 +68,7 @@ Major cross-system data integrity pass completed:
 - **BattlePhase.gd** (battle/campaign domain): Fabricated payment formula removed. PostBattlePaymentProcessor handles real 1D6 payment.
 - **BattleEventsSystem.gd** (battle domain): Wired to event_tables.json (24 events data-driven)
 - **Audit verified**: PatronJobGenerator already wired, CharacterCreator already wired, BattleCalculations constants correct
-- **Deferred**: CharacterNameGenerator (cosmetic), patron_missions.json (dead data)
+- **Cut (cosmetic/dead data)**: CharacterNameGenerator (cosmetic, no gameplay impact), patron_missions.json (dead data, not wired)
 - **Project version**: v0.9.4
 
 ---

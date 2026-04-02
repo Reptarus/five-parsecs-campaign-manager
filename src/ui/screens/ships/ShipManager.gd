@@ -17,29 +17,47 @@ signal travel_initiated()
 @onready var cost_amount: Label = %CostAmount
 
 var ship_data: Dictionary = {}
+var _components_db: Array = []
+var _components_rules: Dictionary = {}
 
 func _ready() -> void:
+	_load_components_database()
 	_load_ship_data()
 	_refresh_display()
 
-func _load_ship_data() -> void:
-	## Load ship data from campaign manager
-	# Connect to campaign manager
-	var campaign_mgr = get_node_or_null("/root/CampaignManager")
-	if campaign_mgr and campaign_mgr.has_method("get_ship_data"):
-		ship_data = campaign_mgr.get_ship_data()
+func _load_components_database() -> void:
+	## Load Core Rules components from JSON (pp.60-62)
+	var path := "res://data/ship_components.json"
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_warning("ShipManager: ship_components.json not found")
 		return
-	
-	# Fallback to default data if campaign manager not available
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("ShipManager: Failed to parse ship_components.json")
+		return
+	if json.data is Dictionary:
+		_components_db = json.data.get("components", [])
+		_components_rules = json.data.get("rules", {})
+
+func _load_ship_data() -> void:
+	## Load ship data from GameStateManager
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("get_ship"):
+		ship_data = gsm.get_ship()
+		if not ship_data.is_empty():
+			return
+
+	# Fallback to default data
 	ship_data = {
 		"name": "Wandering Star",
 		"type": "Worn Freighter",
-		"hull_points": 25,
+		"hull_points": 30,
 		"max_hull": 30,
-		"debt": 15,
+		"debt": 25,
 		"fuel": "full",
-		"traits": ["Fuel Efficient", "Worn"],
-		"upgrades": ["Emergency Drives", "Enhanced Medical Bay"]
+		"traits": [],
+		"components": []
 	}
 
 func _refresh_display() -> void:
@@ -76,21 +94,22 @@ func _refresh_traits() -> void:
 		ship_traits.add_child(trait_label)
 
 func _refresh_upgrades() -> void:
-	## Refresh ship upgrades display
-	# Clear existing upgrades
+	## Refresh ship components display (Core Rules pp.60-62)
 	for child in upgrades_list.get_children():
 		child.queue_free()
 
-	# Add current upgrades
-	for upgrade in ship_data.get("upgrades", []):
-		var upgrade_panel = _create_upgrade_panel(upgrade, true)
-		upgrades_list.add_child(upgrade_panel)
+	# Show installed components
+	for comp_id in ship_data.get("components", []):
+		var comp_name: String = _get_component_name(comp_id)
+		var panel = _create_upgrade_panel(comp_name, true)
+		upgrades_list.add_child(panel)
 
-	# Add available upgrades
-	var available_upgrades = _get_available_upgrades()
-	for upgrade in available_upgrades:
-		var upgrade_panel = _create_upgrade_panel(upgrade, false)
-		upgrades_list.add_child(upgrade_panel)
+	# Show available components for purchase
+	var available: Array[Dictionary] = _get_available_components()
+	for comp in available:
+		var panel = _create_upgrade_panel(
+			comp.get("name", ""), false)
+		upgrades_list.add_child(panel)
 
 func _create_upgrade_panel(upgrade_name: String, owned: bool) -> PanelContainer:
 	## Create a panel for ship upgrade
@@ -111,57 +130,78 @@ func _create_upgrade_panel(upgrade_name: String, owned: bool) -> PanelContainer:
 		hbox.add_child(owned_label)
 	else:
 		var cost_label: Label = Label.new()
-		cost_label.text = str(_get_upgrade_cost(upgrade_name)) + " credits"
+		var cost: int = _get_component_cost(upgrade_name)
+		cost_label.text = str(cost) + " cr"
 		hbox.add_child(cost_label)
 
 		var buy_button: Button = Button.new()
 		buy_button.text = "Purchase"
-		buy_button.pressed.connect(_on_upgrade_purchased.bind(upgrade_name))
+		buy_button.pressed.connect(
+			_on_upgrade_purchased.bind(upgrade_name))
 		hbox.add_child(buy_button)
 
 	return panel
 
-func _get_available_upgrades() -> Array[String]:
-	## Get list of available ship upgrades
-	var all_upgrades = [
-		"Emergency Drives", "Enhanced Medical Bay", "Armored Hull",
-		"Fuel Efficient Engines", "Expanded Cargo Bay", "Advanced Sensors",
-		"Defensive Turrets", "Stealth Systems", "Navigation Computer"
-	]
-
-	var current_upgrades = ship_data.get("upgrades", [])
-	var available: Array[String] = []
-
-	for upgrade in all_upgrades:
-		if upgrade not in current_upgrades:
-			available.append(upgrade)
-
+func _get_available_components() -> Array[Dictionary]:
+	## Get components not yet installed (Core Rules pp.60-62)
+	var installed: Array = ship_data.get("components", [])
+	var available: Array[Dictionary] = []
+	for comp in _components_db:
+		if comp is Dictionary:
+			var comp_id: String = comp.get("id", "")
+			if comp_id not in installed:
+				available.append(comp)
 	return available
 
-func _get_upgrade_cost(upgrade_name: String) -> int:
-	## Get the cost of a specific upgrade
-	var upgrade_costs = {
-		"Emergency Drives": 8,
-		"Enhanced Medical Bay": 6,
-		"Armored Hull": 10,
-		"Fuel Efficient Engines": 7,
-		"Expanded Cargo Bay": 5,
-		"Advanced Sensors": 9,
-		"Defensive Turrets": 12,
-		"Stealth Systems": 15,
-		"Navigation Computer": 4
-	}
-	return upgrade_costs.get(upgrade_name, 5)
+func _get_component_name(comp_id: String) -> String:
+	for comp in _components_db:
+		if comp is Dictionary and comp.get("id", "") == comp_id:
+			return comp.get("name", comp_id)
+	return comp_id.capitalize().replace("_", " ")
+
+func _get_component_cost(comp_name: String) -> int:
+	## Get cost from JSON, apply Standard Issue discount
+	var base_cost: int = 10
+	for comp in _components_db:
+		if comp is Dictionary and comp.get("name", "") == comp_name:
+			base_cost = int(comp.get("cost", 10))
+			break
+	# Standard Issue trait: -1cr (Core Rules p.30)
+	var discount: int = _components_rules.get(
+		"standard_issue_trait_discount", 1)
+	var traits: Array = ship_data.get("traits", [])
+	for t in traits:
+		if "standard issue" in str(t).to_lower():
+			base_cost = maxi(0, base_cost - discount)
+			break
+	return base_cost
 
 func _calculate_travel_cost() -> int:
-	## Calculate cost of travel based on ship traits
-	var base_cost: int = 1
+	## Travel cost with trait + component modifiers (Core Rules pp.30, 61-62)
+	var base_cost: int = 5
+	var traits: Array = ship_data.get("traits", [])
+	var components: Array = ship_data.get("components", [])
 
-	# Check for fuel efficient trait
-	if "Fuel Efficient" in ship_data.get("traits", []):
-		return 0 # Free travel
+	# Ship trait modifiers
+	for t in traits:
+		var tl: String = str(t).to_lower()
+		if "fuel" in tl and "efficient" in tl:
+			base_cost -= 1
+		elif "fuel" in tl and "hog" in tl:
+			base_cost += 1
 
-	return base_cost
+	# +1 per 3 components installed (Core Rules p.61)
+	if components.size() > 0:
+		@warning_ignore("integer_division")
+		base_cost += components.size() / 3
+
+	# Military Fuel Converters: -2cr (Core Rules p.62)
+	for c_id in components:
+		if "fuel_converter" in str(c_id).to_lower():
+			base_cost -= 2
+			break
+
+	return maxi(0, base_cost)
 
 func _calculate_repair_cost() -> int:
 	## Calculate cost to fully repair the ship
@@ -226,20 +266,25 @@ func _on_pay_debt_pressed() -> void:
 		_refresh_display()
 		debt_paid.emit(debt)
 
-func _on_upgrade_purchased(upgrade_name: String) -> void:
-	## Handle upgrade purchase
-	var cost = _get_upgrade_cost(upgrade_name)
+func _on_upgrade_purchased(comp_name: String) -> void:
+	## Handle component purchase (Core Rules p.60)
+	var cost: int = _get_component_cost(comp_name)
+	var comp_id: String = ""
+	for comp in _components_db:
+		if comp is Dictionary and comp.get("name", "") == comp_name:
+			comp_id = comp.get("id", "")
+			break
 
-	# Check if player has enough credits
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state and game_state.has_method("get_credits"):
-		var current_credits = game_state.get_credits()
+		var current_credits: int = game_state.get_credits()
 		if current_credits < cost:
 			return
 		game_state.remove_credits(cost)
-	else:
-		pass
-	
-	ship_data.get("upgrades", []).append(upgrade_name)
+
+	if not ship_data.has("components"):
+		ship_data["components"] = []
+	ship_data["components"].append(comp_id)
 	_refresh_display()
-	upgrade_purchased.emit({"name": upgrade_name, "cost": cost})
+	upgrade_purchased.emit(
+		{"name": comp_name, "id": comp_id, "cost": cost})

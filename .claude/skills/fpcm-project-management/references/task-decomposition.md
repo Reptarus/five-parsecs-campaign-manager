@@ -89,3 +89,14 @@ Order:
 - Steps that consume another step's output MUST run sequentially
 - QA is always sequential (final)
 - Bug Hunt review is sequential after shared file changes
+
+## Sprint Completion Rule (MANDATORY)
+
+Every task listed in a sprint plan MUST be completed within that sprint. No exceptions.
+
+- **No deferring**: "Deferred to next sprint" is not a valid outcome. Items deferred get lost permanently.
+- **If blocked**: Report the blocker immediately with a specific reason. Do not silently skip.
+- **If too large**: Split into smaller deliverable pieces and complete ALL pieces in the current sprint.
+- **If truly impossible**: Get explicit user approval to cut the item. Document why.
+- **Valid task statuses**: Done, Blocked (with specific reason), Cut (with user approval)
+- **Invalid task statuses**: Deferred, Future Work, Backlog, Later, TBD

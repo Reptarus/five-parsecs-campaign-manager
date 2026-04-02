@@ -121,6 +121,7 @@ Both must be called before battle can proceed.
 - Never modify TacticalBattleUI without considering Bug Hunt mode
 - Never hardcode combat values — use BattleResolver constants
 - Never instantiate BattleResolver as a Node (it's RefCounted, use static methods)
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Search & Verification Protocol
 

@@ -119,6 +119,7 @@ Parent calls down to child methods. Child signals up to parent. Never call paren
 - Never forget pivot_offset for scale animations
 - Never leave looping animations running after panel is hidden
 - Never bypass SceneRouter for navigation
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Search & Verification Protocol
 

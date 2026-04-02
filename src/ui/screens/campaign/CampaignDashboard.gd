@@ -415,9 +415,16 @@ func _build_ship_section(campaign) -> void:
 		_create_info_row("Ship", "%s (%s)" % [ship_name, ship_type])
 	)
 
-	# Hull bar
-	var hull: int = sd.get("hull", 0)
-	var hull_max: int = sd.get("hull_max", hull)
+	# Ship traits (Core Rules p.30)
+	var ship_traits: Array = sd.get("traits", [])
+	if not ship_traits.is_empty():
+		center_vbox.add_child(
+			_create_info_row("Traits", ", ".join(ship_traits))
+		)
+
+	# Hull bar (handle both key formats)
+	var hull: int = sd.get("hull_points", sd.get("hull", 0))
+	var hull_max: int = sd.get("max_hull", sd.get("hull_max", hull))
 	if hull_max > 0:
 		var hull_row := VBoxContainer.new()
 		hull_row.add_theme_constant_override(
@@ -476,6 +483,26 @@ func _build_ship_section(campaign) -> void:
 				"Weapons", ", ".join(ship_weapons)
 			)
 		)
+
+	# Crew flavor (Core Rules p.32)
+	var flavor: Dictionary = {}
+	if "crew_flavor" in campaign:
+		var cf = campaign.crew_flavor
+		if cf is Dictionary:
+			flavor = cf
+	elif "progress_data" in campaign:
+		var pd = campaign.progress_data
+		if pd is Dictionary:
+			flavor = pd.get("crew_flavor", {})
+	var met: String = flavor.get("we_met_through", "")
+	var char_as: String = flavor.get(
+		"best_characterized_as", "")
+	if not met.is_empty():
+		center_vbox.add_child(
+			_create_info_row("Met through", met))
+	if not char_as.is_empty():
+		center_vbox.add_child(
+			_create_info_row("Known as", char_as))
 
 func _build_equipment_section(campaign) -> void:
 	var eq_sep := HSeparator.new()

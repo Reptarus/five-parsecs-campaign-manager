@@ -358,6 +358,13 @@ const MyPanelClass = preload("res://src/ui/components/MyPanel.gd")
 var panel = MyPanelClass.new()
 ```
 
+### No Deferring Rule (MANDATORY)
+If a task is listed in a sprint or work plan, it MUST be completed in that sprint. No deferring to "later sprints," "future work," or "backlog." Items marked deferred get lost and never return.
+- If a task cannot be completed, explain WHY immediately — do not silently skip it
+- If scope is too large, split it into smaller deliverable pieces and complete all pieces NOW
+- "Deferred" is not a valid task status. Valid statuses: Done, Blocked (with reason), Cut (with user approval)
+- The user must explicitly approve any item being cut from a sprint
+
 ### Signal Architecture
 - Parent calls down to child (direct method calls)
 - Child signals up to parent (`signal_name.emit()`)

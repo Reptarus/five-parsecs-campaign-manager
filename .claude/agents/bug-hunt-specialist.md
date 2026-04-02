@@ -115,6 +115,7 @@ Prevents double-navigation from Abort + Complete buttons in battle. Check and cl
 - **Never invent Bug Hunt enemy stats, mission rewards, or spawn rules** — source from `data/RulesReference/` and `data/bug_hunt/` JSON files
 - Never skip the enlistment roll for character transfer (2D6 + Combat >= 8)
 - Never leave _bug_hunt_returning flag set after navigation completes
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Search & Verification Protocol
 

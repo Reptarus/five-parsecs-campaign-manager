@@ -334,16 +334,9 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 		return  # No repairs needed
 
 	var damage: int = max_hull - hull
-	var traits: Array = ship.get("traits", [])
 
-	# Free repair: +1 hull per turn (automatic)
+	# Core Rules p.59: 1 free hull point repair per turn
 	var free_repair: int = 1
-
-	# Mechanic Training trait: +1 additional free hull point
-	for t in traits:
-		if "mechanic" in str(t).to_lower():
-			free_repair += 1
-			break
 
 	var actual_free: int = min(free_repair, damage)
 	if actual_free > 0 and game_state_manager.has_method("repair_hull"):

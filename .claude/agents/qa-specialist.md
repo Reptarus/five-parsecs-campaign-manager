@@ -106,6 +106,7 @@ After code changes: compile check → affected system tests → integration test
 - Never assume `--headless --quit` validates everything (only startup scripts)
 - Never trust explore agent claims without reading actual files
 - Never test with `"pool"` key for equipment data
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Search & Verification Protocol
 

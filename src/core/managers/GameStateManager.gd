@@ -334,6 +334,63 @@ func get_ship() -> Dictionary:
 		return c.get_ship()
 	return {}
 
+func get_ship_data() -> Dictionary:
+	## Alias for get_ship() — needed by TravelPhase and WorldPhase
+	return get_ship()
+
+func apply_ship_damage(amount: int) -> int:
+	## Apply hull damage with trait modifiers (Core Rules p.30)
+	## Returns actual damage dealt after trait effects
+	var c = _get_campaign()
+	if not c:
+		return amount
+	var ship: Dictionary = c.ship_data
+	var traits: Array = ship.get("traits", [])
+	var final_amount: int = amount
+
+	# Armored: reduce all hull damage by 1 (Core Rules p.30)
+	for t in traits:
+		if str(t).to_lower() == "armored":
+			final_amount = maxi(0, final_amount - 1)
+			break
+
+	# Dodgy Drive: 2D6 <= damage => +2 extra (Core Rules p.30)
+	for t in traits:
+		if "dodgy" in str(t).to_lower():
+			var dodgy_roll: int = randi_range(1, 6) + randi_range(1, 6)
+			if dodgy_roll <= final_amount:
+				final_amount += 2
+			break
+
+	var current_hull: int = ship.get("hull_points", 0)
+	ship["hull_points"] = maxi(0, current_hull - final_amount)
+	return final_amount
+
+func repair_hull(amount: int) -> void:
+	## Repair hull points (Core Rules p.59: 1 free/turn + paid)
+	var c = _get_campaign()
+	if not c:
+		return
+	var ship: Dictionary = c.ship_data
+	var current: int = ship.get("hull_points", 0)
+	var max_hull: int = ship.get("max_hull", current)
+	ship["hull_points"] = mini(max_hull, current + amount)
+
+func get_emergency_takeoff_damage() -> int:
+	## Emergency takeoff: 3D6 hull damage (Core Rules p.60)
+	## Emergency Drives trait: reduce by 3 (Core Rules p.30)
+	var base_damage: int = (randi_range(1, 6)
+		+ randi_range(1, 6) + randi_range(1, 6))
+	var c = _get_campaign()
+	if c:
+		var traits: Array = c.ship_data.get("traits", [])
+		for t in traits:
+			var tl: String = str(t).to_lower()
+			if "emergency" in tl and "drive" in tl:
+				base_damage = maxi(0, base_damage - 3)
+				break
+	return base_damage
+
 func get_ship_debt() -> int:
 	var c = _get_campaign()
 	if c:

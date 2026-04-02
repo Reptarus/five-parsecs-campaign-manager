@@ -75,7 +75,7 @@ Comprehensive audit of hardcoded game data completed. Key fixes verified:
 - **BattlePhase.gd**: Fabricated payment formula removed (was 100+difficulty*25+50). PostBattlePaymentProcessor correctly does 1D6 per Core Rules p.120.
 - **BattleEventsSystem.gd**: Now loads 24 battle events from `data/event_tables.json` (was fully hardcoded, JSON ignored).
 - **Verified already correct**: PatronJobGenerator (cascades through 2 JSON files), CharacterCreator (loads from character_creation_bonuses.json), BattleCalculations constants (properly annotated).
-- **Deferred**: CharacterNameGenerator (cosmetic, no gameplay impact).
+- **Cut (cosmetic)**: CharacterNameGenerator — no gameplay impact, cosmetic only.
 - **Previous session fixes also verified**: Starting credits (18 files), stun mechanic (trait-based), XP multipliers removed, Dazzle Grenade Heavy trait, ship hull values, Krag/Skulker species wiring.
 
 ---
@@ -145,10 +145,10 @@ Comprehensive audit of hardcoded game data completed. Key fixes verified:
 
 | Item | Sev | Notes |
 |------|-----|-------|
-| WEALTH motivation | Deferred | Needs resource bonus system architecture |
-| 49% character bonus coverage | Deferred | Most gaps need resource bonuses |
-| Equipment table names | Deferred | User decision: generic vs Core Rules |
-| Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
+| WEALTH motivation | Open — blocked: needs resource bonus system architecture | P2 |
+| 49% character bonus coverage | Open — blocked: most gaps need resource bonuses | P2 |
+| Equipment table names | Cut — resolved: all weapons rewritten from Core Rules p.50 | N/A |
+| Victory condition metric tracking | Open — needs counters for enemies/credits/worlds | P3 |
 
 ### MCP Testing Gotchas (updated Phase 31)
 
@@ -196,7 +196,7 @@ Comprehensive audit of hardcoded game data completed. Key fixes verified:
 - Equipment save/reload: 9-stage chain verified E2E
 - Difficulty modifiers: 18/18 Core Rules, 40+ methods, 11 call sites, 100% compliance
 
-### Current Status: 0 confirmed bugs, 0 UX issues, 4 deferred items
+### Current Status: 0 confirmed bugs, 0 UX issues, 3 open items (2 blocked, 1 feature)
 
 ---
 

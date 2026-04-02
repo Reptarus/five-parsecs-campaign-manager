@@ -130,6 +130,7 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 - Never assume a task is single-domain without checking
 - Never route downstream work based on unverified Explore agent claims
 - Never delegate search-heavy tasks to Haiku-model agents
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Search & Verification Protocol
 

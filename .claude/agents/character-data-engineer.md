@@ -128,6 +128,7 @@ All game data MUST be verified against `data/RulesReference/` files — these ar
 - Never nest stats under a sub-object on Character
 - Never use `preload()` in autoloaded scripts
 - Never create character dictionaries without both key alias sets
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Output Format
 

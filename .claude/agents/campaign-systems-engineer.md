@@ -116,6 +116,7 @@ Panels initialized at `_ready()` with stale data. Must call `_refresh_*()` from 
 - Never hardcode phase transitions — always go through CampaignPhaseManager
 - Never assume `_ready()` data is current — always refresh on step entry
 - Never modify CampaignCreationUI beyond signal wiring — keep it a thin shell
+- **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Output Format
 

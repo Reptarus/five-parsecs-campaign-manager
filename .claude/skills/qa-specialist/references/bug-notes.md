@@ -36,7 +36,7 @@ Canonical bug tracker for QA reference. Updated after each fix sprint.
 | ~~BUG-038~~ | **FIXED** | Soulless now +1 Toughness only (removed extra +1 Reactions). Matched Core Rules p.50. |
 | ~~Character bonus coverage~~ | **FIXED** | KNOWLEDGE +1 savvy added, game-specific CharacterCreator synced (Mar 21) |
 | ~~Equipment table names~~ | **FIXED** | All weapon data rewritten from Core Rules p.50 (weapons.json + equipment_database.json). Invented weapons removed. |
-| Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
+| Victory condition metric tracking | Open — needs counters for enemies/credits/worlds | Feature addition |
 
 ## MCP QA Sprint Results (Mar 21, 2026)
 
