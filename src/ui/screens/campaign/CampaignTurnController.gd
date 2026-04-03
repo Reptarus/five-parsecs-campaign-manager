@@ -536,7 +536,18 @@ func _show_phase_ui(phase: int) -> void:
 			if world_phase_controller:
 				world_phase_controller.show()
 				current_ui_phase = world_phase_controller
-				_trigger_world_phase_backend_integration()
+				# Initialize world phase components with campaign data
+				# (was _trigger_world_phase_backend_integration which never existed)
+				var gs_wp = get_node_or_null("/root/GameState")
+				if gs_wp and gs_wp.current_campaign:
+					var c_wp = gs_wp.current_campaign
+					var ship_d: Dictionary = c_wp.get("ship_data") if "ship_data" in c_wp else {}
+					var crew_d: Array = c_wp.crew_data.get("members", []) if "crew_data" in c_wp else []
+					var world_d: Dictionary = c_wp.get("world_data") if "world_data" in c_wp else {}
+					world_phase_controller.initialize_world_phase(
+						ship_d if ship_d is Dictionary else {},
+						crew_d,
+						world_d if world_d is Dictionary else {})
 
 		GlobalEnums.FiveParsecsCampaignPhase.PRE_MISSION:
 			if pre_battle_ui:
