@@ -13,6 +13,11 @@ const AdvancementSystemClass = preload("res://src/core/character/advancement/Adv
 const NarrativeInjuryDialog = preload("res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
 const PurchaseItemsComponent = preload("res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
 
+# Design system spacing (UIColors canonical source)
+const SPACING_SM := UIColors.SPACING_SM
+const SPACING_MD := UIColors.SPACING_MD
+const SPACING_LG := UIColors.SPACING_LG
+
 # Bot upgrade system instance
 var _advancement_system: RefCounted = null
 # Cached for _exit_tree() signal cleanup
@@ -66,6 +71,7 @@ func _ready() -> void:
 	_show_current_step()
 	_setup_postbattle_icons()
 	_style_step_content_panel()
+	_style_side_panels()
 
 
 func _initialize_advancement_system() -> void:
@@ -422,7 +428,7 @@ func _refresh_steps_list() -> void:
 			var header: Label = Label.new()
 			header.text = STEP_GROUP_HEADERS[i]
 			header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			header.add_theme_color_override("font_color", Color("#808080"))
+			header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 			header.add_theme_font_size_override("font_size", 11)
 			steps_container.add_child(header)
 
@@ -447,7 +453,7 @@ func _create_step_panel(step_index: int) -> Control:
 		label.modulate = UIColors.COLOR_AMBER # Current
 	else:
 		icon = "○ "
-		label.modulate = Color("#808080") # Future (gray)
+		label.modulate = UIColors.COLOR_TEXT_MUTED # Future (gray)
 
 	label.text = icon + step.name
 
@@ -1245,8 +1251,8 @@ func _style_step_content_panel() -> void:
 		return
 
 	var stylebox: StyleBoxFlat = StyleBoxFlat.new()
-	stylebox.bg_color = Color("#252542")  # COLOR_ELEVATED
-	stylebox.border_color = Color("#3A3A5C")  # COLOR_BORDER
+	stylebox.bg_color = UIColors.COLOR_ELEVATED
+	stylebox.border_color = UIColors.COLOR_BORDER
 	stylebox.border_width_left = 2
 	stylebox.border_width_top = 2
 	stylebox.border_width_right = 2
@@ -1255,11 +1261,43 @@ func _style_step_content_panel() -> void:
 	stylebox.corner_radius_top_right = 8
 	stylebox.corner_radius_bottom_left = 8
 	stylebox.corner_radius_bottom_right = 8
-	stylebox.content_margin_left = 16  # SPACING_MD
-	stylebox.content_margin_top = 16
-	stylebox.content_margin_right = 16
-	stylebox.content_margin_bottom = 16
+	stylebox.content_margin_left = float(SPACING_MD)
+	stylebox.content_margin_top = float(SPACING_MD)
+	stylebox.content_margin_right = float(SPACING_MD)
+	stylebox.content_margin_bottom = float(SPACING_MD)
 	panel_container.add_theme_stylebox_override("panel", stylebox)
+
+func _style_side_panels() -> void:
+	## Apply Deep Space card styling to StepsList and Results panels.
+	## These PanelContainers rely on the bare theme default with no
+	## padding — add glass morphism + content_margin for breathing room.
+	var side_panels: Array[PanelContainer] = []
+	var steps_panel: PanelContainer = steps_container.get_parent().get_parent() as PanelContainer
+	if steps_panel:
+		side_panels.append(steps_panel)
+	var results_panel: PanelContainer = results_container.get_parent().get_parent() as PanelContainer
+	if results_panel:
+		side_panels.append(results_panel)
+
+	for panel in side_panels:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(
+			UIColors.COLOR_SECONDARY.r,
+			UIColors.COLOR_SECONDARY.g,
+			UIColors.COLOR_SECONDARY.b, 0.8
+		)
+		style.border_color = Color(
+			UIColors.COLOR_BORDER.r,
+			UIColors.COLOR_BORDER.g,
+			UIColors.COLOR_BORDER.b, 0.5
+		)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(8)
+		style.content_margin_left = float(SPACING_SM)
+		style.content_margin_right = float(SPACING_SM)
+		style.content_margin_top = float(SPACING_SM)
+		style.content_margin_bottom = float(SPACING_SM)
+		panel.add_theme_stylebox_override("panel", style)
 
 # Enhanced roll interpretation functions using Five Parsecs tables
 

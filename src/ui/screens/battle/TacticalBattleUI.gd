@@ -19,6 +19,13 @@ const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingB
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 
+# Design system spacing (UIColors canonical source)
+const SPACING_XS := UIColors.SPACING_XS
+const SPACING_SM := UIColors.SPACING_SM
+const SPACING_MD := UIColors.SPACING_MD
+const SPACING_LG := UIColors.SPACING_LG
+const SPACING_XL := UIColors.SPACING_XL
+
 ## Lazy-load registry: scenes/scripts loaded on first access per tier (Phase 33 optimization)
 const _SCENE_REGISTRY: Dictionary = {
 	# Core (always needed)
@@ -556,7 +563,7 @@ func _build_quick_dice_bar() -> void:
 	# Quick Dice Bar
 	var dice_bar := HBoxContainer.new()
 	dice_bar.name = "QuickDiceBar"
-	dice_bar.add_theme_constant_override("separation", 4)
+	dice_bar.add_theme_constant_override("separation", SPACING_SM)
 	dice_bar.custom_minimum_size = Vector2(0, 40)
 	right_vbox.add_child(dice_bar)
 
@@ -578,10 +585,10 @@ func _build_quick_dice_bar() -> void:
 	btn_style.corner_radius_top_right = 4
 	btn_style.corner_radius_bottom_right = 4
 	btn_style.corner_radius_bottom_left = 4
-	btn_style.content_margin_left = 8.0
-	btn_style.content_margin_right = 8.0
-	btn_style.content_margin_top = 4.0
-	btn_style.content_margin_bottom = 4.0
+	btn_style.content_margin_left = float(SPACING_SM)
+	btn_style.content_margin_right = float(SPACING_SM)
+	btn_style.content_margin_top = float(SPACING_XS)
+	btn_style.content_margin_bottom = float(SPACING_XS)
 
 	for dice_config: Array in [["1d6", 1, 6], ["2d6", 2, 6], ["d100", 1, 100]]:
 		var btn := Button.new()

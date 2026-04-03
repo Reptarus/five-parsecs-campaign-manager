@@ -125,7 +125,7 @@ func update_summary_display() -> void:
 	var stats_card := PanelContainer.new()
 	_style_sub_panel(stats_card)
 	var stats_vbox := VBoxContainer.new()
-	stats_vbox.add_theme_constant_override("separation", 4)
+	stats_vbox.add_theme_constant_override("separation", UIColors.SPACING_XS)
 
 	var stats_title := Label.new()
 	stats_title.text = "CAMPAIGN STATS"

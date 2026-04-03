@@ -13,6 +13,11 @@ const COLOR_TEXT_SECONDARY := Color(0.502, 0.502, 0.502, 1.0)
 const COLOR_THEME_TEXT := Color(0.961, 0.62, 0.043, 1.0)
 const COLOR_NOTABLE := Color(0.063, 0.725, 0.506, 1.0)
 
+# Design system spacing (UIColors canonical source)
+const SPACING_XS := UIColors.SPACING_XS
+const SPACING_SM := UIColors.SPACING_SM
+const SPACING_MD := UIColors.SPACING_MD
+
 # Internal state
 var _is_collapsed: bool = false
 var _current_theme_name: String = ""
@@ -44,12 +49,16 @@ func _build_ui() -> void:
 	panel_style.corner_radius_top_right = 12
 	panel_style.corner_radius_bottom_right = 12
 	panel_style.corner_radius_bottom_left = 12
+	panel_style.content_margin_left = float(SPACING_SM)
+	panel_style.content_margin_right = float(SPACING_SM)
+	panel_style.content_margin_top = float(SPACING_SM)
+	panel_style.content_margin_bottom = float(SPACING_SM)
 	add_theme_stylebox_override("panel", panel_style)
 
 	_main_vbox = VBoxContainer.new()
 	_main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_main_vbox.add_theme_constant_override("separation", 4)
+	_main_vbox.add_theme_constant_override("separation", SPACING_SM)
 	add_child(_main_vbox)
 
 	# Header bar
@@ -73,13 +82,13 @@ func _build_ui() -> void:
 func _build_header_bar() -> void:
 	_header_bar = HBoxContainer.new()
 	_header_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_header_bar.add_theme_constant_override("separation", 12)
+	_header_bar.add_theme_constant_override("separation", SPACING_SM)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_bottom", 2)
+	margin.add_theme_constant_override("margin_left", SPACING_XS)
+	margin.add_theme_constant_override("margin_right", SPACING_XS)
+	margin.add_theme_constant_override("margin_top", SPACING_XS)
+	margin.add_theme_constant_override("margin_bottom", SPACING_XS)
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_child(_header_bar)
 	_main_vbox.add_child(margin)

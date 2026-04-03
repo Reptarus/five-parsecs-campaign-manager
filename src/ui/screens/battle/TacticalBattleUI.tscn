@@ -14,6 +14,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_right = 12.0
+content_margin_top = 8.0
+content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2"]
 bg_color = Color(0.145, 0.145, 0.259, 0.9)
@@ -26,6 +30,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_right = 12.0
+content_margin_top = 8.0
+content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
 bg_color = Color(0.145, 0.145, 0.259, 0.9)
@@ -38,6 +46,10 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+content_margin_left = 8.0
+content_margin_right = 8.0
+content_margin_top = 8.0
+content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4"]
 bg_color = Color(0.176, 0.353, 0.482, 1)
@@ -50,6 +62,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_right = 16.0
+content_margin_top = 8.0
+content_margin_bottom = 8.0
 
 [node name="TacticalBattleUI" type="Control" unique_id=1707005797]
 layout_mode = 3
@@ -67,18 +83,19 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
 
 [node name="MainContainer" type="VBoxContainer" parent="EdgeMargin" unique_id=1688165942]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="TopBar" type="HBoxContainer" parent="EdgeMargin/MainContainer" unique_id=222416739]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="EdgeMargin/MainContainer/TopBar" unique_id=940067805]
 unique_name_in_owner = true
@@ -97,7 +114,7 @@ text = "[LOG ONLY]"
 [node name="PhaseBreadcrumb" type="HBoxContainer" parent="EdgeMargin/MainContainer/TopBar" unique_id=1716940600]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="Spacer" type="Control" parent="EdgeMargin/MainContainer/TopBar" unique_id=975687842]
 layout_mode = 2
@@ -128,12 +145,12 @@ text = "Auto Resolve"
 [node name="ContentArea" type="HBoxContainer" parent="EdgeMargin/MainContainer" unique_id=74507662]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 12
 
 [node name="LeftPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea" unique_id=1639494840]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
@@ -155,7 +172,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 3.0
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="BattlefieldGridPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea/CenterPanel" unique_id=1629979660]
 unique_name_in_owner = true
@@ -198,7 +215,7 @@ scroll_following = true
 [node name="RightPanel" type="PanelContainer" parent="EdgeMargin/MainContainer/ContentArea" unique_id=52812964]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
@@ -258,7 +275,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_3")
 
 [node name="BottomContent" type="VBoxContainer" parent="EdgeMargin/MainContainer/BottomBar" unique_id=644975370]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="PhaseHUD" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent" unique_id=22526720]
 unique_name_in_owner = true
@@ -276,14 +293,14 @@ horizontal_alignment = 1
 
 [node name="ActionBar" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent" unique_id=828223857]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="PhaseButtonsContainer" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=943699151]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 alignment = 1
 
 [node name="EndTurnButton" type="Button" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=1793506733]
