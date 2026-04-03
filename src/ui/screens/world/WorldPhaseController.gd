@@ -64,7 +64,7 @@ enum WorldPhaseStep {
 
 var current_step: WorldPhaseStep = WorldPhaseStep.UPKEEP
 var step_names: Array[String] = [
-	"Upkeep", "Crew Tasks", "Job Offers", "Assign Equipment",
+	"Travel & Upkeep", "Crew Tasks", "Job Offers", "Assign Equipment",
 	"Resolve Rumors", "Mission Prep"
 ]
 var step_completed: Dictionary = {} # WorldPhaseStep -> bool
@@ -635,10 +635,16 @@ func _can_advance_to_next_step() -> bool:
 	var result = false
 	match current_step:
 		WorldPhaseStep.UPKEEP:
-			if upkeep_component and upkeep_component.has_method("is_upkeep_completed"):
-				result = upkeep_component.is_upkeep_completed()
+			var travel_ok := true
+			var upkeep_ok := false
+			if upkeep_component:
+				if upkeep_component.has_method("is_travel_completed"):
+					travel_ok = upkeep_component.is_travel_completed()
+				if upkeep_component.has_method("is_upkeep_completed"):
+					upkeep_ok = upkeep_component.is_upkeep_completed()
 			else:
-				result = step_completed.get(WorldPhaseStep.UPKEEP, false)
+				upkeep_ok = step_completed.get(WorldPhaseStep.UPKEEP, false)
+			result = travel_ok and upkeep_ok
 		WorldPhaseStep.CREW_TASKS:
 			if crew_task_component and crew_task_component.has_method("is_tasks_completed"):
 				result = crew_task_component.is_tasks_completed()

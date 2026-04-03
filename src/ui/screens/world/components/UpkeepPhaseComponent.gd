@@ -30,6 +30,20 @@ var crew_data: Array = []
 var automation_enabled: bool = false
 var upkeep_completed: bool = false
 
+# Travel state (folded into Step 1 — Core Rules p.69)
+var travel_decision_made: bool = false
+var chose_to_travel: bool = false
+var has_ship: bool = true
+const SHIP_TRAVEL_COST := 5
+const COMMERCIAL_TRAVEL_COST_PER_CREW := 1
+
+# Travel UI references (built in code)
+var _travel_panel: PanelContainer
+var _stay_button: Button
+var _travel_button: Button
+var _travel_event_container: VBoxContainer
+var _travel_status_label: Label
+
 # Five Parsecs upkeep constants (Core Rules p.76)
 const BASE_CREW_UPKEEP_PER_MEMBER: int = 1  # 1 credit per crew member
 const SHIP_MAINTENANCE_BASE_COST: int = 1   # 1 credit base maintenance
@@ -54,12 +68,15 @@ func _connect_ui_signals() -> void:
 func _setup_initial_state() -> void:
 	## Initialize the component state
 	upkeep_completed = false
+	travel_decision_made = false
+	chose_to_travel = false
 	current_upkeep_data = {
 		"crew_upkeep": 0,
 		"ship_maintenance": 0,
 		"total_cost": 0,
 		"can_afford": false
 	}
+	_build_travel_section()
 	_update_ui_display()
 
 ## Public API: Initialize upkeep phase with campaign data
@@ -290,6 +307,355 @@ func _on_automation_toggled(data: Dictionary) -> void:
 	if auto_calculate_button:
 		auto_calculate_button.visible = automation_enabled
 
+## ============================================================================
+## TRAVEL SECTION (Core Rules p.69 — folded into Step 1)
+## ============================================================================
+
+func _build_travel_section() -> void:
+	## Build the travel decision UI and insert above upkeep content
+	if _travel_panel and is_instance_valid(_travel_panel):
+		_travel_panel.queue_free()
+		await get_tree().process_frame
+
+	# --- Panel container with same styling as upkeep header ---
+	_travel_panel = PanelContainer.new()
+	_travel_panel.name = "TravelPanel"
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.067, 0.094, 0.153, 0.85)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = Color(0.216, 0.255, 0.318, 0.5)
+	style.set_corner_radius_all(12)
+	style.content_margin_left = 20.0
+	style.content_margin_top = 20.0
+	style.content_margin_right = 20.0
+	style.content_margin_bottom = 20.0
+	_travel_panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+
+	# Title
+	var title := Label.new()
+	title.text = "Travel Decision"
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override(
+		"font_color", Color(0.953, 0.957, 0.965, 1))
+	vbox.add_child(title)
+
+	# Description
+	var desc := Label.new()
+	desc.text = "Choose whether to stay or travel to a new world (Core Rules p.69)."
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_color_override(
+		"font_color", Color(0.624, 0.639, 0.686, 1))
+	vbox.add_child(desc)
+
+	# Current world
+	var world_name := _get_current_world_name_for_travel()
+	var world_label := Label.new()
+	world_label.text = "Current Location: %s" % world_name
+	world_label.add_theme_font_size_override("font_size", 16)
+	world_label.add_theme_color_override(
+		"font_color", Color(0.31, 0.765, 0.969, 1))
+	vbox.add_child(world_label)
+
+	# Button row
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 16)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	# Stay button
+	_stay_button = Button.new()
+	_stay_button.text = "Stay in Current Location"
+	_stay_button.custom_minimum_size = Vector2(220, 48)
+	var stay_style := StyleBoxFlat.new()
+	stay_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
+	stay_style.border_width_left = 1
+	stay_style.border_width_top = 1
+	stay_style.border_width_right = 1
+	stay_style.border_width_bottom = 1
+	stay_style.border_color = Color(0.216, 0.255, 0.318, 1)
+	stay_style.set_corner_radius_all(8)
+	stay_style.content_margin_left = 16.0
+	stay_style.content_margin_top = 8.0
+	stay_style.content_margin_right = 16.0
+	stay_style.content_margin_bottom = 8.0
+	_stay_button.add_theme_stylebox_override("normal", stay_style)
+	_stay_button.add_theme_color_override(
+		"font_color", Color(0.953, 0.957, 0.965, 1))
+	_stay_button.pressed.connect(_on_stay_pressed)
+	btn_row.add_child(_stay_button)
+
+	# Travel button
+	_travel_button = Button.new()
+	has_ship = _check_has_ship_for_travel()
+	var credits := GameStateManager.get_credits()
+	var crew_size := _get_crew_size_for_travel()
+	_update_travel_button_text(credits, crew_size)
+	_travel_button.custom_minimum_size = Vector2(260, 48)
+	var travel_style := StyleBoxFlat.new()
+	travel_style.bg_color = Color(0.231, 0.51, 0.965, 1)
+	travel_style.set_corner_radius_all(8)
+	travel_style.content_margin_left = 16.0
+	travel_style.content_margin_top = 8.0
+	travel_style.content_margin_right = 16.0
+	travel_style.content_margin_bottom = 8.0
+	_travel_button.add_theme_stylebox_override("normal", travel_style)
+	_travel_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	_travel_button.pressed.connect(_on_travel_pressed)
+	btn_row.add_child(_travel_button)
+
+	vbox.add_child(btn_row)
+
+	# Status label (shown after decision)
+	_travel_status_label = Label.new()
+	_travel_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_travel_status_label.add_theme_font_size_override("font_size", 14)
+	_travel_status_label.visible = false
+	vbox.add_child(_travel_status_label)
+
+	# Travel event container (populated after travel choice)
+	_travel_event_container = VBoxContainer.new()
+	_travel_event_container.add_theme_constant_override("separation", 8)
+	vbox.add_child(_travel_event_container)
+
+	_travel_panel.add_child(vbox)
+
+	# Insert as first child of UpkeepContainer (above HeaderPanel)
+	if upkeep_container:
+		upkeep_container.add_child(_travel_panel)
+		upkeep_container.move_child(_travel_panel, 0)
+
+	# If travel was already decided (e.g. restoring state), update UI
+	if travel_decision_made:
+		_update_travel_ui_after_decision()
+
+func _update_travel_button_text(
+		credits: int, crew_size: int) -> void:
+	## Update travel button text/state based on affordability
+	if not _travel_button:
+		return
+	if has_ship:
+		if credits >= SHIP_TRAVEL_COST:
+			_travel_button.text = (
+				"Travel to New World (%d cr)" % SHIP_TRAVEL_COST)
+			_travel_button.disabled = false
+		else:
+			_travel_button.text = (
+				"Travel (Need %d cr)" % SHIP_TRAVEL_COST)
+			_travel_button.disabled = true
+	else:
+		var cost := crew_size * COMMERCIAL_TRAVEL_COST_PER_CREW
+		if credits >= cost:
+			_travel_button.text = (
+				"Commercial Passage (%d cr)" % cost)
+			_travel_button.disabled = false
+		else:
+			_travel_button.text = (
+				"Passage (Need %d cr)" % cost)
+			_travel_button.disabled = true
+
+func _on_stay_pressed() -> void:
+	## Handle stay in current location
+	travel_decision_made = true
+	chose_to_travel = false
+	_update_travel_ui_after_decision()
+	_travel_status_label.text = "✓ Staying in current location"
+	_travel_status_label.add_theme_color_override(
+		"font_color", UIColors.COLOR_EMERALD)
+	_travel_status_label.visible = true
+
+func _on_travel_pressed() -> void:
+	## Handle travel to new world — deduct cost and generate event
+	var travel_cost: int
+	if has_ship:
+		travel_cost = SHIP_TRAVEL_COST
+	else:
+		travel_cost = (
+			_get_crew_size_for_travel() * COMMERCIAL_TRAVEL_COST_PER_CREW)
+
+	GameStateManager.modify_credits(-travel_cost)
+
+	travel_decision_made = true
+	chose_to_travel = true
+	_update_travel_ui_after_decision()
+	_travel_status_label.text = (
+		"✓ Traveling to new world (-%d cr)" % travel_cost)
+	_travel_status_label.add_theme_color_override(
+		"font_color", UIColors.COLOR_AMBER)
+	_travel_status_label.visible = true
+
+	# Generate D100 travel event (Core Rules pp.70-71)
+	_generate_travel_event()
+
+	# Refresh upkeep display (credits changed)
+	current_upkeep_data = calculate_upkeep_costs()
+	_update_ui_display()
+
+func _update_travel_ui_after_decision() -> void:
+	## Disable travel buttons after a decision is made
+	if _stay_button:
+		_stay_button.disabled = true
+	if _travel_button:
+		_travel_button.disabled = true
+
+func _generate_travel_event() -> void:
+	## Generate travel event using Five Parsecs D100 table (pp.70-71)
+	var dice_mgr := get_node_or_null("/root/DiceManager")
+	var roll: int = 0
+	if dice_mgr and dice_mgr.has_method("roll_dice"):
+		roll = dice_mgr.roll_dice("Travel Event", "D100")
+	else:
+		roll = randi_range(1, 100)
+
+	var event := _process_travel_event_roll(roll)
+	_display_travel_event(event, roll)
+
+func _process_travel_event_roll(roll: int) -> Dictionary:
+	## Process D100 travel event roll (Core Rules pp.70-71)
+	if roll <= 7:
+		return {"type": "danger", "title": "Asteroids",
+			"desc": "Rocky debris everywhere! Roll to navigate safely or take Hull damage."}
+	elif roll <= 12:
+		return {"type": "setback", "title": "Navigation Trouble",
+			"desc": "Is this place even on the star maps? Lose 1 story point."}
+	elif roll <= 17:
+		return {"type": "hostile", "title": "Raided",
+			"desc": "Pirates have spotted your vessel! Prepare for potential combat."}
+	elif roll <= 25:
+		return {"type": "opportunity", "title": "Deep Space Wreckage",
+			"desc": "Found an old wreck drifting through space. Roll twice on the Gear Table."}
+	elif roll <= 29:
+		return {"type": "setback", "title": "Drive Trouble",
+			"desc": "It's not supposed to make that sound. May be grounded next turn."}
+	elif roll <= 38:
+		return {"type": "beneficial", "title": "Down-time",
+			"desc": "Select a crew member to earn +1 XP. Repair 1 damaged item for free."}
+	elif roll <= 44:
+		return {"type": "choice", "title": "Distress Call",
+			"desc": "'This is Licensed Trader Cyberwolf.' Do you respond?"}
+	elif roll <= 50:
+		return {"type": "neutral", "title": "Patrol Ship",
+			"desc": "A Unity patrol vessel hails you. They may confiscate contraband."}
+	elif roll <= 53:
+		return {"type": "rare", "title": "Cosmic Phenomenon",
+			"desc": "A crew member sees something strange... and gains +1 Luck!"}
+	elif roll <= 60:
+		return {"type": "choice", "title": "Escape Pod",
+			"desc": "You find an escape pod drifting through space. Rescue them?"}
+	elif roll <= 70:
+		return {"type": "beneficial", "title": "Uneventful Trip",
+			"desc": "A lot of time playing cards and cleaning guns. You can Repair one damaged item."}
+	elif roll <= 80:
+		return {"type": "beneficial", "title": "Cargo Run",
+			"desc": "A merchant vessel offers work hauling cargo. Earn 1D6 credits."}
+	elif roll <= 90:
+		return {"type": "neutral", "title": "Rumor Mill",
+			"desc": "Crew picks up spacer gossip. Add a Quest Rumor."}
+	else:
+		return {"type": "beneficial", "title": "Smooth Sailing",
+			"desc": "An easy trip with favorable conditions. All crew are well-rested."}
+
+func _display_travel_event(
+		event: Dictionary, roll: int) -> void:
+	## Display travel event result in the event container
+	if not _travel_event_container:
+		return
+
+	# Clear previous events
+	for child in _travel_event_container.get_children():
+		child.queue_free()
+
+	# Event card
+	var card := PanelContainer.new()
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.122, 0.137, 0.216, 0.9)
+	card_style.border_width_left = 1
+	card_style.border_width_top = 1
+	card_style.border_width_right = 1
+	card_style.border_width_bottom = 1
+	# Color border by event type
+	match event.get("type", "neutral"):
+		"danger", "hostile":
+			card_style.border_color = Color(0.863, 0.149, 0.149, 1)
+		"setback":
+			card_style.border_color = Color(0.851, 0.467, 0.024, 1)
+		"beneficial":
+			card_style.border_color = Color(0.063, 0.725, 0.506, 1)
+		"opportunity", "rare":
+			card_style.border_color = Color(0.31, 0.765, 0.969, 1)
+		_:
+			card_style.border_color = Color(0.216, 0.255, 0.318, 1)
+	card_style.set_corner_radius_all(8)
+	card_style.content_margin_left = 16.0
+	card_style.content_margin_top = 12.0
+	card_style.content_margin_right = 16.0
+	card_style.content_margin_bottom = 12.0
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var card_vbox := VBoxContainer.new()
+	card_vbox.add_theme_constant_override("separation", 4)
+
+	var roll_label := Label.new()
+	roll_label.text = "Travel Event Roll: %d" % roll
+	roll_label.add_theme_font_size_override("font_size", 12)
+	roll_label.add_theme_color_override(
+		"font_color", Color(0.42, 0.451, 0.502, 1))
+	card_vbox.add_child(roll_label)
+
+	var title_label := Label.new()
+	title_label.text = event.get("title", "Unknown Event")
+	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_color_override(
+		"font_color", Color(0.953, 0.957, 0.965, 1))
+	card_vbox.add_child(title_label)
+
+	var desc_label := Label.new()
+	desc_label.text = event.get("desc", "")
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_label.add_theme_font_size_override("font_size", 14)
+	desc_label.add_theme_color_override(
+		"font_color", Color(0.624, 0.639, 0.686, 1))
+	card_vbox.add_child(desc_label)
+
+	card.add_child(card_vbox)
+	_travel_event_container.add_child(card)
+
+func _get_current_world_name_for_travel() -> String:
+	## Get current world name for travel display
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign:
+		var wd = gs.current_campaign.get("world_data")
+		if wd is Dictionary:
+			return wd.get("name", "Fringe World")
+	return "Fringe World"
+
+func _check_has_ship_for_travel() -> bool:
+	## Check if crew has a ship for travel cost calculation
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign:
+		var sd = gs.current_campaign.get("ship_data")
+		return sd != null and sd is Dictionary
+	return true
+
+func _get_crew_size_for_travel() -> int:
+	## Get crew size for commercial travel cost
+	if crew_data.size() > 0:
+		return crew_data.size()
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("get_crew_size"):
+		return gsm.get_crew_size()
+	return 4
+
+## Public API: Travel completion check
+func is_travel_completed() -> bool:
+	## Check if travel decision has been made
+	return travel_decision_made
+
 ## Public API for integration
 func is_upkeep_completed() -> bool:
 	## Check if upkeep phase is completed
@@ -302,7 +668,10 @@ func get_upkeep_results() -> Dictionary:
 func reset_upkeep_phase() -> void:
 	## Reset upkeep phase for new turn
 	upkeep_completed = false
+	travel_decision_made = false
+	chose_to_travel = false
 	current_upkeep_data.clear()
 	ship_data.clear()
 	crew_data.clear()
+	_build_travel_section()
 	_update_ui_display()

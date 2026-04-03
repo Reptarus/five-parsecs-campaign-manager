@@ -526,13 +526,11 @@ func _show_phase_ui(phase: int) -> void:
 				current_ui_phase = story_phase_panel
 
 		GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
-			if travel_phase_ui:
-				travel_phase_ui.show()
-				# FIX: Travel phase was missing setup_phase() — UI showed uninitialized,
-				# causing it to appear skipped or broken
-				if travel_phase_ui.has_method("setup_phase"):
-					travel_phase_ui.setup_phase()
-				current_ui_phase = travel_phase_ui
+			# Travel is now handled inside WorldPhaseController Step 1
+			# (Travel & Upkeep). Auto-complete to advance to UPKEEP phase.
+			# Use call_deferred to avoid re-entrant _show_phase_ui() calls.
+			campaign_phase_manager.call_deferred(
+				"complete_current_phase")
 
 		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP:
 			if world_phase_controller:
