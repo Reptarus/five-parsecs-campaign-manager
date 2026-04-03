@@ -285,7 +285,8 @@ func _build_difficulty_section(parent: Control) -> void:
 
 func _build_difficulty_toggles_section(parent: Control) -> void:
 	## Build Compendium difficulty toggles (DLC-gated)
-	var toggles: Array[Dictionary] = CompendiumDifficultyTogglesRef.get_difficulty_toggles()
+	var toggles: Array[Dictionary] = []
+	toggles.assign(CompendiumDifficultyTogglesRef.get_difficulty_toggles())
 	difficulty_toggle_checkboxes.clear()
 
 	var content = VBoxContainer.new()
@@ -301,9 +302,11 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 		content.add_child(locked_label)
 	else:
 		# Group toggles by category
-		var categories: Array[String] = CompendiumDifficultyTogglesRef.get_categories()
+		var categories: Array[String] = []
+		categories.assign(CompendiumDifficultyTogglesRef.get_categories())
 		for category in categories:
-			var cat_toggles: Array[Dictionary] = CompendiumDifficultyTogglesRef.get_toggles_by_category(category)
+			var cat_toggles: Array[Dictionary] = []
+			cat_toggles.assign(CompendiumDifficultyTogglesRef.get_toggles_by_category(category))
 			if cat_toggles.is_empty():
 				continue
 

@@ -47,7 +47,8 @@ func _build_ui() -> void:
 	_load_toggle_states()
 
 	# Build toggles grouped by category
-	var categories: Array[String] = CompendiumTogglesRef.get_categories()
+	var categories: Array[String] = []
+	categories.assign(CompendiumTogglesRef.get_categories())
 	for category in categories:
 		var cat_name: String = CompendiumTogglesRef.get_category_name(
 			category)

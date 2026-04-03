@@ -1568,7 +1568,8 @@ func _apply_dlc_difficulty_modifiers(setup_data: Dictionary) -> void:
 			setup_data["enemy_count"] = setup_data.get("enemy_count", 0) + bonus
 
 	# Difficulty Toggles: active toggle instructions
-	var toggles: Array[Dictionary] = CompendiumDifficultyTogglesRef.get_difficulty_toggles()
+	var toggles: Array[Dictionary] = []
+	toggles.assign(CompendiumDifficultyTogglesRef.get_difficulty_toggles())
 	for toggle in toggles:
 		difficulty_instructions.append(toggle.get("instruction", ""))
 

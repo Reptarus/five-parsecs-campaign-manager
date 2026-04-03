@@ -283,7 +283,8 @@ func deserialize(data: Dictionary) -> void:
 ## Add species-specific reminder items for compendium species in the crew.
 ## Call this after _build_ui() with an array of origin strings (e.g., ["human", "krag"]).
 func add_species_reminders(crew_origins: Array) -> void:
-	var reminders: Array[String] = CompendiumSpeciesRef.get_crew_battle_reminders(crew_origins)
+	var reminders: Array[String] = []
+	reminders.assign(CompendiumSpeciesRef.get_crew_battle_reminders(crew_origins))
 	if reminders.is_empty():
 		return
 

@@ -330,7 +330,8 @@ func _get_available_advancements() -> Array:
 			})
 
 	# Compendium DLC: Advanced training + bot upgrades (cost in credits, not XP)
-	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_advancement_phase_items()
+	var compendium_items: Array[Dictionary] = []
+	compendium_items.assign(CompendiumEquipmentRef.get_advancement_phase_items())
 	for item in compendium_items:
 		advancements.append({
 			"name": item.get("name", "Unknown"),

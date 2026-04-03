@@ -230,7 +230,8 @@ func load_market_items() -> void:
 			available_items.add_item("%s (%s)" % [item.get("name", "?"), _format_credits_short(item.get("value", 0))])
 
 	# Compendium DLC: Ship parts + Psionic equipment (with lock indicators)
-	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_trade_phase_items_with_lock_status()
+	var compendium_items: Array[Dictionary] = []
+	compendium_items.assign(CompendiumEquipmentRef.get_trade_phase_items_with_lock_status())
 	for item in compendium_items:
 		# Normalize cost key to "value" to match existing market item format
 		var normalized: Dictionary = item.duplicate()
