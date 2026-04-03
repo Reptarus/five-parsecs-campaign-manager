@@ -84,20 +84,17 @@ func set_deployment_condition(condition: Dictionary) -> void:
 
 	var title := Label.new()
 	title.text = condition.get("title", "Unknown")
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override(
+		"font_color", Color("#D97706"))
 	mission_info_panel.add_child(title)
 
+	# Show canonical rule text from Core Rules p.88
 	var desc := Label.new()
 	desc.text = condition.get("description", "")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_font_size_override("font_size", 14)
 	mission_info_panel.add_child(desc)
-
-	var summary: String = condition.get(
-		"effects_summary", "")
-	if summary != "":
-		var effects_label := Label.new()
-		effects_label.text = summary
-		effects_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		mission_info_panel.add_child(effects_label)
 
 ## Setup the UI with mission data
 func setup_preview(data: Dictionary) -> void:
@@ -174,6 +171,20 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		count_label.text = "Count: %d" % total
 		count_label.add_theme_font_size_override("font_size", 14)
 		enemy_list.add_child(count_label)
+
+	# Weapons
+	var weapons: Array = enemy_force.get("weapons", [])
+	if not weapons.is_empty():
+		var weapons_label := Label.new()
+		weapons_label.text = "Weapons: %s" % ", ".join(
+			weapons.map(func(w): return str(w)))
+		weapons_label.add_theme_font_size_override(
+			"font_size", 12)
+		weapons_label.add_theme_color_override(
+			"font_color", Color("#9ca3af"))
+		weapons_label.autowrap_mode = \
+			TextServer.AUTOWRAP_WORD_SMART
+		enemy_list.add_child(weapons_label)
 
 	# Special rules
 	var rules: Array = enemy_force.get("special_rules", [])
