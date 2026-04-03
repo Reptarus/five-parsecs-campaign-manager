@@ -128,18 +128,63 @@ func _setup_mission_info(data: Dictionary) -> void:
 	mission_info_panel.add_child(mission_desc)
 	mission_info_panel.add_child(battle_type)
 
-## Setup enemy information
+## Setup enemy information — single type per battle (Core Rules pp.91-94)
 func _setup_enemy_info(data: Dictionary) -> void:
 	if not enemy_info_panel:
 		return
 
-	var enemy_force = data.get("enemy_force", {})
+	var enemy_force: Dictionary = data.get("enemy_force", {})
 	var enemy_list := VBoxContainer.new()
+	enemy_list.add_theme_constant_override("separation", 4)
 
-	for unit in enemy_force.get("units", []):
-		var unit_label := Label.new()
-		unit_label.text = unit.get("type", "Unknown Unit")
-		enemy_list.add_child(unit_label)
+	# Primary enemy type name
+	var type_name: String = enemy_force.get("type", "")
+	if type_name.is_empty():
+		# Fallback to old keys
+		type_name = data.get("enemy_type",
+			data.get("enemy_faction", "Unknown"))
+
+	var name_label := Label.new()
+	name_label.text = type_name
+	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.add_theme_color_override(
+		"font_color", Color("#DC2626"))
+	enemy_list.add_child(name_label)
+
+	# Stat line
+	var spd: int = enemy_force.get("speed", 0)
+	var cmb: int = enemy_force.get("combat_skill", 0)
+	var tgh: int = enemy_force.get("toughness", 0)
+	var ai_str: String = str(enemy_force.get("ai", ""))
+	var panic_str: String = str(enemy_force.get("panic", ""))
+	if spd > 0 or cmb > 0 or tgh > 0:
+		var stat_label := Label.new()
+		stat_label.text = "SPD:%d  CMB:+%d  TGH:%d  AI:%s  Panic:%s" \
+			% [spd, cmb, tgh, ai_str, panic_str]
+		stat_label.add_theme_font_size_override("font_size", 12)
+		stat_label.add_theme_color_override(
+			"font_color", Color("#4FC3F7"))
+		enemy_list.add_child(stat_label)
+
+	# Count + role breakdown
+	var total: int = enemy_force.get("count",
+		data.get("enemy_count", 0))
+	if total > 0:
+		var count_label := Label.new()
+		count_label.text = "Count: %d" % total
+		count_label.add_theme_font_size_override("font_size", 14)
+		enemy_list.add_child(count_label)
+
+	# Special rules
+	var rules: Array = enemy_force.get("special_rules", [])
+	for rule in rules:
+		var rule_label := Label.new()
+		rule_label.text = str(rule)
+		rule_label.add_theme_font_size_override("font_size", 11)
+		rule_label.add_theme_color_override(
+			"font_color", Color("#D97706"))
+		rule_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		enemy_list.add_child(rule_label)
 
 	enemy_info_panel.add_child(enemy_list)
 

@@ -290,7 +290,14 @@ func _prepare_player_units_data() -> Array:
 ## Prepare enemy units data for the battle
 func _prepare_enemy_units_data() -> Array:
 	var enemy_units = []
-	var enemy_force = current_mission.get("enemy_force", [])
+	# Normalize key: enemy_force (Dict) > enemy_forces (Array) > enemy_types (Array)
+	var enemy_force = current_mission.get("enemy_force", {})
+	if enemy_force is Dictionary:
+		enemy_force = enemy_force.get("units", [])
+	if enemy_force is Array and enemy_force.is_empty():
+		enemy_force = current_mission.get(
+			"enemy_forces",
+			current_mission.get("enemy_types", []))
 	
 	for enemy in enemy_force:
 		if enemy is Dictionary:

@@ -878,23 +878,47 @@ func _connect_component_signals() -> void:
 ## Overlay Management
 
 func _show_overlay(content_node: Control) -> void:
-	## Show a modal overlay with the given content
-	# Clear previous overlay content
+	## Show a modal overlay with the given content.
+	## Uses remove_child() for reusable nodes (initiative_calculator, event_resolution)
+	## and queue_free() for disposable ones. Per Godot docs: queue_free deletes at
+	## end of frame, leaving dangling references; remove_child detaches safely.
 	for child in overlay_content.get_children():
-		child.queue_free()
+		if child == initiative_calculator or child == event_resolution:
+			overlay_content.remove_child(child)
+		else:
+			child.queue_free()
 	overlay_content.add_child(content_node)
 	overlay_bg.visible = true
 	overlay_center.visible = true
 
 func _hide_overlay() -> void:
-	## Hide the modal overlay
+	## Hide the modal overlay. Uses remove_child for reusable nodes.
 	overlay_bg.visible = false
 	overlay_center.visible = false
 	for child in overlay_content.get_children():
-		if child == initiative_calculator:
+		if child == initiative_calculator or child == event_resolution:
 			overlay_content.remove_child(child)
 		else:
 			child.queue_free()
+	# After overlay dismissed, check for pending battle events this round
+	# (events fire here instead of BattleRoundTracker to avoid overlay collision)
+	_check_pending_battle_event()
+
+var _battle_event_fired_this_round: int = 0  # Track which round we already fired event for
+
+func _check_pending_battle_event() -> void:
+	## Check if a battle event should trigger this round (Core Rules p.118:
+	## rounds 2 and 4). Called after overlay dismissal so overlays don't collide.
+	## Guarded so it only fires once per round (not on every overlay dismiss).
+	if not round_tracker or not round_tracker.has_method("check_battle_event"):
+		return
+	var current_round: int = round_tracker.get_current_round()
+	if _battle_event_fired_this_round == current_round:
+		return  # Already fired this round
+	var event_data: Dictionary = round_tracker.check_battle_event()
+	if event_data.get("should_trigger", false):
+		_battle_event_fired_this_round = current_round
+		_on_battle_event_triggered(current_round, event_data.get("event_type", ""))
 
 ## Tier Selection + Pre-Battle Checklist Flow
 
@@ -1858,48 +1882,75 @@ func _populate_setup_tab(mission_data) -> void:
 				"Patron: %s" % m_patron, Color("#4FC3F7"))
 		_add_setup_separator()
 
-	# Section 0b: Enemy Forces summary with stats from enemy_types.json
-	var enemy_type_str: String = mission_dict.get(
-		"enemy_type", mission_dict.get("enemy_faction", ""))
-	var enemy_force: Dictionary = mission_dict.get(
-		"enemy_force", {})
+	# Section 0b: Enemy Forces — single type per battle (Core Rules pp.91-94)
+	var enemy_force: Dictionary = mission_dict.get("enemy_force", {})
+	var enemy_type_str: String = enemy_force.get(
+		"type",
+		mission_dict.get("enemy_type",
+			mission_dict.get("enemy_faction", "")))
 	var enemy_unit_count: int = enemy_force.get(
 		"count", mission_dict.get("enemy_count", 0))
+
 	if not enemy_type_str.is_empty() or enemy_unit_count > 0:
 		_add_setup_section_header("ENEMY FORCES")
-		if not enemy_type_str.is_empty():
-			_add_setup_text(enemy_type_str, Color("#DC2626"), 16)
-		if enemy_unit_count > 0:
-			_add_setup_text(
-				"Hostiles: %d" % enemy_unit_count,
-				Color("#E0E0E0"))
-		# List individual enemy units with stats from enemy_types.json
-		var units: Array = enemy_force.get("units", [])
-		if units.size() > 0:
+
+		# Primary type name + category
+		var ef_category: String = enemy_force.get("category", "")
+		var type_display: String = enemy_type_str
+		if not ef_category.is_empty():
+			type_display += " (%s)" % ef_category.replace(
+				"_", " ").capitalize()
+		_add_setup_text(type_display, Color("#DC2626"), 16)
+
+		# Stat line from enemy_force dict or JSON lookup
+		var ef_stats: Dictionary = enemy_force
+		if ef_stats.get("speed", 0) == 0:
+			# Fallback: look up from enemy_types.json
 			var enemy_db: Dictionary = _load_enemy_types_db()
-			for unit_data in units:
-				if unit_data is Dictionary:
-					var u_name: String = unit_data.get(
-						"name", unit_data.get("type", "Unknown"))
-					var u_count: int = unit_data.get("count", 1)
-					_add_setup_text(
-						"%s  x%d" % [u_name, u_count],
-						Color("#E0E0E0"), 16)
-					# Look up stats from enemy_types.json
-					var stats: Dictionary = _lookup_enemy_stats(
-						enemy_db, u_name)
-					if not stats.is_empty():
-						_add_enemy_stat_line(stats)
-					# Show special rules
-					var rules: Array = stats.get(
-						"special_rules",
-						unit_data.get("special_rules", []))
-					for rule in rules:
-						var rule_str: String = str(rule)
-						if not rule_str.is_empty():
-							_add_setup_text(
-								"    %s" % rule_str,
-								Color("#D97706"), 11)
+			ef_stats = _lookup_enemy_stats(enemy_db, enemy_type_str)
+		if not ef_stats.is_empty():
+			_add_enemy_stat_line(ef_stats)
+
+		# Count + role breakdown
+		var units: Array = enemy_force.get("units", [])
+		var std_count: int = 0
+		var spec_count: int = 0
+		var lt_count: int = 0
+		for u in units:
+			if u is Dictionary:
+				match u.get("role", "standard"):
+					"lieutenant":
+						lt_count += 1
+					"specialist":
+						spec_count += 1
+					_:
+						std_count += 1
+
+		var count_parts: Array[String] = []
+		if std_count > 0:
+			count_parts.append("%d standard" % std_count)
+		if spec_count > 0:
+			count_parts.append("%d specialist" % spec_count)
+		if lt_count > 0:
+			count_parts.append("%d lieutenant" % lt_count)
+
+		if enemy_unit_count > 0:
+			var breakdown: String = ""
+			if count_parts.size() > 0:
+				breakdown = " (%s)" % ", ".join(count_parts)
+			_add_setup_text(
+				"Total: %d%s" % [enemy_unit_count, breakdown],
+				Color("#E0E0E0"))
+
+		# Special rules
+		var rules: Array = enemy_force.get(
+			"special_rules", ef_stats.get("special_rules", []))
+		for rule in rules:
+			var rule_str: String = str(rule)
+			if not rule_str.is_empty():
+				_add_setup_text(
+					"  %s" % rule_str, Color("#D97706"), 12)
+
 		_add_setup_separator()
 
 	# Section 0c: Patron Conditions (benefits, hazards, conditions)
@@ -2117,7 +2168,10 @@ func _on_regenerate_terrain_pressed() -> void:
 		var theme_display: String = new_sector_data.get("theme_name", _current_terrain_theme)
 		battlefield_grid_panel.populate(new_sectors, theme_display)
 
-	# Re-insert terrain section at the same position
+	# Re-insert terrain section — clamp index to actual child count
+	# (queue_free'd nodes are now gone after await, child count is lower)
+	_terrain_section_start_index = mini(
+		_terrain_section_start_index, setup_content.get_child_count())
 	var insert_idx: int = _terrain_section_start_index
 
 	# Header — same style as _add_setup_section_header

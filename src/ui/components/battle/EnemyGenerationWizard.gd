@@ -355,18 +355,23 @@ func _generate_enemies() -> void:
 	mission.set_meta("mission_type", mission_type)
 	mission.set_meta("difficulty", difficulty)
 
-	# If category was manually selected, create enemies from that category
+	# Roll ONE enemy type, create all figures of that type (Core Rules pp.91-94)
 	if not enemy_category.is_empty():
-		var count = enemy_generator._calculate_enemy_count(difficulty, crew_size)
+		var count: int = enemy_generator._calculate_enemy_count(
+			difficulty, crew_size)
+		# Roll type ONCE before loop
+		var template: Resource = enemy_generator._create_enemy(
+			enemy_category, difficulty)
+		var weapon = weapon_system.roll_enemy_weapon(enemy_category)
 		for i in range(count):
-			var enemy = enemy_generator._create_enemy(enemy_category, difficulty)
-			# Add rolled weapon
-			var weapon = weapon_system.roll_enemy_weapon(enemy_category)
+			var enemy: Resource = template.duplicate()
+			enemy.set_meta("id", "enemy_%d" % i)
 			if weapon:
 				enemy.set_meta("weapons", [weapon.name])
 			generated_enemies.append(enemy)
 	else:
-		generated_enemies = enemy_generator.generate_enemies_for_mission(mission, crew_size)
+		generated_enemies = enemy_generator.generate_enemies_for_mission(
+			mission, crew_size)
 
 func _update_navigation() -> void:
 	if back_button:

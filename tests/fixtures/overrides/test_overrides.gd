@@ -13,14 +13,12 @@ func _enter_tree() -> void:
 	_patch_enum_in_operator()
 	_patch_mission_generator()
 	_patch_mission_base()
-	_patch_battlefield_generator()
 
 # Fix the most common cause of "Invalid base object for 'in'" error
 func _patch_enum_in_operator() -> void:
 	# Patch GameEnums lookups to handle 'in' operator more safely
 	var script_paths = [
 		"res://src/core/mission/generator/MissionGenerator.gd",
-		"res://src/core/systems/BattlefieldGenerator.gd",
 		"res://src/core/mission/base/mission.gd"
 	]
 	
@@ -86,29 +84,7 @@ func _patch_mission_base() -> void:
 	
 	script.reload()
 
-# Directly patch the BattlefieldGenerator
-func _patch_battlefield_generator() -> void:
-	if "res://src/core/systems/BattlefieldGenerator.gd" in _patched_scripts:
-		return
-
-	_patched_scripts.append("res://src/core/systems/BattlefieldGenerator.gd")
-
-	var script = load("res://src/core/systems/BattlefieldGenerator.gd")
-	if script == null:
-		return
-		
-	# Don't use get_method() - check using source code instead
-	var source_code = script.get_source_code()
-	if not "create_terrain" in source_code:
-		return
-		
-	# Replace 'in' usage with safe_has_method for methods
-	script.set_source_code(source_code.replace(
-		'if "initialize" in terrain_script_inst:',
-		'if TestOverrides.safe_has_method(terrain_script_inst, "initialize"):'
-	))
-	
-	script.reload()
+# _patch_battlefield_generator() was removed — src/core/systems/BattlefieldGenerator.gd deleted (fabricated data)
 
 # Helper for safe dictionary access without 'in'
 static func has_key(dict, key) -> bool:

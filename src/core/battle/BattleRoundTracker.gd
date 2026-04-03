@@ -71,9 +71,7 @@ func start_battle() -> void:
 	battle_started.emit()
 	round_started.emit(_current_round)
 	phase_changed.emit(_current_phase, get_phase_name(_current_phase))
-
-	# Check for battle event (shouldn't happen on round 1, but consistent)
-	_check_and_trigger_battle_event()
+	# Battle event check delegated to UI after overlay dismissal
 
 ## Advance to next phase in sequence
 func advance_phase() -> void:
@@ -182,7 +180,10 @@ func _start_next_round() -> void:
 	round_changed.emit(_current_round)
 	phase_changed.emit(_current_phase, get_phase_name(_current_phase))
 
-	_check_and_trigger_battle_event()
+	# Battle event check is now triggered by TacticalBattleUI AFTER the
+	# initiative overlay is dismissed — firing it here in the same signal
+	# burst causes two overlays to collide (initiative + event), freezing
+	# the UI. The UI calls check_battle_event() after overlay dismissal.
 
 func _check_and_trigger_battle_event() -> void:
 	## Internal: Check and trigger battle events

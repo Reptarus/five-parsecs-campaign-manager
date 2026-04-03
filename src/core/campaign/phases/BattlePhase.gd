@@ -359,11 +359,45 @@ func _process_battle_setup() -> void:
 			var column: String = sights_system.get_mission_column(is_patron, is_rival, is_quest)
 			notable_sight = sights_system.roll_notable_sight(column)
 
+	# Build canonical enemy_force dict (single type per Core Rules pp.91-94)
+	var _primary_template: Dictionary = {}
+	if enemy_generator:
+		# Re-lookup the type name from the first enemy's type field
+		var _primary_name: String = ""
+		if not enemy_types.is_empty():
+			_primary_name = enemy_types[0].get("type", "")
+		if not _primary_name.is_empty():
+			var _edb: Dictionary = enemy_generator.enemy_data
+			for _cat in _edb.get("enemy_categories", []):
+				for _entry in _cat.get("enemies", []):
+					if _entry.get("name", "") == _primary_name:
+						_primary_template = _entry
+						break
+
+	var _ef_type: String = _primary_template.get(
+		"name", enemy_types[0].get("type", "Unknown") if not enemy_types.is_empty() else "Unknown")
+	var _ef_category: String = enemy_types[0].get("category", "") if not enemy_types.is_empty() else ""
+	var enemy_force_dict: Dictionary = {
+		"type": _ef_type,
+		"category": _ef_category,
+		"count": enemy_types.size(),
+		"panic": _primary_template.get("panic", "1-2"),
+		"speed": _primary_template.get("speed", 4),
+		"combat_skill": _primary_template.get("combat_skill", 0),
+		"toughness": _primary_template.get("toughness", 3),
+		"ai": _primary_template.get("ai", "A"),
+		"weapons": _primary_template.get("weapons", "1 A"),
+		"numbers": _primary_template.get("numbers", "+0"),
+		"special_rules": _primary_template.get("special_rules", []),
+		"units": enemy_types,
+	}
+
 	# Store setup data
 	battle_setup_data = {
 		"mission_type": mission_type,
 		"enemy_count": enemy_types.size(),
-		"enemy_types": enemy_types,
+		"enemy_types": enemy_types,  # Legacy key kept for compatibility
+		"enemy_force": enemy_force_dict,  # New canonical single-type dict
 		"terrain": terrain_type,
 		"deployment": deployment_conditions,
 		"round_limit": max_rounds,
@@ -513,29 +547,69 @@ func _generate_enemies(
 			mission_source if not mission_source.is_empty() else "patron"
 		)
 
-	for i in range(count):
-		# Roll specific enemy type within category using D100 roll_range
-		var template: Dictionary = {}
-		if enemy_generator:
-			template = enemy_generator._roll_enemy_in_category(category)
+	# Roll ONE specific enemy type within category (Core Rules pp.91-94)
+	# ALL enemies in this battle are the SAME type
+	var template: Dictionary = {}
+	if enemy_generator:
+		template = enemy_generator._roll_enemy_in_category(category)
 
-		var enemy_name: String = template.get("name", "Unknown Hostiles")
-		var weapons: Array = []
-		if enemy_generator and not template.is_empty():
-			weapons = enemy_generator._resolve_weapon_code(
-				template.get("weapons", "1 A")
-			)
-		else:
-			weapons = ["Basic Rifle"]
+	var enemy_name: String = template.get("name", "Unknown Hostiles")
+	var base_weapons: Array = []
+	if enemy_generator and not template.is_empty():
+		base_weapons = enemy_generator._resolve_weapon_code(
+			template.get("weapons", "1 A")
+		)
+	else:
+		base_weapons = ["Basic Rifle"]
+
+	# Specialist/Lieutenant assignment (Core Rules p.93)
+	var specialist_count: int = 0
+	if count >= 7:
+		specialist_count = 2
+	elif count >= 3:
+		specialist_count = 1
+	var has_lieutenant: bool = (count >= 4)
+
+	# Resolve specialist weapons (different weapon column)
+	var specialist_weapons: Array = base_weapons
+	if enemy_generator and not template.is_empty() and specialist_count > 0:
+		var weapon_code: String = template.get("weapons", "1 A")
+		# Specialist column is the letter part (A/B/C)
+		var parts: PackedStringArray = weapon_code.strip_edges().split(" ")
+		if parts.size() >= 2:
+			var spec_code: String = "1 " + parts[1]
+			specialist_weapons = enemy_generator._resolve_weapon_code(spec_code)
+
+	for i in range(count):
+		# Determine role for this figure
+		var role: String = "standard"
+		var combat_mod: int = 0
+		var weapons: Array = base_weapons.duplicate()
+		var extra_weapons: Array = []
+
+		if has_lieutenant and i == 0:
+			role = "lieutenant"
+			combat_mod = 1  # Core Rules p.93: +1 Combat Skill
+			extra_weapons = ["Blade"]  # Lieutenant carries a Blade
+		elif specialist_count > 0 and i >= (count - specialist_count):
+			role = "specialist"
+			weapons = specialist_weapons.duplicate()
+
+		var display_name: String = enemy_name
+		if role == "lieutenant":
+			display_name = "%s Lieutenant" % enemy_name
+		elif role == "specialist":
+			display_name = "%s Specialist" % enemy_name
 
 		var enemy: Dictionary = {
 			"id": "enemy_%d" % i,
-			"type": enemy_name,
-			"name": enemy_name,
-			"combat_skill": template.get("combat_skill", 0),
+			"type": enemy_name,  # ALL same type
+			"name": display_name,
+			"role": role,
+			"combat_skill": template.get("combat_skill", 0) + combat_mod,
 			"toughness": template.get("toughness", 3),
 			"speed": template.get("speed", 4),
-			"weapons": weapons,
+			"weapons": weapons + extra_weapons,
 			"weapon_traits": ["ranged"],
 			"ai": template.get("ai", "A"),
 			"panic": template.get("panic", "1-2"),

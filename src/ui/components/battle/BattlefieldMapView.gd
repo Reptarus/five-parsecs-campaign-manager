@@ -51,8 +51,8 @@ const COLOR_TOOLTIP_TEXT := Color(0.93, 0.93, 0.93, 1.0)
 
 const AXIS_MARGIN := 28.0          # Space reserved for axis labels
 const SHAPE_SCALE_MULT := 1.5      # Terrain shape scale multiplier
-const PLACEMENT_ATTEMPTS := 30     # Random position tries before fallback
-const PLACEMENT_PADDING := 12.0    # Min px gap between shapes (pre-scale)
+const PLACEMENT_ATTEMPTS := 50     # Random position tries before fallback
+const PLACEMENT_PADDING := 20.0    # Min px gap between shapes (pre-scale)
 
 const ZOOM_MIN := 0.5
 const ZOOM_MAX := 3.0
@@ -296,7 +296,7 @@ func _rebuild_terrain_shapes() -> void:
 				# Compute rotation-aware collision padding for this shape
 				var shape_type_str: String = shape.get("shape", "rect")
 				var max_rot: float = BattlefieldShapeLibrary.get_rotation_range(shape_type_str)
-				var rot_padding: float = maxf(w, h) * sin(minf(absf(max_rot), PI / 4.0)) * 0.5
+				var rot_padding: float = (sqrt(w * w + h * h) - maxf(w, h)) * 0.5 + 4.0 if max_rot > 0.0 else 0.0
 
 				# Try random positions within sector
 				var placed: bool = false
@@ -345,6 +345,28 @@ func _rebuild_terrain_shapes() -> void:
 							fallback_y = maxf(fallback_y, existing.end.y + total_pad)
 					fallback_x = clampf(fallback_x, 0.0, maxf(avail_w - w, 0.0))
 					fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
+
+					# Cross-sector collision check for fallback position
+					var abs_fb := Rect2(
+						sector_origin.x + fallback_x,
+						sector_origin.y + fallback_y, w, h)
+					var fb_retry: int = 0
+					while fb_retry < 5:
+						var fb_collides: bool = false
+						for global_rect: Rect2 in all_placed_rects:
+							if abs_fb.grow(total_pad).intersects(global_rect):
+								fb_collides = true
+								break
+						if not fb_collides:
+							break
+						# Nudge down by shape height + padding
+						fallback_y += h + total_pad
+						fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
+						abs_fb = Rect2(
+							sector_origin.x + fallback_x,
+							sector_origin.y + fallback_y, w, h)
+						fb_retry += 1
+
 					var fb_rect := Rect2(fallback_x, fallback_y, w, h)
 					placed_rects.append(fb_rect)
 					positions.append(sector_origin + Vector2(fallback_x, fallback_y))

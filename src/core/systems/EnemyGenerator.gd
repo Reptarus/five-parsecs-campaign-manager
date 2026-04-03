@@ -465,48 +465,58 @@ func generate_enemies_as_dicts(
 		danger_level, crew_size
 	)
 
+	# Roll ONE enemy type for the whole battle (Core Rules pp.91-94)
+	var template: Dictionary = _roll_enemy_in_category(category)
+	var enemy_name: String = template.get("name", "Unknown Hostiles")
+	var base_combat: int = template.get("combat_skill", 0)
+	var base_tough: int = template.get("toughness", 3)
+	var base_speed: int = template.get("speed", 4)
+	var base_weapons: Array = _resolve_weapon_code(
+		template.get("weapons", "1 A"))
+
+	# Specialist/Lieutenant per Core Rules p.93
+	var specialist_count: int = 0
+	if enemy_count >= 7:
+		specialist_count = 2
+	elif enemy_count >= 3:
+		specialist_count = 1
+	var has_lieutenant: bool = (enemy_count >= 4)
+
 	var enemies: Array[Dictionary] = []
 	for i in range(enemy_count):
-		var template: Dictionary = _roll_enemy_in_category(category)
-		var is_leader: bool = (i == 0)
+		var role: String = "standard"
+		var combat_mod: int = 0
+		var weapons: Array = base_weapons.duplicate()
+		var extra_weapons: Array = []
 
-		if not template.is_empty():
-			var combat_val: int = template.get("combat_skill", 0)
-			var tough_val: int = template.get("toughness", 3)
-			var spd: int = template.get("speed", 4)
-			var weapons: Array = _resolve_weapon_code(
-				template.get("weapons", "1 A")
-			)
-			var enemy_name: String = template.get("name", "Enemy")
-			enemies.append({
-				"type": enemy_name,
-				"name": ("%s Leader" % enemy_name) if is_leader else enemy_name,
-				"combat_skill": combat_val + (1 if is_leader else 0),
-				"toughness": tough_val + (1 if is_leader else 0),
-				"reactions": 2 if is_leader else 1,
-				"speed": spd,
-				"weapons": weapons,
-				"ai": template.get("ai", "A"),
-				"panic": template.get("panic", "1-2"),
-				"special_rules": template.get("special_rules", []),
-				"is_leader": is_leader,
-				"category": category,
-			})
-		else:
-			enemies.append({
-				"type": "Unknown Hostiles",
-				"name": "Unknown Leader" if is_leader else "Unknown #%d" % i,
-				"combat_skill": (danger_level + 1) if is_leader else danger_level,
-				"toughness": 4 if is_leader else 3,
-				"reactions": 2 if is_leader else 1,
-				"speed": 4,
-				"weapons": ["Military Rifle"] if is_leader else ["Hand Gun"],
-				"ai": "T",
-				"panic": "1-2",
-				"special_rules": [],
-				"is_leader": is_leader,
-				"category": category,
-			})
+		if has_lieutenant and i == 0:
+			role = "lieutenant"
+			combat_mod = 1
+			extra_weapons = ["Blade"]
+		elif specialist_count > 0 and i >= (enemy_count - specialist_count):
+			role = "specialist"
+
+		var display_name: String = enemy_name
+		if role == "lieutenant":
+			display_name = "%s Lieutenant" % enemy_name
+		elif role == "specialist":
+			display_name = "%s Specialist" % enemy_name
+
+		enemies.append({
+			"type": enemy_name,
+			"name": display_name,
+			"role": role,
+			"combat_skill": base_combat + combat_mod,
+			"toughness": base_tough,
+			"reactions": 2 if role == "lieutenant" else 1,
+			"speed": base_speed,
+			"weapons": weapons + extra_weapons,
+			"ai": template.get("ai", "A"),
+			"panic": template.get("panic", "1-2"),
+			"special_rules": template.get("special_rules", []),
+			"is_leader": (role == "lieutenant"),
+			"category": category,
+		})
 
 	return enemies
 
