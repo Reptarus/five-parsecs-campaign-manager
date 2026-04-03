@@ -502,3 +502,71 @@ foreach ($testFile in $testFiles) {
     - Invalid input rejection
 
 **Target:** 60-80 integration tests for PRODUCTION_CANDIDATE status (98/100)
+
+---
+
+## MCP Runtime Testing (Battle Skip Script)
+
+For runtime testing the battle UI, terrain generator, enemy display, and morale tracker via MCP without manually clicking through 7 creation steps + 6 world phase steps:
+
+### Prerequisites
+
+1. **MCP bridge async patch** — The stock `godot-mcp-runtime` bridge does NOT `await` the script's `execute()` function. Patch line ~396 in `<npm_root>/godot-mcp-runtime/dist/scripts/mcp_bridge.gd`:
+   ```gdscript
+   # Before:
+   result = instance.execute(get_tree())
+   # After:
+   result = await instance.execute(get_tree())
+   ```
+   This is required for any `run_script` that calls async coordinator/phase methods.
+
+2. **Project running** on MainMenu scene via `mcp__godot__run_project`.
+
+### Usage
+
+```
+# Step 1: Launch project
+mcp__godot__run_project(projectPath="...")
+
+# Step 2: Click New Campaign (wait 2s for load)
+mcp__godot__simulate_input([{type: "click_element", element: "NewCampaign"}, {type: "wait", ms: 2000}])
+
+# Step 3: Run the skip script (timeout=60000)
+mcp__godot__run_script(script=<contents of tests/fixtures/mcp_battle_skip.gd>, timeout=60000)
+```
+
+### Script Reference: `tests/fixtures/mcp_battle_skip.gd`
+
+The script performs these phases in ~15 seconds:
+
+1. **Campaign Creation** — Sets name, randomizes captain + crew, auto-advances through equipment/ship/world/review, clicks Finish
+2. **Mission Data Injection** — Sets `progress_data["current_mission"]` with configurable mission type, enemy type, and category. Gives 50 credits.
+3. **Phase Skip** — Marks world steps complete, advances through Story/Travel/Upkeep to reach Mission phase
+4. **Battle Entry** — Clicks Confirm Deployment, selects companion level (Full Oracle by default)
+
+### Configurable Parameters
+
+Edit the constants at the top of the script:
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `CAMPAIGN_NAME` | "QA Battle Test" | Campaign display name |
+| `STARTING_CREDITS` | 50 | Must be ≥7 to cover upkeep |
+| `COMPANION_LEVEL` | "Full Oracle" | "Full Oracle", "Assisted", "Log Only", or "Skip" |
+
+Edit `get_mission_data()` to change the mission scenario:
+
+| Mission Type | Objective Markers | Enemy Category Options |
+|-------------|-------------------|----------------------|
+| `PATROL` | 3 diamonds on large features | `criminal_elements`, `hired_muscle` |
+| `ACCESS` | 1 center diamond | `roving_threats`, `unity_agents` |
+| `FIGHT_OFF` | None | Any |
+| `MOVE_THROUGH` | None | Any |
+| `DELIVER` | 1 center diamond | Any |
+| `SECURE` | 1 center diamond | Any |
+
+### Known Limitations
+
+- **Enemy "Unknown"** if `progress_data["current_mission"]` is empty — the script injects data to avoid this
+- **World traits** not injected — campaign creates with random world; override `campaign.current_planet` for specific traits
+- **Battle Type shows "NONE"** — `battle_type: 0` maps to enum index 0; set to specific `GlobalEnums.BattleType` value if needed

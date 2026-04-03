@@ -1842,10 +1842,12 @@ func _populate_setup_tab(mission_data) -> void:
 
 	# Read world traits for terrain modification (Core Rules pp.72-75)
 	var world_traits: Array = []
-	if game_state and game_state.get("current_campaign"):
-		var planet: Dictionary = game_state.current_campaign.get(
-			"current_planet", {})
-		world_traits = planet.get("world_traits", [])
+	if game_state and game_state.current_campaign:
+		var campaign_res = game_state.current_campaign
+		if "current_planet" in campaign_res:
+			var planet = campaign_res.current_planet
+			if planet is Dictionary:
+				world_traits = planet.get("world_traits", [])
 
 	# Generate Compendium-compliant terrain (5-step process)
 	var sector_data: Dictionary = (
@@ -2185,11 +2187,12 @@ func _on_regenerate_terrain_pressed() -> void:
 	# Generate new sector data (with world traits + deployment condition)
 	var regen_world_traits: Array = []
 	var regen_game_state = get_node_or_null("/root/GameState")
-	if regen_game_state and regen_game_state.get("current_campaign"):
-		var regen_planet: Dictionary = (
-			regen_game_state.current_campaign.get(
-				"current_planet", {}))
-		regen_world_traits = regen_planet.get("world_traits", [])
+	if regen_game_state and regen_game_state.current_campaign:
+		var regen_campaign = regen_game_state.current_campaign
+		if "current_planet" in regen_campaign:
+			var regen_planet = regen_campaign.current_planet
+			if regen_planet is Dictionary:
+				regen_world_traits = regen_planet.get("world_traits", [])
 	var new_sector_data: Dictionary = (
 		_battlefield_generator.generate_terrain_suggestions(
 			_current_terrain_theme, regen_world_traits))

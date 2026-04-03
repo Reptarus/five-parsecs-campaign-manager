@@ -331,9 +331,12 @@ func _rebuild_terrain_shapes() -> void:
 					var candidate := Rect2(try_x, try_y, w, h)
 
 					# Check collision with same-sector shapes (rotation-aware)
+					# Grow candidate by half padding, stored rects by half padding at
+					# store time — total effective gap = PLACEMENT_PADDING + rot_padding.
+					var half_pad: float = (PLACEMENT_PADDING + rot_padding) / 2.0
 					var collides: bool = false
 					for placed_rect: Rect2 in placed_rects:
-						if candidate.grow(PLACEMENT_PADDING + rot_padding).intersects(placed_rect):
+						if candidate.grow(half_pad).intersects(placed_rect.grow(half_pad)):
 							collides = true
 							break
 
@@ -342,7 +345,7 @@ func _rebuild_terrain_shapes() -> void:
 						var abs_candidate := Rect2(
 							sector_origin.x + try_x, sector_origin.y + try_y, w, h)
 						for global_rect: Rect2 in all_placed_rects:
-							if abs_candidate.grow(PLACEMENT_PADDING + rot_padding).intersects(global_rect):
+							if abs_candidate.grow(half_pad).intersects(global_rect.grow(half_pad)):
 								collides = true
 								break
 
@@ -351,13 +354,14 @@ func _rebuild_terrain_shapes() -> void:
 						positions.append(sector_origin + Vector2(try_x, try_y))
 						all_placed_rects.append(Rect2(
 							sector_origin.x + try_x, sector_origin.y + try_y,
-						w, h).grow(rot_padding))
+						w, h))
 						placed = true
 						break
 
 				# Fallback: flow-layout with rotation-aware spacing
 				if not placed:
 					var total_pad: float = PLACEMENT_PADDING + rot_padding
+					var half_pad_fb: float = total_pad / 2.0
 					var fallback_x: float = 0.0
 					var fallback_y: float = 0.0
 					for existing: Rect2 in placed_rects:
@@ -368,25 +372,42 @@ func _rebuild_terrain_shapes() -> void:
 						else:
 							fallback_x = 0.0
 							fallback_y = maxf(fallback_y, existing.end.y + total_pad)
-					fallback_x = clampf(fallback_x, 0.0, maxf(avail_w - w, 0.0))
-					fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
+
+					# If shape doesn't fit in sector at all, try placing in
+					# overflow area below normal bounds rather than clamping to
+					# (0,0) which causes overlaps.
+					var can_fit_x: bool = w <= avail_w
+					var can_fit_y: bool = fallback_y + h <= avail_h
+					if can_fit_x:
+						fallback_x = clampf(fallback_x, 0.0, maxf(avail_w - w, 0.0))
+					else:
+						fallback_x = 0.0
+					if can_fit_y:
+						fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
+					# else: let fallback_y exceed avail_h — shape overflows but doesn't overlap
 
 					# Cross-sector collision check for fallback position
 					var abs_fb := Rect2(
 						sector_origin.x + fallback_x,
 						sector_origin.y + fallback_y, w, h)
 					var fb_retry: int = 0
-					while fb_retry < 5:
+					while fb_retry < 8:
 						var fb_collides: bool = false
 						for global_rect: Rect2 in all_placed_rects:
-							if abs_fb.grow(total_pad).intersects(global_rect):
+							if abs_fb.grow(half_pad_fb).intersects(global_rect.grow(half_pad_fb)):
 								fb_collides = true
 								break
+						# Also check same-sector rects
+						if not fb_collides:
+							var local_fb := Rect2(fallback_x, fallback_y, w, h)
+							for pr: Rect2 in placed_rects:
+								if local_fb.grow(half_pad_fb).intersects(pr.grow(half_pad_fb)):
+									fb_collides = true
+									break
 						if not fb_collides:
 							break
-						# Nudge down by shape height + padding
+						# Nudge down by shape height + padding (no clamping — allow overflow)
 						fallback_y += h + total_pad
-						fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
 						abs_fb = Rect2(
 							sector_origin.x + fallback_x,
 							sector_origin.y + fallback_y, w, h)
@@ -397,7 +418,7 @@ func _rebuild_terrain_shapes() -> void:
 					positions.append(sector_origin + Vector2(fallback_x, fallback_y))
 					all_placed_rects.append(Rect2(
 						sector_origin.x + fallback_x,
-						sector_origin.y + fallback_y, w, h).grow(rot_padding))
+						sector_origin.y + fallback_y, w, h))
 
 				# Create the SVS terrain node — position at shape center for symmetric rotation
 				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
