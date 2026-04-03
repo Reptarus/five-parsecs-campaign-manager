@@ -829,6 +829,18 @@ func _connect_assisted_signals() -> void:
 					battle_journal.log_action("Initiative", seized)
 			)
 
+	# EventResolutionPanel — overlay dismiss on resolve/cancel
+	if event_resolution:
+		event_resolution.event_resolved.connect(
+			func(_event: Dictionary, _outcome: Dictionary) -> void:
+				_hide_overlay()
+		)
+		event_resolution.resolution_cancelled.connect(_hide_overlay)
+		event_resolution.escalation_resolved.connect(
+			func(_instruction: String) -> void:
+				_hide_overlay()
+		)
+
 func _connect_component_signals() -> void:
 	## Connect component signals so actions log to BattleJournal
 	if dice_dashboard and battle_journal:

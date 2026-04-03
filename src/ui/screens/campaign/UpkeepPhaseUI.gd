@@ -92,34 +92,19 @@ func _calculate_upkeep() -> void:
 	current_costs.total = current_costs.crew_upkeep + current_costs.ship_maintenance
 
 func _calculate_crew_upkeep() -> int:
-	var base_cost := 0
+	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6
+	var active_count := 0
 	for crew_member in game_state.current_crew:
 		if crew_member.is_active:
-			base_cost += 2 # Base upkeep per crew member
-    
-	# Apply difficulty modifiers
-	match game_state.difficulty_level:
-		GameEnums.DifficultyLevel.EASY:
-			base_cost = int(base_cost * 0.8)
-		GameEnums.DifficultyLevel.NORMAL:
-			base_cost = int(base_cost * 1.0)
-		GameEnums.DifficultyLevel.HARD:
-			base_cost = int(base_cost * 1.2)
-		GameEnums.DifficultyLevel.HARDCORE:
-			base_cost = int(base_cost * 1.5)
-		GameEnums.DifficultyLevel.ELITE:
-			base_cost = int(base_cost * 2.0)
-    
-	return base_cost
+			active_count += 1
+	if active_count < 4:
+		return 0
+	return 1 + max(0, active_count - 6)
 
 func _calculate_ship_maintenance() -> int:
-	if not game_state.ship_hull_points:
-		return 0
-        
-	var base_cost := int(game_state.ship_hull_points / 10)
-	var damage_penalty := int((game_state.ship_hull_points - game_state.ship_hull_points) / 5)
-    
-	return base_cost + damage_penalty
+	# Core Rules p.76: No mandatory ship maintenance cost.
+	# Ship repairs are optional: 1 free HP/turn, pay 1 credit per additional HP.
+	return 0
 
 func _update_cost_display() -> void:
 	crew_upkeep_value.text = str(current_costs.crew_upkeep) + " credits"

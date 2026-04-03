@@ -5,7 +5,6 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
-const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
 # Load the BattleTutorialLayout class
 const BattleTutorialLayoutScript = preload("res://src/core/tutorial/BattleTutorialLayout.gd")

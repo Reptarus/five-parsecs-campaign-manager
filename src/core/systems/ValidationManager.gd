@@ -11,7 +11,6 @@ const CharacterDataMgr = preload("res://src/core/character/Management/CharacterD
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const Location = preload("res://src/core/world/Location.gd")
-const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
 # Validation Schemas

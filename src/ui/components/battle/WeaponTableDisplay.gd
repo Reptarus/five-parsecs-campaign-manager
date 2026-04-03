@@ -92,7 +92,31 @@ func _populate_weapon_list() -> void:
 	# Sort by name
 	weapons.sort_custom(func(a, b): return a.name < b.name)
 
-	# Create weapon entries
+	# Header row
+	var header := HBoxContainer.new()
+	header.custom_minimum_size.y = 28
+	var col_defs := [
+		{"text": "WEAPON", "width": 140},
+		{"text": "RANGE", "width": 50},
+		{"text": "SHOTS", "width": 30},
+		{"text": "DMG", "width": 30},
+		{"text": "TRAITS", "width": 120},
+	]
+	for col in col_defs:
+		var lbl := Label.new()
+		lbl.text = col["text"]
+		lbl.custom_minimum_size.x = col["width"]
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_color_override(
+			"font_color", UIColors.COLOR_TEXT_MUTED)
+		header.add_child(lbl)
+	weapon_list.add_child(header)
+
+	var sep := HSeparator.new()
+	weapon_list.add_child(sep)
+
+	# Weapon entries
 	for weapon in weapons:
 		var entry := _create_weapon_entry(weapon)
 		weapon_list.add_child(entry)
@@ -138,12 +162,14 @@ func _create_weapon_entry(weapon: WeaponTableSystem.WeaponData) -> Control:
 		dmg_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	container.add_child(dmg_label)
 
-	# Traits indicator
+	# Traits
 	var traits_label := Label.new()
-	traits_label.text = "*" if not weapon.traits.is_empty() else ""
-	traits_label.custom_minimum_size.x = 20
-	traits_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var trait_names: String = ", ".join(weapon.traits)
+	traits_label.text = trait_names if not trait_names.is_empty() else "-"
+	traits_label.custom_minimum_size.x = 120
+	traits_label.add_theme_font_size_override("font_size", 12)
 	traits_label.add_theme_color_override("font_color", Color.GOLD)
+	traits_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	container.add_child(traits_label)
 
 	return container

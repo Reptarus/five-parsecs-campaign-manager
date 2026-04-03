@@ -166,6 +166,23 @@ func _build_captain_card() -> PanelContainer:
 		grid.add_child(
 			_build_stat_badge(stat_name, stats[stat_name]))
 	vbox.add_child(grid)
+
+	# Starting bonuses from background/motivation/class
+	var bonuses := _get_starting_bonuses(current_captain)
+	if not bonuses.is_empty():
+		var bonus_sep := HSeparator.new()
+		bonus_sep.modulate = Color("#374151")
+		vbox.add_child(bonus_sep)
+		var bonus_flow := HFlowContainer.new()
+		bonus_flow.add_theme_constant_override(
+			"h_separation", 8)
+		bonus_flow.add_theme_constant_override(
+			"v_separation", 4)
+		for tag in bonuses:
+			bonus_flow.add_child(
+				_build_bonus_tag(tag.text, tag.color))
+		vbox.add_child(bonus_flow)
+
 	return panel
 
 func _build_stat_badge(
@@ -278,3 +295,127 @@ func _apply_button_style(button: Button, is_primary: bool) -> void:
 	button.add_theme_stylebox_override("disabled", disabled)
 	button.add_theme_color_override(
 		"font_disabled_color", Color("#4b5563"))
+
+## Starting bonuses from gear_database.json tables
+var _gear_db: Dictionary = {}
+
+func _load_gear_db() -> void:
+	if not _gear_db.is_empty():
+		return
+	var file := FileAccess.open(
+		"res://data/gear_database.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK:
+		_gear_db = json.data
+	file.close()
+
+func _get_starting_bonuses(character) -> Array:
+	## Look up background/motivation/class in gear_database
+	## Returns array of {text, color} for display tags
+	_load_gear_db()
+	if _gear_db.is_empty() or not character:
+		return []
+
+	var tags: Array = []
+	var tables := {
+		"backgrounds": character.background,
+		"motivations": character.motivation,
+		"classes": character.character_class,
+	}
+	for table_key in tables:
+		var enum_val = tables[table_key]
+		var enum_name: String = ""
+		# Resolve enum int → string name
+		match table_key:
+			"backgrounds":
+				enum_name = _enum_key_name(
+					GlobalEnums.Background, enum_val)
+			"motivations":
+				enum_name = _enum_key_name(
+					GlobalEnums.Motivation, enum_val)
+			"classes":
+				enum_name = _enum_key_name(
+					GlobalEnums.CharacterClass, enum_val)
+		if enum_name.is_empty() or enum_name == "NONE":
+			continue
+		var entry := _find_db_entry(
+			table_key, enum_name.to_lower())
+		if entry.is_empty():
+			continue
+		# Starting equipment rolls
+		var rolls: Array = entry.get("starting_rolls", [])
+		for roll_type in rolls:
+			var label: String = roll_type.replace(
+				"_", " ").capitalize()
+			tags.append({
+				"text": label,
+				"color": Color("#3b82f6")})  # blue
+		# Resources (patrons, rivals, rumors, credits)
+		var res: Dictionary = entry.get("resources", {})
+		if res.get("patron", 0) > 0:
+			tags.append({
+				"text": "Patron ×%d" % res["patron"],
+				"color": Color("#10B981")})  # green
+		if res.get("rival", 0) > 0:
+			tags.append({
+				"text": "Rival ×%d" % res["rival"],
+				"color": Color("#DC2626")})  # red
+		if res.get("quest_rumors", 0) > 0:
+			tags.append({
+				"text": "Rumors ×%d" % res["quest_rumors"],
+				"color": Color("#D97706")})  # amber
+		if res.has("credits_dice"):
+			tags.append({
+				"text": "+%s credits" % res["credits_dice"],
+				"color": Color("#D97706")})  # amber
+		if res.get("story_points", 0) > 0:
+			tags.append({
+				"text": "Story Pt ×%d" % res["story_points"],
+				"color": Color("#8B5CF6")})  # purple
+	return tags
+
+func _find_db_entry(
+	table_key: String, enum_id: String
+) -> Dictionary:
+	## Find entry in gear_database by table + enum ID
+	var table: Array = _gear_db.get(table_key, [])
+	for entry in table:
+		if entry.get("id", "") == enum_id:
+			return entry
+	return {}
+
+func _enum_key_name(
+	enum_dict: Dictionary, value: Variant
+) -> String:
+	## Get the raw KEY name (not capitalized) for enum value
+	if value is String:
+		return value
+	for key in enum_dict:
+		if enum_dict[key] == value:
+			return key
+	return ""
+
+func _build_bonus_tag(
+	text: String, color: Color
+) -> PanelContainer:
+	## Build a colored pill tag for starting bonuses
+	var pill := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.15)
+	style.border_color = Color(
+		color.r, color.g, color.b, 0.4)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	pill.add_theme_stylebox_override("panel", style)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", color)
+	pill.add_child(lbl)
+	return pill

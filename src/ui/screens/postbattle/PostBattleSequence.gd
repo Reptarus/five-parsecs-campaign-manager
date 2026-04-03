@@ -13,10 +13,17 @@ const AdvancementSystemClass = preload("res://src/core/character/advancement/Adv
 const NarrativeInjuryDialog = preload("res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
 const PurchaseItemsComponent = preload("res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
 
-# Design system spacing (UIColors canonical source)
+# Design system (UIColors canonical source)
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const SPACING_LG := UIColors.SPACING_LG
+const FONT_SIZE_XS := UIColors.FONT_SIZE_XS
+const FONT_SIZE_SM := UIColors.FONT_SIZE_SM
+const FONT_SIZE_MD := UIColors.FONT_SIZE_MD
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_TEXT_MUTED := UIColors.COLOR_TEXT_MUTED
+const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
 
 # Bot upgrade system instance
 var _advancement_system: RefCounted = null
@@ -40,6 +47,8 @@ var current_step: int = 0
 var max_steps: int = 14
 var battle_results: Dictionary = {}
 var step_results: Array[Dictionary] = []
+var _step_log_entries: Array = []  # Per-step log text for inline display
+var _inline_rolls_completed: Dictionary = {}  # step_index -> {total: int, done: int}
 
 ## Helper to work around static function linter issues with InjurySystemService
 func _is_narrative_injuries_mode() -> bool:
@@ -47,23 +56,24 @@ func _is_narrative_injuries_mode() -> bool:
 	return FPCM_HouseRulesHelper.is_enabled("narrative_injuries")
 
 var post_battle_steps: Array[Dictionary] = [
-	{"name": "1. Resolve Rival Status", "description": "Check if rivals follow you", "requires_roll": true},
-	{"name": "2. Resolve Patron Status", "description": "Update patron relationships", "requires_roll": false},
-	{"name": "3. Determine Quest Progress", "description": "Check quest advancement", "requires_roll": false},
-	{"name": "4. Get Paid", "description": "Receive mission payment", "requires_roll": false},
-	{"name": "5. Battlefield Finds", "description": "Search the battlefield", "requires_roll": true},
-	{"name": "6. Check for Invasion", "description": "Roll for invasion threat", "requires_roll": true},
-	{"name": "7. Gather the Loot", "description": "Roll on loot tables", "requires_roll": true},
-	{"name": "8. Determine Injuries", "description": "Check crew injuries and recovery", "requires_roll": true},
-	{"name": "9. Experience & Upgrades", "description": "Gain XP and character upgrades", "requires_roll": false},
-	{"name": "10. Advanced Training", "description": "Invest in advanced training", "requires_roll": false},
-	{"name": "11. Purchase Items", "description": "Buy equipment and supplies", "requires_roll": false},
-	{"name": "12. Campaign Events", "description": "Roll for campaign events", "requires_roll": true},
-	{"name": "13. Character Events", "description": "Roll for character events", "requires_roll": true},
-	{"name": "14. Galactic War", "description": "Check Galactic War progress", "requires_roll": true}
+	{"name": "1. Resolve Rival Status", "description": "Check if rivals follow you", "requires_roll": false, "has_inline_rolls": true},
+	{"name": "2. Resolve Patron Status", "description": "Update patron relationships", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "3. Determine Quest Progress", "description": "Check quest advancement", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "4. Get Paid", "description": "Receive mission payment", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "5. Battlefield Finds", "description": "Search the battlefield", "requires_roll": false, "has_inline_rolls": true},
+	{"name": "6. Check for Invasion", "description": "Roll for invasion threat", "requires_roll": true, "has_inline_rolls": false},
+	{"name": "7. Gather the Loot", "description": "Roll on loot tables", "requires_roll": false, "has_inline_rolls": true},
+	{"name": "8. Determine Injuries", "description": "Check crew injuries and recovery", "requires_roll": false, "has_inline_rolls": true},
+	{"name": "9. Experience & Upgrades", "description": "Gain XP and character upgrades", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "10. Advanced Training", "description": "Invest in advanced training", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "11. Purchase Items", "description": "Buy equipment and supplies", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "12. Campaign Events", "description": "Roll for campaign events", "requires_roll": false, "has_inline_rolls": true},
+	{"name": "13. Character Events", "description": "Roll for character events", "requires_roll": false, "has_inline_rolls": true},
+	{"name": "14. Galactic War", "description": "Check Galactic War progress", "requires_roll": false, "has_inline_rolls": false}
 ]
 
 func _ready() -> void:
+	_apply_base_background()
 	_initialize_advancement_system()
 	_initialize_steps()
 	_load_battle_results()
@@ -82,8 +92,10 @@ func _initialize_steps() -> void:
 	## Initialize the post-battle sequence
 	# Initialize step results array
 	step_results.resize(max_steps)
+	_step_log_entries.resize(max_steps)
 	for i: int in range(max_steps):
 		step_results[i] = {}
+		_step_log_entries[i] = []
 
 	# Create step list display
 	_refresh_steps_list()
@@ -471,26 +483,63 @@ func _show_current_step() -> void:
 	step_counter.text = "Step " + str(current_step + 1) + " of " + str(max_steps)
 	step_title.text = step.name
 
-	# Clear step content
+	# Clear step content (immediate free, not deferred)
 	for child in step_content.get_children():
+		step_content.remove_child(child)
 		child.queue_free()
 
-	# Add step description
+	# Add step description first
 	var description_label: Label = Label.new()
+	description_label.name = "StepDescription"
 	description_label.text = step.description
-	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description_label.autowrap_mode = \
+		TextServer.AUTOWRAP_WORD_SMART
 	step_content.add_child(description_label)
 
-	# Add step-specific content
+	# Add step-specific content (some steps use full components
+	# that replace the description entirely)
 	_add_step_specific_content(current_step)
+
+	# Show inline results for completed steps (Fix B)
+	_add_inline_results_if_available(current_step)
 
 	# Update button states
 	previous_button.disabled = (current_step == 0)
-	roll_button.visible = step.requires_roll
+	roll_button.visible = step.get("requires_roll", false)
 	finish_button.visible = (current_step == max_steps - 1)
+	_update_next_button_state()
 
 	# Refresh steps list
 	_refresh_steps_list()
+
+## Inline roll tracking and Next button gating
+func _register_inline_rolls(step_index: int, total: int) -> void:
+	## Register expected inline roll count for a step (0 = auto-complete)
+	_inline_rolls_completed[step_index] = {"total": total, "done": 0}
+
+func _increment_inline_roll() -> void:
+	## Increment completed inline roll count for current step
+	if current_step in _inline_rolls_completed:
+		_inline_rolls_completed[current_step]["done"] += 1
+	_update_next_button_state()
+
+func _update_next_button_state() -> void:
+	## Gate Next button based on step roll completion
+	if current_step >= max_steps:
+		return
+	var step = post_battle_steps[current_step]
+	if step.get("has_inline_rolls", false):
+		var tracking: Dictionary = _inline_rolls_completed.get(
+			current_step, {"total": 0, "done": 0})
+		var total: int = tracking.get("total", 0)
+		var done: int = tracking.get("done", 0)
+		next_button.disabled = (total > 0 and done < total)
+	elif step.get("requires_roll", false):
+		# Generic roll step — gated until Roll Dice used
+		next_button.disabled = not _inline_rolls_completed.has(
+			current_step)
+	else:
+		next_button.disabled = false
 
 func _add_step_specific_content(step_index: int) -> void:
 	## Add specific content for each step
@@ -528,15 +577,20 @@ func _add_rival_status_content() -> void:
 	## Add rival status check content with Five Parsecs rules
 	var label: Label = Label.new()
 	label.text = "Roll D6 for each rival to see if they follow you to the next world.\nRival follows on 1-3, stays behind on 4-6."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 	
 	# Get current rivals from campaign data
 	var gsm = get_node_or_null("/root/GameStateManager")
+	var rival_count: int = 0
 	if gsm and gsm.has_method("get_rivals"):
 		var rivals = gsm.get_rivals()
+		rival_count = rivals.size()
 		for rival in rivals:
 			var rival_panel = _create_rival_status_panel(rival)
 			step_content.add_child(rival_panel)
+	_register_inline_rolls(0, rival_count)
 
 func _create_rival_status_panel(rival: Dictionary) -> Control:
 	## Create a panel for rival status checking
@@ -547,16 +601,18 @@ func _create_rival_status_panel(rival: Dictionary) -> Control:
 	name_label.custom_minimum_size.x = 150
 	panel.add_child(name_label)
 	
-	var roll_button = Button.new()
-	roll_button.text = "Roll for " + rival.get("name", "Rival")
-	roll_button.pressed.connect(_on_rival_status_roll.bind(rival))
-	panel.add_child(roll_button)
-	
+	var roll_btn = Button.new()
+	roll_btn.text = "Roll for " + rival.get("name", "Rival")
+	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	roll_btn.pressed.connect(
+		_on_rival_status_roll.bind(rival, roll_btn))
+	panel.add_child(roll_btn)
+
 	var result_label = Label.new()
 	result_label.name = "result_" + str(rival.get("id", 0))
 	result_label.text = "Not rolled"
 	panel.add_child(result_label)
-	
+
 	return panel
 
 func _add_patron_status_content() -> void:
@@ -572,44 +628,62 @@ func _add_quest_progress_content() -> void:
 	step_content.add_child(label)
 
 func _add_payment_content() -> void:
-	## Add payment content with automatic credit application
-	var payment = battle_results.get("payment", 0)
-	var victory_bonus = 0
-	
-	if battle_results.get("victory", false):
-		victory_bonus = payment * 0.5 # 50% bonus for victory
-	
-	var total_payment = payment + victory_bonus
-	
-	var label: Label = Label.new()
-	label.text = "Base payment: %d credits\nVictory bonus: %d credits\nTotal received: %d credits" % [payment, victory_bonus, total_payment]
+	## Display payment info — Core Rules p.120: "Get Paid"
+	## Payment is calculated by PaymentProcessor backend (1D6 credits,
+	## floor of 3 if Won, +Danger Pay for Patron jobs, 0 for Invasion).
+	## The backend _on_backend_payment_received() handles state mutation.
+	var payment: int = battle_results.get("payment", 0)
+	var credits_earned: int = battle_results.get(
+		"credits_earned", payment)
+	var is_invasion: bool = battle_results.get(
+		"mission_source", "") == "invasion"
+
+	var label := Label.new()
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if is_invasion:
+		label.text = "Invasion battle — no payment received."
+		label.add_theme_color_override(
+			"font_color", UIColors.COLOR_WARNING)
+	elif credits_earned > 0:
+		label.text = "Payment: %d credits" % credits_earned
+		label.add_theme_color_override(
+			"font_color", UIColors.COLOR_EMERALD)
+	else:
+		label.text = "Awaiting payment calculation..."
+		label.add_theme_color_override(
+			"font_color", COLOR_TEXT_SECONDARY)
 	step_content.add_child(label)
-	
-	# Apply payment to campaign
-	var gsm = get_node_or_null("/root/GameStateManager")
-	if gsm and gsm.has_method("get_credits") and gsm.has_method("set_credits"):
-		gsm.set_credits(gsm.get_credits() + total_payment)
-		_add_result_to_log("Received %d credits" % total_payment)
-	
-	var apply_button = Button.new()
-	apply_button.text = "Apply Payment"
-	apply_button.pressed.connect(_on_apply_payment.bind(total_payment))
-	step_content.add_child(apply_button)
+
+	var rules_note := Label.new()
+	rules_note.text = "Core Rules p.120: Roll 1D6 credits. " \
+		+ "Won objective: treat 1-2 as 3. " \
+		+ "Patron jobs add Danger Pay."
+	rules_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rules_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rules_note.add_theme_font_size_override(
+		"font_size", FONT_SIZE_XS)
+	rules_note.add_theme_color_override(
+		"font_color", COLOR_TEXT_MUTED)
+	step_content.add_child(rules_note)
 
 func _add_battlefield_finds_content() -> void:
 	## Add battlefield finds content with Five Parsecs loot tables
 	var label: Label = Label.new()
 	label.text = "Search the battlefield for equipment and supplies.\nRoll D6 for each enemy defeated."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 	
 	var enemies_defeated = battle_results.get("enemy_defeated", 0)
 	var finds_container = VBoxContainer.new()
-	
+
 	for i in range(enemies_defeated):
 		var find_panel = _create_battlefield_find_panel(i + 1)
 		finds_container.add_child(find_panel)
-	
+
 	step_content.add_child(finds_container)
+	_register_inline_rolls(4, enemies_defeated)
 
 func _create_battlefield_find_panel(enemy_num: int) -> Control:
 	## Create a panel for battlefield finds
@@ -620,11 +694,13 @@ func _create_battlefield_find_panel(enemy_num: int) -> Control:
 	label.custom_minimum_size.x = 80
 	panel.add_child(label)
 	
-	var roll_button = Button.new()
-	roll_button.text = "Search"
-	roll_button.pressed.connect(_on_battlefield_find_roll.bind(enemy_num))
-	panel.add_child(roll_button)
-	
+	var roll_btn = Button.new()
+	roll_btn.text = "Search"
+	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	roll_btn.pressed.connect(
+		_on_battlefield_find_roll.bind(enemy_num, roll_btn))
+	panel.add_child(roll_btn)
+
 	var result_label = Label.new()
 	result_label.name = "find_result_" + str(enemy_num)
 	result_label.text = "Not searched"
@@ -636,6 +712,8 @@ func _add_invasion_check_content() -> void:
 	## Add invasion check content
 	var label: Label = Label.new()
 	label.text = "Roll D6 to check for invasion threats."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 
 func _add_loot_content() -> void:
@@ -644,45 +722,58 @@ func _add_loot_content() -> void:
 	## Step 7: Gather the Loot — D100 roll on Main Loot Table
 	var label: Label = Label.new()
 	label.text = "Roll on the Loot Table (Core Rules p.131) for items earned."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 
 	var loot_button: Button = Button.new()
 	loot_button.text = "Roll on Loot Tables"
-	loot_button.pressed.connect(_on_generate_loot_pressed)
+	loot_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	loot_button.pressed.connect(
+		_on_generate_loot_pressed.bind(loot_button))
 	step_content.add_child(loot_button)
 
 	var loot_results_container: VBoxContainer = VBoxContainer.new()
 	loot_results_container.name = "LootResultsContainer"
 	step_content.add_child(loot_results_container)
+	_register_inline_rolls(6, 1)
 
 func _add_injury_content() -> void:
 	## Add injury content with Five Parsecs injury tables
 	var label: Label = Label.new()
 	label.text = "Determine injuries for crew members and recovery time."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 	
 	var casualties = battle_results.get("crew_casualties", 0)
 	var injuries = battle_results.get("crew_injuries", 0)
 	
+	var total_injury_rolls: int = 0
 	if casualties > 0 or injuries > 0:
 		var injury_container = VBoxContainer.new()
-		
+
 		# Handle casualties
 		for i in range(casualties):
-			var casualty_panel = _create_injury_panel("Casualty", i + 1, true)
+			var casualty_panel = _create_injury_panel(
+				"Casualty", i + 1, true)
 			injury_container.add_child(casualty_panel)
-		
+			total_injury_rolls += 1
+
 		# Handle injuries
 		for i in range(injuries):
-			var injury_panel = _create_injury_panel("Injury", i + 1, false)
+			var injury_panel = _create_injury_panel(
+				"Injury", i + 1, false)
 			injury_container.add_child(injury_panel)
-		
+			total_injury_rolls += 1
+
 		step_content.add_child(injury_container)
 	else:
 		var no_injuries_label = Label.new()
 		no_injuries_label.text = "No crew injuries to resolve!"
 		no_injuries_label.modulate = UIColors.COLOR_EMERALD
 		step_content.add_child(no_injuries_label)
+	_register_inline_rolls(7, total_injury_rolls)
 
 func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	## Create a panel for injury resolution
@@ -700,7 +791,9 @@ func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 		roll_button.tooltip_text = "Narrative Injuries: You decide the outcome!"
 	else:
 		roll_button.text = "Roll Injury" if not is_casualty else "Roll Severity"
-	roll_button.pressed.connect(_on_injury_roll.bind(type, num, is_casualty))
+	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	roll_button.pressed.connect(
+		_on_injury_roll.bind(type, num, is_casualty, roll_button))
 	panel.add_child(roll_button)
 
 	var result_label = Label.new()
@@ -716,6 +809,8 @@ func _add_experience_content() -> void:
 	## Per Core Rules p.98: Bots don't gain XP - they purchase upgrades with credits instead.
 	var label: Label = Label.new()
 	label.text = "Crew members gain experience from battle. Roll for advancement!"
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 
 	# Get crew from campaign
@@ -751,12 +846,12 @@ func _add_experience_content() -> void:
 		if has_bots:
 			var bot_header = Label.new()
 			bot_header.text = "\n🤖 Bot Upgrades (Credits-Based)"
-			bot_header.modulate = Color("#4FC3F7")  # Cyan accent
+			bot_header.modulate = UIColors.COLOR_CYAN  # Cyan accent
 			step_content.add_child(bot_header)
 
 			var bot_info = Label.new()
 			bot_info.text = "Bots don't gain XP - purchase upgrades with credits instead."
-			bot_info.modulate = Color("#808080")  # Dimmed
+			bot_info.modulate = UIColors.COLOR_TEXT_MUTED  # Dimmed
 			bot_info.add_theme_font_size_override("font_size", 12)
 			step_content.add_child(bot_info)
 
@@ -779,6 +874,7 @@ func _create_experience_panel(crew_member: Dictionary) -> Control:
 	
 	var roll_button = Button.new()
 	roll_button.text = "Roll Advancement"
+	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 	roll_button.pressed.connect(_on_experience_roll.bind(crew_member))
 	panel.add_child(roll_button)
 	
@@ -821,7 +917,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 
 	var credits_label = Label.new()
 	credits_label.text = "Credits: %d" % current_credits
-	credits_label.modulate = Color("#10B981")  # Green
+	credits_label.modulate = UIColors.COLOR_EMERALD  # Green
 	header.add_child(credits_label)
 	panel.add_child(header)
 
@@ -853,7 +949,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 			if can_afford:
 				upgrade_button.pressed.connect(_on_bot_upgrade_selected.bind(crew_member, upgrade_id, upgrade_button))
 			else:
-				upgrade_button.modulate = Color("#808080")  # Dimmed if can't afford
+				upgrade_button.modulate = UIColors.COLOR_TEXT_MUTED  # Dimmed if can't afford
 
 			upgrade_container.add_child(upgrade_button)
 
@@ -861,7 +957,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 		if upgrade_container.get_child_count() == 0:
 			var all_done_label = Label.new()
 			all_done_label.text = "All upgrades installed!"
-			all_done_label.modulate = Color("#10B981")
+			all_done_label.modulate = UIColors.COLOR_EMERALD
 			upgrade_container.add_child(all_done_label)
 
 		panel.add_child(upgrade_container)
@@ -869,7 +965,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 		# Show installed upgrades count
 		var installed_label = Label.new()
 		installed_label.text = "Installed: %d upgrades" % installed_upgrades.size()
-		installed_label.modulate = Color("#808080")
+		installed_label.modulate = UIColors.COLOR_TEXT_MUTED
 		installed_label.add_theme_font_size_override("font_size", 11)
 		panel.add_child(installed_label)
 
@@ -903,7 +999,7 @@ func _on_bot_upgrade_selected(crew_member: Dictionary, upgrade_id: String, butto
 			# Update button to show installed
 			button.text = "✅ Installed!"
 			button.disabled = true
-			button.modulate = Color("#10B981")
+			button.modulate = UIColors.COLOR_EMERALD
 
 			# Record in step results
 			if step_results.size() > current_step:
@@ -918,7 +1014,7 @@ func _on_bot_upgrade_selected(crew_member: Dictionary, upgrade_id: String, butto
 		else:
 			# Show error feedback
 			button.text = "❌ Failed"
-			button.modulate = Color("#DC2626")
+			button.modulate = UIColors.COLOR_RED
 
 
 func _add_training_content() -> void:
@@ -926,8 +1022,9 @@ func _add_training_content() -> void:
 	if not step_content:
 		return
 
-	# Clear existing content
+	# Remove description — component has its own header
 	for child in step_content.get_children():
+		step_content.remove_child(child)
 		child.queue_free()
 
 	# Instantiate training dialog
@@ -953,8 +1050,9 @@ func _add_purchase_content() -> void:
 	if not step_content:
 		return
 
-	# Clear existing content
+	# Remove description label — component has its own header
 	for child in step_content.get_children():
+		step_content.remove_child(child)
 		child.queue_free()
 
 	# Instantiate purchase items component
@@ -987,42 +1085,51 @@ func _add_campaign_events_content() -> void:
 	## Add campaign events content with Five Parsecs event tables
 	var label: Label = Label.new()
 	label.text = "Roll D100 on campaign events table for random encounters and opportunities."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 	
 	var roll_panel = HBoxContainer.new()
 	
-	var roll_button = Button.new()
-	roll_button.text = "Roll Campaign Event"
-	roll_button.pressed.connect(_on_campaign_event_roll)
-	roll_panel.add_child(roll_button)
-	
+	var roll_btn = Button.new()
+	roll_btn.text = "Roll Campaign Event"
+	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	roll_btn.pressed.connect(
+		_on_campaign_event_roll.bind(roll_btn))
+	roll_panel.add_child(roll_btn)
+
 	var result_label = Label.new()
 	result_label.name = "campaign_event_result"
 	result_label.text = "Not rolled"
 	roll_panel.add_child(result_label)
-	
-	step_content.add_child(roll_panel)
 
-func _on_campaign_event_roll() -> void:
+	step_content.add_child(roll_panel)
+	_register_inline_rolls(11, 1)
+
+func _on_campaign_event_roll(btn: Button = null) -> void:
 	## Handle campaign event roll
+	if btn:
+		btn.disabled = true
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
-	
+
 	if dice_manager:
 		roll = dice_manager.roll_d100("Campaign Event")
 	else:
 		roll = randi_range(1, 100)
-	
+
 	var event_result = _interpret_campaign_event(roll)
 	var result_text = "Rolled %d - %s" % [roll, event_result]
-	
+
 	# Update UI
-	var result_label = step_content.find_child("campaign_event_result")
+	var result_label = step_content.find_child(
+		"campaign_event_result")
 	if result_label:
 		result_label.text = result_text
 		result_label.modulate = _get_event_color(roll)
-	
+
 	_add_result_to_log("Campaign Event: %s" % result_text)
+	_increment_inline_roll()
 
 func _get_event_color(roll: int) -> Color:
 	## Get color for event based on roll
@@ -1041,20 +1148,26 @@ func _add_character_events_content() -> void:
 	## Add character events content with individual crew rolls
 	var label: Label = Label.new()
 	label.text = "Roll D100 on character events table for each crew member."
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 	
 	# Get crew from campaign
 	var gsm_char = get_node_or_null("/root/GameStateManager")
+	var char_roll_count: int = 0
 	if gsm_char and gsm_char.has_method("get_crew_members"):
 		var crew = gsm_char.get_crew_members()
 		var char_events_container = VBoxContainer.new()
-		
+
 		for crew_member in crew:
 			if not _was_crew_casualty(crew_member):
-				var char_panel = _create_character_event_panel(crew_member)
+				var char_panel = _create_character_event_panel(
+					crew_member)
 				char_events_container.add_child(char_panel)
-		
+				char_roll_count += 1
+
 		step_content.add_child(char_events_container)
+	_register_inline_rolls(12, char_roll_count)
 
 func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	## Create character event panel for crew member
@@ -1065,10 +1178,12 @@ func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	name_label.custom_minimum_size.x = 120
 	panel.add_child(name_label)
 	
-	var roll_button = Button.new()
-	roll_button.text = "Roll Event"
-	roll_button.pressed.connect(_on_character_event_roll.bind(crew_member))
-	panel.add_child(roll_button)
+	var roll_btn = Button.new()
+	roll_btn.text = "Roll Event"
+	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	roll_btn.pressed.connect(
+		_on_character_event_roll.bind(crew_member, roll_btn))
+	panel.add_child(roll_btn)
 	
 	var result_label = Label.new()
 	result_label.name = "char_event_" + str(crew_member.get("id", 0))
@@ -1077,34 +1192,42 @@ func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	
 	return panel
 
-func _on_character_event_roll(crew_member: Dictionary) -> void:
+func _on_character_event_roll(crew_member: Dictionary, btn: Button = null) -> void:
 	## Handle character event roll
+	if btn:
+		btn.disabled = true
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
-	
+
 	if dice_manager:
-		roll = dice_manager.roll_d100("Character Event: " + crew_member.get("name", "Unknown"))
+		roll = dice_manager.roll_d100(
+			"Character Event: " + crew_member.get("name", "Unknown"))
 	else:
 		roll = randi_range(1, 100)
-	
+
 	var event_result = _interpret_character_event(roll)
 	var result_text = "Rolled %d - %s" % [roll, event_result]
-	
+
 	# Update UI
-	var result_label = step_content.find_child("char_event_" + str(crew_member.get("id", 0)))
+	var result_label = step_content.find_child(
+		"char_event_" + str(crew_member.get("id", 0)))
 	if result_label:
 		result_label.text = result_text
 		result_label.modulate = _get_event_color(roll)
-	
-	_add_result_to_log("%s Character Event: %s" % [crew_member.get("name", "Crew"), result_text])
+
+	_add_result_to_log(
+		"%s Character Event: %s" % [
+			crew_member.get("name", "Crew"), result_text])
+	_increment_inline_roll()
 
 func _add_galactic_war_content() -> void:
 	## Add galactic war content using GalacticWarPanel
 	if not step_content:
 		return
 
-	# Clear existing content
+	# Remove description — component has its own header
 	for child in step_content.get_children():
+		step_content.remove_child(child)
 		child.queue_free()
 
 	# Instantiate war panel
@@ -1129,10 +1252,67 @@ func _get_current_turn() -> int:
 	return 0
 
 func _add_result_to_log(result: String) -> void:
-	## Add a result to the results log
-	var result_label: Label = Label.new()
-	result_label.text = "Step " + str(current_step + 1) + ": " + result
+	## Add a result to the results log (side panel + per-step tracking)
+	var result_label := Label.new()
+	result_label.text = "Step %d: %s" % [current_step + 1, result]
+	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	result_label.add_theme_font_size_override(
+		"font_size", FONT_SIZE_SM)
+	result_label.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
 	results_container.add_child(result_label)
+	# Track per-step for inline display when revisiting
+	if current_step >= 0 \
+			and current_step < _step_log_entries.size():
+		_step_log_entries[current_step].append(result)
+
+func _add_inline_results_if_available(step_idx: int) -> void:
+	## Show inline result card for completed steps when revisiting
+	if step_idx < 0 or step_idx >= _step_log_entries.size():
+		return
+	var entries: Array = _step_log_entries[step_idx]
+	if entries.is_empty():
+		return
+
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		UIColors.COLOR_SECONDARY.r,
+		UIColors.COLOR_SECONDARY.g,
+		UIColors.COLOR_SECONDARY.b, 0.8)
+	style.border_color = Color(
+		UIColors.COLOR_EMERALD.r,
+		UIColors.COLOR_EMERALD.g,
+		UIColors.COLOR_EMERALD.b, 0.4)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(float(SPACING_SM))
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+
+	var header := Label.new()
+	header.text = "RESULT"
+	header.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	header.add_theme_color_override(
+		"font_color", UIColors.COLOR_EMERALD)
+	vbox.add_child(header)
+
+	for entry: String in entries:
+		var lbl := Label.new()
+		lbl.text = "\u25b8 " + entry
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_font_size_override(
+			"font_size", FONT_SIZE_SM)
+		lbl.add_theme_color_override(
+			"font_color", COLOR_TEXT_PRIMARY)
+		vbox.add_child(lbl)
+
+	panel.add_child(vbox)
+	step_content.add_child(panel)
 
 func _on_previous_pressed() -> void:
 	## Handle previous button press
@@ -1156,39 +1336,35 @@ func _on_next_pressed() -> void:
 	_show_current_step()
 
 func _on_roll_pressed() -> void:
-	## Handle roll dice button press with proper dice system integration
+	## Generic Roll Dice — only used for Step 6 (Invasion Check)
+	## All other roll steps use inline per-item buttons
 	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll_result = 0
-	
-	# Determine dice type based on step
-	var dice_type = "D6"
-	match current_step:
-		11, 12: # Campaign and Character Events
-			dice_type = "D100"
-	
-	if dice_manager:
-		roll_result = dice_manager.roll_d100("Post-Battle Step %d" % (current_step + 1)) if dice_type == "D100" else dice_manager.roll_d6("Post-Battle Step %d" % (current_step + 1))
-	else:
-		roll_result = randi_range(1, 6) if dice_type == "D6" else randi_range(1, 100)
-	
-	var result_text: String = "Rolled %s: %d" % [dice_type, roll_result]
+	var roll_result: int = 0
 
-	# Add step-specific roll interpretation using Five Parsecs tables
+	# Step 5 (Invasion) uses 2D6 per Core Rules p.121
+	if dice_manager:
+		roll_result = dice_manager.roll_d6(
+			"Post-Battle Step %d" % (current_step + 1))
+	else:
+		roll_result = randi_range(1, 6)
+
+	var result_text: String = "Rolled D6: %d" % roll_result
+
+	# Step-specific interpretation
 	match current_step:
-		0: # Rival Status
-			result_text += " - " + ("Rival follows" if roll_result <= 3 else "Rival stays behind")
-		4: # Battlefield Finds
-			result_text += " - " + _interpret_battlefield_find(roll_result)
-		5: # Invasion Check
-			result_text += " - " + ("Invasion threat!" if roll_result == 1 else "No invasion")
-		6: # Loot
-			result_text += " - " + _interpret_loot_roll(roll_result)
-		11: # Campaign Events
-			result_text += " - " + _interpret_campaign_event(roll_result)
-		12: # Character Events
-			result_text += " - " + _interpret_character_event(roll_result)
+		5: # Invasion Check (Core Rules p.121)
+			result_text += " - " + (
+				"Invasion threat!"
+				if roll_result == 1
+				else "No invasion")
 
 	_add_result_to_log(result_text)
+
+	# Disable generic Roll Dice + mark step as rolled
+	roll_button.disabled = true
+	_inline_rolls_completed[current_step] = {
+		"total": 1, "done": 1}
+	_update_next_button_state()
 
 func _on_finish_pressed() -> void:
 	## Handle finish button press
@@ -1266,6 +1442,19 @@ func _style_step_content_panel() -> void:
 	stylebox.content_margin_right = float(SPACING_MD)
 	stylebox.content_margin_bottom = float(SPACING_MD)
 	panel_container.add_theme_stylebox_override("panel", stylebox)
+
+func _apply_base_background() -> void:
+	## Apply the Deep Space COLOR_BASE background behind this panel
+	if has_node("__phase_bg"):
+		return
+	var bg := ColorRect.new()
+	bg.name = "__phase_bg"
+	bg.color = UIColors.COLOR_BASE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	add_child(bg)
+	move_child(bg, 0)
 
 func _style_side_panels() -> void:
 	## Apply Deep Space card styling to StepsList and Results panels.
@@ -1349,26 +1538,34 @@ func _interpret_character_event(roll: int) -> String:
 
 # Enhanced signal handlers for specific rolls
 
-func _on_rival_status_roll(rival: Dictionary) -> void:
+func _on_rival_status_roll(rival: Dictionary, btn: Button) -> void:
 	## Handle rival status roll
+	btn.disabled = true
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
-	
+
 	if dice_manager:
-		roll = dice_manager.roll_d6("Rival Status: " + rival.get("name", "Unknown"))
+		roll = dice_manager.roll_d6(
+			"Rival Status: " + rival.get("name", "Unknown"))
 	else:
 		roll = randi_range(1, 6)
-	
+
 	var follows = roll <= 3
-	var result_text = "Rolled %d - %s" % [roll, "Follows" if follows else "Stays behind"]
-	
+	var result_text = "Rolled %d - %s" % [
+		roll, "Follows" if follows else "Stays behind"]
+
 	# Update UI
-	var result_label = step_content.find_child("result_" + str(rival.get("id", 0)))
+	var result_label = step_content.find_child(
+		"result_" + str(rival.get("id", 0)))
 	if result_label:
 		result_label.text = result_text
-		result_label.modulate = UIColors.COLOR_EMERALD if follows else UIColors.COLOR_RED
-	
-	_add_result_to_log("%s: %s" % [rival.get("name", "Rival"), result_text])
+		result_label.modulate = (
+			UIColors.COLOR_EMERALD if follows
+			else UIColors.COLOR_RED)
+
+	_add_result_to_log(
+		"%s: %s" % [rival.get("name", "Rival"), result_text])
+	_increment_inline_roll()
 
 func _on_apply_payment(amount: int) -> void:
 	## Apply payment to campaign
@@ -1377,8 +1574,10 @@ func _on_apply_payment(amount: int) -> void:
 		gsm.set_credits(gsm.get_credits() + amount)
 		_add_result_to_log("Applied %d credits to campaign" % amount)
 
-func _on_battlefield_find_roll(enemy_num: int) -> void:
+func _on_battlefield_find_roll(enemy_num: int, btn: Button = null) -> void:
 	## Handle battlefield find roll using JSON data table
+	if btn:
+		btn.disabled = true
 	# Load battlefield finds table
 	var finds_table = DataLoader.get_battlefield_finds_table()
 	
@@ -1450,10 +1649,12 @@ func _on_battlefield_find_roll(enemy_num: int) -> void:
 	if credits > 0:
 		log_message += " (+%d credits)" % credits
 	_add_result_to_log(log_message)
-	
+	_increment_inline_roll()
 
-func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
+func _on_injury_roll(type: String, num: int, is_casualty: bool, btn: Button = null) -> void:
 	## Handle injury severity roll or narrative selection using FPCM_InjuryService
+	if btn:
+		btn.disabled = true
 	# HOUSE RULE: narrative_injuries - Player chooses injury instead of rolling
 	if _is_narrative_injuries_mode():
 		_show_narrative_injury_dialog(type, num, is_casualty)
@@ -1471,6 +1672,7 @@ func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
 	# Use FPCM_InjuryService for proper injury determination
 	var injury_data = FPCM_InjuryService.determine_injury(roll)
 	_apply_injury_result(type, num, injury_data, roll)
+	_increment_inline_roll()
 
 func _show_narrative_injury_dialog(type: String, num: int, _is_casualty: bool) -> void:
 	## Show narrative injury selection dialog
@@ -1537,7 +1739,9 @@ func _apply_injury_result(type: String, num: int, injury_data: Dictionary, roll:
 
 	_add_result_to_log("%s %d: %s" % [type, num, result_text])
 
-func _on_generate_loot_pressed() -> void:
+func _on_generate_loot_pressed(btn: Button = null) -> void:
+	if btn:
+		btn.disabled = true
 	## Core Rules pp.120-121, 131-133:
 	## Step 5: Battlefield Finds — if Held the Field, roll D100 once
 	## Step 7: Gather the Loot — roll D100 once on Main Loot Table
@@ -1588,6 +1792,7 @@ func _on_generate_loot_pressed() -> void:
 		step_results[current_step]["loot_found"] = total_loot
 
 	_add_result_to_log("Loot: %d items found" % total_loot.size())
+	_increment_inline_roll()
 
 
 ## ==========================================

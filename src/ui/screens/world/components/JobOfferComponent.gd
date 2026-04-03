@@ -890,6 +890,12 @@ func _update_ui_display() -> void:
 	var has_selection = selected_job_index >= 0 and selected_job_index < available_jobs.size()
 	if accept_button:
 		accept_button.disabled = not has_selection or job_accepted
+	# Lock reroll + job list after acceptance
+	if reroll_button:
+		reroll_button.disabled = job_accepted
+	if job_list and job_accepted:
+		job_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		job_list.modulate.a = 0.5
 
 	_update_job_details()
 

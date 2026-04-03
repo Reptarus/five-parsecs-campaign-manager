@@ -61,12 +61,6 @@ func process_results(battle_results: Dictionary) -> Dictionary:
 	# Update campaign state
 	_update_campaign_state(battle_results, changes_applied)
 	
-	# Save changes using SaveManager autoload
-	if auto_process_enabled:
-		var save_manager = get_node_or_null("/root/SaveManager")
-		if save_manager and save_manager.has_method("quick_save"):
-			save_manager.quick_save()
-	
 	results_processed.emit(battle_results.get("session_id", "unknown"), changes_applied)
 	
 	return {"success": true, "changes": changes_applied}

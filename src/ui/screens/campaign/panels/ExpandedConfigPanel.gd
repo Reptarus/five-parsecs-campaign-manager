@@ -202,16 +202,30 @@ func _initialize_components() -> void:
 
 	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display centrally
 
-	# Build card-based UI sections
-	_build_campaign_identity_section(main_container)
-	_build_campaign_type_section(main_container)
-	_build_difficulty_section(main_container)
-	_build_difficulty_toggles_section(main_container)
+	# Responsive multi-column layout: HFlowContainer auto-wraps cards
+	# Desktop (1200px): 2 columns, Mobile (<480px): 1 column
+	var flow := HFlowContainer.new()
+	flow.name = "FlowContent"
+	flow.add_theme_constant_override("h_separation", SPACING_LG)
+	flow.add_theme_constant_override("v_separation", SPACING_LG)
+	flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_container.add_child(flow)
+
+	# Build card-based UI sections into flow container
+	_build_campaign_identity_section(flow)
+	_build_campaign_type_section(flow)
+	_build_difficulty_section(flow)
+	_build_difficulty_toggles_section(flow)
 	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
-	_build_victory_conditions_section(main_container)
-	_build_story_track_section(main_container)
-	_build_tutorial_section(main_container)
-	_build_compendium_options_section(main_container)
+	_build_victory_conditions_section(flow)
+	_build_story_track_section(flow)
+	_build_tutorial_section(flow)
+	_build_compendium_options_section(flow)
+
+	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
+	for child in flow.get_children():
+		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		child.custom_minimum_size.x = 500
 
 	# SPRINT 27 FIX: Setup options BEFORE connecting signals to prevent double-loading
 	# (selecting default values triggers signal handlers, causing duplicate _update_display calls)
@@ -348,18 +362,28 @@ func _build_victory_conditions_section(parent: Control) -> void:
 	## Build victory conditions section with card selectors
 	victory_conditions_list = VBoxContainer.new()
 	victory_conditions_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
+	victory_conditions_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	# Wrap in ScrollContainer to prevent overflow on desktop multi-column
+	var victory_scroll := ScrollContainer.new()
+	victory_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	victory_scroll.custom_minimum_size = Vector2(0, 300)
+	victory_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	victory_scroll.add_child(victory_conditions_list)
+
 	# Create description label for selection summary
 	victory_condition_description = RichTextLabel.new()
 	victory_condition_description.bbcode_enabled = true
 	victory_condition_description.fit_content = true
 	victory_condition_description.custom_minimum_size = Vector2(0, 60)
-	victory_condition_description.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
-	victory_condition_description.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
-	
+	victory_condition_description.add_theme_color_override(
+		"default_color", COLOR_TEXT_SECONDARY)
+	victory_condition_description.add_theme_font_size_override(
+		"normal_font_size", FONT_SIZE_SM)
+
 	var content = VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_MD)
-	content.add_child(victory_conditions_list)
+	content.add_child(victory_scroll)
 	content.add_child(victory_condition_description)
 	
 	var card = _create_section_card(
@@ -367,6 +391,8 @@ func _build_victory_conditions_section(parent: Control) -> void:
 		content,
 		"Select one or more conditions - achieve ANY to win your campaign"
 	)
+	# Force full-width row in HFlowContainer (don't pair with other cards)
+	card.custom_minimum_size.x = 1000
 	parent.add_child(card)
 
 func _build_story_track_section(parent: Control) -> void:

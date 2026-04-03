@@ -492,6 +492,7 @@ func _show_notification(message: String) -> void:
 func _on_confirm_pressed() -> void:
 	## Confirm equipment assignments
 	assignment_completed = true
+	_lock_after_confirm()
 
 	# Persist equipment assignments to campaign (Sprint 26.3: Character-Everywhere)
 	var game_state = get_node_or_null("/root/GameState")
@@ -541,6 +542,18 @@ func _on_phase_started(data: Dictionary) -> void:
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "assign_equipment":
 		pass
+
+## Post-confirm lockdown — prevent edits after assignments finalized
+func _lock_after_confirm() -> void:
+	if confirm_button:
+		confirm_button.disabled = true
+	for btn in [transfer_to_stash_button, transfer_to_crew_button, transfer_between_crew_button]:
+		if btn:
+			btn.disabled = true
+	for list_ctrl in [crew_list, crew_equipment_list, stash_list]:
+		if list_ctrl:
+			list_ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			list_ctrl.modulate.a = 0.5
 
 ## Public API
 func is_assignment_completed() -> bool:
@@ -600,16 +613,44 @@ func _on_stash_item_selected(index: int) -> void:
 	_update_detail_strip()
 
 func _load_equipment_database() -> void:
-	## Cache equipment_database.json for item stat lookups
+	## Cache equipment data from all canonical JSON sources
+	# Primary: equipment_database.json (commerce data with full stats)
 	var path := "res://data/equipment_database.json"
-	if not FileAccess.file_exists(path):
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) == OK:
-		_equipment_db = json.data if json.data is Dictionary else {}
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK:
+			_equipment_db = json.data if json.data is Dictionary else {}
+
+	# Secondary: weapons.json (Core Rules weapon stats — same structure)
+	var wp := FileAccess.open("res://data/weapons.json", FileAccess.READ)
+	if wp:
+		var json2 := JSON.new()
+		if json2.parse(wp.get_as_text()) == OK:
+			var wp_data: Dictionary = json2.data if json2.data is Dictionary else {}
+			# Merge weapons not already present (by name, case-insensitive)
+			var existing_names := {}
+			for w in _equipment_db.get("weapons", []):
+				if w is Dictionary:
+					existing_names[w.get("name", "").to_lower()] = true
+			for w in wp_data.get("weapons", []):
+				if w is Dictionary:
+					var wname: String = w.get("name", "").to_lower()
+					if wname not in existing_names:
+						if not _equipment_db.has("weapons"):
+							_equipment_db["weapons"] = []
+						_equipment_db["weapons"].append(w)
+						existing_names[wname] = true
+
+	# Tertiary: armor.json
+	var ap := FileAccess.open("res://data/armor.json", FileAccess.READ)
+	if ap:
+		var json3 := JSON.new()
+		if json3.parse(ap.get_as_text()) == OK:
+			var ap_data: Dictionary = json3.data if json3.data is Dictionary else {}
+			var armor_arr: Array = ap_data.get("armor", [])
+			if not armor_arr.is_empty() and _equipment_db.get("armor", []).is_empty():
+				_equipment_db["armor"] = armor_arr
 
 func _resolve_item(item: Variant) -> Dictionary:
 	## Normalize an equipment item to a full Dictionary record.
@@ -635,26 +676,36 @@ func _resolve_item(item: Variant) -> Dictionary:
 	return {"name": str(item), "type": "Unknown"}
 
 func _search_db(id_or_name: String, name_fallback: String) -> Dictionary:
-	## Search equipment DB arrays by id then by name
+	## Search equipment DB arrays by id then by name (case-insensitive)
+	var id_lower := id_or_name.to_lower()
+	var fb_lower := name_fallback.to_lower()
 	for category: String in ["weapons", "armor", "gear"]:
 		var items: Array = _equipment_db.get(category, [])
 		for entry in items:
 			if entry is Dictionary:
-				if entry.get("id", "") == id_or_name:
+				if entry.get("id", "").to_lower() == id_lower:
 					return entry
-				if entry.get("name", "") == id_or_name:
+				var ename: String = str(entry.get("name", "")).to_lower()
+				if ename == id_lower:
 					return entry
-				if not name_fallback.is_empty() \
-						and entry.get("name", "") == name_fallback:
+				if not fb_lower.is_empty() and ename == fb_lower:
 					return entry
 	return {}
 
 func _determine_item_category(item: Dictionary) -> String:
-	## Classify an equipment item
+	## Classify an equipment item by stat keys or type field
 	if item.has("shots") or item.has("damage") \
 			or item.has("range"):
 		return "weapon"
 	if item.has("saving_throw"):
+		return "armor"
+	# Fallback: use "type" or "category" field from partial dicts
+	var item_type: String = str(
+		item.get("type", item.get("category", ""))).to_lower()
+	if item_type in ["weapon", "slug", "energy", "melee", "special",
+			"grenade"]:
+		return "weapon"
+	if item_type in ["armor", "screen"]:
 		return "armor"
 	if item.has("description"):
 		return "gear"

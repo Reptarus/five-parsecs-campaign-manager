@@ -21,7 +21,7 @@ signal campaign_finalization_complete(data: Dictionary)
 signal campaign_confirmed()  # New signal for Create Campaign button
 
 # UI References - rebuilt programmatically
-var summary_cards_container: VBoxContainer = null
+var summary_cards_container: HFlowContainer = null
 var validation_feedback_container: Control = null  # Validation feedback panel
 var validation_panel: ValidationPanel = null
 var crew_preview_container: VBoxContainer = null
@@ -132,11 +132,12 @@ func _build_final_panel_ui() -> void:
 
 	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display centrally
 
-	# 1. Summary Cards Container
-	summary_cards_container = VBoxContainer.new()
+	# 1. Summary Cards Container — HFlowContainer for responsive 2-column on desktop
+	summary_cards_container = HFlowContainer.new()
 	summary_cards_container.name = "SummaryCards"
 	summary_cards_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	summary_cards_container.add_theme_constant_override("separation", SPACING_MD)
+	summary_cards_container.add_theme_constant_override("h_separation", SPACING_MD)
+	summary_cards_container.add_theme_constant_override("v_separation", SPACING_MD)
 	content_container.add_child(summary_cards_container)
 
 	# 2. Crew Preview Section
@@ -307,6 +308,14 @@ func _update_display() -> void:
 	var elite_card = _create_elite_bonuses_card()
 	if elite_card:
 		summary_cards_container.add_child(elite_card)
+		# Force full-width (Stars of the Story grid is wide)
+		elite_card.custom_minimum_size.x = 1000
+
+	# Set min widths for responsive 2-column HFlowContainer layout
+	for child in summary_cards_container.get_children():
+		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if child.custom_minimum_size.x < 500:
+			child.custom_minimum_size.x = 500
 
 	# Update crew preview
 	_update_crew_preview()

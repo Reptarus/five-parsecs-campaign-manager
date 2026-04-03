@@ -1,17 +1,9 @@
 extends Node
-func calculate_upkeep_cost(crew_size: int, difficulty: GlobalEnums.DifficultyLevel) -> int:
-	var base_cost = 100 * crew_size
-    
-	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			base_cost = int(base_cost * 0.8)
-		GlobalEnums.DifficultyLevel.NORMAL:
-			base_cost = base_cost
-		GlobalEnums.DifficultyLevel.HARD:
-			base_cost = int(base_cost * 1.2)
-		GlobalEnums.DifficultyLevel.HARDCORE:
-			base_cost = int(base_cost * 1.5)
-		GlobalEnums.DifficultyLevel.ELITE:
-			base_cost = int(base_cost * 2.0)
-    
-	return base_cost
+
+## Upkeep cost calculator — Core Rules p.76
+## 1 credit for 4-6 crew, +1 per crew member past 6.
+## Difficulty does NOT modify upkeep in Core Rules.
+func calculate_upkeep_cost(crew_size: int, _difficulty: GlobalEnums.DifficultyLevel) -> int:
+	if crew_size < 4:
+		return 0
+	return 1 + max(0, crew_size - 6)

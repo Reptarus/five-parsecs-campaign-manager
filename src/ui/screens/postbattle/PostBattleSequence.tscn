@@ -52,8 +52,9 @@ vertical_spacing = 16
 
 [node name="StepsList" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
-size_flags_horizontal = 2
-custom_minimum_size = Vector2(280, 0)
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+custom_minimum_size = Vector2(200, 0)
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/StepsList"]
 layout_mode = 2
@@ -78,6 +79,7 @@ size_flags_vertical = 3
 [node name="CurrentStep" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.5
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CurrentStep"]
 layout_mode = 2
@@ -97,8 +99,9 @@ size_flags_vertical = 3
 
 [node name="Results" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
-size_flags_horizontal = 2
-custom_minimum_size = Vector2(240, 0)
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.2
+custom_minimum_size = Vector2(200, 0)
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Results"]
 layout_mode = 2
@@ -113,6 +116,7 @@ theme_override_font_sizes/font_size = 18
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Results/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="ResultsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Results/VBoxContainer/ScrollContainer"]
 unique_name_in_owner = true

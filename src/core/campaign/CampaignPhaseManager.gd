@@ -793,11 +793,22 @@ func _generate_story_events() -> Array:
 	return []
 
 func generate_battlefield() -> Dictionary:
-	# Use BattlefieldGenerator to produce terrain suggestions
+	# Compendium themed terrain (pp.96-100) is DLC-gated.
+	# Core Rules terrain (p.109) has NO theme system — just standard
+	# feature counts. Return empty so the Core Rules terrain guide
+	# from CampaignTurnController._generate_terrain_setup_guide() is used.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.has_method("is_feature_enabled"):
+		return {}
+	# Only use Compendium terrain themes if Compendium DLC is active
+	if not dlc.is_feature_enabled(dlc.ContentFlag.TERRAIN_THEMES \
+			if "TERRAIN_THEMES" in dlc.ContentFlag else -1):
+		return {}
+
 	var BattlefieldGeneratorClass = load(
 		"res://src/core/battle/BattlefieldGenerator.gd")
 	if not BattlefieldGeneratorClass:
-		push_warning("CampaignPhaseManager: BattlefieldGenerator not found")
 		return {}
 
 	var gen = BattlefieldGeneratorClass.new()

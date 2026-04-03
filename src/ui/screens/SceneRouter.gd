@@ -66,7 +66,6 @@ const SCENE_PATHS = {
 	# "end_phase": REMOVED - campaigns cycle, don't end
 
 	# Utility screens
-	"save_load": "res://src/ui/screens/utils/SaveLoadUI.tscn",
 	"game_over": "res://src/ui/screens/utils/GameOverScreen.tscn",
 	"logbook": "res://src/ui/screens/utils/logbook.tscn",
 	"settings": "res://src/ui/screens/settings/SettingsScreen.tscn",
@@ -244,7 +243,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 			# Official Five Parsecs Four-Phase structure
 			scenes = ["travel_phase", "world_phase", "post_battle_sequence"]
 		"utility":
-			scenes = ["save_load", "game_over", "logbook", "settings"]
+			scenes = ["game_over", "logbook", "settings"]
 		"tutorial":
 			scenes = ["tutorial_selection", "new_campaign_tutorial"]
 	return scenes

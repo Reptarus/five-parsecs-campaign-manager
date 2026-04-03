@@ -779,14 +779,22 @@ func _calculate_success_rate() -> float:
 func _update_ui_state() -> void:
 	## Update UI state based on current task assignments
 	if assign_task_button:
-		assign_task_button.disabled = false # Can always assign more tasks
-	
+		assign_task_button.disabled = all_tasks_resolved
+
 	if resolve_all_button:
-		resolve_all_button.disabled = assigned_tasks.is_empty()
+		resolve_all_button.disabled = assigned_tasks.is_empty() or all_tasks_resolved
 		if all_tasks_resolved:
 			resolve_all_button.text = "All Tasks Resolved"
 		else:
 			resolve_all_button.text = "Resolve All Tasks (%d)" % assigned_tasks.size()
+
+	# Lock selection lists after resolution (no ItemList.disabled — use mouse_filter)
+	if crew_member_list:
+		crew_member_list.mouse_filter = Control.MOUSE_FILTER_IGNORE if all_tasks_resolved else Control.MOUSE_FILTER_STOP
+		crew_member_list.modulate.a = 0.5 if all_tasks_resolved else 1.0
+	if available_tasks_list:
+		available_tasks_list.mouse_filter = Control.MOUSE_FILTER_IGNORE if all_tasks_resolved else Control.MOUSE_FILTER_STOP
+		available_tasks_list.modulate.a = 0.5 if all_tasks_resolved else 1.0
 
 func _update_progress_display() -> void:
 	## Update progress display with task results

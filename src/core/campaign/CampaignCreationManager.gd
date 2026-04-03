@@ -2,7 +2,6 @@
 extends Node
 const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 enum CreationStep {
 	CAMPAIGN_CONFIG,
@@ -26,13 +25,10 @@ var captain_data: Character
 var initial_resources: Dictionary = {}
 
 var game_state: GameState
-var save_manager: SaveManager
 
 func _init() -> void:
 	game_state = GameState.new()
-	save_manager = SaveManager.new()
 	add_child(game_state)
-	add_child(save_manager)
 
 func _ready() -> void:
 	reset_creation_data()

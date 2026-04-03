@@ -4,7 +4,6 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const EnemyNode = preload("res://src/core/enemy/base/EnemyNode.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
 const AIController = preload("res://src/core/systems/AIController.gd")
-const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 # Signals
 signal ai_decision_made(enemy_ref: EnemyNode, decision: Dictionary)

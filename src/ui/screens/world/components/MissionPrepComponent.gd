@@ -378,6 +378,14 @@ func _update_button_states() -> void:
 	if ready_button:
 		ready_button.disabled = prep_completed
 
+	# Lock selection lists after Ready (no ItemList.disabled — use mouse_filter)
+	if crew_list:
+		crew_list.mouse_filter = Control.MOUSE_FILTER_IGNORE if prep_completed else Control.MOUSE_FILTER_STOP
+		crew_list.modulate.a = 0.5 if prep_completed else 1.0
+	if equipment_list:
+		equipment_list.mouse_filter = Control.MOUSE_FILTER_IGNORE if prep_completed else Control.MOUSE_FILTER_STOP
+		equipment_list.modulate.a = 0.5 if prep_completed else 1.0
+
 func _show_readiness_warnings(warnings: Array) -> void:
 	## Display readiness warnings to player
 	for warning in warnings:

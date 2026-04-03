@@ -125,79 +125,112 @@ func _setup_mission_info(data: Dictionary) -> void:
 	mission_info_panel.add_child(mission_desc)
 	mission_info_panel.add_child(battle_type)
 
-## Setup enemy information — single type per battle (Core Rules pp.91-94)
+## Setup enemy information — Core Rules table format (pp.91-94)
 func _setup_enemy_info(data: Dictionary) -> void:
 	if not enemy_info_panel:
 		return
 
 	var enemy_force: Dictionary = data.get("enemy_force", {})
-	var enemy_list := VBoxContainer.new()
-	enemy_list.add_theme_constant_override("separation", 4)
+	var container := VBoxContainer.new()
+	container.add_theme_constant_override("separation", 8)
 
-	# Primary enemy type name
+	# ── Table header: "Enemy Forces" ──
+	var title := Label.new()
+	title.text = "Enemy Forces"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 16)
+	container.add_child(title)
+
+	# ── Stat table (GridContainer, 8 columns) ──
+	var table_panel := PanelContainer.new()
+	var table_style := StyleBoxFlat.new()
+	table_style.bg_color = Color("#252542")  # COLOR_ELEVATED
+	table_style.border_color = Color("#3A3A5C")  # COLOR_BORDER
+	table_style.set_border_width_all(1)
+	table_style.set_corner_radius_all(4)
+	table_style.set_content_margin_all(4)
+	table_panel.add_theme_stylebox_override("panel", table_style)
+
+	var grid := GridContainer.new()
+	grid.columns = 8
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 4)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Header row
+	var headers := ["ENEMY", "NUMBERS", "PANIC", "SPEED",
+		"CMB", "TGH", "AI", "WEAPONS"]
+	for h in headers:
+		var lbl := Label.new()
+		lbl.text = h
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_color_override("font_color", Color("#808080"))
+		grid.add_child(lbl)
+
+	# Data row
 	var type_name: String = enemy_force.get("type", "")
 	if type_name.is_empty():
-		# Fallback to old keys
 		type_name = data.get("enemy_type",
 			data.get("enemy_faction", "Unknown"))
 
-	var name_label := Label.new()
-	name_label.text = type_name
-	name_label.add_theme_font_size_override("font_size", 18)
-	name_label.add_theme_color_override(
-		"font_color", Color("#DC2626"))
-	enemy_list.add_child(name_label)
-
-	# Stat line
 	var spd: int = enemy_force.get("speed", 0)
 	var cmb: int = enemy_force.get("combat_skill", 0)
 	var tgh: int = enemy_force.get("toughness", 0)
-	var ai_str: String = str(enemy_force.get("ai", ""))
+	var numbers_str: String = str(enemy_force.get("numbers", ""))
 	var panic_str: String = str(enemy_force.get("panic", ""))
-	if spd > 0 or cmb > 0 or tgh > 0:
-		var stat_label := Label.new()
-		stat_label.text = "SPD:%d  CMB:+%d  TGH:%d  AI:%s  Panic:%s" \
-			% [spd, cmb, tgh, ai_str, panic_str]
-		stat_label.add_theme_font_size_override("font_size", 12)
-		stat_label.add_theme_color_override(
-			"font_color", Color("#4FC3F7"))
-		enemy_list.add_child(stat_label)
+	var ai_str: String = str(enemy_force.get("ai", ""))
+	var weapons_val = enemy_force.get("weapons", "")
+	var weapons_str: String = ""
+	if weapons_val is Array:
+		weapons_str = ", ".join(
+			weapons_val.map(func(w): return str(w)))
+	else:
+		weapons_str = str(weapons_val)
 
-	# Count + role breakdown
+	var cmb_str := "+%d" % cmb if cmb >= 0 else str(cmb)
+	var values := [type_name, numbers_str, panic_str,
+		'%d"' % spd, cmb_str, str(tgh), ai_str, weapons_str]
+
+	for i in range(values.size()):
+		var lbl := Label.new()
+		lbl.text = values[i]
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 13)
+		if i == 0:
+			# Enemy name in red
+			lbl.add_theme_color_override(
+				"font_color", Color("#DC2626"))
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		else:
+			lbl.add_theme_color_override(
+				"font_color", Color("#4FC3F7"))
+		grid.add_child(lbl)
+
+	table_panel.add_child(grid)
+	container.add_child(table_panel)
+
+	# ── Count ──
 	var total: int = enemy_force.get("count",
 		data.get("enemy_count", 0))
 	if total > 0:
-		var count_label := Label.new()
-		count_label.text = "Count: %d" % total
-		count_label.add_theme_font_size_override("font_size", 14)
-		enemy_list.add_child(count_label)
+		var count_lbl := Label.new()
+		count_lbl.text = "Count: %d" % total
+		count_lbl.add_theme_font_size_override("font_size", 13)
+		container.add_child(count_lbl)
 
-	# Weapons
-	var weapons: Array = enemy_force.get("weapons", [])
-	if not weapons.is_empty():
-		var weapons_label := Label.new()
-		weapons_label.text = "Weapons: %s" % ", ".join(
-			weapons.map(func(w): return str(w)))
-		weapons_label.add_theme_font_size_override(
-			"font_size", 12)
-		weapons_label.add_theme_color_override(
-			"font_color", Color("#9ca3af"))
-		weapons_label.autowrap_mode = \
-			TextServer.AUTOWRAP_WORD_SMART
-		enemy_list.add_child(weapons_label)
-
-	# Special rules
+	# ── Special rules ──
 	var rules: Array = enemy_force.get("special_rules", [])
 	for rule in rules:
-		var rule_label := Label.new()
-		rule_label.text = str(rule)
-		rule_label.add_theme_font_size_override("font_size", 11)
-		rule_label.add_theme_color_override(
+		var rule_lbl := Label.new()
+		rule_lbl.text = str(rule)
+		rule_lbl.add_theme_font_size_override("font_size", 12)
+		rule_lbl.add_theme_color_override(
 			"font_color", Color("#D97706"))
-		rule_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		enemy_list.add_child(rule_label)
+		rule_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		container.add_child(rule_lbl)
 
-	enemy_info_panel.add_child(enemy_list)
+	enemy_info_panel.add_child(container)
 
 ## Setup battlefield preview
 func _setup_battlefield_preview(data: Dictionary) -> void:

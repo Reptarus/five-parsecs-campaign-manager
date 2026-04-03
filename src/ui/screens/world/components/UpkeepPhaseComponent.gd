@@ -29,6 +29,7 @@ var ship_data: Dictionary = {}
 var crew_data: Array = []
 var automation_enabled: bool = false
 var upkeep_completed: bool = false
+var costs_calculated: bool = false  # Gate: Pay requires Calculate first
 
 # Travel state (folded into Step 1 — Core Rules p.69)
 var travel_decision_made: bool = false
@@ -45,8 +46,10 @@ var _travel_event_container: VBoxContainer
 var _travel_status_label: Label
 
 # Five Parsecs upkeep constants (Core Rules p.76)
-const BASE_CREW_UPKEEP_PER_MEMBER: int = 1  # 1 credit per crew member
-const SHIP_MAINTENANCE_BASE_COST: int = 1   # 1 credit base maintenance
+# Upkeep = 1 credit for 4-6 crew, +1 per crew member past 6
+const CREW_UPKEEP_THRESHOLD: int = 4   # Upkeep kicks in at 4+ crew
+const CREW_UPKEEP_CAP: int = 6         # Base 1 credit covers up to 6 crew
+const SHIP_MAINTENANCE_BASE_COST: int = 0   # No mandatory ship maintenance (Core Rules p.76)
 
 func _ready() -> void:
 	name = "UpkeepPhaseComponent"
@@ -68,6 +71,7 @@ func _connect_ui_signals() -> void:
 func _setup_initial_state() -> void:
 	## Initialize the component state
 	upkeep_completed = false
+	costs_calculated = false
 	travel_decision_made = false
 	chose_to_travel = false
 	current_upkeep_data = {
@@ -78,6 +82,7 @@ func _setup_initial_state() -> void:
 	}
 	_build_travel_section()
 	_update_ui_display()
+	_update_gating_state()
 
 ## Public API: Initialize upkeep phase with campaign data
 func initialize_upkeep_phase(ship: Dictionary, crew: Array) -> void:
@@ -114,15 +119,18 @@ func calculate_upkeep_costs() -> Dictionary:
 	
 	# Calculate crew upkeep with world trait modifiers (Core Rules p.76, p.87-89)
 	var effective_crew_size: int = crew_data.size()
-	
+
 	# Apply "high_cost" world trait modifier (Core Rules p.87-89)
 	# "Your crew size counts as being 2 higher for the purpose of Upkeep costs"
 	var world_traits: Array = _get_current_world_traits()
 	if "high_cost" in world_traits:
 		effective_crew_size += 2
-	
-	# Base upkeep: 1 credit per crew member (scales with crew size)
-	results.crew_upkeep = effective_crew_size * BASE_CREW_UPKEEP_PER_MEMBER
+
+	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6
+	if effective_crew_size >= CREW_UPKEEP_THRESHOLD:
+		results.crew_upkeep = 1 + max(0, effective_crew_size - CREW_UPKEEP_CAP)
+	else:
+		results.crew_upkeep = 0
 	
 	# Calculate ship maintenance (Core Rules p.76)
 	results.ship_maintenance = _calculate_ship_maintenance()
@@ -247,7 +255,8 @@ func _on_auto_calculate_pressed() -> void:
 		progress_bar.visible = false
 
 	_update_ui_display()
-	
+	_update_gating_state()
+
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PROGRESS_UPDATED, {
 			"component": "upkeep",
@@ -257,11 +266,13 @@ func _on_auto_calculate_pressed() -> void:
 
 func _on_manual_calculate_pressed() -> void:
 	## Handle manual calculation for player review
-	
+
 	var results = calculate_upkeep_costs()
 	current_upkeep_data = results
+	costs_calculated = true
 	_update_ui_display()
-	
+	_update_gating_state()
+
 	# Don't automatically apply - let player confirm
 
 ## UI Updates
@@ -292,6 +303,23 @@ func _update_ui_display() -> void:
 			# Color: amber normally, green if paid, red if can't afford
 			var color := UIColors.COLOR_EMERALD if upkeep_completed else (UIColors.COLOR_AMBER if current_upkeep_data.get("can_afford", true) else UIColors.COLOR_RED)
 			total_cost_label.add_theme_color_override("font_color", color)
+
+## Sequential Gating (Core Rules: Travel → Calculate → Pay)
+func _update_gating_state() -> void:
+	## Enforce sequential flow: travel decision → calculate costs → pay upkeep
+	# Gate 1: Calculate Costs locked until travel decided
+	if manual_calculate_button:
+		manual_calculate_button.disabled = not travel_decision_made or upkeep_completed
+	# Gate 2: Pay Upkeep locked until costs calculated
+	if auto_calculate_button:
+		auto_calculate_button.disabled = not travel_decision_made or not costs_calculated or upkeep_completed
+	# Visual: dim upkeep section when travel not yet decided
+	var cost_panel = get_node_or_null("UpkeepContainer/CostBreakdownPanel")
+	if cost_panel:
+		cost_panel.modulate.a = 1.0 if travel_decision_made else 0.4
+	var btn_container = get_node_or_null("UpkeepContainer/ButtonContainer")
+	if btn_container:
+		btn_container.modulate.a = 1.0 if travel_decision_made else 0.4
 
 ## Event Bus Handlers
 func _on_phase_started(data: Dictionary) -> void:
@@ -468,6 +496,7 @@ func _on_stay_pressed() -> void:
 	_travel_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_EMERALD)
 	_travel_status_label.visible = true
+	_update_gating_state()
 
 func _on_travel_pressed() -> void:
 	## Handle travel to new world — deduct cost and generate event
@@ -495,6 +524,7 @@ func _on_travel_pressed() -> void:
 	# Refresh upkeep display (credits changed)
 	current_upkeep_data = calculate_upkeep_costs()
 	_update_ui_display()
+	_update_gating_state()
 
 func _update_travel_ui_after_decision() -> void:
 	## Disable travel buttons after a decision is made
@@ -668,6 +698,7 @@ func get_upkeep_results() -> Dictionary:
 func reset_upkeep_phase() -> void:
 	## Reset upkeep phase for new turn
 	upkeep_completed = false
+	costs_calculated = false
 	travel_decision_made = false
 	chose_to_travel = false
 	current_upkeep_data.clear()

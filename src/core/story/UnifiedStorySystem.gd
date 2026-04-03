@@ -9,7 +9,6 @@ const CharacterDataMgr = preload("res://src/core/character/Management/CharacterD
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData := preload("res://src/game/story/StoryQuestData.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
-const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 ## Emitted when a story event is triggered
 signal story_event_triggered(event: StoryQuestData)

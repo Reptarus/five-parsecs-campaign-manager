@@ -103,18 +103,22 @@ func _update_crew_list() -> void:
 		crew_list.add_item(name_str)
 
 func _calculate_upkeep() -> void:
-	total_upkeep_cost = 0
+	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6
+	# Crew in Sick Bay don't count toward upkeep cost
 	var members = _get_crew_members()
+	var active_count: int = 0
 	for member in members:
-		var member_cost: int = 6
+		var in_sick_bay: bool = false
 		if member is Dictionary:
-			pass
-		elif member.has_method("has_trait"):
-			if member.has_trait("TACTICAL_MIND"):
-				member_cost -= 1
-			if member.has_trait("STREET_SMART"):
-				member_cost -= 2
-		total_upkeep_cost += member_cost
+			in_sick_bay = member.get("in_sick_bay", false)
+		elif member.has_method("get") and member.get("in_sick_bay"):
+			in_sick_bay = true
+		if not in_sick_bay:
+			active_count += 1
+	if active_count < 4:
+		total_upkeep_cost = 0
+	else:
+		total_upkeep_cost = 1 + max(0, active_count - 6)
 	if upkeep_cost_label:
 		upkeep_cost_label.text = "Total Upkeep Cost: %s" % _format_credits_long(total_upkeep_cost)
 

@@ -4,7 +4,8 @@ extends Node
 signal local_event_triggered(event_description: String)
 signal economy_updated
 
-const BASE_UPKEEP_COST: int = 100
+# Core Rules p.76: base upkeep is 1 credit (for 4-6 crew). World traits modify this.
+const BASE_UPKEEP_COST: int = 1
 const LOCAL_EVENT_CHANCE: float = 0.2
 const ECONOMY_NORMALIZATION_RATE: float = 0.1
 const MAX_MARKET_ITEMS: int = 20
@@ -12,7 +13,6 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const EconomyManager = preload("res://src/core/managers/EconomyManager.gd")
 
 var game_world: GameLocation

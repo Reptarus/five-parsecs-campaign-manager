@@ -505,6 +505,12 @@ func _on_phase_completed() -> void:
 	## Handle phase completion
 	var phase_name = _get_phase_name(campaign_phase_manager.get_current_phase())
 
+	# Auto-save after each phase completes so progress isn't lost on crash
+	if game_state and game_state.has_method("save_campaign"):
+		var result: Dictionary = game_state.save_campaign()
+		if not result.get("success", false):
+			push_warning("CampaignTurnController: Auto-save failed: %s" % result.get("message", ""))
+
 	self.phase_transition_completed.emit(phase_name)
 
 func _show_phase_ui(phase: int) -> void:
@@ -644,6 +650,7 @@ func _initiate_battle_sequence() -> void:
 	var first_enemy: Dictionary = enemies[0] if not enemies.is_empty() else {}
 	mission_data["enemy_force"] = {
 		"type": first_enemy.get("type", "Unknown"),
+		"numbers": first_enemy.get("numbers", ""),
 		"count": enemies.size(),
 		"speed": first_enemy.get("speed", 4),
 		"combat_skill": first_enemy.get("combat_skill", 0),
@@ -725,7 +732,6 @@ func _initiate_battle_sequence() -> void:
 	var full_bf_data: Dictionary = {
 		"terrain": merged_terrain,
 		"deployment_condition": deployment_condition,
-		"terrain_type": terrain_guide.get("terrain_type", "WILDERNESS"),
 	}
 	if game_state.has_method("set_battlefield_data"):
 		game_state.set_battlefield_data(full_bf_data)

@@ -6,7 +6,6 @@ extends Control
 # FIX 1: Safe autoload references using AutoloadManager
 var CampaignManager: Node
 var CharacterManagerAutoload: Node
-var SaveManager: Node
 var GameState: Node
 
 # Core UI Components
@@ -43,14 +42,12 @@ func _initialize_autoloads() -> void:
 		GameState = AutoloadManager.get_autoload_safe("GameState")
 		CampaignManager = AutoloadManager.get_autoload_safe("CampaignManager")
 		CharacterManagerAutoload = AutoloadManager.get_autoload_safe("CharacterManagerAutoload") 
-		SaveManager = AutoloadManager.get_autoload_safe("SaveManager")
 	else:
 		push_warning("MainCampaignScene: AutoloadManager not available, using direct references")
 		# Fallback to direct access (may fail)
 		GameState = get_node_or_null("/root/GameState")
 		CampaignManager = get_node_or_null("/root/CampaignManager")
 		CharacterManagerAutoload = get_node_or_null("/root/CharacterManagerAutoload")
-		SaveManager = get_node_or_null("/root/SaveManager")
 
 func _setup_ui_components() -> void:
 	## Configure main UI components
@@ -397,13 +394,7 @@ func _calculate_final_results() -> Dictionary:
 
 func _save_final_campaign_state() -> void:
 	## Save final campaign state for history/statistics
-	if SaveManager:
-		var final_state = {
-			"campaign_data": current_campaign.get_meta_list() if current_campaign else {},
-			"final_results": _calculate_final_results(),
-			"game_state": GameState.serialize() if GameState else {}
-		}
-		SaveManager.save_campaign_completion(final_state)
+	pass
 
 func _cleanup_campaign_systems() -> void:
 	## Clean up campaign systems when ending
@@ -461,10 +452,6 @@ func _input(event: InputEvent) -> void:
 			KEY_F1:
 				# Future: Show help
 				pass
-			KEY_F5:
-				# Quick save
-				if SaveManager and campaign_active:
-					SaveManager.quick_save()
 			KEY_PAGEUP:
 				# PHASE 7: Enhanced Debug Tools - Crew Debug Information
 				_show_crew_debug_info()

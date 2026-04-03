@@ -567,22 +567,36 @@ func _restore_equipment_from_campaign(campaign) -> void:
 
 func get_available_campaigns() -> Array:
 	var campaigns = []
-	
-	var dir = DirAccess.open(SAVE_DIRECTORY)
-	if dir == null:
-		return campaigns
-	
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".save"):
-			var path = SAVE_DIRECTORY + file_name
-			var info = get_campaign_info(path)
-			if info.valid:
-				campaigns.append(info)
-		file_name = dir.get_next()
-	
+	var seen_ids: Dictionary = {}
+
+	# Scan directories for save files (.save and legacy .fpcs)
+	var dirs_to_scan: Array[String] = [SAVE_DIRECTORY]
+	# Legacy: CampaignFinalizationService previously saved to user://campaigns/
+	if DirAccess.open("user://campaigns/") != null:
+		dirs_to_scan.append("user://campaigns/")
+
+	for scan_dir in dirs_to_scan:
+		var dir = DirAccess.open(scan_dir)
+		if dir == null:
+			continue
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and (
+				file_name.ends_with(".save")
+				or file_name.ends_with(".fpcs")
+			):
+				var path = scan_dir + file_name
+				var info = get_campaign_info(path)
+				if info.valid:
+					# De-duplicate by campaign_id (prefer saves/ over campaigns/)
+					var cid: String = info.get("id", "")
+					if cid.is_empty() or cid not in seen_ids:
+						campaigns.append(info)
+						if not cid.is_empty():
+							seen_ids[cid] = true
+			file_name = dir.get_next()
+
 	return campaigns
 
 func get_campaign_info(path: String) -> Dictionary:

@@ -322,6 +322,24 @@ func _initialize_components() -> void:
 	# CRITICAL FIX: Don't generate equipment before crew data arrives!
 	# _generate_starting_equipment()  # REMOVED - was causing premature generation with mock crew
 
+	# Fix height: disable outer scroll so expand-fill flows to MainSplit
+	# (EquipmentScroll + CrewScroll handle their own internal scrolling)
+	var form_content = get_node_or_null(
+		"ContentMargin/MainContent/FormContent")
+	if form_content and form_content is ScrollContainer:
+		form_content.vertical_scroll_mode = (
+			ScrollContainer.SCROLL_MODE_DISABLED)
+	var form_container = get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer")
+	if form_container:
+		form_container.size_flags_vertical = (
+			Control.SIZE_EXPAND_FILL)
+	var content_vbox = get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer/Content")
+	if content_vbox:
+		content_vbox.size_flags_vertical = (
+			Control.SIZE_EXPAND_FILL)
+
 	# IMMEDIATE FIX: Display any equipment that was already generated
 	call_deferred("_force_display_update")
 	call_deferred("emit_panel_ready")

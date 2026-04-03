@@ -17,8 +17,8 @@ signal save_completed(success: bool, path: String)
 signal finalization_failed(error: String)
 signal finalization_completed(campaign: Resource)
 
-const CAMPAIGNS_DIR = "user://campaigns/"
-const SAVE_EXTENSION = ".fpcs"
+const CAMPAIGNS_DIR = "user://saves/"
+const SAVE_EXTENSION = ".save"
 const BACKUP_EXTENSION = ".backup"
 const MAX_RETRY_ATTEMPTS = 3
 
@@ -221,6 +221,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if campaign_name.is_empty():
 		campaign_name = campaign_config.get("campaign_name", campaign_config.get("name", "Unnamed Campaign"))
 	campaign.campaign_name = campaign_name
+	# Eagerly generate campaign_id so save filename matches GameState expectations
+	campaign.get_campaign_id()
 
 	# Sprint 26.1: Canonical key: "difficulty" (consistent, no "difficulty_level" variant)
 	var difficulty = config.get("difficulty", campaign_config.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL))
@@ -455,8 +457,17 @@ func _verify_game_state_manager_integration() -> Dictionary:
 
 func _save_campaign_with_retry(campaign: Resource, data: Dictionary) -> Dictionary:
 	## Save campaign with retry logic and backup creation
-	var save_name = _generate_unique_save_name(data.get("config", {}).get("name", "Campaign"))
-	var save_path = CAMPAIGNS_DIR + save_name
+	# Use the campaign's own ID for the filename so GameState.save_campaign()
+	# can find/overwrite the same file later (it constructs user://saves/{id}.save)
+	var cid: String = ""
+	if campaign.has_method("get_campaign_id"):
+		cid = campaign.get_campaign_id()
+	if cid.is_empty():
+		cid = _generate_unique_save_name(
+			data.get("config", {}).get("name", "Campaign"))
+	else:
+		cid = cid + SAVE_EXTENSION
+	var save_path = CAMPAIGNS_DIR + cid
 	
 	# Ensure directory exists
 	if not _ensure_save_directory():
@@ -483,7 +494,7 @@ func _save_campaign_with_retry(campaign: Resource, data: Dictionary) -> Dictiona
 
 		# Try alternative save location on final attempt
 		if attempt == MAX_RETRY_ATTEMPTS - 1:
-			save_path = _get_fallback_save_path(save_name)
+			save_path = _get_fallback_save_path(cid)
 	
 	return {
 		"success": false,
@@ -539,7 +550,7 @@ func _ensure_save_directory() -> bool:
 		push_error("Cannot access user directory")
 		return false
 	
-	var result = dir.make_dir_recursive("campaigns")
+	var result = dir.make_dir_recursive("saves")
 	return result == OK
 
 func _create_backup(original_path: String) -> void:

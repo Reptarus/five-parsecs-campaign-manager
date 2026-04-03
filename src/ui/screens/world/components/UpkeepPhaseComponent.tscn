@@ -149,7 +149,7 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="CrewHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
-text = "1 credit per crew member (4-6 crew = 1 credit base)"
+text = "1 credit for 4-6 crew, +1 per crew member past 6 (Core Rules p.76)"
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
 
@@ -172,7 +172,7 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="ShipHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
-text = "1 Hull Point repaired free. Damaged ships cost double."
+text = "1 Hull Point repairs free each turn. Pay 1 credit per additional HP (Core Rules p.76)"
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
 

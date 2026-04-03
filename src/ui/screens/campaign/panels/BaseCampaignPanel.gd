@@ -220,8 +220,9 @@ func _on_viewport_resized() -> void:
 		pass # Layout mode changed
 
 func _apply_content_max_width() -> void:
-	## Constrain form content to MAX_FORM_WIDTH on wide screens.
-	## Prevents absurdly long text fields and dropdowns on desktop.
+	## Constrain form content width on wide screens.
+	## Desktop uses wider max (1200px) for multi-column HFlowContainer layouts.
+	## Mobile/tablet uses standard max (800px) for single-column readability.
 	var cm := get_node_or_null("ContentMargin")
 	if not cm:
 		return
@@ -229,8 +230,11 @@ func _apply_content_max_width() -> void:
 	if not viewport:
 		return
 	var vp_width := viewport.get_visible_rect().size.x
-	if vp_width > MAX_FORM_WIDTH + SPACING_XL * 2:
-		var side := int((vp_width - MAX_FORM_WIDTH) / 2.0)
+	var effective_max: int = MAX_FORM_WIDTH
+	if current_layout_mode == LayoutMode.DESKTOP:
+		effective_max = 1200
+	if vp_width > effective_max + SPACING_XL * 2:
+		var side := int((vp_width - effective_max) / 2.0)
 		cm.add_theme_constant_override("margin_left", side)
 		cm.add_theme_constant_override("margin_right", side)
 	else:

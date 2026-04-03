@@ -170,10 +170,11 @@ func _wrap_form_in_cards() -> void:
 	if not content_node:
 		return
 
-	# Create a new container to hold the cards
-	var cards_container := VBoxContainer.new()
+	# Responsive multi-column layout: HFlowContainer auto-wraps cards
+	var cards_container := HFlowContainer.new()
 	cards_container.name = "CardsContainer"
-	cards_container.add_theme_constant_override("separation", SPACING_LG)
+	cards_container.add_theme_constant_override("h_separation", SPACING_LG)
+	cards_container.add_theme_constant_override("v_separation", SPACING_LG)
 
 	# === SHIP IDENTITY CARD (Name + Type) ===
 	var identity_card := _create_form_section_card("SHIP IDENTITY", "Name your vessel and select its class.")
@@ -236,6 +237,11 @@ func _wrap_form_in_cards() -> void:
 		content_node.remove_child(controls_section)
 		controls_section.alignment = BoxContainer.ALIGNMENT_CENTER
 		cards_container.add_child(controls_section)
+
+	# Set min widths for HFlowContainer responsive columns
+	for child in cards_container.get_children():
+		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		child.custom_minimum_size.x = 450
 
 	# Add cards container to content
 	content_node.add_child(cards_container)

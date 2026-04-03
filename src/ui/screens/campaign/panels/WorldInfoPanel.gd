@@ -534,9 +534,128 @@ func _display_world_data(world_data: Dictionary) -> void:
 
 ## Wrap each section container in a styled card, if not done.
 func _ensure_section_cards() -> void:
+	# Remove bare HSeparators (replaced by card borders)
+	_remove_separators()
+	# Group GovernmentInfo + TechLevel into a single card
+	_ensure_overview_card()
+	# Wrap market prices in card
+	_wrap_in_card(market_prices_container, "MARKET & TRADE")
+	# Wrap remaining sections
 	_wrap_in_card(world_traits_container, "WORLD TRAITS")
 	_wrap_in_card(opportunities_container, "OPPORTUNITIES")
 	_wrap_in_card(threats_container, "THREATS")
+	# Hide redundant summary label (card content replaces it)
+	if world_summary:
+		world_summary.visible = false
+	# Reparent card panels into HFlowContainer for responsive columns
+	_ensure_flow_layout()
+
+func _remove_separators() -> void:
+	## Remove bare HSeparators from Content (replaced by card styling)
+	var content = get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer/Content")
+	if not content:
+		return
+	var to_remove: Array[Node] = []
+	for child in content.get_children():
+		if child is HSeparator:
+			to_remove.append(child)
+	for sep in to_remove:
+		sep.queue_free()
+
+func _ensure_overview_card() -> void:
+	## Group GovernmentInfo + TechLevel labels into a WORLD OVERVIEW card
+	if not government_info or not tech_level_display:
+		return
+	# Skip if already wrapped
+	var parent = government_info.get_parent()
+	if parent and parent.name.begins_with("__card_"):
+		return
+	if parent:
+		var gp = parent.get_parent()
+		if gp and gp.name.begins_with("__card_"):
+			return
+	# Create wrapper VBox to hold both labels
+	var overview_vbox := VBoxContainer.new()
+	overview_vbox.name = "OverviewContent"
+	overview_vbox.add_theme_constant_override("separation", 4)
+	# Reparent labels into wrapper
+	var orig_parent = government_info.get_parent()
+	var idx = government_info.get_index()
+	orig_parent.remove_child(government_info)
+	orig_parent.remove_child(tech_level_display)
+	overview_vbox.add_child(government_info)
+	overview_vbox.add_child(tech_level_display)
+	# Wrap in card
+	_wrap_in_card_node(overview_vbox, "WORLD OVERVIEW")
+	# Insert card at original position
+	var card = overview_vbox.get_parent().get_parent()
+	if card:
+		orig_parent.add_child(card)
+		orig_parent.move_child(card, mini(idx, orig_parent.get_child_count() - 1))
+
+func _wrap_in_card_node(
+	container: Control, title: String
+) -> void:
+	## Wrap a container in a card WITHOUT removing from parent first
+	## (for freshly created containers not yet in tree)
+	var card_inner := VBoxContainer.new()
+	card_inner.add_theme_constant_override("separation", 4)
+	var title_lbl := Label.new()
+	title_lbl.text = title
+	title_lbl.add_theme_font_size_override(
+		"font_size", UIColors.FONT_SIZE_LG)
+	title_lbl.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
+	card_inner.add_child(title_lbl)
+	var sep := HSeparator.new()
+	sep.modulate = UIColors.COLOR_BORDER
+	card_inner.add_child(sep)
+	card_inner.add_child(container)
+	var panel := PanelContainer.new()
+	panel.name = "__card_%s" % title.to_lower().replace(" ", "_")
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		UIColors.COLOR_SECONDARY.r,
+		UIColors.COLOR_SECONDARY.g,
+		UIColors.COLOR_SECONDARY.b, 0.8)
+	style.border_color = Color(
+		UIColors.COLOR_BORDER.r,
+		UIColors.COLOR_BORDER.g,
+		UIColors.COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(UIColors.SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(card_inner)
+
+func _ensure_flow_layout() -> void:
+	## Reparent __card_ panels into HFlowContainer for responsive columns
+	var content = get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer/Content")
+	if not content:
+		return
+	# Skip if already done
+	if content.get_node_or_null("CardFlow"):
+		return
+	var flow := HFlowContainer.new()
+	flow.name = "CardFlow"
+	flow.add_theme_constant_override("h_separation", SPACING_LG)
+	flow.add_theme_constant_override("v_separation", SPACING_LG)
+	flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Collect card panels (named __card_*)
+	var cards_to_move: Array[Control] = []
+	for child in content.get_children():
+		if child.name.begins_with("__card_"):
+			cards_to_move.append(child)
+	# Reparent cards into flow
+	for card in cards_to_move:
+		content.remove_child(card)
+		card.custom_minimum_size.x = 450
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		flow.add_child(card)
+	content.add_child(flow)
 
 func _wrap_in_card(
 	container: Control, title: String
