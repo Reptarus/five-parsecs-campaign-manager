@@ -11,14 +11,12 @@ var _patched_scripts = []
 func _enter_tree() -> void:
 	print("Test overrides initialized to fix 'in' operator errors")
 	_patch_enum_in_operator()
-	_patch_mission_generator()
 	_patch_mission_base()
 
 # Fix the most common cause of "Invalid base object for 'in'" error
 func _patch_enum_in_operator() -> void:
 	# Patch GameEnums lookups to handle 'in' operator more safely
 	var script_paths = [
-		"res://src/core/mission/generator/MissionGenerator.gd",
 		"res://src/core/mission/base/mission.gd"
 	]
 	
@@ -31,27 +29,7 @@ func _patch_enum_in_operator() -> void:
 			script.set_meta("patched_by_overrides", true)
 			_patched_scripts.append(path)
 
-# Directly patch the MissionGenerator
-func _patch_mission_generator() -> void:
-	if "res://src/core/mission/generator/MissionGenerator.gd" in _patched_scripts:
-		return
-
-	_patched_scripts.append("res://src/core/mission/generator/MissionGenerator.gd")
-
-	var script = load("res://src/core/mission/generator/MissionGenerator.gd")
-	if script == null:
-		return
-		
-	# Don't use get_method() - check using source code instead
-	var source_code = script.get_source_code()
-	if not "_validate_custom_mission" in source_code:
-		return
-		
-	script.set_source_code(source_code.replace(
-		'if "on_initialize" in required_script_obj:',
-		'if TestOverrides.safe_has_method(required_script_obj, "on_initialize"):'
-	))
-	script.reload()
+# _patch_mission_generator() removed — src/core/mission/generator/MissionGenerator.gd deleted (fabricated data, dead code)
 
 # Directly patch the Mission base script
 func _patch_mission_base() -> void:

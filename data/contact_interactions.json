@@ -1,0 +1,13 @@
+{
+  "_metadata": {
+    "name": "Contact Interaction Types",
+    "description": "Service types and offer categories available from each contact type during world phase interactions.",
+    "source": "Five Parsecs from Home Core Rules — World Phase Contact Services",
+    "version": "1.0"
+  },
+  "patron_job_types": ["escort", "salvage", "delivery", "patrol", "investigation"],
+  "trader_equipment_types": ["weapon", "armor", "gear", "consumable"],
+  "informant_rumor_types": ["quest_clue", "rival_location", "treasure_location", "danger_warning"],
+  "official_permit_types": ["trade_license", "exploration_permit", "weapon_permit", "travel_pass"],
+  "criminal_offer_types": ["illegal_weapon", "stolen_goods", "smuggling_job", "forged_documents"]
+}

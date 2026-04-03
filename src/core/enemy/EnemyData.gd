@@ -83,57 +83,62 @@ static func get_from_node(node: Node, meta_key: String = "enemy_data") -> Resour
 		
 	return null
 
-## Factory method to create enemy data
+## Cached enemy types data from JSON
+static var _enemy_types_data: Array = []
+static var _enemy_types_loaded: bool = false
+
+static func _ensure_enemy_types_loaded() -> void:
+	if _enemy_types_loaded:
+		return
+	_enemy_types_loaded = true
+	var file := FileAccess.open("res://data/enemy_types.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		file.close()
+		return
+	file.close()
+	# Flatten all enemies from all categories into a single lookup array
+	var categories: Array = json.data.get("enemy_categories", [])
+	for cat in categories:
+		var cat_name: String = cat.get("name", "")
+		for entry in cat.get("enemies", []):
+			entry["category_name"] = cat_name
+			_enemy_types_data.append(entry)
+
+## Find an enemy entry by ID from enemy_types.json
+static func _find_enemy_by_id(enemy_id: String) -> Dictionary:
+	_ensure_enemy_types_loaded()
+	for entry in _enemy_types_data:
+		if entry.get("id", "") == enemy_id:
+			return entry
+	return {}
+
+## Factory method to create enemy data from enemy_types.json by ID
 static func create_basic_enemy(type: String) -> Resource:
 	var enemy = load("res://src/core/enemy/EnemyData.gd").new()
-	
-	match type:
-		"minion":
-			enemy.name = "Minion"
-			enemy.health = 5
-			enemy.max_health = 5
-			enemy.damage = 1
-			enemy.tier = 1
-			enemy.behaviors = ["follow_leader", "swarm"]
-		"elite":
-			enemy.name = "Elite"
-			enemy.health = 20
-			enemy.max_health = 20
-			enemy.armor = 2
-			enemy.damage = 3
-			enemy.tier = 3
-			enemy.special_abilities = ["area_attack"]
-		"boss":
-			enemy.name = "Boss"
-			enemy.health = 50
-			enemy.max_health = 50
-			enemy.armor = 5
-			enemy.damage = 5
-			enemy.tier = 5
-			enemy.special_abilities = ["area_attack", "regeneration"]
-			enemy.immunities = ["stun", "poison"]
-		_:
-			enemy.name = "Generic Enemy"
-			
+	var data: Dictionary = _find_enemy_by_id(type)
+	if not data.is_empty():
+		enemy.name = data.get("name", type.capitalize())
+		enemy.enemy_id = data.get("id", "")
+		enemy.category = data.get("category_name", "")
+		enemy.health = float(data.get("toughness", 3))
+		enemy.max_health = enemy.health
+		enemy.movement = int(data.get("speed", 4))
+		enemy.damage = int(data.get("combat_skill", 0))
+		enemy.ai_tactics = data.get("ai", "A")
+		var specials: Array = data.get("special_rules", [])
+		for s in specials:
+			enemy.special_abilities.append(str(s))
+	else:
+		enemy.name = type.capitalize() if not type.is_empty() else "Generic Enemy"
 	return enemy
 
-## Create from a template ID - used in tests
+## Create from a template ID — looks up enemy_types.json first, falls back to generic
 static func create_from_template(template_id: String) -> Resource:
-	var enemy = load("res://src/core/enemy/EnemyData.gd").new()
-	
-	if template_id == "boss":
-		enemy.name = "Boss Enemy"
-		enemy.health = 50
-		enemy.tier = 5
-	elif template_id == "elite":
-		enemy.name = "Elite Enemy"
-		enemy.health = 25
-		enemy.tier = 3
-	else:
-		enemy.name = "Standard Enemy"
-		enemy.health = 10
-		enemy.tier = 1
-		
+	var enemy: Resource = create_basic_enemy(template_id)
+	# If not found in JSON, the factory already set a generic name
 	return enemy
 
 ## Create from a dictionary - used in tests

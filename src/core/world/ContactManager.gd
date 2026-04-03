@@ -178,7 +178,7 @@ func _process_contact_interaction(contact: Contact, interaction_type: String) ->
 
 ## Generate a job from a patron
 func _generate_patron_job(contact: Contact) -> Dictionary:
-	var job_types = ["escort", "salvage", "delivery", "patrol", "investigation"]
+	var job_types: Array = _get_interaction_list("patron_job_types", ["escort", "salvage", "delivery", "patrol", "investigation"])
 	var job_type = job_types[randi() % job_types.size()]
 	
 	var base_payment = 6 + contact.reputation + randi_range(-2, 2)
@@ -196,7 +196,7 @@ func _generate_patron_job(contact: Contact) -> Dictionary:
 
 ## Generate equipment offer from trader
 func _generate_equipment_offer(contact: Contact) -> Dictionary:
-	var equipment_types = ["weapon", "armor", "gear", "consumable"]
+	var equipment_types: Array = _get_interaction_list("trader_equipment_types", ["weapon", "armor", "gear", "consumable"])
 	var equipment_type = equipment_types[randi() % equipment_types.size()]
 	
 	var cost = 3 + randi_range(0, 5) - contact.reputation
@@ -211,7 +211,7 @@ func _generate_equipment_offer(contact: Contact) -> Dictionary:
 
 ## Generate rumor from informant
 func _generate_rumor(contact: Contact) -> Dictionary:
-	var rumor_types = ["quest_clue", "rival_location", "treasure_location", "danger_warning"]
+	var rumor_types: Array = _get_interaction_list("informant_rumor_types", ["quest_clue", "rival_location", "treasure_location", "danger_warning"])
 	var rumor_type = rumor_types[randi() % rumor_types.size()]
 	
 	return {
@@ -224,7 +224,7 @@ func _generate_rumor(contact: Contact) -> Dictionary:
 
 ## Generate permit from official
 func _generate_permit(contact: Contact) -> Dictionary:
-	var permit_types = ["trade_license", "exploration_permit", "weapon_permit", "travel_pass"]
+	var permit_types: Array = _get_interaction_list("official_permit_types", ["trade_license", "exploration_permit", "weapon_permit", "travel_pass"])
 	var permit_type = permit_types[randi() % permit_types.size()]
 	
 	var cost = 2 + randi_range(0, 3) - contact.reputation
@@ -239,7 +239,7 @@ func _generate_permit(contact: Contact) -> Dictionary:
 
 ## Generate black market offer
 func _generate_black_market_offer(contact: Contact) -> Dictionary:
-	var offer_types = ["illegal_weapon", "stolen_goods", "smuggling_job", "forged_documents"]
+	var offer_types: Array = _get_interaction_list("criminal_offer_types", ["illegal_weapon", "stolen_goods", "smuggling_job", "forged_documents"])
 	var offer_type = offer_types[randi() % offer_types.size()]
 	
 	return {
@@ -296,6 +296,10 @@ func generate_random_contact(planet_id: String, turn_number: int = 0) -> Contact
 	
 	return add_contact(contact_name, contact_type, planet_id, turn_number)
 
+## Contact interaction data (loaded from JSON)
+var _interaction_data: Dictionary = {}
+var _interaction_data_loaded: bool = false
+
 ## Name generation tables cache
 var _name_tables: Dictionary = {}
 var _name_tables_loaded: bool = false
@@ -348,6 +352,25 @@ func _generate_contact_name(contact_type: String) -> String:
 			return _pick_from_table(title_table) if not title_table.is_empty() else "The Source"
 		_:
 			return _generate_two_part_name("corporate")
+
+func _ensure_interaction_data() -> void:
+	if _interaction_data_loaded:
+		return
+	_interaction_data_loaded = true
+	var file := FileAccess.open("res://data/contact_interactions.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		file.close()
+		return
+	file.close()
+	_interaction_data = json.data
+
+func _get_interaction_list(key: String, fallback: Array) -> Array:
+	_ensure_interaction_data()
+	var list: Array = _interaction_data.get(key, [])
+	return list if not list.is_empty() else fallback
 
 ## Serialize all contact data
 func serialize_all() -> Dictionary:
