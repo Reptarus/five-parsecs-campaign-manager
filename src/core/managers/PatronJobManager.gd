@@ -3,9 +3,43 @@ extends Resource
 var game_state_manager: Node
 var validation_manager: Node
 
+# JSON-loaded patron job tables (Core Rules pp.83-84)
+var _patron_data: Dictionary = {}
+var _patron_data_loaded: bool = false
+
 func _init(_game_state: Node) -> void:
 	game_state_manager = _game_state
 	validation_manager = Node.new()
+	_ensure_patron_data_loaded()
+
+func _ensure_patron_data_loaded() -> void:
+	if _patron_data_loaded:
+		return
+	_patron_data_loaded = true
+	var file := FileAccess.open("res://data/patron_generation.json", FileAccess.READ)
+	if not file:
+		push_warning("PatronJobManager: patron_generation.json not found, using fallback")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		push_warning("PatronJobManager: Failed to parse patron_generation.json")
+		file.close()
+		return
+	file.close()
+	_patron_data = json.data
+
+## Roll on a D10 subtable from patron_generation.json and return the entry
+func _roll_on_patron_subtable(table_key: String) -> Dictionary:
+	var subtable: Dictionary = _patron_data.get(table_key, {})
+	var entries: Array = subtable.get("entries", [])
+	if entries.is_empty():
+		return {}
+	var roll: int = randi_range(1, 10)
+	for entry in entries:
+		var roll_range: Array = entry.get("roll_range", [1, 1])
+		if roll >= roll_range[0] and roll <= roll_range[1]:
+			return entry
+	return entries[-1]
 
 func accept_job(mission: Node) -> bool:
 	var validation_result = validation_manager.validate_mission_start(mission)
@@ -83,13 +117,24 @@ func should_generate_condition(patron: Node) -> bool:
 	return randf() < chance
 
 func generate_benefit() -> String:
-	return ["Fringe Benefit", "Connections", "Company Store", "Health Insurance", "Security Team", "Persistent", "Negotiable"].pick_random()
+	var entry: Dictionary = _roll_on_patron_subtable("benefits_subtable")
+	return entry.get("name", "Fringe Benefit")
 
 func generate_hazard() -> String:
-	return ["Dangerous Job", "Hot Job", "VIP", "Veteran Opposition", "Low Priority", "Private Transport"].pick_random()
+	var entry: Dictionary = _roll_on_patron_subtable("hazards_subtable")
+	return entry.get("name", "Dangerous Job")
 
 func generate_condition() -> String:
-	return ["Vengeful", "Demanding", "Small Squad", "Full Squad", "Clean", "Busy", "One-time Contract", "Reputation Required"].pick_random()
+	var entry: Dictionary = _roll_on_patron_subtable("conditions_subtable")
+	return entry.get("name", "Vengeful")
+
+## Get the full effect text for a benefit/hazard/condition name
+func get_bhc_effect(table_key: String, name: String) -> String:
+	var subtable: Dictionary = _patron_data.get(table_key, {})
+	for entry in subtable.get("entries", []):
+		if entry.get("name", "") == name:
+			return entry.get("effect", "")
+	return ""
 
 func add_mission(mission: Node) -> void:
 	game_state_manager.add_available_mission(mission)

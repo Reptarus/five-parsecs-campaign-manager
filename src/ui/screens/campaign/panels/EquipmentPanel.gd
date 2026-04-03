@@ -1399,12 +1399,12 @@ func _count_savvy_eligible(crew: Array) -> int:
 func _build_generation_summary() -> void:
 	## Build the generation summary bar above the equipment list
 	## Shows: provenance tags, credits breakdown, savvy substitution UI, reroll buttons
-	var summary_node: VBoxContainer = get_node_or_null("%GenerationSummary")
+	var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
+	if not content_node:
+		return
+	var summary_node: VBoxContainer = content_node.get_node_or_null("GenerationSummary") as VBoxContainer
 	if not summary_node:
 		# Create dynamically if not in .tscn
-		var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
-		if not content_node:
-			return
 		summary_node = VBoxContainer.new()
 		summary_node.name = "GenerationSummary"
 		summary_node.add_theme_constant_override("separation", SPACING_SM)

@@ -918,7 +918,11 @@ func _on_world_phase_completed(results: Dictionary) -> void:
 
 	# Skip intermediate phases (STORY, TRAVEL, PRE_MISSION) — they're covered
 	# by the world phase steps. Go directly to MISSION for battle sequence.
-	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.MISSION)
+	var transition_ok: bool = campaign_phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.MISSION)
+	if not transition_ok:
+		push_warning("CampaignTurnController: Failed to transition to MISSION from phase %s" % str(
+			campaign_phase_manager.get_current_phase()))
 
 ## Battle Flow Handlers (BattleTransition → PreBattle → TacticalBattle → PostBattle)
 

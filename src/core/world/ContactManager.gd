@@ -292,18 +292,62 @@ func generate_random_contact(planet_id: String, turn_number: int = 0) -> Contact
 	var contact_types = ["PATRON", "TRADER", "INFORMANT", "OFFICIAL", "CRIMINAL"]
 	var contact_type = contact_types[randi() % contact_types.size()]
 	
-	var names_by_type = {
-		"PATRON": ["Director Chen", "Captain Hayes", "Administrator Voss", "Executive Martinez"],
-		"TRADER": ["Merchant Singh", "Dealer O'Brien", "Vendor Klaus", "Broker Tanaka"],
-		"INFORMANT": ["Whisper", "The Source", "Network", "Intel"],
-		"OFFICIAL": ["Inspector Reynolds", "Commissioner Wright", "Magistrate Torres"],
-		"CRIMINAL": ["Shadow", "The Fence", "Black Jack", "Void Runner"]
-	}
-	
-	var names = names_by_type.get(contact_type, ["Unknown Contact"])
-	var contact_name = names[randi() % names.size()]
+	var contact_name: String = _generate_contact_name(contact_type)
 	
 	return add_contact(contact_name, contact_type, planet_id, turn_number)
+
+## Name generation tables cache
+var _name_tables: Dictionary = {}
+var _name_tables_loaded: bool = false
+
+func _ensure_name_tables() -> void:
+	if _name_tables_loaded:
+		return
+	_name_tables_loaded = true
+	var file := FileAccess.open("res://data/RulesReference/NameGenerationTables.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		file.close()
+		return
+	file.close()
+	var content: Array = json.data.get("NameGenerationTables", {}).get("content", [])
+	for entry in content:
+		var title: String = entry.get("title", "")
+		if title == "Corporate Names Generator":
+			_name_tables["corporate"] = entry.get("tables", [])
+		elif title == "Gang Names Generator":
+			_name_tables["gang"] = entry.get("tables", [])
+		elif title == "Rival Names Generator":
+			_name_tables["rival_title"] = entry.get("table", [])
+
+func _pick_from_table(table: Array) -> String:
+	if table.is_empty():
+		return "Unknown"
+	return table[randi() % table.size()].get("name", "Unknown")
+
+func _generate_two_part_name(table_key: String) -> String:
+	_ensure_name_tables()
+	var tables: Array = _name_tables.get(table_key, [])
+	if tables.size() < 2:
+		return "Unknown"
+	return "%s %s" % [
+		_pick_from_table(tables[0].get("table", [])),
+		_pick_from_table(tables[1].get("table", []))]
+
+func _generate_contact_name(contact_type: String) -> String:
+	match contact_type:
+		"PATRON", "OFFICIAL", "TRADER":
+			return _generate_two_part_name("corporate")
+		"CRIMINAL":
+			return _generate_two_part_name("gang")
+		"INFORMANT":
+			_ensure_name_tables()
+			var title_table: Array = _name_tables.get("rival_title", [])
+			return _pick_from_table(title_table) if not title_table.is_empty() else "The Source"
+		_:
+			return _generate_two_part_name("corporate")
 
 ## Serialize all contact data
 func serialize_all() -> Dictionary:

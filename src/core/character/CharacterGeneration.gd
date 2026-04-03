@@ -26,6 +26,10 @@ static var _is_data_loaded: bool = false
 # JSON-loaded creation tables (lazy-loaded on first access)
 static var _creation_tables_loaded: bool = false
 
+# Name generation tables (lazy-loaded)
+static var _name_tables: Dictionary = {}
+static var _name_tables_loaded: bool = false
+
 static func _ensure_creation_tables_loaded() -> void:
 	if _creation_tables_loaded:
 		return
@@ -443,19 +447,66 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 
 	return total_resources
 
+## Load name generation tables from JSON (lazy)
+static func _ensure_name_tables_loaded() -> void:
+	if _name_tables_loaded:
+		return
+	_name_tables_loaded = true
+	var file := FileAccess.open("res://data/RulesReference/NameGenerationTables.json", FileAccess.READ)
+	if not file:
+		push_warning("CharacterGeneration: Name tables not found, using fallback names")
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		push_warning("CharacterGeneration: Failed to parse name tables")
+		file.close()
+		return
+	file.close()
+	var content: Array = json.data.get("NameGenerationTables", {}).get("content", [])
+	for entry in content:
+		var title: String = entry.get("title", "")
+		if title == "Corporate Names Generator":
+			_name_tables["corporate"] = entry.get("tables", [])
+		elif title == "Gang Names Generator":
+			_name_tables["gang"] = entry.get("tables", [])
+		elif title == "Rival Names Generator":
+			_name_tables["rival_title"] = entry.get("table", [])
+
+## Pick a random name from a D100 table array
+static func _pick_from_table(table: Array) -> String:
+	if table.is_empty():
+		return "Unknown"
+	return table[randi() % table.size()].get("name", "Unknown")
+
+## Generate a 2-part name from a named table set (e.g., corporate, gang)
+static func _generate_two_part_name(table_key: String) -> String:
+	_ensure_name_tables_loaded()
+	var tables: Array = _name_tables.get(table_key, [])
+	if tables.size() < 2:
+		return "Unknown %s" % table_key.capitalize()
+	var part1_table: Array = tables[0].get("table", [])
+	var part2_table: Array = tables[1].get("table", [])
+	return "%s %s" % [_pick_from_table(part1_table), _pick_from_table(part2_table)]
+
 ## Create a starting patron from character creation (linked to source character)
 static func _create_starting_patron(index: int, source_character: String = "") -> Dictionary:
 	var patron_types = ["Corporate", "Government", "Criminal",
 		"Military", "Trade Guild", "Religious Order"]
-	var patron_names = ["Director Chen", "Commissioner Vale",
-		"Boss Krynn", "Colonel Drake", "Merchant Lord Vex",
-		"High Priest Zara"]
+	var patron_type: String = patron_types[randi() % patron_types.size()]
+
+	# Generate name based on type using Core Rules name tables
+	var patron_name: String
+	if patron_type in ["Corporate", "Trade Guild"]:
+		patron_name = _generate_two_part_name("corporate")
+	else:
+		# Use gang name table for criminal/military orgs, with type prefix for flavor
+		patron_name = _generate_two_part_name("gang")
 
 	return {
 		"id": "starting_patron_%d_%d" % [
 			Time.get_unix_time_from_system(), index],
-		"name": patron_names[index % patron_names.size()],
-		"type": patron_types[index % patron_types.size()],
+		"name": patron_name,
+		"type": patron_type,
 		"reputation": 0,
 		"jobs_completed": 0,
 		"jobs_failed": 0,
@@ -467,14 +518,26 @@ static func _create_starting_patron(index: int, source_character: String = "") -
 static func _create_starting_rival(index: int, source_character: String = "") -> Dictionary:
 	var rival_types = ["Gang", "Corporate", "Criminal",
 		"Personal Enemy", "Mercenary Band"]
-	var rival_names = ["The Red Fang", "Nexus Corp Enforcers",
-		"Shadow Syndicate", "Vendetta Hunter", "Steel Dogs"]
+	var rival_type: String = rival_types[randi() % rival_types.size()]
+
+	# Generate name based on type using Core Rules name tables
+	var rival_name: String
+	if rival_type == "Personal Enemy":
+		# Personal enemies get a title from the Rival Names table
+		_ensure_name_tables_loaded()
+		var title_table: Array = _name_tables.get("rival_title", [])
+		rival_name = _pick_from_table(title_table) if not title_table.is_empty() else "The Hunter"
+	elif rival_type == "Corporate":
+		rival_name = _generate_two_part_name("corporate")
+	else:
+		# Gang, Criminal, Mercenary Band — use gang name table
+		rival_name = _generate_two_part_name("gang")
 
 	return {
 		"id": "starting_rival_%d_%d" % [
 			Time.get_unix_time_from_system(), index],
-		"name": rival_names[index % rival_names.size()],
-		"type": rival_types[index % rival_types.size()],
+		"name": rival_name,
+		"type": rival_type,
 		"strength": 1,
 		"hostility": 5,
 		"is_starting_rival": true,

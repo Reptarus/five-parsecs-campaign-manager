@@ -19,6 +19,9 @@ signal environmental_hazard_activated(hazard: EnvironmentalHazard)
 signal event_resolved(event_id: String, outcome: Dictionary)
 signal round_event_check(round_number: int)
 signal event_conflicts_detected(event1: BattleEvent, event2: BattleEvent)
+signal terrain_effect_triggered(effect: Dictionary)
+## effect = {type: "fog"|"hazard"|"reinforcement_marker", center: Vector2,
+##           radius: float, label: String, duration_rounds: int}
 
 # Battle Event Resource Class
 class BattleEvent extends Resource:

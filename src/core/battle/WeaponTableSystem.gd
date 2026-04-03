@@ -32,8 +32,58 @@ class WeaponData extends Resource:
 # Weapon registry
 var weapon_registry: Dictionary = {}  # weapon_id -> WeaponData
 
+# Enemy weapon distribution tables (loaded from JSON)
+var _enemy_weapon_distributions: Dictionary = {}
+var _enemy_weapon_aliases: Dictionary = {}
+var _enemy_tables_loaded: bool = false
+
 func _init() -> void:
-	_initialize_weapon_registry()
+	_load_weapons_from_json()
+	if weapon_registry.is_empty():
+		push_warning("WeaponTableSystem: JSON load failed, using hardcoded fallback")
+		_initialize_weapon_registry()
+
+## Load weapon data from equipment_database.json (canonical source)
+func _load_weapons_from_json() -> void:
+	var file := FileAccess.open("res://data/equipment_database.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		file.close()
+		return
+	file.close()
+	var weapons_array: Array = json.data.get("weapons", [])
+	for entry in weapons_array:
+		var weapon := WeaponData.new()
+		weapon.weapon_id = entry.get("id", "")
+		weapon.name = entry.get("name", "")
+		weapon.range_inches = int(entry.get("range", 0))
+		weapon.shots = int(entry.get("shots", 0))
+		weapon.damage_bonus = int(entry.get("damage", 0))
+		var traits_arr: Array = entry.get("traits", [])
+		for t in traits_arr:
+			weapon.traits.append(str(t))
+		weapon.description = entry.get("description", "")
+		# Derive category from type + traits
+		weapon.category = _derive_category(entry.get("type", ""), weapon.traits)
+		if not weapon.weapon_id.is_empty():
+			weapon_registry[weapon.weapon_id] = weapon
+
+## Derive weapon category from JSON type and traits
+static func _derive_category(type_str: String, traits: Array[String]) -> String:
+	if type_str == "Melee":
+		return "melee"
+	if type_str == "Grenade":
+		return "grenade"
+	if "Pistol" in traits:
+		return "pistol"
+	if "Heavy" in traits:
+		return "heavy"
+	if type_str == "Special":
+		return "special"
+	# Default ranged weapons to rifle
+	return "rifle"
 
 ## Get weapon by ID
 func get_weapon(weapon_id: String) -> WeaponData:
@@ -83,52 +133,31 @@ func roll_enemy_weapon(enemy_type: String) -> WeaponData:
 
 	return get_weapon(table[-1].weapon_id)
 
+func _ensure_enemy_tables_loaded() -> void:
+	if _enemy_tables_loaded:
+		return
+	_enemy_tables_loaded = true
+	var file := FileAccess.open("res://data/enemy_weapon_tables.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		file.close()
+		return
+	file.close()
+	_enemy_weapon_distributions = json.data.get("distributions", {})
+	_enemy_weapon_aliases = json.data.get("aliases", {})
+
 func _get_enemy_weapon_table(enemy_type: String) -> Array:
-	# Enemy weapon tables based on core rules
-	match enemy_type.to_lower():
-		"criminal", "thug", "gang":
-			return [
-				{"weapon_id": "handgun", "weight": 30},
-				{"weapon_id": "auto_pistol", "weight": 20},
-				{"weapon_id": "blade", "weight": 25},
-				{"weapon_id": "shotgun", "weight": 15},
-				{"weapon_id": "colony_rifle", "weight": 10}
-			]
-		"military", "security", "guard":
-			return [
-				{"weapon_id": "military_rifle", "weight": 40},
-				{"weapon_id": "auto_rifle", "weight": 25},
-				{"weapon_id": "handgun", "weight": 15},
-				{"weapon_id": "machine_gun", "weight": 10},
-				{"weapon_id": "blade", "weight": 10}
-			]
-		"alien", "kerin":
-			return [
-				{"weapon_id": "blade", "weight": 30},
-				{"weapon_id": "needle_rifle", "weight": 25},
-				{"weapon_id": "handgun", "weight": 20},
-				{"weapon_id": "power_claw", "weight": 15},
-				{"weapon_id": "colony_rifle", "weight": 10}
-			]
-		"pirate", "raider":
-			return [
-				{"weapon_id": "shotgun", "weight": 25},
-				{"weapon_id": "colony_rifle", "weight": 25},
-				{"weapon_id": "handgun", "weight": 20},
-				{"weapon_id": "blade", "weight": 15},
-				{"weapon_id": "auto_pistol", "weight": 15}
-			]
-		"wildlife", "creature":
-			return [
-				{"weapon_id": "claws", "weight": 60},
-				{"weapon_id": "fangs", "weight": 40}
-			]
-		_:
-			return [
-				{"weapon_id": "handgun", "weight": 40},
-				{"weapon_id": "blade", "weight": 30},
-				{"weapon_id": "colony_rifle", "weight": 30}
-			]
+	_ensure_enemy_tables_loaded()
+	var key: String = enemy_type.to_lower()
+	# Check aliases first (e.g., "thug" -> "criminal")
+	if _enemy_weapon_aliases.has(key):
+		key = _enemy_weapon_aliases[key]
+	var table: Array = _enemy_weapon_distributions.get(key, [])
+	if table.is_empty():
+		table = _enemy_weapon_distributions.get("default", [])
+	return table
 
 func _initialize_weapon_registry() -> void:
 	weapon_registry.clear()

@@ -80,7 +80,8 @@ var _hovered_cell: Vector2i = Vector2i(-1, -1)
 var _is_panning: bool = false
 var _pan_start: Vector2 = Vector2.ZERO
 var _deployment_highlighted: bool = false
-var _objective_position: Vector2 = Vector2(-1, -1)  # Grid cell coords; -1 = no objective
+var _objective_positions: Array[Dictionary] = []  # [{type, grid_pos, label}]
+var _active_overlays: Array[Dictionary] = []  # Battle event overlays [{id, type, center, radius, color}]
 
 # Terrain rendering
 var _terrain_container: Node2D
@@ -186,9 +187,8 @@ func populate_from_sectors(sectors: Array, p_theme_name: String = "") -> void:
 		_sector_features[row_idx][col_idx] = features
 		_sector_shapes[row_idx][col_idx] = _shape_library.classify_features(features)
 
-	# Default objective to center of map if not set
-	if _objective_position == Vector2(-1, -1):
-		_objective_position = Vector2(GRID_COLUMNS / 2.0, GRID_ROWS / 2.0)
+	# Objective positions are set externally via set_objective_positions()
+	# No hardcoded center default — mission type determines placement
 
 	# Compute organic placements and build SVS terrain nodes
 	_rebuild_terrain_shapes()
@@ -215,7 +215,31 @@ func set_deployment_highlight(enabled: bool) -> void:
 	queue_redraw()
 
 func set_objective_position(grid_pos: Vector2) -> void:
-	_objective_position = grid_pos
+	## Legacy single-position API — wraps into array format
+	_objective_positions = [{"type": "center", "grid_pos": grid_pos, "label": "Objective"}]
+	_overlay_control.queue_redraw()
+
+func set_objective_positions(positions: Array) -> void:
+	## Set multiple objective markers from BattlefieldGenerator.compute_objective_positions()
+	_objective_positions = []
+	for pos in positions:
+		if pos is Dictionary:
+			_objective_positions.append(pos)
+	_overlay_control.queue_redraw()
+
+func add_terrain_overlay(overlay: Dictionary) -> void:
+	## Add a dynamic overlay from battle events (fog, hazard, markers)
+	_active_overlays.append(overlay)
+	_overlay_control.queue_redraw()
+
+func remove_terrain_overlay(overlay_id: String) -> void:
+	## Remove an overlay by ID
+	_active_overlays = _active_overlays.filter(
+		func(o: Dictionary) -> bool: return o.get("id", "") != overlay_id)
+	_overlay_control.queue_redraw()
+
+func clear_terrain_overlays() -> void:
+	_active_overlays.clear()
 	_overlay_control.queue_redraw()
 
 func clear() -> void:
@@ -224,7 +248,8 @@ func clear() -> void:
 	_unit_positions = []
 	_sector_placements = []
 	_hovered_cell = Vector2i(-1, -1)
-	_objective_position = Vector2(-1, -1)
+	_objective_positions = []
+	_active_overlays = []
 	theme_name = ""
 	_tooltip_panel.visible = false
 	_clear_terrain_nodes()
@@ -623,9 +648,19 @@ func _draw_overlay() -> void:
 	if effective_cell >= 20.0:
 		_draw_terrain_labels_on(_overlay_control, offset, effective_cell)
 
-	# Objective marker
-	if _objective_position != Vector2(-1, -1):
-		_draw_objective_marker(_overlay_control, offset, effective_cell)
+	# Objective markers (mission-type aware — may be 0, 1, or multiple)
+	for obj_data: Dictionary in _objective_positions:
+		var grid_pos: Vector2 = obj_data.get("grid_pos", Vector2(-1, -1))
+		if grid_pos != Vector2(-1, -1):
+			var obj_label: String = obj_data.get("label", "OBJ")
+			_draw_objective_marker(
+				_overlay_control, offset, effective_cell,
+				grid_pos, obj_label)
+
+	# Battle event overlays (fog, hazard zones, reinforcement markers)
+	for overlay: Dictionary in _active_overlays:
+		_draw_battle_event_overlay(
+			_overlay_control, offset, effective_cell, overlay)
 
 	# Unit markers
 	if show_unit_markers:
@@ -731,10 +766,11 @@ func _draw_unit_markers_on(canvas: Control, offset: Vector2, cs: float) -> void:
 		else:
 			canvas.draw_circle(center, marker_radius * 0.3, color.lightened(0.4))
 
-func _draw_objective_marker(canvas: Control, offset: Vector2, cs: float) -> void:
+func _draw_objective_marker(canvas: Control, offset: Vector2,
+		cs: float, grid_pos: Vector2, label_text: String) -> void:
 	var center := Vector2(
-		offset.x + _objective_position.x * cs,
-		offset.y + _objective_position.y * cs)
+		offset.x + grid_pos.x * cs,
+		offset.y + grid_pos.y * cs)
 	var marker_size: float = cs * 1.5
 
 	# Diamond shape
@@ -745,21 +781,81 @@ func _draw_objective_marker(canvas: Control, offset: Vector2, cs: float) -> void
 		center + Vector2(0, hw),
 		center + Vector2(-hw, 0),
 	])
-	canvas.draw_colored_polygon(points, Color(0.96, 0.78, 0.04, 0.25))
-	canvas.draw_polyline(points, Color(0.96, 0.78, 0.04, 0.9), 2.0)
+	canvas.draw_colored_polygon(
+		points, Color(0.96, 0.78, 0.04, 0.25))
+	canvas.draw_polyline(
+		points, Color(0.96, 0.78, 0.04, 0.9), 2.0)
 	# Close the diamond outline
-	canvas.draw_line(points[3], points[0], Color(0.96, 0.78, 0.04, 0.9), 2.0)
+	canvas.draw_line(
+		points[3], points[0],
+		Color(0.96, 0.78, 0.04, 0.9), 2.0)
 
 	# Center dot
-	canvas.draw_circle(center, cs * 0.2, Color(0.96, 0.78, 0.04, 0.8))
+	canvas.draw_circle(
+		center, cs * 0.2, Color(0.96, 0.78, 0.04, 0.8))
 
-	# "OBJ" label
+	# Label
 	var font: Font = ThemeDB.fallback_font
-	var font_size: int = clampi(int(cs * 0.5), 8, 14)
+	var fsize: int = clampi(int(cs * 0.5), 8, 14)
+	var short_label: String = label_text.left(12)
 	canvas.draw_string(font,
-		Vector2(center.x - 10, center.y + hw + font_size + 4),
-		"OBJ", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size,
+		Vector2(center.x - 10, center.y + hw + fsize + 4),
+		short_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize,
 		Color(0.96, 0.78, 0.04, 1.0))
+
+func _draw_battle_event_overlay(canvas: Control,
+		offset: Vector2, cs: float, overlay: Dictionary) -> void:
+	## Draw a battle event overlay (fog cloud, hazard zone, markers)
+	var o_type: String = overlay.get("type", "")
+	var o_center: Vector2 = overlay.get("center", Vector2(12, 8))
+	var o_radius: float = overlay.get("radius", 6.0)
+	var px_center := Vector2(
+		offset.x + o_center.x * cs,
+		offset.y + o_center.y * cs)
+	var px_radius: float = o_radius * cs
+
+	match o_type:
+		"fog":
+			# Core Rules p.117 roll 81-85: Fog cloud at center
+			canvas.draw_circle(
+				px_center, px_radius,
+				Color(0.5, 0.5, 0.55, 0.15))
+			canvas.draw_arc(
+				px_center, px_radius, 0, TAU, 64,
+				Color(0.5, 0.5, 0.55, 0.4), 2.0)
+		"hazard":
+			# Core Rules p.117 roll 55-60: Environmental hazard
+			canvas.draw_circle(
+				px_center, px_radius,
+				Color(0.86, 0.15, 0.15, 0.12))
+			canvas.draw_arc(
+				px_center, px_radius, 0, TAU, 64,
+				Color(0.86, 0.15, 0.15, 0.5), 2.0)
+		"reinforcement_marker":
+			# Core Rules p.117 roll 47-50: Marker on enemy edge
+			var hw: float = cs * 0.6
+			var pts := PackedVector2Array([
+				px_center + Vector2(0, -hw),
+				px_center + Vector2(hw, 0),
+				px_center + Vector2(0, hw),
+				px_center + Vector2(-hw, 0)])
+			canvas.draw_colored_polygon(
+				pts, Color(0.9, 0.6, 0.1, 0.3))
+			canvas.draw_polyline(
+				pts, Color(0.9, 0.6, 0.1, 0.8), 2.0)
+			canvas.draw_line(
+				pts[3], pts[0],
+				Color(0.9, 0.6, 0.1, 0.8), 2.0)
+
+	# Label
+	var o_label: String = overlay.get("label", "")
+	if not o_label.is_empty():
+		var font: Font = ThemeDB.fallback_font
+		var fsize: int = clampi(int(cs * 0.4), 7, 12)
+		canvas.draw_string(font,
+			Vector2(px_center.x - 20, px_center.y - px_radius - 4),
+			o_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize,
+			Color(0.9, 0.9, 0.9, 0.8))
 
 # ============================================================================
 # INPUT HANDLING

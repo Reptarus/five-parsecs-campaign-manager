@@ -1,0 +1,56 @@
+{
+  "_metadata": {
+    "name": "Enemy Weapon Distribution Tables",
+    "description": "Weighted weapon tables by enemy type for random weapon assignment during battle setup. Weights are percentile (sum to 100).",
+    "source": "Five Parsecs from Home Core Rules — Enemy Weapon Tables",
+    "version": "1.0"
+  },
+  "distributions": {
+    "criminal": [
+      {"weapon_id": "hand_gun", "weight": 30},
+      {"weapon_id": "machine_pistol", "weight": 20},
+      {"weapon_id": "blade", "weight": 25},
+      {"weapon_id": "shotgun", "weight": 15},
+      {"weapon_id": "colony_rifle", "weight": 10}
+    ],
+    "military": [
+      {"weapon_id": "military_rifle", "weight": 40},
+      {"weapon_id": "auto_rifle", "weight": 25},
+      {"weapon_id": "hand_gun", "weight": 15},
+      {"weapon_id": "rattle_gun", "weight": 10},
+      {"weapon_id": "blade", "weight": 10}
+    ],
+    "alien": [
+      {"weapon_id": "blade", "weight": 30},
+      {"weapon_id": "needle_rifle", "weight": 25},
+      {"weapon_id": "hand_gun", "weight": 20},
+      {"weapon_id": "power_claw", "weight": 15},
+      {"weapon_id": "colony_rifle", "weight": 10}
+    ],
+    "pirate": [
+      {"weapon_id": "shotgun", "weight": 25},
+      {"weapon_id": "colony_rifle", "weight": 25},
+      {"weapon_id": "hand_gun", "weight": 20},
+      {"weapon_id": "blade", "weight": 15},
+      {"weapon_id": "machine_pistol", "weight": 15}
+    ],
+    "wildlife": [
+      {"weapon_id": "claws", "weight": 60},
+      {"weapon_id": "fangs", "weight": 40}
+    ],
+    "default": [
+      {"weapon_id": "hand_gun", "weight": 40},
+      {"weapon_id": "blade", "weight": 30},
+      {"weapon_id": "colony_rifle", "weight": 30}
+    ]
+  },
+  "aliases": {
+    "thug": "criminal",
+    "gang": "criminal",
+    "security": "military",
+    "guard": "military",
+    "kerin": "alien",
+    "raider": "pirate",
+    "creature": "wildlife"
+  }
+}

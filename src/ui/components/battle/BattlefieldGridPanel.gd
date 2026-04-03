@@ -260,6 +260,20 @@ func _toggle_collapse() -> void:
 func set_unit_positions(units: Array) -> void:
 	_map_view.set_unit_positions(units)
 
+## Route objective positions to the map view
+func set_objective_positions(positions: Array) -> void:
+	_map_view.set_objective_positions(positions)
+
+## Route battle event overlays to the map view
+func add_terrain_overlay(overlay: Dictionary) -> void:
+	_map_view.add_terrain_overlay(overlay)
+
+func remove_terrain_overlay(overlay_id: String) -> void:
+	_map_view.remove_terrain_overlay(overlay_id)
+
+func clear_terrain_overlays() -> void:
+	_map_view.clear_terrain_overlays()
+
 ## Handle map cell click — show popover with terrain details
 func _on_map_cell_clicked(sector_label: String, features: Array) -> void:
 	sector_clicked.emit(sector_label, features)

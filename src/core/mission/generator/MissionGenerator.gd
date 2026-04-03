@@ -52,6 +52,7 @@ func _has_method(obj, method_name):
 # Current state
 var current_mission: Dictionary = {}
 var rng = RandomNumberGenerator.new()
+var _mission_locations: Array = []
 
 func _init() -> void:
 	rng.randomize()
@@ -109,27 +110,57 @@ func generate_mission(mission_type: int = -1) -> Resource:
 func generate_mission_of_type(mission_type: int) -> Resource:
 	return generate_mission(mission_type)
 
-## Load mission templates from configuration
+## Load mission templates from JSON configuration
 func _load_mission_templates() -> void:
-	# In a real implementation, this would load from files
-	# For now, we'll create some basic templates programmatically
-	mission_templates = [
-		{
-			"type": MissionType.BATTLE,
-			"name_templates": ["Battle at %s", "Conflict in %s", "Skirmish on %s"],
-			"description_templates": ["Engage enemy forces at %s.", "Defeat opponents in combat at %s."]
-		},
-		{
-			"type": MissionType.RECON,
-			"name_templates": ["Reconnaissance of %s", "Recon Mission: %s", "Scout %s"],
-			"description_templates": ["Gather intelligence in %s without being detected.", "Scout the area of %s and report findings."]
-		},
-		{
-			"type": MissionType.SALVAGE,
-			"name_templates": ["Salvage Operation: %s", "Recovery at %s", "Retrieve from %s"],
-			"description_templates": ["Recover valuable materials from %s.", "Salvage critical components in the ruins of %s."]
-		}
-	]
+	var file := FileAccess.open("res://data/mission_templates.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			var json_data: Dictionary = json.data
+			_mission_locations = json_data.get("mission_locations", [])
+			var json_templates: Array = json_data.get("mission_templates", [])
+			# Map JSON type strings to our local enum
+			var type_map: Dictionary = {
+				"OPPORTUNITY": MissionType.SALVAGE,
+				"PATRON": MissionType.BATTLE,
+				"QUEST": MissionType.RECON,
+				"RIVAL": MissionType.BATTLE,
+			}
+			for tmpl in json_templates:
+				var type_str: String = tmpl.get("type", "")
+				var mapped_type: int = type_map.get(type_str, MissionType.BATTLE)
+				# Convert {LOCATION} placeholder to %s for compatibility
+				var name_tmpls: Array = []
+				for t in tmpl.get("title_templates", []):
+					name_tmpls.append(t.replace("{LOCATION}", "%s").replace("{OBJECTIVE}", "complete the mission"))
+				var desc_tmpls: Array = []
+				for t in tmpl.get("description_templates", []):
+					desc_tmpls.append(t.replace("{LOCATION}", "%s").replace("{OBJECTIVE}", "complete the objective"))
+				# Only add if we don't already have this type (first match wins)
+				var already_has := false
+				for existing in mission_templates:
+					if existing.get("type", -1) == mapped_type:
+						already_has = true
+						# Merge additional templates into existing entry
+						existing.get("name_templates", []).append_array(name_tmpls)
+						existing.get("description_templates", []).append_array(desc_tmpls)
+						break
+				if not already_has:
+					mission_templates.append({
+						"type": mapped_type,
+						"name_templates": name_tmpls,
+						"description_templates": desc_tmpls,
+					})
+		file.close()
+
+	# Fallback if JSON load failed or was empty
+	if mission_templates.is_empty():
+		push_warning("MissionGenerator: Failed to load mission_templates.json, using fallback")
+		mission_templates = [
+			{"type": MissionType.BATTLE, "name_templates": ["Battle at %s"], "description_templates": ["Engage enemy forces at %s."]},
+			{"type": MissionType.RECON, "name_templates": ["Reconnaissance of %s"], "description_templates": ["Gather intelligence in %s."]},
+			{"type": MissionType.SALVAGE, "name_templates": ["Salvage Operation: %s"], "description_templates": ["Recover materials from %s."]},
+		]
 
 ## Generate a random mission name
 func _generate_mission_name(mission_type: int) -> String:
@@ -163,14 +194,12 @@ func _get_description_template(mission_type: int) -> String:
 	# Default template if type not found
 	return "Complete objectives at %s."
 
-## Generate a random location name
+## Generate a random location name from JSON data
 func _generate_random_location() -> String:
-	var locations = [
-		"Alpha Base", "Zeta Station", "Epsilon Outpost", "Gamma Complex",
-		"Proxima IV", "Cygnus Ruins", "Orion's Belt", "Nova Prime",
-		"Sector 7", "The Wastes", "Abandoned Colony", "The Frontier"
-	]
-	return locations[rng.randi() % locations.size()]
+	if not _mission_locations.is_empty():
+		return _mission_locations[rng.randi() % _mission_locations.size()]
+	# Fallback
+	return ["Alpha Base", "Zeta Station", "Mining Settlement", "Research Station"].pick_random()
 
 ## Generate a random mission type
 func _random_mission_type() -> int:

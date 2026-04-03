@@ -68,6 +68,13 @@ func classify_feature(feat: String) -> Dictionary:
 			"width": 48.0, "height": 16.0, "notable": false,
 			"is_scatter": true, "size_category": "",
 			"label": feat.substr(9) if feat.begins_with("Scatter: ") else feat}
+	elif text.begins_with("hazard: "):
+		# Hazard features from deployment conditions / battle events
+		var h_label: String = feat.substr(8) if feat.begins_with("HAZARD: ") else feat
+		return {"shape": "diamond", "color": SHAPE_COLOR_HAZARD,
+			"width": 40.0, "height": 40.0, "notable": false,
+			"is_scatter": false, "size_category": "SMALL",
+			"label": h_label}
 
 	# Keyword -> shape mapping (ordered by specificity)
 	var shape: String = "rect"

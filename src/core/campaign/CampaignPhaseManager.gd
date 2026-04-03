@@ -412,8 +412,12 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.PRE_MISSION:
 			return current_phase in [FiveParcsecsCampaignPhase.STORY, FiveParcsecsCampaignPhase.TRAVEL]
 		FiveParcsecsCampaignPhase.MISSION:
-			# Allow from UPKEEP — world phase UI covers STORY/TRAVEL/PRE_MISSION steps
-			return current_phase in [FiveParcsecsCampaignPhase.PRE_MISSION, FiveParcsecsCampaignPhase.UPKEEP]
+			# Allow from any world-phase state — world phase UI covers all of these
+			return current_phase in [
+				FiveParcsecsCampaignPhase.UPKEEP,
+				FiveParcsecsCampaignPhase.STORY,
+				FiveParcsecsCampaignPhase.TRAVEL,
+				FiveParcsecsCampaignPhase.PRE_MISSION]
 		FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			return current_phase in [FiveParcsecsCampaignPhase.PRE_MISSION, FiveParcsecsCampaignPhase.MISSION]
 		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:

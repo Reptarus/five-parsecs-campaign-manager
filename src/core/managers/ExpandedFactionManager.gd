@@ -45,6 +45,10 @@ var _faction_territories: Dictionary = {}
 var player_faction_id: String = ""
 var game_state: FiveParsecsGameState
 
+# Name generation tables (lazy-loaded from NameGenerationTables.json)
+var _name_tables: Dictionary = {}
+var _name_tables_loaded: bool = false
+
 # Add missing signals
 signal faction_created(faction_id: String)
 signal faction_reputation_changed(faction_id: String, old_value: int, new_value: int)
@@ -93,7 +97,39 @@ func generate_faction() -> Dictionary:
 		"temporary_defense": false
 	}
 
+func _ensure_name_tables_loaded() -> void:
+	if _name_tables_loaded:
+		return
+	_name_tables_loaded = true
+	var file := FileAccess.open("res://data/RulesReference/NameGenerationTables.json", FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		file.close()
+		return
+	file.close()
+	var content: Array = json.data.get("NameGenerationTables", {}).get("content", [])
+	for entry in content:
+		var title: String = entry.get("title", "")
+		if title == "Faction Names Generator":
+			_name_tables["faction"] = entry.get("tables", [])
+		elif title == "Corporate Names Generator":
+			_name_tables["corporate"] = entry.get("tables", [])
+
+func _pick_from_table(table: Array) -> String:
+	if table.is_empty():
+		return "Unknown"
+	return table[randi() % table.size()].get("name", "Unknown")
+
 func generate_faction_name() -> String:
+	_ensure_name_tables_loaded()
+	var tables: Array = _name_tables.get("faction", [])
+	if tables.size() >= 2:
+		var part1: String = _pick_from_table(tables[0].get("table", []))
+		var part2: String = _pick_from_table(tables[1].get("table", []))
+		return "%s %s" % [part1, part2]
+	# Fallback if JSON not available
 	var prefixes: Array[String] = ["New", "United", "Free", "Imperial", "Republic of"]
 	var suffixes: Array[String] = ["Corp", "Syndicate", "Alliance", "Federation", "Collective"]
 	return prefixes[randi() % prefixes.size()] + " " + suffixes[randi() % suffixes.size()]

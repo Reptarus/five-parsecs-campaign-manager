@@ -224,5 +224,14 @@
 			"notable_sight_chance": 0.3,
 			"economic_impact": 1.3
 		}
+	],
+	"mission_locations": [
+		"Abandoned Factory", "Cargo Terminal", "Mining Settlement",
+		"Research Station", "Command Center", "Prison Block",
+		"Medical Facility", "Trade Port", "Civilian Zone",
+		"Industrial Complex", "Outer Perimeter", "Underground Tunnels",
+		"Reactor Core", "Communications Hub", "Landing Pad",
+		"Storage Depot", "Refinery", "Orbital Station",
+		"Frontier Outpost", "Starport District"
 	]
 }

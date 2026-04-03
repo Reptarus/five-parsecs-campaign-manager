@@ -1840,19 +1840,43 @@ func _populate_setup_tab(mission_data) -> void:
 		bf_data.get("terrain_type", "Standard Battlefield"))
 	_current_terrain_theme = _map_theme_name_to_key(theme_name)
 
-	# Generate rich per-sector terrain suggestions
-	var sector_data: Dictionary = _battlefield_generator.generate_terrain_suggestions(
-		_current_terrain_theme)
+	# Read world traits for terrain modification (Core Rules pp.72-75)
+	var world_traits: Array = []
+	if game_state and game_state.get("current_campaign"):
+		var planet: Dictionary = game_state.current_campaign.get(
+			"current_planet", {})
+		world_traits = planet.get("world_traits", [])
+
+	# Generate Compendium-compliant terrain (5-step process)
+	var sector_data: Dictionary = (
+		_battlefield_generator.generate_terrain_suggestions(
+			_current_terrain_theme, world_traits,
+			deployment_condition))
 
 	# Populate the visual battlefield grid in center area
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("populate"):
 		var sectors_arr: Array = sector_data.get("sectors", [])
-		var theme_display_name: String = sector_data.get("theme_name", theme_name)
+		var theme_display_name: String = sector_data.get(
+			"theme_name", theme_name)
 		battlefield_grid_panel.populate(sectors_arr, theme_display_name)
 		if not battlefield_grid_panel.regenerate_requested.is_connected(
 				_on_regenerate_terrain_pressed):
 			battlefield_grid_panel.regenerate_requested.connect(
 				_on_regenerate_terrain_pressed)
+
+	# Compute mission-aware objective positions (Core Rules pp.89-91)
+	var mission_dict_obj: Dictionary = (
+		mission_data if mission_data is Dictionary else {})
+	var objective_str: String = mission_dict_obj.get(
+		"objective", mission_dict_obj.get("type", ""))
+	var obj_rng := RandomNumberGenerator.new()
+	obj_rng.seed = Time.get_unix_time_from_system()
+	var obj_positions: Array = (
+		_battlefield_generator.compute_objective_positions(
+			objective_str, sector_data.get("sectors", []), obj_rng))
+	if battlefield_grid_panel and battlefield_grid_panel.has_method(
+			"set_objective_positions"):
+		battlefield_grid_panel.set_objective_positions(obj_positions)
 
 	# Section 0a: Mission Overview (pay, location, danger)
 	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
@@ -2158,9 +2182,17 @@ func _on_regenerate_terrain_pressed() -> void:
 	# Wait one frame for nodes to be freed
 	await get_tree().process_frame
 
-	# Generate new sector data
-	var new_sector_data: Dictionary = _battlefield_generator.generate_terrain_suggestions(
-		_current_terrain_theme)
+	# Generate new sector data (with world traits + deployment condition)
+	var regen_world_traits: Array = []
+	var regen_game_state = get_node_or_null("/root/GameState")
+	if regen_game_state and regen_game_state.get("current_campaign"):
+		var regen_planet: Dictionary = (
+			regen_game_state.current_campaign.get(
+				"current_planet", {}))
+		regen_world_traits = regen_planet.get("world_traits", [])
+	var new_sector_data: Dictionary = (
+		_battlefield_generator.generate_terrain_suggestions(
+			_current_terrain_theme, regen_world_traits))
 
 	# Also refresh the visual battlefield grid
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("populate"):
