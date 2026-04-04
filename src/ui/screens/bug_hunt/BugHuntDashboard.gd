@@ -19,6 +19,13 @@ var _save_btn: Button
 var _play_btn: Button  # Stored for TweenFX.breathe cleanup
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_load_campaign()
 	_build_ui()
@@ -66,7 +73,7 @@ func _populate() -> void:
 		var lbl := Label.new()
 		lbl.text = "No Bug Hunt campaign loaded."
 		lbl.add_theme_color_override("font_color", COLOR_WARNING)
-		lbl.add_theme_font_size_override("font_size", 20)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(20))
 		_content.add_child(lbl)
 		return
 
@@ -75,7 +82,7 @@ func _populate() -> void:
 	var regiment: String = _campaign.regiment_name if "regiment_name" in _campaign else ""
 	var title := Label.new()
 	title.text = name_str
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", _scaled_font(28))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
@@ -83,7 +90,7 @@ func _populate() -> void:
 	if not regiment.is_empty():
 		var reg_lbl := Label.new()
 		reg_lbl.text = regiment
-		reg_lbl.add_theme_font_size_override("font_size", 18)
+		reg_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 		reg_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		reg_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_content.add_child(reg_lbl)
@@ -112,7 +119,7 @@ func _populate() -> void:
 		var lbl := Label.new()
 		lbl.text = line
 		lbl.add_theme_color_override("font_color", COLOR_TEXT)
-		lbl.add_theme_font_size_override("font_size", 14)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 		squad.add_child(lbl)
 
 	# Grunt pool
@@ -146,7 +153,7 @@ func _populate() -> void:
 		else:
 			lbl.text = "[ ] " + ability_name
 			lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
-		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		movie_card.add_child(lbl)
 
 	# Stagger fade-in for all cards added so far
@@ -261,7 +268,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

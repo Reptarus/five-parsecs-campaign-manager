@@ -50,6 +50,12 @@ var step_results: Array[Dictionary] = []
 var _step_log_entries: Array = []  # Per-step log text for inline display
 var _inline_rolls_completed: Dictionary = {}  # step_index -> {total: int, done: int}
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 ## Helper to work around static function linter issues with InjurySystemService
 func _is_narrative_injuries_mode() -> bool:
 	# Use preloaded HouseRulesHelper (same logic as InjurySystemService.is_narrative_injuries_enabled)
@@ -441,7 +447,7 @@ func _refresh_steps_list() -> void:
 			header.text = STEP_GROUP_HEADERS[i]
 			header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-			header.add_theme_font_size_override("font_size", 11)
+			header.add_theme_font_size_override("font_size", _scaled_font(11))
 			steps_container.add_child(header)
 
 		var step_panel: Control = _create_step_panel(i)
@@ -852,7 +858,7 @@ func _add_experience_content() -> void:
 			var bot_info = Label.new()
 			bot_info.text = "Bots don't gain XP - purchase upgrades with credits instead."
 			bot_info.modulate = UIColors.COLOR_TEXT_MUTED  # Dimmed
-			bot_info.add_theme_font_size_override("font_size", 12)
+			bot_info.add_theme_font_size_override("font_size", _scaled_font(12))
 			step_content.add_child(bot_info)
 
 			step_content.add_child(bot_crew_container)
@@ -966,7 +972,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 		var installed_label = Label.new()
 		installed_label.text = "Installed: %d upgrades" % installed_upgrades.size()
 		installed_label.modulate = UIColors.COLOR_TEXT_MUTED
-		installed_label.add_theme_font_size_override("font_size", 11)
+		installed_label.add_theme_font_size_override("font_size", _scaled_font(11))
 		panel.add_child(installed_label)
 
 	return panel

@@ -15,7 +15,7 @@ signal screen_ready
 @onready var _responsive_manager: Node = get_node_or_null("/root/ResponsiveManager")
 
 # ── Responsive layout ─────────────────────────────────────────────────────────
-enum LayoutMode { MOBILE, TABLET, DESKTOP }
+enum LayoutMode { MOBILE, TABLET, DESKTOP, WIDE }
 var current_layout_mode: LayoutMode = LayoutMode.DESKTOP
 
 # ── Design tokens — sourced from UIColors (canonical token file) ──────────────
@@ -119,8 +119,10 @@ func _apply_responsive_layout() -> void:
 		new_mode = LayoutMode.MOBILE
 	elif w < BREAKPOINT_TABLET:
 		new_mode = LayoutMode.TABLET
-	else:
+	elif w < 1440:
 		new_mode = LayoutMode.DESKTOP
+	else:
+		new_mode = LayoutMode.WIDE
 	if new_mode != current_layout_mode:
 		current_layout_mode = new_mode
 		_update_layout_for_mode()
@@ -129,24 +131,20 @@ func _sync_with_responsive_manager() -> void:
 	if not _responsive_manager:
 		return
 	var bp: int = _responsive_manager.current_breakpoint
-	# ResponsiveManager.Breakpoint: 0=MOBILE, 1=TABLET, 2=DESKTOP, 3=WIDE
+	# ResponsiveManager.Breakpoint: 0=MOBILE, 1=TABLET, 2=DESKTOP, 3=WIDE, 4=ULTRAWIDE
 	match bp:
-		0:
-			current_layout_mode = LayoutMode.MOBILE
-		1:
-			current_layout_mode = LayoutMode.TABLET
-		_:
-			current_layout_mode = LayoutMode.DESKTOP
+		0: current_layout_mode = LayoutMode.MOBILE
+		1: current_layout_mode = LayoutMode.TABLET
+		2: current_layout_mode = LayoutMode.DESKTOP
+		_: current_layout_mode = LayoutMode.WIDE
 	_update_layout_for_mode()
 
 func _on_responsive_breakpoint_changed(new_breakpoint: int) -> void:
 	match new_breakpoint:
-		0:
-			current_layout_mode = LayoutMode.MOBILE
-		1:
-			current_layout_mode = LayoutMode.TABLET
-		_:
-			current_layout_mode = LayoutMode.DESKTOP
+		0: current_layout_mode = LayoutMode.MOBILE
+		1: current_layout_mode = LayoutMode.TABLET
+		2: current_layout_mode = LayoutMode.DESKTOP
+		_: current_layout_mode = LayoutMode.WIDE
 	_update_layout_for_mode()
 
 func _update_layout_for_mode() -> void:
@@ -157,6 +155,8 @@ func _update_layout_for_mode() -> void:
 			_apply_tablet_layout()
 		LayoutMode.DESKTOP:
 			_apply_desktop_layout()
+		LayoutMode.WIDE:
+			_apply_wide_layout()
 
 ## Override for mobile breakpoint (< 480px).
 func _apply_mobile_layout() -> void:
@@ -169,6 +169,10 @@ func _apply_tablet_layout() -> void:
 ## Override for desktop breakpoint (> 768px).
 func _apply_desktop_layout() -> void:
 	pass
+
+## Override for wide breakpoint (1440p+). Defaults to desktop layout.
+func _apply_wide_layout() -> void:
+	_apply_desktop_layout()
 
 # ── Responsive query helpers ──────────────────────────────────────────────────
 
@@ -187,6 +191,9 @@ func should_use_single_column() -> bool:
 	var sz := get_viewport().get_visible_rect().size
 	return sz.y > sz.x
 
+func is_wide_layout() -> bool:
+	return current_layout_mode == LayoutMode.WIDE
+
 func get_optimal_column_count() -> int:
 	if should_use_single_column():
 		return 1
@@ -195,19 +202,23 @@ func get_optimal_column_count() -> int:
 			return 2
 		LayoutMode.DESKTOP:
 			return 3
+		LayoutMode.WIDE:
+			return 4
 		_:
 			return 2
 
 func get_responsive_spacing(base_spacing: int) -> int:
+	if _responsive_manager and _responsive_manager.has_method("get_responsive_spacing"):
+		return _responsive_manager.get_responsive_spacing(base_spacing)
 	match current_layout_mode:
 		LayoutMode.MOBILE:
 			return max(SPACING_XS, base_spacing - 4)
-		LayoutMode.DESKTOP:
-			return base_spacing + 4
 		_:
 			return base_spacing
 
 func get_responsive_font_size(base_size: int) -> int:
+	if _responsive_manager and _responsive_manager.has_method("get_responsive_font_size"):
+		return _responsive_manager.get_responsive_font_size(base_size)
 	match current_layout_mode:
 		LayoutMode.MOBILE:
 			return max(FONT_SIZE_XS, base_size - 2)

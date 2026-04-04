@@ -8,6 +8,7 @@ signal creation_cancelled
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 const FiveParsecsCharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
 const FiveParsecsCharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
+const StartingEquipmentGen = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 enum CreatorMode {
 	CHARACTER,
 	CAPTAIN,
@@ -417,6 +418,122 @@ func _load_json_file(path: String) -> Dictionary:
 		return json.data
 	return {}
 
+# Cached gear_database.json for creation bonus lookups
+var _gear_db_for_bonuses: Dictionary = {}
+
+func _roll_and_store_creation_bonuses(character) -> void:
+	## Roll creation bonuses from gear_database.json using character's actual
+	## background/motivation/class. Stores concrete rolled results on
+	## character.creation_bonuses so all downstream consumers read one source.
+	## Core Rules pp.23-28: resources are pooled at crew level, but we track
+	## per-character contributions for display and attribution.
+	if not character:
+		return
+	if _gear_db_for_bonuses.is_empty():
+		_gear_db_for_bonuses = _load_json_file(
+			"res://data/gear_database.json")
+	var bonuses := {
+		"bonus_credits": 0,
+		"patrons": 0,
+		"rivals": 0,
+		"story_points": 0,
+		"quest_rumors": 0,
+		"xp": 0,
+		"starting_rolls": [] as Array,
+		"rolled_items": [] as Array,
+		"credits_dice_sources": [] as Array,
+	}
+	if _gear_db_for_bonuses.is_empty():
+		_set_character_property(character, "creation_bonuses", bonuses)
+		return
+
+	var lookups := {
+		"backgrounds": _get_character_property(
+			character, "background", 0),
+		"motivations": _get_character_property(
+			character, "motivation", 0),
+		"classes": _get_character_property(
+			character, "character_class", 0),
+	}
+	for table_key in lookups:
+		var enum_val = lookups[table_key]
+		var enum_name: String = ""
+		if enum_val is String and not enum_val.is_empty():
+			enum_name = enum_val.to_lower()
+		elif enum_val is int:
+			var enum_dict: Dictionary = {}
+			match table_key:
+				"backgrounds":
+					enum_dict = GlobalEnums.Background
+				"motivations":
+					enum_dict = GlobalEnums.Motivation
+				"classes":
+					enum_dict = GlobalEnums.CharacterClass
+			for key in enum_dict:
+				if enum_dict[key] == enum_val:
+					enum_name = key.to_lower()
+					break
+		if enum_name.is_empty() or enum_name == "none":
+			continue
+		var table: Array = _gear_db_for_bonuses.get(
+			table_key, [])
+		for entry in table:
+			if not entry is Dictionary:
+				continue
+			if entry.get("id", "") != enum_name:
+				continue
+			var res: Dictionary = entry.get("resources", {})
+			bonuses.patrons += res.get("patron", 0)
+			bonuses.rivals += res.get("rival", 0)
+			bonuses.quest_rumors += res.get(
+				"quest_rumors", 0)
+			bonuses.story_points += res.get(
+				"story_points", 0)
+			bonuses.xp += res.get("xp", 0)
+			bonuses.starting_rolls.append_array(
+				entry.get("starting_rolls", []))
+			var dice_str: String = res.get(
+				"credits_dice", "")
+			if not dice_str.is_empty():
+				var rolled: int = 0
+				var d := dice_str.to_lower()
+				if d == "2d6":
+					rolled = randi_range(1, 6) + randi_range(1, 6)
+				elif d in ["1d6", "d6"]:
+					rolled = randi_range(1, 6)
+				bonuses.bonus_credits += rolled
+				bonuses.credits_dice_sources.append({
+					"source": table_key.trim_suffix("s"),
+					"dice": dice_str,
+					"rolled": rolled,
+				})
+			break
+	# Roll actual item names from D100 tables for display
+	if not bonuses.starting_rolls.is_empty():
+		var wt: Dictionary = _gear_db_for_bonuses.get(
+			"weapon_tables", {})
+		for roll_type in bonuses.starting_rolls:
+			var table_key: String = str(roll_type)
+			var table: Array = wt.get(table_key, [])
+			if table.is_empty():
+				continue
+			var roll: int = randi_range(1, 100)
+			var item_name: String = ""
+			for entry in table:
+				var r: Array = entry.get("roll_range", [0, 0])
+				if roll >= r[0] and roll <= r[1]:
+					item_name = entry.get("name", "")
+					break
+			if item_name.is_empty() and table.size() > 0:
+				item_name = table[-1].get("name", "Unknown")
+			if not item_name.is_empty():
+				bonuses.rolled_items.append({
+					"name": item_name,
+					"type": table_key.replace(
+						"_", " ").capitalize(),
+				})
+	_set_character_property(character, "creation_bonuses", bonuses)
+
 func _roll_d100_table(table: Dictionary) -> String:
 	## Roll D100 and return the matching entry name from a creation table.
 	## Table format: { "entries": { "1-4": { "name": "..." }, "5-9": { ... } } }
@@ -582,6 +699,9 @@ func _on_randomize_pressed() -> void:
 	_apply_background_bonuses(bg_entry[1])
 	_apply_class_bonuses(class_entry[1])
 	_apply_motivation_bonuses(mot_entry[1])
+
+	# Roll and store creation bonuses (Core Rules pp.23-28)
+	_roll_and_store_creation_bonuses(current_character)
 
 	_validate_character()
 	if is_inside_tree() and not Engine.is_editor_hint():

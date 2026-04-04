@@ -20,7 +20,15 @@ Any enum change MUST touch all three files simultaneously:
 
 Values and ordering must match across all three. Misalignment causes wrong enum-to-int mapping and silent data corruption.
 
-### 2. Flat Stats — No Sub-Object
+### 2. Engine.has_singleton() vs Autoloads (Session 30)
+
+`Engine.has_singleton("GlobalEnums")` ALWAYS returns false for autoloads. They're scene tree nodes, not C++ singletons. `Character._get_validated_enum_string()` was fixed in Session 30 to use `Engine.get_main_loop().root.get_node_or_null("/root/GlobalEnums")` instead. Without this fix, all character background/motivation/class properties default to fallback values.
+
+### 3. Character.creation_bonuses (Session 30)
+
+`@export var creation_bonuses: Dictionary = {}` — immutable after creation. Set by `CharacterCreator._roll_and_store_creation_bonuses()` using gear_database.json. Contains: `bonus_credits`, `patrons`, `rivals`, `story_points`, `quest_rumors`, `xp`, `starting_rolls`, `credits_dice_sources`. Included in `to_dictionary()` and `from_dictionary()`. All downstream consumers read this — never re-derive from lookups or `CharacterGeneration.roll_character_tables()`.
+
+### 4. Flat Stats — No Sub-Object
 
 Characters use flat properties directly. There is NO `stats` sub-object:
 ```gdscript

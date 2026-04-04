@@ -825,7 +825,7 @@ func _update_progress_display() -> void:
 
 		var summary_label = Label.new()
 		summary_label.text = summary_text
-		summary_label.add_theme_font_size_override("font_size", 16)
+		summary_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		if success_count == completed_tasks.size():
 			summary_label.modulate = Color(0.063, 0.725, 0.506) # Emerald
 		elif success_count > 0:

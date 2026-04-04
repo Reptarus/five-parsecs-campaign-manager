@@ -98,6 +98,12 @@ const COLOR_ACCENT := Color("#4FC3F7")
 const COLOR_TEXT_SECONDARY := Color("#808080")
 const COLOR_ELEVATED := Color("#252542")
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	name = "WorldPhaseController"
 	
@@ -554,7 +560,7 @@ func _create_step_indicator_badge(step_index: int) -> PanelContainer:
 	label.text = str(step_index + 1)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_font_size_override("font_size", _scaled_font(12))
 	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	badge.add_child(label)
 
@@ -1009,17 +1015,34 @@ func _refresh_assign_equipment() -> void:
 	crew_data = gs.get_active_crew() if gs.has_method("get_active_crew") else []
 
 	# Refresh equipment data from campaign
-	var stash: Array = []
+	var all_equipment: Array = []
 	if campaign.has_method("get_all_equipment"):
-		stash = campaign.get_all_equipment()
+		all_equipment = campaign.get_all_equipment()
 	elif "equipment_data" in campaign:
-		stash = campaign.equipment_data.get("equipment", [])
+		all_equipment = campaign.equipment_data.get(
+			"equipment", [])
+
+	# Filter stash: exclude items already assigned to crew
+	var crew_item_names: Array = []
+	for member in crew_data:
+		if "equipment" in member:
+			crew_item_names.append_array(member.equipment)
+	var stash: Array = []
+	for item in all_equipment:
+		var item_name: String = ""
+		if item is Dictionary:
+			item_name = item.get("name", "")
+		else:
+			item_name = str(item)
+		if item_name not in crew_item_names:
+			stash.append(item)
 
 	# Also update world_phase_data for consistency
 	world_phase_data["stash"] = stash
 
 	if assign_equipment_component and assign_equipment_component.has_method("initialize_equipment_phase"):
-		assign_equipment_component.initialize_equipment_phase(crew_data, stash)
+		assign_equipment_component.initialize_equipment_phase(
+			crew_data, stash)
 
 ## Public API for external integration
 func get_current_step() -> WorldPhaseStep:

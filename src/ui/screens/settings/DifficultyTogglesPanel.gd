@@ -14,6 +14,12 @@ const COLOR_WARNING := Color("#D97706")
 
 var toggle_states: Dictionary = {}
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_build_ui()
 
@@ -21,7 +27,7 @@ func _build_ui() -> void:
 	# Section title
 	var title := Label.new()
 	title.text = "Difficulty Toggles"
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", _scaled_font(18))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	add_child(title)
 
@@ -39,7 +45,7 @@ func _build_ui() -> void:
 		var lock_label := Label.new()
 		lock_label.text = "Requires Freelancer's Handbook DLC"
 		lock_label.add_theme_color_override("font_color", COLOR_WARNING)
-		lock_label.add_theme_font_size_override("font_size", 14)
+		lock_label.add_theme_font_size_override("font_size", _scaled_font(14))
 		add_child(lock_label)
 		return
 
@@ -60,7 +66,7 @@ func _build_ui() -> void:
 		# Category header
 		var cat_label := Label.new()
 		cat_label.text = cat_name
-		cat_label.add_theme_font_size_override("font_size", 16)
+		cat_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		cat_label.add_theme_color_override("font_color", COLOR_ACCENT)
 		add_child(cat_label)
 

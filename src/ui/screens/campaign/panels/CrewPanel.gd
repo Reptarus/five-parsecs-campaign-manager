@@ -12,13 +12,37 @@ signal crew_updated(crew: Array)
 var crew_members: Array = [] # Untyped — avoids Character.gd type shadowing crash
 var selected_size: int = 6  # Core Rules p.63 default crew size
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_apply_base_background()
+	_wrap_content_in_scroll()
 	_add_guidance_label()
 	_setup_crew_size_options()
 	_connect_signals()
 	_style_action_buttons()
 	_update_crew_list()
+
+func _wrap_content_in_scroll() -> void:
+	## Wrap Content VBox in a ScrollContainer so crew cards
+	## don't overflow the viewport
+	var scroll := ScrollContainer.new()
+	scroll.name = "__crew_scroll"
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Reparent Content into scroll
+	var parent := content.get_parent()
+	var idx := content.get_index()
+	parent.add_child(scroll)
+	parent.move_child(scroll, idx)
+	content.reparent(scroll)
+	content.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 ## Apply Deep Space COLOR_BASE background
 func _apply_base_background() -> void:
@@ -42,7 +66,7 @@ func _add_guidance_label() -> void:
 	guidance.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	guidance.add_theme_color_override(
 		"font_color", Color("#808080"))
-	guidance.add_theme_font_size_override("font_size", 14)
+	guidance.add_theme_font_size_override("font_size", _scaled_font(14))
 	content.add_child(guidance)
 	content.move_child(guidance, 0)
 
@@ -171,7 +195,7 @@ func _update_crew_list() -> void:
 		var lbl := Label.new()
 		lbl.text = "No crew members yet.\n" \
 			+ "Use 'Randomize All' or 'Add Member' below."
-		lbl.add_theme_font_size_override("font_size", 14)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 		lbl.add_theme_color_override(
 			"font_color", Color("#6b7280"))
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -229,7 +253,7 @@ func _build_crew_card(
 
 	var name_lbl := Label.new()
 	name_lbl.text = character.character_name
-	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	name_lbl.add_theme_color_override(
 		"font_color", Color("#f3f4f6"))
 	info_vbox.add_child(name_lbl)
@@ -241,30 +265,36 @@ func _build_crew_card(
 		GlobalEnums.Origin, int(character.origin))
 	var sub_lbl := Label.new()
 	sub_lbl.text = "%s  •  %s" % [cls, origin]
-	sub_lbl.add_theme_font_size_override("font_size", 12)
+	sub_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 	sub_lbl.add_theme_color_override(
 		"font_color", Color("#9ca3af"))
 	info_vbox.add_child(sub_lbl)
 
 	hbox.add_child(info_vbox)
 
-	# Right: Compact stat row
-	var stat_lbl := Label.new()
-	# QA-FIX BUG-13: Changed "V" (savvy) to "Sv" for clarity
-	stat_lbl.text = "C:%d R:%d T:%d S:%d Sv:%d L:%d" % [
-		character.combat, character.reaction,
-		character.toughness, character.speed,
-		character.savvy, character.luck]
-	stat_lbl.add_theme_font_size_override("font_size", 11)
-	stat_lbl.add_theme_color_override(
-		"font_color", Color("#3b82f6"))
-	hbox.add_child(stat_lbl)
-
-	# Wrap hbox + bonus tags in a VBox inside the panel
+	# Wrap header + stats + bonuses in a VBox inside the panel
 	var card_vbox := VBoxContainer.new()
-	card_vbox.add_theme_constant_override("separation", 4)
+	card_vbox.add_theme_constant_override("separation", 6)
 	hbox.reparent(card_vbox)
 	panel.add_child(card_vbox)
+
+	# Stats grid — 3 columns x 2 rows (matches CaptainPanel)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 4)
+	var stats := {
+		"Combat": character.combat,
+		"Reactions": character.reaction,
+		"Toughness": character.toughness,
+		"Speed": character.speed,
+		"Savvy": character.savvy,
+		"Luck": character.luck,
+	}
+	for stat_name in stats:
+		grid.add_child(
+			_build_stat_badge(stat_name, stats[stat_name]))
+	card_vbox.add_child(grid)
 
 	# Starting bonus tags from background/motivation/class
 	var bonuses := _get_starting_bonuses(character)
@@ -276,7 +306,9 @@ func _build_crew_card(
 			"v_separation", 2)
 		for tag in bonuses:
 			bonus_flow.add_child(
-				_build_bonus_tag(tag.text, tag.color))
+				_build_bonus_tag(
+					tag.text, tag.color,
+					tag.get("source", "")))
 		card_vbox.add_child(bonus_flow)
 
 	return panel
@@ -304,6 +336,36 @@ func _on_crew_card_input(
 						s.set_border_width_all(2)
 					card.add_theme_stylebox_override(
 						"panel", s)
+
+func _build_stat_badge(
+	stat_name: String, value: int
+) -> PanelContainer:
+	var badge := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#1f2937")
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(4)
+	badge.add_theme_stylebox_override("panel", style)
+	badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 4)
+	var name_l := Label.new()
+	name_l.text = stat_name
+	name_l.add_theme_font_size_override(
+		"font_size", _scaled_font(11))
+	name_l.add_theme_color_override(
+		"font_color", Color("#9ca3af"))
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(name_l)
+	var val_l := Label.new()
+	val_l.text = str(value)
+	val_l.add_theme_font_size_override(
+		"font_size", _scaled_font(12))
+	val_l.add_theme_color_override(
+		"font_color", Color("#3b82f6"))
+	hb.add_child(val_l)
+	badge.add_child(hb)
+	return badge
 
 func _card_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -342,7 +404,7 @@ func _apply_button_style(
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(8)
 	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_font_size_override("font_size", _scaled_font(16))
 	button.add_theme_color_override(
 		"font_color", Color("#f3f4f6"))
 	button.custom_minimum_size.y = 48
@@ -394,6 +456,18 @@ func _get_starting_bonuses(character) -> Array:
 	if _gear_db.is_empty() or not character:
 		return []
 	var tags: Array = []
+	# Read rolled item names from creation_bonuses
+	var cb: Dictionary = {}
+	if "creation_bonuses" in character:
+		cb = character.creation_bonuses
+	elif character is Dictionary:
+		cb = character.get("creation_bonuses", {})
+	var rolled_items: Array = cb.get("rolled_items", [])
+	for item in rolled_items:
+		tags.append({
+			"text": item.get("name", "Unknown"),
+			"color": Color("#3b82f6"),
+			"source": item.get("type", "").capitalize()})
 	var tables := {
 		"backgrounds": character.background,
 		"motivations": character.motivation,
@@ -418,34 +492,45 @@ func _get_starting_bonuses(character) -> Array:
 			table_key, enum_name.to_lower())
 		if entry.is_empty():
 			continue
-		var rolls: Array = entry.get("starting_rolls", [])
-		for roll_type in rolls:
-			var label: String = roll_type.replace(
-				"_", " ").capitalize()
-			tags.append({
-				"text": label,
-				"color": Color("#3b82f6")})
+		var source_name: String = entry.get(
+			"name", enum_name.capitalize())
+		# Fallback: show generic roll types if no rolled items
+		if rolled_items.is_empty():
+			var rolls: Array = entry.get(
+				"starting_rolls", [])
+			for roll_type in rolls:
+				var label: String = roll_type.replace(
+					"_", " ").capitalize() + " Roll"
+				tags.append({
+					"text": label,
+					"color": Color("#3b82f6"),
+					"source": source_name})
 		var res: Dictionary = entry.get("resources", {})
 		if res.get("patron", 0) > 0:
 			tags.append({
 				"text": "Patron ×%d" % res["patron"],
-				"color": Color("#10B981")})
+				"color": Color("#10B981"),
+				"source": source_name})
 		if res.get("rival", 0) > 0:
 			tags.append({
 				"text": "Rival ×%d" % res["rival"],
-				"color": Color("#DC2626")})
+				"color": Color("#DC2626"),
+				"source": source_name})
 		if res.get("quest_rumors", 0) > 0:
 			tags.append({
 				"text": "Rumors ×%d" % res["quest_rumors"],
-				"color": Color("#D97706")})
+				"color": Color("#D97706"),
+				"source": source_name})
 		if res.has("credits_dice"):
 			tags.append({
 				"text": "+%s cr" % res["credits_dice"],
-				"color": Color("#D97706")})
+				"color": Color("#D97706"),
+				"source": source_name})
 		if res.get("story_points", 0) > 0:
 			tags.append({
 				"text": "SP ×%d" % res["story_points"],
-				"color": Color("#8B5CF6")})
+				"color": Color("#8B5CF6"),
+				"source": source_name})
 	return tags
 
 func _find_db_entry(
@@ -468,7 +553,7 @@ func _enum_key_name(
 	return ""
 
 func _build_bonus_tag(
-	text: String, color: Color
+	text: String, color: Color, source: String = ""
 ) -> PanelContainer:
 	var pill := PanelContainer.new()
 	var style := StyleBoxFlat.new()
@@ -482,9 +567,28 @@ func _build_bonus_tag(
 	style.content_margin_top = 1
 	style.content_margin_bottom = 1
 	pill.add_theme_stylebox_override("panel", style)
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 10)
-	lbl.add_theme_color_override("font_color", color)
-	pill.add_child(lbl)
+	if source.is_empty():
+		var lbl := Label.new()
+		lbl.text = text
+		lbl.add_theme_font_size_override(
+			"font_size", _scaled_font(10))
+		lbl.add_theme_color_override("font_color", color)
+		pill.add_child(lbl)
+	else:
+		var tag_vbox := VBoxContainer.new()
+		tag_vbox.add_theme_constant_override("separation", 0)
+		var lbl := Label.new()
+		lbl.text = text
+		lbl.add_theme_font_size_override(
+			"font_size", _scaled_font(10))
+		lbl.add_theme_color_override("font_color", color)
+		tag_vbox.add_child(lbl)
+		var src_lbl := Label.new()
+		src_lbl.text = source
+		src_lbl.add_theme_font_size_override(
+			"font_size", _scaled_font(8))
+		src_lbl.add_theme_color_override(
+			"font_color", Color("#6b7280"))
+		tag_vbox.add_child(src_lbl)
+		pill.add_child(tag_vbox)
 	return pill

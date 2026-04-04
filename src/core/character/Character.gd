@@ -59,9 +59,10 @@ func _get_validated_enum_string(value: Variant, enum_type: String, default: Stri
 			@warning_ignore("unsafe_method_access")
 			return _cached_global_enums.to_string_value(enum_type, value)
 	
-	# Try runtime autoload access (works when game is running)
-	if Engine.has_singleton("GlobalEnums"):
-		_cached_global_enums = Engine.get_singleton("GlobalEnums")
+	# Try runtime autoload access (autoloads are scene tree nodes, not engine singletons)
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree:
+		_cached_global_enums = tree.root.get_node_or_null("/root/GlobalEnums")
 		@warning_ignore("unsafe_method_access")
 		if _cached_global_enums and _cached_global_enums.has_method("to_string_value"):
 			@warning_ignore("unsafe_method_access")
@@ -163,6 +164,10 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 @export var morale: int = 5
 @export var credits_earned: int = 0
 @export var missions_completed: int = 0
+# Creation bonuses rolled at character creation (immutable after creation, persists through save/load)
+# Keys: bonus_credits (int), patrons (int), rivals (int), story_points (int),
+#        quest_rumors (int), xp (int), starting_rolls (Array), credits_dice_sources (Array)
+@export var creation_bonuses: Dictionary = {}
 
 # Computed properties for injury/death status
 var is_wounded: bool:
@@ -1091,6 +1096,7 @@ func to_dictionary() -> Dictionary:
 		"morale": morale,
 		"credits_earned": credits_earned,
 		"missions_completed": missions_completed,
+		"creation_bonuses": creation_bonuses.duplicate(),
 		"traits": traits.duplicate()
 	}
 
@@ -1224,6 +1230,7 @@ func from_dictionary(data: Dictionary) -> void:
 	morale = data.get("morale", 5)
 	credits_earned = data.get("credits_earned", 0)
 	missions_completed = data.get("missions_completed", 0)
+	creation_bonuses = data.get("creation_bonuses", {})
 
 	# Traits (from class bonuses)
 	var traits_data = data.get("traits", [])

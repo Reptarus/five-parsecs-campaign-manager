@@ -26,6 +26,13 @@ var _characters_container: VBoxContainer
 var _completed: bool = false
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_load_assignments_data()
 	_build_ui()
@@ -79,7 +86,7 @@ func _build_ui() -> void:
 	var info_lbl := Label.new()
 	info_lbl.text = "Each Main Character not in Sick Bay may attempt one Special Assignment.\nRoll 2D6 — meet or beat the target number to succeed.\nA character can only complete each assignment once in their career."
 	info_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	info_lbl.add_theme_font_size_override("font_size", 14)
+	info_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_card.add_child(info_lbl)
 
@@ -237,7 +244,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

@@ -357,7 +357,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 	# Header
 	var header := Label.new()
 	header.text = "Select crew member to receive item:"
-	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_font_size_override("font_size", _scaled_font(14))
 	header.add_theme_color_override("font_color", Color("#E0E0E0"))
 	vbox.add_child(header)
 

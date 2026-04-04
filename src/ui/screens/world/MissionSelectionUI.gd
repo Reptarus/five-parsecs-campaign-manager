@@ -30,6 +30,12 @@ var available_missions: Array[Resource] = []
 var selected_mission: Resource = null
 var mission_type: String = "standard"
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 # Manager references
 var alpha_manager: Node = null
 var mission_generator: Node = null
@@ -142,7 +148,7 @@ func _create_mission_card(mission: Resource, index: int) -> Control:
 	
 	var name_label := Label.new()
 	name_label.text = mission.get_meta("name", "Mission %d" % (index + 1))
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	header.add_child(name_label)
 	
@@ -159,7 +165,7 @@ func _create_mission_card(mission: Resource, index: int) -> Control:
 	# Mission type
 	var type_label := Label.new()
 	type_label.text = "Type: %s" % mission.get_meta("mission_type", "Standard")
-	type_label.add_theme_font_size_override("font_size", 12)
+	type_label.add_theme_font_size_override("font_size", _scaled_font(12))
 	type_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	card.add_child(type_label)
 	
@@ -167,7 +173,7 @@ func _create_mission_card(mission: Resource, index: int) -> Control:
 	var description_label := Label.new()
 	description_label.text = mission.get_meta("description", "No description available")
 	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description_label.add_theme_font_size_override("font_size", 11)
+	description_label.add_theme_font_size_override("font_size", _scaled_font(11))
 	card.add_child(description_label)
 	
 	# Mission details
@@ -191,7 +197,7 @@ func _create_mission_card(mission: Resource, index: int) -> Control:
 		var enemy_label := Label.new()
 		enemy_label.text = "Enemies: %d" % enemy_count
 		enemy_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
-		enemy_label.add_theme_font_size_override("font_size", 11)
+		enemy_label.add_theme_font_size_override("font_size", _scaled_font(11))
 		details_container.add_child(enemy_label)
 	
 	# Special conditions (if any)
@@ -200,7 +206,7 @@ func _create_mission_card(mission: Resource, index: int) -> Control:
 		var conditions_label := Label.new()
 		conditions_label.text = "Special: %s" % ", ".join(conditions)
 		conditions_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
-		conditions_label.add_theme_font_size_override("font_size", 10)
+		conditions_label.add_theme_font_size_override("font_size", _scaled_font(10))
 		card.add_child(conditions_label)
 	
 	# Patron information (if available)
@@ -209,7 +215,7 @@ func _create_mission_card(mission: Resource, index: int) -> Control:
 		var patron_label := Label.new()
 		patron_label.text = "Patron: %s" % patron
 		patron_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
-		patron_label.add_theme_font_size_override("font_size", 11)
+		patron_label.add_theme_font_size_override("font_size", _scaled_font(11))
 		card.add_child(patron_label)
 	
 	# Select button

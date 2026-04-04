@@ -16,6 +16,12 @@ var rivals: Array[Dictionary] = []
 var selected_patron: Dictionary = {}
 var selected_rival: Dictionary = {}
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 # JSON data storage
 var patron_templates: Dictionary = {}
 var rival_templates: Dictionary = {}
@@ -325,7 +331,7 @@ func _create_patron_panel(patron: Dictionary) -> Control:
 	# Name and type
 	var name_label: Label = Label.new()
 	name_label.text = patron.name + " (" + patron.type + ")"
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
 	# Status and relationship
@@ -355,7 +361,7 @@ func _create_rival_panel(rival: Dictionary) -> Control:
 	# Name and type
 	var name_label: Label = Label.new()
 	name_label.text = rival.name + " (" + rival.type + ")"
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
 	# Threat level and relationship
@@ -388,7 +394,7 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 	# Entity name
 	var name_label: Label = Label.new()
 	name_label.text = entity.name
-	name_label.add_theme_font_size_override("font_size", 20)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(20))
 	details_container.add_child(name_label)
 
 	# Type
@@ -427,7 +433,7 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 	if entity.has("special_rules"):
 		var rules_label: Label = Label.new()
 		rules_label.text = "Special Rules:"
-		rules_label.add_theme_font_size_override("font_size", 14)
+		rules_label.add_theme_font_size_override("font_size", _scaled_font(14))
 		details_container.add_child(rules_label)
 
 		var rules_text = Label.new()

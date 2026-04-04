@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-30",
-  "current_phase": "Rules Audit Complete (v0.9.6) — Session 18 completed full QA_RULES_ACCURACY_AUDIT.md pass (0 UNVERIFIED, 925/925 values). 2 rules bugs fixed (rival follow p.72, license costs p.72). 3 generator schemas unified (Stealth/Street/Salvage → Compendium canonical). Ready for Planetfall + Tactics expansion work.",
+  "last_updated": "2026-04-03",
+  "current_phase": "Creation Pipeline Refactor (v0.9.7-dev) — Session 30: Upkeep formula fixed (6 files), creation_bonuses single source of truth refactor (6 files), Engine.has_singleton autoload bug fixed, FinalPanel display improvements. All character creation resources now rolled at creation time and stored persistently on Character.creation_bonuses.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",

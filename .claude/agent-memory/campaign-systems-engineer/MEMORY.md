@@ -27,6 +27,16 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 30: Creation Pipeline Refactor (Apr 3, 2026)
+
+- **creation_bonuses single source of truth**: `Character.creation_bonuses` dict holds all rolled creation resources. Set once by `CharacterCreator._roll_and_store_creation_bonuses()`. Coordinator `_generate_crew_extras()` rewritten to aggregate FROM these stored values (no more `CharacterGeneration.roll_character_tables()` random re-rolls).
+- **Engine.has_singleton bug fixed**: `Character._get_validated_enum_string()` now uses scene tree access for autoloads.
+- **Finalization data loss fixed**: `_aggregate_all_phase_data()` was destroying equipment credits key. `CampaignFinalizationService` now reads bonus_credits/story_points/quest_rumors from crew_data as fallback.
+- **Upkeep formula**: All 6 calculators now match Core Rules p.76 (1 credit for 4-6 crew, +1 per member past 6).
+- **FinalPanel**: Equipment items listed individually, patron/rival source attribution shown, credits breakdown.
+
+---
+
 ## Session 18: TravelPhase Rules Fixes (Mar 30, 2026)
 
 Two Core Rules p.72 bugs fixed in `_process_world_arrival()`:

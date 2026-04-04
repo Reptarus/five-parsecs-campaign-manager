@@ -27,6 +27,13 @@ var _panel_container: Control
 var _content_margin: MarginContainer
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_build_layout()
 	_create_coordinator()
@@ -73,14 +80,14 @@ func _build_layout() -> void:
 
 	var title := Label.new()
 	title.text = "BUG HUNT — NEW CAMPAIGN"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(title)
 
 	_step_label = Label.new()
 	_step_label.text = "Step 1 of 4: Campaign Config"
-	_step_label.add_theme_font_size_override("font_size", 16)
+	_step_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	_step_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	header.add_child(_step_label)
 

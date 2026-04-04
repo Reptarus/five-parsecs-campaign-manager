@@ -127,8 +127,9 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	if state_data.has("captain") and state_data.captain is Dictionary:
 		var captain_data = state_data.captain
 		var captain_name: String = ""
-		if captain_data is Character:
-			captain_name = captain_data.character_name if captain_data.character_name else captain_data.name
+		if "character_name" in captain_data:
+			var cn = captain_data.character_name
+			captain_name = cn if cn else ""
 		else:
 			captain_name = captain_data.get("character_name", captain_data.get("name", ""))
 		# Check if captain already in crew (via _merge_captain_into_crew or name match)
@@ -524,11 +525,14 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	# ── CREDITS: Core Rules p.28 ──────────────────────────────────────
 	# Base: 1 credit per crew member
 	starting_credits = crew_members.size()
-	# Add credits_dice from each character's background/motivation/class
+	# Add bonus credits from creation_bonuses (rolled at character creation)
 	for cm in crew_members:
-		var contributions: Array[Dictionary] = _lookup_credits_dice_for_character(cm)
-		for contrib in contributions:
-			starting_credits += _roll_credits_dice(contrib.dice)
+		var bonuses: Dictionary = {}
+		if "creation_bonuses" in cm:
+			bonuses = cm.creation_bonuses
+		elif cm is Dictionary:
+			bonuses = cm.get("creation_bonuses", {})
+		starting_credits += bonuses.get("bonus_credits", 0)
 
 	# ── PART 1: Crew base pool ────────────────────────────────────────
 	# 3 military + 3 low-tech + 1 gear + 1 gadget (Core Rules p.28)
@@ -555,7 +559,7 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	# background, motivation, and class (Core Rules pp.25-27)
 	for crew_member in crew_members:
 		var char_name: String = ""
-		if crew_member is Character:
+		if "character_name" in crew_member:
 			char_name = crew_member.character_name
 		elif crew_member is Dictionary:
 			char_name = str(crew_member.get("character_name",
@@ -563,8 +567,18 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 		if char_name.is_empty():
 			char_name = "Unknown"
 
-		# Look up starting_rolls from background + motivation + class
-		var member_starting_rolls: Array = _lookup_starting_rolls_for_character(crew_member)
+		# Read starting_rolls from creation_bonuses (set at character creation)
+		var member_starting_rolls: Array = []
+		if "creation_bonuses" in crew_member:
+			member_starting_rolls = crew_member.creation_bonuses.get(
+				"starting_rolls", [])
+		elif crew_member is Dictionary:
+			member_starting_rolls = crew_member.get(
+				"creation_bonuses", {}).get("starting_rolls", [])
+		# Fallback: look up from gear_database.json if no creation_bonuses
+		if member_starting_rolls.is_empty():
+			member_starting_rolls = _lookup_starting_rolls_for_character(
+				crew_member)
 
 		# Generate bonus items via D100 table rolls
 		var bonus_items: Array = StartingEquipmentGenerator.generate_bonus_equipment(
@@ -1253,7 +1267,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 
 func _get_member_stat(member, stat_name: String) -> int:
 	## Get a stat value from a crew member (Character or Dictionary)
-	if member is Character:
+	if "combat" in member:
 		match stat_name:
 			"combat":
 				return member.combat if "combat" in member else 0
@@ -1386,10 +1400,10 @@ func _count_savvy_eligible(crew: Array) -> int:
 		var bg_name: String = ""
 		var mot_name: String = ""
 		var cls_name: String = ""
-		if member is Character:
-			bg_name = member.background if member.background else ""
-			mot_name = member.motivation if member.motivation else ""
-			cls_name = member.character_class if member.character_class else ""
+		if "background" in member:
+			bg_name = str(member.background) if member.background else ""
+			mot_name = str(member.motivation) if "motivation" in member and member.motivation else ""
+			cls_name = str(member.character_class) if "character_class" in member and member.character_class else ""
 		elif member is Dictionary:
 			bg_name = str(member.get("background", ""))
 			mot_name = str(member.get("motivation", ""))
@@ -1696,11 +1710,11 @@ func _lookup_starting_rolls_for_character(crew_member) -> Array:
 	var mot_name: String = ""
 	var cls_name: String = ""
 
-	# Extract names from Character or Dictionary
-	if crew_member is Character:
-		bg_name = crew_member.background if crew_member.background else ""
-		mot_name = crew_member.motivation if crew_member.motivation else ""
-		cls_name = crew_member.character_class if crew_member.character_class else ""
+	# Extract names from Character/BaseCharacterResource or Dictionary
+	if "background" in crew_member:
+		bg_name = str(crew_member.background) if crew_member.background else ""
+		mot_name = str(crew_member.motivation) if "motivation" in crew_member and crew_member.motivation else ""
+		cls_name = str(crew_member.character_class) if "character_class" in crew_member and crew_member.character_class else ""
 	elif crew_member is Dictionary:
 		bg_name = str(crew_member.get("background", ""))
 		mot_name = str(crew_member.get("motivation", ""))
@@ -1742,10 +1756,10 @@ func _lookup_credits_dice_for_character(crew_member) -> Array[Dictionary]:
 	var mot_name: String = ""
 	var cls_name: String = ""
 
-	if crew_member is Character:
-		bg_name = crew_member.background if crew_member.background else ""
-		mot_name = crew_member.motivation if crew_member.motivation else ""
-		cls_name = crew_member.character_class if crew_member.character_class else ""
+	if "background" in crew_member:
+		bg_name = str(crew_member.background) if crew_member.background else ""
+		mot_name = str(crew_member.motivation) if "motivation" in crew_member and crew_member.motivation else ""
+		cls_name = str(crew_member.character_class) if "character_class" in crew_member and crew_member.character_class else ""
 	elif crew_member is Dictionary:
 		bg_name = str(crew_member.get("background", ""))
 		mot_name = str(crew_member.get("motivation", ""))
@@ -2589,7 +2603,7 @@ func _apply_mobile_layout() -> void:
 	# Get main split container and convert to vertical layout for mobile
 	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
 	if main_split and main_split is HSplitContainer:
-		main_split.vertical = true  # Stack equipment and crew sections vertically
+		main_split.set_deferred("vertical", true)  # Stack equipment and crew sections vertically
 
 	# Increase touch targets for mobile
 	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
@@ -2616,7 +2630,7 @@ func _apply_tablet_layout() -> void:
 	# Restore horizontal split for tablet
 	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
 	if main_split and main_split is HSplitContainer:
-		main_split.vertical = false  # Side-by-side layout
+		main_split.set_deferred("vertical", false)  # Side-by-side layout
 
 	# Standard touch targets for tablet
 	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
@@ -2642,7 +2656,7 @@ func _apply_desktop_layout() -> void:
 	# Full horizontal layout for desktop
 	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
 	if main_split and main_split is HSplitContainer:
-		main_split.vertical = false  # Side-by-side layout
+		main_split.set_deferred("vertical", false)  # Side-by-side layout
 
 	# Standard touch targets for desktop (mouse precision)
 	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")

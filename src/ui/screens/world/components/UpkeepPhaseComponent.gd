@@ -368,7 +368,7 @@ func _build_travel_section() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "Travel Decision"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.add_theme_color_override(
 		"font_color", Color(0.953, 0.957, 0.965, 1))
 	vbox.add_child(title)
@@ -377,7 +377,7 @@ func _build_travel_section() -> void:
 	var desc := Label.new()
 	desc.text = "Choose whether to stay or travel to a new world (Core Rules p.69)."
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", _scaled_font(14))
 	desc.add_theme_color_override(
 		"font_color", Color(0.624, 0.639, 0.686, 1))
 	vbox.add_child(desc)
@@ -386,7 +386,7 @@ func _build_travel_section() -> void:
 	var world_name := _get_current_world_name_for_travel()
 	var world_label := Label.new()
 	world_label.text = "Current Location: %s" % world_name
-	world_label.add_theme_font_size_override("font_size", 16)
+	world_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	world_label.add_theme_color_override(
 		"font_color", Color(0.31, 0.765, 0.969, 1))
 	vbox.add_child(world_label)
@@ -442,7 +442,7 @@ func _build_travel_section() -> void:
 	# Status label (shown after decision)
 	_travel_status_label = Label.new()
 	_travel_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_travel_status_label.add_theme_font_size_override("font_size", 14)
+	_travel_status_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	_travel_status_label.visible = false
 	vbox.add_child(_travel_status_label)
 
@@ -632,14 +632,14 @@ func _display_travel_event(
 
 	var roll_label := Label.new()
 	roll_label.text = "Travel Event Roll: %d" % roll
-	roll_label.add_theme_font_size_override("font_size", 12)
+	roll_label.add_theme_font_size_override("font_size", _scaled_font(12))
 	roll_label.add_theme_color_override(
 		"font_color", Color(0.42, 0.451, 0.502, 1))
 	card_vbox.add_child(roll_label)
 
 	var title_label := Label.new()
 	title_label.text = event.get("title", "Unknown Event")
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_font_size_override("font_size", _scaled_font(18))
 	title_label.add_theme_color_override(
 		"font_color", Color(0.953, 0.957, 0.965, 1))
 	card_vbox.add_child(title_label)
@@ -647,7 +647,7 @@ func _display_travel_event(
 	var desc_label := Label.new()
 	desc_label.text = event.get("desc", "")
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_label.add_theme_font_size_override("font_size", 14)
+	desc_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	desc_label.add_theme_color_override(
 		"font_color", Color(0.624, 0.639, 0.686, 1))
 	card_vbox.add_child(desc_label)

@@ -16,6 +16,13 @@ const COLOR_ACCENT := Color("#2D5A7B")
 var _coordinator = null
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_build_ui()
 	# Auto-complete since standard equipment is fixed
@@ -39,7 +46,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "STANDARD EQUIPMENT"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
@@ -98,7 +105,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 
@@ -113,14 +120,14 @@ func _add_equipment_row(parent: VBoxContainer, item_name: String, details: Strin
 	var name_lbl := Label.new()
 	name_lbl.text = item_name
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	name_lbl.custom_minimum_size.x = 160
 	hbox.add_child(name_lbl)
 
 	var detail_lbl := Label.new()
 	detail_lbl.text = details
 	detail_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	detail_lbl.add_theme_font_size_override("font_size", 14)
+	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	detail_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(detail_lbl)
 

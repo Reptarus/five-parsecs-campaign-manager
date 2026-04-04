@@ -15,6 +15,13 @@ var _coordinator = null
 var _summary_container: VBoxContainer
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_build_ui()
 
@@ -42,7 +49,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "MISSION BRIEFING — REVIEW"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
@@ -84,7 +91,7 @@ func _display_summary() -> void:
 			var lbl := Label.new()
 			lbl.text = text
 			lbl.add_theme_color_override("font_color", COLOR_TEXT)
-			lbl.add_theme_font_size_override("font_size", 14)
+			lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 			squad_card.add_child(lbl)
 
 	_add_row(squad_card, "Starting Reputation", str(squad.get("total_reputation", 0)))
@@ -105,7 +112,7 @@ func _display_summary() -> void:
 		var ready_lbl := Label.new()
 		ready_lbl.text = "Ready to deploy! Click Finish to begin your campaign."
 		ready_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
-		ready_lbl.add_theme_font_size_override("font_size", 16)
+		ready_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 		ready_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_summary_container.add_child(ready_lbl)
 	else:
@@ -145,7 +152,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

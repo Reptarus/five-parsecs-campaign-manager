@@ -502,6 +502,8 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 - **`replace_all` substring trap**: Short identifiers corrupt longer ones (e.g., replacing "HARD" also matches inside "HARDCORE"). Always check for substring collisions
 - **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check
 - **`class_name` + autoload conflict**: If a script has `class_name Foo` AND is registered as autoload "Foo", Godot 4.6 errors "Class hides an autoload singleton." Fix: remove `class_name` from autoloaded scripts
+- **`Engine.has_singleton()` does NOT work for autoloads**: Autoloads are scene tree nodes at `/root/Name`, NOT engine singletons. For non-Node classes (Resource/RefCounted), use `Engine.get_main_loop().root.get_node_or_null("/root/AutoloadName")`
+- **Character.creation_bonuses is single source of truth**: All creation resource data (bonus credits, patrons, rivals, story points, rumors, starting rolls) is in `Character.creation_bonuses`, set once by `CharacterCreator._roll_and_store_creation_bonuses()`. Never re-derive from gear_database.json or `CharacterGeneration.roll_character_tables()`
 - **Godot 4.6 type inference**: `var x := untyped_array[i]` fails. Use explicit typing: `var x: Type = array[i]`
 - **Two VictoryDescriptions files**: `src/core/victory/` (basic) and `src/game/victory/` (full, used by UI)
 - **Explore agents can be wrong**: ALWAYS verify explore agent claims by reading actual files. Agents have claimed files were stubs when they were fully implemented

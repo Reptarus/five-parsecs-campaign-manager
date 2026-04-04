@@ -29,6 +29,24 @@ var luck: int = 0
 ```
 These are direct properties on Character. There is NO `stats` Dictionary or sub-object. `CharacterStats.gd` exists as a separate Resource class but is NOT used as a character property.
 
+### Creation Bonuses (Session 30)
+```gdscript
+@export var creation_bonuses: Dictionary = {}
+# Set once by CharacterCreator._roll_and_store_creation_bonuses()
+# Keys: bonus_credits, patrons, rivals, story_points, quest_rumors, xp, starting_rolls, credits_dice_sources
+# Immutable after creation. Included in to_dictionary() and from_dictionary().
+# All downstream consumers (CrewPanel, EquipmentPanel, coordinator, FinalPanel) read from this.
+```
+
+### Autoload Access from Character (Resource)
+Character extends Resource, not Node. Cannot use `get_node_or_null()` directly. Use:
+```gdscript
+var tree = Engine.get_main_loop() as SceneTree
+if tree:
+    var autoload = tree.root.get_node_or_null("/root/GlobalEnums")
+```
+**Never** use `Engine.has_singleton()` for autoloads — always returns false.
+
 ### Combat Interface (BaseCharacterResource — Session 10)
 
 `BaseCharacterResource` implements 22 combat methods required by `CombatResolver._validate_character_interface()`:

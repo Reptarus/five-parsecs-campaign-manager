@@ -57,6 +57,12 @@ var is_human: bool = false
 # Portrait path (custom image or empty for fallback)
 var portrait_path: String = ""
 
+# Equipment assigned to this character (item name strings)
+@export var equipment: Array[String] = []
+
+# Creation bonuses rolled at character creation (immutable after creation)
+@export var creation_bonuses: Dictionary = {}
+
 # Psionic powers (Precursor species start with one)
 var psionic_power: String = ""
 var psionic_power_enhanced: bool = false

@@ -13,6 +13,12 @@ MainMenu → CampaignCreationUI (thin shell) → CampaignCreationCoordinator →
   Step 6: FINAL_REVIEW   → FinalPanel
 ```
 
+## Creation Resource Data Flow (Session 30 Refactor)
+
+Resources (bonus credits, patrons, rivals, story points, rumors, equipment rolls) are rolled at character creation time and stored on `Character.creation_bonuses`. The coordinator's `_generate_crew_extras()` aggregates FROM these stored values — it does NOT call `CharacterGeneration.roll_character_tables()` (that function does random D100 rolls ignoring the character's actual background).
+
+**Data flow**: `CharacterCreator._roll_and_store_creation_bonuses()` → `Character.creation_bonuses` → `_character_to_dict()` preserves key → coordinator aggregates → finalization reads from crew_data fallback.
+
 ## CampaignCreationCoordinator
 
 **Path**: `src/ui/screens/campaign/CampaignCreationCoordinator.gd`

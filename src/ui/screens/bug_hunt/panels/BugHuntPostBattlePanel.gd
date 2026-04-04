@@ -27,6 +27,13 @@ var _processed: bool = false
 var _content_container: VBoxContainer
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_load_data()
 	_build_ui()
@@ -243,7 +250,7 @@ func _process_reputation() -> void:
 
 	var total_lbl := Label.new()
 	total_lbl.text = "Total: +%d Reputation" % rep_gain
-	total_lbl.add_theme_font_size_override("font_size", 16)
+	total_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	total_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	card.add_child(total_lbl)
 
@@ -308,7 +315,7 @@ func _process_operational_progress() -> void:
 		var desc := Label.new()
 		desc.text = result.get("description", "")
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-		desc.add_theme_font_size_override("font_size", 13)
+		desc.add_theme_font_size_override("font_size", _scaled_font(13))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.add_child(desc)
 
@@ -338,7 +345,7 @@ func _process_military_life() -> void:
 		var effect := Label.new()
 		effect.text = result.get("effect", "")
 		effect.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-		effect.add_theme_font_size_override("font_size", 13)
+		effect.add_theme_font_size_override("font_size", _scaled_font(13))
 		effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.add_child(effect)
 
@@ -416,7 +423,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

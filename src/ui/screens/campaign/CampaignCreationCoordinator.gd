@@ -414,65 +414,54 @@ func update_crew_state(crew_data: Dictionary) -> void:
 	_update_campaign_completion_status()
 
 func _generate_crew_extras() -> void:
-	## Roll D100 tables for each crew member and aggregate extras (Core Rules pp.24-26)
-	## Creates starting patrons, rivals, quest rumors, story points, and bonus credits
-	var all_characters: Array = []
+	## Aggregate creation bonuses from crew members (already rolled at creation time)
+	## Reads character.creation_bonuses set by CharacterCreator, not random D100 re-rolls
+	## Core Rules pp.23-28: resources are pooled at crew level
+	var total_bonus_credits: int = 0
+	var total_story_points: int = 0
+	var total_rumors: int = 0
 
-	for member_dict in unified_campaign_state.crew.members:
-		if member_dict is not Dictionary:
-			continue
-		# Build a Character for CharacterGeneration API
-		var character = Character.new()
-		character.character_name = member_dict.get("character_name", member_dict.get("name", "Unknown"))
-
-		# Roll on all three D100 tables (Background, Motivation, Class)
-		var table_results = CharacterGeneration.roll_character_tables()
-
-		# Store resources metadata on character (needed by finalize_crew_resources)
-		var resources: Dictionary = table_results.get("resources", {})
-		character.set_meta("creation_resources", resources)
-
-		# Store table result names as traits on the member dict for display
-		var bg_name: String = table_results.get("background_result", {}).get("name", "")
-		var mot_name: String = table_results.get("motivation_result", {}).get("name", "")
-		var cls_name: String = table_results.get("class_result", {}).get("name", "")
-
-		if not bg_name.is_empty():
-			var traits: Array = member_dict.get("traits", [])
-			if not traits.has("Background: " + bg_name):
-				traits.append("Background: " + bg_name)
-			if not mot_name.is_empty() and not traits.has("Motivation: " + mot_name):
-				traits.append("Motivation: " + mot_name)
-			if not cls_name.is_empty() and not traits.has("Class: " + cls_name):
-				traits.append("Class: " + cls_name)
-			member_dict["traits"] = traits
-
-		# Store starting_rolls for equipment bonus items
-		member_dict["starting_rolls"] = resources.get("starting_rolls", [])
-
-		all_characters.append(character)
-
-	# Also include captain if present
-	if unified_campaign_state.crew.captain:
-		var captain_char = Character.new()
-		captain_char.character_name = unified_campaign_state.crew.captain.get("character_name", "Captain") if unified_campaign_state.crew.captain is Dictionary else "Captain"
-		var captain_results = CharacterGeneration.roll_character_tables()
-		captain_char.set_meta("creation_resources", captain_results.get("resources", {}))
-		all_characters.append(captain_char)
-
-	# Aggregate all crew resources and create patron/rival entities
 	unified_campaign_state.crew["patrons"] = []
 	unified_campaign_state.crew["rivals"] = []
-	var total_resources: Dictionary = CharacterGeneration.finalize_crew_resources(
-		all_characters, unified_campaign_state.crew
-	)
+	var patron_idx: int = 0
+	var rival_idx: int = 0
+
+	for member in unified_campaign_state.crew.members:
+		if member is not Dictionary:
+			continue
+		var bonuses: Dictionary = member.get(
+			"creation_bonuses", {})
+		var char_name: String = member.get(
+			"character_name", member.get("name", "Unknown"))
+
+		total_bonus_credits += bonuses.get(
+			"bonus_credits", 0)
+		total_story_points += bonuses.get(
+			"story_points", 0)
+		total_rumors += bonuses.get("quest_rumors", 0)
+
+		# Create patron entities with source attribution
+		for _p in range(bonuses.get("patrons", 0)):
+			unified_campaign_state.crew.patrons.append(
+				CharacterGeneration._create_starting_patron(
+					patron_idx, char_name))
+			patron_idx += 1
+
+		# Create rival entities with source attribution
+		for _r in range(bonuses.get("rivals", 0)):
+			unified_campaign_state.crew.rivals.append(
+				CharacterGeneration._create_starting_rival(
+					rival_idx, char_name))
+			rival_idx += 1
+
+		# Preserve starting_rolls for EquipmentPanel
+		member["starting_rolls"] = bonuses.get(
+			"starting_rolls", [])
 
 	# Store aggregated extras for FinalPanel display
-	unified_campaign_state.crew["story_points"] = total_resources.get("story_points", 0)
-	unified_campaign_state.crew["quest_rumors"] = total_resources.get("rumors", 0)
-	unified_campaign_state.crew["bonus_credits"] = total_resources.get("credits", 0)
-
-	pass # Crew extras generated
+	unified_campaign_state.crew["story_points"] = total_story_points
+	unified_campaign_state.crew["quest_rumors"] = total_rumors
+	unified_campaign_state.crew["bonus_credits"] = total_bonus_credits
 
 func update_captain_state(captain_data: Dictionary) -> void:
 	## Update captain state and emit signal
@@ -895,6 +884,10 @@ func _character_to_dict(character) -> Dictionary:
 
 	if "is_captain" in character:
 		result["is_captain"] = character.is_captain if not is_dict else character.get("is_captain")
+
+	# Preserve creation bonuses for downstream consumers
+	if "creation_bonuses" in character:
+		result["creation_bonuses"] = character.creation_bonuses if not is_dict else character.get("creation_bonuses", {})
 
 	# DISPLAY FIX: Preserve original Character object reference for CharacterCard display
 	# CharacterCard.set_character() requires a Character object, not a Dictionary
@@ -1383,7 +1376,9 @@ func _aggregate_all_phase_data() -> Dictionary:
 			if not assigned:
 				ship_stash.append(item)
 		# Update equipment_data with ship stash only (assigned items are on crew)
-		campaign_data["equipment"] = {"equipment": ship_stash}
+		# Preserve credits key — destructive overwrite would lose it (Bug fix)
+		var preserved_credits: int = campaign_data.get("equipment", {}).get("credits", 0)
+		campaign_data["equipment"] = {"equipment": ship_stash, "credits": preserved_credits}
 		campaign_data["crew"]["members"] = members
 
 	return campaign_data

@@ -757,7 +757,7 @@ func _create_trait_card(trait_data: Dictionary) -> void:
 	
 	var name_label = Label.new()
 	name_label.text = trait_data.get("name", "Unknown Trait")
-	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_font_size_override("font_size", get_responsive_font_size(14))
 	name_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 	name_hbox.add_child(name_label)
 	
@@ -765,14 +765,14 @@ func _create_trait_card(trait_data: Dictionary) -> void:
 	var category_label = Label.new()
 	var category = str(trait_data.get("category", "social"))
 	category_label.text = "[%s]" % category.capitalize()
-	category_label.add_theme_font_size_override("font_size", 11)
+	category_label.add_theme_font_size_override("font_size", get_responsive_font_size(11))
 	category_label.add_theme_color_override("font_color", _get_category_color(category))
 	name_hbox.add_child(category_label)
 	
 	# Description
 	var desc_label = Label.new()
 	desc_label.text = trait_data.get("description", "")
-	desc_label.add_theme_font_size_override("font_size", 12)
+	desc_label.add_theme_font_size_override("font_size", get_responsive_font_size(12))
 	desc_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	card_vbox.add_child(desc_label)
@@ -780,7 +780,7 @@ func _create_trait_card(trait_data: Dictionary) -> void:
 	# Mechanical effect (highlighted)
 	var effect_label = Label.new()
 	effect_label.text = "⚙ %s" % trait_data.get("mechanical_effect", "No mechanical effect")
-	effect_label.add_theme_font_size_override("font_size", 11)
+	effect_label.add_theme_font_size_override("font_size", get_responsive_font_size(11))
 	effect_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	card_vbox.add_child(effect_label)
@@ -843,7 +843,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 	# Add section header
 	var header = Label.new()
 	header.text = "📋 Available Opportunities"
-	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_font_size_override("font_size", get_responsive_font_size(14))
 	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	opportunities_container.add_child(header)
 
@@ -854,7 +854,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 	if known_patrons.size() > 0:
 		var patron_header = Label.new()
 		patron_header.text = "Patrons:"
-		patron_header.add_theme_font_size_override("font_size", 12)
+		patron_header.add_theme_font_size_override("font_size", get_responsive_font_size(12))
 		patron_header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		opportunities_container.add_child(patron_header)
 
@@ -869,7 +869,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 	if market_prices.size() > 0:
 		var trade_header = Label.new()
 		trade_header.text = "Market Prices:"
-		trade_header.add_theme_font_size_override("font_size", 12)
+		trade_header.add_theme_font_size_override("font_size", get_responsive_font_size(12))
 		trade_header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		opportunities_container.add_child(trade_header)
 
@@ -912,7 +912,7 @@ func _display_threats(rival_threats: Array) -> void:
 	# Add section header
 	var header = Label.new()
 	header.text = "⚠️ Known Threats"
-	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_font_size_override("font_size", get_responsive_font_size(14))
 	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	threats_container.add_child(header)
 
@@ -959,7 +959,7 @@ func _create_opportunity_card(opportunity_data: Dictionary, opportunity_type: St
 	if not description.is_empty():
 		var desc_label = Label.new()
 		desc_label.text = description
-		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_font_size_override("font_size", get_responsive_font_size(11))
 		desc_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_vbox.add_child(desc_label)
@@ -1005,7 +1005,7 @@ func _create_threat_card(threat_data: Dictionary) -> Control:
 	if not description.is_empty():
 		var desc_label = Label.new()
 		desc_label.text = description
-		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_font_size_override("font_size", get_responsive_font_size(11))
 		desc_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_vbox.add_child(desc_label)

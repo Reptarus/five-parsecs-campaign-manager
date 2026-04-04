@@ -92,8 +92,10 @@ func _ready() -> void:
 
 func _on_visibility_changed() -> void:
 	## Refresh data when panel becomes visible
+	## Wait one frame so coordinator state reflects latest panel updates
 	if visible and is_inside_tree():
-		call_deferred("_aggregate_campaign_data")
+		await get_tree().process_frame
+		_aggregate_campaign_data()
 
 func _delayed_aggregate_campaign_data() -> void:
 	## Delayed aggregation to ensure coordinator is set
@@ -663,20 +665,40 @@ func _create_equipment_summary_card() -> PanelContainer:
 		equipment_list = equipment_data.get("items", equipment_data.get("equipment", []))
 		credits_value = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
 
-	# Credits
+	# Credits — show breakdown when bonus credits exist
+	var crew_bonus: int = campaign_data.get("crew", {}).get("bonus_credits", 0)
 	var credits_label := Label.new()
-	credits_label.text = "Starting Credits: %d cr" % credits_value
+	if crew_bonus > 0:
+		var total: int = credits_value + crew_bonus
+		credits_label.text = "Starting Credits: %d cr (%d base + %d bonus)" % [total, credits_value, crew_bonus]
+	else:
+		credits_label.text = "Starting Credits: %d cr" % credits_value
 	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	credits_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	content.add_child(credits_label)
 	
-	# Equipment Count
-	# Equipment Count (Secondary info)
-	var eq_label := Label.new()
-	eq_label.text = "%d Equipment Items" % equipment_list.size()
-	eq_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	eq_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	content.add_child(eq_label)
+	# Equipment list with owners and conditions
+	var eq_header := Label.new()
+	eq_header.text = "%d Equipment Items" % equipment_list.size()
+	eq_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	eq_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(eq_header)
+	for item in equipment_list:
+		if item is not Dictionary:
+			continue
+		var item_label := Label.new()
+		var item_name: String = item.get("name", "Unknown")
+		var owner: String = item.get("owner", "Unassigned")
+		var condition: String = item.get("condition", "standard")
+		var parts: PackedStringArray = [item_name]
+		if owner != "Unassigned" and not owner.is_empty():
+			parts.append(owner)
+		if condition != "standard":
+			parts.append("[%s]" % condition)
+		item_label.text = "  %s" % " — ".join(parts)
+		item_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		item_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		content.add_child(item_label)
 	
 	# Resources
 	var resources_data = campaign_data.get("resources", {})
@@ -726,7 +748,9 @@ func _create_extras_summary_card() -> PanelContainer:
 			var patron_label = Label.new()
 			var patron_name: String = patron.get("name", "Unknown") if patron is Dictionary else str(patron)
 			var patron_type: String = patron.get("type", "") if patron is Dictionary else ""
-			patron_label.text = "  %s%s" % [patron_name, " (%s)" % patron_type if not patron_type.is_empty() else ""]
+			var patron_source: String = patron.get("source_character", "") if patron is Dictionary else ""
+			var patron_source_text: String = " — via %s" % patron_source if not patron_source.is_empty() else ""
+			patron_label.text = "  %s%s%s" % [patron_name, " (%s)" % patron_type if not patron_type.is_empty() else "", patron_source_text]
 			patron_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 			patron_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			content.add_child(patron_label)
@@ -741,7 +765,9 @@ func _create_extras_summary_card() -> PanelContainer:
 			var rival_label = Label.new()
 			var rival_name: String = rival.get("name", "Unknown") if rival is Dictionary else str(rival)
 			var rival_type: String = rival.get("type", "") if rival is Dictionary else ""
-			rival_label.text = "  %s%s" % [rival_name, " (%s)" % rival_type if not rival_type.is_empty() else ""]
+			var rival_source: String = rival.get("source_character", "") if rival is Dictionary else ""
+			var rival_source_text: String = " — via %s" % rival_source if not rival_source.is_empty() else ""
+			rival_label.text = "  %s%s%s" % [rival_name, " (%s)" % rival_type if not rival_type.is_empty() else "", rival_source_text]
 			rival_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 			rival_label.add_theme_color_override("font_color", COLOR_DANGER)
 			content.add_child(rival_label)
@@ -882,7 +908,7 @@ func _update_crew_preview() -> void:
 	
 	# Create crew member cards — handle both Character objects and Dictionary data
 	for member in crew_members:
-		if member is Character:
+		if "character_name" in member and not member is Dictionary:
 			var card = CharacterCardScene.instantiate()
 			card.current_variant = 0  # COMPACT = 80px
 			card.custom_minimum_size = Vector2(200, 80)

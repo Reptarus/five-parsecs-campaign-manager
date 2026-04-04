@@ -24,6 +24,13 @@ var _squad_data: Dictionary = {
 }
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_build_ui()
 
@@ -44,7 +51,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "SQUAD SETUP"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
@@ -115,7 +122,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 
@@ -186,7 +193,7 @@ func _add_character_card(mc: Dictionary) -> void:
 	avatar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	avatar.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	avatar.custom_minimum_size = Vector2(40, 40)
-	avatar.add_theme_font_size_override("font_size", 16)
+	avatar.add_theme_font_size_override("font_size", _scaled_font(16))
 	# Deterministic color from name hash (8 colors like CharacterCard)
 	var avatar_colors := [
 		Color("#4FC3F7"), Color("#81C784"), Color("#FFB74D"),
@@ -211,7 +218,7 @@ func _add_character_card(mc: Dictionary) -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = char_name
-	name_lbl.add_theme_font_size_override("font_size", 18)
+	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	info.add_child(name_lbl)
 
@@ -220,7 +227,7 @@ func _add_character_card(mc: Dictionary) -> void:
 		mc.get("origin", "?"), mc.get("basic_training", "?"),
 		mc.get("service_history", "?")]
 	bg_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	bg_lbl.add_theme_font_size_override("font_size", 13)
+	bg_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 	info.add_child(bg_lbl)
 
 	# ISSUE-054: Stat badges in a flow container
@@ -238,7 +245,7 @@ func _add_character_card(mc: Dictionary) -> void:
 	for pair in stat_pairs:
 		var badge := Label.new()
 		badge.text = " %s %d " % [pair[0], pair[1]]
-		badge.add_theme_font_size_override("font_size", 12)
+		badge.add_theme_font_size_override("font_size", _scaled_font(12))
 		badge.add_theme_color_override("font_color", COLOR_TEXT)
 		var badge_style := StyleBoxFlat.new()
 		badge_style.bg_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
@@ -255,7 +262,7 @@ func _add_character_card(mc: Dictionary) -> void:
 		comm_lbl.text = "Commendation: +%d XP, +%d Rep" % [
 			mc.get("commendation_xp", 0), mc.get("commendation_rep", 0)]
 		comm_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
-		comm_lbl.add_theme_font_size_override("font_size", 12)
+		comm_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 		info.add_child(comm_lbl)
 
 

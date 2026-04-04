@@ -31,6 +31,13 @@ var _panel_container: Control
 var _phase_indicators: Array[Label] = []
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_load_campaign()
 	_build_layout()
@@ -105,7 +112,7 @@ func _build_layout() -> void:
 
 	_turn_label = Label.new()
 	_turn_label.text = "TURN 1"
-	_turn_label.add_theme_font_size_override("font_size", 22)
+	_turn_label.add_theme_font_size_override("font_size", _scaled_font(22))
 	_turn_label.add_theme_color_override("font_color", COLOR_TEXT)
 	top_bar.add_child(_turn_label)
 
@@ -119,13 +126,13 @@ func _build_layout() -> void:
 	for i in range(3):
 		var indicator := Label.new()
 		indicator.text = "%d. %s" % [i + 1, phase_names[i]]
-		indicator.add_theme_font_size_override("font_size", 14)
+		indicator.add_theme_font_size_override("font_size", _scaled_font(14))
 		indicator.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		phase_box.add_child(indicator)
 		_phase_indicators.append(indicator)
 
 	_reputation_label = Label.new()
-	_reputation_label.add_theme_font_size_override("font_size", 14)
+	_reputation_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	_reputation_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	_update_reputation_display()
 	top_bar.add_child(_reputation_label)
@@ -139,7 +146,7 @@ func _build_layout() -> void:
 	# Current phase label
 	_phase_label = Label.new()
 	_phase_label.text = "SPECIAL ASSIGNMENTS"
-	_phase_label.add_theme_font_size_override("font_size", 24)
+	_phase_label.add_theme_font_size_override("font_size", _scaled_font(24))
 	_phase_label.add_theme_color_override("font_color", COLOR_TEXT)
 	_phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_phase_label)

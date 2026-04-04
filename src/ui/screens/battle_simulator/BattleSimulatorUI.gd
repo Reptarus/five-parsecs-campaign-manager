@@ -21,6 +21,12 @@ var _panel_container: Control
 var _header: HBoxContainer
 var _last_config: Dictionary = {}
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 
 func _ready() -> void:
 	_build_layout()
@@ -63,7 +69,7 @@ func _build_layout() -> void:
 
 	var title := Label.new()
 	title.text = "BATTLE SIMULATOR"
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", _scaled_font(28))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_header.add_child(title)

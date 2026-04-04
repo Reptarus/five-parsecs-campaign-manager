@@ -35,6 +35,26 @@ var _popover_close_btn: Button
 
 func _ready() -> void:
 	_build_ui()
+	resized.connect(_update_map_cell_size)
+
+func _update_map_cell_size() -> void:
+	## Dynamically scale map cell_size based on available panel space
+	if not _map_view:
+		return
+	var available := size
+	if available.x <= 0 or available.y <= 0:
+		return
+	# Subtract header bar (~40px) + legend (~30px) + padding
+	var usable_h := available.y - 80.0
+	var usable_w := available.x - BattlefieldMapView.AXIS_MARGIN * 2
+	if usable_h <= 0 or usable_w <= 0:
+		return
+	var cell_w := usable_w / float(BattlefieldMapView.GRID_COLUMNS)
+	var cell_h := (usable_h - BattlefieldMapView.AXIS_MARGIN) / float(BattlefieldMapView.GRID_ROWS)
+	var new_cell_size := clampf(minf(cell_w, cell_h), 16.0, 48.0)
+	if absf(new_cell_size - _map_view.cell_size) > 0.5:
+		_map_view.cell_size = new_cell_size
+		_map_view.queue_redraw()
 
 func _build_ui() -> void:
 	# Panel styling

@@ -44,6 +44,12 @@ var basic_info_panel: Control
 var attributes_panel: Control
 var review_panel: Control
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	call_deferred("_initialize_ui")
 
@@ -67,7 +73,7 @@ func _create_ui_structure() -> void:
 	# Title
 	step_title_label = Label.new()
 	step_title_label.text = "Character Customization"
-	step_title_label.add_theme_font_size_override("font_size", 24)
+	step_title_label.add_theme_font_size_override("font_size", _scaled_font(24))
 	step_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header_container.add_child(step_title_label)
 	
@@ -389,7 +395,7 @@ func _update_relationships_display() -> void:
 	if editing_character.patrons.size() > 0:
 		var patrons_label = Label.new()
 		patrons_label.text = "Patrons (%d):" % editing_character.patrons.size()
-		patrons_label.add_theme_font_size_override("font_size", 16)
+		patrons_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		display.add_child(patrons_label)
 		
 		for patron in editing_character.patrons:
@@ -407,7 +413,7 @@ func _update_relationships_display() -> void:
 	if editing_character.rivals.size() > 0:
 		var rivals_label = Label.new()
 		rivals_label.text = "Rivals (%d):" % editing_character.rivals.size()
-		rivals_label.add_theme_font_size_override("font_size", 16)
+		rivals_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		display.add_child(rivals_label)
 		
 		for rival in editing_character.rivals:
@@ -495,7 +501,7 @@ func _update_equipment_display() -> void:
 	if equipment.has("weapons") and equipment.weapons.size() > 0:
 		var weapons_label = Label.new()
 		weapons_label.text = "Weapons:"
-		weapons_label.add_theme_font_size_override("font_size", 16)
+		weapons_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		display.add_child(weapons_label)
 		
 		for weapon in equipment.weapons:
@@ -511,7 +517,7 @@ func _update_equipment_display() -> void:
 	if equipment.has("armor") and equipment.armor.size() > 0:
 		var armor_label = Label.new()
 		armor_label.text = "Armor:"
-		armor_label.add_theme_font_size_override("font_size", 16)
+		armor_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		display.add_child(armor_label)
 		
 		for armor in equipment.armor:
@@ -527,7 +533,7 @@ func _update_equipment_display() -> void:
 	if equipment.has("items") and equipment.items.size() > 0:
 		var items_label = Label.new()
 		items_label.text = "Items:"
-		items_label.add_theme_font_size_override("font_size", 16)
+		items_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		display.add_child(items_label)
 		
 		for item in equipment.items:

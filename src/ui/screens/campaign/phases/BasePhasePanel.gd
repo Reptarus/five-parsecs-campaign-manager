@@ -21,6 +21,9 @@ var current_phase: int = -1
 ## helpers whenever a primary-action button's disabled state changes.
 var _validation_hint_label: Label = null
 
+## Responsive layout — delegates to ResponsiveManager autoload
+var _responsive_manager: Node = null
+
 ## Phase name lookup for breadcrumb display
 const _PHASE_NAMES: Dictionary = {
 	0: "", # NONE
@@ -47,6 +50,7 @@ func _ready() -> void:
 	game_state = get_node_or_null("/root/GameState")
 	if not game_state:
 		push_error("BasePhasePanel: GameState autoload not found")
+	_responsive_manager = get_node_or_null("/root/ResponsiveManager")
 	_apply_phase_theme()
 	_setup_breadcrumb()
 	# Deferred: fix touch scrolling on mobile
@@ -67,6 +71,20 @@ func setup_phase() -> void:
 func validate_phase_requirements() -> bool:
 	# Base implementation - should be overridden by subclasses
 	return game_state != null
+
+# ── Responsive scaling helpers ───────────────────────────────────────────────
+
+func _scaled_font(base: int) -> int:
+	## Scale font size via ResponsiveManager (scales up at 1440p+)
+	if _responsive_manager and _responsive_manager.has_method("get_responsive_font_size"):
+		return _responsive_manager.get_responsive_font_size(base)
+	return base
+
+func _scaled_spacing(base: int) -> int:
+	## Scale spacing via ResponsiveManager
+	if _responsive_manager and _responsive_manager.has_method("get_responsive_spacing"):
+		return _responsive_manager.get_responsive_spacing(base)
+	return base
 
 ## Complete the current phase
 func complete_phase() -> void:
@@ -120,7 +138,7 @@ func _setup_breadcrumb() -> void:
 		return
 
 	_breadcrumb_label = Label.new()
-	_breadcrumb_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_breadcrumb_label.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_SM))
 	_breadcrumb_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	_breadcrumb_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	vbox.add_child(_breadcrumb_label)
@@ -209,7 +227,7 @@ func _on_keyword_clicked(meta: Variant) -> void:
 
 	var title_lbl := Label.new()
 	title_lbl.text = data.get("term", term).capitalize()
-	title_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	title_lbl.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_LG))
 	title_lbl.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	vbox.add_child(title_lbl)
 
@@ -217,14 +235,14 @@ func _on_keyword_clicked(meta: Variant) -> void:
 	def_lbl.text = definition
 	def_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	def_lbl.custom_minimum_size = Vector2(250, 0)
-	def_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	def_lbl.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_MD))
 	def_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(def_lbl)
 
 	if not related.is_empty():
 		var related_lbl := Label.new()
 		related_lbl.text = "See also: " + ", ".join(related)
-		related_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		related_lbl.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_SM))
 		related_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		vbox.add_child(related_lbl)
 
@@ -287,7 +305,7 @@ func _style_phase_button(button: Button, is_primary: bool = false) -> void:
 	style.content_margin_top = UIColors.SPACING_SM
 	style.content_margin_bottom = UIColors.SPACING_SM
 	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	button.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_MD))
 	button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	button.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	var hover := style.duplicate()
@@ -313,14 +331,14 @@ func _style_phase_button(button: Button, is_primary: bool = false) -> void:
 func _style_phase_title(label: Label) -> void:
 	if not label:
 		return
-	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	label.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_XL))
 	label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 ## Style a section label (sub-headers)
 func _style_section_label(label: Label) -> void:
 	if not label:
 		return
-	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	label.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_LG))
 	label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 
 ## Style a sub-panel with elevated card appearance
@@ -354,7 +372,7 @@ func _style_rich_text(rtl: RichTextLabel) -> void:
 	if not rtl:
 		return
 	rtl.add_theme_color_override("default_color", UIColors.COLOR_TEXT_PRIMARY)
-	rtl.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_MD)
+	rtl.add_theme_font_size_override("normal_font_size", _scaled_font(UIColors.FONT_SIZE_MD))
 
 # ── Validation Hint Infrastructure ───────────────────────────────
 
@@ -364,7 +382,7 @@ func _setup_validation_hint(before_button: Button) -> void:
 	if not before_button or _validation_hint_label:
 		return
 	_validation_hint_label = Label.new()
-	_validation_hint_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_validation_hint_label.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_SM))
 	_validation_hint_label.add_theme_color_override("font_color", Color("#D97706"))  # Amber warning
 	_validation_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_validation_hint_label.visible = false

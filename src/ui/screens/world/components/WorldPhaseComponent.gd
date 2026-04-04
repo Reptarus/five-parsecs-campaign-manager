@@ -96,6 +96,22 @@ func _handle_error(error_message: String) -> void:
 	push_error("%s Error: %s" % [component_name, error_message])
 	component_error.emit(component_name, error_message)
 
+# --- Responsive scaling helpers ---
+
+func _scaled_font(base: int) -> int:
+	## Scale font size via ResponsiveManager (scales up at 1440p+)
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+func _scaled_spacing(base: int) -> int:
+	## Scale spacing via ResponsiveManager
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_spacing"):
+		return rm.get_responsive_spacing(base)
+	return base
+
 func _publish_phase_completed(phase_name: String, extra_data: Dictionary = {}) -> void:
 	if event_bus:
 		var data: Dictionary = {"phase_name": phase_name}

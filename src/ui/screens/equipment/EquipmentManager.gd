@@ -17,6 +17,12 @@ var is_initialized: bool = false
 var initialization_attempts: int = 0
 const MAX_INITIALIZATION_ATTEMPTS: int = 3
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	
 	# Node structure initialized
@@ -234,7 +240,7 @@ func _update_equipment_details(equipment: Dictionary) -> void:
 	# Equipment name
 	var name_label: Label = Label.new()
 	name_label.text = DataValidator.safe_get_name(validated_equipment)
-	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(18))
 	details_container.add_child(name_label)
 
 	# Equipment type

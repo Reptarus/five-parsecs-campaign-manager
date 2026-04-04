@@ -13,6 +13,12 @@ signal captain_updated(captain)
 
 var current_captain # Untyped — CharacterCreator may return canonical Character or BaseCharacterResource
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_apply_base_background()
 	_connect_signals()
@@ -120,7 +126,7 @@ func _build_captain_card() -> PanelContainer:
 	# Name header
 	var name_lbl := Label.new()
 	name_lbl.text = current_captain.character_name
-	name_lbl.add_theme_font_size_override("font_size", 18)
+	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override(
 		"font_color", Color("#f3f4f6"))
 	vbox.add_child(name_lbl)
@@ -138,7 +144,7 @@ func _build_captain_card() -> PanelContainer:
 	var sub_lbl := Label.new()
 	sub_lbl.text = "%s  •  %s  •  %s  •  %s" % [
 		cls, origin, bg, motiv]
-	sub_lbl.add_theme_font_size_override("font_size", 14)
+	sub_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	sub_lbl.add_theme_color_override(
 		"font_color", Color("#9ca3af"))
 	sub_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -180,7 +186,9 @@ func _build_captain_card() -> PanelContainer:
 			"v_separation", 4)
 		for tag in bonuses:
 			bonus_flow.add_child(
-				_build_bonus_tag(tag.text, tag.color))
+				_build_bonus_tag(
+					tag.text, tag.color,
+					tag.get("source", "")))
 		vbox.add_child(bonus_flow)
 
 	return panel
@@ -201,7 +209,7 @@ func _build_stat_badge(
 
 	var name_l := Label.new()
 	name_l.text = stat_name
-	name_l.add_theme_font_size_override("font_size", 12)
+	name_l.add_theme_font_size_override("font_size", _scaled_font(12))
 	name_l.add_theme_color_override(
 		"font_color", Color("#9ca3af"))
 	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -209,7 +217,7 @@ func _build_stat_badge(
 
 	var val_l := Label.new()
 	val_l.text = str(value)
-	val_l.add_theme_font_size_override("font_size", 14)
+	val_l.add_theme_font_size_override("font_size", _scaled_font(14))
 	val_l.add_theme_color_override(
 		"font_color", Color("#3b82f6"))
 	hbox.add_child(val_l)
@@ -226,7 +234,7 @@ func _build_empty_state_card() -> PanelContainer:
 	var lbl := Label.new()
 	lbl.text = "No captain created yet.\n" \
 		+ "Click 'Create Captain' or 'Randomize' to begin."
-	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	lbl.add_theme_color_override(
 		"font_color", Color("#6b7280"))
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -274,7 +282,7 @@ func _apply_button_style(button: Button, is_primary: bool) -> void:
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(8)
 	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_font_size_override("font_size", _scaled_font(16))
 	button.add_theme_color_override("font_color", Color("#f3f4f6"))
 	button.custom_minimum_size.y = 48
 	var hover := style.duplicate()
@@ -313,12 +321,27 @@ func _load_gear_db() -> void:
 
 func _get_starting_bonuses(character) -> Array:
 	## Look up background/motivation/class in gear_database
-	## Returns array of {text, color} for display tags
+	## Returns array of {text, color, source} for display tags
 	_load_gear_db()
 	if _gear_db.is_empty() or not character:
 		return []
 
 	var tags: Array = []
+	# Read rolled item names from creation_bonuses (set
+	# at character creation by CharacterCreator)
+	var cb: Dictionary = {}
+	if "creation_bonuses" in character:
+		cb = character.creation_bonuses
+	elif character is Dictionary:
+		cb = character.get("creation_bonuses", {})
+	var rolled_items: Array = cb.get("rolled_items", [])
+	# Show rolled items once (not per-source)
+	for item in rolled_items:
+		tags.append({
+			"text": item.get("name", "Unknown"),
+			"color": Color("#3b82f6"),
+			"source": item.get("type", "").capitalize()})
+
 	var tables := {
 		"backgrounds": character.background,
 		"motivations": character.motivation,
@@ -327,7 +350,6 @@ func _get_starting_bonuses(character) -> Array:
 	for table_key in tables:
 		var enum_val = tables[table_key]
 		var enum_name: String = ""
-		# Resolve enum int → string name
 		match table_key:
 			"backgrounds":
 				enum_name = _enum_key_name(
@@ -344,36 +366,46 @@ func _get_starting_bonuses(character) -> Array:
 			table_key, enum_name.to_lower())
 		if entry.is_empty():
 			continue
-		# Starting equipment rolls
-		var rolls: Array = entry.get("starting_rolls", [])
-		for roll_type in rolls:
-			var label: String = roll_type.replace(
-				"_", " ").capitalize()
-			tags.append({
-				"text": label,
-				"color": Color("#3b82f6")})  # blue
+		var source_name: String = entry.get(
+			"name", enum_name.capitalize())
+		# Fallback: show generic roll types if no rolled items
+		if rolled_items.is_empty():
+			var rolls: Array = entry.get(
+				"starting_rolls", [])
+			for roll_type in rolls:
+				var label: String = roll_type.replace(
+					"_", " ").capitalize() + " Roll"
+				tags.append({
+					"text": label,
+					"color": Color("#3b82f6"),
+					"source": source_name})
 		# Resources (patrons, rivals, rumors, credits)
 		var res: Dictionary = entry.get("resources", {})
 		if res.get("patron", 0) > 0:
 			tags.append({
 				"text": "Patron ×%d" % res["patron"],
-				"color": Color("#10B981")})  # green
+				"color": Color("#10B981"),
+				"source": source_name})
 		if res.get("rival", 0) > 0:
 			tags.append({
 				"text": "Rival ×%d" % res["rival"],
-				"color": Color("#DC2626")})  # red
+				"color": Color("#DC2626"),
+				"source": source_name})
 		if res.get("quest_rumors", 0) > 0:
 			tags.append({
 				"text": "Rumors ×%d" % res["quest_rumors"],
-				"color": Color("#D97706")})  # amber
+				"color": Color("#D97706"),
+				"source": source_name})
 		if res.has("credits_dice"):
 			tags.append({
 				"text": "+%s credits" % res["credits_dice"],
-				"color": Color("#D97706")})  # amber
+				"color": Color("#D97706"),
+				"source": source_name})
 		if res.get("story_points", 0) > 0:
 			tags.append({
 				"text": "Story Pt ×%d" % res["story_points"],
-				"color": Color("#8B5CF6")})  # purple
+				"color": Color("#8B5CF6"),
+				"source": source_name})
 	return tags
 
 func _find_db_entry(
@@ -398,7 +430,7 @@ func _enum_key_name(
 	return ""
 
 func _build_bonus_tag(
-	text: String, color: Color
+	text: String, color: Color, source: String = ""
 ) -> PanelContainer:
 	## Build a colored pill tag for starting bonuses
 	var pill := PanelContainer.new()
@@ -413,9 +445,28 @@ func _build_bonus_tag(
 	style.content_margin_top = 2
 	style.content_margin_bottom = 2
 	pill.add_theme_stylebox_override("panel", style)
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", color)
-	pill.add_child(lbl)
+	if source.is_empty():
+		var lbl := Label.new()
+		lbl.text = text
+		lbl.add_theme_font_size_override(
+			"font_size", _scaled_font(11))
+		lbl.add_theme_color_override("font_color", color)
+		pill.add_child(lbl)
+	else:
+		var vb := VBoxContainer.new()
+		vb.add_theme_constant_override("separation", 0)
+		var lbl := Label.new()
+		lbl.text = text
+		lbl.add_theme_font_size_override(
+			"font_size", _scaled_font(11))
+		lbl.add_theme_color_override("font_color", color)
+		vb.add_child(lbl)
+		var src_lbl := Label.new()
+		src_lbl.text = source
+		src_lbl.add_theme_font_size_override(
+			"font_size", _scaled_font(9))
+		src_lbl.add_theme_color_override(
+			"font_color", Color("#6b7280"))
+		vb.add_child(src_lbl)
+		pill.add_child(vb)
 	return pill

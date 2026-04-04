@@ -31,6 +31,12 @@ var current_mission: StoryQuestData
 var selected_crew: Array = []
 var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_apply_base_background()
 	_initialize_systems()
@@ -79,12 +85,12 @@ func set_deployment_condition(condition: Dictionary) -> void:
 
 	var header := Label.new()
 	header.text = "Deployment Condition"
-	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_font_size_override("font_size", _scaled_font(16))
 	mission_info_panel.add_child(header)
 
 	var title := Label.new()
 	title.text = condition.get("title", "Unknown")
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", _scaled_font(16))
 	title.add_theme_color_override(
 		"font_color", Color("#D97706"))
 	mission_info_panel.add_child(title)
@@ -93,7 +99,7 @@ func set_deployment_condition(condition: Dictionary) -> void:
 	var desc := Label.new()
 	desc.text = condition.get("description", "")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", _scaled_font(14))
 	mission_info_panel.add_child(desc)
 
 ## Setup the UI with mission data
@@ -138,7 +144,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 	var title := Label.new()
 	title.text = "Enemy Forces"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", _scaled_font(16))
 	container.add_child(title)
 
 	# ── Stat table (GridContainer, 8 columns) ──
@@ -164,7 +170,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		var lbl := Label.new()
 		lbl.text = h
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(10))
 		lbl.add_theme_color_override("font_color", Color("#808080"))
 		grid.add_child(lbl)
 
@@ -196,7 +202,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		var lbl := Label.new()
 		lbl.text = values[i]
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		if i == 0:
 			# Enemy name in red
 			lbl.add_theme_color_override(
@@ -216,7 +222,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 	if total > 0:
 		var count_lbl := Label.new()
 		count_lbl.text = "Count: %d" % total
-		count_lbl.add_theme_font_size_override("font_size", 13)
+		count_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		container.add_child(count_lbl)
 
 	# ── Special rules ──
@@ -224,7 +230,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 	for rule in rules:
 		var rule_lbl := Label.new()
 		rule_lbl.text = str(rule)
-		rule_lbl.add_theme_font_size_override("font_size", 12)
+		rule_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 		rule_lbl.add_theme_color_override(
 			"font_color", Color("#D97706"))
 		rule_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -326,7 +332,7 @@ func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) 
 	terrain_log.fit_content = true
 	terrain_log.set_anchors_preset(Control.PRESET_FULL_RECT)
 	terrain_log.add_theme_color_override("default_color", Color("#f3f4f6"))
-	terrain_log.add_theme_font_size_override("normal_font_size", 14)
+	terrain_log.add_theme_font_size_override("normal_font_size", _scaled_font(14))
 
 	var bbcode: String = "[b]Terrain Setup Guide[/b]\n\n"
 	if theme_name != "":

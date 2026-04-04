@@ -31,6 +31,13 @@ var _support_container: VBoxContainer
 var _launch_button: Button
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_load_data()
 	_build_ui()
@@ -189,7 +196,7 @@ func _generate_mission() -> void:
 	var loadout_info := Label.new()
 	loadout_info.text = "Each Main Character selects one mission weapon:\n• Combat Rifle (26\" | 1 Shot | Dmg 0)\n• Shotgun (12\" | 2 Shots | Dmg 1 | Focused)\n• Boarding Sword (Melee | +2 Brawl)\n\nOne MC may swap their Service Pistol for a Hand Cannon (8\" | 1 Shot | Dmg 1)."
 	loadout_info.add_theme_color_override("font_color", COLOR_TEXT)
-	loadout_info.add_theme_font_size_override("font_size", 14)
+	loadout_info.add_theme_font_size_override("font_size", _scaled_font(14))
 	loadout_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	loadout_card.add_child(loadout_info)
 
@@ -249,7 +256,7 @@ func _roll_support_teams(priority: int) -> void:
 	var info_lbl := Label.new()
 	info_lbl.text = "Support Points: %d (Priority %d + bonus %d). Spend 1 Reputation for +1." % [support_points, priority, bonus]
 	info_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	info_lbl.add_theme_font_size_override("font_size", 13)
+	info_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	support_card.add_child(info_lbl)
 
@@ -261,7 +268,7 @@ func _roll_support_teams(priority: int) -> void:
 		var opt_lbl := Label.new()
 		opt_lbl.text = "  %s — 2D6 >= %d — %s" % [opt.get("name", "?"), target, opt.get("contents", "")]
 		opt_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-		opt_lbl.add_theme_font_size_override("font_size", 13)
+		opt_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		opt_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		support_card.add_child(opt_lbl)
 
@@ -320,7 +327,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

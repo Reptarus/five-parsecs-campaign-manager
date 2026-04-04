@@ -1255,48 +1255,16 @@ func _create_ship_from_type_id(type_id: String) -> void:
 				var debt_min: int = int(entry.get("debt_min", 20))
 				var debt_max: int = int(entry.get("debt_max", 26))
 				ship_data.debt = debt_min if debt_min == debt_max else randi_range(debt_min, debt_max)
-			# Core Rules: traits from ship table, not random roll
-			var ship_traits: Array = entry.get("traits", [])
-			ship_data.traits = ship_traits if not ship_traits.is_empty() else _roll_ship_traits()
+			# Core Rules p.31: traits are fixed per ship type, no random rolling
+			ship_data.traits = entry.get("traits", [])
 			return
 	# Fallback if type_id not found (Core Rules default: Worn Freighter)
 	ship_data.type = "Worn Freighter"
 	ship_data.hull_points = 30
 	ship_data.max_hull = 30
 	ship_data.debt = randi_range(0, 3)
-	ship_data.traits = _roll_ship_traits()
+	ship_data.traits = []  # Core Rules p.31: Worn Freighter has no traits
 
-func _roll_ship_traits() -> Array[String]:
-	## Roll for random ship traits from ships.json
-	var traits: Array[String] = []
-	var traits_data: Dictionary = _ships_db.get("traits", {})
-	var trait_roll: int = randi_range(1, 100)
-
-	# Primary trait based on D100 roll
-	var primary_table: Array = traits_data.get("primary", [])
-	if primary_table.is_empty():
-		# Fallback
-		traits.append(["Fast Engine", "Heavy Armor", "Extra Cargo", "Advanced Sensors", "Weapon Hardpoints"][randi() % 5])
-	else:
-		for entry in primary_table:
-			if entry is Dictionary:
-				var r: Array = entry.get("range", [1, 100])
-				if trait_roll >= int(r[0]) and trait_roll <= int(r[1]):
-					traits.append(entry.get("name", "Unknown Trait"))
-					break
-
-	# Secondary trait chance
-	var secondary_chance: float = traits_data.get("secondary_chance", 0.3)
-	if randf() <= secondary_chance:
-		var secondary_table: Array = traits_data.get("secondary", [])
-		if secondary_table.is_empty():
-			secondary_table = [{"name": "Efficient Drive"}, {"name": "Luxury Interior"}, {"name": "Advanced AI"}]
-		var second_entry: Dictionary = secondary_table[randi() % secondary_table.size()]
-		var second_trait: String = second_entry.get("name", "")
-		if not second_trait.is_empty() and not traits.has(second_trait):
-			traits.append(second_trait)
-
-	return traits
 
 func set_ship_data(data: Dictionary) -> void:
 	## Set ship data and update display

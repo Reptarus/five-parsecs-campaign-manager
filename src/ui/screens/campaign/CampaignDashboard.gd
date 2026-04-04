@@ -329,7 +329,7 @@ func _build_crew_card(member) -> PanelContainer:
 		il.text = init_ch if not init_ch.is_empty() else "?"
 		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		il.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		il.add_theme_font_size_override("font_size", 18)
+		il.add_theme_font_size_override("font_size", get_responsive_font_size(18))
 		il.add_theme_color_override("font_color", Color.WHITE)
 		il.custom_minimum_size = Vector2(av_size, av_size)
 		av.add_child(il)

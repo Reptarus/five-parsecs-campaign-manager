@@ -19,6 +19,12 @@ var _apply_button: Button
 # Theme manager reference
 var _theme_manager: ThemeManager
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_find_theme_manager()
 	_setup_ui()
@@ -44,7 +50,7 @@ func _setup_ui() -> void:
 	# Title
 	var title = Label.new()
 	title.text = "Accessibility Settings"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	vbox.add_child(title)
 
 	# Theme selection
@@ -66,7 +72,7 @@ func _setup_ui() -> void:
 	# Preview section
 	var preview_title = Label.new()
 	preview_title.text = "Color Preview:"
-	preview_title.add_theme_font_size_override("font_size", 18)
+	preview_title.add_theme_font_size_override("font_size", _scaled_font(18))
 	vbox.add_child(preview_title)
 
 	_preview_container = VBoxContainer.new()

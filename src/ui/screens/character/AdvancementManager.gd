@@ -17,6 +17,12 @@ var crew_roster: Array[Dictionary] = []
 var selected_character: Dictionary = {}
 var selected_advancement: Dictionary = {}
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_load_crew_roster()
 	_refresh_crew_list()
@@ -84,7 +90,7 @@ func _create_character_panel(character: Dictionary) -> Control:
 	# Character name and class
 	var name_label: Label = Label.new()
 	name_label.text = character.name + " (" + character.class +")"
-	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	vbox.add_child(name_label)
 
 	# Experience points
@@ -269,7 +275,7 @@ func _create_advancement_option_panel(option: Dictionary) -> Control:
 	# Option name
 	var name_label: Label = Label.new()
 	name_label.text = option.name
-	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	vbox.add_child(name_label)
 
 	# Description if available

@@ -31,6 +31,13 @@ var crew_size: int = 4
 var equipment_generator: StartingEquipmentGenerator = null
 var dice_manager: Node = null
 
+func _scaled_font(base: int) -> int:
+	if panel_node:
+		var rm := panel_node.get_node_or_null("/root/ResponsiveManager")
+		if rm and rm.has_method("get_responsive_font_size"):
+			return rm.get_responsive_font_size(base)
+	return base
+
 # Equipment generation rules per Five Parsecs (Core Rules p.28)
 const CREDITS_PER_CREW_MEMBER = 1  # 1 credit per crew member
 const BASE_STARTING_CREDITS = 0  # No flat bonus — credits come from crew count + background rolls
@@ -115,7 +122,7 @@ func _setup_fallback_ui() -> void:
 	
 	var equipment_header = Label.new()
 	equipment_header.text = "Starting Equipment:"
-	equipment_header.add_theme_font_size_override("font_size", 14)
+	equipment_header.add_theme_font_size_override("font_size", _scaled_font(14))
 	equipment_section.add_child(equipment_header)
 	
 	equipment_scroll = ScrollContainer.new()
@@ -428,7 +435,7 @@ func _add_equipment_type_section(equipment_type: String, items: Array) -> void:
 	# Type header
 	var type_header = Label.new()
 	type_header.text = equipment_type.capitalize() + "s:"
-	type_header.add_theme_font_size_override("font_size", 12)
+	type_header.add_theme_font_size_override("font_size", _scaled_font(12))
 	type_header.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	equipment_list.add_child(type_header)
 	

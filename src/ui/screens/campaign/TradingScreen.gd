@@ -34,6 +34,12 @@ var faction: String = ""
 var selected_market_item: int = -1
 var selected_inventory_item: int = -1
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _ready() -> void:
 	_setup_ui()
 	_initialize_trading_system()
@@ -94,7 +100,7 @@ func _create_header() -> HBoxContainer:
 	
 	var title = Label.new()
 	title.text = "Trading Post"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
 	header.add_child(title)
 	
@@ -105,7 +111,7 @@ func _create_header() -> HBoxContainer:
 	# Market condition
 	market_condition_label = Label.new()
 	market_condition_label.text = "Market: Average"
-	market_condition_label.add_theme_font_size_override("font_size", 14)
+	market_condition_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	market_condition_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	header.add_child(market_condition_label)
 	
@@ -115,12 +121,12 @@ func _create_header() -> HBoxContainer:
 	
 	var credits_icon = Label.new()
 	credits_icon.text = "💰"
-	credits_icon.add_theme_font_size_override("font_size", 18)
+	credits_icon.add_theme_font_size_override("font_size", _scaled_font(18))
 	credits_container.add_child(credits_icon)
 	
 	credits_label = Label.new()
 	credits_label.text = "0 Credits"
-	credits_label.add_theme_font_size_override("font_size", 18)
+	credits_label.add_theme_font_size_override("font_size", _scaled_font(18))
 	credits_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 	credits_container.add_child(credits_label)
 	
@@ -149,7 +155,7 @@ func _create_market_section() -> PanelContainer:
 	var section_header = HBoxContainer.new()
 	var section_title = Label.new()
 	section_title.text = "Available for Purchase"
-	section_title.add_theme_font_size_override("font_size", 16)
+	section_title.add_theme_font_size_override("font_size", _scaled_font(16))
 	section_title.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	section_header.add_child(section_title)
 	
@@ -206,7 +212,7 @@ func _create_inventory_section() -> PanelContainer:
 	var section_header = HBoxContainer.new()
 	var section_title = Label.new()
 	section_title.text = "Your Inventory"
-	section_title.add_theme_font_size_override("font_size", 16)
+	section_title.add_theme_font_size_override("font_size", _scaled_font(16))
 	section_title.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
 	section_header.add_child(section_title)
 	
@@ -389,15 +395,15 @@ func _create_market_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var name_label = Label.new()
 	name_label.text = item.get("name", "Unknown")
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(13))
 	hbox.add_child(name_label)
-	
+
 	# Category
 	var category_label = Label.new()
 	var category = item.get("category", "misc")
 	category_label.text = "[%s]" % category.capitalize()
 	category_label.custom_minimum_size.x = 80
-	category_label.add_theme_font_size_override("font_size", 11)
+	category_label.add_theme_font_size_override("font_size", _scaled_font(11))
 	category_label.add_theme_color_override("font_color", _get_category_color(category))
 	hbox.add_child(category_label)
 	
@@ -406,7 +412,7 @@ func _create_market_item_row(item: Dictionary, index: int) -> PanelContainer:
 	if condition != "standard":
 		var condition_label = Label.new()
 		condition_label.text = condition.capitalize()
-		condition_label.add_theme_font_size_override("font_size", 11)
+		condition_label.add_theme_font_size_override("font_size", _scaled_font(11))
 		condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
 		hbox.add_child(condition_label)
 	
@@ -415,7 +421,7 @@ func _create_market_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var price = item.get("final_price", item.get("base_price", 5))
 	price_label.text = "%d cr" % price
 	price_label.custom_minimum_size.x = 50
-	price_label.add_theme_font_size_override("font_size", 13)
+	price_label.add_theme_font_size_override("font_size", _scaled_font(13))
 	
 	# Color based on affordability
 	if price <= current_credits:
@@ -493,14 +499,14 @@ func _create_inventory_item_row(item: Variant, index: int) -> PanelContainer:
 	var name_label = Label.new()
 	name_label.text = item_name
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_font_size_override("font_size", _scaled_font(13))
 	hbox.add_child(name_label)
 	
 	# Category
 	var category_label = Label.new()
 	category_label.text = "[%s]" % item_category.capitalize()
 	category_label.custom_minimum_size.x = 80
-	category_label.add_theme_font_size_override("font_size", 11)
+	category_label.add_theme_font_size_override("font_size", _scaled_font(11))
 	category_label.add_theme_color_override("font_color", _get_category_color(item_category))
 	hbox.add_child(category_label)
 	
@@ -509,7 +515,7 @@ func _create_inventory_item_row(item: Variant, index: int) -> PanelContainer:
 	var value_label = Label.new()
 	value_label.text = "Sell: %d cr" % sell_price
 	value_label.custom_minimum_size.x = 70
-	value_label.add_theme_font_size_override("font_size", 12)
+	value_label.add_theme_font_size_override("font_size", _scaled_font(12))
 	value_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
 	hbox.add_child(value_label)
 	

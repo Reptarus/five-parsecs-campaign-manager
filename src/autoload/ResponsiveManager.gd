@@ -3,13 +3,14 @@ extends Node
 ## Centralized Responsive Breakpoint Manager
 ## Provides unified breakpoint detection and layout mode signaling
 
-enum Breakpoint { MOBILE, TABLET, DESKTOP, WIDE }
+enum Breakpoint { MOBILE, TABLET, DESKTOP, WIDE, ULTRAWIDE }
 
 const BREAKPOINTS := {
 	Breakpoint.MOBILE: 480,
 	Breakpoint.TABLET: 768,
 	Breakpoint.DESKTOP: 1024,
-	Breakpoint.WIDE: 1440
+	Breakpoint.WIDE: 1440,
+	Breakpoint.ULTRAWIDE: 2560
 }
 
 signal breakpoint_changed(new_breakpoint: int)
@@ -49,8 +50,10 @@ func _update_breakpoint() -> void:
 		current_breakpoint = Breakpoint.TABLET
 	elif width < BREAKPOINTS[Breakpoint.DESKTOP]:
 		current_breakpoint = Breakpoint.DESKTOP
-	else:
+	elif width < BREAKPOINTS[Breakpoint.ULTRAWIDE]:
 		current_breakpoint = Breakpoint.WIDE
+	else:
+		current_breakpoint = Breakpoint.ULTRAWIDE
 
 func is_mobile() -> bool:
 	return current_breakpoint == Breakpoint.MOBILE
@@ -64,8 +67,14 @@ func is_desktop() -> bool:
 func is_wide() -> bool:
 	return current_breakpoint == Breakpoint.WIDE
 
+func is_ultrawide() -> bool:
+	return current_breakpoint == Breakpoint.ULTRAWIDE
+
 func is_desktop_or_wider() -> bool:
 	return current_breakpoint >= Breakpoint.DESKTOP
+
+func is_wide_or_wider() -> bool:
+	return current_breakpoint >= Breakpoint.WIDE
 
 func is_mobile_or_tablet() -> bool:
 	return current_breakpoint <= Breakpoint.TABLET
@@ -76,6 +85,7 @@ func get_optimal_columns() -> int:
 		Breakpoint.TABLET: return 2
 		Breakpoint.DESKTOP: return 3
 		Breakpoint.WIDE: return 4
+		Breakpoint.ULTRAWIDE: return 4
 	return 2
 
 func get_crew_grid_columns() -> int:
@@ -84,6 +94,7 @@ func get_crew_grid_columns() -> int:
 		Breakpoint.TABLET: return 2
 		Breakpoint.DESKTOP: return 2
 		Breakpoint.WIDE: return 3
+		Breakpoint.ULTRAWIDE: return 4
 	return 2
 
 func get_mission_grid_columns() -> int:
@@ -94,7 +105,8 @@ func get_spacing_multiplier() -> float:
 		Breakpoint.MOBILE: return 0.75
 		Breakpoint.TABLET: return 1.0
 		Breakpoint.DESKTOP: return 1.0
-		Breakpoint.WIDE: return 1.25
+		Breakpoint.WIDE: return 1.15
+		Breakpoint.ULTRAWIDE: return 1.3
 	return 1.0
 
 func get_responsive_spacing(base_spacing: int) -> int:
@@ -102,10 +114,11 @@ func get_responsive_spacing(base_spacing: int) -> int:
 
 func get_font_size_multiplier() -> float:
 	match current_breakpoint:
-		Breakpoint.MOBILE: return 0.9
+		Breakpoint.MOBILE: return 0.85
 		Breakpoint.TABLET: return 1.0
 		Breakpoint.DESKTOP: return 1.0
-		Breakpoint.WIDE: return 1.1
+		Breakpoint.WIDE: return 1.15
+		Breakpoint.ULTRAWIDE: return 1.3
 	return 1.0
 
 func get_responsive_font_size(base_size: int) -> int:
@@ -115,6 +128,11 @@ func get_touch_target_size() -> int:
 	if current_breakpoint == Breakpoint.MOBILE:
 		return 56
 	return 48
+
+func get_proportional_size(base: float, min_val: float, max_val: float) -> float:
+	## Scale a size proportionally to viewport width (design base: 1920)
+	var scale := current_viewport_size.x / 1920.0 if current_viewport_size.x > 0 else 1.0
+	return clampf(base * scale, min_val, max_val)
 
 func should_use_horizontal_scroll() -> bool:
 	return current_breakpoint == Breakpoint.MOBILE
@@ -128,6 +146,7 @@ func get_breakpoint_name() -> String:
 		Breakpoint.TABLET: return "TABLET"
 		Breakpoint.DESKTOP: return "DESKTOP"
 		Breakpoint.WIDE: return "WIDE"
+		Breakpoint.ULTRAWIDE: return "ULTRAWIDE"
 	return "UNKNOWN"
 
 func is_portrait() -> bool:

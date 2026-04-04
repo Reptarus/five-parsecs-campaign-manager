@@ -4,6 +4,10 @@
 [ext_resource type="Script" uid="uid://bl2ba6j88oh58" path="res://src/ui/components/battle/BattlefieldGridPanel.gd" id="2_grid"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
 bg_color = Color(0.102, 0.102, 0.18, 1)
 border_width_left = 1
 border_width_top = 1
@@ -14,12 +18,12 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 12.0
-content_margin_right = 12.0
-content_margin_top = 8.0
-content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
 bg_color = Color(0.145, 0.145, 0.259, 0.9)
 border_width_left = 1
 border_width_top = 1
@@ -30,12 +34,12 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 12.0
-content_margin_right = 12.0
-content_margin_top = 8.0
-content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
 bg_color = Color(0.145, 0.145, 0.259, 0.9)
 border_width_left = 1
 border_width_top = 1
@@ -46,12 +50,12 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
-content_margin_left = 8.0
-content_margin_right = 8.0
-content_margin_top = 8.0
-content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
 bg_color = Color(0.176, 0.353, 0.482, 1)
 border_width_left = 1
 border_width_top = 1
@@ -62,10 +66,6 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 16.0
-content_margin_right = 16.0
-content_margin_top = 8.0
-content_margin_bottom = 8.0
 
 [node name="TacticalBattleUI" type="Control" unique_id=1707005797]
 layout_mode = 3
@@ -76,7 +76,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="EdgeMargin" type="MarginContainer" parent="."]
+[node name="EdgeMargin" type="MarginContainer" parent="." unique_id=1719462185]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -217,6 +217,7 @@ unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
+size_flags_stretch_ratio = 1.5
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
 [node name="RightTabs" type="TabContainer" parent="EdgeMargin/MainContainer/ContentArea/RightPanel" unique_id=1336736706]

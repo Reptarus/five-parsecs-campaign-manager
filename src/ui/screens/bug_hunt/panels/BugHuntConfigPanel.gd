@@ -38,6 +38,13 @@ const DIFFICULTIES := [
 ]
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_build_ui()
 
@@ -59,7 +66,7 @@ func _build_ui() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "BUG HUNT — CAMPAIGN SETUP"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
@@ -68,7 +75,7 @@ func _build_ui() -> void:
 	var flavor := Label.new()
 	flavor.text = "Military deployment in hostile territory. " \
 		+ "Your squad faces waves of alien threats with limited support."
-	flavor.add_theme_font_size_override("font_size", 14)
+	flavor.add_theme_font_size_override("font_size", _scaled_font(14))
 	flavor.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	flavor.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flavor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -88,7 +95,7 @@ func _build_ui() -> void:
 	_regiment_label = Label.new()
 	_regiment_label.text = "Not yet generated"
 	_regiment_label.add_theme_color_override("font_color", COLOR_TEXT)
-	_regiment_label.add_theme_font_size_override("font_size", 18)
+	_regiment_label.add_theme_font_size_override("font_size", _scaled_font(18))
 	regiment_card.add_child(_regiment_label)
 
 	_color_label = Label.new()
@@ -147,7 +154,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

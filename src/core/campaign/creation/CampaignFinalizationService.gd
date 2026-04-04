@@ -290,21 +290,37 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var transformed_equipment = _transform_equipment_data_for_turn_system(equipment_data)
 	campaign.set_starting_equipment(transformed_equipment)
 
-	# Sprint 26.9 GAP-D4: Also push starting equipment to EquipmentManager ship stash
-	# Note: RefCounted can't use get_node_or_null() - access autoload via SceneTree
-	var equipment_manager: Node = null
-	var tree = Engine.get_main_loop() as SceneTree
-	if tree:
-		equipment_manager = tree.root.get_node_or_null("EquipmentManager")
-	if equipment_manager and equipment_manager.has_method("add_to_ship_stash"):
-		var equipment_list = transformed_equipment.get("equipment", [])
-		var items_added = 0
-		for item in equipment_list:
-			if item is Dictionary:
-				if equipment_manager.add_to_ship_stash(item):
-					items_added += 1
-	else:
-		pass
+	# Assign owned equipment to crew members' Character.equipment arrays
+	# so World Phase shows correct per-character loadouts
+	var equipment_list: Array = transformed_equipment.get("equipment", [])
+	for item in equipment_list:
+		if not item is Dictionary:
+			continue
+		var owner_name: String = item.get("owner", "")
+		if owner_name.is_empty() or owner_name == "Unassigned":
+			continue
+		var item_name: String = item.get("name", "")
+		if item_name.is_empty():
+			continue
+		for member in transformed_crew.get("members", []):
+			var member_name: String = ""
+			if "character_name" in member:
+				member_name = member.character_name
+			elif member is Dictionary:
+				member_name = member.get(
+					"character_name",
+					member.get("name", ""))
+			if member_name == owner_name:
+				if "equipment" in member:
+					if item_name not in member.equipment:
+						member.equipment.append(item_name)
+				elif member is Dictionary:
+					var eq: Array = member.get(
+						"equipment", [])
+					if item_name not in eq:
+						eq.append(item_name)
+						member["equipment"] = eq
+				break
 
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})
@@ -343,10 +359,13 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		pass # House rules transferred
 
 	# SPRINT 5.3: Transfer resources with unified credits source of truth
-	# Equipment credits + creation credits are combined into single total
+	# Equipment credits + crew bonus credits are combined into single total
 	var resources = data.get("resources", {})
 	var equipment_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
 	var creation_credits = resources.get("credits", 0)
+	# Coordinator stores crew bonus credits under crew_data, not resources
+	if creation_credits == 0:
+		creation_credits = crew_data.get("bonus_credits", 0)
 	var total_credits = creation_credits + equipment_credits
 
 	# MOTIVATION BONUS: Apply campaign-level resource bonuses from crew motivations
@@ -372,7 +391,11 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	# Apply Elite Rank story point bonus + difficulty modifier (Core Rules pp.64-65)
 	# Elite Rank: +1 story point per rank. Hardcore: -1. Insanity: 0 (can never receive them).
-	var base_story_points: int = resources.get("story_points", 0) + motivation_story_bonus
+	var raw_story_points: int = resources.get("story_points", 0)
+	# Coordinator stores crew story points under crew_data, not resources
+	if raw_story_points == 0:
+		raw_story_points = crew_data.get("story_points", 0)
+	var base_story_points: int = raw_story_points + motivation_story_bonus
 	if profile:
 		base_story_points += profile.get_starting_story_point_bonus()
 	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(
@@ -385,7 +408,7 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		"story_points": final_story_points,
 		"patrons": patrons_data,
 		"rivals": rivals_data,
-		"quest_rumors": resources.get("quest_rumors", [])
+		"quest_rumors": resources.get("quest_rumors", crew_data.get("quest_rumors", 0))
 	})
 	pass # Resources transferred to campaign
 	
@@ -640,9 +663,9 @@ func _transform_crew_data_for_turn_system(crew_data: Dictionary) -> Dictionary:
 		var transformed_members = []
 
 		for member in members:
-			if member is Character:
-				# Sprint 26.3: Character objects pass through directly
-				# Ensure required turn system fields exist on Character
+			if "experience" in member and not member is Dictionary:
+				# Sprint 26.3: Resource objects pass through directly
+				# Ensure required turn system fields exist
 				if member.experience == 0 and not member.has_meta("xp_initialized"):
 					member.set_meta("xp_initialized", true)
 				transformed_members.append(member)
@@ -742,4 +765,3 @@ func _prepare_campaign_for_turn_system(campaign: Resource) -> void:
 					push_warning("CampaignFinalizationService: Campaign handoff verification had issues")
 		else:
 			push_warning("CampaignFinalizationService: ⚠️ CampaignPhaseManager not found - campaign may not be available for turn system")
-

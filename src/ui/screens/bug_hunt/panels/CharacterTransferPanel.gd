@@ -26,6 +26,13 @@ var _result_container: VBoxContainer
 var _title_label: Label
 
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
+
 func _ready() -> void:
 	_transfer_service = TransferServiceClass.new()
 	_build_ui()
@@ -92,7 +99,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "ENLIST CHARACTER (5PFH → Bug Hunt)"
-	_title_label.add_theme_font_size_override("font_size", 22)
+	_title_label.add_theme_font_size_override("font_size", _scaled_font(22))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -101,7 +108,7 @@ func _build_ui() -> void:
 	var info := Label.new()
 	info.text = "Select a character to transfer. Enlistment requires a 2D6+Combat Skill roll of 8+.\nAll equipment is stashed except one Pistol. Stats carry over."
 	info.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	info.add_theme_font_size_override("font_size", 14)
+	info.add_theme_font_size_override("font_size", _scaled_font(14))
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(info)
 
@@ -206,7 +213,7 @@ func _populate_character_list() -> void:
 		var stats_lbl := Label.new()
 		stats_lbl.text = stats_text
 		stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-		stats_lbl.add_theme_font_size_override("font_size", 13)
+		stats_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		card.add_child(stats_lbl)
 
 		# Transfer button
@@ -261,7 +268,7 @@ func _show_result(text: String, color: Color) -> void:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_color_override("font_color", color)
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_result_container.add_child(lbl)
 
@@ -286,7 +293,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 
 	var lbl := Label.new()
 	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(lbl)
 

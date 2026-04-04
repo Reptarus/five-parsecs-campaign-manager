@@ -31,6 +31,12 @@ var captain_portrait: Control # For future portrait display
 var current_captain: Character = null
 var character_creator_instance: Node = null
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _init(panel_node: Control = null) -> void:
 	self.panel_node = panel_node
 
@@ -78,7 +84,7 @@ func _setup_fallback_ui() -> void:
 	
 	var info_label = Label.new()
 	info_label.text = "Captain Information"
-	info_label.add_theme_font_size_override("font_size", 16)
+	info_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	info_container.add_child(info_label)
 	
 	captain_info = Label.new()

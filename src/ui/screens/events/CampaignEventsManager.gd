@@ -13,6 +13,12 @@ signal event_skipped(event: Dictionary)
 var current_event: Dictionary = {}
 var event_history: Array[Dictionary] = []
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 # Event tables (simplified for demonstration)
 var campaign_events: Array[Dictionary] = [
 	{"roll": 1, "title": "Patron Contact", "description": "A patron offers you a special job opportunity."},
@@ -66,7 +72,7 @@ func _update_current_event_display() -> void:
 	# Event title
 	var title_label: Label = Label.new()
 	title_label.text = current_event.title
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_font_size_override("font_size", _scaled_font(18))
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	event_content.add_child(title_label)
 
@@ -80,7 +86,7 @@ func _update_current_event_display() -> void:
 	if current_event.has("choices"):
 		var choices_label: Label = Label.new()
 		choices_label.text = "Choose your response:"
-		choices_label.add_theme_font_size_override("font_size", 16)
+		choices_label.add_theme_font_size_override("font_size", _scaled_font(16))
 		event_content.add_child(choices_label)
 
 		for choice in current_event.choices:
@@ -112,14 +118,14 @@ func _create_history_panel(event: Dictionary) -> Control:
 	# Event title and type
 	var title_label: Label = Label.new()
 	title_label.text = event.title + " (" + event.type + ")"
-	title_label.add_theme_font_size_override("font_size", 12)
+	title_label.add_theme_font_size_override("font_size", _scaled_font(12))
 	vbox.add_child(title_label)
 
 	# Event result if resolved
 	if event.has("result"):
 		var result_label: Label = Label.new()
 		result_label.text = "Result: " + event.result
-		result_label.add_theme_font_size_override("font_size", 10)
+		result_label.add_theme_font_size_override("font_size", _scaled_font(10))
 		result_label.modulate = UIColors.COLOR_EMERALD
 		vbox.add_child(result_label)
 

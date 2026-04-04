@@ -15,6 +15,12 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 var game_state_manager: Node
 var _active_dialogs: Array[Node] = []
 
+func _scaled_font(base: int) -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_responsive_font_size"):
+		return rm.get_responsive_font_size(base)
+	return base
+
 func _exit_tree() -> void:
 	_cleanup_dialogs()
 	if game_state_manager:
@@ -408,7 +414,7 @@ func _on_viewport_resized() -> void:
 		menu_buttons.offset_right = 160
 		menu_buttons.offset_top = -200
 		menu_buttons.offset_bottom = 200
-		title.add_theme_font_size_override("font_size", 36)
+		title.add_theme_font_size_override("font_size", _scaled_font(36))
 		title.offset_left = -180
 		title.offset_right = 180
 	else:
@@ -421,7 +427,7 @@ func _on_viewport_resized() -> void:
 		menu_buttons.offset_right = -50
 		menu_buttons.offset_top = -250
 		menu_buttons.offset_bottom = 250
-		title.add_theme_font_size_override("font_size", 75)
+		title.add_theme_font_size_override("font_size", _scaled_font(75))
 		title.offset_left = -400
 		title.offset_right = 400
 
