@@ -8,6 +8,10 @@ signal crew_updated(crew: Array)
 @onready var crew_size_option = $Content/CrewSize/OptionButton
 @onready var crew_list = $Content/CrewList/ItemList
 @onready var character_creator = $CharacterCreator
+@onready var add_button: Button = $Content/Controls/AddButton
+@onready var edit_button: Button = $Content/Controls/EditButton
+@onready var remove_button: Button = $Content/Controls/RemoveButton
+@onready var randomize_button: Button = $Content/Controls/RandomizeButton
 
 var crew_members: Array = [] # Untyped — avoids Character.gd type shadowing crash
 var selected_size: int = 6  # Core Rules p.63 default crew size
@@ -20,11 +24,11 @@ func _scaled_font(base: int) -> int:
 
 func _ready() -> void:
 	_apply_base_background()
-	_wrap_content_in_scroll()
 	_add_guidance_label()
 	_setup_crew_size_options()
 	_connect_signals()
 	_style_action_buttons()
+	_wrap_content_in_scroll()
 	_update_crew_list()
 
 func _wrap_content_in_scroll() -> void:
@@ -81,10 +85,10 @@ func _setup_crew_size_options() -> void:
 
 func _connect_signals() -> void:
 	crew_size_option.item_selected.connect(_on_crew_size_selected)
-	$Content/Controls/AddButton.pressed.connect(_on_add_member_pressed)
-	$Content/Controls/EditButton.pressed.connect(_on_edit_member_pressed)
-	$Content/Controls/RemoveButton.pressed.connect(_on_remove_member_pressed)
-	$Content/Controls/RandomizeButton.pressed.connect(_on_randomize_pressed)
+	add_button.pressed.connect(_on_add_member_pressed)
+	edit_button.pressed.connect(_on_edit_member_pressed)
+	remove_button.pressed.connect(_on_remove_member_pressed)
+	randomize_button.pressed.connect(_on_randomize_pressed)
 	
 	character_creator.character_created.connect(_on_character_created)
 	character_creator.character_edited.connect(_on_character_edited)
@@ -162,8 +166,8 @@ func _on_character_edited(character) -> void:
 		crew_updated.emit(crew_members)
 
 func _on_crew_member_selected(index: int) -> void:
-	$Content/Controls/EditButton.disabled = false
-	$Content/Controls/RemoveButton.disabled = false
+	edit_button.disabled = false
+	remove_button.disabled = false
 
 func _update_crew_list() -> void:
 	crew_list.clear()
@@ -222,10 +226,10 @@ func _update_crew_list() -> void:
 		crew_list.add_item(text)
 
 	# Update controls state
-	$Content/Controls/AddButton.disabled = (
+	add_button.disabled = (
 		crew_members.size() >= selected_size - 1)
-	$Content/Controls/EditButton.disabled = true
-	$Content/Controls/RemoveButton.disabled = true
+	edit_button.disabled = true
+	remove_button.disabled = true
 
 func _build_crew_card(
 	character, index: int
@@ -385,13 +389,13 @@ func _enum_value_name(enum_dict: Dictionary, value: int) -> String:
 ## Style action buttons with Deep Space accent theme
 func _style_action_buttons() -> void:
 	_apply_button_style(
-		$Content/Controls/RandomizeButton, true)
+		randomize_button, true)
 	_apply_button_style(
-		$Content/Controls/AddButton, false)
+		add_button, false)
 	_apply_button_style(
-		$Content/Controls/EditButton, false)
+		edit_button, false)
 	_apply_button_style(
-		$Content/Controls/RemoveButton, false)
+		remove_button, false)
 
 func _apply_button_style(
 	button: Button, is_primary: bool

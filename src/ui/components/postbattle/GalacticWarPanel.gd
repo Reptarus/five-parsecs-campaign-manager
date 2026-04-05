@@ -164,8 +164,10 @@ func refresh_display() -> void:
 	if not tracks_container:
 		return
 	
-	# Clear existing tracks
+	# Clear existing tracks — use remove_child first so the next add_child
+	# calls below don't collide with pending deferred queue_free() nodes.
 	for child in tracks_container.get_children():
+		tracks_container.remove_child(child)
 		child.queue_free()
 	
 	# Get active war tracks

@@ -32,12 +32,14 @@ static func stop_all(node: CanvasItem) -> void:
 static func is_playing(node: CanvasItem, anim: TweenFX.Animations) -> bool:
 	return _active.has(node) and _active[node].has(anim)
 
-static func _on_tween_finished(node: CanvasItem, anim: TweenFX.Animations) -> void:
+static func _on_tween_finished(node: Variant, anim: Variant) -> void:
+	if node == null or not is_instance_valid(node):
+		return
 	if not _active.has(node):
 		return
 	_active[node].erase(anim)
 	if _active[node].is_empty():
 		_active.erase(node)
 
-static func _on_node_exiting(node: CanvasItem) -> void:
+static func _on_node_exiting(node: Variant) -> void:
 	_active.erase(node)

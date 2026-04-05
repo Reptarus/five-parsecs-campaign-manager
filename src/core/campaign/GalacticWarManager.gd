@@ -66,7 +66,7 @@ func load_war_tracks() -> void:
 		track_data["highest_threshold_reached"] = 0
 		war_tracks[track_id] = track_data
 		
-		if track_data.get("active", false):
+		if track_data.get("active", false) and track_id not in active_track_ids:
 			active_track_ids.append(track_id)
 	
 	pass
@@ -290,10 +290,18 @@ func get_all_war_tracks() -> Dictionary:
 	return war_tracks.duplicate(true)
 
 func get_active_war_tracks() -> Array[Dictionary]:
-	## Get all active war tracks
+	## Get all active war tracks.
+	## Defensive dedupe: filter out duplicate track IDs at read time so
+	## the UI never shows the same war card twice even if active_track_ids
+	## was corrupted (e.g., by a pre-fix save).
 	var active_tracks: Array[Dictionary] = []
+	var seen: Dictionary = {}
 	for track_id in active_track_ids:
-		active_tracks.append(war_tracks[track_id])
+		if track_id in seen:
+			continue
+		seen[track_id] = true
+		if track_id in war_tracks:
+			active_tracks.append(war_tracks[track_id])
 	return active_tracks
 
 func get_current_progress(track_id: String) -> int:
@@ -354,7 +362,9 @@ func load_save_data(data: Dictionary) -> void:
 	if "active_track_ids" in data:
 		active_track_ids.clear()
 		for id in data.active_track_ids:
-			if id is String:
+			# Dedupe: saves written before the dedupe fix may contain
+			# duplicate track IDs. Guard here heals those saves on load.
+			if id is String and id not in active_track_ids:
 				active_track_ids.append(id)
 	
 	if "current_effects" in data:

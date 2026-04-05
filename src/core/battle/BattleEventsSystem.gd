@@ -371,7 +371,8 @@ func _get_event_for_roll(roll: int) -> BattleEvent:
 	for event_id in event_registry:
 		var typed_event_id: Variant = event_id
 		var event: Variant = event_registry[event_id]
-		if roll >= event.roll_range[0] and roll <= event.roll_range[1]:
+		var range_arr: Array = event.roll_range
+		if range_arr.size() >= 2 and roll >= int(range_arr[0]) and roll <= int(range_arr[1]):
 			return event
 	return null
 
@@ -524,11 +525,10 @@ func _create_event(id: String, title: String, roll_range: Array, description: St
 	var event := BattleEvent.new()
 	event.event_id = id
 	event.title = title
-	# Convert Array to Array[int] explicitly
+	# Convert Array to Array[int] explicitly (JSON parses numbers as float)
 	var typed_range: Array[int] = []
 	for value in roll_range:
-		if value is int:
-			typed_range.append(value)
+		typed_range.append(int(value))
 	event.roll_range = typed_range
 	event.description = description
 	event.effects = effects

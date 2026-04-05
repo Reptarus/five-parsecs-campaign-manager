@@ -648,12 +648,132 @@ func _handle_roll_for_credits() -> void:
 	_action_taken = true
 
 func _handle_roll_on_table() -> void:
-	# The actual loot resolution happens in CrewTaskComponent callback
-	# Dialog just signals that a roll was requested
+	## Resolve loot items and display what was rolled (Core Rules pp.131-133)
 	var items: Array = _event_data.get("items_to_resolve", [])
-	_outcome = {"roll_requested": true, "items": items}
-	_show_outcome("Rolling on table...", COLOR_TEXT_GOLD)
+	var resolved_items: Array = []
+
+	for item_str in items:
+		var s: String = str(item_str)
+		if "(random" in s:
+			# Resolve via loot table roll
+			var resolved: Array = _resolve_loot_roll(s)
+			resolved_items.append_array(resolved)
+		else:
+			resolved_items.append(s)
+
+	if resolved_items.is_empty():
+		# No items to resolve — do a full main loot table roll
+		var resolved: Array = _roll_main_loot()
+		resolved_items.append_array(resolved)
+
+	# Display results
+	if resolved_items.is_empty():
+		_show_outcome("No loot found", COLOR_TEXT_SECONDARY)
+	else:
+		_show_outcome("Loot rolled:", COLOR_TEXT_GOLD)
+		for item_name in resolved_items:
+			_add_outcome_line("  → %s" % str(item_name), COLOR_SUCCESS)
+
+	# Update event data with resolved names so completion callback uses them
+	_event_data["items_to_resolve"] = resolved_items
+	_outcome = {"roll_requested": true, "items": resolved_items, "resolved_items": resolved_items}
 	_action_taken = true
+
+
+## ── Loot Table Resolution (for ROLL_ON_TABLE) ────────────────────────
+
+const _LootConstants = preload("res://src/core/systems/LootSystemConstants.gd")
+
+func _resolve_loot_roll(item_string: String) -> Array:
+	## Resolve a "(random)" item string into actual item names via loot subtables
+	if item_string.begins_with("Gear Loot") or item_string == "Gear (random)":
+		return [_roll_subtable(_LootConstants.get_gear_subtable_data())]
+	elif "Low Tech Weapon" in item_string:
+		# Melee weapons only
+		for entry in _LootConstants.get_weapon_subtable_data():
+			if entry is Dictionary and entry.get("category") == "melee_weapons":
+				var wpn_items: Array = entry.get("items", [])
+				if wpn_items.size() > 0:
+					return [wpn_items[randi() % wpn_items.size()]]
+		return [item_string]
+	elif "Gadget" in item_string:
+		# Gun mods + sights from gear subtable
+		var gadget_pool: Array = []
+		for entry in _LootConstants.get_gear_subtable_data():
+			if entry is Dictionary and entry.get("category", "") in ["gun_mods", "gun_sights"]:
+				gadget_pool.append_array(entry.get("items", []))
+		if gadget_pool.size() > 0:
+			return [gadget_pool[randi() % gadget_pool.size()]]
+		return [item_string]
+	else:
+		# Full main loot table roll
+		return _roll_main_loot()
+
+func _roll_main_loot() -> Array:
+	## Roll D100 on main loot table, then resolve subtable (Core Rules pp.131-133)
+	var main_data: Array = _LootConstants.get_main_loot_data()
+	var roll: int = randi_range(1, 100)
+	for entry in main_data:
+		if entry is Dictionary:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if roll >= r[0] and roll <= r[1]:
+				var cat: String = entry.get("category", "")
+				var count: int = entry.get("count", 1)
+				var results: Array = []
+				match cat:
+					"WEAPON", "DAMAGED_WEAPONS":
+						for _i in range(count):
+							var name: String = _roll_subtable(_LootConstants.get_weapon_subtable_data())
+							if entry.get("requires_repair", false):
+								name += " (damaged)"
+							results.append(name)
+					"GEAR", "DAMAGED_GEAR":
+						for _i in range(count):
+							var name: String = _roll_subtable(_LootConstants.get_gear_subtable_data())
+							if entry.get("requires_repair", false):
+								name += " (damaged)"
+							results.append(name)
+					"ODDS_AND_ENDS":
+						results.append(_roll_subtable(_LootConstants.get_odds_and_ends_data()))
+					"REWARDS":
+						var reward: Dictionary = _roll_reward()
+						results.append(reward.get("description", "Reward"))
+				return results
+	return ["Unknown Loot"]
+
+func _roll_subtable(subtable_data: Array) -> String:
+	## Roll D100 on a subtable, pick a random item from the matched range
+	var roll: int = randi_range(1, 100)
+	for entry in subtable_data:
+		if entry is Dictionary:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if roll >= r[0] and roll <= r[1]:
+				var sub_items: Array = entry.get("items", [])
+				if sub_items.size() > 0:
+					return str(sub_items[randi() % sub_items.size()])
+				return str(entry.get("item", "Unknown"))
+	return "Unknown Loot"
+
+func _roll_reward() -> Dictionary:
+	## Roll on rewards subtable — returns description dict
+	var rewards_data: Array = _LootConstants.get_rewards_subtable_data()
+	var roll: int = randi_range(1, 100)
+	for entry in rewards_data:
+		if entry is Dictionary:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if roll >= r[0] and roll <= r[1]:
+				var item_name: String = entry.get("item", "Reward")
+				if entry.has("credits"):
+					return {"description": "%s: +%d credits" % [item_name, entry["credits"]]}
+				elif entry.has("credits_dice"):
+					var credits: int = randi_range(1, 6)
+					return {"description": "%s: +%d credits" % [item_name, credits]}
+				elif entry.has("rumors"):
+					return {"description": "%s: +%d Quest Rumor(s)" % [item_name, entry["rumors"]]}
+				elif entry.has("story_points"):
+					return {"description": "%s: +%d Story Point(s)" % [item_name, entry["story_points"]]}
+				return {"description": item_name}
+	return {"description": "Nothing notable"}
 
 func _handle_skill_check() -> void:
 	var roll: int = randi() % 6 + 1

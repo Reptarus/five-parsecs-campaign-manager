@@ -132,9 +132,17 @@ func add_equipment(equipment_data: Dictionary) -> bool:
 			return false
 	
 	_equipment_storage.append(equipment_data)
+
+	# Write-through to campaign equipment_data for save/load persistence
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign:
+		var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
+		stash.append(equipment_data)
+		gs.current_campaign.equipment_data["equipment"] = stash
+
 	equipment_acquired.emit(equipment_data)
 	equipment_list_updated.emit()
-	
+
 	return true
 
 ## Get equipment by ID

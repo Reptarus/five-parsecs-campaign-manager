@@ -822,8 +822,11 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 	if game_state.has_method("clear_battlefield_data"):
 		game_state.clear_battlefield_data()
 
-	# Advance to ADVANCEMENT phase
-	campaign_phase_manager.complete_current_phase()
+	# PostBattleSequence already handles steps 9-14 which cover advancement,
+	# trading, and character events. Skip directly to RETIREMENT to avoid
+	# making the user redo those phases through separate panels.
+	campaign_phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.RETIREMENT)
 
 ## Late-Game Phase Completion Handlers
 
@@ -931,10 +934,6 @@ func _on_return_to_travel() -> void:
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	## Handle world phase completion - skip directly to MISSION phase.
-	## The world phase covers UPKEEP through PRE_MISSION (job offers, crew tasks,
-	## equipment, etc.), so complete_current_phase() would incorrectly advance to
-	## STORY. Instead, jump straight to MISSION to show the battle sequence.
-
 	# Store world phase results for battle phase access
 	if game_state.has_method("set_temp_data"):
 		game_state.set_temp_data("world_phase_results", results)
@@ -948,6 +947,8 @@ func _on_world_phase_completed(results: Dictionary) -> void:
 	if not transition_ok:
 		push_warning("CampaignTurnController: Failed to transition to MISSION from phase %s" % str(
 			campaign_phase_manager.get_current_phase()))
+	else:
+		pass # Successfully transitioned to MISSION phase
 
 ## Battle Flow Handlers (BattleTransition → PreBattle → TacticalBattle → PostBattle)
 

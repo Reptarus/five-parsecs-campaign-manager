@@ -135,22 +135,19 @@ func _initialize_event_bus() -> void:
 
 
 func _initialize_components() -> void:
-	## Verify scene-instanced components are available
-	# Components are instanced in .tscn and referenced via @onready
-	# Just verify they exist and log status
-	if upkeep_component:
-		pass
-	if crew_task_component:
-		pass
-	if job_offer_component:
-		pass
-	if assign_equipment_component:
-		pass
-	if resolve_rumors_component:
-		pass
-	if mission_prep_component:
-		pass
-	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now in PostBattleSequence
+	## Verify scene-instanced components and propagate event bus.
+	## Child _ready() runs BEFORE parent _ready() in Godot, so components
+	## couldn't find CampaignTurnEventBus (dynamically created here).
+	## Assign it now and re-subscribe to events.
+	var components: Array = [
+		upkeep_component, crew_task_component, job_offer_component,
+		assign_equipment_component, resolve_rumors_component, mission_prep_component
+	]
+	for component in components:
+		if component and "event_bus" in component and not component.event_bus:
+			component.event_bus = event_bus
+			if component.has_method("_subscribe_to_events"):
+				component._subscribe_to_events()
 
 	# Initialize mission selection UI for Job Offers/Mission Prep phases
 	_initialize_mission_selection()
@@ -180,8 +177,10 @@ func _setup_initial_state() -> void:
 			var campaign = gs.current_campaign
 			if campaign is Dictionary and "world_phase_checkpoint" in campaign:
 				_checkpoint_data = campaign["world_phase_checkpoint"].duplicate()
-			elif campaign is Resource and campaign.has_meta("world_phase_checkpoint"):
-				_checkpoint_data = campaign.get_meta("world_phase_checkpoint").duplicate()
+			elif campaign is Resource and "progress_data" in campaign:
+				var cp = campaign.progress_data.get("world_phase_checkpoint", {})
+				if not cp.is_empty():
+					_checkpoint_data = cp.duplicate()
 
 	# QA-FIX BUG-12: Validate checkpoint staleness by checking turn number.
 	# Previously only "all steps complete" was detected as stale, but partially
@@ -364,9 +363,11 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	# Initialize components with data
 	_initialize_components_with_data()
 	
-	# Reset to first step
-	current_step = WorldPhaseStep.UPKEEP
-	_show_current_step()
+	# Only reset to first step if no valid checkpoint exists
+	# (checkpoint was already restored in _setup_initial_state)
+	if not has_checkpoint():
+		current_step = WorldPhaseStep.UPKEEP
+		_show_current_step()
 
 func _generate_turn_world_event() -> void:
 	## Roll a world event for the current planet at start of World Phase
@@ -627,14 +628,22 @@ func _update_ui_display() -> void:
 	# Sprint C: Update step indicators
 	_update_step_indicators()
 
-	# Show battle button only when all steps are complete
+	# Show battle button when all steps are complete, OR when user has reached
+	# the final step and Mission Prep is done (guards against event bus timing
+	# issues where earlier steps weren't tracked via step_completed)
 	if proceed_to_battle_button:
 		var all_complete: bool = true
 		for step_key in step_completed:
 			if not step_completed[step_key]:
 				all_complete = false
 				break
-		proceed_to_battle_button.visible = all_complete
+		var mission_prep_done: bool = (
+			current_step == WorldPhaseStep.MISSION_PREP
+			and mission_prep_component
+			and mission_prep_component.has_method("is_mission_prepared")
+			and mission_prep_component.is_mission_prepared()
+		)
+		proceed_to_battle_button.visible = all_complete or mission_prep_done
 
 func _can_advance_to_next_step() -> bool:
 	## Check if current step is completed and can advance
@@ -737,6 +746,15 @@ func _on_proceed_to_battle_pressed() -> void:
 
 	# Emit signal for external listeners
 	proceed_to_battle.emit()
+
+	# Standalone mode: if no CampaignTurnController is listening to phase_completed,
+	# navigate to battle flow directly via SceneRouter
+	if phase_completed.get_connections().is_empty():
+		var router = get_node_or_null("/root/SceneRouter")
+		if router:
+			router.navigate_to("campaign_turn_controller")
+		else:
+			push_error("WorldPhaseController: No SceneRouter and no CampaignTurnController — cannot proceed to battle")
 
 func _on_back_to_dashboard_pressed() -> void:
 	## Handle Back to Dashboard button - return navigation
@@ -1504,8 +1522,8 @@ func save_checkpoint() -> void:
 		var campaign = gs.current_campaign
 		if campaign is Dictionary:
 			campaign["world_phase_checkpoint"] = _checkpoint_data.duplicate()
-		elif campaign is Resource and campaign.has_method("set_meta"):
-			campaign.set_meta("world_phase_checkpoint", _checkpoint_data.duplicate())
+		elif campaign is Resource and "progress_data" in campaign:
+			campaign.progress_data["world_phase_checkpoint"] = _checkpoint_data.duplicate()
 
 	# Try to trigger a game save through GameStateManager
 	if GameStateManager and GameStateManager.has_method("quick_save"):
@@ -1550,8 +1568,8 @@ func clear_checkpoint() -> void:
 		var campaign = gs.current_campaign
 		if campaign is Dictionary and "world_phase_checkpoint" in campaign:
 			campaign.erase("world_phase_checkpoint")
-		elif campaign is Resource and campaign.has_meta("world_phase_checkpoint"):
-			campaign.remove_meta("world_phase_checkpoint")
+		elif campaign is Resource and "progress_data" in campaign:
+			campaign.progress_data.erase("world_phase_checkpoint")
 
 func _save_world_phase_checkpoint() -> void:
 	## Deprecated: Use save_checkpoint() instead. Kept for backward compatibility.

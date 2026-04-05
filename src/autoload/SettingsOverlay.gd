@@ -3,15 +3,24 @@ extends CanvasLayer
 ## Persistent Settings Gear Button — always-available overlay
 ## Sits at CanvasLayer 99 (below TransitionManager at 100)
 ## Hidden on MainMenu (which has its own Options button)
-## Navigates to SettingsScreen via SceneRouter on press
+##
+## IMPORTANT: Opens settings as an inline overlay (not a scene transition)
+## so that battle/campaign state is never destroyed. The SettingsScreen is
+## lazy-instantiated as a child of this CanvasLayer and the game tree is
+## paused while settings are visible.
+
+const SettingsScreenScript = preload("res://src/ui/screens/settings/SettingsScreen.gd")
 
 const COLOR_GEAR_BG := Color("#252542")
 const COLOR_GEAR_BG_HOVER := Color("#3A3A5C")
 const COLOR_GEAR_TEXT := Color("#E0E0E0")
+const COLOR_DIMMER := Color(0.0, 0.0, 0.0, 0.6)
 const GEAR_SIZE := 48  # ISSUE-037: meet TOUCH_TARGET_MIN
 const GEAR_MARGIN := 12
 
 var _gear_button: Button
+var _dimmer: ColorRect
+var _settings_panel: SettingsScreen
 var _hidden_scenes: Array[String] = ["MainMenu", "SettingsScreen"]
 
 
@@ -77,12 +86,66 @@ func _reposition() -> void:
 		vp_size.x - GEAR_SIZE - GEAR_MARGIN,
 		GEAR_MARGIN
 	)
+	# Keep dimmer and settings panel filling the viewport
+	if _dimmer:
+		_dimmer.position = Vector2.ZERO
+		_dimmer.size = vp_size
+	if _settings_panel:
+		_settings_panel.position = Vector2.ZERO
+		_settings_panel.size = vp_size
 
 
 func _on_gear_pressed() -> void:
-	var router = get_node_or_null("/root/SceneRouter")
-	if router and router.has_method("navigate_to"):
-		router.navigate_to("settings")
+	# Guard: already showing
+	if _settings_panel and _settings_panel.visible:
+		return
+	_show_settings_overlay()
+
+
+func _show_settings_overlay() -> void:
+	# Lazy-create the dimmer and settings panel on first use
+	if not _dimmer:
+		_dimmer = ColorRect.new()
+		_dimmer.color = COLOR_DIMMER
+		_dimmer.mouse_filter = Control.MOUSE_FILTER_STOP  # Block clicks through
+		_dimmer.visible = false
+		add_child(_dimmer)
+
+	if not _settings_panel:
+		_settings_panel = SettingsScreenScript.new()
+		_settings_panel.overlay_mode = true
+		_settings_panel.visible = false
+		_settings_panel.back_requested.connect(_hide_settings_overlay)
+		add_child(_settings_panel)
+
+	# Size to viewport
+	var vp_size: Vector2 = get_tree().root.get_visible_rect().size
+	_dimmer.position = Vector2.ZERO
+	_dimmer.size = vp_size
+	_settings_panel.position = Vector2.ZERO
+	_settings_panel.size = vp_size
+
+	# Show overlay and pause the game
+	_dimmer.visible = true
+	_settings_panel.visible = true
+	_gear_button.visible = false
+	get_tree().paused = true
+
+
+func _hide_settings_overlay() -> void:
+	if _dimmer:
+		_dimmer.visible = false
+	if _settings_panel:
+		_settings_panel.visible = false
+
+	get_tree().paused = false
+	_update_visibility()  # Restores gear button if appropriate
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _settings_panel and _settings_panel.visible and event.is_action_pressed("ui_cancel"):
+		_hide_settings_overlay()
+		get_viewport().set_input_as_handled()
 
 
 func _on_scene_changed(_new_scene: String, _previous_scene: String) -> void:
@@ -107,6 +170,10 @@ func _update_visibility() -> void:
 		return
 	var root := get_tree().root
 	if not root:
+		return
+	# Hide gear when overlay is showing
+	if _settings_panel and _settings_panel.visible:
+		_gear_button.visible = false
 		return
 	var should_hide := false
 	for child in root.get_children():

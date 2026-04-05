@@ -65,7 +65,7 @@ var post_battle_steps: Array[Dictionary] = [
 	{"name": "1. Resolve Rival Status", "description": "Check if rivals follow you", "requires_roll": false, "has_inline_rolls": true},
 	{"name": "2. Resolve Patron Status", "description": "Update patron relationships", "requires_roll": false, "has_inline_rolls": false},
 	{"name": "3. Determine Quest Progress", "description": "Check quest advancement", "requires_roll": false, "has_inline_rolls": false},
-	{"name": "4. Get Paid", "description": "Receive mission payment", "requires_roll": false, "has_inline_rolls": false},
+	{"name": "4. Get Paid", "description": "Receive mission payment", "requires_roll": false, "has_inline_rolls": true},
 	{"name": "5. Battlefield Finds", "description": "Search the battlefield", "requires_roll": false, "has_inline_rolls": true},
 	{"name": "6. Check for Invasion", "description": "Roll for invasion threat", "requires_roll": true, "has_inline_rolls": false},
 	{"name": "7. Gather the Loot", "description": "Roll on loot tables", "requires_roll": false, "has_inline_rolls": true},
@@ -350,8 +350,18 @@ func _on_backend_loot_generated(loot: Array) -> void:
 	## Handle loot generated from backend
 	for item in loot:
 		if item is Dictionary:
-			var item_name = item.get("name", "Unknown Item")
+			var item_name = item.get("name", item.get("description", "Unknown Item"))
 			_add_result_to_log("Loot found: %s" % item_name)
+
+	# Auto-complete the inline roll so Next enables (backend already resolved loot)
+	if current_step == 6:  # Step 7: Gather the Loot
+		_increment_inline_roll()
+		# Disable the manual roll button since backend already handled it
+		for child in step_content.get_children():
+			if child is Button and child.text == "Roll on Loot Table (D100)":
+				child.disabled = true
+				child.text = "Loot Rolled (see results)"
+				break
 
 func _on_backend_injury_result(injuries: Array) -> void:
 	## Handle injury results from backend
@@ -512,7 +522,11 @@ func _show_current_step() -> void:
 	# Update button states
 	previous_button.disabled = (current_step == 0)
 	roll_button.visible = step.get("requires_roll", false)
-	finish_button.visible = (current_step == max_steps - 1)
+	var is_final: bool = (current_step == max_steps - 1)
+	next_button.visible = not is_final
+	finish_button.visible = is_final
+	if is_final:
+		finish_button.text = "Complete & Begin Next Turn"
 	_update_next_button_state()
 
 	# Refresh steps list
@@ -635,31 +649,45 @@ func _add_quest_progress_content() -> void:
 
 func _add_payment_content() -> void:
 	## Display payment info — Core Rules p.120: "Get Paid"
-	## Payment is calculated by PaymentProcessor backend (1D6 credits,
-	## floor of 3 if Won, +Danger Pay for Patron jobs, 0 for Invasion).
-	## The backend _on_backend_payment_received() handles state mutation.
-	var payment: int = battle_results.get("payment", 0)
-	var credits_earned: int = battle_results.get(
-		"credits_earned", payment)
+	## Roll 1D6 credits. Won objective: treat 1-2 as 3.
+	## Patron jobs add Danger Pay. Invasion battles: 0 credits.
 	var is_invasion: bool = battle_results.get(
-		"mission_source", "") == "invasion"
+		"mission_source", "") == "invasion" or battle_results.get("is_invasion", false)
+	var already_paid: int = battle_results.get("credits_earned",
+		battle_results.get("payment", 0))
 
-	var label := Label.new()
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if is_invasion:
+		var label := Label.new()
 		label.text = "Invasion battle — no payment received."
-		label.add_theme_color_override(
-			"font_color", UIColors.COLOR_WARNING)
-	elif credits_earned > 0:
-		label.text = "Payment: %d credits" % credits_earned
-		label.add_theme_color_override(
-			"font_color", UIColors.COLOR_EMERALD)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+		step_content.add_child(label)
+		_register_inline_rolls(3, 0)  # No roll needed
+	elif already_paid > 0:
+		# Backend already resolved payment
+		var label := Label.new()
+		label.text = "Payment: %d credits" % already_paid
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+		step_content.add_child(label)
+		_register_inline_rolls(3, 0)
 	else:
-		label.text = "Awaiting payment calculation..."
-		label.add_theme_color_override(
-			"font_color", COLOR_TEXT_SECONDARY)
-	step_content.add_child(label)
+		# Manual roll — Core Rules p.120
+		var pay_btn := Button.new()
+		pay_btn.text = "Roll for Payment (1D6 credits)"
+		pay_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		pay_btn.pressed.connect(_on_roll_payment_pressed.bind(pay_btn))
+		step_content.add_child(pay_btn)
+
+		var result_label := Label.new()
+		result_label.name = "PaymentResult"
+		result_label.text = ""
+		result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(result_label)
+		_register_inline_rolls(3, 1)
 
 	var rules_note := Label.new()
 	rules_note.text = "Core Rules p.120: Roll 1D6 credits. " \
@@ -674,22 +702,47 @@ func _add_payment_content() -> void:
 	step_content.add_child(rules_note)
 
 func _add_battlefield_finds_content() -> void:
-	## Add battlefield finds content with Five Parsecs loot tables
-	var label: Label = Label.new()
-	label.text = "Search the battlefield for equipment and supplies.\nRoll D6 for each enemy defeated."
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	step_content.add_child(label)
-	
-	var enemies_defeated = battle_results.get("enemy_defeated", 0)
-	var finds_container = VBoxContainer.new()
+	## Core Rules p.121: "If you Held the Field, roll once on the
+	## Battlefield Finds Table" (D100). No roll if you didn't hold the field.
+	var held_field: bool = battle_results.get("held_field", false)
+	var is_invasion: bool = battle_results.get("is_invasion", false)
 
-	for i in range(enemies_defeated):
-		var find_panel = _create_battlefield_find_panel(i + 1)
-		finds_container.add_child(find_panel)
+	if is_invasion:
+		var label := Label.new()
+		label.text = "Invasion battle — no battlefield finds (Core Rules p.121)."
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+		step_content.add_child(label)
+		_register_inline_rolls(4, 0)
+	elif not held_field:
+		var label := Label.new()
+		label.text = "Did not Hold the Field — no battlefield finds."
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		step_content.add_child(label)
+		_register_inline_rolls(4, 0)
+	else:
+		var label := Label.new()
+		label.text = "Held the Field! Roll D100 on the Battlefield Finds Table."
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(label)
 
-	step_content.add_child(finds_container)
-	_register_inline_rolls(4, enemies_defeated)
+		var find_btn := Button.new()
+		find_btn.text = "Roll Battlefield Finds (D100)"
+		find_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		find_btn.pressed.connect(_on_battlefield_finds_d100_pressed.bind(find_btn))
+		step_content.add_child(find_btn)
+
+		var result_label := Label.new()
+		result_label.name = "BattlefieldFindsResult"
+		result_label.text = ""
+		result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(result_label)
+		_register_inline_rolls(4, 1)
 
 func _create_battlefield_find_panel(enemy_num: int) -> Control:
 	## Create a panel for battlefield finds
@@ -723,26 +776,32 @@ func _add_invasion_check_content() -> void:
 	step_content.add_child(label)
 
 func _add_loot_content() -> void:
-	## Add loot content — Core Rules pp.120-121, 131-133
-	## Step 5: Battlefield Finds (if Held Field) — D100 roll
-	## Step 7: Gather the Loot — D100 roll on Main Loot Table
-	var label: Label = Label.new()
-	label.text = "Roll on the Loot Table (Core Rules p.131) for items earned."
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	step_content.add_child(label)
+	## Core Rules p.121: "Roll once on the Loot Table" (D100, pp.131-133)
+	## 3 rolls if final Quest stage. 0 if Invasion Battle.
+	var is_invasion: bool = battle_results.get("is_invasion", false)
 
-	var loot_button: Button = Button.new()
-	loot_button.text = "Roll on Loot Tables"
-	loot_button.custom_minimum_size.y = TOUCH_TARGET_MIN
-	loot_button.pressed.connect(
-		_on_generate_loot_pressed.bind(loot_button))
-	step_content.add_child(loot_button)
+	if is_invasion:
+		var label := Label.new()
+		label.text = "Invasion battle — no loot (Core Rules p.121)."
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+		step_content.add_child(label)
+		_register_inline_rolls(6, 0)
+	else:
+		var label := Label.new()
+		label.text = "Roll on the Loot Table (Core Rules p.131) for items earned."
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(label)
 
-	var loot_results_container: VBoxContainer = VBoxContainer.new()
-	loot_results_container.name = "LootResultsContainer"
-	step_content.add_child(loot_results_container)
-	_register_inline_rolls(6, 1)
+		var loot_button := Button.new()
+		loot_button.text = "Roll on Loot Table (D100)"
+		loot_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+		loot_button.pressed.connect(
+			_on_generate_loot_pressed.bind(loot_button))
+		step_content.add_child(loot_button)
+		_register_inline_rolls(6, 1)
 
 func _add_injury_content() -> void:
 	## Add injury content with Five Parsecs injury tables
@@ -1328,6 +1387,11 @@ func _on_previous_pressed() -> void:
 
 func _on_next_pressed() -> void:
 	## Handle next button press
+	# Guard against re-entry after the sequence has already advanced past
+	# the last step (e.g., rapid double-click on the final step).
+	if current_step >= max_steps:
+		_finish_post_battle()
+		return
 	# Store current step result
 	var result: Variant = _get_current_step_result()
 	# Sprint 26.9 ERR-1: Bounds check before array access
@@ -1377,7 +1441,10 @@ func _on_finish_pressed() -> void:
 	_finish_post_battle()
 
 func _get_current_step_result() -> Dictionary:
-	## Get the result data for the current step
+	## Get the result data for the current step.
+	## Bounds-check: returns empty dict if current_step is past the last step.
+	if current_step < 0 or current_step >= post_battle_steps.size():
+		return {}
 	return {
 		"step_index": current_step,
 		"step_name": post_battle_steps[current_step].name,
@@ -1387,6 +1454,11 @@ func _get_current_step_result() -> Dictionary:
 
 func _finish_post_battle() -> void:
 	## Complete the post-battle sequence
+	# Disable buttons to prevent re-entry during signal emission
+	if next_button:
+		next_button.disabled = true
+	if finish_button:
+		finish_button.disabled = true
 	var final_results = {
 		"battle_results": battle_results,
 		"step_results": step_results,
@@ -1396,15 +1468,11 @@ func _finish_post_battle() -> void:
 	post_battle_completed.emit(final_results)
 
 	# Phase advancement is handled by CampaignTurnController via post_battle_completed signal.
-	# Do NOT call complete_current_phase() here — it would cause double phase advance.
-
-	# Navigate to Campaign Dashboard to show new turn
-	# Sprint 26.9 ERR-10: Guard await with tree check to prevent crash if freed
-	if is_inside_tree():
-		await get_tree().create_timer(0.5).timeout  # Brief delay for user to see completion
-	if not is_inside_tree():
-		return  # Node was freed during await, abort navigation
-	SceneRouter.navigate_to("campaign_turn_controller")
+	# CampaignTurnController._on_post_battle_completed() calls complete_current_phase()
+	# which advances to ADVANCEMENT and shows the correct panel.
+	# Do NOT navigate via SceneRouter — this panel is embedded inside
+	# CampaignTurnController, and navigating would recreate the controller,
+	# causing a duplicate post-battle sequence.
 
 func _on_back_pressed() -> void:
 	## Handle back button press - return to Campaign Dashboard
@@ -1573,12 +1641,73 @@ func _on_rival_status_roll(rival: Dictionary, btn: Button) -> void:
 		"%s: %s" % [rival.get("name", "Rival"), result_text])
 	_increment_inline_roll()
 
+func _on_roll_payment_pressed(btn: Button = null) -> void:
+	## Core Rules p.120: Roll 1D6 credits. Won objective: treat 1-2 as 3.
+	if btn:
+		btn.disabled = true
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll: int = 0
+	if dice_manager:
+		roll = dice_manager.roll_d6("Post-Battle Payment")
+	else:
+		roll = randi_range(1, 6)
+
+	var won: bool = battle_results.get("victory", false)
+	var payment: int = roll
+	if won and roll < 3:
+		payment = 3  # Core Rules p.120: "treat 1-2 as 3"
+
+	# Danger Pay for patron jobs
+	var is_patron: bool = battle_results.get("mission_source", "") == "patron"
+	var danger_pay: int = 0
+	if is_patron:
+		danger_pay = battle_results.get("danger_pay", 0)
+		payment += danger_pay
+
+	# Update battle_results and apply
+	battle_results["payment"] = payment
+	battle_results["credits_earned"] = payment
+	_on_apply_payment(payment)
+
+	# Show result
+	var result_label = step_content.find_child("PaymentResult")
+	var text: String = "Rolled D6: %d" % roll
+	if won and roll < 3:
+		text += " (treated as 3 — Won objective)"
+	if danger_pay > 0:
+		text += " + %d Danger Pay" % danger_pay
+	text += " = %d credits" % payment
+	if result_label:
+		result_label.text = text
+		result_label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+
+	_add_result_to_log("Payment: %s" % text)
+	_increment_inline_roll()
+
 func _on_apply_payment(amount: int) -> void:
 	## Apply payment to campaign
 	var gsm = get_node_or_null("/root/GameStateManager")
 	if gsm and gsm.has_method("get_credits") and gsm.has_method("set_credits"):
 		gsm.set_credits(gsm.get_credits() + amount)
 		_add_result_to_log("Applied %d credits to campaign" % amount)
+
+func _on_battlefield_finds_d100_pressed(btn: Button = null) -> void:
+	## Core Rules p.121: Single D100 roll on Battlefield Finds table (if Held Field)
+	if btn:
+		btn.disabled = true
+	var roll: int = randi_range(1, 100)
+	var find_result: Dictionary = _resolve_battlefield_find(roll)
+
+	var result_label = step_content.find_child("BattlefieldFindsResult")
+	var text: String = "D100: %d — %s" % [roll, find_result.get("description", "Nothing")]
+	if result_label:
+		result_label.text = text
+		result_label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+
+	# Persist to campaign inventory
+	_add_loot_to_inventory([find_result])
+	_add_result_to_log("Battlefield Finds: %s" % text)
+	_increment_inline_roll()
 
 func _on_battlefield_find_roll(enemy_num: int, btn: Button = null) -> void:
 	## Handle battlefield find roll using JSON data table
@@ -1746,50 +1875,35 @@ func _apply_injury_result(type: String, num: int, injury_data: Dictionary, roll:
 	_add_result_to_log("%s %d: %s" % [type, num, result_text])
 
 func _on_generate_loot_pressed(btn: Button = null) -> void:
+	## Core Rules p.121, pp.131-133: "Gather the Loot"
+	## Roll D100 once on Main Loot Table. 3 rolls if final Quest stage.
 	if btn:
 		btn.disabled = true
-	## Core Rules pp.120-121, 131-133:
-	## Step 5: Battlefield Finds — if Held the Field, roll D100 once
-	## Step 7: Gather the Loot — roll D100 once on Main Loot Table
-	##   (3 rolls if final Quest stage; 0 if Invasion Battle)
-	var loot_results_container = step_content.find_child("LootResultsContainer")
-	if not loot_results_container:
-		return
-
-	for child in loot_results_container.get_children():
-		child.queue_free()
+		btn.text = "Loot Rolled (see results)"
 
 	var total_loot: Array = []
-	var held_field: bool = battle_results.get("held_field", false)
-	var is_invasion: bool = battle_results.get("is_invasion", false)
 	var is_final_quest: bool = battle_results.get("final_quest_stage", false)
 
-	# Step 5: Battlefield Finds (Core Rules p.121)
-	if held_field and not is_invasion:
-		var bf_roll: int = randi_range(1, 100)
-		var bf_result: Dictionary = _resolve_battlefield_find(bf_roll)
-		var bf_label: Label = Label.new()
-		bf_label.text = "Battlefield Finds (D100: %d): %s" % [bf_roll, bf_result.get("description", "Nothing")]
-		loot_results_container.add_child(bf_label)
-		total_loot.append(bf_result)
+	var loot_rolls: int = 1
+	if is_final_quest:
+		loot_rolls = 3  # Core Rules p.121: "roll three times and claim all"
 
-	# Step 7: Gather the Loot (Core Rules p.121, pp.131-133)
-	if not is_invasion:
-		var loot_rolls: int = 1
-		if is_final_quest:
-			loot_rolls = 3  # Core Rules p.121: "roll three times and claim all"
-		for i in range(loot_rolls):
-			var loot_roll: int = randi_range(1, 100)
-			var loot_result: Dictionary = _resolve_main_loot(loot_roll)
-			var loot_label: Label = Label.new()
-			loot_label.text = "Loot roll %d (D100: %d): %s" % [
-				i + 1, loot_roll, loot_result.get("description", "Nothing")]
-			loot_results_container.add_child(loot_label)
-			total_loot.append(loot_result)
-	else:
-		var no_loot: Label = Label.new()
-		no_loot.text = "Invasion Battle — no loot or battlefield finds (Core Rules p.121)"
-		loot_results_container.add_child(no_loot)
+	for i in range(loot_rolls):
+		var loot_roll: int = randi_range(1, 100)
+		var loot_result: Dictionary = _resolve_main_loot(loot_roll)
+		var description: String = loot_result.get("description", "Nothing")
+		total_loot.append(loot_result)
+
+		# Show each roll result directly in step_content
+		var loot_label := Label.new()
+		loot_label.text = "Loot roll %d (D100: %d): %s" % [i + 1, loot_roll, description]
+		loot_label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+		loot_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		loot_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(loot_label)
+
+		# Log each roll to the Battle Results panel
+		_add_result_to_log("Loot (D100: %d): %s" % [loot_roll, description])
 
 	# Persist loot to campaign inventory
 	_add_loot_to_inventory(total_loot)
@@ -1797,7 +1911,6 @@ func _on_generate_loot_pressed(btn: Button = null) -> void:
 	if current_step >= 0 and current_step < step_results.size():
 		step_results[current_step]["loot_found"] = total_loot
 
-	_add_result_to_log("Loot: %d items found" % total_loot.size())
 	_increment_inline_roll()
 
 
@@ -2004,22 +2117,28 @@ func _add_loot_to_inventory(loot_items: Array) -> void:
 				if equipment_manager.add_equipment(eq_data):
 					items_added += 1
 
-	# Apply credits to campaign
-	if credits_gained > 0 and game_state_ref:
-		if game_state_ref.has_method("add_credits"):
-			game_state_ref.add_credits(credits_gained)
-		elif game_state_ref.campaign and "credits" in game_state_ref.campaign:
-			game_state_ref.campaign.credits += credits_gained
+	# Apply credits to campaign (GameStateManager autoload has add_credits)
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if credits_gained > 0:
+		if gsm and gsm.has_method("add_credits"):
+			gsm.add_credits(credits_gained)
+		elif game_state_ref and game_state_ref.get("current_campaign"):
+			game_state_ref.current_campaign.credits += credits_gained
 
-	# Apply quest rumors
-	if rumors_gained > 0 and game_state_ref:
-		if game_state_ref.has_method("add_quest_rumors"):
-			game_state_ref.add_quest_rumors(rumors_gained)
+	# Apply quest rumors — write directly to campaign progress_data
+	if rumors_gained > 0 and game_state_ref and game_state_ref.get("current_campaign"):
+		var pd: Dictionary = game_state_ref.current_campaign.get("progress_data")
+		if pd is Dictionary:
+			pd["quest_rumors"] = pd.get("quest_rumors", 0) + rumors_gained
 
-	# Apply story points
-	if story_points_gained > 0 and game_state_ref:
-		if game_state_ref.has_method("add_story_points"):
-			game_state_ref.add_story_points(story_points_gained)
+	# Apply story points (GameStateManager autoload has add_story_points)
+	if story_points_gained > 0:
+		if gsm and gsm.has_method("add_story_points"):
+			gsm.add_story_points(story_points_gained)
+		elif game_state_ref and game_state_ref.get("current_campaign"):
+			var pd: Dictionary = game_state_ref.current_campaign.get("progress_data")
+			if pd is Dictionary:
+				pd["story_points"] = pd.get("story_points", 0) + story_points_gained
 
 	# Log summary
 	var parts: Array[String] = []

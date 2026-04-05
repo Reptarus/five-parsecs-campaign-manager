@@ -121,6 +121,7 @@ var battle_tracker: Node = null # For reaction economy tracking
 ## Sprint 11.4: BattleRoundTracker integration for phase-based combat
 var round_tracker: Node = null # BattleRoundTracker instance for Five Parsecs combat rounds
 var _round_tracker_connected: bool = false
+var _battle_events_system: Resource = null # FPCM_BattleEventsSystem (lazy-loaded data Resource)
 
 # Tier controller for component visibility (wired in Sprint 2)
 var tier_controller: Resource = null # FPCM_BattleTierController instance
@@ -330,36 +331,36 @@ func _on_viewport_resized(_new_size: Vector2) -> void:
 	if _resize_debounce_timer:
 		_resize_debounce_timer.start()
 
+var _responsive_layout_in_progress: bool = false
+
 func _apply_responsive_layout() -> void:
 	## Scale panel sizes proportionally to viewport
+	if _responsive_layout_in_progress:
+		return  # Guard against re-entrant calls from resize feedback
+	_responsive_layout_in_progress = true
+
 	var vp := get_viewport().get_visible_rect().size
 	if vp.x <= 0 or vp.y <= 0:
+		_responsive_layout_in_progress = false
 		return
 
 	# Proportional column widths (percentage-based with min/max clamps)
 	if left_panel:
-		left_panel.custom_minimum_size.x = clampf(vp.x * 0.15, 200, 400)
+		var new_w := clampf(vp.x * 0.15, 200, 400)
+		if absf(left_panel.custom_minimum_size.x - new_w) > 1.0:
+			left_panel.custom_minimum_size.x = new_w
 	if right_panel:
-		right_panel.custom_minimum_size.x = clampf(vp.x * 0.20, 260, 500)
-
-	# Map minimum scales with viewport
-	if battlefield_grid_panel:
-		var map_view: BattlefieldMapView = null
-		for child in battlefield_grid_panel.get_children():
-			if child is VBoxContainer:
-				for subchild in child.get_children():
-					if subchild is BattlefieldMapView:
-						map_view = subchild
-						break
-		if map_view:
-			map_view.custom_minimum_size = Vector2(
-				clampf(vp.x * 0.35, 480, 1200),
-				clampf(vp.y * 0.30, 280, 600)
-			)
+		var new_w := clampf(vp.x * 0.20, 260, 500)
+		if absf(right_panel.custom_minimum_size.x - new_w) > 1.0:
+			right_panel.custom_minimum_size.x = new_w
 
 	# Phase content panel minimum height scales
 	if phase_content_panel:
-		phase_content_panel.custom_minimum_size.y = clampf(vp.y * 0.15, 140, 300)
+		var new_h := clampf(vp.y * 0.15, 140, 300)
+		if absf(phase_content_panel.custom_minimum_size.y - new_h) > 1.0:
+			phase_content_panel.custom_minimum_size.y = new_h
+
+	_responsive_layout_in_progress = false
 
 func _apply_stage_visibility(stage: int) -> void:
 	## Control which panels are visible based on current battle stage
@@ -398,7 +399,7 @@ func _apply_stage_visibility(stage: int) -> void:
 				turn_indicator.text = "Set Up Your Battlefield"
 			if bottom_bar: bottom_bar.visible = true
 			if phase_breadcrumb: phase_breadcrumb.visible = true
-			if battle_round_hud: battle_round_hud.visible = true
+			if battle_round_hud: battle_round_hud.visible = false  # Not relevant until combat
 			if action_buttons: action_buttons.visible = true
 
 		BattleStage.DEPLOYMENT:
@@ -418,7 +419,7 @@ func _apply_stage_visibility(stage: int) -> void:
 				turn_indicator.text = "Deploy Your Crew"
 			if bottom_bar: bottom_bar.visible = true
 			if phase_breadcrumb: phase_breadcrumb.visible = true
-			if battle_round_hud: battle_round_hud.visible = true
+			if battle_round_hud: battle_round_hud.visible = false  # Not relevant until combat
 			if action_buttons: action_buttons.visible = true
 			# Highlight deployment zones on the map
 			_set_map_deployment_highlight(true)
@@ -1199,6 +1200,8 @@ func _disconnect_round_tracker_signals() -> void:
 	_round_tracker_connected = false
 
 func _exit_tree() -> void:
+	# Clean up BattleEventsSystem (RefCounted Resource — nulling frees it)
+	_battle_events_system = null
 	# Disconnect round tracker signals (autoload-child, persists across scenes)
 	_disconnect_round_tracker_signals()
 	# Disconnect FiveParsecsCombatSystem autoload signals
@@ -1251,10 +1254,36 @@ func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 		"BATTLE EVENT! (Round %d) - Rolling on event table..." % round_num,
 		UIColors.COLOR_AMBER
 	)
-	# Show EventResolutionPanel overlay at ASSISTED+ tier
-	if event_resolution and tier_controller:
-		if tier_controller.current_tier >= 1:
-			_show_overlay(event_resolution)
+	if not event_resolution or not tier_controller:
+		return
+	if tier_controller.current_tier < 1:
+		return
+
+	# Generate actual event data from BattleEventsSystem (d100 roll)
+	var event_dict: Dictionary = {}
+	if _battle_events_system and _battle_events_system.has_method("trigger_battle_event"):
+		_battle_events_system.trigger_battle_event()
+		var triggered: Array = _battle_events_system.events_triggered
+		if not triggered.is_empty():
+			var battle_event = triggered.back()
+			event_dict = {
+				"title": battle_event.title,
+				"description": battle_event.description,
+				"type": battle_event.target_type,
+				"effects": battle_event.effects,
+				"duration": battle_event.duration,
+			}
+
+	# Fallback: tabletop-companion instruction if no system or no event rolled
+	if event_dict.is_empty():
+		event_dict = {
+			"title": "Battle Event (Round %d)" % round_num,
+			"description": "Roll on the Battle Events table (Core Rules p.116) and apply the result.",
+			"type": "battlefield",
+		}
+
+	_show_overlay(event_resolution)
+	event_resolution.display_event(event_dict)
 
 func _on_tracker_battle_started() -> void:
 	## Handle battle start from tracker — transition to COMBAT stage
@@ -1396,7 +1425,9 @@ func _on_process_enemy_actions_pressed() -> void:
 		round_tracker.advance_phase()
 
 func _on_advance_phase_pressed() -> void:
-	## Advance to next phase via round tracker
+	## Advance to next phase via round tracker (only valid during COMBAT stage)
+	if current_stage != BattleStage.COMBAT:
+		return  # Ignore phase advance clicks during setup/deployment
 	if round_tracker and round_tracker.has_method("advance_phase"):
 		round_tracker.advance_phase()
 	else:
@@ -1463,6 +1494,13 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 		tracker.name = "BattleRoundTracker"
 		add_child(tracker)
 		set_round_tracker(tracker)
+
+	# Ensure BattleEventsSystem exists for event generation (rounds 2 & 4)
+	if not _battle_events_system:
+		var BES = load("res://src/core/battle/BattleEventsSystem.gd")
+		if BES:
+			_battle_events_system = BES.new()
+			_battle_events_system.initialize_battle()
 
 	# Populate battlefield setup tab (data only, no stage change)
 	_stored_mission_data = mission_data
@@ -1586,13 +1624,20 @@ func _on_auto_deploy_clicked() -> void:
 	for unit in crew_units:
 		_log_message("  %s — deployed" % unit.node_name, Color.WHITE)
 
+	# Ensure round tracker exists (may not if standalone/demo mode skipped initialize_battle)
+	if not round_tracker:
+		var BattleRoundTrackerClass = preload("res://src/core/battle/BattleRoundTracker.gd")
+		var tracker := BattleRoundTrackerClass.new()
+		tracker.name = "BattleRoundTracker"
+		add_child(tracker)
+		set_round_tracker(tracker)
+
 	# Start combat via round tracker (Five Parsecs 5-phase combat)
+	battle_phase = "combat"
 	if round_tracker and round_tracker.has_method("start_battle"):
-		battle_phase = "combat"
 		round_tracker.start_battle()
 	else:
-		push_error("TacticalBattleUI: No round tracker available")
-		battle_phase = "combat"
+		push_warning("TacticalBattleUI: Round tracker unavailable after creation attempt")
 
 ## Legacy _end_unit_turn() and _end_combat_round() removed
 ## Round progression now driven by BattleRoundTracker.advance_phase()
@@ -1914,8 +1959,9 @@ func _set_map_deployment_highlight(enabled: bool) -> void:
 	var map_view = battlefield_grid_panel.get_node_or_null("BattlefieldMapView")
 	if not map_view:
 		# MapView is built dynamically — try the internal reference
-		if battlefield_grid_panel.has_method("get") and battlefield_grid_panel.get("_map_view"):
-			battlefield_grid_panel._map_view.set_deployment_highlight(enabled)
+		var internal_view = battlefield_grid_panel.get("_map_view")
+		if internal_view and is_instance_valid(internal_view) and internal_view.has_method("set_deployment_highlight"):
+			internal_view.set_deployment_highlight(enabled)
 		return
 	if map_view.has_method("set_deployment_highlight"):
 		map_view.set_deployment_highlight(enabled)

@@ -454,19 +454,25 @@ func generate_enemies_as_dicts(
 		"mission_source", "patron"
 	)
 
-	# Use D100 encounter table if mission_source is available
-	var category: String
-	if not mission_source.is_empty():
-		category = _roll_encounter_category(mission_source)
-	else:
-		category = _determine_enemy_category(objective.capitalize())
-
 	var enemy_count: int = _calculate_enemy_count(
 		danger_level, crew_size
 	)
 
-	# Roll ONE enemy type for the whole battle (Core Rules pp.91-94)
-	var template: Dictionary = _roll_enemy_in_category(category)
+	# Use preset enemy_type from accepted job if available (e.g. from patron mission)
+	var category: String = ""
+	var template: Dictionary = {}
+	var preset_enemy: String = mission_data.get("enemy_type", "")
+	if not preset_enemy.is_empty() and preset_enemy != "Unknown Hostiles":
+		template = _find_enemy_template_by_name(preset_enemy)
+		if not template.is_empty():
+			category = template.get("category", "")
+	# Fallback: roll random enemy from D100 encounter table (Core Rules pp.91-94)
+	if template.is_empty():
+		if not mission_source.is_empty():
+			category = _roll_encounter_category(mission_source)
+		else:
+			category = _determine_enemy_category(objective.capitalize())
+		template = _roll_enemy_in_category(category)
 	var enemy_name: String = template.get("name", "Unknown Hostiles")
 	var base_combat: int = template.get("combat_skill", 0)
 	var base_tough: int = template.get("toughness", 3)
@@ -631,6 +637,17 @@ func _roll_enemy_in_category(category_id: String) -> Dictionary:
 			# Fallback if roll didn't match (shouldn't happen)
 			return enemies.pick_random()
 
+	return {}
+
+func _find_enemy_template_by_name(enemy_name: String) -> Dictionary:
+	## Search all categories for an enemy matching the given name.
+	## Used when a patron job specifies a preset enemy type.
+	for category_data in enemy_data.get("enemy_categories", []):
+		for enemy in category_data.get("enemies", []):
+			if enemy.get("name", "") == enemy_name:
+				var result: Dictionary = enemy.duplicate()
+				result["category"] = category_data.get("id", "")
+				return result
 	return {}
 
 ## ═══════════════════════════════════════════════════════════════════════════════

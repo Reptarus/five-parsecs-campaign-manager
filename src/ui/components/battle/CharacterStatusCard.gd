@@ -44,21 +44,6 @@ var has_panic_fired: bool = false    # Used panic fire — weapon empty rest of 
 func _ready() -> void:
 	## Initialize card UI
 	_connect_button_signals()
-	resized.connect(_update_card_layout)
-
-func _update_card_layout() -> void:
-	## Scale action buttons proportionally with card width
-	if not action_container:
-		return
-	var btn_count := action_container.get_child_count()
-	if btn_count == 0:
-		return
-	var spacing := action_container.get_theme_constant("separation")
-	var available_w := size.x - 16.0  # card padding
-	var btn_width := maxf((available_w - spacing * (btn_count - 1)) / float(btn_count), 48.0)
-	for child in action_container.get_children():
-		if child is Button:
-			child.custom_minimum_size.x = btn_width
 
 func _connect_button_signals() -> void:
 	## Connect interactive button signals

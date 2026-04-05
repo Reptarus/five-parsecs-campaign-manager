@@ -1267,7 +1267,7 @@ func _on_action_pressed() -> void:
 	## The wizard handles all turn phases internally as steps
 	var router = get_node_or_null("/root/SceneRouter")
 	if router:
-		router.navigate_to("world_phase")
+		router.navigate_to("campaign_turn_controller")
 	else:
 		_show_message("Cannot navigate to World Phase.")
 

@@ -1727,6 +1727,11 @@ func _process_event_queue() -> void:
 
 func _show_next_event_dialog() -> void:
 	## Pop front of queue and show dialog, or finalize if empty
+	# Clean up any lingering dialog to avoid exclusive window conflicts
+	if _current_event_dialog and is_instance_valid(_current_event_dialog):
+		_current_event_dialog.queue_free()
+		_current_event_dialog = null
+
 	if _event_queue.is_empty():
 		_finalize_task_resolution()
 		return
@@ -1747,6 +1752,8 @@ func _show_next_event_dialog() -> void:
 
 func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 	## Apply game state changes based on event outcome, then process next event
+	if _current_event_dialog and is_instance_valid(_current_event_dialog):
+		_current_event_dialog.queue_free()
 	_current_event_dialog = null
 	var event_type: int = event_data.get("type", CrewTaskEventDialog.EventType.INFO_ONLY)
 	var crew_member = event_data.get("crew_member")
@@ -1911,7 +1918,8 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 			# Damage/repair handled by dialog outcome
 
 	_update_progress_display()
-	_show_next_event_dialog()
+	# Defer to next frame so queue_free() clears the old exclusive dialog first
+	call_deferred("_show_next_event_dialog")
 
 func _auto_resolve_event(event_data: Dictionary) -> void:
 	## Auto-resolve an event without showing dialog — sensible defaults

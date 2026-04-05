@@ -432,7 +432,12 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.CHARACTER:
 			return current_phase == FiveParcsecsCampaignPhase.TRADING
 		FiveParcsecsCampaignPhase.RETIREMENT:
-			return current_phase in [FiveParcsecsCampaignPhase.TRADING, FiveParcsecsCampaignPhase.CHARACTER]
+			# POST_MISSION allowed because PostBattleSequence handles
+			# advancement/trading/character inline as steps 9-13.
+			return current_phase in [
+				FiveParcsecsCampaignPhase.POST_MISSION,
+				FiveParcsecsCampaignPhase.TRADING,
+				FiveParcsecsCampaignPhase.CHARACTER]
 		_:
 			return false
 

@@ -6,6 +6,17 @@ extends Control
 ## Desktop: Audio, Display (Fullscreen/VSync/UI Scale), Gameplay, Accessibility, Difficulty
 ## Mobile: Audio, Display (UI Scale only), Gameplay, Touch/Haptics, Accessibility, Difficulty
 ## Persists to user://options.cfg. Window state saved to user://window.ini (desktop only).
+##
+## When overlay_mode is true, this screen is embedded in the SettingsOverlay
+## CanvasLayer instead of being a standalone scene. Back button emits
+## back_requested instead of calling SceneRouter.
+
+signal back_requested
+
+## When true, this screen is hosted inside SettingsOverlay as a non-destructive
+## overlay. Disables window state save/restore and uses signal instead of
+## SceneRouter for navigation.
+var overlay_mode: bool = false
 
 const AccessibilitySettingsPanelScript = preload("res://src/ui/screens/settings/AccessibilitySettingsPanel.gd")
 const DifficultyTogglesPanelScript = preload("res://src/ui/screens/settings/DifficultyTogglesPanel.gd")
@@ -83,6 +94,8 @@ func _ready() -> void:
 
 func _enter_tree() -> void:
 	# Restore window state (desktop only) — per Godot docs best practice
+	if overlay_mode:
+		return
 	if not OS.has_feature("pc"):
 		return
 	if Engine.is_editor_hint():
@@ -109,6 +122,8 @@ func _enter_tree() -> void:
 
 func _exit_tree() -> void:
 	# Save window state (desktop only)
+	if overlay_mode:
+		return
 	if not OS.has_feature("pc"):
 		return
 	var win := get_window()
@@ -535,6 +550,9 @@ func _on_ui_scale_changed(value: float) -> void:
 
 
 func _on_back_pressed() -> void:
+	if overlay_mode:
+		back_requested.emit()
+		return
 	var router = get_node_or_null("/root/SceneRouter")
 	if router and router.has_method("navigate_back"):
 		router.navigate_back()
