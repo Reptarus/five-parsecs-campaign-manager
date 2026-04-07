@@ -6,6 +6,8 @@ class_name UpkeepPhaseComponent
 ## Implements Core Rules p.76 - Ship maintenance and crew upkeep calculations
 
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
+const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
+const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -45,6 +47,13 @@ var _travel_button: Button
 var _travel_event_container: VBoxContainer
 var _travel_status_label: Label
 
+# Zone selection state (Core Rules Appendix III pp.148-151)
+var selected_zone: int = 0  # 0=normal, 1=red_zone, 2=black_zone
+var _red_zone_button: Button
+var _black_zone_button: Button
+var _zone_info_label: Label
+var _license_dialog: ConfirmationDialog
+
 # Five Parsecs upkeep constants (Core Rules p.76)
 # Upkeep = 1 credit for 4-6 crew, +1 per crew member past 6
 const CREW_UPKEEP_THRESHOLD: int = 4   # Upkeep kicks in at 4+ crew
@@ -74,6 +83,7 @@ func _setup_initial_state() -> void:
 	costs_calculated = false
 	travel_decision_made = false
 	chose_to_travel = false
+	selected_zone = 0
 	current_upkeep_data = {
 		"crew_upkeep": 0,
 		"ship_maintenance": 0,
@@ -113,7 +123,15 @@ func calculate_upkeep_costs() -> Dictionary:
 		"can_afford": false,
 		"current_credits": 0
 	}
-	
+
+	# Black Zone: upkeep waived (Core Rules Appendix III p.150)
+	if selected_zone == 2:
+		results.current_credits = GameStateManager.get_credits()
+		results.can_afford = true
+		results["zone_waiver"] = (
+			"Black Zone: Upkeep waived, ship loan frozen")
+		return results
+
 	# Get current credits from campaign data
 	results.current_credits = GameStateManager.get_credits()
 	
@@ -279,25 +297,55 @@ func _on_manual_calculate_pressed() -> void:
 func _update_ui_display() -> void:
 	## Update UI display with current upkeep data
 	var current_credits: int = GameStateManager.get_credits()
-	
+
 	if credits_display:
 		var credit_text := "Available Credits: %d" % current_credits
 		if upkeep_completed:
-			credit_text += " (Paid: -%d)" % current_upkeep_data.get("total_cost", 0)
+			credit_text += (
+				" (Paid: -%d)"
+				% current_upkeep_data.get("total_cost", 0))
 		credits_display.text = credit_text
 		# Color based on affordability
-		var can_afford: bool = current_upkeep_data.get("can_afford", true)
-		credits_display.add_theme_color_override("font_color", UIColors.COLOR_EMERALD if can_afford else UIColors.COLOR_RED)
+		var can_afford: bool = current_upkeep_data.get(
+			"can_afford", true)
+		var credit_color: Color = (
+			UIColors.COLOR_EMERALD if can_afford
+			else UIColors.COLOR_RED)
+		credits_display.add_theme_color_override(
+			"font_color", credit_color)
+
+	# Black Zone waiver display
+	var zone_waiver: String = current_upkeep_data.get(
+		"zone_waiver", "")
+	if not zone_waiver.is_empty():
+		if crew_upkeep_label:
+			crew_upkeep_label.text = "WAIVED"
+			crew_upkeep_label.add_theme_color_override(
+				"font_color", Color(0.4, 0.1, 0.6, 1))
+		if maintenance_cost_label:
+			maintenance_cost_label.text = "WAIVED"
+			maintenance_cost_label.add_theme_color_override(
+				"font_color", Color(0.4, 0.1, 0.6, 1))
+		if total_cost_label:
+			total_cost_label.text = zone_waiver
+			total_cost_label.add_theme_color_override(
+				"font_color", Color(0.4, 0.1, 0.6, 1))
+		return
 
 	if not current_upkeep_data.is_empty():
 		if crew_upkeep_label:
-			crew_upkeep_label.text = "%d credits" % current_upkeep_data.get("crew_upkeep", 0)
+			crew_upkeep_label.text = (
+				"%d credits"
+				% current_upkeep_data.get("crew_upkeep", 0))
 
 		if maintenance_cost_label:
-			maintenance_cost_label.text = "%d credits" % current_upkeep_data.get("ship_maintenance", 0)
+			maintenance_cost_label.text = (
+				"%d credits"
+				% current_upkeep_data.get("ship_maintenance", 0))
 
 		if total_cost_label:
-			var total_cost: int = current_upkeep_data.get("total_cost", 0)
+			var total_cost: int = current_upkeep_data.get(
+				"total_cost", 0)
 			var status := " ✓" if upkeep_completed else ""
 			total_cost_label.text = "%d credits%s" % [total_cost, status]
 			# Color: amber normally, green if paid, red if can't afford
@@ -439,6 +487,20 @@ func _build_travel_section() -> void:
 
 	vbox.add_child(btn_row)
 
+	# --- Zone Selection Row (Core Rules Appendix III pp.148-151) ---
+	_build_zone_buttons(vbox)
+
+	# Zone info label (eligibility status)
+	_zone_info_label = Label.new()
+	_zone_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_zone_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_zone_info_label.add_theme_font_size_override(
+		"font_size", _scaled_font(12))
+	_zone_info_label.add_theme_color_override(
+		"font_color", Color(0.42, 0.451, 0.502, 1))
+	vbox.add_child(_zone_info_label)
+	_update_zone_info_label()
+
 	# Status label (shown after decision)
 	_travel_status_label = Label.new()
 	_travel_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -489,6 +551,7 @@ func _update_travel_button_text(
 
 func _on_stay_pressed() -> void:
 	## Handle stay in current location
+	selected_zone = 0
 	travel_decision_made = true
 	chose_to_travel = false
 	_update_travel_ui_after_decision()
@@ -499,7 +562,8 @@ func _on_stay_pressed() -> void:
 	_update_gating_state()
 
 func _on_travel_pressed() -> void:
-	## Handle travel to new world — deduct cost and generate event
+	## Handle travel to new world (normal zone) — deduct cost and generate event
+	selected_zone = 0
 	var travel_cost: int
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST
@@ -532,6 +596,285 @@ func _update_travel_ui_after_decision() -> void:
 		_stay_button.disabled = true
 	if _travel_button:
 		_travel_button.disabled = true
+	if _red_zone_button:
+		_red_zone_button.disabled = true
+	if _black_zone_button:
+		_black_zone_button.disabled = true
+
+## ============================================================================
+## ZONE SELECTION (Core Rules Appendix III pp.148-151)
+## ============================================================================
+
+func _build_zone_buttons(parent: VBoxContainer) -> void:
+	## Build Red/Black Zone travel buttons below the normal travel row
+	var campaign: Resource = _get_campaign_resource()
+	if not campaign:
+		return
+
+	# Check eligibility — only show buttons when relevant
+	var turns_played: int = 0
+	if "progress_data" in campaign:
+		turns_played = campaign.progress_data.get("turns_played", 0)
+	# Hide zone buttons entirely before turn 10
+	if turns_played < 10:
+		return
+
+	var zone_row := HBoxContainer.new()
+	zone_row.name = "ZoneButtonRow"
+	zone_row.add_theme_constant_override("separation", 16)
+	zone_row.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	# Red Zone button
+	_red_zone_button = Button.new()
+	_red_zone_button.text = "Travel to Red Zone"
+	_red_zone_button.tooltip_text = (
+		"Red Zone: Dangerous endgame missions with "
+		+ "increased opposition and improved rewards "
+		+ "(Core Rules Appendix III)")
+	_red_zone_button.custom_minimum_size = Vector2(220, 48)
+	var rz_style := StyleBoxFlat.new()
+	rz_style.bg_color = Color(0.55, 0.08, 0.08, 0.9)
+	rz_style.border_width_left = 1
+	rz_style.border_width_top = 1
+	rz_style.border_width_right = 1
+	rz_style.border_width_bottom = 1
+	rz_style.border_color = Color(0.86, 0.15, 0.15, 1)
+	rz_style.set_corner_radius_all(8)
+	rz_style.content_margin_left = 16.0
+	rz_style.content_margin_top = 8.0
+	rz_style.content_margin_right = 16.0
+	rz_style.content_margin_bottom = 8.0
+	_red_zone_button.add_theme_stylebox_override("normal", rz_style)
+	_red_zone_button.add_theme_color_override(
+		"font_color", Color(1, 0.85, 0.85, 1))
+	_red_zone_button.pressed.connect(_on_red_zone_travel_pressed)
+	zone_row.add_child(_red_zone_button)
+
+	# Black Zone button (only if Red Zone licensed + 10 RZ turns)
+	var bz_check: Dictionary = BlackZoneSystem.can_accept_mission(
+		campaign)
+	_black_zone_button = Button.new()
+	_black_zone_button.text = "Accept Black Zone Mission"
+	_black_zone_button.tooltip_text = (
+		"Black Zone: Near-suicide Unity missions. "
+		+ "No upkeep, 3 free weapons, massive rewards "
+		+ "(Core Rules Appendix III)")
+	_black_zone_button.custom_minimum_size = Vector2(260, 48)
+	var bz_style := StyleBoxFlat.new()
+	bz_style.bg_color = Color(0.15, 0.05, 0.25, 0.9)
+	bz_style.border_width_left = 1
+	bz_style.border_width_top = 1
+	bz_style.border_width_right = 1
+	bz_style.border_width_bottom = 1
+	bz_style.border_color = Color(0.4, 0.1, 0.6, 1)
+	bz_style.set_corner_radius_all(8)
+	bz_style.content_margin_left = 16.0
+	bz_style.content_margin_top = 8.0
+	bz_style.content_margin_right = 16.0
+	bz_style.content_margin_bottom = 8.0
+	_black_zone_button.add_theme_stylebox_override("normal", bz_style)
+	_black_zone_button.add_theme_color_override(
+		"font_color", Color(0.85, 0.75, 1.0, 1))
+	_black_zone_button.pressed.connect(_on_black_zone_accepted)
+	# Disable if not eligible
+	if not bz_check.get("can_accept", false):
+		_black_zone_button.disabled = true
+	zone_row.add_child(_black_zone_button)
+
+	parent.add_child(zone_row)
+
+func _on_red_zone_travel_pressed() -> void:
+	## Handle Red Zone travel — check license, purchase if needed
+	var campaign: Resource = _get_campaign_resource()
+	if not campaign:
+		return
+
+	if RedZoneSystem.is_licensed(campaign):
+		# Already licensed — proceed with Red Zone travel
+		_commit_zone_travel(1)
+	else:
+		# Check if eligible for license purchase
+		var check: Dictionary = RedZoneSystem.can_obtain_license(
+			campaign)
+		if check.get("can_license", false):
+			_show_license_purchase_dialog(check)
+		else:
+			# Show why they can't get a license
+			var reasons: String = "\n".join(
+				check.get("reasons", []))
+			_show_help_dialog(
+				"Red Zone License Requirements",
+				"Cannot obtain license:\n" + reasons)
+
+func _on_black_zone_accepted() -> void:
+	## Handle Black Zone mission acceptance
+	var campaign: Resource = _get_campaign_resource()
+	if not campaign:
+		return
+
+	var check: Dictionary = BlackZoneSystem.can_accept_mission(
+		campaign)
+	if not check.get("can_accept", false):
+		var reasons: String = "\n".join(
+			check.get("reasons", []))
+		_show_help_dialog(
+			"Black Zone Requirements",
+			"Cannot accept Black Zone mission:\n" + reasons)
+		return
+
+	_commit_zone_travel(2)
+
+func _commit_zone_travel(zone: int) -> void:
+	## Finalize zone travel decision and update state
+	selected_zone = zone
+	travel_decision_made = true
+	chose_to_travel = true
+	_update_travel_ui_after_decision()
+
+	# Deduct travel cost (same as normal travel)
+	var travel_cost: int
+	if has_ship:
+		travel_cost = SHIP_TRAVEL_COST
+	else:
+		travel_cost = (
+			_get_crew_size_for_travel()
+			* COMMERCIAL_TRAVEL_COST_PER_CREW)
+	GameStateManager.modify_credits(-travel_cost)
+
+	# Update status label
+	var zone_name: String = "Red Zone" if zone == 1 else "Black Zone"
+	_travel_status_label.text = (
+		"Traveling to %s world (-%d cr)" % [zone_name, travel_cost])
+	var zone_color: Color = (
+		Color(0.86, 0.15, 0.15, 1) if zone == 1
+		else Color(0.4, 0.1, 0.6, 1))
+	_travel_status_label.add_theme_color_override(
+		"font_color", zone_color)
+	_travel_status_label.visible = true
+
+	# Generate travel event for Red Zone (Black Zone skips travel)
+	if zone == 1:
+		_generate_travel_event()
+
+	# Refresh upkeep display (credits changed + zone may waive upkeep)
+	current_upkeep_data = calculate_upkeep_costs()
+	_update_ui_display()
+	_update_gating_state()
+
+func _show_license_purchase_dialog(
+		license_check: Dictionary) -> void:
+	## Show confirmation dialog for Red Zone license purchase
+	if _license_dialog and is_instance_valid(_license_dialog):
+		_license_dialog.queue_free()
+
+	_license_dialog = ConfirmationDialog.new()
+	_license_dialog.title = "Red Zone License"
+	var fee: int = license_check.get("fee", 15)
+	var reqs: Dictionary = license_check.get("requirements", {})
+	var turns_info: String = "Turns: %d/%d" % [
+		reqs.get("turns", {}).get("current", 0),
+		reqs.get("turns", {}).get("required", 10)]
+	var crew_info: String = "Crew: %d/%d" % [
+		reqs.get("crew", {}).get("current", 0),
+		reqs.get("crew", {}).get("required", 7)]
+	_license_dialog.dialog_text = (
+		"Purchase Red Zone License?\n\n"
+		+ "Cost: %d credits\n" % fee
+		+ "%s\n%s\n\n" % [turns_info, crew_info]
+		+ "Red Zone missions feature increased opposition, "
+		+ "threat conditions, and improved rewards.\n\n"
+		+ "WARNING: Red Zones are high-risk and intended for "
+		+ "experienced crews. (Core Rules Appendix III)")
+	_license_dialog.ok_button_text = "Purchase (%d cr)" % fee
+	_license_dialog.confirmed.connect(
+		_on_license_purchase_confirmed)
+	add_child(_license_dialog)
+	_license_dialog.popup_centered(Vector2i(450, 300))
+
+func _on_license_purchase_confirmed() -> void:
+	## Handle license purchase confirmation
+	var campaign: Resource = _get_campaign_resource()
+	if not campaign:
+		return
+
+	var success: bool = RedZoneSystem.purchase_license(campaign)
+	if success:
+		# Journal: milestone entry for license purchase
+		var journal: Node = get_node_or_null(
+			"/root/CampaignJournal")
+		if journal and journal.has_method(
+				"auto_create_milestone_entry"):
+			var turns: int = 0
+			if "progress_data" in campaign:
+				turns = campaign.progress_data.get(
+					"turns_played", 0)
+			journal.auto_create_milestone_entry(
+				"red_zone_license", {
+					"turn": turns,
+					"stats": {
+						"license_fee": RedZoneSystem.can_obtain_license(campaign).get("fee", 15),
+					},
+				})
+		_commit_zone_travel(1)
+	else:
+		_show_help_dialog(
+			"License Purchase Failed",
+			"Could not purchase Red Zone license. "
+			+ "Check credits and requirements.")
+
+func _update_zone_info_label() -> void:
+	## Update the zone eligibility info text
+	if not _zone_info_label:
+		return
+
+	var campaign: Resource = _get_campaign_resource()
+	if not campaign:
+		_zone_info_label.visible = false
+		return
+
+	var turns_played: int = 0
+	if "progress_data" in campaign:
+		turns_played = campaign.progress_data.get("turns_played", 0)
+	if turns_played < 10:
+		_zone_info_label.visible = false
+		return
+
+	var parts: Array[String] = []
+	if RedZoneSystem.is_licensed(campaign):
+		parts.append("Red Zone: Licensed")
+		var rz_turns: int = (
+			campaign.red_zone_turns_completed
+			if "red_zone_turns_completed" in campaign else 0)
+		if rz_turns < 10:
+			parts.append(
+				"Black Zone: %d/10 Red Zone turns" % rz_turns)
+		else:
+			parts.append("Black Zone: Eligible")
+	else:
+		var check: Dictionary = RedZoneSystem.can_obtain_license(
+			campaign)
+		if check.get("can_license", false):
+			parts.append("Red Zone: License available")
+		else:
+			var reasons: Array = check.get("reasons", [])
+			if not reasons.is_empty():
+				parts.append(
+					"Red Zone: " + str(reasons[0]))
+
+	_zone_info_label.text = "  |  ".join(parts)
+	_zone_info_label.visible = not parts.is_empty()
+
+func _get_campaign_resource() -> Resource:
+	## Helper to get the current campaign Resource
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign:
+		return gs.current_campaign
+	return null
+
+## Public API: Get selected zone for WorldPhaseController
+func get_selected_zone() -> int:
+	## Returns 0=normal, 1=red_zone, 2=black_zone
+	return selected_zone
 
 func _generate_travel_event() -> void:
 	## Generate travel event using Five Parsecs D100 table (pp.70-71)
@@ -693,7 +1036,9 @@ func is_upkeep_completed() -> bool:
 
 func get_upkeep_results() -> Dictionary:
 	## Get the results of upkeep calculation
-	return current_upkeep_data.duplicate()
+	var results: Dictionary = current_upkeep_data.duplicate()
+	results["selected_zone"] = selected_zone
+	return results
 
 func reset_upkeep_phase() -> void:
 	## Reset upkeep phase for new turn
@@ -701,6 +1046,7 @@ func reset_upkeep_phase() -> void:
 	costs_calculated = false
 	travel_decision_made = false
 	chose_to_travel = false
+	selected_zone = 0
 	current_upkeep_data.clear()
 	ship_data.clear()
 	crew_data.clear()

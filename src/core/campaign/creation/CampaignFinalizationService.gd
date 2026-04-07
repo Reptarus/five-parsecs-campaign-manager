@@ -249,7 +249,53 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# RULES FIX: crew.members now includes captain (merged by coordinator)
 	var crew_data = data.get("crew", {})
 	var transformed_crew = _transform_crew_data_for_turn_system(crew_data)
+
+	# CRITICAL FIX: Transform equipment data from Dictionary to Array[Dictionary]
+	# This must run BEFORE initialize_crew() so per-character loadouts are embedded
+	# in transformed_crew when the campaign deep-copies it. Previously this loop ran
+	# after initialize_crew() and mutated the now-orphaned local transformed_crew —
+	# result: campaign.crew_data.members[i].equipment was always empty, causing
+	# World Phase Step 4 to show "0 items" for every crew member.
+	var equipment_data = data.get("equipment", {})
+	var transformed_equipment = _transform_equipment_data_for_turn_system(equipment_data)
+
+	# Assign owned equipment to crew members' Character.equipment arrays
+	# so World Phase shows correct per-character loadouts.
+	# Build a name→Array[String] lookup, then set each member's equipment
+	# in one shot (avoids per-item .append() flagged by lint).
+	var equipment_list: Array = transformed_equipment.get("equipment", [])
+	var owner_items: Dictionary = {}  # owner_name -> Array[item_name]
+	for item in equipment_list:
+		if not item is Dictionary:
+			continue
+		var owner_name: String = item.get("owner", "")
+		if owner_name.is_empty() or owner_name == "Unassigned":
+			continue
+		var item_name: String = item.get("name", "")
+		if item_name.is_empty():
+			continue
+		if not owner_items.has(owner_name):
+			owner_items[owner_name] = []
+		if item_name not in owner_items[owner_name]:
+			owner_items[owner_name].append(item_name)
+	for member in transformed_crew.get("members", []):
+		var member_name: String = ""
+		if "character_name" in member:
+			member_name = member.character_name
+		elif member is Dictionary:
+			member_name = member.get(
+				"character_name",
+				member.get("name", ""))
+		if member_name.is_empty() or not owner_items.has(member_name):
+			continue
+		if member is Dictionary:
+			member["equipment"] = owner_items[member_name]
+		elif "equipment" in member:
+			member.equipment = owner_items[member_name]
+
+	# NOW persist crew (with equipment already attached) and ship-stash equipment list
 	campaign.initialize_crew(transformed_crew)
+	campaign.set_starting_equipment(transformed_equipment)
 
 	# Extract captain from crew members (is_captain flag) for backwards compat
 	var captain_in_crew = null
@@ -272,7 +318,7 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 			captain_data = captain_raw
 		var transformed_captain = _transform_captain_data_for_turn_system(captain_data)
 		campaign.set_captain(transformed_captain)
-	
+
 	# Initialize ship (format is compatible)
 	var ship_data = data.get("ship", {})
 	campaign.initialize_ship(ship_data)
@@ -284,43 +330,6 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 			GameStateManager.set_ship_debt(debt)
 		else:
 			pass
-
-	# CRITICAL FIX: Transform equipment data from Dictionary to Array[Dictionary]
-	var equipment_data = data.get("equipment", {})
-	var transformed_equipment = _transform_equipment_data_for_turn_system(equipment_data)
-	campaign.set_starting_equipment(transformed_equipment)
-
-	# Assign owned equipment to crew members' Character.equipment arrays
-	# so World Phase shows correct per-character loadouts
-	var equipment_list: Array = transformed_equipment.get("equipment", [])
-	for item in equipment_list:
-		if not item is Dictionary:
-			continue
-		var owner_name: String = item.get("owner", "")
-		if owner_name.is_empty() or owner_name == "Unassigned":
-			continue
-		var item_name: String = item.get("name", "")
-		if item_name.is_empty():
-			continue
-		for member in transformed_crew.get("members", []):
-			var member_name: String = ""
-			if "character_name" in member:
-				member_name = member.character_name
-			elif member is Dictionary:
-				member_name = member.get(
-					"character_name",
-					member.get("name", ""))
-			if member_name == owner_name:
-				if "equipment" in member:
-					if item_name not in member.equipment:
-						member.equipment.append(item_name)
-				elif member is Dictionary:
-					var eq: Array = member.get(
-						"equipment", [])
-					if item_name not in eq:
-						eq.append(item_name)
-						member["equipment"] = eq
-				break
 
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})

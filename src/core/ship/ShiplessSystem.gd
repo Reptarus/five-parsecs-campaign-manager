@@ -43,10 +43,14 @@ static func apply_ship_destruction(campaign: Resource) -> Dictionary:
 	var lost_items: Array = []
 	var lost_credits: int = 0
 
-	# Lose all credits
+	# Lose all credits — route through GameStateManager for single-source-of-truth
 	if "credits" in campaign:
 		lost_credits = campaign.credits
-		campaign.credits = 0
+		var gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager") if Engine.get_main_loop() else null
+		if gsm and gsm.has_method("set_credits"):
+			gsm.set_credits(0)
+		else:
+			campaign.credits = 0  # lint:ignore — fallback when GSM unavailable (static method)
 
 	# Mark ship as destroyed
 	if "has_ship" in campaign:

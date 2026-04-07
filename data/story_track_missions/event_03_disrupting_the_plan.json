@@ -1,0 +1,89 @@
+{
+  "_source": "Core Rules Appendix V pp.155-156",
+  "event_id": "disrupting_the_plan",
+  "event_number": 3,
+  "title": "Disrupting the Plan",
+  "narrative": {
+    "intro": "Your old friend is up to something big, and it's time to teach his people a little lesson. You've found out where his organization is storing contraband for sale off-world, and you've decided to pay them a visit.",
+    "briefing": "Set up the battlefield resembling a camp, factory compound, or similar. Scatter the opposition fairly evenly around the battlefield. Select which edge to enter from. Roll to Seize the Initiative (at +2 if you Won Event 2, +3 if you captured a mercenary).",
+    "completion_win": "You Win by either Holding the Field or planting a sabotage device at the center. You may claim an additional Loot roll from snooping around the site.",
+    "completion_lose": "The compound remains operational."
+  },
+  "campaign_turn_modifications": {
+    "cannot_track_rivals": true,
+    "cannot_seek_patron": true,
+    "can_be_attacked_by_rivals": true,
+    "rival_attack_delays_event": true,
+    "must_assign_one_crew_to_planning": true,
+    "can_delay_one_turn": true
+  },
+  "deployment": {
+    "type": "scattered_defense",
+    "enemy_setup": "fairly evenly around the battlefield",
+    "crew_setup": "select battlefield edge, enter from chosen edge",
+    "seize_initiative_bonus": {
+      "won_event_2": 2,
+      "captured_mercenary": 3
+    }
+  },
+  "enemies": {
+    "source_table": "fixed",
+    "fixed_count": 8,
+    "composition": [
+      {
+        "type": "goon",
+        "count": 5,
+        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 0, "toughness": 3},
+        "ai": "defensive_conditional",
+        "ai_rules": "Within 12\" of crew: Defensive AI. Not within 12\": move to center, then Defensive AI.",
+        "weapons": ["Machine Pistol"]
+      },
+      {
+        "type": "bruiser",
+        "count": 2,
+        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "ai": "defensive_conditional",
+        "weapons": ["Shotgun", "Brutal melee"]
+      },
+      {
+        "type": "leader",
+        "count": 1,
+        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "ai": "defensive_conditional",
+        "weapons": ["Blast Pistol", "Blade"]
+      }
+    ],
+    "reinforcements": [
+      {"round": 8, "type": "goon", "count": 2, "placement": "center of random battlefield edge"},
+      {"round": 12, "type": "goon", "count": 2, "placement": "center of random battlefield edge"}
+    ]
+  },
+  "objectives": {
+    "primary": {
+      "type": "sabotage_or_hold",
+      "description": "Win by either Holding the Field, or planting a sabotage device at center",
+      "sabotage_rules": {
+        "location": "center of battlefield",
+        "action_cost": "Combat Action",
+        "skill_check": "1D6+Savvy >= 5",
+        "retryable": true
+      }
+    },
+    "alternative_win": {
+      "type": "hold_field",
+      "description": "Drive off every opponent, then plant device at leisure"
+    }
+  },
+  "post_battle_effects": {
+    "win": {
+      "normal_rewards": true,
+      "bonus_loot_roll": 1,
+      "description": "Additional Loot roll from snooping around the site"
+    },
+    "common": {
+      "normal_rewards": true
+    }
+  },
+  "next_clock_ticks": 5,
+  "page_reference": "pp.155-156"
+}

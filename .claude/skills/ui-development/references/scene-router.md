@@ -42,14 +42,19 @@ max_cache_size: int = 10
 `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
 
 ### Battle Simulator
-
 `battle_simulator`
+
+### Store/Expansions
+`store`
 
 ### Events
 `campaign_events`
 
 ### Utility
-`save_load`, `game_over`, `logbook`, `settings`
+`game_over`, `logbook`, `settings`
+
+### Help
+`help`
 
 ### Tutorial
 `tutorial_selection`, `new_campaign_tutorial`

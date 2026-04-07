@@ -1,7 +1,7 @@
 ﻿# Five Parsecs Campaign Manager - Complete Data Flow & Implementation Map
 
 **Created**: 2025-11-29
-**Last Updated**: 2026-03-03
+**Last Updated**: 2026-04-07
 **Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation, Phase 16-22J Battle+UI sprints
 **Purpose**: Map every functional mechanic to implementation status
 
@@ -24,7 +24,18 @@
 **Core Rules Completion: 100% Complete**
 **Including Compendium DLC: 100% Complete (170/170)**
 
-### Recent Updates (February 2026)
+### Recent Updates (April 2026)
+
+**Red & Black Zone Jobs — Phase 35 (Apr 7, 11 files)**:
+- Core Rules Appendix III (pp.148-151) fully integrated
+- Zone selection UI in World Phase Step 0 (UpkeepPhaseComponent)
+- Red Zone: license purchase, threat conditions (D6), time constraints (Round 6 D6), fixed opposition (7+3 specialists), invasion +2, galactic war -1, improved rewards
+- Black Zone: access check (10 RZ turns), upkeep waiver, step auto-skip (Jobs/Rumors), mission types (D10, 5 types), Active/Passive team system, victory rewards (clear rivals, +2 patrons, 5cr, loan payoff, 3 loot, +1 XP all), failure rewards (1cr/casualty)
+- Journal/history: zone-tagged battle entries, zone-enriched character timelines, Black Zone reward milestones, license purchase milestone, payment context
+- Broker discount for license fee (checks `has_broker_training` + `"Broker Training"` trait)
+- Backend existed: `red_zone_jobs.json`, `black_zone_jobs.json`, `RedZoneSystem.gd`, `BlackZoneSystem.gd`, `BattlePhase.gd` zone logic, `FiveParsecsCampaignCore` persistence
+
+### Earlier Updates (February-March 2026)
 
 **Feature Integration — Parts A/B/C (Mar 1, 3 parts)**:
 
@@ -685,6 +696,6 @@ No remaining high-priority gaps.
 ---
 
 **Document Status**: COMPREHENSIVE UPDATE COMPLETE
-**Last Updated**: 2026-03-03
+**Last Updated**: 2026-04-07
 **Engine Version**: Godot 4.6-stable
 **Test Framework**: gdUnit4 v6.0.3

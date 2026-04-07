@@ -74,6 +74,33 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 			continue
 
 		var xp_earned: int = _calculate_crew_xp(ctx, crew_id)
+
+		# Hopeful Rookie: +1 bonus XP if not casualty (Core Rules p.21)
+		var crew_member = ctx.get_crew_member(crew_id) if ctx.has_method("get_crew_member") else null
+		if crew_member:
+			var sid: String = ""
+			if "species_id" in crew_member:
+				sid = str(crew_member.species_id).to_lower()
+			elif crew_member is Dictionary:
+				sid = crew_member.get("species_id", "").to_lower()
+			if sid == "hopeful_rookie":
+				var downed: Array = ctx.battle_result.get(
+					"units_downed", [])
+				if crew_id not in downed:
+					xp_earned += 1
+					# Journal: log bonus XP source (Core Rules p.21)
+					if ctx.campaign_journal \
+							and ctx.campaign_journal.has_method(
+								"auto_create_character_event"):
+						ctx.campaign_journal.auto_create_character_event(
+							crew_id, "bonus_xp", {
+								"turn": ctx.battle_result.get(
+									"turn", 0),
+								"description": (
+									"Hopeful Rookie earned +1"
+									+ " bonus XP (survived battle)"),
+							})
+
 		if xp_earned > 0:
 			xp_awards.append({"crew_id": crew_id, "xp": xp_earned})
 			if ctx.game_state and ctx.game_state.has_method("add_crew_experience"):
@@ -266,6 +293,10 @@ func _calculate_crew_xp(ctx: PostBattleContextClass, crew_id: String) -> int:
 		xp += xp_bonus
 
 	if ctx.battle_result.get("is_red_zone", false) and ctx.battle_result.get("held_field", false):
+		xp += 1
+
+	# Black Zone victory: +1 XP for ALL crew (Core Rules Appendix III p.151)
+	if ctx.battle_result.get("is_black_zone", false) and ctx.battle_result.get("success", false):
 		xp += 1
 
 	if ctx.battle_result.get("is_quest_finale", false):

@@ -7,6 +7,8 @@ class_name MissionPrepComponent
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
+const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
+const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 
 # UI Components
 @onready var mission_prep_container: VBoxContainer = %MissionPrepContainer
@@ -27,6 +29,9 @@ var selected_crew_index: int = -1
 var selected_equipment_index: int = -1
 var prep_completed: bool = false
 var automation_enabled: bool = false
+
+# Zone info display (Core Rules Appendix III)
+var _zone_info_container: VBoxContainer
 
 func _ready() -> void:
 	name = "MissionPrepComponent"
@@ -271,23 +276,195 @@ func _update_mission_briefing() -> void:
 	if not mission_briefing_label:
 		return
 
-	var briefing = """Mission Briefing:
-
-Objective: %s
-Enemy: %s
-Danger Level: %d
-Location: %s
-Pay: %d credits
-
-Prepare your crew and assign equipment for battle.""" % [
-		mission_data.get("objective", "Unknown"),
-		mission_data.get("enemy_type", "Unknown"),
-		mission_data.get("danger_level", 0),
-		mission_data.get("location", "Unknown"),
-		mission_data.get("pay", 0)
-	]
+	var briefing: String = "Mission Briefing:\n\n"
+	briefing += "Objective: %s\n" % mission_data.get(
+		"objective", "Unknown")
+	briefing += "Enemy: %s\n" % mission_data.get(
+		"enemy_type", "Unknown")
+	briefing += "Danger Level: %d\n" % mission_data.get(
+		"danger_level", 0)
+	briefing += "Location: %s\n" % mission_data.get(
+		"location", "Unknown")
+	briefing += "Pay: %d credits\n" % mission_data.get("pay", 0)
+	briefing += "\nPrepare your crew and assign equipment."
 
 	mission_briefing_label.text = briefing
+
+	# Build zone info section if applicable
+	_build_zone_info_section()
+
+func _build_zone_info_section() -> void:
+	## Build zone-specific info cards below the mission briefing
+	# Clear previous zone info
+	if _zone_info_container and is_instance_valid(_zone_info_container):
+		_zone_info_container.queue_free()
+		_zone_info_container = null
+
+	var is_red: bool = mission_data.get("is_red_zone", false)
+	var is_black: bool = mission_data.get("is_black_zone", false)
+	if not is_red and not is_black:
+		return
+
+	_zone_info_container = VBoxContainer.new()
+	_zone_info_container.name = "ZoneInfoContainer"
+	_zone_info_container.add_theme_constant_override("separation", 8)
+
+	if is_red:
+		_build_red_zone_info()
+	elif is_black:
+		_build_black_zone_info()
+
+	# Insert after the HeaderPanel in MissionPrepContainer
+	if mission_prep_container:
+		var insert_idx: int = 1  # After HeaderPanel
+		if insert_idx < mission_prep_container.get_child_count():
+			mission_prep_container.add_child(_zone_info_container)
+			mission_prep_container.move_child(
+				_zone_info_container, insert_idx)
+		else:
+			mission_prep_container.add_child(_zone_info_container)
+
+func _build_red_zone_info() -> void:
+	## Build Red Zone info card with threat condition and rules
+	var card: PanelContainer = _create_zone_card(
+		Color(0.86, 0.15, 0.15, 0.3),
+		Color(0.86, 0.15, 0.15, 1))
+	var vbox: VBoxContainer = card.get_child(0)
+
+	var title: Label = Label.new()
+	title.text = "RED ZONE MISSION"
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override(
+		"font_color", Color(1, 0.5, 0.5, 1))
+	vbox.add_child(title)
+
+	# Opposition info
+	var opp_rules: Dictionary = RedZoneSystem.get_opposition_rules()
+	var opp_label: Label = Label.new()
+	opp_label.text = (
+		"Fixed Opposition: %d enemies, %d Specialists "
+		+ "(1 Lieutenant), +1 Unique Individual roll"
+	) % [
+		opp_rules.get("base_enemy_count", 7),
+		opp_rules.get("specialist_count", 3)]
+	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	opp_label.add_theme_font_size_override("font_size", 13)
+	opp_label.add_theme_color_override(
+		"font_color", Color(0.88, 0.88, 0.88, 1))
+	vbox.add_child(opp_label)
+
+	# Threat condition and time constraint warnings
+	var warn_label: Label = Label.new()
+	warn_label.text = (
+		"Threat Condition: Rolled before battle (D6)\n"
+		+ "Time Constraint: Checked at end of Round 6 (D6)\n"
+		+ "Invasion rolls: +2 | Galactic War: -1")
+	warn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warn_label.add_theme_font_size_override("font_size", 12)
+	warn_label.add_theme_color_override(
+		"font_color", Color(0.7, 0.7, 0.7, 1))
+	vbox.add_child(warn_label)
+
+	# Rewards summary
+	var reward_label: Label = Label.new()
+	reward_label.text = (
+		"Improved Rewards: +1 XP/survivor (held field), "
+		+ "credits roll 2x pick best, extra Loot roll on Win")
+	reward_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reward_label.add_theme_font_size_override("font_size", 12)
+	reward_label.add_theme_color_override(
+		"font_color", Color(0.063, 0.725, 0.506, 1))
+	vbox.add_child(reward_label)
+
+	_zone_info_container.add_child(card)
+
+func _build_black_zone_info() -> void:
+	## Build Black Zone info card with mission type and rules
+	var card: PanelContainer = _create_zone_card(
+		Color(0.2, 0.05, 0.35, 0.3),
+		Color(0.4, 0.1, 0.6, 1))
+	var vbox: VBoxContainer = card.get_child(0)
+
+	var title: Label = Label.new()
+	title.text = "BLACK ZONE MISSION — Unity Drop"
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override(
+		"font_color", Color(0.85, 0.6, 1.0, 1))
+	vbox.add_child(title)
+
+	# Mission type
+	var bz_mission: Dictionary = BlackZoneSystem.roll_mission_type()
+	var mission_label: Label = Label.new()
+	mission_label.text = "Mission: %s\n%s" % [
+		bz_mission.get("name", "Unknown"),
+		bz_mission.get("description", "")]
+	mission_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mission_label.add_theme_font_size_override("font_size", 13)
+	mission_label.add_theme_color_override(
+		"font_color", Color(0.88, 0.88, 0.88, 1))
+	vbox.add_child(mission_label)
+
+	# Opposition info
+	var opp_label: Label = Label.new()
+	opp_label.text = (
+		"Opposition: Roving Threats, 4 teams of 4 "
+		+ "(16 initial enemies)\n"
+		+ "Reinforcement wave arrives every round "
+		+ "(Active/Passive system)\n"
+		+ "No Notable Sights or Deployment Conditions")
+	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	opp_label.add_theme_font_size_override("font_size", 12)
+	opp_label.add_theme_color_override(
+		"font_color", Color(0.7, 0.7, 0.7, 1))
+	vbox.add_child(opp_label)
+
+	# Warning
+	var warn_label: Label = Label.new()
+	warn_label.text = (
+		"WARNING: This is not intended to be fair. "
+		+ "Your entire team may become casualties.")
+	warn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warn_label.add_theme_font_size_override("font_size", 12)
+	warn_label.add_theme_color_override(
+		"font_color", Color(0.86, 0.15, 0.15, 1))
+	vbox.add_child(warn_label)
+
+	# Advantages reminder
+	var adv_label: Label = Label.new()
+	adv_label.text = (
+		"Advantages: 3 free Weapon Table rolls, "
+		+ "no Upkeep, no Rival interference")
+	adv_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	adv_label.add_theme_font_size_override("font_size", 12)
+	adv_label.add_theme_color_override(
+		"font_color", Color(0.063, 0.725, 0.506, 1))
+	vbox.add_child(adv_label)
+
+	_zone_info_container.add_child(card)
+
+func _create_zone_card(
+		bg_color: Color, border_color: Color) -> PanelContainer:
+	## Create a styled zone info card
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = border_color
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 16.0
+	style.content_margin_top = 12.0
+	style.content_margin_right = 16.0
+	style.content_margin_bottom = 12.0
+	card.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	card.add_child(vbox)
+
+	return card
 
 func _update_crew_list() -> void:
 	## Update crew list display

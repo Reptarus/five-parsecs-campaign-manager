@@ -5,7 +5,6 @@ extends "res://src/base/campaign/crew/BaseCrewSystem.gd"
 
 const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
-const FiveParsecsStrangeCharacters = preload("res://src/game/campaign/crew/FiveParsecsStrangeCharacters.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 
 signal battle_completed(battle_data: Dictionary)
@@ -118,13 +117,9 @@ func add_strange_character(character_type: int = -1) -> FPCM_CrewMember:
 	var last = last_names[randi() % last_names.size()]
 	member.character_name = first + " " + last
 	
-	# Apply strange character abilities
-	if character_type < 0:
-		character_type = randi() % 6 # Random type
-	
-	var strange_character = FiveParsecsStrangeCharacters.new(character_type)
-	strange_character.apply_special_abilities(member)
-	
+	# Strange character abilities now handled via SpeciesDataService + Character.special_rules
+	# (Core Rules pp.19-22 — species_id set at creation, rules enforced by gameplay systems)
+
 	# Add to crew
 	add_crew_member(member)
 	

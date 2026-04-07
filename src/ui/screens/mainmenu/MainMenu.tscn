@@ -98,7 +98,7 @@ text = "Options"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-text = "Library"
+text = "Expansions"
 
 [node name="VersionLabel" type="Label" parent="." unique_id=1272520377]
 layout_mode = 1
@@ -113,7 +113,9 @@ offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "V1.0, ReptarusOnIce Production"
+text = "v0.9.7-dev"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 0.6)
 horizontal_alignment = 2
 
 [node name="TutorialPopup" type="Panel" parent="." unique_id=543640377]

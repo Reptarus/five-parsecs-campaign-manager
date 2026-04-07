@@ -45,7 +45,23 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 		return {"precursor_choice": true, "event1": character_event, "event2": second_event, "crew_id": random_crew}
 
 	# Add species_exceptions from JSON entry for downstream handling
-	character_event["character_origin"] = ctx.get_character_origin(random_crew)
+	character_event["character_origin"] = ctx.get_character_origin(
+		random_crew)
+
+	# Emo-suppressed: may ignore events requiring fights (Core Rules p.22)
+	var crew_sid: String = ""
+	if random_crew is Dictionary:
+		crew_sid = random_crew.get("species_id", "").to_lower()
+	elif random_crew is String and ctx.has_method("get_crew_member"):
+		var member = ctx.get_crew_member(random_crew)
+		if member:
+			if member is Dictionary:
+				crew_sid = member.get("species_id", "").to_lower()
+			elif "species_id" in member:
+				crew_sid = str(member.species_id).to_lower()
+	if crew_sid == "emo_suppressed":
+		character_event["can_ignore_fight"] = true
+
 	return character_event
 
 func select_precursor_event(choice: int) -> Dictionary:

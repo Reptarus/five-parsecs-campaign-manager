@@ -36,7 +36,19 @@ campaign_turn_completed(turn_number: int)
 
 ## Phase Flow
 
+### Red & Black Zone Integration (Phase 35)
+
+Zone selection happens at the travel decision point in World Phase Step 0 (UpkeepPhaseComponent):
+
+- Player clicks "Travel to Red Zone" or "Accept Black Zone Mission" alongside normal Stay/Travel
+- `UpkeepPhaseComponent.selected_zone` stores choice (0=normal, 1=red, 2=black)
+- `WorldPhaseController._complete_world_phase()` reads `get_selected_zone()` and injects `is_red_zone`/`is_black_zone` into `mission_dict`
+- Black Zone auto-skips JOB_OFFERS and RESOLVE_RUMORS steps, waives upkeep
+- `_refresh_mission_prep()` also injects zone flags so MissionPrepComponent shows zone info cards
+- `red_zone_turns_completed` incremented at world phase completion for both RZ and BZ turns
+
 ### Turn Start
+
 ```
 CampaignPhaseManager.start_new_turn()
   → turn_number += 1

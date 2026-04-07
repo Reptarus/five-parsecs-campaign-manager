@@ -49,7 +49,18 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 	for participant in ctx.crew_participants:
 		if participant is String:
 			crew_ids.append(participant)
-	ctx.campaign_journal.auto_create_battle_entry({
+
+	# Determine zone type for tagging and description enrichment
+	var zone_type: String = ""
+	var zone_tag: String = ""
+	if ctx.battle_result.get("is_black_zone", false):
+		zone_type = "BLACK ZONE"
+		zone_tag = "black_zone"
+	elif ctx.battle_result.get("is_red_zone", false):
+		zone_type = "RED ZONE"
+		zone_tag = "red_zone"
+
+	var entry_data: Dictionary = {
 		"turn": ctx.battle_result.get("turn", 0),
 		"location": ctx.battle_result.get("location", "Unknown"),
 		"outcome": "victory" if ctx.mission_successful else "defeat",
@@ -57,8 +68,45 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 		"loot": ctx.loot_earned.size(),
 		"xp": ctx.battle_result.get("xp_earned", 0),
 		"crew_ids": crew_ids,
-		"enemy_type": ctx.battle_result.get("enemy_type", "Unknown")
-	})
+		"enemy_type": ctx.battle_result.get("enemy_type", "Unknown"),
+	}
+
+	# Enrich with zone context
+	if not zone_type.is_empty():
+		entry_data["zone_type"] = zone_type
+		entry_data["zone_tag"] = zone_tag
+
+	# Add Red Zone threat/time constraint details
+	if ctx.battle_result.get("is_red_zone", false):
+		var threat: Dictionary = ctx.battle_result.get(
+			"red_zone_threat", {})
+		var time_c: Dictionary = ctx.battle_result.get(
+			"red_zone_time_constraint", {})
+		if not threat.is_empty():
+			entry_data["threat_condition"] = threat.get(
+				"name", "None")
+		if not time_c.is_empty():
+			entry_data["time_constraint"] = time_c.get(
+				"name", "None")
+
+	# Add Black Zone mission type details
+	if ctx.battle_result.get("is_black_zone", false):
+		var bz_mission: Dictionary = ctx.battle_result.get(
+			"black_zone_mission", {})
+		if not bz_mission.is_empty():
+			entry_data["black_zone_mission"] = bz_mission.get(
+				"name", "Unknown")
+
+	# Add Story Track event context (Core Rules Appendix V)
+	if ctx.battle_result.get("is_story_battle", false):
+		entry_data["story_event_id"] = ctx.battle_result.get(
+			"story_event_id", "")
+		entry_data["story_event_number"] = ctx.battle_result.get(
+			"story_event_number", 0)
+		entry_data["zone_type"] = "STORY EVENT"
+		entry_data["zone_tag"] = "story_track"
+
+	ctx.campaign_journal.auto_create_battle_entry(entry_data)
 
 func record_planet_mission(ctx: PostBattleContextClass) -> void:
 	## Record mission completion on current planet (PlanetDataManager)
@@ -93,9 +141,79 @@ func _create_character_battle_journal_event(ctx: PostBattleContextClass, member:
 		elif status == "MISSING":
 			outcome = "missing"
 
-	ctx.campaign_journal.auto_create_character_event(char_id, "battle", {
+	var event_details: Dictionary = {
 		"kills": kills,
 		"outcome": outcome,
 		"mission_success": ctx.mission_successful,
-		"turn": ctx.battle_result.get("turn", 0)
+		"turn": ctx.battle_result.get("turn", 0),
+	}
+	# Enrich with zone context for character timeline
+	if ctx.battle_result.get("is_black_zone", false):
+		event_details["zone_type"] = "BLACK ZONE"
+	elif ctx.battle_result.get("is_red_zone", false):
+		event_details["zone_type"] = "RED ZONE"
+	ctx.campaign_journal.auto_create_character_event(
+		char_id, "battle", event_details
 	})
+
+func check_traveler_disappearance(
+	ctx: PostBattleContextClass
+) -> Array[Dictionary]:
+	## Core Rules p.22: After every battle, Traveler rolls 2D6.
+	## On 2: disappear permanently (crew gains 2 story points).
+	## On 11-12: crew receives a Quest.
+	var results: Array[Dictionary] = []
+	var crew: Array = ctx.get_participating_crew()
+	for member in crew:
+		if not member:
+			continue
+		var sid: String = ""
+		if member is Dictionary:
+			sid = member.get("species_id", "").to_lower()
+		elif "species_id" in member:
+			sid = str(member.species_id).to_lower()
+		if sid != "traveler":
+			continue
+
+		var roll: int = (randi() % 6 + 1) + (randi() % 6 + 1)
+		var char_name: String = ""
+		if member is Dictionary:
+			char_name = member.get(
+				"character_name", "Traveler")
+		elif member is Object and member.has_method("get"):
+			char_name = str(member.get("character_name"))
+			if char_name.is_empty():
+				char_name = "Traveler"
+
+		if roll == 2:
+			results.append({
+				"type": "disappear",
+				"character": char_name, "roll": roll})
+			if ctx.has_method("add_story_points"):
+				ctx.add_story_points(2)
+		elif roll >= 11:
+			results.append({
+				"type": "quest",
+				"character": char_name, "roll": roll})
+			if ctx.has_method("add_quest_rumor"):
+				ctx.add_quest_rumor()
+	return results
+
+func check_manipulator_bonus(
+	ctx: PostBattleContextClass
+) -> int:
+	## Core Rules p.22: When crew earns story points,
+	## roll 1D6 per Manipulator in crew. On 6 = +1 bonus.
+	var bonus: int = 0
+	for member in ctx.get_participating_crew():
+		if not member:
+			continue
+		var sid: String = ""
+		if member is Dictionary:
+			sid = member.get("species_id", "").to_lower()
+		elif "species_id" in member:
+			sid = str(member.species_id).to_lower()
+		if sid == "manipulator":
+			if (randi() % 6 + 1) == 6:
+				bonus += 1
+	return bonus

@@ -1351,7 +1351,8 @@ enum JobType {
 	ASSASSINATION # Assassination mission
 }
 
-## Strange Character Types
+## Strange Character Types — DEPRECATED: use Character.species_id (String) + SpeciesDataService
+## Kept for backwards compatibility; new code should use species_id from character_species.json
 enum StrangeCharacterType {
 	NONE, # Normal character
 	ALIEN, # Alien being

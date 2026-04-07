@@ -1,0 +1,190 @@
+{
+	"name": "Neutral Characters",
+	"description": "Appendix VIII: Neutral Characters (Core Rules pp.172-173). Profiles for NPCs found in starports, facilities, dive bars, etc. Used in special scenarios, GM play, and battlefield population.",
+	"page_reference": "pp.172-173",
+	"rules": {
+		"recruitment_roll": "1D6+Savvy, 5+ to request help",
+		"gm_modifier": "+/-1 based on circumstances",
+		"natural_6": "NC requests to join crew permanently as PC (if they survive)",
+		"battle_phase": "If battle involves NCs and enemies, add a Neutral phase after the Slow phase",
+		"reaction_score": "Provided for characters joining crew temporarily or permanently"
+	},
+	"characters": [
+		{
+			"id": "bystander",
+			"name": "Bystander",
+			"reactions": 1,
+			"speed": 3,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 0,
+			"description": "Any random civilian who gets caught up in events.",
+			"weapon_roll": {
+				"dice": "1D6",
+				"results": [
+					{"range": [1, 5], "weapon": "none"},
+					{"range": [6, 6], "weapon": "Hold Out Pistol"}
+				]
+			},
+			"page_reference": "p.172"
+		},
+		{
+			"id": "street_punk",
+			"name": "Street Punk",
+			"reactions": 1,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 0,
+			"description": "Downtown tough nut itching for a chance to prove themselves.",
+			"weapon_roll": {
+				"dice": "1D6",
+				"results": [
+					{"range": [1, 2], "weapon": "none"},
+					{"range": [3, 4], "weapon": "Blade"},
+					{"range": [5, 6], "weapon": "Scrap Pistol"}
+				]
+			},
+			"page_reference": "p.172"
+		},
+		{
+			"id": "gangster",
+			"name": "Gangster",
+			"reactions": 1,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 4,
+			"savvy": 0,
+			"description": "Hardened criminal or mob enforcer.",
+			"weapon": "Handgun",
+			"page_reference": "p.172"
+		},
+		{
+			"id": "corporate_slick",
+			"name": "Corporate Slick",
+			"reactions": 1,
+			"speed": 3,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 1,
+			"description": "If I play my cards right, I could be senior assistant to the VP within 3 years and then...",
+			"weapon_roll": {
+				"dice": "1D6",
+				"results": [
+					{"range": [1, 5], "weapon": "none"},
+					{"range": [6, 6], "weapon": "Hold Out Pistol"}
+				]
+			},
+			"page_reference": "p.172"
+		},
+		{
+			"id": "hardened_shopkeep",
+			"name": "Hardened Shopkeep",
+			"reactions": 1,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 0,
+			"description": "You don't run a noodle shop in a Fringe Space starport without learning a few things.",
+			"weapon_roll": {
+				"dice": "1D6",
+				"results": [
+					{"range": [1, 2], "weapon": "Handgun"},
+					{"range": [3, 4], "weapon": "Hand Cannon"},
+					{"range": [5, 6], "weapon": "Shotgun"}
+				]
+			},
+			"page_reference": "p.172"
+		},
+		{
+			"id": "hardened_colonist",
+			"name": "Hardened Colonist",
+			"reactions": 1,
+			"speed": 5,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 0,
+			"description": "Hard-nosed survivors prone to getting eaten by alien lifeforms.",
+			"weapon": "Colony Rifle",
+			"page_reference": "p.172"
+		},
+		{
+			"id": "service_bot",
+			"name": "Service Bot",
+			"reactions": 1,
+			"speed": 3,
+			"combat_skill": 0,
+			"toughness": 4,
+			"savvy": 0,
+			"conditional_savvy": {
+				"value": 2,
+				"condition": "when performing a task it was built for"
+			},
+			"description": "Typical work bot, fitted with semi-autonomous AI emulation circuitry.",
+			"weapon": "none",
+			"special_rules": ["Unarmed blows count as Damage +0 Melee"],
+			"page_reference": "p.172"
+		},
+		{
+			"id": "scientist",
+			"name": "Scientist",
+			"reactions": 1,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 2,
+			"description": "Corporate or Unity research lab inhabitants. Usually not up to anything illegal.",
+			"weapon": "none",
+			"page_reference": "p.173"
+		},
+		{
+			"id": "technician",
+			"name": "Technician",
+			"reactions": 1,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 3,
+			"savvy": 1,
+			"description": "Any starship-capable facility requires a small army of technical staff to keep everything working.",
+			"weapon": "Wrench",
+			"weapon_traits": "Damage +0, Melee",
+			"page_reference": "p.173"
+		},
+		{
+			"id": "dock_worker",
+			"name": "Dock Worker",
+			"reactions": 1,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 4,
+			"savvy": 0,
+			"description": "Big, beefy worker given to militancy and unhealthy habits.",
+			"weapon_conditional": "No weapon if things are good, Colony Rifle if there's labor unrest",
+			"page_reference": "p.173"
+		},
+		{
+			"id": "security_guard",
+			"name": "Security Guard",
+			"reactions": 2,
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 4,
+			"savvy": 0,
+			"description": "Typical rent-a-gun security for low-risk facilities.",
+			"weapon": "Handgun",
+			"page_reference": "p.173"
+		},
+		{
+			"id": "enforcer",
+			"name": "Enforcer",
+			"reactions": 2,
+			"speed": 5,
+			"combat_skill": 1,
+			"toughness": 4,
+			"savvy": 0,
+			"description": "The heavy hitters that deal with riots, dangerous criminals, and act as the front-line defense in case of invasion.",
+			"weapon_split": "Half with Shotguns, half with Handguns",
+			"page_reference": "p.173"
+		}
+	]
+}

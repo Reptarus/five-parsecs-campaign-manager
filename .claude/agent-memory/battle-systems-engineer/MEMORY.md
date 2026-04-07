@@ -26,6 +26,20 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 
 ---
 
+## Session 35: Red & Black Zone Jobs Battle Integration (Apr 7, 2026)
+
+`BattlePhase.gd:280-411` already read `is_red_zone`/`is_black_zone` flags — now wired from upstream:
+
+- Zone flags injected by `WorldPhaseController._complete_world_phase()` into `progress_data["current_mission"]`
+- Red Zone: fixed 7 enemies + 3 specialists + 1 lieutenant, threat condition (D6), time constraint (Round 6 D6), +2 invasion, -1 galactic war
+- Black Zone: 4 teams of 4 from Roving Threats, reinforcement every round, Active/Passive system, 5 mission types (D10)
+- PostBattle: `PaymentProcessor.process_black_zone_rewards()` handles victory (clear rivals, +2 patrons, 5cr, loan payoff) and failure (1cr/casualty). `ExperienceTrainingProcessor` adds +1 XP all crew on BZ victory. `GalacticWarProcessor` applies RZ -1 modifier
+- Journal: battle entries tagged with `red_zone`/`black_zone`, enriched with threat/time/mission details
+- Key files: `RedZoneSystem.gd`, `BlackZoneSystem.gd` (RefCounted, static methods, JSON-backed)
+- Data: `data/red_zone_jobs.json`, `data/black_zone_jobs.json`
+
+---
+
 ## Phase 31 QA Bug Fix Sprint (Mar 16, 2026)
 
 10 bugs + 3 UX issues fixed across 14 files, 0 compile errors. Key battle-domain fixes below.

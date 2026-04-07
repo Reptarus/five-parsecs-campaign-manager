@@ -141,6 +141,8 @@ var _bonus_tables: Dictionary = {}
 var _background_d100: Dictionary = {}
 var _class_d100: Dictionary = {}
 var _motivation_d100: Dictionary = {}
+## Maps origin OptionButton item index → species_id string (Core Rules pp.15-22)
+var _origin_species_ids: Array[String] = []
 
 func _init() -> void:
 	current_character = FiveParsecsCharacter.new()
@@ -194,14 +196,44 @@ func _populate_dropdowns() -> void:
 					origins.append(["Prison Planet (DLC Required)", GlobalEnums.Origin.PRISON_PLANET])
 					locked_species.append("Prison Planet")
 	_populate_option_button(origin_options, origins)
+
+	# Build parallel species_id map for primary + DLC species
+	_origin_species_ids.clear()
+	for item in origins:
+		# Map display name → species_id (lowercase, underscored)
+		var display: String = item[0].split(" (")[0]  # strip "(DLC)" etc.
+		_origin_species_ids.append(
+			display.to_lower().replace(" ", "_").replace("'", ""))
+
 	# Disable locked DLC species entries in dropdown
 	for i in range(origin_options.item_count):
 		var item_text: String = origin_options.get_item_text(i)
 		for species_name in locked_species:
 			if species_name in item_text and "Required" in item_text:
 				origin_options.set_item_disabled(i, true)
-				var dlc_name: String = "Fixer's Guidebook DLC" if species_name == "Prison Planet" else "Trailblazer's Toolkit DLC"
-				origin_options.set_item_tooltip(i, "Requires " + dlc_name)
+				var dlc_name: String = (
+					"Fixer's Guidebook DLC"
+					if species_name == "Prison Planet"
+					else "Trailblazer's Toolkit DLC")
+				origin_options.set_item_tooltip(
+					i, "Requires " + dlc_name)
+
+	# Add Strange Characters from JSON (Core Rules pp.19-22)
+	SpeciesDataService._ensure_loaded()
+	var strange_species: Array[Dictionary] = []
+	for sp in SpeciesDataService.get_all_species():
+		if sp.get("category") == "strange_characters":
+			strange_species.append(sp)
+	if not strange_species.is_empty():
+		origin_options.add_separator("── Strange Characters ──")
+		_origin_species_ids.append("")  # separator placeholder
+		for sp in strange_species:
+			var idx: int = origin_options.item_count
+			origin_options.add_item(sp.get("name", "Unknown"))
+			# Negative IDs = non-enum Strange Characters
+			origin_options.set_item_id(idx, -(idx + 100))
+			_origin_species_ids.append(sp.get("id", ""))
+
 	_populate_option_button(background_options, BACKGROUND_ITEMS)
 	_populate_option_button(class_options, CLASS_ITEMS)
 	_populate_option_button(motivation_options, MOTIVATION_ITEMS)
@@ -355,6 +387,75 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 
 	_apply_bonuses(current_bonuses.origin)
 
+func _apply_strange_character_stats(species_id: String) -> void:
+	## Apply stat modifiers from character_species.json for Strange Characters
+	if not current_character or species_id.is_empty():
+		return
+	_remove_bonuses(current_bonuses.origin)
+	current_bonuses.origin.clear()
+	var mods: Dictionary = SpeciesDataService.get_stat_modifiers(
+		species_id)
+	for stat_key in mods:
+		var val: int = mods[stat_key]
+		if val != 0:
+			current_bonuses.origin[stat_key] = val
+	_apply_bonuses(current_bonuses.origin)
+
+func _enforce_species_constraints(species_id: String) -> void:
+	## Lock/unlock dropdowns based on Strange Character rules (Core Rules pp.19-22)
+	if not is_inside_tree() or Engine.is_editor_hint():
+		return
+	# Reset all to enabled
+	background_options.disabled = false
+	class_options.disabled = false
+	motivation_options.disabled = false
+
+	if species_id.is_empty():
+		return
+
+	# Assault Bot: no creation tables (Core Rules p.21)
+	if not SpeciesDataService.can_roll_creation_tables(species_id):
+		background_options.disabled = true
+		class_options.disabled = true
+		motivation_options.disabled = true
+		return
+
+	# Forced motivation (De-converted→Revenge, Unity Agent→Order, etc.)
+	var forced_mot: String = SpeciesDataService.get_forced_motivation(
+		species_id)
+	if not forced_mot.is_empty():
+		var mot_idx := _find_item_index_by_name(
+			MOTIVATION_ITEMS, forced_mot.capitalize())
+		if mot_idx >= 0:
+			_set_character_property(
+				current_character, "motivation",
+				MOTIVATION_ITEMS[mot_idx][1])
+			_apply_motivation_bonuses(MOTIVATION_ITEMS[mot_idx][1])
+			for i in range(motivation_options.item_count):
+				if motivation_options.get_item_id(i) == MOTIVATION_ITEMS[mot_idx][1]:
+					motivation_options.select(i)
+					break
+			motivation_options.disabled = true
+
+	# Forced background (Mutant→Lower Megacity, Manipulator→Bureaucrat, etc.)
+	var forced_bg: String = SpeciesDataService.get_forced_background(
+		species_id)
+	if not forced_bg.is_empty():
+		# Convert snake_case JSON id to display name for matching
+		var bg_display: String = forced_bg.replace(
+			"_", " ").capitalize()
+		var bg_idx := _find_item_index_by_name(
+			BACKGROUND_ITEMS, bg_display)
+		if bg_idx >= 0:
+			_set_character_property(
+				current_character, "background",
+				BACKGROUND_ITEMS[bg_idx][1])
+			_apply_background_bonuses(BACKGROUND_ITEMS[bg_idx][1])
+			for i in range(background_options.item_count):
+				if background_options.get_item_id(i) == BACKGROUND_ITEMS[bg_idx][1]:
+					background_options.select(i)
+					break
+			background_options.disabled = true
 
 func _grant_random_psionic_power() -> void:
 	## Grant a random psionic power to the current character (Precursor origin, Core Rules p.17)
@@ -532,6 +633,45 @@ func _roll_and_store_creation_bonuses(character) -> void:
 					"type": table_key.replace(
 						"_", " ").capitalize(),
 				})
+	# Strange Character creation bonus adjustments (Core Rules pp.19-22)
+	var sid: String = _get_character_property(
+		character, "species_id", "").to_lower()
+	if not sid.is_empty():
+		match sid:
+			"mysterious_past":
+				# Bonus story points from tables are ignored (p.20)
+				bonuses.story_points = 0
+			"genetic_uplift":
+				# Background bonus credits ignored, +1 rival (p.21)
+				bonuses.bonus_credits = 0
+				bonuses.credits_dice_sources.clear()
+				bonuses.rivals += 1
+			"minor_alien":
+				# Bonus credits/story points reduced by 1 (p.22)
+				bonuses.bonus_credits = maxi(
+					bonuses.bonus_credits - 1, 0)
+				bonuses.story_points = maxi(
+					bonuses.story_points - 1, 0)
+				# Roll XP discount stat (Core Rules p.22)
+				# 1=Reactions, 2-3=Speed, 4=Combat, 5=Toughness, 6=Savvy
+				var disc_roll: int = randi_range(1, 6)
+				var disc_stat: String = ""
+				match disc_roll:
+					1: disc_stat = "reactions"
+					2, 3: disc_stat = "speed"
+					4: disc_stat = "combat"
+					5: disc_stat = "toughness"
+					6: disc_stat = "savvy"
+				_set_character_property(
+					character, "xp_discount_stat", disc_stat)
+			"traveler":
+				# +2 story points, +2 quest rumors (p.22)
+				bonuses.story_points += 2
+				bonuses.quest_rumors += 2
+			"hopeful_rookie":
+				# Begin with 1 Luck (p.21)
+				_set_character_property(character, "luck", 1)
+
 	_set_character_property(character, "creation_bonuses", bonuses)
 
 func _roll_d100_table(table: Dictionary) -> String:
@@ -660,45 +800,115 @@ func _on_randomize_pressed() -> void:
 		rand_name = FiveParsecsCharacterTableRoller.generate_random_name()
 	_set_character_property(current_character, "character_name", rand_name)
 
-	# Origin: flat random (no D100 table in Core Rules for species selection)
-	var origin_entry = ORIGIN_ITEMS[randi() % ORIGIN_ITEMS.size()]
-	_set_character_property(current_character, "origin", origin_entry[1])
+	# Origin: flat random from all available species (including Strange Characters)
+	var origin_idx: int = randi() % _origin_species_ids.size()
+	# Skip separator entries (empty species_id)
+	while origin_idx < _origin_species_ids.size() and _origin_species_ids[origin_idx].is_empty():
+		origin_idx = randi() % _origin_species_ids.size()
+	# Skip disabled items (DLC-locked)
+	if origin_idx < origin_options.item_count and origin_options.is_item_disabled(origin_idx):
+		origin_idx = randi() % ORIGIN_ITEMS.size()  # fallback to primary
+	var species_id: String = (
+		_origin_species_ids[origin_idx]
+		if origin_idx < _origin_species_ids.size() else "")
+	var origin_enum: int = (
+		origin_options.get_item_id(origin_idx)
+		if origin_idx < origin_options.item_count else 1)
+
+	# Set origin — enum int for primary, display name for Strange
+	if origin_enum > 0:
+		_set_character_property(
+			current_character, "origin", origin_enum)
+	else:
+		_set_character_property(
+			current_character, "origin",
+			origin_options.get_item_text(origin_idx))
+	_set_character_property(
+		current_character, "species_id", species_id)
+	var sp_rules: Array = SpeciesDataService.get_special_rules(
+		species_id)
+	if current_character.has_method("set"):
+		current_character.set(
+			"special_rules", sp_rules.duplicate())
+
+	# Check Strange Character creation constraints
+	var can_roll: bool = SpeciesDataService.can_roll_creation_tables(
+		species_id)
 
 	# Background: D100 weighted roll (Core Rules pp.24-25)
-	var bg_entry = BACKGROUND_ITEMS[randi() % BACKGROUND_ITEMS.size()]  # fallback
-	if not _background_d100.is_empty():
-		var bg_name: String = _roll_d100_table(_background_d100)
-		if not bg_name.is_empty():
-			var idx: int = _find_item_index_by_name(BACKGROUND_ITEMS, bg_name)
-			if idx >= 0:
-				bg_entry = BACKGROUND_ITEMS[idx]
-	_set_character_property(current_character, "background", bg_entry[1])
+	var bg_entry = BACKGROUND_ITEMS[randi() % BACKGROUND_ITEMS.size()]
+	if can_roll:
+		# Check forced background first
+		var forced_bg: String = SpeciesDataService.get_forced_background(
+			species_id)
+		if not forced_bg.is_empty():
+			var bg_display: String = forced_bg.replace(
+				"_", " ").capitalize()
+			var fb_idx := _find_item_index_by_name(
+				BACKGROUND_ITEMS, bg_display)
+			if fb_idx >= 0:
+				bg_entry = BACKGROUND_ITEMS[fb_idx]
+		elif not _background_d100.is_empty():
+			var bg_name: String = _roll_d100_table(_background_d100)
+			if not bg_name.is_empty():
+				var idx: int = _find_item_index_by_name(
+					BACKGROUND_ITEMS, bg_name)
+				if idx >= 0:
+					bg_entry = BACKGROUND_ITEMS[idx]
+	if can_roll:
+		_set_character_property(
+			current_character, "background", bg_entry[1])
 
 	# Class: D100 weighted roll (Core Rules pp.26-27)
-	var class_entry = CLASS_ITEMS[randi() % CLASS_ITEMS.size()]  # fallback
-	if not _class_d100.is_empty():
-		var cls_name: String = _roll_d100_table(_class_d100)
-		if not cls_name.is_empty():
-			var idx: int = _find_item_index_by_name(CLASS_ITEMS, cls_name)
-			if idx >= 0:
-				class_entry = CLASS_ITEMS[idx]
-	_set_character_property(current_character, "character_class", class_entry[1])
+	var class_entry = CLASS_ITEMS[randi() % CLASS_ITEMS.size()]
+	if can_roll:
+		if not _class_d100.is_empty():
+			var cls_name: String = _roll_d100_table(_class_d100)
+			if not cls_name.is_empty():
+				var idx: int = _find_item_index_by_name(
+					CLASS_ITEMS, cls_name)
+				if idx >= 0:
+					class_entry = CLASS_ITEMS[idx]
+		# Hulker: Technician/Scientist/Hacker → Primitive (Core Rules p.21)
+		if species_id == "hulker":
+			var cls_name_str: String = class_entry[0]
+			if cls_name_str in [
+				"Technician", "Scientist", "Hacker"]:
+				class_entry = ["Primitive", 15]
+		_set_character_property(
+			current_character, "character_class", class_entry[1])
 
 	# Motivation: D100 weighted roll (Core Rules p.26)
-	var mot_entry = MOTIVATION_ITEMS[randi() % MOTIVATION_ITEMS.size()]  # fallback
-	if not _motivation_d100.is_empty():
-		var mot_name: String = _roll_d100_table(_motivation_d100)
-		if not mot_name.is_empty():
-			var idx: int = _find_item_index_by_name(MOTIVATION_ITEMS, mot_name)
-			if idx >= 0:
-				mot_entry = MOTIVATION_ITEMS[idx]
-	_set_character_property(current_character, "motivation", mot_entry[1])
+	var mot_entry = MOTIVATION_ITEMS[randi() % MOTIVATION_ITEMS.size()]
+	if can_roll:
+		# Check forced motivation first
+		var forced_mot: String = SpeciesDataService.get_forced_motivation(
+			species_id)
+		if not forced_mot.is_empty():
+			var fm_idx := _find_item_index_by_name(
+				MOTIVATION_ITEMS, forced_mot.capitalize())
+			if fm_idx >= 0:
+				mot_entry = MOTIVATION_ITEMS[fm_idx]
+		elif not _motivation_d100.is_empty():
+			var mot_name: String = _roll_d100_table(
+				_motivation_d100)
+			if not mot_name.is_empty():
+				var idx: int = _find_item_index_by_name(
+					MOTIVATION_ITEMS, mot_name)
+				if idx >= 0:
+					mot_entry = MOTIVATION_ITEMS[idx]
+		_set_character_property(
+			current_character, "motivation", mot_entry[1])
 
 	# Apply all bonuses (origin, background, class, motivation)
-	_apply_origin_bonuses(origin_entry[1])
-	_apply_background_bonuses(bg_entry[1])
-	_apply_class_bonuses(class_entry[1])
-	_apply_motivation_bonuses(mot_entry[1])
+	if origin_enum > 0:
+		_apply_origin_bonuses(origin_enum)
+	else:
+		_apply_strange_character_stats(species_id)
+	if can_roll:
+		_apply_background_bonuses(bg_entry[1])
+		_apply_class_bonuses(class_entry[1])
+		_apply_motivation_bonuses(mot_entry[1])
 
 	# Roll and store creation bonuses (Core Rules pp.23-28)
 	_roll_and_store_creation_bonuses(current_character)
@@ -719,8 +929,34 @@ func _on_name_changed(text: String) -> void:
 
 func _on_origin_changed(index: int) -> void:
 	var enum_value: int = origin_options.get_item_id(index)
-	_set_character_property(current_character, "origin", enum_value)
-	_apply_origin_bonuses(enum_value)
+	var species_id: String = (
+		_origin_species_ids[index]
+		if index < _origin_species_ids.size() else "")
+
+	# Standard species (positive enum ID) vs Strange Character (negative)
+	if enum_value > 0:
+		_set_character_property(
+			current_character, "origin", enum_value)
+		_apply_origin_bonuses(enum_value)
+	else:
+		# Strange Character — store display name as origin string
+		var species_name: String = origin_options.get_item_text(index)
+		_set_character_property(
+			current_character, "origin", species_name)
+		# Apply stat modifiers from JSON
+		_apply_strange_character_stats(species_id)
+
+	# Set species_id and special_rules on character
+	if current_character:
+		_set_character_property(
+			current_character, "species_id", species_id)
+		var rules: Array = SpeciesDataService.get_special_rules(
+			species_id)
+		if current_character.has_method("set"):
+			current_character.set(
+				"special_rules", rules.duplicate())
+
+	_enforce_species_constraints(species_id)
 	_update_preview()
 
 func _on_background_changed(index: int) -> void:
@@ -814,16 +1050,36 @@ func _update_preview() -> void:
 	if not preview_info or not current_character:
 		return
 
-	var char_name: String = _get_character_property(current_character, "character_name", "")
-	var origin_idx: int = _get_character_property(current_character, "origin", 0)
-	var bg_idx: int = _get_character_property(current_character, "background", 0)
-	var cls_idx: int = _get_character_property(current_character, "character_class", 0)
-	var mot_idx: int = _get_character_property(current_character, "motivation", 0)
+	var char_name: String = _get_character_property(
+		current_character, "character_name", "")
+	var origin_val = _get_character_property(
+		current_character, "origin", 0)
+	var bg_val = _get_character_property(
+		current_character, "background", 0)
+	var cls_val = _get_character_property(
+		current_character, "character_class", 0)
+	var mot_val = _get_character_property(
+		current_character, "motivation", 0)
 
-	var origin_name: String = _safe_enum_name(GlobalEnums.Origin, origin_idx)
-	var bg_name: String = _safe_enum_name(GlobalEnums.Background, bg_idx)
-	var cls_name: String = _safe_enum_name(GlobalEnums.CharacterClass, cls_idx)
-	var mot_name: String = _safe_enum_name(GlobalEnums.Motivation, mot_idx)
+	# Handle both int (primary species) and String (Strange Characters)
+	var origin_name: String = (
+		str(origin_val).capitalize()
+		if origin_val is String
+		else _safe_enum_name(GlobalEnums.Origin, origin_val))
+	var bg_name: String = (
+		str(bg_val).capitalize()
+		if bg_val is String
+		else _safe_enum_name(GlobalEnums.Background, bg_val))
+	var cls_name: String = (
+		str(cls_val).capitalize()
+		if cls_val is String
+		else _safe_enum_name(
+			GlobalEnums.CharacterClass, cls_val))
+	var mot_name: String = (
+		str(mot_val).capitalize()
+		if mot_val is String
+		else _safe_enum_name(
+			GlobalEnums.Motivation, mot_val))
 
 	var portrait_path: String = _get_character_property(
 		current_character, "portrait_path", "")
@@ -846,6 +1102,14 @@ func _update_preview() -> void:
 	bbcode += "[color=yellow]Toughness:[/color] %d\n" % current_character.toughness
 	bbcode += "[color=yellow]Savvy:[/color] +%d\n" % current_character.savvy
 	bbcode += "[color=yellow]Luck:[/color] %d\n" % current_character.luck
+
+	# Species rules for Strange Characters (Core Rules pp.19-22)
+	var sp_rules: Array = _get_character_property(
+		current_character, "special_rules", [])
+	if sp_rules is Array and not sp_rules.is_empty():
+		bbcode += "\n[color=#D97706]Species Rules:[/color]\n"
+		for rule in sp_rules:
+			bbcode += "[color=#808080]• %s[/color]\n" % str(rule)
 
 	preview_info.text = bbcode
 

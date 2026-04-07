@@ -154,6 +154,15 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 	var own_btn := Button.new()
 	own_btn.custom_minimum_size = Vector2(100, TOUCH_TARGET)
 	own_btn.pressed.connect(_on_ownership_toggled.bind(dlc_id))
+	# Only show ownership toggle in dev/offline mode
+	var store_mgr: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/StoreManager") if Engine.get_main_loop() else null
+	var is_dev: bool = not store_mgr or (
+		store_mgr.has_method("is_offline_mode")
+		and store_mgr.is_offline_mode())
+	if not is_dev:
+		own_btn.disabled = true
+		own_btn.tooltip_text = "Purchase from the Expansions screen"
 	header_hbox.add_child(own_btn)
 	_ownership_buttons[dlc_id] = own_btn
 

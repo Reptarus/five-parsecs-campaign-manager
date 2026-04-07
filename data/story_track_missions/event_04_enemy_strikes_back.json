@@ -1,0 +1,72 @@
+{
+  "_source": "Core Rules Appendix V pp.156-157",
+  "event_id": "enemy_strikes_back",
+  "event_number": 4,
+  "title": "The Enemy Strikes Back",
+  "narrative": {
+    "intro": "A direct attack on your ship, while docked in port. They must have distracted starport security. Now you have to fight for your life!",
+    "briefing": "Set up the battlefield as a starport with crates, boxes, machinery, vehicles scattered everywhere. Your crew sets up within 5\" of your battlefield edge. You may include Sick Bay crew (marked Impaired). Two enemy groups: first at 18\", second arrives Round 3.",
+    "completion_win": "You drove off both groups. +1 XP to every character still on field. Roll twice for Battlefield Finds. Remove any one Rival. No new Rival check.",
+    "completion_lose": "You fled or entire crew became casualties. Ship suffers 1D6+10 Hull Points damage."
+  },
+  "campaign_turn_modifications": {
+    "patrons_remain_available_next_turn": true,
+    "no_rival_interference": true
+  },
+  "deployment": {
+    "type": "starport_defense",
+    "battlefield_theme": "starport",
+    "crew_setup": "within 5\" of your battlefield edge",
+    "crew_special": "May include Sick Bay crew as Impaired (can fight, no Dash/Aim)",
+    "enemy_setup_group_1": "18\" from crew positions in rough line, 2\" between figures",
+    "enemy_setup_group_2": "arrives Round 3 from battlefield edge behind group 1",
+    "no_seize_initiative": true
+  },
+  "enemies": {
+    "source_table": "hired_muscle",
+    "generation_method": "roll_twice_hired_muscle",
+    "description": "Roll twice on the Hired Muscle Subtable, generate each force separately. Even if same type rolled twice, keep as two separate forces.",
+    "group_1": {
+      "subtable": "hired_muscle",
+      "deployment_round": 1
+    },
+    "group_2": {
+      "subtable": "hired_muscle",
+      "deployment_round": 3,
+      "placement": "battlefield edge behind group 1"
+    },
+    "bail_rules": {
+      "per_group_check": true,
+      "check_trigger": "end of each round",
+      "check_method": "Roll 2D6. If roll <= casualties taken by that group, they flee."
+    }
+  },
+  "objectives": {
+    "primary": {
+      "type": "drive_off_both_groups",
+      "description": "Drive off both enemy groups or force them to flee"
+    },
+    "end_conditions": [
+      "Both groups driven off or fled",
+      "Crew forced to flee",
+      "Entire crew become casualties"
+    ]
+  },
+  "post_battle_effects": {
+    "flee_or_all_casualties": {
+      "ship_damage": "1D6+10 Hull Points"
+    },
+    "hold_field": {
+      "xp_bonus": 1,
+      "xp_bonus_scope": "every character still on field",
+      "battlefield_finds_rolls": 2,
+      "remove_rival": 1,
+      "description": "Reputation gained: remove any one Rival"
+    },
+    "common": {
+      "no_new_rival_check": true
+    }
+  },
+  "next_clock_ticks": 3,
+  "page_reference": "pp.156-157"
+}

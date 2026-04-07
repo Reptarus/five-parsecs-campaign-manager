@@ -147,6 +147,15 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	if psionic_power_val != "" and stat_name == "combat_skill":
 		return false
 
+	# Minor Alien: One stat has reduced XP cost (Core Rules p.22)
+	var species_id_val: String = Godot4Utils.safe_get_property(
+		character, "species_id", "")
+	if species_id_val.to_lower() == "minor_alien":
+		var discount_stat: String = Godot4Utils.safe_get_property(
+			character, "xp_discount_stat", "")
+		if discount_stat == stat_name:
+			cost = maxi(cost - 1, 1)
+
 	# Check if advancement is possible
 	if current_xp < cost:
 		return false

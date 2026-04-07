@@ -28,6 +28,7 @@ description: "Use this skill when working with character data models, the three-
 | File | Class/Role | Purpose |
 |------|-----------|---------|
 | `src/core/character/Character.gd` | `Character` | Canonical character model (~1,900 lines) |
+| `src/core/character/SpeciesDataService.gd` | `SpeciesDataService` | Static species lookup from character_species.json (16 Strange Characters + primary + compendium) |
 | `src/core/character/Base/Character.gd` | `BaseCharacterResource` | Base Resource with flat stats |
 | `src/core/systems/GlobalEnums.gd` | Autoload `GlobalEnums` | Primary enum definitions (70+) |
 | `src/core/enums/GameEnums.gd` | `GameEnums` | Secondary enum definitions (80+) |

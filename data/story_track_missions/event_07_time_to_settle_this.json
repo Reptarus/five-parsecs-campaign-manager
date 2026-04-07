@@ -1,0 +1,115 @@
+{
+  "_source": "Core Rules Appendix V pp.159-160",
+  "event_id": "time_to_settle_this",
+  "event_number": 7,
+  "title": "Time to Settle This",
+  "narrative": {
+    "intro": "This is it. You've managed to track your old rival to his hide-out. His forces are depleted and worn down. You are never going to get a better chance than this.",
+    "briefing": "Set up two thirds of the battlefield as barren moonscape (craters, hills, rocks, no vegetation). Last third: large building/compound/underground facility. Crew suited in atmosphere suits (6+ Armor Save, replaces normal armor). Bots and Soulless do not wear suits.",
+    "completion_win": "You killed Q'Narr. +1 XP all crew, +3 story points, 2x Battlefield Finds, 1D6+2 credits, 3 Loot rolls, remove 1 Rival. Companion joins permanently (no Upkeep).",
+    "completion_lose": "Q'Narr escaped. +1 XP all crew, +1 story point. Next 3 worlds: auto-acquire 1 Rival each. Companion may join (4+ on 1D6, WITH Upkeep)."
+  },
+  "campaign_turn_modifications": {
+    "can_delay_up_to": 3,
+    "delay_consequence": "lose_the_story",
+    "must_travel": true,
+    "travel_destination": "dead moon of barren world, no world details needed"
+  },
+  "deployment": {
+    "type": "two_zone_assault",
+    "zone_1": {
+      "description": "Two thirds: barren moonscape with craters, hills, rocks. No vegetation.",
+      "surface_sentries": {
+        "count": 4,
+        "initial_placement": "line across center of battlefield",
+        "scatter": "move each 1D6\" in random direction"
+      }
+    },
+    "zone_2": {
+      "description": "Last third: large building, compound, or underground facility",
+      "interior_guards": {
+        "count": 4,
+        "trigger": "first crew member enters compound",
+        "placement": "around the area, patrolling, none in Line of Sight of crew"
+      }
+    },
+    "nemesis_placement": "as far into the complex as possible, on their own",
+    "crew_armor": {
+      "type": "atmosphere_suit",
+      "save": "6+",
+      "replaces_normal_armor": true,
+      "exception": "Bots and Soulless do not wear atmosphere suits"
+    }
+  },
+  "enemies": {
+    "source_table": "fixed",
+    "composition": [
+      {
+        "type": "surface_sentry",
+        "count": 4,
+        "stats": {"panic": "1", "speed_inches": 4, "combat_skill": 0, "toughness": 3},
+        "ai": "tactical",
+        "weapons": ["Military Rifle"],
+        "armor_save": "6+",
+        "notes": "In space suits"
+      },
+      {
+        "type": "interior_guard",
+        "count": 4,
+        "stats": {"panic": "1", "speed_inches": 4, "combat_skill": 0, "toughness": 3},
+        "ai": "tactical",
+        "weapons": ["Military Rifle"],
+        "armor_save": "none",
+        "notes": "No armor, appear when first crew enters compound"
+      },
+      {
+        "type": "qnarr_nemesis",
+        "count": 1,
+        "stats": {"speed_inches": 4, "combat_skill": 0, "toughness": 4},
+        "ai": "defensive",
+        "weapons": ["Hand Cannon"],
+        "panic": "never",
+        "is_nemesis": true
+      }
+    ]
+  },
+  "objectives": {
+    "primary": {
+      "type": "kill_nemesis",
+      "target": "qnarr",
+      "description": "Kill Q'Narr to win"
+    },
+    "end_conditions": {
+      "win": "Q'Narr killed, remaining sentries flee",
+      "lose": "Crew forced to flee or defeated, Q'Narr escapes"
+    }
+  },
+  "post_battle_effects": {
+    "winning_the_story": {
+      "xp_bonus": 1,
+      "xp_scope": "every crew member",
+      "story_points": 3,
+      "battlefield_finds_rolls": 2,
+      "credits": "1D6+2",
+      "loot_rolls": 3,
+      "remove_rival": 1,
+      "remove_rival_deferred": "or remove next one obtained if none currently",
+      "companion_joins": true,
+      "companion_upkeep": false
+    },
+    "losing_the_story": {
+      "xp_bonus": 1,
+      "xp_scope": "every crew member",
+      "story_points": 1,
+      "auto_rival_next_worlds": 3,
+      "companion_join_roll": {
+        "threshold": 4,
+        "die": "1D6",
+        "joins_with_upkeep": true
+      }
+    }
+  },
+  "next_clock_ticks": null,
+  "story_track_completion": true,
+  "page_reference": "pp.159-160"
+}

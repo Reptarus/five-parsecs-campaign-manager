@@ -202,15 +202,50 @@ func _on_gui_input(event: InputEvent) -> void:
 ## Public API for setting story data
 
 func set_story_data(data: Dictionary) -> void:
-	## Update section with story track data
-	current_quest = data.get("quest_name", "No active quest")
-	next_objective = data.get("next_objective", "")
-	completed_milestones = data.get("milestones_completed", 0)
-	total_milestones = data.get("milestones_total", 5)
+	## Update section with story track data.
+	## Accepts either legacy quest format or new Story Track state dict.
+	total_milestones = 7  # 7 Core Rules events
+
+	# New format: from StoryTrackSystem.get_status() / serialize()
+	if data.has("current_event_index"):
+		var idx: int = data.get("current_event_index", 0)
+		var completed: int = data.get("events_completed", 0)
+		completed_milestones = completed
+		var outcome: String = data.get(
+			"story_outcome", data.get("outcome", "active"))
+		match outcome:
+			"won":
+				current_quest = "Story Complete — Victory!"
+				next_objective = ""
+				completed_milestones = total_milestones
+			"lost":
+				current_quest = "Story Complete — Defeated"
+				next_objective = ""
+			_:
+				var title: String = data.get(
+					"current_event_title", "Event %d" % (idx + 1))
+				current_quest = "Event %d: %s" % [idx + 1, title]
+				var ticks: int = data.get("clock_ticks",
+					data.get("story_clock_ticks", 0))
+				if data.get("pending_story_event", false):
+					next_objective = "Story Event next turn!"
+				elif data.get("in_evidence_search", false):
+					var ev: int = data.get("evidence_pieces", 0)
+					next_objective = "Searching... (%d evidence)" % ev
+				else:
+					next_objective = "Clock: %d ticks" % ticks
+	else:
+		# Legacy quest format fallback
+		current_quest = data.get("quest_name", "No active quest")
+		next_objective = data.get("next_objective", "")
+		completed_milestones = data.get("milestones_completed", 0)
+		total_milestones = data.get("milestones_total", 5)
 
 	# Calculate progress percentage
 	if total_milestones > 0:
-		story_progress = (float(completed_milestones) / float(total_milestones)) * 100.0
+		story_progress = (
+			float(completed_milestones) / float(total_milestones)
+		) * 100.0
 	else:
 		story_progress = 0.0
 

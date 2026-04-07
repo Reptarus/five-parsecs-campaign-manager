@@ -218,10 +218,10 @@ func _update_crew_list() -> void:
 			character.character_name,
 			_enum_value_name(
 				GlobalEnums.CharacterClass,
-				int(character.character_class)),
+				character.character_class),
 			_enum_value_name(
 				GlobalEnums.Origin,
-				int(character.origin))
+				character.origin)
 		]
 		crew_list.add_item(text)
 
@@ -264,9 +264,9 @@ func _build_crew_card(
 
 	var cls := _enum_value_name(
 		GlobalEnums.CharacterClass,
-		int(character.character_class))
+		character.character_class)
 	var origin := _enum_value_name(
-		GlobalEnums.Origin, int(character.origin))
+		GlobalEnums.Origin, character.origin)
 	var sub_lbl := Label.new()
 	sub_lbl.text = "%s  •  %s" % [cls, origin]
 	sub_lbl.add_theme_font_size_override("font_size", _scaled_font(12))

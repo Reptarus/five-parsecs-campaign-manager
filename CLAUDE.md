@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-04-02
+**Last Updated**: 2026-04-07
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -142,6 +142,29 @@ _on_resolve_all_pressed()
 - Dialog is purely presentational — ALL state mutation in `_on_event_completed()` callback
 - Art placeholder (`ColorRect`) ready for `TextureRect` swap via `res://assets/event_art/{name}.png`
 
+### Red & Black Zone Jobs (Core Rules Appendix III pp.148-151)
+
+Endgame content for experienced crews — zone selection integrates into the World Phase wizard:
+
+```
+UpkeepPhaseComponent (Step 0, travel decision)
+  ├─ "Stay" / "Travel" (normal)
+  ├─ "Travel to Red Zone" (visible at 10+ turns, requires license)
+  └─ "Accept Black Zone Mission" (visible when licensed + 10 RZ turns)
+       → selected_zone stored: 0=normal, 1=red, 2=black
+       → WorldPhaseController reads get_selected_zone()
+       → Injects is_red_zone/is_black_zone into mission_dict
+       → BattlePhase.gd reads flags at lines 280-411
+```
+
+- **Data files**: `data/red_zone_jobs.json`, `data/black_zone_jobs.json` — threat conditions, time constraints, opposition rules, mission types, rewards
+- **Systems**: `RedZoneSystem.gd`, `BlackZoneSystem.gd` — RefCounted, static methods, JSON-backed
+- **Persistence**: `FiveParsecsCampaignCore.red_zone_licensed` (bool), `.red_zone_turns_completed` (int) — serialized
+- **Black Zone step skip**: JOB_OFFERS + RESOLVE_RUMORS auto-skipped, upkeep waived
+- **PostBattle**: `PaymentProcessor.process_black_zone_rewards()`, ExperienceTrainingProcessor BZ +1 XP, GalacticWarProcessor RZ -1 modifier
+- **Journal**: Battle entries tagged `red_zone`/`black_zone`, enriched with threat/time/mission details, BZ victory/failure milestone entries, license purchase milestone
+- **Broker discount**: License fee -2cr if crew has Broker training (checks `has_broker_training` property + `"Broker Training"` trait)
+
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
 
@@ -166,6 +189,9 @@ The battle system is a **tabletop companion assistant** (NOT a tactical simulato
 - **Stats are flat properties**: `combat`, `reaction`, `toughness`, `speed`, `savvy`, `luck` (NO `stats` sub-object)
 - `CharacterStats.gd` exists as a separate Resource but is NOT used as a property on characters
 - Implants: 11 types (Core Rules p.55), max 2 per character. `Character.create_implant_from_loot()` does name-match scan (no separate map constant)
+- **Strange Character fields**: `species_id` (JSON lookup key), `special_rules` (Array[String] from JSON), `xp_discount_stat` (Minor Alien)
+- **Helper methods**: `can_receive_luck()`, `can_earn_xp()`, `get_bonus_xp()`, `can_perform_task(task_id)`
+- **SpeciesDataService.gd** (`src/core/character/SpeciesDataService.gd`): static RefCounted, lazy-loads `character_species.json`, provides `get_species()`, `get_forced_motivation()`, `can_roll_creation_tables()`, etc. Character.gd does NOT import it (load order) — uses inline string checks instead
 
 ### BaseCharacterResource Combat Interface (Session 10)
 
@@ -190,22 +216,38 @@ if dlc and dlc.is_feature_enabled(dlc.ContentFlag.SOME_FLAG):
     # DLC-gated code
 ```
 
-### Store/Paywall System (Phase 24)
+### Store/Paywall System (Phase 24+34)
 Tri-platform DLC purchase system using adapter pattern:
 ```
 StoreManager (autoload) → StoreAdapter (abstract base)
   ├─ SteamStoreAdapter    → Engine.get_singleton("Steam") + steamInitEx()
-  ├─ AndroidStoreAdapter  → Engine.get_singleton("AndroidIAPP")
+  ├─ AndroidStoreAdapter  → BillingClient.new() (official GodotGooglePlayBilling)
   ├─ IOSStoreAdapter      → ClassDB.instantiate("StoreKitManager")  ← NOT a singleton!
   └─ OfflineStoreAdapter  → Fallback for editor/dev mode
 ```
-- **Product IDs**: All in `StoreManager.gd` `PRODUCT_IDS` const — placeholder, swap before release
-- **Plugins installed**: GodotSteam (addons/godotsteam/), GodotApplePlugins (addons/GodotApplePlugins/), AndroidIAPP (addons/AndroidIAPP/ + android_IAPP/)
-- **Purchase flow**: StoreManager.purchase_dlc() → Adapter.purchase() → purchase_completed signal → DLCManager.set_dlc_owned()
+- **Product IDs**: All in `StoreManager.gd` `PRODUCT_IDS` const — placeholder, swap before release. Includes 3 packs + compendium_bundle + bug_hunt
+- **Plugins installed**: GodotSteam (addons/godotsteam/), GodotApplePlugins (addons/GodotApplePlugins/), GodotGooglePlayBilling (official Godot plugin)
+- **Purchase flow**: StoreManager.purchase_dlc() → Adapter.purchase() → purchase_completed signal → DLCManager.set_dlc_owned() → DLCActivationToast
+- **Bundle purchase**: `compendium_bundle` product maps to all 3 packs owned via StoreManager
 - **Autoload timing**: Adapters use `load()` not `preload()`, path-based `extends` (not class_name)
 - **iOS quirk**: `purchase()` takes a `StoreProduct` object (cached from query), not a string ID
-- **Android quirk**: Product IDs passed as arrays: `purchase(["pid"], false)`, must acknowledge within 3 days
+- **Android**: Uses official `BillingClient` class — `purchase(product_id)` takes single string, auto-acknowledges non-consumables
 - **Steam quirk**: Opens store overlay for purchase, ownership via `isDLCInstalled(app_id: int)`
+
+### Store UI (Phase 34)
+```
+MainMenu → "Expansions" button → SceneRouter "store" → StoreScreen
+  ├─ BundleCard (if < 3 packs owned, amber accent)
+  ├─ DLCPackCard x3 (rich cards with feature lists)
+  ├─ BugHuntCard (game mode section)
+  └─ Footer (Restore Purchases, Rate, Help link)
+```
+- **DLCContentCatalog.gd**: Single source of truth for all marketing copy
+- **DLCPackCard.gd**: Pre/post-purchase states, collapsible feature list
+- **ExpansionFeatureSection.gd**: Reusable toggle component (campaign creation + settings)
+- **DLCFeatureToggleRow.gd**: Atomic owned/locked toggle row
+- **DLCUpsellBanner.gd**: Contextual banner (`DLCUpsellBanner.create_for_flag()`)
+- **DLCActivationToast.gd**: Purchase notification (`DLCActivationToast.show_for_dlc()`)
 
 ### Review System (Phase 25)
 
@@ -469,6 +511,31 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 
 ---
 
+## Data Ownership — Single Source of Truth (Phase 2.1+, Apr 2026)
+
+**This is a TABLETOP COMPANION APP.** Data models mirror physical play: a character sheet, item cards, a ship stash box. Every concept has ONE canonical owner. All mutations go through the owner's setter. Direct writes to non-owned locations are banned and flagged by `scripts/lint_data_ownership.py`.
+
+| Concept | Canonical Owner | Mutation API | NEVER write to |
+|---|---|---|---|
+| Credits / supplies / reputation / story_points | `FiveParsecsCampaignCore` top-level @vars | `GameStateManager.set_credits()` etc. (writes through to campaign) | `progress_data["credits"]` (deleted) |
+| Per-character equipment | `Character.equipment` on each crew member | `EquipmentTransferService.transfer_to_character()`, `.transfer_to_stash()`, `.generate_starting_loadout()` | Direct `.equipment.append()` from outside the service |
+| Ship stash | `campaign.equipment_data["equipment"]` | `EquipmentTransferService.add_loot_to_stash()`, `.transfer_to_stash()` | Direct stash array mutations |
+| Crew members (incl. captain) | `campaign.crew_data["members"]` (captain has `is_captain: true`) | `campaign.get_crew_member_by_id()` for reads (cached O(1)); captain MUST be in members array, not only in `captain_data` | Ad-hoc `for member in crew_data["members"]` loops (use the helper) |
+| Turn number | `campaign.progress_data["turns_played"]` | `CampaignPhaseManager` reads/writes through campaign | Direct `progress_data["turns_played"] =` from outside |
+| Campaign phase | `CampaignPhaseManager.current_phase` (runtime) | Persisted to `campaign.game_phase` on save only | Direct `campaign.game_phase =` from UI code |
+
+### Key files
+- `src/core/equipment/EquipmentTransferService.gd` — chokepoint for all equipment movement (RefCounted, instantiate per operation)
+- `src/core/state/GameState.gd:verify_consistency()` — debug invariant checker, call at phase transitions
+- `scripts/lint_data_ownership.py` — CI lint, run with `py scripts/lint_data_ownership.py`
+- `tests/unit/test_equipment_persistence.gd` — 7 tests covering save/load round-trip, ownership rebuild, and tabletop invariants
+- `tests/unit/test_equipment_transfer_service.gd` — 10 tests covering the transfer service API
+
+### Tabletop invariant: one item, one home
+An equipment item is like a physical card — it exists in exactly one location (a character's sheet OR the ship stash, never both, never neither). `EquipmentTransferService` enforces this via atomic remove-then-add transfers with rollback on failure. The invariant is verified at runtime by `GameState.verify_consistency()` CHECK 4.
+
+---
+
 ## Data Integrity Rules
 
 - **THE CORE RULES AND COMPENDIUM ARE THE CANONICAL AUTHORITY FOR ALL GAME MECHANICS.** Every mechanic name, stat value, table range, cost, probability, weapon property, species trait, and game term in this project MUST match the Core Rules and Compendium PDFs exactly. These books are the **default dictionary** — if the code says one thing and the book says another, the book is right and the code is wrong. No exceptions. No "balancing." No "improvements." The books define the game.
@@ -517,7 +584,7 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 - **PreBattleUI uses `setup_preview()`**: Not `initialize_battle()` or `set_mission_data()`. Also needs `setup_crew_selection()` for crew panel
 - **Autoload timing with `load()` vs `preload()`**: Autoloads parse before import system. StoreManager uses `load()` at runtime for adapter scripts, and adapters use path-based `extends "res://path/to/script.gd"` instead of `extends ClassName`
 - **GodotApplePlugins StoreKitManager is NOT a singleton**: Use `ClassDB.class_exists(&"StoreKitManager")` + `ClassDB.instantiate(&"StoreKitManager")`. Do NOT use `Engine.get_singleton()`
-- **AndroidIAPP file layout**: `plugin.cfg` + `.gd` in `addons/AndroidIAPP/`, AARs (`.aar` files) in `android_IAPP/` at project root
+- **Android BillingClient availability**: Check with `ClassDB.class_exists(&"BillingClient")`, NOT `Engine.has_singleton()`. Uses official GodotGooglePlayBilling plugin (replaced third-party AndroidIAPP in Phase 34)
 - **Steam needs `steam_appid.txt`**: Place at project root with base game App ID. Without it, `steamInitEx()` returns status 1
 - **Bug Hunt ↔ 5PFH campaign types are incompatible**: `BugHuntCampaignCore` has `main_characters`/`grunts` (flat Arrays), `FiveParsecsCampaignCore` has `crew_data["members"]` (nested Dict). Always validate `"main_characters" in campaign` before Bug Hunt code. `GameState.load_campaign()` currently only loads FiveParsecsCampaignCore — Bug Hunt uses separate SceneRouter-based loading
 - **Bug Hunt temp_data keys use `"bug_hunt_*"` prefix**: `"bug_hunt_battle_context"`, `"bug_hunt_battle_result"`, `"bug_hunt_mission"`. Standard keys: `"world_phase_results"`, `"return_screen"`, `"selected_character"`. No collisions
@@ -538,7 +605,9 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 - **Portrait path existence check**: Use `ResourceLoader.exists()` for `res://` paths, `FileAccess.file_exists()` for `user://` paths. `FileAccess.file_exists()` fails for `res://` in exported PCK builds
 - **CharacterCard portrait priority**: `_update_portrait()` checks `portrait_path` first (custom image), falls back to colored initials (8 deterministic colors from `name.hash() % 8`). IconRegistry class icons are no longer the default
 - **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
-- **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory — all removed. Do NOT reference or re-create these
+- **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory, FiveParsecsStrangeCharacters.gd (6 invented types), BaseStrangeCharacters.gd — all removed. Do NOT reference or re-create these
+- **SpeciesDataService load order**: `Character.gd` cannot import `SpeciesDataService` at parse time (Godot loads Character first). Character helper methods use inline `species_id` string checks. Other systems (CharacterCreator, LuckSystem) can reference SpeciesDataService safely
+- **GameEnums.StrangeCharacterType is DEPRECATED**: Use `Character.species_id` (String) + `SpeciesDataService` for Strange Character identification. The enum has only 8 of 16 types and is kept only for backwards compatibility
 - **Equipment data sources**: `gear_database.json` = D100 tables for character creation (backgrounds, weapon_tables, starting_rolls). `equipment_database.json` = weapon/armor/gear STATS (range, shots, damage, traits). These are separate files with different purposes
 - **Trade sell value is flat**: Core Rules p.125 — items sell for 1 credit each. No condition tiers, no quality multipliers, no percentage-of-purchase formulas
 

@@ -242,6 +242,23 @@ func get_character_equipment(character_id: String) -> Array:
 func get_all_equipment() -> Array:
 	return _equipment_storage.duplicate()
 
+## Reset the manager to an empty state. Used by GameState.restore_equipment_from_campaign
+## when rehydrating runtime state from a newly-loaded campaign Resource so leftover
+## items from a previous session don't bleed into the new one.
+func clear_all_equipment() -> void:
+	_equipment_storage.clear()
+	_character_equipment.clear()
+	equipment_list_updated.emit()
+
+## Bulk-set a character's owned equipment IDs, bypassing the normal compatibility
+## and slot checks in assign_equipment_to_character(). Used by the restore pipeline
+## after reconstructing ownership from persisted data — the items already existed
+## in a prior session and went through those checks then. Do NOT use for runtime
+## assignment; use assign_equipment_to_character() for that.
+func set_character_equipment_ids(character_id: String, equipment_ids: Array) -> void:
+	_character_equipment[character_id] = equipment_ids.duplicate()
+	equipment_list_updated.emit()
+
 ## Get equipment of a specific category
 func get_equipment_by_category(category: int) -> Array:
 	var filtered_equipment = []

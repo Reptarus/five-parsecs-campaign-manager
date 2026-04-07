@@ -567,14 +567,14 @@ func _ensure_overview_card() -> void:
 	## Group GovernmentInfo + TechLevel labels into a WORLD OVERVIEW card
 	if not government_info or not tech_level_display:
 		return
-	# Skip if already wrapped
-	var parent = government_info.get_parent()
-	if parent and parent.name.begins_with("__card_"):
-		return
-	if parent:
-		var gp = parent.get_parent()
-		if gp and gp.name.begins_with("__card_"):
+	# Skip if already wrapped — walk up the parent chain looking for any
+	# __card_ ancestor (the wrap creates a 3-level hierarchy:
+	# __card_world_overview > card_inner > OverviewContent > government_info)
+	var ancestor: Node = government_info.get_parent()
+	while ancestor:
+		if ancestor.name.begins_with("__card_"):
 			return
+		ancestor = ancestor.get_parent()
 	# Create wrapper VBox to hold both labels
 	var overview_vbox := VBoxContainer.new()
 	overview_vbox.name = "OverviewContent"
@@ -662,14 +662,12 @@ func _wrap_in_card(
 ) -> void:
 	if not container:
 		return
-	# Skip if already wrapped (parent is VBoxContainer inside __card_ PanelContainer)
-	var parent = container.get_parent()
-	if parent:
-		if parent.name.begins_with("__card_"):
+	# Skip if already wrapped — walk up ancestors looking for __card_ wrapper
+	var ancestor: Node = container.get_parent()
+	while ancestor:
+		if ancestor.name.begins_with("__card_"):
 			return
-		var grandparent = parent.get_parent()
-		if grandparent and grandparent.name.begins_with("__card_"):
-			return
+		ancestor = ancestor.get_parent()
 	var card_inner := VBoxContainer.new()
 	card_inner.add_theme_constant_override("separation", 4)
 	# Title label

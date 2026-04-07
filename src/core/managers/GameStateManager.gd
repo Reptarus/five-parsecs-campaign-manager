@@ -108,52 +108,42 @@ func set_language(language_name: String) -> void:
 	language = language_name
 	# You might want to emit a signal or perform additional actions here
 
-# Resource management
+# Resource management.
+# PHASE 2.1 (persistence audit): the canonical owner of credits / supplies /
+# reputation / story_points is the FiveParsecsCampaignCore Resource. These
+# setters write through to the campaign and mirror into the local instance
+# var for UI consumers that still read GameStateManager directly. The legacy
+# `progress_data["credits"/"supplies"/"reputation"/"story_points"]` sync was
+# a dead write target (nobody read it back) and has been removed.
 func set_credits(new_amount: int) -> void:
 	if credits != new_amount:
 		credits = new_amount
-		# Sync back to campaign Resource so saves persist the correct value
 		if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
 			game_state.current_campaign.credits = new_amount
-			# Also sync to progress_data for EndPhasePanel and data consistency
-			if "progress_data" in game_state.current_campaign:
-				game_state.current_campaign.progress_data["credits"] = new_amount
 		credits_changed.emit(credits)
 
 func set_supplies(new_amount: int) -> void:
 	if supplies != new_amount:
 		supplies = new_amount
-		# Sync back to campaign Resource so saves persist
 		var camp = game_state.current_campaign if game_state else null
 		if camp and "supplies" in camp:
 			camp.supplies = new_amount
-			# Also sync to progress_data for save persistence
-			if "progress_data" in camp:
-				camp.progress_data["supplies"] = new_amount
 		supplies_changed.emit(supplies)
 
 func set_reputation(new_amount: int) -> void:
 	if reputation != new_amount:
 		reputation = new_amount
-		# Sync back to campaign Resource so saves persist the correct value
 		var camp = game_state.current_campaign if game_state else null
 		if camp and "reputation" in camp:
 			camp.reputation = new_amount
-			# Also sync to progress_data for save persistence
-			if "progress_data" in camp:
-				camp.progress_data["reputation"] = new_amount
 		reputation_changed.emit(reputation)
 
 func set_story_progress(new_amount: int) -> void:
 	if story_progress != new_amount:
 		story_progress = new_amount
-		# Sync back to campaign Resource so saves persist the correct value
 		var camp = game_state.current_campaign if game_state else null
 		if camp and "story_points" in camp:
 			camp.story_points = new_amount
-			# Also sync to progress_data for save persistence
-			if "progress_data" in camp:
-				camp.progress_data["story_points"] = new_amount
 		story_progress_changed.emit(story_progress)
 
 # Getters

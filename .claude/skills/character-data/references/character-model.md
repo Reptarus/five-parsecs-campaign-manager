@@ -38,6 +38,23 @@ These are direct properties on Character. There is NO `stats` Dictionary or sub-
 # All downstream consumers (CrewPanel, EquipmentPanel, coordinator, FinalPanel) read from this.
 ```
 
+### Strange Character Species Data (Session 34, Core Rules pp.19-22)
+```gdscript
+@export var species_id: String = ""           # JSON id for lookup (e.g., "de_converted")
+@export var special_rules: Array[String] = [] # Populated at creation from character_species.json
+@export var xp_discount_stat: String = ""     # Minor Alien: one stat costs 1 less XP (rolled at creation)
+```
+
+Helper methods on Character:
+- `can_receive_luck() -> bool` — false for emo_suppressed and bot types
+- `can_earn_xp() -> bool` — false for bot, assault_bot
+- `get_bonus_xp() -> int` — 1 for hopeful_rookie
+- `can_perform_task(task_id: String) -> bool` — false for mutant on recruit/find_patron
+
+Central lookup: `SpeciesDataService.gd` (static RefCounted, lazy-loads `character_species.json`). Used by CharacterCreator, gameplay systems, and UI. Character.gd does NOT import SpeciesDataService directly (load order issue) — helper methods use inline string checks instead.
+
+`GameEnums.StrangeCharacterType` is DEPRECATED — use `species_id` string.
+
 ### Autoload Access from Character (Resource)
 Character extends Resource, not Node. Cannot use `get_node_or_null()` directly. Use:
 ```gdscript

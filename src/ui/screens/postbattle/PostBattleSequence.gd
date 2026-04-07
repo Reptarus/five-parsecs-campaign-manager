@@ -10,8 +10,12 @@ const DataLoader = preload("res://src/utils/GameDataLoader.gd")
 const WarPanel = preload("res://src/ui/components/postbattle/GalacticWarPanel.tscn")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
-const NarrativeInjuryDialog = preload("res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
-const PurchaseItemsComponent = preload("res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
+const NarrativeInjuryDialog = preload(
+	"res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
+const PurchaseItemsComponent = preload(
+	"res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
+const StarsSystemClass = preload(
+	"res://src/core/systems/StarsOfTheStorySystem.gd")
 
 # Design system (UIColors canonical source)
 const SPACING_SM := UIColors.SPACING_SM
@@ -1872,7 +1876,219 @@ func _apply_injury_result(type: String, num: int, injury_data: Dictionary, roll:
 		result_label.text = result_text
 		result_label.modulate = _get_injury_color(severity)
 
-	_add_result_to_log("%s %d: %s" % [type, num, result_text])
+	_add_result_to_log(
+		"%s %d: %s" % [type, num, result_text])
+
+	# Contextual Stars of the Story nudge
+	_add_stars_nudge_for_injury(
+		type, num, injury_data, result_label)
+
+
+func _add_stars_nudge_for_injury(
+	type: String, num: int,
+	injury_data: Dictionary,
+	result_label: Control
+) -> void:
+	## Show inline nudge if a Stars ability can help
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("get_current_campaign"):
+		return
+	var campaign = gs.get_current_campaign()
+	if not campaign or campaign.stars_of_the_story.is_empty():
+		return
+
+	var stars := StarsSystemClass.new()
+	stars.deserialize(campaign.stars_of_the_story)
+
+	if not stars.is_active():
+		return
+
+	var is_fatal: bool = injury_data.get("is_fatal", false)
+	var recovery: int = injury_data.get(
+		"recovery_turns", 0)
+	var SA = StarsSystemClass.StarAbility
+
+	# Fatal → Dramatic Escape
+	if is_fatal and stars.can_use(SA.DRAMATIC_ESCAPE):
+		var btn := Button.new()
+		btn.text = "Use 'Dramatic Escape' \u2014 survive!"
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		btn.add_theme_color_override(
+			"font_color", UIColors.COLOR_WARNING)
+		btn.add_theme_font_size_override(
+			"font_size", FONT_SIZE_SM)
+		btn.pressed.connect(
+			_on_stars_nudge_pressed.bind(
+				SA.DRAMATIC_ESCAPE, type, num,
+				result_label, btn, stars))
+		# Insert after result label
+		if result_label and result_label.get_parent():
+			result_label.get_parent().add_child(btn)
+		return
+
+	# Non-fatal with recovery → It Wasn't That Bad
+	if not is_fatal and recovery > 0 and stars.can_use(
+		SA.IT_WASNT_THAT_BAD
+	):
+		var btn := Button.new()
+		btn.text = (
+			"Use 'It Wasn't That Bad!' \u2014 remove injury")
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		btn.flat = true
+		btn.add_theme_color_override(
+			"font_color", UIColors.COLOR_BLUE)
+		btn.add_theme_font_size_override(
+			"font_size", FONT_SIZE_SM)
+		btn.pressed.connect(
+			_on_stars_nudge_pressed.bind(
+				SA.IT_WASNT_THAT_BAD, type, num,
+				result_label, btn, stars))
+		if result_label and result_label.get_parent():
+			result_label.get_parent().add_child(btn)
+
+
+func _on_stars_nudge_pressed(
+	ability: int, type: String, num: int,
+	result_label: Control, btn: Button,
+	stars: StarsSystemClass
+) -> void:
+	## Handle Stars of the Story nudge button press
+	btn.disabled = true
+	var SA = StarsSystemClass.StarAbility
+
+	var context: Dictionary = {}
+	var result: Dictionary = stars.use_ability(
+		ability, context)
+
+	if not result.get("success", false):
+		btn.text = "Failed: %s" % result.get(
+			"error", "Unknown")
+		return
+
+	# Update injury display
+	if ability == SA.DRAMATIC_ESCAPE:
+		if result_label:
+			result_label.text += " (SAVED!)"
+			result_label.modulate = UIColors.COLOR_EMERALD
+		btn.text = "Dramatic Escape used!"
+		# Update step results
+		if current_step >= 0 and (
+			current_step < step_results.size()
+		):
+			var key := "%s_%d" % [type.to_lower(), num]
+			if step_results[current_step].has(key):
+				step_results[current_step][key][
+					"is_fatal"] = false
+				step_results[current_step][key][
+					"dramatic_escape"] = true
+
+	elif ability == SA.IT_WASNT_THAT_BAD:
+		if result_label:
+			result_label.text += " (REMOVED)"
+			result_label.modulate = UIColors.COLOR_EMERALD
+		btn.text = "Injury removed!"
+		if current_step >= 0 and (
+			current_step < step_results.size()
+		):
+			var key := "%s_%d" % [type.to_lower(), num]
+			if step_results[current_step].has(key):
+				step_results[current_step][key][
+					"injury_removed"] = true
+
+	# Persist stars state back to campaign
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_current_campaign"):
+		var campaign = gs.get_current_campaign()
+		if campaign:
+			campaign.stars_of_the_story = (
+				stars.serialize())
+
+	# Log to CampaignJournal + character history
+	_log_stars_use_to_journal(ability, type, num)
+
+
+func _log_stars_use_to_journal(
+	ability: int, type: String, num: int
+) -> void:
+	## Log Stars of the Story use to campaign journal
+	## and character event history
+	var journal = get_node_or_null(
+		"/root/CampaignJournal")
+	if not journal:
+		return
+
+	var SA = StarsSystemClass.StarAbility
+	var ability_name: String
+	var description: String
+	var mood: String = "exciting"
+
+	match ability:
+		SA.DRAMATIC_ESCAPE:
+			ability_name = "Dramatic Escape"
+			description = (
+				"%s %d survived a fatal injury "
+				% [type, num]
+				+ "via Dramatic Escape!")
+		SA.IT_WASNT_THAT_BAD:
+			ability_name = "It Wasn't That Bad!"
+			description = (
+				"%s %d's injury removed "
+				% [type, num]
+				+ "via It Wasn't That Bad!")
+		_:
+			ability_name = "Stars of the Story"
+			description = (
+				"Used Stars of the Story ability")
+
+	# Campaign journal entry
+	var turn_num: int = 0
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_current_campaign"):
+		var campaign = gs.get_current_campaign()
+		if campaign and "progress_data" in campaign:
+			turn_num = campaign.progress_data.get(
+				"turns_played", 0)
+
+	if journal.has_method("create_entry"):
+		journal.create_entry({
+			"turn_number": turn_num,
+			"type": "story",
+			"auto_generated": true,
+			"title": ability_name,
+			"description": description,
+			"mood": mood,
+			"tags": [
+				"stars_of_the_story",
+				"emergency",
+				"post_battle"],
+		})
+
+	# Character event (if we can identify who)
+	if journal.has_method(
+		"auto_create_character_event"
+	):
+		# Try to get character ID from step results
+		var char_id: String = ""
+		if current_step >= 0 and (
+			current_step < step_results.size()
+		):
+			var key := "%s_%d" % [
+				type.to_lower(), num]
+			var injury_data: Dictionary = (
+				step_results[current_step].get(
+					key, {}))
+			char_id = injury_data.get(
+				"character_id",
+				injury_data.get("crew_id", ""))
+
+		if not char_id.is_empty():
+			journal.auto_create_character_event(
+				char_id, "stars_ability", {
+					"turn": turn_num,
+					"description": description,
+					"ability": ability_name,
+				})
+
 
 func _on_generate_loot_pressed(btn: Button = null) -> void:
 	## Core Rules p.121, pp.131-133: "Gather the Loot"

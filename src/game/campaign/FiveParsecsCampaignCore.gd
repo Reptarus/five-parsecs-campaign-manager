@@ -42,6 +42,12 @@ var house_rules: Array = []
 # SPRINT 6.2: Story track setting (persisted from wizard)
 var story_track_enabled: bool = false
 
+# Stars of the Story emergency ability state (Core Rules p.67)
+var stars_of_the_story: Dictionary = {}
+
+# Story Point per-turn spending limits (Core Rules pp.66-67)
+var story_point_turn_state: Dictionary = {}
+
 # Phase 30: Red Zone Jobs (Core Rules Appendix III)
 var red_zone_licensed: bool = false
 var red_zone_turns_completed: int = 0
@@ -50,20 +56,20 @@ var red_zone_turns_completed: int = 0
 var has_ship: bool = true
 var ship_debt: int = 0  # Remaining loan amount (max financed 70cr)
 
+# DLC dependency tracking — one-way stamp, only grows
+var required_dlc_packs: Array[String] = []
+
 # QoL data stored for deferred loading (scene tree not ready during _init)
 var _pending_qol_data: Dictionary = {}
 
 func _init() -> void:
 	created_at = Time.get_datetime_string_from_system()
 	last_modified = created_at
-	# BUG-031 FIX: Initialize progress_data with default counters
-	# so they're never null on first save/load cycle
+	# Progress counters only. Resources (credits/supplies/reputation/story_points)
+	# live as top-level @vars on this Resource; duplicating them here created a
+	# write-only sync target nobody ever read back (persistence audit, Phase 2.1).
 	progress_data = {
 		"turns_played": 0,
-		"credits": credits,
-		"supplies": supplies,
-		"reputation": reputation,
-		"story_points": story_points,
 		"missions_completed": 0,
 		"battles_won": 0,
 		"battles_lost": 0,
@@ -77,11 +83,22 @@ func get_campaign_id() -> String:
 		campaign_id = "campaign_" + str(int(Time.get_unix_time_from_system()))
 	return campaign_id
 
+func require_dlc_pack(dlc_id: String) -> void:
+	## Stamp this campaign as depending on a DLC pack. One-way: only grows.
+	if dlc_id not in required_dlc_packs:
+		required_dlc_packs.append(dlc_id)
+
+## Crew index cache for O(1) lookups by character_id.
+## Rebuilt on initialize_crew() and invalidated by any mutation that changes
+## the crew membership list. See get_crew_member_by_id().
+var _crew_id_index: Dictionary = {}  # character_id -> int (index into members)
+
 ## Data Initialization Methods
 
 func initialize_crew(data: Dictionary) -> void:
 	## Initialize crew data from campaign creation
 	crew_data = data.duplicate(true)
+	_rebuild_crew_id_index()
 	_update_modified_time()
 
 func set_captain(data: Dictionary) -> void:
@@ -115,7 +132,9 @@ func set_config(data: Dictionary) -> void:
 	_update_modified_time()
 
 func initialize_resources(data: Dictionary) -> void:
-	## Initialize campaign resources from character creation
+	## Initialize campaign resources from character creation.
+	## Top-level @vars are the single source of truth — no progress_data mirror
+	## (persistence audit, Phase 2.1).
 	credits = data.get("credits", 0)
 	story_points = data.get("story_points", 0)
 	supplies = data.get("supplies", 0)
@@ -124,13 +143,6 @@ func initialize_resources(data: Dictionary) -> void:
 	rivals = data.get("rivals", []).duplicate()
 	var rumors = data.get("quest_rumors", [])
 	quest_rumors = rumors.size() if rumors is Array else rumors
-	# QA-FIX BUG-04b: Sync resource properties to progress_data.
-	# _init() sets progress_data["credits"] = 0 before initialize_resources runs,
-	# so the starting credits were never reflected in progress_data.
-	progress_data["credits"] = credits
-	progress_data["story_points"] = story_points
-	progress_data["supplies"] = supplies
-	progress_data["reputation"] = reputation
 	_update_modified_time()
 
 func get_resources() -> Dictionary:
@@ -273,6 +285,9 @@ func to_dictionary() -> Dictionary:
 		"ship_debt": ship_debt,
 		"victory_conditions": victory_conditions.duplicate(true),
 		"victory_conditions_locked": victory_conditions_locked,
+		"required_dlc_packs": required_dlc_packs.duplicate(),
+		"stars_of_the_story": stars_of_the_story.duplicate(true),
+		"story_point_turn_state": story_point_turn_state.duplicate(true),
 		"qol_data": _build_qol_data()
 	}
 
@@ -329,6 +344,7 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Load data sections
 	crew_data = data.get("crew", {})
+	_rebuild_crew_id_index()
 	captain_data = data.get("captain", {})
 	ship_data = data.get("ship", {})
 	equipment_data = data.get("equipment", {})
@@ -342,7 +358,11 @@ func from_dictionary(data: Dictionary) -> void:
 	if not progress_data.has("battles_lost"):
 		progress_data["battles_lost"] = 0
 
-	# Load resources
+	# Load resources. Resources are owned by top-level @vars on the Resource.
+	# Legacy saves (pre-Phase-2.1) also had these mirrored under progress_data;
+	# we tolerate that shape by falling back to progress_data values if the
+	# "resources" sub-dict is missing or partial, then scrubbing progress_data
+	# so future saves are clean.
 	if data.has("resources"):
 		var res = data.resources
 		credits = res.get("credits", 0)
@@ -352,15 +372,16 @@ func from_dictionary(data: Dictionary) -> void:
 		patrons = res.get("patrons", []).duplicate()
 		rivals = res.get("rivals", []).duplicate()
 		quest_rumors = res.get("quest_rumors", 0)
-	# Sync resource fields into progress_data for save persistence consistency
-	if not progress_data.has("credits") or progress_data["credits"] == null:
-		progress_data["credits"] = credits
-	if not progress_data.has("supplies") or progress_data["supplies"] == null:
-		progress_data["supplies"] = supplies
-	if not progress_data.has("reputation") or progress_data["reputation"] == null:
-		progress_data["reputation"] = reputation
-	if not progress_data.has("story_points") or progress_data["story_points"] == null:
-		progress_data["story_points"] = story_points
+	else:
+		credits = progress_data.get("credits", 0) if progress_data.get("credits") != null else 0
+		supplies = progress_data.get("supplies", 0) if progress_data.get("supplies") != null else 0
+		reputation = progress_data.get("reputation", 0) if progress_data.get("reputation") != null else 0
+		story_points = progress_data.get("story_points", 0) if progress_data.get("story_points") != null else 0
+	# Migration: drop legacy progress_data mirrors of resource values.
+	# Keep counter fields (turns_played, missions_completed, battles_*) intact.
+	for legacy_key in ["credits", "supplies", "reputation", "story_points"]:
+		if progress_data.has(legacy_key):
+			progress_data.erase(legacy_key)
 
 	# SPRINT 6.1/6.2: Load house rules, story track, and victory conditions
 	# Check top-level first, then config for backwards compatibility
@@ -392,6 +413,20 @@ func from_dictionary(data: Dictionary) -> void:
 		# Legacy save migration: if victory conditions exist but no lock flag,
 		# assume campaign has started and lock them
 		victory_conditions_locked = true
+
+	# Stars of the Story + Story Point turn state (Core Rules pp.66-67)
+	if data.has("stars_of_the_story"):
+		stars_of_the_story = data.get(
+			"stars_of_the_story", {}).duplicate(true)
+	if data.has("story_point_turn_state"):
+		story_point_turn_state = data.get(
+			"story_point_turn_state", {}).duplicate(true)
+
+	# DLC dependency tracking (backwards compat: empty array for old saves)
+	var raw_packs: Array = data.get("required_dlc_packs", [])
+	required_dlc_packs.clear()
+	for p: Variant in raw_packs:
+		required_dlc_packs.append(str(p))
 
 	# Store QoL data for deferred loading by autoloads
 	# (from_dictionary runs during GameState._init before scene tree is ready)
@@ -481,15 +516,43 @@ func get_crew_size() -> int:
 		return members.size()
 	return 0
 
-## Returns a crew member by their ID (GameState compatibility for injury/XP systems)
+## Returns a crew member by their character_id (or legacy "id" key).
+## Uses a cached index for O(1) lookups. Falls back to linear scan if
+## the cache is stale (e.g. after external mutation of crew_data).
 func get_crew_member_by_id(character_id: String) -> Variant:
 	var members = crew_data.get("members", [])
-	for member in members:
-		if member is Dictionary and member.get("id", "") == character_id:
-			return member
-		elif member is Object and member.get("id") == character_id:
-			return member
+	if not (members is Array):
+		return null
+	# Try cached index first.
+	if _crew_id_index.has(character_id):
+		var idx: int = _crew_id_index[character_id]
+		if idx < members.size():
+			return members[idx]
+	# Cache miss — full scan. Rebuild the cache as a side effect.
+	_rebuild_crew_id_index()
+	if _crew_id_index.has(character_id):
+		var idx: int = _crew_id_index[character_id]
+		if idx < members.size():
+			return members[idx]
 	return null
+
+func _rebuild_crew_id_index() -> void:
+	_crew_id_index.clear()
+	var members = crew_data.get("members", [])
+	if not (members is Array):
+		return
+	for i in range(members.size()):
+		var member = members[i]
+		var cid: String = ""
+		if member is Dictionary:
+			cid = str(member.get("character_id", member.get("id", "")))
+		elif member is Object:
+			if "character_id" in member:
+				cid = str(member.character_id)
+			elif "id" in member:
+				cid = str(member.id)
+		if not cid.is_empty():
+			_crew_id_index[cid] = i
 
 func get_current_mission() -> Dictionary:
 	## Get current mission data from progress_data (set during world phase)
@@ -558,19 +621,28 @@ func save_to_file(path: String) -> Error:
 	_update_modified_time()
 	var data = to_dictionary()
 
-	# Strip non-serializable Resource references from crew members
+	# Strip non-serializable Resource references from crew members.
+	# CampaignCreationCoordinator stores "character" (Resource ref) on member
+	# dicts; JSON.stringify calls str() on Resources producing garbage like
+	# "():<Resource#12345>".  Also strip "character_object" (legacy alias).
 	if data.has("crew") and data["crew"] is Dictionary and data["crew"].has("members"):
 		var clean_members: Array = []
 		for member in data["crew"]["members"]:
 			if member is Dictionary:
 				var clean = member.duplicate(true)
 				clean.erase("character_object")
+				clean.erase("character")
 				clean_members.append(clean)
 			elif member is Resource and member.has_method("to_dictionary"):
 				clean_members.append(member.to_dictionary())
 			else:
 				clean_members.append(member)
 		data["crew"]["members"] = clean_members
+	# Same for captain_data
+	if data.has("captain") and data["captain"] is Dictionary:
+		data["captain"] = data["captain"].duplicate(true)
+		data["captain"].erase("character_object")
+		data["captain"].erase("character")
 
 	var json_string = JSON.stringify(data, "\t")
 

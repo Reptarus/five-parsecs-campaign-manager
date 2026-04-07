@@ -19,6 +19,18 @@ Resources (bonus credits, patrons, rivals, story points, rumors, equipment rolls
 
 **Data flow**: `CharacterCreator._roll_and_store_creation_bonuses()` → `Character.creation_bonuses` → `_character_to_dict()` preserves key → coordinator aggregates → finalization reads from crew_data fallback.
 
+## Strange Character Creation Constraints (Session 34)
+
+CharacterCreator.gd now enforces Strange Character rules (Core Rules pp.19-22) via `_enforce_species_constraints(species_id)`:
+
+- **Forced motivation**: De-converted→Revenge, Unity Agent→Order, Hakshan→Truth, Emo-suppressed→Survival, Traveler→Truth. Dropdown auto-selects and disables.
+- **Forced background**: Mutant→Lower Megacity Class, Manipulator→Bureaucrat, Primitive→Primitive World. Dropdown auto-selects and disables.
+- **No creation tables**: Assault Bot — all three dropdowns (background/class/motivation) disabled.
+- **Hulker class override**: If rolled class is Technician/Scientist/Hacker → forced to Primitive.
+- **Creation bonus adjustments** (in `_roll_and_store_creation_bonuses()`): Mysterious Past zeroes story points, Genetic Uplift zeroes credits + adds rival, Minor Alien reduces bonuses by 1 + rolls XP discount stat, Traveler adds +2 story points/rumors, Hopeful Rookie sets luck to 1.
+
+Strange Characters appear in the origin dropdown after a separator ("── Strange Characters ──") with negative item IDs. `_origin_species_ids: Array[String]` maps dropdown index → species_id. `SpeciesDataService.gd` provides all JSON lookups.
+
 ## CampaignCreationCoordinator
 
 **Path**: `src/ui/screens/campaign/CampaignCreationCoordinator.gd`

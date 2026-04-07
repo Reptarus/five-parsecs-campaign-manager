@@ -1,0 +1,60 @@
+{
+  "_source": "Core Rules Appendix V pp.154-155",
+  "event_id": "on_the_trail",
+  "event_number": 2,
+  "title": "On the Trail",
+  "narrative": {
+    "intro": "Your snooping around has paid off. Q'narr, a smuggler and petty crook from one of the disputed sectors: you and he used to be tight back in the day, but he got a deal that you couldn't take. You weren't angels by any means, but it was too dirty, and you said as much. He never quite forgave you, especially since he almost got killed attempting the job himself. Looks like he's quite the big shot now, and he's decided to get even.",
+    "briefing": "Q'narr has hired a squad of Blood Storm Mercenaries to cover his tracks. You're going to have to go in hard. Fight a standard battle against Blood Storm Mercs. Minimum encounter size is 4.",
+    "completion_win": "After finishing the mission, you make contact with the person you were looking for.",
+    "completion_lose": "The mercenaries drove you off, but you still managed to make contact."
+  },
+  "campaign_turn_modifications": {
+    "cannot_track_rivals": true,
+    "patron_job_is_cover_story": true
+  },
+  "deployment": {
+    "type": "standard",
+    "special_rules": ["All normal deployment rules apply", "Minimum encounter size is 4 even if dice indicate fewer"]
+  },
+  "enemies": {
+    "source_table": "hired_muscle",
+    "subtable_entry": "blood_storm_mercs",
+    "minimum_count": 4,
+    "composition": [
+      {
+        "type": "blood_storm_merc",
+        "count_roll": "standard",
+        "stats": {"panic": "1", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "ai": "aggressive",
+        "weapons": ["2B"],
+        "special_rules": ["Ferocious: +1 to Brawling rolls when initiating combat"]
+      }
+    ],
+    "seize_initiative_modifier": -1
+  },
+  "objectives": {
+    "primary": {
+      "type": "standard_battle",
+      "description": "Fight a standard battle against Blood Storm Mercs"
+    },
+    "bonus": {
+      "type": "capture_merc",
+      "description": "Defeat a mercenary by Brawling to capture and interrogate them",
+      "reward": "+1 story point"
+    }
+  },
+  "post_battle_effects": {
+    "common": {
+      "contact_made": true,
+      "description": "You make contact with the person you were looking for"
+    },
+    "brawl_capture": {
+      "story_points": 1,
+      "description": "Captured and interrogated a mercenary for information"
+    }
+  },
+  "next_clock_ticks": 2,
+  "next_event_requires_travel": true,
+  "page_reference": "pp.154-155"
+}

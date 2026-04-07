@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: March 30, 2026 (Documentation Consolidation & Archive)
+**Last Updated**: April 7, 2026 (Red & Black Zone Jobs)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -33,8 +33,10 @@
 | Equipment Pipeline + PreBattle (Phase 22) | **Complete** — Fixed equipment_data key mismatch, Character.to_dictionary(), PreBattle method wiring |
 | Battle Companion UI (Phase 22I-J) | **Complete** — Visual battlefield grid with canvas-drawn terrain, right sidebar layout fix, 26 tabbed companion panels |
 | UI/UX Asset Integration (Phase 23) | **Complete** — UIAssetRegistry, 1,427 PNGs integrated, battlefield textures, dashboard gauges |
-| Store/Paywall System (Phase 24) | **Complete** — Tri-platform DLC purchases (Steam/Android/iOS), StoreManager autoload, StoreScreen UI, plugin wiring |
+| Store/Paywall System (Phase 24) | **Complete** — Tri-platform DLC purchases (Steam/Android/iOS), StoreManager autoload, plugin wiring |
+| DLC Store UI + Save Protection (Phase 34) | **Complete** — Rich store screen, DLC pack cards, bundle pricing, Android BillingClient migration, save dependency tracking, creation-time disclaimers, load-time DLC checks, species degradation notices, MainMenu social footer |
 | Review System (Phase 25) | **Complete** — Cross-platform in-app review prompts (Android/iOS/Steam), ReviewManager autoload, InappReviewPlugin wiring |
+| Red & Black Zone Jobs (Phase 35) | **Complete** — Core Rules Appendix III (pp.148-151). Zone selection in World Phase Step 0, license purchase dialog, threat conditions, time constraints, Black Zone step auto-skip, upkeep waiver, post-battle rewards (victory/failure), journal/character history logging, galactic war -1 modifier. 11 files modified, 0 new files |
 | Bug Hunt Gamemode | **Complete** — 38 files (15 JSON + 23 GDScript/TSCN), 3-stage turn, character transfer, battle wiring, cross-mode safety audit |
 | TweenFX Integration (Phase 26) | **Complete** — 8 sprints, 23 files modified, bug fixes + raw tween migration + new UX animations |
 | LSP Parse Error Cleanup | **Complete** — 3 automated passes: 1,859 orphan pass removed, 5,915 space→tab fixes, 31 deep-indent orphans, enum/type fixes |

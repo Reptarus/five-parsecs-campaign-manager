@@ -33,9 +33,9 @@ func _ready() -> void:
 
 func create_entry(data: Dictionary) -> String:
 	## Create new journal entry - returns entry ID
-	var entry_id = _generate_entry_id()
+	var entry_id: String = _generate_entry_id()
 
-	var entry = {
+	var entry: Dictionary = {
 		"id": entry_id,
 		"turn_number": data.get("turn_number", 0),
 		"timestamp": Time.get_unix_time_from_system(),
@@ -76,10 +76,10 @@ func update_entry(entry_id: String, data: Dictionary) -> bool:
 		push_error("Entry not found: " + entry_id)
 		return false
 
-	var entry = entries_by_id[entry_id]
+	var entry: Dictionary = entries_by_id[entry_id]
 
 	# Update fields
-	for key in data.keys():
+	for key: String in data.keys():
 		entry[key] = data[key]
 
 	last_updated = Time.get_unix_time_from_system()
@@ -91,13 +91,13 @@ func delete_entry(entry_id: String) -> bool:
 	if not entries_by_id.has(entry_id):
 		return false
 
-	var entry = entries_by_id[entry_id]
+	var entry: Dictionary = entries_by_id[entry_id]
 	entries.erase(entry)
 	entries_by_id.erase(entry_id)
 
 	# Delete associated photos
-	for photo in entry.get("photos", []):
-		_delete_photo(photo.path)
+	for photo: Dictionary in entry.get("photos", []):
+		_delete_photo(photo.get("path", ""))
 
 	entry_deleted.emit(entry_id)
 	return true
@@ -114,8 +114,49 @@ func get_all_entries() -> Array[Dictionary]:
 
 func auto_create_battle_entry(battle_result: Dictionary) -> void:
 	## Auto-generate entry from battle results
-	var title = "Battle: %s" % battle_result.get("location", "Unknown Location")
-	var description = _generate_battle_description(battle_result)
+	var zone_type: String = battle_result.get("zone_type", "")
+	var title_prefix: String = (
+		"[%s] " % zone_type if not zone_type.is_empty()
+		else "")
+	var title: String = "%sBattle: %s" % [
+		title_prefix,
+		battle_result.get("location", "Unknown Location")]
+	var description: String = _generate_battle_description(
+		battle_result)
+
+	# Enrich description with zone details
+	if not zone_type.is_empty():
+		description += "\n\n%s Mission" % zone_type
+	var threat: String = battle_result.get(
+		"threat_condition", "")
+	if not threat.is_empty():
+		description += " | Threat: %s" % threat
+	var time_c: String = battle_result.get(
+		"time_constraint", "")
+	if not time_c.is_empty():
+		description += " | Time: %s" % time_c
+	var bz_mission: String = battle_result.get(
+		"black_zone_mission", "")
+	if not bz_mission.is_empty():
+		description += " | Objective: %s" % bz_mission
+
+	# Build tags with zone tag
+	var tags: Array = [
+		"battle",
+		battle_result.get("enemy_type", "").to_lower()]
+	var zone_tag: String = battle_result.get("zone_tag", "")
+	if not zone_tag.is_empty():
+		tags.append(zone_tag)
+
+	# Build stats with zone info
+	var stats: Dictionary = {
+		"battle_result": battle_result.get("outcome", "unknown"),
+		"casualties": battle_result.get("casualties", 0),
+		"loot_earned": battle_result.get("loot", 0),
+		"xp_gained": battle_result.get("xp", 0),
+	}
+	if not zone_type.is_empty():
+		stats["zone_type"] = zone_type
 
 	create_entry({
 		"turn_number": battle_result.get("turn", 0),
@@ -124,21 +165,18 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 		"title": title,
 		"description": description,
 		"mood": _determine_battle_mood(battle_result),
-		"tags": ["battle", battle_result.get("enemy_type", "").to_lower()],
+		"tags": tags,
 		"characters_involved": battle_result.get("crew_ids", []),
 		"location": battle_result.get("location", ""),
-		"stats": {
-			"battle_result": battle_result.get("outcome", "unknown"),
-			"casualties": battle_result.get("casualties", 0),
-			"loot_earned": battle_result.get("loot", 0),
-			"xp_gained": battle_result.get("xp", 0)
-		}
+		"stats": stats,
 	})
 
 func auto_create_milestone_entry(milestone_type: String, data: Dictionary) -> void:
 	## Auto-generate milestone entry
-	var title = _get_milestone_title(milestone_type, data)
-	var description = _get_milestone_description(milestone_type, data)
+	var title: String = _get_milestone_title(
+		milestone_type, data)
+	var description: String = _get_milestone_description(
+		milestone_type, data)
 
 	create_entry({
 		"turn_number": data.get("turn", 0),
@@ -160,7 +198,10 @@ func auto_create_milestone_entry(milestone_type: String, data: Dictionary) -> vo
 	})
 	timeline_updated.emit()
 
-func auto_create_character_event(character_id: String, event_type: String, details: Dictionary) -> void:
+func auto_create_character_event(
+	character_id: String, event_type: String,
+	details: Dictionary
+) -> void:
 	## Auto-generate character-specific event
 	if not character_histories.has(character_id):
 		character_histories[character_id] = {
@@ -176,11 +217,21 @@ func auto_create_character_event(character_id: String, event_type: String, detai
 		}
 
 	var history = character_histories[character_id]
-	history.timeline.append({
+	var timeline_entry: Dictionary = {
 		"turn": details.get("turn", 0),
 		"event": event_type,
-		"details": details.get("description", "")
-	})
+		"details": details.get("description", ""),
+	}
+	# Preserve zone context and battle details in timeline
+	if details.has("zone_type"):
+		timeline_entry["zone_type"] = details["zone_type"]
+	if details.has("kills"):
+		timeline_entry["kills"] = details["kills"]
+	if details.has("outcome"):
+		timeline_entry["outcome"] = details["outcome"]
+	if details.has("mission_success"):
+		timeline_entry["mission_success"] = details["mission_success"]
+	history.timeline.append(timeline_entry)
 
 	# Update statistics
 	match event_type:
@@ -220,24 +271,28 @@ func filter_entries(filter: Dictionary) -> Array[Dictionary]:
 	## Filter entries by criteria
 	var filtered: Array[Dictionary] = []
 
-	for entry in entries:
-		var matches = true
+	for entry: Dictionary in entries:
+		var matches: bool = true
 
 		# Filter by type
-		if filter.has("type") and entry.type != filter.type:
-			matches = false
+		if filter.has("type"):
+			if entry.get("type", "") != filter["type"]:
+				matches = false
 
 		# Filter by turn range
-		if filter.has("turn_min") and entry.turn_number < filter.turn_min:
-			matches = false
-		if filter.has("turn_max") and entry.turn_number > filter.turn_max:
-			matches = false
+		if filter.has("turn_min"):
+			if entry.get("turn_number", 0) < filter["turn_min"]:
+				matches = false
+		if filter.has("turn_max"):
+			if entry.get("turn_number", 0) > filter["turn_max"]:
+				matches = false
 
 		# Filter by tags
 		if filter.has("tags"):
-			var has_tag = false
-			for tag in filter.tags:
-				if entry.tags.has(tag):
+			var has_tag: bool = false
+			var entry_tags: Array = entry.get("tags", [])
+			for tag: String in filter["tags"]:
+				if entry_tags.has(tag):
 					has_tag = true
 					break
 			if not has_tag:
@@ -245,7 +300,9 @@ func filter_entries(filter: Dictionary) -> Array[Dictionary]:
 
 		# Filter by character
 		if filter.has("character_id"):
-			if not entry.characters_involved.has(filter.character_id):
+			var involved: Array = entry.get(
+				"characters_involved", [])
+			if not involved.has(filter["character_id"]):
 				matches = false
 
 		if matches:
@@ -277,7 +334,8 @@ func get_character_statistics(character_id: String) -> Dictionary:
 
 func get_top_performers(stat: String = "kills", limit: int = 5) -> Array:
 	## Get top N characters by statistic
-	## @param stat: Statistic to sort by (kills, battles_participated, injuries_sustained, advancements)
+	## @param stat: Statistic to sort by
+	## (kills, battles_participated, injuries, advancements)
 	## @param limit: Maximum number of results to return
 	## @return: Array of {character_id, value} sorted descending
 	var performers: Array = []
@@ -335,22 +393,24 @@ func get_crew_stats_summary() -> Dictionary:
 
 func attach_photo_to_entry(entry_id: String, image_data: Image, caption: String = "") -> bool:
 	## Attach photo to journal entry
-	var entry = get_entry(entry_id)
+	var entry: Dictionary = get_entry(entry_id)
 	if entry.is_empty():
 		return false
 
-	if entry.photos.size() >= MAX_PHOTOS_PER_ENTRY:
+	var photos: Array = entry.get("photos", [])
+	if photos.size() >= MAX_PHOTOS_PER_ENTRY:
 		push_error("Maximum photos reached for entry")
 		return false
 
-	var photo_path = _save_photo(entry_id, image_data)
+	var photo_path: String = _save_photo(entry_id, image_data)
 	if photo_path.is_empty():
 		return false
 
-	entry.photos.append({
+	photos.append({
 		"path": photo_path,
-		"caption": caption
+		"caption": caption,
 	})
+	entry["photos"] = photos
 
 	entry_updated.emit(entry_id)
 	return true
@@ -381,7 +441,7 @@ func _ensure_photo_directory() -> void:
 
 ## ===== EXPORT =====
 
-func export_to_pdf(file_path: String) -> bool:
+func export_to_pdf(_file_path: String) -> bool:
 	## Export journal to PDF (placeholder - requires PDF library)
 	push_warning("PDF export not yet implemented")
 	return false
@@ -414,22 +474,29 @@ func export_to_json(file_path: String) -> bool:
 
 func _generate_markdown() -> String:
 	## Generate Markdown representation of journal
-	var md = "# Five Parsecs Campaign Journal\n\n"
+	var md: String = "# Five Parsecs Campaign Journal\n\n"
 	md += "**Campaign ID**: %s\n" % current_campaign_id
-	md += "**Created**: %s\n" % Time.get_datetime_string_from_unix_time(campaign_created_at)
+	md += "**Created**: %s\n" % (
+		Time.get_datetime_string_from_unix_time(
+			campaign_created_at))
 	md += "**Turns**: %d entries\n\n" % entries.size()
 	md += "---\n\n"
 
-	for entry in entries:
-		md += "## Turn %d - %s\n" % [entry.turn_number, entry.title]
-		md += "**Type**: %s | **Mood**: %s\n\n" % [entry.type, entry.mood]
-		md += entry.description + "\n\n"
+	for entry: Dictionary in entries:
+		var turn: int = entry.get("turn_number", 0)
+		var title: String = entry.get("title", "Untitled")
+		md += "## Turn %d - %s\n" % [turn, title]
+		md += "**Type**: %s | **Mood**: %s\n\n" % [
+			entry.get("type", ""), entry.get("mood", "")]
+		md += entry.get("description", "") + "\n\n"
 
-		if not entry.player_notes.is_empty():
-			md += "**Player Notes**: " + entry.player_notes + "\n\n"
+		var notes: String = entry.get("player_notes", "")
+		if not notes.is_empty():
+			md += "**Player Notes**: " + notes + "\n\n"
 
-		if entry.tags.size() > 0:
-			md += "**Tags**: " + ", ".join(entry.tags) + "\n\n"
+		var tags: Array = entry.get("tags", [])
+		if tags.size() > 0:
+			md += "**Tags**: " + ", ".join(tags) + "\n\n"
 
 		md += "---\n\n"
 
@@ -439,95 +506,131 @@ func _generate_markdown() -> String:
 
 func _generate_entry_id() -> String:
 	## Generate unique entry ID
-	var entry_id = "entry_%d" % next_entry_id
+	var entry_id: String = "entry_%d" % next_entry_id
 	next_entry_id += 1
 	return entry_id
 
 func _sort_entries_by_turn() -> void:
 	## Sort entries by turn number
-	entries.sort_custom(func(a, b): return a.turn_number < b.turn_number)
+	entries.sort_custom(func(a: Dictionary, b: Dictionary):
+		return a.get("turn_number", 0) < b.get(
+			"turn_number", 0))
 
-func _generate_battle_description(battle_result: Dictionary) -> String:
+func _generate_battle_description(
+	battle_result: Dictionary
+) -> String:
 	## Generate battle description from results
-	var outcome = battle_result.get("outcome", "unknown")
-	var casualties = battle_result.get("casualties", 0)
-	var enemy_type = battle_result.get("enemy_type", "Unknown")
+	var outcome: String = battle_result.get("outcome", "unknown")
+	var casualties: int = battle_result.get("casualties", 0)
+	var enemy_type: String = battle_result.get(
+		"enemy_type", "Unknown")
 
-	var desc = "Battle vs %s - %s\n" % [enemy_type, outcome.capitalize()]
+	var desc: String = "Battle vs %s - %s\n" % [
+		enemy_type, outcome.capitalize()]
 
 	if casualties > 0:
 		desc += "%d crew casualties. " % casualties
 
-	if battle_result.has("notable_moments"):
-		desc += "\n" + battle_result.notable_moments
+	var moments: String = battle_result.get(
+		"notable_moments", "")
+	if not moments.is_empty():
+		desc += "\n" + moments
 
 	return desc
 
-func _determine_battle_mood(battle_result: Dictionary) -> String:
+func _determine_battle_mood(
+	battle_result: Dictionary
+) -> String:
 	## Determine mood from battle result
 	var outcome = battle_result.get("outcome", "unknown")
 	var casualties = battle_result.get("casualties", 0)
 
 	if outcome == "victory":
-		return "triumph" if casualties == 0 else "neutral"
-	elif outcome == "defeat":
-		return "defeat"
-	else:
+		if casualties == 0:
+			return "triumph"
 		return "neutral"
+	if outcome == "defeat":
+		return "defeat"
+	return "neutral"
 
-func _get_milestone_title(milestone_type: String, data: Dictionary) -> String:
+func _get_milestone_title(
+	milestone_type: String, data: Dictionary
+) -> String:
 	## Get milestone title
 	match milestone_type:
 		"story_track":
-			return "Story Milestone Reached"
+			var desc: String = data.get("description", "")
+			if desc.begins_with("The Story Track"):
+				return "Story Track Activated"
+			if desc.begins_with("Evidence"):
+				return "Evidence Discovered"
+			if "Victory" in desc or "Defeated" in desc:
+				return "Story Track Complete"
+			return "Story Milestone"
 		"rival_established":
-			return "New Rival: %s" % data.get("rival_name", "Unknown")
+			return "New Rival: %s" % data.get(
+				"rival_name", "Unknown")
 		"patron_allied":
-			return "Patron Alliance: %s" % data.get("patron_name", "Unknown")
+			return "Patron Alliance: %s" % data.get(
+				"patron_name", "Unknown")
+		"red_zone_license":
+			return "Red Zone License Acquired"
 		_:
 			return "Campaign Milestone"
 
-func _get_milestone_description(milestone_type: String, data: Dictionary) -> String:
+func _get_milestone_description(
+	milestone_type: String, data: Dictionary
+) -> String:
 	## Get milestone description
 	match milestone_type:
 		"story_track":
-			return "Story Point earned. Progress: %d/5" % data.get("points", 0)
+			return data.get(
+				"description",
+				"Story Track milestone reached")
 		"rival_established":
-			return "Established rivalry with %s" % data.get("rival_name", "Unknown")
+			return "Established rivalry with %s" % data.get(
+				"rival_name", "Unknown")
+		"red_zone_license":
+			return (
+				"Crew authorized for Red Zone operations. "
+				+ "Extremely hazardous missions with "
+				+ "improved rewards now available.")
 		_:
 			return ""
 
 func _get_milestone_icon(milestone_type: String) -> String:
 	## Get icon for milestone type
-	var icons = {
+	var icons: Dictionary = {
 		"story_track": "star",
 		"rival_established": "skull",
 		"patron_allied": "heart",
 		"major_purchase": "coin",
-		"crew_death": "cross"
+		"crew_death": "cross",
+		"red_zone_license": "shield",
 	}
 	return icons.get(milestone_type, "flag")
 
 func _count_auto_generated() -> int:
 	## Count auto-generated entries
-	var count = 0
-	for entry in entries:
-		if entry.auto_generated:
+	var count: int = 0
+	for entry: Dictionary in entries:
+		if entry.get("auto_generated", false):
 			count += 1
 	return count
 
 func _count_photos() -> int:
 	## Count total photos
-	var count = 0
-	for entry in entries:
-		count += entry.photos.size()
+	var count: int = 0
+	for entry: Dictionary in entries:
+		var photos: Array = entry.get("photos", [])
+		count += photos.size()
 	return count
 
 func _count_by_type(entry_type: String) -> int:
 	## Count entries of specific type
-	var count = 0
-	for entry in entries:
-		if entry.type == entry_type:
+	var count: int = 0
+	for entry: Dictionary in entries:
+		if entry.get("type", "") == entry_type:
 			count += 1
 	return count
 
@@ -535,18 +638,19 @@ func _count_by_type(entry_type: String) -> int:
 
 func load_from_save(save_data: Dictionary) -> void:
 	## Load journal from campaign save
-	if not save_data.has("qol_data") or not save_data.qol_data.has("journal"):
+	var qol: Dictionary = save_data.get("qol_data", {})
+	var journal_data: Dictionary = qol.get("journal", {})
+	if journal_data.is_empty():
 		return
-
-	var journal_data = save_data.qol_data.journal
 
 	entries.clear()
 	entries_by_id.clear()
 
-	if journal_data.has("entries"):
-		for entry in journal_data.entries:
-			entries.append(entry)
-			entries_by_id[entry.id] = entry
+	for entry: Dictionary in journal_data.get("entries", []):
+		entries.append(entry)
+		var eid: String = entry.get("id", "")
+		if not eid.is_empty():
+			entries_by_id[eid] = entry
 
 	milestones.clear()
 	for m in journal_data.get("milestones", []):

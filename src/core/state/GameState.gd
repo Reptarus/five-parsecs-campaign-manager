@@ -123,6 +123,15 @@ func _ready() -> void:
 	# Apply deferred QoL data now that scene tree is ready
 	if current_campaign and current_campaign.has_method("apply_pending_qol_data"):
 		current_campaign.apply_pending_qol_data()
+	# Listen for DLC pack requirements to stamp active campaign
+	var dlc_mgr := get_node_or_null("/root/DLCManager")
+	if dlc_mgr and dlc_mgr.has_signal("dlc_pack_required"):
+		dlc_mgr.dlc_pack_required.connect(_on_dlc_pack_required)
+
+func _on_dlc_pack_required(dlc_id: String) -> void:
+	if current_campaign \
+			and current_campaign.has_method("require_dlc_pack"):
+		current_campaign.require_dlc_pack(dlc_id)
 
 ## Save the current settings to disk
 ## @return Whether the save operation was successful
@@ -429,6 +438,25 @@ static func _detect_campaign_type(path: String) -> String:
 		return data.get("campaign_type", "five_parsecs")
 	return "five_parsecs"
 
+## Peek at required DLC packs without fully loading the campaign
+static func peek_required_dlc(path: String) -> Array[String]:
+	if not FileAccess.file_exists(path):
+		return []
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return []
+	var text := file.get_as_text()
+	file.close()
+	var data: Variant = JSON.parse_string(text)
+	if data is Dictionary:
+		var packs: Array = (data as Dictionary).get(
+			"required_dlc_packs", [])
+		var result: Array[String] = []
+		for p: Variant in packs:
+			result.append(str(p))
+		return result
+	return []
+
 ## Load a campaign from a save file on disk
 func load_campaign(path: String) -> Dictionary:
 	load_started.emit()
@@ -540,7 +568,109 @@ func _log_error(message: String, code: int = -1) -> void:
 	else:
 		push_error("GameState: " + message + ((" (Code: " + str(code) + ")") if code != -1 else ""))
 
+## PHASE 3.1: Verify data consistency between the campaign Resource,
+## GameStateManager, and EquipmentManager. Call at phase transitions in
+## debug builds. Returns an Array of human-readable violation strings
+## (empty = consistent). Also pushes them as warnings so they show up
+## in the editor's Errors tab.
+func verify_consistency() -> Array[String]:
+	var violations: Array[String] = []
+	if not current_campaign:
+		return violations
+
+	var gsm = get_node_or_null("/root/GameStateManager")
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+
+	# CHECK 1: GameStateManager resource values must equal campaign @vars.
+	if gsm:
+		if gsm.credits != current_campaign.credits:
+			violations.append(
+				"CREDITS DESYNC: GameStateManager=%d, campaign=%d" %
+				[gsm.credits, current_campaign.credits])
+		if gsm.supplies != current_campaign.supplies:
+			violations.append(
+				"SUPPLIES DESYNC: GameStateManager=%d, campaign=%d" %
+				[gsm.supplies, current_campaign.supplies])
+		if gsm.reputation != current_campaign.reputation:
+			violations.append(
+				"REPUTATION DESYNC: GameStateManager=%d, campaign=%d" %
+				[gsm.reputation, current_campaign.reputation])
+		if gsm.story_progress != current_campaign.story_points:
+			violations.append(
+				"STORY_POINTS DESYNC: GameStateManager=%d, campaign=%d" %
+				[gsm.story_progress, current_campaign.story_points])
+
+	# CHECK 2: progress_data must NOT contain legacy resource mirrors.
+	for legacy_key in ["credits", "supplies", "reputation", "story_points"]:
+		if current_campaign.progress_data.has(legacy_key):
+			violations.append(
+				"LEGACY MIRROR: progress_data still has '%s'" % legacy_key)
+
+	# CHECK 3: Crew id index must be in sync with crew_data members.
+	if current_campaign.has_method("get_crew_members"):
+		var members: Array = current_campaign.get_crew_members()
+		if "_crew_id_index" in current_campaign:
+			var idx: Dictionary = current_campaign._crew_id_index
+			for cid in idx:
+				var i: int = idx[cid]
+				if i >= members.size():
+					violations.append(
+						"CREW INDEX STALE: id '%s' -> index %d, but only %d members" %
+						[cid, i, members.size()])
+
+	# CHECK 4: No item id appears in both the campaign's ship stash AND a
+	# character's equipment. We read the stash from the campaign Resource
+	# directly (NOT from EquipmentManager.get_all_equipment(), which is a
+	# flat registry of ALL known items including character-owned ones — it
+	# does not distinguish stash from owned).
+	if "equipment_data" in current_campaign and current_campaign.equipment_data is Dictionary:
+		var stash_list: Array = current_campaign.equipment_data.get("equipment", [])
+		var stash_ids: Dictionary = {}
+		for item in stash_list:
+			if item is Dictionary:
+				var sid: String = str(item.get("id", ""))
+				if not sid.is_empty():
+					stash_ids[sid] = true
+		var members = current_campaign.crew_data.get("members", [])
+		for member in members:
+			if not (member is Dictionary):
+				continue
+			var char_eq: Array = member.get("equipment", [])
+			for entry in char_eq:
+				var eq_id: String = ""
+				if entry is Dictionary:
+					eq_id = str(entry.get("id", ""))
+				elif entry is String:
+					eq_id = entry
+				if not eq_id.is_empty() and stash_ids.has(eq_id):
+					var cid: String = str(member.get("character_id", member.get("id", "")))
+					violations.append(
+						"DUAL LOCATION: item '%s' in both stash and character '%s'" %
+						[eq_id, cid])
+
+	for v in violations:
+		push_warning("GameState.verify_consistency: " + v)
+	return violations
+
+## Public entry point for tests and external callers that need to trigger
+## the equipment-restore pipeline on demand (e.g. after directly mutating a
+## campaign in test setup). Internal GameState code still calls the
+## underscore version to signal "this is the hot path during load."
+func restore_equipment_from_campaign(campaign) -> void:
+	_restore_equipment_from_campaign(campaign)
+
 ## BUG-035 FIX: Restore EquipmentManager transient storage from campaign data
+##
+## PHASE 1.2 FIX (persistence audit): previously this only rebuilt the ship-stash
+## side of EquipmentManager. It ignored `campaign.crew_data.members[i].equipment`
+## entirely, so after load EquipmentManager had no knowledge of who owned what —
+## which is why per-character gear appeared to "return to the ship stash" after
+## any save/load cycle (e.g. post-battle).
+##
+## This now also reconstructs `_character_equipment` by joining character item
+## names against the item dicts we just loaded into `_equipment_storage`.
+## Phase 2 will replace this with EquipmentTransferService + an id-based model
+## on both sides, making this join obsolete.
 func _restore_equipment_from_campaign(campaign) -> void:
 	if not campaign:
 		return
@@ -552,16 +682,78 @@ func _restore_equipment_from_campaign(campaign) -> void:
 	if not eq_mgr:
 		return
 	# Clear transient storage to avoid duplicates on reload
-	if "_equipment_storage" in eq_mgr:
-		eq_mgr._equipment_storage.clear()
-	if "_character_equipment" in eq_mgr:
-		eq_mgr._character_equipment.clear()
-	# Repopulate from campaign's persisted equipment data
+	if eq_mgr.has_method("clear_all_equipment"):
+		eq_mgr.clear_all_equipment()
+	# Repopulate from campaign's persisted equipment data (ship stash + unassigned).
+	# Items without an id (legacy saves) get a stable id auto-generated so they
+	# can participate in the EquipmentManager ownership tracking. The generated
+	# id is also written back into the campaign data so future saves include it.
 	if campaign.has_method("get_all_equipment"):
 		var all_items: Array = campaign.get_all_equipment()
 		for item in all_items:
-			if item is Dictionary and item.has("id"):
-				eq_mgr.add_equipment(item)
+			if not (item is Dictionary):
+				continue
+			if not item.has("id") or str(item.get("id", "")).is_empty():
+				var item_name: String = str(item.get("name", "unknown"))
+				var safe_base: String = item_name.to_lower().replace(" ", "_")
+				item["id"] = "%s_%d_%d" % [safe_base, Time.get_ticks_msec(), randi() % 100000]
+				push_warning("GameState: auto-generated id '%s' for id-less item '%s'" % [item["id"], item_name])
+			eq_mgr.add_equipment(item)
+
+	# PHASE 1.2 FIX: Reconstruct per-character ownership from crew_data.
+	# Character.equipment is currently Array[String] of item names; the items
+	# themselves live in EquipmentManager storage with ids. We match by name,
+	# tracking claimed ids so two characters never own the same physical card
+	# (tabletop invariant: one item, one home).
+	if not campaign.has_method("get_all_equipment"):
+		return
+	if not ("crew_data" in campaign):
+		return
+	var crew_data = campaign.crew_data
+	if not (crew_data is Dictionary):
+		return
+	var members = crew_data.get("members", [])
+	if not (members is Array):
+		return
+	var stash_items: Array = eq_mgr.get_all_equipment()
+	var claimed_ids: Dictionary = {}
+	for member in members:
+		var char_id: String = ""
+		var owned_names: Array = []
+		if member is Dictionary:
+			char_id = str(member.get("character_id", member.get("id", "")))
+			owned_names = member.get("equipment", [])
+		elif member is Object:
+			if "character_id" in member:
+				char_id = str(member.character_id)
+			elif "id" in member:
+				char_id = str(member.id)
+			if "equipment" in member:
+				owned_names = member.equipment
+		if char_id.is_empty() or not (owned_names is Array) or owned_names.is_empty():
+			continue
+		var eq_ids: Array = []
+		for name_val in owned_names:
+			var want_name: String = ""
+			if name_val is String:
+				want_name = name_val
+			elif name_val is Dictionary:
+				want_name = str(name_val.get("name", ""))
+			if want_name.is_empty():
+				continue
+			for stored in stash_items:
+				if not (stored is Dictionary):
+					continue
+				if str(stored.get("name", "")) != want_name:
+					continue
+				var stored_id: String = str(stored.get("id", ""))
+				if stored_id.is_empty() or claimed_ids.has(stored_id):
+					continue
+				eq_ids.append(stored_id)
+				claimed_ids[stored_id] = true
+				break
+		if not eq_ids.is_empty() and eq_mgr.has_method("set_character_equipment_ids"):
+			eq_mgr.set_character_equipment_ids(char_id, eq_ids)
 
 # Campaign Management
 

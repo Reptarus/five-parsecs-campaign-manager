@@ -27,6 +27,48 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 35: Red & Black Zone Jobs Full Integration (Apr 7, 2026)
+
+Zone selection UI added to World Phase Step 0 (UpkeepPhaseComponent). Key data flow:
+
+- `UpkeepPhaseComponent.get_selected_zone()` → 0=normal, 1=red, 2=black
+- `WorldPhaseController._complete_world_phase()` injects `is_red_zone`/`is_black_zone` into mission_dict
+- `_refresh_mission_prep()` also injects zone flags so MissionPrepComponent can show zone info cards
+- Black Zone auto-skips JOB_OFFERS + RESOLVE_RUMORS steps, waives upkeep
+- `red_zone_turns_completed` incremented in `_complete_world_phase()` for both RZ and BZ turns
+- License purchase: `RedZoneSystem.purchase_license()` + milestone journal entry
+- PostBattle: PaymentProcessor.process_black_zone_rewards(), ExperienceTrainingProcessor BZ +1 XP, GalacticWarProcessor RZ -1 modifier
+- CampaignJournal enriched with zone_type tags, threat/time details, BZ reward milestones
+
+---
+
+## Session 34: Strange Characters Wired to Post-Battle + Creation (Apr 6, 2026)
+
+Post-battle subsystems updated for Strange Character rules:
+
+- `PostBattleCompletion.gd` — new `check_traveler_disappearance(ctx)` (2D6: 2=disappear+2SP, 11-12=quest) and `check_manipulator_bonus(ctx)` (1D6 per Manipulator, 6=+1 SP)
+- `PostBattleContext.gd` — `is_character_bot_or_soulless()` now also excludes Assault Bot via `species_id` check
+- `InjuryProcessor.gd` — Assault Bot routed to bot injury table (added to origin check + species_id fallback)
+- `ExperienceTrainingProcessor.gd` — Hopeful Rookie +1 XP when not casualty
+- `CharacterCreator.gd` — Strange Characters in dropdown, `_enforce_species_constraints()` locks forced motivation/background/no-tables, creation bonuses adjusted per species
+
+Key pattern: gameplay systems check `species_id` field (String) on crew members. Both Object and Dictionary access paths supported.
+
+---
+
+## Session 33: DLC Save Dependency Tracking (Apr 6, 2026)
+
+- **`required_dlc_packs: Array[String]`** added to FiveParsecsCampaignCore — one-way stamp, serialized at top level, backwards-compat via `.get("required_dlc_packs", [])`
+- **Signal-based stamping**: `DLCManager.dlc_pack_required` signal → GameState._on_dlc_pack_required() → campaign.require_dlc_pack(). Loose coupling per Godot best practices
+- **`GameState.peek_required_dlc(path)`** — static method, peeks JSON without full load (pattern from `_detect_campaign_type()`)
+- **Load-time DLC check**: MainMenu._load_and_go_to_dashboard() now intercepts load, shows DLCRequirementDialog if missing packs
+- **Save list badges**: `[DLC]` amber tag shown on saves requiring unowned packs
+- **ExpandedConfigPanel**: Two DLC sections replaced with unified `ExpansionFeatureSection` (campaign_creation mode)
+- **DLCContentDisclaimer**: One-time warning on first feature enable per pack during campaign creation
+- **StoreManager bundle**: `"compendium_bundle"` purchase sets all 3 packs owned
+
+---
+
 ## Session 30: Creation Pipeline Refactor (Apr 3, 2026)
 
 - **creation_bonuses single source of truth**: `Character.creation_bonuses` dict holds all rolled creation resources. Set once by `CharacterCreator._roll_and_store_creation_bonuses()`. Coordinator `_generate_crew_extras()` rewritten to aggregate FROM these stored values (no more `CharacterGeneration.roll_character_tables()` random re-rolls).

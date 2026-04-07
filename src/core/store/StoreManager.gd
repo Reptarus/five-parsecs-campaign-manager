@@ -38,6 +38,16 @@ const PRODUCT_IDS: Dictionary = {
 		"android": "com.reptarus.fiveparsecs.dlc.fixers_guidebook",
 		"ios": "com.reptarus.fiveparsecs.dlc.fixers_guidebook",
 	},
+	"compendium_bundle": {
+		"steam": "STEAM_DLC_BUNDLE_ID",
+		"android": "com.reptarus.fiveparsecs.dlc.compendium_bundle",
+		"ios": "com.reptarus.fiveparsecs.dlc.compendium_bundle",
+	},
+	"bug_hunt": {
+		"steam": "STEAM_DLC_APP_ID_BH",
+		"android": "com.reptarus.fiveparsecs.dlc.bug_hunt",
+		"ios": "com.reptarus.fiveparsecs.dlc.bug_hunt",
+	},
 }
 
 ## Display metadata for DLC packs (prices are placeholder; real prices come from store)
@@ -59,6 +69,18 @@ const DLC_METADATA: Dictionary = {
 		"description": "Stealth missions, street fights, salvage jobs, expanded factions, world strife, loans, name generation, introductory campaign.",
 		"default_price": "$4.99",
 		"feature_count": 9,
+	},
+	"compendium_bundle": {
+		"name": "Compendium Bundle",
+		"description": "All three Compendium expansions at a discount.",
+		"default_price": "$14.99",
+		"feature_count": 33,
+	},
+	"bug_hunt": {
+		"name": "Bug Hunt",
+		"description": "Standalone military campaign against alien infestations.",
+		"default_price": "$2.99",
+		"feature_count": 0,
 	},
 }
 
@@ -83,7 +105,7 @@ func _detect_platform() -> String:
 	var os_name := OS.get_name()
 	match os_name:
 		"Android":
-			if Engine.has_singleton("AndroidIAPP"):
+			if ClassDB.class_exists(&"BillingClient"):
 				return "android"
 			return "offline"
 		"iOS":
@@ -204,6 +226,32 @@ func restore_all_purchases() -> void:
 	restore_started.emit()
 	_adapter.restore_purchases()
 
+func get_bundle_info() -> Dictionary:
+	var info: Dictionary = DLC_METADATA.get("compendium_bundle", {}).duplicate()
+	info["dlc_id"] = "compendium_bundle"
+	var owned_count := 0
+	var pack_ids: Array[String] = [
+		"trailblazers_toolkit",
+		"freelancers_handbook",
+		"fixers_guidebook",
+	]
+	for pid: String in pack_ids:
+		if _dlc_mgr and _dlc_mgr.has_dlc(pid):
+			owned_count += 1
+	info["owned_count"] = owned_count
+	info["total_packs"] = pack_ids.size()
+	info["all_owned"] = owned_count >= pack_ids.size()
+	info["is_owned"] = info["all_owned"]
+	return info
+
+func get_all_dlc_info() -> Array[Dictionary]:
+	## Returns info for all purchasable DLC (excl. bundle).
+	var result: Array[Dictionary] = []
+	for dlc_id: String in ["trailblazers_toolkit",
+			"freelancers_handbook", "fixers_guidebook"]:
+		result.append(get_dlc_info(dlc_id))
+	return result
+
 func refresh_products() -> void:
 	_initial_product_query()
 
@@ -233,9 +281,20 @@ func _on_adapter_purchase_completed(product_id: String) -> void:
 		push_warning("StoreManager: Unknown product_id: %s" % product_id)
 		return
 	if _dlc_mgr:
-		_dlc_mgr.set_dlc_owned(dlc_id, true)
+		if dlc_id == "compendium_bundle":
+			# Bundle sets all 3 packs owned
+			for pack_id: String in ["trailblazers_toolkit",
+					"freelancers_handbook", "fixers_guidebook"]:
+				_dlc_mgr.set_dlc_owned(pack_id, true)
+		else:
+			_dlc_mgr.set_dlc_owned(dlc_id, true)
 		_dlc_mgr.save_ownership()
 	purchase_completed.emit(dlc_id)
+	# Show activation toast
+	var ToastScript = load(
+		"res://src/ui/components/dlc/DLCActivationToast.gd")
+	if ToastScript and ToastScript.has_method("show_for_dlc"):
+		ToastScript.show_for_dlc(dlc_id)
 
 func _on_adapter_purchase_failed(product_id: String, reason: String) -> void:
 	_purchase_in_progress = false

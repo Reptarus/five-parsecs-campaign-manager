@@ -67,8 +67,14 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 				is_bot_character = crew_member._is_bot()
 			elif "origin" in crew_member:
 				crew_origin = str(crew_member.origin)
-	if not is_bot_character and (crew_origin == "BOT" or crew_origin == "SOULLESS"):
+	if not is_bot_character and crew_origin in [
+		"BOT", "SOULLESS", "ASSAULT BOT", "Assault Bot"]:
 		is_bot_character = true
+	# Also check species_id for Strange Characters
+	if not is_bot_character:
+		var sid: String = injury_data.get("species_id", "")
+		if sid.to_lower() == "assault_bot":
+			is_bot_character = true
 
 	if is_bot_character:
 		return _process_bot_injury(ctx, injury_data, crew_id)

@@ -52,9 +52,25 @@ static func can_obtain_license(campaign: Resource) -> Dictionary:
 	if turns_played < min_turns:
 		reasons.append("Need %d+ campaign turns (have %d)" % [min_turns, turns_played])
 
-	# Check credits (apply Broker discount if available)
+	# Check credits (apply Broker discount if available — Core Rules p.148)
 	var actual_fee: int = fee
-	# TODO: Check for Broker training in crew to apply discount
+	var broker_discount: int = reqs.get("broker_discount", 2)
+	if campaign.has_method("get_crew_members"):
+		for member in campaign.get_crew_members():
+			var has_broker: bool = false
+			# Check property (from AdvancementSystem training course)
+			if "has_broker_training" in member and member.has_broker_training:
+				has_broker = true
+			# Check traits array (from CharacterGeneration background)
+			elif "traits" in member:
+				for t in member.traits:
+					if str(t).to_lower().contains("broker"):
+						has_broker = true
+						break
+			if has_broker:
+				actual_fee -= broker_discount
+				break
+	actual_fee = maxi(0, actual_fee)
 	var credits: int = campaign.credits if "credits" in campaign else 0
 	if credits < actual_fee:
 		reasons.append("Need %d credits for license (have %d)" % [actual_fee, credits])

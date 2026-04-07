@@ -93,6 +93,9 @@ var character_name: String:
 	set(value):
 		name = value
 
+# DLC degradation flag — true when species requires unavailable DLC
+var species_degraded: bool = false
+
 # Core Stats
 @export var combat: int = 0
 
@@ -157,6 +160,11 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 @export var critical_hits_landed: int = 0        # Critical successes
 @export var advancement_history: Array[Dictionary] = []  # {turn, stat, old_value, new_value}
 @export var player_notes: String = ""  # User-editable notes/lore/story for this character
+
+# Strange Character species data (Core Rules pp.19-22)
+@export var species_id: String = ""           # JSON id for lookup (e.g., "de_converted")
+@export var special_rules: Array[String] = [] # Populated at creation from character_species.json
+@export var xp_discount_stat: String = ""     # Minor Alien: one stat costs 1 less XP (rolled at creation)
 
 # Game-Specific Properties (merged from game/character/Character.gd)
 @export var portrait_path: String = ""
@@ -446,6 +454,7 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 			# Krag (Compendium DLC): Cannot Dash, reroll natural 1 vs Rivals
 			var _dlc_krag = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
 			if _dlc_krag and _dlc_krag.is_feature_enabled(_dlc_krag.ContentFlag.SPECIES_KRAG):
+				species_degraded = false
 				modifiers["sources"].append({
 					"type": "species",
 					"name": "Krag",
@@ -458,10 +467,17 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 					"stat": "reroll_vs_rivals",
 					"value": 1
 				})
+			else:
+				species_degraded = true
+				push_warning(
+					"Character %s: Krag bonuses unavailable"
+					+ " — requires Trailblazer's Toolkit"
+					% character_name)
 		"skulker":
 			# Skulker (Compendium DLC): Ignore difficult ground, low obstacles, poison resist
 			var _dlc_skulker = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
 			if _dlc_skulker and _dlc_skulker.is_feature_enabled(_dlc_skulker.ContentFlag.SPECIES_SKULKER):
+				species_degraded = false
 				modifiers["sources"].append({
 					"type": "species",
 					"name": "Skulker",
@@ -480,6 +496,85 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 					"stat": "poison_resist_3plus",
 					"value": 3
 				})
+			else:
+				species_degraded = true
+				push_warning(
+					"Character %s: Skulker bonuses unavailable"
+					+ " — requires Trailblazer's Toolkit"
+					% character_name)
+		# Strange Characters (Core Rules pp.19-22)
+		"de_converted", "de-converted":
+			# De-converted: 6+ Armor Saving Throw, up to 3 implants (Core Rules p.19)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "De-converted",
+				"stat": "natural_armor",
+				"value": 6
+			})
+		"assault_bot", "assault bot":
+			# Assault Bot: 5+ Armor Saving Throw, ignore Clumsy/Heavy (Core Rules p.21)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Assault Bot",
+				"stat": "natural_armor",
+				"value": 5
+			})
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Assault Bot",
+				"stat": "ignore_clumsy_heavy",
+				"value": 1
+			})
+		"manipulator":
+			# Manipulator: Cannot enter Brawl voluntarily, dual pistols (Core Rules p.22)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Manipulator",
+				"stat": "no_voluntary_brawl",
+				"value": 1
+			})
+		"primitive", "primitive_character":
+			# Primitive: Cannot use gun sights, max 8" range, melee elegant (Core Rules p.22)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Primitive",
+				"stat": "max_range_8",
+				"value": 1
+			})
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Primitive",
+				"stat": "melee_elegant",
+				"value": 1
+			})
+
+## Strange Character helper methods (Core Rules pp.19-22)
+
+func can_receive_luck() -> bool:
+	## Emo-suppressed and bot types cannot receive Luck
+	var sid := species_id.to_lower()
+	if sid.is_empty():
+		return true
+	return sid != "emo_suppressed" and sid != "bot" and sid != "assault_bot"
+
+func can_earn_xp() -> bool:
+	## Bots cannot earn XP (Core Rules p.15)
+	var sid := species_id.to_lower()
+	if sid.is_empty():
+		return not is_bot
+	return sid != "bot" and sid != "assault_bot"
+
+func get_bonus_xp() -> int:
+	## Hopeful Rookie +1 XP per battle if not casualty (Core Rules p.21)
+	if species_id.to_lower() == "hopeful_rookie":
+		return 1
+	return 0
+
+func can_perform_task(task_id: String) -> bool:
+	## Mutant cannot Recruit or Find a Patron (Core Rules p.21)
+	if species_id.to_lower() == "mutant":
+		return task_id != "recruit" and task_id != "find_patron"
+	return true
 
 ## Apply penalties from active injuries
 func _apply_injury_penalties(modifiers: Dictionary) -> void:
@@ -1097,7 +1192,11 @@ func to_dictionary() -> Dictionary:
 		"credits_earned": credits_earned,
 		"missions_completed": missions_completed,
 		"creation_bonuses": creation_bonuses.duplicate(),
-		"traits": traits.duplicate()
+		"traits": traits.duplicate(),
+		# Strange Character species data (Core Rules pp.19-22)
+		"species_id": species_id,
+		"special_rules": special_rules.duplicate(),
+		"xp_discount_stat": xp_discount_stat
 	}
 
 func _deserialize_enhanced_property(property_name: String, serialized_data: Variant) -> String:
@@ -1238,3 +1337,12 @@ func from_dictionary(data: Dictionary) -> void:
 	for t in traits_data:
 		if t is String:
 			traits.append(t)
+
+	# Strange Character species data (Core Rules pp.19-22)
+	species_id = data.get("species_id", "")
+	xp_discount_stat = data.get("xp_discount_stat", "")
+	var rules_data = data.get("special_rules", [])
+	special_rules.clear()
+	for rule in rules_data:
+		if rule is String:
+			special_rules.append(rule)

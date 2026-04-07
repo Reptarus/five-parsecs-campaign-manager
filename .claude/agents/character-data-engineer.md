@@ -68,6 +68,7 @@ You are working on **Five Parsecs Campaign Manager**, a campaign management tool
 - **Equipment**: `src/core/equipment/EquipmentManager.gd` (autoload)
 - **Data loading**: `src/core/data/DataManager.gd`, `src/core/managers/GameDataManager.gd` (both autoloads)
 - **World systems**: `src/core/world/PlanetDataManager.gd`, `src/core/world/PlanetCache.gd`, `src/core/world/WorldEconomyManager.gd`
+- **Species lookup**: `src/core/character/SpeciesDataService.gd` (class_name, static RefCounted, loads `character_species.json`)
 - **JSON data**: `data/` directory (132 JSON files)
 - **Godot executable**: `"C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe"`
 

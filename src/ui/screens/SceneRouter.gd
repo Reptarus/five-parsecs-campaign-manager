@@ -77,6 +77,9 @@ const SCENE_PATHS = {
 	# Help / Library
 	"help": "res://src/ui/help/HelpScreen.tscn",
 
+	# Store / Expansions
+	"store": "res://src/ui/screens/store/StoreScreen.tscn",
+
 	# Bug Hunt gamemode
 	"bug_hunt_creation": "res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
 	"bug_hunt_dashboard": "res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",

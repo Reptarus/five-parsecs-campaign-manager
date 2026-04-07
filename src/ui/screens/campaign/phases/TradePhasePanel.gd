@@ -496,7 +496,11 @@ func _refresh_market_list() -> void:
 func _on_complete_button_pressed() -> void:
 	var campaign = _get_campaign_safe()
 	if campaign and "credits" in campaign:
-		campaign.credits = current_credits
+		var gsm = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("set_credits"):
+			gsm.set_credits(current_credits)
+		else:
+			campaign.credits = current_credits  # lint:ignore — fallback
 	# Log trading transactions to CampaignJournal
 	if not purchased_items.is_empty() or not sold_items.is_empty():
 		var journal = get_node_or_null("/root/CampaignJournal")

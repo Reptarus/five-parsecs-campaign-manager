@@ -1,0 +1,89 @@
+{
+  "_source": "Core Rules Appendix V pp.158-159",
+  "event_id": "were_coming",
+  "event_number": 6,
+  "title": "We're Coming!",
+  "narrative": {
+    "intro": "You have managed to track down where they are holding your friend. It's time to have some diplomacy, Fringe-style!",
+    "briefing": "Roll once on Hired Muscle Subtable. Enemy count is automatically 5 + any modifier from enemy table. Set up 2 basic sentries near center. Rest halfway between center and enemy edge in/near a building. One captive inside building.",
+    "completion_win": "After the battle, your old comrade offers to join for the final battle (no Upkeep).",
+    "completion_lose": "Comrade is flown off, but will join you after Event 7."
+  },
+  "campaign_turn_modifications": {
+    "cannot_seek_patron": true,
+    "rivals_dodged": true
+  },
+  "deployment": {
+    "type": "stealth_rescue",
+    "battlefield_theme": "compound with central building",
+    "crew_setup": "opposing battlefield edge, each figure moves onto battlefield in Round 1",
+    "enemy_setup": {
+      "sentries": {
+        "count": 2,
+        "type": "basic",
+        "placement": "within a few inches of center of battlefield"
+      },
+      "main_force": {
+        "placement": "halfway between center and enemy battlefield edge, in/near central building"
+      },
+      "captive": {
+        "placement": "inside building, difficult to see spot"
+      }
+    },
+    "stealth_rules": {
+      "enemies_unaware": true,
+      "alert_triggers": [
+        "Fire a weapon",
+        "Finish Move within 6\" of an enemy"
+      ],
+      "alert_effect": "Current round ends immediately after current figure resolves actions, then normal battle",
+      "shooting_unaware_bonus": "+2 to Hit",
+      "sentry_detection": {
+        "check": "end of each round while sneaking",
+        "method": "Random direction per sentry, draw line to edge. If passes within 1\" of crew in open: spotted. If within 1\" of crew in Cover: roll 1D6+Savvy, 4+ to avoid."
+      },
+      "first_alert_round": "Enemies confused: may Move (if no crew in sight) or remain and shoot without Aiming"
+    },
+    "no_unique_individuals": true
+  },
+  "enemies": {
+    "source_table": "hired_muscle",
+    "count_method": "5 + modifier from enemy table (do NOT roll for count)",
+    "lieutenant_and_specialist": "determine as normal",
+    "reinforcements_if_delayed": {
+      "trigger": "more than 3 campaign turns to locate captive",
+      "per_extra_turn": 1,
+      "type": "standard figure",
+      "deployment_timing": "one at a time starting round after alarm",
+      "placement": "center of enemy battlefield edge",
+      "stop_condition": "if battlefield cleared, no more reinforcements arrive"
+    }
+  },
+  "captive": {
+    "status": "tied up, left alone during battle",
+    "rescue_method": "move into contact + non-Combat Action to free",
+    "after_freed": "can move and act normally, becomes valid target",
+    "stats": {"reactions": 2, "speed_inches": 4, "combat_skill": 0, "toughness": 4, "savvy": 1},
+    "equipment": "unarmed, can be given spare weapon from crew"
+  },
+  "objectives": {
+    "primary": {
+      "type": "rescue_captive",
+      "description": "Free the captive and defeat the enemy force"
+    }
+  },
+  "post_battle_effects": {
+    "win_captive_survived": {
+      "companion_joins_for_final_battle": true,
+      "companion_upkeep": false,
+      "description": "Old comrade offers to join for the final battle, no Upkeep"
+    },
+    "flee_or_all_casualties": {
+      "companion_flown_off": true,
+      "companion_joins_after_event_7": true,
+      "description": "Comrade is flown off, but will join after Event 7"
+    }
+  },
+  "next_clock_ticks": 2,
+  "page_reference": "pp.158-159"
+}

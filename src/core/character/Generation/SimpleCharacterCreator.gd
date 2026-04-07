@@ -46,6 +46,8 @@ var current_character: Character = null
 var species_data: Dictionary = {}
 var backgrounds_data: Dictionary = {}
 var motivations_data: Dictionary = {}
+## Maps origin dropdown index → species_id string
+var _species_id_by_index: Array[String] = []
 
 func _ready() -> void:
 	pass # _ready() called
@@ -204,16 +206,27 @@ func _try_alternative_node_paths() -> void:
 func _populate_options() -> void:
 	## Populate dropdown options with data from JSON files
 	# Populate Origin (Species) options — schema: primary_aliens[] + strange_characters[] + compendium_species[]
+	_species_id_by_index.clear()
 	if origin_options:
 		origin_options.clear()
 		origin_options.add_item("Select Origin...", -1)
+		_species_id_by_index.append("")  # placeholder for "Select Origin..."
 		for species in species_data.get("primary_aliens", []):
-			origin_options.add_item(species.get("name", "Unknown"), origin_options.get_item_count())
+			origin_options.add_item(
+				species.get("name", "Unknown"),
+				origin_options.get_item_count())
+			_species_id_by_index.append(species.get("id", ""))
 		for species in species_data.get("strange_characters", []):
-			origin_options.add_item(species.get("name", "Unknown"), origin_options.get_item_count())
+			origin_options.add_item(
+				species.get("name", "Unknown"),
+				origin_options.get_item_count())
+			_species_id_by_index.append(species.get("id", ""))
 		# Compendium species (DLC-gated: Krag, Skulker)
 		for species in species_data.get("compendium_species", []):
-			origin_options.add_item(species.get("name", "Unknown"), origin_options.get_item_count())
+			origin_options.add_item(
+				species.get("name", "Unknown"),
+				origin_options.get_item_count())
+			_species_id_by_index.append(species.get("id", ""))
 	
 	# Populate Background options
 	if background_options:
@@ -532,23 +545,87 @@ func _on_origin_changed(index: int) -> void:
 		var selected_origin = origin_options.get_item_text(index)
 		# Store the origin as a string for display purposes
 		current_character.origin = selected_origin
-		
+
+		# Set species_id for gameplay system lookups
+		var sid: String = (
+			_species_id_by_index[index]
+			if index < _species_id_by_index.size() else "")
+		current_character.species_id = sid
+
 		# Apply species stat modifiers
-		var species_data = _get_species_data(selected_origin)
-		if species_data:
-			var modifiers = species_data.get("stat_modifiers", {})
+		var origin_data: Dictionary = _get_species_data(
+			selected_origin)
+		if origin_data:
+			var modifiers = origin_data.get("stat_modifiers", {})
 			current_character.combat += modifiers.get("combat", 0)
-			current_character.toughness += modifiers.get("toughness", 0)
+			current_character.toughness += modifiers.get(
+				"toughness", 0)
 			current_character.savvy += modifiers.get("savvy", 0)
 			current_character.tech += modifiers.get("tech", 0)
 			current_character.speed += modifiers.get("speed", 0)
-			
+
 			# Recalculate health
-			current_character.max_health = current_character.toughness + 2
+			current_character.max_health = (
+				current_character.toughness + 2)
 			current_character.health = current_character.max_health
-		
+
+		# Store special rules from JSON (Core Rules pp.19-22)
+		var rules: Array = origin_data.get("special_rules", [])
+		current_character.special_rules = rules.duplicate()
+
+		# Enforce Strange Character creation constraints
+		_enforce_species_constraints(sid, origin_data)
+
 		_update_stats_display()
 		_update_description()
+
+func _enforce_species_constraints(
+	sid: String, origin_data: Dictionary
+) -> void:
+	## Lock dropdowns based on Strange Character rules (Core Rules pp.19-22)
+	if not background_options or not motivation_options:
+		return
+	# Reset to enabled
+	background_options.disabled = false
+	motivation_options.disabled = false
+
+	if sid.is_empty() or origin_data.is_empty():
+		return
+
+	# No creation tables (Assault Bot, Core Rules p.21)
+	if not origin_data.get("rolls_creation_tables", true):
+		background_options.disabled = true
+		motivation_options.disabled = true
+		return
+
+	# Forced motivation
+	var forced_mot: String = origin_data.get(
+		"forced_motivation", "")
+	if not forced_mot.is_empty():
+		# Find and select the forced motivation
+		for i in range(motivation_options.item_count):
+			var mot_text: String = motivation_options.get_item_text(i)
+			if mot_text.to_lower() == forced_mot.to_lower() or \
+				mot_text.to_lower().begins_with(forced_mot.to_lower()):
+				motivation_options.select(i)
+				current_character.motivation = mot_text
+				break
+		motivation_options.disabled = true
+
+	# Forced background
+	var forced_bg: String = origin_data.get(
+		"forced_background", "")
+	if not forced_bg.is_empty():
+		var bg_display: String = forced_bg.replace(
+			"_", " ").capitalize()
+		for i in range(background_options.item_count):
+			var bg_text: String = background_options.get_item_text(i)
+			if bg_text.to_lower().begins_with(
+				bg_display.to_lower().left(10)):
+				background_options.select(i)
+				current_character.background = bg_text
+				break
+		background_options.disabled = true
 
 func _on_background_changed(index: int) -> void:
 	## Handle background selection change

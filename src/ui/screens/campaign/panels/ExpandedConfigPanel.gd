@@ -11,6 +11,7 @@ const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescript
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
 const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const ExpansionFeatureSectionScript = preload("res://src/ui/components/dlc/ExpansionFeatureSection.gd")
 
 # GDScript 2.0: Typed signals
 signal campaign_config_updated(config: Dictionary)
@@ -215,12 +216,11 @@ func _initialize_components() -> void:
 	_build_campaign_identity_section(flow)
 	_build_campaign_type_section(flow)
 	_build_difficulty_section(flow)
-	_build_difficulty_toggles_section(flow)
 	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
 	_build_victory_conditions_section(flow)
 	_build_story_track_section(flow)
 	_build_tutorial_section(flow)
-	_build_compendium_options_section(flow)
+	_build_expansion_features_section(flow)
 
 	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
 	for child in flow.get_children():
@@ -482,6 +482,31 @@ func _build_compendium_options_section(parent: Control) -> void:
 func _on_introductory_campaign_toggled(enabled: bool) -> void:
 	local_campaign_config["introductory_campaign"] = enabled
 	campaign_config_data_changed.emit(local_campaign_config)
+
+
+func _build_expansion_features_section(parent: Control) -> void:
+	## Unified expansion features section — replaces separate
+	## difficulty toggles + compendium options sections.
+	var section: VBoxContainer = ExpansionFeatureSectionScript.new()
+	section.setup("campaign_creation")
+	section.flags_changed.connect(_on_expansion_flags_changed)
+	section.upsell_requested.connect(_on_expansion_upsell)
+
+	var card = _create_section_card(
+		"EXPANSION FEATURES",
+		section,
+		"Toggle Compendium expansion content for this campaign"
+	)
+	parent.add_child(card)
+
+func _on_expansion_flags_changed(flags: Dictionary) -> void:
+	local_campaign_config["enabled_flags"] = flags
+	campaign_config_data_changed.emit(local_campaign_config)
+
+func _on_expansion_upsell(_dlc_id: String) -> void:
+	var router := get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("store")
 
 
 func _update_all_descriptions() -> void:

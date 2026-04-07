@@ -92,3 +92,27 @@ Two injury-related JSON files exist — both verified against Core Rules p.122-1
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.
 Same applies to untyped Array access and any method returning Variant.
+
+### 10. Character.species_degraded (Session 33, Apr 6)
+
+`var species_degraded: bool = false` — set in `_apply_species_bonuses()` when Krag/Skulker origin is present but DLC feature flag is unavailable. Used by CharacterDetailsScreen to show amber degradation banner. NOT serialized (transient runtime flag, recomputed on load).
+
+### 11. Strange Characters & SpeciesDataService (Session 34, Apr 6)
+
+16 Strange Character types (Core Rules pp.19-22) are wired via `SpeciesDataService.gd` (static RefCounted, loads `character_species.json`). Character.gd has `species_id`, `special_rules`, `xp_discount_stat` fields + helper methods. **Character.gd does NOT import SpeciesDataService** (load order issue) — helpers use inline `species_id` string checks.
+
+Key wiring points:
+- `CharacterCreator.gd` — dropdown with separator, `_enforce_species_constraints()`, forced fields, Hulker class override
+- `LuckSystem.gd` — `_get_species_id()` helper, emo_suppressed blocked
+- `ExperienceTrainingProcessor.gd` — hopeful_rookie +1 XP
+- `AdvancementSystem.gd` — minor_alien discount via `xp_discount_stat`
+- `CrewTaskComponent.gd` — mutant blocked from recruit/find_patron
+- `PostBattleCompletion.gd` — traveler disappearance (2D6), manipulator bonus
+- `PostBattleContext.gd` — assault_bot excluded from character events
+- `InjuryProcessor.gd` — assault_bot routed to bot injury table
+
+`GameEnums.StrangeCharacterType` is DEPRECATED. `FiveParsecsStrangeCharacters.gd` and `BaseStrangeCharacters.gd` were DELETED (fabricated).
+
+### 12. SpeciesDataService Load Order (Session 34)
+
+`SpeciesDataService` has `class_name` but Character.gd cannot reference it at parse time due to Godot's script loading order. The fix: Character helper methods use simple inline string comparisons (`sid != "bot" and sid != "assault_bot"`) instead of calling `SpeciesDataService.is_bot_type()`. Other systems (CharacterCreator, LuckSystem) can reference SpeciesDataService safely since they load later.

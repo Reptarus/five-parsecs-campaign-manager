@@ -231,6 +231,9 @@ func _build_ui() -> void:
 	acc_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(acc_panel)
 
+	# Expansions summary
+	_build_expansions_section(content)
+
 	# Difficulty toggles (DLC-gated)
 	var toggles_panel := DifficultyTogglesPanelScript.new()
 	toggles_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -360,6 +363,60 @@ func _build_mobile_section(parent: VBoxContainer) -> void:
 
 	_touch_sensitivity_slider = _add_slider_row(card, "Touch Sensitivity", 0.5, 2.0, 0.1,
 		_config.get_value("mobile", "touch_sensitivity", 1.0), "Adjust touch input sensitivity")
+
+
+# ============ EXPANSIONS ============
+func _build_expansions_section(
+	parent: VBoxContainer,
+) -> void:
+	var dlc_mgr := get_node_or_null("/root/DLCManager")
+	if not dlc_mgr:
+		return
+	var card_vbox := _create_section_card("Expansions", parent)
+
+	# Ownership summary
+	var owned_count := 0
+	for pid: String in ["trailblazers_toolkit",
+			"freelancers_handbook", "fixers_guidebook"]:
+		if dlc_mgr.has_dlc(pid):
+			owned_count += 1
+	var summary := Label.new()
+	summary.text = "%d of 3 expansions owned" % owned_count
+	summary.add_theme_font_size_override(
+		"font_size", _font_md)
+	summary.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
+	card_vbox.add_child(summary)
+
+	# Buttons
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override(
+		"separation", _spacing_sm)
+	card_vbox.add_child(btn_row)
+
+	var browse_btn := Button.new()
+	browse_btn.text = "Browse Expansions"
+	browse_btn.custom_minimum_size.y = 48
+	browse_btn.pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("store")
+	)
+	btn_row.add_child(browse_btn)
+
+	if owned_count > 0:
+		var manage_btn := Button.new()
+		manage_btn.text = "Manage Features"
+		manage_btn.custom_minimum_size.y = 48
+		manage_btn.pressed.connect(func():
+			var DLCDialogScript := load(
+				"res://src/ui/dialogs/DLCManagementDialog.gd")
+			if DLCDialogScript:
+				var dialog: AcceptDialog = DLCDialogScript.new()
+				add_child(dialog)
+				dialog.popup_centered()
+		)
+		btn_row.add_child(manage_btn)
 
 
 # ============ UI HELPERS ============

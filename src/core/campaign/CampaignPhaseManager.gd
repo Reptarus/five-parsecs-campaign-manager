@@ -5,8 +5,12 @@ const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
-const PostBattlePhaseClass = preload("res://src/core/campaign/PostBattlePhase.gd")
-const VictoryChecker = preload("res://src/core/victory/VictoryChecker.gd")
+const PostBattlePhaseClass = preload(
+	"res://src/core/campaign/PostBattlePhase.gd")
+const VictoryChecker = preload(
+	"res://src/core/victory/VictoryChecker.gd")
+const StoryTrackSystemClass = preload(
+	"res://src/core/story/StoryTrackSystem.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -41,6 +45,11 @@ var phase_events: Array = []
 var phase_errors: Array = []
 var validator: ValidationManager
 
+# Story Track system (Core Rules Appendix V)
+var story_track: FPCM_StoryTrackSystem = null
+## Active Story Event for this turn (null if normal turn)
+var _current_story_event: StoryEvent = null
+
 func _ready() -> void:
 	reset_phase_tracking()
 
@@ -55,6 +64,9 @@ func setup(state: FiveParsecsGameState) -> void:
 		post_battle_phase_handler.name = "PostBattlePhaseHandler"
 		add_child(post_battle_phase_handler)
 		post_battle_phase_handler.phase_completed.connect(_on_post_battle_phase_completed)
+
+	# Initialize Story Track if enabled
+	_init_story_track()
 
 	# Connect to campaign signals if available
 	if game_state and game_state.current_campaign:
@@ -79,6 +91,11 @@ func start_new_turn() -> void:
 
 	# === TURN ROLLOVER: Core Rules mechanics that trigger at turn boundary ===
 	_process_turn_rollover()
+
+	# Check if Story Track triggers a Story Event this turn
+	_current_story_event = null
+	if story_track:
+		_current_story_event = story_track.begin_campaign_turn()
 
 	campaign_turn_started.emit(turn_number)
 	# Reset to first turn phase (UPKEEP)
@@ -114,6 +131,14 @@ func _process_turn_rollover() -> void:
 	# --- Patron Duration Expiration (Core Rules p.81-88) ---
 	# Decrement patron job durations; expire patrons whose time has run out.
 	_process_patron_expiration()
+
+	# --- Story Point Per-Turn Limits Reset (Core Rules pp.66-67) ---
+	# Reset "once per turn" spending limits (credits, XP, extra action)
+	if "story_point_turn_state" in campaign:
+		var spts: Dictionary = campaign.story_point_turn_state
+		spts["credits_spent_this_turn"] = false
+		spts["xp_spent_this_turn"] = false
+		spts["action_spent_this_turn"] = false
 
 	# --- Story Point Auto-Award (Core Rules p.66-67) ---
 	# "+1 story point every 3rd campaign turn"
@@ -549,12 +574,22 @@ func _execute_upkeep_phase_start() -> void:
 	phase_event_triggered.emit(phase_events[-1])
 
 func _execute_story_phase_start() -> void:
-	# Generate story events
-	var story_events = _generate_story_events()
-	phase_events.append({
-		"type": "story_events",
-		"events": story_events
-	})
+	# Story Track event turn or normal clock status
+	if _current_story_event:
+		phase_events.append({
+			"type": "story_event_active",
+			"event_id": _current_story_event.event_id,
+			"event_title": _current_story_event.title,
+			"turn_mods": _current_story_event.campaign_turn_mods,
+		})
+	else:
+		var status: Dictionary = {}
+		if story_track:
+			status = story_track.get_status()
+		phase_events.append({
+			"type": "story_clock_status",
+			"story_status": status,
+		})
 	phase_event_triggered.emit(phase_events[-1])
 
 func _execute_travel_phase_start() -> void:
@@ -794,8 +829,208 @@ func _calculate_upkeep_costs() -> int:
 	return total
 
 func _generate_story_events() -> Array:
-	# Stub: Generate story events
+	# Returns current story event as array if active, else empty
+	if _current_story_event:
+		return [_current_story_event]
 	return []
+
+## Initialize Story Track system from campaign state
+func _init_story_track() -> void:
+	if not game_state:
+		return
+	var campaign: Resource = game_state.current_campaign
+	if not campaign:
+		return
+	var enabled: bool = false
+	if "story_track_enabled" in campaign:
+		enabled = campaign.story_track_enabled
+	if not enabled:
+		story_track = null
+		return
+
+	story_track = StoryTrackSystemClass.new()
+	# Inject dice manager if available
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm:
+		story_track.set_dice_manager(dm)
+
+	# Restore from save or start fresh
+	var progress: Dictionary = {}
+	if "progress_data" in campaign:
+		progress = campaign.progress_data
+	var saved: Dictionary = progress.get("story_track", {})
+	if not saved.is_empty():
+		story_track.deserialize(saved)
+	elif not story_track.is_story_track_active:
+		story_track.start_story_track()
+
+	# Connect Story Track signals → journal/history logging
+	story_track.story_track_started.connect(
+		_on_story_track_started)
+	story_track.story_event_triggered.connect(
+		_on_story_event_triggered)
+	story_track.story_clock_advanced.connect(
+		_on_story_clock_advanced)
+	story_track.evidence_discovered.connect(
+		_on_story_evidence_discovered)
+	story_track.story_track_completed.connect(
+		_on_story_track_completed)
+
+## Check if current turn is a Story Event turn
+func is_story_event_turn() -> bool:
+	return _current_story_event != null
+
+## Get Story Track turn modifications for other phases to query
+func get_story_turn_mods() -> Dictionary:
+	if story_track:
+		return story_track.get_turn_modifications()
+	return {}
+
+## Get Story Track battle config for BattlePhase
+func get_story_battle_config() -> Dictionary:
+	if story_track:
+		return story_track.get_battle_config()
+	return {}
+
+## Persist Story Track state to campaign progress_data
+func save_story_track_state() -> void:
+	if not story_track or not game_state:
+		return
+	var campaign: Resource = game_state.current_campaign
+	if not campaign or not "progress_data" in campaign:
+		return
+	campaign.progress_data["story_track"] = story_track.serialize()
+
+# ── Story Track Signal Handlers ──────────────────────────────────
+
+func _on_story_track_started() -> void:
+	_journal_story_milestone("story_track", {
+		"description": "The Story Track has begun. "
+			+ "Clock set to 5 ticks.",
+	})
+
+func _on_story_event_triggered(event: StoryEvent) -> void:
+	_journal_story_event(event)
+	_log_story_event_to_characters(event)
+
+func _on_story_clock_advanced(_ticks_remaining: int) -> void:
+	save_story_track_state()
+
+func _on_story_evidence_discovered(
+	total_evidence: int
+) -> void:
+	_journal_story_milestone("story_track", {
+		"description": "Evidence collected: %d pieces. "
+			% total_evidence
+			+ "Need 7+ on 1D6+evidence to locate companion.",
+	})
+
+func _on_story_track_completed(won: bool) -> void:
+	var outcome_text: String = (
+		"Victory — Q'narr defeated!"
+		if won else "Defeated — Q'narr escaped.")
+	_journal_story_milestone("story_track", {
+		"description": outcome_text,
+	})
+	_log_story_completion_to_characters(won)
+	_award_story_completion_points(won)
+	save_story_track_state()
+
+# ── Story Track Journal Helpers ──────────────────────────────────
+
+func _journal_story_event(event: StoryEvent) -> void:
+	var journal: Node = get_node_or_null(
+		"/root/CampaignJournal")
+	if not journal or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"turn_number": turn_number,
+		"type": "story",
+		"title": "Event %d: %s" % [
+			event.event_number, event.title],
+		"description": event.narrative_intro,
+		"mood": "dramatic",
+		"tags": [
+			"story_track",
+			"event_%d" % event.event_number,
+			event.event_id],
+		"auto_generated": true,
+	})
+
+func _journal_story_milestone(
+	subtype: String, data: Dictionary
+) -> void:
+	var journal: Node = get_node_or_null(
+		"/root/CampaignJournal")
+	if not journal or not journal.has_method(
+		"auto_create_milestone_entry"):
+		return
+	data["turn"] = turn_number
+	journal.auto_create_milestone_entry(subtype, data)
+
+func _log_story_event_to_characters(
+	event: StoryEvent
+) -> void:
+	var journal: Node = get_node_or_null(
+		"/root/CampaignJournal")
+	if not journal or not journal.has_method(
+		"auto_create_character_event"):
+		return
+	var crew_ids: Array = _get_crew_ids()
+	for char_id: String in crew_ids:
+		journal.auto_create_character_event(
+			char_id, "story_event", {
+				"turn": turn_number,
+				"description": "Story Event %d: %s" % [
+					event.event_number, event.title],
+				"event_id": event.event_id,
+				"event_number": event.event_number,
+			})
+
+func _log_story_completion_to_characters(
+	won: bool
+) -> void:
+	var journal: Node = get_node_or_null(
+		"/root/CampaignJournal")
+	if not journal or not journal.has_method(
+		"auto_create_character_event"):
+		return
+	var outcome: String = "victory" if won else "defeat"
+	var crew_ids: Array = _get_crew_ids()
+	for char_id: String in crew_ids:
+		journal.auto_create_character_event(
+			char_id, "story_complete", {
+				"turn": turn_number,
+				"description": "Story Track: %s" % outcome,
+				"outcome": outcome,
+			})
+
+func _award_story_completion_points(won: bool) -> void:
+	## Core Rules p.160: Won = +3 story points, Lost = +1
+	var points: int = 3 if won else 1
+	if not game_state or not game_state.current_campaign:
+		return
+	var campaign: Resource = game_state.current_campaign
+	if "story_points" in campaign:
+		campaign.story_points += points
+
+func _get_crew_ids() -> Array:
+	if not game_state or not game_state.current_campaign:
+		return []
+	var campaign: Resource = game_state.current_campaign
+	if not "crew_data" in campaign:
+		return []
+	var members: Array = campaign.crew_data.get("members", [])
+	var ids: Array = []
+	for m in members:
+		var mid: String = ""
+		if m is Dictionary:
+			mid = m.get("character_id", m.get("id", ""))
+		elif m is Object and "character_id" in m:
+			mid = m.character_id
+		if not mid.is_empty():
+			ids.append(mid)
+	return ids
 
 func generate_battlefield() -> Dictionary:
 	# Compendium themed terrain (pp.96-100) is DLC-gated.

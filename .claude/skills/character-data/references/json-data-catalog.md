@@ -26,7 +26,7 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | File | Consumer | Schema |
 |------|----------|--------|
 | `data/gear_database.json` | DataManager, GameDataManager | races[] (8 species with base_stats/special_rules), backgrounds[] (25 with roll_range/stat_bonuses/resources/starting_rolls), motivations[] (17 with d100 ranges), classes[] (23 with d100 ranges), weapon_tables{} (5 tables), crew_starting_equipment{} |
-| `data/character_species.json` | SimpleCharacterCreator | primary_aliens[] (8 species), strange_characters[] (15 types), each with base_stats/stat_modifiers/special_rules/rolls_creation_tables flag |
+| `data/character_species.json` | SpeciesDataService, SimpleCharacterCreator, CharacterCreator | primary_aliens[] (8), strange_characters[] (16), compendium_species[]. Each with base_stats/stat_modifiers/special_rules/forced_motivation/forced_background/rolls_creation_tables/double_background/double_motivation. SpeciesDataService is centralized lookup |
 | `data/consumables.json` | LootSystemConstants | 6 book consumables (p.54) |
 | `data/onboard_items.json` | LootSystemConstants | 19 book on-board items (pp.57-58) |
 | `data/character_creation_tables/` | CharacterCreationTables.gd | background_events.json, motivation_table.json, quirks_table.json |

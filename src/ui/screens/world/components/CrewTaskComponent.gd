@@ -228,6 +228,19 @@ func _on_assign_task_pressed() -> void:
 		push_warning("CrewTaskComponent: %s is in Sick Bay and cannot be assigned" % crew_member.get("character_name", "Crew"))
 		return
 
+	# Mutant: cannot Recruit or Find a Patron (Core Rules p.21)
+	var crew_species: String = crew_member.get(
+		"species_id", crew_member.get("origin", "")).to_lower()
+	if crew_species == "mutant" and task_id in [
+		"recruit", "find_patron"]:
+		var task_name: String = task.get("name", task_id)
+		push_warning(
+			"CrewTaskComponent: Mutant %s cannot perform %s"
+			+ " (Core Rules p.21)"
+			% [crew_member.get("character_name", "Crew"),
+			task_name])
+		return
+
 	# Check if crew already assigned
 	if crew_id in assigned_tasks:
 		push_warning("CrewTaskComponent: %s already has a task assigned" % crew_member.get("character_name", "Crew"))

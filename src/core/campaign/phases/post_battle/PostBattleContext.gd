@@ -209,9 +209,18 @@ func has_crew_with_origin(origin_name: String) -> bool:
 	return false
 
 func is_character_bot_or_soulless(character: Variant) -> bool:
-	## Check if character is Bot or Soulless (excluded from character events per Core Rules p.128)
+	## Check if character is Bot, Soulless, or Assault Bot
+	## (excluded from character events per Core Rules pp.15, 21, 128)
 	var origin: String = get_character_origin(character).to_lower()
-	return origin == "bot" or origin == "soulless"
+	if origin in ["bot", "soulless", "assault bot"]:
+		return true
+	# Also check species_id for Strange Characters
+	var sid: String = ""
+	if character is Dictionary:
+		sid = character.get("species_id", "").to_lower()
+	elif "species_id" in character:
+		sid = str(character.species_id).to_lower()
+	return sid == "assault_bot"
 
 func has_crew_with_class(character_class: String) -> bool:
 	var crew := get_crew_members()
@@ -226,6 +235,12 @@ func has_crew_with_class(character_class: String) -> bool:
 	return false
 
 # --- Campaign Mutation Helpers ---
+
+func add_story_points(amount: int) -> void:
+	## Add story points to campaign via GameStateManager
+	if game_state_manager \
+			and game_state_manager.has_method("add_story_points"):
+		game_state_manager.add_story_points(amount)
 
 func add_quest_rumor() -> void:
 	var gc = _get_current_campaign()

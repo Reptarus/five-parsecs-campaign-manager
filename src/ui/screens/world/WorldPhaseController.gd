@@ -363,10 +363,13 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	# Initialize components with data
 	_initialize_components_with_data()
 	
-	# Only reset to first step if no valid checkpoint exists
-	# (checkpoint was already restored in _setup_initial_state)
+	# No valid checkpoint = fresh turn entry (either first time or auto turn advance).
+	# Call the full reset so component state (step_completed, all_tasks_resolved,
+	# prep_completed, etc.) from the previous turn is cleared. In-place reuse by
+	# CampaignTurnController does NOT fire _ready()/_setup_initial_state() on
+	# Turn 2+, so this is the only place the reset can happen on auto advance.
 	if not has_checkpoint():
-		current_step = WorldPhaseStep.UPKEEP
+		reset_world_phase()
 		_show_current_step()
 
 func _generate_turn_world_event() -> void:
@@ -507,6 +510,16 @@ func _show_current_step() -> void:
 			"total_steps": step_names.size()
 		})
 
+	# Black Zone: auto-advance past skipped steps (Core Rules p.150)
+	var _bz_sel: int = 0
+	if upkeep_component and upkeep_component.has_method("get_selected_zone"):
+		_bz_sel = upkeep_component.get_selected_zone()
+	if _bz_sel == 2 and (
+			current_step == WorldPhaseStep.JOB_OFFERS
+			or current_step == WorldPhaseStep.RESOLVE_RUMORS):
+		call_deferred("_on_next_button_pressed")
+		return
+
 	# AUTO-ADVANCE: If automation enabled and step already complete, advance
 	if automation_enabled and _can_advance_to_next_step():
 		# Use call_deferred to avoid recursion issues
@@ -602,11 +615,30 @@ func _update_step_indicators() -> void:
 func _update_ui_display() -> void:
 	## Update navigation UI display
 	if current_step_label:
-		current_step_label.text = "Step %d of %d: %s" % [
+		var zone_suffix := ""
+		var _ui_zone: int = 0
+		if upkeep_component and upkeep_component.has_method("get_selected_zone"):
+			_ui_zone = upkeep_component.get_selected_zone()
+		match _ui_zone:
+			1: zone_suffix = "  •  RED ZONE"
+			2: zone_suffix = "  •  BLACK ZONE"
+		current_step_label.text = "Step %d of %d: %s%s" % [
 			current_step + 1,
 			step_names.size(),
-			step_names[current_step]
+			step_names[current_step],
+			zone_suffix
 		]
+		# Tint label color for active zones
+		match _ui_zone:
+			1:
+				current_step_label.add_theme_color_override(
+					"font_color", Color(0.86, 0.3, 0.3, 1))
+			2:
+				current_step_label.add_theme_color_override(
+					"font_color", Color(0.6, 0.3, 0.8, 1))
+			_:
+				current_step_label.add_theme_color_override(
+					"font_color", Color(0.502, 0.502, 0.502, 1))
 
 	if progress_bar:
 		var progress = float(current_step) / float(step_names.size() - 1)
@@ -647,6 +679,18 @@ func _update_ui_display() -> void:
 
 func _can_advance_to_next_step() -> bool:
 	## Check if current step is completed and can advance
+
+	# Black Zone: auto-skip patron/rival search and rumors
+	# (Core Rules Appendix III p.150)
+	var _bz_zone: int = 0
+	if upkeep_component and upkeep_component.has_method("get_selected_zone"):
+		_bz_zone = upkeep_component.get_selected_zone()
+	if _bz_zone == 2:
+		if (current_step == WorldPhaseStep.JOB_OFFERS
+				or current_step == WorldPhaseStep.RESOLVE_RUMORS):
+			step_completed[current_step] = true
+			return true
+
 	var result = false
 	match current_step:
 		WorldPhaseStep.UPKEEP:
@@ -915,7 +959,24 @@ func _complete_world_phase() -> void:
 					"description": job_results.get("objective_description", "Complete the mission objective."),
 					"battle_type": _get_battle_type_for_objective(job_results.get("objective", "patrol")),
 				}
+
+				# Inject Red/Black Zone flags (Core Rules Appendix III)
+				var selected_zone: int = 0
+				if upkeep_component and upkeep_component.has_method("get_selected_zone"):
+					selected_zone = upkeep_component.get_selected_zone()
+				if selected_zone == 1:
+					mission_dict["is_red_zone"] = true
+				elif selected_zone == 2:
+					mission_dict["is_black_zone"] = true
+
 				campaign.progress_data["current_mission"] = mission_dict
+
+			# Increment Red Zone turn counter (both RZ and BZ turns count)
+			var zone_sel: int = 0
+			if upkeep_component and upkeep_component.has_method("get_selected_zone"):
+				zone_sel = upkeep_component.get_selected_zone()
+			if zone_sel >= 1 and "red_zone_turns_completed" in campaign:
+				campaign.red_zone_turns_completed += 1
 
 			# Save equipment assignments
 			if not equipment_results.is_empty():
@@ -959,6 +1020,15 @@ func _refresh_mission_prep() -> void:
 	var accepted_job: Dictionary = {}
 	if job_offer_component and job_offer_component.has_method("get_accepted_job"):
 		accepted_job = job_offer_component.get_accepted_job()
+
+	# Inject zone flags so MissionPrepComponent can display zone info
+	var _mp_zone: int = 0
+	if upkeep_component and upkeep_component.has_method("get_selected_zone"):
+		_mp_zone = upkeep_component.get_selected_zone()
+	if _mp_zone == 1:
+		accepted_job["is_red_zone"] = true
+	elif _mp_zone == 2:
+		accepted_job["is_black_zone"] = true
 
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign:

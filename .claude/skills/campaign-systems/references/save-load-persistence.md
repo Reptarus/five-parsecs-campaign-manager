@@ -33,6 +33,27 @@ GameState.load_campaign(path)
   → load_completed.emit(true, "Loaded successfully")
 ```
 
+### Red & Black Zone State (Phase 35)
+```
+FiveParsecsCampaignCore.red_zone_licensed: bool = false
+FiveParsecsCampaignCore.red_zone_turns_completed: int = 0
+  → Serialized at lines 276-277, deserialized at 391-394
+  → red_zone_licensed set by RedZoneSystem.purchase_license()
+  → red_zone_turns_completed incremented by WorldPhaseController._complete_world_phase()
+  → Zone selection is per-turn (transient): UpkeepPhaseComponent.selected_zone (not serialized)
+  → Zone flags injected into progress_data["current_mission"] as is_red_zone/is_black_zone
+```
+
+### DLC Dependency Tracking (Phase 34)
+```
+FiveParsecsCampaignCore.required_dlc_packs: Array[String]
+  → One-way stamp: only grows, never shrinks
+  → Serialized at top level of save JSON
+  → GameState.peek_required_dlc(path) reads without full load
+  → MainMenu intercepts load flow, shows DLCRequirementDialog if missing packs
+  → DLCManager.dlc_pack_required signal → GameState stamps active campaign
+```
+
 ### Campaign Type Detection
 ```gdscript
 func _detect_campaign_type(data: Dictionary) -> String:

@@ -47,6 +47,8 @@ signal character_event_occurred(event: Dictionary)
 signal galactic_war_updated(progress: Dictionary)
 signal precursor_event_choice_available(event1: Dictionary, event2: Dictionary)
 signal precursor_event_chosen(chosen_event: Dictionary)
+signal traveler_event_occurred(results: Array)
+signal manipulator_bonus_earned(bonus: int)
 
 ## Current post-battle state
 var current_substep: int = 0
@@ -163,6 +165,9 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	_emit_substep(GlobalEnums.PostBattleSubPhase.GET_PAID)
 	var total_payment: int = _payment.process_payment(_ctx)
 	payment_received.emit(total_payment)
+
+	# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
+	_payment.process_black_zone_rewards(_ctx)
 
 	# Step 5: Battlefield Finds
 	_emit_substep(GlobalEnums.PostBattleSubPhase.BATTLEFIELD_FINDS)
@@ -318,7 +323,18 @@ func _complete_post_battle_phase() -> void:
 	_completion.update_character_lifetime_statistics(_ctx)
 	_completion.create_battle_journal_entry(_ctx)
 	_completion.record_planet_mission(_ctx)
-	# Morale system removed — Core Rules has no campaign-level morale mechanic
+
+	# Strange Character post-battle checks (Core Rules pp.19-22)
+	var traveler_results: Array = _completion.check_traveler_disappearance(_ctx)
+	if not traveler_results.is_empty():
+		_log_traveler_events(traveler_results)
+		traveler_event_occurred.emit(traveler_results)
+
+	var manip_bonus: int = _completion.check_manipulator_bonus(_ctx)
+	if manip_bonus > 0:
+		_log_manipulator_bonus(manip_bonus)
+		manipulator_bonus_earned.emit(manip_bonus)
+
 	post_battle_phase_completed.emit()
 
 func _emit_substep(substep: int) -> void:
@@ -355,3 +371,116 @@ func _check_psionic_detection() -> void:
 				var etype: Dictionary = detection.get("enforcement", {})
 				msg += " — DETECTED! %s" % etype.get("type", "Enforcers")
 			j.create_entry({"type": "battle", "text": msg})
+
+func _log_traveler_events(results: Array) -> void:
+	## Log Traveler post-battle events to journal and character history
+	for result in results:
+		var char_name: String = result.get("character", "Traveler")
+		var roll: int = result.get("roll", 0)
+		var char_id: String = _find_crew_id_by_name(char_name)
+
+		if result.get("type") == "disappear":
+			# Character history: disappearance event
+			if _ctx.campaign_journal \
+					and _ctx.campaign_journal.has_method(
+						"auto_create_character_event"):
+				_ctx.campaign_journal.auto_create_character_event(
+					char_id, "traveler_disappearance", {
+						"turn": _ctx.battle_result.get("turn", 0),
+						"description": (
+							"%s vanished mysteriously after the battle"
+							+ " (rolled %d). Crew gained 2 story points."
+							% [char_name, roll]),
+					})
+			# Milestone: dramatic crew departure
+			if _ctx.campaign_journal \
+					and _ctx.campaign_journal.has_method(
+						"auto_create_milestone_entry"):
+				_ctx.campaign_journal.auto_create_milestone_entry(
+					"crew_departure", {
+						"turn": _ctx.battle_result.get("turn", 0),
+						"character": char_name,
+						"reason": "Traveler vanished mysteriously",
+						"stats": {"story_points_gained": 2},
+					})
+			# Remove Traveler from crew
+			_remove_crew_member_by_id(char_id)
+
+		elif result.get("type") == "quest":
+			# General journal: quest discovery
+			if _ctx.campaign_journal \
+					and _ctx.campaign_journal.has_method("create_entry"):
+				_ctx.campaign_journal.create_entry({
+					"turn_number": _ctx.battle_result.get("turn", 0),
+					"type": "event",
+					"auto_generated": true,
+					"title": "Traveler's Gift",
+					"description": (
+						"%s revealed a Quest lead (rolled %d)."
+						% [char_name, roll]),
+					"mood": "discovery",
+					"tags": ["traveler", "quest", "strange_character"],
+				})
+
+func _log_manipulator_bonus(bonus: int) -> void:
+	## Log Manipulator story point bonus to journal
+	if _ctx.campaign_journal \
+			and _ctx.campaign_journal.has_method("create_entry"):
+		_ctx.campaign_journal.create_entry({
+			"turn_number": _ctx.battle_result.get("turn", 0),
+			"type": "event",
+			"auto_generated": true,
+			"title": "Manipulator Insight",
+			"description": (
+				"Manipulator crew member(s) contributed %d"
+				+ " bonus story point(s)." % bonus),
+			"mood": "discovery",
+			"tags": [
+				"manipulator", "story_points",
+				"strange_character"],
+		})
+
+func _find_crew_id_by_name(char_name: String) -> String:
+	## Find character_id by display name in participating crew
+	for member in _ctx.get_participating_crew():
+		var name_val: String = ""
+		if member is Dictionary:
+			name_val = member.get("character_name", "")
+		elif "character_name" in member:
+			name_val = str(member.character_name)
+		if name_val == char_name:
+			if member is Dictionary:
+				return member.get("character_id", "")
+			elif "character_id" in member:
+				return str(member.character_id)
+	return ""
+
+func _remove_crew_member_by_id(char_id: String) -> void:
+	## Remove a crew member from the campaign (Traveler disappearance)
+	if char_id.is_empty():
+		return
+	var campaign = _ctx.get_current_campaign() \
+		if _ctx.has_method("get_current_campaign") else null
+	if campaign == null and _ctx.game_state:
+		campaign = _ctx.game_state.get_current_campaign() \
+			if _ctx.game_state.has_method(
+				"get_current_campaign") else null
+	if campaign == null:
+		return
+	var members: Array = []
+	if "crew_data" in campaign:
+		members = campaign.crew_data.get("members", [])
+	elif campaign is Dictionary:
+		members = campaign.get(
+			"crew_data", {}).get("members", [])
+	for i in range(members.size()):
+		var member = members[i]
+		var mid: String = ""
+		if member is Dictionary:
+			mid = member.get(
+				"character_id", member.get("id", ""))
+		elif "character_id" in member:
+			mid = str(member.character_id)
+		if mid == char_id:
+			members.remove_at(i)
+			break

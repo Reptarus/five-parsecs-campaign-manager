@@ -1,0 +1,89 @@
+{
+  "_source": "Core Rules Appendix V pp.157-158",
+  "event_id": "kidnap",
+  "event_number": 5,
+  "title": "Kidnap",
+  "narrative": {
+    "intro": "Not content with trying to kill you, Q'Narr has gone after another of your old companions. They're out of 'the business' and have been living clean for a few years, but you just got a tunnel-net message from his family, saying they had been attacked by armed goons.",
+    "briefing": "Set up a building in the middle of the table with scattered natural terrain. Place 6 markers spread evenly around the table. Place your crew at a battlefield edge, not within 8\" of a marker. No opponents initially present.",
+    "completion_win": "All markers revealed or removed. Sympathetic locals cover all Upkeep costs next turn.",
+    "completion_lose": "All crew become casualties. Remove any remaining markers."
+  },
+  "campaign_turn_modifications": {
+    "must_travel_immediately": true,
+    "rivals_cannot_attack": true,
+    "travel_destination": "random previously visited world (or generate new)",
+    "shuttle_option": {
+      "available": true,
+      "cost_credits": 3,
+      "max_crew": 4,
+      "description": "If ship not fit to travel or you prefer, take shuttle. Only 4 crew. Rest take shore leave."
+    }
+  },
+  "deployment": {
+    "type": "marker_investigation",
+    "battlefield_theme": "natural with central building",
+    "crew_setup": "at a battlefield edge, not within 8\" of any marker",
+    "enemy_setup": "none initially present",
+    "markers": {
+      "count": 6,
+      "placement": "spread evenly around the table",
+      "reveal_distance_inches": 4
+    }
+  },
+  "enemies": {
+    "source_table": "marker_spawned",
+    "marker_table": [
+      {"roll": 1, "result": "evidence", "description": "Signs of the attackers. Record the Evidence."},
+      {"roll": [2, 3], "result": "nothing", "description": "Nothing here."},
+      {"roll": 4, "result": "body", "description": "Corpse of someone who worked here. Move into contact, roll 1D6: on 5-6 uncover Evidence."},
+      {"roll": [5, 6], "result": "war_bot", "description": "A concealed War Bot!"}
+    ],
+    "war_bot_stats": {
+      "type": "war_bot",
+      "stats": {"speed_inches": 3, "combat_skill": 0, "toughness": 5},
+      "ai": "defensive",
+      "armor_save": "6+",
+      "morale": "none",
+      "weapons": ["Hand Laser"]
+    },
+    "marker_removal": {
+      "start_round": 3,
+      "check": "end of each round, roll 1D6 for each remaining marker, removed on 1",
+      "removed_marker_evidence": "Move into contact with location, roll 1D6: on 6, uncover Evidence"
+    }
+  },
+  "objectives": {
+    "primary": {
+      "type": "investigate_markers",
+      "description": "Reveal or wait for removal of all 6 markers"
+    },
+    "end_conditions": [
+      "All markers revealed or removed",
+      "All crew become casualties (remove remaining markers)"
+    ]
+  },
+  "post_battle_effects": {
+    "common": {
+      "no_payment": true,
+      "no_loot": true,
+      "battlefield_finds_roll": true,
+      "upkeep_covered_next_turn": true,
+      "description": "Sympathetic locals offer food, covering all Upkeep costs next campaign turn"
+    }
+  },
+  "evidence_mechanic": {
+    "enabled": true,
+    "sources": ["marker_roll_1", "body_roll_56", "removed_marker_roll_6"],
+    "post_event_check": {
+      "trigger": "start of each subsequent campaign turn",
+      "method": "Roll 1D6 + evidence pieces found",
+      "threshold": 7,
+      "success": "Found companion location, can play Event 6 when ready",
+      "failure": "Still searching, gain +1 evidence, play normal campaign turn"
+    }
+  },
+  "next_clock_ticks": null,
+  "next_clock_method": "evidence_gated",
+  "page_reference": "pp.157-158"
+}

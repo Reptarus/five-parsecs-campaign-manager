@@ -1,311 +1,237 @@
 extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
-# This file should be referenced via preload
-# Use explicit preloads instead of global class names
 
-const ThisClass = preload("res://src/ui/screens/campaign/phases/StoryPhasePanel.gd")
+## Story Phase Panel — Core Rules Appendix V (pp.153-160)
+##
+## Three display modes:
+## 1. Clock Status: Normal turn, show clock ticks + next event preview
+## 2. Story Event: Story Event turn, show briefing + turn mods + battle info
+## 3. Evidence Search: Post-Event 5, show evidence roll results
 
-signal story_event_selected(event_data: Dictionary)
-signal story_event_resolved(event_data: Dictionary)
+signal story_event_acknowledged()
 
-@onready var title_label: Label = $VBoxContainer/TitleLabel
-@onready var event_list: ItemList = $VBoxContainer/EventList
-@onready var event_details: RichTextLabel = $VBoxContainer/EventDetails
-@onready var choice_container: VBoxContainer = $VBoxContainer/ChoiceContainer
-@onready var resolve_button: Button = $VBoxContainer/ResolveButton
+@onready var _vbox: VBoxContainer = $ScrollContainer/VBoxContainer
 
-var available_events: Array[Dictionary] = []
-var selected_event: Dictionary
-var selected_choice: Dictionary
-var event_history: Array[Dictionary] = []
-## Story events loaded from story_events.json
-var _story_events_db: Array = []
+# UI elements (built in code)
+var _title_label: Label
+var _clock_card: PanelContainer
+var _event_card: PanelContainer
+var _evidence_card: PanelContainer
+var _action_button: Button
+var _details_rtl: RichTextLabel
+var _restrictions_vbox: VBoxContainer
+
+# State
+var _story_track: FPCM_StoryTrackSystem = null
+var _current_event: StoryEvent = null
+var _display_mode: String = "clock"  # clock, event, evidence
+
 
 func _ready() -> void:
 	super._ready()
-	_style_phase_title(title_label)
-	_style_item_list(event_list)
-	_style_rich_text(event_details)
-	_style_phase_button(resolve_button, true)
+	_build_ui()
 
-	# Wrap content in cards
-	_wrap_story_content_in_cards()
-
-	_load_story_events()
-
-	if event_list:
-		event_list.item_selected.connect(_on_event_selected)
-	if resolve_button:
-		resolve_button.pressed.connect(_on_resolve_pressed)
-		resolve_button.disabled = true
-		_style_button_disabled(resolve_button)
-		_setup_validation_hint(resolve_button)
-
-func _wrap_story_content_in_cards() -> void:
-	# Wrap event list + details + choices in a single card
-	var vbox = $VBoxContainer
-	if not vbox:
-		return
-	# Remove HSeparators
-	for child in vbox.get_children():
-		if child is HSeparator:
-			child.queue_free()
-	# Build events content container
-	var events_content := VBoxContainer.new()
-	events_content.add_theme_constant_override(
-		"separation", UIColors.SPACING_SM)
-	events_content.size_flags_horizontal = (
-		Control.SIZE_EXPAND_FILL)
-	# Reparent event_list, event_details, choice_container
-	if event_list and event_list.get_parent() == vbox:
-		vbox.remove_child(event_list)
-		events_content.add_child(event_list)
-	if event_details and event_details.get_parent() == vbox:
-		vbox.remove_child(event_details)
-		events_content.add_child(event_details)
-	if choice_container \
-		and choice_container.get_parent() == vbox:
-		vbox.remove_child(choice_container)
-		events_content.add_child(choice_container)
-	var card := _create_phase_card(
-		"Story Events", events_content)
-	# Insert after title
-	vbox.add_child(card)
-	vbox.move_child(card, 1)
 
 func setup_phase() -> void:
 	super.setup_phase()
-	# Clear previous state
-	available_events.clear()
-	selected_event = {}
-	selected_choice = {}
-	
-	# Generate new story events
-	_generate_story_events()
-	_update_ui()
+	_load_story_state()
+	_update_display()
 
-func _generate_story_events() -> void:
-	# Clear existing events
-	available_events.clear()
-	event_list.clear()
-	
-	# Generate 1-3 story events based on current campaign state
-	var num_events = randi_range(1, 3)
-	for i in range(num_events):
-		var event = _create_story_event()
-		available_events.append(event)
-		event_list.add_item(event.title)
 
-func _load_story_events() -> void:
-	## Load story events from story_events.json
-	var path := "res://data/story_events.json"
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		push_warning("StoryPhasePanel: Failed to open story_events.json at %s" % path)
+func _load_story_state() -> void:
+	var pm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if not pm:
 		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		push_warning("StoryPhasePanel: Failed to parse story_events.json")
-		return
-	if json.data is Dictionary:
-		_story_events_db = json.data.get("events", [])
-
-func _create_story_event() -> Dictionary:
-	## Create a story event from story_events.json (or fallback)
-	if _story_events_db.size() > 0:
-		var src: Dictionary = _story_events_db[randi() % _story_events_db.size()]
-		return {
-			"title": src.get("title", "Unknown Event"),
-			"description": src.get("description", ""),
-			"choices": src.get("choices", [
-				{"text": "Continue", "effects": {"story_points": 0, "risk_level": "none", "potential_reward": "none"}}
-			])
-		}
-	# Hardcoded fallback if JSON unavailable
-	var sample_events = [
-		{
-			"title": "Mysterious Signal",
-			"description": "Your crew picks up an unusual signal from a nearby system.",
-			"choices": [
-				{"text": "Investigate the signal", "effects": {"story_points": 2, "risk_level": "high", "potential_reward": "technology"}},
-				{"text": "Ignore it and continue", "effects": {"story_points": -1, "risk_level": "none", "potential_reward": "none"}}
-			]
-		},
-		{
-			"title": "Local Conflict",
-			"description": "A local settlement is caught in a dispute between rival factions.",
-			"choices": [
-				{"text": "Support the settlers", "effects": {"story_points": 3, "risk_level": "medium", "potential_reward": "allies"}},
-				{"text": "Stay neutral", "effects": {"story_points": 0, "risk_level": "low", "potential_reward": "none"}}
-			]
-		}
-	]
-	return sample_events[randi() % sample_events.size()]
-
-func _update_ui() -> void:
-	if selected_event.is_empty():
-		event_details.text = "Select a story event"
-		_clear_choices()
-		resolve_button.disabled = true
-		_show_validation_hint("Select an event to continue")
+	_story_track = pm.get("story_track")
+	if not _story_track:
+		_display_mode = "clock"
 		return
 
-	# Update event details
-	var details = "[b]%s[/b]\n\n%s\n\n[b]Choices:[/b]" % [
-		selected_event.title,
-		selected_event.description
-	]
-	_set_keyword_text(event_details, details)
-
-	# Update choices
-	_update_choices()
-
-	# Update resolve button
-	var no_choice: bool = selected_choice.is_empty()
-	resolve_button.disabled = no_choice
-	if no_choice:
-		_show_validation_hint("Select a choice to resolve")
+	if _story_track.is_story_event_turn:
+		_current_event = _story_track.get_current_event()
+		_display_mode = "event"
+	elif _story_track.in_evidence_search:
+		_display_mode = "evidence"
 	else:
-		_hide_validation_hint()
+		_display_mode = "clock"
 
-func _update_choices() -> void:
-	_clear_choices()
-	
-	if not selected_event.has("choices"):
+
+func _build_ui() -> void:
+	if not _vbox:
 		return
-	
-	for choice in selected_event.choices:
-		var button = Button.new()
-		button.text = choice.text
-		_style_phase_button(button)
-		button.pressed.connect(_on_choice_selected.bind(choice))
-		choice_container.add_child(button)
 
-func _clear_choices() -> void:
-	for child in choice_container.get_children():
+	# Title
+	_title_label = Label.new()
+	_title_label.text = "STORY TRACK"
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_phase_title(_title_label)
+	_vbox.add_child(_title_label)
+
+	# Details card
+	var details_content := VBoxContainer.new()
+	details_content.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+
+	_details_rtl = RichTextLabel.new()
+	_details_rtl.bbcode_enabled = true
+	_details_rtl.fit_content = true
+	_details_rtl.scroll_active = false
+	_details_rtl.custom_minimum_size = Vector2(0, 60)
+	_style_rich_text(_details_rtl)
+	details_content.add_child(_details_rtl)
+
+	_restrictions_vbox = VBoxContainer.new()
+	_restrictions_vbox.add_theme_constant_override(
+		"separation", UIColors.SPACING_XS)
+	details_content.add_child(_restrictions_vbox)
+
+	_event_card = _create_phase_card(
+		"Story Event", details_content)
+	_vbox.add_child(_event_card)
+
+	# Action button
+	_action_button = Button.new()
+	_action_button.text = "Continue"
+	_style_phase_button(_action_button, true)
+	_action_button.pressed.connect(_on_action_pressed)
+	_vbox.add_child(_action_button)
+
+
+func _update_display() -> void:
+	if not _vbox or not _details_rtl:
+		return
+
+	match _display_mode:
+		"event":
+			_show_event_view()
+		"evidence":
+			_show_evidence_view()
+		_:
+			_show_clock_view()
+
+
+func _show_clock_view() -> void:
+	_title_label.text = "STORY TRACK"
+
+	if not _story_track or not _story_track.is_story_track_active:
+		_set_keyword_text(_details_rtl,
+			"[i]Story Track is not active.[/i]")
+		_action_button.text = "Continue"
+		_action_button.disabled = false
+		_restrictions_vbox.visible = false
+		return
+
+	var ticks: int = _story_track.story_clock_ticks
+	var idx: int = _story_track.current_event_index
+	var next_event: StoryEvent = _story_track.get_current_event()
+	var next_title: String = next_event.title if next_event else "?"
+
+	var text := "[b]Story Clock[/b]: %d tick%s remaining\n\n" % [
+		ticks, "" if ticks == 1 else "s"]
+	text += "[b]Next Event[/b]: Event %d — %s\n\n" % [
+		idx + 1, next_title]
+
+	if _story_track.pending_story_event:
+		text += "[color=#D97706][b]The clock has reached zero![/b][/color]\n"
+		text += "Next turn will be a Story Event."
+	else:
+		text += "[color=#808080]The clock ticks down at the end "
+		text += "of each campaign turn based on battle results.[/color]"
+
+	_set_keyword_text(_details_rtl, text)
+	_restrictions_vbox.visible = false
+	_action_button.text = "Continue"
+	_action_button.disabled = false
+
+
+func _show_event_view() -> void:
+	if not _current_event:
+		_show_clock_view()
+		return
+
+	_title_label.text = "EVENT %d: %s" % [
+		_current_event.event_number,
+		_current_event.title.to_upper()]
+
+	var text := "[b]%s[/b]\n\n" % _current_event.title
+	text += "%s\n\n" % _current_event.narrative_intro
+	text += "[b]Battle Briefing:[/b]\n%s" % (
+		_current_event.narrative_briefing)
+
+	# Enemy summary
+	var enemy_summary: String = _current_event.get_enemy_summary()
+	if not enemy_summary.is_empty():
+		text += "\n\n[b]Opposition:[/b] %s" % enemy_summary
+
+	_set_keyword_text(_details_rtl, text)
+
+	# Show turn restrictions
+	_restrictions_vbox.visible = true
+	for child in _restrictions_vbox.get_children():
 		child.queue_free()
 
-func _on_event_selected(index: int) -> void:
-	if index >= 0 and index < available_events.size():
-		selected_event = available_events[index]
-		selected_choice = {}
-		_update_ui()
-		story_event_selected.emit(selected_event)
+	var restrictions: Array[String] = (
+		_current_event.get_turn_restriction_strings())
+	if not restrictions.is_empty():
+		var header := Label.new()
+		header.text = "Campaign Turn Modifications:"
+		header.add_theme_font_size_override(
+			"font_size", _scaled_font(UIColors.FONT_SIZE_MD))
+		header.add_theme_color_override(
+			"font_color", UIColors.COLOR_WARNING)
+		_restrictions_vbox.add_child(header)
 
-func _on_choice_selected(choice: Dictionary) -> void:
-	selected_choice = choice
-	resolve_button.disabled = false
-	
-	# Update UI to show selected choice
-	for button in choice_container.get_children():
-		if button.text == choice.text:
-			button.add_theme_color_override("font_color", Color.GREEN)
-		else:
-			button.add_theme_color_override("font_color", Color.WHITE)
+		for r: String in restrictions:
+			var lbl := Label.new()
+			lbl.text = "  - %s" % r
+			lbl.add_theme_font_size_override(
+				"font_size", _scaled_font(UIColors.FONT_SIZE_SM))
+			lbl.add_theme_color_override(
+				"font_color", UIColors.COLOR_TEXT_PRIMARY)
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_restrictions_vbox.add_child(lbl)
 
-func _on_resolve_pressed() -> void:
-	if selected_event.is_empty() or selected_choice.is_empty():
+	_action_button.text = "Acknowledge & Continue"
+	_action_button.disabled = false
+
+
+func _show_evidence_view() -> void:
+	_title_label.text = "STORY TRACK — EVIDENCE SEARCH"
+
+	if not _story_track:
+		_show_clock_view()
 		return
-	
-	# Apply choice effects
-	_apply_choice_effects(selected_choice.effects)
-	
-	# Emit resolution signal
-	var resolution_data = {
-		"event": selected_event,
-		"choice": selected_choice,
-		"outcome": _generate_outcome()
-	}
-	story_event_resolved.emit(resolution_data)
 
-	# Log story event to CampaignJournal
-	var journal = get_node_or_null("/root/CampaignJournal")
-	if journal and journal.has_method("auto_create_milestone_entry"):
-		var turn_num: int = 0
-		var campaign = game_state.campaign if game_state else null
-		if campaign and "progress_data" in campaign:
-			turn_num = campaign.progress_data.get("turns_played", 0)
-		var event_title: String = selected_event.get("title", selected_event.get("name", "Story Event"))
-		journal.auto_create_milestone_entry("story_track", {
-			"turn": turn_num,
-			"stats": {"event_title": event_title, "choice": selected_choice.get("text", "")},
-		})
+	var evidence: int = _story_track.evidence_pieces
+	var turns: int = _story_track.evidence_search_turns
+	var text := "[b]Searching for your companion...[/b]\n\n"
+	text += "Evidence collected: [b]%d[/b] pieces\n" % evidence
+	text += "Turns searching: %d\n\n" % turns
+	text += "Each turn: Roll 1D6 + %d evidence. " % evidence
+	text += "On [b]7+[/b]: location found!\n"
+	text += "Otherwise: +1 evidence, play normal turn.\n\n"
+	text += "[color=#808080]Core Rules Appendix V p.158[/color]"
 
-	# Remove resolved event
-	var event_index = available_events.find(selected_event)
-	if event_index != -1:
-		available_events.remove_at(event_index)
-		event_list.remove_item(event_index)
-	
-	# Clear selection
-	selected_event = {}
-	selected_choice = {}
-	_update_ui()
-	
-	# Check if we can complete the phase
-	if available_events.is_empty():
-		complete_phase()
+	_set_keyword_text(_details_rtl, text)
+	_restrictions_vbox.visible = false
+	_action_button.text = "Continue"
+	_action_button.disabled = false
 
-func _apply_choice_effects(effects: Dictionary) -> void:
-	if not effects:
-		return
-	if effects.has("story_points") and game_state and game_state.has_method("add_story_points"):
-		game_state.add_story_points(effects.story_points)
-	if effects.has("potential_reward"):
-		match effects.potential_reward:
-			"technology":
-				if game_state and game_state.has_method("add_tech_level"):
-					game_state.add_tech_level(1)
-			"allies":
-				if game_state and game_state.has_method("add_reputation"):
-					game_state.add_reputation(5)
-				# Track new patron in NPCTracker
-				var npc = get_node_or_null("/root/NPCTracker")
-				if npc and npc.has_method("add_patron"):
-					var patron_id := "patron_story_%d" % Time.get_ticks_msec()
-					npc.add_patron({"name": "Story Ally", "patron_id": patron_id})
-	if effects.has("trigger_event"):
-		var event_bus = get_node_or_null(
-			"/root/CampaignTurnEventBus")
-		if event_bus:
-			event_bus.publish_event(
-				event_bus.TurnEvent.CRITICAL_EVENT_HIGHLIGHTED,
-				{"trigger_event": effects.trigger_event})
 
-func _generate_outcome() -> Dictionary:
-	# Generate outcome based on choice effects and random chance
-	var success_chance = 0.7 # Base 70% success rate
-	
-	# Modify based on risk level
-	match selected_choice.effects.risk_level:
-		"high":
-			success_chance = 0.5
-		"medium":
-			success_chance = 0.6
-		"low":
-			success_chance = 0.8
-		"none":
-			success_chance = 1.0
-	
-	var success = randf() < success_chance
-	return {
-		"success": success,
-		"description": _generate_outcome_description(success)
-	}
+func _on_action_pressed() -> void:
+	if _display_mode == "event":
+		story_event_acknowledged.emit()
+	complete_phase()
 
-func _generate_outcome_description(success: bool) -> String:
-	if success:
-		return "Your choice led to a favorable outcome!"
-	return "Despite your best efforts, things didn't go as planned."
 
 func validate_phase_requirements() -> bool:
-	return true # No specific requirements for story phase
+	return true
+
 
 func get_phase_data() -> Dictionary:
-	var sp: int = 0
-	if game_state and game_state.has_method("get_story_points"):
-		sp = game_state.get_story_points()
-	return {
-		"available_events": available_events,
-		"resolved_events": event_history,
-		"current_story_points": sp
-	}
+	var data: Dictionary = {"display_mode": _display_mode}
+	if _story_track:
+		data["story_status"] = _story_track.get_status()
+	if _current_event:
+		data["event_id"] = _current_event.event_id
+		data["event_number"] = _current_event.event_number
+	return data

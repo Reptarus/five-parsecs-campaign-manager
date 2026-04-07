@@ -270,22 +270,24 @@ func _roll_attribute() -> int:
 	return int(ceil(float(roll) / 3.0))
 
 func _assign_starting_equipment(character: Character, equipment_type: String) -> void:
-	## Assign starting equipment based on character type
-	# Simplified equipment assignment - can be expanded
-	character.equipment = []
-	
+	## Assign starting equipment based on character type.
+	## Builds the array locally and sets it in one shot — no per-item
+	## .append() calls, so equipment mutations are visible and auditable.
+	## This runs during creation (before campaign initialization), so
+	## EquipmentTransferService is not available yet. Phase 2.4: once the
+	## creation pipeline is wired through the service, this will use
+	## generate_starting_loadout() instead.
+	var items: Array = []
 	match equipment_type:
 		"captain":
-			character.equipment.append("Military Rifle")
-			character.equipment.append("Flak Screen")
-			character.equipment.append("Stim Pack")
+			items = ["Military Rifle", "Flak Screen", "Stim Pack"]
 		"crew_member":
-			character.equipment.append("Colony Rifle") 
-			character.equipment.append("Scrap Pistol")
+			items = ["Colony Rifle", "Scrap Pistol"]
 		"hired":
-			character.equipment.append("Scrap Pistol")
+			items = ["Scrap Pistol"]
 		"npc", "basic":
-			character.equipment.append("Scrap Pistol")
+			items = ["Scrap Pistol"]
+	character.equipment = items
 
 func _validate_character(character: Character) -> bool:
 	## Validate character data integrity

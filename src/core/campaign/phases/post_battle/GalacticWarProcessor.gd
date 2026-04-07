@@ -6,6 +6,7 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 
 func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 	## Update galactic war progression.
@@ -40,7 +41,15 @@ func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 			planet_id = planet
 			planet_name = planet
 
-		var roll: int = ctx.roll_2d6("Galactic War - %s" % planet_name)
+		var roll: int = ctx.roll_2d6(
+			"Galactic War - %s" % planet_name)
+		# Red Zone: -1 to Galactic War Progress
+		# (Core Rules Appendix III p.149)
+		if ctx.battle_result.get("is_red_zone", false):
+			var rz_mods: Dictionary = (
+				RedZoneSystemRef.get_invasion_modifiers())
+			war_modifier += rz_mods.get(
+				"galactic_war_modifier", -1)
 		var modified_roll: int = roll + war_modifier
 
 		var outcome: Dictionary = {

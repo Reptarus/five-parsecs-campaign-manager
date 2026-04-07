@@ -50,6 +50,10 @@ static func can_spend_luck(character: Resource) -> bool:
 	if not character:
 		return false
 
+	# Emo-suppressed can never spend Luck (Core Rules p.22)
+	if _get_species_id(character).to_lower() == "emo_suppressed":
+		return false
+
 	var current_luck := _get_luck_value(character)
 	var spent := _get_luck_spent(character)
 
@@ -126,6 +130,10 @@ static func reset_character_luck(character: Resource) -> void:
 static func get_luck_cap(character: Resource) -> int:
 	if not character:
 		return NONHUMAN_LUCK_CAP
+
+	# Emo-suppressed can never receive Luck (Core Rules p.22)
+	if _get_species_id(character).to_lower() == "emo_suppressed":
+		return 0
 
 	# Check if human
 	if _is_human(character):
@@ -285,6 +293,16 @@ static func _get_species(character: Resource) -> String:
 		return str(character.origin)
 
 	return "HUMAN"
+
+static func _get_species_id(character: Resource) -> String:
+	## Get species_id for Strange Character checks
+	if character.has_method("get"):
+		var sid = character.get("species_id")
+		if sid:
+			return str(sid)
+	if "species_id" in character:
+		return str(character.species_id)
+	return ""
 
 static func _is_human(character: Resource) -> bool:
 	var species := _get_species(character).to_upper()

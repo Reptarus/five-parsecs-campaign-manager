@@ -2,16 +2,23 @@
 # Extends CampaignScreenBase for shared deep-space theming + responsive layout
 extends CampaignScreenBase
 
-const GameEnums = preload("res://src/core/enums/GameEnums.gd")
-const CampaignTimelinePanelClass = preload("res://src/ui/components/history/CampaignTimelinePanel.gd")
-const CharacterHistoryPanelClass = preload("res://src/ui/components/history/CharacterHistoryPanel.gd")
+const GameEnums = preload(
+	"res://src/core/enums/GameEnums.gd")
+const CampaignTimelinePanelClass = preload(
+	"res://src/ui/components/history/CampaignTimelinePanel.gd")
+const CharacterHistoryPanelClass = preload(
+	"res://src/ui/components/history/CharacterHistoryPanel.gd")
+const StoryPointSystemClass = preload(
+	"res://src/core/systems/StoryPointSystem.gd")
+const StarsSystemClass = preload(
+	"res://src/core/systems/StarsOfTheStorySystem.gd")
 
 # ── Node References (unique names from .tscn) ─────────────────────
 # Header
 @onready var campaign_name_label: Label = %CampaignNameLabel
 @onready var phase_label: Label = %PhaseLabel
 @onready var credits_label: Label = %CreditsLabel
-@onready var story_points_label: Label = %StoryPointsLabel
+@onready var story_points_label: Button = %StoryPointsLabel
 
 # Three columns
 @onready var left_column: PanelContainer = %LeftColumn
@@ -41,16 +48,23 @@ var _active_dialogs: Array[Node] = []
 var _history_overlay: Control = null
 var _active_history_panel: Control = null
 
+# Story Point + Stars of the Story systems
+var _sp_system: StoryPointSystemClass
+var _stars_system: StarsSystemClass
+var _sp_popover: StoryPointPopover
+
 # ── Lifecycle ──────────────────────────────────────────────────────
 
 func _setup_screen() -> void:
-	phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	phase_manager = get_node_or_null(
+		"/root/CampaignPhaseManager")
 	_connect_signals()
 	if phase_manager:
 		_setup_phase_manager()
 	_apply_dashboard_styles()
 	_update_all()
 	_create_history_overlay()
+	_setup_story_systems()
 
 func _exit_tree() -> void:
 	# Disconnect autoload signals to prevent memory leaks
@@ -61,6 +75,7 @@ func _exit_tree() -> void:
 			phase_manager.phase_completed.disconnect(_on_phase_completed)
 		if phase_manager.has_signal("phase_event_triggered") and phase_manager.phase_event_triggered.is_connected(_on_phase_event):
 			phase_manager.phase_event_triggered.disconnect(_on_phase_event)
+	_persist_story_state()
 	_cleanup_dialogs()
 	super._exit_tree()
 
@@ -169,6 +184,8 @@ func _update_header(campaign) -> void:
 		story_points_label.add_theme_color_override(
 			"font_color", COLOR_BLUE
 		)
+		story_points_label.tooltip_text = (
+			"Tap to spend Story Points or use emergency abilities")
 
 # ── Left Column: Crew Manifest ─────────────────────────────────────
 
@@ -629,6 +646,7 @@ func _update_intel_overview(campaign) -> void:
 	_build_patrons_section(campaign)
 	_build_rivals_section(campaign)
 	_build_rumors_section(campaign)
+	_build_story_track_status(campaign)
 	_build_phase_checklist()
 	_build_history_buttons()
 
@@ -918,6 +936,71 @@ func _build_rumors_section(campaign) -> void:
 			"Quest Rumors", str(rumors), COLOR_PURPLE
 		)
 	)
+
+func _build_story_track_status(campaign) -> void:
+	## Show Story Track clock + event status if enabled
+	var enabled: bool = campaign.story_track_enabled \
+		if "story_track_enabled" in campaign else false
+	if not enabled:
+		return
+
+	var st_sep := HSeparator.new()
+	st_sep.modulate = COLOR_BORDER
+	right_vbox.add_child(st_sep)
+
+	var header := _create_section_header("STORY TRACK")
+	right_vbox.add_child(header)
+
+	# Read story track state from campaign progress_data
+	var progress: Dictionary = campaign.progress_data \
+		if "progress_data" in campaign else {}
+	var st_data: Dictionary = progress.get("story_track", {})
+
+	if st_data.is_empty():
+		right_vbox.add_child(
+			_create_info_row("Status", "Not started", COLOR_TEXT_MUTED))
+		return
+
+	var outcome: String = st_data.get("story_outcome", "inactive")
+	if outcome == "won":
+		right_vbox.add_child(
+			_create_info_row("Status", "VICTORY", COLOR_EMERALD))
+		return
+	if outcome == "lost":
+		right_vbox.add_child(
+			_create_info_row("Status", "DEFEATED", COLOR_RED))
+		return
+
+	# Active story track
+	var ticks: int = st_data.get("story_clock_ticks", 0)
+	var event_idx: int = st_data.get("current_event_index", 0)
+	var evidence: int = st_data.get("evidence_pieces", 0)
+	var searching: bool = st_data.get("in_evidence_search", false)
+	var pending: bool = st_data.get("pending_story_event", false)
+
+	right_vbox.add_child(
+		_create_info_row(
+			"Clock", "%d ticks" % ticks,
+			COLOR_AMBER if ticks <= 1 else COLOR_PURPLE))
+	right_vbox.add_child(
+		_create_info_row(
+			"Next Event", "Event %d" % (event_idx + 1),
+			COLOR_PURPLE))
+
+	if pending:
+		var alert := Label.new()
+		alert.text = "Story Event next turn!"
+		alert.add_theme_font_size_override(
+			"font_size", FONT_SIZE_SM)
+		alert.add_theme_color_override(
+			"font_color", COLOR_AMBER)
+		right_vbox.add_child(alert)
+
+	if searching:
+		right_vbox.add_child(
+			_create_info_row(
+				"Evidence", "%d pieces" % evidence,
+				COLOR_PURPLE))
 
 # ── World Section Helpers ─────────────────────────────────────────
 
@@ -1490,6 +1573,188 @@ func _cleanup_dialogs() -> void:
 		if is_instance_valid(dialog):
 			dialog.queue_free()
 	_active_dialogs.clear()
+
+# ── Story Point + Stars of the Story ──────────────────────────────
+
+func _setup_story_systems() -> void:
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+
+	# Create systems
+	_sp_system = StoryPointSystemClass.new(campaign)
+	_stars_system = StarsSystemClass.new()
+
+	# Load persisted state (or initialize fresh)
+	if not campaign.story_point_turn_state.is_empty():
+		_sp_system.from_dict(campaign.story_point_turn_state)
+	else:
+		# Sync balance from campaign's canonical story_points
+		_sp_system.add_points(
+			campaign.story_points, "Campaign load")
+
+	if not campaign.stars_of_the_story.is_empty():
+		_stars_system.deserialize(
+			campaign.stars_of_the_story)
+	else:
+		_stars_system.initialize(0, campaign.difficulty)
+
+	# Create popover
+	_sp_popover = StoryPointPopover.new()
+	_sp_popover.initialize(_sp_system, _stars_system)
+	add_child(_sp_popover)
+
+	# Wire badge button
+	if story_points_label:
+		story_points_label.pressed.connect(
+			_toggle_sp_popover)
+
+	# Wire popover signals
+	_sp_popover.story_point_spent.connect(
+		_on_sp_popover_spent)
+	_sp_popover.star_ability_activated.connect(
+		_on_sp_popover_star_used)
+
+
+func _toggle_sp_popover() -> void:
+	if not _sp_popover:
+		return
+	if _sp_popover.visible:
+		_sp_popover.hide()
+		return
+	_sp_popover.refresh()
+	var badge_rect: Rect2 = (
+		story_points_label.get_global_rect())
+	_sp_popover.popup(Rect2i(
+		Vector2i(
+			int(badge_rect.position.x),
+			int(badge_rect.end.y + 4)),
+		_sp_popover.size
+	))
+
+
+func _on_sp_popover_spent(
+	spend_type: int, _details: Dictionary
+) -> void:
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+
+	var gsm = get_node_or_null(
+		"/root/GameStateManager")
+
+	# Build description for journal
+	var spend_desc: String = ""
+
+	# Apply effect based on type
+	match spend_type:
+		StoryPointSystemClass.SpendType.GET_CREDITS:
+			campaign.credits += 3
+			if gsm and gsm.has_method("set_credits"):
+				gsm.set_credits(campaign.credits)
+			spend_desc = "Spent 1 SP to gain 3 credits"
+		StoryPointSystemClass.SpendType.GET_XP:
+			spend_desc = "Spent 1 SP to grant +3 XP"
+		StoryPointSystemClass.SpendType.EXTRA_ACTION:
+			spend_desc = (
+				"Spent 1 SP for an extra campaign action")
+		StoryPointSystemClass.SpendType.REROLL_RESULT:
+			spend_desc = "Spent 1 SP to reroll a result"
+		StoryPointSystemClass.SpendType.ROLL_TWICE_PICK_ONE:
+			spend_desc = (
+				"Spent 1 SP to roll twice and pick one")
+
+	# Sync story_points balance
+	campaign.story_points = (
+		_sp_system.get_current_points())
+	if gsm and gsm.has_method("set_story_points"):
+		gsm.set_story_points(campaign.story_points)
+
+	# Log to CampaignJournal
+	_log_story_event(campaign, spend_desc, "story",
+		["story_points"], "neutral")
+
+	_persist_story_state()
+	_update_header(campaign)
+
+
+func _on_sp_popover_star_used(
+	ability: int, result: Dictionary
+) -> void:
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+
+	var gsm = get_node_or_null(
+		"/root/GameStateManager")
+
+	var ability_name: String = result.get(
+		"message", "Used a Stars of the Story ability")
+	var mood: String = "exciting"
+
+	# Apply Rainy Day Fund credits
+	if ability == StarsSystemClass.StarAbility.RAINY_DAY_FUND:
+		var gained: int = result.get("credits_gained", 0)
+		campaign.credits += gained
+		if gsm and gsm.has_method("set_credits"):
+			gsm.set_credits(campaign.credits)
+
+	# Log to CampaignJournal
+	_log_story_event(campaign, ability_name,
+		"story", ["stars_of_the_story", "emergency"],
+		mood)
+
+	_persist_story_state()
+	_update_header(campaign)
+
+
+func _log_story_event(
+	campaign, description: String,
+	entry_type: String, tags: Array,
+	mood: String
+) -> void:
+	## Log a story point or stars event to CampaignJournal
+	var journal = get_node_or_null(
+		"/root/CampaignJournal")
+	if not journal or not journal.has_method(
+		"create_entry"
+	):
+		return
+	var turn_num: int = _get_turn_number(campaign)
+	journal.create_entry({
+		"turn_number": turn_num,
+		"type": entry_type,
+		"auto_generated": true,
+		"title": "Story Point Used",
+		"description": description,
+		"mood": mood,
+		"tags": tags,
+		"stats": {
+			"story_points_remaining":
+				campaign.story_points
+		},
+	})
+
+
+func _get_turn_number(campaign) -> int:
+	if campaign and "progress_data" in campaign:
+		return campaign.progress_data.get(
+			"turns_played", 0)
+	return 0
+
+
+func _persist_story_state() -> void:
+	## Serialize story systems back to campaign for save
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+	if _sp_system:
+		campaign.story_point_turn_state = (
+			_sp_system.to_dict())
+	if _stars_system:
+		campaign.stars_of_the_story = (
+			_stars_system.serialize())
+
 
 # ── History Overlay System ────────────────────────────────────────
 

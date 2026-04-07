@@ -1,0 +1,84 @@
+{
+  "_source": "Core Rules Appendix V pp.153-154",
+  "event_id": "foiled",
+  "event_number": 1,
+  "title": "Foiled!",
+  "narrative": {
+    "intro": "The captain was excited this morning. A big job lined up. Mega-corp, good benefits. Quite a deal. Then it all went haywire. When you showed up at the designated meeting place, hired guns were waiting for you. What's going on?",
+    "briefing": "You are under attack! Set up exactly 12\" apart with each side in a rough line. All opposing figures must be set up behind Cover, but able to fire.",
+    "completion_win": "You Hold the Field. Your corporate contacts were murdered, and your crew are being viewed with suspicion, though you manage to talk your way out of it.",
+    "completion_lose": "You flee from the battle. You are framed, and must add a Rival to your roster as the corporation hires hitmen."
+  },
+  "campaign_turn_modifications": {
+    "must_send_one_to_patron": true,
+    "patron_auto_fail": true,
+    "no_rival_interference": true,
+    "cannot_track_rivals": true
+  },
+  "deployment": {
+    "type": "facing_lines",
+    "separation_inches": 12,
+    "crew_setup": "rough line at battlefield edge",
+    "enemy_setup": "rough line behind Cover, able to fire",
+    "special_rules": ["Cannot attempt Seize the Initiative"],
+    "no_deployment_conditions": true,
+    "no_notable_sights": true
+  },
+  "enemies": {
+    "source_table": "fixed",
+    "fixed_count": 6,
+    "composition": [
+      {
+        "type": "hired_gun",
+        "count": 4,
+        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 3},
+        "ai": "tactical",
+        "weapons": ["Colony Rifle"]
+      },
+      {
+        "type": "big_gun",
+        "count": 1,
+        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "ai": "tactical",
+        "weapons": ["Rattle Gun", "Handgun"]
+      },
+      {
+        "type": "leader",
+        "count": 1,
+        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "ai": "tactical",
+        "weapons": ["Machine Pistol", "Blade"],
+        "special_rules": ["While Leader is alive, Bail Range is 1. If Leader missing, Bail Range is 1-3."]
+      }
+    ],
+    "bail_rules": {
+      "leader_alive": "1",
+      "leader_dead": "1-3",
+      "bail_from_round": 6,
+      "bail_condition": "3 or fewer figures remaining"
+    }
+  },
+  "objectives": {
+    "primary": {
+      "type": "hold_field",
+      "description": "Hold the Field by driving off all enemies"
+    }
+  },
+  "post_battle_effects": {
+    "hold_field": {
+      "description": "Corporate contacts murdered, crew viewed with suspicion but talked way out",
+      "rival_check": "none"
+    },
+    "flee": {
+      "description": "Framed by the corporation",
+      "add_rival": 1
+    },
+    "common": {
+      "normal_pay": true,
+      "loot_roll_if_killed_one": true,
+      "rival_check": "none"
+    }
+  },
+  "next_clock_ticks": 3,
+  "page_reference": "p.154"
+}

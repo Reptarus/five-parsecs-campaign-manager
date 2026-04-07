@@ -5,7 +5,12 @@ extends Control
 
 # ============ PRELOADS ============
 const CharacterCard = preload("res://src/ui/components/character/CharacterCard.gd")
-const CharacterHistoryPanelClass = preload("res://src/ui/components/history/CharacterHistoryPanel.gd")
+const CharacterHistoryPanelClass = preload(
+	"res://src/ui/components/history/CharacterHistoryPanel.gd")
+const CharacterEventTimelineClass = preload(
+	"res://src/ui/components/character/CharacterEventTimeline.gd")
+const EquipmentTransferServiceRef = preload(
+	"res://src/core/equipment/EquipmentTransferService.gd")
 
 # ============ DESIGN SYSTEM CONSTANTS ============
 # Unified styling from BaseCampaignPanel
@@ -250,12 +255,17 @@ func populate_ui() -> void:
 	if not current_character:
 		return
 
-	# Hero Card (STANDARD variant — portrait + name + stats + equipment + XP, no action buttons)
+	# Hero Card (STANDARD variant)
 	if hero_card and hero_card.has_method("set_character"):
 		hero_card.set_character(current_character)
 		if hero_card.has_method("set_variant"):
-			hero_card.set_variant(CharacterCard.CardVariant.STANDARD)
-	
+			hero_card.set_variant(
+				CharacterCard.CardVariant.STANDARD)
+	# Portrait upload button (overlay on HeroCard)
+	if not hero_card.get_node_or_null("__ChangePortraitBtn"):
+		_setup_portrait_upload()
+	# Status summary bar
+	_build_status_bar()
 	# XP Progress Bar
 	_update_xp_display()
 
@@ -328,33 +338,15 @@ func populate_ui() -> void:
 
 			character_info_container.add_child(info_row)
 
-		# View History button
-		var history_sep := HSeparator.new()
-		history_sep.custom_minimum_size = Vector2(0, SPACING_SM)
-		character_info_container.add_child(history_sep)
-		var history_btn := Button.new()
-		history_btn.text = "View Character History"
-		history_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-		history_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		history_btn.pressed.connect(_on_view_history_pressed)
-		# Style the button with accent color
-		var btn_style := StyleBoxFlat.new()
-		btn_style.bg_color = COLOR_ACCENT
-		btn_style.set_corner_radius_all(8)
-		btn_style.set_content_margin_all(SPACING_SM)
-		history_btn.add_theme_stylebox_override("normal", btn_style)
-		var btn_hover := StyleBoxFlat.new()
-		btn_hover.bg_color = COLOR_ACCENT_HOVER
-		btn_hover.set_corner_radius_all(8)
-		btn_hover.set_content_margin_all(SPACING_SM)
-		history_btn.add_theme_stylebox_override("hover", btn_hover)
-		history_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-		character_info_container.add_child(history_btn)
+		# (History + Event Timeline are inline below — no overlay button needed)
 
 	# Stats (5-column grid with centered values)
 	if stats_grid:
 		_update_stats_grid()
-	
+
+	# Species rules for Strange Characters (Core Rules pp.19-22)
+	_update_species_rules_display()
+
 	# Equipment with keyword tooltips
 	if equipment_rich_text and "equipment" in current_character:
 		_update_equipment_display()
@@ -424,12 +416,35 @@ func _update_stats_grid() -> void:
 		"SavvyCell/SavvyValue": ["savvy", 0],
 		"LuckCell/LuckValue": ["luck", 0],
 	}
-	for path in stat_cells:
-		var label = stats_grid.get_node_or_null(path)
+	# Stat maximums for color coding
+	var stat_maxes: Dictionary = {
+		"reactions": 6, "speed": 8, "combat": 5,
+		"toughness": 6, "savvy": 5, "luck": 4,
+	}
+	for path: String in stat_cells:
+		var label: Label = stats_grid.get_node_or_null(path)
 		if label:
 			var stat_name: String = stat_cells[path][0]
 			var default_val: int = stat_cells[path][1]
-			label.text = str(current_character.get(stat_name) if stat_name in current_character else default_val)
+			var val: int = current_character.get(
+				stat_name) if stat_name in current_character \
+				else default_val
+			label.text = str(val)
+			# Color code: green at max, red at danger, default
+			var smax: int = stat_maxes.get(stat_name, 6)
+			if val >= smax:
+				label.add_theme_color_override(
+					"font_color", COLOR_SUCCESS)
+			elif val <= 0 and stat_name in [
+				"combat", "savvy", "luck"]:
+				label.add_theme_color_override(
+					"font_color", COLOR_DANGER)
+			elif stat_name == "toughness" and val <= 3:
+				label.add_theme_color_override(
+					"font_color", COLOR_WARNING)
+			else:
+				label.add_theme_color_override(
+					"font_color", COLOR_TEXT_PRIMARY)
 
 ## Sprint 26.9 Phase 8.3: Responsive stats grid to prevent horizontal scroll on mobile
 func _on_viewport_resized() -> void:
@@ -476,6 +491,50 @@ func _apply_responsive_stats_grid() -> void:
 	stats_grid.add_theme_constant_override("h_separation", h_spacing)
 	stats_grid.add_theme_constant_override("v_separation", v_spacing)
 
+func _update_species_rules_display() -> void:
+	## Show Strange Character special rules below stats (Core Rules pp.19-22)
+	if not current_character:
+		return
+	var container = get_node_or_null("SpeciesRulesContainer")
+	if not container:
+		# Create container on first call — placed after stats_grid
+		container = VBoxContainer.new()
+		container.name = "SpeciesRulesContainer"
+		if stats_grid and stats_grid.get_parent():
+			var parent = stats_grid.get_parent()
+			var idx: int = stats_grid.get_index() + 1
+			parent.add_child(container)
+			parent.move_child(container, mini(
+				idx, parent.get_child_count() - 1))
+
+	# Clear and rebuild
+	for child in container.get_children():
+		child.queue_free()
+
+	var rules: Array = []
+	if "special_rules" in current_character:
+		rules = current_character.special_rules
+	if rules.is_empty():
+		container.visible = false
+		return
+	container.visible = true
+
+	var header := Label.new()
+	header.text = "Species Rules"
+	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_color_override(
+		"font_color", Color("#D97706"))
+	container.add_child(header)
+
+	var rules_label := RichTextLabel.new()
+	rules_label.bbcode_enabled = true
+	rules_label.fit_content = true
+	rules_label.scroll_active = false
+	var bbcode := ""
+	for rule in rules:
+		bbcode += "[color=#808080]• %s[/color]\n" % str(rule)
+	rules_label.text = bbcode
+	container.add_child(rules_label)
 
 func _update_equipment_display() -> void:
 	## Update equipment list — separates Weapons (with stats) from Gear/Armor, matching Crew Log layout
@@ -684,53 +743,71 @@ func _on_cancel_pressed() -> void:
 	return_to_crew_management()
 
 func _populate_history_section() -> void:
-	## Add character history panel (stats, advancement, journal)
+	## Add character history + event timeline panels
 	if not current_character:
 		return
 
-	# Find the main content VBox (parent of NotesPanel)
-	var main_vbox: VBoxContainer = null
-	if notes_edit:
-		# NotesEdit → VBoxContainer → NotesPanel → main VBoxContainer
-		var notes_panel = notes_edit.get_parent().get_parent()
-		if notes_panel:
-			main_vbox = notes_panel.get_parent()
+	var main_vbox: VBoxContainer = _find_main_vbox()
 	if not main_vbox:
 		return
 
-	# Remove old history panel if re-populating
-	var old_panel = main_vbox.get_node_or_null("__CharacterHistory")
-	if old_panel:
-		old_panel.queue_free()
+	var char_id: String = _get_char_id()
 
-	var char_id: String = ""
-	if "character_id" in current_character:
-		char_id = current_character.character_id
+	# Remove old panels if re-populating
+	for old_name: String in [
+		"__CharacterHistory", "__CharEventTimeline"
+	]:
+		var old: Node = main_vbox.get_node_or_null(old_name)
+		if old:
+			old.queue_free()
 
-	var history_panel = CharacterHistoryPanelClass.new()
+	# History panel (stats, advancement, journal entries)
+	var history_panel := CharacterHistoryPanelClass.new()
 	history_panel.name = "__CharacterHistory"
-	history_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	history_panel.size_flags_horizontal = (
+		Control.SIZE_EXPAND_FILL)
 	main_vbox.add_child(history_panel)
 
-	# Move it after NotesPanel (before AdvancementPanel)
-	var notes_panel_node = notes_edit.get_parent().get_parent()
-	if notes_panel_node:
+	# Position after NotesPanel
+	var notes_panel_node: Node = null
+	if notes_edit:
+		notes_panel_node = notes_edit.get_parent()
+		if notes_panel_node:
+			notes_panel_node = notes_panel_node.get_parent()
+	if notes_panel_node and notes_panel_node.get_parent() == main_vbox:
 		var idx: int = notes_panel_node.get_index() + 1
-		main_vbox.move_child(history_panel, idx)
+		main_vbox.move_child(history_panel, mini(
+			idx, main_vbox.get_child_count() - 1))
 
 	history_panel.setup(current_character, char_id)
 
-	# Hide the panel's built-in header/back button — we have Save/Cancel
-	var header_hbox = history_panel.get_node_or_null("ScrollContainer/VBoxContainer/HBoxContainer")
-	if not header_hbox:
-		# Try first child of the scroll's vbox
-		var scroll = history_panel.get_child(0) if history_panel.get_child_count() > 0 else null
+	# Hide history panel's built-in back button (we have Save/Cancel)
+	_hide_history_back_button(history_panel)
+
+	# Filterable event timeline (below history)
+	var event_timeline := CharacterEventTimelineClass.new()
+	event_timeline.name = "__CharEventTimeline"
+	event_timeline.size_flags_horizontal = (
+		Control.SIZE_EXPAND_FILL)
+	main_vbox.add_child(event_timeline)
+	main_vbox.move_child(event_timeline, mini(
+		history_panel.get_index() + 1,
+		main_vbox.get_child_count() - 1))
+	event_timeline.setup(char_id)
+
+func _hide_history_back_button(panel: PanelContainer) -> void:
+	var header: Node = panel.get_node_or_null(
+		"ScrollContainer/VBoxContainer/HBoxContainer")
+	if not header and panel.get_child_count() > 0:
+		var scroll: Node = panel.get_child(0)
 		if scroll and scroll.get_child_count() > 0:
-			var vbox = scroll.get_child(0)
+			var vbox: Node = scroll.get_child(0)
 			if vbox and vbox.get_child_count() > 0:
-				var first_child = vbox.get_child(0)
-				if first_child is HBoxContainer:
-					first_child.visible = false
+				var first: Node = vbox.get_child(0)
+				if first is HBoxContainer:
+					header = first
+	if header:
+		header.visible = false
 
 func _sync_character_to_source_dict() -> void:
 	## Write modified character data back to the source dict in campaign crew_data.
@@ -757,12 +834,192 @@ func _sync_character_to_source_dict() -> void:
 
 func return_to_crew_management() -> void:
 	## Navigate back to crew management screen
-	# Clear temp data
-	if GameStateManager and GameStateManager.has_temp_data(GameStateManager.TEMP_KEY_SELECTED_CHARACTER):
-		GameStateManager.clear_temp_data(GameStateManager.TEMP_KEY_SELECTED_CHARACTER)
-
-	# Navigate back using standardized navigation
+	if GameStateManager and GameStateManager.has_temp_data(
+		GameStateManager.TEMP_KEY_SELECTED_CHARACTER):
+		GameStateManager.clear_temp_data(
+			GameStateManager.TEMP_KEY_SELECTED_CHARACTER)
 	GameStateManager.navigate_to_screen("crew_management")
+
+# ── Shared Helpers ──────────────────────────────────────────────
+
+func _get_char_id() -> String:
+	## Extract character_id from current_character (dict or Resource)
+	if not current_character:
+		return ""
+	if current_character is Dictionary:
+		return str(current_character.get(
+			"character_id", current_character.get("id", "")))
+	if "character_id" in current_character:
+		return str(current_character.character_id)
+	if "id" in current_character:
+		return str(current_character.id)
+	return ""
+
+# ── Portrait Upload ─────────────────────────────────────────────
+
+func _setup_portrait_upload() -> void:
+	## Add "Change Portrait" button overlaid on the HeroCard
+	if not hero_card:
+		return
+	var btn := Button.new()
+	btn.name = "__ChangePortraitBtn"
+	btn.text = "Change Portrait"
+	btn.custom_minimum_size = Vector2(120, 32)
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.85)
+	style.border_color = COLOR_ACCENT
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_XS)
+	btn.add_theme_stylebox_override("normal", style)
+	var hover := style.duplicate()
+	hover.bg_color = COLOR_ACCENT
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.pressed.connect(_on_change_portrait_pressed)
+	hero_card.add_child(btn)
+	# Position at bottom-left of hero card
+	btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	btn.position = Vector2(SPACING_SM, -40)
+
+func _on_change_portrait_pressed() -> void:
+	var dialog := FileDialog.new()
+	dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.filters = PackedStringArray([
+		"*.png ; PNG Images",
+		"*.jpg ; JPEG Images",
+		"*.jpeg ; JPEG Images",
+		"*.webp ; WebP Images",
+	])
+	dialog.title = "Select Character Portrait"
+	dialog.min_size = Vector2i(600, 400)
+	dialog.file_selected.connect(_on_portrait_file_selected)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _on_portrait_file_selected(path: String) -> void:
+	var img := Image.load_from_file(path)
+	if not img or img.is_empty():
+		push_warning("CharacterDetails: Failed to load image")
+		return
+	# Resize if too large
+	if img.get_width() > 256 or img.get_height() > 256:
+		img.resize(256, 256, Image.INTERPOLATE_LANCZOS)
+	# Save to user directory
+	var char_id: String = _get_char_id()
+	if char_id.is_empty():
+		char_id = "char_%d" % Time.get_ticks_msec()
+	var dir_path := "user://portraits"
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_absolute(dir_path)
+	var save_path := "%s/%s.png" % [dir_path, char_id]
+	var err: Error = img.save_png(save_path)
+	if err != OK:
+		push_error("CharacterDetails: Failed to save portrait")
+		return
+	# Update character
+	if current_character and "portrait_path" in current_character:
+		current_character.portrait_path = save_path
+	# Refresh hero card
+	if hero_card and hero_card.has_method("set_character"):
+		hero_card.set_character(current_character)
+
+# ── Status Summary Bar ──────────────────────────────────────────
+
+func _build_status_bar() -> void:
+	## Add at-a-glance status bar below HeroCard
+	var main_vbox: VBoxContainer = _find_main_vbox()
+	if not main_vbox:
+		return
+	# Remove old status bar
+	var old := main_vbox.get_node_or_null("__StatusBar")
+	if old:
+		old.queue_free()
+
+	var bar := HFlowContainer.new()
+	bar.name = "__StatusBar"
+	bar.add_theme_constant_override("h_separation", SPACING_MD)
+	bar.add_theme_constant_override("v_separation", SPACING_XS)
+
+	# Status dot
+	var status_text: String = "ACTIVE"
+	var status_color: Color = COLOR_SUCCESS
+	if current_character:
+		if "status" in current_character:
+			status_text = str(current_character.status)
+		if status_text == "DEAD":
+			status_color = COLOR_DANGER
+		elif status_text != "ACTIVE":
+			status_color = COLOR_WARNING
+
+	bar.add_child(_status_chip(status_text, status_color))
+
+	# Sick bay recovery
+	if current_character and "recovery_turns" in current_character:
+		var rt: int = current_character.recovery_turns
+		if rt > 0:
+			bar.add_child(_status_chip(
+				"Sick Bay (%d turns)" % rt, COLOR_WARNING))
+
+	# Battle count
+	var battles: int = 0
+	if current_character and "battles_participated" in current_character:
+		battles = current_character.battles_participated
+	bar.add_child(_status_chip(
+		"%d Battles" % battles, COLOR_TEXT_SECONDARY))
+
+	# Kill count
+	var kills: int = 0
+	if current_character and "lifetime_kills" in current_character:
+		kills = current_character.lifetime_kills
+	bar.add_child(_status_chip(
+		"%d Kills" % kills, COLOR_TEXT_SECONDARY))
+
+	# XP
+	var xp: int = 0
+	if current_character and "experience" in current_character:
+		xp = current_character.experience
+	bar.add_child(_status_chip("%d XP" % xp, COLOR_ACCENT))
+
+	# Insert after HeroCard (index 1 in main vbox)
+	main_vbox.add_child(bar)
+	if hero_card and hero_card.get_parent() == main_vbox:
+		var idx: int = hero_card.get_index() + 1
+		main_vbox.move_child(bar, mini(
+			idx, main_vbox.get_child_count() - 1))
+
+func _status_chip(
+	text: String, color: Color
+) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		color.r, color.g, color.b, 0.15)
+	style.border_color = Color(
+		color.r, color.g, color.b, 0.4)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_XS)
+	chip.add_theme_stylebox_override("panel", style)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override(
+		"font_size", FONT_SIZE_SM)
+	lbl.add_theme_color_override("font_color", color)
+	chip.add_child(lbl)
+	return chip
+
+func _find_main_vbox() -> VBoxContainer:
+	## Find the main VBoxContainer in the scroll tree
+	var scroll: ScrollContainer = get_node_or_null(
+		"MarginContainer/ScrollContainer")
+	if scroll and scroll.get_child_count() > 0:
+		var child: Node = scroll.get_child(0)
+		if child is VBoxContainer:
+			return child
+	return null
 
 func _on_add_equipment_pressed() -> void:
 	## Show popup listing items from campaign equipment pool (Ship Stash)
@@ -786,11 +1043,27 @@ func _on_add_equipment_pressed() -> void:
 	popup.id_pressed.connect(func(id: int) -> void:
 		if id >= 0 and id < pool.size():
 			var chosen = pool[id]
-			# Move from pool to character equipment
-			if current_character and "equipment" in current_character:
-				current_character.equipment.append(chosen)
-			pool.remove_at(id)
-			gs.campaign.equipment_data["equipment"] = pool
+			# Move item from ship stash to character using EquipmentTransferService.
+			# The service handles the atomic remove-from-stash + add-to-character,
+			# enforcing the "one item, one home" tabletop invariant.
+			var char_id: String = ""
+			if current_character is Dictionary:
+				char_id = str(current_character.get("character_id",
+					current_character.get("id", "")))
+			elif "character_id" in current_character:
+				char_id = str(current_character.character_id)
+			var item_id: String = ""
+			if chosen is Dictionary:
+				item_id = str(chosen.get("id", ""))
+			if not char_id.is_empty() and not item_id.is_empty():
+				var svc = EquipmentTransferServiceRef.new(gs.current_campaign)
+				svc.transfer_to_character(item_id, char_id)
+			else:
+				# Fallback for items without ids (legacy data)
+				if current_character and "equipment" in current_character:
+					current_character.equipment.append(chosen) # lint:ignore
+				pool.remove_at(id)
+				gs.current_campaign.equipment_data["equipment"] = pool
 			_update_equipment_display()
 		popup.queue_free()
 	)
@@ -813,17 +1086,29 @@ func _on_remove_equipment_pressed() -> void:
 	popup.id_pressed.connect(func(id: int) -> void:
 		if id >= 0 and id < equipment.size():
 			var removed = equipment[id]
-			equipment.remove_at(id)
-			# Return to campaign equipment pool
+			# Route through EquipmentTransferService for atomic transfer
+			# back to ship stash (tabletop: return card to the stash box).
 			var gs = get_node_or_null("/root/GameState")
-			if gs and gs.campaign and "equipment_data" in gs.campaign:
-				var pool: Array = []
-				if gs.campaign.has_method("get_all_equipment"):
-					pool = gs.campaign.get_all_equipment()
-				else:
-					pool = gs.campaign.equipment_data.get("equipment", [])
-				pool.append(removed)
-				gs.campaign.equipment_data["equipment"] = pool
+			var char_id: String = ""
+			if current_character is Dictionary:
+				char_id = str(current_character.get("character_id",
+					current_character.get("id", "")))
+			elif "character_id" in current_character:
+				char_id = str(current_character.character_id)
+			var item_id: String = ""
+			if removed is Dictionary:
+				item_id = str(removed.get("id", ""))
+			elif removed is String:
+				item_id = removed  # Legacy string-only equipment
+			if not char_id.is_empty() and not item_id.is_empty() and gs and gs.current_campaign:
+				var svc = EquipmentTransferServiceRef.new(gs.current_campaign)
+				svc.transfer_to_stash(item_id, char_id)
+			else:
+				# Fallback for legacy data without ids
+				equipment.remove_at(id)
+				if gs and gs.current_campaign and "equipment_data" in gs.current_campaign:
+					var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
+					stash.append(removed)
 			_update_equipment_display()
 		popup.queue_free()
 	)

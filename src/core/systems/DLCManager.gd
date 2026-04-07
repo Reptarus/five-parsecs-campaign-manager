@@ -12,6 +12,7 @@ extends Node
 
 signal dlc_ownership_changed(dlc_id: String, owned: bool)
 signal feature_flag_changed(flag: int, enabled: bool)
+signal dlc_pack_required(dlc_id: String)
 
 
 ## ============================================================================
@@ -187,6 +188,10 @@ func set_feature_enabled(flag: ContentFlag, enabled: bool) -> void:
 		return
 	_enabled_flags[flag] = enabled
 	feature_flag_changed.emit(flag, enabled)
+	if enabled:
+		var dlc_id := get_dlc_for_feature(flag)
+		if not dlc_id.is_empty():
+			dlc_pack_required.emit(dlc_id)
 
 
 ## Get all features whose DLC is owned (regardless of toggle state)
@@ -202,6 +207,30 @@ func get_available_features() -> Array:
 ## Get all features for a specific DLC pack
 func get_features_for_dlc(dlc_id: String) -> Array:
 	return DLC_CONTENT_MAP.get(dlc_id, [])
+
+
+## ============================================================================
+## BULK OPERATIONS (for UI convenience)
+## ============================================================================
+
+func enable_all_for_dlc(dlc_id: String) -> void:
+	if not has_dlc(dlc_id):
+		return
+	for flag in get_features_for_dlc(dlc_id):
+		set_feature_enabled(flag, true)
+
+
+func disable_all_for_dlc(dlc_id: String) -> void:
+	for flag in get_features_for_dlc(dlc_id):
+		set_feature_enabled(flag, false)
+
+
+func get_enabled_count_for_dlc(dlc_id: String) -> int:
+	var count := 0
+	for flag in get_features_for_dlc(dlc_id):
+		if _enabled_flags.get(flag, false):
+			count += 1
+	return count
 
 
 ## ============================================================================

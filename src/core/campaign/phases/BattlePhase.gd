@@ -266,8 +266,13 @@ func _process_battle_setup() -> void:
 		current_substep = GlobalEnums.BattleCampaignSubStep.SETUP
 		battle_substep_changed.emit(current_substep)
 
+	# Story Track override: inject story battle config
+	if _is_story_event_battle():
+		_apply_story_battle_config()
+
 	# Get mission type from setup data or generate
-	var mission_type = battle_setup_data.get("mission_type", _generate_mission_type())
+	var mission_type = battle_setup_data.get(
+		"mission_type", _generate_mission_type())
 
 	# DLC: Determine battle type (conventional/stealth/street_fight/salvage)
 	# from Compendium p.118 mission selection table
@@ -1624,3 +1629,51 @@ func get_completion_data() -> Dictionary:
 		data["journal_narrative"] = ""
 
 	return data
+
+
+# ── Story Track Battle Integration (Core Rules Appendix V) ──
+
+func _is_story_event_battle() -> bool:
+	## Check if CampaignPhaseManager flagged this as a Story Event turn
+	var pm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if pm and pm.has_method("is_story_event_turn"):
+		return pm.is_story_event_turn()
+	return false
+
+
+func _apply_story_battle_config() -> void:
+	## Inject story event battle config into battle_setup_data.
+	## Overrides normal mission/enemy generation with scripted
+	## story event data (Core Rules Appendix V).
+	var pm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if not pm or not pm.has_method("get_story_battle_config"):
+		return
+	var config: Dictionary = pm.get_story_battle_config()
+	if config.is_empty():
+		return
+
+	battle_setup_data["is_story_battle"] = true
+	battle_setup_data["story_event_id"] = config.get(
+		"event_id", "")
+	battle_setup_data["story_event_number"] = config.get(
+		"event_number", 0)
+
+	# Override deployment if story event specifies it
+	var deploy: Dictionary = config.get("deployment", {})
+	if not deploy.is_empty():
+		battle_setup_data["story_deployment"] = deploy
+		# Most story events: no Deployment Conditions / Notable Sights
+		if deploy.get("no_deployment_conditions", false):
+			battle_setup_data["skip_deployment_conditions"] = true
+		if deploy.get("no_notable_sights", false):
+			battle_setup_data["skip_notable_sights"] = true
+
+	# Override enemy composition
+	var enemies: Dictionary = config.get("enemies", {})
+	if not enemies.is_empty():
+		battle_setup_data["story_enemies"] = enemies
+
+	# Override objectives
+	var objectives: Dictionary = config.get("objectives", {})
+	if not objectives.is_empty():
+		battle_setup_data["story_objectives"] = objectives

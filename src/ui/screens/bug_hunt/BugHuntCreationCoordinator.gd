@@ -102,7 +102,12 @@ func finalize() -> void:
 	# Initialize squad
 	var squad: Dictionary = all_data.squad
 	campaign.initialize_squad(squad.main_characters, [])
-	campaign.reputation = squad.get("total_reputation", 0)
+	# Route through GameStateManager for single-source-of-truth
+	var _gsm = get_node_or_null("/root/GameStateManager")
+	if _gsm and _gsm.has_method("set_reputation"):
+		_gsm.set_reputation(squad.get("total_reputation", 0))
+	else:
+		campaign.reputation = squad.get("total_reputation", 0)  # lint:ignore — fallback
 
 	# Generate initial free fire team
 	var fire_team := char_gen.generate_fire_team(4)

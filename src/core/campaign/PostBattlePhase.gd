@@ -68,36 +68,54 @@ func _persist_battle_journal() -> void:
 	journal.auto_create_battle_entry(battle_entry)
 
 func _advance_story_track() -> void:
-	## Advance story track if enabled (Core Rules Appendix V)
-	if not game_state:
+	## Advance story clock via CampaignPhaseManager's cached
+	## StoryTrackSystem (Core Rules Appendix V p.153).
+	var phase_mgr: Node = get_node_or_null(
+		"/root/CampaignPhaseManager")
+	if not phase_mgr or not phase_mgr.get("story_track"):
 		return
-	var campaign = game_state.campaign if "campaign" in game_state else null
-	if not campaign:
+	var st: FPCM_StoryTrackSystem = phase_mgr.story_track
+	if not st.is_story_track_active:
 		return
-	# Check if story track is enabled for this campaign
-	var story_enabled: bool = campaign.story_track_enabled if "story_track_enabled" in campaign else false
-	if not story_enabled:
+
+	# Determine if crew won the mission
+	var battle_results: Dictionary = {}
+	if game_state:
+		battle_results = game_state.get_battle_results() \
+			if game_state.has_method("get_battle_results") \
+			else {}
+	var won: bool = battle_results.get("victory", false)
+
+	# Story Event turn: apply post-battle effects
+	if st.is_story_event_turn:
+		var effects: Dictionary = st.apply_post_battle(won)
+		_log_story_effects(effects)
+	else:
+		# Normal turn: advance the clock
+		var result: Dictionary = st.advance_clock_end_of_turn(won)
+		if result.get("event_triggered", false):
+			_log_story_journal(
+				"Story Clock reached 0 — next turn is a Story Event!")
+
+	# Persist state
+	if phase_mgr.has_method("save_story_track_state"):
+		phase_mgr.save_story_track_state()
+
+
+func _log_story_effects(effects: Dictionary) -> void:
+	if effects.is_empty():
 		return
-	# Instantiate story track system and load existing state
-	var story_track := FPCM_StoryTrackSystem.new()
-	var progress: Dictionary = campaign.progress_data if "progress_data" in campaign else {}
-	var story_state: Dictionary = progress.get("story_track", {})
-	if not story_state.is_empty():
-		story_track.deserialize(story_state)
-	elif not story_track.is_story_track_active:
-		story_track.start_story_track()
-	# Advance turn with current campaign data
-	var current_turn: int = game_state.current_turn if "current_turn" in game_state else 0
-	var quest_rumors: int = campaign.quest_rumors if "quest_rumors" in campaign else 0
-	var result: Dictionary = story_track.advance_turn(current_turn, quest_rumors)
-	# Persist updated state back to campaign progress_data
-	campaign.progress_data["story_track"] = story_track.serialize()
-	# Log milestone to journal if event was triggered
-	if result.get("event_triggered", false):
-		var journal = get_node_or_null("/root/CampaignJournal")
-		if journal and journal.has_method("add_entry"):
-			journal.add_entry("Story Track: Event triggered (clock advanced)")
-	pass
+	var event_id: String = effects.get("event_id", "")
+	var won: bool = effects.get("won", false)
+	var outcome: String = "Victory" if won else "Defeat"
+	_log_story_journal(
+		"Story Track Event '%s': %s" % [event_id, outcome])
+
+
+func _log_story_journal(text: String) -> void:
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("add_entry"):
+		journal.add_entry(text)
 
 func _resolve_combat_results() -> void:
 	var battle_results: Dictionary = game_state.get_battle_results() if game_state else {}

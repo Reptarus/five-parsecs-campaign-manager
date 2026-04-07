@@ -51,6 +51,17 @@ This is the root cause of "Cannot infer the type" errors project-wide. Always us
 
 ---
 
+## Session 33: DLC Store UI + Save Protection (Apr 6, 2026)
+
+Complete commercial DLC system:
+- **12 new files**: Store UI (DLCContentCatalog, DLCPackCard, BundleCard, BugHuntCard), toggle components (DLCFeatureToggleRow, ExpansionFeatureSection), awareness (DLCUpsellBanner, DLCActivationToast), dialogs (DLCRequirementDialog, DLCContentDisclaimer)
+- **Android migration**: Third-party AndroidIAPP replaced with official GodotGooglePlayBilling BillingClient
+- **Save protection**: `required_dlc_packs` one-way stamp on FiveParsecsCampaignCore, signal-based (DLCManager → GameState), load-time intercept with peek + dialog
+- **MainMenu**: "Expansions" button (was Library), social footer (Modiphius links), DLC badges on saves
+- **Routing**: `ui-panel-developer` owns all `src/ui/components/dlc/` and `src/ui/screens/store/` files. `campaign-systems-engineer` owns DLCManager signal + GameState wiring + FiveParsecsCampaignCore serialization
+
+---
+
 ## Session 18: Rules Audit Complete + Schema Unification (Mar 30, 2026)
 
 QA_RULES_ACCURACY_AUDIT.md: **0 UNVERIFIED entries** (was 308). 925/925 data values verified.

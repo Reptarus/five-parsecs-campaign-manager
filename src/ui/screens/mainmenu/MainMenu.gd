@@ -44,6 +44,7 @@ func _ready() -> void:
 		game_state_manager = get_node_or_null("/root/GameStateManager")
 
 	setup_ui()
+	_build_social_footer()
 	if tutorial_popup:
 		tutorial_popup.hide()
 		_connect_tutorial_signals()
@@ -247,12 +248,27 @@ func _on_load_campaign_pressed() -> void:
 		vbox.add_child(row)
 
 		var btn := Button.new()
-		# ISSUE-049: Show campaign type tag
+		# ISSUE-049: Show campaign type tag + DLC badge
 		var type_tag := ""
 		var save_path: String = info.get("path", "")
-		if save_path.find("bug_hunt") >= 0 or info.get("type", "") == "bug_hunt":
+		if save_path.find("bug_hunt") >= 0 \
+				or info.get("type", "") == "bug_hunt":
 			type_tag = "[BH] "
-		btn.text = "%s%s  (%s)" % [type_tag, info.get("name", "Unnamed"), info.get("date_string", "")]
+		# DLC badge: peek for required packs
+		var dlc_tag := ""
+		var gs_ref = get_node_or_null("/root/GameState")
+		var dlc_ref = get_node_or_null("/root/DLCManager")
+		if gs_ref and gs_ref.has_method("peek_required_dlc"):
+			var req: Array[String] = gs_ref.peek_required_dlc(
+				save_path)
+			for pid: String in req:
+				if dlc_ref and not dlc_ref.has_dlc(pid):
+					dlc_tag = "[DLC] "
+					break
+		btn.text = "%s%s%s  (%s)" % [
+			type_tag, dlc_tag,
+			info.get("name", "Unnamed"),
+			info.get("date_string", "")]
 		btn.custom_minimum_size.y = 48
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.pressed.connect(_load_and_go_to_dashboard.bind(save_path, dialog, backdrop))
@@ -287,22 +303,69 @@ func _on_load_campaign_pressed() -> void:
 	_active_dialogs.append(dialog)
 	dialog.popup_centered()
 
-func _load_and_go_to_dashboard(path: String, dialog: Node, backdrop: Node = null) -> void:
+func _load_and_go_to_dashboard(
+	path: String, dialog: Node, backdrop: Node = null,
+) -> void:
 	push_warning("MainMenu: Loading campaign from path: %s" % path)
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("load_campaign"):
+		_cleanup_load_ui(dialog, backdrop)
+		show_message("Load system not available.")
+		return
+
+	# Check DLC requirements before loading
+	var dlc_mgr = get_node_or_null("/root/DLCManager")
+	var required: Array[String] = []
+	if gs.has_method("peek_required_dlc"):
+		required = gs.peek_required_dlc(path)
+	var missing: Array[String] = []
+	for pack_id: String in required:
+		if dlc_mgr and not dlc_mgr.has_dlc(pack_id):
+			missing.append(pack_id)
+
+	if not missing.is_empty():
+		# Show DLC requirement dialog
+		var DLCReqDialog = load(
+			"res://src/ui/dialogs/DLCRequirementDialog.gd")
+		if DLCReqDialog:
+			var req_dialog: Window = DLCReqDialog.new()
+			add_child(req_dialog)
+			_active_dialogs.append(req_dialog)
+			req_dialog.load_requested.connect(func():
+				_active_dialogs.erase(req_dialog)
+				_cleanup_load_ui(dialog, backdrop)
+				_do_load_campaign(gs, path)
+			)
+			req_dialog.store_requested.connect(func():
+				_active_dialogs.erase(req_dialog)
+				_cleanup_load_ui(dialog, backdrop)
+				request_scene_change("store")
+			)
+			req_dialog.cancelled.connect(func():
+				_active_dialogs.erase(req_dialog)
+			)
+			req_dialog.show_missing_packs(missing)
+		return
+
+	_cleanup_load_ui(dialog, backdrop)
+	_do_load_campaign(gs, path)
+
+func _cleanup_load_ui(
+	dialog: Node, backdrop: Node = null,
+) -> void:
 	if is_instance_valid(backdrop):
 		backdrop.queue_free()
 	if is_instance_valid(dialog):
 		dialog.queue_free()
 		_active_dialogs.erase(dialog)
-	var gs = get_node_or_null("/root/GameState")
-	if not gs or not gs.has_method("load_campaign"):
-		show_message("Load system not available.")
-		return
+
+func _do_load_campaign(gs: Node, path: String) -> void:
 	var result: Dictionary = gs.load_campaign(path)
 	if result.get("success", false):
 		request_scene_change("campaign_turn_controller")
 	else:
-		show_message("Load failed: %s" % result.get("message", "Unknown error"))
+		show_message(
+			"Load failed: %s" % result.get("message", "Unknown error"))
 
 func _on_delete_save(path: String, row: Node, save_name: String, dialog: Node) -> void:
 	# ISSUE-050: Delete save with confirmation
@@ -376,7 +439,7 @@ func _on_options_pressed() -> void:
 	request_scene_change("options")
 
 func _on_library_pressed() -> void:
-	request_scene_change("help")
+	request_scene_change("store")
 
 func _cleanup_dialogs() -> void:
 	for dialog in _active_dialogs:
@@ -395,6 +458,127 @@ func show_message(text: String) -> void:
 		dialog.queue_free()
 	_active_dialogs.erase(dialog)
 
+## ── Social Footer ─────────────────────────────────────────────
+## Publisher and community links at bottom-left of main menu.
+
+const SOCIAL_LINKS: Array[Dictionary] = [
+	{
+		"label": "Modiphius",
+		"url": "https://www.modiphius.net/",
+		"tooltip": "Visit Modiphius Entertainment",
+	},
+	{
+		"label": "Five Parsecs",
+		"url": "https://www.modiphius.net/collections/five-parsecs-from-home",
+		"tooltip": "Five Parsecs From Home at Modiphius",
+	},
+	{
+		"label": "Discord",
+		"url": "https://discord.gg/modiphius",
+		"tooltip": "Join the Modiphius Discord community",
+	},
+	{
+		"label": "Facebook",
+		"url": "https://www.facebook.com/modaborgen",
+		"tooltip": "Five Parsecs on Facebook",
+	},
+]
+
+var _social_bar: HBoxContainer = null
+
+func _build_social_footer() -> void:
+	# Container anchored to bottom-left
+	var footer := PanelContainer.new()
+	footer.name = "SocialFooter"
+	var footer_style := StyleBoxFlat.new()
+	footer_style.bg_color = Color(0, 0, 0, 0.4)
+	footer_style.set_corner_radius_all(6)
+	footer_style.content_margin_left = 12
+	footer_style.content_margin_right = 12
+	footer_style.content_margin_top = 6
+	footer_style.content_margin_bottom = 6
+	footer.add_theme_stylebox_override("panel", footer_style)
+
+	footer.layout_mode = 1
+	footer.anchors_preset = Control.PRESET_BOTTOM_LEFT
+	footer.anchor_left = 0.0
+	footer.anchor_top = 1.0
+	footer.anchor_right = 0.0
+	footer.anchor_bottom = 1.0
+	footer.offset_left = 20
+	footer.offset_top = -56
+	footer.offset_right = 500
+	footer.offset_bottom = -12
+	footer.grow_horizontal = Control.GROW_DIRECTION_END
+	footer.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(footer)
+
+	_social_bar = HBoxContainer.new()
+	_social_bar.add_theme_constant_override("separation", 6)
+	_social_bar.alignment = BoxContainer.ALIGNMENT_BEGIN
+	footer.add_child(_social_bar)
+
+	# "Community" label
+	var label := Label.new()
+	label.text = "Community:"
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override(
+		"font_color", Color("#808080"))
+	_social_bar.add_child(label)
+
+	# Link buttons
+	for link: Dictionary in SOCIAL_LINKS:
+		var btn := Button.new()
+		btn.text = link.get("label", "")
+		btn.tooltip_text = link.get("tooltip", "")
+		btn.flat = true
+		btn.custom_minimum_size.y = 36
+		btn.add_theme_font_size_override("font_size", 13)
+		btn.add_theme_color_override(
+			"font_color", Color("#4FC3F7"))
+		btn.add_theme_color_override(
+			"font_hover_color", Color("#81D4FA"))
+		var url: String = link.get("url", "")
+		btn.pressed.connect(_open_url.bind(url))
+		_social_bar.add_child(btn)
+
+	# Separator + Credits button
+	var sep := VSeparator.new()
+	sep.custom_minimum_size.x = 1
+	_social_bar.add_child(sep)
+
+	var credits_btn := Button.new()
+	credits_btn.text = "Credits"
+	credits_btn.flat = true
+	credits_btn.custom_minimum_size.y = 36
+	credits_btn.add_theme_font_size_override("font_size", 13)
+	credits_btn.add_theme_color_override(
+		"font_color", Color("#808080"))
+	credits_btn.add_theme_color_override(
+		"font_hover_color", Color("#B0B0B0"))
+	credits_btn.pressed.connect(_show_credits)
+	_social_bar.add_child(credits_btn)
+
+func _open_url(url: String) -> void:
+	if not url.is_empty():
+		OS.shell_open(url)
+
+func _show_credits() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = "Credits"
+	dialog.dialog_text = (
+		"Five Parsecs From Home Campaign Manager\n\n"
+		+ "Based on Five Parsecs From Home by Ivan Sorensen\n"
+		+ "Published by Modiphius Entertainment\n\n"
+		+ "App Development: ReptarusOnIce\n\n"
+		+ "Five Parsecs From Home is a trademark of\n"
+		+ "Modiphius Entertainment Ltd.\n"
+		+ "Used with permission."
+	)
+	add_child(dialog)
+	_active_dialogs.append(dialog)
+	dialog.popup_centered()
+
 func _on_viewport_resized() -> void:
 	var vp := get_viewport()
 	if not vp:
@@ -403,6 +587,11 @@ func _on_viewport_resized() -> void:
 	var is_narrow := vp_size.x < 768
 	var menu_buttons := $MenuButtons
 	var title := $Title
+
+	# Social footer: hide on very narrow, show on wide
+	var social_footer := get_node_or_null("SocialFooter")
+	if social_footer:
+		social_footer.visible = not is_narrow
 
 	if is_narrow:
 		# Portrait/narrow: center buttons, scale down title
@@ -414,7 +603,8 @@ func _on_viewport_resized() -> void:
 		menu_buttons.offset_right = 160
 		menu_buttons.offset_top = -200
 		menu_buttons.offset_bottom = 200
-		title.add_theme_font_size_override("font_size", _scaled_font(36))
+		title.add_theme_font_size_override(
+			"font_size", _scaled_font(36))
 		title.offset_left = -180
 		title.offset_right = 180
 	else:
@@ -427,7 +617,8 @@ func _on_viewport_resized() -> void:
 		menu_buttons.offset_right = -50
 		menu_buttons.offset_top = -250
 		menu_buttons.offset_bottom = 250
-		title.add_theme_font_size_override("font_size", _scaled_font(75))
+		title.add_theme_font_size_override(
+			"font_size", _scaled_font(75))
 		title.offset_left = -400
 		title.offset_right = 400
 
@@ -448,6 +639,7 @@ func request_scene_change(scene_name: String) -> void:
 		"bug_hunt_creation": "bug_hunt_creation",
 		"battle_simulator": "battle_simulator",
 		"help": "help",
+		"store": "store",
 	}
 
 	var router_key: String = scene_map.get(scene_name, "")
