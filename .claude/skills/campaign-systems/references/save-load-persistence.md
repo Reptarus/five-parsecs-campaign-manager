@@ -44,6 +44,18 @@ FiveParsecsCampaignCore.red_zone_turns_completed: int = 0
   → Zone flags injected into progress_data["current_mission"] as is_red_zone/is_black_zone
 ```
 
+### Story Track State (Session 36)
+```
+campaign.progress_data["story_track"] → Dictionary
+  Serialized by CampaignPhaseManager.save_story_track_state()
+  Contains: story_clock_ticks, current_event_index, is_story_event_turn,
+    pending_story_event, evidence_pieces, in_evidence_search,
+    evidence_search_turns, delay_turns_remaining, event_7_available,
+    companion_rescued, mercenary_captured, story_outcome, completed_event_ids
+  StoryTrackSystem.serialize() / .deserialize() handles conversion
+  Events loaded from JSON on deserialize (not serialized inline)
+```
+
 ### DLC Dependency Tracking (Phase 34)
 ```
 FiveParsecsCampaignCore.required_dlc_packs: Array[String]

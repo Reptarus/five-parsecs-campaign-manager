@@ -90,8 +90,8 @@ var unified_campaign_state: Dictionary = {
 		"campaign_name": "",
 		"campaign_type": "standard",
 		"victory_conditions": {},  # Integrated here
-		"story_track": "",
-		"tutorial_mode": "",
+		"story_track_enabled": false,
+		"introductory_campaign": false,
 		"is_complete": false
 	},
 	# SPRINT 5.3 FIX: World section for WorldInfoPanel integration
@@ -645,10 +645,11 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.campaign_type = campaign_config_data.campaign_type
 	if campaign_config_data.has("victory_conditions"):
 		unified_campaign_state.campaign_config.victory_conditions = campaign_config_data.victory_conditions
-	if campaign_config_data.has("story_track"):
-		unified_campaign_state.campaign_config.story_track = campaign_config_data.story_track
-	if campaign_config_data.has("tutorial_mode"):
-		unified_campaign_state.campaign_config.tutorial_mode = campaign_config_data.tutorial_mode
+	# Narrative options (bool toggles)
+	if campaign_config_data.has("story_track_enabled"):
+		unified_campaign_state.campaign_config.story_track_enabled = campaign_config_data.story_track_enabled
+	if campaign_config_data.has("introductory_campaign"):
+		unified_campaign_state.campaign_config.introductory_campaign = campaign_config_data.introductory_campaign
 	if campaign_config_data.has("is_complete"):
 		unified_campaign_state.campaign_config.is_complete = campaign_config_data.is_complete
 
@@ -660,10 +661,7 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.difficulty_level = campaign_config_data.difficulty_level
 	if campaign_config_data.has("victory_condition"):  # Singular form alias
 		unified_campaign_state.campaign_config.victory_condition = campaign_config_data.victory_condition
-	if campaign_config_data.has("story_track_enabled"):  # Alternative key name
-		unified_campaign_state.campaign_config.story_track_enabled = campaign_config_data.story_track_enabled
-	if campaign_config_data.has("introductory_campaign"):  # Compendium DLC flag
-		unified_campaign_state.campaign_config.introductory_campaign = campaign_config_data.introductory_campaign
+	# story_track_enabled and introductory_campaign already handled above
 
 	# CORE FIX: Sync to StateManager for validation
 	if state_manager:

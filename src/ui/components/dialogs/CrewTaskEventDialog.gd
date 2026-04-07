@@ -61,6 +61,9 @@ var _outcome_container: VBoxContainer = null
 var _continue_btn: Button = null
 var _roll_btn: Button = null
 var _action_taken: bool = false
+var _content_panel: PanelContainer = null  # For draw/discard animation
+var _content_margin: MarginContainer = null  # For draw/discard animation
+var _is_dismissing: bool = false  # Prevent double-dismiss
 
 # ── Grenade combo state ───────────────────────────────────────────────
 var _frakk_count: int = 3
@@ -94,8 +97,10 @@ func show_event(event_data: Dictionary) -> void:
 	_event_data = event_data
 	_outcome = {}
 	_action_taken = false
+	_is_dismissing = false
 	_build_ui()
 	popup_centered()
+	_play_draw_animation()
 
 # ── UI Construction ───────────────────────────────────────────────────
 
@@ -103,29 +108,29 @@ func _build_ui() -> void:
 	var event_type: int = _event_data.get("type", EventType.INFO_ONLY)
 
 	# Background panel
-	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_content_panel = PanelContainer.new()
+	_content_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = COLOR_BASE
 	panel_style.border_color = COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel.add_theme_stylebox_override("panel", panel_style)
-	add_child(panel)
+	_content_panel.add_theme_stylebox_override("panel", panel_style)
+	add_child(_content_panel)
 
 	# Margin
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	add_child(margin)
+	_content_margin = MarginContainer.new()
+	_content_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_content_margin.add_theme_constant_override("margin_left", 16)
+	_content_margin.add_theme_constant_override("margin_right", 16)
+	_content_margin.add_theme_constant_override("margin_top", 12)
+	_content_margin.add_theme_constant_override("margin_bottom", 12)
+	add_child(_content_margin)
 
 	# ScrollContainer for tall dialogs
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_child(scroll)
+	_content_margin.add_child(scroll)
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -992,8 +997,50 @@ func _on_recruit_pressed() -> void:
 func _on_continue_pressed() -> void:
 	if not _action_taken:
 		return # Must take action first
-	event_completed.emit(_outcome)
-	queue_free()
+	if _is_dismissing:
+		return # Prevent double-dismiss during animation
+	_is_dismissing = true
+	_play_discard_animation()
+
+# ── Draw / Discard Animations ────────────────────────────────────────
+# Inspired by Fallout Wasteland Warfare companion app: card slides in from
+# the left (like drawing from a physical deck), drops + fades on dismiss
+# (like tossing to the discard pile).
+
+func _play_draw_animation() -> void:
+	if not _content_margin:
+		return
+	# Slide content in from the left + fade in
+	var original_x: float = _content_margin.position.x
+	_content_margin.position.x = original_x - 300.0
+	_content_margin.modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(
+		_content_margin, "position:x", original_x, 0.25
+	).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(
+		_content_margin, "modulate:a", 1.0, 0.2
+	)
+
+func _play_discard_animation() -> void:
+	if not _content_margin:
+		# Fallback: emit and free immediately
+		event_completed.emit(_outcome)
+		queue_free()
+		return
+	# Drop downward + fade out (discard to pile gesture)
+	var tween := create_tween()
+	tween.tween_property(
+		_content_margin, "position:y",
+		_content_margin.position.y + 80.0, 0.2
+	).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(
+		_content_margin, "modulate:a", 0.0, 0.15
+	)
+	tween.finished.connect(func():
+		event_completed.emit(_outcome)
+		queue_free()
+	)
 
 # ── Helper Methods ────────────────────────────────────────────────────
 
@@ -1011,6 +1058,8 @@ func _show_outcome(text: String, color: Color) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_outcome_container.add_child(label)
+	# Animate outcome reveal (fold in from zero height)
+	TweenFX.fold_in(label, 0.3)
 
 func _add_outcome_line(text: String, color: Color) -> void:
 	if not _outcome_container:
@@ -1022,6 +1071,8 @@ func _add_outcome_line(text: String, color: Color) -> void:
 	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_outcome_container.add_child(label)
+	# Animate outcome line reveal
+	TweenFX.fold_in(label, 0.3)
 
 func _build_badge(text: String, color: Color) -> PanelContainer:
 	var badge_panel := PanelContainer.new()

@@ -112,6 +112,84 @@ func fade_to_scene(scene_path: String, duration: float = DEFAULT_DURATION, fade_
 	_is_transitioning = false
 	transition_completed.emit()
 
+## Transition with an itemized loading screen overlay.
+## Shows loading tasks while the scene changes, then fades in.
+func fade_to_scene_with_loading(
+	scene_path: String,
+	tasks: PackedStringArray = PackedStringArray([
+		"Loading Campaign Data",
+		"Loading Crew Roster",
+		"Loading World State",
+		"Loading Equipment Tables",
+		"Loading Event Tables",
+	]),
+	delay_per_task: float = 0.12
+) -> void:
+	if _is_transitioning:
+		push_warning(
+			"TransitionManager: Cancelling stale transition for: "
+			+ scene_path
+		)
+		cancel_transition()
+		await get_tree().process_frame
+
+	if not ResourceLoader.exists(scene_path):
+		push_error(
+			"TransitionManager: Scene file not found: " + scene_path
+		)
+		return
+
+	_is_transitioning = true
+	transition_started.emit()
+
+	# Fade out quickly
+	await _fade_out(FAST_DURATION, COLOR_FADE_BLACK)
+
+	# Show loading screen beneath the fade overlay
+	# Use load() instead of class_name — autoloads parse before the
+	# import system has resolved all class_name references.
+	var LoadingScreenScript: GDScript = load(
+		"res://src/ui/components/common/LoadingScreen.gd"
+	)
+	var loading: CanvasLayer = LoadingScreenScript.new()
+	get_tree().root.add_child(loading)
+	loading.start_loading(tasks)
+
+	# Reveal loading screen by fading the overlay back in
+	await _fade_in(FAST_DURATION)
+
+	# Run the loading sequence (staggered task completion)
+	await loading.run_sequence(delay_per_task)
+
+	# Brief pause after all tasks complete
+	await get_tree().create_timer(0.2).timeout
+
+	# Fade out again over the loading screen
+	await _fade_out(FAST_DURATION, COLOR_FADE_BLACK)
+	transition_mid_point.emit()
+
+	# Change scene while hidden
+	var error := get_tree().change_scene_to_file(scene_path)
+	if error != OK:
+		push_error(
+			"TransitionManager: Failed to change scene: " + scene_path
+		)
+		loading.dismiss()
+		_is_transitioning = false
+		transition_cancelled.emit()
+		await _fade_in(DEFAULT_DURATION)
+		return
+
+	# Clean up loading screen
+	loading.dismiss()
+	await get_tree().process_frame
+
+	# Fade in to new scene
+	await _fade_in(DEFAULT_DURATION)
+
+	_is_transitioning = false
+	transition_completed.emit()
+
 ## Transition using SceneRouter scene names
 func fade_to_scene_name(scene_name: String, duration: float = DEFAULT_DURATION, fade_color: Color = COLOR_FADE_BLACK) -> void:
 	## Fade to a scene using SceneRouter's scene name registry

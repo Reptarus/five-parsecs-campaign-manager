@@ -165,6 +165,27 @@ UpkeepPhaseComponent (Step 0, travel decision)
 - **Journal**: Battle entries tagged `red_zone`/`black_zone`, enriched with threat/time/mission details, BZ victory/failure milestone entries, license purchase milestone
 - **Broker discount**: License fee -2cr if crew has Broker training (checks `has_broker_training` property + `"Broker Training"` trait)
 
+### Story Track System (Core Rules Appendix V, Session 36)
+```
+StoryTrackSystem (Resource, cached on CampaignPhaseManager.story_track)
+  ├─ StoryMissionLoader → loads 7 event JSONs from data/story_track_missions/
+  ├─ StoryEvent (Resource) → per-event data (turn mods, enemies, deployment, objectives)
+  ├─ Story Clock: Won=−1 tick, Not-won=D6 (1:0, 2-5:1, 6:2)
+  ├─ Evidence Mechanic (Events 5-6): 1D6+evidence >= 7
+  └─ Event 7 Delay: up to 3 turns before "Losing the Story"
+```
+- **Signals**: `story_track_started`, `story_event_triggered(event)`, `story_clock_advanced(ticks)`, `evidence_discovered(total)`, `story_track_completed(won)` — all connected in `CampaignPhaseManager._init_story_track()` to CampaignJournal handlers
+- **Integration points**: CampaignPhaseManager (turn start check), PostBattlePhase (clock advancement + post-battle effects), BattlePhase (story battle config injection), StoryPhasePanel (3-mode UI), CampaignDashboard (intel overview)
+- **State persistence**: `campaign.progress_data["story_track"]` → serialize/deserialize
+- **Journal logging**: Story events → `create_entry(type="story")`, milestones → `auto_create_milestone_entry("story_track")`, per-character → `auto_create_character_event(char_id, "story_event")`
+- **Story points**: +3 on Story Track win, +1 on loss (Core Rules p.160)
+
+### CharacterDetailsScreen QOL (Session 36)
+- **Portrait upload**: "Change Portrait" → FileDialog → resize 256x256 → `user://portraits/{char_id}.png`
+- **CharacterEventTimeline**: Filterable event log component at `src/ui/components/character/CharacterEventTimeline.gd` — merges CampaignJournal timeline + entries, toggle filter buttons (All/Battle/Injury/Adv/Story/Kill)
+- **Status bar**: Colored chips (ACTIVE/SICK BAY/DEAD, battles, kills, XP)
+- **Stat coloring**: Green at max, red at 0 (combat/savvy/luck), orange for toughness≤3
+
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
 
@@ -364,6 +385,31 @@ COLOR_DANGER := Color("#DC2626")   # Red
 - `_create_character_card(name, subtitle, stats)` - Character display
 - `_style_line_edit(line_edit)` - Apply styling to LineEdit
 - `_style_option_button(option_btn)` - Apply styling to OptionButton
+
+### Reusable Widget Library (`src/ui/components/common/`, 14 files)
+
+| Component | Class | API |
+|-----------|-------|-----|
+| `EmptyStateWidget` | VBoxContainer | `setup(title, flavor, action_text, callback)` → `signal action_pressed` |
+| `LoadingScreen` | CanvasLayer L99 | `start_loading(tasks)`, `set_task_active(idx)`, `complete_task(idx)`, `run_sequence()` |
+| `AcknowledgeDialog` | Window | Static: `AcknowledgeDialog.show_message(parent, text)` → `signal acknowledged` |
+| `StepperControl` | HBoxContainer | `setup(initial, min, max, step)` → `signal value_changed(int)` |
+| `InlineRenameWidget` | VBoxContainer | `setup(name, hint)` → `signal renamed(String)` |
+| `PersistentResourceBar` | CanvasLayer L80 | `show_bar()`, `hide_bar()`, `refresh()` |
+| `PreviewButton` | Button | `set_preview_data(dict)` → `signal preview_requested(Variant)` |
+| `ItemPreviewPopup` | Window | Static: `ItemPreviewPopup.show_preview(parent, data)` |
+| `HubFeatureCard` | PanelContainer | `setup(icon, title, desc)` → `signal card_pressed` |
+| `OverflowMenu` | Button | `add_item(id, label, count)`, `set_count(id, count)` → `signal item_selected(String)` |
+| `DialogStyles` | RefCounted | Static: `style_confirm_button(btn)`, `style_danger_button(btn)`, `style_primary_button(btn)` |
+| `RulesPopup` | Window | Static: `RulesPopup.show_rules(parent, title, body, requirements)` |
+
+### CanvasLayer Layering Convention
+```
+Layer 80  — PersistentResourceBar (campaign resources overlay)
+Layer 90  — NotificationManager (toasts, battle events)
+Layer 99  — LoadingScreen (itemized loading)
+Layer 100 — TransitionManager (fade overlay), DLCActivationToast
+```
 
 ---
 

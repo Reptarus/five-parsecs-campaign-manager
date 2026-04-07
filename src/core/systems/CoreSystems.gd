@@ -6,96 +6,6 @@ extends Node
 const Self = preload("res://src/core/systems/CoreSystems.gd")
 
 # Game system dependencies
-# Based on Core Rules tutorial mechanics
-enum TutorialMode {
-	QUICK_START,
-	STORY_TRACK,
-	BATTLE,
-	ADVANCED
-}
-
-class TutorialState:
-	var is_active: bool = false
-	var current_step: String = ""
-	var completed_steps: Array[String] = []
-	var current_mode: TutorialMode = TutorialMode.QUICK_START
-	var progress: float = 0.0
-
-	func _init() -> void:
-		completed_steps = []
-
-class TutorialProgress:
-	var steps_completed: int = 0
-	var total_steps: int = 0
-	var current_phase: String = ""
-	var is_complete: bool = false
-
-	func get_progress() -> float:
-		if total_steps == 0:
-			return 0.0
-		return float(steps_completed) / float(total_steps)
-
-class GameTutorialManager:
-	var current_state: TutorialState
-	var progress: TutorialProgress
-    
-	func _init() -> void:
-		current_state = TutorialState.new()
-		progress = TutorialProgress.new()
-    
-	func load_tutorial_content(tutorial_type: String) -> void:
-		# Implementation for loading tutorial content
-		pass
-
-# Tutorial System Integration
-class TutorialManager:
-	var active_mode: TutorialMode
-	var tutorial_state: TutorialState
-	var tutorial_manager: GameTutorialManager
-	var tutorial_progress: TutorialProgress
-    
-	func _init() -> void:
-		tutorial_state = TutorialState.new()
-		tutorial_manager = GameTutorialManager.new()
-		tutorial_progress = TutorialProgress.new()
-    
-	func get_tutorial_state() -> TutorialState:
-		return tutorial_state
-
-	func is_tutorial_active() -> bool:
-		return tutorial_state and tutorial_state.is_active
-
-	func get_current_tutorial_mode() -> TutorialMode:
-		return active_mode
-
-	func start_tutorial(mode: TutorialMode) -> void:
-		active_mode = mode
-		tutorial_state.is_active = true
-		match mode:
-			TutorialMode.QUICK_START:
-				_start_quick_start_tutorial()
-			TutorialMode.STORY_TRACK:
-				_start_story_track_tutorial()
-			TutorialMode.BATTLE:
-				_start_battle_tutorial()
-			TutorialMode.ADVANCED:
-				_start_advanced_tutorial()
-
-	func _start_quick_start_tutorial() -> void:
-		tutorial_state.current_step = "introduction"
-		tutorial_manager.load_tutorial_content("quick_start")
-
-	func _start_story_track_tutorial() -> void:
-		tutorial_state.current_step = "event_1"
-		tutorial_manager.load_tutorial_content("story_track")
-
-	func _start_battle_tutorial() -> void:
-		tutorial_state.current_step = "movement_basics"
-		tutorial_manager.load_tutorial_content("battle")
-
-	func _start_advanced_tutorial() -> void:
-		tutorial_state.current_step = "campaign_setup"
-		tutorial_manager.load_tutorial_content("advanced")
 
 class WeaponTraitSystem:
 	var available_traits: Dictionary = {
@@ -275,22 +185,15 @@ class MovementSystem:
 		var terrain_effect = terrain_system.get_terrain_effect(terrain_type, "movement")
 		return distance * terrain_effect.get("cost", 1.0)
     
-	func can_dash(unit: Node) -> bool:
-		# Check tutorial state for movement restrictions
-		if parent_core_systems:
-			var tutorial_state = parent_core_systems.tutorial_manager.get_tutorial_state()
-			if tutorial_state and tutorial_state.is_active:
-				return tutorial_state.current_step != "movement_basics"
+	func can_dash(_unit: Node) -> bool:
 		return true
 
 # Core system variables
-var tutorial_manager: TutorialManager
 var weapon_system: WeaponTraitSystem
 var terrain_system: TerrainSubsystem
 var movement_system: MovementSystem
 
 func _ready() -> void:
-	tutorial_manager = TutorialManager.new()
 	weapon_system = WeaponTraitSystem.new()
 	terrain_system = TerrainSubsystem.new()
 	movement_system = MovementSystem.new()

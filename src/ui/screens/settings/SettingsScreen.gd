@@ -255,6 +255,24 @@ func _build_ui() -> void:
 	reset_btn.accessibility_name = "Reset all settings to default values"
 	footer.add_child(reset_btn)
 
+	# Debug button — bottom of settings, like Fallout companion app
+	var debug_btn := Button.new()
+	debug_btn.text = "DEBUG"
+	debug_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	debug_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var dbg_style := StyleBoxFlat.new()
+	dbg_style.bg_color = UIColors.COLOR_TERTIARY
+	dbg_style.border_color = UIColors.COLOR_BORDER
+	dbg_style.set_border_width_all(1)
+	dbg_style.set_corner_radius_all(4)
+	debug_btn.add_theme_stylebox_override("normal", dbg_style)
+	debug_btn.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_MUTED
+	)
+	debug_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	debug_btn.pressed.connect(_on_debug_pressed)
+	root_vbox.add_child(debug_btn)
+
 
 # ============ AUDIO ============
 func _build_audio_section(parent: VBoxContainer) -> void:
@@ -342,16 +360,20 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	var card := _create_section_card("Gameplay", parent)
 
 	_auto_save_check = _add_toggle_row(card, "Auto-Save",
-		_config.get_value("gameplay", "auto_save", true), "Toggle automatic saving")
+		_config.get_value("gameplay", "auto_save", true), "Toggle automatic saving",
+		"Automatically save your campaign at the end of each turn.")
 
 	_show_tooltips_check = _add_toggle_row(card, "Show Tooltips",
-		_config.get_value("gameplay", "show_tooltips", true), "Toggle keyword tooltips")
+		_config.get_value("gameplay", "show_tooltips", true), "Toggle keyword tooltips",
+		"Display keyword explanations when hovering game terms.")
 
 	_show_fps_check = _add_toggle_row(card, "Show FPS Counter",
-		_config.get_value("gameplay", "show_fps", false), "Toggle frames per second display")
+		_config.get_value("gameplay", "show_fps", false), "Toggle frames per second display",
+		"Show a framerate counter in the corner of the screen.")
 
 	_screen_shake_check = _add_toggle_row(card, "Screen Shake",
-		_config.get_value("gameplay", "screen_shake", true), "Toggle screen shake effects")
+		_config.get_value("gameplay", "screen_shake", true), "Toggle screen shake effects",
+		"Enable camera shake during combat and critical events.")
 
 
 # ============ MOBILE-ONLY ============
@@ -359,7 +381,8 @@ func _build_mobile_section(parent: VBoxContainer) -> void:
 	var card := _create_section_card("Touch & Haptics", parent)
 
 	_haptic_check = _add_toggle_row(card, "Haptic Feedback",
-		_config.get_value("mobile", "haptic_feedback", true), "Toggle vibration feedback")
+		_config.get_value("mobile", "haptic_feedback", true), "Toggle vibration feedback",
+		"Vibrate on dice rolls, critical hits, and important events.")
 
 	_touch_sensitivity_slider = _add_slider_row(card, "Touch Sensitivity", 0.5, 2.0, 0.1,
 		_config.get_value("mobile", "touch_sensitivity", 1.0), "Adjust touch input sensitivity")
@@ -447,16 +470,32 @@ func _create_section_card(title_text: String, parent: VBoxContainer) -> VBoxCont
 	return vbox
 
 
-func _add_toggle_row(parent: VBoxContainer, label_text: String, initial: bool, acc_name: String = "") -> CheckButton:
+func _add_toggle_row(parent: VBoxContainer, label_text: String, initial: bool, acc_name: String = "", description: String = "") -> CheckButton:
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", _spacing_sm)
 	parent.add_child(row)
+
+	# Left side: title + optional description (Fallout settings pattern)
+	var text_col := VBoxContainer.new()
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.add_theme_constant_override("separation", 2)
+	row.add_child(text_col)
 
 	var label := Label.new()
 	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("font_size", _font_md)
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	row.add_child(label)
+	text_col.add_child(label)
+
+	if not description.is_empty():
+		var desc := Label.new()
+		desc.text = description
+		desc.add_theme_font_size_override("font_size", _font_sm)
+		desc.add_theme_color_override(
+			"font_color", COLOR_TEXT_SECONDARY
+		)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text_col.add_child(desc)
 
 	var toggle := CheckButton.new()
 	toggle.button_pressed = initial
@@ -605,6 +644,17 @@ func _on_ui_scale_changed(value: float) -> void:
 	if _ui_scale_label:
 		_ui_scale_label.text = "%d%%" % int(value * 100)
 
+
+func _on_debug_pressed() -> void:
+	var DebugScreenScript: GDScript = load(
+		"res://src/ui/screens/settings/DebugScreen.gd"
+	)
+	var debug_screen: Control = DebugScreenScript.new()
+	debug_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	debug_screen.back_requested.connect(func():
+		debug_screen.queue_free()
+	)
+	add_child(debug_screen)
 
 func _on_back_pressed() -> void:
 	if overlay_mode:

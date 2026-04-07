@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Documentation Index
 
-**Last Updated**: March 30, 2026
+**Last Updated**: April 7, 2026
 **Engine**: Godot 4.6-stable (pure GDScript)
 **Test Framework**: gdUnit4 v6.0.3
 
@@ -75,6 +75,7 @@
 
 - **[Character Card Spec](ui/CHARACTER_CARD_COMPONENT_SPEC.md)** - 3 visual variants
 - **[Galactic War UI Mockup](ui/GALACTIC_WAR_UI_MOCKUP.md)** - End-game UI
+- **[UX Design Analysis](falloutappscreenshots/five-parsecs-ux-design-analysis.md)** - Fallout companion app analysis + adoption checklist (65 screenshots)
 
 ## Development (`development/`)
 

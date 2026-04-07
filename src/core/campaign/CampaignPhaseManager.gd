@@ -11,6 +11,8 @@ const VictoryChecker = preload(
 	"res://src/core/victory/VictoryChecker.gd")
 const StoryTrackSystemClass = preload(
 	"res://src/core/story/StoryTrackSystem.gd")
+const IntroCampaignClass = preload(
+	"res://src/core/campaign/IntroductoryCampaignManager.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -50,6 +52,11 @@ var story_track: FPCM_StoryTrackSystem = null
 ## Active Story Event for this turn (null if normal turn)
 var _current_story_event: StoryEvent = null
 
+# Introductory Campaign system (Compendium pp.104-109)
+var intro_campaign: FPCM_IntroductoryCampaignManager = null
+## Active intro mission for this turn (empty dict if normal turn)
+var _current_intro_mission: Dictionary = {}
+
 func _ready() -> void:
 	reset_phase_tracking()
 
@@ -65,7 +72,8 @@ func setup(state: FiveParsecsGameState) -> void:
 		add_child(post_battle_phase_handler)
 		post_battle_phase_handler.phase_completed.connect(_on_post_battle_phase_completed)
 
-	# Initialize Story Track if enabled
+	# Initialize narrative overlay systems
+	_init_intro_campaign()
 	_init_story_track()
 
 	# Connect to campaign signals if available
@@ -92,9 +100,14 @@ func start_new_turn() -> void:
 	# === TURN ROLLOVER: Core Rules mechanics that trigger at turn boundary ===
 	_process_turn_rollover()
 
-	# Check if Story Track triggers a Story Event this turn
+	# --- Intro Campaign check (runs first, takes priority) ---
+	_current_intro_mission = {}
+	if intro_campaign and intro_campaign.is_active:
+		_current_intro_mission = intro_campaign.begin_campaign_turn()
+
+	# --- Story Track check (only if intro is NOT active) ---
 	_current_story_event = null
-	if story_track:
+	if story_track and not (intro_campaign and intro_campaign.is_active):
 		_current_story_event = story_track.begin_campaign_turn()
 
 	campaign_turn_started.emit(turn_number)
@@ -862,7 +875,10 @@ func _init_story_track() -> void:
 	if not saved.is_empty():
 		story_track.deserialize(saved)
 	elif not story_track.is_story_track_active:
-		story_track.start_story_track()
+		# Don't start story track yet if intro campaign is still running.
+		# It will be started by _on_intro_completed() handoff.
+		if not (intro_campaign and intro_campaign.is_active):
+			story_track.start_story_track()
 
 	# Connect Story Track signals → journal/history logging
 	story_track.story_track_started.connect(
@@ -900,6 +916,153 @@ func save_story_track_state() -> void:
 	if not campaign or not "progress_data" in campaign:
 		return
 	campaign.progress_data["story_track"] = story_track.serialize()
+
+
+# ── Introductory Campaign Integration (Compendium pp.104-109) ────
+
+## Initialize Introductory Campaign from campaign state
+func _init_intro_campaign() -> void:
+	if not game_state:
+		return
+	var campaign: Resource = game_state.current_campaign
+	if not campaign:
+		return
+
+	# Check if intro campaign is enabled in progress_data
+	var progress: Dictionary = {}
+	if "progress_data" in campaign:
+		progress = campaign.progress_data
+	if not progress.get("introductory_campaign", false):
+		intro_campaign = null
+		return
+
+	# DLC gate check
+	var dlc: Node = get_node_or_null("/root/DLCManager")
+	if dlc and dlc.has_method("is_feature_enabled"):
+		# ContentFlag.INTRODUCTORY_CAMPAIGN = 71 in DLCManager enum
+		if not dlc.is_feature_enabled(71):
+			intro_campaign = null
+			return
+
+	intro_campaign = IntroCampaignClass.new()
+
+	# Restore from save or start fresh
+	var saved: Dictionary = progress.get("intro_campaign_state", {})
+	if not saved.is_empty():
+		intro_campaign.deserialize(saved)
+	elif not intro_campaign.completed:
+		intro_campaign.start_introductory_campaign()
+
+	# Connect signals
+	intro_campaign.intro_turn_started.connect(
+		_on_intro_turn_started)
+	intro_campaign.intro_completed.connect(
+		_on_intro_completed)
+	intro_campaign.intro_phase_unlocked.connect(
+		_on_intro_phase_unlocked)
+
+
+## Get intro turn restrictions for phase panels to query
+func get_intro_turn_restrictions() -> Dictionary:
+	if intro_campaign and intro_campaign.is_active:
+		return intro_campaign.get_turn_restrictions()
+	return {}
+
+
+## Get intro campaign status for dashboard display
+func get_intro_status() -> Dictionary:
+	if intro_campaign:
+		return intro_campaign.get_status()
+	return {}
+
+
+## Check if intro campaign is currently active
+func is_intro_active() -> bool:
+	return intro_campaign != null and intro_campaign.is_active
+
+
+## Advance intro turn after post-battle (called by PostBattlePhase)
+func advance_intro_turn() -> bool:
+	if not intro_campaign or not intro_campaign.is_active:
+		return false
+	return intro_campaign.advance_turn()
+
+
+## Persist intro campaign state to campaign progress_data
+func save_intro_campaign_state() -> void:
+	if not intro_campaign or not game_state:
+		return
+	var campaign: Resource = game_state.current_campaign
+	if not campaign or not "progress_data" in campaign:
+		return
+	campaign.progress_data["intro_campaign_state"] = \
+		intro_campaign.serialize()
+
+
+# ── Intro Campaign Signal Handlers ──────────────────────────────
+
+func _on_intro_turn_started(turn: int, title: String) -> void:
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"turn_number": turn_number,
+		"type": "milestone",
+		"title": "Introductory Campaign: %s" % title,
+		"description": "Turn %d of 5 — learning core mechanics." \
+			% turn,
+		"mood": "informative",
+		"tags": ["introductory_campaign"],
+	})
+
+
+func _on_intro_completed() -> void:
+	# Award 2 Story Points (Compendium p.109)
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("add_story_points"):
+		gsm.add_story_points(
+			FPCM_IntroductoryCampaignManager.COMPLETION_STORY_POINTS)
+
+	# Start Story Track if enabled (Compendium p.109:
+	# "set the clock to 5 Ticks")
+	if story_track and not story_track.is_story_track_active:
+		story_track.start_story_track()
+
+	# Journal entry
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		var desc: String = \
+			"Introductory Campaign complete! +%d Story Points." \
+			% FPCM_IntroductoryCampaignManager.COMPLETION_STORY_POINTS
+		if story_track and story_track.is_story_track_active:
+			desc += " The Story Track begins — clock set to 5 ticks."
+		journal.create_entry({
+			"turn_number": turn_number,
+			"type": "milestone",
+			"title": "Tutorial Complete",
+			"description": desc,
+			"mood": "triumphant",
+			"tags": ["introductory_campaign", "completion"],
+		})
+
+	# Persist both states
+	save_intro_campaign_state()
+	save_story_track_state()
+
+
+func _on_intro_phase_unlocked(phase_name: String) -> void:
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"turn_number": turn_number,
+		"type": "info",
+		"title": "New Mechanic Unlocked: %s" % phase_name,
+		"description": "The %s phase is now available." % phase_name,
+		"mood": "informative",
+		"tags": ["introductory_campaign", "unlock"],
+	})
+
 
 # ── Story Track Signal Handlers ──────────────────────────────────
 

@@ -27,6 +27,19 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 38: Intro Campaign + Story Track Reconciliation (Apr 7, 2026)
+
+Two narrative overlay systems reconciled into sequential pipeline:
+
+- **IntroductoryCampaignManager.gd** (NEW): `src/core/campaign/IntroductoryCampaignManager.gd` — extends Resource, mirrors StoryTrackSystem pattern. Turn restrictions from Compendium pp.105-109. Signals: `intro_turn_started`, `intro_completed`, `intro_phase_unlocked`.
+- **CampaignPhaseManager** integration: `_init_intro_campaign()` mirrors `_init_story_track()`. `start_new_turn()` checks intro FIRST — story track only fires if intro NOT active. `_init_story_track()` delays `start_story_track()` when intro active.
+- **Sequencing rule**: Intro always runs before Story Track. Story clock FROZEN during intro. On intro completion: +2 SP + story track activates (Compendium p.109).
+- **PostBattlePhase**: `_advance_story_track()` returns early if intro active; calls `advance_intro_turn()` instead.
+- **Save/load**: `progress_data["intro_campaign_state"]` for intro, `progress_data["story_track"]` for story (unchanged).
+- **Config keys**: `story_track_enabled` (bool) + `introductory_campaign` (bool). Old string keys (`story_track`, `tutorial_mode`) removed.
+
+---
+
 ## Session 35: Red & Black Zone Jobs Full Integration (Apr 7, 2026)
 
 Zone selection UI added to World Phase Step 0 (UpkeepPhaseComponent). Key data flow:
@@ -189,3 +202,20 @@ Full 2-turn demo playthrough completed. Campaign creation through Turn End works
 - **BUG-029 (FIXED)**: Victory Condition cards — mouse_filter blocked gui_input
 - **BUG-030 (FIXED)**: CharacterCreator default OptionButton (index 0) doesn't fire `item_selected` — added explicit handler calls
 - **BUG-032 (FIXED)**: `get_campaign_config_data()` crash on partial dict — `.get()` defaults + `.merge()`
+
+### Session 36: Story Track Integration (Apr 7, 2026)
+
+- StoryTrackSystem cached on CampaignPhaseManager (not re-instantiated per call)
+- 5 signals wired: story_track_started/event_triggered/clock_advanced/evidence_discovered/completed
+- Story state persisted in `campaign.progress_data["story_track"]`
+- Clock: Won=−1, Not-won=D6(1:0,2-5:1,6:2). Events loaded from 7 JSONs
+- CampaignJournal best practices: ~30 dot-access → .get(), ~15 untyped → typed
+
+### Session 37: UX Enhancement Sprint (Apr 7, 2026)
+
+Dashboard-relevant changes from UX enhancement sprint (Fallout companion app patterns):
+- `CampaignDashboard.gd` — 6 empty state Labels replaced with `EmptyStateWidget` (themed icon + flavor text + optional action)
+- `TransitionManager.gd` — New `fade_to_scene_with_loading()` method with itemized `LoadingScreen` (CanvasLayer L99)
+- `PersistentResourceBar` — CanvasLayer L80 overlay showing Credits/StoryPts/Patrons/Rivals during phase screens. Call `show_bar()`/`hide_bar()` from phase panels
+- `CrewTaskEventDialog.gd` — Card draw/discard animations (slide from left, drop+fade dismiss)
+- 14 new reusable widgets in `src/ui/components/common/` — see CLAUDE.md widget library table

@@ -72,7 +72,22 @@ func _advance_story_track() -> void:
 	## StoryTrackSystem (Core Rules Appendix V p.153).
 	var phase_mgr: Node = get_node_or_null(
 		"/root/CampaignPhaseManager")
-	if not phase_mgr or not phase_mgr.get("story_track"):
+	if not phase_mgr:
+		return
+
+	# --- Introductory Campaign: advance intro turn first ---
+	if phase_mgr.has_method("is_intro_active") \
+		and phase_mgr.is_intro_active():
+		# Advance the intro turn counter
+		if phase_mgr.has_method("advance_intro_turn"):
+			phase_mgr.advance_intro_turn()
+		if phase_mgr.has_method("save_intro_campaign_state"):
+			phase_mgr.save_intro_campaign_state()
+		# Story clock is FROZEN during intro — do not advance
+		return
+
+	# --- Story Track processing (only when intro is NOT active) ---
+	if not phase_mgr.get("story_track"):
 		return
 	var st: FPCM_StoryTrackSystem = phase_mgr.story_track
 	if not st.is_story_track_active:

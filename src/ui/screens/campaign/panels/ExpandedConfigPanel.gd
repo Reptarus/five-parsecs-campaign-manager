@@ -25,16 +25,15 @@ signal campaign_config_validation_failed(errors: Array[String])
 signal campaign_config_data_changed(data: Dictionary)
 signal victory_conditions_set(conditions: Dictionary)
 signal victory_conditions_changed(conditions: Dictionary)  # NEW for real-time updates
-signal story_track_selected(track: String)
-signal tutorial_mode_selected(tutorial: String)
+signal narrative_options_changed(data: Dictionary)
 
 var local_campaign_config: Dictionary = {
 	"campaign_name": "",
 	"campaign_type": "standard",
 	"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
 	"victory_conditions": {},
-	"story_track": "",
-	"tutorial_mode": "",
+	"story_track_enabled": false,
+	"introductory_campaign": false,
 	"is_complete": false
 }
 
@@ -43,8 +42,9 @@ var campaign_name_input: LineEdit
 var campaign_type_option: OptionButton
 var difficulty_option: OptionButton  # Difficulty selector
 var victory_conditions_list: VBoxContainer
-var story_track_option: OptionButton
-var tutorial_mode_option: OptionButton
+var story_track_checkbox: CheckBox
+var intro_campaign_checkbox: CheckBox
+var narrative_combo_label: Label
 var summary_label: Label
 
 # Description labels for displaying option details
@@ -52,8 +52,7 @@ var campaign_type_description: Label
 var difficulty_description: Label  # Difficulty level description
 var victory_condition_description: RichTextLabel  # Rich text for full narrative + strategy
 var story_track_description: Label
-var tutorial_mode_description: Label
-var introductory_campaign_checkbox: CheckBox  # DLC: Introductory Campaign
+var intro_campaign_description: Label
 
 # Campaign configuration options — loaded from campaign_config.json
 var campaign_types: Dictionary = {}
@@ -90,8 +89,8 @@ var difficulty_levels: Dictionary = {
 }
 
 var selected_victory_conditions: Dictionary = {}
-var selected_story_track: String = ""
-var selected_tutorial_mode: String = ""
+var _story_track_enabled: bool = false
+var _intro_campaign_enabled: bool = false
 var selected_difficulty_toggles: Array[String] = []
 var difficulty_toggle_checkboxes: Dictionary = {}  # id -> CheckBox
 
@@ -218,8 +217,7 @@ func _initialize_components() -> void:
 	_build_difficulty_section(flow)
 	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
 	_build_victory_conditions_section(flow)
-	_build_story_track_section(flow)
-	_build_tutorial_section(flow)
+	_build_narrative_options_section(flow)
 	_build_expansion_features_section(flow)
 
 	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
@@ -395,93 +393,100 @@ func _build_victory_conditions_section(parent: Control) -> void:
 	card.custom_minimum_size.x = 1000
 	parent.add_child(card)
 
-func _build_story_track_section(parent: Control) -> void:
-	## Build story track selector with card design
-	story_track_option = OptionButton.new()
-	_style_option_button(story_track_option)
-	
-	# Create description label
+func _build_narrative_options_section(parent: Control) -> void:
+	## Unified narrative options: Story Track + Introductory Campaign
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_MD)
+
+	# --- Story Track toggle (Core Rules Appendix V) ---
+	story_track_checkbox = CheckBox.new()
+	story_track_checkbox.text = "Enable Story Track"
+	story_track_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	story_track_checkbox.add_theme_font_size_override(
+		"font_size", FONT_SIZE_MD)
+	story_track_checkbox.toggled.connect(_on_story_track_toggled)
+	content.add_child(story_track_checkbox)
+
 	story_track_description = Label.new()
-	story_track_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	story_track_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	story_track_description.text = (
+		"7-event narrative arc overlaying your campaign "
+		+ "(Core Rules Appendix V). Recommended for experienced players.")
+	story_track_description.add_theme_font_size_override(
+		"font_size", FONT_SIZE_SM)
+	story_track_description.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
 	story_track_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	
-	var content = VBoxContainer.new()
-	content.add_theme_constant_override("separation", SPACING_SM)
-	content.add_child(_create_labeled_input("Story Track (Optional)", story_track_option))
 	content.add_child(story_track_description)
-	
-	var card = _create_section_card(
+
+	# --- Introductory Campaign toggle (Compendium pp.104-109) ---
+	# DLC-gated: only show if Compendium data exists
+	var has_intro: bool = CompendiumMissionsExpandedRef \
+		.get_all_introductory_missions().size() > 0
+	if has_intro:
+		var sep := HSeparator.new()
+		sep.modulate = COLOR_BORDER
+		content.add_child(sep)
+
+		intro_campaign_checkbox = CheckBox.new()
+		intro_campaign_checkbox.text = "Start Introductory Campaign"
+		intro_campaign_checkbox.custom_minimum_size = Vector2(
+			0, TOUCH_TARGET_MIN)
+		intro_campaign_checkbox.add_theme_font_size_override(
+			"font_size", FONT_SIZE_MD)
+		intro_campaign_checkbox.toggled.connect(
+			_on_intro_campaign_toggled)
+		content.add_child(intro_campaign_checkbox)
+
+		intro_campaign_description = Label.new()
+		intro_campaign_description.text = (
+			"6 guided encounters teaching core mechanics step by step "
+			+ "(Compendium pp.104-109). Recommended for first-time players.")
+		intro_campaign_description.add_theme_font_size_override(
+			"font_size", FONT_SIZE_SM)
+		intro_campaign_description.add_theme_color_override(
+			"font_color", COLOR_TEXT_SECONDARY)
+		intro_campaign_description.autowrap_mode = \
+			TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(intro_campaign_description)
+
+	# --- Combo explanation (visible when BOTH enabled) ---
+	narrative_combo_label = Label.new()
+	narrative_combo_label.text = (
+		"Extended Experience: The Introductory Campaign teaches "
+		+ "you the rules over 5 turns, then the Story Track activates "
+		+ "automatically — providing a guided narrative journey from "
+		+ "beginner to story veteran.")
+	narrative_combo_label.add_theme_font_size_override(
+		"font_size", FONT_SIZE_SM)
+	narrative_combo_label.add_theme_color_override(
+		"font_color", COLOR_ACCENT_HOVER)
+	narrative_combo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	narrative_combo_label.visible = false
+	content.add_child(narrative_combo_label)
+
+	var card := _create_section_card(
 		"NARRATIVE OPTIONS",
 		content,
 		""
 	)
 	parent.add_child(card)
 
-func _build_tutorial_section(parent: Control) -> void:
-	## Build tutorial mode selector with card design
-	tutorial_mode_option = OptionButton.new()
-	_style_option_button(tutorial_mode_option)
-	
-	# Create description label
-	tutorial_mode_description = Label.new()
-	tutorial_mode_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	tutorial_mode_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	tutorial_mode_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	
-	var content = VBoxContainer.new()
-	content.add_theme_constant_override("separation", SPACING_SM)
-	content.add_child(_create_labeled_input("Tutorial Mode (Optional)", tutorial_mode_option))
-	content.add_child(tutorial_mode_description)
-	
-	var card = _create_section_card(
-		"LEARNING SUPPORT",
-		content,
-		""
-	)
-	parent.add_child(card)
-
-func _build_compendium_options_section(parent: Control) -> void:
-	## DLC: Introductory Campaign option (Compendium)
-	var dlc_mgr = get_node_or_null("/root/DLCManager")
-	if not dlc_mgr:
-		return
-
-	var has_intro: bool = CompendiumMissionsExpandedRef.get_all_introductory_missions().size() > 0
-	if not has_intro:
-		return
-
-	var content = VBoxContainer.new()
-	content.add_theme_constant_override("separation", SPACING_SM)
-
-	introductory_campaign_checkbox = CheckBox.new()
-	introductory_campaign_checkbox.text = "Start Introductory Campaign"
-	introductory_campaign_checkbox.custom_minimum_size = Vector2(0, 44)
-	introductory_campaign_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	introductory_campaign_checkbox.toggled.connect(
-		_on_introductory_campaign_toggled)
-	content.add_child(introductory_campaign_checkbox)
-
-	var desc_label := Label.new()
-	desc_label.text = (
-		"5 guided missions with escalating complexity. "
-		+ "Teaches core mechanics step by step.")
-	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	desc_label.add_theme_color_override(
-		"font_color", COLOR_TEXT_SECONDARY)
-	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content.add_child(desc_label)
-
-	var card = _create_section_card(
-		"COMPENDIUM OPTIONS",
-		content,
-		""
-	)
-	parent.add_child(card)
-
-func _on_introductory_campaign_toggled(enabled: bool) -> void:
-	local_campaign_config["introductory_campaign"] = enabled
+func _on_story_track_toggled(enabled: bool) -> void:
+	_story_track_enabled = enabled
+	local_campaign_config["story_track_enabled"] = enabled
+	_update_narrative_combo_label()
 	campaign_config_data_changed.emit(local_campaign_config)
+
+func _on_intro_campaign_toggled(enabled: bool) -> void:
+	_intro_campaign_enabled = enabled
+	local_campaign_config["introductory_campaign"] = enabled
+	_update_narrative_combo_label()
+	campaign_config_data_changed.emit(local_campaign_config)
+
+func _update_narrative_combo_label() -> void:
+	if narrative_combo_label:
+		narrative_combo_label.visible = (
+			_story_track_enabled and _intro_campaign_enabled)
 
 
 func _build_expansion_features_section(parent: Control) -> void:
@@ -572,38 +577,12 @@ func _update_victory_condition_description() -> void:
 	victory_condition_description.text = summary_text
 
 func _update_story_track_description() -> void:
-	## Update story track description based on current selection
-	if not story_track_description or not story_track_option:
-		return
-
-	var index = story_track_option.selected
-	if index < 0:
-		return
-
-	var selected_text = story_track_option.get_item_text(index)
-	for key in story_tracks.keys():
-		if story_tracks[key].name == selected_text:
-			story_track_description.text = "→ " + story_tracks[key].description
-			return
-
-	story_track_description.text = ""
+	## No-op: description is static in the new checkbox-based UI
+	pass
 
 func _update_tutorial_mode_description() -> void:
-	## Update tutorial mode description based on current selection
-	if not tutorial_mode_description or not tutorial_mode_option:
-		return
-
-	var index = tutorial_mode_option.selected
-	if index < 0:
-		return
-
-	var selected_text = tutorial_mode_option.get_item_text(index)
-	for key in tutorial_modes.keys():
-		if tutorial_modes[key].name == selected_text:
-			tutorial_mode_description.text = "→ " + tutorial_modes[key].description
-			return
-
-	tutorial_mode_description.text = ""
+	## No-op: description is static in the new checkbox-based UI
+	pass
 
 func _connect_signals() -> void:
 	## Establish signal connections with error handling
@@ -613,18 +592,14 @@ func _connect_signals() -> void:
 		campaign_type_option.item_selected.connect(_on_campaign_type_changed)
 	if difficulty_option:
 		difficulty_option.item_selected.connect(_on_difficulty_changed)
-	if story_track_option:
-		story_track_option.item_selected.connect(_on_story_track_changed)
-	if tutorial_mode_option:
-		tutorial_mode_option.item_selected.connect(_on_tutorial_mode_changed)
+	# Story track + intro campaign checkboxes connect in _build_narrative_options_section
 
 func _setup_campaign_options() -> void:
 	## Setup campaign configuration options
 	_setup_campaign_type_options()
 	_setup_difficulty_options()
 	_setup_victory_conditions()
-	_setup_story_track_options()
-	_setup_tutorial_mode_options()
+	# Story track + intro campaign are checkboxes, no setup needed
 
 func _setup_campaign_type_options() -> void:
 	## Setup campaign type options
@@ -683,30 +658,12 @@ func _setup_victory_conditions() -> void:
 	victory_conditions_list.add_child(custom_victory_button)
 
 func _setup_story_track_options() -> void:
-	## Setup story track options
-	if not story_track_option:
-		return
-	
-	story_track_option.clear()
-	for key in story_tracks.keys():
-		var story_track = story_tracks[key]
-		story_track_option.add_item(story_track.name)
-	
-	# Set default selection
-	story_track_option.select(0)
+	## No-op: story track is now a checkbox, set up in _build_narrative_options_section
+	pass
 
 func _setup_tutorial_mode_options() -> void:
-	## Setup tutorial mode options
-	if not tutorial_mode_option:
-		return
-	
-	tutorial_mode_option.clear()
-	for key in tutorial_modes.keys():
-		var tutorial_mode = tutorial_modes[key]
-		tutorial_mode_option.add_item(tutorial_mode.name)
-	
-	# Set default selection
-	tutorial_mode_option.select(0)
+	## No-op: tutorial mode is now a checkbox, set up in _build_narrative_options_section
+	pass
 
 # Signal handlers
 func _on_campaign_name_changed(new_text: String) -> void:
@@ -933,35 +890,9 @@ func _set_card_selected_state(card: PanelContainer, selected: bool) -> void:
 	card.add_theme_stylebox_override("panel", style)
 
 
-func _on_story_track_changed(index: int) -> void:
-	## Handle story track change
-	if not story_track_option:
-		return
-
-	var selected_text = story_track_option.get_item_text(index)
-	for key in story_tracks.keys():
-		if story_tracks[key].name == selected_text:
-			selected_story_track = key
-			break
-
-	_update_story_track_description()
-	_update_display()
-	_validate_and_complete()
-
-func _on_tutorial_mode_changed(index: int) -> void:
-	## Handle tutorial mode change
-	if not tutorial_mode_option:
-		return
-
-	var selected_text = tutorial_mode_option.get_item_text(index)
-	for key in tutorial_modes.keys():
-		if tutorial_modes[key].name == selected_text:
-			selected_tutorial_mode = key
-			break
-
-	_update_tutorial_mode_description()
-	_update_display()
-	_validate_and_complete()
+## Story track and intro campaign handlers moved to
+## _on_story_track_toggled() and _on_intro_campaign_toggled()
+## in _build_narrative_options_section region above.
 
 func _on_custom_victory_pressed() -> void:
 	## Open custom victory condition dialog
@@ -1010,8 +941,8 @@ func _reset_to_defaults() -> void:
 		"is_complete": false
 	}
 	selected_victory_conditions = {}
-	selected_story_track = ""
-	selected_tutorial_mode = ""
+	_story_track_enabled = false
+	_intro_campaign_enabled = false
 	selected_difficulty_toggles.clear()
 
 	# Reset toggle checkboxes
@@ -1038,11 +969,10 @@ func _reset_ui_components() -> void:
 	if difficulty_option:
 		difficulty_option.select(1)  # Default to Standard (index 1)
 
-	if story_track_option:
-		story_track_option.select(0)
-
-	if tutorial_mode_option:
-		tutorial_mode_option.select(0)
+	if story_track_checkbox:
+		story_track_checkbox.set_pressed_no_signal(false)
+	if intro_campaign_checkbox:
+		intro_campaign_checkbox.set_pressed_no_signal(false)
 
 	# Reset victory condition checkboxes
 	if victory_conditions_list:
@@ -1063,8 +993,8 @@ func _update_summary() -> void:
 	summary_text += "• Name: %s\n" % (local_campaign_config.campaign_name if local_campaign_config.campaign_name else "Unnamed")
 	summary_text += "• Type: %s\n" % campaign_types.get(local_campaign_config.campaign_type, {}).get("name", "Standard")
 	summary_text += "• Victory Conditions: %d selected\n" % selected_victory_conditions.size()
-	summary_text += "• Story Track: %s\n" % (story_tracks.get(selected_story_track, {}).get("name", "None") if selected_story_track else "None")
-	summary_text += "• Tutorial Mode: %s" % (tutorial_modes.get(selected_tutorial_mode, {}).get("name", "None") if selected_tutorial_mode else "None")
+	summary_text += "• Story Track: %s\n" % ("Enabled" if _story_track_enabled else "Disabled")
+	summary_text += "• Introductory Campaign: %s" % ("Enabled" if _intro_campaign_enabled else "Disabled")
 	
 	summary_label.text = summary_text
 
@@ -1079,8 +1009,8 @@ func _validate_and_complete() -> void:
 	
 	local_campaign_config.is_complete = true
 	local_campaign_config.victory_conditions = selected_victory_conditions.duplicate()
-	local_campaign_config.story_track = selected_story_track
-	local_campaign_config.tutorial_mode = selected_tutorial_mode
+	local_campaign_config.story_track_enabled = _story_track_enabled
+	local_campaign_config.introductory_campaign = _intro_campaign_enabled
 	
 	# Emit completion signal (connected in CampaignCreationUI) and notify coordinator
 	campaign_config_data_complete.emit(local_campaign_config)
@@ -1105,11 +1035,11 @@ func _validate_campaign_config() -> Array[String]:
 	# when the user types a name before selecting victory conditions.
 	
 	# Validate story track (optional)
-	if not selected_story_track.is_empty() and not story_tracks.has(selected_story_track):
+	if false: # Story track is now a bool, no validation needed
 		errors.append("Invalid story track selection")
 	
 	# Validate tutorial mode (optional)
-	if not selected_tutorial_mode.is_empty() and not tutorial_modes.has(selected_tutorial_mode):
+	if false: # Intro campaign is now a bool, no validation needed
 		errors.append("Invalid tutorial mode selection")
 	
 	return errors
@@ -1150,8 +1080,8 @@ func set_campaign_config(config: Dictionary) -> void:
 	## Set campaign configuration from external source — merge to preserve required keys
 	local_campaign_config.merge(config, true)
 	selected_victory_conditions = config.get("victory_conditions", {}).duplicate()
-	selected_story_track = config.get("story_track", "")
-	selected_tutorial_mode = config.get("tutorial_mode", "")
+	_story_track_enabled = config.get("story_track_enabled", false)
+	_intro_campaign_enabled = config.get("introductory_campaign", false)
 	
 	_update_display()
 	_validate_and_complete()
@@ -1160,13 +1090,13 @@ func get_victory_conditions() -> Dictionary:
 	## Get selected victory conditions
 	return selected_victory_conditions.duplicate()
 
-func get_story_track() -> String:
-	## Get selected story track
-	return selected_story_track
+func get_story_track_enabled() -> bool:
+	## Get story track toggle state
+	return _story_track_enabled
 
-func get_tutorial_mode() -> String:
-	## Get selected tutorial mode
-	return selected_tutorial_mode
+func get_intro_campaign_enabled() -> bool:
+	## Get introductory campaign toggle state
+	return _intro_campaign_enabled
 
 # Required interface methods
 func validate_panel() -> bool:
@@ -1194,8 +1124,8 @@ func get_campaign_config_data() -> Dictionary:
 		"difficulty_level": local_campaign_config.get("difficulty_level", 2),
 		"difficulty_toggles": selected_difficulty_toggles.duplicate(),
 		"victory_conditions": selected_victory_conditions.duplicate(),
-		"story_track": selected_story_track,
-		"tutorial_mode": selected_tutorial_mode,
+		"story_track_enabled": _story_track_enabled,
+		"introductory_campaign": _intro_campaign_enabled,
 		"is_complete": local_campaign_config.get("is_complete", false),
 		"metadata": {
 			"last_modified": Time.get_unix_time_from_system(),
@@ -1247,13 +1177,17 @@ func restore_panel_data(data: Dictionary) -> void:
 	if data.has("victory_conditions"):
 		selected_victory_conditions = data.victory_conditions.duplicate()
 	
-	# Restore story track
-	if data.has("story_track"):
-		selected_story_track = data.story_track
-	
-	# Restore tutorial mode
-	if data.has("tutorial_mode"):
-		selected_tutorial_mode = data.tutorial_mode
+	# Restore narrative options
+	if data.has("story_track_enabled"):
+		_story_track_enabled = data.story_track_enabled
+		if story_track_checkbox:
+			story_track_checkbox.set_pressed_no_signal(_story_track_enabled)
+	if data.has("introductory_campaign"):
+		_intro_campaign_enabled = data.introductory_campaign
+		if intro_campaign_checkbox:
+			intro_campaign_checkbox.set_pressed_no_signal(
+				_intro_campaign_enabled)
+	_update_narrative_combo_label()
 	
 	# Restore completion status
 	if data.has("is_complete"):
@@ -1273,15 +1207,15 @@ func cleanup_panel() -> void:
 		"campaign_type": "standard",
 		"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
 		"victory_conditions": {},
-		"story_track": "",
-		"tutorial_mode": "",
+		"story_track_enabled": false,
+		"introductory_campaign": false,
 		"is_complete": false
 	}
 
 	# Clear selected options
 	selected_victory_conditions.clear()
-	selected_story_track = ""
-	selected_tutorial_mode = ""
+	_story_track_enabled = false
+	_intro_campaign_enabled = false
 	selected_difficulty_toggles.clear()
 	for toggle_id in difficulty_toggle_checkboxes:
 		var cb: CheckBox = difficulty_toggle_checkboxes[toggle_id]
@@ -1295,11 +1229,11 @@ func cleanup_panel() -> void:
 		campaign_type_option.select(0)
 	if difficulty_option:
 		difficulty_option.select(1)  # Default to Standard (index 1)
-	if story_track_option:
-		story_track_option.select(0)
-	if tutorial_mode_option:
-		tutorial_mode_option.select(0)
-	
+	if story_track_checkbox:
+		story_track_checkbox.set_pressed_no_signal(false)
+	if intro_campaign_checkbox:
+		intro_campaign_checkbox.set_pressed_no_signal(false)
+
 	# Clear victory conditions checkboxes
 	if victory_conditions_list:
 		for child in victory_conditions_list.get_children():
@@ -1352,10 +1286,10 @@ func _apply_mobile_layout() -> void:
 	# Increase touch targets to TOUCH_TARGET_COMFORT (56dp)
 	if campaign_type_option:
 		campaign_type_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
-	if story_track_option:
-		story_track_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
-	if tutorial_mode_option:
-		tutorial_mode_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if story_track_checkbox:
+		story_track_checkbox.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if intro_campaign_checkbox:
+		intro_campaign_checkbox.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 	if campaign_name_input:
 		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 
@@ -1370,10 +1304,10 @@ func _apply_tablet_layout() -> void:
 	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
 	if campaign_type_option:
 		campaign_type_option.custom_minimum_size.y = TOUCH_TARGET_MIN
-	if story_track_option:
-		story_track_option.custom_minimum_size.y = TOUCH_TARGET_MIN
-	if tutorial_mode_option:
-		tutorial_mode_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if story_track_checkbox:
+		story_track_checkbox.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if intro_campaign_checkbox:
+		intro_campaign_checkbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	if campaign_name_input:
 		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
 
@@ -1388,10 +1322,10 @@ func _apply_desktop_layout() -> void:
 	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
 	if campaign_type_option:
 		campaign_type_option.custom_minimum_size.y = TOUCH_TARGET_MIN
-	if story_track_option:
-		story_track_option.custom_minimum_size.y = TOUCH_TARGET_MIN
-	if tutorial_mode_option:
-		tutorial_mode_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if story_track_checkbox:
+		story_track_checkbox.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if intro_campaign_checkbox:
+		intro_campaign_checkbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	if campaign_name_input:
 		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
 

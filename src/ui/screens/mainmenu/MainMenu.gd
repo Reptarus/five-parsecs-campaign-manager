@@ -559,6 +559,21 @@ func _build_social_footer() -> void:
 	credits_btn.pressed.connect(_show_credits)
 	_social_bar.add_child(credits_btn)
 
+	# Version number — rightmost element in footer (Fallout pattern)
+	var ver_sep := VSeparator.new()
+	ver_sep.custom_minimum_size.x = 1
+	_social_bar.add_child(ver_sep)
+
+	var version_label := Label.new()
+	var version: String = ProjectSettings.get_setting(
+		"application/config/version", "dev"
+	)
+	version_label.text = "v%s" % version
+	version_label.add_theme_font_size_override("font_size", 11)
+	version_label.add_theme_color_override(
+		"font_color", Color("#606060"))
+	_social_bar.add_child(version_label)
+
 func _open_url(url: String) -> void:
 	if not url.is_empty():
 		OS.shell_open(url)

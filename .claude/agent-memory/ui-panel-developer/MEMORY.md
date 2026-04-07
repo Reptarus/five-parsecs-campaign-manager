@@ -87,3 +87,48 @@ New code-built components in `src/ui/components/dlc/` and `src/ui/screens/store/
 - **DLCActivationToast.gd** — Static helper `DLCActivationToast.show_for_dlc(dlc_id)` adds CanvasLayer toast
 - **StoreScreen.gd** — Extends CampaignScreenBase. Uses DLCPackCard, BundleCard, BugHuntCard
 - **MainMenu** — "Expansions" button routes to SceneRouter `"store"`. Social footer at bottom-left (code-built, hides on narrow)
+
+### Session 36: Story Track UI + Character QOL (Apr 7, 2026)
+
+- **StoryPhasePanel.gd** — Rewritten: 3 modes (clock, event briefing, evidence search). Code-built UI, extends BasePhasePanel
+- **StoryTrackSection.gd** — `set_story_data()` accepts StoryTrackSystem state dict (7 milestones, clock/evidence)
+- **CampaignDashboard.gd** — `_build_narrative_status()` (renamed from `_build_story_track_status()`) — shows intro progress, story track waiting state, or story track active status
+- **CharacterEventTimeline.gd** — NEW component at `src/ui/components/character/`. Filterable event log (toggle buttons: All/Battle/Injury/Adv/Story/Kill). Deep Space themed, reverse-chronological
+- **CharacterDetailsScreen.gd** — Portrait upload (FileDialog → Image.load_from_file → resize 256 → user://portraits/), status bar (chips: ACTIVE/SICK BAY, battles, kills, XP), stat color coding (green=max, red=danger, orange=warning), removed redundant history overlay, `_get_char_id()` helper
+
+### Session 38: Intro Campaign + Story Track Config Panel (Apr 7, 2026)
+
+- **ExpandedConfigPanel.gd** — 3 separate cards (NARRATIVE OPTIONS dropdown, LEARNING SUPPORT dropdown, COMPENDIUM OPTIONS checkbox) replaced with 1 unified "NARRATIVE OPTIONS" card containing 2 CheckBoxes + combo explanation label. Config keys: `story_track_enabled` (bool) + `introductory_campaign` (bool). Old `story_track_option`/`tutorial_mode_option` OptionButtons deleted.
+- **InlineRenameWidget.gd** — `renamed` signal renamed to `name_confirmed` (native VBoxContainer `renamed` conflict in Godot 4.6)
+- **WorldPhaseController.gd** — `_should_skip_intro_step()` added for intro campaign phase gating (same pattern as Black Zone auto-skip)
+
+### Session 37: UX Enhancement Sprint — Fallout Companion App Patterns (Apr 7, 2026)
+
+14 new reusable components in `src/ui/components/common/`, 5 modified files, 0 compile errors. Based on 65-screenshot analysis of the Fallout Wasteland Warfare companion app by Maloric Digital.
+
+**New components (all code-built, no .tscn):**
+- **EmptyStateWidget** — Themed VBoxContainer: icon + title + flavor text + optional action button. Used in CampaignDashboard (6 locations)
+- **LoadingScreen** — CanvasLayer L99, itemized task list: pending→active (glow_pulse)→complete (checkmark). `run_sequence()` for staggered auto-completion
+- **AcknowledgeDialog** — Titleless Window modal. Static: `AcknowledgeDialog.show_message(parent, text)`
+- **StepperControl** — [−] value [+] HBoxContainer, auto-disable at bounds, `punch_in` on change. `setup(initial, min, max, step)`
+- **InlineRenameWidget** — Display/edit VBoxContainer. Tap → LineEdit + ✓/✕. `headshake` on empty, `fold_in` transition
+- **PersistentResourceBar** — CanvasLayer L80. Credits/StoryPts/Patrons/Rivals. `show_bar()`/`hide_bar()` with fold animations
+- **PreviewButton + ItemPreviewPopup** — Eye icon → read-only item detail Window. `PreviewButton.set_preview_data(dict)`
+- **HubFeatureCard** — PanelContainer: cyan left border + icon + title + desc + arrow. Hover/press effects
+- **OverflowMenu** — ⋮ Button → PopupPanel with labeled count badges
+- **DialogStyles** — Static utility: `style_confirm_button()`, `style_danger_button()`, `style_primary_button()`
+- **RulesPopup** — Full rules reference Window. Static: `RulesPopup.show_rules(parent, title, body, requirements)`
+- **DebugScreen** — Settings→Debug: log viewer + COPY TO CLIPBOARD + EMAIL SUPPORT. `DebugScreen.log_message()` static logger
+
+**Modified files:**
+- `CrewTaskEventDialog.gd` — Card draw (slide from left, 250ms) + discard (drop+fade, 200ms) + `fold_in` outcome reveals
+- `CampaignDashboard.gd` — 6 empty states replaced with EmptyStateWidget themed copy
+- `TransitionManager.gd` — `fade_to_scene_with_loading()` method (uses `load()` for LoadingScreen — autoload timing)
+- `SettingsScreen.gd` — DEBUG button + `_add_toggle_row()` enhanced with description parameter (bold title + italic desc)
+- `MainMenu.gd` — Version number label in social footer
+
+**Key patterns established:**
+- `_pending_*` for static factory Window subclasses (data stored before `_ready()`)
+- `load()` instead of class_name in autoloads (TransitionManager → LoadingScreen)
+- Raw Tween for horizontal slides (TweenFX has no horizontal variant)
+- `TweenFX.stop()` before state change on looping animations (glow_pulse in LoadingScreen)

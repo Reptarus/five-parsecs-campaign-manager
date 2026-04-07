@@ -106,13 +106,11 @@ Route all QA-related questions through the qa-specialist agent, which now has 4 
 
 After any sprint that fixes bugs or adds features, remind the assigned agent to update the dashboard and core rules plan.
 
-## Project Status (Mar 26, 2026) — v0.9.3
+## Project Status (Apr 7, 2026) — v0.9.7-dev
 
-- **Zero compile errors, zero runtime errors** (MCP-verified)
-- **Battle Simulator**: Standalone battle mode — 5 files, wired to MainMenu, runtime-verified
-- **CombatResolver interface**: 22 combat methods + 13 properties added to BaseCharacterResource (Session 10)
-- **Bug Hunt wizard fix**: Equipment step auto-complete — unblocked 4-step creation flow
-- **Bug Hunt**: Fully wired, 4-step wizard runtime-verified via MCP
-- **TacticalBattleUI**: Now serves 3 modes (Standard, Bug Hunt, Battle Simulator)
-- **7 uncommitted files**, 1 unpushed commit. Ready to commit + push.
-- **Next priorities**: Commit all, push, DLC gating for Battle Simulator + Bug Hunt, crew customization enhancements
+- **Zero compile errors** (headless-verified)
+- **925/925 data values verified** against Core Rules + Compendium
+- **Session 37 (Apr 7)**: UX Enhancement Sprint — 14 new reusable components in `src/ui/components/common/` (EmptyStateWidget, LoadingScreen, AcknowledgeDialog, StepperControl, InlineRenameWidget, PersistentResourceBar, PreviewButton, ItemPreviewPopup, HubFeatureCard, OverflowMenu, DialogStyles, RulesPopup, DebugScreen). Based on 65-screenshot analysis of Fallout Wasteland Warfare companion app. Card draw/discard animations in CrewTaskEventDialog. Settings toggle polish. MainMenu version footer.
+- **Session 36 (Apr 7)**: Story Track Integration — 7 event JSONs, clock mechanics, StoryPhasePanel, CharacterDetailsScreen QOL
+- **Session 35 (Apr 7)**: Red & Black Zone Jobs — Core Rules Appendix III
+- **Next priorities**: Runtime-test UX components via MCP, integrate HubFeatureCards into dashboard layout, wire PersistentResourceBar into phase screens

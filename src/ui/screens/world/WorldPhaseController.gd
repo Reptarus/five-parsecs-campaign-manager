@@ -520,6 +520,12 @@ func _show_current_step() -> void:
 		call_deferred("_on_next_button_pressed")
 		return
 
+	# Introductory Campaign: skip steps not yet unlocked
+	# (Compendium pp.105-109 — phases progressively enabled)
+	if _should_skip_intro_step(current_step):
+		call_deferred("_on_next_button_pressed")
+		return
+
 	# AUTO-ADVANCE: If automation enabled and step already complete, advance
 	if automation_enabled and _can_advance_to_next_step():
 		# Use call_deferred to avoid recursion issues
@@ -676,6 +682,46 @@ func _update_ui_display() -> void:
 			and mission_prep_component.is_mission_prepared()
 		)
 		proceed_to_battle_button.visible = all_complete or mission_prep_done
+
+func _should_skip_intro_step(step: int) -> bool:
+	## Check if the Introductory Campaign restricts this step.
+	## During early intro turns, some World Phase steps are locked.
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if not cpm or not cpm.has_method("get_intro_turn_restrictions"):
+		return false
+	var restrictions: Dictionary = cpm.get_intro_turn_restrictions()
+	if restrictions.is_empty():
+		return false
+
+	var enabled_steps: Array = restrictions.get(
+		"pre_battle_enabled", [])
+	# "all" means everything is unlocked (turn 5)
+	if enabled_steps.has("all"):
+		return false
+	# Empty enabled list = skip everything pre-battle (turn 0-1)
+	if enabled_steps.is_empty():
+		# But never skip MISSION_PREP — that's the battle launcher
+		return step != WorldPhaseStep.MISSION_PREP
+
+	# Check specific steps against the enabled list
+	match step:
+		WorldPhaseStep.UPKEEP:
+			return not (enabled_steps.has("upkeep")
+				or enabled_steps.has("medical"))
+		WorldPhaseStep.CREW_TASKS:
+			return not (enabled_steps.has("crew_tasks_limited")
+				or enabled_steps.has("crew_tasks_full"))
+		WorldPhaseStep.JOB_OFFERS:
+			return not (enabled_steps.has("job_offers")
+				or enabled_steps.has("find_patron"))
+		WorldPhaseStep.ASSIGN_EQUIPMENT:
+			return not enabled_steps.has("assign_equipment")
+		WorldPhaseStep.RESOLVE_RUMORS:
+			return not enabled_steps.has("resolve_rumors")
+		WorldPhaseStep.MISSION_PREP:
+			return false  # Always allow mission prep
+	return false
+
 
 func _can_advance_to_next_step() -> bool:
 	## Check if current step is completed and can advance

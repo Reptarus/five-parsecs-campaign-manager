@@ -160,37 +160,21 @@
 	"story_tracks": {
 		"none": {
 			"name": "No Story Track",
-			"description": "Standard campaign without story progression"
+			"description": "Standard campaign without narrative overlay"
 		},
-		"mystery_signal": {
-			"name": "Mystery Signal",
-			"description": "Your crew discovers a mysterious signal that leads to a greater conspiracy"
-		},
-		"faction_conflict": {
-			"name": "Faction Conflict",
-			"description": "Navigate the complex politics between warring factions"
-		},
-		"ancient_ruins": {
-			"name": "Ancient Ruins",
-			"description": "Explore ancient alien ruins and uncover their secrets"
-		},
-		"smuggler_network": {
-			"name": "Smuggler Network",
-			"description": "Build a criminal empire in the shadows"
+		"core_rules": {
+			"name": "The Story Track",
+			"description": "7-event narrative arc (Core Rules Appendix V, pp.153-160). Recommended for experienced players."
 		}
 	},
 	"tutorial_modes": {
 		"none": {
 			"name": "No Tutorial",
-			"description": "Standard campaign without tutorial guidance"
+			"description": "Jump straight into full campaign rules"
 		},
-		"quick_start": {
-			"name": "Quick Start Tutorial",
-			"description": "Learn basic mechanics with guided steps"
-		},
-		"advanced": {
-			"name": "Advanced Tutorial",
-			"description": "Master all systems with comprehensive guidance"
+		"introductory_campaign": {
+			"name": "Introductory Campaign",
+			"description": "6 guided encounters teaching core mechanics step by step (Compendium pp.104-109). Recommended for first-time players."
 		}
 	},
 	"story_points": {

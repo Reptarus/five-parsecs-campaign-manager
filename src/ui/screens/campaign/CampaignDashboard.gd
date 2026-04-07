@@ -205,12 +205,12 @@ func _update_crew_manifest(campaign) -> void:
 
 	var members: Array = _get_crew_members(campaign)
 	if members.is_empty():
-		var empty_lbl := Label.new()
-		empty_lbl.text = "No crew members"
-		empty_lbl.add_theme_color_override(
-			"font_color", COLOR_TEXT_MUTED
+		var empty := EmptyStateWidget.new()
+		empty.setup(
+			"Crew Quarters Empty",
+			"The bunks are cold. Time to recruit."
 		)
-		crew_vbox.add_child(empty_lbl)
+		crew_vbox.add_child(empty)
 		return
 
 	for member in members:
@@ -417,10 +417,10 @@ func _build_ship_section(campaign) -> void:
 	var sd: Dictionary = campaign.ship_data \
 		if "ship_data" in campaign else {}
 	if sd.is_empty():
-		var empty := Label.new()
-		empty.text = "No ship data"
-		empty.add_theme_color_override(
-			"font_color", COLOR_TEXT_MUTED
+		var empty := EmptyStateWidget.new()
+		empty.setup(
+			"No Ship Registered",
+			"Every captain needs a ship. Even a rusty one."
 		)
 		center_vbox.add_child(empty)
 		return
@@ -535,10 +535,10 @@ func _build_equipment_section(campaign) -> void:
 	var ed: Dictionary = campaign.equipment_data \
 		if "equipment_data" in campaign else {}
 	if ed.is_empty():
-		var empty := Label.new()
-		empty.text = "No equipment data"
-		empty.add_theme_color_override(
-			"font_color", COLOR_TEXT_MUTED
+		var empty := EmptyStateWidget.new()
+		empty.setup(
+			"Armory Bare",
+			"Check the trading post — even a worn blade beats bare knuckles."
 		)
 		center_vbox.add_child(empty)
 		return
@@ -646,7 +646,7 @@ func _update_intel_overview(campaign) -> void:
 	_build_patrons_section(campaign)
 	_build_rivals_section(campaign)
 	_build_rumors_section(campaign)
-	_build_story_track_status(campaign)
+	_build_narrative_status(campaign)
 	_build_phase_checklist()
 	_build_history_buttons()
 
@@ -660,10 +660,10 @@ func _build_world_section(campaign) -> void:
 	var wd: Dictionary = campaign.world_data \
 		if "world_data" in campaign else {}
 	if wd.is_empty():
-		var empty := Label.new()
-		empty.text = "No world data"
-		empty.add_theme_color_override(
-			"font_color", COLOR_TEXT_MUTED
+		var empty := EmptyStateWidget.new()
+		empty.setup(
+			"Uncharted Space",
+			"No world data logged. The Fringe awaits."
 		)
 		right_vbox.add_child(empty)
 		return
@@ -827,10 +827,10 @@ func _build_patrons_section(campaign) -> void:
 	right_vbox.add_child(sep)
 
 	if patrons_arr.is_empty():
-		var empty := Label.new()
-		empty.text = "No patrons"
-		empty.add_theme_color_override(
-			"font_color", COLOR_TEXT_MUTED
+		var empty := EmptyStateWidget.new()
+		empty.setup(
+			"No Contacts",
+			"Work the local cantina. Somebody always needs a job done."
 		)
 		right_vbox.add_child(empty)
 		return
@@ -884,10 +884,10 @@ func _build_rivals_section(campaign) -> void:
 	right_vbox.add_child(sep)
 
 	if rivals_arr.is_empty():
-		var empty := Label.new()
-		empty.text = "No rivals"
-		empty.add_theme_color_override(
-			"font_color", COLOR_TEXT_MUTED
+		var empty := EmptyStateWidget.new()
+		empty.setup(
+			"No Enemies... Yet",
+			"Enjoy the peace. It never lasts in the Fringe."
 		)
 		right_vbox.add_child(empty)
 		return
@@ -937,28 +937,73 @@ func _build_rumors_section(campaign) -> void:
 		)
 	)
 
-func _build_story_track_status(campaign) -> void:
-	## Show Story Track clock + event status if enabled
-	var enabled: bool = campaign.story_track_enabled \
+func _build_narrative_status(campaign) -> void:
+	## Show Introductory Campaign progress and/or Story Track status
+	var progress_data: Dictionary = campaign.progress_data \
+		if "progress_data" in campaign else {}
+
+	# --- Introductory Campaign section ---
+	var intro_state: Dictionary = progress_data.get(
+		"intro_campaign_state", {})
+	var intro_active: bool = intro_state.get("is_active", false)
+	var intro_completed: bool = intro_state.get("completed", false)
+
+	if intro_active or intro_completed:
+		var intro_sep := HSeparator.new()
+		intro_sep.modulate = COLOR_BORDER
+		right_vbox.add_child(intro_sep)
+
+		var intro_header := _create_section_header(
+			"INTRODUCTORY CAMPAIGN")
+		right_vbox.add_child(intro_header)
+
+		if intro_completed:
+			right_vbox.add_child(
+				_create_info_row(
+					"Status", "Complete!", COLOR_EMERALD))
+		elif intro_active:
+			var turn: int = intro_state.get(
+				"current_intro_turn", 0)
+			right_vbox.add_child(
+				_create_info_row(
+					"Progress", "Turn %d / 5" % turn,
+					COLOR_PURPLE))
+			# Progress bar
+			var bar := ProgressBar.new()
+			bar.min_value = 0
+			bar.max_value = 6
+			bar.value = turn
+			bar.custom_minimum_size = Vector2(0, 8)
+			bar.show_percentage = false
+			right_vbox.add_child(bar)
+
+	# --- Story Track section ---
+	var st_enabled: bool = campaign.story_track_enabled \
 		if "story_track_enabled" in campaign else false
-	if not enabled:
+	if not st_enabled:
 		return
 
 	var st_sep := HSeparator.new()
 	st_sep.modulate = COLOR_BORDER
 	right_vbox.add_child(st_sep)
 
-	var header := _create_section_header("STORY TRACK")
-	right_vbox.add_child(header)
+	var st_header := _create_section_header("STORY TRACK")
+	right_vbox.add_child(st_header)
 
-	# Read story track state from campaign progress_data
-	var progress: Dictionary = campaign.progress_data \
-		if "progress_data" in campaign else {}
-	var st_data: Dictionary = progress.get("story_track", {})
+	# If intro is still active, story track is frozen
+	if intro_active:
+		right_vbox.add_child(
+			_create_info_row(
+				"Status", "Waiting (starts after tutorial)",
+				COLOR_TEXT_MUTED))
+		return
+
+	var st_data: Dictionary = progress_data.get("story_track", {})
 
 	if st_data.is_empty():
 		right_vbox.add_child(
-			_create_info_row("Status", "Not started", COLOR_TEXT_MUTED))
+			_create_info_row(
+				"Status", "Not started", COLOR_TEXT_MUTED))
 		return
 
 	var outcome: String = st_data.get("story_outcome", "inactive")
