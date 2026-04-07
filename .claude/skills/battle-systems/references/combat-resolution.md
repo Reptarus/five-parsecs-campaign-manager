@@ -43,6 +43,32 @@ VICTORY_LOSS_RATIO_MULTIPLIER := 1.5
 DEFAULT_TOUGHNESS := 3
 ```
 
+## Campaign Crew Size in Combat (Session 39)
+
+**Critical distinction**: `get_crew_size()` = roster count, `get_campaign_crew_size()` = fixed 4/5/6 setting.
+
+### Enemy Count Formulas (EnemyGenerator.gd)
+
+| Setting | Standard (p.63) | Raided Event (p.70) |
+|---------|-----------------|---------------------|
+| Crew 6  | 2D6 pick higher | 3D6 pick highest    |
+| Crew 5  | 1D6             | 2D6 pick highest    |
+| Crew 4  | 2D6 pick lower  | 1D6                 |
+
+- **Numbers modifier**: "+0" to "+3" from enemy type template, added AFTER dice roll
+- **Quest reroll** (p.99): During Quest missions, reroll any die scoring 1 once
+- **Fielding fewer** (p.93): Deploy 2+ below setting → subtract 1 from enemy count
+- **Reaction dice** (p.118): Roll D6 matching campaign setting, NOT living crew count
+- **Deployment cap**: PreBattleUI enforces max = campaign_crew_size
+
+### Methods
+
+```gdscript
+EnemyGenerator._calculate_enemy_count(difficulty, crew_size, is_quest) -> int  # Standard
+EnemyGenerator.calculate_raided_enemy_count(campaign_crew_size) -> int         # Raided event
+EnemyGenerator._parse_numbers_modifier(numbers_str) -> int                     # "+2" → 2
+```
+
 ## Deployment Modifiers
 ```
 AMBUSH_HIT_BONUS := 2
@@ -54,6 +80,16 @@ HEADLONG_ASSAULT_HIT_BONUS := 1
 
 Applied in `initialize_battle()` based on `deployment_condition` dict.
 
+## Seize Initiative — Difficulty Modifier (Session 40)
+
+`BattleCalculations.check_seize_initiative(die1, die2, highest_savvy, difficulty_modifier=0)` now applies the Core Rules p.65 difficulty modifier (Hardcore: -2, Insanity: -3). The modifier flows through:
+
+1. `BattlePhase._simulate_battle_outcome()` injects `battlefield_data["seize_initiative_modifier"]` via `DifficultyModifiers.get_seize_initiative_modifier(difficulty)`
+2. `BattleResolver._check_initiative()` reads it from `battlefield_data.get("seize_initiative_modifier", 0)`
+3. `BattleCalculations.check_seize_initiative()` adds it to the 2D6 + savvy total
+
+`SeizeInitiativeSystem.gd` (UI component path) already applied difficulty independently via `set_difficulty_mode()`. The Session 40 fix covers the automated resolution path.
+
 ## Battle Flow
 
 ```
@@ -63,6 +99,7 @@ Applied in `initialize_battle()` based on `deployment_condition` dict.
 
 2. For each round (MIN_COMBAT_ROUNDS to MAX_COMBAT_ROUNDS):
    execute_combat_round(round, crew_units, enemy_units, battlefield_data, condition_effects, dice_roller)
+   → _check_initiative reads difficulty from battlefield_data
    → Each side attacks
    → Check for battle end conditions
 

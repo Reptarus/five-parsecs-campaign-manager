@@ -24,20 +24,17 @@ func _initialize_resources() -> void:
 	}
 
 func get_threat_modifier() -> float:
+	## Core Rules pp.64-65: 5 difficulty modes only. App-level UX scaling (not rules data).
 	match threat_level:
 		GameEnums.DifficultyLevel.EASY:
 			return 0.8
-		GameEnums.DifficultyLevel.NORMAL:
+		GameEnums.DifficultyLevel.NORMAL, GameEnums.DifficultyLevel.CHALLENGING:
 			return 1.0
-		GameEnums.DifficultyLevel.HARD:
-			return 1.2
 		GameEnums.DifficultyLevel.HARDCORE:
 			return 1.4
-		GameEnums.DifficultyLevel.NIGHTMARE:
-			return 1.5
-		GameEnums.DifficultyLevel.ELITE:
+		GameEnums.DifficultyLevel.INSANITY:
 			return 1.6
-	return 1.0
+	return 1.0  # Catches NONE + deprecated HARD/NIGHTMARE/ELITE
 
 func add_encounter(encounter_data: Dictionary) -> void:
 	encounter_data["turn"] = last_encounter_turn

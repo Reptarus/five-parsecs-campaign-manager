@@ -42,7 +42,7 @@
 		{"id": "glare_sword", "name": "Glare Sword", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee", "Elegant", "Piercing"], "cost": 3, "rarity": "Rare", "description": "Elegant fencing weapon encased in a disruptive energy field."},
 		{"id": "suppression_maul", "name": "Suppression Maul", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Impact"], "cost": 3, "rarity": "Uncommon", "description": "Riot-control weapon that overloads pain receptors."},
 		{"id": "frakk_grenade", "name": "Frakk Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 2, "traits": ["Heavy", "Area", "Single use"], "cost": 1, "rarity": "Common", "description": "Explosive charge surrounded by a metal casing."},
-		{"id": "dazzle_grenade", "name": "Dazzle Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 1, "traits": ["Area", "Stun", "Single use"], "cost": 1, "rarity": "Common", "description": "Shock charge emitting a loud flash and deafening sound."}
+		{"id": "dazzle_grenade", "name": "Dazzle Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 1, "traits": ["Heavy", "Area", "Stun", "Single use"], "cost": 1, "rarity": "Common", "description": "Shock charge emitting a loud flash and deafening sound."}
 	],
 	"armor": [
 		{"id": "frag_vest", "name": "Frag Vest", "type": "Armor", "saving_throw": "6+", "area_saving_throw": "5+", "cost": 3, "rarity": "Common", "description": "6+ Saving Throw, improved to 5+ against any Area attack."},

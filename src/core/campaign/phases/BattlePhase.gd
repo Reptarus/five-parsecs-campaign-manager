@@ -1160,6 +1160,12 @@ func _simulate_battle_outcome() -> void:
 	var deployment_condition: Dictionary = battle_setup_data.get("deployment", {})
 	var dice_roller: Callable = func(): return randi_range(1, 6)
 
+	# Inject seize initiative difficulty modifier (Core Rules p.65: Hardcore -2, Insanity -3)
+	var sim_difficulty: int = GlobalEnums.DifficultyLevel.NORMAL
+	if game_state_manager and game_state_manager.has_method("get_difficulty"):
+		sim_difficulty = game_state_manager.get_difficulty()
+	battlefield_data["seize_initiative_modifier"] = DifficultyModifiers.get_seize_initiative_modifier(sim_difficulty)
+
 	# Sprint 26.5: Debug log combat mode BEFORE resolution
 	var crew_first = initiative_roll >= 4
 	var crew_strength = crew_deployed.size() * 5
@@ -1568,19 +1574,28 @@ func _apply_dlc_difficulty_modifiers(setup_data: Dictionary) -> void:
 
 	var difficulty_instructions: Array[String] = []
 
-	# Progressive Difficulty: turn-based scaling
+	# Progressive Difficulty: turn-based scaling (Compendium pp.30-31)
+	# Read user's chosen options from campaign data (persisted at creation)
 	var turn_num: int = 0
 	if game_state_manager and "turn_number" in game_state_manager:
 		turn_num = game_state_manager.turn_number
-	if turn_num > 0:
-		var prog_text: String = ProgressiveDifficultyTrackerRef.get_instruction_text(
-			turn_num, ProgressiveDifficultyTrackerRef.ProgressionType.BASIC
-		)
-		if not prog_text.is_empty():
-			difficulty_instructions.append(prog_text)
-		var bonus: int = ProgressiveDifficultyTrackerRef.get_enemy_count_bonus(
-			turn_num, ProgressiveDifficultyTrackerRef.ProgressionType.BASIC
-		)
+	var prog_options: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_campaign"):
+		var _campaign = gs.get_campaign()
+		if _campaign and "progress_data" in _campaign:
+			prog_options = _campaign.progress_data.get(
+				"progressive_difficulty_options", [])
+	if turn_num > 0 and not prog_options.is_empty():
+		for prog_type in prog_options:
+			var prog_text: String = ProgressiveDifficultyTrackerRef.get_instruction_text(
+				turn_num, prog_type)
+			if not prog_text.is_empty():
+				difficulty_instructions.append(prog_text)
+		var bonus: int = 0
+		for prog_type2 in prog_options:
+			bonus += ProgressiveDifficultyTrackerRef.get_enemy_count_bonus(
+				turn_num, prog_type2)
 		if bonus > 0:
 			setup_data["enemy_count"] = setup_data.get("enemy_count", 0) + bonus
 

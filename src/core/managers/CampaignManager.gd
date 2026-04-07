@@ -385,13 +385,13 @@ func _calculate_risk_level() -> int:
 	# Increase risk based on game progression
 	base_risk += floori(game_state.campaign_turn / 5)
 	
-	# Adjust for difficulty
+	# Adjust for difficulty (Core Rules pp.64-65 modes only)
 	match game_state.difficulty_level:
 		GameEnums.DifficultyLevel.EASY:
 			base_risk -= 1
-		GameEnums.DifficultyLevel.HARD:
-			base_risk += 1
 		GameEnums.DifficultyLevel.HARDCORE:
+			base_risk += 1
+		GameEnums.DifficultyLevel.INSANITY:
 			base_risk += 2
 	
 	return clampi(base_risk, 1, 5)
@@ -805,16 +805,9 @@ func set_difficulty(difficulty: int) -> bool:
 	return false
 
 func scale_difficulty_after_mission() -> bool:
-	var current_difficulty = get_difficulty()
-	var completed_mission_count = get_completed_missions()
-	
-	# Scale difficulty based on completed missions
-	# This is a simple scaling algorithm, can be made more complex
-	if completed_mission_count > 0 and completed_mission_count % 3 == 0:
-		var new_difficulty = min(current_difficulty + 1, GameEnums.DifficultyLevel.ELITE)
-		if new_difficulty != current_difficulty:
-			return set_difficulty(new_difficulty)
-	
+	## Core Rules never auto-escalate difficulty mode during a campaign.
+	## Progressive Difficulty (Compendium pp.30-31) adds enemies/respawns
+	## by turn via ProgressiveDifficultyTracker — NOT by changing the enum.
 	return false
 
 # Campaign creation stubs

@@ -239,6 +239,9 @@ func _build_ui() -> void:
 	toggles_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(toggles_panel)
 
+	# Legal & Privacy section
+	_build_legal_section(content)
+
 	# Footer buttons
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -440,6 +443,141 @@ func _build_expansions_section(
 				dialog.popup_centered()
 		)
 		btn_row.add_child(manage_btn)
+
+
+func _build_legal_section(parent: VBoxContainer) -> void:
+	var card_vbox := _create_section_card("Legal & Privacy", parent)
+
+	# Document links
+	var docs := [
+		["Privacy Policy", "res://data/legal/privacy_policy.md", "Privacy Policy"],
+		["Terms of Service / EULA", "res://data/legal/eula.md", "EULA"],
+		["Open Source Licenses", "res://data/legal/third_party_licenses.md", "Open Source Licenses"],
+		["Credits", "res://data/legal/credits.md", "Credits"],
+	]
+	for doc_info: Array in docs:
+		var btn := Button.new()
+		btn.text = doc_info[0]
+		btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var file_path: String = doc_info[1]
+		var doc_title: String = doc_info[2]
+		btn.pressed.connect(func():
+			var router := get_node_or_null("/root/SceneRouter")
+			if router and router.has_method("navigate_to"):
+				router.navigate_to("legal_viewer", {
+					"file": file_path, "title": doc_title
+				})
+		)
+		card_vbox.add_child(btn)
+
+	var sep1 := HSeparator.new()
+	card_vbox.add_child(sep1)
+
+	# Data & Privacy subsection label
+	var data_label := Label.new()
+	data_label.text = "Data & Privacy"
+	data_label.add_theme_font_size_override("font_size", _font_md)
+	data_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	card_vbox.add_child(data_label)
+
+	# Analytics consent toggle
+	var consent_mgr := get_node_or_null("/root/LegalConsentManager")
+	var analytics_initial := false
+	if consent_mgr and consent_mgr.has_method("get_analytics_consent"):
+		analytics_initial = consent_mgr.get_analytics_consent()
+
+	var analytics_toggle := _add_toggle_row(
+		card_vbox,
+		"Share Anonymous Usage Data",
+		analytics_initial,
+		"Toggle anonymous usage data sharing",
+		"Help improve the app by sharing anonymous gameplay statistics. No personal data is collected."
+	)
+	analytics_toggle.toggled.connect(func(enabled: bool):
+		var mgr := get_node_or_null("/root/LegalConsentManager")
+		if mgr and mgr.has_method("set_analytics_consent"):
+			mgr.set_analytics_consent(enabled)
+	)
+
+	# Export My Data button
+	var export_btn := Button.new()
+	export_btn.text = "Export My Data"
+	export_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	export_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	export_btn.pressed.connect(_on_export_data_pressed)
+	card_vbox.add_child(export_btn)
+
+	# Delete All Data button (danger)
+	var delete_btn := Button.new()
+	delete_btn.text = "Delete All Data"
+	delete_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	delete_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	DialogStyles.style_danger_button(delete_btn)
+	delete_btn.pressed.connect(_on_delete_data_pressed)
+	card_vbox.add_child(delete_btn)
+
+
+func _on_export_data_pressed() -> void:
+	var consent_mgr := get_node_or_null("/root/LegalConsentManager")
+	if not consent_mgr or not consent_mgr.has_method("export_user_data"):
+		return
+
+	var manifest: Dictionary = consent_mgr.export_user_data()
+	var json_text := JSON.stringify(manifest, "\t")
+
+	# Save to user://data_export.json and notify
+	var file := FileAccess.open("user://data_export.json", FileAccess.WRITE)
+	if file:
+		file.store_string(json_text)
+		file.close()
+		var notify := get_node_or_null("/root/NotificationManager")
+		if notify and notify.has_method("show_notification"):
+			notify.show_notification(
+				"Data exported to data_export.json in your user data folder.",
+				"success"
+			)
+		else:
+			var dialog := AcceptDialog.new()
+			dialog.title = "Data Exported"
+			dialog.dialog_text = "Your data manifest has been saved to:\nuser://data_export.json"
+			add_child(dialog)
+			dialog.popup_centered()
+	else:
+		var dialog := AcceptDialog.new()
+		dialog.title = "Export Failed"
+		dialog.dialog_text = "Could not write data export file."
+		add_child(dialog)
+		dialog.popup_centered()
+
+
+func _on_delete_data_pressed() -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Delete All Data?"
+	dialog.dialog_text = (
+		"This will permanently delete ALL app data including:\n\n"
+		+ "  - All campaign save files\n"
+		+ "  - Character portraits\n"
+		+ "  - Settings and preferences\n"
+		+ "  - Legal consent records\n\n"
+		+ "This action cannot be undone. You will need to\n"
+		+ "accept the EULA again after deletion."
+	)
+	dialog.ok_button_text = "Delete Everything"
+	dialog.confirmed.connect(func():
+		var consent_mgr := get_node_or_null("/root/LegalConsentManager")
+		if consent_mgr and consent_mgr.has_method("delete_all_user_data"):
+			consent_mgr.delete_all_user_data()
+		# Navigate to main menu (which will re-trigger EULA)
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("main_menu", {}, false)
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func(): dialog.queue_free())
+	add_child(dialog)
+	dialog.popup_centered()
 
 
 # ============ UI HELPERS ============

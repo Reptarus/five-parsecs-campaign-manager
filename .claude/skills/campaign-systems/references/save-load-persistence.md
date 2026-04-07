@@ -44,16 +44,52 @@ FiveParsecsCampaignCore.red_zone_turns_completed: int = 0
   → Zone flags injected into progress_data["current_mission"] as is_red_zone/is_black_zone
 ```
 
-### Story Track State (Session 36)
+### Campaign Crew Size (Session 39)
+
 ```
-campaign.progress_data["story_track"] → Dictionary
+FiveParsecsCampaignCore.campaign_crew_size: int = 6  (@export)
+  → Serialized at top level ("campaign_crew_size"), in config sub-dict, and meta sub-dict
+  → Deserialized with clampi(value, 4, 6), legacy saves default to 6
+  → set_config() also handles it
+  → Accessor: get_campaign_crew_size() -> int
+  → Chain: GameState.get_campaign_crew_size() → GameStateManager.get_campaign_crew_size()
+  → Set by CampaignFinalizationService at creation
+  → DISTINCT from get_crew_size() which returns fluctuating roster count
+  → Used for: enemy number dice formula, deployment cap, reaction dice,
+    stealth sentries (Compendium p.124), salvage tension (Compendium p.141)
+```
+
+### Story Track State (Session 36, verified Session 39b)
+```
+campaign.story_track_enabled: bool = false  (top-level property)
+campaign.progress_data["story_track"] → Dictionary (14 keys)
   Serialized by CampaignPhaseManager.save_story_track_state()
-  Contains: story_clock_ticks, current_event_index, is_story_event_turn,
-    pending_story_event, evidence_pieces, in_evidence_search,
-    evidence_search_turns, delay_turns_remaining, event_7_available,
-    companion_rescued, mercenary_captured, story_outcome, completed_event_ids
+  Contains: story_clock_ticks, is_story_track_active, current_event_index,
+    is_story_event_turn, pending_story_event, evidence_pieces,
+    in_evidence_search, evidence_search_turns, delay_turns_remaining,
+    event_7_available, companion_rescued, mercenary_captured,
+    story_outcome, completed_event_ids
   StoryTrackSystem.serialize() / .deserialize() handles conversion
   Events loaded from JSON on deserialize (not serialized inline)
+  IMPORTANT: save_story_track_state() called after _init_story_track()
+    to ensure state exists in progress_data from first frame
+  IMPORTANT: CampaignFinalizationService sets campaign.story_track_enabled
+    directly (not via GameStateManager — campaign not on GameState yet)
+```
+
+### Introductory Campaign State (Session 38, verified Session 39b)
+```
+campaign.progress_data["introductory_campaign"]: bool  (config flag)
+campaign.progress_data["intro_campaign_state"] → Dictionary (3 keys)
+  is_active: bool
+  current_intro_turn: int (0-5)
+  completed: bool
+  Serialized by CampaignPhaseManager.save_intro_campaign_state()
+  FPCM_IntroductoryCampaignManager.serialize() / .deserialize()
+  IMPORTANT: save_intro_campaign_state() called after _init_intro_campaign()
+  DLC gate: dlc.ContentFlag.INTRODUCTORY_CAMPAIGN (ordinal 31, NOT 71)
+  Dashboard reads live CampaignPhaseManager.get_intro_status() first,
+    falls back to progress_data["intro_campaign_state"]
 ```
 
 ### DLC Dependency Tracking (Phase 34)

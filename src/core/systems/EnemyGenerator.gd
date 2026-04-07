@@ -679,6 +679,34 @@ func calculate_enemy_count(
 ) -> int:
 	return _calculate_enemy_count(difficulty, crew_size, is_quest)
 
+## Calculate enemy count for the Raided starship travel event (Core Rules p.70).
+## Uses a DIFFERENT formula than standard battles — one step up in dice:
+## - Crew 6: Roll 3D6, pick HIGHEST
+## - Crew 5: Roll 2D6, pick HIGHEST
+## - Crew 4: Roll 1D6
+func calculate_raided_enemy_count(campaign_crew_size: int) -> int:
+	match campaign_crew_size:
+		6:
+			# 3D6 pick highest
+			var rolls: Array[int] = []
+			for i in range(3):
+				rolls.append(randi() % 6 + 1)
+			return rolls.max()
+		5:
+			# 2D6 pick highest
+			var roll1: int = randi() % 6 + 1
+			var roll2: int = randi() % 6 + 1
+			return max(roll1, roll2)
+		4:
+			# 1D6
+			return randi() % 6 + 1
+		_:
+			# Default to crew 6 formula
+			var rolls: Array[int] = []
+			for i in range(3):
+				rolls.append(randi() % 6 + 1)
+			return rolls.max()
+
 ## ═══════════════════════════════════════════════════════════════════════════════
 ## NUMBERS MODIFIER PARSING — Core Rules p.92
 ## ═══════════════════════════════════════════════════════════════════════════════

@@ -18,7 +18,7 @@ var _autoload_cache: Dictionary = {} # Non-static since we're using instance met
 
 # System references
 var game_state_manager: Node = null # GameStateManager when available
-var campaign_creation_manager: Node = null # CampaignCreationManager when available
+## campaign_creation_manager REMOVED — CampaignCreationManager was dead code, replaced by CampaignCreationCoordinator
 var campaign_phase_manager: Node = null # CampaignPhaseManager when available
 var battle_results_manager: Node = null # BattleResultsManager when available
 var dice_manager: Node = null # DiceManager when available
@@ -58,7 +58,7 @@ func initialize_systems() -> void:
 	_initialize_manager("GameStateManager", _initialize_game_state_manager)
 
 	# Step 2: Initialize other managers that depend on GameState
-	_initialize_manager("CampaignCreationManager", _initialize_campaign_creation_manager)
+	# CampaignCreationManager removed — replaced by CampaignCreationCoordinator
 	_initialize_manager("CampaignPhaseManager", _initialize_campaign_phase_manager)
 	_initialize_manager("BattleResultsManager", _initialize_battle_results_manager)
 	_initialize_manager("DiceManager", _initialize_dice_manager)
@@ -154,28 +154,6 @@ func _initialize_game_state_manager() -> void:
 
 	systems_ready["GameStateManager"] = true
 	game_state_ready.emit(game_state_manager)
-
-func _initialize_campaign_creation_manager() -> void:
-	# Optimized CampaignCreationManager initialization
-	if not game_state_manager:
-		var error = "Cannot initialize CampaignCreationManager: GameStateManager not available"
-		initialization_errors.append(error)
-		system_error.emit("CampaignCreationManager", error)
-		systems_ready["CampaignCreationManager"] = false
-		return
-
-	var game_state = game_state_manager.get_game_state() if game_state_manager.has_method("get_game_state") else null
-	var dependencies = [game_state] if game_state else []
-	
-	campaign_creation_manager = _create_manager_instance(
-		"res://src/core/campaign/CampaignCreationManager.gd",
-		"CampaignCreationManager",
-		dependencies
-	)
-
-	if campaign_creation_manager:
-		systems_ready["CampaignCreationManager"] = true
-		campaign_creation_ready.emit(campaign_creation_manager)
 
 func _initialize_campaign_phase_manager() -> void:
 	# Optimized CampaignPhaseManager initialization

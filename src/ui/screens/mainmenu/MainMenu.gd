@@ -35,6 +35,14 @@ func setup(manager: Node) -> void:
 	update_continue_button_visibility()
 
 func _ready() -> void:
+	# Check legal consent before showing menu
+	var consent_mgr := get_node_or_null("/root/LegalConsentManager")
+	if consent_mgr and consent_mgr.needs_legal_consent():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("eula", {}, false)
+			return
+
 	if not _validate_required_nodes():
 		push_error("MainMenu: Required nodes are missing")
 		return
@@ -453,7 +461,7 @@ func _on_options_pressed() -> void:
 	request_scene_change("options")
 
 func _on_library_pressed() -> void:
-	request_scene_change("store")
+	request_scene_change("compendium")
 
 func _cleanup_dialogs() -> void:
 	for dialog in _active_dialogs:
@@ -572,6 +580,29 @@ func _build_social_footer() -> void:
 		"font_hover_color", Color("#B0B0B0"))
 	credits_btn.pressed.connect(_show_credits)
 	_social_bar.add_child(credits_btn)
+
+	# Privacy policy link (App Store / Play Store requirement)
+	var privacy_sep := VSeparator.new()
+	privacy_sep.custom_minimum_size.x = 1
+	_social_bar.add_child(privacy_sep)
+
+	var privacy_btn := Button.new()
+	privacy_btn.text = "Privacy"
+	privacy_btn.flat = true
+	privacy_btn.add_theme_font_size_override("font_size", 11)
+	privacy_btn.add_theme_color_override(
+		"font_color", Color("#808080"))
+	privacy_btn.add_theme_color_override(
+		"font_hover_color", Color("#B0B0B0"))
+	privacy_btn.pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("legal_viewer", {
+				"file": "res://data/legal/privacy_policy.md",
+				"title": "Privacy Policy"
+			})
+	)
+	_social_bar.add_child(privacy_btn)
 
 	# Version number — rightmost element in footer (Fallout pattern)
 	var ver_sep := VSeparator.new()

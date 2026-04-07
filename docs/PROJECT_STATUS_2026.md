@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: April 7, 2026 (UX Enhancement Sprint — Fallout Companion App Patterns)
+**Last Updated**: April 7, 2026 (Runtime Testing — Intro Campaign + Story Track Verified)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -40,6 +40,9 @@
 | Story Track Integration (Session 36) | **Complete** — Core Rules Appendix V (pp.153-160). 7 event JSONs (Q'narr arc), correct D6 clock mechanics, StoryTrackSystem rewrite, 5 signals→CampaignJournal wiring, StoryPhasePanel 3-mode UI, CampaignDashboard story status, CharacterEventTimeline filterable log, CampaignJournal best practices overhaul. 8 files created, ~15 modified |
 | Character Details QOL (Session 36) | **Complete** — Portrait upload (FileDialog → user://portraits/), status summary bar (chips), stat color coding, CharacterEventTimeline integration, removed redundant history overlay, `_get_char_id()` helper |
 | UX Enhancement Sprint (Session 37) | **Complete** — 14 new reusable components, 5 modified files. Fallout Wasteland Warfare companion app UX analysis (65 screenshots). Card draw/discard animations, EmptyStateWidget, LoadingScreen, AcknowledgeDialog, StepperControl, InlineRenameWidget, PersistentResourceBar, PreviewButton/ItemPreviewPopup, HubFeatureCard, OverflowMenu, DebugScreen (copy log + email support), DialogStyles utility, RulesPopup, settings toggle descriptions, MainMenu version footer. 0 compile errors. |
+| Intro Campaign + Story Track (Session 38) | **Complete** — Compendium pp.104-109 + Core Rules Appendix V reconciled. Sequential system: intro runs first (6 guided turns), then Story Track activates with +2 SP. IntroductoryCampaignManager.gd, fabricated tutorial purge (12 files deleted), config panel simplification, dashboard display, world phase gating. |
+| Runtime Testing (Session 39b) | **Complete** — 7 bugs fixed (DLC ordinal, story track finalization timing, dashboard stale data, World Phase skip deadlock, config panel chicken-and-egg). Loading screen wired to 4 heavy transitions. Save/load round-trip verified for both narrative systems. FinalPanel intro status display. 10 files modified, 0 compile errors. |
+| Crew Size Scaling Audit (Session 39-39c) | **Complete** — Core Rules pp.63-64, 70, 92-93, 99, 118 + Compendium pp.124, 141. New `campaign_crew_size` property (4/5/6) on FiveParsecsCampaignCore with full serialization. EnemyGenerator: Numbers modifier applied, quest reroll, Raided formula (3D6/2D6/1D6). BattlePhase: fielding-fewer reduction. FiveParsecsCombatSystem: reaction dice fixed. ExpandedConfigPanel: CREW SIZE card. PreBattleUI: deployment cap. StealthMissionGenerator: sentries = setting + 1. WorldPhase: salvage/stealth use campaign setting not roster. 13 new tests. 25 files modified, 0 compile errors. |
 | Bug Hunt Gamemode | **Complete** — 38 files (15 JSON + 23 GDScript/TSCN), 3-stage turn, character transfer, battle wiring, cross-mode safety audit |
 | TweenFX Integration (Phase 26) | **Complete** — 8 sprints, 23 files modified, bug fixes + raw tween migration + new UX animations |
 | LSP Parse Error Cleanup | **Complete** — 3 automated passes: 1,859 orphan pass removed, 5,915 space→tab fixes, 31 deep-indent orphans, enum/type fixes |

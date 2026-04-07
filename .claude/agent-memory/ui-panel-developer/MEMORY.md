@@ -48,6 +48,46 @@ Never hardcode colors or spacing. Always use the Deep Space theme system:
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`.
+
+---
+
+## Session 39: Crew Size UI Changes (Apr 7, 2026)
+
+### ExpandedConfigPanel — Difficulty & Progressive Difficulty (Session 40)
+
+- "Nightmare" label renamed to "Insanity" (Core Rules p.65)
+- Only 5 real difficulty modes exposed: Story(Easy), Standard(Normal), Challenging, Hardcore, Insanity
+- HARD/NIGHTMARE/ELITE enum values are DEPRECATED — never add them to UI
+- **Progressive Difficulty section** (DLC-gated under PROGRESSIVE_DIFFICULTY):
+  - Two CheckBoxes: Option 1 (Classic) + Option 2 (Compendium), combinable
+  - Warning label appears when both checked ("deadly around Turn 20")
+  - Stored as `local_campaign_config["progressive_difficulty_options"]` (Array of ints)
+  - Included in `get_campaign_config_data()` and `restore_panel_data()`
+
+### ExpandedConfigPanel — Dead Code Deleted (Session 40)
+
+These files NO LONGER EXIST — do not reference them:
+- ConfigPanel.gd+.tscn (replaced by ExpandedConfigPanel)
+- CampaignSetupDialog.gd+.tscn (bypassed by MainMenu remapping)
+- CampaignSetupScreen.gd, DifficultyOption.gd, gameplay_options_menu.gd
+- QuickStartDialog.gd, CampaignLoadDialog.gd, CampaignSummaryPanel.gd
+
+### ExpandedConfigPanel — CREW SIZE Card
+- New OptionButton with item IDs 4, 5, 6 (default index 2 = crew size 6)
+- Description label updates per selection showing enemy dice formula
+- Stored in `local_campaign_config["campaign_crew_size"]`
+- Follows same pattern as existing difficulty section (`_build_difficulty_section`)
+- Restore via `set_campaign_config()` matches by item_id
+
+### PreBattleUI — Deployment Cap
+- `_max_deploy: int` instance var set from `campaign_crew_size`
+- "Deploying X / Y max" Label added to crew selection panel
+- `_on_character_selected()` returns early at cap (no overselection)
+- CampaignTurnController passes `campaign_crew_size` to `setup_crew_selection()`
+
+### FinalPanel — Crew Size in Summary
+- Crew count label shows "X Crew Members (Campaign Size: Y)"
+- Completion check uses `campaign_crew_size` from config, not hardcoded 6
 Applies to scene meta, config dicts, chart data, theme lookups. Zero exceptions.
 
 ### 6. WorldPhaseComponent Base Class Collisions
@@ -96,11 +136,16 @@ New code-built components in `src/ui/components/dlc/` and `src/ui/screens/store/
 - **CharacterEventTimeline.gd** — NEW component at `src/ui/components/character/`. Filterable event log (toggle buttons: All/Battle/Injury/Adv/Story/Kill). Deep Space themed, reverse-chronological
 - **CharacterDetailsScreen.gd** — Portrait upload (FileDialog → Image.load_from_file → resize 256 → user://portraits/), status bar (chips: ACTIVE/SICK BAY, battles, kills, XP), stat color coding (green=max, red=danger, orange=warning), removed redundant history overlay, `_get_char_id()` helper
 
-### Session 38: Intro Campaign + Story Track Config Panel (Apr 7, 2026)
+### Session 38-39b: Intro Campaign + Story Track Config Panel + Runtime Fixes (Apr 7, 2026)
 
-- **ExpandedConfigPanel.gd** — 3 separate cards (NARRATIVE OPTIONS dropdown, LEARNING SUPPORT dropdown, COMPENDIUM OPTIONS checkbox) replaced with 1 unified "NARRATIVE OPTIONS" card containing 2 CheckBoxes + combo explanation label. Config keys: `story_track_enabled` (bool) + `introductory_campaign` (bool). Old `story_track_option`/`tutorial_mode_option` OptionButtons deleted.
+- **ExpandedConfigPanel.gd** — 3 separate cards → 1 unified "NARRATIVE OPTIONS" card with 2 CheckBoxes + combo explanation label. Config keys: `story_track_enabled` (bool) + `introductory_campaign` (bool). **Bug fix**: Intro checkbox visibility uses `is_feature_available()` (DLC owned) not `is_feature_enabled()` (DLC owned + toggle) — avoids chicken-and-egg during creation.
 - **InlineRenameWidget.gd** — `renamed` signal renamed to `name_confirmed` (native VBoxContainer `renamed` conflict in Godot 4.6)
-- **WorldPhaseController.gd** — `_should_skip_intro_step()` added for intro campaign phase gating (same pattern as Black Zone auto-skip)
+- **WorldPhaseController.gd** — `_should_skip_intro_step()` for intro campaign phase gating + **added to `_can_advance_to_next_step()`** to prevent deadlock (same pattern as Black Zone auto-skip)
+- **CampaignDashboard.gd** — `_build_narrative_status()` queries live `CampaignPhaseManager.get_intro_status()` first, falls back to progress_data (fixes stale-data-on-first-load issue)
+- **FinalPanel.gd** — Now shows "Introductory Campaign: Enabled (6 guided turns)" in review summary
+- **SceneRouter.gd** — New `navigate_to_with_loading()` method for heavy transitions with LoadingScreen
+- **CampaignCreationUI.gd** — Uses `navigate_to_with_loading()` for campaign start transition
+- **MainMenu.gd** — `_navigate_with_loading()` helper; Continue/Load/Import all use loading screen
 
 ### Session 37: UX Enhancement Sprint — Fallout Companion App Patterns (Apr 7, 2026)
 

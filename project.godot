@@ -26,7 +26,6 @@ config/icon="res://assets/iconnew.png"
 
 [autoload]
 
-McpBridge="*res://mcp_bridge.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
@@ -54,6 +53,7 @@ SettingsOverlay="*res://src/autoload/SettingsOverlay.gd"
 NotificationManager="res://src/autoload/NotificationManager.gd"
 StoreManager="*res://src/core/store/StoreManager.gd"
 ReviewManager="*res://src/core/store/ReviewManager.gd"
+LegalConsentManager="*res://src/core/legal/LegalConsentManager.gd"
 TweenFX="*uid://d2n10rw2dnx8o"
 GalacticWarManager="*res://src/core/campaign/GalacticWarManager.gd"
 FactionSystem="*res://src/core/systems/FactionSystem.gd"

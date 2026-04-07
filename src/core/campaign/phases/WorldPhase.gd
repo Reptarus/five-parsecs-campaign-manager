@@ -906,7 +906,11 @@ func _generate_job_offers() -> Array[Dictionary]:
 				offers.append(patron_job)
 
 	# Add compendium mission types (self-gate via DLC flags internally)
-	var stealth_mission = StealthMissionGenerator.generate_stealth_mission()
+	# Use campaign_crew_size setting (4/5/6), NOT fluctuating roster count
+	var campaign_crew_size: int = 6
+	if game_state_manager and game_state_manager.has_method("get_campaign_crew_size"):
+		campaign_crew_size = game_state_manager.get_campaign_crew_size()
+	var stealth_mission = StealthMissionGenerator.generate_stealth_mission(campaign_crew_size)
 	if not stealth_mission.is_empty():
 		stealth_mission["type"] = "stealth"
 		stealth_mission["name"] = stealth_mission.get("objective", {}).get("name", "Stealth Mission")
@@ -916,10 +920,8 @@ func _generate_job_offers() -> Array[Dictionary]:
 		street_fight["type"] = "street_fight"
 		street_fight["name"] = street_fight.get("objective", {}).get("name", "Street Fight")
 		offers.append(street_fight)
-	var crew_size = 6
-	if game_state_manager and game_state_manager.has_method("get_crew_size"):
-		crew_size = game_state_manager.get_crew_size()
-	var salvage_job = SalvageJobGenerator.generate_salvage_job(crew_size)
+	# Salvage tension uses campaign_crew_size (Compendium p.141)
+	var salvage_job = SalvageJobGenerator.generate_salvage_job(campaign_crew_size)
 	if not salvage_job.is_empty():
 		salvage_job["type"] = "salvage"
 		salvage_job["name"] = "Salvage Job"

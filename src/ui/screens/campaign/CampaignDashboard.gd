@@ -103,6 +103,33 @@ func _connect_signals() -> void:
 		load_button.pressed.connect(_on_load_pressed)
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
+	_add_compendium_button()
+
+func _add_compendium_button() -> void:
+	var container := get_node_or_null(
+		"MarginContainer/VBoxContainer/ButtonContainer"
+	)
+	if not container:
+		return
+	var btn := Button.new()
+	btn.text = "Compendium"
+	btn.custom_minimum_size = Vector2(0, 40)
+	btn.pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("compendium")
+	)
+	# Insert before QuitButton (last child)
+	var quit_idx := -1
+	for i in container.get_child_count():
+		if container.get_child(i) == quit_button:
+			quit_idx = i
+			break
+	if quit_idx >= 0:
+		container.add_child(btn)
+		container.move_child(btn, quit_idx)
+	else:
+		container.add_child(btn)
 
 func _setup_phase_manager() -> void:
 	if phase_manager.has_method("setup"):

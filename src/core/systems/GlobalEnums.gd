@@ -112,16 +112,19 @@ const PHASE_DESCRIPTIONS = {
 }
 
 ## Difficulty Levels
+## Core Rules pp.64-65: EASY, NORMAL, CHALLENGING, HARDCORE, INSANITY
+## HARD/NIGHTMARE/ELITE are DEPRECATED — not in Core Rules or Compendium.
+## Kept for save compatibility; aliased to nearest real mode in difficulty_modifiers.json.
 enum DifficultyLevel {
 	NONE,
-	EASY,
-	NORMAL,
-	HARD,
-	CHALLENGING,
-	NIGHTMARE,
-	HARDCORE,
-	ELITE,
-	INSANITY
+	EASY,          # Core Rules p.64
+	NORMAL,        # Core Rules p.65
+	HARD,          # DEPRECATED — alias of NORMAL. Not a real difficulty mode
+	CHALLENGING,   # Core Rules p.65
+	NIGHTMARE,     # DEPRECATED — alias of INSANITY. Not a real difficulty mode
+	HARDCORE,      # Core Rules p.65
+	ELITE,         # DEPRECATED — alias of INSANITY. Not a real difficulty mode
+	INSANITY       # Core Rules p.65
 }
 
 ## Character System

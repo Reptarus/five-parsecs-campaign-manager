@@ -101,8 +101,6 @@ static func get_invasion_roll_modifier(difficulty: int) -> int:
 static func get_seize_initiative_modifier(difficulty: int) -> int:
 	return int(_get_level_data(difficulty).get("seize_initiative_modifier", 0))
 
-static func get_rival_resistance_modifier(difficulty: int) -> int:
-	return int(_get_level_data(difficulty).get("rival_resistance_modifier", 0))
 
 # MARK: - Public API - Unique Individual (Core Rules pp.64-65)
 
@@ -160,7 +158,6 @@ static func get_all_modifiers(difficulty: int) -> Dictionary:
 		"max_story_points": get_max_story_points(difficulty),
 		"invasion_roll_modifier": get_invasion_roll_modifier(difficulty),
 		"seize_initiative_modifier": get_seize_initiative_modifier(difficulty),
-		"rival_resistance_modifier": get_rival_resistance_modifier(difficulty),
 		"unique_individual_roll_modifier": get_unique_individual_roll_modifier(difficulty),
 		"unique_individual_forced": is_unique_individual_forced(difficulty),
 		"double_unique_possible": can_have_double_unique_individual(difficulty),
@@ -196,8 +193,6 @@ static func get_difficulty_summary(difficulty: int) -> String:
 		parts.append("NO story points")
 	elif int(data.get("starting_story_points_modifier", 0)) != 0:
 		parts.append("%+d starting story points" % int(data.get("starting_story_points_modifier", 0)))
-	if int(data.get("rival_resistance_modifier", 0)) != 0:
-		parts.append("%+d rival resistance" % int(data.get("rival_resistance_modifier", 0)))
 	if bool(data.get("stars_of_story_disabled", false)):
 		parts.append("NO Stars of the Story")
 	if parts.is_empty():
@@ -225,8 +220,6 @@ static func get_difficulty_detailed_description(difficulty: int) -> String:
 		details.append("• Invasion Rolls: %+d" % modifiers.invasion_roll_modifier)
 	if modifiers.seize_initiative_modifier != 0:
 		details.append("• Seize Initiative: %+d" % modifiers.seize_initiative_modifier)
-	if modifiers.rival_resistance_modifier != 0:
-		details.append("• Rival Resistance: %+d" % modifiers.rival_resistance_modifier)
 	if modifiers.unique_individual_forced:
 		details.append("• Unique Individual: FORCED in every battle")
 		if modifiers.double_unique_possible:
@@ -292,5 +285,3 @@ static func calculate_invasion_roll(base_roll: int, difficulty: int) -> int:
 static func calculate_seize_initiative_roll(base_roll: int, difficulty: int) -> int:
 	return base_roll + get_seize_initiative_modifier(difficulty)
 
-static func calculate_rival_resistance_roll(base_roll: int, difficulty: int) -> int:
-	return base_roll + get_rival_resistance_modifier(difficulty)

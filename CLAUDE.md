@@ -33,8 +33,9 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Store/Paywall System (Phase 24) | Tri-platform (Steam/Android/iOS) |
 | Fabricated Data Purge | Complete — MoraleSystem deleted, equipment/loot/advancement rewritten |
 | Event Queue System | CrewTaskEventDialog (26 event types, state mutations wired) |
+| Difficulty System | 5 Core Rules modes + 12 Compendium toggles + Progressive Difficulty (2 options) |
 | Compile Errors | 0 |
-| GDScript Files | ~900 (excl. addons) |
+| GDScript Files | ~890 (excl. addons — 10 dead files deleted Session 40) |
 
 ---
 
@@ -191,7 +192,7 @@ The battle system is a **tabletop companion assistant** (NOT a tactical simulato
 
 ### Key Patterns (Phase 5 Consolidation)
 - **CampaignDashboard** uses `FiveParsecsCampaignPhase` (14 values, aliased as `FPC`). The old `CampaignPhase` enum (10 values) is deprecated.
-- **BattlePhase._simulate_battle_outcome()** delegates to `BattleResolver.resolve_battle()` for rules-accurate combat.
+- **BattlePhase._simulate_battle_outcome()** delegates to `BattleResolver.resolve_battle()` for rules-accurate combat. Injects `battlefield_data["seize_initiative_modifier"]` for Hardcore(-2)/Insanity(-3).
 - **VictoryChecker.gd** — centralized victory condition checking (18 types), used by EndPhasePanel.
 - **character_events.gd** — character phase event data/logic, used by CharacterPhasePanel.
 - **DeploymentManager** has static `infer_deployment_type()` and `infer_terrain_features()` methods.
@@ -569,6 +570,7 @@ Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home
 | Crew members (incl. captain) | `campaign.crew_data["members"]` (captain has `is_captain: true`) | `campaign.get_crew_member_by_id()` for reads (cached O(1)); captain MUST be in members array, not only in `captain_data` | Ad-hoc `for member in crew_data["members"]` loops (use the helper) |
 | Turn number | `campaign.progress_data["turns_played"]` | `CampaignPhaseManager` reads/writes through campaign | Direct `progress_data["turns_played"] =` from outside |
 | Campaign phase | `CampaignPhaseManager.current_phase` (runtime) | Persisted to `campaign.game_phase` on save only | Direct `campaign.game_phase =` from UI code |
+| Campaign crew size (4/5/6) | `FiveParsecsCampaignCore.campaign_crew_size` @export | Set at creation via `CampaignFinalizationService`; read via `GameState.get_campaign_crew_size()` chain | `get_crew_size()` (that's roster count, not the fixed setting) |
 
 ### Key files
 - `src/core/equipment/EquipmentTransferService.gd` — chokepoint for all equipment movement (RefCounted, instantiate per operation)
@@ -652,10 +654,14 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **CharacterCard portrait priority**: `_update_portrait()` checks `portrait_path` first (custom image), falls back to colored initials (8 deterministic colors from `name.hash() % 8`). IconRegistry class icons are no longer the default
 - **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
 - **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory, FiveParsecsStrangeCharacters.gd (6 invented types), BaseStrangeCharacters.gd — all removed. Do NOT reference or re-create these
+- **Deleted dead UI files (Session 40)**: ConfigPanel.gd+.tscn, CampaignSetupScreen.gd, CampaignSetupDialog.gd+.tscn, DifficultyOption.gd, gameplay_options_menu.gd, QuickStartDialog.gd, CampaignLoadDialog.gd, CampaignSummaryPanel.gd, CampaignCreationManager.gd — all replaced by ExpandedConfigPanel/CampaignCreationCoordinator. Do NOT recreate
+- **DifficultyLevel HARD/NIGHTMARE/ELITE are DEPRECATED**: GlobalEnums.DifficultyLevel has 3 fabricated values (HARD=3, NIGHTMARE=5, ELITE=7) that are NOT in Core Rules or Compendium. Kept for save compat, aliased to NORMAL/INSANITY/INSANITY in JSON. Never expose in UI or use in new code. Only 5 real modes: Easy(1), Normal(2), Challenging(4), Hardcore(6), Insanity(8)
+- **Progressive Difficulty is per-campaign**: Stored in `campaign.progress_data["progressive_difficulty_options"]` (Array of ints). Empty = disabled. `[1]`=basic, `[2]`=advanced, `[1,2]`=both. Read by BattlePhase, NOT by changing the difficulty enum
 - **SpeciesDataService load order**: `Character.gd` cannot import `SpeciesDataService` at parse time (Godot loads Character first). Character helper methods use inline `species_id` string checks. Other systems (CharacterCreator, LuckSystem) can reference SpeciesDataService safely
 - **GameEnums.StrangeCharacterType is DEPRECATED**: Use `Character.species_id` (String) + `SpeciesDataService` for Strange Character identification. The enum has only 8 of 16 types and is kept only for backwards compatibility
 - **Equipment data sources**: `gear_database.json` = D100 tables for character creation (backgrounds, weapon_tables, starting_rolls). `equipment_database.json` = weapon/armor/gear STATS (range, shots, damage, traits). These are separate files with different purposes
 - **Trade sell value is flat**: Core Rules p.125 — items sell for 1 credit each. No condition tiers, no quality multipliers, no percentage-of-purchase formulas
+- **`get_crew_size()` ≠ `get_campaign_crew_size()`**: `get_crew_size()` returns the fluctuating roster count (for upkeep, travel). `get_campaign_crew_size()` returns the fixed 4/5/6 setting chosen at creation (Core Rules p.63) — used for enemy count dice formula, deployment cap, reaction dice, stealth sentries (Compendium p.124), and salvage tension (Compendium p.141). NEVER use roster count where the setting is required
 
 ---
 

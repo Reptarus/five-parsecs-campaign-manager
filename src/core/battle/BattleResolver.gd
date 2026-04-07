@@ -230,7 +230,8 @@ static func execute_combat_round(
 	}
 	
 	# Step 1: Check initiative (Core Rules p.117 - seize initiative 2d6 + highest Savvy >= 10)
-	var crew_has_initiative := _check_initiative(crew_units, dice_roller)
+	# Difficulty modifier: Hardcore -2, Insanity -3 (Core Rules p.65)
+	var crew_has_initiative := _check_initiative(crew_units, dice_roller, battlefield_data)
 	if condition_effects.get("crew_first_strike", false):
 		crew_has_initiative = true  # Ambush always gives initiative
 	
@@ -424,17 +425,20 @@ static func calculate_battle_outcome(
 
 #region Helper Functions
 
-## Check initiative for crew (2d6 + highest Savvy >= 10)
-static func _check_initiative(crew_units: Array, dice_roller: Callable) -> bool:
+## Check initiative for crew (2d6 + highest Savvy + difficulty modifier >= 10)
+## Core Rules p.95; difficulty modifier from p.65: Hardcore -2, Insanity -3
+static func _check_initiative(crew_units: Array, dice_roller: Callable, battlefield_data: Dictionary = {}) -> bool:
 	var highest_savvy := 0
 	for unit in crew_units:
 		if unit.get("is_alive", false):
 			highest_savvy = int(max(highest_savvy, unit.get("savvy", 0)))
-	
+
 	var die1: int = dice_roller.call()
 	var die2: int = dice_roller.call()
-	
-	var initiative_check := BattleCalculations.check_seize_initiative(die1, die2, highest_savvy)
+
+	# Apply difficulty modifier (Core Rules p.65: Hardcore -2, Insanity -3)
+	var diff_mod: int = battlefield_data.get("seize_initiative_modifier", 0)
+	var initiative_check := BattleCalculations.check_seize_initiative(die1, die2, highest_savvy, diff_mod)
 	return initiative_check["seized"]
 
 ## Count alive units in array

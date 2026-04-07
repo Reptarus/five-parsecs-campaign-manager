@@ -31,6 +31,17 @@ CharacterCreator.gd now enforces Strange Character rules (Core Rules pp.19-22) v
 
 Strange Characters appear in the origin dropdown after a separator ("── Strange Characters ──") with negative item IDs. `_origin_species_ids: Array[String]` maps dropdown index → species_id. `SpeciesDataService.gd` provides all JSON lookups.
 
+## Campaign Crew Size Selection (Session 39)
+
+ExpandedConfigPanel (Step 0: CONFIG) now includes a CREW SIZE card:
+
+- OptionButton with item IDs 4, 5, 6 (default: 6 = Standard)
+- Descriptions per size: "Roll 2D6 pick LOWER" / "Roll 1D6" / "Roll 2D6 pick HIGHER"
+- Stored in `local_campaign_config["campaign_crew_size"]`
+- Wired through coordinator → `CampaignFinalizationService` sets `campaign.campaign_crew_size`
+- FinalPanel shows "X Crew Members (Campaign Size: Y)" and uses setting for completion check
+- CrewPanelController defaults updated: MIN=4, DEFAULT=6
+
 ## CampaignCreationCoordinator
 
 **Path**: `src/ui/screens/campaign/CampaignCreationCoordinator.gd`

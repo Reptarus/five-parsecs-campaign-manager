@@ -29,6 +29,25 @@ Use this to cross-reference game values when promoting mechanics from MCP_VALIDA
 
 ---
 
+## Session 39: Crew Size Scaling Tests Added (Apr 7, 2026)
+
+`tests/unit/test_crew_size_enemy_calc.gd` expanded from 17 → 30 test cases:
+
+### New Tests (13 added)
+- **Numbers modifier parsing** (5 tests): `_parse_numbers_modifier()` for "+0", "+2", "+3", plain int, no-plus string
+- **Quest mission reroll** (2 tests): Statistical verification P(1) < 8% with reroll, valid range check
+- **Campaign setting vs roster** (2 tests): Crew size 6 with large roster stays in 1-6 range; statistical distribution proves crew 4 averages lower than crew 6
+- **Raided Starship formula** (4 tests): `calculate_raided_enemy_count()` for crew 6/5/4 range checks + statistical comparison (3D6-pick-high averages higher than standard 2D6-pick-high)
+
+### New Test Points for Future QA
+- **campaign_crew_size persistence**: Create campaign with crew size 5, save, reload → verify setting survives
+- **Stealth sentries**: Create stealth mission with crew size 4 → verify 5 sentries (setting + 1)
+- **Salvage tension**: Create salvage job with crew size 5 → verify initial tension = 3 (ceil(5/2))
+- **Fielding fewer**: Deploy 4 crew in crew-size-6 campaign → verify -1 enemy (BattlePhase.gd)
+- **Raided event**: Trigger Raided travel event → verify uses 3D6/2D6/1D6 formula (not standard)
+
+---
+
 ## Session 18: QA Rules Audit 100% Complete (Mar 30, 2026)
 
 QA_RULES_ACCURACY_AUDIT.md now has **0 UNVERIFIED entries** (was 308). All 376+ entries VERIFIED/FIXED/N/A with PDF page citations. 925/925 data values confirmed.

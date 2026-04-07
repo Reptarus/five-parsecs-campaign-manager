@@ -7,6 +7,27 @@
 
 The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
 
+## Session 39-39c: Crew Size Scaling Audit + Continuation (Apr 7, 2026)
+
+Full crew-size-dependent rules audit (Core Rules pp.63-64, 70, 92-93, 99, 118; Compendium pp.124, 141). New `campaign_crew_size` property (4/5/6) on FiveParsecsCampaignCore, distinct from roster count. 20+ files modified across Session 39, 5 more in continuation. Key routing:
+
+- **campaign-systems-engineer**: FiveParsecsCampaignCore serialization, CampaignFinalizationService, ExpandedConfigPanel UI
+- **battle-systems-engineer**: EnemyGenerator (Numbers modifier, quest reroll, Raided formula), BattlePhase (fielding-fewer), FiveParsecsCombatSystem (reaction dice), PreBattleUI (deployment cap)
+- **character-data-engineer**: FiveParsecsCampaignCore @export property (data model change)
+- **qa-specialist**: 13 new tests in test_crew_size_enemy_calc.gd
+- **Stealth/Salvage fix**: WorldPhase.gd caller changed from get_crew_size() to get_campaign_crew_size()
+
+---
+
+## Session 39b: Runtime Testing Complete (Apr 7, 2026)
+
+Intro Campaign + Story Track fully runtime-tested. 7 bugs fixed, loading screen wired to 4 transitions, save/load round-trip verified. Key lessons:
+
+- **DLC feature gates**: `is_feature_available()` for UI visibility, `is_feature_enabled()` for gameplay. Use enum constants, NEVER hardcoded ordinals.
+- **Finalization timing**: Campaign not on GameState during `_create_campaign_resource()` — set properties directly on the Resource, not via GameStateManager.
+- **Early state persist**: Both `_init_intro_campaign()` and `_init_story_track()` must call their `save_*_state()` immediately after init so progress_data has state from first frame.
+- **World Phase auto-skip pattern**: Both `_show_current_step()` AND `_can_advance_to_next_step()` must handle skip conditions — one defers, the other marks completed.
+
 ---
 
 ## Critical Gotchas — Must Remember

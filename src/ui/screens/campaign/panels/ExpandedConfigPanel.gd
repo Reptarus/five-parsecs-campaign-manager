@@ -12,6 +12,7 @@ const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVicto
 const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpansionFeatureSectionScript = preload("res://src/ui/components/dlc/ExpansionFeatureSection.gd")
+const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 
 # GDScript 2.0: Typed signals
 signal campaign_config_updated(config: Dictionary)
@@ -35,6 +36,7 @@ var local_campaign_config: Dictionary = {
 	"victory_conditions": {},
 	"story_track_enabled": false,
 	"introductory_campaign": false,
+	"progressive_difficulty_options": [],
 	"is_complete": false
 }
 
@@ -98,6 +100,11 @@ var _story_track_enabled: bool = false
 var _intro_campaign_enabled: bool = false
 var selected_difficulty_toggles: Array[String] = []
 var difficulty_toggle_checkboxes: Dictionary = {}  # id -> CheckBox
+
+# Progressive Difficulty (Compendium pp.30-31)
+var progressive_basic_checkbox: CheckBox
+var progressive_advanced_checkbox: CheckBox
+var progressive_warning_label: Label
 
 # Custom victory dialog
 var custom_victory_button: Button
@@ -224,6 +231,7 @@ func _initialize_components() -> void:
 	_build_victory_conditions_section(flow)
 	_build_narrative_options_section(flow)
 	_build_expansion_features_section(flow)
+	_build_progressive_difficulty_section(flow)
 
 	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
 	for child in flow.get_children():
@@ -536,6 +544,74 @@ func _build_expansion_features_section(parent: Control) -> void:
 	)
 	parent.add_child(card)
 
+func _build_progressive_difficulty_section(parent: Control) -> void:
+	## Progressive Difficulty (Compendium pp.30-31) — DLC-gated
+	var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.has_method("is_feature_enabled"):
+		return
+	if not dlc.is_feature_enabled(dlc.ContentFlag.PROGRESSIVE_DIFFICULTY):
+		return
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+
+	var desc := Label.new()
+	desc.text = "Ramp up challenge as you play. Options can be combined."
+	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(desc)
+
+	progressive_basic_checkbox = CheckBox.new()
+	progressive_basic_checkbox.text = "Option 1: Classic (Respawn + Strength)"
+	progressive_basic_checkbox.tooltip_text = "Enemies respawn and increase by campaign turn. Compendium p.30."
+	progressive_basic_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	progressive_basic_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	progressive_basic_checkbox.toggled.connect(_on_progressive_difficulty_changed)
+	content.add_child(progressive_basic_checkbox)
+
+	progressive_advanced_checkbox = CheckBox.new()
+	progressive_advanced_checkbox.text = "Option 2: Compendium (Toggle Escalation)"
+	progressive_advanced_checkbox.tooltip_text = "Progressively enables difficulty toggles and elite enemies. Compendium p.31."
+	progressive_advanced_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	progressive_advanced_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	progressive_advanced_checkbox.toggled.connect(_on_progressive_difficulty_changed)
+	content.add_child(progressive_advanced_checkbox)
+
+	progressive_warning_label = Label.new()
+	progressive_warning_label.text = ""
+	progressive_warning_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	progressive_warning_label.add_theme_color_override("font_color", COLOR_WARNING)
+	progressive_warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	progressive_warning_label.visible = false
+	content.add_child(progressive_warning_label)
+
+	var card = _create_section_card(
+		"PROGRESSIVE DIFFICULTY",
+		content,
+		"Turn-based challenge escalation (Compendium pp.30-31)"
+	)
+	parent.add_child(card)
+
+func _on_progressive_difficulty_changed(_toggled: bool) -> void:
+	var options: Array = []
+	if progressive_basic_checkbox and progressive_basic_checkbox.button_pressed:
+		options.append(ProgressiveDifficultyTrackerRef.ProgressionType.BASIC)
+	if progressive_advanced_checkbox and progressive_advanced_checkbox.button_pressed:
+		options.append(ProgressiveDifficultyTrackerRef.ProgressionType.ADVANCED)
+
+	local_campaign_config["progressive_difficulty_options"] = options
+
+	# Show warning when both options are active
+	if progressive_warning_label:
+		if options.size() >= 2:
+			progressive_warning_label.text = "Combining both options is likely to be deadly around Turn 20!"
+			progressive_warning_label.visible = true
+		else:
+			progressive_warning_label.visible = false
+
+	campaign_config_data_changed.emit(local_campaign_config)
+
 func _on_expansion_flags_changed(flags: Dictionary) -> void:
 	local_campaign_config["enabled_flags"] = flags
 	campaign_config_data_changed.emit(local_campaign_config)
@@ -709,7 +785,7 @@ func _setup_difficulty_options() -> void:
 	difficulty_option.add_item("Standard", GlobalEnums.DifficultyLevel.NORMAL)        # 2
 	difficulty_option.add_item("Challenging", GlobalEnums.DifficultyLevel.CHALLENGING) # 4
 	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)       # 6
-	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.INSANITY)     # 8
+	difficulty_option.add_item("Insanity", GlobalEnums.DifficultyLevel.INSANITY)      # 8
 
 	# Default to Standard (index 1, which is ID GlobalEnums.DifficultyLevel.NORMAL)
 	difficulty_option.select(1)
@@ -1218,6 +1294,8 @@ func get_campaign_config_data() -> Dictionary:
 		"victory_conditions": selected_victory_conditions.duplicate(),
 		"story_track_enabled": _story_track_enabled,
 		"introductory_campaign": _intro_campaign_enabled,
+		"progressive_difficulty_options": local_campaign_config.get(
+			"progressive_difficulty_options", []),
 		"is_complete": local_campaign_config.get("is_complete", false),
 		"metadata": {
 			"last_modified": Time.get_unix_time_from_system(),
@@ -1280,7 +1358,20 @@ func restore_panel_data(data: Dictionary) -> void:
 			intro_campaign_checkbox.set_pressed_no_signal(
 				_intro_campaign_enabled)
 	_update_narrative_combo_label()
-	
+
+	# Restore progressive difficulty options
+	if data.has("progressive_difficulty_options"):
+		var prog_opts: Array = data.progressive_difficulty_options
+		local_campaign_config["progressive_difficulty_options"] = prog_opts
+		if progressive_basic_checkbox:
+			progressive_basic_checkbox.set_pressed_no_signal(
+				ProgressiveDifficultyTrackerRef.ProgressionType.BASIC in prog_opts)
+		if progressive_advanced_checkbox:
+			progressive_advanced_checkbox.set_pressed_no_signal(
+				ProgressiveDifficultyTrackerRef.ProgressionType.ADVANCED in prog_opts)
+		if progressive_warning_label:
+			progressive_warning_label.visible = prog_opts.size() >= 2
+
 	# Restore completion status
 	if data.has("is_complete"):
 		local_campaign_config.is_complete = data.is_complete

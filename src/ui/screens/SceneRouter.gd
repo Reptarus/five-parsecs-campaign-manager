@@ -21,7 +21,7 @@ const SCENE_PATHS = {
 	# "main_campaign": UNUSED - no navigate_to calls exist
 	# "campaign_turn": DEPRECATED - replaced by campaign_turn_controller
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
-	"campaign_setup": "res://src/ui/screens/campaign/CampaignSetupDialog.tscn",
+	# "campaign_setup": DEPRECATED — bypassed by MainMenu scene_map remapping to campaign_creation
 	"campaign_turn_controller": "res://src/ui/screens/campaign/CampaignTurnController.tscn",
 	# "victory_progress": UNUSED - no navigate_to calls exist
 
@@ -87,6 +87,14 @@ const SCENE_PATHS = {
 
 	# Battle Simulator
 	"battle_simulator": "res://src/ui/screens/battle_simulator/BattleSimulatorUI.tscn",
+
+	# Legal
+	"eula": "res://src/ui/screens/legal/EULAScreen.tscn",
+	"legal_viewer": "res://src/ui/screens/legal/LegalTextViewer.tscn",
+
+	# Compendium / Library
+	"compendium": "res://src/ui/screens/compendium/CompendiumScreen.tscn",
+	"compendium_category": "res://src/ui/screens/compendium/CompendiumCategoryView.tscn",
 }
 
 # Navigation history for back button functionality

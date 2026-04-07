@@ -910,13 +910,16 @@ static func calculate_battle_credits(
 
 #region Initiative Calculations
 
-## Roll to seize initiative (2d6 + highest savvy >= 10, Core Rules p.95)
+## Roll to seize initiative (2d6 + highest savvy + difficulty modifier >= 10)
+## Core Rules p.95; difficulty modifier from Core Rules p.65:
+##   Hardcore: -2, Insanity: -3
 static func check_seize_initiative(
 	die1: int,
 	die2: int,
-	highest_savvy: int
+	highest_savvy: int,
+	difficulty_modifier: int = 0
 ) -> Dictionary:
-	var total := die1 + die2 + highest_savvy
+	var total := die1 + die2 + highest_savvy + difficulty_modifier
 	var seized := total >= 10
 
 	return {
@@ -924,7 +927,8 @@ static func check_seize_initiative(
 		"roll_total": total,
 		"die1": die1,
 		"die2": die2,
-		"savvy_bonus": highest_savvy
+		"savvy_bonus": highest_savvy,
+		"difficulty_modifier": difficulty_modifier
 	}
 
 #endregion

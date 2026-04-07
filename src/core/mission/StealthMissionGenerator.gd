@@ -89,13 +89,17 @@ static func _is_enabled() -> bool:
 ## ============================================================================
 
 ## Generate a complete stealth mission. Returns empty dict if DLC disabled.
-static func generate_stealth_mission() -> Dictionary:
+## campaign_crew_size: the fixed campaign setting (4/5/6), NOT roster count.
+## Compendium p.124: "The initial number of enemies is equal to your
+## campaign crew size +1 (so 7 in a normal game)."
+static func generate_stealth_mission(campaign_crew_size: int = 6) -> Dictionary:
 	if not _is_enabled():
 		return {}
 
 	_ensure_ref_loaded()
 	var objective := _roll_objective()
-	var sentry_count := randi_range(3, 6)
+	# Compendium p.124: initial sentries = campaign_crew_size + 1
+	var sentry_count := campaign_crew_size + 1
 	var individual := {}
 	if objective.get("has_individual", false):
 		individual = _roll_individual_type()

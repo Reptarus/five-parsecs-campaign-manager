@@ -26,6 +26,59 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 
 ---
 
+## Session 40: Difficulty Audit — Battle Domain (Apr 7, 2026)
+
+### Seize Initiative Difficulty Modifier Fix
+- `BattleCalculations.check_seize_initiative()` now accepts `difficulty_modifier: int = 0` — Hardcore: -2, Insanity: -3 (Core Rules p.65)
+- Modifier flows: BattlePhase injects into `battlefield_data["seize_initiative_modifier"]` → BattleResolver reads it → passes to BattleCalculations
+- `SeizeInitiativeSystem.gd` (UI path) already handled this — the fix is for the automated resolution path in BattleResolver
+
+### Difficulty Enum Cleanup
+- HARD(3)/NIGHTMARE(5)/ELITE(7) are **DEPRECATED** — not in Core Rules or Compendium. Aliased to NORMAL/INSANITY/INSANITY in JSON
+- Fabricated keys removed from JSON: `enemy_strength_multiplier`, `loot_modifier`, `credit_modifier`, `rival_resistance_modifier`
+- Only 5 real modes: Easy, Normal, Challenging, Hardcore, Insanity
+
+### Progressive Difficulty (Compendium pp.30-31)
+- `ProgressiveDifficultyTracker.gd` already existed with JSON data
+- BattlePhase now reads `progress_data["progressive_difficulty_options"]` (array of ProgressionType ints) instead of hardcoding BASIC
+- Options combinable per Compendium (loops over array)
+
+---
+
+## Session 39: Crew Size Scaling — Battle Domain (Apr 7, 2026)
+
+### Key Distinction: `get_crew_size()` ≠ `get_campaign_crew_size()`
+- `get_crew_size()` = fluctuating roster count (for upkeep, travel)
+- `get_campaign_crew_size()` = fixed 4/5/6 setting (for enemy numbers, deployment, reaction dice)
+
+### EnemyGenerator Changes
+- **Numbers modifier** now applied: `_parse_numbers_modifier()` converts "+0"/"+2"/"+3" from enemy template → added to base dice count
+- **Order of operations** fixed: select enemy type FIRST (D100), THEN roll dice, THEN add Numbers modifier
+- **Quest reroll** (Core Rules p.99): during Quest missions, any die scoring 1 rerolled once
+- **Raided formula** (Core Rules p.70): NEW `calculate_raided_enemy_count(campaign_crew_size)` method
+  - Crew 6: 3D6 pick highest (one step UP from standard 2D6 pick highest)
+  - Crew 5: 2D6 pick highest
+  - Crew 4: 1D6
+
+### BattlePhase Changes
+- Uses `get_campaign_crew_size()` instead of `get_crew_size()` for enemy count
+- **Fielding-fewer reduction** (Core Rules p.93): if deploying 2+ fewer than campaign setting, -1 enemy
+
+### FiveParsecsCombatSystem Changes
+- Reaction dice now roll D6 matching campaign setting (not living crew count)
+
+### PreBattleUI Changes
+- Deployment cap enforced to `campaign_crew_size`
+- "Deploying X / Y max" label visible in crew selection
+
+### Tests Added (13 new in test_crew_size_enemy_calc.gd)
+- Numbers modifier parsing (5 tests)
+- Quest reroll (2 tests — P(1) drops from 16.7% to <2.8%)
+- Roster vs setting distinction (2 tests)
+- Raided formula (4 tests — crew 6/5/4 + statistical comparison)
+
+---
+
 ## Session 35: Red & Black Zone Jobs Battle Integration (Apr 7, 2026)
 
 `BattlePhase.gd:280-411` already read `is_red_zone`/`is_black_zone` flags — now wired from upstream:

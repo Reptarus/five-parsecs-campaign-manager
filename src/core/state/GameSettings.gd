@@ -37,14 +37,18 @@ static func _ensure_diff_loaded() -> void:
 	file.close()
 
 ## Map DifficultyLevel enum → JSON key
+## Core Rules pp.64-65: EASY, NORMAL, CHALLENGING, HARDCORE, INSANITY
+## HARD/NIGHTMARE/ELITE kept as deprecated aliases for save compatibility
 static func _get_diff_key(level: int) -> String:
 	match level:
 		GameEnums.DifficultyLevel.NONE: return "NONE"
 		GameEnums.DifficultyLevel.EASY: return "EASY"
 		GameEnums.DifficultyLevel.NORMAL: return "NORMAL"
 		GameEnums.DifficultyLevel.CHALLENGING: return "CHALLENGING"
-		GameEnums.DifficultyLevel.HARD: return "HARD"
 		GameEnums.DifficultyLevel.HARDCORE: return "HARDCORE"
+		GameEnums.DifficultyLevel.INSANITY: return "INSANITY"
+		# Deprecated aliases (save compat) — resolve to aliased JSON entries
+		GameEnums.DifficultyLevel.HARD: return "HARD"
 		GameEnums.DifficultyLevel.NIGHTMARE: return "NIGHTMARE"
 		GameEnums.DifficultyLevel.ELITE: return "ELITE"
 		_: return "NORMAL"
@@ -61,15 +65,6 @@ func _init() -> void:
 
 func set_difficulty(level: GameEnums.DifficultyLevel) -> void:
 	difficulty_level = level
-
-func get_enemy_strength_modifier() -> float:
-	return float(_get_diff_value(difficulty_level, "enemy_strength_multiplier", 1.0))
-
-func get_loot_modifier() -> float:
-	return float(_get_diff_value(difficulty_level, "loot_modifier", 1.0))
-
-func get_credit_modifier() -> float:
-	return float(_get_diff_value(difficulty_level, "credit_modifier", 1.0))
 
 func set_campaign_type(type: GameEnums.FiveParcsecsCampaignType) -> void:
 	campaign_type = type

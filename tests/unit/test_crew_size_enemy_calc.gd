@@ -310,3 +310,159 @@ func test_standard_mode_no_modifiers():
 			break
 
 	assert_that(all_in_range).is_true()
+
+# ============================================================================
+# Numbers Modifier Tests (Core Rules p.92)
+# ============================================================================
+
+func test_parse_numbers_modifier_plus_zero():
+	"""Numbers modifier '+0' should return 0"""
+	assert_that(enemy_generator._parse_numbers_modifier("+0")).is_equal(0)
+
+func test_parse_numbers_modifier_plus_two():
+	"""Numbers modifier '+2' (e.g. Gangers) should return 2"""
+	assert_that(enemy_generator._parse_numbers_modifier("+2")).is_equal(2)
+
+func test_parse_numbers_modifier_plus_three():
+	"""Numbers modifier '+3' should return 3"""
+	assert_that(enemy_generator._parse_numbers_modifier("+3")).is_equal(3)
+
+func test_parse_numbers_modifier_plain_integer():
+	"""Numbers modifier as plain int (legacy data) should parse correctly"""
+	assert_that(enemy_generator._parse_numbers_modifier(1)).is_equal(1)
+
+func test_parse_numbers_modifier_string_no_plus():
+	"""Numbers modifier '2' without plus should parse correctly"""
+	assert_that(enemy_generator._parse_numbers_modifier("2")).is_equal(2)
+
+# ============================================================================
+# Quest Mission Reroll Tests (Core Rules p.99 — Interested Parties)
+# ============================================================================
+
+func test_quest_reroll_reduces_chance_of_one():
+	"""Quest missions should reroll any die scoring 1 (Core Rules p.99).
+	With reroll, P(final=1) drops from 1/6 to 1/36 per die."""
+	var standard_difficulty = 2
+	var one_count := 0
+	var total_tests := 600
+
+	for i in range(total_tests):
+		var enemy_count = enemy_generator._calculate_enemy_count(
+			standard_difficulty, 5, true)  # is_quest = true
+		if enemy_count == 1:
+			one_count += 1
+
+	# Without quest reroll: ~100 ones out of 600 (16.7%)
+	# With quest reroll: ~17 ones out of 600 (2.8%)
+	# Use 8% threshold to distinguish with high confidence
+	var one_percentage := float(one_count) / float(total_tests)
+	assert_that(one_percentage).is_less(0.08)
+
+func test_quest_reroll_still_produces_valid_range():
+	"""Quest missions should still produce results in valid 1-6 range"""
+	var standard_difficulty = 2
+
+	var all_valid := true
+	for i in range(50):
+		var enemy_count = enemy_generator._calculate_enemy_count(
+			standard_difficulty, 5, true)
+		if enemy_count < 1 or enemy_count > 6:
+			all_valid = false
+			break
+
+	assert_that(all_valid).is_true()
+
+# ============================================================================
+# Campaign Crew Size Setting vs Roster Count (Core Rules p.63)
+# ============================================================================
+
+func test_crew_size_6_with_large_roster_still_uses_2d6_high():
+	"""A crew of 8 members should still use crew_size=6 formula (2D6 pick higher).
+	The campaign_crew_size parameter controls the formula, not the roster count.
+	Callers must pass campaign_crew_size (4/5/6), not roster count."""
+	var standard_difficulty = 2
+
+	# Passing 6 (campaign setting) even if roster is 8
+	var all_valid := true
+	for i in range(30):
+		var enemy_count = enemy_generator._calculate_enemy_count(standard_difficulty, 6)
+		# Result MUST be 1-6 (single die max), not scaling with roster
+		if enemy_count < 1 or enemy_count > 6:
+			all_valid = false
+			break
+
+	assert_that(all_valid).is_true()
+
+func test_campaign_size_determines_formula_not_roster():
+	"""Passing crew_size=4 should use 2D6-pick-lower even when roster is large.
+	This validates that the function uses the parameter (campaign setting),
+	not any external state."""
+	var standard_difficulty = 2
+
+	# Crew size 4: min(2D6) should trend lower than crew size 6: max(2D6)
+	var sum_size_4 := 0
+	var sum_size_6 := 0
+	var iterations := 200
+
+	for i in range(iterations):
+		sum_size_4 += enemy_generator._calculate_enemy_count(standard_difficulty, 4)
+		sum_size_6 += enemy_generator._calculate_enemy_count(standard_difficulty, 6)
+
+	# Average of min(2D6) ≈ 2.53, average of max(2D6) ≈ 4.47
+	# With 200 iterations, the difference should be statistically significant
+	var avg_4 := float(sum_size_4) / float(iterations)
+	var avg_6 := float(sum_size_6) / float(iterations)
+	assert_that(avg_4).is_less(avg_6)
+
+# ============================================================================
+# Raided Starship Enemy Count (Core Rules p.70)
+# ============================================================================
+
+func test_raided_crew_6_uses_3d6_pick_highest():
+	"""Raided event with crew size 6 rolls 3D6 pick highest (Core Rules p.70)"""
+	var all_valid := true
+	for i in range(30):
+		var count: int = enemy_generator.calculate_raided_enemy_count(6)
+		if count < 1 or count > 6:
+			all_valid = false
+			break
+
+	assert_that(all_valid).is_true()
+
+func test_raided_crew_5_uses_2d6_pick_highest():
+	"""Raided event with crew size 5 rolls 2D6 pick highest (Core Rules p.70)"""
+	var all_valid := true
+	for i in range(30):
+		var count: int = enemy_generator.calculate_raided_enemy_count(5)
+		if count < 1 or count > 6:
+			all_valid = false
+			break
+
+	assert_that(all_valid).is_true()
+
+func test_raided_crew_4_uses_1d6():
+	"""Raided event with crew size 4 rolls 1D6 (Core Rules p.70)"""
+	var all_valid := true
+	for i in range(30):
+		var count: int = enemy_generator.calculate_raided_enemy_count(4)
+		if count < 1 or count > 6:
+			all_valid = false
+			break
+
+	assert_that(all_valid).is_true()
+
+func test_raided_crew_6_trends_higher_than_standard():
+	"""Raided 3D6-pick-highest (crew 6) should average higher than
+	standard 2D6-pick-highest (crew 6)"""
+	var sum_raided := 0
+	var sum_standard := 0
+	var iterations := 300
+
+	for i in range(iterations):
+		sum_raided += enemy_generator.calculate_raided_enemy_count(6)
+		sum_standard += enemy_generator._calculate_enemy_count(2, 6)
+
+	# E[max(3D6)] ≈ 4.96 vs E[max(2D6)] ≈ 4.47
+	var avg_raided := float(sum_raided) / float(iterations)
+	var avg_standard := float(sum_standard) / float(iterations)
+	assert_that(avg_raided).is_greater(avg_standard)

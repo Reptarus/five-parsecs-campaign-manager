@@ -42,6 +42,16 @@ character.stats.combat = 3  # Does not exist
 
 Stats: `combat`, `reactions`, `toughness`, `savvy`, `tech`, `move`, `speed`, `luck`
 
+### 5. Campaign Crew Size Property (Session 39)
+
+`FiveParsecsCampaignCore.campaign_crew_size: int` — @export, default 6. Fixed 4/5/6 chosen at creation (Core Rules p.63). Controls enemy number dice formula, deployment cap, reaction dice. NOT the same as `get_crew_size()` (roster count).
+
+- Serialized at top level + config sub-dict + meta sub-dict
+- Deserialized with `clampi(value, 4, 6)` and legacy fallback (default 6 for old saves)
+- Accessor: `get_campaign_crew_size() -> int`
+- Chain: `GameState.get_campaign_crew_size()` → `GameStateManager.get_campaign_crew_size()`
+- Set by `CampaignFinalizationService` at campaign creation
+
 ### 3. Equipment Key is "equipment"
 
 Ship stash: `campaign.equipment_data["equipment"]` — **NOT** `"pool"`.

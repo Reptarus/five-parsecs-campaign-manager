@@ -4,16 +4,18 @@ class_name GameEnums
 
 ## Enumeration for difficulty levels in the game
 ## Synced with GlobalEnums.DifficultyLevel — ordinals MUST match
+## Core Rules pp.64-65: EASY, NORMAL, CHALLENGING, HARDCORE, INSANITY
+## HARD/NIGHTMARE/ELITE are DEPRECATED — not in Core Rules or Compendium.
 enum DifficultyLevel {
-	NONE, # 0 - No difficulty set
-	EASY, # 1 - Easy difficulty - more forgiving gameplay
-	NORMAL, # 2 - Normal difficulty - balanced gameplay
-	HARD, # 3 - Hard difficulty - challenging gameplay
-	CHALLENGING, # 4 - Challenging difficulty
-	NIGHTMARE, # 5 - Nightmare difficulty - extremely challenging gameplay
-	HARDCORE, # 6 - Hardcore difficulty - permadeath
-	ELITE, # 7 - Elite difficulty - maximum challenge
-	INSANITY # 8 - Insanity difficulty
+	NONE,          # 0 - No difficulty set
+	EASY,          # 1 - Core Rules p.64
+	NORMAL,        # 2 - Core Rules p.65
+	HARD,          # 3 - DEPRECATED — alias of NORMAL
+	CHALLENGING,   # 4 - Core Rules p.65
+	NIGHTMARE,     # 5 - DEPRECATED — alias of INSANITY
+	HARDCORE,      # 6 - Core Rules p.65
+	ELITE,         # 7 - DEPRECATED — alias of INSANITY
+	INSANITY       # 8 - Core Rules p.65
 }
 
 ## Edit Mode

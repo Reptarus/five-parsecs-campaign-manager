@@ -1,6 +1,6 @@
 {
   "name": "Progressive Difficulty",
-  "source": "Compendium pp.56-60 (Progressive Difficulty Options)",
+  "source": "Compendium pp.30-31 (Progressive Difficulty Options)",
   "basic_milestones": [
     {"turn": 4, "id": "respawn_1", "label": "Respawn 1", "instruction": "RESPAWN 1: Replace the first basic enemy slain at end of each round."},
     {"turn": 5, "id": "strength_1", "label": "Strength 1", "instruction": "STRENGTH 1: +1 basic enemy per encounter."},

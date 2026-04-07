@@ -36,6 +36,7 @@ const SAVE_PATH := "user://player_profile.json"
 const SCHEMA_VERSION := 1
 
 ## Bonus scaling thresholds
+const MAX_ELITE_RANKS := 17       # Core Rules p.65: max 17 Elite Ranks
 const EXTRA_CHARACTER_EVERY := 3  # Every 3 ranks = +1 starting character
 const STARS_BONUS_EVERY := 5      # Every 5 ranks = +1 Stars of the Story use
 
@@ -101,6 +102,10 @@ func _init() -> void:
 ## Awards an Elite Rank for completing a Victory Condition
 ## Returns true if rank was awarded, false if already completed
 func award_elite_rank(victory_condition: int) -> bool:
+	# Core Rules p.65: maximum 17 Elite Ranks
+	if elite_ranks >= MAX_ELITE_RANKS:
+		push_warning("PlayerProfile: Maximum Elite Ranks (%d) reached" % MAX_ELITE_RANKS)
+		return false
 	# Prevent duplicate awards
 	if has_completed_victory(victory_condition):
 		push_warning("PlayerProfile: Victory condition %d already completed - cannot award Elite Rank twice" % victory_condition)

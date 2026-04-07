@@ -27,16 +27,76 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
-## Session 38: Intro Campaign + Story Track Reconciliation (Apr 7, 2026)
+## Session 40: Difficulty Settings Audit (Apr 7, 2026)
 
-Two narrative overlay systems reconciled into sequential pipeline:
+### Difficulty Enum Cleanup
+
+- HARD(3)/NIGHTMARE(5)/ELITE(7) are **DEPRECATED** — not in Core Rules or Compendium
+- Aliased to NORMAL/INSANITY/INSANITY in `difficulty_modifiers.json` for save compat
+- Fabricated JSON keys removed: `enemy_strength_multiplier`, `loot_modifier`, `credit_modifier`, `rival_resistance_modifier`
+- Only 5 real modes: Easy, Normal, Challenging, Hardcore, Insanity (Core Rules pp.64-65)
+
+### Progressive Difficulty Wiring (Compendium pp.30-31)
+
+- `ProgressiveDifficultyTracker.gd` + `progressive_difficulty.json` already existed
+- NEW: ExpandedConfigPanel has two DLC-gated checkboxes (Option 1 + Option 2, combinable)
+- Persisted as `campaign.progress_data["progressive_difficulty_options"]` (Array of ints)
+- BattlePhase reads from progress_data instead of hardcoding `ProgressionType.BASIC`
+- Old saves default to `[]` (no progressive difficulty)
+
+### Dead Code Deleted (10 files)
+
+ConfigPanel, CampaignSetupScreen, CampaignSetupDialog, DifficultyOption, gameplay_options_menu, QuickStartDialog, CampaignLoadDialog, CampaignSummaryPanel, CampaignCreationManager — all confirmed zero active references.
+
+### Elite Rank Cap
+
+- `PlayerProfile.MAX_ELITE_RANKS = 17` — guard in `award_elite_rank()` (Core Rules p.65)
+
+---
+
+## Session 39-39c: Crew Size Scaling Audit (Apr 7, 2026)
+
+Full audit of crew-size-dependent rules from Core Rules PDF (pp.63-64, 70, 92-93, 99, 118) + Compendium (pp.124, 141).
+
+### Key Architectural Change: `campaign_crew_size` vs `get_crew_size()`
+- **`get_crew_size()`** = fluctuating roster count (for upkeep, travel costs)
+- **`get_campaign_crew_size()`** = fixed 4/5/6 chosen at creation (for enemy dice, deployment, reaction dice)
+- New `campaign_crew_size` @export on `FiveParsecsCampaignCore` with full serialization + legacy fallback (default 6)
+- Accessor chain: `FiveParsecsCampaignCore.get_campaign_crew_size()` → `GameState` → `GameStateManager`
+
+### Files Modified (Session 39)
+- `FiveParsecsCampaignCore.gd` — `campaign_crew_size` property + serialization
+- `EnemyGenerator.gd` — Numbers modifier applied (+0/+1/+2/+3), quest reroll (Core Rules p.99), order of operations fix (enemy type FIRST, then dice), `calculate_raided_enemy_count()` (3D6/2D6/1D6 per p.70)
+- `BattlePhase.gd` — campaign crew size + fielding-fewer reduction (Core Rules p.93: -1 enemy if deploying 2+ below setting)
+- `FiveParsecsCombatSystem.gd` — reaction dice use campaign setting, not living crew count
+- `ExpandedConfigPanel.gd` — CREW SIZE card (OptionButton 4/5/6 with descriptions)
+- `PreBattleUI.gd` — deployment cap enforcement + "Deploying X / Y max" label
+- `CampaignCreationCoordinator.gd` + `CampaignFinalizationService.gd` — wiring
+- `BattleSetupWizard.gd` — fabricated formula replaced with EnemyGenerator delegation
+
+### Files Modified (Session 39c — continuation)
+- `StealthMissionGenerator.gd` — added `campaign_crew_size` param, sentries = setting + 1 (Compendium p.124)
+- `SalvageJobGenerator` caller in `WorldPhase.gd` — changed from `get_crew_size()` to `get_campaign_crew_size()`
+- `test_crew_size_enemy_calc.gd` — 13 new tests (Numbers modifier, quest reroll, roster-vs-setting, Raided formula)
+- `CLAUDE.md` — Data Ownership table + Gotcha entry
+
+---
+
+## Session 38-39b: Intro Campaign + Story Track — Reconciled & Runtime-Verified (Apr 7, 2026)
+
+Two narrative overlay systems reconciled into sequential pipeline, runtime-tested end-to-end.
 
 - **IntroductoryCampaignManager.gd** (NEW): `src/core/campaign/IntroductoryCampaignManager.gd` — extends Resource, mirrors StoryTrackSystem pattern. Turn restrictions from Compendium pp.105-109. Signals: `intro_turn_started`, `intro_completed`, `intro_phase_unlocked`.
 - **CampaignPhaseManager** integration: `_init_intro_campaign()` mirrors `_init_story_track()`. `start_new_turn()` checks intro FIRST — story track only fires if intro NOT active. `_init_story_track()` delays `start_story_track()` when intro active.
 - **Sequencing rule**: Intro always runs before Story Track. Story clock FROZEN during intro. On intro completion: +2 SP + story track activates (Compendium p.109).
 - **PostBattlePhase**: `_advance_story_track()` returns early if intro active; calls `advance_intro_turn()` instead.
-- **Save/load**: `progress_data["intro_campaign_state"]` for intro, `progress_data["story_track"]` for story (unchanged).
-- **Config keys**: `story_track_enabled` (bool) + `introductory_campaign` (bool). Old string keys (`story_track`, `tutorial_mode`) removed.
+- **Save/load**: `progress_data["intro_campaign_state"]` for intro, `progress_data["story_track"]` for story. Both init methods persist state immediately via `save_*_state()`.
+- **Config keys**: `story_track_enabled` (bool, campaign property) + `introductory_campaign` (bool, progress_data).
+- **DLC gate**: Uses `dlc.ContentFlag.INTRODUCTORY_CAMPAIGN` (enum, not hardcoded int). Checkbox visibility uses `is_feature_available()` (not `is_feature_enabled()`).
+- **CampaignFinalizationService**: Sets `campaign.story_track_enabled` directly (not via GameStateManager — campaign not on GameState yet during creation).
+- **World Phase skip**: `_can_advance_to_next_step()` + `_should_skip_intro_step()` auto-complete restricted steps (same pattern as Black Zone).
+- **Dashboard**: Queries live `CampaignPhaseManager.get_intro_status()`, falls back to progress_data.
+- **Loading screen**: `SceneRouter.navigate_to_with_loading()` wired for campaign creation, continue, load, import transitions.
 
 ---
 

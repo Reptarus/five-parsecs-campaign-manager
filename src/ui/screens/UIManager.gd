@@ -247,8 +247,6 @@ func register_screen(screen_type: String, screen_class) -> void:
 	
 func get_screen_class(screen_type: String):
 	# Implementation would return the registered screen class
-	if screen_type == "options_menu":
-		return preload("res://src/ui/screens/gameplay_options_menu.gd")
-	elif screen_type == "campaign_dashboard":
+	if screen_type == "campaign_dashboard":
 		return preload("res://src/ui/screens/campaign/CampaignDashboard.gd")
 	return null

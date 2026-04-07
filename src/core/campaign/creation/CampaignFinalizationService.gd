@@ -252,6 +252,12 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if campaign_cfg.get("introductory_campaign", false):
 		campaign.progress_data["introductory_campaign"] = true
 
+	# Progressive Difficulty (Compendium pp.30-31) — persist user's choices
+	# Array of ints: empty=none, [1]=basic, [2]=advanced, [1,2]=both
+	var prog_opts: Array = campaign_cfg.get("progressive_difficulty_options", [])
+	if not prog_opts.is_empty():
+		campaign.progress_data["progressive_difficulty_options"] = prog_opts
+
 	# RULES FIX: crew.members now includes captain (merged by coordinator)
 	var crew_data = data.get("crew", {})
 	var transformed_crew = _transform_crew_data_for_turn_system(crew_data)
