@@ -172,17 +172,27 @@ func _start_turn() -> void:
 ## Reaction Dice System (Five Parsecs Core Rules)
 
 func roll_reaction_dice() -> void:
-	## Roll reaction dice at start of crew turn - one D6 per crew member
-	var living_crew = crew_characters.filter(func(c): return c.health > 0)
-	var crew_size = living_crew.size()
+	## Roll reaction dice at start of crew turn
+	## Core Rules p.118: "Roll number of D6 matching crew size"
+	## This means the campaign crew size SETTING, not living crew count.
+	var living_crew = crew_characters.filter(
+		func(c): return c.health > 0)
+
+	# Get campaign crew size setting (4/5/6) for dice count
+	var tree = Engine.get_main_loop()
+	var root = tree.root if tree else null
+	var gsm = root.get_node_or_null("/root/GameStateManager") if root else null
+	var dice_count: int = living_crew.size()  # fallback
+	if gsm and gsm.has_method("get_campaign_crew_size"):
+		dice_count = gsm.get_campaign_crew_size()
 
 	# Clear previous assignments
 	reaction_dice_pool.clear()
 	reaction_dice_assignments.clear()
 	unassigned_dice.clear()
 
-	# Roll one D6 per living crew member
-	for i in range(crew_size):
+	# Roll D6 matching campaign crew size setting
+	for i in range(dice_count):
 		var die_value = randi() % 6 + 1
 		reaction_dice_pool.append(die_value)
 		unassigned_dice.append(die_value)

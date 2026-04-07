@@ -1116,13 +1116,22 @@ func get_option(option_name: String, default_value = null) -> Variant:
 func get_crew_size() -> int:
 	if not current_campaign:
 		return 0
-	
+
 	if current_campaign.has_method("get_crew_size"):
 		return current_campaign.get_crew_size()
-	
+
 	# Fallback implementation
 	var crew = current_campaign.get("crew", [])
 	return crew.size()
+
+## Returns the campaign crew size SETTING (4, 5, or 6) from Core Rules p.63.
+## Used for enemy numbers, deployment limits, and reaction dice — NOT roster count.
+func get_campaign_crew_size() -> int:
+	if not current_campaign:
+		return 6
+	if current_campaign.has_method("get_campaign_crew_size"):
+		return current_campaign.get_campaign_crew_size()
+	return 6  # Legacy fallback
 
 func has_active_campaign() -> bool:
 	return current_campaign != null

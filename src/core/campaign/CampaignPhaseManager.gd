@@ -892,6 +892,9 @@ func _init_story_track() -> void:
 	story_track.story_track_completed.connect(
 		_on_story_track_completed)
 
+	# Persist initial state so dashboard/other systems can read it
+	save_story_track_state()
+
 ## Check if current turn is a Story Event turn
 func is_story_event_turn() -> bool:
 	return _current_story_event != null
@@ -939,8 +942,8 @@ func _init_intro_campaign() -> void:
 	# DLC gate check
 	var dlc: Node = get_node_or_null("/root/DLCManager")
 	if dlc and dlc.has_method("is_feature_enabled"):
-		# ContentFlag.INTRODUCTORY_CAMPAIGN = 71 in DLCManager enum
-		if not dlc.is_feature_enabled(71):
+		if not dlc.is_feature_enabled(
+				dlc.ContentFlag.INTRODUCTORY_CAMPAIGN):
 			intro_campaign = null
 			return
 
@@ -960,6 +963,9 @@ func _init_intro_campaign() -> void:
 		_on_intro_completed)
 	intro_campaign.intro_phase_unlocked.connect(
 		_on_intro_phase_unlocked)
+
+	# Persist initial state so other systems can read it from progress_data
+	save_intro_campaign_state()
 
 
 ## Get intro turn restrictions for phase panels to query

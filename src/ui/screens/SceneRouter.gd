@@ -510,6 +510,46 @@ func get_scene_info() -> Dictionary:
 
 ## Legacy transition methods (navigate_to now handles transitions by default)
 
+func navigate_to_with_loading(
+	scene_name: String,
+	tasks: PackedStringArray = PackedStringArray(),
+	context: Dictionary = {},
+	add_to_history: bool = true,
+) -> void:
+	## Navigate with an itemized loading screen (for heavy transitions).
+	## Falls back to plain fade if TransitionManager unavailable.
+	if not SCENE_PATHS.has(scene_name):
+		push_error("SceneRouter: Scene not found: " + scene_name)
+		return
+
+	if not context.is_empty():
+		scene_contexts[scene_name] = context.duplicate()
+
+	var scene_path: String = SCENE_PATHS[scene_name]
+	if not ResourceLoader.exists(scene_path):
+		push_error("SceneRouter: Scene file not found: " + scene_path)
+		return
+
+	if add_to_history and not current_scene.is_empty():
+		_add_to_history(current_scene)
+
+	var previous_scene: String = current_scene
+	current_scene = scene_name
+
+	var tm: Node = get_node_or_null("/root/TransitionManager")
+	if tm and tm.has_method("fade_to_scene_with_loading"):
+		if tasks.is_empty():
+			tm.fade_to_scene_with_loading(scene_path)
+		else:
+			tm.fade_to_scene_with_loading(scene_path, tasks)
+		scene_changed.emit(scene_name, previous_scene)
+		_preload_campaign_flow_scenes(scene_name)
+		return
+
+	# Fallback: plain navigate
+	navigate_to(scene_name, {}, false, true)
+
+
 func navigate_to_with_transition(scene_name: String, context: Dictionary = {}, add_to_history: bool = true) -> void:
 	## Delegates to navigate_to() which now uses transitions by default
 	navigate_to(scene_name, context, add_to_history, true)

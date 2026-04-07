@@ -36,10 +36,10 @@ var selected_size: int = 4
 var captain_index: int = 0
 var character_creator: Node = null
 
-# Crew size constraints
-const MIN_CREW_SIZE = 1
-const MAX_CREW_SIZE = 8
-const DEFAULT_CREW_SIZE = 4
+# Crew size constraints (Core Rules p.63)
+const MIN_CREW_SIZE = 4  # Minimum campaign crew size
+const MAX_CREW_SIZE = 8  # Roster can grow beyond campaign setting
+const DEFAULT_CREW_SIZE = 6  # Default campaign crew size
 
 func _init(panel_node: Control = null) -> void:
 	self.panel_node = panel_node

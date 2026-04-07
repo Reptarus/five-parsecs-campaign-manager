@@ -185,29 +185,37 @@ func _select_from_categories(preferred_categories: Array) -> String:
 	# Ultimate fallback
 	return "criminal_elements"
 
-func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
+func _calculate_enemy_count(
+	difficulty: int, crew_size: int, is_quest: bool = false
+) -> int:
 	## Calculate enemy count based on crew size and difficulty (Core Rules p.63)
 	##
-	## Crew Size Rules:
+	## Crew Size Rules (campaign crew size setting, NOT roster count):
 	## - Size 6: Roll 2D6, pick HIGHER result
 	## - Size 5: Roll 1D6
 	## - Size 4: Roll 2D6, pick LOWER result
 	##
-	## Difficulty Modifiers (via DifficultyModifiers.gd, uses GlobalEnums.DifficultyLevel values):
-	## - Challenging: Reroll 1s and 2s before picking (more enemies, still 1-6 range)
+	## Difficulty Modifiers (via DifficultyModifiers.gd):
+	## - Challenging: Reroll 1s and 2s before picking
 	## - Hardcore: Add +1 basic enemy to final count
 	## - Insanity: +1 specialist enemy added separately (not here — see BattlePhase)
 	## - Easy: Remove 1 Basic enemy if total is 5+ opponents
+	##
+	## Quest Mission Reroll (Core Rules p.99 — Interested Parties):
+	## - During Quest missions, reroll any die scoring 1 once
 	var base_count: int = 0
 	var is_challenging := DifficultyModifiers.should_reroll_low_enemy_dice(difficulty)
 
-	# Helper function to roll a die, rerolling 1s and 2s for CHALLENGING
+	# Helper: roll a die with difficulty and quest reroll modifiers
 	var _roll_die := func() -> int:
 		var result := randi() % 6 + 1
 		if is_challenging:
-			# Reroll 1s and 2s once (Core Rules: reroll before picking)
+			# Reroll 1s and 2s once (Core Rules p.65: reroll before picking)
 			if result <= 2:
 				result = randi() % 6 + 1
+		# Quest missions: reroll any die scoring 1 once (Core Rules p.99)
+		elif is_quest and result == 1:
+			result = randi() % 6 + 1
 		return result
 
 	# Sprint 26.5: Track rolls for debug logging
@@ -445,20 +453,23 @@ func _roll_varied_weapons(base_weapons: Array) -> Array:
 	return varied_weapons
 
 func generate_enemies_as_dicts(
-	mission_data: Dictionary, crew_size: int = 4
+	mission_data: Dictionary, campaign_crew_size: int = 6
 ) -> Array[Dictionary]:
 	## Generate enemies as Dictionary array using JSON data.
-	var objective: String = mission_data.get("objective", "patrol")
-	var danger_level: int = mission_data.get("danger_level", 1)
+	## campaign_crew_size: the fixed campaign setting (4/5/6), NOT roster count.
+	##
+	## Core Rules order of operations (pp.92-93):
+	## 1. Select enemy type (D100 encounter tables)
+	## 2. Roll base enemy count (crew-size dice formula)
+	## 3. Add Numbers modifier from enemy type
+	## 4. Apply difficulty modifiers
+	var danger_level: int = mission_data.get("danger_level", 2)
 	var mission_source: String = mission_data.get(
 		"mission_source", "patron"
 	)
+	var is_quest: bool = mission_data.get("is_quest", false)
 
-	var enemy_count: int = _calculate_enemy_count(
-		danger_level, crew_size
-	)
-
-	# Use preset enemy_type from accepted job if available (e.g. from patron mission)
+	# Step 1: Select enemy type FIRST (Core Rules pp.91-94)
 	var category: String = ""
 	var template: Dictionary = {}
 	var preset_enemy: String = mission_data.get("enemy_type", "")
@@ -466,13 +477,24 @@ func generate_enemies_as_dicts(
 		template = _find_enemy_template_by_name(preset_enemy)
 		if not template.is_empty():
 			category = template.get("category", "")
-	# Fallback: roll random enemy from D100 encounter table (Core Rules pp.91-94)
+	# Fallback: roll random enemy from D100 encounter table
 	if template.is_empty():
 		if not mission_source.is_empty():
 			category = _roll_encounter_category(mission_source)
 		else:
+			var objective: String = mission_data.get("objective", "patrol")
 			category = _determine_enemy_category(objective.capitalize())
 		template = _roll_enemy_in_category(category)
+
+	# Step 2: Roll base enemy count using campaign crew size (Core Rules p.63)
+	var base_count: int = _calculate_enemy_count(
+		danger_level, campaign_crew_size, is_quest)
+
+	# Step 3: Add Numbers modifier from enemy type (Core Rules p.92)
+	var numbers_mod: int = _parse_numbers_modifier(
+		template.get("numbers", "+0"))
+	var enemy_count: int = maxi(1, base_count + numbers_mod)
+
 	var enemy_name: String = template.get("name", "Unknown Hostiles")
 	var base_combat: int = template.get("combat_skill", 0)
 	var base_tough: int = template.get("toughness", 3)
@@ -649,6 +671,25 @@ func _find_enemy_template_by_name(enemy_name: String) -> Dictionary:
 				result["category"] = category_data.get("id", "")
 				return result
 	return {}
+
+## Public wrapper for dice-based enemy count formula (Core Rules p.63).
+## Used by BattleSetupWizard and other external callers.
+func calculate_enemy_count(
+	difficulty: int, crew_size: int, is_quest: bool = false
+) -> int:
+	return _calculate_enemy_count(difficulty, crew_size, is_quest)
+
+## ═══════════════════════════════════════════════════════════════════════════════
+## NUMBERS MODIFIER PARSING — Core Rules p.92
+## ═══════════════════════════════════════════════════════════════════════════════
+
+func _parse_numbers_modifier(numbers_str) -> int:
+	## Parse the Numbers modifier from enemy type (e.g. "+2", "+0", "+3").
+	## Returns the integer modifier to add to base enemy count.
+	var s: String = str(numbers_str).strip_edges()
+	if s.begins_with("+"):
+		return int(s.substr(1))
+	return int(s)
 
 ## ═══════════════════════════════════════════════════════════════════════════════
 ## WEAPON CODE RESOLUTION — Core Rules weapon tables

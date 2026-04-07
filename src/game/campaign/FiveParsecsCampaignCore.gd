@@ -12,6 +12,9 @@ extends Resource
 @export var campaign_id: String = ""
 @export var difficulty: int = 0
 @export var ironman_mode: bool = false
+## Campaign crew size setting (Core Rules p.63): 4, 5, or 6. Controls enemy number
+## formula, deployment cap, and reaction dice. NOT the same as roster count.
+@export var campaign_crew_size: int = 6
 @export var created_at: String = ""
 @export var last_modified: String = ""
 @export var version: String = "1.0"
@@ -129,6 +132,8 @@ func set_config(data: Dictionary) -> void:
 		difficulty = data.difficulty
 	if data.has("ironman_mode"):
 		ironman_mode = data.ironman_mode
+	if data.has("campaign_crew_size"):
+		campaign_crew_size = clampi(data.get("campaign_crew_size", 6), 4, 6)
 	_update_modified_time()
 
 func initialize_resources(data: Dictionary) -> void:
@@ -247,6 +252,7 @@ func to_dictionary() -> Dictionary:
 			"schema_version": schema_version,
 			"difficulty": difficulty,
 			"ironman_mode": ironman_mode,
+			"campaign_crew_size": campaign_crew_size,
 			"created_at": created_at,
 			"last_modified": last_modified,
 			"version": version,
@@ -256,6 +262,7 @@ func to_dictionary() -> Dictionary:
 			"name": campaign_name,
 			"difficulty": difficulty,
 			"ironman_mode": ironman_mode,
+			"campaign_crew_size": campaign_crew_size,
 			# SPRINT 6.1/6.2: Include house rules and story track in config
 			"house_rules": house_rules.duplicate(),
 			"story_track_enabled": story_track_enabled
@@ -278,6 +285,8 @@ func to_dictionary() -> Dictionary:
 		# SPRINT 6.1/6.2: Top-level for easy access
 		"house_rules": house_rules.duplicate(),
 		"story_track_enabled": story_track_enabled,
+		# Campaign crew size setting (Core Rules p.63)
+		"campaign_crew_size": campaign_crew_size,
 		# Phase 30: Red Zone Jobs + Shipless State
 		"red_zone_licensed": red_zone_licensed,
 		"red_zone_turns_completed": red_zone_turns_completed,
@@ -394,6 +403,16 @@ func from_dictionary(data: Dictionary) -> void:
 		story_track_enabled = data.get("story_track_enabled", false)
 	elif data.has("config") and data.config.has("story_track_enabled"):
 		story_track_enabled = data.config.get("story_track_enabled", false)
+
+	# Campaign crew size setting (Core Rules p.63) — default 6 for legacy saves
+	if data.has("campaign_crew_size"):
+		campaign_crew_size = clampi(data.get("campaign_crew_size", 6), 4, 6)
+	elif data.has("config") and data.config is Dictionary and data.config.has("campaign_crew_size"):
+		campaign_crew_size = clampi(data.config.get("campaign_crew_size", 6), 4, 6)
+	elif data.has("meta") and data.meta is Dictionary and data.meta.has("campaign_crew_size"):
+		campaign_crew_size = clampi(data.meta.get("campaign_crew_size", 6), 4, 6)
+	else:
+		campaign_crew_size = 6  # Legacy save default
 
 	# Phase 30: Red Zone Jobs + Shipless State
 	if data.has("red_zone_licensed"):
@@ -515,6 +534,12 @@ func get_crew_size() -> int:
 	if members is Array:
 		return members.size()
 	return 0
+
+## Returns the campaign crew size SETTING (4, 5, or 6). This is the fixed value
+## chosen at campaign creation (Core Rules p.63) used for enemy numbers, deployment
+## limits, and reaction dice. NOT the current roster count — use get_crew_size() for that.
+func get_campaign_crew_size() -> int:
+	return campaign_crew_size
 
 ## Returns a crew member by their character_id (or legacy "id" key).
 ## Uses a cached index for O(1) lookups. Falls back to linear scan if

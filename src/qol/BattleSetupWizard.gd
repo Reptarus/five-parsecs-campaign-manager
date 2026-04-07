@@ -39,18 +39,13 @@ func roll_enemy_type() -> String:
 	return fallback[randi() % fallback.size()]
 
 func calculate_enemy_count(crew_size: int) -> int:
-	# Five Parsecs standard: base enemy count scales with crew
-	# Small crew (1-3): enemies = crew + 2
-	# Medium crew (4-5): enemies = crew + 3
-	# Large crew (6-8): enemies = crew + 4
-	if crew_size <= 0:
-		crew_size = 5 # Default if no campaign
-	if crew_size <= 3:
-		return crew_size + 2
-	elif crew_size <= 5:
-		return crew_size + 3
-	else:
-		return crew_size + 4
+	## Calculate enemy count using Core Rules dice formula (p.63).
+	## Delegates to EnemyGenerator for consistency.
+	if _enemy_generator:
+		# Normal difficulty (2), not a quest mission
+		return _enemy_generator.calculate_enemy_count(2, crew_size)
+	# Fallback: simple 1D6 approximation
+	return randi_range(1, 6)
 
 func determine_deployment() -> Dictionary:
 	# Five Parsecs deployment uses table edges with 24" standard separation
@@ -99,9 +94,13 @@ func quick_start_battle(mission: Variant) -> void:
 	battle_generated.emit(battle_data)
 
 func _get_crew_size() -> int:
-	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") if Engine.get_main_loop() else null
-	if gs and gs.has_method("get_crew_size"):
-		var size: int = gs.get_crew_size()
-		if size > 0:
-			return size
-	return 5 # Default crew size
+	var tree = Engine.get_main_loop()
+	var root = tree.root if tree else null
+	if root:
+		# Prefer campaign crew size setting (Core Rules p.63)
+		var gsm = root.get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("get_campaign_crew_size"):
+			var size: int = gsm.get_campaign_crew_size()
+			if size >= 4:
+				return size
+	return 6  # Default campaign crew size

@@ -314,6 +314,17 @@ func _process_battle_setup() -> void:
 		])
 	else:
 		enemy_count = _determine_enemy_count()
+
+	# Fielding fewer crew reduction (Core Rules p.93):
+	# If deploying 2+ fewer figures than campaign crew size, subtract 1
+	var _campaign_crew_size: int = 6
+	if game_state_manager and game_state_manager.has_method("get_campaign_crew_size"):
+		_campaign_crew_size = game_state_manager.get_campaign_crew_size()
+	var deployed_count: int = battle_setup_data.get(
+		"deployed_crew_count", _campaign_crew_size)
+	if deployed_count <= _campaign_crew_size - 2:
+		enemy_count = maxi(1, enemy_count - 1)
+
 	var enemy_types = _generate_enemies(enemy_count, mission_source)
 
 	# Get difficulty for Unique Individual and specialist modifiers
@@ -481,18 +492,19 @@ func _determine_enemy_count() -> int:
 	##
 	## This uses EnemyGenerator._calculate_enemy_count() for consistency.
 
-	var crew_size = 6 # Default to 6 (standard crew)
+	var crew_size = 6 # Default to 6 (standard campaign crew size)
 	var difficulty = 2 # Default to NORMAL difficulty
 
 	if game_state_manager:
-		if game_state_manager.has_method("get_crew_size"):
-			crew_size = game_state_manager.get_crew_size()
+		# Use campaign crew size SETTING (4/5/6), not roster count
+		if game_state_manager.has_method("get_campaign_crew_size"):
+			crew_size = game_state_manager.get_campaign_crew_size()
 		if game_state_manager.has_method("get_difficulty"):
 			difficulty = game_state_manager.get_difficulty()
 
 	# Use EnemyGenerator's Core Rules-compliant formula
 	if enemy_generator:
-		return enemy_generator._calculate_enemy_count(difficulty, crew_size)
+		return enemy_generator.calculate_enemy_count(difficulty, crew_size)
 
 	# Fallback: Implement Core Rules formula inline
 	var base_count: int = 0

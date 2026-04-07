@@ -726,6 +726,12 @@ func _should_skip_intro_step(step: int) -> bool:
 func _can_advance_to_next_step() -> bool:
 	## Check if current step is completed and can advance
 
+	# Introductory Campaign: auto-complete skipped steps
+	# (Compendium pp.105-109 — phases progressively enabled)
+	if _should_skip_intro_step(current_step):
+		step_completed[current_step] = true
+		return true
+
 	# Black Zone: auto-skip patron/rival search and rumors
 	# (Core Rules Appendix III p.150)
 	var _bz_zone: int = 0

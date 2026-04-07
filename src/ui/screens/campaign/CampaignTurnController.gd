@@ -641,8 +641,12 @@ func _initiate_battle_sequence() -> void:
 	# Generate enemies from mission data using EnemyGenerator + JSON data
 	var active_crew: Array = crew_data
 	var enemy_gen := EnemyGenerator.new()
-	var crew_size: int = active_crew.size() if active_crew else 4
-	var enemies: Array = enemy_gen.generate_enemies_as_dicts(mission_data, crew_size)
+	# Use campaign crew size SETTING (4/5/6), not roster count (Core Rules p.63)
+	var crew_size: int = 6
+	if game_state and game_state.has_method("get_campaign_crew_size"):
+		crew_size = game_state.get_campaign_crew_size()
+	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
+		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)
 
 	# Add enemy_force to mission_data for PreBattleUI
@@ -971,13 +975,17 @@ func _on_battle_ready_to_launch(mission_context: Dictionary) -> void:
 					preview_data)
 			pre_battle_ui.setup_preview(preview_data)
 
-		# Setup crew selection for PreBattle (accepts both Character and Dictionary crew)
+		# Setup crew selection with deployment limit (Core Rules p.63/85)
 		if pre_battle_ui.has_method("setup_crew_selection"):
 			var gs_ref = get_node_or_null("/root/GameState")
 			if gs_ref and gs_ref.has_method("get_active_crew"):
 				var active_crew = gs_ref.get_active_crew()
 				if not active_crew.is_empty():
-					pre_battle_ui.setup_crew_selection(active_crew)
+					var deploy_limit: int = 6
+					if gs_ref.has_method("get_campaign_crew_size"):
+						deploy_limit = gs_ref.get_campaign_crew_size()
+					pre_battle_ui.setup_crew_selection(
+						active_crew, deploy_limit)
 
 		# Pass deployment condition to PreBattle
 		var condition = battle_results.get(

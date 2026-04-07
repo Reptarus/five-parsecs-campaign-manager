@@ -30,6 +30,8 @@ signal back_pressed
 var current_mission: StoryQuestData
 var selected_crew: Array = []
 var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
+var _max_deploy: int = 6  # Campaign crew size deployment limit (Core Rules p.63/85)
+var _deploy_label: Label  # "Deploying X / Y max" display
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -349,52 +351,79 @@ func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) 
 	battlefield_preview.add_child(terrain_log)
 
 ## Setup crew selection — accepts both Character objects and Dictionaries
-func setup_crew_selection(available_crew: Array) -> void:
+## max_deploy: deployment cap from campaign crew size setting (Core Rules p.63/85)
+func setup_crew_selection(
+	available_crew: Array, max_deploy: int = 6
+) -> void:
 	if not crew_selection_panel:
 		return
+	_max_deploy = max_deploy
 
 	var crew_list := VBoxContainer.new()
+
+	# Deployment counter label
+	_deploy_label = Label.new()
+	_deploy_label.add_theme_font_size_override("font_size", 14)
+	_deploy_label.add_theme_color_override(
+		"font_color", Color("#4FC3F7"))
+	crew_list.add_child(_deploy_label)
 
 	for item in available_crew:
 		var char_button := Button.new()
 		if item is Character:
 			char_button.text = item.name
 		elif item is Dictionary:
-			char_button.text = item.get("name", item.get("character_name", "Unknown"))
+			char_button.text = item.get(
+				"name", item.get("character_name", "Unknown"))
 		else:
 			char_button.text = str(item)
 		char_button.toggle_mode = true
-		# Style the pressed/selected state for visual feedback
+		# Style the pressed/selected state
 		var pressed_style := StyleBoxFlat.new()
-		pressed_style.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
-		pressed_style.border_color = Color("#4FC3F7")  # COLOR_FOCUS
+		pressed_style.bg_color = Color("#2D5A7B")
+		pressed_style.border_color = Color("#4FC3F7")
 		pressed_style.set_border_width_all(2)
 		pressed_style.set_corner_radius_all(8)
 		char_button.add_theme_stylebox_override("pressed", pressed_style)
 		var normal_style := StyleBoxFlat.new()
-		normal_style.bg_color = Color("#1E1E36")  # COLOR_INPUT
-		normal_style.border_color = Color("#3A3A5C")  # COLOR_BORDER
+		normal_style.bg_color = Color("#1E1E36")
+		normal_style.border_color = Color("#3A3A5C")
 		normal_style.set_border_width_all(1)
 		normal_style.set_corner_radius_all(8)
-		char_button.pressed.connect(_on_character_selected.bind(item))
+		char_button.pressed.connect(
+			_on_character_selected.bind(item, char_button))
 		crew_list.add_child(char_button)
-		# Pre-select all crew members (common case: send full crew to battle)
-		char_button.button_pressed = true
-		selected_crew.append(item)
+		# Pre-select up to max_deploy crew members
+		if selected_crew.size() < _max_deploy:
+			char_button.button_pressed = true
+			selected_crew.append(item)
 
 	crew_selection_panel.add_child(crew_list)
+	_update_deploy_label()
 	crew_selected.emit(selected_crew)
 	_update_confirm_button()
 
-## Handle character selection
-func _on_character_selected(character) -> void:
+## Handle character selection with deployment limit enforcement
+func _on_character_selected(character, button: Button = null) -> void:
 	if selected_crew.has(character):
 		selected_crew.erase(character)
 	else:
+		# Enforce deployment cap (Core Rules p.63/85)
+		if selected_crew.size() >= _max_deploy:
+			# Revert toggle — at deployment limit
+			if button:
+				button.button_pressed = false
+			return
 		selected_crew.append(character)
 
+	_update_deploy_label()
 	crew_selected.emit(selected_crew)
 	_update_confirm_button()
+
+func _update_deploy_label() -> void:
+	if _deploy_label:
+		_deploy_label.text = "Deploying %d / %d max" % [
+			selected_crew.size(), _max_deploy]
 
 ## Handle terrain generation completion
 func _on_terrain_generated(_terrain_data: Dictionary) -> void:

@@ -229,6 +229,12 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	campaign.difficulty = difficulty
 
 	campaign.ironman_mode = config.get("ironman_mode", campaign_config.get("ironman_mode", false))
+
+	# Campaign crew size (Core Rules p.63) — controls enemy number formula
+	var crew_size_setting: int = campaign_config.get(
+		"campaign_crew_size", config.get("campaign_crew_size", 6))
+	campaign.campaign_crew_size = clampi(crew_size_setting, 4, 6)
+
 	campaign.created_at = Time.get_datetime_string_from_system()
 	campaign.version = "1.0.0"
 
@@ -345,13 +351,12 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if not victory_conditions.is_empty():
 		campaign.victory_conditions = victory_conditions.duplicate()
 
-	# PHASE 2 FIX: Store story track setting in GameStateManager
-	var story_track_enabled = config.get("story_track_enabled", false)
-	if GameStateManager and GameStateManager.has_method("set_story_track_enabled"):
-		GameStateManager.set_story_track_enabled(story_track_enabled)
-		pass # Story track setting applied
-	else:
-		pass
+	# Set story track directly on campaign resource (not via GameStateManager,
+	# which relies on GameState.current_campaign being set — but at this point
+	# the campaign hasn't been assigned to GameState yet).
+	var story_track_enabled: bool = config.get("story_track_enabled",
+		campaign_config.get("story_track_enabled", false))
+	campaign.story_track_enabled = story_track_enabled
 
 	# PHASE 2 FIX: Preserve custom victory targets if defined
 	if victory_conditions.has("custom_targets"):

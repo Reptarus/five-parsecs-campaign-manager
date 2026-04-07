@@ -31,6 +31,7 @@ var local_campaign_config: Dictionary = {
 	"campaign_name": "",
 	"campaign_type": "standard",
 	"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
+	"campaign_crew_size": 6,  # Core Rules p.63: 4, 5, or 6
 	"victory_conditions": {},
 	"story_track_enabled": false,
 	"introductory_campaign": false,
@@ -46,6 +47,10 @@ var story_track_checkbox: CheckBox
 var intro_campaign_checkbox: CheckBox
 var narrative_combo_label: Label
 var summary_label: Label
+
+# Crew size selector (Core Rules p.63)
+var crew_size_option: OptionButton
+var crew_size_description: Label
 
 # Description labels for displaying option details
 var campaign_type_description: Label
@@ -214,8 +219,8 @@ func _initialize_components() -> void:
 	# Build card-based UI sections into flow container
 	_build_campaign_identity_section(flow)
 	_build_campaign_type_section(flow)
+	_build_crew_size_section(flow)
 	_build_difficulty_section(flow)
-	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
 	_build_victory_conditions_section(flow)
 	_build_narrative_options_section(flow)
 	_build_expansion_features_section(flow)
@@ -245,6 +250,28 @@ func _build_campaign_identity_section(parent: Control) -> void:
 		"CAMPAIGN IDENTITY",
 		input_wrapper,
 		"Choose a memorable name for your crew's journey across the Fringe"
+	)
+	parent.add_child(card)
+
+func _build_crew_size_section(parent: Control) -> void:
+	## Build crew size selector card (Core Rules p.63, Step 1 of Campaign Preparation)
+	crew_size_option = OptionButton.new()
+	_style_option_button(crew_size_option)
+
+	crew_size_description = Label.new()
+	crew_size_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	crew_size_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	crew_size_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Campaign Crew Size", crew_size_option))
+	content.add_child(crew_size_description)
+
+	var card = _create_section_card(
+		"CREW SIZE",
+		content,
+		"Sets starting crew, deployment limit, and enemy number formula"
 	)
 	parent.add_child(card)
 
@@ -419,9 +446,14 @@ func _build_narrative_options_section(parent: Control) -> void:
 	content.add_child(story_track_description)
 
 	# --- Introductory Campaign toggle (Compendium pp.104-109) ---
-	# DLC-gated: only show if Compendium data exists
-	var has_intro: bool = CompendiumMissionsExpandedRef \
-		.get_all_introductory_missions().size() > 0
+	# DLC-gated: show checkbox if Fixer's Guidebook DLC is OWNED.
+	# Uses is_feature_available() (not is_feature_enabled()) because the
+	# per-campaign feature toggle hasn't been set yet during creation.
+	var has_intro: bool = false
+	var _dlc: Node = get_node_or_null("/root/DLCManager")
+	if _dlc and _dlc.has_method("is_feature_available"):
+		has_intro = _dlc.is_feature_available(
+			_dlc.ContentFlag.INTRODUCTORY_CAMPAIGN)
 	if has_intro:
 		var sep := HSeparator.new()
 		sep.modulate = COLOR_BORDER
@@ -590,6 +622,8 @@ func _connect_signals() -> void:
 		campaign_name_input.text_changed.connect(_on_campaign_name_changed)
 	if campaign_type_option:
 		campaign_type_option.item_selected.connect(_on_campaign_type_changed)
+	if crew_size_option:
+		crew_size_option.item_selected.connect(_on_crew_size_changed)
 	if difficulty_option:
 		difficulty_option.item_selected.connect(_on_difficulty_changed)
 	# Story track + intro campaign checkboxes connect in _build_narrative_options_section
@@ -597,6 +631,7 @@ func _connect_signals() -> void:
 func _setup_campaign_options() -> void:
 	## Setup campaign configuration options
 	_setup_campaign_type_options()
+	_setup_crew_size_options()
 	_setup_difficulty_options()
 	_setup_victory_conditions()
 	# Story track + intro campaign are checkboxes, no setup needed
@@ -613,6 +648,54 @@ func _setup_campaign_type_options() -> void:
 
 	# Set default selection
 	campaign_type_option.select(0)
+
+func _setup_crew_size_options() -> void:
+	## Setup crew size options (Core Rules p.63): 4, 5, or 6
+	if not crew_size_option:
+		return
+
+	crew_size_option.clear()
+	crew_size_option.add_item("4 — Small Crew", 4)
+	crew_size_option.add_item("5 — Medium Crew", 5)
+	crew_size_option.add_item("6 — Standard Crew (Default)", 6)
+
+	# Default to 6 (index 2)
+	crew_size_option.select(2)
+	local_campaign_config.campaign_crew_size = 6
+	_update_crew_size_description()
+
+func _on_crew_size_changed(index: int) -> void:
+	## Handle crew size selection change
+	if not crew_size_option:
+		return
+
+	var size_id: int = crew_size_option.get_item_id(index)
+	local_campaign_config["campaign_crew_size"] = size_id
+	_update_crew_size_description()
+	_update_display()
+	_validate_and_complete()
+
+func _update_crew_size_description() -> void:
+	## Update crew size description based on current selection
+	if not crew_size_description:
+		return
+
+	var size: int = local_campaign_config.get("campaign_crew_size", 6)
+	match size:
+		4:
+			crew_size_description.text = (
+				"→ Roll 2D6 pick LOWER for enemy numbers. "
+				+ "Deploy up to 4 crew in battle. Fewer enemies on average.")
+		5:
+			crew_size_description.text = (
+				"→ Roll 1D6 for enemy numbers. "
+				+ "Deploy up to 5 crew in battle. Moderate challenge.")
+		6:
+			crew_size_description.text = (
+				"→ Roll 2D6 pick HIGHER for enemy numbers. "
+				+ "Deploy up to 6 crew in battle. Full experience.")
+		_:
+			crew_size_description.text = ""
 
 func _setup_difficulty_options() -> void:
 	## Setup difficulty options using actual GlobalEnums.DifficultyLevel enum values as IDs
@@ -1082,7 +1165,16 @@ func set_campaign_config(config: Dictionary) -> void:
 	selected_victory_conditions = config.get("victory_conditions", {}).duplicate()
 	_story_track_enabled = config.get("story_track_enabled", false)
 	_intro_campaign_enabled = config.get("introductory_campaign", false)
-	
+
+	# Restore crew size selector if present
+	if config.has("campaign_crew_size") and crew_size_option:
+		var size_val: int = config.get("campaign_crew_size", 6)
+		for i in range(crew_size_option.get_item_count()):
+			if crew_size_option.get_item_id(i) == size_val:
+				crew_size_option.select(i)
+				break
+		_update_crew_size_description()
+
 	_update_display()
 	_validate_and_complete()
 

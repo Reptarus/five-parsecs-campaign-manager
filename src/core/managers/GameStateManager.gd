@@ -316,6 +316,14 @@ func get_crew_size() -> int:
 		return c.get_crew_size()
 	return 0
 
+## Returns the campaign crew size SETTING (4, 5, or 6) from Core Rules p.63.
+## Used for enemy numbers, deployment limits, reaction dice — NOT roster count.
+func get_campaign_crew_size() -> int:
+	var c = _get_campaign()
+	if c and c.has_method("get_campaign_crew_size"):
+		return c.get_campaign_crew_size()
+	return 6
+
 # --- Ship data delegation ---
 
 func get_ship() -> Dictionary:

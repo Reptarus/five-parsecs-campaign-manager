@@ -281,7 +281,14 @@ func _on_campaign_finalized(data: Dictionary) -> void:
 
 	var router = get_node_or_null("/root/SceneRouter")
 	if router:
-		router.navigate_to("campaign_turn_controller")
+		router.navigate_to_with_loading(
+			"campaign_turn_controller",
+			PackedStringArray([
+				"Initializing Campaign",
+				"Loading Crew Roster",
+				"Loading World State",
+				"Preparing First Turn",
+			]))
 	else:
 		push_error("CampaignCreationUI: SceneRouter not found")
 

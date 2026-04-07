@@ -156,7 +156,11 @@ func _on_continue_pressed() -> void:
 		return
 	
 	if game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
-		request_scene_change("campaign_dashboard")
+		_navigate_with_loading("campaign_dashboard", PackedStringArray([
+			"Loading Campaign Data",
+			"Loading Crew Roster",
+			"Loading World State",
+		]))
 	else:
 		show_message("No active campaign to continue")
 
@@ -362,7 +366,13 @@ func _cleanup_load_ui(
 func _do_load_campaign(gs: Node, path: String) -> void:
 	var result: Dictionary = gs.load_campaign(path)
 	if result.get("success", false):
-		request_scene_change("campaign_turn_controller")
+		_navigate_with_loading("campaign_turn_controller", PackedStringArray([
+			"Loading Campaign Data",
+			"Loading Crew Roster",
+			"Loading World State",
+			"Loading Equipment Tables",
+			"Loading Event Tables",
+		]))
 	else:
 		show_message(
 			"Load failed: %s" % result.get("message", "Unknown error"))
@@ -420,7 +430,11 @@ func _on_import_file_selected(path: String, file_dialog: Node) -> void:
 	if gs.has_method("import_campaign"):
 		var result: Dictionary = gs.import_campaign(path)
 		if result.get("success", false):
-			request_scene_change("campaign_turn_controller")
+			_navigate_with_loading("campaign_turn_controller", PackedStringArray([
+				"Importing Campaign Data",
+				"Loading Crew Roster",
+				"Loading World State",
+			]))
 		else:
 			show_message("Import failed: %s" % result.get("message", "Unknown error"))
 	else:
@@ -663,3 +677,13 @@ func request_scene_change(scene_name: String) -> void:
 		return
 
 	router.navigate_to(router_key)
+
+
+func _navigate_with_loading(
+	scene_name: String, tasks: PackedStringArray = PackedStringArray()
+) -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if not router or not router.has_method("navigate_to_with_loading"):
+		request_scene_change(scene_name)
+		return
+	router.navigate_to_with_loading(scene_name, tasks)

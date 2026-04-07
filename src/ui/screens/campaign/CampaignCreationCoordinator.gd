@@ -89,6 +89,7 @@ var unified_campaign_state: Dictionary = {
 	"campaign_config": {
 		"campaign_name": "",
 		"campaign_type": "standard",
+		"campaign_crew_size": 6,  # Core Rules p.63
 		"victory_conditions": {},  # Integrated here
 		"story_track_enabled": false,
 		"introductory_campaign": false,
@@ -643,6 +644,8 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.campaign_name = campaign_config_data.campaign_name
 	if campaign_config_data.has("campaign_type"):
 		unified_campaign_state.campaign_config.campaign_type = campaign_config_data.campaign_type
+	if campaign_config_data.has("campaign_crew_size"):
+		unified_campaign_state.campaign_config.campaign_crew_size = campaign_config_data.campaign_crew_size
 	if campaign_config_data.has("victory_conditions"):
 		unified_campaign_state.campaign_config.victory_conditions = campaign_config_data.victory_conditions
 	# Narrative options (bool toggles)

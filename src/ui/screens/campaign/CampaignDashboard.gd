@@ -943,8 +943,13 @@ func _build_narrative_status(campaign) -> void:
 		if "progress_data" in campaign else {}
 
 	# --- Introductory Campaign section ---
-	var intro_state: Dictionary = progress_data.get(
-		"intro_campaign_state", {})
+	# Prefer live CampaignPhaseManager state (may not be serialized yet)
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	var intro_state: Dictionary = {}
+	if cpm and cpm.has_method("get_intro_status"):
+		intro_state = cpm.get_intro_status()
+	if intro_state.is_empty():
+		intro_state = progress_data.get("intro_campaign_state", {})
 	var intro_active: bool = intro_state.get("is_active", false)
 	var intro_completed: bool = intro_state.get("completed", false)
 

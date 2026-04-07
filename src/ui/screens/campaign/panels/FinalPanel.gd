@@ -385,7 +385,16 @@ func _create_config_summary_card() -> PanelContainer:
 	story_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	story_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(story_label)
-	
+
+	# Introductory Campaign
+	var intro_campaign_on: bool = config_data.get("introductory_campaign", false)
+	if intro_campaign_on:
+		var intro_label := Label.new()
+		intro_label.text = "Introductory Campaign: Enabled (6 guided turns)"
+		intro_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		intro_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		content.add_child(intro_label)
+
 	return _create_section_card("Campaign Configuration", content, "", "⚙️")
 
 func _create_ship_summary_card() -> PanelContainer:
@@ -609,9 +618,13 @@ func _create_crew_summary_card() -> PanelContainer:
 	var crew_members_raw: Array = campaign_data.get("crew", {}).get("members", [])
 	var crew_members: Array = crew_members_raw  # Keep as Character objects
 
-	# Crew Count (Emphasis on number)
+	# Crew Count with campaign crew size setting (Core Rules p.63)
+	var config = campaign_data.get(
+		"campaign_config", campaign_data.get("config", {}))
+	var campaign_crew_setting: int = config.get("campaign_crew_size", 6)
 	var count_label := Label.new()
-	count_label.text = "%d Crew Members" % crew_members.size()
+	count_label.text = "%d Crew Members (Campaign Size: %d)" % [
+		crew_members.size(), campaign_crew_setting]
 	count_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)  # Larger!
 	count_label.add_theme_color_override("font_color", COLOR_ACCENT)  # Accent color!
 	content.add_child(count_label)
@@ -1175,11 +1188,12 @@ func _check_completion_requirements() -> bool:
 	else:
 		pass
 	
-	# Check CREW phase - must meet user's selected crew size (or minimum 4)
+	# Check CREW phase — must meet campaign crew size setting (Core Rules p.63)
 	var crew_data = campaign_data.get("crew", {})
 	var crew_members = crew_data.get("members", [])
-	# CRITICAL FIX: Use crew_size from data if available, otherwise default to game minimum (4)
-	var required_crew_size = crew_data.get("crew_size", crew_data.get("selected_size", crew_data.get("size", 4)))
+	var cfg = campaign_data.get(
+		"campaign_config", campaign_data.get("config", {}))
+	var required_crew_size: int = cfg.get("campaign_crew_size", 6)
 	if required_crew_size < 4:
 		required_crew_size = 4  # Enforce game minimum
 	if crew_members.size() >= required_crew_size:
