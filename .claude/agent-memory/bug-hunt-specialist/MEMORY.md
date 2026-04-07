@@ -71,7 +71,16 @@ Bug Hunt rules are in the Compendium — extract directly instead of guessing:
 
 TacticalBattleUI is shared between Standard 5PFH, Bug Hunt, and **Battle Simulator** (new standalone mode). Battle Simulator passes lightweight crew/enemy dicts. Any changes to TacticalBattleUI must work in all three modes.
 
-### 9. campaign_crew_size Does NOT Apply to Bug Hunt (Session 39)
+### 9. Session 40b Context: Legal Stack + Compendium Library
+
+No direct Bug Hunt changes. Context awareness:
+
+- Legal stack shipped (EULAScreen, LegalConsentManager, etc.) — 14 new files. Bug Hunt campaigns are NOT affected by legal consent flow (consent is app-level, not campaign-level)
+- Compendium library added (10 categories, 340+ items) — Bug Hunt content is in the Compendium, so Bug Hunt-specific items should be browsable through the library
+- Icon SOP: game-icons.net SVGs, white on transparent, `assets/icons/{context}/`
+- `docs/MODIPHIUS_ASK_LIST.md` — Bug Hunt pricing listed as open question (separate purchase vs included vs DLC pack)
+
+### 10. campaign_crew_size Does NOT Apply to Bug Hunt (Session 39)
 
 `FiveParsecsCampaignCore.campaign_crew_size` (4/5/6 setting) is Standard 5PFH only. Bug Hunt uses `BugHuntCampaignCore` which has `main_characters` + `grunts` arrays, not crew_data. Bug Hunt enemy counts follow Compendium Bug Hunt tables, not the Core Rules p.63 dice formula. If changes touch `get_campaign_crew_size()` in shared files (GameState, GameStateManager), ensure Bug Hunt code paths don't call it.
 

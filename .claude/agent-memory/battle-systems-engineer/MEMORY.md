@@ -26,6 +26,17 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 
 ---
 
+## Session 40b: Legal Stack + Modiphius Ask List (Apr 7, 2026)
+
+No direct battle-domain changes. Context awareness:
+
+- Legal stack shipped (EULA screen, privacy policy, consent management, data export/delete) — 14 new files
+- Compendium library system added (10 categories, 340+ items)
+- `docs/MODIPHIUS_ASK_LIST.md` created — partnership blockers include art assets (miniature photography for faction tiles, 3D renders for character cards) which will affect battle UI visuals
+- Icon SOP: game-icons.net SVGs, white on transparent, `modulate` for color. Path: `assets/icons/{context}/`
+
+---
+
 ## Session 40: Difficulty Audit — Battle Domain (Apr 7, 2026)
 
 ### Seize Initiative Difficulty Modifier Fix

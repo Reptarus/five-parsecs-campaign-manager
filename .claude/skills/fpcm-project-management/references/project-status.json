@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-04-03",
-  "current_phase": "Creation Pipeline Refactor (v0.9.7-dev) — Session 30: Upkeep formula fixed (6 files), creation_bonuses single source of truth refactor (6 files), Engine.has_singleton autoload bug fixed, FinalPanel display improvements. All character creation resources now rolled at creation time and stored persistently on Character.creation_bonuses.",
+  "last_updated": "2026-04-07",
+  "current_phase": "Legal + Compendium (v0.9.7-dev) — Session 40b: Full legal stack shipped (EULA, privacy policy, consent manager, data export/delete, GitHub Pages, store checklist). Compendium/Library screen with 10 categories (340+ items), game-icons.net SVG icon SOP established, extensible data provider for Planetfall/Tactics. UX design analysis updated (44/16/21 done/partial/pending).",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -10,7 +10,7 @@
     "store_paywall_system": "Tri-platform (Steam/Android/iOS)",
     "compile_errors": 0,
     "gdscript_files": "~900 (excl. addons)",
-    "autoloads": 28,
+    "autoloads": 29,
     "traceability_items_mapped": 266,
     "traceability_items_verified": "925/925",
     "traceability_chapters_mapped": "13/13",

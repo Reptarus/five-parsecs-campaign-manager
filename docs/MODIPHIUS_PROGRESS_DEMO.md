@@ -1,9 +1,10 @@
 # Five Parsecs Campaign Manager — Modiphius Progress Update
 
 **Prepared for**: Modiphius Entertainment
-**Date**: March 2026
+**Date**: April 2026
 **From**: [Your Name]
-**Status**: Fully functional, seeking official partnership
+**Status**: Fully functional, legal stack shipped, seeking official partnership
+**Related**: [Partnership Ask List](MODIPHIUS_ASK_LIST.md) | [Steam Research](archive/modiphius-steam-research.md)
 
 ---
 
@@ -169,6 +170,33 @@ Every game in the Five Parsecs line feeds into and out of the others — and eve
 
 ---
 
+## Part 6: Legal & Compliance (NEW — April 2026)
+
+All legal infrastructure required for store submission is implemented:
+
+- **EULA screen** — first-launch blocking, scroll + privacy checkbox + DECLINE/ACCEPT
+- **Privacy Policy** — GDPR/CCPA compliant, analytics opt-in (default OFF)
+- **Data export/deletion** — Settings → Export My Data / Delete All Data
+- **Consent management** — version-triggered re-consent, persistent acceptance
+- **Open source licenses** — all dependencies attributed (Godot, GodotSteam, TweenFX, fonts, plugins)
+- **Credits** — Ivan Sorensen, Modiphius staff (extracted from PDFs), open source contributors
+- **Store submission checklist** — pre-filled Data Safety (Google) and Nutrition Label (Apple) answers
+- **GitHub Pages** — privacy policy and EULA hosted as HTML with Deep Space theme
+
+**Key talking point**: The legal stack is complete except for 3 items requiring Modiphius legal review: IP license scope, sublicensing terms, and revenue share terms. See [MODIPHIUS_ASK_LIST.md](MODIPHIUS_ASK_LIST.md) for the full list of partnership blockers.
+
+---
+
+## Part 7: Compendium Library (NEW — April 2026)
+
+In-app rules reference with 10 browsable categories and 340+ items:
+
+- Weapons, armor, gear, species, enemies, skills, and more
+- game-icons.net icon set (CC BY 3.0, white on transparent)
+- Extensible architecture — ready for Planetfall and Tactics content
+
+---
+
 ## Technical Snapshot
 
 | Metric | Value |
@@ -185,3 +213,6 @@ Every game in the Five Parsecs line feeds into and out of the others — and eve
 | Runtime QA test sessions | 10 (71 bugs found, 71 fixed) |
 | DLC content flags | 33 across 3 packs |
 | Platform adapters | 4 (Steam, Android, iOS, Offline) |
+| Legal stack | EULA + Privacy + Consent + Data Export/Delete |
+| Compendium library | 10 categories, 340+ items |
+| Reusable UI components | 14 (Session 37 UX Enhancement) |

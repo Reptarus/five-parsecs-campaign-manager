@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: April 7, 2026 (Runtime Testing — Intro Campaign + Story Track Verified)
+**Last Updated**: April 7, 2026 (Session 40b — Legal Stack + Compendium Library + Modiphius Ask List)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -43,6 +43,9 @@
 | Intro Campaign + Story Track (Session 38) | **Complete** — Compendium pp.104-109 + Core Rules Appendix V reconciled. Sequential system: intro runs first (6 guided turns), then Story Track activates with +2 SP. IntroductoryCampaignManager.gd, fabricated tutorial purge (12 files deleted), config panel simplification, dashboard display, world phase gating. |
 | Runtime Testing (Session 39b) | **Complete** — 7 bugs fixed (DLC ordinal, story track finalization timing, dashboard stale data, World Phase skip deadlock, config panel chicken-and-egg). Loading screen wired to 4 heavy transitions. Save/load round-trip verified for both narrative systems. FinalPanel intro status display. 10 files modified, 0 compile errors. |
 | Crew Size Scaling Audit (Session 39-39c) | **Complete** — Core Rules pp.63-64, 70, 92-93, 99, 118 + Compendium pp.124, 141. New `campaign_crew_size` property (4/5/6) on FiveParsecsCampaignCore with full serialization. EnemyGenerator: Numbers modifier applied, quest reroll, Raided formula (3D6/2D6/1D6). BattlePhase: fielding-fewer reduction. FiveParsecsCombatSystem: reaction dice fixed. ExpandedConfigPanel: CREW SIZE card. PreBattleUI: deployment cap. StealthMissionGenerator: sentries = setting + 1. WorldPhase: salvage/stealth use campaign setting not roster. 13 new tests. 25 files modified, 0 compile errors. |
+| Legal Stack (Session 40b) | **Complete** — 14 new files. EULAScreen (first-launch blocking with scroll + privacy checkbox), LegalConsentManager (autoload, version-triggered re-consent), LegalTextViewer (reusable Markdown-to-BBCode), data/legal/ docs (EULA, privacy policy, third-party licenses, credits), Settings Legal section (doc links, analytics toggle, data export/delete), GitHub Pages HTML docs, store submission checklist. GDPR/CCPA mechanisms (opt-in analytics, data export, data deletion). 3 `[PENDING MODIPHIUS REVIEW]` markers need legal sign-off. |
+| Compendium Library (Session 40b) | **Complete** — 10 categories, 340+ items, game-icons.net icon SOP (CC BY 3.0, white on transparent, modulate for color). Extensible architecture for Planetfall/Tactics expansions. |
+| Modiphius Partnership Prep (Session 40b) | **Complete** — `docs/MODIPHIUS_ASK_LIST.md` created. 7 legal blockers, 6 publishing blockers, 6 monetization decisions, art asset pipeline needs, multi-IP platform vision. Structured as pitch meeting agenda (must-discuss / should-discuss / can-mention tiers). |
 | Bug Hunt Gamemode | **Complete** — 38 files (15 JSON + 23 GDScript/TSCN), 3-stage turn, character transfer, battle wiring, cross-mode safety audit |
 | TweenFX Integration (Phase 26) | **Complete** — 8 sprints, 23 files modified, bug fixes + raw tween migration + new UX animations |
 | LSP Parse Error Cleanup | **Complete** — 3 automated passes: 1,859 orphan pass removed, 5,915 space→tab fixes, 31 deep-indent orphans, enum/type fixes |

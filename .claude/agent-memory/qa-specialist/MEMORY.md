@@ -29,6 +29,28 @@ Use this to cross-reference game values when promoting mechanics from MCP_VALIDA
 
 ---
 
+## Session 40b: Legal Stack + Compendium Library (Apr 7, 2026)
+
+### New Test Points for Future QA
+
+- **EULA first-launch**: Delete `user://legal_consent.cfg` → verify EULA screen blocks app access until ACCEPT
+- **EULA re-trigger**: Change `EULA_VERSION` or `PRIVACY_VERSION` in LegalConsentManager → verify re-prompts on next launch
+- **Data export**: Settings → Export My Data → verify `user://data_export.json` contains all save files
+- **Data deletion**: Settings → Delete All Data → verify all `user://` files wiped, EULA re-triggers
+- **Analytics toggle**: Default OFF (GDPR opt-in) → toggle ON → verify persisted → toggle OFF → verify persisted
+- **Legal document rendering**: Each document (EULA, Privacy, Licenses, Credits) renders BBCode correctly in LegalTextViewer
+- **Compendium library**: 10 categories load, 340+ items browsable, no crashes on empty categories
+- **Icon rendering**: game-icons.net SVGs load as white on transparent, modulate colors applied correctly
+
+### New Files to Test
+
+- `src/ui/screens/legal/EULAScreen.gd` + `.tscn` — first-launch blocking
+- `src/core/legal/LegalConsentManager.gd` — consent persistence + data export/delete
+- `src/ui/screens/legal/LegalTextViewer.gd` — Markdown-to-BBCode rendering
+- `data/legal/*.md` — document content integrity
+
+---
+
 ## Session 39: Crew Size Scaling Tests Added (Apr 7, 2026)
 
 `tests/unit/test_crew_size_enemy_calc.gd` expanded from 17 → 30 test cases:

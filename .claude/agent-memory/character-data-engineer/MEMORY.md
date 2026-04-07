@@ -9,6 +9,17 @@ The Core Rules PDF and Compendium PDF are the **canonical, final authority** for
 
 ---
 
+## Session 40b: Legal + Compendium + Icon SOP (Apr 7, 2026)
+
+- Legal stack shipped: EULA, privacy policy, consent manager, data export/delete (14 files)
+- Compendium library: 10 categories, 340+ items — extensible for Planetfall/Tactics
+- Icon SOP established: game-icons.net SVGs (CC BY 3.0), white on transparent, `modulate` for color, `assets/icons/{context}/`
+- Local icon repo: `C:\Users\admin\Documents\lorcana-tokens\game-icons-sorted-by-artist`
+- `data/legal/credits.md` — includes Ivan Sorensen credit + Modiphius staff (PDF-extracted)
+- `data/legal/third_party_licenses.md` — all open source + font licenses attributed
+
+---
+
 ## Critical Gotchas — Must Remember
 
 ### 1. Three-Enum Sync Rule

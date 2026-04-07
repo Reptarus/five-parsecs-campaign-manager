@@ -34,8 +34,11 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Fabricated Data Purge | Complete — MoraleSystem deleted, equipment/loot/advancement rewritten |
 | Event Queue System | CrewTaskEventDialog (26 event types, state mutations wired) |
 | Difficulty System | 5 Core Rules modes + 12 Compendium toggles + Progressive Difficulty (2 options) |
+| Legal Stack (Session 40b) | EULA screen, privacy policy, consent manager, data export/delete, GitHub Pages docs |
+| Compendium Library (Session 40b) | 10 categories, 340+ items, game-icons.net icon SOP |
+| Modiphius Partnership | Ask list created (`docs/MODIPHIUS_ASK_LIST.md`) — 7 legal blockers, 6 publishing blockers |
 | Compile Errors | 0 |
-| GDScript Files | ~890 (excl. addons — 10 dead files deleted Session 40) |
+| GDScript Files | ~900 (excl. addons — 10 dead files deleted Session 40, 14 legal files added Session 40b) |
 
 ---
 
@@ -312,6 +315,7 @@ Cross-platform in-app review prompts via ReviewManager autoload:
 | TweenFX | addons/TweenFX/TweenFX.gd | Animation addon (70 animations, auto-lifecycle) |
 | GalacticWarManager | src/core/campaign/GalacticWarManager.gd | Galactic war progress tracking |
 | FactionSystem | src/core/systems/FactionSystem.gd | Faction/rival management + DLC expanded factions |
+| LegalConsentManager | src/core/legal/LegalConsentManager.gd | EULA/privacy consent, analytics opt-in, data export/delete |
 
 ---
 

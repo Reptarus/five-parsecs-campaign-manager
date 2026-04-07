@@ -51,6 +51,28 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## Session 40b: Legal Stack UI + Compendium Library + Icon SOP (Apr 7, 2026)
+
+### Legal UI Components
+
+- **EULAScreen.gd + .tscn** — First-launch blocking screen. Scrollable RichTextLabel with Markdown-to-BBCode. Privacy checkbox + "View Privacy Policy" link. Bottom-pinned DECLINE (red) / ACCEPT (green) via `DialogStyles`. Persists to `user://legal_consent.cfg`
+- **LegalTextViewer.gd** — Reusable full-screen Markdown viewer. Opens from Settings → Legal & Privacy section. Used for EULA, Privacy Policy, Open Source Licenses, Credits
+- **Settings → Legal & Privacy section** — New section in `SettingsScreen.gd`: 4 document links (LegalTextViewer), analytics toggle (default OFF), Export My Data button, Delete All Data button (red danger + confirmation dialog)
+
+### Compendium Library UI
+
+- 10 category screens, 340+ items browsable
+- Extensible for Planetfall/Tactics content
+
+### Icon SOP (game-icons.net)
+
+- Source: game-icons.net SVGs (CC BY 3.0), local repo at `C:\Users\admin\Documents\lorcana-tokens\game-icons-sorted-by-artist`
+- Format: white on transparent, use `modulate` for color
+- Path convention: `assets/icons/{context}/` (e.g., `assets/icons/stats/`, `assets/icons/equipment/`)
+- Attribution in `data/legal/third_party_licenses.md`
+
+---
+
 ## Session 39: Crew Size UI Changes (Apr 7, 2026)
 
 ### ExpandedConfigPanel — Difficulty & Progressive Difficulty (Session 40)

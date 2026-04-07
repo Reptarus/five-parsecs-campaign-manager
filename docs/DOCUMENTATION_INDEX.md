@@ -83,6 +83,15 @@
 - **[Development Guide](development/DEVELOPMENT_IMPLEMENTATION_GUIDE.md)** - Dev workflow
 - **[MCP Setup](development/MCP_Setup_Summary.md)** - MCP integration
 
+## Legal & Partnership
+
+- **[Modiphius Ask List](MODIPHIUS_ASK_LIST.md)** - Partnership blockers, asset needs, monetization, multi-IP vision
+- **[Modiphius Progress Demo](MODIPHIUS_PROGRESS_DEMO.md)** - Demo walkthrough for Modiphius pitch
+- **[Store Submission Checklist](legal/STORE_SUBMISSION_CHECKLIST.md)** - Pre-filled Data Safety + Nutrition Label answers
+- **[Steam Research](archive/modiphius-steam-research.md)** - Modiphius digital platform analysis
+- Legal documents: `data/legal/eula.md`, `privacy_policy.md`, `third_party_licenses.md`, `credits.md`
+- GitHub Pages: `docs/legal/gh-pages/` (privacy.html, eula.html, index.html)
+
 ## Other
 
 - **[User Guide](user_guide/00_index.md)** - 16-chapter player guide

@@ -7,6 +7,20 @@
 
 The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
 
+## Session 40b: Legal Stack + Compendium Library + Modiphius Ask List (Apr 7, 2026)
+
+Complete legal/compliance and partnership preparation sprint:
+
+- **Legal stack**: 14 new files — EULAScreen (first-launch blocking), LegalConsentManager (autoload), LegalTextViewer (reusable), data/legal/ docs (EULA, privacy, licenses, credits), GitHub Pages HTML, store submission checklist
+- **Compendium library**: 10 categories, 340+ items, extensible for Planetfall/Tactics
+- **Icon SOP**: game-icons.net SVGs (CC BY 3.0), white on transparent, modulate for color, `assets/icons/{context}/`
+- **Modiphius ask list**: `docs/MODIPHIUS_ASK_LIST.md` — 7 legal blockers, 6 publishing blockers, 6 monetization decisions, art asset needs, multi-IP vision. Structured as pitch meeting agenda
+- **Routing**: Legal UI → `ui-panel-developer`. Legal data/persistence → `campaign-systems-engineer`. Credits/licenses content → `character-data-engineer`. Partnership strategy → project manager
+- **3 `[PENDING MODIPHIUS REVIEW]` markers** in EULA need legal sign-off before release
+- **Next priorities**: Fill `[CONTACT EMAIL]`/`[DATE OF RELEASE]` placeholders, enable GitHub Pages, get Modiphius EULA review, submit platform store forms
+
+---
+
 ## Session 39-39c: Crew Size Scaling Audit + Continuation (Apr 7, 2026)
 
 Full crew-size-dependent rules audit (Core Rules pp.63-64, 70, 92-93, 99, 118; Compendium pp.124, 141). New `campaign_crew_size` property (4/5/6) on FiveParsecsCampaignCore, distinct from roster count. 20+ files modified across Session 39, 5 more in continuation. Key routing:
@@ -127,11 +141,15 @@ Route all QA-related questions through the qa-specialist agent, which now has 4 
 
 After any sprint that fixes bugs or adds features, remind the assigned agent to update the dashboard and core rules plan.
 
-## Project Status (Apr 7, 2026) — v0.9.7-dev
+## Project Status (Apr 7, 2026) — v0.9.7-dev — LEGAL STACK + COMPENDIUM SHIPPED
 
 - **Zero compile errors** (headless-verified)
 - **925/925 data values verified** against Core Rules + Compendium
-- **Session 37 (Apr 7)**: UX Enhancement Sprint — 14 new reusable components in `src/ui/components/common/` (EmptyStateWidget, LoadingScreen, AcknowledgeDialog, StepperControl, InlineRenameWidget, PersistentResourceBar, PreviewButton, ItemPreviewPopup, HubFeatureCard, OverflowMenu, DialogStyles, RulesPopup, DebugScreen). Based on 65-screenshot analysis of Fallout Wasteland Warfare companion app. Card draw/discard animations in CrewTaskEventDialog. Settings toggle polish. MainMenu version footer.
-- **Session 36 (Apr 7)**: Story Track Integration — 7 event JSONs, clock mechanics, StoryPhasePanel, CharacterDetailsScreen QOL
-- **Session 35 (Apr 7)**: Red & Black Zone Jobs — Core Rules Appendix III
-- **Next priorities**: Runtime-test UX components via MCP, integrate HubFeatureCards into dashboard layout, wire PersistentResourceBar into phase screens
+- **Session 40b**: Legal stack (14 files), Compendium library (10 categories, 340+ items), Icon SOP, Modiphius ask list
+- **Session 40**: Difficulty audit — 3 deprecated enums, 4 fabricated keys removed, 10 dead files deleted, Progressive Difficulty UI
+- **Session 39-39c**: Crew size scaling — campaign_crew_size (4/5/6), 25 files, 13 tests
+- **Session 38-39b**: Intro Campaign + Story Track reconciled, runtime-tested, loading screen wired
+- **Session 37**: UX Enhancement — 14 new reusable components (Fallout app patterns)
+- **Session 36**: Story Track + CharacterDetailsScreen QOL
+- **Session 35**: Red & Black Zone Jobs (Core Rules Appendix III)
+- **Next priorities**: Fill EULA placeholders, get Modiphius legal review, enable GitHub Pages, submit platform store forms, miniature photography assets

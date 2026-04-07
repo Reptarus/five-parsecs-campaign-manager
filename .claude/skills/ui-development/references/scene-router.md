@@ -47,6 +47,12 @@ max_cache_size: int = 10
 ### Store/Expansions
 `store`
 
+### Compendium / Library
+`compendium`, `compendium_category`
+
+### Legal
+`eula`, `legal_viewer`
+
 ### Events
 `campaign_events`
 

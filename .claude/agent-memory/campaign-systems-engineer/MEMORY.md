@@ -27,6 +27,29 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 40b: Legal Stack + Compendium Library + Modiphius Ask List (Apr 7, 2026)
+
+### Legal Stack (14 new files)
+- `EULAScreen.gd` + `.tscn` — First-launch blocking EULA acceptance screen (scroll + privacy checkbox + DECLINE/ACCEPT)
+- `LegalConsentManager.gd` — Autoload, persists to `user://legal_consent.cfg` (version + timestamp), re-triggers on version change
+- `LegalTextViewer.gd` — Reusable Markdown-to-BBCode viewer for EULA/Privacy/Licenses/Credits
+- `data/legal/eula.md`, `privacy_policy.md`, `third_party_licenses.md`, `credits.md` — Legal documents
+- `docs/legal/gh-pages/` — GitHub Pages versions (privacy.html, eula.html, index.html)
+- `docs/legal/STORE_SUBMISSION_CHECKLIST.md` — Pre-filled Data Safety + Nutrition Label answers
+- Settings → Legal & Privacy section: document links, analytics toggle, export/delete buttons
+- Privacy: default OFF analytics consent (GDPR opt-in), data export (JSON manifest), data deletion (wipes user://)
+- **3 `[PENDING MODIPHIUS REVIEW]` markers** in EULA need legal sign-off before release
+
+### Compendium Library System
+- 10 categories, 340+ items, game-icons.net icon SOP
+- Extensible architecture for Planetfall/Tactics expansions
+
+### Modiphius Partnership Ask List
+- `docs/MODIPHIUS_ASK_LIST.md` — 7 legal blockers, 6 publishing blockers, 6 monetization decisions, art assets, multi-IP vision
+- Structured as pitch meeting agenda (must-discuss / should-discuss / can-mention tiers)
+
+---
+
 ## Session 40: Difficulty Settings Audit (Apr 7, 2026)
 
 ### Difficulty Enum Cleanup

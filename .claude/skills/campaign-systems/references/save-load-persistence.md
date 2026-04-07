@@ -174,6 +174,17 @@ persist_game_state() → void
 }
 ```
 
+## Legal Consent Persistence (Session 40b)
+
+```
+LegalConsentManager (autoload) → user://legal_consent.cfg
+  Keys: eula_accepted (bool), eula_version (String), privacy_version (String),
+        acceptance_timestamp (String), analytics_consent (bool)
+  Re-triggers EULA screen if EULA_VERSION or PRIVACY_VERSION changes
+  Data export: export_user_data() → user://data_export.json (all user:// files)
+  Data deletion: delete_all_user_data() → wipes user://, re-triggers EULA
+```
+
 ## Settings Persistence (Separate from Campaign)
 
 ```
