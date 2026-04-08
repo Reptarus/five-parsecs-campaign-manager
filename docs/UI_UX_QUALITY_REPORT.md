@@ -186,7 +186,7 @@ The Five Parsecs Campaign Manager presents a cohesive, Dark Space-themed UI acro
 
 **Suggestions:**
 - No "Apply" confirmation — settings should preview before saving
-- Missing accessibility options (text size override, high contrast mode, colorblind palette)
+- ~~Missing accessibility options~~ **FIXED (Session 41):** AccessibilitySettingsPanel now has colorblind themes (4 modes), Reduced Motion toggle, Font Size dropdown (Small/Normal/Large)
 - No key rebinding section
 - Consider adding a "Theme" option (Dark Space is great but some users may prefer light mode for readability)
 
@@ -311,9 +311,9 @@ Card padding, section gaps, and element spacing generally follow the 8px grid sy
 9. **TweenFX expansion** — Add fade_in cascades to Dashboard cards and turn phase transitions
 
 ### Future Considerations
-10. **Accessibility pass** — Keyboard navigation, screen reader labels, high contrast mode
+10. ~~**Accessibility pass**~~ **DONE (Session 41):** Colorblind themes (4 WCAG modes), Reduced Motion toggle, Font Size dropdown, keyboard navigation (F6/F7/F8), high contrast mode. Platform auto-detection and TTS still stubs
 11. **Responsive layout testing** — Verify on 720p, 1080p, 1440p, 4K, and mobile aspect ratios
-12. **Onboarding flow** — First-launch tutorial overlay highlighting key buttons
+12. ~~**Onboarding flow**~~ **DONE (Session 41):** First-run tutorial (4 steps on MainMenu), Dashboard tutorial (6 steps + "?" help button), TutorialOverlay rewritten with Deep Space theme (CanvasLayer L95, scroll-aware)
 13. **Sound design** — UI feedback sounds for button clicks, phase transitions, dice rolls
 
 ---

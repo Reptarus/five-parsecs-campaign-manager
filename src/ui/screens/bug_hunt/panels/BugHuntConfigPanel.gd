@@ -5,17 +5,23 @@ extends Control
 
 signal config_updated(data: Dictionary)
 
-# Deep space theme colors
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_INPUT := Color("#1E1E36")
+# Deep space theme tokens (via UIColors canonical source)
+const _UC = preload("res://src/ui/components/base/UIColors.gd")
+const COLOR_BASE := _UC.COLOR_BASE
+const COLOR_ELEVATED := _UC.COLOR_ELEVATED
+const COLOR_ACCENT := _UC.COLOR_ACCENT
+const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := _UC.COLOR_BORDER
+const COLOR_INPUT := _UC.COLOR_INPUT
+const COLOR_DANGER := _UC.COLOR_DANGER
+const SPACING_MD := _UC.SPACING_MD
+const SPACING_LG := _UC.SPACING_LG
+const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
 
 var _coordinator = null
 var _name_edit: LineEdit
+var _validation_label: Label
 var _regiment_label: Label
 var _color_label: Label
 var _difficulty_option: OptionButton
@@ -84,11 +90,29 @@ func _build_ui() -> void:
 	# Campaign Name
 	var name_card := _create_card("Campaign Name", vbox)
 	_name_edit = LineEdit.new()
-	_name_edit.placeholder_text = "Enter campaign name..."
+	_name_edit.placeholder_text = "Tap here to name your campaign..."
 	_name_edit.add_theme_color_override("font_color", COLOR_TEXT)
-	_name_edit.custom_minimum_size.y = 48
+	_name_edit.add_theme_color_override("font_placeholder_color", Color(COLOR_TEXT_SEC, 0.5))
+	var input_style := StyleBoxFlat.new()
+	input_style.bg_color = COLOR_INPUT
+	input_style.border_color = COLOR_BORDER
+	input_style.set_border_width_all(1)
+	input_style.set_corner_radius_all(8)
+	input_style.set_content_margin_all(12)
+	_name_edit.add_theme_stylebox_override("normal", input_style)
+	var focus_style := input_style.duplicate()
+	focus_style.border_color = _UC.COLOR_FOCUS
+	_name_edit.add_theme_stylebox_override("focus", focus_style)
+	_name_edit.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 	_name_edit.text_changed.connect(_on_name_changed)
 	name_card.add_child(_name_edit)
+
+	_validation_label = Label.new()
+	_validation_label.text = ""
+	_validation_label.add_theme_color_override("font_color", COLOR_DANGER)
+	_validation_label.add_theme_font_size_override("font_size", _scaled_font(12))
+	_validation_label.visible = false
+	name_card.add_child(_validation_label)
 
 	# Regiment Name
 	var regiment_card := _create_card("Regiment", vbox)
@@ -129,40 +153,41 @@ func _build_ui() -> void:
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:
+	## Glass morphism card matching CampaignScreenBase pattern.
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_ELEVATED
-	style.border_color = COLOR_BORDER
-	style.border_width_bottom = 1
-	style.border_width_top = 1
-	style.border_width_left = 1
-	style.border_width_right = 1
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 16
-	style.content_margin_bottom = 16
+	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(16)
+	style.set_content_margin_all(SPACING_LG)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", _UC.SPACING_SM)
 	panel.add_child(vbox)
 
 	var lbl := Label.new()
-	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
-	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.text = title_text.to_upper()
+	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
+	lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	vbox.add_child(lbl)
+
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	vbox.add_child(sep)
 
 	return vbox
 
 
 func _on_name_changed(new_name: String) -> void:
 	_config_data.campaign_name = new_name
+	if new_name.strip_edges().is_empty():
+		_validation_label.text = "Campaign name is required"
+		_validation_label.visible = true
+	else:
+		_validation_label.visible = false
 	_emit_update()
 
 

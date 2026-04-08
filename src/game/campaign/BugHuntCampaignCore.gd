@@ -61,6 +61,14 @@ var sick_bay: Dictionary = {}
 ## Completed assignments per character (Dictionary: character_id -> Array[assignment_id])
 var completed_assignments: Dictionary = {}
 
+## Stashed equipment from enlisted characters (Dictionary: character_id -> Array[Dict])
+## Preserved across save/load for equipment restoration on muster-out.
+var stashed_equipment: Dictionary = {}
+
+## Original character snapshots from enlistment (Dictionary: character_id -> Dict)
+## Full Character.to_dictionary() stored at enlistment for lossless muster-out.
+var original_character_snapshots: Dictionary = {}
+
 ## Military life modifiers (Dictionary for tracking temporary effects)
 var military_life_modifiers: Dictionary = {}
 
@@ -261,8 +269,8 @@ func get_validation_errors() -> Array[String]:
 		errors.append("Campaign name is required")
 	if main_characters.size() < 3:
 		errors.append("Bug Hunt requires at least 3 main characters")
-	if main_characters.size() > 4:
-		errors.append("Bug Hunt allows at most 4 main characters")
+	if main_characters.size() > 5:
+		errors.append("Bug Hunt allows at most 5 main characters (Compendium p.170)")
 	return errors
 
 
@@ -359,7 +367,9 @@ func to_dictionary() -> Dictionary:
 		"military_life_modifiers": military_life_modifiers.duplicate(true),
 		"support_teams_available": support_teams_available.duplicate(),
 		"current_mission": current_mission.duplicate(true),
-		"dlc_flags": dlc_flags.duplicate()
+		"dlc_flags": dlc_flags.duplicate(),
+		"stashed_equipment": stashed_equipment.duplicate(true),
+		"original_character_snapshots": original_character_snapshots.duplicate(true)
 	}
 
 
@@ -415,6 +425,8 @@ func from_dictionary(data: Dictionary) -> void:
 	support_teams_available = data.get("support_teams_available", []).duplicate()
 	current_mission = data.get("current_mission", {}).duplicate(true)
 	dlc_flags = data.get("dlc_flags", {}).duplicate()
+	stashed_equipment = data.get("stashed_equipment", {}).duplicate(true)
+	original_character_snapshots = data.get("original_character_snapshots", {}).duplicate(true)
 
 	# Re-initialize any missing movie magic entries
 	for ability_id in ["barricade", "double_up", "escape", "evac", "extra_support",

@@ -37,6 +37,9 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Legal Stack (Session 40b) | EULA screen, privacy policy, consent manager, data export/delete, GitHub Pages docs |
 | Compendium Library (Session 40b) | 10 categories, 340+ items, game-icons.net icon SOP |
 | Modiphius Partnership | Ask list created (`docs/MODIPHIUS_ASK_LIST.md`) — 7 legal blockers, 6 publishing blockers |
+| UX Design Checklist | **58/81** done (8 partial, 15 blocked/post-launch) |
+| Tutorial/Onboarding | First-run + dashboard tutorials, TutorialOverlay (L95, Deep Space theme) |
+| Accessibility Settings | Colorblind (4 modes) + Reduced Motion + Font Size (Small/Normal/Large) |
 | Compile Errors | 0 |
 | GDScript Files | ~900 (excl. addons — 10 dead files deleted Session 40, 14 legal files added Session 40b) |
 

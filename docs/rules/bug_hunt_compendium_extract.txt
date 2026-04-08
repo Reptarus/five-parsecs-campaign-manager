@@ -1,0 +1,4653 @@
+=== PAGE 163 ===
+161
+BUG HUNT
+	
+Introduction
+4
+	
+Character Creation
+10
+	
+Main Rules
+14
+	
+The Campaign Turn
+22
+	
+Mission Generation
+24
+	
+The Battle Round
+38
+	
+Post-Battle
+42
+	
+Appendices
+47
+	
+Galactic Timeline
+55
+
+
+=== PAGE 164 ===
+
+
+=== PAGE 165 ===
+BUG HUNT Contents
+Introduction����������������������������������������� 164
+Adventure Wargaming����������������������������������  164
+Conventions of the Game������������������������������� 166
+Norms of the Game��������������������������������������� 167
+Main Characters and Grunts������������������������� 168
+Ability Scores����������������������������������������������� 169
+Weapon Ratings����������������������������������������������169
+The Mission Structure����������������������������������� 169
+Special Thanks��������������������������������������������� 169
+Guilty Parties����������������������������������������������� 169
+Character Creation�������������������������� 170
+Main Characters������������������������������������������  170
+Combat Teams ��������������������������������������������  173
+Regiment Flavor Table����������������������������������  173
+Main Rules���������������������������������������������� 174
+Terrain Types����������������������������������������������  174
+Line of Sight������������������������������������������������  174
+Cover����������������������������������������������������������  175
+MOVEMENT����������������������������������������������������  176
+Enemy Movement������������������������������������������  176
+COMBAT��������������������������������������������������������  177
+Brawling������������������������������������������������������  177
+Resolving Hits����������������������������������������������  178
+WEAPON AND GEAR ��������������������������������������  179
+UNUSUAL SITUATIONS����������������������������������� 180
+MOVIE MAGIC������������������������������������������������  181
+The Campaign Turn��������������������������� 182
+SPECIAL ASSIGNMENTS��������������������������������� 183
+Mission Generation��������������������������� 184
+MISSION SET-UP��������������������������������������������� 184
+Vital and Critical Objectives��������������������������  185
+TACTICAL LOCATIONS������������������������������������  191
+Investigating������������������������������������������������  191
+CONTACTS����������������������������������������������������� 192
+Moving Contact Markers������������������������������� 192
+Detecting Contact Markers��������������������������� 192
+“Beep… Sir?”���������������������������������������������� 193
+ENEMY TABLE������������������������������������������������� 194
+Enemy Variants��������������������������������������������� 196
+Pack Leaders����������������������������������������������� 197
+The Battle Round������������������������������� 198
+Actions��������������������������������������������������������� 198
+SPAWN POINTS����������������������������������������������� 199
+ENEMY MOVEMENT���������������������������������������� 200
+ENDING THE MISSION������������������������������������� 201
+Post-Battle������������������������������������������ 202
+POST-BATTLE SEQUENCE������������������������������ 202
+Appendices������������������������������������������� 207
+PROBLEM SOLVING���������������������������������������� 207
+Quick Tests�������������������������������������������������� 207
+Opposed Tests���������������������������������������������� 207
+Wits Tests �������������������������������������������������� 207
+Modifiers���������������������������������������������������� 207
+SIGNALS (Optional Rule)������������������������������ 208
+CO-OP CAMPAIGNS���������������������������������������� 209
+ENLISTING AS A BUG HUNTER ����������������������� 212
+MUSTERING OUT TO FIVE PARSECS��������������� 213
+QUICK REFERENCE����������������������������������������� 214
+GALACTIC TIMELINE��������������������������������������� 215
+BUG HUNT INDEX������������������������������������������ 223
+163
+CONTENTS
+
+
+=== PAGE 166 ===
+Introduction
+In Bug Hunt – a variant of Five Parsecs 
+from Home – you take charge of a “Hunter 
+Squad” tasked with going into deep-space 
+wrecks, abandoned colonies, or decrepit space 
+stations to clear out any hostile alien lifeforms 
+found there.
+This is not honorable combat against a foe that 
+believes in self-preservation or a negotiated 
+truce – it’s brutal, dirty fighting at close 
+quarters, lasting until the last lifeform crawls 
+from the battle site.
+As you play, your characters will gain in 
+experience and reputation, hopefully earning 
+promotions and commendations… or at least 
+five days of R&R all paid for.
+Bug Hunt is a standalone game, but allows 
+characters to be transferred to (or from)  
+Five Parsecs from Home, allowing you to 
+pursue an expanded game universe. 
+Adventure Wargaming
+Like Five Parsecs from Home, Bug Hunt is 
+an adventure wargame. Instead of faceless 
+battles between generic armies, it follows a 
+personal story that unfolds as you play. You 
+will take your troopers up against the alien 
+hordes over multiple battles, establishing an 
+ongoing narrative as you do so.
+Whereas Five Parsecs from Home put you in 
+the roles of a ragtag band of adventurers, this 
+time you have friends: Well-trained soldiers 
+that take the field with you and will fight 
+(and die!) to help accomplish your mission. 
+However, the core of your experience is your 
+Introduction
+
+
+=== PAGE 167 ===
+trio of troopers. Will they make it through their 
+tour of duty, or will they perish on some rock? 
+The game differs from a normal wargame in a 
+number of ways.
+The game assumes that a campaign is being 
+played, with each game informing the next. 
+Gaining experience and reputation will 
+determine your chances of future success. This 
+is especially notable if you bring characters 
+over from Five Parsecs from Home, or muster 
+out to go adventuring after completing your 
+military career.
+The results during a campaign suggest their 
+own interpretations and story ideas as patterns 
+emerge. Was your team’s Intel screwed up and 
+did you get swarmed with monsters twice in 
+a row? That’s probably an incompetent officer 
+somewhere in the chain of command. Maybe 
+you should name them?
+The game is open ended. The military has its 
+own criteria for success, but you must weigh 
+the survival of your troopers versus the need 
+to achieve your goals. Are you cold enough 
+to sacrifice an entire fire team to take that 
+last objective? 
+Although the game is written to be winnable, 
+balance is not built-in on a battle-by-battle 
+basis. Sometimes it is an easy ride. Sometimes 
+the aliens are wall-to-wall and it’s all you can 
+do to cling on. 
+Whether you are entering Unified Space for 
+the first time, or you are an old hand, keep 
+your eyes peeled on that motion tracker.
+Introduction
+
+
+=== PAGE 168 ===
+Conventions of the Game
+Game Length
+Bug Hunt is played in campaign turns. After 
+creating your hunter squad, each turn moves 
+through three stages.
+First, any trooper not resting up in Sick Bay 
+can apply for special assignments in which 
+troopers can receive training that boosts 
+their abilities.
+The squad then undertakes a mission 
+together, with a miniature-based tabletop 
+battle at its heart. Missions proceed in rounds, 
+each round representing a few minutes of 
+activity or only a few moments of time during 
+battle. Each round ends when every figure on 
+each side has had a chance to do something.
+Finally, a post-battle stage resolves long-
+term consequences such as injuries and 
+deaths, and hands out Experience Point 
+rewards to the trooper, and Reputation 
+rewards to the squad itself.
+A campaign goes on for as many turns as 
+you like. You can play a single mission or a 
+series of connected missions, while some 
+players prefer to follow a single personal 
+character, ending the campaign only if the 
+character dies. Others decide on a set number 
+of campaign turns, or just play until they feel 
+their squad’s story has been told.
+The game needn’t be played solo. If you’d 
+like to play with a friend or two, simply split 
+the crew between you, and work together to 
+overcome the challenges of the universe.
+Game Scale
+We typically refer to an individual model in 
+the game as a figure or character. Figures 
+belonging to the human side are usually 
+referred to in the rules as troopers, while 
+the opposing side are known as enemies 
+(or sometimes from the human perspective 
+as “aliens”).
+Any ability score bonuses or modifiers are 
+based on the figure in question.
+Each miniature figure represents a single 
+character in the game world. You can use any 
+scale of figures you enjoy, though you will 
+need to identify individual troopers.
+The game rules are written to work well 
+with both 15mm and 28mm figures. As the 
+distances that feel satisfying in 15mm games 
+also tend to match typical distances used in 
+28mm games, this means no adjustments 
+are typically required. Players using 
+particularly small-scale figures should adjust 
+some distances, especially with regards to 
+climbing. Counting all distances given in 
+inches as centimeters instead works great for 
+smaller figures.
+All measurements in Bug Hunt are given in 
+inches. Players using 15mm scale miniatures 
+may prefer to read all measurements as 
+centimeters. If so, weapon ranges will still 
+look better in inches, but movement can feel 
+a bit quick. 
+All figures should be based individually, so 
+each figure can move on its own. This is typical 
+for science fiction games, but may present a 
+challenge for fans of very small figure ranges 
+(such as 6mm miniatures, which have a long 
+sci-fi association).
+Dice Basics
+Bug Hunt uses common six-sided dice (“D6”), 
+but also the less common dice such as a ten-
+sided die (“D10”) or twelve-sided die (“D12”), 
+available from many hobby shops and game 
+retailers, whether individually, or as part of a 
+polyhedral set.
+When referring to rolling multiple dice 
+together, the number of dice is given before 
+the type of dice, so that “2D6” means rolling 
+two six-sided dice and “2D10” means rolling 
+two ten-sided dice. Unless otherwise stated, 
+you would add the result of the two dice 
+together, although this game also includes 
+166
+Introduction
+
+
+=== PAGE 169 ===
+occasions where multiple dice are rolled 
+together to produce multiple, distinct results; 
+such circumstances may be indicated by terms 
+such as “two D6” rather than “2D6”.
+Sometimes, you will be asked for a modified 
+roll, adding or subtracting a number to the 
+dice roll for the final result. For example, if you 
+see “2D6+2”, this means roll two six-sided 
+dice, add them together, and then add 2 for 
+the result. A roll may also ask for a roll to be 
+adjusted by the ability score of a character; for 
+example, 2D6+Combat Skill.
+Additionally, you may be asked to roll “D100”. 
+Unless you are fortunate enough to have a 
+one-hundred-sided die, this means rolling 
+the D10 twice, the first result for ‘tens’ and 
+the second for ‘units’, to generate a number 
+between 1 (01) and 100 (00). So, a result of 5 
+then 8 would be 58.
+Rerolls and Natural Rolls
+“Rerolling” always means picking up the 
+die or dice and rolling again, ignoring the 
+original result.
+If a rule refers to the natural result of a die roll, 
+it means the number shown on the die before 
+applying any modifiers. For example, a roll of 
+a 2 with a +2 modifier is a “natural 2” with a 
+final score of a 4. 
+Random Direction Rolls
+The game occasionally requires finding a 
+random direction. You can purchase various 
+“direction dice”, but a simple solution is to roll 
+a D10 and use the raised tip as the direction.
+Norms of the Game
+The rules assume player-controlled 
+characters facing opponents controlled 
+by the game system (the “enemy”). The 
+actions an enemy may take are defined and 
+described on page 198.
+If the rules say you “may” do something, you 
+can choose not to. If the rules say you “must” 
+or “will” do something, you are required to 
+do so.
+By default, the game rules assume the player 
+will pre-measure distances as they play. You 
+may opt to commit to a move or shot before 
+measuring, if you prefer. In multi-player 
+games, all players should agree before the 
+campaign begins.
+Game Currencies
+During gameplay you will be tracking a 
+number of different factors. The primary 
+ones are:
+Experience Points (XP) – These are earned 
+by particular characters and measure their 
+progress as they learn (if they survive!)
+Reputation – This is a general measure of how 
+famous you are and how much influence you 
+have with the troops around you.
+Missions completed – This is tracked for each 
+character and is used to determine how much 
+time they have left in their career.
+Essential Miniatures
+If you are an experienced science fiction 
+gamer, you may already have a collection of 
+miniatures and terrain ready to go. If you’re 
+new to this, it may be overwhelming to get 
+started, especially in terms of miniatures. 
+These rules assume you are playing with 
+miniatures, but paper figures are gaining 
+popularity, and are very accessible.
+You will need a collection of suitable trooper 
+figures. It is common to recycle figures when 
+a character leaves or dies, so 6-7 character 
+0
+8
+7
+4
+3
+167
+Introduction
+
+
+=== PAGE 170 ===
+figures will do you fine to start with. Over time, 
+a collection of 10-15 suitable figures will give 
+you some options to pick from.
+You will need to be able to tell your figures 
+apart, and the easier this is, the better. If you 
+use figures from the same set, such as the 
+many futuristic military miniature ranges 
+available, try to use distinctive poses or vary 
+the paint designs.
+Your figures should reflect roughly the type 
+of weapons they are armed with, but as gear 
+changes frequently, it is not reasonable to 
+try and convert the figure’s weapons every 
+time you get a new item… especially since 
+characters can die rather easily!
+For the opposition, the more and stranger 
+figures you have, the better.
+For the opposition forces you will need critters. 
+There are a number of different enemy types, 
+some of which are very weird! To get you 
+started you will want a good collection of 
+“bugs”. These can be humanoid, giant insects 
+or anything similar. 15 figures is a good start 
+but on a bad mission they can add up fast, 
+so you can’t have too many. If you are on a 
+budget, don’t be afraid to pick up some plastic 
+insects or lizards from the local toy store. 
+They are often perfectly sized for wargaming 
+and will cost you very little. They can even be 
+touched up with paint to look like suitable 
+space monsters. 
+It is common to “proxy” in a figure when you 
+realize you need something that you don’t 
+have. This means using a different figure to 
+stand in.
+As long as you can play the game, you are 
+doing fine. You can easily start with just a  
+few figures and then expand as you go, 
+watching your collection expand as you 
+progress in the campaign.
+Main Characters and Grunts
+The characters you follow in the campaign 
+game are the main characters. They earn 
+Experience Points as the campaign goes on, 
+and you determine their fates and stories. 
+As you play battles, your main characters 
+will be accompanied by supporting troops. 
+These are not permanent characters, but 
+are only with you for the purpose of that 
+mission. These are only temporary characters 
+in the story, and are referred to as grunts 
+168
+Introduction
+
+
+=== PAGE 171 ===
+(sometimes out loud, which may explain why 
+they don’t stick around!)
+Ability Scores
+Each of your characters is rated in five ability 
+scores, which you can record on a sheet of 
+paper, or on the Crew Log at the back of 
+these rules: 
+•	 Reactions is used to determine when a 
+character can act during the turn.
+•	 Speed is straightforward: How far you can 
+move in tabletop inches.
+•	 Combat Skill is added to all attack dice 
+rolls.
+•	 Toughness is the number that enemies 
+need to roll above to damage you.
+•	 Savvy is added to all Problem Solving 
+dice rolls.
+Enemy figures will not have Reaction and 
+Savvy scores. 
+Weapon Ratings
+Weapons are rated in three ways:
+•	 Range is the maximum attack range given 
+in tabletop inches.
+•	 Shots is the number of attack dice you get 
+to roll.
+•	 Damage is the number added to the 
+damage roll.
+Weapons may have additional traits granting 
+special rules, abilities, or exceptions.
+For more on weapons, see page 179.
+The Mission Structure
+During a Bug Hunt campaign, you follow 
+a few main characters (typically 3 or 4) 
+between missions.
+When assigned a mission, your main 
+characters are supported by combat teams of 
+trained troopers. These always count as grunts, 
+and are only along for a single mission. 
+During the mission, you attempt to 
+accomplish military objectives while avoiding 
+or defeating enemy forces you encounter. 
+These enemies initially take the form of 
+Contact markers, representing scanner blips. 
+Note that there is no inherent limit to the 
+number of foes you might face. 
+If you stick around too long, you may well  
+get overrun. 
+Around the battlefield, you will also come 
+across Tactical Locations that may be of help: 
+Computer consoles allowing you to close 
+down access tunnels, maps allowing faster 
+access, colonial defense systems, and so forth. 
+In space, nobody can hear your attack dice
+Being a procedurally generated game, there 
+is no guarantee that a given mission will be 
+tightly balanced and, given the nature of 
+the genre, this is viewed as a strength rather 
+than a flaw. 
+Difficulty settings are provided in the 
+Mission Set-up rules, if you wish to tailor the 
+experience.
+Special Thanks
+A big thank you to everyone who helped 
+out, contributed, or provided feedback over 
+the years. 
+This game is heavily inspired by the Space 
+Crusade board game, the novels Armor and 
+Forever War, the UFO / XCOM computer  
+games and films like Screamers and Aliens  
+(of course).
+Guilty Parties
+Please send all questions, corrections, 
+and suggestions to: 
+nordicweaselgames@icloud.com 
+169
+Introduction
+
+
+=== PAGE 172 ===
+In Bug Hunt, the player’s characters operate 
+as part of a squad that includes main 
+characters and grunts. This chapter will walk 
+you through the process of creating the 
+characters that you will be following in the 
+campaign game.
+Main Characters
+In a typical campaign, you follow three 
+main characters – the central characters of 
+your campaign, who carry over from game 
+to game, developing their skills along the 
+way. You could increase the number of main 
+characters to four or even five, if you wanted 
+to have a slightly easier game, or if you 
+wanted to play with a friend. 
+Each main character begins with the  
+following profile:
+REACTIONS
+	 1
+SPEED
+	 4”
+COMBAT SKILL
+	+0
+TOUGHNESS
+	 3
+SAVVY
+	+0
+To generate a backstory for each of your 
+main characters, use the three tables below 
+to generate their origin, basic training and 
+service history. 
+•	 The Effect column will note bonuses to  
+your profile.
+•	 The Advantages column may provide 
+bonus Experience Points (meaning 
+the character does not begin at 0 XP), 
+Reputation, or Completed Missions for 
+the character. It is not assumed that your 
+main characters begin as rookies.
+•	 Reputation gains are added to a single 
+pool for the squad, rather than being 
+tracked individually. The squad begins the 
+campaign with a bit of rep already, and, 
+as a squad’s reputation precedes it, this is 
+unaffected by the occasional departure and 
+replacement of individual members.
+•	 Tally Completed Missions for each 
+individual character. These are not 
+transferrable. 
+Note that the tables intentionally do 
+not depend on each other. Feel free to 
+concoct outrageous stories to explain 
+the particular combination of traits your 
+characters begin with.
+CHARACTER 
+CREATION
+170
+Character Creation
+
+
+=== PAGE 173 ===
+D100
+ORIGIN
+EFFECT
+ADVANTAGES
+01-09
+Core systems world
+–
++1 Reputation
+10-15
+Frontier colony
++1 Combat Skill
+–
+16-25
+Mid-tech world
+–
++2 XP
+26-33
+High-tech world
++1 Savvy
+–
+34-42
+Trade hub
+–
++2 XP
+43-48
+Struggling colony
++1 Toughness
+–
+49-56
+Mega-city
++1 Reactions
+–
+57-61
+Prison planet
++1 Toughness, 
++1 Combat skill
+–
+62-66
+Hostile environment colony
++1 Toughness
+–
+67-75
+Deep space fleet
++1 Savvy
++1 Completed Missions
+76-83
+Military outpost
++1 Combat Skill
++1 Reputation
+84-91
+Scientific outpost
++1 Savvy
+–
+92-00
+Resource extraction colony
++1 Toughness
+–
+D100
+BASIC TRAINING
+EFFECT
+ADVANTAGES
+01-15
+Ground forces (Infantry)
++1 Combat Skill, 
++1 Toughness
+16-30
+Ground forces (Scouts)
++1 Reactions, 
++1 Speed
+31-35
+Ground forces (Cavalry)
++1 Combat Skill, 
++1 Savvy
++1 XP
+36-45
+Planetary militia
++1 Speed
++2 XP
+46-50
+Unity Special Project
++1 Reactions
++1 Reputation, 
++1 Completed Missions
+51-65
+Naval forces (Marines)
++1 Combat Skill, 
++1 Reactions
+66-80
+Naval forces (Security) 
++1 Combat Skill, 
++1 Savvy
+81-90
+Naval forces (ship’s crew)
++1 Savvy
+91-00
+Non-combatant branch
++1 Savvy
+171
+character creation
+
+
+=== PAGE 174 ===
+D100
+SERVICE HISTORY
+EFFECT
+ADVANTAGES
+01-10
+Garrison or patrol duties
+–
++1 XP
+11-25
+Patrol in low-intensity region
+–
++1 XP
+26-40
+Patrol in fringe-space*
+–
++1 XP
+41-50
+Police action*
+–
++1 Completed Mission
+51-60
+Internal security operation
+–
++1 Completed Mission
+61-75
+Anti-pirate operation*
+–
++1 Completed Mission, 
++1 XP
+76-90
+Military action*
++1 Reactions
++1 Completed Mission, 
++1 Reputation
+91-00
+Extended campaign*
+–
++2 Completed Missions, 
++1 Reputation, 
++2 XP
+Entries marked with a * are considered 
+Combat Operations, albeit ones resolved 
+away from the narrative of the campaign: 
+Roll 2D6. For each 6, the character received a 
+commendation for actions taken under fire, 
+and add +1 XP and +1 Reputation.
+Standard Equipment
+Your characters will be given a standard 
+equipment load that they always carry. 
+Additional weaponry is issued on a per 
+mission basis (see page 187). This standard 
+load consists of:
+•	 Service Pistol
+•	 Trooper armor (allowing a saving throw on 
+a roll of 5+)
+172
+Character Creation
+
+
+=== PAGE 175 ===
+Combat Teams
+On most missions, your main characters are 
+accompanied by grunts – additional support 
+troops not permanently attached to you in the 
+campaign. Think of them as the background 
+extras in a film. When deployed, grunts are 
+usually organized into combat teams of 2-4 
+troopers which must obey the following rules.
+A few grunts (e.g. the sniper) are elite enough 
+to form a one-figure combat team of. They do 
+not receive the team formation bonus below. 
+Note: Combat Teams are only used for grunts, 
+never for your main characters. Your main 
+characters always move and fight individually.
+Reactions
+Treat each combat team as a single character 
+when rolling for Reactions, and every figure in 
+a given combat team acts in the same phase.
+Example: If you have 2 main characters and 
+3 combat teams, you roll 5 dice for Reactions, 
+assigning one die to each combat team and 
+main character.
+Team formation
+These soldiers are highly trained professionals 
+(says the recruitment posters), able to operate 
+independently. However, they perform best 
+when deployed as a combat team.
+If a combat team is in formation, they receive 
+a +1 bonus to their Reactions score.
+At the start of each round, determine whether 
+combat teams are in formation: select a combat 
+team member, and if every other member of 
+that team is within 2” of the selected figure, 
+the team is in formation. The selected figure 
+can be changed each round as needs arise.
+Regiment Flavor table
+These random tables are here to provide 
+additional flavor and details for the regiment 
+your characters belong to. They do not affect 
+game play but are highly recommended.
+If “[number]” is rolled, roll a D6, then roll again 
+on the table. For example, a 74 = [number], 
+so I roll a D6. The result is 4. My next roll is 42 
+on column one, 17 on the column two. My 
+regiment is the 4th Renegade Wolves.
+D100
+REGIMENT 
+TITLE PART 1
+D100
+REGIMENT 
+TITLE PART 2
+D100
+UNIFORM COLOR
+01-10
+Flying
+01-10
+Crows
+01-10
+Black
+11-20
+Rolling
+11-20
+Wolves
+11-20
+Dark grey
+21-30
+Space
+21-30
+Cats
+21-30
+Pale grey
+31-40
+Striking
+31-40
+Sharks
+31-40
+Green
+41-50
+Renegade
+41-50
+Bears
+41-50
+Khaki
+51-60
+Big
+51-60
+Bulls
+51-60
+Red
+61-70
+[color]
+61-70
+Tigers
+61-70
+Urban camo
+71-80
+[number]
+71-80
+Snakes
+71-80
+Wilderness camo
+81-90
+Solar
+81-90
+Rats
+81-90
+Brown
+91-00
+Star
+91-00
+Coyotes
+91-00
+Metallic
+173
+character creation
+
+
+=== PAGE 176 ===
+Terrain Types
+This section helps define how different types 
+of terrain function in the game. Simply read 
+through this section and assign each of your 
+terrain pieces to the appropriate categories. 
+Feel free to create unusual or imaginative 
+terrain types for your specific gaming 
+situation, reflecting the unusual or unique 
+environments of alien worlds, unfamiliar 
+space stations, and mysterious structures. 
+Linear
+Any wide feature that a miniature cannot 
+generally be placed on top of.
+Examples: hedgerows, walls, sandbag 
+barricades, and similar.
+Area
+Features that cover a space on the table and 
+can have miniatures placed within them.  
+Area features may be designated as Difficult.
+Examples: forest, bushes, and rubble.
+Field
+Similar to an Area feature, but ground level.
+Field features may be designated as Difficult 
+or Impassable.
+Examples: mud, water, or lava pools.
+Individual
+A single piece of terrain that a figure  
+cannot climb. 
+Examples: barrels, individual trees, and  
+sign posts.
+Block
+A terrain piece that can be climbed or 
+otherwise interacted with, but which figures 
+cannot enter.
+Examples: boulders, sealed shipping 
+containers, or locked buildings.
+Interior
+An enclosed terrain piece that figures can 
+enter. 
+Examples: unsecured buildings, tunnels,  
+and caves.
+Line of Sight
+When dealing with Block and Individual 
+features, use what is called “true Line of 
+Sight”: Lean down and see if the target is 
+visible from a model’s eye view. If a Line of 
+Sight is available, you need to determine if it 
+is stopped. Lines of Sight are stopped in the 
+following instances:
+•	 3” after crossing the boundary of an  
+Area feature
+MAIN RULES
+Interaction with Terrain
+Block and Linear features can be 
+climbed.
+Area and Field features can be entered. 
+The Movement rules chapter discusses 
+how this influences movement (see 
+page 176).
+174
+MAIN RULES
+
+
+=== PAGE 177 ===
+•	 3” after crossing a Linear, Individual or 
+Block feature
+•	 3” into an Area feature, even if the 
+boundary was not crossed. 
+•	 If it crosses or is partially obscured by 
+another figure
+Note: Ignore terrain features within 1” of the 
+firer for the purposes of 1 and 2 above.
+Example: A figure within 1” of a wall could fire 
+across it with no restriction (as features within 
+1” are ignored). A figure several inches from 
+the wall could only fire across it, if the intended 
+target is within 3” of the crossing point.
+Practically this means when fighting across 
+Linear obstacles, either firer or target needs to 
+be within 3” of the obstacle.
+Cover
+A figure is considered to be in Cover for 
+combat purposes if any of the following  
+are true:
+•	 Line of Sight crossed any terrain feature
+•	 Positioned within an Area feature
+•	 In contact with the corner of Block terrain
+As we assume some mobility and survival 
+instinct on behalf of our characters, a figure 
+meeting these conditions is in Cover, even if 
+the miniature figure can otherwise be seen 
+completely clearly.
+175
+MAIN RULES
+
+
+=== PAGE 178 ===
+Movement
+When moving, a figure may move up to their 
+Speed in tabletop inches.
+Opening doors costs 1” of movement. 
+Climbing through a window or hole costs 2”.
+Figures moving on the ground cannot move 
+directly through another figure at any time.
+Difficult terrain
+Terrain features do not typically reduce 
+movement speed, but Difficult terrain will 
+consume an additional 1” of movement 
+allowance for every full 2” moved in it. 
+However, enemies are not affected by 
+Difficult terrain and move at full speed 
+through such features.
+Difficult terrain includes forest, swamp, rubble, 
+and sand.
+Combat teams
+Figures in Combat Teams do not have to move 
+together. They may voluntarily break formation 
+and each figure may use different movement 
+options (such as Dashing, see below).
+Dash
+Characters that do not intend to fire can Dash, 
+allowing them to move an additional 2”. 
+Enemies will Dash 3” but will Dash only if:
+•	 the additional movement will bring them 
+in contact with a trooper,
+OR
+•	 they are in the open and have Line of Sight 
+to a trooper.
+Brawling
+If a figure moves into contact with an 
+opposing figure, they cease moving 
+immediately, and a Brawl must be resolved. 
+Troopers cannot enter a Brawl by Dashing, 
+while enemies can.
+A trooper that enters a Brawl on their action 
+cannot fire a weapon, but a trooper that is 
+engaged in a Brawl before they have acted 
+could still fire normally.
+See page 177 for rules on Brawling.
+Moving up and down
+Vertical obstacles can be traversed by 
+simply paying the cost in inches. For 
+example, crossing a 2” tall wall uses 2” of 
+movement allowance. 
+Figures cannot end a move part-way up a 
+surface or wall.
+A descent equal to the height of the figure 
+or less can be performed for free. Any longer 
+drop requires the character to either climb 
+down or Jump.
+Jumping does not require any available 
+movement, meaning a character can move to 
+an edge and jump down, but if the distance 
+exceeds the height of the figure their turn 
+comes to an end. Jumping down 3” or further 
+inflicts a Damage 0 hit. Troopers may not 
+jump down from a height exceeding 6”. 
+Characters can leap over a gap up to 2” 
+wide, counting it as part of their standard 
+movement. 
+Enemy Movement
+As noted above, Enemies can Dash 3” under 
+certain conditions, and are unaffected by 
+Difficult terrain. Additionally:
+•	 Enemy figures can leap over gaps up to 3” 
+wide, simply counting the gap as normal 
+movement.
+•	 Enemy figures can drop down from any 
+distance up to 8” without damage. If the 
+drop is more than 3”, the enemy must halt 
+movement for the round, otherwise it may 
+continue moving after the drop.
+176
+MAIN RULES
+
+
+=== PAGE 179 ===
+Combat
+A trooper may fire any single weapon they are 
+carrying as a Combat Action.
+Unless within 3” of a visible opponent, you 
+may fire at any visible target. 
+If a figure intends to attack and has enemies 
+within 3”, it must target an enemy within 
+that range.
+When a figure uses a weapon with multiple 
+shots, they may resolve them one at a 
+time and, if the target is destroyed, select 
+another target within 3” of the original for 
+subsequent shots.
+When firing, roll D6, adding the Combat Skill 
+of the firer. The target number to Hit is:
+•	 Within 6” and in the open	
+3+
+•	 Within weapon range and in the open	 5+
+•	 Within weapon range and in cover	
+6+
+If the modified score is equal to or above the 
+target number, the shot hits. Missed shots 
+have no effect.
+Rapid Fire
+Aliens tend to arrive in swarms that make 
+tempting targets. Every natural 6 on the firing 
+dice allows an additional shot to be taken 
+against the same target or another figure 
+within 2”. You may forego these extra shots, 
+for example if attempting to avoid the risk of a 
+malfunction.
+Malfunctions
+When firing, keep a note of how many  
+natural 1s are rolled, counting both the initial 
+firing dice and any Rapid Fire dice gained. 
+Any weapon that rolls two or more natural 1s 
+during a single round has malfunctioned, 
+and is temporarily unusable.
+Attempting to restore the weapon to use 
+requires spending a Combat Action, and 
+making a successful 1D6+Savvy check, 
+scoring 7+. 
+Area Weapons 
+Weapons with the Area trait are not subject to 
+the Rapid Fire and Malfunction rules.
+Instead, when firing an Area weapon, roll 
+a separately colored D6 at the same time. 
+If this die scores a 1, the weapon is out of 
+ammunition, and cannot be used for the 
+remainder of the battle.
+Brawling
+Characters in physical (base) contact with each 
+other will fight in a Brawl rather than firing.
+To make an attack during Brawling, troopers 
+roll 1D6+Combat Skill. 
+Characters armed for close quarter fighting 
+receive a bonus on top of this:
+•	 +2 if carrying a Melee weapon
+•	 +1 if carrying a Pistol.
+Only one weapon bonus can be counted.
+Enemies roll 1D6+Combat Skill, with no 
+other modifiers.
+•	 The lower total suffers a Hit 
+(see Resolving Hits, p.178). 
+•	 On a draw, both characters take a Hit.
+•	 If an enemy rolls a natural 1, it takes a 
+Hit. If it survives, it will then immediately 
+roll again.
+Brawling Damage
+Resolve Hits using the highest Damage value 
+of any Melee or Pistol weapon carried.
+Characters with no suitable weapon strike 
+with Damage 0. 
+Enemies strike with the Damage rating 
+indicated in their profile.
+Moving after Brawling
+A character that eliminates their opponent may 
+move 2” in any direction, but cannot enter a 
+177
+MAIN RULES
+
+
+=== PAGE 180 ===
+new Brawl. This move is taken immediately, 
+even during the opponents’ turn. 
+Enemies that win a Brawl must always move 
+directly towards the nearest visible opponent, 
+if any.
+If no enemies are visible, they will move into 
+the position occupied by the defeated trooper. 
+Resolving Hits
+Saving throws
+Some characters, including your troopers, have 
+armor or protective devices that grant a saving 
+throw. This is expressed as giving a save on 
+a particular dice range, such as 4-6, 5-6, etc. 
+When the figure is hit, roll 1D6; a result within 
+this range indicates that they shrug off the hit, 
+are not Stunned but are knocked back 1”.
+Note that some attacks may ignore armor. 
+Unless the rules state this, all damaging Hits 
+on troopers receive a saving throw.
+Some enemy types may also receive saving 
+throws, which work in the same manner.
+If a character is hit and fails their saving throw 
+(if one is permitted), regardless of the source 
+of the hit, roll 1D6 and add the Damage 
+rating of the attack or event.
+•	 If the result exceeds Toughness, the 
+character becomes a casualty and is 
+removed from play.
+•	 If the result is equal to Toughness, 
+the character is knocked back 1” and 
+Wounded.
+•	 If the result is below Toughness the 
+character is knocked back 1” and Stunned.
+Wounded
+A Wounded trooper is at a -1 penalty to 
+Brawling attack rolls, and can no longer make 
+Dash moves. The Wounded status remains for 
+the rest of the mission. If Wounded a second 
+time in the mission, the trooper is removed as 
+a casualty.
+Wounded enemies fall to the ground, and can 
+no longer move. However, if a trooper moves 
+within 1”, place the enemy in contact with 
+them, and the enemy will immediately attack 
+them in Brawling combat. A second Wound 
+will kill the enemy.
+Stunned
+Each time a figure is Stunned, place a suitable 
+marker. When the figure is selected for 
+activation, it may move OR carry out an Action 
+(but not both), if it is a trooper. An enemy 
+must remain in place, unable to act. In both 
+cases, remove 1 Stun marker from the figure. 
+If they return to 0 Stun markers, they are no 
+longer Stunned.
+If a figure accumulates 3 Stun markers, it is 
+knocked out and removed from play.
+If a Stunned figure is engaged in a Brawl, they 
+will fight at a -1 penalty, but may remove  
+1 Stun marker if they survive the Brawl.
+Trooper Armor
+All figures noted as wearing trooper 
+armor receive a saving throw on 5-6.
+178
+MAIN RULES
+
+
+=== PAGE 181 ===
+Weapons and gear
+The following are typical weapons and gear 
+that your characters may find themselves 
+armed with.
+WEAPON
+RANGE
+SHOTS
+DAMAGE
+NOTES
+Service pistol
+14”
+1
+0
+Pistol
+Hand cannon
+8”
+1
+1
+Pistol
+Carbine
+18”
+1
+0
+–
+Combat rifle
+26”
+1
+0
+–
+Shot gun
+12”
+2
+1
+Focused
+Sniper rifle
+40”
+1
+1
+Aimed
+Light machine gun
+36”
+3
+1
+Heavy
+Incinerator
+8”
+3
+1
+Focused, Area
+Hyper blaster
+24”
+3
+1
+Overheat
+Plasma rifle
+20”
+2
+1
+Focused, Piercing
+Boarding sword
+Brawl
+–
+0
+Melee
+Power claw
+Brawl
+–
+1
+Melee
+Flash grenade
+6”
+–
+–
+Stun
+Frag grenade
+6”
+2
+0
+Area
+Mounted launcher
+18”
+–
+–
+Launcher
+Weapons may have the following traits:
+•	 Pistols grant +1 to Brawling rolls.
+•	 Focused weapons must direct all shots 
+against a single target.
+•	 Aimed weapons grant +1 Hit bonus if the 
+firer does not move.
+•	 Heavy weapons suffer -1 to hit when 
+moving.
+•	 Area weapons resolve their Shots against 
+the target (which may be an empty point 
+on the table). Then regardless of effects, roll 
+1D6 for every figure within 2”. On a 4+, 
+they are hit.
+•	 Melee weapons grant +2 to Brawling 
+rolls.
+•	 Stun weapons will Stun any target within 
+2” of the target point on a 3+ roll. Roll 
+for each.
+•	 Launchers may fire any grenade type 
+carried up to the range indicated.
+•	 Piercing weapons ignore saving throws.
+•	 Overheat causes the weapon to 
+malfunction if all three firing dice score 
+the same number. If less than three 
+firing dice are rolled, no chance of 
+malfunction exists.
+Note that Stun and Area weapons are targeted 
+at any point in sight, not against a specific 
+target figure. The “Shots” on the weapons 
+profile only applies to the initial target, if any. 
+179
+MAIN RULES
+
+
+=== PAGE 182 ===
+Unusual Situations
+This section covers various unusual situations 
+that can occur during the game. In most cases 
+you can resolve such cases yourself, but if you 
+prefer a bit of guidance, we’re here to help.
+Entering a Brawl with multiple opponents
+In rare cases, it is possible for a moving 
+character to enter a Brawl with two opponents 
+at the same time, typically if they are very 
+close together. If so, select which opponent 
+you fight at random. Even if you win, expect 
+no moment to breath; as soon as you down 
+the first enemy, the second is on you: fight the 
+other opponent immediately, adding +1 to 
+their Combat Skill.
+Crashing into things
+Some rules can force a character to move or 
+be moved randomly. Random moves are not 
+reduced by Difficult terrain. If the character 
+moves into a Linear, Block, or Individual 
+terrain feature, the character ceases moving. If 
+more than 1” remained of the random move 
+distance, they become Stunned.
+If an enemy and trooper are moved randomly 
+into contact with each other, a Brawl is 
+resolved immediately. Both combatants count 
+as having Combat Skill +0, ignoring all 
+modifiers.
+Equal distance
+When determining opponent actions, you 
+may run into multiple options if locations  
+or targets are equal in value, distance, or  
+some other factor. If so, roll a D6, with  
+1-3 representing one possibility and  
+4-6 representing the other.
+Cover is made of people!
+If a Line of Sight is partially obscured by 
+another trooper, you may NOT fire. Also, 
+troopers may not fire Area weapons in such 
+a way that the attack would threaten other 
+troopers.
+If a desired target is partially obscured by 
+another enemy, you may abandon the shot in 
+favor of a different target or choose to fire at 
+the obscuring figure instead.
+Timing questions
+If you are not sure how to resolve a complex 
+situation where multiple things are 
+happening all at once, work through it one 
+step at a time, resolving each game mechanic 
+as it is invoked. Nordic Weasel games 
+generally run on the basis that things resolve 
+as they occur, with no “queuing up” or similar 
+systems, and Bug Hunt is no exception to this. 
+Positioning
+For the purpose of resolving any game 
+mechanic, all figures are assumed to occupy 
+the exact position they are currently 
+occupying on the gaming table. 
+Figures are never abstracted to 
+be generally in an area or 
+“moving through” an area. 
+180
+MAIN RULES
+
+
+=== PAGE 183 ===
+Movie Magic
+If you prefer a more cinematic game, you can 
+use the rules in this chapter. Each of the listed 
+options below can be employed once in your 
+campaign. We recommend that you write 
+them on index cards and tear the cards up as 
+you use them. 
+Each can be narrated in any manner that 
+fits the table and situation: For example, a 
+barricade might be raising an interior blast 
+door, or your troopers might us it to rig up a 
+laser fence. 
+Barricade
+Use at the beginning or end of any round.
+Place a barricade anywhere on the table. It 
+must be a straight line and no wider than 
+3”. The barricade becomes impassable to all 
+movement (troopers, enemies, and Contact 
+markers) for the rest of the battle. 
+Double-Up
+Use when selecting a character to act.
+The character receives an Incinerator and may 
+fire either that or their regular weapon during 
+any given battle round. The Incinerator is 
+immune to malfunction.
+Escape
+Use after a battle.
+Any characters that moved across a 
+battlefield edge do not have to roll on the 
+Lost Marine table.
+Evac
+Use after failing a roll for evac during a 
+mission.
+Evac automatically arrives next round with no 
+roll required.
+Extra Support
+Use when rolling up Support for the mission.
+The first Support option you request does not 
+require a die roll.
+Lucky Find
+Use when selecting a character to act.
+Select any weapon from the Weapons table 
+(see p.179) and give it to the active character 
+or an ally within 4”. The new weapon is 
+not subject to malfunctions, but cannot be 
+retained after the mission. 
+Reinforcements
+Use at the beginning or end of any round.
+Select any one option from the mission 
+support list (see pp.188-9). The indicated 
+troops are placed at the center of any 
+battlefield edge of your choice, and will 
+participate in the battle normally.
+No die roll is required for their arrival.
+Remove Contact
+Use at the beginning or end of any round.
+Select a Contact marker anywhere on the table 
+and remove it from play.
+Survived
+Use after rolling for character injuries.
+A character of your choice may ignore the 
+effects of an injury roll.
+You want some too?
+Use when selecting a character to act.
+The selected trooper may move normally, 
+and then fire three times, with no chance of 
+weapon malfunction.
+181
+MAIN RULES
+
+
+=== PAGE 184 ===
+Bug Hunt is played in a series of campaign 
+turns. Each of these may represent a few days, 
+a few weeks, or even several months. Think of 
+a campaign turn as an episode in a television 
+show, framing a particular story or adventure.
+Each campaign turn you will be given a 
+mission, which is resolved on the gaming 
+table, as well as completing various other 
+activities beyond the battlefield.
+To play a campaign turn, complete the 
+following stages in order:
+1.	 Special Assignments, below.
+2.	 Fight a tabletop battle (see Mission 
+Generation, page 184, then The Battle 
+Round, page 38).
+3.	 Post-battle (see page 202).
+CAMPAIGN 
+TURN
+182
+Campaign Turn
+
+
+=== PAGE 185 ===
+Special Assignments
+Troopers do not spend all their time on 
+missions, but can spend valuable time honing 
+their skills in readiness. You may nominate any 
+of your characters for Special Assignments, 
+unless they are in Sick Bay. Special 
+Assignments typically involve additional 
+training, but can also provide opportunities.
+For each eligible character, select an 
+assignment, and roll 2D6 on the table below 
+to see whether they can obtain approval to 
+undertake it. Note that some assignments 
+have additional requirements that must be 
+met. Failure means you were not accepted 
+onto this (or any other) assignment this turn, 
+but you may try again in a future campaign 
+turn. A character can only complete a given 
+assignment once in their career. 
+For each Special Assignment undertaken, they 
+receive a training award and, where indicated 
+on the table, bonus XP and Reputation (“Rep.”). 
+In the unlikely event that a character has 
+successfully completed every possible 
+Assignment below, they spend this part of the 
+campaign turn playing cards in barracks.
+ASSIGNMENT
+DICE ROLL &
+REQUIREMENTS
+TRAINING 
+AWARDS
+BONUS 
+XP
+REP.
+Marksman training
+Roll 9+
+Combat Skill +1 
+if currently lower than 2.
++1
+–
+Leadership training
+Roll 9+
+May take Officer Training 
+Course during a later turn
++2
+–
+Physical training
+Roll 8+
+Speed +1 if currently 
+lower than 6
++1
+–
+Commando course
+Roll 10+ and 
+Reactions or Combat 
+Skill of 2+
+Reactions +1 if currently 
+lower than 3,  
+Combat Skill +1 if 
+currently lower than 2
++2
+–
+Technical training
+Roll 9+
+Savvy +1 if currently  
+lower than 2
++1
+–
+Public relations duties
+Roll 9+ and 
+4 completed Missions
+–
++1
++1
+Instructor
+10+ and 
+4 completed Missions
+–
++2
++1
+Cross-training
+8+
+–
++3
+–
+Special assault course
+10+
+Combat Skill +1  
+if currently lower than 2
++1
+–
+Survival course
+8+
+Toughness +1 if currently 
+lower than 4, Speed +1  
+if currently lower than 5
++1
+–
+Harsh environment 
+course
+8+
+Savvy +1 if currently 
+lower than 2
++1
+–
+Officer training course
+11+ and 
+Leadership Training
+Reactions +1 if currently 
+lower than 2
++1
+183
+Campaign Turn
+
+
+=== PAGE 186 ===
+HQ has found the next target location and it 
+is time to get to the drop ship. Your troopers 
+laugh that no doubt this time the intel team 
+got it right.
+Missions are resolved on the tabletop using 
+miniature figures. You may use any of your 
+characters that are not currently in sick bay 
+due to injuries.
+Mission Set-up
+To set up a Mission’s encounter, follow the 
+steps below:
+1.	 Set up battle area
+2.	 Determine and place Objectives
+3.	 Select mission difficulty
+4.	 Determine Priority
+5.	 Determine Spawn Rating
+6.	 Select load-out
+7.	 Determine force strength
+8.	 Place Signals, Tactical Locations, and 
+initial Contacts
+9.	 Set up your troops
+Step 1. Set up battle area
+The area you are going to play in can be set up 
+in any manner you like.
+It is customary for bug hunting missions 
+to take place inside spaceships, colony 
+installations, and similar, and if you have 
+access to floor plans (such as modular tiles or 
+board game floors), you can utilize these for 
+such a battle. Players with 15mm scale figures 
+can easily take advantage of floor plans 
+intended for 25/28mm figures. 
+However, the enemy hordes certainly don’t 
+keep to building interiors, and missions can 
+take place in colonies, urban areas, or even 
+complete wilderness. A combat sweep through 
+a jungle can have a great movie atmosphere, 
+for example. 
+A typical (3x3 feet) battlefield should contain 
+10 decent-size terrain features, such as 
+large rocks, a collection of smaller crates, a 
+small structure, a forested area, or similar. 
+Distribute these fairly evenly, then add  
+5-10 small individual features (rocks,  
+crates, single trees, etc.) in any gaps.
+Don’t be afraid to add some strange-looking 
+plants and rock formations: Aquarium 
+decorations are great for providing a fun alien 
+world feel. 
+MISSION 
+GENERATION
+184
+Mission Generation
+
+
+=== PAGE 187 ===
+Step 2. Determine and place Objectives
+Place 6 dice around the table, with numbers 
+1 through 6 showing. The dice should be 
+placed at locations that seem significant to 
+your gaming table, such as rooms, cross-roads, 
+raised ground, or similar. Space the dice 
+roughly evenly across your gaming table and 
+avoid placing them within 6” of the battlefield 
+edges if at all possible.
+Roll three D6 and remove any of the table 
+dice that do not match one of the numbers 
+you rolled. The remaining dice become your 
+Objectives. You can replace these dice with 
+suitable markers or an identifiable piece of 
+scatter terrain to prevent it being accidentally 
+picked up during the game.
+If two of the D6s rolled the same number, 
+the Objective with that number becomes a 
+Vital Objective. If all three rolled the same 
+number, the one remaining die becomes a 
+Critical Objective. 
+To determine the nature of each Objective, 
+roll a D6 on the table below. You may identify 
+a given Objective marker before rolling, or 
+determine the results first and assign the 
+results to the Objective markers where they 
+make the most sense. 
+During the mission, count how many 
+Objectives were completed. Vital Objectives 
+count as 2 when completed, while Critical 
+Objectives count as 3.
+1D6
+OBJECTIVE
+ACHIEVED WHEN
+1
+Patrol
+At the end of each battle round, if a trooper is within 6”, roll 1D6.  
+On a 4+, the Objective becomes completed.
+2
+Scout
+This Objective is completed at the end of the round during which 
+a trooper moved to make contact with the marker.
+3
+Secure
+This Objective is completed if at the end of a round, a trooper is 
+within 6” and no enemies are within 6”.
+4
+Retrieve
+A trooper moving into contact and spending a Combat Action can pick up 
+the package. If the figure becomes a casualty, the package is dropped. 
+To complete the Objective, you must hold the package when Evac’ing. 
+5
+Beacon
+Move a trooper into contact with the marker to complete this Objective, once 
+all Hack, Secure, and Scout Objectives have been completed.
+6
+Hack
+A trooper must move into contact and spend a Combat Action. 
+Roll 1D6+Savvy and score a 6+ to complete the Objective. 
+Vital and Critical Objectives
+Objectives are all important (according to the 
+colonel), but some are more important to the 
+overall war efforts. Objectives may be rated 
+as Vital or even Critical if they are especially 
+valuable. This will affect your success rate in 
+the mission, so think carefully before giving 
+up on one.
+185
+Mission generation
+
+
+=== PAGE 188 ===
+Step 3. Select mission difficulty
+You may select one of five difficulty settings 
+for the mission. Note that these do not affect 
+character progression but may be used to 
+regulate the brutality of the game experience. 
+This is useful when introducing the game to 
+new players, or if you want the struggle of 
+your life against impossible odds. 
+DIFFICULTY
+INITIAL CONTACT 
+MARKERS
+ENCOUNTER MODIFIER
+I’m Too Pretty to Die
+Adjust by -1
+Adjust by -1
+Gain +2 Support points (see Step 7, page 187)
+Hey, Not Too Crazy
+Adjust by -1
+No adjustment
+–
+Mess Me Up
+No adjustment
+No adjustment
+–
+Mega-violence
+Adjust by +1
+Adjust by +1
+–
+Living Nightmare
+Adjust by +1
+Adjust by +1
+At the end of each battle round, if there are less than 3 Contact markers 
+on the table, place 1 new Contact marker at the center 
+of a random battlefield edge. 
+186
+Mission Generation
+
+
+=== PAGE 189 ===
+Step 4. Determine Priority
+Not every mission is equally important to 
+those in authority. Sometimes it’s just a recon 
+sweep in a low-threat sector, sometimes it’s 
+the heart of the storm.
+Roll two D6s, and pick the lower result: This is 
+your Priority Rating. The higher it is, the more 
+resistance you will encounter, and the worse 
+things will be.
+If a Vital Objective is on the table, increase 
+Priority by +1. If a Critical Objective is on 
+the table, increase Priority by +2. 
+If desired, you can call on your Reputation to 
+be assigned a higher or lower Priority mission. 
+You may spend up to 2 points of Reputation, 
+with each point raising or lowering the Priority 
+Rating by 1. 
+Regardless of points spent or modifiers, 
+Priority cannot be reduced below 1 or raised 
+above 6.
+Step 5. Determine Spawn rating
+The Spawn Rating adds to the inflow of 
+enemy reinforcements. It is equal to the 
+Priority Rating minus 1, but the final score 
+cannot exceed 3.
+Examples: A Priority Rating of 1 would result 
+in a Spawn Rating of 0, while a Priority Rating 
+of 6 would result in a Spawn Rating of 3.
+Step 6. Select loadout
+Each main character may select to carry their 
+choice of Combat Rifle, Shotgun, or Boarding 
+Sword for the duration of the mission.
+Additionally, one main character may opt to 
+swap the Service Pistol from their standard 
+equipment (see p.172) for a Hand Cannon for 
+the duration of the mission.
+Step 7. Determine force strength
+In addition to your main characters, you 
+always receive one Fire Team of soldiers 
+(grunts identical to the “Fire Team” Support 
+entry below). 
+You receive Support points equal to the 
+Priority of the mission. 
+Add +2 if you have selected the I’m too pretty 
+to die difficulty setting.
+If desired, 1 point of Reputation may be 
+spent to gain +1 Support.
+Each point grants one roll against a support 
+type of your choosing on the Support table 
+below. Roll 2D6, with a result equal to or 
+above the target number granting you the 
+troops requested. A score below the target 
+means that type of Support is unavailable, 
+and the point is lost.
+Each Support choice can only be requested 
+once before a particular mission, but you 
+may roll for each request and see if you get it, 
+before deciding what to roll for next.
+Campaign escalation option (continued)
+If using the Campaign escalation option 
+above, the Spawn Ratings would be:
+0  – 0 – 1 – 1 – 2 – 3 – 3 – 3
+Campaign escalation option
+You may prefer to play a campaign that 
+slowly escalates in Priority. If so instead of 
+rolling, you will use the following Priority 
+Ratings in order as you play missions:
+1 – 1 – 2 – 2 – 3 – 4 – 5 – 6
+187
+Mission generation
+
+
+=== PAGE 190 ===
+SUPPORT
+TARGET
+(2D6)
+CONTENTS
+ABILITY 
+SCORES
+NOTES
+Fire team
+7+
+4-figure team with 
+Combat Rifles
+Reactions 1 
+Speed 4” 
+Combat Skill +0 
+Toughness 4 
+Savvy +0
+Trooper armor
+A standard trooper fire team. 
+Sarge
+5+
+1 figure with 
+Shotgun and 
+Boarding Sword 
+OR Service Pistol 
+and Power Claw
+Reactions 2 
+Speed 4” 
+Combat Skill +1 
+Toughness 5 
+Savvy +0
+Trooper armor
+A battle-hardened veteran who have seen it all and only wants to know how to find 
+more bugs to kill.
+Sharp shooter
+6+
+1 figure with 
+Sniper Rifle
+Reactions 2 
+Speed 4” 
+Combat Skill +1 
+Toughness 4 
+Savvy +0
+Trooper armor
+A lone operative with a high-powered sniper rifle.
+Recon patrol
+6+
+2-figure team with 
+Carbines
+Reactions 3 
+Speed 6” 
+Combat Skill +0 
+Toughness 4 
+Savvy +0
+–
+Recon troopers are outfitted to move quickly and quietly.
+Colonial 
+militia
+5+
+5-figure team with 
+Carbines
+Reactions 1 
+Speed 4” 
+Combat Skill +0 
+Toughness 3 
+Savvy +0
+–
+Enthusiastic members of the nearest colony defense forces. 
+Scientific 
+survey team
+6+
+4-figure team with 
+no weapons
+Reactions 1 
+Speed 4” 
+Combat Skill +0 
+Toughness 3 
+Savvy +3
+If a scientist reaches 
+the center of the table 
+and spends one entire 
+round there, count this as 
+completing one Objective. 
+This is only achievable  
+once per mission.
+HQ says we need to measure the ambient Z-59 radiation in order to…  
+I don’t know, it’s important alright?
+188
+Mission Generation
+
+
+=== PAGE 191 ===
+SUPPORT
+TARGET
+(2D6)
+CONTENTS
+ABILITY 
+SCORES
+NOTES
+Weapons 
+support
+4+
+–
+–
+Outfit any one figure with 
+your choice of Light Machine 
+Gun, Incinerator, Power Claw, 
+Hyper Blaster or Plasma Rifle.
+Additional armaments have been approved for allocation.
+Grenades
+4+
+–
+–
+Outfit four figures of choice 
+with Frag or Flash grenades 
+OR outfit one figure of choice 
+with a Mounted Launcher and 
+either Frag or Flash grenades
+Grenades make bugs explode. More grenades makes more bugs explode.
+Intel report
+7+
+–
+–
++1 bonus to activate Tactical 
+Locations for entire mission
+While the intel nerds don’t always get it right, it can’t hurt to read their reports.
+Soulless Recon 
+Team
+8+
+2-figure team. 
+1 Carbine and 1 
+Sniper Rifle.
+Reactions 3 
+Speed 6” 
+Combat Skill +1 
+Toughness 5 
+Savvy +1
+Protective shell equal to 
+Trooper Armor.
+Robotic entities linked into a species-wide network. Somewhat unsettling but dedicated 
+allies.
+K’Erin assault 
+marine Team
+8+
+4-figure team 
+with Carbines and 
+Boarding Swords
+Reactions 1 
+Speed 4” 
+Combat Skill +0 
+Toughness 4 
+Savvy +0
+Trooper Armor. 
+Roll twice and pick the best 
+die when Brawling.
+War-like humanoids eager for an honorable fight. Being knee-deep in alien gore seems 
+to make them oddly content with life.
+Precursor 
+explorer
+8+
+1-figure with 
+Service Pistol and 
+Boarding Sword
+Reactions 3 
+Speed 6” 
+Combat Skill +0 
+Toughness 3 
+Savvy +0
+You may re-roll one initiative 
+die each round.
+Refined travelers with a mystical outlook on the galaxy. They are often pursuing an 
+abstract higher purpose but tend to be allies of Unity more often than not. 
+189
+Mission generation
+
+
+=== PAGE 192 ===
+Step 8. Place Tactical Locations and  
+Initial Contacts
+Tactical Locations: 
+You will need markers to indicate Tactical 
+Locations (see page 191) and Signals (if this 
+rule is used – see page 208), and they should 
+be readily distinct from the markers used for 
+Objectives.
+If you are not using the Signals rule, 6 Tactical 
+Locations are placed on the battlefield.  
+If Signals are used, place 1D6 Signals, then 
+place Tactical Locations until the total number 
+of Signals and Tactical Locations adds up to 6. 
+For example, if placing 4 Signals, you would 
+then place 2 Tactical Locations.
+Tactical Locations and Signals should be spread 
+as evenly as possible around the battlefield, 
+and if possible should be placed at least 2” 
+from any Objective markers. Signals must be 
+placed in or adjacent to a terrain feature. 
+Contacts: 
+Place a Contact marker on each Objective 
+(but not on Tactical Locations). Once this is 
+done, place one additional Contact marker 
+in the center of the table.
+Add 1 extra Contact marker in the same 
+location if you have selected the Mega-
+violence or Living nightmare difficulty settings. 
+Do not place this extra marker if you have 
+selected the I’m too pretty to die or Hey, not too 
+crazy difficulty settings. If you have opted for 
+Mess me up, no adjustments are made.
+Step 9. Set up your troops
+Your force is assumed to land by drop ship just 
+outside the battlefield. Randomly determine 
+one of the battlefield edges, and set up 
+anywhere on the battlefield within 3” of that 
+edge, with your forces as compact or spread 
+out along the edge as you like. 
+Any Objectives must be at least 12” from 
+your initial deployments. If they would be 
+closer, move them directly away towards 
+the opposite battlefield edge (Intel clearly 
+misjudged the terrain).
+190
+Mission Generation
+
+
+=== PAGE 193 ===
+Tactical Locations
+During the mission, you will encounter 
+Tactical Locations. These represent sites and 
+situations of potential value to your force: 
+Computer consoles, pathways that can be 
+sealed off, useful infrastructure, adaptable 
+equipment, and so forth. By investigating and 
+interacting with these locations, you can gain 
+an advantage against the alien hordes.
+Tactical Locations are marked on the battlefield 
+with any suitable marker (we suggest a 0.5” x 
+0.5” square).
+Investigating
+To investigate a Tactical Location, a figure must 
+finish a move within 3” of the marker without 
+firing a weapon or engaging in a Brawl. 
+You can then roll on the following table to 
+determine the exact nature of the location. 
+Any figure that is within 3” and is not firing or 
+engaging in a Brawl (including the figure that 
+just investigated the Location) may attempt 
+to activate it. A further die roll is required 
+to activate and gain the tactical benefits, as 
+described below. 
+D6
+TACTICAL 
+ADVANTAGE
+EFFECTS
+1
+Distract
+When activated, all enemies within 18” are Distracted and cannot act 
+during the next Enemy Action phase. Note that Contact markers are 
+unaffected, but if a Contact marker is revealed within range, the newly 
+placed enemies will be affected immediately.
+2-3
+Block
+The area within 2” of the marker becomes Impassable to Enemies or 
+Contact markers, but can be crossed without any hindrance by player 
+figures. At the end of each round including the current, roll a D6: On a 6, 
+the area will become passable again at the end of the following round.
+4-5
+Neutralize
+Remove any one Contact marker of your choice.
+6
+Delay
+For the rest of the current round and all of the two following rounds, no 
+new Contact markers can be added to the battlefield. Simply ignore any 
+rule that would require such a placement.
+To activate the Tactical Location, roll 
+1D6+Savvy, scoring a 5+. Mark the 
+location in some way if his roll fails. A second 
+failure to activate the same Location means 
+the functionality of the location has been 
+compromised in some way, and its Tactical 
+Advantage remains unavailable for the 
+remainder of the game.
+Enemies and Tactical Locations
+Until it has been activated, a Tactical Location 
+has no effect on enemy figures. They may 
+move over the marker, and will not factor 
+it into their decision making process at all. 
+Once it is activated, it has the normal effects 
+described in the table above.
+191
+Mission generation
+
+
+=== PAGE 194 ===
+Contacts
+Contact markers represent sounds, 
+footprints, and the shrill “bleep bleep” of the 
+team’s motion trackers as hostile lifeforms are 
+closing in.
+You will need some sort of markers or tokens 
+to use as Contact markers during play. Board 
+game tokens can be adapted with ease, or you 
+may take any generic “alien” figure and paint 
+it in a pale grey.
+While Contact markers are placed during the 
+Mission Generation rules (see p.184), their 
+function in the game is discussed below, 
+as they are principally connected to the 
+Movement rules.
+Moving Contact Markers
+All Contact markers are moved during the 
+Enemy Action phase, but after all enemy 
+figures have moved. Begin with the Contact 
+marker nearest to a player figure (in absolute 
+terms, ignoring terrain, walls, and similar), 
+then the next nearest, etc.
+To move a Contact marker, roll two D6 in 
+separate colors. The darker color represents 
+Aggression while the lighter color 
+represents Chance.
+•	 If the Chance die is higher, move the 
+marker that many inches in a random 
+direction.
+•	 If the Aggression die is higher, move 
+the marker that many inches towards the 
+nearest player figure.
+•	 If the dice are equal, the Contact marker 
+remains in place, and a new Contact marker 
+is placed on top of it. From the next round 
+onwards, they will each move separately.
+A Contact marker will move around or through 
+terrain features as required. Their movement 
+is never reduced due to difficult ground. If it 
+would move off the battlefield edge, it will halt 
+in place upon reaching the edge.
+Detecting Contact Markers
+Check for Detection of Contact markers:
+•	 At the end of each marker’s move (and only 
+at the end, never during).
+•	 Whenever a player figure finishes the 
+Movement portion of its action (checking 
+all Contact markers for Detection). 
+•	 Immediately when a new Contact marker  
+is placed. Surprise!
+Detection is based on proximity:
+•	 Markers in sight and not in cover are 
+Detected within 6”.
+•	 Markers in cover or out of sight are 
+Detected within 3”.
+Note that Line of Sight is not required to 
+Detect, as troops carry close range detection 
+devices (and in any event, most alien life 
+forms make scary hissing sounds).
+Upon Detection, Immediately roll 1D6 on the 
+Contact table below. All results are applied 
+before continuing with the game. If a Marker 
+is Detected at the end of a player figure’s 
+move, they may then fire on any revealed 
+enemies, if possible. Note that Contact 
+markers themselves cannot be fired upon.
+192
+Mission Generation
+
+
+=== PAGE 195 ===
+D6
+CONTACT
+EFFECT
+1
+Stay frosty
+Remove the marker. If this leaves less than 3 markers on the table, put a 
+new marker on the battlefield edge point furthest from the spotter.
+2
+We got movement 
+all over the place
+Move the marker 1D6” directly away from the spotter, then place a new 
+Contact marker on the nearest battlefield edge point to the spotter.
+3-6
+CONTACT!
+The marker is replaced with enemy figures.
+All enemies encountered during a particular mission will be of the same  
+type. If you have not yet determined the type, roll on the table in the  
+Mission Generation chapter (see p.184). This table should also be used to 
+determine numbers. 
+If you have encountered this enemy type before in the campaign, determine 
+the variant you have encountered this time. See page 196.
+If this is the third or later mission of the campaign, you will need to check  
+if a pack leader is present. See page 197.
+Place all enemy figures within 1” of the marker. They do not perform any 
+actions this round.
+“Beep... Sir?”
+At the start of each round from Round 2 
+onwards, roll D6s equal to the Priority of 
+the mission (from 1 to 6, typically 2-3; See 
+Determine Priority, page 187). If any of the 
+dice roll a 6, place one new Contact marker 
+on the table by rolling a random direction 
+die in the center of the table. The marker 
+is placed at the point of a battlefield edge 
+indicated by the die.
+Check for Detection after placing the marker. 
+If the marker is Detected, all figures within 
+12” may fire upon the revealed enemies 
+immediately as a bonus action. This bonus 
+shot does not prevent the figures from acting 
+normally during the round, and only applies 
+to markers placed under this rule.
+They’re inside the perimeter!
+On the Living Nightmare difficulty setting (see 
+page 26), place a Contact marker for each 6 
+rolled instead. 
+Example: My mission is Priority 3 and I roll 
+a 2, 6, 6 on the dice. I place one new Contact 
+marker at a random battlefield edge. If I was 
+playing on the Living Nightmare setting, I 
+would place two instead. 
+193
+Mission generation
+
+
+=== PAGE 196 ===
+Enemy table
+When you first reveal a Contact marker 
+during a mission, roll on the table below to 
+determine the enemy type. This will also give 
+you the number encountered per Contact 
+marker and their profiles.
+The enemy types have been left fairly vague 
+so that you can fit your own miniatures 
+collection to them as best as possible. Feel 
+free to invent your own backstory about what 
+these creatures are, and don’t feel too hung 
+up on the names if you have something in 
+your collection that would really fit a particular 
+monster profile.
+The Converted, Horde, and Swarm enemies 
+originate in the Unified Space setting. The 
+Converted are corpses re-animated through 
+cybernetics for use as assault troops, the 
+Horde rely on genetic manipulation to create 
+monstrosities for war, and the Swarm are your 
+typical fast, homicidal alien creatures.
+The Numbers column gives the dice roll to be 
+made whenever a Contact marker is revealed 
+as Enemies. Note that on the I’m too pretty to 
+die difficulty setting, the number is reduced 
+by 1. On the Mega-violence and Living 
+Nightmare difficulty settings, the number is 
+increased by 1. 
+The table gives the Speed, Combat Skill, and 
+Toughness of the enemies in the appropriate 
+columns. The Damage column is used when 
+enemies inflict a hit on a trooper.
+D100
+ENEMY
+NUMBERS
+SPEED
+COMBAT 
+SKILL
+TOUGHNESS
+DAMAGE
+01-08
+Vent-crawlers
+1D3+2
+6”
+1
+4
+2
+When firing at Vent-crawlers within or directly behind cover, do not add Combat Skill.
+09-13
+Acid blobs
+1D6
+3”
+0
+5
+3
+When an Acid Blob is killed, roll 1D6 immediately. On a 1 or 2, place new Blobs 
+equal to the die roll randomly 2” from the slain Blob.
+14-19
+Face-rippers
+1D3+2
+5”
+1
+5
+2
+Trooper armor only saves on a roll of a 6. 
+20-26
+Slithering 
+horrors
+1D6+1
+4”
+1
+4
+2
+Troopers with melee weapons can only claim a +1 bonus to Brawling rolls.
+27-33
+Tentacle 
+creepers
+1D3+1
+3”
+3
+4
+1
+Creepers receive a 5+ saving throw, except when struck by an Area weapon.
+34-41
+Shambling 
+reanimations
+1D6+2
+3”
+0
+4
+1
+Any grunt defeated is immediately replaced by another Reanimation figure.
+42-47
+Razor lizards
+1D6+1
+6”
+1
+3
+2
+Defeated troopers who roll for post-battle injuries must add 1 campaign turn to all recovery 
+times. This does not apply to rolls on the Lost Marine column of the Injury table. 
+48-51
+Berserk robots
+1D3+1
+4”
+2
+5
+2
+5+ saving throw against all sources of damage. 
+194
+Mission Generation
+
+
+=== PAGE 197 ===
+D100
+ENEMY
+NUMBERS
+SPEED
+COMBAT 
+SKILL
+TOUGHNESS
+DAMAGE
+52-56
+Converted 
+assault team
+1D6+1
+4”
+1
+4
+2
+5+ saving throw against ranged attacks.
+57-62
+Dimensional 
+distorts
+1D6+1
+5”
+2
+5
+2
+At the end of each round, select a random Distort figure on the battlefield and move it to the 
+center of the battlefield.
+63-69
+The Swarm
+1D3+1
+6”
+2
+4
+3
+Attacks ignore trooper saving throws.
+70-77
+Horde invasion 
+force
+2D3+1
+4”
+1
+3
+1
+At the end of each round, if any Horde figures are on the table, 
+1 additional figure is placed at the center of a random battlefield edge.
+78-82
+Converted 
+infiltration team
+1D6+1
+5”
+1
+4
+2
+Each time a group is revealed, one of the figures is instead set up on the closest Objective. 
+83-87
+Shatter-forms 
+1D6+1
+4”
+1
+4
+3
+When killed, all figures within 2” take a Damage 0 hit (including other Shatter-forms).
+88-94
+Strangle worms
+1D6+4
+4”
+0
+3
+1
+At the end of each round, roll 1D6 for every Worm on the table. 
+On a 6, another Worm is placed adjacent to it. 
+95-00
+Gripper weeds
+1D6+1
+4”
+1
+4
+1
+Troopers within 2” of a Gripper Weed cannot move, but may fire normally.
+195
+Mission generation
+
+
+=== PAGE 198 ===
+Enemy Variants
+If you have encountered a particular enemy 
+type previously in your campaign, all future 
+encounters will be with a variant strain. The 
+first time your team spots an enemy (not 
+just a Contact marker) during a mission, roll 
+D6 and consult the table below. All enemies 
+encountered during a mission will be the 
+same variant, and variant types are generated 
+new each mission.
+D6
+SUB-TYPE
+EFFECTS
+1
+Spitters
+Any enemy that ends a move within 6” and sight of a trooper will make a 
+ranged attack against the closest trooper. Roll 1D6 per attack with any 6 hitting 
+(regardless of Combat Skill, Cover, or other factors). Hits are resolved with 
+Damage 1. Armor applies normally.
+2
+Ambushers
+When a Contact marker is revealed, the figures are placed within or behind the 
+closest terrain feature within 4” of the marker, though they cannot be placed in 
+base contact with a trooper. If no location is possible, they deploy as normal.
+3
+Toughs
+The enemies receive a 5+ saving throw against Area weapons. If they already 
+have an existing save, they are combined into a single 4+ saving throw. 
+4
+Swarmers
+When each Contact is revealed, one additional enemy is placed on the table. 
+5
+Runners
+Increase movement speed by +1”.
+6
+Screamers
+These variants summon the rest of their kind. 
+At the end of each Enemy Action phase, roll D10. If it is equal to or below the 
+number of enemies currently on the table, one additional enemy is placed in 
+the exact center of the battlefield. It cannot act in the round it was placed. 
+196
+Mission Generation
+
+
+=== PAGE 199 ===
+Pack Leaders
+Unless this is one of the first two missions of 
+the campaign, there is a chance the enemies 
+revealed will be accompanied by a pack leader.
+Roll three D12. If any of the dice roll equal 
+or below the number of enemies revealed by 
+the marker, a single pack leader is present. 
+Discard one of the D12s from the pool going 
+forward. This means that over the course of the 
+mission you can encounter a maximum of 
+3 pack leaders, each revealed by a different 
+Contact marker.
+The Pack Leader should be represented by 
+either a different figure from the rest of the 
+pack, or be marked with a suitable token. 
+When first placed, the Pack Leader figure is 
+always placed furthest from any troopers. 
+For each pack leader, roll D6 on the table 
+below to see what special behaviour it exhibits 
+either in itself or its pack. Pack Leaders move 
+and fight normally, except as explained below.
+D6
+SUB-TYPE
+EFFECTS
+1
+Leader
+Acting as a focus, the leader ensures the foe will target your positions.
+When moving a Contact marker within 9”, a Chance die is not rolled, only an 
+Aggression die. 
+2
+Lancer
+Capable of launching a devastating attack at range.
+At the end of each move, if a trooper is in Line of Sight of the enemy, the Lancer 
+will fire a dart at the nearest trooper visible. The dart hits on a D6 roll of 5+ 
+(regardless of Combat Skill or cover), strikes with Damage 1 and ignores armor. 
+Lancers will always attempt to move to Cover where they can see troopers, and 
+will not enter close combat. 
+3
+Caller
+Emits a signal to the rest of the brood.
+Each time the Caller is activated, roll 1D6. If the roll is higher than the number of 
+Contacts on the table, place a Contact adjacent to the Caller. 
+The Caller will attempt to move to the center of the table and then hide there.
+4
+Assassin
+A particularly lethal and virulent foe.
+Increase Damage and Combat Skill by 1. 
+All attacks from the Assassin ignores armor.  
+5
+Bruiser
+Especially large and tough.
+Increase Toughness by 1. The enemy receives a 4+ saving throw against all 
+Hits, replacing its normal save (if any). 
+6
+Driver
+Through strange means it urges the foe forward.
+All enemies that begin their activation within 6” of the Driver increase their 
+movement by +1” for the round.
+197
+Mission generation
+
+
+=== PAGE 200 ===
+Each battle round consists of four phases:
+1.	 Quick Action phase
+2.	 Enemy Action phase
+3.	 Slow Action phase
+4.	 Spawn phase
+To begin the round, roll a number of D6 equal 
+to the number of your main characters and 
+combat teams. For example, if you have  
+3 main character and 4 combat teams, you 
+would roll 7 dice. 
+Assign each of the dice to one of your main 
+characters or Combat Teams. Each character or 
+team receives only a single die.
+•	 Any character or team assigned a die equal 
+to or below their Reaction score will act in 
+the Quick Action phase. 
+•	 Any character or team assigned a die over 
+their Reaction score will act in the Slow 
+Action phase.
+Note that regardless of the die rolls, all figures 
+will get to act each round: The Reaction rolls 
+determine what phase characters act in, not 
+whether or not they act at all.
+All enemies will act in the Enemy Action phase.
+The Spawn phase is used to determine new 
+arrivals, if the mission is using the Spawn 
+Points mechanic (see p.199).
+The battle round ends when all figures on 
+both sides have acted.
+Actions
+During a phase, player figures can act in any 
+order desired. Enemy figures act in order of 
+how far they are from player figures, starting 
+with the closest, then working back. As the 
+table can get quite busy, it is a good idea to 
+have some tokens, beads, or small dice to keep 
+track of who has already acted each round.
+When acting, a figure may Move first, and 
+then perform a Combat Action such as firing 
+a weapon or fighting a Brawl. A figure may 
+forego either option but cannot perform them 
+in reverse order.
+Stunned figures
+If a trooper is Stunned, they may either Move 
+or perform a Combat Action, but cannot 
+attempt both. Stunned enemies will remain in 
+place and take no actions.
+After the figure has acted, remove 1 Stun 
+marker from the figure.
+Figures can accumulate multiple Stun markers.
+Snap Fire
+Troopers that are eligible to act in the Quick 
+Action phase may opt not to do so. This allows 
+them to either fire when an opponent moves 
+or to delay until the Slow Action phase.
+If a targeted opponent is Stunned while taking 
+their movement, they lose the ability to take 
+any other actions this round. Firing during an 
+opponent’s move prevents the firing character 
+from moving this round.
+Battle 
+ROUND
+198
+Battle Round
+
+
+=== PAGE 201 ===
+Characters who opted to hold their Quick 
+Action for the opportunity of Snap Fire, but 
+who did not find an opportunity to fire in the 
+Enemy Action phase can either Move or Fire 
+in the Slow Action phase, but not both.
+Enemies do not carry ranged weapons and will 
+not use this option.
+Spawn Points
+During a mission, your troopers may uncover 
+that the enemy is arriving from sectors beyond 
+this one. This may be through vents and ducts, 
+underground tunnels and more. Spawn 
+Points represent locations that the enemy is 
+using to converge on you. 
+As part of mission creation, the mission 
+creation system will dictate a Spawn Rating 
+which determines how many Spawn Points 
+will be revealed during that mission. If this 
+rating is 0, this rule is not used.
+At the end of each round, proceed through the 
+following steps:
+Step 1. Revealing Spawn Points
+If there are unrevealed Spawn Points, a single 
+Spawn Point is now revealed and placed on 
+the battlefield. Make a random direction roll 
+in the center of the battlefield, and follow 
+the indicated direction to the edge of the 
+battlefield, placing the Spawn Point in the 
+indicated location.
+Example: If you have a Spawn Rating of 2, a 
+Spawn Point would be revealed at the ends of 
+Rounds 1 and 2.
+Step 2. Increment countdowns
+This step will not apply in Round 1 of the 
+game.
+Every Spawn Point that had a Countdown 
+marker placed in a previous round (see step 3, 
+below) lowers the countdown value of that 
+marker by 1. If the score is reduced to 0, 
+remove the Countdown marker and place a 
+Contact marker on the Spawn Point. 
+Step 3. Place countdowns
+Roll a D6 for every Spawn Point that does not 
+have a Countdown marker by it (including any 
+Spawn Points that just produced a Contact 
+marker during Step 2). 
+•	 On a 1-4, place a die with the indicated 
+score next to the Spawn Point.
+•	 On a 5-6, no die is placed this round, but 
+the Spawn Point will be checked again next 
+round.
+Closing Down Spawn Points
+Troopers are trained to identify weak points in 
+defenses that could leave them open to attack. 
+A trooper may secure the location against 
+enemy incursions, whether by reprogramming 
+sentry guns, sealing bulkheads, laying mines 
+in the passageway, restarting the laser barrier 
+system, or similar means.
+As long as a trooper is not firing their weapon, 
+and they are within 3” of a Spawn Point, they 
+may attempt to do so: Roll 1D6+Savvy, with a 
+6+ indicating success, in which case Remove 
+the Spawn Point and any Countdown marker 
+from play. 
+Only one trooper can work on a specific Spawn 
+Point at a time, but a single friendly trooper 
+within 1” of the worker may help, adding a  
++1 bonus to the roll (but likewise cannot fire 
+while doing so).
+199
+Battle Round
+
+
+=== PAGE 202 ===
+Enemy Movement
+Enemy figures move according to more 
+simplified mechanics than troopers.
+Order of movement
+For determining the order of movement, start 
+with the enemy figure nearest to a player 
+figure (in absolute terms, ignoring terrain, 
+walls, and similar), then the next nearest, 
+etc. If two figures are equally distant, start on 
+the left side of the table and work your way 
+right. In most cases, the exact order of figure 
+movement won’t be an issue.
+Movement direction
+For determining the direction of movement, 
+the selected enemy moves at their full Speed 
+towards the nearest trooper (proximity 
+determined by the length of the path required 
+to reach them, this time factoring in any 
+obstacles that the enemy would have to move 
+around) in an attempt to engage them in 
+Brawling combat (see Brawling, page 177).
+Due to superior, alien senses, they are aware of 
+the presence and position of every humanoid 
+in the area, despite remote locations or closed 
+doors. However, they ignore any trooper they 
+have no viable path towards, for example due 
+to Impassable terrain.
+Enemies may move through each other. This 
+differs from troopers, who often wear bulky 
+armor and equipment, and do not move as 
+fluidly as aliens, who, in some cases, may be 
+used to swarming over one another.
+Decision making
+If multiple viable paths exist, enemies will opt 
+for the path that provides better protection from 
+ranged attacks without impeding movement 
+speed. However, enemies will not slow down 
+their advance specifically to take cover.
+The enemy objective is always to enter 
+Brawling combat where possible. 
+Player vs player
+When overseen by a human player, enemies 
+are not restricted to the normal “AI” rules in 
+this chapter, but may move as the player sees 
+fit. For example, they could skulk behind cover 
+instead of advancing recklessly.
+Note that while Contact markers are not 
+troops, they must move at random, even with 
+a player controlling them. 
+Nowhere to run
+There is no morale system in Bug Hunt: The 
+enemies don’t stop coming until you kill them 
+all. Whether they are part of a hive-mind that 
+cares little for the survival of individuals or 
+they are ravening space monsters, they will 
+attack until they are all destroyed.
+Your troopers are in a desperate situation, and 
+while they may be nervous, their training will 
+keep them operating effectively. However, 
+when an operation goes haywire, it may be 
+time to make it out any which way you can. 
+Escaping from the mission area on foot is 
+extremely dangerous, but all troopers carry 
+beacons that can be used to locate them later 
+for pick up.
+A trooper may remove themselves from 
+the rest of the battle by moving across any 
+battlefield edge. Afterwards, they must roll 
+on the Lost Marine table (see p.202) to 
+determine their fate. Escaping in this way 
+awards fewer Experience Points (although, 
+of course, a dead trooper receives no points 
+at all!)
+A note on “nearness”
+The method of calculating the nearness of 
+trooper and enemy differs between order of 
+movement and direction of movement. This is 
+a necessary tabletop practicality to reduce the 
+chance of the player moving a more distant 
+figure to a closer location and accidentally 
+moving them again later in the same round.
+200
+Battle Round
+
+
+=== PAGE 203 ===
+Ending the Mission
+Your goal is to complete as many of your 
+Objectives as possible. Two or more is 
+considered a success for the purposes of 
+awarding Experience Points after the battle. 
+A Vital Objective counts as 2, while a 
+Critical Objective counts as 3. Objectives are 
+discussed on page 185.
+Note that if the mission had 4 or more 
+signals initially (see sidebar, page 208), you 
+must have investigated at least 2 before Evac. 
+Failure to do so means your Objective total is 
+reduced by 1.
+You may attempt to Evac before 2 signals 
+have been investigated, but fewer XP will 
+be awarded.
+We’re leaving!
+From Round 5 onwards, you can request 
+Evac. Usually this is done once the mission is 
+completed, but if things go haywire, you may 
+have to get out of there.
+Select which character is making the 
+request. They must be stationary, cannot be 
+Stunned, and cannot fire a weapon or take 
+another action.
+Roll 2D6, adding the number of Objectives 
+that you have completed so far, including any 
+packages you are holding. If the requesting 
+character has Savvy +1 or greater, they are 
+able to talk sense into high command: Add 
++1 to the roll.
+•	 On a total of 10+, Evac arrives at the end of 
+the next battle round. 
+•	 On a roll of 9 or less, you must roll again at 
+the end of each battle round until the drop 
+ship arrives.
+At the end of the round after that in which 
+the successful roll was made, place a marker 
+anywhere you choose. Any trooper within 3” 
+of this marker (or moving within 3” of the 
+marker while the drop ship remains) may be 
+safely removed from the table.
+As the landing zone is extremely dangerous, 
+Unity drop ship pilots do not loiter excessively 
+in a combat area. If 3 rounds pass, the ship 
+leaves and you must make another call.
+They are coming!
+The enemy can detect the blast of drop ship 
+engines. Each time a drop ship arrives, the 
+Priority is increased by +1 for the remainder 
+of the mission (see page 187).
+Supporting fire
+During each round of hovering including the 
+arrival round, the drop ship will fire in support 
+of your squad. It has two Light Machine Guns, 
+and measures its range and Line of Sight from 
+the center of the drop ship marker. Resolve 
+all shots with +1 Combat Skill. Drop ship 
+weapons cannot malfunction.
+Pay the piper
+If you failed to complete any Objectives at 
+all, you may face a court martial. Select the 
+character that was in charge of the mission, 
+and roll a D6. On a 1, they have been 
+found guilty: Immediately remove them 
+from the campaign.
+If you have them, you may pay 3 Reputation 
+points to call in a favor and avoid this fate.
+201
+Battle Round
+
+
+=== PAGE 204 ===
+After the mission is over, your troopers kick 
+back for a few well-deserved cold beers while 
+you fill out the reports. After all, the survivors 
+may have learned a few new tricks! 
+Post-Battle Sequence
+1.	 Determine Casualties and Lost Marines
+2.	 Update Completed Missions
+3.	 Check for Mustering Out
+4.	 Determine Reputation
+5.	 Experience and Leveling
+6.	 Roll for Operational Progress
+7.	 Roll for Military Life
+8.	 Check Entitlement to R&R
+9.	 Ready for Another Campaign Turn
+This chapter will go through each step 
+in the order they are accomplished each 
+campaign turn.
+Step 1. Determine Casualties and Lost Marines
+For each character who became a casualty 
+during this campaign turn, roll D100 on the 
+table below, using the Casualty column to 
+determine their injury. If a character exited the 
+table via a battlefield edge, rather than through 
+Evac, use the Lost Marine column instead. If a 
+main character leaves the campaign because of 
+injuries or any other reason, a new character is 
+rolled up and arrives as a replacement.
+CASUALTY
+D100
+LOST 
+MARINE
+D100
+RESULT
+EFFECTS
+CAMPAIGN 
+TURNS IN 
+SICK BAY
+1-5
+1-30
+Gruesome fate
+Dead, and all carried 
+equipment is lost
+–
+6-15
+–
+Death or crippling injury
+Dead or removed from 
+campaign
+–
+16-24
+–
+Leg wound
+–
+1D3
+25-32
+–
+Arm wound
+–
+1D3
+33-40
+–
+Head wound
+–
+1D3+1
+41-48
+–
+Torso wound
+–
+1D3+1
+49-80
+–
+Minor injuries
+–
+1
+81-95
+31-90
+Knocked out
+–
+–
+96-00
+91-00
+School of hard knocks
+Earn 1 Experience Point
+–
+POST-BATTLE
+202
+Post-Battle
+
+
+=== PAGE 205 ===
+You may spend a point of Reputation to 
+obtain advanced care, reducing Sick Bay time 
+by 1 campaign turn. This can be done only 
+once per character per campaign turn.
+Step 2. Update Completed Missions
+Each character has a Completed Missions 
+tally indicating the number of missions they 
+have undertaken. Completed Missions affects 
+eligibility for certain training programs and 
+affects whether your character Musters Out.
+Update this number by 1 if the character took 
+the field. Characters in Sick Bay do not update 
+their tally.
+Step 3. Check for Mustering Out
+For any character that increased their 
+Completed Missions number, a check is 
+made to see if they decide they’ve had their 
+fill of bug hunting, and muster out to a new 
+life. Consult the table below and roll 2D6. If 
+you roll equal or above the Muster number, 
+the character decides to leave the campaign 
+and is removed from your roster. 
+COMPLETED 
+MISSIONS
+MUSTER OUT (2D6)
+1-4
+No chance
+5-7
+9+ if the character was a 
+casualty or a lost marine. 
+No chance otherwise.
+8-9
+9+
+10-11
+8+
+12
+7+
+13
+6+
+14
+5+
+15
+Automatic
+Step 4. Determine Reputation
+Reputation can make a difference to your 
+military career, opening all manner of doors. 
+You track Reputation in the campaign as an 
+expendable resource, which can be used to 
+obtain various advantages and benefits. 
+If you completed at least 2 Objectives in 
+the last mission, you receive 1 point of 
+Reputation automatically. Additionally, 
+roll 1D6 for every Objective you completed 
+(including the first 2). Every result of 5 or 6 
+grants you a further +1 to Reputation.
+Reputation is tracked by your group of 
+characters as a single pool. When points are 
+expended, they are removed. In reality, your 
+Reputation does not diminish as such, but as 
+you call in favors, you reach a limit of what 
+people are willing to let you get away with.
+Oh man… and I was getting short!
+Troopers in Sick Bay cannot accompany your 
+squad on missions, meaning your squad will 
+go into the next battle short-handed. You may 
+opt to retire an injured trooper if you like. If 
+so, they are removed from your roster.
+Dead, removed, and retired troopers are 
+replaced at this stage. Roll up a replacement 
+character normally.
+203
+Post-Battle
+
+
+=== PAGE 206 ===
+Step 5. Experience and Leveling
+Characters that participate in a battle are 
+awarded Experience Points (XP).
+Became a casualty or lost marine	
++1	
+Character was removed from play by a method 
+other than Evac.
+Not a casualty, 0-1 Objectives 	
++2	
+Character Evac’ed and the team completed 0 or 
+1 Objectives.
+Not a casualty, 2+ Objectives	
++3	
+Character Evac’ed and the team completed 2 or 
+more Objectives.
+Mission Priority was 4+	
++1
+Additional reward to all characters.
+MVP	
++1
+Awarded to one character of choice.
+Track the accumulated Experience Points for 
+each character.
+Experience Points earned can be cashed in to 
+obtain an advance, based on the table below:
+ABILITY 
+SCORE
+XP 
+COST
+MAXIMUM 
+PROFILE
+Reactions
+8
+	
+4
+Speed
+6
+	
+8”
+Combat Skill
+8
+	
+3
+Toughness
+8
+	
+5
+Savvy
+6
+	
+4
+204
+Post-Battle
+
+
+=== PAGE 207 ===
+Step 6. Roll for Operational Progress
+Mostly, the war is far too big for one platoon 
+to do anything about. Occasionally, however, 
+your progress might affect how things 
+are going, which in turn influenced your 
+tabletop battles.
+Roll D100 once on the Operational Progress 
+table below to determine how the overall 
+campaign is affecting the war, and vice versa. 
+All results from this table are cumulative until 
+this particular operation is over.
+D100
+OPERATIONAL 
+PROGRESS
+NOTES
+Below 1
+Operation is a disaster
+Time to pull out. Undertake one last mission where the 
+enemy gets two extra Contact markers, then reset all results 
+from this table.
+1-10
+Enemy counter-attacks
+Adjust future rolls on this table by -5.
+11-20
+Enemy is well entrenched
+For all future missions, the enemy gets an extra Contact 
+marker. 
+21-40
+Heavy pressure
+If you failed to achieve at least two Objectives last mission, 
+adjust future rolls on this table by -5.
+41-55
+Stalemate
+The front line isn’t moving. No effect.
+56-75
+Gaining ground
+If you achieved at least 2 Objectives last mission, adjust 
+future rolls on this table by +5.
+76-80
+Vital operation
+Pick a random main character that participated in the 
+last mission. Award them +1 XP for each Objective you 
+completed, as it was vital to the war effort. 
+81-90
+Break through
+You’ve pushed the enemy back in critical sectors.
+Adjust future rolls on this table by +5.
+91-100
+Crippling blow
+A decisive strike has crippled enemy capabilities.
+Claim +1 Support roll in future missions.
+Adjust future rolls on this table by +5.
+Above 100
+Time to hold a parade!
+You’ve won! The planet is secure and free of enemy scum.
+Gain +1 Reputation and take R&R. 
+Reset all modifiers to this table.
+205
+Post-Battle
+
+
+=== PAGE 208 ===
+Step 7. Roll for Military Life
+Pick a random main character using any 
+appropriate method (including characters in 
+Sick Bay), then roll once on the Military Life 
+table below to see what is going on in the 
+barracks. 
+D100
+MILITARY LIFE
+1-5
+You got in a fight. Roll 1D6+Combat Skill. On a roll below a 5, spend next campaign turn in 
+Sick Bay.
+6-10
+You did a task for an officer. Adjust Reputation by +1 point.
+11-15
+You have a friend in the Intel Corps. Modify Priority of next mission by +/- 1.
+16-20
+You spend time in the Brig. Adjust Reputation by -1 point and miss the next mission. 
+21-25
+You’re feeling unmotivated. Lose 2 unspent XP.
+26-30
+Time tinkering. Select a personal weapon and increase range by +1”.
+31-35
+Time flies when you’re… just playing cards in barracks. 
+36-40
+You received a recommendation. Next Special Assignments roll is at +2.
+41-45
+You received a repriman. You cannot take a Special Assignment next campaign turn.
+46-50
+Feeling pretty fit. Reduce Sick Bay time by 1 campaign turn. If you didn’t need Sick Bay,  
+add +1 XP.
+51-55
+Evening classes: Earn +1 XP.
+56-60
+You got sick. Spend next campaign turn in Sick Bay.
+61-65
+You’re detached on special duties. You cannot participate in the next mission, but you receive a 
+bonus roll on the Special Assignments table.
+66-70
+You’re getting in shape, at least. You may immediately raise Speed by +1 for a cost of 5 XP. 
+71-75
+You spend time on the range. You may immediately raise Combat Skill by +1 for a cost of 5 XP. 
+76-80
+You made a friend. Hurray!
+81-85
+A Dear John letter. Ouch!
+86-90
+You cash in a favor. Spend 0-2 Reputation, and for each point you earn 2 XP or a +1 bonus 
+when rolling for a Special Assignment.
+91-95
+You did something stupid. Lose 1 Reputation.
+96-00
+You’re being noticed by the brass. Gain 1 Reputation.
+Step 8. Check Entitlement to R&R
+If you have undertaken 4 missions in the 
+current operation, your crew is entitled to a 
+bit of R&R: Cross off one extra campaign turn 
+in Sick Bay for all characters and make an 
+additional roll on the Military Life table. 
+Once R&R has been taken, you must play out 
+another 4 missions before you are entitled to 
+R&R again. You can pay 1 Reputation point 
+to take R&R whenever you please (by being 
+assigned to light duties back at headquarters).
+Step 9. Ready for Another Campaign Turn
+With all eight Post-battle steps completed, you 
+are ready to take on a new campaign turn and 
+mission. Good luck!
+206
+Post-Battle
+
+
+=== PAGE 209 ===
+Problem Solving
+Bug Hunt is a very easy game to create 
+scenarios for, especially if one player takes the 
+role of GM. Adding extra or unique objectives 
+and tasks that need to be accomplished is a 
+great way to do this: Security doors that need 
+to be bypassed; computers that need to be 
+hacked to bring the sentry guns online; or 
+frightened survivors that need calming.
+This section offers a simple sub-system to 
+handle situational tests as they arise, so 
+pick whichever fits your situation best. The 
+mechanics can be combined as needed. This 
+section is completely optional, will not come 
+up in typical play, and is intended for creative 
+players to toy with.
+Note that performing a test typically prevents 
+the figure from attacking that round.
+Quick tests
+Suitable when you just need a quick roll to 
+decide something, or when the action isn’t 
+heavily dependent on training.
+Determine if the test is Easy or Hard, then  
+roll a D6.
+An Easy test is passed on a roll of 3+, while a 
+Hard test is passed on a roll of 5+.
+Opposed tests
+Suitable when an action is being resisted by 
+another person, or even by a system (such as 
+an AI resisting a hacking attempt).
+Roll a D6 for each figure with the higher roll 
+prevailing. On a draw, the action is unresolved 
+this round. 
+If either character would have a notable 
+advantage in the content, add +1 to their roll.
+Wits tests
+Suitable when a problem requires training 
+and expertise to solve. 
+Set a Challenge Rating from 2 to 7.  
+Roll 1D6+Savvy for the character. 
+If the result is equal to or better, the test is 
+passed.
+Modifiers
+The GM may opt to apply any of the modifiers 
+below if it suits the situation:
+•	 If a task is Risky, rolling a 1 on the die 
+(before modifiers) Stuns the character.
+•	 If a task is Dangerous, rolling a 1 inflicts a 
+Damage 0 Hit as well as a Stun.
+•	 If a task is One Shot, the troopers only get 
+one attempt at accomplishing it. A failed 
+roll means the task is impossible. Be careful 
+using this in scenarios. 
+•	 If a task is Complicated, only a trooper 
+with appropriate training or equipment can 
+attempt it. The scenario should specify who 
+has the appropriate qualifications.
+APPENDICES
+207
+Appendices
+
+
+=== PAGE 210 ===
+Signals (Optional rule)
+As the drop-ships land, your comms officer 
+picked up a host of activity throughout the 
+battle area. Much of it has fallen silent now, 
+but it may be worth exploring. With the battle 
+area scanned before the drop, a number of 
+hot spots have been identified – survivors or 
+surviving troopers from a prior mission. Of 
+course, they could also be ambushes…
+Signals add detail, but mean more things to 
+check and remember, so are included as an 
+optional. Decide before a mission if you want 
+to use the Signals rule, and it does not have to 
+be used in every mission of a campaign.
+Increased Alertness
+Signals represent areas the enemies are almost 
+certainly aware of, and which are more likely to 
+be patrolled. Signals will have to be marked on 
+the table with a token or other marker.
+At the end of each round, roll 1D6 for every 
+Signal that is within 9” of a trooper (regardless 
+of Line of Sight or terrain). For every 1 on a die, 
+place a Contact marker on top of the Signal 
+marker. Once placed, the Contact marker will 
+move normally in future Enemy Action phases.
+Investigating a Signal
+To investigate a Signal, a figure must finish a 
+move within 3” of the marker without firing 
+a weapon or engaging in a Brawl (the same 
+conditions as for Tactical Locations). 
+As enemies will trap, bind, and secure any 
+personnel, they ignore Signals when moving, 
+and do not interact with them in any fashion.
+Resolution
+When a Signal is investigated, roll D6 on the 
+table below to reveal its source. Position any 
+figure placements indicated under “Effects” on 
+or within 1” of the marker, where possible.
+We can’t just leave them, can we?
+If only 1-3 Signals are present, HQ considers 
+the chance of survivors too unlikely: you are 
+free to pursue or leave Signals as you see fit. 
+If there 4-6 Signals present, HQ requires you 
+to search the area. Unless you investigate at 
+least 2 Signal markers, you must reduce the 
+number of Objectives completed by  
+1 point.
+D6
+SIGNAL 
+SOURCE
+EFFECTS
+1
+Civilians
+You find 1D3 civilians. They have a normal trooper profile, but no weapons. They 
+cannot act this round. You receive 1 point of Reputation for each civilian you 
+successfully evacuate with your squad. 
+2
+Evidence
+Someone wanted you to find this. It seems to be data pointing to the origin of the 
+attack. This counts as 1 additional Objective completed.
+3
+Danger
+The signal is a beacon. Upon replaying the message, it warns of an entry point the 
+enemies are using to attack. Randomly select a point along the battlefield edges 
+and mark it as Spawn Point (using the rules on page 199). 
+4
+Ambush
+Whoever signaled is long dead and this place is hot! Treat the Signal as a Contact 
+marker that rolled 3-6, placing enemies normally as per the Contact rules (see p.192). 
+5
+Trooper
+The signal is an SOS signal from a captured trooper. Place a trooper figure with the 
+basic profile and a Handgun. They fight along with you for the rest of the mission. 
+Earn 1 Reputation point for rescuing them (even if they end up dying)
+6
+Supplies
+The beacon was left by one of the recon squads, marking a supply cache. You receive 
+2 additional Support points to use in your campaign.
+208
+Appendices
+
+
+=== PAGE 211 ===
+Co-op campaigns
+This chapter provides options for multiple 
+players to pursue a campaign together, 
+with each game feeding into a shared 
+experience. This is perfectly suited for 
+a gaming club, online communities, or 
+friends separated by distance. 
+As you play the campaign, you will fight to 
+retake a colony, city, or even an entire world, 
+with each player contributing to the overall 
+war effort. All campaign and battle rules 
+apply as normal, except for the following 
+adjustments. 
+Preparatory Steps
+Enemies
+You will need to decide if you want to play 
+against a single enemy type, or if you want 
+to roll each time as you normally would. 
+If you want a theme to the campaign, you 
+might opt to pick 2-3 enemies from the 
+Enemy table (see pp.194-5) and randomize 
+between them each time.
+Difficulty setting
+All players should be using the same  
+difficulty setting.
+The Map
+To create the campaign, you will need a 
+map. This can be as simple or as elaborate 
+as you like, and can represent a territorial 
+region, a city map, industrial facility, or 
+other location of choice. 
+209
+Appendices
+
+
+=== PAGE 212 ===
+The map needs to be divided into sectors. 
+These can be any shape you like but a grid 
+map will have a nice military look. The number 
+of sectors depends on how many players 
+you have, and how long you would like the 
+campaign to run: As a guideline, try 3 sectors 
+per player for a shorter campaign, up to 5 for a 
+longer campaign.
+While the map simply needs to be functional, 
+the campaign will be far more enjoyable if 
+each sector has a distinct identity, either in  
+the terrain present or in what you decide to 
+name it. Fighting to clear out vent crawlers 
+inside an old reactor is much more evocative 
+than “Sector 3”, after all. 
+For each sector on the map apply the 
+following steps (which can be done by any 
+player).
+1.	 Roll 2D6 and pick the lower of the dice to 
+establish a Priority Rating for the sector. 
+Note that any Vital or Critical Objectives 
+will increase this as normal (see p.187), 
+but only for the duration of that specific 
+mission.
+2.	 Roll D100 on the table below to see which 
+special factors may apply. Optionally, assign 
+each sector one of these factors based on 
+what seems to fit your map best. You must 
+place one of each factor before you can 
+duplicate any.
+3.	 If the D100 roll ends in a 5 or 0 (25, 40, 85, 
+etc.), the sector is also home to a resource 
+stash of 1D6 Support points.
+ 
+D100
+FACTOR
+EFFECTS
+01-15
+Ambush zone
+No visibility is possible beyond 8”. 
+16-30
+Infiltration point
+At the end of each operational turn (see below), select a random adjacent 
+sector and increase the Priority level by +1 (to a maximum of 6).
+31-50
+Sheltered
+The sector cannot be attacked until at least one adjacent sector has been 
+cleared.
+51-65
+Swarming
+When revealing any Contact marker, the number of enemies is increased 
+by +1.
+66-80
+Obstructed
+Evac ships cannot provide covering fire.
+81-90
+Inaccessible
+Only a single support roll can be made. 
+91-00
+Hot zone
+The evac ship cannot loiter. It will evac any troops in range upon arrival, 
+and then leave immediately. The ship must be called again, if needed.
+The Campaign Turn
+A co-op campaign progresses in a series of 
+operational turns. During an operational 
+turn, each player will carry out a mission, 
+followed by a roll for Enemy Moves. Note 
+that the normal Operational Progress table 
+is not used.
+Operational turns continue until all sectors 
+have been cleared of enemies and all Lairs 
+have been destroyed. 
+210
+Appendices
+
+
+=== PAGE 213 ===
+The Battles
+Each operational turn, the players should agree 
+on which sector they will each attack during 
+that round. Each player may attack one sector 
+of their choice. As the troops are air-mobile, you 
+may normally attack any sector on the map.
+Set up the mission as normal, using the 
+Priority level from the sector map.
+•	 If the mission is a victory (2+ Objectives 
+completed), clear the sector from the 
+map, and claim 1 Support point worth 
+of resources (in addition to the +5 if a 
+Resource stash was present).
+•	 If the mission failed, the sector remains 
+under enemy control. 
+Support Point Resources
+All Support point resources uncovered are 
+added to a common pool which any player 
+may draw on when undertaking a mission. 
+Simply add any desired points to the Support 
+that would normally be available. 
+Players must devise an agreement on how 
+points are allocated, whether points remain 
+with the player that uncovered them, can 
+be handed over, or are allocated by a GM or 
+commander in chief.
+Points remain until they are used. 
+Enemy Moves
+At the end of each operational turn, the 
+enemy will carry out their actions. Each player 
+rolls on the table and applies the results to 
+the map. Typically in an online campaign, 
+one player will manage and update the map 
+as they get results sent in. If a sector needs 
+to be selected, pick randomly using any 
+appropriate die roll or it may be done by a 
+GM if available.
+D100 
+ENEMY MOVE
+EFFECT
+01-10
+Enemy assault
+A cleared sector falls to the enemy. Priority level 3.
+11-21
+Enemy digs in
+One enemy sector becomes an Ambush zone.
+22-30
+Enemy establishes control
+One enemy sector becomes Obstructed.
+31-39
+Enemy gathers forces
+One enemy sector becomes an Infiltration point.
+40-47
+Enemy sabotage!
+During the next operational turn, all battles are fought with  
+-1 Support point.
+48-56
+Enemy patrols
+One enemy sector is heavily patrolled: When rolling for Contact 
+marker actions, add +1 to the Aggression die.
+57-65
+Enemy swarms
+One enemy sector is swarmed. Place 1 additional Contact 
+marker at the beginning of the battle.
+66-73
+Enemy elites
+One enemy sector is held by elite forces.
+• If Combat Skill is +0, raise it to +1. 
+• If Toughness is 3, raise it to 4.
+Raise Speed by +1”.
+74-85
+Wastage
+Reduce Support reserves by -1D3 points.
+86-00
+Suspicious activity
+One enemy sector increases Priority by +1.
+211
+Appendices
+
+
+=== PAGE 214 ===
+Enlisting as a bug hunter
+You may decide that your current Five Parsecs 
+from Home (5PFH) character would like to 
+try their hand as a Bug Hunter. You may do 
+this after any mission: Select which characters 
+would like to enlist and roll 2D6 for each, to 
+see they can pass the examination test:
+Add your Combat Skill to the roll.
+Add +1 (max) if you have any Sector 
+Government Patrons on your contacts list.
+If the score is 7+, the enlistment is accepted 
+for that character. 
+If the roll fails, 1 Story Point will get you in 
+with any suitable explanation.
+Note that Credits will not buy entrance: While 
+Unity administration is quite susceptible 
+to nepotism and paperwork, bribery is 
+extremely difficult.
+Once enlisted, you are a brand new trooper 
+with 0 missions to your belt and  
+Reputation 0 (you may be famous in some 
+corner of Fringe Space, but you’ll earn your 
+Rep like any other Bug Hunter!)  
+The following notes are applicable:
+•	 All characteristics carry over normally.
+•	 Species abilities carry over, where applicable.
+•	 You can retain a single weapon with the 
+Pistol trait. All other items must be stashed 
+until you return to your 5PFH play.
+•	 You cannot carry over “Stars of the Story” 
+options or Story Points to Bug Hunt. Keep 
+a record of them, in case you want to return 
+to 5PFH play.
+•	 While enlisted, all progression follows the 
+rules in Bug Hunt. 
+Timing can be challenging if you have two 
+campaigns concurrently. You can resolve this 
+in any way you like, either by alternating 
+games between each campaign. or pausing 
+one campaign whenever you want to play a 
+while in the other. 
+If your entire crew is enlisted, your ship and 
+possessions are guarded by Unity. No interest 
+will accrue. 
+212
+Appendices
+
+
+=== PAGE 215 ===
+Mustering out to 
+Five Parsecs From Home
+When a character retires or musters out from 
+their Bug Hunting career, you may wish 
+to carry them over into Five Parsecs from 
+Home. The character may simply be added 
+as one of your starting crew when beginning 
+a new campaign, or at any time when a new 
+character would be available to your campaign 
+(whether through recruiting or other 
+campaign events). 
+The following rules apply:
+•	 The character retains their profile.
+•	 Any unused XP are retained. Going forward, 
+the character must spend XP as per the 
+5PFH rules.
+•	 If the character served in 10+ Completed 
+Missions, they retain their Service Pistol. 
+No other equipment can be retained. 
+•	 The Completed Missions number is no 
+longer relevant and can be erased, though 
+you may want to keep it as a reminder. 
+•	 You receive a mustering out benefit of  
+1 Credit for every 2 Completed Missions.
+•	 Add 1 Story Point for each character 
+mustering out. 
+•	 You may immediately add a Sector 
+Government Patron to the list of 
+Patrons known. This Patron does not offer 
+a job immediately, but is added to the 
+list of contacts.
+•	 Going forward, your character is now a 
+5PFH character and should follow all 
+rules in that system. You cannot carry over 
+any “Movie Magic” options but if you 
+are starting a new 5PFH campaign, you 
+receive the normal allotment of “Stars of 
+the Story” options.
+213
+Appendices
+
+
+=== PAGE 216 ===
+QUICK Reference
+The round sequence
+Roll D6s equal to number of main characters 
+and combat teams, and assign each die to a 
+character or team:
+•	 Those assigned D6 result equal or under 
+Reactions act in Quick Action phase.
+•	 Enemies act in the Enemy Action phase.
+•	 Those assigned d6 result over Reactions 
+act in Slow Action phase.
+Teams in formation (2”) count as +1 Reactions.
+Acting
+•	 Figure may move and then attack.
+•	 Stunned figure may move or attack.
+•	 Remove one Stun marker after acting.
+•	 Enemies do not act while Stunned.
+Moving
+•	 Move up to [Speed]”, vertical or horizontal.
+•	 Difficult terrain cost +1” per 2” moved.
+•	 If entering contact, Brawl.
+•	 Move +2” if not firing.
+Firing
+•	 Must fire at closest target if within 3” 
+of enemy.
+•	 LoS blocked 3” after crossing feature.
+•	 To hit, roll D6+Combat Skill:
+Open within 6”	
+3+
+Open within range	
+5+
+Covered target within range	
+6+
+•	 Fire again on 6s; Jam on two or more 1s.
+Brawling
+•	 Roll 1D6+Combat Skill.
+•	 +2 Melee / +1 Pistol.
+•	 Loser takes a Hit; both take Hit on a draw.
+•	 Enemies rolling a 1 take a Hit and then 
+fight again.
+Damage
+•	 Troopers 5+ Saving Throw.
+•	 Roll 1D6+Damage:
+Result exceeding Toughness = kills.
+Result equal to Toughness Wounds and 
+Knocks Back 1”.
+Result below Toughness Stuns and Knocks 
+Back 1”.
+Tactical Locations
+•	 Reveal within 3”.
+•	 Roll 1D6+Savvy scoring a 5+ to activate.
+•	 Fail twice to disable.
+1
+Distract
+Enemies within 18” can’t move 
+next Enemy Action phase.
+2-3
+Block
+2” block sphere.  
+Roll D6 at end of round; 
+a result of 6 removes block at 
+end of following round.
+4-5
+Neutralize
+Remove one Contact marker.
+6
+Delay
+This round and next two 
+rounds, no new Contacts.
+Contacts
+•	 Roll D6 for Chance and D6 for Aggression:
+On a draw, place new marker. 
+If Chance higher, move randomly.
+If Aggression higher, move towards player.
+•	 Spot within 6” (open) or 3” (with Cover).
+1
+Remove marker. If fewer than 3 remain, 
+place a new Contact marker on most distant 
+battlefield edge.
+2
+Move marker D6” away, then place Contact 
+marker on nearest battlefield edge.
+3-6
+Reveal as enemies. 
+•	 Start of each round, roll D6 per Priority. 
+If any of the dice show a 6, place a new 
+marker on random battlefield edge. 
+If spotted, get bonus shot within 12”.
+214
+Appendices
+
+
+=== PAGE 217 ===
+Galactic Timeline
+The following is a timeline of the Unified 
+Space setting. Entries are generally from the 
+perspective of humanity / Unity and all years 
+are given using familiar Earth time-keeping.
+Countless smaller conflicts, incidents, and 
+discoveries occured in addition to those 
+listed here.
+2051: Advances in theoretical computing
+The first, stumbling implementations of non-
+linear computing principles spur significant 
+advances in technology.
+2069: Solar system mining projects
+Using automated systems and drones, 
+resource exploitation of the Moon and 
+several asteroids begins. While the 
+rewards rarely exceed the considerable 
+cost, it spurs widespread interest in the 
+development and exploitation of space and 
+is accompanied by the construction of long-
+term orbital habitats.
+2074: Solar system colonization begins
+Dramatic increases in propulsion allows the 
+creation of long-term habitation throughout 
+the solar system, as well as a renewed program 
+of interstellar probes with the prospect of 
+exploring beyond the solar system.
+As technology advances, habitats are pushed 
+further and further out into the outer reaches 
+of the solar system. 
+2084: The Cosmos 9 disaster
+A catastrophic chain of events leads to the 
+destruction of the Cosmos 9 far-system habitat 
+with a loss of all 163 individuals on board. 
+This gives fuel to a series of anti-deep-space 
+movements which begin to coalesce into the 
+Nearest Ground movement, advocating that 
+exploration beyond the asteroid belt is too 
+expensive and too dangerous.
+2086: The Expedition 3 incident
+A heavy probe is destroyed after 
+launch from the Cosmos 7 far-system 
+habitat, resulting in the habitat being 
+decommissioned due to extensive damage. 
+Miraculously, nobody is killed. It is long 
+suspected that the incident is a result of 
+intentional sabotage, but no conclusive 
+evidence is presented. Nearest Ground 
+activists seize upon the incident.
+ca. 2097-2144: The stagnation
+A prolonged period of scientific stagnation 
+on Earth characterized by risk-averse 
+policies and general economic malaise. 
+Commonly attributed to the Nearest Ground 
+movement gaining global acceptance 
+results in a near-complete stop to far-space 
+exploration projects and consequent 
+technological development. However, the 
+unravelling of unprofitable solar system 
+investments and undermining of public 
+confidence also play a role. As expenditures 
+grind to a halt, a series of global financial 
+recessions strike. Old social models struggle 
+to respond to the challenges.
+ca. 2099-2147: Hegemony Wars
+Wide-spread low-intensity conflicts 
+occur on Earth, as nation-states give way 
+to regional and corporate alliances of 
+interest. As resources grow scarcer and 
+infrastructure more battered, the economic 
+effects of the stagnation intensifies. By 
+the end of the period, the nation-state has 
+effectively been supplanted by doctrinal 
+power-groups or corporate-backed military 
+organizations, with the shambling global 
+economy primarily driven by the war 
+economy of increasingly independent 
+corporate states. 
+By 2143, the hegemonies are exhausted, and 
+the global community seems poised for a 
+wide-spread technological collapse.
+215
+Appendices
+
+
+=== PAGE 218 ===
+2132: Foundation of Sky-Reach project
+A secret group of visionaries begin gathering 
+in an underground complex in the Ural 
+Mountains. It is comprised of scientists and 
+mathematicians plucked from all over the 
+world, funded by a syndicate of far-sighted 
+moneyed interests. The purpose of the project 
+is to find a technological path out of the global 
+malaise, but the focus quickly becomes a 
+breakthrough in star-travel. 
+2144: Sky-Reach probe launched
+In secrecy, a high-tech probe is launched by 
+the Sky-Reach project, seeking confirmation 
+of mathematical calculations. If the theories 
+prove correct, faster-than-light travel could be 
+within reach of mankind in a matter of years.
+2148-ca. 2168: FTL discovery /  
+Tech Era begins
+Weak points in space are discovered – the 
+first step towards Tunnel technology, 
+enabling faster-than-light travel along 
+reliable and predictable principles. The first 
+proof of concept drive is tested in 2148 with 
+development rapidly proceeding afterwards.
+As new avenues for expansion and profit 
+becomes viable, the Hegemony Wars come 
+to a close and the period retroactively titled 
+the Tech Era begins. This period sees massive 
+leaps in technological development and 
+prowess, which in turn kickstarts the ailing 
+global economy. As the technological progress 
+seems to provide salvation from mankind’s 
+decrepit state, the first tech cults begin to 
+emerge in society.
+2152: 4th Generation AI developed
+As technological development expands at 
+speed, adjacent research also accelerates. 
+This results in the universal integration 
+of 4th Generation AI, far beyond the early 
+algorithmic reproductions of human 
+productivity or subsequent emulations 
+of sentient response. While AI tech never 
+becomes capable of replacing humans in 
+every possible pursuit, it grants considerable 
+advantages in many fields of research, and 
+lays the groundwork for almost all of the 
+technology a galactic civilization requires. Tech 
+cults explode in popularity, with AI systems 
+taking on mystical associations, some claiming 
+that the time has come for human concession 
+to the altruism of a superintelligence. In some 
+areas, this leads to armed clashes and riots, 
+before the cults are forced underground in 
+most corporate-controlled sectors.
+2167: First colonization
+The first human colonies intended for 
+permanent settlement of civilians are 
+established. Early colonization is dangerous, 
+with high risk of failure, as many surveyed 
+worlds turn out to be non-viable. Casualties 
+are high, and early colonists receive a 
+reputation for being bitter survivors or foolish 
+optimists. On worlds with teeming eco-
+systems, some colonists abandon the often 
+oppressive, corporate-controlled colonies and 
+become Nomads. 
+2177-2179: First colonial War
+As interests between colonial self-
+determination and corporate profit-extraction 
+intensifies, in 2177 a trio of wealthy colonies 
+declare themselves an independent 
+political entity and demand renegotiation 
+of agreements with the owning mega-
+corporations. Initial resistance leads to 
+open but inconclusive warfare as neither 
+side can gain an upper hand. Conflict ends 
+with establishing a model of colonial self-
+governance while maintaining economic ties. 
+This will form the dominant system for the 
+next 60 years.
+The conflict is studied extensively by military 
+academies as the first practical experience in 
+galactic warfare.
+216
+Appendices
+
+
+=== PAGE 219 ===
+2190: Karlenhertz generator developed
+A technological breakthrough eventually 
+known as the Karlenhertz principle allows the 
+construction of Weak Point Generators. These 
+allow faster-than-light travel to be conducted 
+with increased stability, as a major planetary 
+system can now be travelled to and from 
+without having to wait for fluctuations in the 
+structure of space. 
+This also allows much faster inter-galactic 
+communications to be established. 
+2204: Terraforming technology developed
+With the aid of advanced AI systems, 
+scientific breakthroughs enable large-scale 
+terraforming. With time, this will enable 
+planet-wide manipulation of environmental 
+systems to create breathable atmospheres, 
+adjusting temperatures and similar factors. By 
+the present day, even some degree of gravity 
+adjustment can be done. The costs of these 
+measures are enormous, requiring exorbitant 
+amounts of funding to be viable, but this 
+promises to have profound impacts on human 
+success among the stars. 
+2211: The Star-Ward Leap begins
+Human colonization efforts explode as more 
+and more worlds are surveyed, terraforming 
+processes are initiated and colonists begin to 
+settle. Ultra-corporations spanning multiple 
+global economies are formed during this 
+period. Large scale genetic editing begins 
+during this period and quickly becomes 
+standard, despite initial moral objections.
+2213: Psionics discovered
+The genetic basis for human psionic ability is 
+conclusively proven. Predictable application 
+remains elusive, but a range of experiments 
+are conducted across human space with a 
+wide range of legality and ethical concern. The 
+discovery gives rise to a series of post-human 
+and hyper-evolutionary cult groups.
+2217-2236: Separation Wars
+Widespread galactic conflicts erupt 
+throughout human space, as interests 
+diverge and independent polities begin to 
+assert themselves, resulting in a struggle for 
+domination. These are often referred to as the 
+Procyon Wars due to the approximate location 
+of the first battle, as Yellow Confederate ships 
+217
+Appendices
+
+
+=== PAGE 220 ===
+fire on Earth military patrols. While historians 
+often describe it as a distinct historical period, 
+it is ultimately a series of conflicts that are only 
+tenuously connected.
+While the conflicts are ongoing, incessant 
+Human/K’Erin warfare continues in a series 
+of localized conflicts that further encroach on 
+Human-claimed space.  
+It is during the prolonged space battles of this 
+era that the first instances of Degenerative 
+Violence Syndrome (DVS) are recorded.
+The isolated colony of Z-229 begins genetic 
+and psionic experimentation that will 
+culminate in the emergence of the post-
+human type known as The Many.
+2224: First K’Erin contact
+A scout ship makes first contact between 
+human explorers and the alien species known 
+as the K’Erin. Initial communications show 
+promise, and the K’Erin withdraw from the 
+system without further actions. The news 
+sends shockwaves through human society 
+as plans must be reevaluated. A number of 
+different political movements arise advocating 
+different methods of interacting with this and 
+an other alien species.
+2224: K’Erin Contact War
+Within weeks of K’Erin contact, open warfare 
+breaks out, plunging mankind into galactic 
+war for the first time. The conflict is fairly 
+brief, though damage to fleets and military 
+infrastructure is extensive. Earth military forces 
+are revealed to be ill-prepared for warfare 
+on this scale. The results of the conflict is to 
+establish K’Erin territorial claims by treaty, 
+though many of the worlds claimed are of 
+relatively little value and several were not near 
+human-controlled space.
+K’Erin historians will refer to this conflict as 
+the “War of Trials”, positioning it as a conflict 
+they initiated to test the newly encountered 
+species. The treaty documents include the 
+designation of humans as a Worthy Foe. 
+2100
+2150
+2250
+2350
+2450
+2200
+2470
+2300
+2400
+Timeline of Wars
+First Colonial War
+Hegemony Wars
+Renegade Wars
+Horde Dominion War
+Separation Wars
+2nd Converted War
+Cybernetic War / 4th Converted War
+Reclamation War
+Second K’Erin-Unity war
+K”Erin War of Steel Honor
+3rd Converted War
+The Wayward Wars / 
+Second Wars of Separation
+K’Erin Contact War
+First Converted incursion
+First reports of Abductors
+Precursor-K’Erin dominion war
+218
+Appendices
+
+
+=== PAGE 221 ===
+2249: Unity founded
+In light of the experiences from the K’Erin 
+Contact War and the Separation Wars, 
+Unity is founded to consolidate and defend 
+human interests across space. The first 
+member worlds are those with significant 
+political and economic power, forming the 
+Core Worlds of today. 
+2254-2285: The Wayward Wars / Second  
+Wars of Separation
+A new series of conflicts take place, as Unity 
+extends its reach and brings most human 
+polities into its sphere through diplomacy, 
+economic pressure, or outright military action. 
+While most worlds join voluntarily, many of 
+the conflicts are particularly fierce and, even 
+200 years later, what position your family 
+took at the time can be a point of pride or 
+embarrassment. 
+The alien menace known as the Swarm is 
+encountered during these conflicts. The initial 
+encounters may have been lost to historical 
+records, but it is commonly accepted that the 
+Lukas-9 portal incident in 2257 allowed the 
+creatures to spread across populated worlds, 
+preventing any attempts at containment. 
+2258: First “Many” contact	
+	
+Unity exploratory fleets regain contact with 
+Z-229. Through accelerated development, 
+they have attained a psionic hive-mind and 
+have become genetically incompatible with 
+baseline humanity. The Genetic Derivation 
+laws are passed to grant them Protected status 
+under Unity law, though they remain an 
+independent but affiliated political entity. 
+2259: First Engineer contact
+Emissaries from the species known as the 
+Engineers are encountered, seeking to 
+establish diplomatic relations with Unity. 
+2288: First Precursor contact
+The aliens known as Precursors initiate 
+contact with Unity. They present themselves 
+as diplomats warning of an imminent threat 
+to galactic stability, though the warnings are 
+frustratingly vague. Large-scale diplomatic, 
+technological, and economic ties are initiated.
+2290: First Converted incursion
+A threat of unknown origin, the cybernetic 
+species known as the Converted invade known 
+space with the initial fleets striking Unity and 
+Precursor territory in particular. Countless 
+independent human systems are overrun and 
+absorbed by the invaders. A rapid response by 
+combined Unity, Precursor, and K’Erin forces 
+shatters the initial invasion forces in a series 
+of quick battles, celebrated for establishing a 
+new doctrine in space battles. 
+As the invasion fleet command structure 
+crumbles, the invasion falters and while 
+smaller-scale operations will continue into 
+2291, major fighting ceases within 8 months 
+of the first attack. 
+2292-2299: Uplifts and gene-mods standardized
+Extensive AI-guided experimentation 
+with uplifting animals, as well as genetic 
+modification comes to fruition, producing a 
+number of viable genetic variants. Stalkers 
+and Hulkers, as well as most Feral strains 
+are all created during this time period. 2279 
+marks the end of wide-spread creation of 
+post-human species after an activist group 
+uncovers evidence that technology acquired 
+from the Converted invaders has been used in 
+the uplift program.
+While continued creation is outlawed, the 
+period sees massive development in genetic 
+modifications in record speeds, allowing 
+unprecedented modifications to be done. 
+2298-2301: Precursor-K’Erin dominion war
+After both sides declare protectorates over 
+low-tech local alien populations in border 
+territory, hostilities erupt into open warfare 
+between Precursors and K’Erin, while Unity 
+remains neutral. 
+219
+Appendices
+
+
+=== PAGE 222 ===
+Initial Precursor successes are reversed when 
+a K’Erin assault targets Precursor core worlds 
+with biological weapons. The war is brought 
+to a conclusion after Precursor forces threaten 
+solar detonation in a contested star system. 
+2305: First Swift contact
+The diminutive aliens known as the Swift are 
+spontaneously discovered across hundreds of 
+worlds. Population groups are incorporated 
+into the K’Erin, Precursor, and Unity protective 
+spheres respectively. The Swift insist that they 
+have always been here, but until now the 
+time-diamonds did not line up correctly. 
+2306-2309: Second K’Erin-Unity war
+Diplomatic missteps result in open warfare 
+with the K’Erin. Due to relative military 
+parity, results are inconclusive. As the conflict 
+threatens to spill over into Precursor space, 
+a ceasefire is reached. In 2309, border 
+restoration and global-level ordnance 
+limitation treaties are signed between all 
+three parties.
+2329-2352: Renegade wars
+A period characterized by widespread low-
+intensity warfare among worlds furthest from 
+Unity control. Many of these conflicts are 
+purely local affairs but frequently spill over, 
+and result in sector-wide conflict. While the 
+major powers often interfere, the results are 
+modest. Most historians point to this as the 
+creation of the uncontrolled region of space 
+known as the Fringe.
+2370: First Manipulator contact
+Precursor diplomats facilitate first contact 
+between Unity and the species that will come 
+to be known as the Manipulators. Large-scale 
+commercial treaties are signed, allowing for 
+high-tech imports, though Unity diplomats 
+largely sidestep Manipulator concerns about 
+Unity military bases and colonies near their 
+region of space. 
+2373-2374: Uplift rebellions
+A series of violent rebellions break out at 
+Uplift-populated colonies near Manipulator 
+space. The Manipulators offer to provide peace-
+keeping forces in return for treaty concessions. 
+Due to a series of space anomalies, Unity 
+is hard-pressed to concentrate military 
+forces, though the rebellions are eventually 
+suppressed with K’Erin aid. 
+The ensuing treaties grant semi-autonomous 
+status to several colonies, relocating the 6th 
+Unity Strike Fleet base away from the region, 
+and grants official recognition of the Feral 
+genetic subtype as an independent, human-
+derived species. 
+2357-2369: 2nd Converted War
+Converted invasion fleets strike across the 
+galaxy, seemingly from an array of staging 
+points previously undetected. While all 
+sentient species come under attack, Precursor 
+space is hit particularly hard. 
+The tide begins to turn in 2362 with the 
+establishment of multi-species strike forces 
+and, by 2369, the invasion is considered at an 
+end, though scattered fighting continues for 
+decades to come. 
+2367: First core signals detected
+Strange transmissions of alien origin are 
+detected, emanating from the galactic core. 
+The regions of origin are widely suspected 
+to be inaccessible through conventional 
+interstellar travel. The Precursors and Swift 
+both warn against investigation for reasons 
+unrelated to the ongoing conflict, but the 
+Precursors refuse to elaborate and the 
+information gained by the Swift is cryptic and 
+convoluted, even by their standards. 
+A K’Erin scout fleet is dispatched, but 
+disappears without trace. 
+The signals last for 40 Earth-days before 
+receding, but transmit thereafter at 22-year 
+intervals.
+220
+Appendices
+
+
+=== PAGE 223 ===
+2368: Joint Defense worlds established
+As the Converted War winds down, the 
+Precursors and Unity create a series of Joint 
+Defense worlds along their regional borders. 
+These will feature troops and ships from both 
+sides which are, by treaty, forbidden to be 
+employed off-world.
+2372: First Soulless contact
+The robotic species known as the Soulless are 
+encountered along the galactic edge. Initial 
+contacts are generally friendly, and cooperation 
+quickly ensues. The Soulless pledge 
+contribution to matters of galactic peace and 
+quickly integrate into economic networks in 
+return for a limited array of settlements. 
+2372-2374: K’Erin War of Steel Honor
+The K’Erin pose a series of demands to the 
+Soulless, intending to provoke a conflict. 
+After 3 months of negotiations, the Soulless 
+break off all communications and mount an 
+expeditionary force into K’Erin space. The 
+ensuing conflict is primarily fought in space 
+and on orbital stations, and is occasionally 
+referred to as the Void War. 
+The conflict is inconclusive, with both sides 
+primarily striking at military assets, and a 
+mutual ceasefire is agreed upon when new 
+Converted threats emerge.
+2374-2380: 3rd Converted war
+A contested world from the 2nd Converted 
+War is revealed as a major production site and 
+staging ground. Within months, the entire 
+sector is aflame, and forces are rushed in 
+to contain the attack. Seventeen populated 
+worlds within the sector are lost before the 
+allied forces gain supremacy. Most of the 
+sector remains under Unity fleet interdiction 
+to the present day.
+2383: First Skulker contact
+The Skulkers approach Unity and K’Erin 
+space, requesting diplomatic recognition 
+and formal ties. Historians point out that 
+trade with the Skulker worlds had been 
+ongoing for some time, but the species had 
+remained relatively aloof and isolated. A 
+change in public policy leads to the Great 
+Exodus, as the Skulkers spread across 
+known space, quickly integrating into Unity 
+221
+Appendices
+
+
+=== PAGE 224 ===
+and K’Erin societies, while their home 
+worlds remain largely independent from 
+galactic affairs. 
+2386: First reports of Abductors
+Multiple Unity worlds report attacks from 
+unidentified ships, later determined to be 
+from a minor alien species in unexplored 
+galactic space. The species, nicknamed 
+Abductors, is hesitant to engage in diplomacy 
+but warns of a coming galactic horror that 
+they are hoping to contain. Requests for entire 
+galactic population to submit to the Abductor 
+psionic hierarchy are not successful.
+2390-2400: Cybernetic war / 
+4th Converted War
+A new Converted assault begins from within 
+K’Erin space but quickly spills across sector 
+boundaries. Initial counterattacks in 2391 
+are disrupted, as stray weapons fire causes 
+planetary destruction in the K-204 system. 
+The debris causes widespread devastation 
+to both fleets and severely cripples K’Erin 
+fleet resources.
+The Soulless commit immediately and 
+dispatch major forces. These will form the 
+core of the military resources for the rest of 
+the conflict while Unity provides supplies and 
+military hardware. 
+The incursion is deemed contained by 2400, 
+as a number of lost colonies are bombarded 
+from orbit to destroy Converted production 
+facilities. Permanent interdiction is set up 
+with combined K’Erin/Soulless scout bases 
+positioned in the remains. 
+2403: First Horde contact
+A trio of worlds abandoned during the 
+Wayward Wars sees an array of portals open. 
+As scout ships move to investigate, they come 
+under immediate fire. The newcomers use a 
+technological paradigm unlike any used by 
+known cultures, and refuse all attempts at 
+communication. They will later be nicknamed 
+“The Horde” by Unity troops.
+2403-2454: Horde Dominion War
+As Horde vessels continue to emerge, open 
+war breaks out. The ensuing conflict becomes 
+one of the largest military actions in galactic 
+history, involving most species. Unity bears 
+the brunt of the fighting, but expeditionary 
+forces are provided by all polities. Some 
+of the most enthusiastic fighting is carried 
+out by Skulker detachments eager to gain 
+additional recognition and privileges under 
+Unity government. 
+Historians sometimes sub-divide the Horde 
+Dominion War into distinct conflicts, but 
+fighting never completely ceases. The 
+Horde arrives in waves from the portals in 
+seemingly-inexhaustible waves of military 
+forces. A series of desperate targeted strikes 
+destroy two of the portal facilities, in 2449 
+and 2451 respectively. 
+With the Horde switching to the defensive, 
+several assaults on the final portal world fail. 
+Eventually the Skyburn Conclave is signed 
+between the Precursors, K’Erin, and Unity, 
+authorizing the use of global-level ordnance 
+for the purpose of ending the conflict. 
+In 2454, the final portal world is destroyed, 
+ending the invasion and marking the formal 
+end point. Mopping up operations continue 
+for many years. 
+2461-2465: Reclamation war
+A series of efforts are launched individually 
+by major powers to retake previously 
+Converted-held worlds. The campaigns lack 
+coordination and produce limited results 
+despite fierce fighting. 
+2467: First Hakshan contact
+Hakshan emissaries arrive on the galactic scene 
+and begin integration into galactic affairs. 
+2468: Now
+You are here. 
+222
+Appendices
+
+
+=== PAGE 225 ===
+ BUG HUNT INDEX
+A
+ability scores  166, 169
+actions  198
+advantages  170
+Aggression  192
+aliens  166
+Ambushers  196
+Area (terrain)  174
+Area weapons  177
+Assassin (pack leader)  
+197
+B
+Barricade  181
+basic training  170
+battle area, set-up  184
+battle round  198
+Beacon (objective)  185
+Block (terrain)  174, 191
+Brawling  176, 177
+	 Brawling with multiple 
+	 	 opponents  180
+Brawling damage  177
+Bruiser (pack leader)  197
+C
+Caller (pack leader)  197
+campaign escalation  187
+campaign turns  166, 
+182, 210
+campaign map  209
+casualties  202
+Chance  192
+characters  166
+	 character creation  170
+	 grunts  168
+	 main characters  168
+climb  176
+combat  177
+Combat Action  177
+Combat Operations  172
+Combat Skill  169
+combat team  173, 176
+	 team formation  173
+Complicated  207
+Contact markers  169, 192
+Contacts  190, 192
+co-op battles  211
+co-op campaigns  209
+Countdowns  199
+Cover  175, 180, 192
+D
+Damage  169
+Dangerous  207
+Dash  176
+decision making  200
+Delay  191
+Detection  192
+dice basics  166-7
+direction rolls  167
+Distract  191
+Double-Up  181
+Driver (pack leader)  197
+E
+enemies  194
+	 enemy movement   
+	 176, 200, 211
+	 enemy variants  196
+Enemy Action phase  199
+equal distance  180
+equipment  172, 179, 181
+Evac  181, 201
+Experience Points  167, 
+204
+Extra Support  181
+F
+Field (terrain)  174
+figure  166
+	 figure positioning  180
+Firing  177, 214
+Five Parsecs from Home  
+164, 212-3
+force strength  187
+formation  173
+G
+Galactic Timeline  215
+game length  166
+game scale  166
+grunts  168
+H
+Hack (objective)  185
+Hits, resolving  178
+I
+Individual (terrain)  174
+injuries  see casualties
+Interior (terrain)  174
+investigating  191
+J
+Jump  176
+L
+Lancer (pack leader)  197
+Leader (pack leader)  197
+Linear (terrain)  174
+Line of Sight  174
+loadout  187
+Lost Marines  202
+Lucky Find  181
+M
+malfunctions  177
+Military Life  206
+mission  166, 182
+	 completed missions   
+	 167, 170, 203
+	 ending the mission  	 	
+	 201
+	 mission difficulty  186
+	 mission generation  184
+	 mission set-up  184
+	 mission structure  169
+modifiers  207
+movement  176
+	 movement direction  	
+	 	 200
+	 order of movement  200
+Movie Magic  181
+mustering out  203, 213
+N
+Neutralize  191
+O
+Objectives  185, 201
+	 Critical Objective  185
+	 Vital Objective  185
+One Shot  207
+Operational Progress  205
+opposed tests  207
+origin  170
+P
+pack leader  197
+Patrol (objective)  185
+phases  198
+player vs player  200
+post-battle  166, 202
+Priority Rating  187
+problem solving  207
+Q
+Quick Action phase  198
+quick tests  207
+R
+range  169
+Rapid Fire  177
+Reactions  169, 173
+regiment flavor  173
+Reinforcements  181
+Remove Contact  181
+Reputation  167, 170, 	 	
+	 203
+	 Reputation points  201
+rerolls  167
+Retrieve (objective)  185
+Risky  207
+rounds  166
+R&R  206
+Runners  196
+S
+saving throws  178
+Savvy  169
+Scout  185
+Screamers  196
+Secure (objective)  185
+service history  170
+shots  169
+Sick Bay  203
+Signals  208
+Slow Action phase  198
+Snap Fire  198
+Spawn Points  199
+Spawn Rating  187, 199
+special assignments  166, 
+183
+Speed  169, 176
+Spitters  196
+squad  170
+Stun marker  178
+Stunned  178, 198
+Support  187, 211
+supporting fire  201
+Survived  181
+Swarmers  196
+T
+Tactical Advantage  191
+Tactical Locations   
+169, 190, 191
+task modifiers  207
+terrain types  174
+	 Difficult terrain  176
+timing questions  180
+Toughness  169
+Toughs  196
+troop set-up  190
+Trooper Armor  178
+troopers  166
+U
+unusual situations  180
+W
+weapon ratings  169
+weapons and gear  179
+Wits test  207
+Wounded  178
+Y
+You want some too?  169
+223
+Appendices
+
+
+=== PAGE 226 ===
+The following index covers both the Five Parsecs from Home core rulebook and this Compendium. 
+Where applicable, core rulebook page numbers are listed in bold italics with a vertical separator ( |  ). 
+Bug Hunt has its own dedicated index (see previous page).
+A
+ability scores  12
+	 Ability Increase Table  123
+	 	 Slower Progression  32
+Access (objective)  90 | 72, 75
+Acquire (objective)  90 | 72, 75
+Actions  40, 113
+	 Combat Actions  40, 44, 113
+	 Free Actions  40, 113
+	 Movement Actions  40, 113
+	 	 alternative Movement 
+	 	 	 Actions  42
+	 Psionic Action  20
+	 Snap Fire  113
+Actually Specialized  33
+advanced training  124 | 25
+adventure wargaming  6
+Aggression  142
+Aggressive (AI)  43, 92 | 43
+Aggressive (loan threshold)  154
+AI  see artificial intelligence
+Aim  46
+Alien Ruin (terrain type)  98
+Ambush (Rival attack type)  91
+appendices  146
+Area (terrain type)  37, 38
+Area (weapon trait)  51 | 89
+Armored (ship trait)  30
+Armored Leaders  33
+artificial intelligence (AI)  42 | 42
+	 AI type  43, 92 | 42
+	 AI variations  42
+	 group actions  42
+	 impossible or stupid actions  42
+Assail (psionic power)  24
+Assault (Rival attack type)  92
+Assault Bot  21
+Average (interest rate)  153
+B
+background  24
+	 Background Table  25
+Bail  114
+Barrier (psionic power)  18
+battles  87
+	 battle events  116
+	 battle flow events  71
+	 battle round  112
+	 	 ... quick reference  118
+	 	 complex round sequences 
+	 	 	 164
+	 Choose Your Battle  85
+	 ending the battle  114
+	 Escalating battles  46
+	 Invasion Battles  92
+	 mass battle  169
+	 readying for battle  87
+	 three-way battle  38
+battle space (grid-based)  90
+battle-fronts  169
+battlefield  108
+	 battlefield edge  110
+	 battlefield set-up  108
+	 setting up figures  110
+battlefield finds  120
+Battlefield Test  67
+Beast (AI)  43
+Benefit  83
+	 Benefits Subtable  83
+Benefits, Hazards, and Conditions 
+(BHC) Table  83
+Better Leadership  33
+Beyond Humanity  143
+Bio-upgrade  23
+	 Bio-upgrades and psionics  17
+Black Jobs  see jobs
+Black Zone Warning see jobs
+Block (terrain type)  37
+Bolster (psionic power)  24
+Boss  99
+Bots  15
+	 Bot Injury Table  122
+	 Bots and psionics  17, 19
+	 new Bot upgrades  26
+Brawl  41, 45, 148 | 93
+	 Brawling on grids  148
+Brought Friends (Rival attack 
+type)  91
+Bug Hunt  161
+Burn (weapon trait)  89
+Bystanders  164
+C
+campaigns  63
+	 campaign events  125
+	 campaign preparation  63
+	 campaign rewards  171
+	 campaign sequences  9
+	 campaign turn  68
+	 	 updated campaign turn 
+	 	 	 sequence  10
+	 	 campaign turn example  86
+	 introductory campaign  104
+	 new campaigns  136
+	 set-up sequence  153
+	 	 updated set-up sequence  9
+	 starting a campaign  66
+Carry Out Task  68
+Casual (loan threshold)  154
+casualties and injuries  99
+	 Casualty Tables  99
+Cautious (AI)  42 | 42
+Chance  142
+character creation  12
+	 character creation example  32
+5PFH INDEX
+224
+5PFH INDEX
+
+

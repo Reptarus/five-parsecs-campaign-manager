@@ -1,0 +1,32 @@
+[
+    {
+        "target_path": "MarginContainer/VBoxContainer/HeaderPanel",
+        "text": "Your campaign header shows the crew name, current turn, and phase. Credits and Story Points are tracked here too.",
+        "tooltip_position": "bottom"
+    },
+    {
+        "target_path": "MarginContainer/VBoxContainer/MainContent/LeftColumn",
+        "text": "The Crew Manifest shows all your crew members with their stats, species, and class. Tap any crew card to view details.",
+        "tooltip_position": "right"
+    },
+    {
+        "target_path": "MarginContainer/VBoxContainer/MainContent/CenterColumn",
+        "text": "Ship status, equipment stash, and quick access to the Compendium and Battle Simulator are here.",
+        "tooltip_position": "left"
+    },
+    {
+        "target_path": "MarginContainer/VBoxContainer/MainContent/RightColumn",
+        "text": "Intel overview \u2014 your current world, patrons, rivals, rumors, and campaign narrative status.",
+        "tooltip_position": "left"
+    },
+    {
+        "target_path": "MarginContainer/VBoxContainer/ButtonContainer/ActionButton",
+        "text": "The main action button advances your campaign to the next phase. The 9 campaign phases guide you through each turn.",
+        "tooltip_position": "top"
+    },
+    {
+        "target_path": "MarginContainer/VBoxContainer/ButtonContainer/SaveButton",
+        "text": "Save frequently! Your campaign data is stored locally. Use Export to back up your save file.",
+        "tooltip_position": "top"
+    }
+]

@@ -6,12 +6,13 @@ extends Control
 
 signal equipment_updated(data: Dictionary)
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
+const _UC = preload("res://src/ui/components/base/UIColors.gd")
+const COLOR_BASE := _UC.COLOR_BASE
+const COLOR_ELEVATED := _UC.COLOR_ELEVATED
+const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := _UC.COLOR_BORDER
+const COLOR_ACCENT := _UC.COLOR_ACCENT
 
 var _coordinator = null
 
@@ -88,26 +89,27 @@ func _build_ui() -> void:
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_ELEVATED
-	style.border_color = COLOR_BORDER
+	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 16
-	style.content_margin_bottom = 16
+	style.set_corner_radius_all(16)
+	style.set_content_margin_all(_UC.SPACING_LG)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", _UC.SPACING_SM)
 	panel.add_child(vbox)
 
 	var lbl := Label.new()
-	lbl.text = title_text
-	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
-	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.text = title_text.to_upper()
+	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
+	lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	vbox.add_child(lbl)
+
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	vbox.add_child(sep)
 
 	return vbox
 

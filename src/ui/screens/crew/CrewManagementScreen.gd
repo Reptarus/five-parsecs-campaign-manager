@@ -184,6 +184,8 @@ func _on_card_view_details(character: Character) -> void:
 	var gsm = get_node_or_null("/root/GameStateManager")
 	if gsm and gsm.has_method("set_temp_data"):
 		gsm.set_temp_data(gsm.TEMP_KEY_SELECTED_CHARACTER, character)
+		# Pass crew list for swipe navigation
+		_store_crew_list_for_swipe(gsm, character)
 		gsm.navigate_to_screen("character_details")
 
 func _on_card_edit(character: Character) -> void:
@@ -260,7 +262,43 @@ func _on_dict_card_clicked(event: InputEvent, char_dict: Dictionary) -> void:
 			gsm.set_temp_data(gsm.TEMP_KEY_SELECTED_CHARACTER, character)
 			# Store the source dict so CharacterDetailsScreen can write changes back
 			gsm.set_temp_data("source_crew_dict", char_dict)
+			# Pass crew list for swipe navigation
+			_store_crew_list_for_swipe(gsm, character)
 			gsm.navigate_to_screen("character_details")
+
+func _store_crew_list_for_swipe(gsm: Node, selected_character: Character) -> void:
+	if not current_campaign:
+		return
+	var members: Array = []
+	if current_campaign.has_method("get_crew_members"):
+		members = current_campaign.get_crew_members()
+	elif current_campaign.has_method("get_active_crew_members"):
+		members = current_campaign.get_active_crew_members()
+	elif "crew_data" in current_campaign:
+		members = current_campaign.crew_data.get("members", [])
+	if members.is_empty():
+		return
+	# Convert all members to dicts for uniform handling
+	var crew_dicts: Array[Dictionary] = []
+	var selected_idx: int = 0
+	for i in members.size():
+		var m = members[i]
+		var d: Dictionary
+		if m is Dictionary:
+			d = m
+		elif m.has_method("to_dictionary"):
+			d = m.to_dictionary()
+		else:
+			continue
+		crew_dicts.append(d)
+		# Match by character_id or character_name
+		var sel_id: String = selected_character.character_id \
+			if "character_id" in selected_character else ""
+		var m_id: String = str(d.get("character_id", d.get("id", "")))
+		if not sel_id.is_empty() and m_id == sel_id:
+			selected_idx = crew_dicts.size() - 1
+	gsm.set_temp_data("crew_list_for_swipe", crew_dicts)
+	gsm.set_temp_data("crew_index_for_swipe", selected_idx)
 
 # ============ DATA RESOLUTION HELPERS ============
 

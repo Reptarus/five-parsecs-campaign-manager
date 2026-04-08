@@ -6,14 +6,15 @@ extends Control
 
 signal phase_completed(result_data: Dictionary)
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_ACCENT := Color("#2D5A7B")
+const _UC = preload("res://src/ui/components/base/UIColors.gd")
+const COLOR_BASE := _UC.COLOR_BASE
+const COLOR_ELEVATED := _UC.COLOR_ELEVATED
+const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := _UC.COLOR_BORDER
+const COLOR_SUCCESS := _UC.COLOR_SUCCESS
+const COLOR_WARNING := _UC.COLOR_WARNING
+const COLOR_ACCENT := _UC.COLOR_ACCENT
 
 const ASSIGNMENTS_PATH := "res://data/bug_hunt/bug_hunt_special_assignments.json"
 
@@ -126,6 +127,7 @@ func _populate_characters() -> void:
 
 	var characters: Array = _campaign.main_characters
 	var sick_bay: Dictionary = _campaign.sick_bay if "sick_bay" in _campaign else {}
+	var completed: Dictionary = _campaign.completed_assignments if "completed_assignments" in _campaign else {}
 
 	for mc in characters:
 		if mc is not Dictionary:
@@ -144,7 +146,18 @@ func _populate_characters() -> void:
 
 		var card := _create_card(char_name, _characters_container)
 
-		# Assignment dropdown
+		# Show current stats for reference
+		var stats_lbl := Label.new()
+		stats_lbl.text = "R:%d  S:%d  CS:%d  T:%d  Sv:%d  XP:%d  Missions:%d" % [
+			mc.get("reactions", 1), mc.get("speed", 4), mc.get("combat_skill", 0),
+			mc.get("toughness", 3), mc.get("savvy", 0), mc.get("xp", 0),
+			mc.get("completed_missions_count", 0)]
+		stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		stats_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+		card.add_child(stats_lbl)
+
+		# Assignment dropdown — filter by eligibility (Compendium p.183)
+		var char_completed: Array = completed.get(char_id, [])
 		var hbox := HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", 12)
 		card.add_child(hbox)
@@ -156,26 +169,91 @@ func _populate_characters() -> void:
 
 		var option := OptionButton.new()
 		option.add_item("None (Skip)", 0)
+		# Track which JSON index maps to which dropdown item
+		var _eligible_indices: Array = []
 		for i in range(_assignments_data.size()):
 			var assignment: Dictionary = _assignments_data[i]
+			var a_id: String = assignment.get("id", "")
 			var target: int = assignment.get("target_2d6", 99)
-			option.add_item("%s (2D6 >= %d)" % [assignment.get("name", "?"), target], i + 1)
-		option.custom_minimum_size.x = 300
+
+			# Check: already completed this assignment (once per career)
+			if a_id in char_completed:
+				continue
+
+			# Check requirements
+			if not _meets_requirements(mc, assignment):
+				continue
+
+			_eligible_indices.append(i)
+			var suffix := ""
+			# Show stat cap info if applicable
+			if assignment.has("stat_cap"):
+				var cap: Dictionary = assignment.stat_cap
+				var current_val: int = mc.get(cap.get("stat", ""), 0)
+				if current_val > cap.get("max_before_bonus", 99):
+					suffix = " [at cap]"
+			option.add_item("%s (2D6 >= %d)%s" % [assignment.get("name", "?"), target, suffix], i + 1)
+		option.custom_minimum_size.x = 320
 		hbox.add_child(option)
+
+		if _eligible_indices.is_empty():
+			var done_lbl := Label.new()
+			done_lbl.text = "All eligible assignments completed!"
+			done_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+			card.add_child(done_lbl)
 
 		# Store reference for later
 		_assignment_slots.append({
 			"character_id": char_id,
 			"character_name": char_name,
+			"character_data": mc,
 			"option_button": option,
 			"assignment_id": "",
 			"result": ""
 		})
 
 
+func _meets_requirements(char_data: Dictionary, assignment: Dictionary) -> bool:
+	## Check if character meets assignment requirements (Compendium p.183).
+	var reqs: Array = assignment.get("requirements", [])
+	for req in reqs:
+		if req is not Dictionary:
+			continue
+		var req_type: String = req.get("type", "")
+		match req_type:
+			"stat_min":
+				# e.g. Commando: Reactions or Combat Skill >= 2
+				var stat_val: int = char_data.get(req.get("stat", ""), 0)
+				var needed: int = req.get("value", 99)
+				var meets_primary: bool = stat_val >= needed
+				# Check OR condition
+				if not meets_primary and req.has("or_stat"):
+					var or_val: int = char_data.get(req.get("or_stat", ""), 0)
+					meets_primary = or_val >= req.get("or_value", needed)
+				if not meets_primary:
+					return false
+			"completed_missions_min":
+				var missions: int = char_data.get("completed_missions_count", 0)
+				if missions < req.get("value", 99):
+					return false
+			"assignment_completed":
+				# e.g. Officer Training requires Leadership Training
+				var needed_id: String = req.get("assignment_id", "")
+				var completed: Dictionary = {}
+				if _campaign and "completed_assignments" in _campaign:
+					completed = _campaign.completed_assignments
+				var char_id: String = char_data.get("id", char_data.get("character_id", ""))
+				var char_completed: Array = completed.get(char_id, [])
+				if needed_id not in char_completed:
+					return false
+	return true
+
+
 func _on_roll_all() -> void:
 	for child in _results_container.get_children():
 		child.queue_free()
+
+	var total_rep_gain: int = 0
 
 	for slot in _assignment_slots:
 		var option: OptionButton = slot.get("option_button")
@@ -188,11 +266,12 @@ func _on_roll_all() -> void:
 			slot.result = "skipped"
 			continue
 
-		var assignment_idx: int = selected_idx - 1
-		if assignment_idx >= _assignments_data.size():
+		# Map dropdown selection back to assignment data via item ID
+		var assignment_data_idx: int = option.get_item_id(selected_idx) - 1
+		if assignment_data_idx < 0 or assignment_data_idx >= _assignments_data.size():
 			continue
 
-		var assignment: Dictionary = _assignments_data[assignment_idx]
+		var assignment: Dictionary = _assignments_data[assignment_data_idx]
 		var target: int = assignment.get("target_2d6", 99)
 
 		# Roll 2D6
@@ -204,24 +283,102 @@ func _on_roll_all() -> void:
 		slot.assignment_id = assignment.get("id", "")
 		slot.result = "success" if success else "failure"
 
+		var char_id: String = slot.character_id
+		var char_data: Dictionary = slot.get("character_data", {})
+
 		# Display result
-		var result_lbl := Label.new()
+		var result_card := _create_card(slot.character_name, _results_container)
+
+		var roll_lbl := Label.new()
+		roll_lbl.text = "%s — Rolled %d+%d=%d vs %d" % [
+			assignment.get("name", "?"), die1, die2, total, target]
+		roll_lbl.add_theme_color_override("font_color", COLOR_SUCCESS if success else COLOR_WARNING)
+		result_card.add_child(roll_lbl)
+
 		if success:
-			result_lbl.text = "%s: %s — Rolled %d+%d=%d vs %d — SUCCESS! %s" % [
-				slot.character_name, assignment.get("name", "?"),
-				die1, die2, total, target,
-				assignment.get("training_award", "")]
-			result_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
+			var awards: Array = []
+
+			# Apply stat bonuses (Compendium p.183)
+			_apply_stat_awards(char_data, assignment, awards)
+
+			# Apply bonus XP
+			var bonus_xp: int = assignment.get("bonus_xp", 0)
+			if bonus_xp > 0:
+				char_data["xp"] = char_data.get("xp", 0) + bonus_xp
+				awards.append("+%d XP" % bonus_xp)
+
+			# Apply bonus reputation (accumulate for campaign)
+			var bonus_rep: int = assignment.get("bonus_reputation", 0)
+			if bonus_rep > 0:
+				total_rep_gain += bonus_rep
+				awards.append("+%d Reputation" % bonus_rep)
+
+			# Track completion (once per career)
+			if _campaign and "completed_assignments" in _campaign:
+				if not _campaign.completed_assignments.has(char_id):
+					_campaign.completed_assignments[char_id] = []
+				_campaign.completed_assignments[char_id].append(slot.assignment_id)
+
+			# Show awards
+			var award_lbl := Label.new()
+			award_lbl.text = "SUCCESS! Awards: %s" % ", ".join(awards) if not awards.is_empty() else "SUCCESS! (Training logged)"
+			award_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
+			award_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			result_card.add_child(award_lbl)
+
+			# Show training award description
+			var training: String = assignment.get("training_award", "")
+			if not training.is_empty() and training != "None":
+				var train_lbl := Label.new()
+				train_lbl.text = training
+				train_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+				train_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+				result_card.add_child(train_lbl)
 		else:
-			result_lbl.text = "%s: %s — Rolled %d+%d=%d vs %d — FAILED" % [
-				slot.character_name, assignment.get("name", "?"),
-				die1, die2, total, target]
-			result_lbl.add_theme_color_override("font_color", COLOR_WARNING)
-		result_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_results_container.add_child(result_lbl)
+			var fail_lbl := Label.new()
+			fail_lbl.text = "FAILED — Not accepted this turn. May retry next campaign turn."
+			fail_lbl.add_theme_color_override("font_color", COLOR_WARNING)
+			result_card.add_child(fail_lbl)
+
+	# Apply accumulated reputation to campaign
+	if total_rep_gain > 0 and _campaign and _campaign.has_method("add_reputation"):
+		_campaign.add_reputation(total_rep_gain)
 
 	# Auto-complete after rolling
 	complete()
+
+
+func _apply_stat_awards(char_data: Dictionary, assignment: Dictionary, awards: Array) -> void:
+	## Apply stat bonuses from successful assignment (Compendium p.183).
+	## Respects stat caps (e.g. "Combat Skill +1 if currently lower than 2").
+
+	# Single stat cap
+	if assignment.has("stat_cap"):
+		var cap: Dictionary = assignment.stat_cap
+		_apply_single_stat(char_data, cap, awards)
+
+	# Multiple stat caps (e.g. Commando, Survival)
+	if assignment.has("stat_caps"):
+		var caps: Array = assignment.stat_caps
+		for cap in caps:
+			if cap is Dictionary:
+				_apply_single_stat(char_data, cap, awards)
+
+
+func _apply_single_stat(char_data: Dictionary, cap: Dictionary, awards: Array) -> void:
+	var stat_name: String = cap.get("stat", "")
+	var max_before: int = cap.get("max_before_bonus", 99)
+	var bonus: int = cap.get("bonus", 1)
+
+	if stat_name.is_empty():
+		return
+
+	var current: int = char_data.get(stat_name, 0)
+	if current <= max_before:
+		char_data[stat_name] = current + bonus
+		awards.append("%s %d→%d" % [stat_name.capitalize().replace("_", " "), current, current + bonus])
+	else:
+		awards.append("%s already at cap (%d)" % [stat_name.capitalize().replace("_", " "), current])
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:

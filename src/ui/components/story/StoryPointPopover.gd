@@ -293,6 +293,13 @@ func _update_star_rows() -> void:
 			_stars_system.get_max_uses(ability))
 		var can_use: bool = _stars_system.can_use(ability)
 
+		# Battle-only abilities disabled outside active battle
+		var battle_only: bool = ability in [
+			StarsSystemClass.StarAbility.DRAMATIC_ESCAPE,
+			StarsSystemClass.StarAbility.ITS_TIME_TO_GO]
+		if battle_only:
+			can_use = false
+
 		row["uses_label"].text = "%d/%d" % [
 			remaining, max_uses]
 
@@ -302,12 +309,23 @@ func _update_star_rows() -> void:
 			row["name_label"].add_theme_color_override(
 				"font_color", COLOR_TEXT_PRIMARY)
 			row["button"].disabled = false
+			row["button"].tooltip_text = ""
+		elif battle_only and remaining > 0:
+			# Has uses but needs battle context
+			row["uses_label"].add_theme_color_override(
+				"font_color", COLOR_WARNING)
+			row["name_label"].add_theme_color_override(
+				"font_color", COLOR_TEXT_SECONDARY)
+			row["button"].disabled = true
+			row["button"].tooltip_text = (
+				"Available during battle")
 		else:
 			row["uses_label"].add_theme_color_override(
 				"font_color", COLOR_TEXT_DISABLED)
 			row["name_label"].add_theme_color_override(
 				"font_color", COLOR_TEXT_DISABLED)
 			row["button"].disabled = true
+			row["button"].tooltip_text = ""
 
 
 # ── Signal Handlers ──────────────────────────────────────

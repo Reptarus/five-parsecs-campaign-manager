@@ -154,7 +154,7 @@ func _create_character_battle_journal_event(ctx: PostBattleContextClass, member:
 		event_details["zone_type"] = "RED ZONE"
 	ctx.campaign_journal.auto_create_character_event(
 		char_id, "battle", event_details
-	})
+	)
 
 func check_traveler_disappearance(
 	ctx: PostBattleContextClass

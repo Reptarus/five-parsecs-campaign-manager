@@ -86,6 +86,90 @@ func _setup_ui() -> void:
 	_apply_button.pressed.connect(_on_apply_pressed)
 	vbox.add_child(_apply_button)
 
+	# ── Reduced Motion ────────────────────────────────────────
+	var motion_sep := HSeparator.new()
+	vbox.add_child(motion_sep)
+
+	var motion_row := HBoxContainer.new()
+	motion_row.add_theme_constant_override("separation", 16)
+	vbox.add_child(motion_row)
+
+	var motion_text := VBoxContainer.new()
+	motion_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	motion_text.add_theme_constant_override("separation", 2)
+	motion_row.add_child(motion_text)
+
+	var motion_title := Label.new()
+	motion_title.text = "Reduce Animations"
+	motion_title.add_theme_font_size_override("font_size", _scaled_font(16))
+	motion_text.add_child(motion_title)
+
+	var motion_desc := Label.new()
+	motion_desc.text = "Minimize motion effects throughout the app"
+	motion_desc.add_theme_font_size_override("font_size", _scaled_font(12))
+	motion_desc.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
+	motion_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	motion_text.add_child(motion_desc)
+
+	var motion_check := CheckButton.new()
+	motion_check.custom_minimum_size = Vector2(0, 48)
+	if _theme_manager and _theme_manager.has_method("is_reduced_animation_enabled"):
+		motion_check.button_pressed = _theme_manager.is_reduced_animation_enabled()
+	motion_check.toggled.connect(func(enabled: bool):
+		if _theme_manager and _theme_manager.has_method("set_reduced_animation"):
+			_theme_manager.set_reduced_animation(enabled)
+	)
+	motion_row.add_child(motion_check)
+
+	# ── Font Size ─────────────────────────────────────────────
+	var font_sep := HSeparator.new()
+	vbox.add_child(font_sep)
+
+	var font_row := HBoxContainer.new()
+	font_row.add_theme_constant_override("separation", 16)
+	vbox.add_child(font_row)
+
+	var font_text := VBoxContainer.new()
+	font_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	font_text.add_theme_constant_override("separation", 2)
+	font_row.add_child(font_text)
+
+	var font_title := Label.new()
+	font_title.text = "Font Size"
+	font_title.add_theme_font_size_override("font_size", _scaled_font(16))
+	font_text.add_child(font_title)
+
+	var font_desc := Label.new()
+	font_desc.text = "Adjust text size across the entire app"
+	font_desc.add_theme_font_size_override("font_size", _scaled_font(12))
+	font_desc.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
+	font_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	font_text.add_child(font_desc)
+
+	var font_option := OptionButton.new()
+	font_option.custom_minimum_size = Vector2(120, 48)
+	font_option.add_item("Small")
+	font_option.add_item("Normal")
+	font_option.add_item("Large")
+	# Select current based on ThemeManager scale factor
+	var current_scale: float = 1.0
+	if _theme_manager and _theme_manager.has_method("get_scale_factor"):
+		current_scale = _theme_manager.get_scale_factor()
+	if current_scale < 0.95:
+		font_option.selected = 0
+	elif current_scale > 1.05:
+		font_option.selected = 2
+	else:
+		font_option.selected = 1
+	font_option.item_selected.connect(func(idx: int):
+		var scales := [0.85, 1.0, 1.15]
+		if _theme_manager and _theme_manager.has_method("set_scale_factor"):
+			_theme_manager.set_scale_factor(scales[idx])
+	)
+	font_row.add_child(font_option)
+
 func _populate_theme_options() -> void:
 	## Add all available themes to dropdown
 	_theme_option_button.add_item("Dark (Default)", ThemeManager.ThemeVariant.DARK)

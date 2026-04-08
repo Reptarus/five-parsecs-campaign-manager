@@ -5,12 +5,13 @@ extends Control
 
 signal squad_updated(data: Dictionary)
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_SUCCESS := Color("#10B981")
+const _UC = preload("res://src/ui/components/base/UIColors.gd")
+const COLOR_BASE := _UC.COLOR_BASE
+const COLOR_ELEVATED := _UC.COLOR_ELEVATED
+const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := _UC.COLOR_BORDER
+const COLOR_SUCCESS := _UC.COLOR_SUCCESS
 
 var _coordinator = null
 var _characters_container: VBoxContainer

@@ -51,6 +51,40 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## Session 41: UX Sprint — Dashboard Polish + Accessibility + Tutorials (Apr 7, 2026)
+
+### CampaignDashboard.gd Changes
+- **HubFeatureCards** — `_add_hub_cards()` adds Compendium + Battle Simulator cards to `center_vbox` (after ship/equipment). Uses `HubFeatureCard.new()` (class_name, no preload). Must `add_child()` BEFORE `setup()` since `_build_ui()` runs in `_ready()`
+- **Role pills** — `_create_pill(text, color)` helper: StyleBoxFlat with 8px corners, 0.2 alpha bg, 1px border. Used in `_build_crew_card()` replacing plain "Species / Class" subtitle. Blue=species, Purple=class, Amber=captain
+- **Stat strip** — `_update_stat_strip()` inserts `__stat_strip` HBoxContainer between HeaderPanel and MainContent via `parent.move_child(strip, header_panel.get_index() + 1)`. 4 badges: CREW/TURN/CREDITS/STORY PTS
+- **Help button** — "?" button added to HeaderHBox, triggers `_on_help_pressed()` which loads TutorialUI + starts "campaign_dashboard" tutorial
+- **Tutorial auto-start** — `_check_dashboard_tutorial()` called deferred from `_setup_screen()`
+
+### AccessibilitySettingsPanel.gd Changes
+- **Reduced Motion toggle** — CheckButton wired to `ThemeManager.set_reduced_animation()` / `is_reduced_animation_enabled()`. Bold title + italic description pattern
+- **Font Size dropdown** — OptionButton (Small/Normal/Large → 0.85/1.0/1.15) wired to `ThemeManager.set_scale_factor()` / `get_scale_factor()`
+
+### CharacterDetailsScreen.gd — Crew Swipe
+- `_crew_list: Array[Dictionary]` + `_current_index: int` loaded from `GameStateManager.get_temp_data("crew_list_for_swipe")`
+- `_unhandled_input()` detects horizontal swipe (touch: delta.x > 80, duration < 0.4s, abs(x) > abs(y)*2) + arrow keys
+- `_navigate_crew(direction)` wraps index, creates new Character from dict, calls `populate_ui()`
+- Page dots: `_build_page_dots()` / `_update_page_dots()` — ● active (COLOR_FOCUS), ○ inactive (COLOR_TEXT_DISABLED)
+- **CrewManagementScreen.gd** — `_store_crew_list_for_swipe()` converts all members to dicts, finds selected index by character_id
+
+### TutorialOverlay.gd — Full Rewrite
+- CanvasLayer `layer = 95` (between Notifications L90 and Loading L99)
+- Deep Space styled tooltip (dark bg, cyan border, 8px corners)
+- VBox layout: label + step counter + Skip/Next buttons
+- `_find_parent_scroll()` + `ScrollContainer.ensure_control_visible()` for scroll-aware targeting
+- `ReferenceRect` for highlight border (not ColorRect)
+- Centering fallback when no target_path specified
+
+### Tutorial JSON Files
+- `data/tutorials/first_run.json` — 4 steps (welcome, New Campaign, Library, Options)
+- `data/tutorials/campaign_dashboard.json` — 6 steps (header, left/center/right columns, action button, save)
+
+---
+
 ## Session 40b: Legal Stack UI + Compendium Library + Icon SOP (Apr 7, 2026)
 
 ### Legal UI Components

@@ -279,7 +279,7 @@ func _build_detail_body(item: Dictionary) -> String:
 		var trait_strs: PackedStringArray = []
 		for t: Variant in item["traits"]:
 			trait_strs.append(str(t))
-		var keyword_db := Engine.get_main_loop().root.get_node_or_null("/root/KeywordDB") if Engine.get_main_loop() else null
+		var keyword_db = Engine.get_main_loop().root.get_node_or_null("/root/KeywordDB") if Engine.get_main_loop() else null
 		var traits_text := ", ".join(trait_strs)
 		if keyword_db and keyword_db.has_method("parse_text_for_keywords"):
 			traits_text = keyword_db.parse_text_for_keywords(traits_text)

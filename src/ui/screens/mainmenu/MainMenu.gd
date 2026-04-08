@@ -62,6 +62,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_on_viewport_resized()
 
+	# First-run tutorial (deferred so UI is fully built)
+	_check_first_run_tutorial.call_deferred()
+
 func _validate_required_nodes() -> bool:
 	var required_nodes := [
 		continue_button,
@@ -227,6 +230,21 @@ func _on_disable_tutorial_toggled(button_pressed: bool) -> void:
 	game_state_manager.settings["disable_tutorial_popup"] = button_pressed
 	if game_state_manager.has_method("save_settings"):
 		game_state_manager.save_settings()
+
+func _check_first_run_tutorial() -> void:
+	# Show guided tutorial overlay on first launch
+	var TutorialUIScript: GDScript = load(
+		"res://src/ui/components/tutorial/TutorialUI.gd")
+	if not TutorialUIScript:
+		return
+	var tui: Control = TutorialUIScript.new()
+	add_child(tui)
+	if tui.is_tutorial_completed("first_run"):
+		tui.queue_free()
+		return
+	# Brief delay so buttons are laid out
+	await get_tree().create_timer(0.3).timeout
+	tui.start_tutorial("first_run")
 
 func _on_load_campaign_pressed() -> void:
 	var gs = get_node_or_null("/root/GameState")
@@ -455,7 +473,131 @@ func _on_battle_simulator_pressed() -> void:
 	request_scene_change("battle_simulator")
 
 func _on_bug_hunt_pressed() -> void:
-	request_scene_change("bug_hunt_creation")
+	# Check for existing Bug Hunt saves before going to creation
+	var bh_saves := _find_bug_hunt_saves()
+	if bh_saves.is_empty():
+		request_scene_change("bug_hunt_creation")
+		return
+
+	# Show choice dialog: Continue most recent / Load / New
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.name = "__bh_backdrop"
+	add_child(backdrop)
+
+	var dialog := AcceptDialog.new()
+	dialog.title = "Bug Hunt"
+	dialog.ok_button_text = "Cancel"
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.custom_minimum_size = Vector2(400, 0)
+
+	var info_lbl := Label.new()
+	info_lbl.text = "Found %d Bug Hunt campaign(s)." % bh_saves.size()
+	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(info_lbl)
+
+	# Continue most recent
+	var continue_btn := Button.new()
+	var latest: Dictionary = bh_saves[0]
+	continue_btn.text = "Continue: %s (Turn %s)" % [
+		latest.get("name", "Unknown"), str(latest.get("turn", "?"))]
+	continue_btn.custom_minimum_size.y = 48
+	continue_btn.pressed.connect(func():
+		dialog.hide()
+		_load_bug_hunt_save(latest.get("path", ""))
+	)
+	vbox.add_child(continue_btn)
+
+	# Show other saves if multiple
+	if bh_saves.size() > 1:
+		for i in range(1, mini(bh_saves.size(), 4)):
+			var save_info: Dictionary = bh_saves[i]
+			var load_btn := Button.new()
+			load_btn.text = "Load: %s (Turn %s)" % [
+				save_info.get("name", "Unknown"),
+				str(save_info.get("turn", "?"))]
+			load_btn.custom_minimum_size.y = 44
+			var path_ref: String = save_info.get("path", "")
+			load_btn.pressed.connect(func():
+				dialog.hide()
+				_load_bug_hunt_save(path_ref)
+			)
+			vbox.add_child(load_btn)
+
+	# New campaign option
+	var new_btn := Button.new()
+	new_btn.text = "New Bug Hunt Campaign"
+	new_btn.custom_minimum_size.y = 48
+	new_btn.pressed.connect(func():
+		dialog.hide()
+		request_scene_change("bug_hunt_creation")
+	)
+	vbox.add_child(new_btn)
+
+	dialog.add_child(vbox)
+	dialog.confirmed.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
+	dialog.canceled.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
+	add_child(dialog)
+	_active_dialogs.append(dialog)
+	dialog.popup_centered()
+
+
+func _find_bug_hunt_saves() -> Array:
+	## Scan user://saves/ for Bug Hunt campaign files, sorted by modification time (newest first).
+	var saves: Array = []
+	var dir := DirAccess.open("user://saves/")
+	if not dir:
+		return saves
+
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while not file_name.is_empty():
+		if not dir.current_is_dir() and file_name.ends_with(".save"):
+			var path := "user://saves/" + file_name
+			# Peek at campaign type without full load
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file:
+				var text := file.get_as_text()
+				file.close()
+				var data = JSON.parse_string(text)
+				if data is Dictionary and data.get("campaign_type", "") == "bug_hunt":
+					var meta: Dictionary = data.get("meta", {})
+					var state: Dictionary = data.get("state", {})
+					saves.append({
+						"path": path,
+						"name": data.get("campaign_name",
+							meta.get("campaign_name", file_name)),
+						"turn": state.get("campaign_turn",
+							data.get("campaign_turn", 0)),
+						"modified": FileAccess.get_modified_time(path)
+					})
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	# Sort by modification time, newest first
+	saves.sort_custom(func(a, b): return a.modified > b.modified)
+	return saves
+
+
+func _load_bug_hunt_save(path: String) -> void:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("load_campaign"):
+		show_message("Game state not available.")
+		return
+	var result: Dictionary = gs.load_campaign(path)
+	if result.get("success", false):
+		request_scene_change("bug_hunt_dashboard")
+	else:
+		show_message("Failed to load Bug Hunt: %s" % result.get("message", "Unknown error"))
 
 func _on_options_pressed() -> void:
 	request_scene_change("options")

@@ -126,7 +126,7 @@ func reveal_contact(encounter_modifier: int = 0) -> Dictionary:
 
 func _roll_enemy_type() -> Dictionary:
 	var roll := (randi() % 100) + 1
-	var enemies: Array = _enemies_data.get("enemies", [])
+	var enemies: Array = _enemies_data.get("enemy_table", [])
 	for enemy in enemies:
 		if enemy is Dictionary and enemy.has("d100_range"):
 			var range_val: Array = enemy.d100_range

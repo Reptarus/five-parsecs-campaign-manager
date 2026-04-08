@@ -9,10 +9,11 @@ const SquadPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntS
 const EquipmentPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntEquipmentPanel.gd")
 const ReviewPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntReviewPanel.gd")
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
-const COLOR_ACCENT := Color("#2D5A7B")
+const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
+const COLOR_BASE := UIColorsRef.COLOR_BASE
+const COLOR_TEXT := UIColorsRef.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SEC := UIColorsRef.COLOR_TEXT_SECONDARY
+const COLOR_ACCENT := UIColorsRef.COLOR_ACCENT
 const MAX_FORM_WIDTH := 800
 
 var coordinator: CoordinatorScript

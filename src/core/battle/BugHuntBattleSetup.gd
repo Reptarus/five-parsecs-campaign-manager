@@ -32,12 +32,21 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 	var spawn_rating: int = mission_context.get("spawn_rating", 1)
 	var contact_count: int = mission_context.get("contact_markers", 4)
 	var objective: Dictionary = mission_context.get("objective", {})
+	var use_signals: bool = mission_context.get("use_signals", false)
 
-	# Generate contact marker positions (4 sectors of a 4x4 grid)
+	# Generate contact marker positions
 	var contact_markers: Array = _generate_contact_markers(contact_count)
 
-	# Generate tactical locations (D6 per mission, typically 2-4)
-	var tactical_locations: Array = _generate_tactical_locations()
+	# Signals optional rule (Compendium p.208): 1D6 Signals, remaining slots are TacLocs
+	var signals: Array = []
+	var tac_loc_count: int = 6
+	if use_signals:
+		var signal_count: int = (randi() % 6) + 1  # 1D6
+		tac_loc_count = maxi(6 - signal_count, 0)
+		signals = _generate_signals(signal_count)
+
+	# Generate tactical locations (Compendium p.192: total = 6 minus signals)
+	var tactical_locations: Array = _generate_tactical_locations_count(tac_loc_count)
 
 	# Generate spawn points
 	var spawn_points: Array = _generate_spawn_points(spawn_rating)
@@ -50,11 +59,12 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 		"objective": objective,
 		"contact_markers": contact_markers,
 		"tactical_locations": tactical_locations,
+		"signals": signals,
 		"spawn_points": spawn_points,
-		"terrain_theme": "indoor",  # Bug Hunt is typically indoor/facility
-		"contact_table_rules": _spawn_data.get("contact_table", {}),
-		"aggression_dice": _spawn_data.get("aggression_dice", {}),
-		"chance_dice": _spawn_data.get("chance_dice", {}),
+		"terrain_theme": "indoor",
+		"contact_table_rules": _spawn_data.get("contact_markers", {}).get("contact_table", []),
+		"aggression_dice": _spawn_data.get("contact_markers", {}).get("aggression", {}),
+		"chance_dice": _spawn_data.get("contact_markers", {}).get("chance", {}),
 		"weapons_table": _weapons_data.get("weapons", []),
 		"armor_table": _armor_data.get("armor", []),
 		"gear_table": _gear_data.get("gear", [])
@@ -99,27 +109,65 @@ func _generate_contact_markers(count: int) -> Array:
 
 
 func _generate_tactical_locations() -> Array:
-	## Roll for tactical locations present on the battlefield.
-	var location_types: Array = _tactical_data.get("tactical_location_types", [])
+	## Default: 6 Tactical Locations (Compendium p.192).
+	return _generate_tactical_locations_count(6)
+
+
+func _generate_tactical_locations_count(count: int) -> Array:
+	## Generate a specific number of tactical locations.
+	var tac_locs_data: Dictionary = _tactical_data.get("tactical_locations", {})
+	var location_types: Array = tac_locs_data.get("types", [])
 	if location_types.is_empty():
 		return []
 
 	var locations: Array = []
-	var num_locations: int = (randi() % 4) + 1  # 1-4 locations
+	for i in range(count):
+		# Roll D6 for type (Compendium p.191)
+		var roll: int = (randi() % 6) + 1
+		var loc: Dictionary = {}
+		for lt in location_types:
+			if lt is not Dictionary:
+				continue
+			if lt.has("d6_value") and lt.d6_value == roll:
+				loc = lt
+				break
+			if lt.has("d6_range"):
+				var r: Array = lt.d6_range
+				if r.size() >= 2 and roll >= r[0] and roll <= r[1]:
+					loc = lt
+					break
+		if loc.is_empty() and not location_types.is_empty():
+			loc = location_types[randi() % location_types.size()]
 
-	for i in range(num_locations):
-		var loc: Dictionary = location_types[randi() % location_types.size()]
 		locations.append({
 			"id": "tac_loc_%d" % (i + 1),
-			"type": loc.get("id", ""),
+			"type": loc.get("name", "Unknown"),
 			"name": loc.get("name", "Unknown"),
 			"effect": loc.get("effect", ""),
-			"activation": loc.get("activation", ""),
+			"d6_roll": roll,
 			"activated": false,
+			"compromised": false,
+			"failures": 0,
 			"sector": {"row": randi() % 4, "col": randi() % 4}
 		})
 
 	return locations
+
+
+func _generate_signals(count: int) -> Array:
+	## Generate Signal markers (optional rule, Compendium p.208).
+	var signals_data: Dictionary = _tactical_data.get("signals", {})
+	var signal_table: Array = signals_data.get("signal_table", [])
+
+	var signals: Array = []
+	for i in range(count):
+		signals.append({
+			"id": "signal_%d" % (i + 1),
+			"investigated": false,
+			"result": {},
+			"sector": {"row": randi() % 4, "col": randi() % 4}
+		})
+	return signals
 
 
 func _generate_spawn_points(spawn_rating: int) -> Array:

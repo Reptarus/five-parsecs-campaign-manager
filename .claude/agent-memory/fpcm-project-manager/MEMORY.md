@@ -7,6 +7,19 @@
 
 The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
 
+## Session 41: UX Sprint — Dashboard + Accessibility + Tutorials (Apr 7, 2026)
+
+Sprint clearing remaining UX checklist items from Maloric/Fallout companion app analysis. UX checklist moved from 44/16/21 to **58/8/15** done/partial/pending.
+
+- **Dashboard polish** (CampaignDashboard.gd): HubFeatureCards (Compendium + Battle Simulator in center column), role pills on crew cards (blue species, purple class, amber captain), 4-stat compact header strip (CREW/TURN/CREDITS/STORY PTS)
+- **Accessibility settings** (AccessibilitySettingsPanel.gd): Reduced Motion toggle + Font Size dropdown (Small/Normal/Large) wired to ThemeManager
+- **Crew swipe** (CharacterDetailsScreen.gd + CrewManagementScreen.gd): Horizontal swipe + arrow keys to browse crew members, page dots, crew list passed via GameStateManager temp_data
+- **Tutorial/onboarding**: TutorialOverlay.gd rewritten (Deep Space theme, L95, scroll-aware). `data/tutorials/first_run.json` (4 steps) + `campaign_dashboard.json` (6 steps). Auto-start on first launch (MainMenu) and first dashboard visit. "?" help button in dashboard header
+- **Checklist corrections**: 5 items verified actually done (debug screen, card animations, colorblind). 5 items clarified as partial with specific gaps (high contrast detection stubs, screen reader TTS, keyboard section cycling)
+- **Routing**: All work went to `ui-panel-developer` domain. No data/campaign/battle changes
+
+---
+
 ## Session 40b: Legal Stack + Compendium Library + Modiphius Ask List (Apr 7, 2026)
 
 Complete legal/compliance and partnership preparation sprint:

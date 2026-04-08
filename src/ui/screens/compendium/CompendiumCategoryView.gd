@@ -196,8 +196,8 @@ func _create_filter_button(
 func _update_filter_button_states() -> void:
 	for child: Node in _filter_bar.get_children():
 		if child is Button:
-			var is_all := child.text == "All"
-			var matches := (
+			var is_all: bool = child.text == "All"
+			var matches: bool = (
 				(is_all and _active_filter.is_empty())
 				or (not is_all and child.text == _active_filter)
 			)
@@ -569,7 +569,7 @@ func _build_generic_detail(item: Dictionary) -> String:
 
 
 func _link_keywords(text: String) -> String:
-	var keyword_db := Engine.get_main_loop().root.get_node_or_null(
+	var keyword_db = Engine.get_main_loop().root.get_node_or_null(
 		"/root/KeywordDB"
 	) if Engine.get_main_loop() else null
 	if keyword_db and keyword_db.has_method("parse_text_for_keywords"):

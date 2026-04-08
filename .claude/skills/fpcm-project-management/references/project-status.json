@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-04-07",
-  "current_phase": "Legal + Compendium (v0.9.7-dev) — Session 40b: Full legal stack shipped (EULA, privacy policy, consent manager, data export/delete, GitHub Pages, store checklist). Compendium/Library screen with 10 categories (340+ items), game-icons.net SVG icon SOP established, extensible data provider for Planetfall/Tactics. UX design analysis updated (44/16/21 done/partial/pending).",
+  "current_phase": "UX Sprint (v0.9.7-dev) — Session 41: Dashboard HubFeatureCards + role pills + 4-stat strip. Accessibility Settings (Reduced Motion + Font Size). Crew swipe on CharacterDetailsScreen. Tutorial/onboarding (TutorialOverlay rewrite, first-run + dashboard tutorials). UX checklist 58/8/15 done/partial/pending.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",

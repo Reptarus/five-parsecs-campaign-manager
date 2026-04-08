@@ -13,6 +13,8 @@ const StoryTrackSystemClass = preload(
 	"res://src/core/story/StoryTrackSystem.gd")
 const IntroCampaignClass = preload(
 	"res://src/core/campaign/IntroductoryCampaignManager.gd")
+const StoryPointSystemClass = preload(
+	"res://src/core/systems/StoryPointSystem.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -145,19 +147,24 @@ func _process_turn_rollover() -> void:
 	# Decrement patron job durations; expire patrons whose time has run out.
 	_process_patron_expiration()
 
-	# --- Story Point Per-Turn Limits Reset (Core Rules pp.66-67) ---
-	# Reset "once per turn" spending limits (credits, XP, extra action)
-	if "story_point_turn_state" in campaign:
-		var spts: Dictionary = campaign.story_point_turn_state
-		spts["credits_spent_this_turn"] = false
-		spts["xp_spent_this_turn"] = false
-		spts["action_spent_this_turn"] = false
-
-	# --- Story Point Auto-Award (Core Rules p.66-67) ---
-	# "+1 story point every 3rd campaign turn"
-	if turn_number > 0 and turn_number % 3 == 0:
-		if "story_points" in campaign:
-			campaign.story_points += 1
+	# --- Story Points: Reset Limits + Auto-Award (Core Rules pp.66-67) ---
+	# Route through StoryPointSystem so signals fire and Insanity mode is checked
+	if "story_points" in campaign:
+		var sp_sys := StoryPointSystemClass.new(campaign)
+		# Load persisted turn state (balance + per-turn flags)
+		if "story_point_turn_state" in campaign \
+				and not campaign.story_point_turn_state.is_empty():
+			sp_sys.from_dict(campaign.story_point_turn_state)
+		else:
+			# First turn or missing state — sync from campaign balance
+			sp_sys.add_points(campaign.story_points, "Campaign sync")
+		# Reset "once per turn" spending limits (credits, XP, extra action)
+		sp_sys.reset_turn_limits()
+		# "+1 story point every 3rd campaign turn"
+		sp_sys.check_turn_earning(turn_number)
+		# Persist back to campaign
+		campaign.story_point_turn_state = sp_sys.to_dict()
+		campaign.story_points = sp_sys.get_current_points()
 
 	# --- Planet Temporary Effects Expiry ---
 	# Decrement temporary planet effects each turn

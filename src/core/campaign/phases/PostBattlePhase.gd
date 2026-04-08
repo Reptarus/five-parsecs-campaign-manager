@@ -49,6 +49,7 @@ signal precursor_event_choice_available(event1: Dictionary, event2: Dictionary)
 signal precursor_event_chosen(chosen_event: Dictionary)
 signal traveler_event_occurred(results: Array)
 signal manipulator_bonus_earned(bonus: int)
+signal bitter_day_sp_earned()  ## "A Bitter Day" (Core Rules p.67): +1 SP for holding field after character death
 
 ## Current post-battle state
 var current_substep: int = 0
@@ -335,6 +336,9 @@ func _complete_post_battle_phase() -> void:
 		_log_manipulator_bonus(manip_bonus)
 		manipulator_bonus_earned.emit(manip_bonus)
 
+	# "A Bitter Day" (Core Rules p.67): +1 SP if held field AND character killed
+	_check_bitter_day_story_point()
+
 	post_battle_phase_completed.emit()
 
 func _emit_substep(substep: int) -> void:
@@ -439,6 +443,61 @@ func _log_manipulator_bonus(bonus: int) -> void:
 				"manipulator", "story_points",
 				"strange_character"],
 		})
+
+func _check_bitter_day_story_point() -> void:
+	## "A Bitter Day" (Core Rules p.67): +1 SP if crew held the field
+	## AND a character was killed in that battle.
+	if not _ctx or not _ctx.campaign:
+		return
+	# Check Insanity mode — story points disabled entirely
+	if _is_story_points_disabled():
+		return
+	var held: bool = battle_result.get("held_field", false)
+	if not held:
+		return
+	var has_fatal: bool = false
+	for casualty in battle_result.get("casualties", []):
+		if casualty.get("type", "") in ["killed", "fatal"]:
+			has_fatal = true
+			break
+	if not has_fatal:
+		return
+	# Award +1 story point
+	_ctx.campaign.story_points += 1
+	_log_bitter_day_sp()
+	bitter_day_sp_earned.emit()
+
+
+func _log_bitter_day_sp() -> void:
+	## Log "A Bitter Day" story point to journal
+	if _ctx.campaign_journal \
+			and _ctx.campaign_journal.has_method("create_entry"):
+		_ctx.campaign_journal.create_entry({
+			"turn_number": _ctx.battle_result.get("turn", 0),
+			"type": "event",
+			"auto_generated": true,
+			"title": "A Bitter Day",
+			"description": (
+				"The crew held the field despite losing a"
+				+ " comrade. Gained 1 story point."),
+			"mood": "bittersweet",
+			"tags": ["story_points", "bitter_day", "held_field"],
+		})
+
+
+func _is_story_points_disabled() -> bool:
+	## Check if story points are disabled (Insanity mode)
+	if not _ctx or not _ctx.campaign:
+		return false
+	var campaign = _ctx.campaign
+	if "config" in campaign:
+		var config = campaign.config
+		if config is Dictionary and "difficulty" in config:
+			return config["difficulty"] == GlobalEnums.DifficultyLevel.INSANITY
+		elif config is Object and "difficulty" in config:
+			return config.difficulty == GlobalEnums.DifficultyLevel.INSANITY
+	return false
+
 
 func _find_crew_id_by_name(char_name: String) -> String:
 	## Find character_id by display name in participating crew

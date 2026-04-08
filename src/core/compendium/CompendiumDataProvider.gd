@@ -329,7 +329,7 @@ func _dict_to_array(data: Variant) -> Array:
 		for key: String in data:
 			var entry: Variant = data[key]
 			if entry is Dictionary:
-				var item := entry.duplicate()
+				var item: Dictionary = entry.duplicate()
 				if not item.has("id"):
 					item["id"] = key
 				result.append(item)
@@ -347,7 +347,7 @@ func _is_dlc_owned(cat: Dictionary) -> bool:
 	var flag: String = cat.get("dlc_flag", "")
 	if flag.is_empty():
 		return true
-	var dlc := Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
+	var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
 	if not dlc:
 		return true  # No DLC manager = show everything (dev mode)
 	if dlc.has_method("has_dlc"):

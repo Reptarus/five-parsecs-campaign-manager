@@ -79,6 +79,13 @@ var _equipment_db_cache: Dictionary = {}
 var stat_advancement_buttons: Dictionary = {}
 var training_purchase_buttons: Dictionary = {}
 
+# Crew swipe navigation
+var _crew_list: Array[Dictionary] = []
+var _current_index: int = 0
+var _touch_start: Vector2 = Vector2.ZERO
+var _touch_start_time: float = 0.0
+var _page_dots_container: HBoxContainer = null
+
 func _ready() -> void:
 
 	# Connect button signals
@@ -247,8 +254,19 @@ func load_character_data() -> void:
 	else:
 		original_data = {}
 
+	# Load crew list for swipe navigation (set by CrewManagementScreen)
+	if GameStateManager.has_temp_data("crew_list_for_swipe"):
+		var raw_list = GameStateManager.get_temp_data("crew_list_for_swipe")
+		_crew_list.clear()
+		for item in raw_list:
+			if item is Dictionary:
+				_crew_list.append(item)
+	if GameStateManager.has_temp_data("crew_index_for_swipe"):
+		_current_index = GameStateManager.get_temp_data("crew_index_for_swipe")
+
 	# Populate UI fields
 	populate_ui()
+	_build_page_dots()
 
 func populate_ui() -> void:
 	## Fill UI elements with character data
@@ -1722,3 +1740,84 @@ func _on_history_back() -> void:
 	if _history_overlay and is_instance_valid(_history_overlay):
 		_history_overlay.queue_free()
 		_history_overlay = null
+
+# ── Crew Swipe Navigation ─────────────────────────────────────────
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _crew_list.size() <= 1:
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_touch_start = event.position
+			_touch_start_time = Time.get_ticks_msec() / 1000.0
+		else:
+			var delta: Vector2 = event.position - _touch_start
+			var duration := Time.get_ticks_msec() / 1000.0 - _touch_start_time
+			# Swipe: fast, horizontal, not diagonal
+			if duration < 0.4 and absf(delta.x) > 80.0 and absf(delta.x) > absf(delta.y) * 2.0:
+				if delta.x < 0.0:
+					_navigate_crew(1)   # Swipe left = next
+				else:
+					_navigate_crew(-1)  # Swipe right = prev
+	elif event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_RIGHT:
+			_navigate_crew(1)
+		elif event.keycode == KEY_LEFT:
+			_navigate_crew(-1)
+
+func _navigate_crew(direction: int) -> void:
+	if _crew_list.is_empty():
+		return
+	var new_idx := wrapi(_current_index + direction, 0, _crew_list.size())
+	if new_idx == _current_index:
+		return
+	_current_index = new_idx
+	var new_dict: Dictionary = _crew_list[_current_index]
+	var character := Character.new()
+	character.from_dictionary(new_dict)
+	current_character = character
+	if current_character.has_method("to_dictionary"):
+		original_data = current_character.to_dictionary()
+	# Update temp data so save works correctly
+	if GameStateManager:
+		GameStateManager.set_temp_data(
+			GameStateManager.TEMP_KEY_SELECTED_CHARACTER, character)
+		GameStateManager.set_temp_data("source_crew_dict", new_dict)
+		GameStateManager.set_temp_data("crew_index_for_swipe", _current_index)
+	populate_ui()
+	_update_page_dots()
+
+func _build_page_dots() -> void:
+	if _crew_list.size() <= 1:
+		return
+	if _page_dots_container and is_instance_valid(_page_dots_container):
+		_page_dots_container.queue_free()
+	_page_dots_container = HBoxContainer.new()
+	_page_dots_container.name = "__page_dots"
+	_page_dots_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_page_dots_container.add_theme_constant_override("separation", 8)
+	for i in _crew_list.size():
+		var dot := Label.new()
+		dot.text = "\u25cf" if i == _current_index else "\u25cb"
+		dot.add_theme_font_size_override("font_size", 12)
+		dot.add_theme_color_override("font_color",
+			COLOR_FOCUS if i == _current_index else COLOR_TEXT_DISABLED)
+		_page_dots_container.add_child(dot)
+	# Add at the bottom of the screen
+	add_child(_page_dots_container)
+
+func _update_page_dots() -> void:
+	if _crew_list.size() <= 1:
+		if _page_dots_container and is_instance_valid(_page_dots_container):
+			_page_dots_container.queue_free()
+			_page_dots_container = null
+		return
+	if not _page_dots_container or not is_instance_valid(_page_dots_container):
+		_build_page_dots()
+		return
+	var children := _page_dots_container.get_children()
+	for i in children.size():
+		var dot: Label = children[i]
+		dot.text = "\u25cf" if i == _current_index else "\u25cb"
+		dot.add_theme_color_override("font_color",
+			COLOR_FOCUS if i == _current_index else COLOR_TEXT_DISABLED)

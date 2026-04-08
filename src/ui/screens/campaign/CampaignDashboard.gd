@@ -65,6 +65,8 @@ func _setup_screen() -> void:
 	_update_all()
 	_create_history_overlay()
 	_setup_story_systems()
+	_add_help_button()
+	_check_dashboard_tutorial.call_deferred()
 
 func _exit_tree() -> void:
 	# Disconnect autoload signals to prevent memory leaks
@@ -103,33 +105,82 @@ func _connect_signals() -> void:
 		load_button.pressed.connect(_on_load_pressed)
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
-	_add_compendium_button()
+	pass  # Hub cards added in _update_ship_and_equipment
 
-func _add_compendium_button() -> void:
-	var container := get_node_or_null(
-		"MarginContainer/VBoxContainer/ButtonContainer"
-	)
-	if not container:
+func _add_help_button() -> void:
+	if not header_panel:
 		return
-	var btn := Button.new()
-	btn.text = "Compendium"
-	btn.custom_minimum_size = Vector2(0, 40)
-	btn.pressed.connect(func():
+	var header_hbox := header_panel.get_node_or_null(
+		"HeaderMargin/HeaderHBox")
+	if not header_hbox:
+		return
+	var help_btn := Button.new()
+	help_btn.text = "?"
+	help_btn.custom_minimum_size = Vector2(40, 40)
+	help_btn.flat = true
+	help_btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	help_btn.add_theme_color_override("font_color", COLOR_CYAN)
+	help_btn.tooltip_text = "Show dashboard tutorial"
+	help_btn.pressed.connect(_on_help_pressed)
+	header_hbox.add_child(help_btn)
+
+func _on_help_pressed() -> void:
+	var TutorialUIScript: GDScript = load(
+		"res://src/ui/components/tutorial/TutorialUI.gd")
+	if not TutorialUIScript:
+		return
+	var tui: Control = TutorialUIScript.new()
+	add_child(tui)
+	tui.start_tutorial("campaign_dashboard")
+
+func _check_dashboard_tutorial() -> void:
+	var TutorialUIScript: GDScript = load(
+		"res://src/ui/components/tutorial/TutorialUI.gd")
+	if not TutorialUIScript:
+		return
+	var tui: Control = TutorialUIScript.new()
+	add_child(tui)
+	if tui.is_tutorial_completed("campaign_dashboard"):
+		tui.queue_free()
+		return
+	await get_tree().create_timer(0.5).timeout
+	tui.start_tutorial("campaign_dashboard")
+
+func _add_hub_cards() -> void:
+	## Add HubFeatureCard navigation cards to the center column.
+	if not center_vbox:
+		return
+
+	var hub_sep := HSeparator.new()
+	hub_sep.modulate = COLOR_BORDER
+	center_vbox.add_child(hub_sep)
+
+	var hub_header := _create_section_header("QUICK ACCESS")
+	center_vbox.add_child(hub_header)
+
+	var compendium_card := HubFeatureCard.new()
+	center_vbox.add_child(compendium_card)
+	compendium_card.setup(
+		"\ud83d\udcda", "Compendium",
+		"Browse weapons, enemies, species, and rules"
+	)
+	compendium_card.card_pressed.connect(func():
 		var router := get_node_or_null("/root/SceneRouter")
 		if router and router.has_method("navigate_to"):
 			router.navigate_to("compendium")
 	)
-	# Insert before QuitButton (last child)
-	var quit_idx := -1
-	for i in container.get_child_count():
-		if container.get_child(i) == quit_button:
-			quit_idx = i
-			break
-	if quit_idx >= 0:
-		container.add_child(btn)
-		container.move_child(btn, quit_idx)
-	else:
-		container.add_child(btn)
+
+	var battle_card := HubFeatureCard.new()
+	center_vbox.add_child(battle_card)
+	battle_card.setup(
+		"\u2694", "Battle Simulator",
+		"Run a standalone battle \u2014 no campaign required"
+	)
+	battle_card.card_pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("battle_simulator")
+	)
 
 func _setup_phase_manager() -> void:
 	if phase_manager.has_method("setup"):
@@ -213,6 +264,63 @@ func _update_header(campaign) -> void:
 		)
 		story_points_label.tooltip_text = (
 			"Tap to spend Story Points or use emergency abilities")
+
+	# Compact stat strip below header
+	_update_stat_strip(campaign)
+
+func _update_stat_strip(campaign) -> void:
+	if not header_panel:
+		return
+	var parent_vbox := header_panel.get_parent()
+	if not parent_vbox:
+		return
+	# Remove old strip if present
+	var old := parent_vbox.get_node_or_null("__stat_strip")
+	if old:
+		old.queue_free()
+
+	var pd: Dictionary = campaign.progress_data \
+		if "progress_data" in campaign else {}
+	var turn: int = pd.get("turns_played", 0) + 1
+	var crew_count: int = _get_crew_members(campaign).size()
+
+	var strip := HBoxContainer.new()
+	strip.name = "__stat_strip"
+	strip.add_theme_constant_override("separation", SPACING_SM)
+	strip.alignment = BoxContainer.ALIGNMENT_CENTER
+	parent_vbox.add_child(strip)
+	parent_vbox.move_child(strip, header_panel.get_index() + 1)
+
+	strip.add_child(_create_stat_badge("CREW", str(crew_count), COLOR_CYAN))
+	strip.add_child(_create_stat_badge("TURN", str(turn), COLOR_EMERALD))
+	strip.add_child(_create_stat_badge(
+		"CREDITS", str(campaign.credits),
+		COLOR_AMBER if campaign.credits < 5 else COLOR_EMERALD))
+	strip.add_child(_create_stat_badge(
+		"STORY PTS", str(campaign.story_points), COLOR_BLUE))
+
+func _create_stat_badge(
+	label_text: String, value_text: String, color: Color
+) -> PanelContainer:
+	var badge := PanelContainer.new()
+	_apply_panel_style(badge, "compact")
+	badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 0)
+	badge.add_child(vb)
+	var val_lbl := Label.new()
+	val_lbl.text = value_text
+	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	val_lbl.add_theme_color_override("font_color", color)
+	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(val_lbl)
+	var cat_lbl := Label.new()
+	cat_lbl.text = label_text
+	cat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	cat_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	cat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(cat_lbl)
+	return badge
 
 # ── Left Column: Crew Manifest ─────────────────────────────────────
 
@@ -402,12 +510,14 @@ func _build_crew_card(member) -> PanelContainer:
 	name_row.add_child(name_lbl)
 	vbox.add_child(name_row)
 
-	# Subtitle
-	var sub := Label.new()
-	sub.text = "%s / %s" % [species, char_class]
-	sub.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	sub.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	vbox.add_child(sub)
+	# Role pills
+	var pill_row := HBoxContainer.new()
+	pill_row.add_theme_constant_override("separation", SPACING_XS)
+	if is_captain:
+		pill_row.add_child(_create_pill("Captain", COLOR_AMBER))
+	pill_row.add_child(_create_pill(species, Color("#3b82f6")))
+	pill_row.add_child(_create_pill(char_class, Color("#8b5cf6")))
+	vbox.add_child(pill_row)
 
 	# Stat line
 	var stat_parts: Array[String] = []
@@ -423,6 +533,25 @@ func _build_crew_card(member) -> PanelContainer:
 	panel.add_child(hbox)
 	return panel
 
+func _create_pill(text: String, color: Color) -> PanelContainer:
+	var pill := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.2)
+	style.border_color = color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	pill.add_theme_stylebox_override("panel", style)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_color_override("font_color", color)
+	pill.add_child(lbl)
+	return pill
+
 # ── Center Column: Ship + Equipment ────────────────────────────────
 
 func _update_ship_and_equipment(campaign) -> void:
@@ -433,6 +562,7 @@ func _update_ship_and_equipment(campaign) -> void:
 
 	_build_ship_section(campaign)
 	_build_equipment_section(campaign)
+	_add_hub_cards()
 
 func _build_ship_section(campaign) -> void:
 	var header := _create_section_header("SHIP")
@@ -1379,10 +1509,12 @@ func _on_phase_changed(_old_phase, new_phase) -> void:
 	_update_phase_ui(new_phase)
 
 func _on_phase_completed() -> void:
+	_sync_sp_system()
 	if action_button:
 		action_button.disabled = false
 
 func _on_phase_event(_event: Dictionary) -> void:
+	_sync_sp_system()
 	_update_all()
 
 func _update_phase_ui(phase) -> void:
@@ -1699,6 +1831,7 @@ func _toggle_sp_popover() -> void:
 	if _sp_popover.visible:
 		_sp_popover.hide()
 		return
+	_sync_sp_system()  # Ensure popover shows fresh data
 	_sp_popover.refresh()
 	var badge_rect: Rect2 = (
 		story_points_label.get_global_rect())
@@ -1731,10 +1864,17 @@ func _on_sp_popover_spent(
 				gsm.set_credits(campaign.credits)
 			spend_desc = "Spent 1 SP to gain 3 credits"
 		StoryPointSystemClass.SpendType.GET_XP:
-			spend_desc = "Spent 1 SP to grant +3 XP"
+			_show_xp_character_picker(campaign)
+			return  # Picker callback handles logging + persist
 		StoryPointSystemClass.SpendType.EXTRA_ACTION:
 			spend_desc = (
 				"Spent 1 SP for an extra campaign action")
+			var notif = get_node_or_null(
+				"/root/NotificationManager")
+			if notif and notif.has_method("show_notification"):
+				notif.show_notification(
+					"Extra action granted! Take one"
+					+ " additional campaign action this turn.")
 		StoryPointSystemClass.SpendType.REROLL_RESULT:
 			spend_desc = "Spent 1 SP to reroll a result"
 		StoryPointSystemClass.SpendType.ROLL_TWICE_PICK_ONE:
@@ -1818,6 +1958,118 @@ func _get_turn_number(campaign) -> int:
 		return campaign.progress_data.get(
 			"turns_played", 0)
 	return 0
+
+
+func _show_xp_character_picker(campaign) -> void:
+	## Show character picker for +3 XP story point spend.
+	## If no active crew, refund the point immediately.
+	var members: Array = _get_crew_members(campaign)
+	# Filter to alive/active characters
+	var active: Array = []
+	for m in members:
+		var status = m.get("status", 0) if m is Dictionary \
+			else (m.status if "status" in m else 0)
+		# Include HEALTHY or NONE (active crew)
+		if status == GlobalEnums.CharacterStatus.HEALTHY \
+				or status == GlobalEnums.CharacterStatus.NONE \
+				or status == 0:
+			active.append(m)
+	if active.is_empty():
+		# No valid targets — refund
+		if _sp_system:
+			_sp_system.add_points(1, "No active crew for XP")
+			campaign.story_points = _sp_system.get_current_points()
+		_persist_story_state()
+		_update_header(campaign)
+		return
+
+	# Build a ConfirmationDialog with an ItemList
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Grant +3 XP"
+	dialog.dialog_text = "Select a crew member to receive +3 XP:"
+	dialog.size = Vector2i(400, 350)
+	dialog.unresizable = false
+
+	var item_list := ItemList.new()
+	item_list.custom_minimum_size = Vector2(360, 200)
+	item_list.auto_height = true
+	for m in active:
+		var char_name: String = ""
+		var xp_val: int = 0
+		if m is Dictionary:
+			char_name = m.get("character_name",
+				m.get("name", "Unknown"))
+			xp_val = m.get("xp", 0)
+		elif "character_name" in m:
+			char_name = str(m.character_name)
+			xp_val = m.xp if "xp" in m else 0
+		item_list.add_item(
+			"%s (XP: %d)" % [char_name, xp_val])
+	if item_list.item_count > 0:
+		item_list.select(0)
+	dialog.add_child(item_list)
+
+	# Confirmed — apply XP
+	dialog.confirmed.connect(func():
+		var idx: int = item_list.get_selected_items()[0] \
+			if item_list.get_selected_items().size() > 0 else 0
+		var selected = active[idx]
+		var sel_name: String = ""
+		if selected is Dictionary:
+			selected["xp"] = selected.get("xp", 0) + 3
+			sel_name = selected.get("character_name",
+				selected.get("name", "Unknown"))
+		elif "xp" in selected:
+			selected.xp += 3
+			sel_name = str(selected.character_name) \
+				if "character_name" in selected else "Unknown"
+		# Sync balance and persist
+		campaign.story_points = _sp_system.get_current_points()
+		var gsm2 = get_node_or_null("/root/GameStateManager")
+		if gsm2 and gsm2.has_method("set_story_points"):
+			gsm2.set_story_points(campaign.story_points)
+		_log_story_event(campaign,
+			"Spent 1 SP to grant +3 XP to %s" % sel_name,
+			"story", ["story_points", "xp_grant"], "neutral")
+		_persist_story_state()
+		_update_header(campaign)
+		dialog.queue_free()
+	)
+
+	# Cancelled — refund SP
+	dialog.canceled.connect(func():
+		if _sp_system:
+			_sp_system.add_points(1, "XP spend cancelled")
+			campaign.story_points = _sp_system.get_current_points()
+		_persist_story_state()
+		_update_header(campaign)
+		_sync_sp_system()
+		dialog.queue_free()
+	)
+
+	add_child(dialog)
+	dialog.popup_centered()
+
+
+func _sync_sp_system() -> void:
+	## Reload _sp_system from campaign state so popover shows fresh data.
+	## Called after turn rollover, phase events, and before showing popover.
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+	if _sp_system and "story_point_turn_state" in campaign \
+			and not campaign.story_point_turn_state.is_empty():
+		_sp_system.from_dict(campaign.story_point_turn_state)
+	elif _sp_system and "story_points" in campaign:
+		# Fallback: sync balance directly from campaign
+		var diff: int = campaign.story_points \
+			- _sp_system.get_current_points()
+		if diff > 0:
+			_sp_system.add_points(diff, "Campaign sync")
+		elif diff < 0:
+			_sp_system.remove_points(-diff)
+	if _sp_popover:
+		_sp_popover.refresh()
 
 
 func _persist_story_state() -> void:
