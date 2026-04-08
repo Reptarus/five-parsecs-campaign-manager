@@ -144,8 +144,8 @@ func get_data() -> Dictionary:
 
 func update_data(data: Dictionary) -> bool:
 	## Update system state with provided data
-	if not _initialized:
-		_errors.append("System not initialized")
+	## Allows deserialization even when not fully initialized (save/load pipeline)
+	if data.is_empty():
 		return false
 
 	# Update rival data with type safety
@@ -182,6 +182,7 @@ func update_data(data: Dictionary) -> bool:
 		faction_categories = categories_data.duplicate()
 
 	_last_update = Time.get_unix_time_from_system()
+	_initialized = true  # Mark as initialized after loading data
 	return true
 
 func cleanup() -> void:

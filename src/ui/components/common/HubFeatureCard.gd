@@ -12,8 +12,24 @@ var _icon_texture_rect: TextureRect
 var _title_label: Label
 var _desc_label: Label
 
+# Pending data — applied in _ready() if setup() called before add_child()
+var _pending_icon: String = ""
+var _pending_icon_texture: Texture2D = null
+var _pending_title: String = ""
+var _pending_desc: String = ""
+var _has_pending: bool = false
+var _ui_built: bool = false
+
 func _ready() -> void:
 	_build_ui()
+	_ui_built = true
+	# Apply any data that was set before _ready()
+	if _has_pending:
+		if _pending_icon_texture:
+			setup_with_icon(_pending_icon_texture, _pending_title, _pending_desc)
+		else:
+			setup(_pending_icon, _pending_title, _pending_desc)
+		_has_pending = false
 	# Touch/click handling
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_on_hover_enter)
@@ -127,35 +143,43 @@ func _on_hover_exit() -> void:
 	add_theme_stylebox_override("panel", style)
 
 ## Configure the card with an emoji icon. Returns self for chaining.
+## Safe to call before or after add_child() — data is deferred if UI not built yet.
 func setup(
 	icon: String,
 	title_text: String,
 	description: String
 ) -> HubFeatureCard:
-	if _icon_label:
-		_icon_label.text = icon
-		_icon_label.visible = true
-	if _icon_texture_rect:
-		_icon_texture_rect.visible = false
-	if _title_label:
-		_title_label.text = title_text
-	if _desc_label:
-		_desc_label.text = description
+	if not _ui_built:
+		_pending_icon = icon
+		_pending_icon_texture = null
+		_pending_title = title_text
+		_pending_desc = description
+		_has_pending = true
+		return self
+	_icon_label.text = icon
+	_icon_label.visible = true
+	_icon_texture_rect.visible = false
+	_title_label.text = title_text
+	_desc_label.text = description
 	return self
 
-## Configure the card with a Texture2D icon (e.g. SVG from game-icons.net). Returns self for chaining.
+## Configure the card with a Texture2D icon. Returns self for chaining.
+## Safe to call before or after add_child() — data is deferred if UI not built yet.
 func setup_with_icon(
 	icon_texture: Texture2D,
 	title_text: String,
 	description: String
 ) -> HubFeatureCard:
-	if _icon_label:
-		_icon_label.visible = false
-	if _icon_texture_rect:
-		_icon_texture_rect.texture = icon_texture
-		_icon_texture_rect.visible = true
-	if _title_label:
-		_title_label.text = title_text
-	if _desc_label:
-		_desc_label.text = description
+	if not _ui_built:
+		_pending_icon_texture = icon_texture
+		_pending_icon = ""
+		_pending_title = title_text
+		_pending_desc = description
+		_has_pending = true
+		return self
+	_icon_label.visible = false
+	_icon_texture_rect.texture = icon_texture
+	_icon_texture_rect.visible = true
+	_title_label.text = title_text
+	_desc_label.text = description
 	return self

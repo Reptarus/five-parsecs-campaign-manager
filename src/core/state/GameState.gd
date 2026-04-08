@@ -1197,6 +1197,19 @@ func set_story_points(value: int) -> bool:
 		return true
 	return false
 
+## Sets whether the current world has a pending invasion (Core Rules p.88)
+## Stored in progress_data for save/load persistence.
+func set_invasion_pending(pending: bool) -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["invasion_pending"] = pending
+
+## Checks whether the current world has a pending invasion
+func has_pending_invasion() -> bool:
+	if current_campaign and "progress_data" in current_campaign:
+		return current_campaign.progress_data.get(
+			"invasion_pending", false)
+	return false
+
 ## Gets the current reputation
 ## @return int: The current reputation
 func get_reputation() -> int:

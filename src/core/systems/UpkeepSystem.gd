@@ -4,6 +4,8 @@ extends Resource
 ## Upkeep System for Five Parsecs Campaign Manager
 ## Handles crew maintenance, ship repairs, and campaign turn expenses
 
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+
 signal upkeep_calculated(cost: int, breakdown: Dictionary)
 signal upkeep_paid(remaining_credits: int)
 signal insufficient_funds(required: int, available: int)
@@ -53,7 +55,8 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 		"crew_upkeep": 0,
 		"ship_maintenance": 0,
 		"injury_treatment": 0,
-		"total": 0
+		"total": 0,
+		"component_effects": []  # Ship component effects that modified upkeep
 	}
 
 	# Get campaign _data
@@ -62,6 +65,38 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 
 	# Calculate crew upkeep (rulebook p.76: 1 credit for 4-6 crew, +1 per crew past 6)
 	var crew_size: int = crew_members.size()
+
+	# Suspension Pod: exclude suspended crew from count (Core Rules p.62)
+	var original_crew_size: int = crew_size
+	var suspended: Array = _get_suspended_crew(campaign_data)
+	if ShipComponentQuery.has_component("suspension_pod") and suspended.size() > 0:
+		var active_count: int = 0
+		for member in crew_members:
+			var member_id: String = ""
+			if member is Resource and "character_id" in member:
+				member_id = str(member.character_id)
+			elif member is Dictionary:
+				member_id = str(member.get(
+					"character_id", member.get("id", "")))
+			if member_id not in suspended:
+				active_count += 1
+		crew_size = active_count
+		breakdown.component_effects.append({
+			"component": "suspension_pod",
+			"description": "%d crew suspended (counted %d instead of %d)" % [
+				suspended.size(), crew_size, original_crew_size],
+		})
+
+	# Living Quarters: count crew as 2 fewer (Core Rules p.62)
+	if ShipComponentQuery.has_component("living_quarters"):
+		var before_lq: int = crew_size
+		crew_size = maxi(0, crew_size - 2)
+		breakdown.component_effects.append({
+			"component": "living_quarters",
+			"description": "Crew counted as %d instead of %d for upkeep" % [
+				crew_size, before_lq],
+		})
+
 	if crew_size >= CREW_UPKEEP_THRESHOLD:
 		breakdown.crew_upkeep = 1 + max(0, crew_size - CREW_UPKEEP_CAP)
 	else:
@@ -175,6 +210,17 @@ func calculate_optional_expenses(campaign_data: Resource) -> Dictionary:
 	}
 
 	return options
+
+func _get_suspended_crew(campaign_data: Resource) -> Array:
+	## Get suspended crew IDs from campaign progress_data (Core Rules p.62)
+	if not campaign_data:
+		return []
+	if "progress_data" in campaign_data:
+		var pd: Variant = campaign_data.get("progress_data")
+		if pd is Dictionary:
+			var suspended: Variant = pd.get("suspended_crew", [])
+			return suspended if suspended is Array else []
+	return []
 
 func _get_crew_members(campaign_data: Resource) -> Array:
 	## Get crew members from campaign data

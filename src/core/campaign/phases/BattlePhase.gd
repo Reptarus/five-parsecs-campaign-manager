@@ -5,6 +5,7 @@ class_name BattlePhase
 ## Handles the complete Battle Phase sequence (Phase 3 of campaign turn)
 
 # Safe imports
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const EnemyGenerator = preload("res://src/core/systems/EnemyGenerator.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
@@ -17,6 +18,9 @@ const CompendiumSalvageJobs = preload("res://src/data/compendium_salvage_jobs.gd
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
+const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
+const DeploymentConditionsSystemClass = preload("res://src/core/battle/DeploymentConditionsSystem.gd")
+const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 # GlobalEnums available as autoload singleton
@@ -88,6 +92,11 @@ var enemies_deployed: Array[Dictionary] = []
 ## Sprint 11.1: BattleRoundTracker for actual combat rounds (Five Parsecs p.118)
 var round_tracker: Node = null # BattleRoundTracker instance
 var use_tactical_combat: bool = false # User choice: tactical vs auto-resolve (Sprint 11.2)
+
+## Core Rules systems (Session 48: wire existing systems into battle setup)
+var seize_initiative_system: Resource = null # FPCM_SeizeInitiativeSystem
+var deployment_conditions_system: Resource = null # FPCM_DeploymentConditionsSystem
+var mission_table_manager: RefCounted = null # MissionTableManager
 
 ## Campaign reference - set by CampaignPhaseManager
 var _campaign: Variant = null
@@ -169,6 +178,11 @@ func _ready() -> void:
 
 	# Initialize EnemyGenerator for proper Core Rules enemy count formula
 	enemy_generator = EnemyGenerator.new()
+
+	# Session 48: Initialize Core Rules battle systems
+	seize_initiative_system = SeizeInitiativeSystemClass.new()
+	deployment_conditions_system = DeploymentConditionsSystemClass.new()
+	mission_table_manager = MissionTableManagerClass.new()
 
 	# Sprint 11.1: Initialize BattleRoundTracker for actual combat
 	_initialize_round_tracker()
@@ -274,6 +288,46 @@ func _process_battle_setup() -> void:
 	var mission_type = battle_setup_data.get(
 		"mission_type", _generate_mission_type())
 
+	# Session 48: Roll mission objective on D10 table (Core Rules pp.89-91)
+	var mission_objective: Dictionary = battle_setup_data.get(
+		"mission_objective", {})
+	if mission_objective.is_empty():
+		if battle_setup_data.get("is_rival_battle", false):
+			# Rival battles use the Rival Attack Type table (Core Rules p.91)
+			var rival_attack: Dictionary = _roll_rival_attack_type()
+			battle_setup_data["rival_attack_type"] = rival_attack
+			# Apply rival attack modifiers
+			match rival_attack.get("type", "SHOWDOWN"):
+				"AMBUSH":
+					# Deploy one fewer crew, cannot Seize Initiative
+					battle_setup_data["rival_ambush_crew_reduction"] = 1
+					battle_setup_data["cannot_seize_initiative"] = true
+				"BROUGHT_FRIENDS":
+					# +1 additional enemy
+					battle_setup_data["rival_extra_enemies"] = 1
+				"ASSAULT":
+					# +1 enemy, crew in/adjacent building
+					battle_setup_data["rival_extra_enemies"] = 1
+					battle_setup_data["rival_assault_building"] = true
+				"RAID":
+					# Ship hull damage if fail to Hold Field
+					battle_setup_data["rival_raid_ship_risk"] = true
+			print_verbose("BattlePhase: Rival Attack — %s" % rival_attack.get(
+				"type", "SHOWDOWN"))
+		else:
+			mission_objective = _roll_mission_objective(mission_type)
+			battle_setup_data["mission_objective"] = mission_objective
+			# Defend objective: change enemy AI to Aggressive, +1 enemy
+			if mission_objective.get("type", "") == "DEFEND":
+				battle_setup_data["defend_ai_override"] = "aggressive"
+				battle_setup_data["defend_extra_enemies"] = 1
+			# Quest finale: +1 enemy (Core Rules p.89)
+			if mission_objective.get("quest_finale", false):
+				battle_setup_data["quest_finale_extra_enemies"] = 1
+			print_verbose("BattlePhase: Objective — %s (%s)" % [
+				mission_objective.get("name", "Unknown"),
+				mission_objective.get("type", "?")])
+
 	# DLC: Determine battle type (conventional/stealth/street_fight/salvage)
 	# from Compendium p.118 mission selection table
 	var battle_type: String = battle_setup_data.get("battle_type", "conventional")
@@ -314,6 +368,11 @@ func _process_battle_setup() -> void:
 		])
 	else:
 		enemy_count = _determine_enemy_count()
+
+	# Session 48: Apply extra enemy modifiers from objectives/rival attacks
+	enemy_count += battle_setup_data.get("rival_extra_enemies", 0)
+	enemy_count += battle_setup_data.get("defend_extra_enemies", 0)
+	enemy_count += battle_setup_data.get("quest_finale_extra_enemies", 0)
 
 	# Fielding fewer crew reduction (Core Rules p.93):
 	# If deploying 2+ fewer figures than campaign crew size, subtract 1
@@ -424,8 +483,45 @@ func _process_battle_setup() -> void:
 		"red_zone_threat": red_zone_threat,
 		"red_zone_time_constraint": red_zone_time_constraint,
 		"is_black_zone": is_black_zone,
-		"black_zone_mission": black_zone_mission
+		"black_zone_mission": black_zone_mission,
+		"mission_objective": mission_objective,
+		"rival_attack_type": battle_setup_data.get("rival_attack_type", {}),
+		"is_rival_battle": battle_setup_data.get("is_rival_battle", false),
+		"is_patron_mission": battle_setup_data.get("is_patron_mission", false),
+		"is_quest_mission": battle_setup_data.get("is_quest_mission", false),
+		"is_invasion": battle_setup_data.get("is_invasion", false),
 	}
+
+	# Drop Launcher: 2D6, on 8+ drop deployment (Core Rules p.61)
+	if ShipComponentQuery.has_component("drop_launcher"):
+		var drop_roll: int = randi_range(1, 6) + randi_range(1, 6)
+		battle_setup_data["drop_deployment_available"] = drop_roll >= 8
+		battle_setup_data["drop_deployment_roll"] = drop_roll
+		var journal_node: Variant = Engine.get_main_loop().root.get_node_or_null(
+			"/root/CampaignJournal") if Engine.get_main_loop() else null
+		if journal_node and journal_node.has_method("create_entry"):
+			if drop_roll >= 8:
+				journal_node.create_entry({
+					"type": "battle",
+					"title": "Drop Launcher Activated",
+					"description": (
+						"Drop deployment authorized (rolled %d). "
+						+ "Select up to 2 crew for orbital insertion. "
+						+ "At end of any round: place marker, move "
+						+ "1D6\" random, set up both within 1\". "
+						+ "Cannot act on arrival round."
+					) % drop_roll,
+					"tags": ["ship_component", "drop_launcher", "deployment"],
+					"auto_generated": true,
+				})
+			else:
+				journal_node.create_entry({
+					"type": "battle",
+					"title": "Drop Launcher — No Window",
+					"description": "Drop deployment not viable (rolled %d, needed 8+)." % drop_roll,
+					"tags": ["ship_component", "drop_launcher"],
+					"auto_generated": true,
+				})
 
 	# DLC: Apply compendium difficulty modifiers
 	_apply_dlc_difficulty_modifiers(battle_setup_data)
@@ -476,11 +572,80 @@ func _process_battle_setup() -> void:
 	await _process_deployment()
 
 func _generate_mission_type() -> int:
-	## Generate random mission type
+	## Generate random mission type — returns enum for campaign phase tracking.
+	## The actual D10 objective roll is done separately in _roll_mission_objective().
 	if GlobalEnums:
-		# Standard patrol mission (most common)
-		return GlobalEnums.MissionType.PATROL
+		# Map from mission source to MissionType enum
+		if battle_setup_data.get("is_patron_mission", false):
+			return GlobalEnums.MissionType.PATRON
+		elif battle_setup_data.get("is_rival_battle", false):
+			return GlobalEnums.MissionType.RIVAL
+		elif battle_setup_data.get("is_quest_mission", false):
+			return GlobalEnums.MissionType.QUEST
+		elif battle_setup_data.get("is_invasion", false):
+			return GlobalEnums.MissionType.INVASION
+		else:
+			return GlobalEnums.MissionType.OPPORTUNITY
 	return 0
+
+func _roll_mission_objective(mission_type: int) -> Dictionary:
+	## Roll D10 on the mission objective table (Core Rules pp.89-91).
+	## Uses MissionTableManager for JSON-backed table lookup.
+	## Returns Dictionary with type, name, description, victory_condition.
+
+	# Invasion battles have no objective — just survive 6 rounds
+	if battle_setup_data.get("is_invasion", false):
+		return {
+			"type": "INVASION_SURVIVE",
+			"name": "Survive",
+			"description": "Hold out for 6 rounds against the invasion force. "
+				+ "Any figure leaving before Round 6 becomes a casualty.",
+			"victory_condition": "Survive 6 rounds, then flee or Hold the Field.",
+			"roll": 0,
+		}
+
+	# Quest finale is always Fight Off with +1 enemy (Core Rules p.89)
+	if battle_setup_data.get("is_quest_finale", false):
+		var def: Dictionary = {}
+		if mission_table_manager:
+			def = mission_table_manager.get_objective_definition("FIGHT_OFF")
+		return {
+			"type": "FIGHT_OFF",
+			"name": def.get("name", "Fight Off"),
+			"description": def.get("description",
+				"Final Quest battle. Fight to the death."),
+			"victory_condition": def.get("victory_condition",
+				"Hold the Field."),
+			"quest_finale": true,
+			"enemy_count_modifier": 1,
+			"roll": 0,
+		}
+
+	if not mission_table_manager:
+		return {"type": "FIGHT_OFF", "name": "Fight Off",
+			"description": "Drive off the enemy.", "roll": 0}
+
+	# Map mission type enum to table key
+	var table_key: String = "opportunity"
+	if battle_setup_data.get("is_patron_mission", false):
+		table_key = "patron"
+	elif battle_setup_data.get("is_quest_mission", false):
+		table_key = "quest"
+	# Note: Rival battles use the rival attack type table, not objectives
+
+	return mission_table_manager.roll_mission_objective(table_key)
+
+func _roll_rival_attack_type() -> Dictionary:
+	## Roll D10 on the Rival Attack Type table (Core Rules p.91).
+	## Returns Dictionary with type (AMBUSH/BROUGHT_FRIENDS/SHOWDOWN/
+	## ASSAULT/RAID), description, and roll.
+	if not mission_table_manager:
+		return {"type": "SHOWDOWN",
+			"description": "Straight-up fight.", "roll": 0}
+
+	var tracked_down: bool = battle_setup_data.get(
+		"rival_tracked_down", false)
+	return mission_table_manager.roll_rival_attack_type(tracked_down)
 
 func _determine_enemy_count() -> int:
 	## Determine number of enemies based on Core Rules (p.63)
@@ -669,26 +834,79 @@ func _determine_terrain() -> int:
 	return 0
 
 func _determine_deployment_conditions() -> Dictionary:
-	## Determine deployment conditions
-	## DLC: Deployment Variables (Compendium pp.44-45) — roll by AI type when
-	## initiative is NOT seized. Disabled in Stealth, Street Fight, and Salvage modes.
+	## Determine deployment conditions — Core Rules p.88 D100 table + DLC overlay.
+	##
+	## Step 1: Roll D100 on Core Rules deployment conditions table (by mission type).
+	##         Skipped for Invasion battles (Core Rules p.88).
+	## Step 2: Apply DLC Deployment Variables (Compendium pp.44-45) if conventional.
 	var result: Dictionary = {
 		"crew_deployment_zone": "standard",
 		"enemy_deployment_zone": "standard",
-		"special_conditions": []
+		"special_conditions": [],
+		"condition_id": "NO_CONDITION",
+		"condition_title": "No Condition",
+		"condition_description": "",
+		"condition_effects": {},
 	}
 
-	var battle_type: String = battle_setup_data.get("battle_type", "conventional")
-	if battle_type != "conventional":
-		return result # Deployment Variables not used in Stealth/Street/Salvage
+	# Step 1: Core Rules D100 Deployment Conditions (skipped for Invasion)
+	var is_invasion: bool = battle_setup_data.get("is_invasion", false)
+	if not is_invasion and deployment_conditions_system:
+		# Determine mission type for correct D100 column
+		var mission_type_enum: int = DeploymentConditionsSystemClass.MissionType.OPPORTUNITY
+		if battle_setup_data.get("is_patron_mission", false):
+			mission_type_enum = DeploymentConditionsSystemClass.MissionType.PATRON
+		elif battle_setup_data.get("is_rival_battle", false):
+			mission_type_enum = DeploymentConditionsSystemClass.MissionType.RIVAL
+		elif battle_setup_data.get("is_quest_mission", false):
+			mission_type_enum = DeploymentConditionsSystemClass.MissionType.QUEST
 
-	var seized: bool = battle_setup_data.get("seized_initiative", false)
-	var ai_type: String = battle_setup_data.get("dlc_ai_type", "tactical")
-	var deploy: Dictionary = CompendiumDeploymentVars.roll_deployment(ai_type, seized)
-	if not deploy.is_empty():
-		result["dlc_deployment"] = deploy
-		result["special_conditions"].append(deploy.get("instruction", ""))
-		print_verbose("BattlePhase DLC: Deployment Variable — %s" % deploy.get("name", "Line"))
+		var condition = deployment_conditions_system.roll_deployment_condition(
+			mission_type_enum)
+		if condition:
+			result["condition_id"] = condition.condition_id
+			result["condition_title"] = condition.title
+			result["condition_description"] = condition.description
+			result["condition_effects"] = condition.effects
+			if condition.condition_id != "NO_CONDITION":
+				result["special_conditions"].append(condition.description)
+				print_verbose(
+					"BattlePhase: Deployment Condition — %s" % condition.title)
+
+			# Apply condition effects to battle state
+			var modified_state: Dictionary = deployment_conditions_system.apply_condition(
+				condition, {
+					"enemy_count": battle_setup_data.get("enemy_count", 0),
+					"crew_count": crew_deployed.size() if not crew_deployed.is_empty() else 6,
+				})
+			# Propagate enemy count changes from conditions like Small Encounter
+			if modified_state.has("enemy_count"):
+				var new_count: int = modified_state["enemy_count"]
+				var old_count: int = battle_setup_data.get("enemy_count", 0)
+				if new_count != old_count:
+					result["enemy_count_adjustment"] = new_count - old_count
+			# Propagate crew sitting out
+			if modified_state.has("crew_sits_out"):
+				result["crew_sits_out"] = modified_state["crew_sits_out"]
+			# Propagate all modifier flags for UI/resolver
+			for key in modified_state:
+				if key not in ["enemy_count", "crew_count"]:
+					result[key] = modified_state[key]
+
+	# Step 2: DLC Deployment Variables (Compendium pp.44-45)
+	var battle_type: String = battle_setup_data.get("battle_type", "conventional")
+	if battle_type == "conventional":
+		var seized: bool = battle_setup_data.get("seized_initiative", false)
+		var ai_type: String = battle_setup_data.get("dlc_ai_type", "tactical")
+		var deploy: Dictionary = CompendiumDeploymentVars.roll_deployment(
+			ai_type, seized)
+		if not deploy.is_empty():
+			result["dlc_deployment"] = deploy
+			result["special_conditions"].append(
+				deploy.get("instruction", ""))
+			print_verbose(
+				"BattlePhase DLC: Deployment Variable — %s" % deploy.get(
+					"name", "Line"))
 
 	return result
 
@@ -961,14 +1179,105 @@ func _generate_deployment_positions(count: int, side: String) -> Array:
 	return positions
 
 func _process_initiative() -> void:
-	## Step 3: Initiative - Determine turn order
+	## Step 3: Seize the Initiative — Core Rules p.112
+	## Roll 2D6 + highest Savvy + modifiers. On 10+, crew may move OR fire (natural 6 only).
+	## This replaces the simplified 1D6 >= 4 check from Sprint 11.
 	if GlobalEnums:
 		current_substep = GlobalEnums.BattleCampaignSubStep.COMBAT
 		battle_substep_changed.emit(current_substep)
 
-	# Roll initiative (1D6, 4+ crew goes first)
-	initiative_roll = randi_range(1, 6)
-	var crew_first = initiative_roll >= 4
+	# Configure SeizeInitiativeSystem with current battle context
+	var seize_result: Variant = null
+	if seize_initiative_system:
+		# Set crew data for Savvy bonus and Feral detection
+		seize_initiative_system.set_crew_data(crew_deployed)
+
+		# Set difficulty mode
+		var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL
+		if game_state_manager and game_state_manager.has_method("get_difficulty"):
+			difficulty = game_state_manager.get_difficulty()
+		match difficulty:
+			GlobalEnums.DifficultyLevel.HARDCORE:
+				seize_initiative_system.set_difficulty_mode(
+					SeizeInitiativeSystemClass.DifficultyMode.HARDCORE)
+			GlobalEnums.DifficultyLevel.INSANITY:
+				seize_initiative_system.set_difficulty_mode(
+					SeizeInitiativeSystemClass.DifficultyMode.INSANITY)
+			_:
+				seize_initiative_system.set_difficulty_mode(
+					SeizeInitiativeSystemClass.DifficultyMode.NORMAL)
+
+		# Check if outnumbered (Core Rules p.112: +1 if outnumbered)
+		seize_initiative_system.set_outnumbered(
+			enemies_deployed.size() > crew_deployed.size())
+
+		# Check for Hired Muscle category (Core Rules p.96: -1)
+		var enemy_category: String = battle_setup_data.get("enemy_force", {}).get("category", "")
+		seize_initiative_system.set_hired_muscle(enemy_category == "hired_muscle")
+
+		# Apply enemy-specific modifiers from special_rules
+		# (Careless: +1, Alert: -1, Prediction: cannot seize, etc.)
+		var enemy_special: Array = battle_setup_data.get("enemy_force", {}).get("special_rules", [])
+		var enemy_modifier: int = 0
+		var cannot_seize: bool = false
+		for rule in enemy_special:
+			var rule_str: String = str(rule).to_lower()
+			if "careless" in rule_str:
+				enemy_modifier += 1
+			elif "alert" in rule_str:
+				enemy_modifier -= 1
+			elif "prediction" in rule_str or "cannot seize" in rule_str:
+				cannot_seize = true
+			elif "unpredictable" in rule_str:
+				# Unpredictable: roll is always unmodified — clear all enemy mods
+				enemy_modifier = 0
+		seize_initiative_system.set_enemy_modifier(enemy_modifier,
+			battle_setup_data.get("enemy_force", {}).get("type", "Enemy"))
+
+		# Check ship components for Motion Tracker / Scanner Bot
+		seize_initiative_system.set_motion_tracker(
+			ShipComponentQuery.has_component("motion_tracker"))
+		seize_initiative_system.set_scanner_bot(
+			ShipComponentQuery.has_component("scanner_bot"))
+
+		# Also check rival AMBUSH flag (Core Rules p.91: cannot Seize)
+		if battle_setup_data.get("cannot_seize_initiative", false):
+			cannot_seize = true
+
+		# Roll for Seize the Initiative
+		if cannot_seize:
+			# Precursor Exiles: "You cannot Seize the Initiative"
+			seize_result = SeizeInitiativeSystemClass.InitiativeResult.new()
+			seize_result.success = false
+			seize_result.roll_total = 0
+			seize_result.dice_values = [0, 0]
+			print_verbose("BattlePhase: Cannot Seize Initiative (enemy special rule)")
+		else:
+			seize_result = seize_initiative_system.roll_initiative()
+			print_verbose("BattlePhase: Seize Initiative — %s" % seize_result.get_summary().replace("\n", " | "))
+
+		# Store result in battle data for UI display
+		initiative_roll = seize_result.roll_total
+		battle_setup_data["seize_initiative_result"] = {
+			"success": seize_result.success,
+			"roll_total": seize_result.roll_total,
+			"dice_values": seize_result.dice_values,
+			"savvy_bonus": seize_result.savvy_bonus,
+			"modifiers": seize_result.modifiers_breakdown,
+			"cannot_seize": cannot_seize,
+		}
+	else:
+		# Fallback if system failed to initialize
+		push_warning("BattlePhase: SeizeInitiativeSystem unavailable, using fallback 2D6")
+		initiative_roll = randi_range(1, 6) + randi_range(1, 6)
+		battle_setup_data["seize_initiative_result"] = {
+			"success": initiative_roll >= 10,
+			"roll_total": initiative_roll,
+			"dice_values": [],
+			"savvy_bonus": 0,
+			"modifiers": [],
+			"cannot_seize": false,
+		}
 
 	initiative_determined.emit(initiative_roll)
 
@@ -1148,6 +1457,10 @@ func _finalize_tactical_battle_results() -> void:
 		"casualties": casualties, # Task 14.3: Fatal casualties [{crew_id, type, round, cause}]
 		"mission_type": battle_setup_data.get("mission_type", 0),
 		"mission_id": battle_setup_data.get("mission_id", ""),
+		"mission_objective": battle_setup_data.get("mission_objective", {}),
+		"rival_attack_type": battle_setup_data.get("rival_attack_type", {}),
+		"deployment_condition": battle_setup_data.get("deployment", {}),
+		"seize_initiative_result": battle_setup_data.get("seize_initiative_result", {}),
 		"combat_mode": "tactical"
 	}
 
@@ -1272,6 +1585,10 @@ func _simulate_battle_outcome() -> void:
 		# Mission reference
 		"mission_type": battle_setup_data.get("mission_type", 0),
 		"mission_id": battle_setup_data.get("mission_id", ""),
+		"mission_objective": battle_setup_data.get("mission_objective", {}),
+		"rival_attack_type": battle_setup_data.get("rival_attack_type", {}),
+		"deployment_condition": battle_setup_data.get("deployment", {}),
+		"seize_initiative_result": battle_setup_data.get("seize_initiative_result", {}),
 
 		# Field control from resolver
 		"held_field": resolver_result.get("held_field", success),

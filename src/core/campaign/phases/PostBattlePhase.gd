@@ -50,6 +50,7 @@ signal precursor_event_chosen(chosen_event: Dictionary)
 signal traveler_event_occurred(results: Array)
 signal manipulator_bonus_earned(bonus: int)
 signal bitter_day_sp_earned()  ## "A Bitter Day" (Core Rules p.67): +1 SP for holding field after character death
+signal items_consumed_in_battle(consumed: Array)  ## Phase 3: Single-use items removed
 
 ## Current post-battle state
 var current_substep: int = 0
@@ -324,6 +325,11 @@ func _complete_post_battle_phase() -> void:
 	_completion.update_character_lifetime_statistics(_ctx)
 	_completion.create_battle_journal_entry(_ctx)
 	_completion.record_planet_mission(_ctx)
+
+	# Phase 3: Remove single-use items consumed during battle (Core Rules p.51)
+	var consumed_results: Array = _completion.process_consumed_items(_ctx)
+	if not consumed_results.is_empty():
+		items_consumed_in_battle.emit(consumed_results)
 
 	# Strange Character post-battle checks (Core Rules pp.19-22)
 	var traveler_results: Array = _completion.check_traveler_disappearance(_ctx)

@@ -45,7 +45,7 @@ func skip_tutorial(tutorial_name: String) -> void:
 func is_tutorial_completed(tutorial_name: String) -> bool:
 	return tutorial_progress.has(tutorial_name) and tutorial_progress[tutorial_name].completed
 
-func _load_tutorial_steps(tutorial_name: String) -> Array[Dictionary]:
+func _load_tutorial_steps(tutorial_name: String) -> Array:
 	# Load tutorial steps from configuration
 	if tutorial_data.has(tutorial_name):
 		return tutorial_data[tutorial_name]

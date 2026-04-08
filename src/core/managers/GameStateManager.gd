@@ -2,6 +2,7 @@ extends Node
 
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
+const _ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 
 signal game_state_changed(new_state: int)
 signal campaign_phase_changed(new_phase: int)
@@ -336,6 +337,21 @@ func get_ship_data() -> Dictionary:
 	## Alias for get_ship() — needed by TravelPhase and WorldPhase
 	return get_ship()
 
+func set_invasion_pending(pending: bool) -> void:
+	## Set invasion state (Core Rules p.88). Called by PaymentProcessor.
+	var gs = game_state if game_state else get_node_or_null(
+		"/root/GameState")
+	if gs and gs.has_method("set_invasion_pending"):
+		gs.set_invasion_pending(pending)
+
+func has_pending_invasion() -> bool:
+	## Check invasion state. Called by TravelPhase.
+	var gs = game_state if game_state else get_node_or_null(
+		"/root/GameState")
+	if gs and gs.has_method("has_pending_invasion"):
+		return gs.has_pending_invasion()
+	return false
+
 func apply_ship_damage(amount: int) -> int:
 	## Apply hull damage with trait modifiers (Core Rules p.30)
 	## Returns actual damage dealt after trait effects
@@ -351,6 +367,27 @@ func apply_ship_damage(amount: int) -> int:
 		if str(t).to_lower() == "armored":
 			final_amount = maxi(0, final_amount - 1)
 			break
+
+	# Improved Shielding: reduce each hit by 1 HP (Core Rules p.62)
+	if _ShipComponentQuery.has_component("improved_shielding"):
+		var pre_shield: int = final_amount
+		final_amount = maxi(0, final_amount - 1)
+		if pre_shield != final_amount:
+			var journal: Node = Engine.get_main_loop().root.get_node_or_null(
+				"/root/CampaignJournal") if Engine.get_main_loop() else null
+			if journal and journal.has_method("create_entry"):
+				journal.create_entry({
+					"type": "ship",
+					"title": "Shields Absorbed Impact",
+					"description": (
+						"Improved Shielding reduced hull damage"
+						+ " by 1 (took %d instead of %d HP)." % [
+						final_amount, pre_shield]),
+					"tags": ["ship_component", "improved_shielding"],
+					"auto_generated": true,
+					"mood": "neutral",
+					"stats": {"damage_reduced": 1},
+				})
 
 	# Dodgy Drive: 2D6 <= damage => +2 extra (Core Rules p.30)
 	for t in traits:

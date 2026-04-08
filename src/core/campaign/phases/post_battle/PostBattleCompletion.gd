@@ -217,3 +217,75 @@ func check_manipulator_bonus(
 			if (randi() % 6 + 1) == 6:
 				bonus += 1
 	return bonus
+
+func process_consumed_items(ctx: PostBattleContextClass) -> Array:
+	## Phase 3: Remove single-use items consumed during battle
+	## Core Rules p.51: Single use weapons are used once then deducted
+	## Returns array of removal result dicts for UI notification
+	var consumed: Array = ctx.battle_result.get("consumed_items", [])
+	if consumed.is_empty():
+		return []
+
+	var results: Array = []
+	var crew: Array = ctx.get_participating_crew()
+
+	for item in consumed:
+		var char_id: String = str(item.get("character_id", ""))
+		var weapon_name: String = str(item.get("weapon_name", ""))
+		if char_id.is_empty() or weapon_name.is_empty():
+			continue
+
+		# Find the character and remove the item
+		var removed := false
+		for member in crew:
+			if member == null:
+				continue
+			var mid: String = ""
+			if member is Dictionary:
+				mid = str(member.get("character_id",
+					member.get("id", "")))
+			elif member is Object and "character_id" in member:
+				mid = str(member.character_id)
+			if mid != char_id:
+				continue
+
+			# Remove from character equipment (Array[String])
+			if member is Object and "equipment" in member:
+				var eq: Array = member.equipment
+				var idx: int = -1
+				for i in eq.size():
+					if str(eq[i]).to_lower() == weapon_name.to_lower():
+						idx = i
+						break
+				if idx >= 0:
+					eq.remove_at(idx)
+					removed = true
+			elif member is Dictionary:
+				var eq: Array = member.get("equipment", [])
+				var idx: int = -1
+				for i in eq.size():
+					if str(eq[i]).to_lower() == weapon_name.to_lower():
+						idx = i
+						break
+				if idx >= 0:
+					eq.remove_at(idx)
+					removed = true
+			break
+
+		results.append({
+			"character_id": char_id,
+			"weapon_name": weapon_name,
+			"character_name": str(item.get("character_name", "")),
+			"removed": removed
+		})
+
+		if removed:
+			# Journal entry for consumed item
+			if ctx.campaign_journal and ctx.campaign_journal.has_method("auto_create_character_event"):
+				ctx.campaign_journal.auto_create_character_event(
+					char_id, "equipment_consumed",
+					{"item": weapon_name, "turn": ctx.battle_result.get("turn", 0)})
+		else:
+			push_warning("PostBattleCompletion: Could not remove consumed item '%s' from character '%s'" % [weapon_name, char_id])
+
+	return results

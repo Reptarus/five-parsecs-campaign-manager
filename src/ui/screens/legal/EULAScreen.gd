@@ -264,4 +264,3 @@ func _apply_max_width(wrapper: CenterContainer) -> void:
 	var target_width := mini(int(vp_width - UIColors.SPACING_XL * 2), MAX_FORM_WIDTH)
 	for child in wrapper.get_children():
 		child.custom_minimum_size.x = target_width
-		child.custom_maximum_size.x = target_width

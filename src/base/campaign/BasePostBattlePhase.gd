@@ -1,3 +1,5 @@
+## DEPRECATED (Session 47): Only used by FiveParsecsPostBattlePhase.gd (also dead).
+## Safe to delete. PostBattlePhase is at src/core/campaign/phases/PostBattlePhase.gd.
 @tool
 extends Resource
 

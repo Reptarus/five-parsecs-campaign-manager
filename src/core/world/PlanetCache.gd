@@ -101,3 +101,11 @@ func load_cache() -> void:
 				planet_data = migration.migrate_planet_data(planet_data)
 			
 			cached_planets[planet_id] = GamePlanet.deserialize(planet_data)
+
+## Look up a cached planet by its planet_id field (for PlanetDataManager sync)
+func get_planet_by_id(planet_id: String) -> GamePlanet:
+	for pid in cached_planets:
+		var planet: GamePlanet = cached_planets[pid]
+		if planet.planet_id == planet_id:
+			return planet
+	return null

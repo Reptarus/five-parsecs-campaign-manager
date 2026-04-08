@@ -196,6 +196,20 @@ var current_stage: int = BattleStage.TIER_SELECT
 var battle_phase: String = "deployment" # legacy compat — will migrate fully to BattleStage
 var _battle_initialized: bool = false # Tracks whether initialize_battle() was called
 
+# Session 48: Battle context for phase-driven content (enemy force, deployment, objective, etc.)
+var _battle_context: Dictionary = {}
+
+## AI type descriptions for enemy action phase guidance (Core Rules pp.94-103)
+const AI_DESCRIPTIONS: Dictionary = {
+	"A": "Aggressive — move toward closest crew, attack if able",
+	"C": "Cautious — stay in cover, fire at closest visible target",
+	"D": "Defensive — hold position, fire only if crew approach",
+	"G": "Guardian — stay near assigned unit, protect them",
+	"R": "Rampage — rush nearest target, always melee if possible",
+	"T": "Tactical — advance to cover, fire at best target",
+	"B": "Beast — move toward nearest figure, attack on contact",
+}
+
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
 var _dlc_escalation_count: int = 0
@@ -1291,6 +1305,15 @@ func _on_tracker_battle_started() -> void:
 	battle_phase = "combat"
 	_apply_stage_visibility(BattleStage.COMBAT)
 
+	# Session 48: Pass battle context to HUD and cheat sheet
+	_battle_context = _stored_mission_data if _stored_mission_data is Dictionary else {}
+	if battle_round_hud and battle_round_hud.has_method("set_battle_context"):
+		battle_round_hud.set_battle_context(_battle_context)
+	if cheat_sheet_panel and cheat_sheet_panel.has_method("set_battle_context"):
+		cheat_sheet_panel.set_battle_context(_battle_context)
+	# Show briefing as initial PhaseContent before Reaction Roll
+	_show_battle_briefing()
+
 func _on_tracker_battle_ended() -> void:
 	## Handle battle end from tracker — transition to RESOLUTION stage
 	_log_message("Battle concluded", UIColors.COLOR_AMBER)
@@ -1338,20 +1361,28 @@ func _show_quick_actions_ui() -> void:
 	action_buttons.add_child(done_button)
 
 func _show_enemy_actions_ui() -> void:
-	## ENEMY ACTIONS — tier-aware display
+	## ENEMY ACTIONS — tier-aware display with contextual enemy info
 	_clear_action_buttons()
 	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle
 	if tier_controller and tier_controller.current_tier >= 2:
 		_surface_phase_component(enemy_intent_panel)
-		if right_tabs: right_tabs.current_tab = 2 # Reference tab — enemy AI info
+		if right_tabs: right_tabs.current_tab = 2
+	elif not _battle_context.is_empty():
+		# ASSISTED tier: show structured enemy action card
+		var enemy_card: Control = _build_enemy_action_content()
+		_surface_custom_phase_content(enemy_card)
+		if right_tabs: right_tabs.current_tab = 2
 	else:
-		_surface_phase_component(null) # Clear phase content
-		if right_tabs: right_tabs.current_tab = 1 # Tools tab
+		_surface_phase_component(null)
+		if right_tabs: right_tabs.current_tab = 1
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	var enemy_name: String = ef.get("type", "enemies")
 	_log_message(
-		"Enemy Actions — move each enemy toward closest, shoot if in range.",
+		"Enemy Actions — resolve %s actions on the table." % enemy_name,
 		UIColors.COLOR_RED)
 	var done_button := Button.new()
 	done_button.text = "Enemy Actions Done"
+	done_button.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	done_button.pressed.connect(_on_advance_phase_pressed)
 	action_buttons.add_child(done_button)
 
@@ -1368,17 +1399,300 @@ func _show_slow_actions_ui() -> void:
 	action_buttons.add_child(done_button)
 
 func _show_end_phase_ui() -> void:
-	## END PHASE — surface morale/events/victory components
+	## END PHASE — show end-of-round checklist with condition-specific steps
 	_clear_action_buttons()
-	# Show morale tracker at ASSISTED+ tier (hidden in Bug Hunt mode)
-	if not _is_bug_hunt_mode and tier_controller and tier_controller.current_tier >= 1:
+	if not _battle_context.is_empty() and not _is_bug_hunt_mode:
+		# ASSISTED+: structured end-of-round checklist
+		var checklist: Control = _build_end_phase_checklist()
+		_surface_custom_phase_content(checklist)
+	elif not _is_bug_hunt_mode and tier_controller and tier_controller.current_tier >= 1:
+		# Fallback: morale tracker only
 		_surface_phase_component(morale_tracker)
 	else:
-		_surface_phase_component(victory_progress if is_instance_valid(victory_progress) else null)
+		_surface_phase_component(
+			victory_progress if is_instance_valid(victory_progress) else null)
 	var advance_button := Button.new()
-	advance_button.text = "End Round / Morale Check"
+	advance_button.text = "Next Round"
+	advance_button.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	advance_button.pressed.connect(_on_advance_phase_pressed)
 	action_buttons.add_child(advance_button)
+
+# ============================================================================
+# SESSION 48: PHASE-DRIVEN CONTEXTUAL CONTENT
+# ============================================================================
+
+func _show_battle_briefing() -> void:
+	## Show battle briefing card as initial PhaseContent at combat start.
+	## Replaced by Reaction Roll UI when player taps "Next Phase".
+	_clear_action_buttons()
+	var briefing: Control = _build_battle_briefing_content()
+	_surface_custom_phase_content(briefing)
+	_log_message("Battle briefing — review and press Next Phase",
+		UIColors.COLOR_AMBER)
+	var proceed_btn := Button.new()
+	proceed_btn.text = "Begin Round 1"
+	proceed_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	proceed_btn.pressed.connect(_on_advance_phase_pressed)
+	action_buttons.add_child(proceed_btn)
+
+func _build_battle_briefing_content() -> Control:
+	## Build a compact briefing card from _battle_context data.
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rtl.add_theme_font_size_override("normal_font_size", 14)
+	rtl.add_theme_color_override(
+		"default_color", UIColors.COLOR_TEXT_PRIMARY)
+
+	var lines: Array[String] = []
+
+	# Objective
+	var obj: Dictionary = _battle_context.get("mission_objective", {})
+	if not obj.is_empty() and obj.get("name", "") != "":
+		var vc: String = obj.get("victory_condition", "")
+		lines.append("[b]OBJECTIVE:[/b] %s" % obj.get("name", ""))
+		if not vc.is_empty():
+			lines.append("  %s" % vc)
+
+	# Rival attack type (instead of objective for rival battles)
+	var rival: Dictionary = _battle_context.get("rival_attack_type", {})
+	if not rival.is_empty() and rival.get("type", "") != "":
+		lines.append(
+			"[b]RIVAL ATTACK:[/b] %s — %s" % [
+				rival.get("type", ""),
+				rival.get("description", "")])
+
+	# Deployment condition
+	var deploy: Dictionary = _battle_context.get("deployment", {})
+	var cond_id: String = deploy.get("condition_id", "NO_CONDITION")
+	if cond_id != "NO_CONDITION" and cond_id != "":
+		lines.append(
+			"[b]CONDITION:[/b] %s" % deploy.get(
+				"condition_title", cond_id))
+		var desc: String = deploy.get("condition_description", "")
+		if not desc.is_empty():
+			lines.append("  %s" % desc)
+
+	# Enemy force
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	if not ef.is_empty() and ef.get("type", "") != "":
+		var ai_code: String = str(ef.get("ai", "A"))
+		var ai_desc: String = AI_DESCRIPTIONS.get(
+			ai_code, "Unknown AI")
+		lines.append(
+			"[b]ENEMY:[/b] %s x%d | AI: %s" % [
+				ef.get("type", "Unknown"),
+				ef.get("count", 0), ai_desc])
+		lines.append(
+			"  Speed: %s | Combat: +%s | Tough: %s | Panic: %s" % [
+				str(ef.get("speed", "?")),
+				str(ef.get("combat_skill", "?")),
+				str(ef.get("toughness", "?")),
+				str(ef.get("panic", "?"))])
+		# Special rules in amber
+		var rules: Array = ef.get("special_rules", [])
+		for rule in rules:
+			var rule_str: String = str(rule)
+			if not rule_str.is_empty():
+				lines.append(
+					"  [color=#D97706]%s[/color]" % rule_str)
+
+	# Seize Initiative result
+	var seize: Dictionary = _battle_context.get(
+		"seize_initiative_result", {})
+	if not seize.is_empty():
+		var seized: bool = seize.get("success", false)
+		var total: int = seize.get("roll_total", 0)
+		if seized:
+			lines.append(
+				"[b]INITIATIVE:[/b] [color=#10B981]SEIZED[/color]"
+				+ " (rolled %d) — crew may Move or Fire (natural 6 only)" % total)
+		else:
+			if seize.get("cannot_seize", false):
+				lines.append(
+					"[b]INITIATIVE:[/b] Cannot seize (enemy rule)")
+			else:
+				lines.append(
+					"[b]INITIATIVE:[/b] Not seized (rolled %d, needed 10+)" % total)
+
+	# Notable sight
+	var sight: Dictionary = _battle_context.get("notable_sight", {})
+	if not sight.is_empty() and sight.get("type", "NOTHING") != "NOTHING":
+		lines.append(
+			"[b]NOTABLE SIGHT:[/b] %s" % sight.get("effect",
+				sight.get("description", "")))
+
+	if lines.is_empty():
+		lines.append("[i]No battle data available — set up your table manually.[/i]")
+
+	rtl.text = "\n".join(lines)
+	vbox.add_child(rtl)
+	return vbox
+
+func _build_enemy_action_content() -> Control:
+	## Build structured enemy action card for ENEMY_ACTIONS phase.
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rtl.add_theme_font_size_override("normal_font_size", 14)
+	rtl.add_theme_color_override(
+		"default_color", UIColors.COLOR_TEXT_PRIMARY)
+
+	var lines: Array[String] = []
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+
+	if not ef.is_empty() and ef.get("type", "") != "":
+		var ai_code: String = str(ef.get("ai", "A"))
+		var ai_desc: String = AI_DESCRIPTIONS.get(
+			ai_code, "Unknown AI type")
+
+		lines.append("[b]%s[/b] — %s" % [
+			ef.get("type", "Unknown"), ai_desc])
+		lines.append(
+			"Speed: %s\" | Combat: +%s | Tough: %s | Panic: %s" % [
+				str(ef.get("speed", "?")),
+				str(ef.get("combat_skill", "?")),
+				str(ef.get("toughness", "?")),
+				str(ef.get("panic", "?"))])
+
+		# Special rules in amber
+		var rules: Array = ef.get("special_rules", [])
+		if not rules.is_empty():
+			lines.append("")
+			lines.append("[b]Special Rules:[/b]")
+			for rule in rules:
+				var rule_str: String = str(rule)
+				if not rule_str.is_empty():
+					lines.append(
+						"  [color=#D97706]%s[/color]" % rule_str)
+	else:
+		lines.append(
+			"Move each enemy toward closest crew, shoot if in range.")
+
+	# Check deployment condition effects on enemy actions
+	var deploy: Dictionary = _battle_context.get("deployment", {})
+	var cond_id: String = deploy.get("condition_id", "")
+	var round_num: int = round_tracker.get_current_round() if round_tracker and round_tracker.has_method("get_current_round") else 1
+	if cond_id == "SURPRISE_ENCOUNTER" and round_num == 1:
+		lines.append("")
+		lines.append(
+			"[color=#10B981][b]SURPRISE:[/b] Enemies cannot act this round![/color]")
+	elif cond_id == "BITTER_STRUGGLE":
+		lines.append("")
+		lines.append(
+			"[color=#D97706]Bitter Struggle: Enemy Morale +1[/color]")
+
+	rtl.text = "\n".join(lines)
+	vbox.add_child(rtl)
+	return vbox
+
+func _build_end_phase_checklist() -> Control:
+	## Build a numbered end-of-round checklist with condition-specific steps.
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+
+	var round_num: int = round_tracker.get_current_round() if round_tracker and round_tracker.has_method("get_current_round") else 1
+	var deploy: Dictionary = _battle_context.get("deployment", {})
+	var cond_id: String = deploy.get("condition_id", "")
+
+	# Title
+	var title := Label.new()
+	title.text = "END OF ROUND %d" % round_num
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
+	vbox.add_child(title)
+
+	var step_num: int = 0
+
+	# Step: Morale check (always)
+	step_num += 1
+	vbox.add_child(_make_checklist_step(
+		step_num, "Morale check — roll 1D6 per casualty this round, "
+		+ "Bail Range removes enemies"))
+
+	# Step: Deployment condition round checks
+	if cond_id == "BRIEF_ENGAGEMENT":
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"Brief Engagement: Roll 2D6 — on %d or less, battle ends" % round_num))
+
+	if cond_id == "DELAYED" and round_num >= 2:
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"Delayed crew: Roll 1D6 — on %d or less, they arrive at your edge" % round_num))
+
+	if cond_id == "TOXIC_ENVIRONMENT":
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"Toxic Environment: Stunned units roll 1D6+Savvy, below 4 = casualty"))
+
+	if cond_id == "POOR_VISIBILITY":
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"Reroll visibility: 1D6+8\" maximum range for next round"))
+
+	# Step: Battle Event (rounds 2 and 4 only)
+	if round_num == 2 or round_num == 4:
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"Battle Event: Roll D100 (Core Rules p.116)"))
+
+	# Step: Victory check (always)
+	step_num += 1
+	vbox.add_child(_make_checklist_step(
+		step_num,
+		"Victory check — all enemies eliminated or bailed?"))
+
+	return vbox
+
+func _make_checklist_step(number: int, text: String) -> HBoxContainer:
+	## Create a single checklist step with checkbox + label.
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 8)
+
+	var check := CheckBox.new()
+	check.custom_minimum_size = Vector2(
+		UIColors.TOUCH_TARGET_MIN, UIColors.TOUCH_TARGET_MIN)
+	hbox.add_child(check)
+
+	var lbl := Label.new()
+	lbl.text = "%d. %s" % [number, text]
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
+	hbox.add_child(lbl)
+
+	return hbox
+
+func _surface_custom_phase_content(content: Control) -> void:
+	## Surface a dynamically-built Control in the phase content area.
+	## Hides standard phase components, adds custom content as child.
+	_surface_phase_component(null) # Hide all standard components
+	# Remove any previous custom content
+	for child in phase_content.get_children():
+		if child.name.begins_with("_custom_"):
+			child.queue_free()
+	# Add new custom content
+	content.name = "_custom_phase_content"
+	phase_content.add_child(content)
 
 func _surface_phase_component(component: Control) -> void:
 	## Bring a component to the front of the phase content area.

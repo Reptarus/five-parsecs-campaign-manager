@@ -1,6 +1,8 @@
 class_name ShipManagerUI
 extends Control
 
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+
 signal ship_repaired(hull_points: int)
 signal debt_paid(amount: int)
 signal upgrade_purchased(upgrade: Dictionary)
@@ -190,16 +192,16 @@ func _calculate_travel_cost() -> int:
 		elif "fuel" in tl and "hog" in tl:
 			base_cost += 1
 
-	# +1 per 3 components installed (Core Rules p.61)
-	if components.size() > 0:
+	# +1 per 3 billable components (Core Rules p.61)
+	# Miniaturized excluded (Compendium p.28)
+	var billable: int = ShipComponentQuery.get_billable_component_count()
+	if billable > 0:
 		@warning_ignore("integer_division")
-		base_cost += components.size() / 3
+		base_cost += billable / 3
 
 	# Military Fuel Converters: -2cr (Core Rules p.62)
-	for c_id in components:
-		if "fuel_converter" in str(c_id).to_lower():
-			base_cost -= 2
-			break
+	if ShipComponentQuery.has_component("military_fuel_converters"):
+		base_cost -= 2
 
 	return maxi(0, base_cost)
 
@@ -285,6 +287,22 @@ func _on_upgrade_purchased(comp_name: String) -> void:
 	if not ship_data.has("components"):
 		ship_data["components"] = []
 	ship_data["components"].append(comp_id)
+
+	# Journal entry for component installation (Core Rules p.60)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "purchase",
+			"title": "Component Installed: %s" % comp_name,
+			"description": (
+				"Installed %s for %d credits. "
+				+ "Operational next turn. (Core Rules p.60)"
+			) % [comp_name, cost],
+			"tags": ["ship_component", "installation", comp_id],
+			"auto_generated": true,
+			"stats": {"credits_spent": cost},
+		})
+
 	_refresh_display()
 	upgrade_purchased.emit(
 		{"name": comp_name, "id": comp_id, "cost": cost})

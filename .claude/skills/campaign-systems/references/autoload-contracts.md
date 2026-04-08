@@ -1,5 +1,21 @@
 # Campaign Autoload Contracts
 
+## CRITICAL: TransitionManager Scene Init Timing (Session 45)
+
+`TransitionManager.fade_to_scene()` instantiates scenes **before** adding to tree. `_ready()` fires before `/root/` autoloads are accessible. Any scene loaded via `SceneRouter.navigate_to()` that uses `get_node_or_null("/root/...")` in `_ready()` **MUST** defer initialization:
+
+```gdscript
+func _ready() -> void:
+    call_deferred("_initialize")
+
+func _initialize() -> void:
+    var gsm = get_node_or_null("/root/GameStateManager")  # Now safe
+```
+
+Known affected: `BugHuntTurnController.gd`. Check any new scene that accesses autoloads in `_ready()`.
+
+---
+
 ## CampaignPhaseManager (Autoload)
 
 **Path**: `src/core/campaign/CampaignPhaseManager.gd`
@@ -17,9 +33,26 @@ campaign_turn_started(turn_number: int)
 campaign_turn_completed(turn_number: int)
 ```
 
+### PostBattlePhase Handler (Session 47 rewiring)
+```
+# CampaignPhaseManager owns the PostBattlePhase orchestrator as a child node.
+# Preload: src/core/campaign/phases/PostBattlePhase.gd (14-step decomposed)
+# NOT src/core/campaign/PostBattlePhase.gd (old 5-step stub — DEPRECATED)
+#
+# Init: PostBattlePhaseClass.new() → set_campaign(campaign) → add_child()
+# Signal: post_battle_phase_completed (NOT phase_completed)
+# Entry: start_post_battle_phase(battle_data) with GameState.get_battle_results()
+# Campaign ref updated in _connect_to_campaign() for save/load
+```
+
 ### Public API
 ```
 setup(state: FiveParsecsGameState) → void
+# Turn rollover routes story points through StoryPointSystem:
+# - reset_turn_limits() resets per-turn spending flags
+# - check_turn_earning(turn_number) awards +1 SP every 3rd turn
+# - Insanity mode check applied (story points disabled)
+# - Persists back to campaign.story_point_turn_state + campaign.story_points
 get_current_phase() → FiveParcsecsCampaignPhase
 get_turn_number() → int
 set_campaign(campaign: Resource) → void

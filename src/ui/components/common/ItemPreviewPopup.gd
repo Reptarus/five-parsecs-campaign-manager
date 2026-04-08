@@ -7,7 +7,6 @@ extends Window
 
 func _init() -> void:
 	title = ""
-	size = Vector2i(400, 320)
 	transient = true
 	exclusive = false  # Non-blocking — user can dismiss
 	unresizable = true
@@ -16,6 +15,11 @@ func _init() -> void:
 var _pending_data: Dictionary = {}
 
 func _ready() -> void:
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	size = Vector2i(
+		mini(420, int(vp.x * 0.85)),
+		mini(360, int(vp.y * 0.7))
+	)
 	_build_ui()
 	if not _pending_data.is_empty():
 		_populate(_pending_data)

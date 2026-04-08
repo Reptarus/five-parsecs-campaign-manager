@@ -7,6 +7,10 @@ const Self = preload("res://src/core/systems/CoreSystems.gd")
 
 # Game system dependencies
 
+## DEPRECATED (Session 47): Weapon trait effects are now computed by
+## BattleCalculations.get_weapon_trait_effects() with Core Rules-accurate mechanics.
+## This class had fabricated Focused mechanics and was never called by BattleResolver.
+## Kept for reference only — do NOT use in new code. Will be removed in a future session.
 class WeaponTraitSystem:
 	var available_traits: Dictionary = {
 		"Focused": {"effect": "Improved accuracy at short range"},

@@ -76,6 +76,7 @@ func _init() -> void:
 		"missions_completed": 0,
 		"battles_won": 0,
 		"battles_lost": 0,
+		"suspended_crew": [],  # Suspension Pod (Core Rules p.62)
 	}
 
 func get_campaign_id() -> String:
@@ -332,6 +333,10 @@ func _build_qol_data() -> Dictionary:
 	var dlc_mgr = root.get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_method("serialize_campaign_flags"):
 		qol["dlc_flags"] = dlc_mgr.serialize_campaign_flags()
+	# FactionSystem: faction standings + rival reputations (Compendium pp.110-117)
+	var faction_sys = root.get_node_or_null("/root/FactionSystem")
+	if faction_sys and faction_sys.has_method("get_data"):
+		qol["faction_system"] = faction_sys.get_data()
 	return qol
 
 func from_dictionary(data: Dictionary) -> void:
@@ -498,6 +503,12 @@ func apply_pending_qol_data() -> void:
 		var dlc_data: Dictionary = qol.get("dlc_flags", {})
 		if not dlc_data.is_empty():
 			dlc_mgr.deserialize_campaign_flags(dlc_data)
+	# FactionSystem: restore faction standings + rival reputations
+	var faction_sys = root.get_node_or_null("/root/FactionSystem")
+	if faction_sys and faction_sys.has_method("update_data"):
+		var fs_data: Dictionary = qol.get("faction_system", {})
+		if not fs_data.is_empty():
+			faction_sys.update_data(fs_data)
 	_pending_qol_data = {}
 
 ## Campaign Management Methods

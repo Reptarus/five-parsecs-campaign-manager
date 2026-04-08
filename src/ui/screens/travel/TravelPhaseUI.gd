@@ -78,6 +78,10 @@ var _help_dialog: AcceptDialog = null
 var _checkpoint_data: Dictionary = {}
 var _log_entries: Array[String] = []
 
+# Session 47: World Arrival data (Core Rules p.72)
+var _world_arrival_data: Dictionary = {}
+var _license_resolved: bool = false
+
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
@@ -395,12 +399,11 @@ func _on_travel_button_pressed() -> void:
 	
 	# Generate travel event (Core Rules p.70-71)
 	_generate_travel_event()
-	
+
+	# Generate world arrival data (Core Rules p.72) and show summary
+	_generate_world_arrival()
+
 	_update_progress_bar()
-	
-	# Enable next button after travel event is shown
-	if next_button:
-		next_button.disabled = false
 
 func _get_commercial_cost() -> int:
 	## Get commercial travel cost based on crew size
@@ -612,7 +615,8 @@ func _display_travel_event(event: Dictionary) -> void:
 		travel_event_details.add_child(resolve_button)
 
 func _process_travel_event_effects(effects: Array) -> void:
-	## Process the effects of a travel event
+	## Process the effects of a travel event (Core Rules pp.69-72)
+	## Session 47: Complete state mutations, not just log text
 	for effect in effects:
 		match effect:
 			"combat_encounter":
@@ -622,13 +626,55 @@ func _process_travel_event_effects(effects: Array) -> void:
 			"lose_story_point":
 				_remove_story_point()
 			"free_repair":
-				_add_log_entry("You may repair 1 damaged item for free.")
+				var c := COLOR_EMERALD.to_html()
+				_add_log_entry(
+					"[color=%s]You may repair 1 damaged item.[/color]" % c)
 			"xp_bonus":
-				_add_log_entry("Select a crew member to earn +1 XP.")
+				# Core Rules p.70: Down-time — crew member +1 XP
+				_apply_xp_to_random_crew(1, "Down-time training")
 			"luck_bonus":
-				_add_log_entry("A crew member gains +1 Luck!")
+				# Core Rules p.71: Cosmic Phenomenon — +1 Luck
+				_apply_luck_bonus()
 			"gear_rolls":
-				_add_log_entry("Roll twice on the Gear Table (items may be damaged).")
+				# Core Rules p.70: Deep Space Wreckage — 2 Gear rolls
+				var c := COLOR_AMBER.to_html()
+				_add_log_entry(
+					"[color=%s]Salvage: Roll twice on Gear Table. " \
+					+ "Both items damaged, need Repair.[/color]" % c)
+			"injury":
+				# Core Rules p.71: Accident — random crew injured
+				_apply_random_crew_injury()
+			"damaged_item":
+				# Core Rules p.71: Accident — one item damaged
+				var c := COLOR_RED.to_html()
+				_add_log_entry(
+					"[color=%s]One carried item is damaged.[/color]" % c)
+			"rest_time":
+				# Core Rules p.72: Travel-time — injured rest 1 turn
+				_apply_sick_bay_reduction()
+			"random_xp":
+				# Core Rules p.72: Time to Read — D6 XP distribution
+				_apply_random_xp_distribution()
+			"drive_trouble":
+				# Core Rules p.70: Drive Trouble — grounded check
+				var c := COLOR_AMBER.to_html()
+				_add_log_entry(
+					"[color=%s]Drive Trouble: 3 crew roll D6+Savvy " \
+					+ "(need 6+). Failure = grounded 1 turn.[/color]" % c)
+			"patrol_inspection":
+				# Core Rules p.71: Patrol Ship — confiscation
+				_apply_patrol_confiscation()
+			"rescue_choice":
+				# Core Rules p.71: Escape Pod — D6 subtable
+				var c := COLOR_BLUE.to_html()
+				_add_log_entry(
+					"[color=%s]Escape Pod: Roll D6 for outcome.[/color]" % c)
+			"world_choice":
+				# Core Rules p.72: Library — generate 3 worlds
+				var c := COLOR_BLUE.to_html()
+				_add_log_entry(
+					"[color=%s]Library Data: Generate 3 worlds, " \
+					+ "choose destination.[/color]" % c)
 
 func _schedule_combat_encounter() -> void:
 	## Schedule a combat encounter
@@ -647,6 +693,139 @@ func _remove_story_point() -> void:
 	if GameStateManager and GameStateManager.has_method("modify_story_progress"):
 		GameStateManager.modify_story_progress(-1)
 	_add_log_entry("[color=#ef4444]-1 Story Point[/color]")
+
+# Session 47: Travel event state mutation helpers
+
+func _apply_xp_to_random_crew(amount: int, reason: String) -> void:
+	## Apply XP to a random active crew member
+	var gsm := get_node_or_null("/root/GameStateManager")
+	if not gsm or not gsm.has_method("get_crew_members"):
+		_add_log_entry("Select a crew member to earn +%d XP (%s)." % [
+			amount, reason])
+		return
+	var crew: Array = gsm.get_crew_members()
+	if crew.is_empty():
+		return
+	var idx: int = randi() % crew.size()
+	var member: Variant = crew[idx]
+	var name: String = "crew member"
+	if member is Dictionary:
+		name = str(member.get("character_name", "crew member"))
+		member["experience"] = int(member.get("experience", 0)) + amount
+	elif member is Object and "experience" in member:
+		name = str(member.character_name) if "character_name" in member else "crew"
+		member.experience += amount
+	_add_log_entry("[color=%s]%s earned +%d XP (%s)[/color]" % [
+		COLOR_EMERALD.to_html(), name, amount, reason])
+
+
+func _apply_luck_bonus() -> void:
+	## Core Rules p.71: Cosmic Phenomenon — +1 Luck (once per campaign)
+	var gsm := get_node_or_null("/root/GameStateManager")
+	if not gsm or not gsm.has_method("get_crew_members"):
+		_add_log_entry("A crew member gains +1 Luck!")
+		return
+	var crew: Array = gsm.get_crew_members()
+	if crew.is_empty():
+		return
+	var idx: int = randi() % crew.size()
+	var member: Variant = crew[idx]
+	var name: String = "crew member"
+	if member is Dictionary:
+		name = str(member.get("character_name", "crew member"))
+		member["luck"] = int(member.get("luck", 0)) + 1
+	elif member is Object and "luck" in member:
+		name = str(member.character_name) if "character_name" in member else "crew"
+		member.luck += 1
+	_add_log_entry("[color=%s]%s gains +1 Luck![/color]" % [
+		COLOR_EMERALD.to_html(), name])
+
+
+func _apply_random_crew_injury() -> void:
+	## Core Rules p.71: Accident — random crew member injured 1 turn
+	var gsm := get_node_or_null("/root/GameStateManager")
+	if not gsm or not gsm.has_method("get_crew_members"):
+		_add_log_entry("[color=%s]A crew member is injured (1 turn recovery).[/color]" % COLOR_RED.to_html())
+		return
+	var crew: Array = gsm.get_crew_members()
+	var active: Array = []
+	for m in crew:
+		var status: String = ""
+		if m is Dictionary:
+			status = str(m.get("status", "ACTIVE"))
+		elif "status" in m:
+			status = str(m.status)
+		if status == "ACTIVE":
+			active.append(m)
+	if active.is_empty():
+		return
+	var victim: Variant = active[randi() % active.size()]
+	var vname: String = ""
+	if victim is Dictionary:
+		vname = str(victim.get("character_name", "crew member"))
+		victim["status"] = "INJURED"
+		victim["recovery_turns"] = 1
+	elif victim is Object:
+		vname = str(victim.character_name) if "character_name" in victim else "crew"
+		if "status" in victim:
+			victim.status = "INJURED"
+	_add_log_entry("[color=%s]%s injured during maintenance (1 turn recovery)[/color]" % [
+		COLOR_RED.to_html(), vname])
+
+
+func _apply_sick_bay_reduction() -> void:
+	## Core Rules p.72: Travel-time — injured crew rest 1 campaign turn
+	_add_log_entry("[color=%s]Long approach: Injured crew may rest 1 turn.[/color]" % COLOR_EMERALD.to_html())
+	var gsm := get_node_or_null("/root/GameStateManager")
+	if not gsm or not gsm.has_method("get_crew_members"):
+		return
+	var crew: Array = gsm.get_crew_members()
+	for m in crew:
+		var rt: int = 0
+		if m is Dictionary:
+			rt = int(m.get("recovery_turns", 0))
+			if rt > 0:
+				m["recovery_turns"] = rt - 1
+				_add_log_entry("  %s: recovery reduced to %d turns" % [
+					str(m.get("character_name", "?")), rt - 1])
+		elif m is Object and "recovery_turns" in m:
+			rt = int(m.recovery_turns)
+			if rt > 0:
+				m.recovery_turns = rt - 1
+
+
+func _apply_random_xp_distribution() -> void:
+	## Core Rules p.72: Time to Read — D6 for XP distribution
+	## 1-2: 1 random crew +3 XP
+	## 3-4: 1 random +2 XP, another +1 XP
+	## 5-6: 3 random each +1 XP
+	var roll: int = randi_range(1, 6)
+	if roll <= 2:
+		_apply_xp_to_random_crew(3, "Time to Read (D6: %d)" % roll)
+	elif roll <= 4:
+		_apply_xp_to_random_crew(2, "Time to Read (D6: %d)" % roll)
+		_apply_xp_to_random_crew(1, "Time to Read bonus")
+	else:
+		for i in 3:
+			_apply_xp_to_random_crew(1, "Time to Read (D6: %d)" % roll)
+
+
+func _apply_patrol_confiscation() -> void:
+	## Core Rules p.71: Patrol Ship — D6-3 twice, >0 = items confiscated
+	var items1: int = maxi(0, randi_range(1, 6) - 3)
+	var items2: int = maxi(0, randi_range(1, 6) - 3)
+	var total: int = items1 + items2
+	if total > 0:
+		_add_log_entry(
+			"[color=%s]Patrol confiscated %d item(s) as contraband.[/color]" % [
+				COLOR_RED.to_html(), total])
+	else:
+		_add_log_entry("Patrol inspection: nothing confiscated.")
+	# Next world cannot be invaded (Core Rules p.71)
+	_add_log_entry(
+		"[color=%s]Military presence: next world cannot be Invaded.[/color]" % [
+			COLOR_EMERALD.to_html()])
+
 
 func _on_resolve_travel_event(event: Dictionary) -> void:
 	## Resolve a travel event
@@ -717,6 +896,328 @@ func _on_hostile_encounter_choice(action: String) -> void:
 			else:
 				_schedule_combat_encounter()
 				_add_log_entry("[color=#ef4444]Negotiation failed (Rolled %d) - combat scheduled[/color]" % roll)
+
+# ============================================================================
+# SESSION 47: WORLD ARRIVAL (Core Rules p.72)
+# ============================================================================
+
+func _generate_world_arrival() -> void:
+	## Generate new world arrival data and display summary (Core Rules p.72)
+	## Steps: 1. Rival follow check, 2. Dismiss patrons, 3. Licensing, 4. World trait
+
+	# Step 4 first (world trait) — D100 roll
+	var trait_roll: int = randi_range(1, 100)
+	var world_trait: Dictionary = _roll_world_trait(trait_roll)
+
+	# Step 1: Check rival follow (D6 per rival, 5+ = follows)
+	var rivals_followed: Array[String] = []
+	var rivals_left: Array[String] = []
+	var gsm := get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("get_rivals"):
+		var all_rivals: Array = gsm.get_rivals()
+		for rival in all_rivals:
+			var rival_name: String = ""
+			if rival is Dictionary:
+				rival_name = str(rival.get("name", rival.get("rival_name", "Unknown")))
+			else:
+				rival_name = str(rival)
+			var follow_roll: int = randi_range(1, 6)
+			if follow_roll >= 5:
+				rivals_followed.append(rival_name)
+			else:
+				rivals_left.append(rival_name)
+
+	# Step 3: Licensing requirements (D6: 5-6 = required, D6 for cost)
+	var license_roll: int = randi_range(1, 6)
+	var license_required: bool = license_roll >= 5
+	var license_cost: int = randi_range(1, 6) if license_required else 0
+
+	# Generate world name
+	var world_name: String = "World-%03d" % randi_range(1, 999)
+
+	_world_arrival_data = {
+		"name": world_name,
+		"trait_name": world_trait.get("name", "None"),
+		"trait_description": world_trait.get("description", ""),
+		"trait_id": world_trait.get("id", ""),
+		"trait_roll": trait_roll,
+		"rivals_followed": rivals_followed,
+		"rivals_left": rivals_left,
+		"license_required": license_required,
+		"license_cost": license_cost,
+	}
+
+	# Persist world trait to campaign for downstream phases + dashboard
+	var gs := get_node_or_null("/root/GameState")
+	if gs and gs.get("current_campaign") and "world_data" in gs.current_campaign:
+		var wd: Dictionary = gs.current_campaign.world_data
+		wd["name"] = world_name
+		if not wd.has("traits"):
+			wd["traits"] = []
+		wd["traits"] = [world_trait.get("id", "none")]
+		wd["trait_name"] = world_trait.get("name", "None")
+		wd["trait_description"] = world_trait.get("description", "")
+
+	# Log all arrival steps
+	_add_log_entry("[color=#3b82f6]--- New World Arrival: %s ---[/color]" % world_name)
+	_add_log_entry("World Trait (D100: %d): [color=#f59e0b]%s[/color]" % [
+		trait_roll, world_trait.get("name", "None")])
+	if not world_trait.get("description", "").is_empty():
+		_add_log_entry("  %s" % world_trait.get("description", ""))
+
+	if rivals_followed.size() > 0:
+		_add_log_entry("[color=#ef4444]Rivals followed: %s[/color]" % ", ".join(rivals_followed))
+	if rivals_left.size() > 0:
+		_add_log_entry("Rivals left behind: %s" % ", ".join(rivals_left))
+
+	# Step 2: Patrons dismissed (non-persistent)
+	_add_log_entry("Non-persistent Patrons dismissed (remain on previous world)")
+
+	if license_required:
+		_add_log_entry("[color=#f59e0b]Freelancer License required: %d credits (D6: %d)[/color]" % [
+			license_cost, license_roll])
+	else:
+		_add_log_entry("No Freelancer License required (D6: %d)" % license_roll)
+
+	# Display the arrival summary panel
+	_display_world_arrival_summary()
+
+
+func _roll_world_trait(roll: int) -> Dictionary:
+	## Look up world trait from JSON data by D100 roll (Core Rules pp.73-75)
+	var path := "res://data/world_traits.json"
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			var traits: Array = json.data.get("world_traits", [])
+			for entry in traits:
+				if entry is Dictionary and entry.has("roll_range"):
+					var r: Array = entry["roll_range"]
+					if roll >= r[0] and roll <= r[1]:
+						return entry
+	# Fallback
+	return {"name": "Uneventful", "id": "none", "description": "No special traits."}
+
+
+func _display_world_arrival_summary() -> void:
+	## Build and display the World Arrival summary panel in travel_event_details
+	if not travel_event_details:
+		# No container — just enable Next
+		if next_button:
+			next_button.disabled = false
+		return
+
+	# Arrival panel
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_TERTIARY.r, COLOR_TERTIARY.g, COLOR_TERTIARY.b, 0.9)
+	style.border_color = COLOR_BLUE
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(16)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+
+	# Title
+	var title := Label.new()
+	title.text = "Arrived at: %s" % _world_arrival_data.get("name", "Unknown")
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_BLUE)
+	vbox.add_child(title)
+
+	# World trait
+	var trait_name: String = _world_arrival_data.get("trait_name", "None")
+	var trait_label := Label.new()
+	trait_label.text = "World Trait: %s" % trait_name
+	trait_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	trait_label.add_theme_color_override("font_color", COLOR_AMBER)
+	vbox.add_child(trait_label)
+
+	var trait_desc: String = _world_arrival_data.get("trait_description", "")
+	if not trait_desc.is_empty():
+		var desc_label := Label.new()
+		desc_label.text = trait_desc
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		vbox.add_child(desc_label)
+
+	# Rivals
+	var rivals: Array = _world_arrival_data.get("rivals_followed", [])
+	var rivals_left: Array = _world_arrival_data.get("rivals_left", [])
+	var rival_label := Label.new()
+	if rivals.size() > 0:
+		rival_label.text = "Rivals: %d of %d followed you" % [
+			rivals.size(), rivals.size() + rivals_left.size()]
+		rival_label.add_theme_color_override("font_color", COLOR_RED)
+	elif rivals_left.size() > 0:
+		rival_label.text = "Rivals: All %d left behind" % rivals_left.size()
+		rival_label.add_theme_color_override("font_color", COLOR_EMERALD)
+	else:
+		rival_label.text = "No active rivals"
+		rival_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	rival_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	vbox.add_child(rival_label)
+
+	# Rival names list (if any followed)
+	for rname in rivals:
+		var r_item := Label.new()
+		r_item.text = "  - %s (followed)" % rname
+		r_item.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		r_item.add_theme_color_override("font_color", COLOR_RED)
+		vbox.add_child(r_item)
+	for rname in rivals_left:
+		var r_item := Label.new()
+		r_item.text = "  - %s (left behind)" % rname
+		r_item.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		r_item.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		vbox.add_child(r_item)
+
+	# License section
+	var license_required: bool = _world_arrival_data.get("license_required", false)
+	var license_cost: int = _world_arrival_data.get("license_cost", 0)
+	if license_required:
+		var lic_label := Label.new()
+		lic_label.text = "Freelancer License Required: %d credits" % license_cost
+		lic_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		lic_label.add_theme_color_override("font_color", COLOR_AMBER)
+		vbox.add_child(lic_label)
+
+		var btn_row := HBoxContainer.new()
+		btn_row.add_theme_constant_override("separation", 8)
+
+		var pay_btn := Button.new()
+		pay_btn.text = "Pay License (%d cr)" % license_cost
+		pay_btn.custom_minimum_size.y = 48
+		pay_btn.pressed.connect(_on_pay_license.bind(license_cost))
+		btn_row.add_child(pay_btn)
+
+		var forge_btn := Button.new()
+		forge_btn.text = "Attempt Forge (D6+Savvy, need 6+)"
+		forge_btn.custom_minimum_size.y = 48
+		forge_btn.pressed.connect(_on_forge_license)
+		btn_row.add_child(forge_btn)
+
+		var skip_btn := Button.new()
+		skip_btn.text = "Skip (no Patron jobs)"
+		skip_btn.custom_minimum_size.y = 48
+		skip_btn.pressed.connect(_on_skip_license)
+		btn_row.add_child(skip_btn)
+
+		vbox.add_child(btn_row)
+		_license_resolved = false
+	else:
+		var no_lic := Label.new()
+		no_lic.text = "No Freelancer License required"
+		no_lic.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		no_lic.add_theme_color_override("font_color", COLOR_EMERALD)
+		vbox.add_child(no_lic)
+		_license_resolved = true
+
+	panel.add_child(vbox)
+	travel_event_details.add_child(panel)
+
+	# Enable Next only if license is resolved (or not required)
+	if next_button:
+		next_button.disabled = not _license_resolved
+
+
+func _on_pay_license(cost: int) -> void:
+	## Pay for Freelancer License (Core Rules p.72)
+	if GameStateManager and GameStateManager.has_method("modify_credits"):
+		GameStateManager.modify_credits(-cost)
+	_add_log_entry("[color=#f59e0b]Paid %d credits for Freelancer License[/color]" % cost)
+	_license_resolved = true
+	_world_arrival_data["license_paid"] = true
+	# Disable all license buttons
+	_disable_license_buttons()
+	if next_button:
+		next_button.disabled = false
+
+
+func _on_forge_license() -> void:
+	## Attempt to forge a license (Core Rules p.72)
+	## D6+Savvy, need 6+. Natural 1 = new rival.
+	var best_savvy: int = 0
+	var best_name: String = "crew member"
+	if GameStateManager and GameStateManager.has_method("get_crew_members"):
+		var crew: Array = GameStateManager.get_crew_members()
+		for member in crew:
+			var savvy: int = 0
+			if member is Dictionary:
+				savvy = int(member.get("savvy", 0))
+			elif "savvy" in member:
+				savvy = int(member.savvy)
+			if savvy > best_savvy:
+				best_savvy = savvy
+				if member is Dictionary:
+					best_name = str(member.get("character_name", member.get("name", "crew member")))
+				elif "character_name" in member:
+					best_name = str(member.character_name)
+
+	var raw_roll: int = randi_range(1, 6)
+	var total: int = raw_roll + best_savvy
+
+	if raw_roll == 1:
+		# Natural 1: rival added (Core Rules p.72)
+		_add_log_entry(
+			"[color=#ef4444]Forge FAILED (natural 1)! " \
+			+ "%s drew attention — new Rival![/color]" % best_name)
+		if GameStateManager and GameStateManager.has_method("add_rival"):
+			GameStateManager.add_rival({
+				"name": "Law Enforcement",
+				"source": "forged_license"})
+		_license_resolved = true
+		_world_arrival_data["license_forged"] = false
+		_world_arrival_data["forge_rival_added"] = true
+	elif total >= 6:
+		_add_log_entry(
+			"[color=#10b981]Forge SUCCESS! %s got license " \
+			+ "(D6:%d+Savvy %d=%d)[/color]" % [
+				best_name, raw_roll, best_savvy, total])
+		_license_resolved = true
+		_world_arrival_data["license_forged"] = true
+	else:
+		_add_log_entry(
+			"[color=#ef4444]Forge FAILED. %s rolled " \
+			+ "D6:%d+Savvy %d=%d (need 6+)[/color]" % [
+				best_name, raw_roll, best_savvy, total])
+		_add_log_entry(
+			"Pay the license fee or skip (no Patron jobs).")
+		# Don't resolve — player still needs to pay or skip
+
+	_disable_license_buttons()
+	if _license_resolved and next_button:
+		next_button.disabled = false
+
+
+func _on_skip_license() -> void:
+	## Skip license — cannot do Patron jobs on this world
+	_add_log_entry("[color=#9ca3af]Skipped license. Cannot perform Patron jobs on this world.[/color]")
+	_license_resolved = true
+	_world_arrival_data["license_skipped"] = true
+	_disable_license_buttons()
+	if next_button:
+		next_button.disabled = false
+
+
+func _disable_license_buttons() -> void:
+	## Disable all license action buttons after resolution
+	if not travel_event_details:
+		return
+	for child in travel_event_details.get_children():
+		if child is PanelContainer:
+			var inner: Node = child.get_child(0) if child.get_child_count() > 0 else null
+			if inner is VBoxContainer:
+				for sub in inner.get_children():
+					if sub is HBoxContainer:
+						for btn in sub.get_children():
+							if btn is Button:
+								btn.disabled = true
+
 
 # ============================================================================
 # SPRINT 10.4: CHECKPOINT STORAGE FOR BIDIRECTIONAL NAVIGATION

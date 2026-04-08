@@ -291,15 +291,15 @@ func _update_stat_strip(campaign) -> void:
 	parent_vbox.add_child(strip)
 	parent_vbox.move_child(strip, header_panel.get_index() + 1)
 
-	strip.add_child(_create_stat_badge("CREW", str(crew_count), COLOR_CYAN))
-	strip.add_child(_create_stat_badge("TURN", str(turn), COLOR_EMERALD))
-	strip.add_child(_create_stat_badge(
+	strip.add_child(_create_colored_badge("CREW", str(crew_count), COLOR_CYAN))
+	strip.add_child(_create_colored_badge("TURN", str(turn), COLOR_EMERALD))
+	strip.add_child(_create_colored_badge(
 		"CREDITS", str(campaign.credits),
 		COLOR_AMBER if campaign.credits < 5 else COLOR_EMERALD))
-	strip.add_child(_create_stat_badge(
+	strip.add_child(_create_colored_badge(
 		"STORY PTS", str(campaign.story_points), COLOR_BLUE))
 
-func _create_stat_badge(
+func _create_colored_badge(
 	label_text: String, value_text: String, color: Color
 ) -> PanelContainer:
 	var badge := PanelContainer.new()

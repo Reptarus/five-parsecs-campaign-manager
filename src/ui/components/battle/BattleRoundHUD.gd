@@ -60,6 +60,20 @@ var _current_phase: int = BattleRoundTrackerClass.BattlePhase.REACTION_ROLL
 var _display_tier: int = 0 # 0=LOG_ONLY, 1=ASSISTED, 2=FULL_ORACLE
 var _casualties_this_round: int = 0
 
+# Session 48: Battle context for contextual phase reminders
+var _battle_context: Dictionary = {}
+
+## AI type descriptions for contextual enemy reminder (Core Rules pp.94-103)
+const AI_BRIEF: Dictionary = {
+	"A": "Aggressive — charge closest",
+	"C": "Cautious — cover + shoot",
+	"D": "Defensive — hold + shoot if approached",
+	"G": "Guardian — protect assigned unit",
+	"R": "Rampage — rush + melee",
+	"T": "Tactical — advance to cover, best target",
+	"B": "Beast — move to nearest, attack",
+}
+
 func _ready() -> void:
 	_build_ui()
 	_update_display()
@@ -379,7 +393,7 @@ const PHASE_REMINDERS: Dictionary = {
 func _update_reminder_text() -> void:
 	if not _reminder_label:
 		return
-	_reminder_label.text = PHASE_REMINDERS.get(_current_phase, "")
+	_reminder_label.text = _get_contextual_reminder()
 
 	# Update auto-prompt for Tier 2+
 	_update_auto_prompt()
@@ -447,3 +461,55 @@ func report_casualty() -> void:
 func reset_round_tracking() -> void:
 	_casualties_this_round = 0
 	_update_auto_prompt()
+
+## Session 48: Set battle context for contextual phase reminders.
+func set_battle_context(data: Dictionary) -> void:
+	_battle_context = data
+	_update_reminder_text()
+
+func _get_contextual_reminder() -> String:
+	## Generate phase reminder text with battle-specific context.
+	## Max 2 lines: base instruction + one contextual line.
+	var base: String = PHASE_REMINDERS.get(_current_phase, "")
+
+	if _battle_context.is_empty():
+		return base
+
+	var deploy: Dictionary = _battle_context.get("deployment", {})
+	var cond_id: String = deploy.get("condition_id", "")
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+
+	match _current_phase:
+		0: # REACTION_ROLL
+			if cond_id == "CAUGHT_OFF_GUARD" and _current_round == 1:
+				return base + "\nCAUGHT OFF GUARD: All crew act Slow this round."
+			if cond_id == "POOR_VISIBILITY" and _current_round > 1:
+				return base + "\nReroll visibility: 1D6+8\" max range this round."
+			if cond_id == "DELAYED" and _current_round > 1:
+				return base + "\nDelayed crew: 1D6, on %d- they arrive." % _current_round
+		1: # QUICK_ACTIONS
+			if cond_id == "SLIPPERY_GROUND":
+				return base + "\nSLIPPERY: All ground movement -1 Speed."
+		2: # ENEMY_ACTIONS
+			if cond_id == "SURPRISE_ENCOUNTER" and _current_round == 1:
+				return base + "\nSURPRISE: Enemies skip this round!"
+			var ai_code: String = str(ef.get("ai", ""))
+			var enemy_name: String = ef.get("type", "")
+			if not enemy_name.is_empty() and not ai_code.is_empty():
+				var ai_brief: String = AI_BRIEF.get(
+					ai_code, "")
+				if not ai_brief.is_empty():
+					return base + "\n%s (%s)" % [
+						enemy_name, ai_brief]
+		4: # END_PHASE
+			var check_count: int = 1 # Morale always
+			if cond_id in [
+				"BRIEF_ENGAGEMENT", "DELAYED",
+				"TOXIC_ENVIRONMENT", "POOR_VISIBILITY"]:
+				check_count += 1
+			if _current_round == 2 or _current_round == 4:
+				check_count += 1
+			if check_count > 1:
+				return base + "\n%d end-of-round checks — see checklist below." % check_count
+
+	return base

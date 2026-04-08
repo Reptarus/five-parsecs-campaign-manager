@@ -14,15 +14,23 @@ var _vbox: VBoxContainer
 
 func _init() -> void:
 	title = ""
-	size = Vector2i(420, 340)
 	transient = true
 	exclusive = false
 	unresizable = true
 	close_requested.connect(_on_close)
 
 func _ready() -> void:
+	_apply_responsive_size()
 	_build_ui()
 	_populate()
+
+
+func _apply_responsive_size() -> void:
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	size = Vector2i(
+		mini(520, int(vp.x * 0.9)),
+		mini(480, int(vp.y * 0.8))
+	)
 
 func _build_ui() -> void:
 	# Background

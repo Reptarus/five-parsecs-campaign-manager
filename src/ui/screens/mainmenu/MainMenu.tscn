@@ -98,7 +98,7 @@ text = "Options"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-text = "Expansions"
+text = "Library"
 
 [node name="VersionLabel" type="Label" parent="." unique_id=1272520377]
 layout_mode = 1

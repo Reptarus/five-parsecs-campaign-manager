@@ -5,6 +5,7 @@ class_name UpkeepPhaseComponent
 ## Extracted from WorldPhaseUI monolith to handle Five Parsecs upkeep rules only
 ## Implements Core Rules p.76 - Ship maintenance and crew upkeep calculations
 
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
@@ -137,6 +138,35 @@ func calculate_upkeep_costs() -> Dictionary:
 	
 	# Calculate crew upkeep with world trait modifiers (Core Rules p.76, p.87-89)
 	var effective_crew_size: int = crew_data.size()
+	var component_effects: Array = []
+
+	# Suspension Pod: exclude suspended crew (Core Rules p.62)
+	var gs: Variant = get_node_or_null("/root/GameState")
+	if gs and ShipComponentQuery.has_component("suspension_pod"):
+		var campaign: Variant = gs.get_current_campaign() if gs.has_method(
+			"get_current_campaign") else null
+		if campaign and "progress_data" in campaign:
+			var suspended: Array = campaign.progress_data.get(
+				"suspended_crew", [])
+			if suspended.size() > 0:
+				var before_sus: int = effective_crew_size
+				effective_crew_size = maxi(
+					0, effective_crew_size - suspended.size())
+				component_effects.append({
+					"component": "suspension_pod",
+					"description": "%d crew suspended (counted %d instead of %d)" % [
+						suspended.size(), effective_crew_size, before_sus],
+				})
+
+	# Living Quarters: count crew as 2 fewer (Core Rules p.62)
+	if ShipComponentQuery.has_component("living_quarters"):
+		var before_lq: int = effective_crew_size
+		effective_crew_size = maxi(0, effective_crew_size - 2)
+		component_effects.append({
+			"component": "living_quarters",
+			"description": "Crew counted as %d instead of %d for upkeep" % [
+				effective_crew_size, before_lq],
+		})
 
 	# Apply "high_cost" world trait modifier (Core Rules p.87-89)
 	# "Your crew size counts as being 2 higher for the purpose of Upkeep costs"
@@ -149,6 +179,8 @@ func calculate_upkeep_costs() -> Dictionary:
 		results.crew_upkeep = 1 + max(0, effective_crew_size - CREW_UPKEEP_CAP)
 	else:
 		results.crew_upkeep = 0
+
+	results["component_effects"] = component_effects
 	
 	# Calculate ship maintenance (Core Rules p.76)
 	results.ship_maintenance = _calculate_ship_maintenance()
@@ -199,6 +231,28 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 		upkeep_completed = true
 		current_upkeep_data = upkeep_results
 
+		# Log ship component effects to CampaignJournal
+		var effects: Array = upkeep_results.get(
+			"component_effects", [])
+		if effects.size() > 0:
+			var journal: Node = get_node_or_null(
+				"/root/CampaignJournal")
+			if journal and journal.has_method("create_entry"):
+				for effect in effects:
+					var comp_name: String = str(
+						effect.get("component", "")
+					).capitalize().replace("_", " ")
+					journal.create_entry({
+						"type": "upkeep",
+						"title": "Ship Component: %s" % comp_name,
+						"description": effect.get("description", ""),
+						"tags": [
+							"ship_component",
+							effect.get("component", ""),
+							"upkeep"],
+						"auto_generated": true,
+						"mood": "neutral",
+					})
 
 		# Publish completion event
 		if event_bus:
@@ -438,6 +492,35 @@ func _build_travel_section() -> void:
 	world_label.add_theme_color_override(
 		"font_color", Color(0.31, 0.765, 0.969, 1))
 	vbox.add_child(world_label)
+
+	# Invasion warning (Core Rules pp.88-90)
+	var gsm_inv = get_node_or_null("/root/GameStateManager")
+	if gsm_inv and gsm_inv.has_method("has_pending_invasion"):
+		if gsm_inv.has_pending_invasion():
+			var inv_banner := PanelContainer.new()
+			var inv_style := StyleBoxFlat.new()
+			inv_style.bg_color = Color(0.55, 0.1, 0.1, 0.8)
+			inv_style.border_color = Color("#DC2626")
+			inv_style.set_border_width_all(2)
+			inv_style.set_corner_radius_all(8)
+			inv_style.content_margin_left = 12
+			inv_style.content_margin_right = 12
+			inv_style.content_margin_top = 8
+			inv_style.content_margin_bottom = 8
+			inv_banner.add_theme_stylebox_override(
+				"panel", inv_style)
+			var inv_lbl := Label.new()
+			inv_lbl.text = (
+				"INVASION IMMINENT — You must flee"
+				+ " (2D6, 8+) or fight when departing")
+			inv_lbl.autowrap_mode = (
+				TextServer.AUTOWRAP_WORD_SMART)
+			inv_lbl.add_theme_color_override(
+				"font_color", Color("#FF6B6B"))
+			inv_lbl.add_theme_font_size_override(
+				"font_size", _scaled_font(15))
+			inv_banner.add_child(inv_lbl)
+			vbox.add_child(inv_banner)
 
 	# Button row
 	var btn_row := HBoxContainer.new()

@@ -187,6 +187,9 @@ func _connect_backend_signals() -> void:
 	if post_battle_phase.has_signal("loot_gathered"):
 		post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
 
+	if post_battle_phase.has_signal("items_consumed_in_battle"):
+		post_battle_phase.items_consumed_in_battle.connect(_on_backend_items_consumed)
+
 	if post_battle_phase.has_signal("injuries_resolved"):
 		post_battle_phase.injuries_resolved.connect(_on_backend_injury_result)
 
@@ -230,6 +233,8 @@ func _exit_tree() -> void:
 			_pbp.precursor_event_choice_available.disconnect(_on_backend_precursor_event_choice)
 		if _pbp.has_signal("loot_gathered") and _pbp.loot_gathered.is_connected(_on_backend_loot_generated):
 			_pbp.loot_gathered.disconnect(_on_backend_loot_generated)
+		if _pbp.has_signal("items_consumed_in_battle") and _pbp.items_consumed_in_battle.is_connected(_on_backend_items_consumed):
+			_pbp.items_consumed_in_battle.disconnect(_on_backend_items_consumed)
 		if _pbp.has_signal("injuries_resolved") and _pbp.injuries_resolved.is_connected(_on_backend_injury_result):
 			_pbp.injuries_resolved.disconnect(_on_backend_injury_result)
 		if _pbp.has_signal("battlefield_finds_completed") and _pbp.battlefield_finds_completed.is_connected(_on_backend_battlefield_finds):
@@ -366,6 +371,21 @@ func _on_backend_loot_generated(loot: Array) -> void:
 				child.disabled = true
 				child.text = "Loot Rolled (see results)"
 				break
+
+func _on_backend_items_consumed(consumed: Array) -> void:
+	## Handle single-use items consumed during battle (Session 47)
+	if consumed.is_empty():
+		return
+	_add_result_to_log("--- Equipment Consumed in Battle ---")
+	for item in consumed:
+		if item is Dictionary:
+			var name: String = str(item.get("weapon_name", "Unknown"))
+			var user: String = str(item.get("character_name", "Unknown"))
+			var removed: bool = item.get("removed", false)
+			if removed:
+				_add_result_to_log("  %s used by %s (removed from inventory)" % [name, user])
+			else:
+				_add_result_to_log("  %s used by %s" % [name, user])
 
 func _on_backend_injury_result(injuries: Array) -> void:
 	## Handle injury results from backend

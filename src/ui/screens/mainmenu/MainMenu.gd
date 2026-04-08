@@ -489,6 +489,19 @@ func _on_bug_hunt_pressed() -> void:
 	var dialog := AcceptDialog.new()
 	dialog.title = "Bug Hunt"
 	dialog.ok_button_text = "Cancel"
+	# Deep Space theme for dialog
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1A1A2E")
+	panel_style.border_color = Color("#3A3A5C")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(6)
+	panel_style.content_margin_left = 16
+	panel_style.content_margin_right = 16
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override(
+		"font_color", Color("#E0E0E0"))
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -497,17 +510,23 @@ func _on_bug_hunt_pressed() -> void:
 	var info_lbl := Label.new()
 	info_lbl.text = "Found %d Bug Hunt campaign(s)." % bh_saves.size()
 	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_lbl.add_theme_color_override(
+		"font_color", Color("#E0E0E0"))
 	vbox.add_child(info_lbl)
 
 	# Continue most recent
 	var continue_btn := Button.new()
 	var latest: Dictionary = bh_saves[0]
-	continue_btn.text = "Continue: %s (Turn %s)" % [
-		latest.get("name", "Unknown"), str(latest.get("turn", "?"))]
+	continue_btn.text = "Continue: %s (Turn %d)" % [
+		latest.get("name", "Unknown"), int(latest.get("turn", 0))]
 	continue_btn.custom_minimum_size.y = 48
 	continue_btn.pressed.connect(func():
-		dialog.hide()
-		_load_bug_hunt_save(latest.get("path", ""))
+		var p: String = latest.get("path", "")
+		dialog.queue_free()
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+		get_tree().create_timer(0.05).timeout.connect(
+			func(): _load_bug_hunt_save(p))
 	)
 	vbox.add_child(continue_btn)
 
@@ -516,14 +535,18 @@ func _on_bug_hunt_pressed() -> void:
 		for i in range(1, mini(bh_saves.size(), 4)):
 			var save_info: Dictionary = bh_saves[i]
 			var load_btn := Button.new()
-			load_btn.text = "Load: %s (Turn %s)" % [
+			load_btn.text = "Load: %s (Turn %d)" % [
 				save_info.get("name", "Unknown"),
-				str(save_info.get("turn", "?"))]
+				int(save_info.get("turn", 0))]
 			load_btn.custom_minimum_size.y = 44
 			var path_ref: String = save_info.get("path", "")
 			load_btn.pressed.connect(func():
-				dialog.hide()
-				_load_bug_hunt_save(path_ref)
+				dialog.queue_free()
+				if is_instance_valid(backdrop):
+					backdrop.queue_free()
+				var pr: String = path_ref
+				get_tree().create_timer(0.05).timeout.connect(
+					func(): _load_bug_hunt_save(pr))
 			)
 			vbox.add_child(load_btn)
 
@@ -532,8 +555,11 @@ func _on_bug_hunt_pressed() -> void:
 	new_btn.text = "New Bug Hunt Campaign"
 	new_btn.custom_minimum_size.y = 48
 	new_btn.pressed.connect(func():
-		dialog.hide()
-		request_scene_change("bug_hunt_creation")
+		dialog.queue_free()
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+		get_tree().create_timer(0.05).timeout.connect(
+			func(): request_scene_change("bug_hunt_creation"))
 	)
 	vbox.add_child(new_btn)
 
@@ -839,7 +865,9 @@ func request_scene_change(scene_name: String) -> void:
 		"campaign_dashboard": "campaign_dashboard",
 		"campaign_turn_controller": "campaign_turn_controller",
 		"bug_hunt_creation": "bug_hunt_creation",
+		"bug_hunt_dashboard": "bug_hunt_dashboard",
 		"battle_simulator": "battle_simulator",
+		"compendium": "compendium",
 		"help": "help",
 		"store": "store",
 	}

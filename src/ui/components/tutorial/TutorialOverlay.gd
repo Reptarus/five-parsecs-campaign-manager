@@ -22,7 +22,7 @@ var _next_button: Button
 var _skip_button: Button
 
 var current_step := 0
-var tutorial_steps: Array[Dictionary]
+var tutorial_steps: Array
 var current_tween: Tween
 
 func _ready() -> void:
@@ -107,7 +107,7 @@ func _setup_overlay() -> void:
 	# Initially hidden
 	hide_overlay()
 
-func start_tutorial(steps: Array[Dictionary]) -> void:
+func start_tutorial(steps: Array) -> void:
 	tutorial_steps = steps
 	current_step = 0
 	show_current_step()

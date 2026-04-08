@@ -28,6 +28,7 @@ static func resolve_battle(
   "held_field": true,
   "loot_opportunities": [],
   "battlefield_finds": 2,
+  "consumed_items": [],
   "crew_units_final": [],
   "enemy_units_final": [],
   "deployment_effects": {}
@@ -90,22 +91,38 @@ Applied in `initialize_battle()` based on `deployment_condition` dict.
 
 `SeizeInitiativeSystem.gd` (UI component path) already applied difficulty independently via `set_difficulty_mode()`. The Session 40 fix covers the automated resolution path.
 
-## Battle Flow
+## Battle Flow (Session 47 — Equipment Pipeline Wired)
 
 ```
 1. initialize_battle(crew, enemies, deployment_condition)
    → Apply deployment condition effects
+   → Extract armor/screen from crew equipment (_extract_protective_equipment)
+   → Extract enemy saving throws from special_rules (_extract_enemy_saving_throw)
+   → Set deflector_uses, battle_dress reactions bonus
    → Return initial battle state
 
-2. For each round (MIN_COMBAT_ROUNDS to MAX_COMBAT_ROUNDS):
-   execute_combat_round(round, crew_units, enemy_units, battlefield_data, condition_effects, dice_roller)
+2. For each round:
+   execute_combat_round(...)
    → _check_initiative reads difficulty from battlefield_data
-   → Each side attacks
-   → Check for battle end conditions
+   → Each unit attacks:
+     • moved_this_turn heuristic (50% random for auto-resolve)
+     • Overheat shot reduction if fired_hot_weapon_last_round
+     • Flex-armor +1 Toughness, stealth gear -1 hit, camo cloak cover
+     • Deflector field auto-deflect (1 per battle)
+     • resolve_ranged_attack() with get_weapon_trait_effects()
+       - Hit modifiers: Heavy(-1 moved), Snap Shot(+1 close), Stealth(-1)
+       - Shrapnel overrides all modifiers (fixed 5+)
+       - Stun bypasses Toughness, applies even on save
+       - Flak screen: Area damage -1
+       - Frag vest: 6+→5+ vs Area, Screen generator: no save vs Area/Melee
+     • Stim-pack prevents elimination (→ stun instead)
+     • Track consumed single-use items
+   → Rotate fired_hot_weapon flags, clear round status
+   → Aggregate consumed_items
 
-3. calculate_battle_outcome(crew_casualties, enemy_casualties, crew_deployed, enemies_deployed)
-   → Determine victory/defeat
-   → Calculate held_field
+3. calculate_battle_outcome(...)
+   → Victory/defeat, held_field
+   → consumed_items returned in result dict
 ```
 
 ## Initiative Check

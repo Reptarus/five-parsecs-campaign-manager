@@ -26,6 +26,27 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 
 ---
 
+## Session 47: Equipment Pipeline — Battle Domain (Apr 8, 2026)
+
+### BattleCalculations.gd — Weapon Trait Effects Integrated
+- Fixed 4 fabricated traits: Focused, Heavy, Overheat, Stun — replaced with Core Rules trait system
+- New `get_weapon_trait_effects()` integrated into `resolve_ranged_attack()` and `resolve_brawl()`
+- Clumsy brawl penalty, stealth gear hit penalty, flak screen damage reduction, frag vest area bonus
+- Shrapnel override (area damage), consumable effects (grenades, stim-packs), 8 new utility devices
+
+### BattleResolver.gd — Armor/Screen + Protective Devices
+- Armor and screen saves now initialized from equipment + enemy `special_rules`
+- Protective device effects: deflector field, flex-armor, camo cloak
+- Overheat round tracking (weapon fires every other round)
+- `moved_this_turn` heuristic for movement-dependent traits
+- Consumed items pipeline: items used in battle tracked and passed to PostBattle
+- Stim-pack elimination prevention (prevents first fatal hit)
+
+### CoreSystems.WeaponTraitSystem Deprecated
+- Zero callers remain — all trait logic consolidated into BattleCalculations
+
+---
+
 ## Session 40b: Legal Stack + Modiphius Ask List (Apr 7, 2026)
 
 No direct battle-domain changes. Context awareness:

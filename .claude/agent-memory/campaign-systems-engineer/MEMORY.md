@@ -27,6 +27,55 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 47: Equipment Pipeline — Campaign Domain (Apr 8, 2026)
+
+### CampaignPhaseManager PostBattlePhase Rewiring
+
+- Rewired to correct orchestrator: `phases/PostBattlePhase.gd` (not `core/campaign/PostBattlePhase.gd`)
+- Constructor changed: `.new()` + `set_campaign()` instead of `.new(game_state)`
+- Signal: `post_battle_phase_completed` instead of `phase_completed`
+- Entry: `start_post_battle_phase(battle_data)` instead of `process_post_battle()`
+- Campaign reference updated in `_connect_to_campaign()`
+- 3 deprecated files identified: `src/core/campaign/PostBattlePhase.gd`, `src/game/campaign/FiveParsecsPostBattlePhase.gd`, `src/base/campaign/BasePostBattlePhase.gd`
+
+### PostBattleCompletion — Consumed Items Pipeline
+
+- `process_consumed_items()` added — removes battle-consumed items from character equipment
+- `items_consumed_in_battle` signal wired from PostBattlePhase orchestrator
+
+### TravelPhase.gd
+
+- `attempt_forge_license()` method added for Red Zone license forging during travel
+
+---
+
+## Session 43: Story Points Full Integration (Apr 7, 2026)
+
+### CampaignPhaseManager Turn Rollover — Now Routes Through StoryPointSystem
+
+Previously `_process_turn_rollover()` wrote directly to `campaign.story_points` and `campaign.story_point_turn_state` flags. Now creates transient `StoryPointSystem.new(campaign)`, loads state via `from_dict()`, calls `reset_turn_limits()` + `check_turn_earning()`, persists back via `to_dict()`. This ensures:
+- Insanity mode check applies (was bypassed before)
+- `story_points_earned` signal fires (was silent before)
+- Per-turn flags route through system (was direct dict manipulation)
+
+### PostBattlePhase — "A Bitter Day" Battle Earning (Core Rules p.67)
+
+New `_check_bitter_day_story_point()` in `_complete_post_battle_phase()` after manipulator bonus:
+- Reads `battle_result.get("held_field", false)` + scans `casualties` for `type == "killed"/"fatal"`
+- If both true AND not Insanity: `campaign.story_points += 1`
+- Journal entry via `_log_bitter_day_sp()` (follows `_log_manipulator_bonus` pattern)
+- `_is_story_points_disabled()` helper checks campaign difficulty == INSANITY
+- New signal: `bitter_day_sp_earned`
+
+### Dashboard _sync_sp_system() Pattern
+
+Dashboard's `_sp_system` is created once at `_ready()` and can go stale when CampaignPhaseManager modifies campaign directly. New `_sync_sp_system()` method reloads from `campaign.story_point_turn_state`. Called from:
+- `_on_phase_event()` — after turn rollover
+- `_on_phase_completed()` — after phase finishes
+- `_toggle_sp_popover()` — safety net before showing popover
+
+---
+
 ## Session 40b: Legal Stack + Compendium Library + Modiphius Ask List (Apr 7, 2026)
 
 ### Legal Stack (14 new files)
@@ -70,6 +119,18 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 ### Dead Code Deleted (10 files)
 
 ConfigPanel, CampaignSetupScreen, CampaignSetupDialog, DifficultyOption, gameplay_options_menu, QuickStartDialog, CampaignLoadDialog, CampaignSummaryPanel, CampaignCreationManager — all confirmed zero active references.
+
+### Ship Component System (Session 45)
+
+- `ShipComponentQuery.gd` (NEW) — static helper, queries `GameStateManager.get_ship_data()["components"]`
+- **Old saves missing `"components"` key** — ShipComponentQuery handles gracefully (returns []), but all component effects silently no-op. New campaigns include it via `ShipPanel._initialize_ship_data()`. Needs migration in `GameState.load_campaign()`.
+- `UpkeepSystem.gd` — Suspension Pod must gate on `has_component("suspension_pod")` before using `suspended_crew` list
+- `UpkeepPhaseComponent.gd` — UI layer also calculates upkeep independently (dual calculation risk)
+- Travel cost formula duplicated in `TravelPhase.gd` AND `ShipManager.gd` — extract to shared helper eventually
+
+### TransitionManager Scene Init Timing (Session 45)
+
+`TransitionManager.fade_to_scene()` instantiates scenes before adding to tree. `_ready()` fires before node is accessible via `/root/` paths. Any scene loaded via SceneRouter that uses `get_node_or_null("/root/...")` in `_ready()` MUST defer: `call_deferred("_initialize")`.
 
 ### Elite Rank Cap
 

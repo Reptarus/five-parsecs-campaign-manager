@@ -51,6 +51,51 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## Session 47: Equipment Pipeline — UI Domain (Apr 8, 2026)
+
+### UnifiedBattleLog — New Entry Types
+
+- 5 new `ENTRY_COLORS`: armor_save, deflector, stim_pack, trait_effect, item_consumed
+- 5 new logging methods: `log_armor_save()`, `log_deflector_use()`, `log_stim_pack()`, `log_trait_effect()`, `log_item_consumed()`
+
+### PostBattleSequence — Consumed Items Signal
+
+- Connected `items_consumed_in_battle` signal from PostBattlePhase backend
+- `_on_backend_items_consumed` handler processes consumed item display
+- Disconnect in `_exit_tree()` for cleanup
+
+### PostBattleSummarySheet — Consumed Items Section
+
+- `_setup_consumed_items()` dynamically creates section after LootSection
+- Uses `main_vbox.move_child()` for correct ordering
+
+### TravelPhaseUI — World Arrival + Forge License
+
+- World Arrival Summary panel: displays world trait, rivals, license status
+- Forge license UI with crew picker dialog
+- 10 travel event state mutation helpers
+- World trait persistence to `campaign.world_data`
+
+---
+
+## Session 43: Story Points Dashboard Wiring (Apr 7, 2026)
+
+### CampaignDashboard.gd — New Methods
+
+- **`_sync_sp_system()`** — Reloads `_sp_system` from `campaign.story_point_turn_state` so popover shows fresh data. Called from `_on_phase_event()`, `_on_phase_completed()`, and `_toggle_sp_popover()` (safety net before open). Without this, popover balance/limits go stale after CampaignPhaseManager modifies campaign during turn rollover.
+- **`_show_xp_character_picker(campaign)`** — Shows ConfirmationDialog + ItemList for "+3 XP" spend. Filters to alive/active crew. On confirm: applies `+3 XP` to selected character + journal entry. On cancel/close: refunds SP via `_sp_system.add_points(1, "Cancelled")`.
+- **Extra Action toast** — EXTRA_ACTION branch now shows `NotificationManager.show_notification()` toast confirming the tabletop action.
+
+### StoryPointPopover.gd — Battle-Only Star Abilities
+
+In `_update_star_rows()`, Dramatic Escape and It's Time To Go are now force-disabled on dashboard:
+- `battle_only` check disables button + sets tooltip "Available during battle"
+- Uses `COLOR_WARNING` for uses label when has remaining uses but battle-locked
+- Uses `COLOR_TEXT_SECONDARY` for name label (dimmed but not fully disabled)
+- "It Wasn't That Bad" and "Rainy Day Fund" remain usable from dashboard
+
+---
+
 ## Session 41: UX Sprint — Dashboard Polish + Accessibility + Tutorials (Apr 7, 2026)
 
 ### CampaignDashboard.gd Changes
@@ -93,10 +138,15 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 - **LegalTextViewer.gd** — Reusable full-screen Markdown viewer. Opens from Settings → Legal & Privacy section. Used for EULA, Privacy Policy, Open Source Licenses, Credits
 - **Settings → Legal & Privacy section** — New section in `SettingsScreen.gd`: 4 document links (LegalTextViewer), analytics toggle (default OFF), Export My Data button, Delete All Data button (red danger + confirmation dialog)
 
-### Compendium Library UI
+### Compendium Library UI (Session 40b — OVERHAULED in Session 48)
 
-- 10 category screens, 340+ items browsable
-- Extensible for Planetfall/Tactics content
+- Renamed to "Library" in MainMenu + hub title
+- 10 categories, 246+ items, extensible for Planetfall/Tactics
+- **Session 48 overhaul**: Both screens extend `FiveParsecsCampaignPanel` (responsive). Hub uses `HFlowContainer` for 4-col desktop / 1-col mobile grid. Category view has card-style rows (3px cyan left border, type icons, hover effects, TweenFX.press feedback). Filter tabs humanized via `set_meta("filter_value")`. Section headers group items by type. `EmptyStateWidget` for no results. 6 new type SVG icons in `assets/icons/compendium/items/`.
+- **Key pattern**: Skip `super._ready()`, call `_ensure_base_background()` + `_setup_responsive_layout()` manually to avoid unwanted FormContainer structure
+- **Gotcha**: `_create_section_header` name collides with BaseCampaignPanel — renamed to `_create_group_header`
+- **Gotcha**: TweenFX.pop_in() requires CanvasItem, NOT Window — removed from RulesPopup
+- **Gotcha**: New SVGs need `--headless --import` to generate .import files
 
 ### Icon SOP (game-icons.net)
 
@@ -104,6 +154,21 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 - Format: white on transparent, use `modulate` for color
 - Path convention: `assets/icons/{context}/` (e.g., `assets/icons/stats/`, `assets/icons/equipment/`)
 - Attribution in `data/legal/third_party_licenses.md`
+
+---
+
+## Session 45: Bug Hunt UX Fixes (Apr 8, 2026)
+
+### HubFeatureCard Pending Data Pattern (CRITICAL)
+`HubFeatureCard.setup()` can be called before OR after `add_child()`. If called before `_ready()`, data is stored in `_pending_*` vars and applied in `_ready()`. Always safe either way now.
+- CampaignDashboard does `add_child` then `setup` (was always fine)
+- BugHuntDashboard does `setup` then `add_child` (was broken, now fixed)
+
+### CampaignDashboard._create_colored_badge() (renamed)
+Was `_create_stat_badge()` — renamed to avoid parent signature conflict with `CampaignScreenBase._create_stat_badge(stat_name: String, value: int, show_plus: bool)`. Dashboard version takes `(label_text, value_text, color)`.
+
+### TransitionManager + _ready() Timing
+When `TransitionManager.fade_to_scene()` instantiates a scene, `_ready()` fires BEFORE the node is in the scene tree. Any `get_node_or_null("/root/...")` calls will fail. Fix: `call_deferred("_initialize")` in `_ready()`.
 
 ---
 
@@ -171,6 +236,8 @@ If you need to verify UI labels, stat names, or game terminology against the sou
 ### 9. UIColors Over Local Constants
 
 World phase components should use `UIColors.COLOR_EMERALD`, `UIColors.COLOR_RED`, etc. instead of local `const COLOR_*` definitions. Base class provides `TOUCH_TARGET_MIN := 48`.
+
+**Bug Hunt panels** (Session 44): All 12 Bug Hunt UI files now use `const _UC = preload("res://src/ui/components/base/UIColors.gd")` pattern. BugHuntDashboard extends `BugHuntScreenBase` → `CampaignScreenBase` and uses factory methods directly. Child panels (ConfigPanel, SquadPanel, etc.) use the `_UC` preload pattern since they extend Control directly (instantiated via `Script.new()`).
 
 ### 10. DLC UI Components (Session 33, Apr 6)
 

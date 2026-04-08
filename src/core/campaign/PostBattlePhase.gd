@@ -1,3 +1,7 @@
+## DEPRECATED (Session 47): Old 5-step Control-based PostBattlePhase.
+## Replaced by src/core/campaign/phases/PostBattlePhase.gd (14-step
+## decomposed orchestrator with 10 subsystems). CampaignPhaseManager
+## now uses the new orchestrator. Safe to delete in a future session.
 # PostBattle.gd
 extends Control
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")

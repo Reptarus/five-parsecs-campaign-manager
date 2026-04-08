@@ -58,6 +58,7 @@ static func resolve_battle(
 	
 	# Step 2: Execute combat rounds (no round limit per Core Rules — ends on elimination)
 	var round_number := 1
+	var all_consumed_items: Array = []  # Phase 3: Aggregate consumed items
 
 	while round_number <= _SAFETY_MAX_ROUNDS:
 		var round_result := execute_combat_round(
@@ -68,18 +69,20 @@ static func resolve_battle(
 			battle_state["condition_effects"],
 			dice_roller
 		)
-		
+
 		# Update battle state with casualties
 		battle_state["crew_casualties"] += round_result["crew_casualties"]
 		battle_state["enemy_casualties"] += round_result["enemy_casualties"]
-		
+		all_consumed_items.append_array(
+			round_result.get("consumed_items", []))
+
 		# Check for battle end conditions (all enemies eliminated or all crew down)
 		var crew_alive := _count_alive_units(battle_state["crew_units"])
 		var enemies_alive := _count_alive_units(battle_state["enemy_units"])
-		
+
 		if crew_alive == 0 or enemies_alive == 0:
 			break
-		
+
 		round_number += 1
 	
 	# Step 3: Calculate final outcome
@@ -104,14 +107,17 @@ static func resolve_battle(
 		"rounds_fought": round_number,
 		"crew_casualties": battle_state["crew_casualties"],
 		"enemies_defeated": battle_state["enemy_casualties"],
-		
+
 		# Post-Battle data (Core Rules p.119)
 		"held_field": outcome["held_field"],
-		
+
 		# Loot and rewards
 		"loot_opportunities": loot_rolls,
 		"battlefield_finds": randi_range(BATTLEFIELD_FINDS_MIN, BATTLEFIELD_FINDS_MAX) if outcome["held_field"] else 0,
-		
+
+		# Phase 3: Single-use items consumed during battle
+		"consumed_items": all_consumed_items,
+
 		# Battle state for detailed logging (optional)
 		"crew_units_final": battle_state["crew_units"],
 		"enemy_units_final": battle_state["enemy_units"],
@@ -170,6 +176,18 @@ static func initialize_battle(
 		unit["is_suppressed"] = false
 		unit["is_alive"] = true
 		unit["kills"] = 0
+		# Phase 1: Extract armor/screen from equipment (Core Rules pp.54-55)
+		var crew_equipment: Array = unit.get("equipment", [])
+		var protection := _extract_protective_equipment(crew_equipment)
+		unit["armor"] = protection["armor"]
+		unit["screen"] = protection["screen"]
+		unit["protective_effects"] = protection["protective_effects"]
+		# Battle dress: +1 Reactions (max 4) — Core Rules p.54
+		if protection["protective_effects"].get("battle_dress_reactions", false):
+			unit["reactions"] = mini(unit.get("reactions", 1) + 1, 4)
+		# Phase 6: Deflector field — 1 auto-deflect per battle
+		if protection["protective_effects"].get("deflector_field", false):
+			unit["deflector_uses"] = 1
 		battle_state["crew_units"].append(unit)
 
 	# Copy enemy units and apply deployment effects
@@ -180,6 +198,12 @@ static func initialize_battle(
 		unit["is_suppressed"] = false
 		unit["is_alive"] = true
 		unit["kills"] = 0
+		# Phase 1: Extract armor from enemy special_rules (e.g., "6+ Saving Throw")
+		if not unit.has("armor") or unit.get("armor", "none") == "none":
+			var special_rules: Array = unit.get("special_rules", [])
+			unit["armor"] = _extract_enemy_saving_throw(special_rules)
+		if not unit.has("screen"):
+			unit["screen"] = "none"
 		battle_state["enemy_units"].append(unit)
 	
 	# Apply deployment condition effects (e.g., "ambush" gives crew first strike)
@@ -226,20 +250,21 @@ static func execute_combat_round(
 	var round_result := {
 		"crew_casualties": 0,
 		"enemy_casualties": 0,
-		"events": []
+		"events": [],
+		"consumed_items": []  # Phase 3: Bubble up consumed single-use items
 	}
-	
+
 	# Step 1: Check initiative (Core Rules p.117 - seize initiative 2d6 + highest Savvy >= 10)
 	# Difficulty modifier: Hardcore -2, Insanity -3 (Core Rules p.65)
 	var crew_has_initiative := _check_initiative(crew_units, dice_roller, battlefield_data)
 	if condition_effects.get("crew_first_strike", false):
 		crew_has_initiative = true  # Ambush always gives initiative
-	
+
 	# Step 2: Determine action order
 	var first_units: Array = crew_units if crew_has_initiative else enemy_units
 	var second_units: Array = enemy_units if crew_has_initiative else crew_units
 	var first_is_crew := crew_has_initiative
-	
+
 	# Step 3: First side attacks
 	var first_results := _execute_unit_attacks(
 		first_units,
@@ -249,14 +274,16 @@ static func execute_combat_round(
 		condition_effects,
 		dice_roller
 	)
-	
+
 	if first_is_crew:
 		round_result["enemy_casualties"] += first_results["casualties"]
 	else:
 		round_result["crew_casualties"] += first_results["casualties"]
-	
+
 	round_result["events"].append_array(first_results["events"])
-	
+	round_result["consumed_items"].append_array(
+		first_results.get("consumed_items", []))
+
 	# Step 4: Second side attacks (if any units alive)
 	var second_alive := _count_alive_units(second_units)
 	if second_alive > 0:
@@ -268,13 +295,15 @@ static func execute_combat_round(
 			condition_effects,
 			dice_roller
 		)
-		
+
 		if first_is_crew:
 			round_result["crew_casualties"] += second_results["casualties"]
 		else:
 			round_result["enemy_casualties"] += second_results["casualties"]
-		
+
 		round_result["events"].append_array(second_results["events"])
+		round_result["consumed_items"].append_array(
+			second_results.get("consumed_items", []))
 	
 	# Step 5: Clear temporary status effects at end of round
 	_clear_round_status(crew_units)
@@ -298,22 +327,36 @@ static func _execute_unit_attacks(
 ) -> Dictionary:
 	var result := {
 		"casualties": 0,
-		"events": []
+		"events": [],
+		"consumed_items": []  # Phase 3: Track single-use items consumed
 	}
-	
+
 	for attacker in attackers:
 		if not attacker.get("is_alive", false):
 			continue
-		
+
 		# Find alive target
 		var target := _find_alive_target(defenders)
 		if target == null or target.is_empty():
 			break
-		
+
 		# Prepare attack context
 		var weapon: Dictionary = attacker.get("weapon", {})
 		var range_inches: float = _estimate_range(attacker, target, battlefield_data)
-		
+
+		# Phase 4: Heuristic for movement (auto-resolved battles don't track positions)
+		# 50% chance of having moved — affects Heavy trait (-1 hit) and Flex-armor (+1 Toughness)
+		if not attacker.has("moved_this_turn"):
+			attacker["moved_this_turn"] = randf() < 0.5
+
+		# Phase 4: Overheat shot reduction (Compendium p.91)
+		var weapon_traits: Array = weapon.get("traits", [])
+		var overheat_reduction: int = BattleCalculations.get_overheat_shot_reduction(
+			weapon, attacker.get("fired_hot_weapon_last_round", false))
+		if overheat_reduction > 0:
+			var base_shots: int = weapon.get("shots", 1)
+			weapon["shots"] = maxi(1, base_shots - overheat_reduction)
+
 		# Apply deployment condition modifiers
 		var hit_modifier := 0
 		if attackers_are_crew:
@@ -321,11 +364,35 @@ static func _execute_unit_attacks(
 			hit_modifier += condition_effects.get("crew_hit_penalty", 0)
 		else:
 			hit_modifier += condition_effects.get("enemy_bonus", 0)
-		
+
 		# Set context for BattleCalculations
 		attacker["range_to_target"] = range_inches
 		target["in_cover"] = _has_cover(target, battlefield_data, condition_effects)
-		
+
+		# Phase 6: Apply conditional protective device effects (Core Rules pp.54-55)
+		var target_prot: Dictionary = target.get("protective_effects", {})
+
+		# 6a. Flex-armor: +1 Toughness if didn't move (max 6)
+		if target_prot.get("flex_armor", false) and not target.get("moved_this_turn", false):
+			target["toughness"] = mini(target.get("toughness", 3) + 1, 6)
+			target["_flex_armor_active"] = true
+
+		# 6b. Stealth gear: Enemies >9" are -1 to Hit
+		if target_prot.get("stealth_gear", false) and range_inches > 9.0:
+			attacker["stealth_gear_penalty"] = true
+
+		# 6c. Camo cloak: Within 2" of Cover, count as in Cover (not if shooter <4")
+		if target_prot.get("camo_cloak", false) and not target.get("in_cover", false):
+			if range_inches > 4.0:
+				# Heuristic: 60% chance near cover for camo benefit
+				if randf() < 0.6:
+					target["in_cover"] = true
+
+		# 6d. Deflector field: Auto-deflect 1 hit per battle
+		if target_prot.get("deflector_field", false) and target.get("deflector_uses", 0) > 0:
+			# Will be consumed after hit resolution below
+			pass
+
 		# Resolve attack using BattleCalculations
 		var attack_result := BattleCalculations.resolve_ranged_attack(
 			attacker,
@@ -333,7 +400,33 @@ static func _execute_unit_attacks(
 			weapon,
 			dice_roller
 		)
-		
+
+		# 6d continued: Deflector field — negate first hit
+		if attack_result["hit"] and target.get("deflector_uses", 0) > 0:
+			target["deflector_uses"] -= 1
+			attack_result["hit"] = false
+			attack_result["effects"].append("deflector_field_used")
+			result["events"].append({
+				"type": "deflector_field",
+				"target": target.get("name", target.get("character_name", "Unknown"))
+			})
+
+		# 6a cleanup: Restore toughness if flex-armor was temporarily applied
+		if target.get("_flex_armor_active", false):
+			target["toughness"] = target.get("toughness", 3) - 1
+			target.erase("_flex_armor_active")
+
+		# Phase 3: Track consumed single-use items
+		if "one_use_consumed" in attack_result.get("effects", []):
+			result["consumed_items"].append({
+				"character_name": attacker.get(
+					"character_name", attacker.get("name", "Unknown")),
+				"character_id": str(attacker.get(
+					"character_id", attacker.get("id", ""))),
+				"weapon_name": weapon.get("name", "Unknown Weapon"),
+				"weapon_id": str(weapon.get("id", ""))
+			})
+
 		# Apply damage if hit
 		if attack_result["hit"] and not attack_result.get("armor_saved", false):
 			var damage: int = attack_result.get("wounds_inflicted", 1)
@@ -342,28 +435,58 @@ static func _execute_unit_attacks(
 			target["hp_current"] -= damage
 
 			if target["hp_current"] <= 0:
-				target["is_alive"] = false
-				result["casualties"] += 1
-				attacker["kills"] = attacker.get("kills", 0) + 1
-				
-				result["events"].append({
-					"type": "elimination",
-					"attacker": attacker.get("name", "Unknown"),
-					"target": target.get("name", "Enemy"),
-					"damage": damage
-				})
-			elif "stunned" in attack_result.get("effects", []):
+				# Phase 7: Stim-pack — prevent elimination (Core Rules p.54)
+				if target.get("has_stim_pack", false):
+					target["has_stim_pack"] = false
+					target["hp_current"] = 1
+					target["is_stunned"] = true
+					result["events"].append({
+						"type": "stim_pack_used",
+						"target": target.get("name",
+							target.get("character_name", "Unknown"))
+					})
+					result["consumed_items"].append({
+						"character_name": target.get(
+							"character_name", target.get("name", "")),
+						"character_id": str(target.get(
+							"character_id", target.get("id", ""))),
+						"weapon_name": "Stim-pack",
+						"weapon_id": "stim_pack"
+					})
+				else:
+					target["is_alive"] = false
+					result["casualties"] += 1
+					attacker["kills"] = attacker.get("kills", 0) + 1
+
+					result["events"].append({
+						"type": "elimination",
+						"attacker": attacker.get("name", "Unknown"),
+						"target": target.get("name", "Enemy"),
+						"damage": damage
+					})
+			elif "stun" in attack_result.get("effects", []):
 				target["is_stunned"] = true
 				result["events"].append({
 					"type": "stunned",
 					"target": target.get("name", "Unknown")
 				})
 		elif attack_result["hit"] and attack_result.get("armor_saved", false):
+			# Stun still applies even when saved — Core Rules p.51
+			if "stun" in attack_result.get("effects", []):
+				target["is_stunned"] = true
+				result["events"].append({
+					"type": "stunned",
+					"target": target.get("name", "Unknown")
+				})
 			result["events"].append({
 				"type": "armor_save",
 				"target": target.get("name", "Unknown")
 			})
-	
+
+		# Phase 4: Track hot weapon firing for overheat next round
+		if BattleCalculations._has_trait(weapon_traits, "hot") or BattleCalculations._has_trait(weapon_traits, "overheat"):
+			attacker["fired_hot_weapon_this_round"] = true
+
 	return result
 
 ## Calculate final battle outcome and determine victory/defeat
@@ -484,6 +607,58 @@ static func _has_cover(
 	cover_chance = clampf(cover_chance, 0.0, 1.0)
 	return randf() < cover_chance
 
+## Extract armor and screen type from a crew unit's equipment list
+## Maps equipment names to armor type strings used by BattleCalculations.get_armor_save_threshold()
+## Core Rules pp.54-55: Protective devices
+static func _extract_protective_equipment(equipment: Array) -> Dictionary:
+	var result := {"armor": "none", "screen": "none", "protective_effects": {}}
+	for item: Variant in equipment:
+		var item_name: String = str(item.get("name", item) if item is Dictionary else item).to_lower()
+		var item_id: String = str(item.get("id", "") if item is Dictionary else "").to_lower()
+		# Armor types (Core Rules pp.54-55)
+		if "battle dress" in item_name or item_id == "battle_dress":
+			result["armor"] = "combat"  # 5+ save
+			result["protective_effects"]["battle_dress_reactions"] = true  # +1 Reactions (max 4)
+		elif "combat armor" in item_name or item_id == "combat_armor":
+			result["armor"] = "combat"  # 5+ save
+		elif "frag vest" in item_name or item_id == "frag_vest":
+			result["armor"] = "light"  # 6+ save (5+ vs Area)
+			result["protective_effects"]["frag_vest_area_bonus"] = true
+		elif "flex" in item_name and "armor" in item_name or item_id == "flex_armor":
+			# Flex-Armor: +1 Toughness if didn't move (no save, handled separately)
+			result["protective_effects"]["flex_armor"] = true
+		elif "stealth gear" in item_name or item_id == "stealth_gear":
+			# Stealth Gear: Enemies >9" are -1 to Hit (no save, handled separately)
+			result["protective_effects"]["stealth_gear"] = true
+		# Screen types (Core Rules pp.54-55)
+		if "screen generator" in item_name or item_id == "screen_generator":
+			result["screen"] = "basic"  # 5+ vs gunfire only
+			result["protective_effects"]["screen_gunfire_only"] = true
+		elif "deflector" in item_name or item_id == "deflector_field":
+			result["protective_effects"]["deflector_field"] = true  # Auto-deflect 1 hit
+		elif "flak screen" in item_name or item_id == "flak_screen":
+			result["protective_effects"]["flak_screen"] = true  # Area damage -1
+		elif "camo" in item_name or item_id == "camo_cloak":
+			result["protective_effects"]["camo_cloak"] = true  # Cover within 2" of cover
+	return result
+
+## Extract saving throw from enemy special_rules array
+## Enemies use strings like "5+ Saving Throw" or "6+ Saving Throw" in special_rules
+static func _extract_enemy_saving_throw(special_rules: Array) -> String:
+	for rule: Variant in special_rules:
+		var rule_str: String = str(rule).to_lower()
+		if "saving throw" in rule_str:
+			# Parse "5+ Saving Throw" → "combat", "6+ Saving Throw" → "light"
+			if "3+" in rule_str:
+				return "powered"
+			elif "4+" in rule_str:
+				return "battle_suit"
+			elif "5+" in rule_str:
+				return "combat"
+			elif "6+" in rule_str:
+				return "light"
+	return "none"
+
 ## Clear temporary round-based status effects
 static func _clear_round_status(units: Array) -> void:
 	for unit in units:
@@ -493,6 +668,12 @@ static func _clear_round_status(units: Array) -> void:
 		# Suppression clears at end of round if not renewed
 		if unit.get("is_suppressed", false):
 			unit["is_suppressed"] = false
+		# Phase 4: Rotate hot weapon tracking for overheat
+		unit["fired_hot_weapon_last_round"] = unit.get(
+			"fired_hot_weapon_this_round", false)
+		unit["fired_hot_weapon_this_round"] = false
+		# Reset movement heuristic for next round
+		unit.erase("moved_this_turn")
 
 #endregion
 

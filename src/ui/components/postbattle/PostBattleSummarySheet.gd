@@ -143,6 +143,9 @@ func setup(summary_data: Dictionary) -> void:
 	# Populate loot
 	_setup_loot()
 
+	# Populate consumed equipment (Session 47)
+	_setup_consumed_items()
+
 	# Populate campaign changes
 	_setup_campaign_changes()
 
@@ -336,6 +339,41 @@ func _setup_loot() -> void:
 		loot_grid.add_child(value_label)
 
 	loot_container.add_child(loot_grid)
+
+func _setup_consumed_items() -> void:
+	## Setup consumed equipment section (Session 47 — single-use items used in battle)
+	var consumed: Array = _summary_data.get("consumed_items", [])
+	if consumed.is_empty():
+		return
+
+	# Build section dynamically (no .tscn node needed)
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", SPACING_SM)
+
+	var header := Label.new()
+	header.text = "Equipment Consumed"
+	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	section.add_child(header)
+
+	for item in consumed:
+		if not item is Dictionary:
+			continue
+		var row := Label.new()
+		var item_name: String = str(item.get("weapon_name", "Unknown"))
+		var user_name: String = str(item.get("character_name", "Unknown"))
+		row.text = "%s  (used by %s)" % [item_name, user_name]
+		row.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		row.add_theme_color_override("font_color", COLOR_WARNING)
+		section.add_child(row)
+
+	# Insert after loot section, before campaign changes
+	var loot_idx: int = loot_section.get_index() if loot_section else -1
+	if loot_idx >= 0 and main_vbox:
+		main_vbox.add_child(section)
+		main_vbox.move_child(section, loot_idx + 1)
+	elif main_vbox:
+		main_vbox.add_child(section)
 
 func _setup_campaign_changes() -> void:
 	## Setup campaign changes section (rivals, patrons, quests, invasion)

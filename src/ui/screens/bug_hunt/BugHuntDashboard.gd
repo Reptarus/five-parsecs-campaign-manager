@@ -115,13 +115,15 @@ func _build_dashboard() -> void:
 			continue
 		var mc_name: String = mc.get("name", mc.get("character_name", "?"))
 		var mc_stats := {
-			"R": mc.get("reactions", 0),
-			"S": mc.get("speed", 0),
-			"CS": mc.get("combat_skill", 0),
-			"T": mc.get("toughness", 0),
-			"Sv": mc.get("savvy", 0)
+			"R": int(mc.get("reactions", 0)),
+			"S": int(mc.get("speed", 0)),
+			"CS": int(mc.get("combat_skill", 0)),
+			"T": int(mc.get("toughness", 0)),
+			"Sv": int(mc.get("savvy", 0))
 		}
-		var subtitle: String = "XP: %d | Missions: %d" % [mc.get("xp", 0), mc.get("completed_missions_count", 0)]
+		var missions: int = mc.get("completed_missions_count", 0)
+		var subtitle: String = "XP: %d | Service Record: %d mission%s" % [
+			mc.get("xp", 0), missions, "" if missions == 1 else "s"]
 		var char_id: String = mc.get("id", mc.get("character_id", ""))
 		if sick_bay.has(char_id):
 			subtitle += " | SICK BAY (%d turns)" % sick_bay.get(char_id, 1)

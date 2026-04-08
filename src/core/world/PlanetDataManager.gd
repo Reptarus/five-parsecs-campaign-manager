@@ -36,6 +36,9 @@ class PlanetData:
 	var market_conditions: Dictionary = {}
 	var trade_opportunities: Array[Dictionary] = []
 	var price_modifiers: Dictionary = {}
+
+	# Per-planet faction state (Compendium pp.110-117)
+	var faction_data: Dictionary = {}
 	
 	func _init(planet_id: String = ""):
 		id = planet_id if planet_id != "" else "planet_" + str(Time.get_unix_time_from_system())
@@ -62,7 +65,8 @@ class PlanetData:
 			"contact_ids": contact_ids,
 			"market_conditions": market_conditions,
 			"trade_opportunities": trade_opportunities,
-			"price_modifiers": price_modifiers
+			"price_modifiers": price_modifiers,
+			"faction_data": faction_data.duplicate(true),
 		}
 	
 	func deserialize(data: Dictionary) -> void:
@@ -87,6 +91,7 @@ class PlanetData:
 		market_conditions = data.get("market_conditions", {})
 		trade_opportunities = data.get("trade_opportunities", [])
 		price_modifiers = data.get("price_modifiers", {})
+		faction_data = data.get("faction_data", {})
 
 ## Planet Data Manager Signals
 signal planet_discovered(planet_data: PlanetData)
@@ -140,9 +145,12 @@ func _generate_new_planet(campaign_turn: int, forced_id: String = "") -> PlanetD
 	
 	# Store planet
 	visited_planets[planet.id] = planet
-	
+
+	# Sync to PlanetCache if available
+	_sync_to_cache(planet)
+
 	self.planet_discovered.emit(planet)
-	
+
 	return planet
 
 ## Initialize planet economic data
@@ -254,6 +262,17 @@ func _update_planet_visit(planet: PlanetData, campaign_turn: int) -> void:
 ## Set current planet
 func set_current_planet(planet_id: String) -> void:
 	current_planet_id = planet_id
+
+## Sync PlanetData to PlanetCache (loose coupling — cache may not have all planets)
+func _sync_to_cache(planet: PlanetData) -> void:
+	var cache: Node = get_node_or_null("/root/PlanetCache")
+	if not cache:
+		return
+	if cache.has_method("get_planet_by_id"):
+		var existing: Variant = cache.get_planet_by_id(planet.id)
+		if existing and cache.has_method("update_planet"):
+			existing.visited = true
+			cache.update_planet(existing)
 
 ## Get current planet data
 func get_current_planet() -> PlanetData:
@@ -414,9 +433,30 @@ func add_contact_to_planet(planet_id: String, contact_id: String) -> void:
 	if not visited_planets.has(planet_id):
 		return
 	
-	var planet = visited_planets[planet_id]
+	var planet: PlanetData = visited_planets[planet_id]
 	if contact_id not in planet.contact_ids:
 		planet.contact_ids.append(contact_id)
+
+## Remove contact from planet (Core Rules p.69: reinstatement on return visits)
+func remove_contact_from_planet(planet_id: String, contact_id: String) -> void:
+	if not visited_planets.has(planet_id):
+		return
+	var planet: PlanetData = visited_planets[planet_id]
+	var idx: int = planet.contact_ids.find(contact_id)
+	if idx >= 0:
+		planet.contact_ids.remove_at(idx)
+		planet_data_updated.emit(planet_id, "contact_removed")
+
+## Store faction state for a planet (Compendium pp.110-117: factions are per-planet)
+func store_faction_data(planet_id: String, data: Dictionary) -> void:
+	if visited_planets.has(planet_id):
+		visited_planets[planet_id].faction_data = data.duplicate(true)
+
+## Get stored faction state for a planet
+func get_faction_data(planet_id: String) -> Dictionary:
+	if visited_planets.has(planet_id):
+		return visited_planets[planet_id].faction_data.duplicate(true)
+	return {}
 
 ## Get exploration opportunities on planet
 func get_exploration_opportunities(planet_id: String) -> Array[Dictionary]:

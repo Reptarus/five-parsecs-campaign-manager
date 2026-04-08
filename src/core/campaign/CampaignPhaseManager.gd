@@ -3,10 +3,11 @@ extends Node
 
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
-	"res://src/core/campaign/PostBattlePhase.gd")
+	"res://src/core/campaign/phases/PostBattlePhase.gd")
 const VictoryChecker = preload(
 	"res://src/core/victory/VictoryChecker.gd")
 const StoryTrackSystemClass = preload(
@@ -67,12 +68,16 @@ func setup(state: FiveParsecsGameState) -> void:
 	validator = ValidationManager.new(game_state)
 	reset_phase_tracking()
 
-	# Initialize PostBattlePhase handler
+	# Initialize PostBattlePhase handler (decomposed 14-step orchestrator)
 	if game_state and not post_battle_phase_handler:
-		post_battle_phase_handler = PostBattlePhaseClass.new(game_state)
+		post_battle_phase_handler = PostBattlePhaseClass.new()
 		post_battle_phase_handler.name = "PostBattlePhaseHandler"
 		add_child(post_battle_phase_handler)
-		post_battle_phase_handler.phase_completed.connect(_on_post_battle_phase_completed)
+		# Set campaign reference (new orchestrator uses set_campaign, not _init)
+		if game_state.current_campaign:
+			post_battle_phase_handler.set_campaign(game_state.current_campaign)
+		post_battle_phase_handler.post_battle_phase_completed.connect(
+			_on_post_battle_phase_completed)
 
 	# Initialize narrative overlay systems
 	_init_intro_campaign()
@@ -213,11 +218,42 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 	## Character.process_recovery_turn() already implements this logic but was never called.
 	if not campaign.has_method("get_crew_members"):
 		return
+
+	# Suspension Pod: get suspended crew IDs to skip (Core Rules p.62)
+	var suspended_ids: Array = []
+	if "progress_data" in campaign:
+		suspended_ids = campaign.progress_data.get("suspended_crew", [])
+
 	var crew: Array = campaign.get_crew_members()
+	var medical_bay_candidate: Variant = null
+	var medical_bay_best_turns: int = 0
+
 	for member in crew:
+		# Skip suspended crew — they do not recover (Core Rules p.62)
+		var member_id: String = ""
+		if member is Resource and "character_id" in member:
+			member_id = str(member.character_id)
+		elif member is Dictionary:
+			member_id = str(member.get(
+				"character_id", member.get("id", "")))
+		if member_id in suspended_ids:
+			continue
+
 		if member is Resource and member.has_method("process_recovery_turn"):
+			# Track Medical Bay candidate before processing
+			if ShipComponentQuery.has_component("medical_bay"):
+				var remaining: int = _get_member_recovery_remaining(member)
+				if remaining > medical_bay_best_turns:
+					medical_bay_best_turns = remaining
+					medical_bay_candidate = member
 			member.process_recovery_turn()
 		elif member is Dictionary:
+			# Track Medical Bay candidate before processing
+			if ShipComponentQuery.has_component("medical_bay"):
+				var remaining: int = _get_dict_recovery_remaining(member)
+				if remaining > medical_bay_best_turns:
+					medical_bay_best_turns = remaining
+					medical_bay_candidate = member
 			# Dictionary-format crew: manually decrement recovery_turns
 			var injuries: Array = member.get("injuries", [])
 			var healed: Array = []
@@ -236,6 +272,78 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 			# Update status if no more injuries
 			if injuries.is_empty() and member.get("status", "") == "RECOVERING":
 				member["status"] = "ACTIVE"
+
+	# Medical Bay: one crew member marks off 2 turns total (Core Rules p.61)
+	# Normal loop already decremented by 1, so apply 1 more to best candidate
+	if medical_bay_candidate and ShipComponentQuery.has_component("medical_bay"):
+		_apply_medical_bay_bonus(medical_bay_candidate)
+
+
+## Get total remaining recovery turns for a Resource-based crew member.
+func _get_member_recovery_remaining(member: Resource) -> int:
+	if member.has_method("get") and member.get("injuries") is Array:
+		var total: int = 0
+		for inj in member.get("injuries"):
+			if inj is Dictionary:
+				total += inj.get("recovery_turns", 0)
+		return total
+	if "recovery_turns" in member:
+		return int(member.recovery_turns)
+	return 0
+
+
+## Get total remaining recovery turns for a Dictionary crew member.
+func _get_dict_recovery_remaining(member: Dictionary) -> int:
+	var total: int = 0
+	for inj in member.get("injuries", []):
+		if inj is Dictionary:
+			total += inj.get("recovery_turns", 0)
+	return total
+
+
+## Apply Medical Bay bonus: decrement an extra recovery turn (Core Rules p.61).
+func _apply_medical_bay_bonus(member: Variant) -> void:
+	var char_name: String = ""
+	var char_id: String = ""
+
+	if member is Resource:
+		char_name = str(member.get("character_name")) if "character_name" in member else "Unknown"
+		char_id = str(member.get("character_id")) if "character_id" in member else ""
+		if member.has_method("get") and member.get("injuries") is Array:
+			for inj in member.get("injuries"):
+				if inj is Dictionary and inj.get("recovery_turns", 0) > 0:
+					inj["recovery_turns"] = maxi(0, inj["recovery_turns"] - 1)
+					break  # Only 1 extra turn for the whole crew member
+		elif "recovery_turns" in member:
+			member.recovery_turns = maxi(0, member.recovery_turns - 1)
+	elif member is Dictionary:
+		char_name = member.get("character_name", member.get("name", "Unknown"))
+		char_id = str(member.get("character_id", member.get("id", "")))
+		for inj in member.get("injuries", []):
+			if inj is Dictionary and inj.get("recovery_turns", 0) > 0:
+				inj["recovery_turns"] = maxi(0, inj["recovery_turns"] - 1)
+				break
+		# Check if fully healed
+		var all_healed: bool = true
+		for inj in member.get("injuries", []):
+			if inj is Dictionary and inj.get("recovery_turns", 0) > 0:
+				all_healed = false
+				break
+		if all_healed and member.get("status", "") == "RECOVERING":
+			member["status"] = "ACTIVE"
+
+	# Journal entry for Medical Bay treatment
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "recovery",
+			"title": "Medical Bay Treatment",
+			"description": "%s received accelerated treatment in the Medical Bay (2 recovery turns marked off this turn)." % char_name,
+			"characters_involved": [char_id] if char_id != "" else [],
+			"tags": ["ship_component", "medical_bay", "recovery"],
+			"auto_generated": true,
+			"mood": "neutral",
+		})
 
 func _process_patron_expiration() -> void:
 	## Core Rules p.81-88: Patrons have limited availability.
@@ -300,6 +408,10 @@ func _connect_to_campaign(campaign) -> void:
 			campaign.connect(sig_name, Callable(self, handler))
 		else:
 			pass
+
+	# Update PostBattlePhase handler with new campaign reference
+	if post_battle_phase_handler and post_battle_phase_handler.has_method("set_campaign"):
+		post_battle_phase_handler.set_campaign(campaign)
 
 func _on_campaign_state_changed(_property: String) -> void:
 	# Validate current state after a change
@@ -624,9 +736,14 @@ func _execute_post_mission_phase_start() -> void:
 	phase_events.append({"type": "post_mission_started"})
 	phase_event_triggered.emit(phase_events[-1])
 
-	# Run PostBattlePhase backend if available
-	if post_battle_phase_handler and post_battle_phase_handler.has_method("process_post_battle"):
-		post_battle_phase_handler.process_post_battle()
+	# Run decomposed PostBattlePhase orchestrator (14 steps)
+	if post_battle_phase_handler and post_battle_phase_handler.has_method("start_post_battle_phase"):
+		# Pass battle data from GameState for the orchestrator
+		var gs := get_node_or_null("/root/GameState")
+		var battle_data: Dictionary = {}
+		if gs and gs.has_method("get_battle_results"):
+			battle_data = gs.get_battle_results()
+		post_battle_phase_handler.start_post_battle_phase(battle_data)
 
 func _on_post_battle_phase_completed() -> void:
 	## PostBattlePhase backend finished processing

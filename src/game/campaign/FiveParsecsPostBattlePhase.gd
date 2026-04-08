@@ -1,3 +1,5 @@
+## DEPRECATED (Session 47): Dead file — zero references in codebase.
+## Safe to delete. PostBattlePhase is at src/core/campaign/phases/PostBattlePhase.gd.
 @tool
 extends BasePostBattlePhase
 # This file should be referenced via preload

@@ -51,9 +51,9 @@ Never use a Bug Hunt prefix on standard keys or vice versa.
 
 `TacticalBattleUI.gd` (class_name `FPCM_TacticalBattleUI`) serves both Standard and Bug Hunt modes. Bug Hunt detection happens at a higher level (BugHuntBattleSetup, temp_data keys). Any changes to TacticalBattleUI must be tested in both modes.
 
-### 5. Enlistment Roll
+### 5. Enlistment Roll (FIXED Session 42)
 
-Bug Hunt recruitment: 2D6 + Combat >= 8. This is a Bug Hunt-specific mechanic that does not exist in Standard mode.
+Bug Hunt recruitment: 2D6 + Combat >= **7+** (Compendium p.212). Was incorrectly coded as 8+ — fixed in Session 42.
 
 ### 6. PDF Rulebooks & Python Extraction Tools
 
@@ -84,7 +84,35 @@ No direct Bug Hunt changes. Context awareness:
 
 `FiveParsecsCampaignCore.campaign_crew_size` (4/5/6 setting) is Standard 5PFH only. Bug Hunt uses `BugHuntCampaignCore` which has `main_characters` + `grunts` arrays, not crew_data. Bug Hunt enemy counts follow Compendium Bug Hunt tables, not the Core Rules p.63 dice formula. If changes touch `get_campaign_crew_size()` in shared files (GameState, GameStateManager), ensure Bug Hunt code paths don't call it.
 
-### 10. Godot 4.6 Type Inference
+### 11. Godot 4.6 Type Inference
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.
+
+### 12. Session 42+43: Bug Hunt Audit + Wiring + Transfer Complete
+
+**Data audit**: All 15 JSON files verified against Compendium PDF — zero corrections needed.
+
+**Bugs fixed (14)**: 6 JSON key mismatches (enemies never loaded, post-battle tables all read wrong keys), 7 logic bugs (priority formula, spawn rating bounds, XP/Rep/Mustering formulas all wrong), 1 op-progress string range parser.
+
+**Features implemented**: 3D6 objective generation (Vital/Critical), per-character loadout selection, interactive support team rolling, Special Assignment stat/XP/Rep application with eligibility filtering, advancement spending UI, court martial, BugHuntBattleCompanion (contact movement/tactical activation/spawn closing/evac/signals/formation), Movie Magic activation UI.
+
+**UI modernization**: BugHuntScreenBase extends CampaignScreenBase. Dashboard rewritten with HubFeatureCards/stat strip/crew cards. All 12 Bug Hunt UI files migrated to UIColors. Glass morphism cards. Input validation on ConfigPanel.
+
+**Transfer system wired**: CharacterTransferPanel rewritten as 3-step guided flow. Dashboard has Enlist/Muster Out cards. MainMenu detects Bug Hunt saves (continue/load/new dialog). Transfer inbox at `user://transfers/`. Equipment stash + character snapshots persist in BugHuntCampaignCore save data. Deep copy with `.duplicate(true)` on every cross-campaign boundary. Atomic file writes for transfer files.
+
+**Field mapping**: `combat`↔`combat_skill`, `experience`↔`xp`, `reaction`↔`reactions`, `missions_completed`↔`completed_missions_count`. Original 5PFH character snapshot stored at enlistment for lossless muster-out.
+
+### 13. Bug Hunt Compendium Text Extraction
+
+Full Bug Hunt rules extracted to `docs/rules/bug_hunt_compendium_extract.txt` (pages 163-226). Use this instead of re-extracting from PDF.
+
+### 14. Session 45: Runtime QA — Critical Bugs Fixed
+
+**BugHuntTurnController must use `call_deferred("_initialize")`** — `_ready()` fires before node is in scene tree when instantiated by `TransitionManager.fade_to_scene()`. All `get_node_or_null("/root/...")` calls fail. Fix: defer all initialization.
+
+**HubFeatureCard pending data pattern** — `setup()` called before `add_child()` means `_ready()` hasn't built UI yet. Labels are null. Fix: store pending data, apply in `_ready()`. CampaignDashboard does `add_child` first (correct); BugHuntDashboard did `setup` first (was broken, now fixed with pending pattern).
+
+**MainMenu Bug Hunt dialog navigation** — `AcceptDialog` modal blocks `SceneRouter.navigate_to()`. Fix: `dialog.queue_free()` + `create_timer(0.05).timeout` for scene change. Also `bug_hunt_dashboard` was missing from MainMenu `scene_map`.
+
+**Bug Hunt flow verified**: MainMenu → dialog → Dashboard → Turn 1 → Assignments → Mission → Launch → Tactical Battle (all working).

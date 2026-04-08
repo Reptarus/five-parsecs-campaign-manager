@@ -1,34 +1,31 @@
-extends Control
+extends FiveParsecsCampaignPanel
 
-## Compendium hub screen — category grid with global search bar.
+## Library hub screen — responsive category grid with global search bar.
 ## Each category displayed as a HubFeatureCard with game-icons.net SVG icon.
 ## Search debounces 300ms and shows flat result list across all categories.
-
-const MAX_FORM_WIDTH := 800
+## Extends FiveParsecsCampaignPanel for responsive layout (mobile/tablet/desktop).
 
 var _provider: CompendiumDataProvider
 var _search_input: LineEdit
 var _results_label: Label
-var _content_container: VBoxContainer
-var _category_container: VBoxContainer
+var _category_container: HFlowContainer
 var _search_results_container: VBoxContainer
 var _search_timer: Timer
 var _is_searching := false
+var _entrance_tween: Tween
 
 
 func _ready() -> void:
 	_provider = CompendiumDataProvider.new()
+	# Skip super._ready() panel structure — we build our own UI.
+	# Manually init responsive system + background from base class.
+	_ensure_base_background()
+	_setup_responsive_layout()
 	_build_ui()
 	_show_categories()
 
 
 func _build_ui() -> void:
-	var bg := ColorRect.new()
-	bg.color = UIColors.COLOR_PRIMARY
-	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	bg.show_behind_parent = true
-	add_child(bg)
-
 	var outer := VBoxContainer.new()
 	outer.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	outer.add_theme_constant_override("separation", UIColors.SPACING_MD)
@@ -51,7 +48,7 @@ func _build_ui() -> void:
 	header.add_child(back_btn)
 
 	var title := Label.new()
-	title.text = "Compendium"
+	title.text = "Library"
 	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -61,6 +58,8 @@ func _build_ui() -> void:
 	count_label.text = "%d items" % _provider.get_total_item_count()
 	count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+	count_label.custom_minimum_size.x = 120
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(count_label)
 
 	# Search bar
@@ -94,23 +93,24 @@ func _build_ui() -> void:
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	outer.add_child(scroll)
 
-	_content_container = VBoxContainer.new()
-	_content_container.size_flags_horizontal = SIZE_EXPAND_FILL
-	_content_container.add_theme_constant_override("separation", UIColors.SPACING_SM)
-	scroll.add_child(_content_container)
+	var content_vbox := VBoxContainer.new()
+	content_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	content_vbox.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	scroll.add_child(content_vbox)
 
-	# Category cards container
-	_category_container = VBoxContainer.new()
+	# Category cards container — HFlowContainer for responsive grid
+	_category_container = HFlowContainer.new()
 	_category_container.size_flags_horizontal = SIZE_EXPAND_FILL
-	_category_container.add_theme_constant_override("separation", UIColors.SPACING_SM)
-	_content_container.add_child(_category_container)
+	_category_container.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+	_category_container.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
+	content_vbox.add_child(_category_container)
 
 	# Search results container (hidden until searching)
 	_search_results_container = VBoxContainer.new()
 	_search_results_container.size_flags_horizontal = SIZE_EXPAND_FILL
 	_search_results_container.add_theme_constant_override("separation", UIColors.SPACING_XS)
 	_search_results_container.visible = false
-	_content_container.add_child(_search_results_container)
+	content_vbox.add_child(_search_results_container)
 
 	# Source footer
 	var footer := Label.new()
@@ -151,6 +151,64 @@ func _show_categories() -> void:
 		var cat_id: String = cat.get("id", "")
 		card.card_pressed.connect(_on_category_pressed.bind(cat_id))
 
+	# Apply responsive sizing for current layout mode
+	_update_card_sizes()
+
+	# Entrance animations deferred so nodes are fully in tree
+	call_deferred("_animate_cards_entrance")
+
+
+func _animate_cards_entrance() -> void:
+	if _entrance_tween:
+		_entrance_tween.kill()
+		_entrance_tween = null
+
+	var controls: Array[Control] = []
+	for child: Node in _category_container.get_children():
+		if child is Control:
+			controls.append(child as Control)
+
+	if controls.is_empty():
+		return
+
+	# Set all invisible first
+	for ctrl: Control in controls:
+		ctrl.modulate.a = 0.0
+
+	# Use a single sequential tween for staggered reveal
+	_entrance_tween = create_tween()
+	for i: int in controls.size():
+		var ctrl: Control = controls[i]
+		_entrance_tween.tween_callback(func() -> void:
+			if is_instance_valid(ctrl):
+				ctrl.modulate.a = 1.0
+				TweenFX.pop_in(ctrl, 0.25)
+		)
+		_entrance_tween.tween_interval(0.06)
+
+
+func _update_card_sizes() -> void:
+	## Adjust card minimum width based on current layout mode for responsive grid
+	if not _category_container:
+		return
+	var card_min_width: float = 0.0
+	match current_layout_mode:
+		LayoutMode.MOBILE:
+			card_min_width = 0  # Full width
+		LayoutMode.TABLET:
+			card_min_width = 340
+		LayoutMode.DESKTOP, LayoutMode.WIDE:
+			card_min_width = 400
+	for child: Node in _category_container.get_children():
+		if child is Control:
+			(child as Control).custom_minimum_size.x = card_min_width
+
+
+func _update_layout_for_mode() -> void:
+	## Override from FiveParsecsCampaignPanel — update layout on breakpoint change
+	super._update_layout_for_mode()
+	_update_card_sizes()
+
 
 func _on_search_text_changed(new_text: String) -> void:
 	if new_text.length() < 2:
@@ -180,16 +238,13 @@ func _enter_search_mode(query: String, results: Array[Dictionary]) -> void:
 		child.queue_free()
 
 	if results.is_empty():
-		var empty := Label.new()
-		empty.text = "No items found. Try a different search term."
-		empty.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
-		empty.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var empty := EmptyStateWidget.new()
+		empty.setup("No Results", "No items found matching \"%s\".\nTry a different search term." % query)
 		_search_results_container.add_child(empty)
 		return
 
-	for item: Dictionary in results:
-		var row := _create_search_result_row(item)
+	for i: int in results.size():
+		var row := _create_search_result_row(results[i], i)
 		_search_results_container.add_child(row)
 
 
@@ -200,10 +255,14 @@ func _exit_search_mode() -> void:
 	_results_label.visible = false
 
 
-func _create_search_result_row(item: Dictionary) -> PanelContainer:
+func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = UIColors.COLOR_SECONDARY
+	# Alternating row tints
+	if index % 2 == 0:
+		style.bg_color = UIColors.COLOR_SECONDARY
+	else:
+		style.bg_color = UIColors.COLOR_SECONDARY.lerp(UIColors.COLOR_TERTIARY, 0.3)
 	style.set_corner_radius_all(4)
 	style.content_margin_left = UIColors.SPACING_MD
 	style.content_margin_right = UIColors.SPACING_MD
@@ -218,14 +277,33 @@ func _create_search_result_row(item: Dictionary) -> PanelContainer:
 	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(hbox)
 
-	# Item name
+	# Two-line layout: name + stats preview
+	var text_vbox := VBoxContainer.new()
+	text_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	text_vbox.add_theme_constant_override("separation", 2)
+	text_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(text_vbox)
+
+	# Line 1: Item name
 	var name_label := Label.new()
 	name_label.text = str(item.get("name", item.get("term", "Unknown")))
 	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
 	name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_child(name_label)
+	text_vbox.add_child(name_label)
+
+	# Line 2: Stat preview (if available)
+	var cat_id: String = str(item.get("_category_id", ""))
+	var cat_config: Dictionary = _provider.get_category(cat_id)
+	var display_fields: Array = cat_config.get("display_fields", [])
+	var stat_text: String = CompendiumDataProvider.build_stat_preview(item, display_fields)
+	if not stat_text.is_empty():
+		var stat_label := Label.new()
+		stat_label.text = stat_text
+		stat_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+		stat_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
+		stat_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		text_vbox.add_child(stat_label)
 
 	# Category badge
 	var badge := Label.new()
@@ -243,7 +321,7 @@ func _create_search_result_row(item: Dictionary) -> PanelContainer:
 	hbox.add_child(arrow)
 
 	# Click handler
-	panel.gui_input.connect(func(event: InputEvent):
+	panel.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_show_item_detail(item)
 	)
@@ -269,7 +347,10 @@ func _build_detail_body(item: Dictionary) -> String:
 	for key: String in ["type", "range", "shots", "damage", "saving_throw", "speed", "combat_skill", "toughness", "ai", "panic", "numbers"]:
 		if item.has(key) and str(item[key]) != "":
 			var label := key.capitalize().replace("_", " ")
-			stat_parts.append("[color=#06b6d4]%s:[/color] %s" % [label, str(item[key])])
+			var val_str := str(item[key])
+			if val_str.ends_with(".0"):
+				val_str = val_str.substr(0, val_str.length() - 2)
+			stat_parts.append("[color=#06b6d4]%s:[/color] %s" % [label, val_str])
 	if not stat_parts.is_empty():
 		parts.append("  ".join(stat_parts))
 		parts.append("")

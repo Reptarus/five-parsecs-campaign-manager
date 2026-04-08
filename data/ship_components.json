@@ -1,108 +1,185 @@
 {
   "metadata": {
-    "version": "2.0",
-    "source": "Five Parsecs From Home Core Rules 3e pp.60-62 — VERIFIED Apr 2, 2026",
-    "last_updated": "2026-04-02",
-    "notes": "14 ship components from Core Rules. v2.0: Replaced fabricated generic components with exact Core Rules data. Costs in credits. Only 1 component can be installed per campaign turn. Components are functional at the start of the next turn."
+    "version": "3.0",
+    "source": "Five Parsecs From Home Core Rules 3e pp.60-62 + Compendium p.28 — VERIFIED Apr 7, 2026",
+    "last_updated": "2026-04-07",
+    "notes": "16 ship components (14 Core Rules + 2 Compendium) + 1 component mod. Only 1 component can be installed per campaign turn. Components are functional at the start of the next turn. Scrap value: 1 credit per 5 credits cost. Cannot remove and install same turn."
   },
   "components": [
     {
       "id": "medical_bay",
       "name": "Medical Bay",
       "cost": 25,
+      "source": "core_rules",
       "description": "Fully stocked medical facility to aid long-term recovery. Each campaign turn when recovering from Injuries, select a crew member who can mark off 2 campaign turns of recovery time.",
+      "effect": "recovery_acceleration",
+      "triggers_at": "turn_start",
       "page": 61
     },
     {
       "id": "cargo_hold",
       "name": "Cargo Hold",
       "cost": 15,
+      "source": "core_rules",
       "description": "Upgraded environmentally stable hold. When traveling to a new planet, roll 2D6 and discard any 5-6. Select the highest remaining die and earn that many credits. If both dice discarded, no shipments available. Lost if ship damaged in transit.",
+      "effect": "travel_revenue",
+      "triggers_at": "travel",
       "page": 61
     },
     {
       "id": "data_base",
       "name": "Data Base",
       "cost": 10,
+      "source": "core_rules",
       "description": "Extensive data records for decision making. When traveling to a new planet, roll up details for one additional planet, then select which to visit.",
+      "effect": "planet_choice",
+      "triggers_at": "travel",
       "page": 61
     },
     {
       "id": "shuttle",
       "name": "Shuttle",
       "cost": 15,
-      "description": "Launch bay with a standard 'Lemon Shark' shuttle. Distress Call event: roll twice and pick higher. Invaded planet: add +2 to the roll to get off-world.",
+      "source": "core_rules",
+      "description": "Launch bay with a standard 'Lemon Shark' shuttle. If you receive the Distress Call Starship Travel event, you may roll twice and pick the higher roll. If a planet is Invaded, you may add +2 to the roll to get off-world.",
+      "effect": "travel_event_modifier",
+      "triggers_at": "travel_event",
       "page": 61
     },
     {
       "id": "merchant_link",
       "name": "Merchant Link",
       "cost": 20,
-      "description": "Corporate extra-net access point. You may carry out one free Trade action each campaign turn without requiring a crew member to be assigned to it.",
+      "source": "core_rules",
+      "description": "Corporate extra-net access point. You may carry out one free Trade action each campaign turn, without requiring a crew member to be assigned to it.",
+      "effect": "free_trade",
+      "triggers_at": "world_phase",
       "page": 61
     },
     {
       "id": "drop_launcher",
       "name": "Drop Launcher",
       "cost": 25,
-      "description": "Rapid deployment system. Battle setup: roll 2D6, on 8+ select up to two crew for drop deployment. At end of any round, place marker, move 1D6\" random direction, set up both within 1\". Cannot act on arrival, act normally next round.",
+      "source": "core_rules",
+      "description": "Rapid deployment system. When setting up a battle, roll 2D6. On an 8+, Drop deployment is viable. Select up to two crew who will land using this method. They do not set up at the beginning of the battle. At the end of any round, select a point on the tabletop, move it 1D6\" in a random direction, set up both within 1\". They cannot act on arrival, but will act normally in the following round.",
+      "effect": "battle_deployment",
+      "triggers_at": "battle_setup",
       "page": 61
     },
     {
       "id": "probe_launcher",
       "name": "Probe Launcher",
       "cost": 10,
+      "source": "core_rules",
       "description": "Scientific probe launching device. If you receive the Asteroids Starship Travel event, you can roll twice to avoid the field.",
+      "effect": "travel_event_modifier",
+      "triggers_at": "travel_event",
       "page": 61
     },
     {
       "id": "auto_turrets",
       "name": "Auto-Turrets",
       "cost": 15,
-      "description": "Auto-tracking Hyper-Laser turret. Raided event: add +1 to avoid battle. Invasion flee: add +1 to the roll.",
+      "source": "core_rules",
+      "description": "Auto-tracking Hyper-Laser turret. If you receive the Raided Starship Travel event, you may add +1 to the roll to avoid the battle. If you have to flee from a world that is being Invaded, you may add +1 to the roll.",
+      "effect": "travel_event_modifier",
+      "triggers_at": "travel_event",
       "page": 62
     },
     {
       "id": "military_nav_system",
       "name": "Military Nav System",
       "cost": 15,
-      "description": "Improved navigation system. Navigation Trouble event: do not subtract 1 story point. Travel-Time event: receive benefits of both Travel-Time AND Uneventful Trip.",
+      "source": "core_rules",
+      "description": "Improved navigation system. If you roll the Navigation Trouble Starship Travel event, you do not have to subtract 1 story point. If you roll the Travel-Time event, you may receive the benefits of both that event AND Uneventful Trip.",
+      "effect": "travel_event_modifier",
+      "triggers_at": "travel_event",
       "page": 62
     },
     {
       "id": "improved_shielding",
       "name": "Improved Shielding",
       "cost": 20,
-      "description": "Armor plating and directional screen generators. If ship would sustain damage from any source, reduce damage by 1 Hull Point. Asteroids event: applies to each hit separately.",
+      "source": "core_rules",
+      "description": "Armor plating and directional screen generators. If your ship would sustain damage from any source, reduce the damage by 1 Hull Point. The Asteroids event potentially inflicts multiple Hits with the Improved Shielding protecting against each.",
+      "effect": "damage_reduction",
+      "triggers_at": "any_hull_damage",
       "page": 62
     },
     {
       "id": "hidden_compartment",
       "name": "Hidden Compartment",
       "cost": 15,
-      "description": "Concealed storage space. Patrol Ship event: only roll once for confiscated items. Each time you travel, roll 3D6 — discard dice that don't score 1 or 2, earn credits equal to sum of remaining.",
+      "source": "core_rules",
+      "description": "Concealed storage space. If you receive the Patrol Ship event, you only have to roll once for confiscated items. Each time you travel to a new planet, roll 3D6 — discard any dice that do not score a 1 or 2, then receive credits equal to the sum of the dice that did not get discarded.",
+      "effect": "travel_event_modifier_and_revenue",
+      "triggers_at": "travel_event",
       "page": 62
     },
     {
       "id": "suspension_pod",
       "name": "Suspension Pod",
       "cost": 15,
-      "description": "Standard for non-jump travel. Suspend up to 4 crew: no upkeep, no events, no missions, no injury recovery. Revive during any future Upkeep step.",
+      "source": "core_rules",
+      "description": "Standard for non-jump travel. When managing Upkeep, you may suspend any crew members. They do not participate in any events, cannot undertake tasks or go on missions, do not recover from Injuries, and do not require Upkeep. While Suspended, the character doesn't count as part of the crew. You can have up to 4 crew members Suspended at any one time. During any Upkeep step of a future campaign turn, you can revive any Suspended crew. They must be counted as part of your crew during the Upkeep step of that campaign turn, and will act normally thereafter. Any Injuries must still be recovered from normally after revival.",
+      "effect": "crew_suspension",
+      "triggers_at": "upkeep",
       "page": 62
     },
     {
       "id": "living_quarters",
       "name": "Living Quarters",
       "cost": 15,
-      "description": "Improved living quarters and life support. When determining Upkeep, count your crew as having two members less than normal.",
+      "source": "core_rules",
+      "description": "Improved living quarters and life support. When determining Upkeep for your crew, you may count your crew as having two crew members less than normal.",
+      "effect": "upkeep_reduction",
+      "triggers_at": "upkeep",
       "page": 62
     },
     {
       "id": "military_fuel_converters",
       "name": "Military Fuel Converters",
       "cost": 15,
-      "description": "Devices allowing conversion of readily available matter into Jump fuel. Starship travel costs reduced by 2 credits.",
+      "source": "core_rules",
+      "description": "Devices allowing conversion of readily available matter into Jump fuel. Starship travel costs are reduced by 2 credits.",
+      "effect": "travel_cost_reduction",
+      "triggers_at": "travel_cost",
       "page": 62
+    },
+    {
+      "id": "expanded_database",
+      "name": "Expanded Database",
+      "cost": 10,
+      "source": "compendium",
+      "dlc_flag": "COMPENDIUM_SHIP_PARTS",
+      "description": "Constantly updated database system with AI-assistance in correlating information. When rolling to progress an active Quest (Post-Battle Step 3) add +1 to the roll.",
+      "effect": "quest_progress_bonus",
+      "triggers_at": "post_battle",
+      "page": "Compendium p.28"
+    },
+    {
+      "id": "scientific_research_system",
+      "name": "Scientific Research System",
+      "cost": 10,
+      "source": "compendium",
+      "dlc_flag": "COMPENDIUM_SHIP_PARTS",
+      "description": "A robust system to gather samples from space debris, analyze them, and correlate to current interests. Whenever you undertake travel to another world, roll 1D6: 1-2 Nothing found; 3-4 Research data analyzed (worth 2 Credits); 5-6 Add 1 Quest Rumor.",
+      "effect": "travel_revenue",
+      "triggers_at": "travel",
+      "page": "Compendium p.28"
+    }
+  ],
+  "mods": [
+    {
+      "id": "miniaturized_components",
+      "name": "Miniaturized Components",
+      "cost_addon": 5,
+      "retrofit_cost": 8,
+      "source": "compendium",
+      "dlc_flag": "COMPENDIUM_SHIP_PARTS",
+      "description": "State-of-the-art, light-weight components to maintain fuel efficiency. The component is not counted towards increased fuel costs (core rules, p.61). Once applied to a component, this cannot be removed. Can be retrofitted to an existing component for 8 Credits.",
+      "effect": "fuel_cost_exclusion",
+      "page": "Compendium p.28"
     }
   ],
   "rules": {

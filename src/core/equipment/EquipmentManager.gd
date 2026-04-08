@@ -92,6 +92,61 @@ func is_onboard_item_single_use(item_id: String) -> bool:
 	var item := get_onboard_item(item_id)
 	return item.get("single_use", false)
 
+## Phase 10: Get structured effect data for an on-board item (Core Rules pp.57-58)
+## Returns {phase: String, effect_type: String, value: Variant, description: String}
+## Campaign phase code calls this to check if crew has relevant on-board items
+func get_onboard_item_effect(item_id: String) -> Dictionary:
+	match item_id.to_lower():
+		"analyzer":
+			return {"phase": "post_battle", "effect_type": "rumor_quest_bonus", "value": 1, "description": "+1 to Rumor→Quest roll"}
+		"colonist_ration_packs":
+			return {"phase": "upkeep", "effect_type": "ignore_upkeep", "value": true, "description": "Ignore upkeep cost"}
+		"duplicator":
+			return {"phase": "equipment", "effect_type": "copy_item", "value": 1, "description": "Copy any item (single-use)"}
+		"fake_id":
+			return {"phase": "world", "effect_type": "license_bonus", "value": 1, "description": "+1 license roll"}
+		"fixer":
+			return {"phase": "post_battle", "effect_type": "free_repair", "value": 1, "description": "Free repair 1 item"}
+		"genetic_reconfig_kit":
+			return {"phase": "advancement", "effect_type": "xp_discount", "value": -2, "description": "-2 XP for ability upgrade"}
+		"loaded_dice":
+			return {"phase": "world", "effect_type": "gambling", "value": "d6_table", "description": "D6: 1-4 earn credits, 5 nothing, 6 lose dice + injury"}
+		"lucky_dice":
+			return {"phase": "world", "effect_type": "credit_income", "value": 1, "description": "+1 credit per turn gambling"}
+		"mk_ii_translator":
+			return {"phase": "world", "effect_type": "recruit_bonus", "value": 1, "description": "+1 die for Recruit rolls"}
+		"med_patch":
+			return {"phase": "post_battle", "effect_type": "recovery_reduction", "value": -1, "description": "-1 turn recovery time"}
+		"meditation_orb":
+			return {"phase": "world", "effect_type": "story_point_bonus", "value": 2, "description": "+2 story points; Swift/Precursor +1 XP"}
+		"nano_doc":
+			return {"phase": "post_battle", "effect_type": "prevent_injury", "value": 1, "description": "Prevent 1 injury roll"}
+		"novelty_stuffed_animal":
+			return {"phase": "world", "effect_type": "xp_bonus", "value": 1, "description": "+1 XP; D6 6 = +1 SP"}
+		"purifier":
+			return {"phase": "world", "effect_type": "credit_income", "value": 1, "description": "+1 credit per turn"}
+		"repair_bot":
+			return {"phase": "post_battle", "effect_type": "repair_bonus", "value": 1, "description": "+1 repair rolls"}
+		"sector_permit":
+			return {"phase": "travel", "effect_type": "license_check", "value": "d6_4plus", "description": "D6 4+ = accepted as license"}
+		"spare_parts":
+			return {"phase": "post_battle", "effect_type": "repair_bonus", "value": 1, "description": "+1 repair; natural 1 = consumed"}
+		"teach_bot":
+			return {"phase": "world", "effect_type": "training_xp", "value": "1d6", "description": "Train task +1D6 XP (single-use)"}
+		"transcender":
+			return {"phase": "world", "effect_type": "sp_xp_bonus", "value": {"xp": 1, "sp": 2}, "description": "+1 XP, +2 SP (single-use)"}
+	return {}
+
+## Get all on-board items owned by crew that affect a specific campaign phase
+func get_onboard_items_for_phase(phase: String, owned_items: Array) -> Array:
+	var matching: Array = []
+	for item_id: Variant in owned_items:
+		var effect := get_onboard_item_effect(str(item_id))
+		if not effect.is_empty() and effect.get("phase", "") == phase:
+			effect["item_id"] = str(item_id)
+			matching.append(effect)
+	return matching
+
 ## Return basic weapons (always available, 1 credit each — Core Rules p.126)
 func get_basic_weapons() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -674,3 +729,90 @@ func use_consumable(item_data: Dictionary) -> Dictionary:
 	item_data["remaining_uses"] = uses - 1
 	var depleted: bool = item_data["remaining_uses"] <= 0
 	return {"success": true, "remaining": item_data["remaining_uses"], "depleted": depleted, "reason": ""}
+
+## Phase 8: Apply a gun mod or gun sight to a weapon (Core Rules p.53)
+## Modifies the weapon's traits/stats permanently (mods) or until removed (sights)
+## Returns {success: bool, reason: String, modifications: Array}
+func apply_gun_mod(weapon: Dictionary, mod_id: String) -> Dictionary:
+	var result := {"success": false, "reason": "", "modifications": []}
+
+	match mod_id.to_lower():
+		"assault_blade":
+			# Core Rules p.53: Weapon gains Melee, +1 Damage, wins draws
+			var traits: Array = weapon.get("traits", [])
+			if "melee" not in traits:
+				traits.append("melee")
+			weapon["traits"] = traits
+			weapon["damage"] = weapon.get("damage", 0) + 1
+			weapon["wins_draws"] = true
+			result["modifications"] = ["melee_trait", "+1_damage", "wins_draws"]
+		"beam_light":
+			# Core Rules p.53: +3" visibility illumination
+			weapon["beam_light"] = true
+			result["modifications"] = ["beam_light_3in"]
+		"bipod":
+			# Core Rules p.53: +1 Hit over 8" when Aiming or from Cover
+			weapon["bipod"] = true
+			result["modifications"] = ["bipod_+1_hit_over_8"]
+		"hot_shot_pack":
+			# Core Rules p.53: +1 Damage, adds Overheat risk
+			weapon["damage"] = weapon.get("damage", 0) + 1
+			var traits: Array = weapon.get("traits", [])
+			if "hot" not in traits:
+				traits.append("hot")
+			weapon["traits"] = traits
+			result["modifications"] = ["+1_damage", "overheat_risk"]
+		"nano_sludge":
+			# Core Rules p.53: Permanent +1 Hit bonus
+			weapon["hit_bonus"] = weapon.get("hit_bonus", 0) + 1
+			result["modifications"] = ["permanent_+1_hit"]
+		"stabilizer_mod":
+			# Core Rules p.53: Ignore Heavy trait
+			var traits: Array = weapon.get("traits", [])
+			traits.erase("heavy")
+			weapon["traits"] = traits
+			weapon["stabilizer"] = true
+			result["modifications"] = ["heavy_removed"]
+		"shock_attachment":
+			# Core Rules p.53: Add Stun trait (within 8" only)
+			var traits: Array = weapon.get("traits", [])
+			if "stun" not in traits:
+				traits.append("stun")
+			weapon["traits"] = traits
+			weapon["stun_range_limit"] = 8
+			result["modifications"] = ["stun_within_8"]
+		"upgrade_kit":
+			# Core Rules p.53: +2 Range
+			weapon["range"] = weapon.get("range", 12) + 2
+			result["modifications"] = ["+2_range"]
+		# Gun Sights
+		"laser_sight":
+			# Core Rules p.53: Pistol gains Snap Shot trait
+			var traits: Array = weapon.get("traits", [])
+			if "snap_shot" not in traits:
+				traits.append("snap_shot")
+			weapon["traits"] = traits
+			result["modifications"] = ["snap_shot_trait"]
+		"quality_sight":
+			# Core Rules p.53: +2 Range, reroll 1s on single shot
+			weapon["range"] = weapon.get("range", 12) + 2
+			weapon["reroll_1s_single"] = true
+			result["modifications"] = ["+2_range", "reroll_1s_single"]
+		"seeker_sight":
+			# Core Rules p.53: +1 Hit if didn't Move
+			weapon["seeker_sight"] = true
+			result["modifications"] = ["+1_hit_stationary"]
+		"tracker_sight":
+			# Core Rules p.53: +1 Hit vs same target as last round
+			weapon["tracker_sight"] = true
+			result["modifications"] = ["+1_hit_same_target"]
+		"unity_battle_sight":
+			# Core Rules p.53: +1 to all Hit rolls
+			weapon["hit_bonus"] = weapon.get("hit_bonus", 0) + 1
+			result["modifications"] = ["permanent_+1_hit"]
+		_:
+			result["reason"] = "Unknown mod: %s" % mod_id
+			return result
+
+	result["success"] = true
+	return result

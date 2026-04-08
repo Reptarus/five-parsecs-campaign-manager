@@ -36,7 +36,11 @@ func get_category(category_id: String) -> Dictionary:
 func get_items(category_id: String) -> Array[Dictionary]:
 	if not _data_cache.has(category_id):
 		_load_category_data(category_id)
-	var items: Array = _data_cache.get(category_id, [])
+	var raw: Array = _data_cache.get(category_id, [])
+	var items: Array[Dictionary] = []
+	for entry: Variant in raw:
+		if entry is Dictionary:
+			items.append(entry)
 	return items
 
 
@@ -290,7 +294,7 @@ func _load_category_data(category_id: String) -> void:
 		elif data is Array:
 			items = data
 
-	# Ensure every item has an id and name
+	# Ensure every item has an id and name, clean numeric values
 	for i in items.size():
 		var item: Dictionary = items[i]
 		if not item.has("id"):
@@ -298,6 +302,7 @@ func _load_category_data(category_id: String) -> void:
 			item["id"] = name_str.to_snake_case().replace(" ", "_")
 		if not item.has("name") and item.has("term"):
 			item["name"] = item["term"]
+		_clean_numeric_values(item)
 
 	# Sort
 	var sort_field: String = cat.get("sort_field", "name")
@@ -353,3 +358,73 @@ func _is_dlc_owned(cat: Dictionary) -> bool:
 	if dlc.has_method("has_dlc"):
 		return dlc.has_dlc(flag)
 	return true
+
+
+# --- Icon Utilities ---
+
+static func get_type_icon_path(category_id: String, type_str: String) -> String:
+	## Returns icon path for a specific item type within a category
+	match category_id:
+		"weapons":
+			match type_str.to_lower():
+				"slug": return "res://assets/icons/compendium/items/bolter-gun.svg"
+				"energy": return "res://assets/icons/compendium/ray-gun.svg"
+				"melee": return "res://assets/icons/compendium/items/broadsword.svg"
+				"grenade": return "res://assets/icons/compendium/items/grenade.svg"
+				"special": return "res://assets/icons/compendium/items/fire-ray.svg"
+		"armor":
+			match type_str.to_lower():
+				"armor": return "res://assets/icons/compendium/kevlar-vest.svg"
+				"screen": return "res://assets/icons/compendium/items/energy-shield.svg"
+		"gear":
+			match type_str.to_lower():
+				"consumable": return "res://assets/icons/compendium/items/health-potion.svg"
+				"utility device": return "res://assets/icons/compendium/knapsack.svg"
+	return ""
+
+
+# --- Formatting Utilities ---
+
+func _clean_numeric_values(item: Dictionary) -> void:
+	## Convert float-that-should-be-int values (JSON parser returns all numbers as float)
+	for key: String in ["range", "shots", "damage", "combat_skill", "toughness",
+			"speed", "panic", "numbers", "cost", "saving_throw", "rule_page"]:
+		if item.has(key) and item[key] is float and item[key] == floorf(item[key]):
+			item[key] = int(item[key])
+
+
+static func abbreviate_field(field: String) -> String:
+	## Short field labels for compact stat display (shared by both screens)
+	match field:
+		"range": return "R"
+		"shots": return "S"
+		"damage": return "D"
+		"combat_skill": return "CS"
+		"toughness": return "T"
+		"speed": return "Spd"
+		"saving_throw": return "Sv"
+		"ai": return "AI"
+		"panic": return "Pnc"
+		"numbers": return "Num"
+		"type", "category": return ""
+		_: return field.substr(0, 3).capitalize()
+
+
+static func build_stat_preview(item: Dictionary, fields: Array) -> String:
+	## Build compact stat preview string for search results (e.g. "R:24  S:1  D:0")
+	var parts: PackedStringArray = []
+	for field: Variant in fields:
+		var field_str: String = str(field)
+		if field_str == "name" or field_str == "term" or field_str == "type":
+			continue
+		var val: Variant = item.get(field_str, "")
+		var val_str: String = str(val)
+		if val_str.is_empty() or val_str == "0":
+			continue
+		if val_str.ends_with(".0"):
+			val_str = val_str.substr(0, val_str.length() - 2)
+		var abbr: String = abbreviate_field(field_str)
+		if abbr.is_empty():
+			continue
+		parts.append("%s:%s" % [abbr, val_str])
+	return "  ".join(parts)

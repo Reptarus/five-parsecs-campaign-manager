@@ -7,6 +7,21 @@
 
 The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
 
+## Session 43: Story Points Full Integration (Apr 7, 2026)
+
+Closed all story point wiring gaps. StoryPointSystem.gd and UI (popover+dialog+badge) were already complete but campaign loop bypassed the system.
+
+- **Battle earning** wired in PostBattlePhase: `_check_bitter_day_story_point()` — +1 SP for held field + character killed (Core Rules p.67)
+- **Turn earning** routed through StoryPointSystem (was direct `campaign.story_points += 1`). Insanity mode now checked
+- **Dashboard sync**: `_sync_sp_system()` reloads `_sp_system` from campaign state on phase events + before popover open
+- **XP spend**: Character picker dialog (ConfirmationDialog + ItemList), cancel-refund flow
+- **Extra Action**: NotificationManager toast confirmation
+- **Battle-only stars**: Dramatic Escape + It's Time To Go disabled on dashboard popover (need battle context)
+- **Routing**: PostBattlePhase (campaign-systems), CampaignPhaseManager (campaign-systems), Dashboard + Popover (ui-panel-developer)
+- **4 files modified**, 0 compile errors
+
+---
+
 ## Session 41: UX Sprint — Dashboard + Accessibility + Tutorials (Apr 7, 2026)
 
 Sprint clearing remaining UX checklist items from Maloric/Fallout companion app analysis. UX checklist moved from 44/16/21 to **58/8/15** done/partial/pending.
@@ -154,7 +169,7 @@ Route all QA-related questions through the qa-specialist agent, which now has 4 
 
 After any sprint that fixes bugs or adds features, remind the assigned agent to update the dashboard and core rules plan.
 
-## Project Status (Apr 7, 2026) — v0.9.7-dev — LEGAL STACK + COMPENDIUM SHIPPED
+## Project Status (Apr 7, 2026) — v0.9.7-dev — STORY POINTS FULLY INTEGRATED
 
 - **Zero compile errors** (headless-verified)
 - **925/925 data values verified** against Core Rules + Compendium
@@ -165,4 +180,5 @@ After any sprint that fixes bugs or adds features, remind the assigned agent to 
 - **Session 37**: UX Enhancement — 14 new reusable components (Fallout app patterns)
 - **Session 36**: Story Track + CharacterDetailsScreen QOL
 - **Session 35**: Red & Black Zone Jobs (Core Rules Appendix III)
+- **Session 43**: Story points fully integrated — battle earning, turn earning via system, XP picker, Extra Action toast, dashboard sync, battle-only stars disabled
 - **Next priorities**: Fill EULA placeholders, get Modiphius legal review, enable GitHub Pages, submit platform store forms, miniature photography assets

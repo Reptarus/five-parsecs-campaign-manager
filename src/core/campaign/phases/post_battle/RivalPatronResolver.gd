@@ -5,6 +5,7 @@ extends RefCounted
 ## Handles Steps 1-3: Rival Status, Patron Status, Quest Progress (Core Rules p.86, p.88, p.119)
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
@@ -113,6 +114,22 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 		quest_rumors = ctx.game_state.get_quest_rumor_count()
 
 	var total_roll: int = base_roll + quest_rumors
+
+	# Expanded Database: +1 to quest progress (Compendium p.28)
+	if ShipComponentQuery.has_component("expanded_database"):
+		total_roll += 1
+		var journal: Variant = Engine.get_main_loop().root.get_node_or_null(
+			"/root/CampaignJournal") if Engine.get_main_loop() else null
+		if journal and journal.has_method("create_entry"):
+			journal.create_entry({
+				"type": "story",
+				"title": "Database-Assisted Research",
+				"description": "Expanded Database provided +1 to Quest progress roll.",
+				"tags": ["ship_component", "expanded_database", "quest", "compendium"],
+				"auto_generated": true,
+				"mood": "neutral",
+			})
+
 	if not ctx.mission_successful:
 		total_roll -= 2
 

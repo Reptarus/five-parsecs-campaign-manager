@@ -575,6 +575,14 @@ func _get_milestone_title(
 				"patron_name", "Unknown")
 		"red_zone_license":
 			return "Red Zone License Acquired"
+		"planet_arrival":
+			return "Arrived: %s" % data.get("planet_name", "New World")
+		"planet_departure":
+			return "Departed: %s" % data.get("planet_name", "Unknown World")
+		"travel_event":
+			return "Travel: %s" % data.get("event_name", "Starship Event")
+		"rival_followed":
+			return "Rival Pursuit: %s" % data.get("rival_name", "Unknown")
 		_:
 			return "Campaign Milestone"
 
@@ -595,6 +603,25 @@ func _get_milestone_description(
 				"Crew authorized for Red Zone operations. "
 				+ "Extremely hazardous missions with "
 				+ "improved rewards now available.")
+		"planet_arrival":
+			var trait_desc: String = data.get("trait_name", "")
+			var visit_num: int = data.get("visit_number", 1)
+			if visit_num > 1:
+				return "Returned to %s (visit #%d). %s" % [
+					data.get("planet_name", ""), visit_num, trait_desc]
+			return "Crew arrived at %s. World trait: %s" % [
+				data.get("planet_name", ""), trait_desc]
+		"planet_departure":
+			var left_behind: int = (
+				data.get("rivals_left", 0) + data.get("patrons_left", 0))
+			return "Left %s behind with %d contacts remaining." % [
+				data.get("planet_name", ""), left_behind]
+		"travel_event":
+			return data.get("event_description",
+				"An event occurred during starship travel.")
+		"rival_followed":
+			return "%s has followed the crew to the new world." % data.get(
+				"rival_name", "A rival")
 		_:
 			return ""
 
@@ -607,6 +634,10 @@ func _get_milestone_icon(milestone_type: String) -> String:
 		"major_purchase": "coin",
 		"crew_death": "cross",
 		"red_zone_license": "shield",
+		"planet_arrival": "globe",
+		"planet_departure": "rocket",
+		"travel_event": "compass",
+		"rival_followed": "alert",
 	}
 	return icons.get(milestone_type, "flag")
 

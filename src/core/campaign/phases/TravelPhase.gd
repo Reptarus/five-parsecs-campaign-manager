@@ -6,6 +6,7 @@ class_name TravelPhase
 ## Handles the complete Travel Phase sequence (Phase 1 of campaign turn)
 
 # Safe imports
+const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 # GlobalEnums available as autoload singleton
@@ -134,17 +135,16 @@ func _calculate_final_travel_cost() -> int:
 		elif "fuel" in trait_lower and "hog" in trait_lower:
 			base_cost += 1
 
-	# Component fuel cost: +1 per 3 components installed (p.64)
-	if components.size() > 0:
+	# Component fuel cost: +1 per 3 billable components (p.61)
+	# Miniaturized components excluded (Compendium p.28)
+	var billable: int = ShipComponentQuery.get_billable_component_count()
+	if billable > 0:
 		@warning_ignore("integer_division")
-		base_cost += components.size() / 3
+		base_cost += billable / 3
 
-	# Fuel Converters component: -2 credits (p.67)
-	for c in components:
-		var comp_lower: String = str(c).to_lower()
-		if "fuel converter" in comp_lower:
-			base_cost -= 2
-			break
+	# Military Fuel Converters: -2 credits (Core Rules p.62)
+	if ShipComponentQuery.has_component("military_fuel_converters"):
+		base_cost -= 2
 
 	return max(0, base_cost)
 
@@ -375,7 +375,24 @@ func _handle_invasion_escape() -> void:
 	else:
 		escape_roll = randi_range(2, 12) # Fallback
 
-	var escape_success = escape_roll >= 8
+	# Ship component modifiers for invasion flee
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	# Auto-Turrets: +1 to flee roll (Core Rules p.62)
+	if ShipComponentQuery.has_component("auto_turrets"):
+		escape_roll += 1
+		_journal_component(journal, "travel",
+			"Auto-Turrets Engaged",
+			"Ship turrets provided covering fire (+1 to invasion flee).",
+			["auto_turrets"])
+	# Shuttle: +2 to flee roll (Core Rules p.61)
+	if ShipComponentQuery.has_component("shuttle"):
+		escape_roll += 2
+		_journal_component(journal, "travel",
+			"Shuttle Deployed",
+			"Shuttle aided evacuation from invaded world (+2 to flee).",
+			["shuttle"])
+
+	var escape_success: bool = escape_roll >= 8
 
 	# Debug log invasion escape attempt
 	_debug_log_flee_invasion(true, escape_roll, escape_success)
@@ -385,6 +402,11 @@ func _handle_invasion_escape() -> void:
 func _invasion_escape_result(success: bool) -> void:
 	## Process result of invasion escape attempt
 	self.invasion_escaped.emit(success)
+
+	# Clear persisted invasion state regardless of outcome
+	if game_state_manager and game_state_manager.has_method(
+			"set_invasion_pending"):
+		game_state_manager.set_invasion_pending(false)
 
 	if success:
 		# Escaped successfully, continue with travel
@@ -526,227 +548,326 @@ func _get_travel_event(roll: int) -> Dictionary:
 	return {"name": "Uneventful", "description": "Peaceful journey"}
 
 func _handle_travel_event_with_effects(event: Dictionary) -> String:
-	## Handle specific travel event mechanics (Core Rules pp.72-75)
-	## Returns effects description for debug logging.
-	## Tabletop companion model: auto-compute where possible, text instructions otherwise.
-	return ""
-	## if not game_state_manager:
-	## return "SKIPPED - No GameStateManager"
-	##
-	## var event_name: String = event.get("name", "Unknown")
-	## match event_name:
-	## "Asteroids":
-	## # pp.72: Avoid (D6 5+) or navigate (3x D6+Savvy 4+, each fail = 1D6 hull)
-	## var avoid_roll: int = randi_range(1, 6)
-	## if avoid_roll >= 5:
-	## return "ASTEROIDS: D6=%d (5+ safe path). Re-roll on travel table." % avoid_roll
-	## # Must navigate — 3 Savvy checks
-	## var fails: int = 0
-	## var total_damage: int = 0
-	## for i in range(3):
-	## var check: int = randi_range(1, 6)  # base roll (Savvy added by player)
-	## if check < 4:  # without Savvy bonus, likely fail
-	## fails += 1
-	## var dmg: int = randi_range(1, 6)
-	## total_damage += dmg
-	## if total_damage > 0 and game_state_manager.has_method("apply_ship_damage"):
-	## game_state_manager.apply_ship_damage(total_damage)
-	## return "ASTEROIDS: Avoidance D6=%d (failed). Navigate: %d/3 fails, %d hull damage." % [
-	## avoid_roll, fails, total_damage]
-	##
-	## "Navigation Trouble":
-	## # pp.72: Lose 1 story point, re-roll. If hull damaged, random crew Injury Table.
-	## if game_state_manager.has_method("add_story_points"):
-	## game_state_manager.add_story_points(-1)
-	## var ship: Dictionary = _get_ship_data()
-	## var hull: int = ship.get("hull_points", 0)
-	## var max_hull: int = ship.get("max_hull", 0)
-	## if hull < max_hull:
-	## return "NAV TROUBLE: -1 story point. Ship damaged — random crew must roll Injury Table. Re-roll event."
-	## return "NAV TROUBLE: -1 story point. Re-roll on travel event table."
-	##
-	## "Raided":
-	## # pp.72: Intimidation D6+Savvy 6+ or cramped battle vs Criminal Elements
-	## var intimidate: int = randi_range(1, 6)
-	## var raid_data: Dictionary = {
-	## "mission_type": GlobalEnums.MissionType.PATROL if GlobalEnums else 0,
-	## "mission_id": "raid_" + str(Time.get_unix_time_from_system()),
-	## "is_raid_battle": true,
-	## "difficulty": 2,
-	## "forced_battle": true,
-	## "base_payment": 0,
-	## "source": "travel_event_raid"
-	## }
-	## invasion_battle_required.emit(raid_data)
-	## return "RAIDED: Intimidation D6=%d (need 6+ with Savvy). Set up cramped battle vs Criminal Elements." % intimidate
-	##
-	## "Deep Space Wreckage":
-	## # pp.73: 2 rolls on Gear Subtable (both damaged, need Repair)
-	## return "DEEP SPACE WRECKAGE: Found old wreck. Make 2 rolls on Gear Subtable (p.132). Both items are DAMAGED — need Repair."
-	##
-	## "Drive Trouble":
-	## # pp.73: 3 crew each D6+Savvy 6+. Each fail = grounded 1 turn.
-	## # Takeoff before reset = 2D6 hull damage
-	## var fail_count: int = 0
-	## for i in range(3):
-	## var check: int = randi_range(1, 6)
-	## if check < 6:
-	## fail_count += 1
-	## if fail_count > 0:
-	## return "DRIVE TROUBLE: %d/3 Savvy checks failed. Grounded %d turn(s). Early takeoff = 2D6 hull damage." % [
-	## fail_count, fail_count]
-	## return "DRIVE TROUBLE: All 3 Savvy checks passed. Drive reset successfully."
-	##
-	## "Down-time":
-	## # pp.73: +1 XP to chosen crew, repair 1 damaged item free
-	## var crew: Array = game_state_manager.get_crew_members() if game_state_manager.has_method("get_crew_members") else []
-	## if crew.size() > 0:
-	## var chosen = crew[randi() % crew.size()]
-	## if game_state_manager.has_method("add_crew_experience"):
-	## var crew_id: int = crew.find(chosen)
-	## game_state_manager.add_crew_experience(crew_id, 1)
-	## return "DOWN-TIME: +1 XP to chosen crew member. You may Repair 1 damaged item (no roll needed)."
-	##
-	## "Distress Call":
-	## # pp.73: Aid choice, then D6 sub-table
-	## var aid_roll: int = randi_range(1, 6)
-	## match aid_roll:
-	## 1:
-	## var dmg: int = randi_range(1, 6) + 1
-	## if game_state_manager.has_method("apply_ship_damage"):
-	## game_state_manager.apply_ship_damage(dmg)
-	## return "DISTRESS CALL: D6=%d — Drive detonated! Ship takes %d hull damage (1D6+1)." % [aid_roll, dmg]
-	## 2:
-	## return "DISTRESS CALL: D6=%d — Only drifting wreckage found. No salvage." % aid_roll
-	## 3, 4:
-	## return "DISTRESS CALL: D6=%d — Rescue survivor! Treat as Escape Pod event." % aid_roll
-	## 5, 6:
-	## return "DISTRESS CALL: D6=%d — Ship needs help! D6+Savvy 7+ (3 attempts) to save. Success = 3 Gear loot rolls. Fail = 1D6+1 hull damage." % aid_roll
-	## _:
-	## return "DISTRESS CALL: D6=%d" % aid_roll
-	##
-	## "Patrol Ship":
-	## # pp.73: 2x (D6-3), each >0 = that many items confiscated. Next world not Invaded.
-	## var confiscated: int = 0
-	## for i in range(2):
-	## var roll: int = randi_range(1, 6) - 3
-	## if roll > 0:
-	## confiscated += roll
-	## if confiscated > 0:
-	## return "PATROL SHIP: %d item(s) confiscated as contraband. Choose items from carried/Stash. Next world cannot be Invaded." % confiscated
-	## return "PATROL SHIP: No contraband found. Next world cannot be Invaded."
-	##
-	## "Cosmic Phenomenon":
-	## # pp.73: Witness crew +1 Luck (once per campaign). Precursor = +1 story point.
-	## var crew_members = game_state_manager.get_crew_members() if game_state_manager else []
-	## if crew_members.size() > 0:
-	## var lucky_member = crew_members[randi() % crew_members.size()]
-	## if "luck" in lucky_member:
-	## lucky_member.luck += 1
-	## if game_state_manager and game_state_manager.has_method("add_story_points"):
-	## # Check for Precursor crew — grant +1 story point
-	## for member in crew_members:
-	## var origin_val = member.get("origin", -1)
-	## if origin_val == GlobalEnums.Origin.PRECURSOR if GlobalEnums else -1:
-	## game_state_manager.add_story_points(1)
-	## break
-	## return "COSMIC PHENOMENON: Random crew member sees strange vision. +1 Luck applied. If Precursor in crew: +1 story point."
-	##
-	## "Escape Pod":
-	## # pp.73-74: D6 for occupant type
-	## var pod_roll: int = randi_range(1, 6)
-	## match pod_roll:
-	## 1:
-	## return "ESCAPE POD: D6=%d — Wanted criminal. Release on next world (cancel next new Rival on 4+) or turn in for 1D6 credits (gain a Rival)." % pod_roll
-	## 2, 3:
-	## var reward: int = randi_range(1, 3)
-	## return "ESCAPE POD: D6=%d — Grateful survivor. %d credits + 1 Loot Table roll on arrival." % [pod_roll, reward]
-	## 4:
-	## if game_state_manager.has_method("add_story_points"):
-	## game_state_manager.add_story_points(1)
-	## return "ESCAPE POD: D6=%d — Informant. +1 Quest Rumor, +1 story point." % pod_roll
-	## 5:
-	## return "ESCAPE POD: D6=%d — Willing recruit! Roll new character (no equipment). May hire or release at next world." % pod_roll
-	## 6:
-	## return "ESCAPE POD: D6=%d — Experienced recruit! Roll new character (no equipment, 10 unspent XP). May hire or release." % pod_roll
-	## _:
-	## return "ESCAPE POD: D6=%d" % pod_roll
-	##
-	## "Accident":
-	## # pp.74: Random crew member Injured (rest 1 turn), 1 carried item damaged
-	## var accident_crew = game_state_manager.get_crew_members() if game_state_manager else []
-	## if accident_crew.size() > 0 and game_state_manager:
-	## var injured_member = accident_crew[randi() % accident_crew.size()]
-	## var injury_data := {
-	## "type": "accident",
-	## "severity": 1,
-	## "recovery_turns": 1,
-	## "description": "Travel accident injury",
-	## "equipment_lost": false
-	## }
-	## var member_id = injured_member.get("character_name", injured_member.get("id", ""))
-	## game_state_manager.apply_crew_injury(member_id, injury_data)
-	## return "ACCIDENT: Random crew member is Injured (rest 1 campaign turn to recover). One item they carry is DAMAGED."
-	##
-	## "Travel-time":
-	## # pp.75: Long approach. Injured crew may rest 1 campaign turn.
-	## return "TRAVEL-TIME: Long system approach under standard drives. Any Injured crew may rest for 1 campaign turn."
-	##
-	## "Uneventful Trip":
-	## # pp.75: Repair 1 damaged item
-	## return "UNEVENTFUL TRIP: Cards and gun cleaning. You may Repair 1 damaged item."
-	##
-	## "Time to Reflect":
-	## # pp.75: +1 story point
-	## if game_state_manager.has_method("add_story_points"):
-	## game_state_manager.add_story_points(1)
-	## return "TIME TO REFLECT: +1 story point."
-	##
-	## "Time to Read":
-	## # pp.75: D6 for XP distribution
-	## var read_roll: int = randi_range(1, 6)
-	## var crew: Array = game_state_manager.get_crew_members() if game_state_manager.has_method("get_crew_members") else []
-	## if read_roll <= 2:
-	## # 1 random crew +3 XP
-	## if crew.size() > 0 and game_state_manager.has_method("add_crew_experience"):
-	## game_state_manager.add_crew_experience(randi() % crew.size(), 3)
-	## return "TIME TO READ: D6=%d — 1 random crew member earns +3 XP." % read_roll
-	## elif read_roll <= 4:
-	## # 1 random +2 XP, another +1 XP
-	## if crew.size() >= 2 and game_state_manager.has_method("add_crew_experience"):
-	## var first: int = randi() % crew.size()
-	## var second: int = randi() % crew.size()
-	## while second == first and crew.size() > 1:
-	## second = randi() % crew.size()
-	## game_state_manager.add_crew_experience(first, 2)
-	## game_state_manager.add_crew_experience(second, 1)
-	## return "TIME TO READ: D6=%d — 1 random crew +2 XP, another +1 XP." % read_roll
-	## else:
-	## # 3 random crew each +1 XP
-	## if crew.size() > 0 and game_state_manager.has_method("add_crew_experience"):
-	## var indices: Array[int] = []
-	## for i in range(min(3, crew.size())):
-	## var idx: int = randi() % crew.size()
-	## game_state_manager.add_crew_experience(idx, 1)
-	## indices.append(idx)
-	## return "TIME TO READ: D6=%d — 3 random crew each earn +1 XP." % read_roll
-	##
-	## "Locked in the Library":
-	## # pp.75: Generate 3 worlds, player chooses one destination
-	## return "LOCKED IN THE LIBRARY: Generate 3 worlds (roll traits, problems, licensing). Choose one as destination. All 3 remain in campaign for later visits."
-	##
-	## _:
-	## return "No effects (unknown event: %s)" % event_name
-	##
+	## Handle specific travel event mechanics (Core Rules pp.69-72)
+	## with ship component modifiers (Core Rules pp.60-62).
+	## Returns tabletop companion text instructions.
+	if not game_state_manager:
+		return "SKIPPED - No GameStateManager"
+
+	var event_name: String = event.get("name", "Unknown")
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	var result: String = ""
+
+	match event_name:
+		"Asteroids":
+			# p.69: Avoid (D6 5+) or navigate (3x D6+Savvy 4+)
+			var avoid_roll: int = randi_range(1, 6)
+			# Probe Launcher: roll twice, take higher (Core Rules p.61)
+			if ShipComponentQuery.has_component("probe_launcher"):
+				var second_roll: int = randi_range(1, 6)
+				var used: int = maxi(avoid_roll, second_roll)
+				_journal_component(journal, "travel",
+					"Probe Launcher Deployed",
+					"Probes scanned asteroid field. Avoidance rolls: %d and %d (using %d, need 5+)." % [
+						avoid_roll, second_roll, used],
+					["probe_launcher", "asteroids"])
+				avoid_roll = used
+			if avoid_roll >= 5:
+				result = "ASTEROIDS: D6=%d (5+ safe path). Re-roll on travel table." % avoid_roll
+			else:
+				result = (
+					"ASTEROIDS: Avoidance D6=%d (failed). "
+					+ "Navigate: Select crew, roll 1D6+Savvy 3 times (need 4+ each). "
+					+ "Each fail = 1D6 hull damage to ship."
+				) % avoid_roll
+				_ship_damaged_this_travel = true
+
+		"Navigation Trouble":
+			# p.70: Lose 1 story point, re-roll
+			if ShipComponentQuery.has_component("military_nav_system"):
+				# Military Nav: no story point loss (Core Rules p.62)
+				_journal_component(journal, "travel",
+					"Military Nav Override",
+					"Navigation system compensated — no story point lost.",
+					["military_nav_system"])
+				result = "NAV TROUBLE: Military Nav System prevented story point loss. Re-roll on travel table."
+			else:
+				if game_state_manager.has_method("add_story_points"):
+					game_state_manager.add_story_points(-1)
+				result = "NAV TROUBLE: -1 story point. Re-roll on travel table."
+			var ship: Dictionary = _get_ship_data()
+			var hull: int = ship.get("hull_points", 0)
+			var max_hull: int = ship.get("max_hull", 0)
+			if hull < max_hull:
+				result += " Ship damaged — random crew must roll Injury Table."
+
+		"Raided":
+			# p.70: Intimidation D6+Savvy 6+ or cramped battle
+			var base_intimidate: int = randi_range(1, 6)
+			var modifier: int = 0
+			# Auto-Turrets: +1 to avoid battle (Core Rules p.62)
+			if ShipComponentQuery.has_component("auto_turrets"):
+				modifier += 1
+				_journal_component(journal, "travel",
+					"Auto-Turrets Engaged",
+					"Ship turrets provided covering fire (+1 to Raided avoidance).",
+					["auto_turrets"])
+			result = (
+				"RAIDED: Intimidation base D6=%d%s. "
+				+ "Select crew, add Savvy. Need 6+ to avoid. "
+				+ "Fail = cramped battle vs Criminal Elements (p.94)."
+			) % [base_intimidate,
+				" (+1 Auto-Turrets)" if modifier > 0 else ""]
+
+		"Deep Space Wreckage":
+			# p.70: 2 rolls on Gear Subtable, both damaged
+			result = (
+				"DEEP SPACE WRECKAGE: Found old wreck. "
+				+ "Make 2 rolls on Gear Subtable (p.132). "
+				+ "Both items are DAMAGED — need Repair.")
+
+		"Drive Trouble":
+			# p.70: 3 crew each D6+Savvy 6+
+			result = (
+				"DRIVE TROUBLE: Select 3 crew, each rolls "
+				+ "1D6+Savvy (need 6+). Each fail = grounded "
+				+ "1 turn. Early takeoff = 2D6 hull damage.")
+
+		"Down-time":
+			# p.70: +1 XP to chosen crew, repair 1 item
+			result = (
+				"DOWN-TIME: +1 XP to chosen crew member. "
+				+ "You may Repair 1 damaged item (no roll).")
+
+		"Distress Call":
+			# p.70: D6 sub-table
+			var aid_roll: int = randi_range(1, 6)
+			# Shuttle: roll twice, pick higher (Core Rules p.61)
+			if ShipComponentQuery.has_component("shuttle"):
+				var second: int = randi_range(1, 6)
+				var used: int = maxi(aid_roll, second)
+				_journal_component(journal, "travel",
+					"Shuttle Deployed",
+					"Shuttle improved distress response (rolled %d and %d, using %d)." % [
+						aid_roll, second, used],
+					["shuttle"])
+				aid_roll = used
+			match aid_roll:
+				1:
+					var dmg: int = randi_range(1, 6) + 1
+					if game_state_manager.has_method("apply_ship_damage"):
+						game_state_manager.apply_ship_damage(dmg)
+					_ship_damaged_this_travel = true
+					result = "DISTRESS CALL: D6=%d — Drive detonated! %d hull damage (1D6+1)." % [aid_roll, dmg]
+				2:
+					result = "DISTRESS CALL: D6=%d — Drifting wreckage only." % aid_roll
+				3, 4:
+					result = "DISTRESS CALL: D6=%d — Rescue survivor! Treat as Escape Pod event." % aid_roll
+				5, 6:
+					result = (
+						"DISTRESS CALL: D6=%d — Ship in trouble! "
+						+ "D6+Savvy 7+ (3 attempts). "
+						+ "Success = 3 Gear + 1 Gadget rolls. "
+						+ "Fail = 1D6+1 hull damage."
+					) % aid_roll
+				_:
+					result = "DISTRESS CALL: D6=%d" % aid_roll
+
+		"Patrol Ship":
+			# p.70: D6-3 twice (or once with Hidden Compartment)
+			var rolls: int = 2
+			if ShipComponentQuery.has_component("hidden_compartment"):
+				rolls = 1
+				_journal_component(journal, "travel",
+					"Hidden Compartment",
+					"Concealed storage limited patrol confiscation to 1 roll instead of 2.",
+					["hidden_compartment"])
+			var confiscated: int = 0
+			for i in range(rolls):
+				var roll: int = randi_range(1, 6) - 3
+				if roll > 0:
+					confiscated += roll
+			if confiscated > 0:
+				result = "PATROL SHIP: %d item(s) confiscated. Choose from carried/Stash. Next world cannot be Invaded." % confiscated
+			else:
+				result = "PATROL SHIP: No contraband found. Next world cannot be Invaded."
+
+		"Cosmic Phenomenon":
+			# p.71: +1 Luck to random crew (once per campaign)
+			result = (
+				"COSMIC PHENOMENON: Random crew member +1 Luck "
+				+ "(if able). Once per campaign only. "
+				+ "If Precursor in crew: +1 story point.")
+
+		"Escape Pod":
+			# pp.71-72: D6 for occupant
+			var pod_roll: int = randi_range(1, 6)
+			match pod_roll:
+				1:
+					result = "ESCAPE POD: D6=%d — Wanted criminal. Release (cancel next Rival on 4+) or turn in (1D6 credits, gain Rival)." % pod_roll
+				2, 3:
+					result = "ESCAPE POD: D6=%d — Grateful survivor. 1D3 credits + 1 Loot roll on arrival." % pod_roll
+				4:
+					result = "ESCAPE POD: D6=%d — Informant. +1 Quest Rumor, +1 story point." % pod_roll
+				5:
+					result = "ESCAPE POD: D6=%d — Willing recruit (no equipment)." % pod_roll
+				6:
+					result = "ESCAPE POD: D6=%d — Experienced recruit (no equipment, 10 unspent XP)." % pod_roll
+				_:
+					result = "ESCAPE POD: D6=%d" % pod_roll
+
+		"Accident":
+			# p.72: Random crew Injured (1 turn), 1 carried item damaged
+			result = (
+				"ACCIDENT: Random crew member is Injured "
+				+ "(rest 1 turn). One item they carry is DAMAGED.")
+
+		"Travel-time", "Travel-Time":
+			# p.72: Injured crew rest 1 turn
+			var travel_result: String = (
+				"TRAVEL-TIME: Long approach. "
+				+ "Injured crew may rest 1 campaign turn.")
+			# Military Nav: also get Uneventful Trip benefit (Core Rules p.62)
+			if ShipComponentQuery.has_component("military_nav_system"):
+				travel_result += " Military Nav: ALSO repair 1 damaged item (Uneventful Trip bonus)."
+				_journal_component(journal, "travel",
+					"Optimized Navigation",
+					"Military Nav System combined Travel-Time rest with Uneventful Trip item repair.",
+					["military_nav_system"])
+			result = travel_result
+
+		"Uneventful Trip", "Uneventful trip":
+			# p.72: Repair 1 damaged item
+			result = "UNEVENTFUL TRIP: You may Repair 1 damaged item."
+
+		"Time to Reflect", "Time to reflect":
+			# p.72: +1 story point
+			if game_state_manager.has_method("add_story_points"):
+				game_state_manager.add_story_points(1)
+			result = "TIME TO REFLECT: +1 story point."
+
+		"Time to Read", "Time to read":
+			# p.72: D6 for XP distribution
+			var read_roll: int = randi_range(1, 6)
+			if read_roll <= 2:
+				result = "TIME TO READ: D6=%d — 1 random crew +3 XP." % read_roll
+			elif read_roll <= 4:
+				result = "TIME TO READ: D6=%d — 1 random crew +2 XP, another +1 XP." % read_roll
+			else:
+				result = "TIME TO READ: D6=%d — 3 random crew each +1 XP." % read_roll
+
+		"Locked in the Library", "Locked in the library":
+			# p.72: Generate 3 worlds, choose one
+			result = (
+				"LOCKED IN THE LIBRARY: Generate 3 worlds "
+				+ "(traits, problems, licensing). Choose 1 "
+				+ "destination. All 3 remain for later.")
+
+		_:
+			result = "Travel event: %s" % event_name
+
+	return result
+
+
+## Track whether ship took damage during this travel (for Cargo Hold).
+var _ship_damaged_this_travel: bool = false
+
+
+## Helper: create a ship component journal entry during travel.
+func _journal_component(
+	journal: Node, entry_type: String, title: String,
+	description: String, component_tags: Array
+) -> void:
+	if not journal or not journal.has_method("create_entry"):
+		return
+	var tags: Array = ["ship_component"]
+	tags.append_array(component_tags)
+	journal.create_entry({
+		"type": entry_type,
+		"title": title,
+		"description": description,
+		"tags": tags,
+		"auto_generated": true,
+		"mood": "neutral",
+	})
+
+## Extract rival ID from mixed-type rival data (Dictionary, String, or other).
+## Prefixes with "rival_" for PlanetDataManager.get_planet_rivals() convention.
+func _get_rival_id(rival: Variant) -> String:
+	var raw_id: String = ""
+	if rival is Dictionary:
+		raw_id = str(rival.get("rival_id", rival.get("id", rival.get("name", ""))))
+	else:
+		raw_id = str(rival)
+	if raw_id != "" and not raw_id.begins_with("rival_"):
+		raw_id = "rival_" + raw_id
+	return raw_id
+
+## Extract patron ID with "patron_" prefix convention.
+func _get_patron_id(patron_id: String) -> String:
+	if patron_id != "" and not patron_id.begins_with("patron_"):
+		return "patron_" + patron_id
+	return patron_id
+
+## Reinstate rivals/patrons from a previously visited planet (Core Rules p.69).
+## "Can return to previous worlds, reinstating all Patrons and Rivals left behind."
+func _reinstate_planet_contacts(
+	planet_id: String, planet_mgr: Node, npc_tracker: Node
+) -> void:
+	# Reinstate rivals
+	var planet_rivals: Array[String] = planet_mgr.get_planet_rivals(planet_id)
+	if game_state_manager and game_state_manager.has_method("get_rivals"):
+		var current_rivals: Array = game_state_manager.get_rivals()
+		var current_ids: Array[String] = []
+		for r in current_rivals:
+			current_ids.append(_get_rival_id(r))
+		for rival_contact_id in planet_rivals:
+			if rival_contact_id not in current_ids:
+				var rival_dict: Dictionary = {
+					"rival_id": rival_contact_id,
+					"name": rival_contact_id.trim_prefix("rival_"),
+				}
+				current_rivals.append(rival_dict)
+		if game_state_manager.has_method("set_rivals"):
+			game_state_manager.set_rivals(current_rivals)
+
+	# Reinstate patrons
+	var planet_patrons: Array[String] = planet_mgr.get_planet_patrons(planet_id)
+	if npc_tracker:
+		for patron_contact_id in planet_patrons:
+			var clean_id: String = patron_contact_id.trim_prefix("patron_")
+			if not npc_tracker.patrons.has(clean_id):
+				npc_tracker.patrons[clean_id] = {
+					"patron_id": clean_id,
+					"name": clean_id,
+					"duration_turns": -1,
+					"relationship": 0,
+				}
 
 func _process_world_arrival() -> void:
 	## Step 4: New World Arrival Steps (Core Rules p.72)
-	## 1. Generate world traits (D100)
-	## 2. Check if rivals follow (D6 per rival, 5+ = follows)
-	## 3. Check licensing requirements (D6: 5-6 = license, then D6 for cost)
-	## 4. Emit world_arrival_completed with full world data
+	## 1. Check if rivals follow (D6 per rival, 5+ = follows) — store left-behind on planet
+	## 2. Dismiss non-persistent patrons — store on planet before clearing
+	## 3. Store faction state on departing planet, generate new factions
+	## 4. Generate world traits (D100)
+	## 5. Check licensing requirements (D6: 5-6 = license, then D6 for cost)
+	## 6. Register new planet + reinstate contacts on return visits
+	## 7. Journal entries for departure/arrival
+	## 8. Emit world_arrival_completed with full world data
 
-	# Roll D100 for world trait (Core Rules pp.72-75)
+	# --- Capture departing planet context (before any state changes) ---
+	var planet_mgr: Node = get_node_or_null("/root/PlanetDataManager")
+	var departing_planet_id: String = ""
+	if planet_mgr and planet_mgr.has_method("get_current_planet"):
+		departing_planet_id = planet_mgr.current_planet_id
+	var npc_tracker: Node = get_node_or_null("/root/NPCTracker")
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	var faction_sys: Node = get_node_or_null("/root/FactionSystem")
+	var turn_number: int = 0
+	if _campaign and "turns_played" in _campaign.progress_data:
+		turn_number = _campaign.progress_data["turns_played"]
+
+	# --- Step 1: Roll D100 for world trait (Core Rules pp.72-75) ---
 	var trait_roll: int = randi_range(1, 100)
 	var world_trait_name: String = "Unknown"
 	var world_trait_value: Variant = "none"
@@ -763,37 +884,120 @@ func _process_world_arrival() -> void:
 	# Generate a world name (fallback — Compendium name gen wired in Sprint 2)
 	var world_name: String = "World-%03d" % randi_range(1, 999)
 
-	# Check if rivals follow to new world (Core Rules p.72: D6 per rival, 5+ = follows)
+	# --- Step 2: Check if rivals follow (Core Rules p.72: D6 per rival, 5+ = follows) ---
 	_rival_follows = false
 	var rivals_that_follow: Array[String] = []
+	var all_rivals: Array = []
 	if game_state_manager and game_state_manager.has_method("get_rivals"):
-		var rivals: Array = game_state_manager.get_rivals()
-		for rival in rivals:
+		all_rivals = game_state_manager.get_rivals()
+		for rival in all_rivals:
 			var follow_roll: int = randi_range(1, 6)
+			var rival_name: String = ""
+			if rival is Dictionary:
+				rival_name = rival.get("name", rival.get("rival_name", "Unknown Rival"))
+			elif rival is String:
+				rival_name = rival
+			else:
+				rival_name = str(rival)
 			if follow_roll >= 5:
 				_rival_follows = true
-				var rival_name: String = ""
-				if rival is Dictionary:
-					rival_name = rival.get("name", rival.get("rival_name", "Unknown Rival"))
-				elif rival is String:
-					rival_name = rival
-				else:
-					rival_name = str(rival)
 				rivals_that_follow.append(rival_name)
 
-	# Check licensing requirements (Core Rules p.72: D6, 5-6 = license required)
-	# Then roll a further D6 to determine how many credits it costs
+	# Partition rivals: followers travel with crew, others stay on departing planet
+	var following_rivals: Array = []
+	for rival in all_rivals:
+		var rival_name: String = ""
+		if rival is Dictionary:
+			rival_name = rival.get("name", rival.get("rival_name", ""))
+		elif rival is String:
+			rival_name = rival
+		else:
+			rival_name = str(rival)
+
+		if rival_name in rivals_that_follow:
+			following_rivals.append(rival)
+		elif departing_planet_id != "" and planet_mgr:
+			# Store on departing planet (Core Rules p.72: "Remain behind")
+			var rival_id: String = _get_rival_id(rival)
+			if rival_id != "":
+				planet_mgr.add_contact_to_planet(departing_planet_id, rival_id)
+
+	# Update active rivals to only those following
+	if game_state_manager and game_state_manager.has_method("set_rivals"):
+		game_state_manager.set_rivals(following_rivals)
+
+	# --- Step 3: Store non-persistent patrons on departing planet before clearing ---
+	var patrons_left: int = 0
+	if npc_tracker and departing_planet_id != "" and planet_mgr:
+		for patron_id in npc_tracker.patrons:
+			var patron: Dictionary = npc_tracker.patrons[patron_id]
+			var duration: int = patron.get("duration_turns", -1)
+			if duration != -1:  # Non-persistent
+				var prefixed_id: String = _get_patron_id(patron_id)
+				planet_mgr.add_contact_to_planet(departing_planet_id, prefixed_id)
+				patrons_left += 1
+
+	# Core Rules p.88: "When you travel to a new planet, all Patrons
+	# become unavailable unless they are Persistent."
+	if npc_tracker and npc_tracker.has_method("clear_non_persistent_patrons"):
+		npc_tracker.clear_non_persistent_patrons()
+
+	# --- Step 4: Store departing planet faction state (Compendium p.110) ---
+	if faction_sys and departing_planet_id != "" and planet_mgr:
+		if faction_sys.has_method("get_data"):
+			planet_mgr.store_faction_data(departing_planet_id, faction_sys.get_data())
+		# Clear faction state for new world
+		if faction_sys.has_method("cleanup"):
+			faction_sys.cleanup()
+		# Re-populate faction_categories (cleanup() clears them)
+		faction_sys.faction_categories = {
+			"government": [], "corporate": [], "criminal": [],
+			"military": [], "religious": [], "mercenary": [],
+			"pirate": [], "alien": []
+		}
+		faction_sys._initialized = true
+
+	# --- Step 5: Journal departure entry ---
+	if journal and journal.has_method("auto_create_milestone_entry") and departing_planet_id != "":
+		var departing_planet: Variant = planet_mgr.get_current_planet() if planet_mgr else null
+		var dep_name: String = departing_planet.name if departing_planet else departing_planet_id
+		journal.auto_create_milestone_entry("planet_departure", {
+			"turn": turn_number,
+			"planet_name": dep_name,
+			"rivals_left": all_rivals.size() - following_rivals.size(),
+			"patrons_left": patrons_left,
+		})
+
+	# --- Step 6: Check licensing requirements (Core Rules p.72) ---
 	var license_roll: int = randi_range(1, 6)
 	_license_required = license_roll >= 5
 	var license_cost: int = 0
 	if _license_required:
 		license_cost = randi_range(1, 6)  # Core Rules p.72: "Roll a further 1D6"
 
-	# Core Rules p.88: "When you travel to a new planet, all Patrons
-	# become unavailable unless they are Persistent."
-	var npc_tracker = get_node_or_null("/root/NPCTracker")
-	if npc_tracker and npc_tracker.has_method("clear_non_persistent_patrons"):
-		npc_tracker.clear_non_persistent_patrons()
+	# Fake ID on-board item: +1 to license roll (Core Rules p.57)
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("get_onboard_item_effect"):
+		var fake_id_effect: Dictionary = eq_mgr.get_onboard_item_effect("fake_id")
+		if not fake_id_effect.is_empty():
+			# Check if crew owns Fake ID — would need stash check
+			pass  # TODO: Wire when on-board item ownership is tracked
+
+	# --- Step 7: Register new planet + handle return visits ---
+	var visit_number: int = 1
+	if planet_mgr:
+		var new_planet: Variant = planet_mgr.get_or_generate_planet("", turn_number)
+		if new_planet:
+			planet_mgr.set_current_planet(new_planet.id)
+			visit_number = new_planet.visit_count
+			# Return visit — reinstate contacts (Core Rules p.69)
+			if new_planet.visit_count > 1:
+				_reinstate_planet_contacts(new_planet.id, planet_mgr, npc_tracker)
+				# Restore faction data for return visits
+				if faction_sys:
+					var stored_factions: Dictionary = planet_mgr.get_faction_data(new_planet.id)
+					if not stored_factions.is_empty() and faction_sys.has_method("update_data"):
+						faction_sys.update_data(stored_factions)
 
 	# Build world data dictionary
 	_last_world_data = {
@@ -817,19 +1021,40 @@ func _process_world_arrival() -> void:
 	# Emit world arrival signal for UI and downstream phases
 	world_arrival_completed.emit(_last_world_data)
 
+	# --- Step 8: Journal arrival + rival pursuit entries ---
+	if journal and journal.has_method("auto_create_milestone_entry"):
+		journal.auto_create_milestone_entry("planet_arrival", {
+			"turn": turn_number,
+			"planet_name": world_name,
+			"trait_name": world_trait_name,
+			"visit_number": visit_number,
+		})
+		for rival_name in rivals_that_follow:
+			journal.auto_create_milestone_entry("rival_followed", {
+				"turn": turn_number,
+				"rival_name": rival_name,
+			})
+
 	# Continue to phase completion
 	_complete_travel_phase()
 
 func _complete_travel_phase() -> void:
 	## Complete the Travel Phase
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+
+	# --- Ship component travel revenue (Core Rules pp.61-62) ---
+	_process_travel_revenue_components(journal)
+
 	# Log travel to CampaignJournal
-	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
-		var destination: String = _last_world_data.get("name", "Unknown") if _last_world_data else "Unknown"
+		var destination: String = (
+			_last_world_data.get("name", "Unknown")
+			if _last_world_data else "Unknown")
 		var turn_num: int = 0
-		var gs = get_node_or_null("/root/GameState")
+		var gs: Variant = get_node_or_null("/root/GameState")
 		if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
-			turn_num = gs.current_campaign.progress_data.get("turns_played", 0)
+			turn_num = gs.current_campaign.progress_data.get(
+				"turns_played", 0)
 		journal.create_entry({
 			"turn_number": turn_num,
 			"type": "travel",
@@ -840,14 +1065,116 @@ func _complete_travel_phase() -> void:
 			"tags": ["travel"],
 			"location": destination,
 		})
+
+	# Reset travel damage flag
+	_ship_damaged_this_travel = false
+
 	if GlobalEnums:
 		current_substep = GlobalEnums.TravelSubPhase.NONE
 	travel_phase_completed.emit()
+
+
+func _process_travel_revenue_components(journal: Node) -> void:
+	## Process ship components that generate revenue on travel.
+	if not game_state_manager:
+		return
+
+	# Cargo Hold: 2D6, discard 5-6, earn highest (Core Rules p.61)
+	if ShipComponentQuery.has_component("cargo_hold"):
+		var d1: int = randi_range(1, 6)
+		var d2: int = randi_range(1, 6)
+		var valid: Array[int] = []
+		if d1 < 5:
+			valid.append(d1)
+		if d2 < 5:
+			valid.append(d2)
+		if _ship_damaged_this_travel:
+			_journal_component(journal, "trade",
+				"Cargo Lost",
+				"Cargo destroyed when ship sustained damage in transit (rolled %d, %d)." % [d1, d2],
+				["cargo_hold", "loss"])
+		elif valid.size() > 0:
+			var revenue: int = valid.max()
+			if game_state_manager.has_method("add_credits"):
+				game_state_manager.add_credits(revenue)
+			_journal_component(journal, "trade",
+				"Cargo Shipment Delivered",
+				"Cargo Hold earned %d credits (rolled %d, %d)." % [
+					revenue, d1, d2],
+				["cargo_hold", "income"])
+		else:
+			_journal_component(journal, "trade",
+				"No Cargo Available",
+				"No viable shipments found (rolled %d, %d — both 5+)." % [d1, d2],
+				["cargo_hold"])
+
+	# Hidden Compartment revenue: 3D6, keep 1s and 2s (Core Rules p.62)
+	if ShipComponentQuery.has_component("hidden_compartment"):
+		var dice: Array[int] = [
+			randi_range(1, 6),
+			randi_range(1, 6),
+			randi_range(1, 6)]
+		var kept: Array[int] = []
+		for d: int in dice:
+			if d <= 2:
+				kept.append(d)
+		var revenue: int = 0
+		for d: int in kept:
+			revenue += d
+		if revenue > 0 and game_state_manager.has_method("add_credits"):
+			game_state_manager.add_credits(revenue)
+			_journal_component(journal, "trade",
+				"Smuggling Revenue",
+				"Hidden Compartment earned %d credits (rolled %s, kept %s)." % [
+					revenue, str(dice), str(kept)],
+				["hidden_compartment", "income"])
+		elif revenue == 0:
+			_journal_component(journal, "trade",
+				"No Contraband Revenue",
+				"Hidden Compartment: nothing marketable (rolled %s)." % str(dice),
+				["hidden_compartment"])
+
+	# Scientific Research System: D6 (Compendium p.28)
+	if ShipComponentQuery.has_component("scientific_research_system"):
+		var roll: int = randi_range(1, 6)
+		match roll:
+			1, 2:
+				_journal_component(journal, "trade",
+					"Research Results",
+					"Scientific Research System: Nothing found (rolled %d)." % roll,
+					["scientific_research", "compendium"])
+			3, 4:
+				if game_state_manager.has_method("add_credits"):
+					game_state_manager.add_credits(2)
+				_journal_component(journal, "trade",
+					"Research Results",
+					"Scientific Research System: Research data analyzed — 2 credits (rolled %d)." % roll,
+					["scientific_research", "compendium", "income"])
+			5, 6:
+				if game_state_manager.has_method("add_quest_rumor"):
+					game_state_manager.add_quest_rumor()
+				_journal_component(journal, "trade",
+					"Research Results",
+					"Scientific Research System: +1 Quest Rumor (rolled %d)." % roll,
+					["scientific_research", "compendium", "quest"])
 
 ## Public API Methods
 func get_current_substep() -> int:
 	## Get the current travel sub-step
 	return current_substep
+
+func attempt_forge_license(crew_savvy: int) -> Dictionary:
+	## Attempt to forge a freelancer license (Core Rules p.72)
+	## crew_savvy: the Savvy stat of the selected crew member
+	## Returns: {success: bool, rival_added: bool, roll: int, total: int}
+	var raw_roll: int = randi_range(1, 6)
+	var total: int = raw_roll + crew_savvy
+	if raw_roll == 1:
+		# Natural 1 before modifiers: new rival added
+		return {"success": false, "rival_added": true, "roll": raw_roll, "total": total}
+	if total >= 6:
+		return {"success": true, "rival_added": false, "roll": raw_roll, "total": total}
+	return {"success": false, "rival_added": false, "roll": raw_roll, "total": total}
 
 func force_travel_decision(decision: bool) -> void:
 	## Force a specific travel decision (for UI integration)

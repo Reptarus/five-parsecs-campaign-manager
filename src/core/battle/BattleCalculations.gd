@@ -213,13 +213,9 @@ static func calculate_weapon_damage(
 		else:
 			damage = 999  # Default: instant kill on crit
 
-	# Weapon traits
-	for trait_name in weapon_traits:
-		match trait_name:
-			"devastating":
-				damage += 1
-			"piercing":
-				pass  # Handled in armor calculation
+	# Note: Weapon trait damage modifiers (devastating, powered) are now applied
+	# via get_weapon_trait_effects() in resolve_ranged_attack() — not duplicated here.
+	# Piercing is handled in save resolution.
 
 	return maxi(1, damage)
 
@@ -313,11 +309,13 @@ static func get_save_type(target: Dictionary) -> SaveType:
 
 ## Resolve saves with proper piercing handling
 ## CRITICAL: Piercing ignores ARMOR saves but NOT screen saves
+## Phase 6: Added trait_effects parameter for conditional device effects
 static func resolve_saves(
 	roll: int,
 	target: Dictionary,
 	weapon_traits: Array,
-	damage: int = 1
+	damage: int = 1,
+	trait_effects: Dictionary = {}
 ) -> Dictionary:
 	var result := {
 		"saved": false,
@@ -329,15 +327,21 @@ static func resolve_saves(
 
 	var save_type := get_save_type(target)
 	var has_piercing := "piercing" in weapon_traits
+	var target_prot: Dictionary = target.get("protective_effects", {})
+	var is_area: bool = trait_effects.get("is_area_effect", false)
+	var is_melee: bool = trait_effects.get("is_melee", false)
 
 	# Check screen first (if present) - NOT affected by piercing
 	if save_type == SaveType.SCREEN or save_type == SaveType.COMBINED:
-		result["screen_checked"] = true
-		var screen_type: String = target.get("screen", "none")
-		if check_screen_save(roll, screen_type, damage):
-			result["saved"] = true
-			result["save_type_used"] = SaveType.SCREEN
-			return result
+		# Phase 6f: Screen generator — no effect vs Area or Melee (Core Rules p.55)
+		var screen_blocked: bool = target_prot.get("screen_gunfire_only", false) and (is_area or is_melee)
+		if not screen_blocked:
+			result["screen_checked"] = true
+			var screen_type: String = target.get("screen", "none")
+			if check_screen_save(roll, screen_type, damage):
+				result["saved"] = true
+				result["save_type_used"] = SaveType.SCREEN
+				return result
 
 	# Check armor (if present and not pierced)
 	if save_type == SaveType.ARMOR or save_type == SaveType.COMBINED:
@@ -347,6 +351,9 @@ static func resolve_saves(
 			result["armor_pierced"] = true
 		else:
 			var armor_type: String = target.get("armor", "none")
+			# Phase 6g: Frag vest — 5+ vs Area instead of 6+ (Core Rules p.55)
+			if target_prot.get("frag_vest_area_bonus", false) and is_area:
+				armor_type = "combat"  # Upgrades from "light"(6+) to "combat"(5+)
 			if check_armor_save(roll, armor_type, damage):
 				result["saved"] = true
 				result["save_type_used"] = SaveType.ARMOR
@@ -400,7 +407,20 @@ static func resolve_ranged_attack(
 	var attacker_elevated: bool = attacker.get("elevated", false)
 	var target_elevated: bool = target.get("elevated", false)
 
-	# Calculate hit threshold
+	# Phase 2: Compute weapon trait effects (Core Rules p.51)
+	var range_band: String = "short" if range_inches <= POINT_BLANK_RANGE else "medium"
+	var moved: bool = attacker.get("moved_this_turn", false)
+	var trait_effects := get_weapon_trait_effects(weapon_traits, {
+		"range_band": range_band,
+		"moved_this_turn": moved,
+		"is_aimed_shot": attacker.get("is_aimed_shot", false),
+		# Phase 11: Compendium Dramatic Combat modifications
+		"dramatic_combat": attacker.get("dramatic_combat", false),
+		"attacker_species": attacker.get("species", attacker.get("species_id", ""))
+	})
+	result["trait_effects"] = trait_effects
+
+	# Calculate hit threshold (base from to-hit table)
 	var hit_threshold := calculate_hit_threshold(
 		combat_skill,
 		target_in_cover,
@@ -409,6 +429,16 @@ static func resolve_ranged_attack(
 		range_inches,
 		weapon_range
 	)
+	# Phase 11: Shrapnel overrides all hit modifiers (Compendium p.91)
+	if trait_effects.get("override_hit_threshold", 0) > 0:
+		hit_threshold = trait_effects["override_hit_threshold"]
+	else:
+		# Apply weapon trait hit modifiers (Heavy -1 moved, Snap Shot +1 close)
+		hit_threshold -= trait_effects["hit_modifier"]
+		# Phase 6b: Stealth gear — enemies >9" are -1 to Hit (Core Rules p.55)
+		if attacker.get("stealth_gear_penalty", false):
+			hit_threshold += 1
+	hit_threshold = clampi(hit_threshold, 1, 7)
 
 	# Roll to hit
 	var hit_roll: int = dice_roller.call()
@@ -428,8 +458,12 @@ static func resolve_ranged_attack(
 		if "critical" in weapon_traits:
 			result["effects"].append("critical_extra_hit")
 
-	# Calculate damage
-	var raw_damage := calculate_weapon_damage(weapon_damage, result["critical"], weapon_traits)
+	# Calculate damage (base + trait modifiers like Devastating, Powered)
+	var raw_damage := calculate_weapon_damage(
+		weapon_damage + trait_effects["damage_modifier"],
+		result["critical"],
+		weapon_traits
+	)
 	result["raw_damage"] = raw_damage
 
 	# Check saves (screen first, then armor - piercing only ignores armor)
@@ -437,7 +471,9 @@ static func resolve_ranged_attack(
 	result["armor_roll"] = save_roll  # Keep for backwards compatibility
 	result["save_roll"] = save_roll
 
-	var save_result := resolve_saves(save_roll, target, weapon_traits, raw_damage)
+	var save_result := resolve_saves(
+		save_roll, target, weapon_traits, raw_damage, trait_effects
+	)
 	result["save_result"] = save_result
 
 	if save_result["armor_pierced"]:
@@ -452,18 +488,33 @@ static func resolve_ranged_attack(
 			result["armor_saved"] = true
 		else:
 			result["armor_saved"] = true  # Default for backwards compatibility
+		# Core Rules p.51: Stun applies even if saved by armor
+		if trait_effects["causes_stun"]:
+			result["effects"].append("stun")
 		return result
 
-	# Apply damage
-	var final_damage := calculate_damage_after_armor(raw_damage, target_toughness, penetration)
+	# Phase 6e: Flak screen — Area weapon Damage -1 (min +0) (Core Rules p.55)
+	var target_prot: Dictionary = target.get("protective_effects", {})
+	if target_prot.get("flak_screen", false) and trait_effects.get("is_area_effect", false):
+		raw_damage = maxi(0, raw_damage - 1)
+
+	# Apply damage — Core Rules p.51: Stun ignores Toughness
+	var effective_toughness: int = target_toughness
+	if trait_effects.get("ignore_toughness", false):
+		effective_toughness = 0  # Stun: Toughness bypassed
+	var final_damage := calculate_damage_after_armor(
+		raw_damage, effective_toughness, penetration
+	)
 	result["damage"] = final_damage
 	result["wounds_inflicted"] = final_damage
 
-	# Check for special effects
-	if "stun" in weapon_traits and final_damage > 0:
+	# Apply status effects from trait system
+	if trait_effects["causes_stun"]:
 		result["effects"].append("stun")
-	if "knockback" in weapon_traits and final_damage > 0:
+	if trait_effects["causes_knockback"]:
 		result["effects"].append("knockback")
+	if trait_effects.get("is_one_use", false):
+		result["effects"].append("one_use_consumed")
 
 	# Sprint 26.5: Debug log the attack resolution
 	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
@@ -552,9 +603,21 @@ static func resolve_brawl(
 	result["attacker_raw_roll"] = attacker_natural
 	result["defender_raw_roll"] = defender_natural
 
+	# Core Rules p.51: Clumsy — -1 to Brawling if opponent has higher Speed
+	var attacker_clumsy_penalty := 0
+	var defender_clumsy_penalty := 0
+	var attacker_speed: int = attacker.get("speed", 4)
+	var defender_speed: int = defender.get("speed", 4)
+	if "clumsy" in attacker_traits and defender_speed > attacker_speed:
+		attacker_clumsy_penalty = -1
+		result["effects"].append("clumsy_penalty_attacker")
+	if "clumsy" in defender_traits and attacker_speed > defender_speed:
+		defender_clumsy_penalty = -1
+		result["effects"].append("clumsy_penalty_defender")
+
 	# Calculate totals
-	var attacker_total: int = attacker_natural + attacker_skill + attacker_weapon_bonus + attacker_species_bonus
-	var defender_total: int = defender_natural + defender_skill + defender_weapon_bonus + defender_species_bonus
+	var attacker_total: int = attacker_natural + attacker_skill + attacker_weapon_bonus + attacker_species_bonus + attacker_clumsy_penalty
+	var defender_total: int = defender_natural + defender_skill + defender_weapon_bonus + defender_species_bonus + defender_clumsy_penalty
 
 	result["attacker_total"] = attacker_total
 	result["defender_total"] = defender_total
@@ -1244,6 +1307,48 @@ static func _apply_utility_device_effect(
 			result["reaction_dice_bonus"] += 1
 			result["effects"].append("communicator_+1_reaction")
 
+		# Phase 9: Additional battle-time utility devices (Core Rules pp.56-57)
+		"auto_sensor":
+			# Fire 1 Pistol shot at enemy entering 4" LoS (natural 6 only)
+			result["auto_sensor"] = true
+			result["effects"].append("auto_sensor_4in_overwatch")
+
+		"concealed_blade":
+			# Throw blade at adjacent enemy, Damage +0, once per battle
+			result["concealed_blade"] = true
+			result["effects"].append("concealed_blade_once")
+
+		"displacer":
+			# Teleport 1D6" random direction, once per mission
+			result["displacer"] = true
+			result["effects"].append("displacer_teleport_once")
+
+		"distraction_bot":
+			# Freeze 1 enemy within 12" for 1 activation, once per battle
+			result["distraction_bot"] = true
+			result["effects"].append("distraction_bot_freeze_12in")
+
+		"sonic_emitter":
+			# Enemies within 5" get -1 to Hit rolls
+			result["sonic_emitter_range"] = 5
+			result["effects"].append("sonic_emitter_-1_hit_5in")
+
+		"steel_boots":
+			# On natural 5-6 brawl win, kick enemy 1D3" backwards
+			result["steel_boots"] = true
+			result["effects"].append("steel_boots_kick")
+
+		"hover_board":
+			# Move 9", ignore man-height terrain, no combat
+			result["hover_board"] = true
+			result["can_glide"] = true
+			result["effects"].append("hover_board_9in_move")
+
+		"time_distorter":
+			# Freeze 3 enemies, single-use
+			result["time_distorter"] = true
+			result["effects"].append("time_distorter_freeze_3")
+
 ## Apply battle visor reroll effect to attack roll
 static func apply_battle_visor_reroll(
 	original_roll: int,
@@ -1570,6 +1675,10 @@ static func get_weapon_trait_effects(
 		"is_reliable": false,
 		"rapid_fire": false,
 		"rapid_fire_shots": 0,
+		# Phase 0 additions — Core Rules p.51, Compendium p.91
+		"force_single_target": false,      # Focused: all shots against one target
+		"ignore_toughness": false,          # Stun: Toughness bypassed, saves still apply
+		"overheat_shot_reduction": false,   # Hot/Overheat: -1 Shot if fired last round
 		"traits_applied": []
 	}
 
@@ -1580,6 +1689,29 @@ static func get_weapon_trait_effects(
 	for trait_name: Variant in weapon_traits:
 		var trait_str: String = trait_name if trait_name is String else str(trait_name)
 		_apply_weapon_trait(trait_str.to_lower(), effects, range_band, moved_this_turn, is_aimed_shot)
+
+	# Phase 11: Compendium Dramatic Combat trait modifications (p.91)
+	# DLC-gated — caller passes dramatic_combat flag in context
+	if attack_context.get("dramatic_combat", false):
+		# Pistol: Also +1 to hit within 6" (cumulative with Snap Shot)
+		if effects["is_pistol"] and range_band == "short":
+			effects["hit_modifier"] += 1
+			effects["traits_applied"].append("compendium_pistol_+1_close")
+		# Heavy: Does not affect Area weapons; cannot Lunge
+		if effects.get("is_area_effect", false):
+			# Undo Heavy penalty for Area weapons
+			for i in effects["traits_applied"].size() - 1:
+				if effects["traits_applied"][i] == "heavy_-1_moved":
+					effects["traits_applied"].remove_at(i)
+					effects["hit_modifier"] += 1  # Undo the -1
+					break
+		# Elegant: K'Erin do NOT benefit
+		var attacker_species: String = attack_context.get("attacker_species", "")
+		if attacker_species.to_lower() == "kerin" or attacker_species.to_lower() == "k'erin":
+			for i in effects["traits_applied"].size() - 1:
+				if effects["traits_applied"][i] == "elegant_reroll_low":
+					effects["traits_applied"].remove_at(i)
+					break
 
 	return effects
 
@@ -1604,10 +1736,9 @@ static func _apply_weapon_trait(
 				effects["traits_applied"].append("snap_shot_+1_close")
 
 		"focused":
-			# +1 hit if didn't move
-			if not moved_this_turn:
-				effects["hit_modifier"] += 1
-				effects["traits_applied"].append("focused_+1_stationary")
+			# Core Rules p.51: All shots must be against a single target
+			effects["force_single_target"] = true
+			effects["traits_applied"].append("focused_single_target")
 
 		"slow":
 			# -1 hit at close range
@@ -1616,12 +1747,10 @@ static func _apply_weapon_trait(
 				effects["traits_applied"].append("slow_-1_close")
 
 		"heavy":
-			# -1 hit if moved, +1 damage
+			# Core Rules p.51: -1 to Hit if firer moved this round (NO damage bonus)
 			if moved_this_turn:
 				effects["hit_modifier"] -= 1
 				effects["traits_applied"].append("heavy_-1_moved")
-			effects["damage_modifier"] += 1
-			effects["traits_applied"].append("heavy_+1_damage")
 
 		# Damage Traits
 		"devastating":
@@ -1642,8 +1771,10 @@ static func _apply_weapon_trait(
 
 		# Status Effect Traits
 		"stun", "stunning":
+			# Core Rules p.51: Toughness is ignored but Saving Throws apply
 			effects["causes_stun"] = true
-			effects["traits_applied"].append("causes_stun")
+			effects["ignore_toughness"] = true
+			effects["traits_applied"].append("stun_ignore_toughness")
 
 		"impact":
 			effects["causes_stun"] = true  # Double stun
@@ -1729,13 +1860,30 @@ static func _apply_weapon_trait(
 			# Target knocked out instead of killed
 			effects["traits_applied"].append("non_lethal")
 
-		"hot":
-			# Risk of overheating
-			effects["traits_applied"].append("hot_overheat_risk")
+		"hot", "overheat":
+			# Compendium p.91: If fired in previous round, 1 less Shot (non-cumulative)
+			effects["overheat_shot_reduction"] = true
+			effects["traits_applied"].append("overheat_shot_reduction")
 
 		"unstable":
 			# Roll for malfunction
 			effects["traits_applied"].append("unstable_malfunction")
+
+		# Phase 11: Compendium Dramatic Weapons traits (p.91)
+		"burn":
+			# Non-robot survivors move full move in random direction
+			effects["causes_burn"] = true
+			effects["traits_applied"].append("burn_random_move")
+
+		"shockwave":
+			# Survivor thrown 1D6" backwards
+			effects["causes_shockwave"] = true
+			effects["traits_applied"].append("shockwave_knockback")
+
+		"shrapnel":
+			# All shots hit on 5+ regardless of modifiers
+			effects["override_hit_threshold"] = 5
+			effects["traits_applied"].append("shrapnel_fixed_5plus")
 
 ## Check if weapon can fire this turn (reliable trait prevents jams)
 static func can_weapon_fire(weapon: Dictionary, jam_roll: int = 0) -> bool:
@@ -1792,18 +1940,74 @@ static func get_rapid_fire_shots(weapon: Dictionary) -> int:
 		return trait_effects.get("rapid_fire_shots", 3)
 	return 1
 
-## Check if weapon causes overheating (hot trait)
-static func check_weapon_overheat(weapon: Dictionary, dice_roller: Callable) -> bool:
+## Check if weapon has overheat trait and should reduce shots
+## Compendium p.91: If fired in previous round, 1 less Shot (non-cumulative)
+## Returns the shot reduction (0 or 1)
+static func get_overheat_shot_reduction(weapon: Dictionary, fired_last_round: bool) -> int:
 	var traits: Array = weapon.get("traits", [])
-	if _has_trait(traits, "hot"):
-		var roll: int = dice_roller.call()
-		return roll == 1  # Overheat on natural 1
-	return false
+	if (_has_trait(traits, "hot") or _has_trait(traits, "overheat")) and fired_last_round:
+		return 1
+	return 0
 
 ## Check if weapon causes non-lethal damage
 static func is_non_lethal_weapon(weapon: Dictionary) -> bool:
 	var traits: Array = weapon.get("traits", [])
 	return _has_trait(traits, "non_lethal")
+
+#endregion
+
+#region Consumable Effects (Core Rules p.54)
+
+## Apply a consumable item's effect to a unit during battle
+## All consumables are single-use ship stash items (not character-carried)
+## Returns dict with effect details for battle log and post-battle removal
+static func apply_consumable_effect(
+	consumable_id: String,
+	user: Dictionary
+) -> Dictionary:
+	var result := {
+		"applied": false,
+		"description": "",
+		"effects": []
+	}
+	match consumable_id.to_lower():
+		"booster_pills":
+			# Core Rules p.54: Remove all Stun markers, double Speed this round
+			user["is_stunned"] = false
+			user["speed"] = user.get("speed", 4) * 2
+			result["applied"] = true
+			result["description"] = "Stun cleared, Speed doubled this round"
+		"combat_serum":
+			# Core Rules p.54: +2" Speed, +2 Reactions for rest of battle
+			user["speed"] = user.get("speed", 4) + 2
+			user["reactions"] = user.get("reactions", 1) + 2
+			result["applied"] = true
+			result["description"] = "+2 Speed, +2 Reactions (rest of battle)"
+		"rage_out":
+			# Core Rules p.54: +2" Speed, +1 Brawling roll
+			user["speed"] = user.get("speed", 4) + 2
+			user["brawl_bonus"] = user.get("brawl_bonus", 0) + 1
+			result["applied"] = true
+			result["description"] = "+2 Speed, +1 Brawling"
+		"still":
+			# Core Rules p.54: +1 to Hit, cannot Move this round
+			user["hit_bonus"] = user.get("hit_bonus", 0) + 1
+			user["cannot_move"] = true
+			result["applied"] = true
+			result["description"] = "+1 to Hit, cannot Move"
+		"stim_pack":
+			# Core Rules p.54: If downed, remain in play with 1 Stun marker
+			user["has_stim_pack"] = true
+			result["applied"] = true
+			result["description"] = "If downed, survive with Stun instead"
+		"kiranin_crystals":
+			# Core Rules p.54: Daze all characters within 4"
+			result["applied"] = true
+			result["area_daze_range"] = 4.0
+			result["description"] = "Daze all within 4\""
+	if result["applied"]:
+		result["effects"].append("consumable_used")
+	return result
 
 #endregion
 

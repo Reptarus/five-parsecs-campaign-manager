@@ -40,7 +40,15 @@ func _scaled_font(base: int) -> int:
 
 
 func _ready() -> void:
+	# Defer initialization — scene may not be in tree yet when
+	# instantiated by TransitionManager.fade_to_scene()
+	call_deferred("_initialize")
+
+
+func _initialize() -> void:
 	_load_campaign()
+	if not campaign:
+		return  # _load_campaign already navigated to main_menu
 	_build_layout()
 	_create_phase_manager()
 	_create_panels()

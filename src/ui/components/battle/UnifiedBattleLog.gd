@@ -39,6 +39,12 @@ const ENTRY_COLORS := {
 	"victory": UIColors.COLOR_EMERALD,
 	"defeat": Color.DARK_RED,
 	"dice": UIColors.COLOR_AMBER,
+	# Equipment effects (Session 47)
+	"armor_save": Color.STEEL_BLUE,
+	"deflector_field": UIColors.COLOR_CYAN,
+	"stim_pack": UIColors.COLOR_EMERALD,
+	"trait_effect": Color.SANDY_BROWN,
+	"item_consumed": UIColors.COLOR_RED,
 }
 
 # Keyword system (from BattleJournal)
@@ -303,6 +309,54 @@ func log_victory(reason: String = "") -> void:
 ## Log defeat
 func log_defeat(reason: String = "") -> void:
 	add_entry("defeat", "DEFEAT", reason)
+
+
+## Log armor/screen save result
+func log_armor_save(
+	target_name: String, save_type: String, threshold: int, roll: int, saved: bool
+) -> void:
+	var result_text: String = "SAVED" if saved else "FAILED"
+	add_entry(
+		"armor_save",
+		"[%s] %s save (%d+): rolled %d — %s" % [
+			target_name, save_type, threshold, roll, result_text],
+	)
+
+
+## Log deflector field auto-deflect
+func log_deflector_use(target_name: String) -> void:
+	add_entry(
+		"deflector_field",
+		"[Deflector Field] %s — hit automatically deflected" % target_name,
+	)
+
+
+## Log stim-pack preventing elimination
+func log_stim_pack(target_name: String) -> void:
+	add_entry(
+		"stim_pack",
+		"[Stim-pack] %s survives with Stun instead of elimination" % target_name,
+	)
+
+
+## Log weapon trait effect during combat
+func log_trait_effect(
+	character_name: String, trait_name: String, effect_text: String
+) -> void:
+	add_entry(
+		"trait_effect",
+		"[%s] %s — %s" % [trait_name, character_name, effect_text],
+	)
+
+
+## Log single-use item consumed
+func log_item_consumed(
+	character_name: String, item_name: String
+) -> void:
+	add_entry(
+		"item_consumed",
+		"%s consumed by %s" % [item_name, character_name],
+	)
 
 
 ## Clear all log content

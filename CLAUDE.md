@@ -32,7 +32,11 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Bug Hunt Gamemode | Phases 1-7 complete (38 files) |
 | Store/Paywall System (Phase 24) | Tri-platform (Steam/Android/iOS) |
 | Fabricated Data Purge | Complete — MoraleSystem deleted, equipment/loot/advancement rewritten |
+| Equipment Effects Pipeline (Session 47) | 12 phases: trait fixes, armor saves, single-use removal, protective devices, consumables, gun mods, utility devices, on-board items, Compendium traits |
+| PostBattle Orchestrator (Session 47) | CampaignPhaseManager rewired to 14-step decomposed PostBattlePhase (was using old 5-step stub) |
+| New World Arrival UI (Session 47) | World trait display, rival follow results, forge license mechanic, travel event mutations |
 | Event Queue System | CrewTaskEventDialog (26 event types, state mutations wired) |
+| Story Points (Session 43) | Fully integrated — earning (turn+battle), 5 spend types, XP picker, dashboard sync, Stars of the Story |
 | Difficulty System | 5 Core Rules modes + 12 Compendium toggles + Progressive Difficulty (2 options) |
 | Legal Stack (Session 40b) | EULA screen, privacy policy, consent manager, data export/delete, GitHub Pages docs |
 | Compendium Library (Session 40b) | 10 categories, 340+ items, game-icons.net icon SOP |
@@ -171,6 +175,20 @@ UpkeepPhaseComponent (Step 0, travel decision)
 - **PostBattle**: `PaymentProcessor.process_black_zone_rewards()`, ExperienceTrainingProcessor BZ +1 XP, GalacticWarProcessor RZ -1 modifier
 - **Journal**: Battle entries tagged `red_zone`/`black_zone`, enriched with threat/time/mission details, BZ victory/failure milestone entries, license purchase milestone
 - **Broker discount**: License fee -2cr if crew has Broker training (checks `has_broker_training` property + `"Broker Training"` trait)
+
+### Story Point System (Core Rules pp.66-67, Session 43)
+
+Meta-currency for narrative control. Fully integrated into campaign loop.
+
+- **System**: `StoryPointSystem.gd` (RefCounted, JSON-config from `data/campaign_config.json`)
+- **UI**: `StoryPointPopover.gd` (PopupPanel from dashboard SP badge), `StoryPointSpendingDialog.gd` (Window alternative)
+- **Stars of the Story**: `StarsOfTheStorySystem.gd` — 4 emergency abilities (once per campaign), shown in same popover
+- **Earning**: Turn rollover via `StoryPointSystem.check_turn_earning()` (+1 every 3rd turn), PostBattlePhase `_check_bitter_day_story_point()` (+1 for held field + character killed)
+- **Spending**: 5 types (roll-twice, reroll, +3 credits, +3 XP to character, extra action). Per-turn limits on last 3
+- **Dashboard sync**: `_sync_sp_system()` reloads `_sp_system` from `campaign.story_point_turn_state` on phase events and before popover open
+- **Persistence**: `campaign.story_points` (int) + `campaign.story_point_turn_state` (Dict with balance + per-turn flags) + `campaign.stars_of_the_story` (Dict)
+- **Insanity mode**: Story points disabled entirely (0 earned, cannot spend)
+- **Battle-only stars**: Dramatic Escape + It's Time To Go disabled on dashboard popover (need battle context)
 
 ### Story Track System (Core Rules Appendix V, Session 36)
 ```
@@ -662,6 +680,8 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
 - **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory, FiveParsecsStrangeCharacters.gd (6 invented types), BaseStrangeCharacters.gd — all removed. Do NOT reference or re-create these
 - **Deleted dead UI files (Session 40)**: ConfigPanel.gd+.tscn, CampaignSetupScreen.gd, CampaignSetupDialog.gd+.tscn, DifficultyOption.gd, gameplay_options_menu.gd, QuickStartDialog.gd, CampaignLoadDialog.gd, CampaignSummaryPanel.gd, CampaignCreationManager.gd — all replaced by ExpandedConfigPanel/CampaignCreationCoordinator. Do NOT recreate
+- **Deprecated PostBattlePhase files (Session 47)**: `src/core/campaign/PostBattlePhase.gd` (old 5-step Control stub), `src/game/campaign/FiveParsecsPostBattlePhase.gd` (zero refs), `src/base/campaign/BasePostBattlePhase.gd` (only ref was dead file). CampaignPhaseManager now uses `src/core/campaign/phases/PostBattlePhase.gd` (14-step orchestrator). Safe to delete the 3 deprecated files
+- **Deprecated CoreSystems.WeaponTraitSystem (Session 47)**: Inner class in CoreSystems.gd had fabricated Focused mechanic, zero callers. Weapon traits now via `BattleCalculations.get_weapon_trait_effects()`. Do NOT use WeaponTraitSystem in new code
 - **DifficultyLevel HARD/NIGHTMARE/ELITE are DEPRECATED**: GlobalEnums.DifficultyLevel has 3 fabricated values (HARD=3, NIGHTMARE=5, ELITE=7) that are NOT in Core Rules or Compendium. Kept for save compat, aliased to NORMAL/INSANITY/INSANITY in JSON. Never expose in UI or use in new code. Only 5 real modes: Easy(1), Normal(2), Challenging(4), Hardcore(6), Insanity(8)
 - **Progressive Difficulty is per-campaign**: Stored in `campaign.progress_data["progressive_difficulty_options"]` (Array of ints). Empty = disabled. `[1]`=basic, `[2]`=advanced, `[1,2]`=both. Read by BattlePhase, NOT by changing the difficulty enum
 - **SpeciesDataService load order**: `Character.gd` cannot import `SpeciesDataService` at parse time (Godot loads Character first). Character helper methods use inline `species_id` string checks. Other systems (CharacterCreator, LuckSystem) can reference SpeciesDataService safely

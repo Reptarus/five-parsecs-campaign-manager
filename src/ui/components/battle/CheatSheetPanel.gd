@@ -176,6 +176,157 @@ func collapse_all() -> void:
 		_section_bodies[i].visible = false
 		_section_buttons[i].text = "[+] %s" % _sections[i].title
 
+## Session 48: Set battle context and insert "This Battle" section at top.
+func set_battle_context(data: Dictionary) -> void:
+	if data.is_empty():
+		return
+	var content: String = _build_battle_reference_text(data)
+	if content.is_empty():
+		return
+	var ef: Dictionary = data.get("enemy_force", {})
+	var enemy_name: String = ef.get("type", "Enemy")
+	var title: String = "This Battle: %s" % enemy_name
+	_insert_battle_section_at_top(title, content)
+
+func _insert_battle_section_at_top(title: String, content: String) -> void:
+	## Insert a new accordion section at position 0 in the VBox.
+	## Starts expanded (unlike other sections which start collapsed).
+	if not _vbox:
+		return
+
+	# Remove any previous battle section
+	var existing_header: Node = _vbox.get_node_or_null("_battle_header")
+	var existing_body: Node = _vbox.get_node_or_null("_battle_body")
+	if existing_header:
+		existing_header.queue_free()
+	if existing_body:
+		existing_body.queue_free()
+
+	# Rebuild arrays without old battle entry (index 0 if it existed)
+	if not _sections.is_empty() and _sections[0].get("_is_battle", false):
+		_sections.remove_at(0)
+		if _section_buttons.size() > 0:
+			_section_buttons.remove_at(0)
+		if _section_bodies.size() > 0:
+			_section_bodies.remove_at(0)
+
+	# Insert battle section data at index 0
+	_sections.insert(0, {
+		"title": title, "content": content, "_is_battle": true})
+
+	# Build header button
+	var header := Button.new()
+	header.name = "_battle_header"
+	header.text = "[-] %s" % title
+	header.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+	var header_style := StyleBoxFlat.new()
+	header_style.bg_color = Color(0.178, 0.353, 0.482, 0.8)
+	header_style.set_corner_radius_all(4)
+	header_style.set_content_margin_all(SPACING_SM)
+	header_style.border_width_left = 3
+	header_style.border_color = Color("#D97706")
+	header.add_theme_stylebox_override("normal", header_style)
+	var hover_style := header_style.duplicate()
+	hover_style.bg_color = COLOR_ACCENT
+	header.add_theme_stylebox_override("hover", hover_style)
+	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	header.pressed.connect(_toggle_section.bind(0))
+
+	# Build body (starts expanded)
+	var body := RichTextLabel.new()
+	body.name = "_battle_body"
+	body.bbcode_enabled = true
+	body.text = content
+	body.fit_content = true
+	body.scroll_active = false
+	body.add_theme_font_size_override(
+		"normal_font_size", FONT_SIZE_SM)
+	body.add_theme_color_override(
+		"default_color", COLOR_TEXT_SECONDARY)
+	body.visible = true # Starts expanded
+
+	# Insert at top of VBox
+	_vbox.add_child(header)
+	_vbox.move_child(header, 0)
+	_vbox.add_child(body)
+	_vbox.move_child(body, 1)
+
+	# Update tracking arrays
+	_section_buttons.insert(0, header)
+	_section_bodies.insert(0, body)
+
+	# Fix toggle indices for existing sections (shifted by 1)
+	for i in range(1, _section_buttons.size()):
+		var btn: Button = _section_buttons[i]
+		# Reconnect with corrected index
+		if btn.pressed.is_connected(_toggle_section):
+			btn.pressed.disconnect(_toggle_section)
+		btn.pressed.connect(_toggle_section.bind(i))
+
+func _build_battle_reference_text(data: Dictionary) -> String:
+	## Build BBCode reference text for the "This Battle" section.
+	var lines: Array[String] = []
+	var ef: Dictionary = data.get("enemy_force", {})
+
+	# Enemy stats
+	if not ef.is_empty() and ef.get("type", "") != "":
+		lines.append("[b]%s[/b] x%d" % [
+			ef.get("type", "Unknown"), ef.get("count", 0)])
+		lines.append(
+			"Speed: %s\" | Combat: +%s | Tough: %s | Panic: %s" % [
+				str(ef.get("speed", "?")),
+				str(ef.get("combat_skill", "?")),
+				str(ef.get("toughness", "?")),
+				str(ef.get("panic", "?"))])
+		var ai_code: String = str(ef.get("ai", ""))
+		var ai_descs: Dictionary = {
+			"A": "Aggressive — move toward closest, attack",
+			"C": "Cautious — stay in cover, fire at closest",
+			"D": "Defensive — hold position, fire if approached",
+			"G": "Guardian — stay near assigned unit",
+			"R": "Rampage — rush nearest, always melee",
+			"T": "Tactical — advance to cover, best target",
+			"B": "Beast — move to nearest, attack on contact",
+		}
+		lines.append(
+			"AI: %s" % ai_descs.get(ai_code, ai_code))
+
+		var rules: Array = ef.get("special_rules", [])
+		if not rules.is_empty():
+			lines.append("")
+			lines.append("[b]Special Rules:[/b]")
+			for rule in rules:
+				var rs: String = str(rule)
+				if not rs.is_empty():
+					lines.append(
+						"[color=#D97706]  %s[/color]" % rs)
+
+	# Deployment condition
+	var deploy: Dictionary = data.get("deployment", {})
+	var cond_id: String = deploy.get("condition_id", "NO_CONDITION")
+	if cond_id != "NO_CONDITION" and cond_id != "":
+		lines.append("")
+		lines.append(
+			"[b]Deployment:[/b] %s" % deploy.get(
+				"condition_title", cond_id))
+		var desc: String = deploy.get("condition_description", "")
+		if not desc.is_empty():
+			lines.append("  %s" % desc)
+
+	# Objective
+	var obj: Dictionary = data.get("mission_objective", {})
+	if not obj.is_empty() and obj.get("name", "") != "":
+		lines.append("")
+		lines.append("[b]Objective:[/b] %s" % obj.get("name", ""))
+		var vc: String = obj.get("victory_condition", "")
+		if not vc.is_empty():
+			lines.append("  %s" % vc)
+
+	return "\n".join(lines)
+
 # =====================================================
 # SECTION CONTENT
 # =====================================================
