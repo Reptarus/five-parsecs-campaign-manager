@@ -1,0 +1,51 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook pp.150-153",
+	"squad_skills": [
+		{"id": "brave", "name": "Brave", "cost": 10, "description": "+1 to all Morale tests. Cumulative with Motivator sergeant skill."},
+		{"id": "tank_hunters", "name": "Tank Hunters", "cost": 15, "description": "One figure per activation may take a 'Tank Killer' shot: only 1 shot but +1 to Hit and +1 damage. Declare before firing."},
+		{"id": "keen_shots", "name": "Keen Shots", "cost": 10, "description": "All figures add +6\" to range when firing rifles. One rifle shot per activation may add +1 to Hit after rolling."},
+		{"id": "die_hards", "name": "Die-hards", "cost": 5, "description": "When deploying, pick one figure (not sergeant) that receives +1 KP. Does not have to be the same figure each game."},
+		{"id": "fire_drill", "name": "Fire Drill", "cost": 10, "description": "If the squad does not move when activating, may add Combat Skill to Hit roll when firing on Overwatch."},
+		{"id": "brawlers", "name": "Brawlers", "cost": 5, "description": "In close assault, any 1 on the attack dice may be rerolled once."},
+		{"id": "fearless", "name": "Fearless", "cost": 5, "description": "The squad becomes Fearless (immune to Fear, reroll failed Morale on 4+)."},
+		{"id": "bombers", "name": "Bombers", "cost": 5, "description": "Two figures per activation may throw grenades (normally 1). Grenade range +2\". +1 damage vs vehicles with grenades."},
+		{"id": "guerillas", "name": "Guerillas", "cost": 10, "description": "The squad may fire pistols and rifles while Dashing. Hits only on natural 6."},
+		{"id": "quick", "name": "Quick", "cost": 10, "description": "The squad moves +4\" when Dashing, instead of +2\"."}
+	],
+	"sergeant_skills": [
+		{"id": "rugged", "name": "Rugged", "cost": 5, "description": "Add +1 KP to the sergeant."},
+		{"id": "parry", "name": "Parry", "cost": 5, "description": "Once per close assault, force one incoming assault targeting the sergeant to be rerolled."},
+		{"id": "motivator", "name": "Motivator", "cost": 5, "description": "+1 to all Morale tests for the squad. Cumulative with Brave squad skill."},
+		{"id": "fighter", "name": "Fighter", "cost": 5, "description": "The sergeant receives two attacks in close assault combat."},
+		{"id": "survivor", "name": "Survivor", "cost": 5, "description": "Any time a Hit is inflicted on the sergeant, roll 1D6. On 5-6, it has no effect."},
+		{"id": "tactics", "name": "Tactics", "cost": 10, "description": "The squad counts as +1 to Reactions."},
+		{"id": "experience_eye", "name": "Experience Eye", "cost": 5, "description": "The sergeant receives +1 to Hit with all ranged attacks."},
+		{"id": "alert", "name": "Alert", "cost": 5, "description": "When making Observation rolls, the sergeant can spot at +3\"."}
+	],
+	"sergeant_note": "Any sergeant receiving a veteran skill also becomes Fearless. Skills that benefit the squad apply only if the sergeant is alive.",
+	"individual_skills": [
+		{"id": "gun_slinging", "name": "Gun-slinging", "cost": 5, "description": "May use two pistols simultaneously. Both shots must target the same unit."},
+		{"id": "quick_feet", "name": "Quick Feet", "cost": 5, "description": "Dash move bonus equals normal speed instead of +2\"."},
+		{"id": "deadly_accuracy", "name": "Deadly Accuracy", "cost": 5, "description": "May reroll any 1 on initial dice when making any type of attack."},
+		{"id": "lucky", "name": "Lucky", "cost": 5, "description": "The character receives a 6+ Saving Throw."},
+		{"id": "skilled_leader", "name": "Skilled Leader", "cost": 5, "description": "Must have Leader type. Morale bonus applies within 9\" instead of normal range."},
+		{"id": "expert_fighter", "name": "Expert Fighter", "cost": 5, "description": "Receives one additional close combat attack."}
+	],
+	"gun_crew_skills": [
+		{"id": "defend_the_guns", "name": "Defend the Guns", "cost": 5, "description": "When defending close assault, each figure may strike twice when rolling to hit."},
+		{"id": "fortified_positions", "name": "Fortified Positions", "cost": 5, "description": "The gun crew receives a 6+ Saving Throw against all Hits."},
+		{"id": "deploy_hidden", "name": "Deploy Hidden", "cost": 5, "description": "Until the crew fires for the first time, they are Hidden and must be spotted with Observation."},
+		{"id": "gun_drill", "name": "Gun Drill", "cost": 10, "description": "The gun crew may reroll a single Hit die."},
+		{"id": "redeployment", "name": "Redeployment", "cost": 5, "description": "When moving, crew may move 2\" per crew figure, max 6\"."},
+		{"id": "target_selection", "name": "Target Selection", "cost": 5, "description": "May ignore normal target selection rules and fire at any squad or vehicle in sight."}
+	],
+	"vehicle_skills": [
+		{"id": "gunnery", "name": "Gunnery", "cost": 15, "description": "When main weapon fires, natural 6s on Hit dice allow a single additional shot at the same targets."},
+		{"id": "command", "name": "Command", "cost": 10, "description": "Add +1 to the Reaction score."},
+		{"id": "driving", "name": "Driving", "cost": 10, "description": "The vehicle may turn one additional time per move."},
+		{"id": "damage_control", "name": "Damage Control", "cost": 5, "description": "If immobilized, when activated roll 1D6. On 5-6, regains mobility."},
+		{"id": "improvised_armor", "name": "Improvised Armor", "cost": 10, "description": "Add +1 KP to the vehicle."},
+		{"id": "defensive_measures", "name": "Defensive Measures", "cost": 5, "description": "Attempts to Hit the vehicle during close assault are at -1 to Hit."}
+	],
+	"vehicle_note": "Veteran vehicle crew cannot use their skill while dismounted. Crews can only apply their skill to the same broad class of vehicle they were crewing when they became veterans."
+}

@@ -1,0 +1,21 @@
+{
+	"_source": "Species manifest for export builds — DirAccess cannot iterate res:// in PCK",
+	"species": [
+		"human_colonists",
+		"ferals",
+		"hulkers",
+		"precursors",
+		"kerin",
+		"soulless",
+		"converted",
+		"horde",
+		"serian",
+		"swift",
+		"skulkers",
+		"hakshan",
+		"clones",
+		"ystrik",
+		"krag",
+		"creatures"
+	]
+}

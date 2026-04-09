@@ -48,9 +48,14 @@ func go_to_step(step: int) -> void:
 	if step < 0 or step >= total_steps:
 		return
 
-	# Auto-complete vehicles step if species has no vehicles
+	# Auto-skip vehicles step if species has no vehicles
 	if step == 3 and _species_book and _species_book.vehicles.is_empty():
 		_step_complete[3] = true
+		# Skip directly to Review (step 4) instead of showing Vehicles
+		current_step = 4
+		step_changed.emit(current_step, total_steps)
+		_update_navigation()
+		return
 
 	current_step = step
 	step_changed.emit(current_step, total_steps)
@@ -63,8 +68,13 @@ func next_step() -> void:
 
 
 func previous_step() -> void:
-	if current_step > 0:
-		go_to_step(current_step - 1)
+	if current_step <= 0:
+		return
+	var target: int = current_step - 1
+	# Skip vehicles step going backward if species has no vehicles
+	if target == 3 and _species_book and _species_book.vehicles.is_empty():
+		target = 2
+	go_to_step(target)
 
 
 func get_step_name(step: int = -1) -> String:

@@ -33,13 +33,32 @@ static func load_species_book_from_path(path: String) -> TacticsSpeciesBook:
 	return loader._load(path)
 
 
-## Load all species books from the base directory.
+## Load all species books.
+## Uses species_manifest.json (works in exported PCK builds) with
+## DirAccess fallback (works in editor when manifest is missing).
 ## Returns a Dictionary: {species_id: TacticsSpeciesBook}
 static func load_all_species_books() -> Dictionary:
 	var books: Dictionary = {}
+
+	# Primary: load from manifest (export-safe — FileAccess works with res://)
+	var manifest_path := "res://data/tactics/species_manifest.json"
+	var manifest: Variant = _load_json_safe(manifest_path)
+	if manifest is Dictionary and manifest.has("species"):
+		var species_list: Array = manifest.get("species", [])
+		for sid in species_list:
+			if sid is String and not sid.is_empty():
+				var book: TacticsSpeciesBook = load_species_book(sid)
+				if book:
+					books[sid] = book
+		if not books.is_empty():
+			return books
+
+	# Fallback: DirAccess scan (editor only — fails in exported builds)
 	var dir := DirAccess.open(JSON_BASE_PATH)
 	if not dir:
-		push_warning("[TacticsSpeciesBookLoader] Cannot open species directory: %s" % JSON_BASE_PATH)
+		push_warning(
+			"[TacticsSpeciesBookLoader] No manifest and cannot "
+			+ "open species directory: %s" % JSON_BASE_PATH)
 		return books
 
 	dir.list_dir_begin()
@@ -47,7 +66,8 @@ static func load_all_species_books() -> Dictionary:
 	while not file_name.is_empty():
 		if file_name.ends_with(".json") and not dir.current_is_dir():
 			var species_id: String = file_name.get_basename()
-			var book: TacticsSpeciesBook = load_species_book(species_id)
+			var book: TacticsSpeciesBook = load_species_book(
+				species_id)
 			if book:
 				books[species_id] = book
 		file_name = dir.get_next()

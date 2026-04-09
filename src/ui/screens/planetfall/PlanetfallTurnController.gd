@@ -6,9 +6,20 @@ extends PlanetfallScreenBase
 ## Follows the same architecture as BugHuntTurnController.
 ## Source: Planetfall pp.58-70
 
-const PlanetfallPhaseManagerScript := preload("res://src/core/campaign/PlanetfallPhaseManager.gd")
+const PlanetfallPhaseManagerScript := preload(
+	"res://src/core/campaign/PlanetfallPhaseManager.gd")
 const PlaceholderPanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallPlaceholderPanel.gd")
+const AutoResolveScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallAutoResolveDialog.gd")
+const SimpleDialogScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallSimpleDialog.gd")
+const ScoutReportsScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallScoutReportsPanel.gd")
+const ColonyEventsScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallColonyEventsPanel.gd")
+const PostBattleScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallPostBattlePanel.gd")
 
 var phase_manager: PlanetfallPhaseManagerScript
 var campaign: Resource  # PlanetfallCampaignCore
@@ -27,6 +38,7 @@ var _phase_indicators: Array[Label] = []
 
 ## Stat labels for the colony stat bar
 var _stat_labels: Dictionary = {}
+var _post_battle_panel: Control
 
 
 ## ============================================================================
@@ -235,11 +247,10 @@ func _create_phase_manager() -> void:
 
 func _create_panels() -> void:
 	panels.clear()
+	var Phase := PlanetfallPhaseManagerScript.Phase
 
 	for i in range(PlanetfallPhaseManagerScript.PHASE_COUNT):
-		var panel: Control = PlaceholderPanelScript.new()
-		var phase_name: String = PlanetfallPhaseManagerScript.PHASE_NAMES.get(i, "Step %d" % (i + 1))
-		panel.configure(phase_name, i)
+		var panel: Control = _create_panel_for_phase(i)
 		panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_panel_container.add_child(panel)
 		panel.hide()
@@ -250,6 +261,85 @@ func _create_panels() -> void:
 			panel.set_phase_manager(phase_manager)
 
 		panels.append(panel)
+
+	# Store reference for post-battle data injection
+	_post_battle_panel = panels[Phase.INJURIES] if Phase.INJURIES < panels.size() else null
+
+
+func _create_panel_for_phase(phase: int) -> Control:
+	## Create the appropriate panel type for each phase.
+	## Auto-resolve steps use PlanetfallAutoResolveDialog.
+	## Simple input steps use PlanetfallSimpleDialog.
+	## Complex steps use dedicated panels.
+	## Unimplemented steps (Sprint 2) use PlaceholderPanel.
+	var Phase := PlanetfallPhaseManagerScript.Phase
+	var phase_name: String = PlanetfallPhaseManagerScript.PHASE_NAMES.get(
+		phase, "Step %d" % (phase + 1))
+
+	match phase:
+		# Auto-resolve steps (Sprint 3)
+		Phase.RECOVERY:
+			var p := AutoResolveScript.new()
+			p.configure("recovery", phase)
+			return p
+		Phase.ENEMY_ACTIVITY:
+			var p := AutoResolveScript.new()
+			p.configure("enemy_activity", phase)
+			return p
+		Phase.COLONY_INTEGRITY:
+			var p := AutoResolveScript.new()
+			p.configure("colony_integrity", phase)
+			return p
+		Phase.UPDATE_TRACKING:
+			var p := AutoResolveScript.new()
+			p.configure("update_tracking", phase)
+			return p
+
+		# Simple dialog steps (Sprint 3)
+		Phase.REPAIRS:
+			var p := SimpleDialogScript.new()
+			p.configure("repairs", phase)
+			return p
+		Phase.TRACK_ENEMY_INFO:
+			var p := SimpleDialogScript.new()
+			p.configure("track_enemy_info", phase)
+			return p
+		Phase.REPLACEMENTS:
+			var p := SimpleDialogScript.new()
+			p.configure("replacements", phase)
+			return p
+		Phase.CHARACTER_EVENT:
+			var p := SimpleDialogScript.new()
+			p.configure("character_event", phase)
+			return p
+
+		# Full panels (Sprint 3)
+		Phase.SCOUT_REPORTS:
+			return ScoutReportsScript.new()
+		Phase.COLONY_EVENTS:
+			return ColonyEventsScript.new()
+
+		# Post-battle combined panel (Sprint 3) — steps 9, 10, 11 share one panel
+		Phase.INJURIES, Phase.EXPERIENCE, Phase.MORALE_ADJUSTMENTS:
+			return PostBattleScript.new()
+
+		# Sprint 2 panels (not yet implemented — use placeholder)
+		Phase.MISSION_DETERMINATION, Phase.LOCK_AND_LOAD, \
+		Phase.RESEARCH, Phase.BUILDING:
+			var p := PlaceholderPanelScript.new()
+			p.configure(phase_name, phase)
+			return p
+
+		# Battle delegation (step 8) — placeholder, actual delegation is in TurnController
+		Phase.PLAY_OUT_MISSION:
+			var p := PlaceholderPanelScript.new()
+			p.configure("Play Out Mission (Battle)", phase)
+			return p
+
+	# Fallback
+	var p := PlaceholderPanelScript.new()
+	p.configure(phase_name, phase)
+	return p
 
 
 func _connect_signals() -> void:
@@ -403,8 +493,10 @@ func _resume_after_battle(result: Dictionary) -> void:
 
 	_refresh_stat_strip()
 
-	# TODO: Pass battle results to post-battle panel BEFORE triggering phase change
-	# (Sprint 3 will implement the real PostBattlePanel)
+	# Pass battle results to PostBattlePanel BEFORE triggering phase change,
+	# because go_to_phase() synchronously fires phase_changed → refresh().
+	if _post_battle_panel and _post_battle_panel.has_method("set_battle_results"):
+		_post_battle_panel.set_battle_results(result)
 
 	# Jump directly to INJURIES phase
 	phase_manager.go_to_phase(PlanetfallPhaseManagerScript.Phase.INJURIES)

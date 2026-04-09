@@ -1,0 +1,199 @@
+{
+	"_source": "Planetfall pp.92-96, Theories and Applications",
+	"_description": "13 research theories with prerequisites, RP costs, and applications. 8 base theories available at start, 5 require prerequisites.",
+	"_notes": "Theory cost format: theory_cost/application_cost. Applications are randomly selected when purchased (optional rule: pick instead). Application types: Building, Bonus, Milestone Building, Milestone, Weapon.",
+	"theories": [
+		{
+			"id": "advanced_manufacturing",
+			"name": "Advanced Manufacturing",
+			"theory_cost": 3,
+			"application_cost": 3,
+			"prerequisites": [],
+			"description": "Cutting edge manufacturing techniques adapted to local conditions and materials.",
+			"applications": [
+				{"id": "damage_containment_centre", "name": "Damage Containment Centre", "type": "building", "unlocks_building": "damage_containment_centre"},
+				{"id": "high_tech_manufacturing", "name": "High Tech Manufacturing Plant", "type": "building", "unlocks_building": "high_tech_manufacturing_plant", "bonus": "Colony bots receive 1 KP"},
+				{"id": "improved_construction", "name": "Improved Construction Materials", "type": "bonus", "effect": {"colony_integrity": 1}},
+				{"id": "orbital_facility", "name": "Orbital Facility", "type": "milestone_building", "unlocks_building": "orbital_facility"},
+				{"id": "resource_substitution", "name": "Resource Substitution", "type": "bonus", "effect": {"colony_integrity": 1}}
+			]
+		},
+		{
+			"id": "ai_theories",
+			"name": "AI Theories",
+			"theory_cost": 4,
+			"application_cost": 4,
+			"prerequisites": [],
+			"description": "Expanding AI capabilities to support a wider range of colony functions.",
+			"applications": [
+				{"id": "ai_school", "name": "AI-Assisted School", "type": "building", "unlocks_building": "ai_assisted_school", "bonus": "Colony bot improves Combat Skill to +1"},
+				{"id": "bot_maintenance", "name": "Bot Maintenance Bay", "type": "building", "unlocks_building": "bot_maintenance_bay"},
+				{"id": "cybernetics_facility", "name": "Cybernetics Facility", "type": "building", "unlocks_building": "cybernetics_facility", "bonus": "Colony bot improves Speed to 6\""},
+				{"id": "predictive_sim", "name": "Enhanced Predictive Simulation", "type": "bonus", "effect": {"research_points_per_turn": 1}},
+				{"id": "social_disorder", "name": "Social Disorder Prediction", "type": "bonus", "effect": {"colony_morale": 4}}
+			]
+		},
+		{
+			"id": "infantry_equipment",
+			"name": "Infantry Equipment",
+			"theory_cost": 2,
+			"application_cost": 2,
+			"prerequisites": [],
+			"description": "Equipment tailored to the specific environment and threat profiles.",
+			"unlocks_theory": "adapted_combat_gear",
+			"applications": [
+				{"id": "carver_blade", "name": "Carver Blade", "type": "weapon", "unlocks_weapon": "carver_blade", "bonus": "Sergeant weaponry available as Grunt upgrade"},
+				{"id": "kill_break_shotgun", "name": "Kill-Break Shotgun", "type": "weapon", "unlocks_weapon": "kill_break_shotgun"},
+				{"id": "ripper_pistol", "name": "Ripper Pistol", "type": "weapon", "unlocks_weapon": "ripper_pistol"},
+				{"id": "shard_pistol", "name": "Shard Pistol", "type": "weapon", "unlocks_weapon": "shard_pistol", "bonus": "Side arms available as Grunt upgrade"},
+				{"id": "steady_rifle", "name": "Steady Rifle", "type": "weapon", "unlocks_weapon": "steady_rifle", "bonus": "Colony bot able to use Trooper weapons"}
+			]
+		},
+		{
+			"id": "adapted_combat_gear",
+			"name": "Adapted Combat Gear",
+			"theory_cost": 2,
+			"application_cost": 2,
+			"prerequisites": ["infantry_equipment"],
+			"description": "Utilizing local resources to produce military hardware.",
+			"applications": [
+				{"id": "bio_gun", "name": "Bio-Gun", "type": "weapon", "unlocks_weapon": "bio_gun"},
+				{"id": "dart_pistol", "name": "Dart Pistol", "type": "weapon", "unlocks_weapon": "dart_pistol"},
+				{"id": "hyper_rifle", "name": "Hyper-Rifle", "type": "weapon", "unlocks_weapon": "hyper_rifle"},
+				{"id": "mind_link_pistol", "name": "Mind-Link Pistol", "type": "weapon", "unlocks_weapon": "mind_link_pistol"},
+				{"id": "phase_rifle", "name": "Phase Rifle", "type": "weapon", "unlocks_weapon": "phase_rifle"}
+			]
+		},
+		{
+			"id": "environmental_research",
+			"name": "Environmental Research",
+			"theory_cost": 2,
+			"application_cost": 3,
+			"prerequisites": [],
+			"description": "Foundational understanding of local ecological constraints.",
+			"unlocks_theory": "environmental_adaptation",
+			"applications": [
+				{"id": "hardened_life_support", "name": "Hardened Life Support System", "type": "building", "unlocks_building": "hardened_life_support_system"},
+				{"id": "food_production", "name": "Locally Adapted Food Production Site", "type": "building", "unlocks_building": "locally_adapted_food_production_site", "bonus": "Adapted armor available as Grunt upgrade"},
+				{"id": "remote_research", "name": "Remote Research Station", "type": "building", "unlocks_building": "remote_research_station", "bonus": "+1 Mission Data"},
+				{"id": "remote_extraction", "name": "Remote Extraction Site", "type": "building", "unlocks_building": "remote_extraction_site"},
+				{"id": "scout_facilities", "name": "Scout Facilities", "type": "building", "unlocks_building": "scout_facilities"}
+			]
+		},
+		{
+			"id": "environmental_adaptation",
+			"name": "Environmental Adaptation",
+			"theory_cost": 3,
+			"application_cost": 3,
+			"prerequisites": ["environmental_research"],
+			"description": "Large scale modification of colony structures based on local conditions.",
+			"applications": [
+				{"id": "immune_bio_delineation", "name": "Immune System Bio-Delineation", "type": "bonus", "effect": {"augmentation_points": 1}, "bonus": "Bolstered survival kit available as Grunt upgrade"},
+				{"id": "post_organic_demarcation", "name": "Integrated Post-Organic Demarcation", "type": "milestone"},
+				{"id": "terraforming_control", "name": "Terraforming Control Center", "type": "milestone_building", "unlocks_building": "terraforming_control_center"},
+				{"id": "viral_elimination", "name": "Viral Elimination Therapy", "type": "bonus", "effect": {"augmentation_points": 1}}
+			]
+		},
+		{
+			"id": "genetic_advancement",
+			"name": "Genetic Advancement",
+			"theory_cost": 4,
+			"application_cost": 4,
+			"prerequisites": [],
+			"description": "Questioning the limitations of the biological frame.",
+			"unlocks_theories": ["high_level_adaptation", "psionic_engineering"],
+			"applications": [
+				{"id": "advanced_medical", "name": "Advanced Medical Center", "type": "building", "unlocks_building": "advanced_medical_center"},
+				{"id": "neuro_adjustment", "name": "Neuro-Adjustment Therapy", "type": "bonus", "effect": {"colony_morale": 3}},
+				{"id": "reverse_genetics", "name": "Reverse-Optimization of Genetics", "type": "bonus", "effect": {"augmentation_points": 1}},
+				{"id": "sub_genetic_addition", "name": "Sub-Specific Genetic Addition Techniques", "type": "bonus", "effect": {"augmentation_points": 1}}
+			]
+		},
+		{
+			"id": "high_level_adaptation",
+			"name": "High Level Adaptation",
+			"theory_cost": 4,
+			"application_cost": 4,
+			"prerequisites": ["genetic_advancement"],
+			"description": "Experimental measures of adaptation both biological and psychological.",
+			"applications": [
+				{"id": "adapted_shield", "name": "Adapted Protective Shield Installation", "type": "building", "unlocks_building": "adapted_protective_shield_installation"},
+				{"id": "bio_adaptation_site", "name": "Biological Adaptation Research Site", "type": "building", "unlocks_building": "biological_adaptation_research_site"},
+				{"id": "genetic_adaptation_fac", "name": "Genetic Adaptation Facility", "type": "milestone_building", "unlocks_building": "genetic_adaptation_facility"},
+				{"id": "hyper_resonant", "name": "Hyper-Resonant Molecular Adjustment", "type": "bonus", "effect": {"augmentation_points": 1}},
+				{"id": "localized_adaptation", "name": "Localized Adaptation Therapy", "type": "bonus", "effect": {"augmentation_points": 1}}
+			]
+		},
+		{
+			"id": "psionic_engineering",
+			"name": "Psionic Engineering",
+			"theory_cost": 4,
+			"application_cost": 4,
+			"prerequisites": ["genetic_advancement"],
+			"description": "Optimizing personnel with psi-logical enhancements.",
+			"applications": [
+				{"id": "mental_uplift", "name": "Mental Bio-Uplift Therapy", "type": "bonus", "effect": {"augmentation_points": 2}},
+				{"id": "psionic_integration", "name": "Psionic Personality Integration", "type": "milestone"},
+				{"id": "psionic_reengineering", "name": "Psionic Re-Engineering Principles", "type": "bonus", "effect": {"augmentation_points": 2}}
+			]
+		},
+		{
+			"id": "military_doctrine",
+			"name": "Military Doctrine",
+			"theory_cost": 3,
+			"application_cost": 3,
+			"prerequisites": [],
+			"description": "Updated tactical approaches for field combat in unpredictable environments.",
+			"applications": [
+				{"id": "civil_drills", "name": "Civil Preparation Drills", "type": "bonus", "effect": {"colony_morale": 3}},
+				{"id": "early_warning", "name": "Early Warning System", "type": "building", "unlocks_building": "early_warning_system", "bonus": "Sharpshooter sight available as Grunt upgrade"},
+				{"id": "military_barracks", "name": "Military Barracks", "type": "building", "unlocks_building": "military_barracks", "bonus": "Ammo packs available as Grunt upgrade. Troopers may now take handguns in addition to normal equipment"},
+				{"id": "medevac_facility", "name": "Med-Evac Shuttle Facility", "type": "building", "unlocks_building": "medevac_shuttle_facility"},
+				{"id": "rapid_response", "name": "Rapid Response Network", "type": "building", "unlocks_building": "rapid_response_network"}
+			]
+		},
+		{
+			"id": "social_theories",
+			"name": "Social Theories",
+			"theory_cost": 3,
+			"application_cost": 3,
+			"prerequisites": [],
+			"description": "New approaches to social organization and conflict management.",
+			"applications": [
+				{"id": "frontier_doctrines", "name": "Frontier World Doctrines", "type": "milestone"},
+				{"id": "conflict_resolution", "name": "Integrated Conflict Resolution", "type": "bonus", "effect": {"colony_morale": 4}},
+				{"id": "consensus_mechanics", "name": "Post-Democratic Consensus Mechanics", "type": "bonus", "effect": {"colony_morale": 4}},
+				{"id": "recreational_fac", "name": "Recreational Facility", "type": "building", "unlocks_building": "recreational_facility"},
+				{"id": "satellite_launch", "name": "Satellite Launch Facility", "type": "building", "unlocks_building": "satellite_launch_facility"}
+			]
+		},
+		{
+			"id": "theoretical_physics",
+			"name": "Theoretical Physics",
+			"theory_cost": 4,
+			"application_cost": 3,
+			"prerequisites": [],
+			"description": "Foundation for a scientifically minded colony.",
+			"unlocks_theory": "non_linear_physics",
+			"applications": [
+				{"id": "env_control", "name": "Environmental Control Facility", "type": "building", "unlocks_building": "environmental_control_facility"},
+				{"id": "galactic_comms", "name": "Galactic Comms Relay", "type": "milestone_building", "unlocks_building": "galactic_comms_relay"},
+				{"id": "research_lab", "name": "Research Laboratory", "type": "building", "unlocks_building": "research_laboratory", "bonus": "Colony bots improve to 5+ Saving Throw"},
+				{"id": "theory_sciences", "name": "School of Theoretical Sciences", "type": "building", "unlocks_building": "school_of_theoretical_sciences", "bonus": "+1 Mission Data"}
+			]
+		},
+		{
+			"id": "non_linear_physics",
+			"name": "Non-Linear Physics",
+			"theory_cost": 4,
+			"application_cost": 3,
+			"prerequisites": ["theoretical_physics"],
+			"description": "Continued scientific development through non-linear physics.",
+			"applications": [
+				{"id": "academy", "name": "Academy", "type": "building", "unlocks_building": "academy", "bonus": "Colony bot improves to Reactions 3"},
+				{"id": "colony_shield", "name": "Colony Shield Network", "type": "building", "unlocks_building": "colony_shield_network"},
+				{"id": "sci_training_fac", "name": "Scientific Training Facility", "type": "building", "unlocks_building": "scientific_training_facility", "bonus": "+1 Mission Data"}
+			]
+		}
+	]
+}

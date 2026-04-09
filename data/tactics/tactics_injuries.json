@@ -1,0 +1,39 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook pp.105-106",
+	"description": "Any unit completely destroyed in battle must roll D6 on this table. Units remaining on table at battle end recover completely.",
+	"results": [
+		{
+			"roll": 1,
+			"id": "lost",
+			"name": "Lost",
+			"description": "The unit is lost in action or captured. Remove from roster. Can be replaced with a new unit for 1 CP.",
+			"effect": "remove_from_roster",
+			"recovery_battles": 0
+		},
+		{
+			"roll": 2,
+			"id": "devastated",
+			"name": "Devastated",
+			"description": "The unit has suffered extensive damage or losses. Unusable for two campaign battles.",
+			"effect": "unavailable",
+			"recovery_battles": 2
+		},
+		{
+			"roll": 3,
+			"id": "weakened",
+			"name": "Weakened",
+			"description": "Individual recovers fine. Squad/weapon team deploys with one fewer figure until it sits out a battle. Vehicle deploys with -1 KP until left out of battle.",
+			"effect": "weakened",
+			"recovery_battles": 1
+		},
+		{
+			"roll_min": 4,
+			"roll_max": 6,
+			"id": "okay",
+			"name": "Okay",
+			"description": "The unit is okay. Individual survived with minor wounds, vehicle crew bailed out and reassigned, squad replaces losses and integrates quickly.",
+			"effect": "none",
+			"recovery_battles": 0
+		}
+	]
+}
