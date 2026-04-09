@@ -361,6 +361,21 @@ func populate_ui() -> void:
 	# Stats (5-column grid with centered values)
 	if stats_grid:
 		_update_stats_grid()
+		# Staggered pop_in on stat badges
+		var tm := get_node_or_null("/root/ThemeManager")
+		var skip_a: bool = tm != null and tm.is_reduced_animation_enabled()
+		if not skip_a:
+			var st := create_tween()
+			for badge in stats_grid.get_children():
+				if badge is Control:
+					badge.modulate.a = 0.0
+					badge.pivot_offset = badge.size / 2
+					st.tween_callback(func():
+						if is_instance_valid(badge):
+							badge.modulate.a = 1.0
+							TweenFX.pop_in(badge, 0.18)
+					)
+					st.tween_interval(0.04)
 
 	# Species rules for Strange Characters (Core Rules pp.19-22)
 	_update_species_rules_display()

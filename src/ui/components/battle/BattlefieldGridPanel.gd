@@ -25,6 +25,7 @@ var _current_theme_name: String = ""
 # Node refs
 var _main_vbox: VBoxContainer
 var _header_bar: HBoxContainer
+var _context_line: Label  # Battle context (objective, condition, enemy summary)
 var _theme_label: Label
 var _collapse_button: Button
 var _regen_button: Button
@@ -125,6 +126,15 @@ func _build_header_bar() -> void:
 	_theme_label.add_theme_font_size_override("font_size", 14)
 	_theme_label.add_theme_color_override("font_color", COLOR_THEME_TEXT)
 	_header_bar.add_child(_theme_label)
+
+	# Battle context line (objective, condition, enemy summary)
+	_context_line = Label.new()
+	_context_line.text = ""
+	_context_line.add_theme_font_size_override("font_size", 11)
+	_context_line.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_context_line.clip_text = true
+	_context_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_header_bar.add_child(_context_line)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -284,6 +294,20 @@ func _toggle_collapse() -> void:
 		expand()
 	else:
 		collapse()
+
+## Set battle context summary line (objective, condition, enemy info)
+func set_battle_context(objective: String, condition: String,
+		enemy_summary: String) -> void:
+	if not _context_line:
+		return
+	var parts: Array[String] = []
+	if not objective.is_empty():
+		parts.append(objective)
+	if not condition.is_empty():
+		parts.append(condition)
+	if not enemy_summary.is_empty():
+		parts.append(enemy_summary)
+	_context_line.text = " | ".join(parts)
 
 ## Route unit positions to the map view
 func set_unit_positions(units: Array) -> void:

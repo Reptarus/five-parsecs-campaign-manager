@@ -26,6 +26,46 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 
 ---
 
+## Session 48c: Battle Phase Reconciliation (Apr 8, 2026)
+
+### CRITICAL: Dual Battle Paths — Only UI Path is Live
+- **LIVE:** `CampaignTurnController._initiate_battle_sequence()` (lines 631-762) → PreBattleUI → TacticalBattleUI
+- **DEAD:** `BattlePhase.gd` via CampaignPhaseManager (`battle_phase_handler = null`, line 43)
+- Session 48 SeizeInitiative/DeploymentConditions/MissionObjective work on BattlePhase.gd is on the dead path
+- Always enhance CampaignTurnController for production battle flow
+
+### InitiativeCalculator Already Exists
+- Full UI at `src/ui/components/battle/InitiativeCalculator.gd` (ASSISTED tier, REACTION_ROLL phase overlay)
+- Uses SeizeInitiativeSystem internally, has modifiers, crew auto-detection, Roll button
+- Needs pre-configuration from battle context (currently manual checkboxes)
+
+### Battle Result Data Contract Gap
+- TacticalBattleUI emits `BattleResult` with only 4 fields (victory, casualties, injuries, rounds)
+- PostBattlePhase needs 10+ fields (held_field, defeated_enemy_list, crew_participants, mission type flags)
+- Fix: emit rich Dictionary instead of thin BattleResult class
+
+### Dead Code Confirmed
+- `FPCM_BattleManager.gd` — zero refs, never instantiated
+- `BattleCoordinator.gd` — only in PreBattleLoop (not main flow)
+- `BattlefieldCompanion.gd` + `BattleSystemIntegration.gd` — parallel legacy stack
+
+### 4-Part Plan — COMPLETED (Session 48d)
+
+1. **Missing mechanics** — SeizeInitiativeSystem preload, rival attack type in mission_data, SMALL_ENCOUNTER enemy count -1/-2, quest finale +1, initiative_context dict for InitiativeCalculator auto-config
+2. **UX streamline** — BattleTransitionUI skipped (fake 2s loading), tier selector (3 radio buttons) moved into PreBattleUI, TacticalBattleUI skips TIER_SELECT/SETUP/DEPLOYMENT when `selected_tier` in mission_data
+3. **Terrain enhancement** — Enemy deployment markers by AI type (A/R/B=cluster, T=3 teams, C/D=2 groups, G=VIP guard), battle context header line on BattlefieldGridPanel
+4. **Battle result data contract** — Both `_resolve_battle()` and auto-resolve now emit rich Dictionary (20+ fields: held_field, crew_participants, defeated_enemies, mission flags, etc.)
+
+### Key Implementation Details
+
+- `_launch_pre_battle_directly()` in CampaignTurnController replaces BattleTransitionUI handoff
+- PreBattleUI.selected_tier (int, 0=LOG_ONLY/1=ASSISTED/2=FULL_ORACLE) passed via mission_data
+- BattlefieldGridPanel.set_battle_context(objective, condition, enemy_summary) sets header context line
+- `_compute_enemy_deploy_markers()` in TacticalBattleUI generates grid markers by AI type (Core Rules p.110)
+- signal `tactical_battle_completed` changed from `BattleResult` typed to untyped (accepts Dictionary)
+
+---
+
 ## Session 47: Equipment Pipeline — Battle Domain (Apr 8, 2026)
 
 ### BattleCalculations.gd — Weapon Trait Effects Integrated

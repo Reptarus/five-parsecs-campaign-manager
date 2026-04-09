@@ -2,6 +2,7 @@ extends Control
 
 # Character class_name is globally available — do NOT preload Base/Character.gd (shadows the canonical class)
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
+const RulesPopupClass = preload("res://src/ui/components/common/RulesPopup.gd")
 signal captain_updated(captain)
 
 @onready var content = $Content
@@ -23,6 +24,7 @@ func _ready() -> void:
 	_apply_base_background()
 	_connect_signals()
 	_style_action_buttons()
+	_add_help_button()
 	_update_ui()
 
 ## Apply Deep Space COLOR_BASE background
@@ -260,6 +262,40 @@ func _enum_value_name(enum_dict: Dictionary, value: Variant) -> String:
 		if enum_dict[key] == value:
 			return key.capitalize()
 	return "Unknown"
+
+func _add_help_button() -> void:
+	var help_btn := Button.new()
+	help_btn.text = "?"
+	help_btn.custom_minimum_size = Vector2(40, 40)
+	help_btn.flat = true
+	help_btn.add_theme_font_size_override(
+		"font_size", _scaled_font(18))
+	help_btn.add_theme_color_override(
+		"font_color", Color("#4FC3F7"))
+	help_btn.tooltip_text = "Help: Captain creation"
+	help_btn.pressed.connect(_on_help_pressed)
+	var controls = get_node_or_null("Content/Controls")
+	if controls:
+		controls.add_child(help_btn)
+
+func _on_help_pressed() -> void:
+	RulesPopupClass.show_rules(
+		self,
+		"Captain Creation",
+		"[b]Core Rules pp.12-22[/b]\n\n" \
+		+ "Your captain is your primary character " \
+		+ "— the crew leader.\n\n" \
+		+ "[b]Character Class[/b]: Base stat bonuses " \
+		+ "and special abilities.\n" \
+		+ "[b]Origin[/b]: Background story and " \
+		+ "starting equipment roll.\n" \
+		+ "[b]Background[/b]: Pre-campaign history " \
+		+ "that grants items or contacts.\n" \
+		+ "[b]Motivation[/b]: Drives narrative and " \
+		+ "unlocks campaign events.\n\n" \
+		+ "Stats are generated with standard rolls. " \
+		+ "Use Randomize for a quick start.",
+		PackedStringArray(["Core Rules pp.12-22"]))
 
 func get_captain_data():
 	return current_captain

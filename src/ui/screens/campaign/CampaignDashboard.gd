@@ -352,6 +352,21 @@ func _update_crew_manifest(campaign) -> void:
 		var card := _build_crew_card(member)
 		crew_vbox.add_child(card)
 
+	# Staggered fade-in animation for crew cards
+	var tm := get_node_or_null("/root/ThemeManager")
+	var skip: bool = tm != null and tm.is_reduced_animation_enabled()
+	if not skip:
+		var anim_tw := create_tween()
+		for child in crew_vbox.get_children():
+			if child is Control and child.name != "__phase_bg":
+				child.modulate.a = 0.0
+				anim_tw.tween_callback(func():
+					if is_instance_valid(child):
+						child.modulate.a = 1.0
+						TweenFX.fade_in(child, 0.18)
+				)
+				anim_tw.tween_interval(0.05)
+
 func _get_crew_members(campaign) -> Array:
 	if campaign.has_method("get_crew_members"):
 		return campaign.get_crew_members()

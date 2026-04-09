@@ -5,6 +5,7 @@ extends Control
 ## Connects CampaignPhaseManager with UI components for complete turn flow
 
 const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
+const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 
 # Core Dependencies
 @onready var campaign_phase_manager: Node = get_node("/root/CampaignPhaseManager")
@@ -563,10 +564,9 @@ func _show_phase_ui(phase: int) -> void:
 		GlobalEnums.FiveParsecsCampaignPhase.MISSION, \
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE_SETUP, \
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE_RESOLUTION:
-			if battle_transition_ui:
-				battle_transition_ui.show()
-				current_ui_phase = battle_transition_ui
-				_initiate_battle_sequence()
+			# UX streamline: skip BattleTransitionUI (fake 2s loading),
+			# go directly to PreBattleUI after generating battle data.
+			_initiate_battle_sequence()
 
 		GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION:
 			if post_battle_ui:
@@ -701,6 +701,14 @@ func _initiate_battle_sequence() -> void:
 	# Check for rival encounters before starting battle
 	_check_rival_encounter_backend(current_planet_id, current_turn)
 
+	# Enrich mission_data with rival encounter details for PreBattleUI display
+	var rival_enc: Dictionary = battle_results.get("rival_encounter", {})
+	if rival_enc.get("has_encounter", false):
+		mission_data["rival_encounter"] = rival_enc
+		# Rival attack type modifies battle setup (Core Rules pp.85-86)
+		var attack_type: String = rival_enc.get("attack_type", "SHOWDOWN")
+		mission_data["rival_attack_type"] = attack_type
+
 	# Generate battlefield terrain suggestions
 	var battlefield_data: Dictionary = {}
 	if campaign_phase_manager and campaign_phase_manager.has_method(
@@ -725,6 +733,66 @@ func _initiate_battle_sequence() -> void:
 				.get_condition_effects_summary(condition)
 		}
 	battle_results["deployment_condition"] = deployment_condition
+
+	# Apply deployment condition enemy count modifiers (Core Rules p.94)
+	var condition_id: String = deployment_condition.get("condition_id", "")
+	if condition_id == "SMALL_ENCOUNTER" and not enemies.is_empty():
+		var remove_count: int = 1
+		if enemies.size() > crew_size:
+			remove_count = 2  # Outnumbered = remove 2
+		for i in range(mini(remove_count, enemies.size() - 1)):
+			enemies.pop_back()
+		game_state.set_current_enemies(enemies)
+		mission_data["enemy_force"]["count"] = enemies.size()
+		mission_data["enemy_force"]["units"] = enemies
+
+	# Quest finale +1 enemy (Core Rules p.89)
+	var is_quest_finale: bool = mission_data.get("is_quest_finale", false) \
+		or mission_data.get("mission_source", "") == "quest_finale"
+	if is_quest_finale and not enemies.is_empty():
+		# Duplicate last enemy for +1
+		var extra: Dictionary = enemies[-1].duplicate()
+		extra["name"] = extra.get("name", "Enemy") + " (Reinforcement)"
+		enemies.append(extra)
+		game_state.set_current_enemies(enemies)
+		mission_data["enemy_force"]["count"] = enemies.size()
+		mission_data["enemy_force"]["units"] = enemies
+
+	# Build initiative context for InitiativeCalculator auto-configuration
+	# (Core Rules p.117: 2D6 + highest Savvy + modifiers >= 10)
+	var init_sys := SeizeInitiativeSystemClass.new()
+	init_sys.set_crew_data(active_crew)
+	# Difficulty modifier
+	var difficulty: int = 0
+	if game_state.current_campaign and "progress_data" in game_state.current_campaign:
+		difficulty = game_state.current_campaign.progress_data.get(
+			"difficulty_mode", 0)
+	match difficulty:
+		6: init_sys.set_difficulty_mode(
+			SeizeInitiativeSystemClass.DifficultyMode.HARDCORE)
+		8: init_sys.set_difficulty_mode(
+			SeizeInitiativeSystemClass.DifficultyMode.INSANITY)
+	# Outnumbered check
+	init_sys.set_outnumbered(enemies.size() > active_crew.size())
+	# Enemy-specific modifier from first enemy
+	var enemy_init_mod: int = first_enemy.get(
+		"seize_initiative_modifier", 0)
+	if enemy_init_mod != 0:
+		init_sys.set_enemy_modifier(enemy_init_mod,
+			first_enemy.get("type", "Enemy"))
+
+	mission_data["initiative_context"] = {
+		"highest_savvy": init_sys.highest_savvy,
+		"modifiers": init_sys.get_current_modifiers(),
+		"required_roll": init_sys.calculate_required_roll(),
+		"success_probability": init_sys.get_success_probability(),
+	}
+
+	# Normalize data keys for downstream consumers
+	mission_data["deployment"] = deployment_condition
+	mission_data["mission_objective"] = mission_data.get(
+		"objective_details", {}).get("name",
+		mission_data.get("objective", ""))
 
 	# Persist battlefield data in GameState
 	# Theme matching from location keywords (Core Rules p.108)
@@ -752,14 +820,45 @@ func _initiate_battle_sequence() -> void:
 		mission_data["battle_type"] = GlobalEnums.BattleType.get(
 			mission_data.get("type", "STANDARD"), 0)
 
-	# Initialize BattleTransitionUI with mission context
-	if battle_transition_ui:
-		if battle_transition_ui.has_method("show_mission_briefing"):
-			battle_transition_ui.show_mission_briefing(mission_data)
-		if battle_transition_ui.has_method("set_crew_data"):
-			battle_transition_ui.set_crew_data(crew_data)
-		if battle_transition_ui.has_method("set_battlefield_data"):
-			battle_transition_ui.set_battlefield_data(battlefield_data)
+	# UX streamline: Skip BattleTransitionUI, go directly to PreBattleUI
+	# Store enriched mission data in progress_data for downstream access
+	if game_state.current_campaign and "progress_data" in game_state.current_campaign:
+		game_state.current_campaign.progress_data["current_mission"] = mission_data
+	_launch_pre_battle_directly(mission_data, crew_data)
+
+func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> void:
+	## UX streamline: Skip BattleTransitionUI, go directly to PreBattleUI.
+	## Replicates the data handoff that _on_battle_ready_to_launch() did,
+	## but without the intermediate transition screen.
+	_hide_all_phase_uis()
+	if pre_battle_ui:
+		pre_battle_ui.show()
+		current_ui_phase = pre_battle_ui
+
+		# Initialize PreBattle with mission context
+		if pre_battle_ui.has_method("setup_preview"):
+			var preview_data: Dictionary = mission_data.duplicate()
+			if not preview_data.has("terrain") or preview_data.get(
+					"terrain", {}).is_empty():
+				preview_data["terrain"] = _generate_terrain_setup_guide(
+					preview_data)
+			pre_battle_ui.setup_preview(preview_data)
+
+		# Setup crew selection with deployment limit (Core Rules p.63/85)
+		if pre_battle_ui.has_method("setup_crew_selection"):
+			if not crew_data.is_empty():
+				var deploy_limit: int = 6
+				if game_state.has_method("get_campaign_crew_size"):
+					deploy_limit = game_state.get_campaign_crew_size()
+				pre_battle_ui.setup_crew_selection(
+					crew_data, deploy_limit)
+
+		# Pass deployment condition to PreBattle
+		var condition: Dictionary = battle_results.get(
+			"deployment_condition", {})
+		if condition.size() > 0:
+			if pre_battle_ui.has_method("set_deployment_condition"):
+				pre_battle_ui.set_deployment_condition(condition)
 
 func _on_battle_completed(results: Dictionary) -> void:
 	## Handle battle completion - store results for post-battle phase
@@ -1045,8 +1144,14 @@ func _on_deployment_confirmed() -> void:
 		var enemy_data = game_state.get_current_enemies() if game_state.has_method("get_current_enemies") else []
 		var mission_data = game_state.get_current_mission() if game_state.has_method("get_current_mission") else null
 
+		# UX streamline: Pass selected tier from PreBattleUI so TacticalBattleUI
+		# can skip its TIER_SELECT overlay and go straight to COMBAT.
+		var md: Dictionary = mission_data if mission_data is Dictionary else {}
+		if pre_battle_ui and "selected_tier" in pre_battle_ui:
+			md["selected_tier"] = pre_battle_ui.selected_tier
+
 		if tactical_battle_ui.has_method("initialize_battle"):
-			tactical_battle_ui.initialize_battle(crew_data, enemy_data, mission_data)
+			tactical_battle_ui.initialize_battle(crew_data, enemy_data, md)
 
 		tactical_battle_ui.show()
 		current_ui_phase = tactical_battle_ui
@@ -1137,7 +1242,7 @@ func _update_phase_display(phase_name: String) -> void:
 
 	# Update progress bar — matches canonical turn sequence
 	var progress_map = {
-		"World Step": 8,
+		"World Phase": 8,
 		"Story": 17,
 		"Travel": 25,
 		"Pre-Mission": 33,
@@ -1168,7 +1273,7 @@ func _get_phase_name(phase: int) -> String:
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE_SETUP: return "Battle Setup"
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE_RESOLUTION: return "Battle Resolution"
 		GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION: return "Post-Battle"
-		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP: return "World Step"
+		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP: return "World Phase"
 		GlobalEnums.FiveParsecsCampaignPhase.ADVANCEMENT: return "Advancement"
 		GlobalEnums.FiveParsecsCampaignPhase.TRADING: return "Trading"
 		GlobalEnums.FiveParsecsCampaignPhase.CHARACTER: return "Character"

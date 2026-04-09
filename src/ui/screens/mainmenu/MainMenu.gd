@@ -263,6 +263,19 @@ func _on_load_campaign_pressed() -> void:
 	var dialog := AcceptDialog.new()
 	dialog.title = "Load Campaign"
 	dialog.ok_button_text = "Cancel"
+	# Deep Space theme (matches Bug Hunt dialog)
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1A1A2E")
+	panel_style.border_color = Color("#3A3A5C")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(6)
+	panel_style.content_margin_left = 16
+	panel_style.content_margin_right = 16
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override(
+		"font_color", Color("#E0E0E0"))
 
 	# Wrap campaign list in ScrollContainer for many saves
 	var scroll := ScrollContainer.new()
@@ -301,7 +314,21 @@ func _on_load_campaign_pressed() -> void:
 			info.get("date_string", "")]
 		btn.custom_minimum_size.y = 48
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.pressed.connect(_load_and_go_to_dashboard.bind(save_path, dialog, backdrop))
+		# Deep Space button styling
+		var btn_sty := StyleBoxFlat.new()
+		btn_sty.bg_color = Color("#252542")
+		btn_sty.border_color = Color("#3A3A5C")
+		btn_sty.set_border_width_all(1)
+		btn_sty.set_corner_radius_all(4)
+		btn_sty.set_content_margin_all(8)
+		btn.add_theme_stylebox_override("normal", btn_sty)
+		var btn_hov := btn_sty.duplicate()
+		btn_hov.bg_color = Color("#2D5A7B")
+		btn.add_theme_stylebox_override("hover", btn_hov)
+		btn.add_theme_color_override("font_color", Color("#E0E0E0"))
+		btn.pressed.connect(
+			_load_and_go_to_dashboard.bind(
+				save_path, dialog, backdrop))
 		row.add_child(btn)
 
 		# ISSUE-050: Delete button per save
@@ -320,7 +347,17 @@ func _on_load_campaign_pressed() -> void:
 	var import_btn := Button.new()
 	import_btn.text = "Import from File..."
 	import_btn.custom_minimum_size.y = 48
-	import_btn.pressed.connect(_on_import_from_file.bind(dialog))
+	var imp_sty := StyleBoxFlat.new()
+	imp_sty.bg_color = Color("#252542")
+	imp_sty.border_color = Color("#4FC3F7")
+	imp_sty.set_border_width_all(1)
+	imp_sty.set_corner_radius_all(4)
+	imp_sty.set_content_margin_all(8)
+	import_btn.add_theme_stylebox_override("normal", imp_sty)
+	import_btn.add_theme_color_override(
+		"font_color", Color("#4FC3F7"))
+	import_btn.pressed.connect(
+		_on_import_from_file.bind(dialog))
 	vbox.add_child(import_btn)
 	scroll.add_child(vbox)
 	dialog.add_child(scroll)

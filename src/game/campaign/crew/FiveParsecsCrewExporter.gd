@@ -146,7 +146,7 @@ func _generate_crew_roster_content(crew) -> void:
 			pdf_generator.add_field("Luck", str(member.luck))
 			
 			# Add health and status
-			pdf_generator.add_field("Health", str(member.health) + "/" + str(member.max_health))
+			pdf_generator.add_field("Health", "%d/%d" % [int(member.health), int(member.max_health)])
 			
 			var status_name = "Unknown"
 			match member.status:
@@ -229,7 +229,7 @@ func _generate_character_sheet_content(character) -> void:
 	pdf_generator.add_field("Luck", str(character.luck))
 	
 	# Add health and status
-	pdf_generator.add_field("Health", str(character.health) + "/" + str(character.max_health))
+	pdf_generator.add_field("Health", "%d/%d" % [int(character.health), int(character.max_health)])
 	pdf_generator.add_field("Morale", str(character.morale))
 	
 	var status_name = "Unknown"

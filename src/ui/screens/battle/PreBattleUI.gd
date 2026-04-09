@@ -18,6 +18,10 @@ signal terrain_ready
 signal preview_updated
 signal back_pressed
 
+## Tracking tier selection (moved here from TacticalBattleUI overlay)
+## 0 = LOG_ONLY, 1 = ASSISTED, 2 = FULL_ORACLE
+var selected_tier: int = 0
+
 ## Node references
 @onready var mission_info_panel = $MarginContainer/VBoxContainer/MainContent/LeftPanel/MissionInfo/VBoxContainer/Content
 @onready var enemy_info_panel = $MarginContainer/VBoxContainer/MainContent/LeftPanel/EnemyInfo/VBoxContainer/Content
@@ -132,6 +136,31 @@ func _setup_mission_info(data: Dictionary) -> void:
 	mission_info_panel.add_child(mission_title)
 	mission_info_panel.add_child(mission_desc)
 	mission_info_panel.add_child(battle_type)
+
+	# Initiative context summary (pre-computed by CampaignTurnController)
+	var init_ctx: Dictionary = data.get("initiative_context", {})
+	if not init_ctx.is_empty():
+		var sep := HSeparator.new()
+		mission_info_panel.add_child(sep)
+		var init_header := Label.new()
+		init_header.text = "Seize the Initiative"
+		init_header.add_theme_font_size_override("font_size", _scaled_font(16))
+		mission_info_panel.add_child(init_header)
+		var init_info := Label.new()
+		var prob: float = init_ctx.get("success_probability", 0.0)
+		init_info.text = "Need %d+ on 2D6 (Savvy +%d) — %.0f%% chance" % [
+			init_ctx.get("required_roll", 10),
+			init_ctx.get("highest_savvy", 0),
+			prob * 100.0]
+		init_info.add_theme_font_size_override("font_size", _scaled_font(14))
+		init_info.add_theme_color_override("font_color", Color("#4FC3F7"))
+		init_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mission_info_panel.add_child(init_info)
+
+	# Tier selector — player picks tracking level before combat starts
+	var tier_sep := HSeparator.new()
+	mission_info_panel.add_child(tier_sep)
+	_build_tier_selector()
 
 ## Setup enemy information — Core Rules table format (pp.91-94)
 func _setup_enemy_info(data: Dictionary) -> void:
@@ -444,6 +473,42 @@ func _update_confirm_button() -> void:
 	if terrain_system and terrain_system.has_method("is_terrain_ready"):
 		terrain_ok = terrain_system.is_terrain_ready()
 	confirm_button.disabled = selected_crew.is_empty() or not terrain_ok
+
+## Build the tracking tier radio buttons (LOG_ONLY / ASSISTED / FULL_ORACLE)
+func _build_tier_selector() -> void:
+	if not mission_info_panel:
+		return
+
+	var header := Label.new()
+	header.text = "Tracking Level"
+	header.add_theme_font_size_override("font_size", _scaled_font(16))
+	mission_info_panel.add_child(header)
+
+	var desc := Label.new()
+	desc.text = "How much should the app track for you?"
+	desc.add_theme_font_size_override("font_size", _scaled_font(12))
+	desc.add_theme_color_override("font_color", Color("#808080"))
+	mission_info_panel.add_child(desc)
+
+	var tier_names: Array[String] = [
+		"Log Only — manual play, dice journal",
+		"Assisted — auto-roll + guidance overlays",
+		"Full Oracle — AI runs enemy turns",
+	]
+	var button_group := ButtonGroup.new()
+	for i in range(tier_names.size()):
+		var radio := CheckBox.new()
+		radio.text = tier_names[i]
+		radio.button_group = button_group
+		radio.add_theme_font_size_override("font_size", _scaled_font(14))
+		radio.custom_minimum_size.y = 40  # Touch-friendly
+		if i == 0:
+			radio.button_pressed = true  # Default to LOG_ONLY
+		radio.pressed.connect(_on_tier_radio_pressed.bind(i))
+		mission_info_panel.add_child(radio)
+
+func _on_tier_radio_pressed(tier: int) -> void:
+	selected_tier = tier
 
 ## Get selected crew
 func get_selected_crew() -> Array:

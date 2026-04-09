@@ -502,6 +502,18 @@ func _show_current_step() -> void:
 	# Update UI
 	_update_ui_display()
 
+	# Fade-in on step transition
+	var _containers := [
+		upkeep_container, crew_task_container,
+		job_offer_container, assign_equipment_container,
+		resolve_rumors_container, mission_prep_container]
+	var tm := get_node_or_null("/root/ThemeManager")
+	var skip_anim: bool = tm != null and tm.is_reduced_animation_enabled()
+	if not skip_anim and current_step < _containers.size():
+		var active: Control = _containers[current_step]
+		if active and is_instance_valid(active) and active.visible:
+			TweenFX.fade_in(active, 0.2)
+
 	# Publish step change event
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, {

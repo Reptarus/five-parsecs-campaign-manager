@@ -276,6 +276,12 @@ func _build_ui() -> void:
 	debug_btn.pressed.connect(_on_debug_pressed)
 	root_vbox.add_child(debug_btn)
 
+	# Fade-in content on screen entry
+	var tm := get_node_or_null("/root/ThemeManager")
+	var skip_a: bool = tm != null and tm.is_reduced_animation_enabled()
+	if not skip_a:
+		TweenFX.fade_in(scroll, 0.25)
+
 
 # ============ AUDIO ============
 func _build_audio_section(parent: VBoxContainer) -> void:

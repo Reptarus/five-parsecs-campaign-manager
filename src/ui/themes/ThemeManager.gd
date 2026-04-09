@@ -344,12 +344,26 @@ func _apply_colorblind_variant(variant: ThemeVariant) -> void:
 			return
 
 	# Apply palette colors to theme
-	if colors.has("success"):
-		_current_theme.set_color("font_color", "Label", colors.get("text", Color.WHITE))
-	if colors.has("background"):
+	if colors.has("text_primary"):
+		_current_theme.set_color("font_color", "Label", colors["text_primary"])
+	if colors.has("text_secondary"):
+		_current_theme.set_color("font_color", "Label", colors["text_secondary"])
+	if colors.has("base"):
 		var panel_style = _current_theme.get_stylebox("panel", "Panel") as StyleBoxFlat
 		if panel_style:
-			panel_style.bg_color = colors.get("background", Color.BLACK)
+			panel_style.bg_color = colors["base"]
+	if colors.has("accent"):
+		_current_theme.set_color("font_color", "Button", colors["accent"])
+		var hover_clr: Color = colors.get("accent_hover", colors["accent"])
+		_current_theme.set_color("font_hover_color", "Button", hover_clr)
+	if colors.has("focus"):
+		_current_theme.set_color("font_focus_color", "Button", colors["focus"])
+	if colors.has("success"):
+		_current_theme.set_color("font_color", "CheckButton", colors["success"])
+	if colors.has("border"):
+		var btn_style = _current_theme.get_stylebox("normal", "Button") as StyleBoxFlat
+		if btn_style:
+			btn_style.border_color = colors["border"]
 
 ## Apply current scale factor to fonts
 func _apply_scale_factor() -> void:
@@ -468,6 +482,7 @@ func set_reduced_animation(enabled: bool) -> void:
 		return
 	
 	_reduced_animation = enabled
+	_apply_animation_settings()
 	reduced_animation_changed.emit(enabled)
 	save_config()
 

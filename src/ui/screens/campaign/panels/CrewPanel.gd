@@ -2,6 +2,7 @@ extends Control
 
 # Character class_name is globally available — do NOT preload Base/Character.gd (shadows the canonical class)
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
+const RulesPopupClass = preload("res://src/ui/components/common/RulesPopup.gd")
 signal crew_updated(crew: Array)
 
 @onready var content = $Content
@@ -28,6 +29,7 @@ func _ready() -> void:
 	_setup_crew_size_options()
 	_connect_signals()
 	_style_action_buttons()
+	_add_help_button()
 	_wrap_content_in_scroll()
 	_update_crew_list()
 
@@ -429,6 +431,38 @@ func _apply_button_style(
 	button.add_theme_stylebox_override("disabled", disabled)
 	button.add_theme_color_override(
 		"font_disabled_color", Color("#4b5563"))
+
+func _add_help_button() -> void:
+	var help_btn := Button.new()
+	help_btn.text = "?"
+	help_btn.custom_minimum_size = Vector2(40, 40)
+	help_btn.flat = true
+	help_btn.add_theme_font_size_override(
+		"font_size", _scaled_font(18))
+	help_btn.add_theme_color_override(
+		"font_color", Color("#4FC3F7"))
+	help_btn.tooltip_text = "Help: Crew management"
+	help_btn.pressed.connect(_on_help_pressed)
+	var controls = get_node_or_null("Content/Controls")
+	if controls:
+		controls.add_child(help_btn)
+
+func _on_help_pressed() -> void:
+	RulesPopupClass.show_rules(
+		self,
+		"Crew Management",
+		"[b]Core Rules pp.23-25[/b]\n\n" \
+		+ "Your crew is the heart of your campaign.\n\n" \
+		+ "[b]Crew Size[/b]: Choose 4, 5, or 6 total " \
+		+ "members (including captain). Larger crews " \
+		+ "cost more in Upkeep but give more combat " \
+		+ "options.\n" \
+		+ "[b]Adding Members[/b]: New recruits join " \
+		+ "with random stats and backgrounds.\n" \
+		+ "[b]Crew Tasks[/b]: Between missions, crew " \
+		+ "can Train, Work, Explore, or assist.\n\n" \
+		+ "Use Randomize All for a quick-start crew.",
+		PackedStringArray(["Core Rules pp.23-25"]))
 
 func get_crew_data() -> Array:
 	return crew_members.duplicate()

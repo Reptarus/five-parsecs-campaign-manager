@@ -10,7 +10,7 @@ extends Control
 ## - Five Parsecs combat rules
 ## - Dice integration for all rolls
 
-signal tactical_battle_completed(battle_result: BattleResult)
+signal tactical_battle_completed(battle_result)
 signal return_to_battle_resolution()
 
 ## Keep-as-preload: used externally for enum/static access, always needed
@@ -1820,6 +1820,16 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	_stored_mission_data = mission_data
 	_populate_setup_tab(mission_data)
 
+	# UX streamline: If tier was pre-selected in PreBattleUI, skip the
+	# TIER_SELECT overlay and go straight to COMBAT stage.
+	if mission_dict.has("selected_tier"):
+		var pre_tier: int = mission_dict.get("selected_tier", 0)
+		_on_tier_selected(pre_tier)
+		# Skip SETUP/DEPLOYMENT — player already reviewed everything in PreBattleUI
+		_on_auto_deploy_clicked()
+		_apply_stage_visibility(BattleStage.COMBAT)
+		return
+
 	# NOTE: Deployment phase starts AFTER tier selection completes
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
 
@@ -1966,45 +1976,106 @@ func _reset_all_unit_reactions() -> void:
 ## Legacy _check_victory_conditions() removed — VictoryProgressPanel handles this in END_PHASE
 
 func _resolve_battle() -> void:
-	## Resolve the tactical battle — transition to RESOLUTION stage
+	## Resolve the tactical battle — transition to RESOLUTION stage.
+	## Emits a rich Dictionary (not BattleResult class) so PostBattlePhase
+	## has all the data it needs for loot, injuries, XP, and journal entries.
 	battle_phase = "resolution"
 	_apply_stage_visibility(BattleStage.RESOLUTION)
 
-	var crew_alive = crew_units.filter(func(u): return u.health > 0).size()
-	var enemies_alive = enemy_units.filter(func(u): return u.health > 0).size()
+	var crew_alive_units: Array = crew_units.filter(
+		func(u): return u.health > 0)
+	var enemies_alive_units: Array = enemy_units.filter(
+		func(u): return u.health > 0)
+	var crew_alive: int = crew_alive_units.size()
+	var enemies_alive: int = enemies_alive_units.size()
+	var rounds: int = current_turn - 1
 
-	var result := BattleResult.new()
-	result.rounds_fought = current_turn - 1
-
+	var victory: bool = false
 	if crew_alive > 0 and enemies_alive == 0:
-		result.victory = true
-		_log_message("Victory! All enemies defeated!", UIColors.COLOR_EMERALD)
+		victory = true
+		_log_message("Victory! All enemies defeated!",
+			UIColors.COLOR_EMERALD)
 		if unified_log:
 			unified_log.log_victory("All enemies defeated")
 	elif crew_alive == 0:
-		result.victory = false
-		_log_message("Defeat! All crew members down!", UIColors.COLOR_RED)
+		victory = false
+		_log_message("Defeat! All crew members down!",
+			UIColors.COLOR_RED)
 		if unified_log:
 			unified_log.log_defeat("All crew members down")
 	else:
-		# Stalemate or time limit
-		result.victory = crew_alive > enemies_alive
-		_log_message("Battle concluded after %d rounds" % result.rounds_fought, UIColors.COLOR_AMBER)
+		victory = crew_alive > enemies_alive
+		_log_message(
+			"Battle concluded after %d rounds" % rounds,
+			UIColors.COLOR_AMBER)
 		if unified_log:
-			if result.victory:
-				unified_log.log_victory("Outnumbered enemies %d to %d" % [crew_alive, enemies_alive])
+			if victory:
+				unified_log.log_victory(
+					"Outnumbered enemies %d to %d" % [
+						crew_alive, enemies_alive])
 			else:
-				unified_log.log_defeat("Outnumbered by enemies %d to %d" % [enemies_alive, crew_alive])
+				unified_log.log_defeat(
+					"Outnumbered by enemies %d to %d" % [
+						enemies_alive, crew_alive])
 
-	# Calculate casualties and injuries
+	# Build casualties and injuries lists
+	var casualties_data: Array = []
+	var injuries_data: Array = []
 	for unit in crew_units:
 		if unit.health <= 0:
 			if unit.is_dead:
-				result.crew_casualties.append(unit.original_character)
+				casualties_data.append(unit.original_character)
 			else:
-				result.crew_injuries.append(unit.original_character)
+				injuries_data.append(unit.original_character)
 
-	tactical_battle_completed.emit(result)
+	# Build defeated enemy list for loot/XP
+	var defeated_enemies: Array = []
+	for unit in enemy_units:
+		if unit.health <= 0:
+			defeated_enemies.append({
+				"name": unit.node_name,
+				"type": unit.enemy_type if "enemy_type" in unit \
+					else "",
+				"was_lieutenant": unit.is_lieutenant \
+					if "is_lieutenant" in unit else false,
+			})
+
+	# Crew who participated (for XP distribution)
+	var crew_participants: Array = []
+	for unit in crew_units:
+		if unit.original_character:
+			crew_participants.append(unit.original_character)
+
+	# Held field = victory + at least 1 crew alive at end
+	var held_field: bool = victory and crew_alive > 0
+
+	# Extract mission type flags from stored mission data
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+
+	var result_dict: Dictionary = {
+		"victory": victory,
+		"won": victory,  # Alias for CampaignTurnController
+		"held_field": held_field,
+		"rounds_fought": rounds,
+		"crew_casualties": casualties_data.size(),
+		"crew_injuries": injuries_data.size(),
+		"crew_casualties_data": casualties_data,
+		"crew_injuries_data": injuries_data,
+		"crew_participants": crew_participants,
+		"defeated_enemies": defeated_enemies,
+		"enemies_defeated_count": defeated_enemies.size(),
+		"enemies_remaining": enemies_alive,
+		"crew_alive": crew_alive,
+		"is_red_zone": md.get("is_red_zone", false),
+		"is_black_zone": md.get("is_black_zone", false),
+		"is_quest_finale": md.get("is_quest_finale", false),
+		"mission_source": md.get("mission_source", "opportunity"),
+		"mission_type": md.get("type", ""),
+		"auto_resolved": false,
+	}
+
+	tactical_battle_completed.emit(result_dict)
 
 func _on_end_turn() -> void:
 	## Context-sensitive end turn button — behavior depends on current stage
@@ -2137,8 +2208,38 @@ func _on_auto_resolve_battle() -> void:
 		else:
 			unified_log.log_defeat("Auto-resolve: Crew defeated")
 
-	_log_message("Battle %s!" % ("WON" if result.victory else "LOST"), UIColors.COLOR_EMERALD if result.victory else UIColors.COLOR_RED)
-	tactical_battle_completed.emit(result)
+	_log_message("Battle %s!" % ("WON" if result.victory else "LOST"),
+		UIColors.COLOR_EMERALD if result.victory else UIColors.COLOR_RED)
+
+	# Emit rich Dictionary (same contract as _resolve_battle)
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var auto_result_dict: Dictionary = {
+		"victory": result.victory,
+		"won": result.victory,
+		"held_field": held_field,
+		"rounds_fought": result.rounds_fought,
+		"crew_casualties": result.crew_casualties.size(),
+		"crew_injuries": result.crew_injuries.size(),
+		"crew_casualties_data": result.crew_casualties,
+		"crew_injuries_data": result.crew_injuries,
+		"crew_participants": crew_units.map(
+			func(u): return u.original_character).filter(
+			func(c): return c != null),
+		"defeated_enemies": [],
+		"enemies_defeated_count": enemies_defeated_count,
+		"enemies_remaining": enemies_deployed.size() \
+			- enemies_defeated_count,
+		"crew_alive": crew_units.filter(
+			func(u): return u.health > 0).size(),
+		"is_red_zone": md.get("is_red_zone", false),
+		"is_black_zone": md.get("is_black_zone", false),
+		"is_quest_finale": md.get("is_quest_finale", false),
+		"mission_source": md.get("mission_source", "opportunity"),
+		"mission_type": md.get("type", ""),
+		"auto_resolved": true,
+	}
+	tactical_battle_completed.emit(auto_result_dict)
 
 ## Utility functions
 
@@ -2349,6 +2450,31 @@ func _populate_setup_tab(mission_data) -> void:
 	if battlefield_grid_panel and battlefield_grid_panel.has_method(
 			"set_objective_positions"):
 		battlefield_grid_panel.set_objective_positions(obj_positions)
+
+	# Compute enemy deployment positions by AI type (Core Rules p.110)
+	var ai_type: String = ""
+	var ef_for_deploy: Dictionary = (
+		mission_dict_obj.get("enemy_force", {}))
+	ai_type = ef_for_deploy.get("ai", "")
+	var enemy_count: int = ef_for_deploy.get("count", 0)
+	if enemy_count > 0 and battlefield_grid_panel \
+			and battlefield_grid_panel.has_method("set_unit_positions"):
+		var unit_markers: Array = _compute_enemy_deploy_markers(
+			ai_type, enemy_count, obj_rng)
+		battlefield_grid_panel.set_unit_positions(unit_markers)
+
+	# Set battle context header line on grid panel
+	if battlefield_grid_panel and battlefield_grid_panel.has_method(
+			"set_battle_context"):
+		var ctx_objective: String = objective_str
+		var ctx_condition: String = deployment_condition.get(
+			"title", "")
+		var ctx_enemy: String = ""
+		var ef_type: String = ef_for_deploy.get("type", "")
+		if not ef_type.is_empty():
+			ctx_enemy = "%d x %s" % [enemy_count, ef_type]
+		battlefield_grid_panel.set_battle_context(
+			ctx_objective, ctx_condition, ctx_enemy)
 
 	# Section 0a: Mission Overview (pay, location, danger)
 	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
@@ -2749,6 +2875,72 @@ func _map_theme_name_to_key(theme_name: String) -> String:
 		return "ship_interior"
 	# Fallback
 	return "wilderness"
+
+## Compute enemy deployment marker positions by AI type (Core Rules p.110).
+## Returns Array of {position: Vector2i, team: "enemy", status: "alive"}.
+## Grid is 24x16 cells (4x4 sectors of 6x4 each). Enemies deploy on opposite
+## edge (rows 0-3) with grouping determined by AI behavior.
+func _compute_enemy_deploy_markers(
+		ai_type: String, count: int,
+		rng: RandomNumberGenerator) -> Array:
+	var markers: Array = []
+	# Enemy deployment zone: top 4 rows (rows 0-3), columns 0-23
+	match ai_type.to_upper():
+		"A", "R", "B":
+			# Aggressive/Rampage/Beast — clustered center (Core Rules p.110)
+			var center_x: int = 12
+			for i in range(count):
+				var x: int = clampi(
+					center_x + rng.randi_range(-3, 3), 0, 23)
+				var y: int = rng.randi_range(0, 3)
+				markers.append({
+					"position": Vector2i(x, y),
+					"team": "enemy", "status": "alive"})
+		"T":
+			# Tactical — 3 fire teams spread across width
+			var team_size: int = maxi(count / 3, 1)
+			var team_centers: Array[int] = [4, 12, 20]
+			var team_idx: int = 0
+			for i in range(count):
+				var cx: int = team_centers[team_idx % 3]
+				var x: int = clampi(
+					cx + rng.randi_range(-2, 2), 0, 23)
+				var y: int = rng.randi_range(0, 3)
+				markers.append({
+					"position": Vector2i(x, y),
+					"team": "enemy", "status": "alive"})
+				if (i + 1) % team_size == 0:
+					team_idx += 1
+		"C", "D":
+			# Cautious/Defensive — 2 groups in cover positions
+			var left_x: int = 6
+			var right_x: int = 18
+			for i in range(count):
+				var cx: int = left_x if i % 2 == 0 else right_x
+				var x: int = clampi(
+					cx + rng.randi_range(-2, 2), 0, 23)
+				var y: int = rng.randi_range(0, 2)
+				markers.append({
+					"position": Vector2i(x, y),
+					"team": "enemy", "status": "alive"})
+		"G":
+			# Guardian — clustered around a central VIP
+			for i in range(count):
+				var x: int = clampi(
+					12 + rng.randi_range(-2, 2), 0, 23)
+				var y: int = rng.randi_range(0, 2)
+				markers.append({
+					"position": Vector2i(x, y),
+					"team": "enemy", "status": "alive"})
+		_:
+			# Default: spread across top edge
+			for i in range(count):
+				var x: int = rng.randi_range(0, 23)
+				var y: int = rng.randi_range(0, 3)
+				markers.append({
+					"position": Vector2i(x, y),
+					"team": "enemy", "status": "alive"})
+	return markers
 
 func _add_setup_section_header(text: String) -> void:
 	## Add a section header label to the Setup tab
