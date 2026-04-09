@@ -6,9 +6,18 @@ extends PlanetfallScreenBase
 ## TODO: Full implementation in Colony Systems sprint.
 
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
+const ColonyStatusScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallColonyStatusPanel.gd")
+const EquipmentPanelScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallEquipmentPanel.gd")
+const EnemyTrackerScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallEnemyTrackerPanel.gd")
+const AugmentationPanelScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallAugmentationPanel.gd")
 
 var _campaign: Resource
 var _content: VBoxContainer
+var _overlay_container: Control
 
 
 func _setup_screen() -> void:
@@ -26,14 +35,16 @@ func _build_dashboard() -> void:
 			var empty := EmptyStateWidgetClass.new()
 			empty.setup(
 				"No Active Colony",
-				"The landing site is empty. Start a new Planetfall campaign to establish your colony.",
+				"The landing site is empty. Start a new " +
+					"Planetfall campaign to establish your colony.",
 				"New Planetfall Campaign",
 				func(): _navigate("planetfall_creation"))
 			_content.add_child(empty)
 		return
 
 	# Header
-	var name_str: String = _campaign.campaign_name if "campaign_name" in _campaign else "Unknown Colony"
+	var name_str: String = _campaign.campaign_name \
+		if "campaign_name" in _campaign else "Unknown Colony"
 	var colony: String = _campaign.colony_name if "colony_name" in _campaign else ""
 
 	var header_box := VBoxContainer.new()
@@ -63,7 +74,8 @@ func _build_dashboard() -> void:
 	var sp: int = _campaign.story_points if "story_points" in _campaign else 5
 	var grunt_count: int = _campaign.grunts if "grunts" in _campaign else 12
 	var roster_arr: Array = _campaign.roster if "roster" in _campaign else []
-	var milestones: int = _campaign.milestones_completed if "milestones_completed" in _campaign else 0
+	var milestones: int = _campaign.milestones_completed \
+		if "milestones_completed" in _campaign else 0
 
 	var stats := {
 		"TURN": turn,
@@ -97,8 +109,64 @@ func _build_dashboard() -> void:
 	menu_card.card_pressed.connect(func(): _navigate("main_menu"))
 	hub_box.add_child(menu_card)
 
+	# Detail hub cards (Sprint 4)
+	var detail_box := VBoxContainer.new()
+	detail_box.add_theme_constant_override("separation", SPACING_SM)
+	_content.add_child(detail_box)
+
+	var detail_header := Label.new()
+	detail_header.text = "COLONY MANAGEMENT"
+	detail_header.add_theme_font_size_override(
+		"font_size", get_responsive_font_size(FONT_SIZE_LG))
+	detail_header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	detail_box.add_child(detail_header)
+
+	var colony_status_card := HubFeatureCardClass.new()
+	var r_summary: Dictionary = _campaign.get_research_summary() \
+		if _campaign.has_method("get_research_summary") else {}
+	var b_summary: Dictionary = _campaign.get_building_summary() \
+		if _campaign.has_method("get_building_summary") else {}
+	colony_status_card.setup("", "Colony Status",
+		"Research: %d theories | Buildings: %d constructed" % [
+			r_summary.get("completed_theories", 0),
+			b_summary.get("constructed", 0)])
+	colony_status_card.card_pressed.connect(func(): _show_overlay_panel("colony_status"))
+	detail_box.add_child(colony_status_card)
+
+	var armory_card := HubFeatureCardClass.new()
+	armory_card.setup("", "Armory", "Browse available weapons and equipment")
+	armory_card.card_pressed.connect(func(): _show_overlay_panel("equipment"))
+	detail_box.add_child(armory_card)
+
+	var enemy_card := HubFeatureCardClass.new()
+	var enemies: Array = _campaign.tactical_enemies \
+		if "tactical_enemies" in _campaign else []
+	var signs: Array = _campaign.ancient_signs \
+		if "ancient_signs" in _campaign else []
+	enemy_card.setup("", "Enemy Tracker",
+		"%d tactical enemies | %d ancient signs" % [
+			enemies.size(), signs.size()])
+	enemy_card.card_pressed.connect(func(): _show_overlay_panel("enemy_tracker"))
+	detail_box.add_child(enemy_card)
+
+	var aug_count: int = _campaign.get_augmentation_count() \
+		if _campaign.has_method("get_augmentation_count") else 0
+	var aug_ap: int = _campaign.augmentation_points \
+		if "augmentation_points" in _campaign else 0
+	var aug_card := HubFeatureCardClass.new()
+	aug_card.setup("", "Augmentations",
+		"%d owned | %d AP available" % [aug_count, aug_ap])
+	aug_card.card_pressed.connect(func(): _show_overlay_panel("augmentation"))
+	detail_box.add_child(aug_card)
+
 	# Roster summary
 	_build_roster_section(roster_arr)
+
+	# Overlay container for detail panels (rendered on top)
+	_overlay_container = Control.new()
+	_overlay_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay_container.visible = false
+	add_child(_overlay_container)
 
 
 func _build_roster_section(roster: Array) -> void:
@@ -160,6 +228,45 @@ func _build_character_card(char_dict: Dictionary) -> PanelContainer:
 	vbox.add_child(stat_lbl)
 
 	return panel
+
+
+func _show_overlay_panel(panel_type: String) -> void:
+	## Show a detail panel as an overlay on top of the dashboard.
+	if not _overlay_container:
+		return
+	# Clear existing overlay
+	for child in _overlay_container.get_children():
+		child.queue_free()
+
+	var panel: Control
+	match panel_type:
+		"colony_status":
+			panel = ColonyStatusScript.new()
+		"equipment":
+			panel = EquipmentPanelScript.new()
+		"enemy_tracker":
+			panel = EnemyTrackerScript.new()
+		"augmentation":
+			panel = AugmentationPanelScript.new()
+			if panel.has_method("set_standalone"):
+				panel.set_standalone(true)
+		_:
+			return
+
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if panel.has_method("set_campaign"):
+		panel.set_campaign(_campaign)
+	_overlay_container.add_child(panel)
+	_overlay_container.visible = true
+
+	# When panel hides itself, hide the overlay container
+	panel.visibility_changed.connect(func():
+		if not panel.visible:
+			_overlay_container.visible = false
+	)
+
+	if panel.has_method("refresh"):
+		panel.refresh()
 
 
 func _on_save() -> void:

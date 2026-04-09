@@ -20,6 +20,14 @@ const ColonyEventsScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallColonyEventsPanel.gd")
 const PostBattleScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallPostBattlePanel.gd")
+const MissionPanelScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallMissionPanel.gd")
+const LockAndLoadScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallLockAndLoadPanel.gd")
+const ResearchPanelScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallResearchPanel.gd")
+const BuildingPanelScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallBuildingPanel.gd")
 
 var phase_manager: PlanetfallPhaseManagerScript
 var campaign: Resource  # PlanetfallCampaignCore
@@ -323,12 +331,15 @@ func _create_panel_for_phase(phase: int) -> Control:
 		Phase.INJURIES, Phase.EXPERIENCE, Phase.MORALE_ADJUSTMENTS:
 			return PostBattleScript.new()
 
-		# Sprint 2 panels (not yet implemented — use placeholder)
-		Phase.MISSION_DETERMINATION, Phase.LOCK_AND_LOAD, \
-		Phase.RESEARCH, Phase.BUILDING:
-			var p := PlaceholderPanelScript.new()
-			p.configure(phase_name, phase)
-			return p
+		# Sprint 2 panels — core systems
+		Phase.MISSION_DETERMINATION:
+			return MissionPanelScript.new()
+		Phase.LOCK_AND_LOAD:
+			return LockAndLoadScript.new()
+		Phase.RESEARCH:
+			return ResearchPanelScript.new()
+		Phase.BUILDING:
+			return BuildingPanelScript.new()
 
 		# Battle delegation (step 8) — placeholder, actual delegation is in TurnController
 		Phase.PLAY_OUT_MISSION:

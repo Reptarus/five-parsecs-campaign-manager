@@ -360,6 +360,32 @@ func repair_colony(points: int) -> void:
 
 
 ## ============================================================================
+## RESEARCH & BUILDING STATE (Sprint 2)
+## ============================================================================
+
+func get_research_summary() -> Dictionary:
+	var rd: Dictionary = research_data
+	return {
+		"current_rp": rd.get("current_rp", 0),
+		"completed_theories": rd.get("completed_theories", []).size(),
+		"unlocked_applications": rd.get("unlocked_applications", []).size()
+	}
+
+
+func get_building_summary() -> Dictionary:
+	var bd: Dictionary = buildings_data
+	return {
+		"current_bp": bd.get("current_bp", 0),
+		"constructed": bd.get("constructed", []).size(),
+		"in_progress": bd.get("in_progress", {}).size()
+	}
+
+
+func get_augmentation_count() -> int:
+	return research_data.get("augmentations_owned", []).size()
+
+
+## ============================================================================
 ## VALIDATION
 ## ============================================================================
 
