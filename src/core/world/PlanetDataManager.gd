@@ -153,6 +153,80 @@ func _generate_new_planet(campaign_turn: int, forced_id: String = "") -> PlanetD
 
 	return planet
 
+## Create a colony world for a Compendium species (Krag/Skulker)
+## Loads colony data from data/compendium/species.json and applies forced traits
+func create_colony_world(species_id: String, campaign_turn: int) -> PlanetData:
+	var species_json: Dictionary = _load_compendium_species_data(species_id)
+	var colony_data: Dictionary = species_json.get("colony_world", {})
+	if colony_data.is_empty():
+		return null
+
+	var planet_id := "colony_%s_%d" % [species_id, Time.get_unix_time_from_system()]
+	var planet := PlanetData.new(planet_id)
+	planet.name = "%s Colony" % species_id.capitalize()
+	planet.type = "COLONY_WORLD"
+	planet.type_name = "%s Colony World" % species_id.capitalize()
+	planet.danger_level = 2
+	planet.discovered_on_turn = campaign_turn
+	planet.last_visited_turn = campaign_turn
+	planet.visit_count = 1
+
+	# Apply forced traits (Compendium p.15/p.17)
+	for trait_id: String in colony_data.get("forced_traits", []):
+		planet.traits.append(trait_id)
+
+	# Roll additional traits if specified (Skulker: +1 random)
+	if colony_data.get("second_trait", "") == "rolled_normally":
+		var rolled_trait: String = _roll_random_trait()
+		# Compendium p.17: "Alien species restricted" = no result
+		if colony_data.get("alien_restricted_override", "") == "no_result":
+			if rolled_trait == "alien_species_restricted":
+				rolled_trait = ""
+		if not rolled_trait.is_empty():
+			planet.traits.append(rolled_trait)
+
+	_initialize_planet_economy(planet)
+	visited_planets[planet.id] = planet
+	_sync_to_cache(planet)
+	planet_discovered.emit(planet)
+	return planet
+
+## Load species data from Compendium JSON
+func _load_compendium_species_data(species_id: String) -> Dictionary:
+	var file := FileAccess.open("res://data/compendium/species.json", FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	var data: Dictionary = json.data if json.data is Dictionary else {}
+	return data.get(species_id, {})
+
+## Roll a random world trait ID from the trait pool
+func _roll_random_trait() -> String:
+	var file := FileAccess.open("res://data/world_traits.json", FileAccess.READ)
+	if not file:
+		return ""
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return ""
+	var trait_list: Array = json.data if json.data is Array else []
+	if trait_list.is_empty():
+		return ""
+	# Flatten: world_traits.json may have nested structure
+	var all_ids: Array[String] = []
+	for entry in trait_list:
+		if entry is Dictionary:
+			if entry.has("id"):
+				all_ids.append(entry["id"])
+			elif entry.has("traits"):
+				for t in entry["traits"]:
+					if t is Dictionary and t.has("id"):
+						all_ids.append(t["id"])
+	if all_ids.is_empty():
+		return ""
+	return all_ids[randi() % all_ids.size()]
+
 ## Initialize planet economic data
 func _initialize_planet_economy(planet: PlanetData) -> void:
 	# Generate market conditions based on planet type and traits

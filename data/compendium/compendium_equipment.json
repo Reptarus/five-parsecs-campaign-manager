@@ -140,6 +140,7 @@
 			"name": "Warding Shrel",
 			"cost": 10,
 			"slot": "utility",
+			"psionic_only": true,
 			"effect": "avoid_psionic_strain",
 			"description": "Odd Precursor device. If the wearer would suffer the effects of psionic Strain, the effect is avoided and the device shuts down for the rest of the battle. Carrying two Shrels cancels the effects of both.",
 			"instruction": "PSIONIC GEAR: Warding Shrel (10 cr, Utility) - Avoid one Strain effect per battle. Carrying two cancels both.",
@@ -149,6 +150,7 @@
 		{
 			"id": "psionic_focus",
 			"name": "Psionic Focus",
+			"psionic_only": true,
 			"cost": 10,
 			"slot": "utility",
 			"effect": "plus1_power_range",

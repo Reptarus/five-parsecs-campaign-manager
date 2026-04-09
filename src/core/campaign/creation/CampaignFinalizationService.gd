@@ -422,6 +422,31 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		base_story_points, campaign.difficulty
 	)
 
+	# Prison Planet campaign effects (Compendium p.138 "New Campaigns" boxout)
+	# Character brings old profile but stripped of equipment/implants, +3 XP,
+	# +3 Enforcer Rivals, +1 Story Point
+	for member in crew_data.get("members", []):
+		var origin_val = member.get("origin", 0) if member is Dictionary else 0
+		var is_pp: bool = false
+		if origin_val is int:
+			is_pp = (origin_val == GlobalEnums.Origin.PRISON_PLANET)
+		elif origin_val is String:
+			is_pp = origin_val.to_lower() in ["prison_planet", "prison planet"]
+		if is_pp:
+			# Strip equipment and implants
+			if member is Dictionary:
+				member["equipment"] = []
+				member["implants"] = []
+				member["experience"] = member.get("experience", 0) + 3
+			# +3 Enforcer Rivals
+			for i in range(3):
+				rivals_data.append({
+					"type": "enforcer",
+					"name": "Enforcer (Prison Planet)",
+					"source": "prison_planet"})
+			# +1 Story Point
+			raw_story_points += 1
+
 	# Always initialize resources, even if empty dict - equipment credits must be included
 	campaign.initialize_resources({
 		"credits": total_credits,

@@ -14,9 +14,9 @@
 		"6": {"TOUGHNESS": 1, "SAVVY": 1, "_comment": "Soulless (p.17)"},
 		"5": {"SPEED": 1, "TOUGHNESS": -1, "_comment": "Precursor (p.17)"},
 		"7": {"SPEED": 1, "_comment": "Swift (p.18)"},
-		"9": {"TOUGHNESS": 1, "_comment": "Krag (Compendium p.12: R1 Sp4 C+0 T4 Sa+0)"},
-		"10": {"SPEED": 2, "SAVVY": 1, "_comment": "Skulker (Compendium p.14: R1 Sp6 C+0 T3 Sa+1)"},
-		"11": {"TOUGHNESS": 1, "COMBAT_SKILL": 1, "_comment": "Prison Planet (Compendium background)"}
+		"14": {"TOUGHNESS": 1, "_comment": "Krag (Compendium p.12: R1 Sp4 C+0 T4 Sa+0) — GlobalEnums.Origin.KRAG=14"},
+		"15": {"SPEED": 2, "SAVVY": 1, "_comment": "Skulker (Compendium p.14: R1 Sp6 C+0 T3 Sa+1) — GlobalEnums.Origin.SKULKER=15"},
+		"16": {"TOUGHNESS": 1, "COMBAT_SKILL": 1, "rivals": 3, "story_points": 1, "xp": 3, "strip_equipment": true, "_comment": "Prison Planet (Compendium p.138) — GlobalEnums.Origin.PRISON_PLANET=16"}
 	},
 	"background_bonuses": {
 		"12": {"SAVVY": 1, "_comment": "Peaceful High Tech Colony"},

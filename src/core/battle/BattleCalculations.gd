@@ -38,6 +38,10 @@ const RIFLE_RANGE := 24
 const SHOTGUN_RANGE := 6
 const HEAVY_WEAPON_RANGE := 36
 
+# Compendium p.17: Skulker biological resistance negates these consumables
+# Stim-packs and Kiranin Crystals are explicitly NOT affected
+const SKULKER_IMMUNE_CONSUMABLES := ["booster_pills", "combat_serum", "rage_out", "still"]
+
 # Armor save thresholds (roll this or higher to save)
 const ARMOR_SAVE_NONE := 7  # Cannot save
 const ARMOR_SAVE_LIGHT := 6
@@ -1992,6 +1996,12 @@ static func apply_consumable_effect(
 		"description": "",
 		"effects": []
 	}
+	# Compendium p.17: Skulker drug resistance — immune to listed consumables
+	var user_species: String = str(user.get("species_id",
+		user.get("species", ""))).to_lower()
+	if user_species == "skulker" and consumable_id.to_lower() in SKULKER_IMMUNE_CONSUMABLES:
+		result["description"] = "Skulker biological resistance negates " + consumable_id.replace("_", " ")
+		return result
 	match consumable_id.to_lower():
 		"booster_pills":
 			# Core Rules p.54: Remove all Stun markers, double Speed this round

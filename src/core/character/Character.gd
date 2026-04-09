@@ -139,16 +139,29 @@ var combat_skill: int:
 # Bot Upgrade System (Five Parsecs Core Rules p.98)
 # Bots don't gain XP - they purchase upgrades with credits instead
 @export var bot_upgrades: Array[String] = []  # IDs of installed bot upgrades
+@export var acquired_training: Array[String] = []  # IDs of completed Compendium training courses
 
 # Reaction Economy System (Five Parsecs Core Rules)
 # Swift species limited to 1 reaction per round, others default to 3
 @export var max_reactions_per_round: int = 3
 var reactions_used_this_round: int = 0  # Reset at start of each battle round
 
-# Psionic Power (Five Parsecs Core Rules p.35)
-# Precursor characters begin with one randomly determined Psionic Power
-@export var psionic_power: String = ""  # Power ID from psionic_powers.json, empty if none
-@export var psionic_power_enhanced: bool = false  # True if power enhanced via 6 XP training (Core Rules p.101)
+# Psionic Powers (Compendium pp.19-22)
+# Psionics start with 2 powers (D10 x2), can acquire more via 12 XP advancement
+# Power IDs are keys in psionic_powers.json (e.g., "barrier", "grab", "predict")
+@export var psionic_powers: Array[String] = []  # All known power IDs
+@export var psionic_power_enhanced: bool = false  # True if power enhanced via 6 XP training (Compendium p.22)
+# Backwards compatibility — legacy single-power field (migrated to psionic_powers in from_dictionary)
+@export var psionic_power: String = "":
+	get:
+		return psionic_powers[0] if not psionic_powers.is_empty() else ""
+	set(value):
+		if value == "":
+			psionic_powers.clear()
+		elif psionic_powers.is_empty():
+			psionic_powers.append(value)
+		else:
+			psionic_powers[0] = value
 
 # Class-based traits from CharacterGeneration.apply_class_bonuses()
 @export var traits: Array[String] = []
@@ -922,6 +935,15 @@ func add_bot_upgrade(upgrade_id: String) -> void:
 	if upgrade_id not in bot_upgrades:
 		bot_upgrades.append(upgrade_id)
 
+func has_training(training_id: String) -> bool:
+	## Check if character has completed a specific training course
+	return training_id in acquired_training
+
+func add_training(training_id: String) -> void:
+	## Add training course to completed list (Compendium p.27)
+	if training_id not in acquired_training:
+		acquired_training.append(training_id)
+
 
 # ========== REACTION ECONOMY SYSTEM (Five Parsecs Core Rules) ==========
 
@@ -1142,11 +1164,11 @@ func add_implant(implant: Dictionary) -> bool:
 		if existing.get("type", "") == new_type:
 			return false
 	implants.append(implant)
-	# Core Rules p.96: Psionics lose abilities permanently if given any implant
-	if psionic_power != "":
-		push_warning("Character %s: Implant removes psionic power '%s'" % [
-			character_name, psionic_power])
-		psionic_power = ""
+	# Compendium p.20: Psionics lose abilities permanently if given any implant
+	if not psionic_powers.is_empty():
+		push_warning("Character %s: Implant removes psionic powers %s" % [
+			character_name, str(psionic_powers)])
+		psionic_powers.clear()
 		psionic_power_enhanced = false
 	return true
 
@@ -1234,11 +1256,13 @@ func to_dictionary() -> Dictionary:
 		"current_recovery_turns": current_recovery_turns,
 		# Character Event status effects (Core Rules pp.128-130)
 		"status_effects": status_effects.duplicate(),
-		# Augmentations
-		"psionic_power": psionic_power,
+		# Psionics (Compendium pp.19-22)
+		"psionic_powers": psionic_powers.duplicate(),
+		"psionic_power": psionic_power,  # Backwards compat alias (first power)
 		"psionic_power_enhanced": psionic_power_enhanced,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
+		"acquired_training": acquired_training.duplicate(),
 		# Lifetime statistics
 		"lifetime_kills": lifetime_kills,
 		"lifetime_damage_dealt": lifetime_damage_dealt,
@@ -1355,8 +1379,16 @@ func from_dictionary(data: Dictionary) -> void:
 		if effect is Dictionary:
 			status_effects.append(effect)
 
-	# Psionic Power (Precursor origin, Core Rules p.17)
-	psionic_power = data.get("psionic_power", "")
+	# Psionic Powers (Compendium pp.19-22)
+	psionic_powers.clear()
+	var saved_powers: Array = data.get("psionic_powers", [])
+	if not saved_powers.is_empty():
+		for p in saved_powers:
+			if p is String and p != "":
+				psionic_powers.append(p)
+	elif data.get("psionic_power", "") != "":
+		# Legacy migration: single power → array
+		psionic_powers.append(data.get("psionic_power", ""))
 	psionic_power_enhanced = data.get("psionic_power_enhanced", false)
 
 	# Implants
@@ -1377,6 +1409,12 @@ func from_dictionary(data: Dictionary) -> void:
 				bot_upgrades.append(upgrade_id)
 		elif upgrade is String:
 			bot_upgrades.append(upgrade)
+
+	# Acquired training (Compendium p.27)
+	acquired_training.clear()
+	for t in data.get("acquired_training", []):
+		if t is String:
+			acquired_training.append(t)
 
 	# Lifetime Statistics (Five Parsecs Campaign Tracking)
 	lifetime_kills = data.get("lifetime_kills", 0)

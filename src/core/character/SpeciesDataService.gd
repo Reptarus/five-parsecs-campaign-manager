@@ -46,6 +46,17 @@ static func get_forced_motivation(species_id: String) -> String:
 static func get_forced_background(species_id: String) -> String:
 	return get_species(species_id).get("forced_background", "")
 
+# Compendium p.19: Species that can NEVER be Psionic
+const PSIONIC_BLOCKED_SPECIES: Array[String] = [
+	"soulless", "bot", "de_converted", "hulker",
+	"genetic_uplift", "bio_upgrade", "assault_bot"
+]
+
+static func can_be_psionic(species_id: String) -> bool:
+	## Returns true if this species is eligible to become a Psionic (Compendium p.19).
+	## Soulless, any Bot, De-converted, Hulkers, Genetic Uplifts, and Bio-upgrades cannot.
+	return species_id.to_lower() not in PSIONIC_BLOCKED_SPECIES
+
 static func can_roll_creation_tables(species_id: String) -> bool:
 	var data: Dictionary = get_species(species_id)
 	if data.is_empty():

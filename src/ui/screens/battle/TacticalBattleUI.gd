@@ -199,6 +199,10 @@ var _battle_initialized: bool = false # Tracks whether initialize_battle() was c
 # Session 48: Battle context for phase-driven content (enemy force, deployment, objective, etc.)
 var _battle_context: Dictionary = {}
 
+# Psionics tracking (Compendium pp.19-22) — counts uses for post-battle legality detection
+var _psionic_uses: int = 0
+var _psionic_powers_json: Dictionary = {}  # Cached psionic_powers.json data
+
 ## AI type descriptions for enemy action phase guidance (Core Rules pp.94-103)
 const AI_DESCRIPTIONS: Dictionary = {
 	"A": "Aggressive — move toward closest crew, attack if able",
@@ -1355,6 +1359,7 @@ func _show_quick_actions_ui() -> void:
 	_log_message(
 		"Quick Actions — crew who passed reactions act now.",
 		UIColors.COLOR_CYAN)
+	_inject_psionic_action_button()
 	var done_button := Button.new()
 	done_button.text = "All Quick Actions Done"
 	done_button.pressed.connect(_on_advance_phase_pressed)
@@ -1393,10 +1398,171 @@ func _show_slow_actions_ui() -> void:
 	_log_message(
 		"Slow Actions — remaining crew act now.",
 		UIColors.COLOR_CYAN)
+	_inject_psionic_action_button()
 	var done_button := Button.new()
 	done_button.text = "All Slow Actions Done"
 	done_button.pressed.connect(_on_advance_phase_pressed)
 	action_buttons.add_child(done_button)
+
+## ── Psionic Action Helpers (Compendium pp.19-22) ────────────────────────
+
+func _inject_psionic_action_button() -> void:
+	## Add a "Psionic Action" button if DLC enabled and crew has a psionic member.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+	var psi_char: Dictionary = _find_psionic_crew_member()
+	if psi_char.is_empty():
+		return
+	var psi_btn := Button.new()
+	psi_btn.text = "Psionic Action (%s)" % psi_char.get("character_name",
+		psi_char.get("name", "Psionic"))
+	psi_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	psi_btn.add_theme_color_override("font_color", UIColors.COLOR_FOCUS)
+	psi_btn.pressed.connect(_on_psionic_action_pressed.bind(psi_char))
+	if action_buttons:
+		action_buttons.add_child(psi_btn)
+
+func _find_psionic_crew_member() -> Dictionary:
+	## Scan battle context crew for a character with psionic powers.
+	var crew: Array = _battle_context.get("crew_participants", [])
+	if crew.is_empty():
+		# Fallback: try crew_units
+		for unit in crew_units:
+			var orig = unit.get("original_character") if unit is Dictionary else null
+			if orig and orig is Dictionary and not orig.get("psionic_powers", []).is_empty():
+				return orig
+		return {}
+	for member in crew:
+		var powers: Array = []
+		if member is Dictionary:
+			powers = member.get("psionic_powers", [])
+			if powers.is_empty():
+				var pp: String = member.get("psionic_power", "")
+				if pp != "":
+					powers = [pp]
+		elif "psionic_powers" in member:
+			powers = member.psionic_powers
+		if not powers.is_empty():
+			var result: Dictionary = {}
+			if member is Dictionary:
+				result = member
+			else:
+				result = {"character_name": member.character_name if "character_name" in member else "Psionic",
+					"psionic_powers": powers,
+					"psionic_power_enhanced": member.psionic_power_enhanced if "psionic_power_enhanced" in member else false,
+					"species_id": member.species_id if "species_id" in member else ""}
+			return result
+	return {}
+
+func _on_psionic_action_pressed(psi_char: Dictionary) -> void:
+	## Show psionic action instructions and increment usage counter.
+	_psionic_uses += 1
+	var card: Control = _build_psionic_action_card(psi_char)
+	_surface_custom_phase_content(card)
+	var char_name: String = psi_char.get("character_name",
+		psi_char.get("name", "Psionic"))
+	_log_message(
+		"PSIONIC ACTION — %s uses psionic power (use #%d this battle)" % [
+			char_name, _psionic_uses],
+		UIColors.COLOR_FOCUS)
+
+func _build_psionic_action_card(psi_char: Dictionary) -> Control:
+	## Build companion text instructions for a psionic action (Compendium pp.20-22).
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+
+	var char_name: String = psi_char.get("character_name",
+		psi_char.get("name", "Psionic"))
+	var powers: Array = psi_char.get("psionic_powers", [])
+	var enhanced: bool = psi_char.get("psionic_power_enhanced", false)
+	var species_id: String = psi_char.get("species_id", "")
+
+	# Title
+	var title := Label.new()
+	title.text = "PSIONIC ACTION — %s" % char_name
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", UIColors.COLOR_FOCUS)
+	vbox.add_child(title)
+
+	# Load power data
+	if _psionic_powers_json.is_empty():
+		var file := FileAccess.open("res://data/psionic_powers.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				_psionic_powers_json = json.data
+
+	# Power descriptions
+	for power_id in powers:
+		var pdata: Dictionary = _psionic_powers_json.get(power_id, {})
+		var pname: String = pdata.get("name", power_id.capitalize())
+		var pdesc: String = pdata.get("description", "")
+
+		var power_lbl := RichTextLabel.new()
+		power_lbl.bbcode_enabled = true
+		power_lbl.fit_content = true
+		power_lbl.scroll_active = false
+		var tags: Array[String] = []
+		if pdata.get("affects_robotic_targets", false):
+			tags.append("[color=#808080]Robotic OK[/color]")
+		if pdata.get("target_self", false):
+			tags.append("[color=#808080]Self OK[/color]")
+		if pdata.get("persists", false):
+			tags.append("[color=#D97706]Persists[/color]")
+		var tag_str: String = (" — " + " | ".join(tags)) if not tags.is_empty() else ""
+		power_lbl.text = "[color=#4FC3F7][b]%s[/b][/color]%s\n%s" % [pname, tag_str, pdesc]
+		vbox.add_child(power_lbl)
+
+	# Separator
+	var sep := HSeparator.new()
+	vbox.add_child(sep)
+
+	# Projection roll instructions
+	var proj := Label.new()
+	proj.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var proj_text := "PROJECTION: Roll 2D6 for range (inches)."
+	if enhanced:
+		proj_text += " +1D6 Enhanced bonus."
+	proj.text = proj_text
+	proj.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	vbox.add_child(proj)
+
+	# Strain reminder
+	var strain := Label.new()
+	strain.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if species_id.to_lower() == "swift":
+		strain.text = "STRAIN (Swift): Roll extra 1D6. Stunned on 5-6, power always succeeds."
+	else:
+		strain.text = "STRAIN: If out of range, roll extra 1D6. 4-5: Stunned + power works. 6: Stunned + power FAILS."
+	strain.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+	vbox.add_child(strain)
+
+	# Targeting rules (Compendium p.22)
+	var target_note := Label.new()
+	target_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	target_note.text = "TARGETING: Psionics see through friendly/hostile figures. Darkness, fog, and smoke still block targeting."
+	target_note.add_theme_font_size_override("font_size", 12)
+	target_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(target_note)
+
+	# Weapon restriction note
+	var weapon_note := Label.new()
+	weapon_note.text = "WEAPONS: Psionics can only use Pistol or Melee weapons."
+	weapon_note.add_theme_font_size_override("font_size", 12)
+	weapon_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(weapon_note)
+
+	# Dismiss button
+	var dismiss := Button.new()
+	dismiss.text = "Done with Psionic Action"
+	dismiss.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	dismiss.pressed.connect(func():
+		_surface_phase_component(activation_tracker))
+	vbox.add_child(dismiss)
+
+	return vbox
 
 func _show_end_phase_ui() -> void:
 	## END PHASE — show end-of-round checklist with condition-specific steps
@@ -2073,6 +2239,7 @@ func _resolve_battle() -> void:
 		"mission_source": md.get("mission_source", "opportunity"),
 		"mission_type": md.get("type", ""),
 		"auto_resolved": false,
+		"psionic_uses": _psionic_uses,
 	}
 
 	tactical_battle_completed.emit(result_dict)
@@ -2238,6 +2405,7 @@ func _on_auto_resolve_battle() -> void:
 		"mission_source": md.get("mission_source", "opportunity"),
 		"mission_type": md.get("type", ""),
 		"auto_resolved": true,
+		"psionic_uses": _psionic_uses,
 	}
 	tactical_battle_completed.emit(auto_result_dict)
 

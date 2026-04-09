@@ -18,6 +18,7 @@ var selected_crew_member = null # Character instance or Dictionary
 var selected_crew_index: int = -1
 var available_advancements: Array = []
 var selected_advancement: Dictionary = {}
+var _bot_upgrade_installed_this_turn: bool = false  # Compendium p.28: max 1 per turn
 
 # XP costs from core rules
 var advancement_costs: Dictionary = {
@@ -164,21 +165,23 @@ func _load_crew() -> void:
 		crew_list.add_item("No Crew Members")
 		return
 	for member in members:
-		# Bots don't get XP
-		if _member_get(member, "is_bot", false):
-			continue
-
 		var name_str: String = _member_get(member, "character_name", "Unknown")
-		var level: int = _member_get(member, "level", 1)
-		var text = "%s (Level %d)" % [name_str, level]
+		var is_bot: bool = _member_get(member, "is_bot", false)
 
-		var experience: int = _member_get(member, "experience", 0)
-		var next_level_xp: int = 100
-		if _member_has_method(member, "get_experience_for_next_level"):
-			next_level_xp = member.get_experience_for_next_level()
-		if experience >= next_level_xp:
-			text += " - LEVEL UP AVAILABLE"
-		crew_list.add_item(text)
+		if is_bot:
+			# Bots use credits for upgrades, not XP (Compendium p.28)
+			var text := "%s (Bot — Upgrades via Credits)" % name_str
+			crew_list.add_item(text)
+		else:
+			var level: int = _member_get(member, "level", 1)
+			var text := "%s (Level %d)" % [name_str, level]
+			var experience: int = _member_get(member, "experience", 0)
+			var next_level_xp: int = 100
+			if _member_has_method(member, "get_experience_for_next_level"):
+				next_level_xp = member.get_experience_for_next_level()
+			if experience >= next_level_xp:
+				text += " - LEVEL UP AVAILABLE"
+			crew_list.add_item(text)
 
 func _update_ui() -> void:
 	if not selected_crew_member:
@@ -244,103 +247,128 @@ func _get_available_advancements() -> Array:
 	if not selected_crew_member:
 		return advancements
 
-	# Add stat improvements
-	advancements.append_array([
-		{
-			"name": "Increase Reaction",
-			"type": "STAT",
-			"stat": "reaction",
-			"amount": 1,
-			"cost": advancement_costs.REACTION,
-			"max": max_stats.REACTION
-		},
-		{
-			"name": "Increase Combat",
-			"type": "STAT",
-			"stat": "combat",
-			"amount": 1,
-			"cost": advancement_costs.COMBAT,
-			"max": max_stats.COMBAT
-		},
-		{
-			"name": "Increase Speed",
-			"type": "STAT",
-			"stat": "speed",
-			"amount": 1,
-			"cost": advancement_costs.SPEED,
-			"max": max_stats.SPEED
-		},
-		{
-			"name": "Increase Savvy",
-			"type": "STAT",
-			"stat": "savvy",
-			"amount": 1,
-			"cost": advancement_costs.SAVVY,
-			"max": max_stats.SAVVY
-		},
-		{
-			"name": "Increase Toughness",
-			"type": "STAT",
-			"stat": "toughness",
-			"amount": 1,
-			"cost": advancement_costs.TOUGHNESS,
-			"max": max_stats.TOUGHNESS
-		},
-		{
-			"name": "Increase Luck",
-			"type": "STAT",
-			"stat": "luck",
-			"amount": 1,
-			"cost": advancement_costs.LUCK,
-			"max": max_stats.LUCK
-		}
-	])
+	var is_bot_char: bool = _member_get(
+		selected_crew_member, "is_bot", false)
+	var is_soulless_char: bool = _member_get(
+		selected_crew_member, "is_soulless", false)
 
-	# Psionic training (Compendium DLC, Core Rules pp.96-101)
-	var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-	if dlc and dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
-		var char_psionic: String = _member_get(selected_crew_member, "psionic_power", "")
-		var char_enhanced: bool = _member_get(selected_crew_member, "psionic_power_enhanced", false)
-		var crew_has_psionic: bool = _crew_has_psionic_member()
+	# Stat improvements + psionics: non-bots only
+	if not is_bot_char:
+		advancements.append_array([
+			{
+				"name": "Increase Reaction",
+				"type": "STAT",
+				"stat": "reaction",
+				"amount": 1,
+				"cost": advancement_costs.REACTION,
+				"max": max_stats.REACTION
+			},
+			{
+				"name": "Increase Combat",
+				"type": "STAT",
+				"stat": "combat",
+				"amount": 1,
+				"cost": advancement_costs.COMBAT,
+				"max": max_stats.COMBAT
+			},
+			{
+				"name": "Increase Speed",
+				"type": "STAT",
+				"stat": "speed",
+				"amount": 1,
+				"cost": advancement_costs.SPEED,
+				"max": max_stats.SPEED
+			},
+			{
+				"name": "Increase Savvy",
+				"type": "STAT",
+				"stat": "savvy",
+				"amount": 1,
+				"cost": advancement_costs.SAVVY,
+				"max": max_stats.SAVVY
+			},
+			{
+				"name": "Increase Toughness",
+				"type": "STAT",
+				"stat": "toughness",
+				"amount": 1,
+				"cost": advancement_costs.TOUGHNESS,
+				"max": max_stats.TOUGHNESS
+			},
+			{
+				"name": "Increase Luck",
+				"type": "STAT",
+				"stat": "luck",
+				"amount": 1,
+				"cost": advancement_costs.LUCK,
+				"max": max_stats.LUCK
+			}
+		])
 
-		# Acquire: character is already psionic (learn another), OR no psionic in crew yet
-		if char_psionic != "" or not crew_has_psionic:
-			advancements.append({
-				"name": "Acquire Psionic Power",
-				"type": "PSIONICS",
-				"stat": "",
-				"amount": 0,
-				"cost": 12,
-				"max": 0,
-				"training_key": "psionics",
-				"description": "Roll D10 for a new psionic power (Core Rules p.101)"
-			})
+		# Psionic training (Compendium DLC, Compendium pp.19-22)
+		var dlc_psi = Engine.get_main_loop().root.get_node_or_null(
+			"/root/DLCManager") if Engine.get_main_loop() else null
+		if dlc_psi and dlc_psi.is_feature_enabled(
+				dlc_psi.ContentFlag.PSIONICS):
+			var char_powers: Array = _member_get(
+				selected_crew_member, "psionic_powers", [])
+			var char_psionic: String = (
+				char_powers[0] if not char_powers.is_empty()
+				else "")
+			var char_enhanced: bool = _member_get(
+				selected_crew_member,
+				"psionic_power_enhanced", false)
+			var crew_has_psionic: bool = (
+				_crew_has_psionic_member())
 
-		# Enhance: character must already have a power and not be enhanced
-		if char_psionic != "" and not char_enhanced:
-			advancements.append({
-				"name": "Enhance Psionic Power",
-				"type": "PSIONICS_ENHANCE",
-				"stat": "",
-				"amount": 0,
-				"cost": 6,
-				"max": 0,
-				"training_key": "psionics_enhance",
-				"description": "+1D6 to projection roll for chosen power (Core Rules p.101)"
-			})
+			if char_psionic != "" or not crew_has_psionic:
+				advancements.append({
+					"name": "Acquire Psionic Power",
+					"type": "PSIONICS",
+					"stat": "",
+					"amount": 0,
+					"cost": 12,
+					"max": 0,
+					"training_key": "psionics",
+					"description": "Roll D10 for a new psionic power",
+				})
 
-	# Compendium DLC: Advanced training + bot upgrades (cost in credits, not XP)
+			if char_psionic != "" and not char_enhanced:
+				advancements.append({
+					"name": "Enhance Psionic Power",
+					"type": "PSIONICS_ENHANCE",
+					"stat": "",
+					"amount": 0,
+					"cost": 6,
+					"max": 0,
+					"training_key": "psionics_enhance",
+					"description": "+1D6 to projection roll",
+				})
+
+	# Compendium DLC: training + bot upgrades (credits, not XP)
+	# Filtered by character type (Compendium pp.27-28)
 	var compendium_items: Array[Dictionary] = []
-	compendium_items.assign(CompendiumEquipmentRef.get_advancement_phase_items())
+	compendium_items.assign(
+		CompendiumEquipmentRef.get_advancement_phase_items())
 	for item in compendium_items:
+		var cat: String = item.get("compendium_category", "")
+		# Bot upgrades: only for bots, not Soulless (p.28)
+		if cat == "bot_upgrade":
+			if not is_bot_char or is_soulless_char:
+				continue
+		# Training: only for non-bots
+		if cat == "training" and is_bot_char:
+			continue
 		advancements.append({
 			"name": item.get("name", "Unknown"),
 			"type": "COMPENDIUM",
 			"compendium_id": item.get("id", ""),
+			"compendium_category": cat,
 			"cost": item.get("cost", 0),
 			"currency": item.get("currency", "credits"),
 			"instruction": item.get("instruction", ""),
 			"description": item.get("description", ""),
+			"one_per_crew": item.get("one_per_crew", false),
 		})
 
 	return advancements
@@ -352,9 +380,28 @@ func _can_apply_advancement(advancement: Dictionary) -> bool:
 	var experience: int = _member_get(selected_crew_member, "experience", 0)
 	var credits: int = _get_credits()
 
-	# Compendium items always cost credits
+	# Compendium items: credits + type-specific checks
 	if advancement.type == "COMPENDIUM":
-		return credits >= advancement.cost
+		if credits < advancement.cost:
+			return false
+		var comp_id: String = advancement.get("compendium_id", "")
+		var cat: String = advancement.get("compendium_category", "")
+		# Bot upgrade enforcement (Compendium p.28)
+		if cat == "bot_upgrade":
+			# One of each per bot
+			var existing: Array = _member_get(
+				selected_crew_member, "bot_upgrades", [])
+			if comp_id in existing:
+				return false
+			# One upgrade per campaign turn
+			if _bot_upgrade_installed_this_turn:
+				return false
+		# Training one_per_crew: check crew traits
+		if cat == "training" and advancement.get(
+				"one_per_crew", false):
+			if _any_crew_has_training(comp_id):
+				return false
+		return true
 
 	# Check XP cost for non-bots
 	if not is_bot and experience < advancement.cost:
@@ -388,25 +435,38 @@ func _get_requirement_tooltip(advancement: Dictionary) -> String:
 	if is_bot and credits < advancement.cost:
 		tooltip = "Not enough credits (need %d)" % advancement.cost
 
+	if advancement.type == "COMPENDIUM":
+		if credits < advancement.cost:
+			return "Not enough credits (need %d)" % advancement.cost
+		var comp_cat: String = advancement.get("compendium_category", "")
+		var comp_cid: String = advancement.get("compendium_id", "")
+		if comp_cat == "bot_upgrade":
+			var upgrades: Array = _member_get(
+				selected_crew_member, "bot_upgrades", [])
+			if comp_cid in upgrades:
+				return "Already installed on this Bot"
+			if _bot_upgrade_installed_this_turn:
+				return "One Bot upgrade per turn (Compendium p.28)"
+		if comp_cat == "training" and advancement.get("one_per_crew", false):
+			if _any_crew_has_training(comp_cid):
+				return "Another crew member already has this"
+
 	if advancement.type == "STAT":
-		var current_value: int = _member_get(selected_crew_member, advancement.stat, 0)
+		var current_value: int = _member_get(
+			selected_crew_member, advancement.stat, 0)
 		if current_value >= advancement.max:
 			tooltip = "Maximum value reached"
-		var tip_psionic: String = _member_get(selected_crew_member, "psionic_power", "")
+		var tip_psionic: String = _member_get(
+			selected_crew_member, "psionic_power", "")
 		if tip_psionic != "" and advancement.stat == "combat":
-			tooltip = "Psionics cannot increase Combat Skill (Core Rules p.96)"
+			tooltip = "Psionics cannot increase Combat Skill"
 
 	return tooltip
 
 func _on_crew_selected(index: int) -> void:
 	var members = _get_crew_members()
-	# Filter out bots for indexing
-	var non_bot_members: Array = []
-	for m in members:
-		if not _member_get(m, "is_bot", false):
-			non_bot_members.append(m)
-	if index >= 0 and index < non_bot_members.size():
-		selected_crew_member = non_bot_members[index]
+	if index >= 0 and index < members.size():
+		selected_crew_member = members[index]
 		selected_crew_index = index
 	_update_ui()
 
@@ -436,29 +496,71 @@ func _on_apply_pressed() -> void:
 			if not power_ids.is_empty():
 				var roll_index: int = randi_range(0, power_ids.size() - 1)
 				var new_power_id: String = power_ids[roll_index]
-				var current_power: String = _member_get(selected_crew_member, "psionic_power", "")
-				if new_power_id == current_power and power_ids.size() > 1:
+				# Check against ALL known powers (Compendium p.22: shift ±1 on duplicate)
+				var known: Array = _member_get(selected_crew_member, "psionic_powers", [])
+				if new_power_id in known and power_ids.size() > 1:
 					roll_index = (roll_index + 1) % power_ids.size()
 					new_power_id = power_ids[roll_index]
+					if new_power_id in known and power_ids.size() > 2:
+						roll_index = (roll_index - 2 + power_ids.size()) % power_ids.size()
+						new_power_id = power_ids[roll_index]
+				# Append to powers array
 				if selected_crew_member is Dictionary:
-					selected_crew_member["psionic_power"] = new_power_id
-				else:
-					selected_crew_member.set("psionic_power", new_power_id)
+					var powers: Array = selected_crew_member.get("psionic_powers", [])
+					powers.append(new_power_id)
+					selected_crew_member["psionic_powers"] = powers
+				elif "psionic_powers" in selected_crew_member:
+					selected_crew_member.psionic_powers.append(new_power_id)
 		"PSIONICS_ENHANCE":
 			# Enhance existing psionic power — +1D6 projection bonus
 			if selected_crew_member is Dictionary:
 				selected_crew_member["psionic_power_enhanced"] = true
 			else:
 				selected_crew_member.set("psionic_power_enhanced", true)
+		"COMPENDIUM":
+			# Apply training or bot upgrade (Compendium pp.27-28)
+			var comp_id: String = selected_advancement.get(
+				"compendium_id", "")
+			var cat: String = selected_advancement.get(
+				"compendium_category", "")
+			if cat == "bot_upgrade":
+				if _member_has_method(
+						selected_crew_member, "add_bot_upgrade"):
+					selected_crew_member.add_bot_upgrade(comp_id)
+				elif selected_crew_member is Dictionary:
+					var upgrades: Array = selected_crew_member.get(
+						"bot_upgrades", [])
+					if comp_id not in upgrades:
+						upgrades.append(comp_id)
+					selected_crew_member["bot_upgrades"] = upgrades
+				_bot_upgrade_installed_this_turn = true
+			elif cat == "training":
+				# Store training as Character trait
+				var trait_name: String = _training_id_to_trait(
+					comp_id)
+				if _member_has_method(
+						selected_crew_member, "add_trait"):
+					selected_crew_member.add_trait(trait_name)
+				elif selected_crew_member is Dictionary:
+					var traits_arr: Array = selected_crew_member.get(
+						"traits", [])
+					if trait_name not in traits_arr:
+						traits_arr.append(trait_name)
+					selected_crew_member["traits"] = traits_arr
 
-	# Deduct cost
-	if is_bot:
+	# Deduct cost — COMPENDIUM items always use campaign credits
+	if selected_advancement.type == "COMPENDIUM":
+		var campaign = _get_campaign_safe()
+		if campaign and "credits" in campaign:
+			campaign.credits -= selected_advancement.cost
+	elif is_bot:
 		var campaign = _get_campaign_safe()
 		if campaign and "credits" in campaign:
 			campaign.credits -= selected_advancement.cost
 	else:
 		if selected_crew_member is Dictionary:
-			selected_crew_member["experience"] = _member_get(selected_crew_member, "experience", 0) - selected_advancement.cost
+			selected_crew_member["experience"] = _member_get(
+				selected_crew_member, "experience", 0) - selected_advancement.cost
 		else:
 			selected_crew_member.experience -= selected_advancement.cost
 
@@ -477,6 +579,8 @@ func _on_apply_pressed() -> void:
 				adv_desc = "Acquired psionic power: %s" % _member_get(selected_crew_member, "psionic_power", "unknown")
 			"PSIONICS_ENHANCE":
 				adv_desc = "Enhanced psionic power"
+			"COMPENDIUM":
+				adv_desc = selected_advancement.get("name", "Compendium item")
 		journal.auto_create_character_event(char_id, "advancement", {
 			"character_name": char_name,
 			"advancement": adv_desc,
@@ -505,6 +609,33 @@ func _crew_has_psionic_member() -> bool:
 		if power != "":
 			return true
 	return false
+
+func _any_crew_has_training(training_id: String) -> bool:
+	## Check if any crew member has a one_per_crew training trait
+	var trait_name: String = _training_id_to_trait(training_id)
+	for member in _get_crew_members():
+		if _member_has_method(member, "has_trait"):
+			if member.has_trait(trait_name):
+				return true
+		elif member is Dictionary:
+			if trait_name in member.get("traits", []):
+				return true
+	return false
+
+static func _training_id_to_trait(training_id: String) -> String:
+	## Map compendium training IDs to Character trait names
+	match training_id:
+		"freelancer_cert":
+			return "Freelancer Certification"
+		"instructor":
+			return "Instructor"
+		"survival_course":
+			return "Survival Course"
+		"fixer":
+			return "Fixer"
+		"tactical_course":
+			return "Tactical Course"
+	return training_id.replace("_", " ").capitalize()
 
 func _load_psionic_powers_json() -> Dictionary:
 	## Load psionic powers from JSON data file

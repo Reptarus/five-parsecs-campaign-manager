@@ -331,6 +331,9 @@ func populate_ui() -> void:
 			injury_separator.custom_minimum_size = Vector2(0, SPACING_MD)
 			character_info_container.add_child(injury_separator)
 
+		# Psionic powers display (Compendium pp.19-22, DLC-gated)
+		_build_psionic_info_section()
+
 		# Add detailed info fields
 		var info_fields = [
 			["Experience", str(current_character.experience if "experience" in current_character else 0) + " XP"],
@@ -958,6 +961,83 @@ func _on_portrait_file_selected(path: String) -> void:
 	# Refresh hero card
 	if hero_card and hero_card.has_method("set_character"):
 		hero_card.set_character(current_character)
+
+# ── Psionic Powers Display (Compendium pp.19-22) ───────────────
+
+func _build_psionic_info_section() -> void:
+	## Display psionic powers on the character detail view (DLC-gated).
+	if not current_character or not character_info_container:
+		return
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+
+	var powers: Array = current_character.psionic_powers if "psionic_powers" in current_character else []
+	if powers.is_empty():
+		return
+
+	# Load power data from JSON
+	var psi_data: Dictionary = {}
+	var file := FileAccess.open("res://data/psionic_powers.json", FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			psi_data = json.data
+
+	var header := Label.new()
+	header.text = "PSIONIC POWERS"
+	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_color_override("font_color", Color("#4FC3F7"))
+	character_info_container.add_child(header)
+
+	var enhanced: bool = current_character.psionic_power_enhanced if "psionic_power_enhanced" in current_character else false
+
+	for power_id in powers:
+		var pd: Dictionary = psi_data.get(power_id, {})
+		var pname: String = pd.get("name", power_id.capitalize())
+		var pdesc: String = pd.get("description", "")
+
+		var power_label := Label.new()
+		var enhanced_tag: String = " [Enhanced +1D6]" if enhanced else ""
+		power_label.text = "  %s%s" % [pname, enhanced_tag]
+		power_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		power_label.add_theme_color_override("font_color", Color("#4FC3F7"))
+		character_info_container.add_child(power_label)
+
+		if not pdesc.is_empty():
+			var desc_label := Label.new()
+			desc_label.text = "    %s" % pdesc
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			character_info_container.add_child(desc_label)
+
+		# Metadata tags
+		var tags: Array[String] = []
+		if pd.get("affects_robotic_targets", false):
+			tags.append("Robotic OK")
+		if pd.get("target_self", false):
+			tags.append("Self OK")
+		if pd.get("persists", false):
+			tags.append("Persists")
+		if not tags.is_empty():
+			var tag_label := Label.new()
+			tag_label.text = "    [%s]" % " | ".join(tags)
+			tag_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			tag_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			character_info_container.add_child(tag_label)
+
+	# Weapon restriction note
+	var restriction := Label.new()
+	restriction.text = "  Weapon restriction: Pistol or Melee only"
+	restriction.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	restriction.add_theme_color_override("font_color", COLOR_WARNING)
+	character_info_container.add_child(restriction)
+
+	var sep := HSeparator.new()
+	sep.custom_minimum_size = Vector2(0, SPACING_MD)
+	character_info_container.add_child(sep)
 
 # ── Status Summary Bar ──────────────────────────────────────────
 

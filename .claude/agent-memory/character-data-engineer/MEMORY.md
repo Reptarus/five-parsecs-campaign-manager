@@ -149,3 +149,18 @@ Key wiring points:
 ### 12. SpeciesDataService Load Order (Session 34)
 
 `SpeciesDataService` has `class_name` but Character.gd cannot reference it at parse time due to Godot's script loading order. The fix: Character helper methods use simple inline string comparisons (`sid != "bot" and sid != "assault_bot"`) instead of calling `SpeciesDataService.is_bot_type()`. Other systems (CharacterCreator, LuckSystem) can reference SpeciesDataService safely since they load later.
+
+### 13. Krag/Skulker Creation + Equipment (Session 53, Apr 9)
+
+**Creation effects** in `CharacterCreator._roll_and_store_creation_bonuses()` — `"krag"` and `"skulker"` match cases added (lines ~674-688):
+- Krag: if `bonuses.patrons > 0` → `bonuses.rivals += 1` (Compendium p.15)
+- Skulker: 1D6 credits → 1D3 (re-roll + adjust `bonus_credits`), ignore first rival (Compendium p.17)
+
+**Skulker drug resistance** in `BattleCalculations.apply_consumable_effect()` — `SKULKER_IMMUNE_CONSUMABLES` const blocks booster_pills, combat_serum, rage_out, still. Stim-packs work.
+
+**Krag armor system** in `EquipmentManager`:
+- `_generate_random_db_armor()` tags with `acquired_from_trade = true`
+- `_can_character_use_equipment()` checks `is_krag_armor` flag; Skulker + Engineer exempt
+- `modify_armor_for_krag(item)` toggles flag, deducts 2cr via GameStateManager
+- `set_armor_krag_designation(item, is_krag)` sets flag directly
+- Data source: `data/compendium/species.json` `armor_rules` block

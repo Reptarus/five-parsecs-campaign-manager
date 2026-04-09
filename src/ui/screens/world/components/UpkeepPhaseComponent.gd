@@ -772,6 +772,9 @@ func _build_travel_section() -> void:
 	# --- Zone Selection Row (Core Rules Appendix III pp.148-151) ---
 	_build_zone_buttons(vbox)
 
+	# --- Colony World Buttons (Compendium pp.15, 17) ---
+	_build_colony_world_buttons(vbox)
+
 	# Zone info label (eligibility status)
 	_zone_info_label = Label.new()
 	_zone_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -964,6 +967,120 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	zone_row.add_child(_black_zone_button)
 
 	parent.add_child(zone_row)
+
+func _build_colony_world_buttons(parent: VBoxContainer) -> void:
+	## Build Krag/Skulker Colony World travel buttons (Compendium pp.15, 17)
+	## Only shown if crew has a Krag or Skulker and the DLC is owned
+	var dlc: Node = get_node_or_null("/root/DLCManager")
+	if not dlc or not dlc.has_method("is_feature_available"):
+		return
+
+	# Check if crew has Krag or Skulker members
+	var has_krag := false
+	var has_skulker := false
+	for member in crew_data:
+		var sid: String = str(member.get("species_id",
+			member.get("species", ""))).to_lower()
+		if sid == "krag":
+			has_krag = true
+		elif sid == "skulker":
+			has_skulker = true
+
+	# Only show if relevant species is in crew AND DLC is owned
+	var show_krag: bool = has_krag and dlc.is_feature_available(
+		dlc.ContentFlag.SPECIES_KRAG)
+	var show_skulker: bool = has_skulker and dlc.is_feature_available(
+		dlc.ContentFlag.SPECIES_SKULKER)
+	if not show_krag and not show_skulker:
+		return
+
+	var colony_row := HBoxContainer.new()
+	colony_row.name = "ColonyButtonRow"
+	colony_row.add_theme_constant_override("separation", 16)
+	colony_row.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	if show_krag:
+		# Krag colony costs 1 Story Point (Compendium p.15)
+		var krag_btn := Button.new()
+		krag_btn.text = "Travel to Krag Colony (1 SP)"
+		krag_btn.tooltip_text = (
+			"Krag colonies always have Busy Markets + Vendetta System traits. "
+			+ "Costs 1 Story Point to discover (Compendium p.15)")
+		krag_btn.custom_minimum_size = Vector2(240, 48)
+		var krag_style := StyleBoxFlat.new()
+		krag_style.bg_color = Color(0.35, 0.25, 0.1, 0.9)
+		krag_style.border_color = Color(0.6, 0.45, 0.15, 1)
+		krag_style.set_border_width_all(1)
+		krag_style.set_corner_radius_all(8)
+		krag_style.set_content_margin_all(12)
+		krag_btn.add_theme_stylebox_override("normal", krag_style)
+		krag_btn.add_theme_color_override(
+			"font_color", Color(0.95, 0.95, 0.95, 1))
+		# Check SP availability
+		var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+		var sp_balance: int = 0
+		if cpm and cpm.story_point_system:
+			sp_balance = cpm.story_point_system.get_balance()
+		if sp_balance < 1:
+			krag_btn.disabled = true
+			krag_btn.tooltip_text += "\n(Requires 1 Story Point — none available)"
+		krag_btn.pressed.connect(_on_colony_travel_pressed.bind("krag"))
+		colony_row.add_child(krag_btn)
+
+	if show_skulker:
+		# Skulker colony is free (Compendium p.17)
+		var skulker_btn := Button.new()
+		skulker_btn.text = "Travel to Skulker Colony"
+		skulker_btn.tooltip_text = (
+			"Skulker colonies always have Adventurous trait + one random trait. "
+			+ "'Alien species restricted' = no result (Compendium p.17)")
+		skulker_btn.custom_minimum_size = Vector2(240, 48)
+		var skulker_style := StyleBoxFlat.new()
+		skulker_style.bg_color = Color(0.15, 0.3, 0.2, 0.9)
+		skulker_style.border_color = Color(0.2, 0.5, 0.35, 1)
+		skulker_style.set_border_width_all(1)
+		skulker_style.set_corner_radius_all(8)
+		skulker_style.set_content_margin_all(12)
+		skulker_btn.add_theme_stylebox_override("normal", skulker_style)
+		skulker_btn.add_theme_color_override(
+			"font_color", Color(0.95, 0.95, 0.95, 1))
+		skulker_btn.pressed.connect(_on_colony_travel_pressed.bind("skulker"))
+		colony_row.add_child(skulker_btn)
+
+	parent.add_child(colony_row)
+
+func _on_colony_travel_pressed(species_id: String) -> void:
+	## Handle colony world travel — deduct SP if Krag, generate colony, travel
+	if species_id == "krag":
+		# Deduct 1 Story Point (Compendium p.15)
+		var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+		if cpm and cpm.story_point_system:
+			if cpm.story_point_system.get_balance() < 1:
+				return
+			cpm.story_point_system.remove_points(1)
+
+	# Generate colony world via PlanetDataManager
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm and pdm.has_method("create_colony_world"):
+		var campaign: Resource = _get_campaign_resource()
+		var turn: int = 0
+		if campaign and "progress_data" in campaign:
+			turn = campaign.progress_data.get("turns_played", 0)
+		var colony_planet = pdm.create_colony_world(species_id, turn)
+		if colony_planet:
+			pdm.current_planet_id = colony_planet.id
+
+	# Mark travel decision
+	selected_zone = 0
+	travel_decision_made = true
+	chose_to_travel = true
+	_update_travel_ui_after_decision()
+	var colony_label: String = "%s Colony" % species_id.capitalize()
+	_travel_status_label.text = "✓ Traveling to %s" % colony_label
+	_travel_status_label.add_theme_color_override(
+		"font_color", UIColors.COLOR_EMERALD)
+	_travel_status_label.visible = true
+	_update_gating_state()
 
 func _on_red_zone_travel_pressed() -> void:
 	## Handle Red Zone travel — check license, purchase if needed

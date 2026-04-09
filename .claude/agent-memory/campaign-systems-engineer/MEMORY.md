@@ -27,6 +27,18 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 53: Compendium Sections 1-2 Sprint (Apr 9, 2026)
+
+### Section 1 — Setup Toggles in Creation Wizard
+
+6 Compendium setup options (EXPANDED_LOANS, EXPANDED_FACTIONS, FRINGE_WORLD_STRIFE, DRAMATIC_COMBAT, CASUALTY_TABLES, DETAILED_INJURIES) promoted to dedicated "COMPENDIUM SETUP OPTIONS" card in `ExpandedConfigPanel._build_compendium_setup_section()`. Uses same `DLCManager.set_feature_enabled()` → `serialize_campaign_flags()` path. `ExpansionFeatureSection.setup()` now accepts `exclude_flags` param to prevent duplication.
+
+### Section 2 — Colony World Travel
+
+`PlanetDataManager.create_colony_world(species_id, turn)` creates colony planets from `data/compendium/species.json` colony_world data with forced traits. `UpkeepPhaseComponent._build_colony_world_buttons()` adds travel buttons when crew has Krag/Skulker. Krag costs 1 SP via `StoryPointSystem.remove_points(1)`. Skulker is free. Colony traits: Krag=busy_markets+vendetta_system, Skulker=adventurous+random (alien_restricted→skip).
+
+---
+
 ## Session 52: Strange Characters + Upkeep Fix (Apr 8, 2026)
 
 ### CampaignPhaseManager Turn Rollover Sequence (Updated)

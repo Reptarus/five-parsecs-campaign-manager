@@ -448,6 +448,8 @@ func _generate_random_db_armor() -> Dictionary:
 	var chosen: Dictionary = _db_armor[randi() % _db_armor.size()].duplicate()
 	chosen["category"] = EquipmentCategory.ARMOR
 	chosen["value"] = chosen.get("cost", 3)
+	# Tag as trade-table origin for Krag armor choice (Compendium p.15)
+	chosen["acquired_from_trade"] = true
 	return chosen
 
 ## Helper: random gear from equipment database at listed cost
@@ -591,11 +593,30 @@ func repair_equipment(equipment_id: String, repair_amount: int = 100) -> bool:
 func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool:
 	var category = equipment_data.get("category", EquipmentCategory.GEAR)
 	
-	# For weapons, check class restrictions
+	# For weapons, check class and psionic restrictions
 	if category == EquipmentCategory.WEAPON:
 		var weapon_type = equipment_data.get("weapon_type", GameEnums.WeaponType.NONE)
 		var char_class = character.get("character_class", FiveParsecsGameEnums.CharacterClass.NONE)
-		
+
+		# Psionic weapon restriction (Compendium p.20): Pistol or Melee traits only
+		var char_psionic_powers: Array = character.get("psionic_powers", []) if character is Dictionary else []
+		if char_psionic_powers.is_empty() and character is Dictionary:
+			var pp: String = character.get("psionic_power", "")
+			if pp != "":
+				char_psionic_powers = [pp]
+		elif not character is Dictionary and "psionic_powers" in character:
+			char_psionic_powers = character.psionic_powers
+		if not char_psionic_powers.is_empty():
+			var traits: Array = equipment_data.get("traits", [])
+			var has_pistol_or_melee: bool = false
+			for t in traits:
+				var t_lower: String = str(t).to_lower()
+				if t_lower == "pistol" or t_lower == "melee":
+					has_pistol_or_melee = true
+					break
+			if not has_pistol_or_melee:
+				return false
+
 		# Some special weapons might be restricted
 		if weapon_type == GameEnums.WeaponType.HEAVY:
 			return char_class in [
@@ -608,12 +629,50 @@ func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool
 	if category == EquipmentCategory.ARMOR:
 		var armor_type = equipment_data.get("armor_type", GameEnums.ArmorType.NONE)
 		var char_toughness = character.get("toughness", 1)
-		
+
 		# Heavy armor requires higher toughness
 		if armor_type == GameEnums.ArmorType.HEAVY and char_toughness < 3:
 			return false
-	
+
+		# Compendium p.15: Krag armor compatibility
+		var char_species: String = str(character.get("species_id",
+			character.get("species", ""))).to_lower()
+		if char_species == "krag":
+			# Krag can only wear armor marked as Krag-compatible
+			if not equipment_data.get("is_krag_armor", false):
+				return false
+		elif equipment_data.get("is_krag_armor", false):
+			# Non-Krag can't wear Krag-only armor unless Skulker or Engineer
+			if char_species != "skulker":
+				var char_class_str: String = str(
+					character.get("character_class", "")).to_lower()
+				if char_class_str != "engineer":
+					return false
+
 	# By default, equipment is usable
+	return true
+
+## Mark armor as Krag-compatible (Compendium p.15)
+## Called when player designates trade-table armor for Krag use
+func set_armor_krag_designation(item: Dictionary, is_krag: bool) -> void:
+	item["is_krag_armor"] = is_krag
+
+## Modify armor to fit Krag (or revert) — costs 2 credits (Compendium p.15)
+## Called during Post-battle Step 11 (Purchase Items, Core Rules p.125)
+func modify_armor_for_krag(item: Dictionary) -> bool:
+	if item.get("category", -1) != EquipmentCategory.ARMOR:
+		return false
+	var gsm: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/GameStateManager") if Engine.get_main_loop() else null
+	if not gsm or not gsm.has_method("get_credits"):
+		return false
+	var credits: int = gsm.get_credits() if gsm.has_method("get_credits") else 0
+	if credits < 2:
+		return false
+	# Toggle Krag designation and deduct 2 credits
+	item["is_krag_armor"] = not item.get("is_krag_armor", false)
+	if gsm.has_method("set_credits"):
+		gsm.set_credits(credits - 2)
 	return true
 
 ## Update character object with assigned equipment

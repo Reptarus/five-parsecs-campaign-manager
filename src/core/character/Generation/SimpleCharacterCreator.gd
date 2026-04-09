@@ -42,6 +42,11 @@ var current_mode: CreatorMode = CreatorMode.CREW_MEMBER
 var editing_character: Character = null
 var current_character: Character = null
 
+## Psionic recruitment context — set by caller before showing
+var crew_has_psionic: bool = false
+## Tracks whether Precursor auto-granted a power (vs psionic designation payment)
+var _precursor_auto_psionic: bool = false
+
 # Data from JSON files
 var species_data: Dictionary = {}
 var backgrounds_data: Dictionary = {}
@@ -576,6 +581,9 @@ func _on_origin_changed(index: int) -> void:
 		# Enforce Strange Character creation constraints
 		_enforce_species_constraints(sid, origin_data)
 
+		# Precursor auto-grants one psionic power (Core Rules p.17)
+		_handle_precursor_psionic(sid)
+
 		_update_stats_display()
 		_update_description()
 
@@ -649,22 +657,22 @@ func _on_create_pressed() -> void:
 	## Handle create button press
 	if not current_character:
 		return
-		
+
 	# Set name from input
 	if name_input:
 		current_character.character_name = name_input.text
-	
+
 	# Default name if empty
 	if current_character.character_name.is_empty():
 		current_character.character_name = "Captain" if current_mode == CreatorMode.CAPTAIN else "Crew Member"
-	
+
+	# Offer psionic designation for new recruits (Compendium p.19)
+	if not editing_character and _should_offer_psionic_designation():
+		_show_psionic_designation_dialog()
+		return  # Dialog callback will emit signal
+
 	# Emit appropriate signal
-	if editing_character:
-		character_edited.emit(current_character)
-	else:
-		character_created.emit(current_character)
-	
-	hide()
+	_finalize_and_emit()
 
 func _on_cancel_pressed() -> void:
 	## Handle cancel button press
@@ -678,6 +686,138 @@ func _on_back_pressed() -> void:
 	## Handle back button press - return to previous step in campaign creation
 	hide()
 	# The parent campaign creation flow will handle the navigation
+
+func _finalize_and_emit() -> void:
+	if editing_character:
+		character_edited.emit(current_character)
+	else:
+		character_created.emit(current_character)
+	hide()
+
+## ── Psionic Recruitment (Compendium p.19) ──────────────────────
+
+func _handle_precursor_psionic(species_id: String) -> void:
+	## Auto-grant one random psionic power when Precursor is selected (Core Rules p.17).
+	if not current_character:
+		return
+	# Clear previous auto-grant if switching away from Precursor
+	if _precursor_auto_psionic and species_id.to_lower() != "precursor":
+		current_character.psionic_powers.clear()
+		_precursor_auto_psionic = false
+		return
+	if species_id.to_lower() != "precursor":
+		return
+	if not current_character.psionic_powers.is_empty():
+		return  # Already has powers (from designation or prior grant)
+	var psi_data := _load_psionic_powers_json()
+	if psi_data.is_empty():
+		return
+	var ids: Array = psi_data.keys()
+	var chosen: String = ids[randi() % ids.size()]
+	current_character.psionic_powers = [chosen]
+	_precursor_auto_psionic = true
+
+func _should_offer_psionic_designation() -> bool:
+	## Check if this recruit is eligible for psionic designation (Compendium p.19).
+	if crew_has_psionic:
+		return false
+	if not current_character or not current_character.psionic_powers.is_empty():
+		return false  # Already psionic (Precursor auto-grant or existing)
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return false
+	var sid: String = current_character.species_id if "species_id" in current_character else ""
+	if not SpeciesDataService.can_be_psionic(sid):
+		return false
+	# Check if player can afford (1 SP or 10 Credits)
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		return false
+	var sp: int = gs.current_campaign.story_points if "story_points" in gs.current_campaign else 0
+	var credits: int = gs.current_campaign.credits if "credits" in gs.current_campaign else 0
+	return sp >= 1 or credits >= 10
+
+func _show_psionic_designation_dialog() -> void:
+	## Show payment choice dialog for making this recruit a Psionic.
+	var dialog := AcceptDialog.new()
+	dialog.title = "Psionic Designation"
+	dialog.dialog_text = "Make %s a Psionic?\nRolls 2 starting psionic powers.\n\nCost: 1 Story Point or 10 Credits" % current_character.character_name
+	dialog.ok_button_text = "Pay 1 Story Point"
+	dialog.add_button("Pay 10 Credits", true, "pay_credits")
+	dialog.add_cancel_button("Skip")
+
+	var gs = get_node_or_null("/root/GameState")
+	var sp: int = 0
+	var credits: int = 0
+	if gs and gs.current_campaign:
+		sp = gs.current_campaign.story_points if "story_points" in gs.current_campaign else 0
+		credits = gs.current_campaign.credits if "credits" in gs.current_campaign else 0
+
+	# Disable unaffordable options
+	if sp < 1:
+		dialog.get_ok_button().disabled = true
+		dialog.get_ok_button().tooltip_text = "Need 1 Story Point"
+
+	dialog.confirmed.connect(func():
+		# Pay 1 SP
+		if gs and gs.current_campaign and "story_points" in gs.current_campaign:
+			gs.current_campaign.story_points -= 1
+		_assign_starting_psionic_powers()
+		dialog.queue_free()
+		_finalize_and_emit())
+
+	dialog.custom_action.connect(func(action: StringName):
+		if action == &"pay_credits":
+			if credits < 10:
+				return  # Shouldn't happen, but guard
+			if gs and gs.current_campaign and "credits" in gs.current_campaign:
+				gs.current_campaign.credits -= 10
+			_assign_starting_psionic_powers()
+			dialog.queue_free()
+			_finalize_and_emit())
+
+	dialog.canceled.connect(func():
+		dialog.queue_free()
+		_finalize_and_emit())
+
+	add_child(dialog)
+	dialog.popup_centered()
+
+	# Disable credits button if unaffordable
+	if credits < 10:
+		for child in dialog.get_children():
+			if child is Button and child.text == "Pay 10 Credits":
+				child.disabled = true
+				child.tooltip_text = "Need 10 Credits"
+
+func _assign_starting_psionic_powers() -> void:
+	## Roll 2 starting psionic powers (Compendium p.20).
+	if not current_character:
+		return
+	var psi_data := _load_psionic_powers_json()
+	var ids: Array = psi_data.keys()
+	if ids.is_empty():
+		return
+	var assigned: Array[String] = []
+	for i in range(2):
+		var roll_idx: int = randi_range(0, ids.size() - 1)
+		var pid: String = ids[roll_idx]
+		if pid in assigned:
+			pid = ids[(roll_idx + 1) % ids.size()]
+			if pid in assigned and ids.size() > 2:
+				pid = ids[(roll_idx - 1 + ids.size()) % ids.size()]
+		assigned.append(pid)
+	current_character.psionic_powers = assigned
+
+func _load_psionic_powers_json() -> Dictionary:
+	var file := FileAccess.open("res://data/psionic_powers.json", FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		return json.data
+	return {}
 
 # Public API for compatibility
 func get_current_character() -> Character:

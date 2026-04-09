@@ -51,6 +51,19 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## Session 53: Compendium Setup Card + Colony Travel Buttons (Apr 9, 2026)
+
+### ExpandedConfigPanel — New "COMPENDIUM SETUP OPTIONS" Card
+Added `_build_compendium_setup_section(parent)` with `COMPENDIUM_SETUP_FLAGS` const (6 items). Pattern: DLC-gated CheckBox + description Label per flag, HSeparator between packs. Full-width (`custom_minimum_size.x = 1000`). Handler `_on_compendium_setup_toggled(enabled, flag_name)` uses `DLCManager.set_feature_enabled()` + `serialize_campaign_flags()`. Build order: ...narrative → compendium_setup → expansion_features.
+
+### ExpansionFeatureSection — Exclusion Filter
+`setup()` now accepts `exclude_flags: Array[String]` param. Filters in `_build_pack_section()` loop. ExpandedConfigPanel passes the 6 promoted flags to avoid duplicate toggles.
+
+### UpkeepPhaseComponent — Colony World Buttons
+`_build_colony_world_buttons(vbox)` adds species-conditional travel buttons after zone buttons. Krag: amber-brown style, 1 SP cost (disabled if insufficient). Skulker: green style, free. `_on_colony_travel_pressed(species_id)` handles SP deduction + planet generation + travel state.
+
+---
+
 ## Session 49: UX Polish Sprint (Apr 8, 2026)
 
 8 items shipped in one sprint. Key changes in ui-panel-developer domain:

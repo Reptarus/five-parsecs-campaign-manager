@@ -129,6 +129,10 @@ const MOTIVATION_ITEMS: Array = [
 var current_character
 var creator_mode: CreatorMode = CreatorMode.CHARACTER
 var _is_editing: bool = false
+## Set by caller (CrewPanel) before opening — true if another crew member is already psionic
+var crew_has_psionic: bool = false
+## Psionic designation checkbox (injected dynamically, DLC-gated)
+var _psionic_checkbox: CheckBox = null
 var current_bonuses: Dictionary = {
 	"origin": {},
 	"background": {},
@@ -163,6 +167,7 @@ func _ready() -> void:
 	confirm_btn.pressed.connect(_on_confirm_pressed)
 	back_btn.pressed.connect(_on_cancel_pressed)
 	preview_info.meta_clicked.connect(_on_preview_meta_clicked)
+	_setup_psionic_checkbox()
 	_update_preview()
 
 func _populate_dropdowns() -> void:
@@ -381,9 +386,11 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 	for key in bonuses:
 		current_bonuses.origin[key] = bonuses[key]
 
-	# Precursor characters begin with one randomly determined Psionic Power (p.17)
+	# Precursor characters begin with one randomly determined Psionic Power (Core Rules p.17)
+	# If designated as Psionic via checkbox, they already have 2 powers — skip auto-grant
 	if origin_id == GlobalEnums.Origin.PRECURSOR:
-		_grant_random_psionic_power()
+		if current_character and current_character.psionic_powers.is_empty():
+			_grant_random_psionic_power()
 
 	_apply_bonuses(current_bonuses.origin)
 
@@ -671,6 +678,23 @@ func _roll_and_store_creation_bonuses(character) -> void:
 			"hopeful_rookie":
 				# Begin with 1 Luck (p.21)
 				_set_character_property(character, "luck", 1)
+			"krag":
+				# Compendium p.15: If creation gives 1+ Patrons, add one Rival
+				if bonuses.patrons > 0:
+					bonuses.rivals += 1
+			"skulker":
+				# Compendium p.17: 1D6 Credits results become 1D3 Credits
+				for src_entry in bonuses.credits_dice_sources:
+					var d: String = str(src_entry.get("dice", "")).to_lower()
+					if d in ["1d6", "d6"]:
+						var old_roll: int = src_entry.get("rolled", 0)
+						var new_roll: int = randi_range(1, 3)
+						src_entry["rolled"] = new_roll
+						src_entry["dice"] = "1d3"
+						bonuses.bonus_credits += (new_roll - old_roll)
+				# Compendium p.17: Ignore first Rival rolled
+				if bonuses.rivals > 0:
+					bonuses.rivals = maxi(bonuses.rivals - 1, 0)
 
 	_set_character_property(character, "creation_bonuses", bonuses)
 
@@ -927,6 +951,104 @@ func _on_name_changed(text: String) -> void:
 		confirm_btn.disabled = not is_valid
 	_update_preview()
 
+func _setup_psionic_checkbox() -> void:
+	## Inject a "Designate as Psionic" checkbox after the origin dropdown (DLC-gated).
+	## Compendium p.19: pick one crew member to be Psionic at creation.
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.has_method("is_feature_enabled"):
+		return
+	if not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+
+	_psionic_checkbox = CheckBox.new()
+	_psionic_checkbox.text = "Designate as Psionic (rolls 2 starting powers)"
+	_psionic_checkbox.custom_minimum_size = Vector2(0, 40)
+	_psionic_checkbox.tooltip_text = "Compendium p.19: Pick one crew member as Psionic before rolling their profile."
+	_psionic_checkbox.toggled.connect(_on_psionic_toggled)
+
+	# Insert after origin_options in the same parent
+	if origin_options and origin_options.get_parent():
+		var parent := origin_options.get_parent()
+		var idx := origin_options.get_index() + 1
+		parent.add_child(_psionic_checkbox)
+		parent.move_child(_psionic_checkbox, idx)
+
+	_update_psionic_checkbox_state()
+
+func _update_psionic_checkbox_state() -> void:
+	## Enable/disable psionic checkbox based on species eligibility and crew state.
+	if not _psionic_checkbox:
+		return
+	# Hide entirely if crew already has a psionic
+	if crew_has_psionic:
+		_psionic_checkbox.visible = false
+		return
+	_psionic_checkbox.visible = true
+
+	# Get current species_id
+	var species_id := ""
+	var idx: int = origin_options.selected if origin_options else 0
+	if idx >= 0 and idx < _origin_species_ids.size():
+		species_id = _origin_species_ids[idx]
+
+	var eligible: bool = SpeciesDataService.can_be_psionic(species_id)
+	_psionic_checkbox.disabled = not eligible
+	if not eligible and _psionic_checkbox.button_pressed:
+		_psionic_checkbox.set_pressed_no_signal(false)
+		_clear_psionic_powers()
+	if not eligible:
+		_psionic_checkbox.tooltip_text = "This species cannot be Psionic (Compendium p.19)"
+	else:
+		_psionic_checkbox.tooltip_text = "Compendium p.19: Pick one crew member as Psionic before rolling their profile."
+
+func _on_psionic_toggled(enabled: bool) -> void:
+	if not current_character:
+		return
+	if enabled:
+		_assign_starting_psionic_powers()
+	else:
+		_clear_psionic_powers()
+	_update_preview()
+
+func _assign_starting_psionic_powers() -> void:
+	## Roll 2 starting psionic powers (Compendium p.20: D10 twice, shift ±1 on duplicate).
+	## Precursor special: may trade either die for Predict (D10=6). We auto-include Predict
+	## as the first power since the player would always choose this (Compendium p.20).
+	var psionic_data: Dictionary = _load_psionic_powers()
+	var power_ids: Array = psionic_data.keys()
+	if power_ids.is_empty():
+		return
+
+	var assigned: Array[String] = []
+	var species_id: String = _get_character_property(
+		current_character, "species_id", "").to_lower()
+
+	# Precursor Predict swap (Compendium p.20)
+	if species_id == "precursor" and "predict" in power_ids:
+		assigned.append("predict")
+
+	# Roll remaining powers
+	while assigned.size() < 2:
+		var roll_idx: int = randi_range(0, power_ids.size() - 1)
+		var power_id: String = power_ids[roll_idx]
+		# Duplicate handling: shift ±1
+		if power_id in assigned:
+			var shifted := (roll_idx + 1) % power_ids.size()
+			power_id = power_ids[shifted]
+			if power_id in assigned and power_ids.size() > 2:
+				shifted = (roll_idx - 1 + power_ids.size()) % power_ids.size()
+				power_id = power_ids[shifted]
+		assigned.append(power_id)
+
+	if current_character:
+		current_character.psionic_powers = assigned
+
+func _clear_psionic_powers() -> void:
+	if current_character:
+		current_character.psionic_powers.clear()
+		current_character.psionic_power_enhanced = false
+
 func _on_origin_changed(index: int) -> void:
 	var enum_value: int = origin_options.get_item_id(index)
 	var species_id: String = (
@@ -957,6 +1079,7 @@ func _on_origin_changed(index: int) -> void:
 				"special_rules", rules.duplicate())
 
 	_enforce_species_constraints(species_id)
+	_update_psionic_checkbox_state()
 	_update_preview()
 
 func _on_background_changed(index: int) -> void:
@@ -1102,6 +1225,14 @@ func _update_preview() -> void:
 	bbcode += "[color=yellow]Toughness:[/color] %d\n" % current_character.toughness
 	bbcode += "[color=yellow]Savvy:[/color] +%d\n" % current_character.savvy
 	bbcode += "[color=yellow]Luck:[/color] %d\n" % current_character.luck
+
+	# Psionic powers (Compendium pp.19-22)
+	if current_character and not current_character.psionic_powers.is_empty():
+		bbcode += "\n[color=#4FC3F7]Psionic Powers:[/color]\n"
+		var psi_data: Dictionary = _load_psionic_powers()
+		for pid in current_character.psionic_powers:
+			var pname: String = psi_data.get(pid, {}).get("name", pid.capitalize())
+			bbcode += "[color=#808080]• %s[/color]\n" % pname
 
 	# Species rules for Strange Characters (Core Rules pp.19-22)
 	var sp_rules: Array = _get_character_property(

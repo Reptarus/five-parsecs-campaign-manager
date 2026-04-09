@@ -161,11 +161,17 @@ static func get_trade_phase_items_with_lock_status() -> Array:
 
 
 ## Returns ALL advancement phase compendium options.
-## Combines advanced training + compendium bot upgrades.
+## Combines advanced training + compendium bot upgrades, tagged by category.
 static func get_advancement_phase_items() -> Array:
 	var items: Array = []
-	items.append_array(get_advanced_training())
-	items.append_array(get_bot_upgrades())
+	for item in get_advanced_training():
+		var tagged := item.duplicate()
+		tagged["compendium_category"] = "training"
+		items.append(tagged)
+	for item in get_bot_upgrades():
+		var tagged := item.duplicate()
+		tagged["compendium_category"] = "bot_upgrade"
+		items.append(tagged)
 	return items
 
 

@@ -356,6 +356,12 @@ func _on_market_item_selected(index: int) -> void:
 			var uses: int = selected_market_item.get("remaining_uses", -1)
 			if uses >= 0:
 				desc += "\nUses: %d" % uses
+			# Psionic equipment note (Compendium p.29)
+			var sel_id: String = selected_market_item.get(
+				"compendium_id", selected_market_item.get("id", ""))
+			if sel_id in ["warding_shrel", "psionic_focus",
+					"nullification_surgery"]:
+				desc += "\n[color=#D97706]Only useful for psionic characters[/color]"
 			_set_keyword_text(item_details, desc)
 
 func _on_inventory_item_selected(index: int) -> void:
@@ -387,19 +393,54 @@ func _on_buy_button_pressed() -> void:
 	if cost > current_credits:
 		return
 	current_credits -= cost
-	# Add to campaign equipment pool
+
+	# Psionic equipment advisory (Compendium p.29)
+	var psi_ids := ["warding_shrel", "psionic_focus",
+		"nullification_surgery"]
+	var bought_id: String = selected_market_item.get(
+		"compendium_id", selected_market_item.get("id", ""))
+	if bought_id in psi_ids and item_details:
+		_set_keyword_text(item_details,
+			"[color=#D97706]Purchased. Note: Only useful for psionic characters.[/color]")
+
+	# Route item to correct storage
 	var campaign = _get_campaign_safe()
-	if campaign and "equipment_data" in campaign:
+	var item_copy: Dictionary = selected_market_item.duplicate()
+	item_copy.erase("_owner_name")
+	item_copy.erase("_source")
+	item_copy.erase("_sell_value")
+	item_copy.erase("_member_ref")
+
+	var item_type: String = selected_market_item.get("type", "")
+	if item_type in ["component", "component_mod"]:
+		# Ship parts → tag as component (Compendium p.29)
+		item_copy["is_ship_component"] = true
+		var routed := false
+		var gsm = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("get_ship_data"):
+			var ship: Dictionary = gsm.get_ship_data()
+			if not ship.is_empty():
+				var comp_id: String = selected_market_item.get(
+					"compendium_id",
+					selected_market_item.get("id", ""))
+				var components: Array = ship.get(
+					"components", [])
+				components.append(comp_id)
+				ship["components"] = components
+				routed = true
+		# Fallback: also add to equipment pool (tagged)
+		if not routed and campaign and "equipment_data" in campaign:
+			var pool: Array = campaign.equipment_data.get(
+				"equipment", [])
+			pool.append(item_copy)
+			campaign.equipment_data["equipment"] = pool
+	elif campaign and "equipment_data" in campaign:
+		# Standard equipment → ship stash
 		var pool: Array = []
 		if campaign.has_method("get_all_equipment"):
 			pool = campaign.get_all_equipment()
 		else:
 			pool = campaign.equipment_data.get("equipment", [])
-		var item_copy: Dictionary = selected_market_item.duplicate()
-		item_copy.erase("_owner_name")
-		item_copy.erase("_source")
-		item_copy.erase("_sell_value")
-		item_copy.erase("_member_ref")
 		pool.append(item_copy)
 		campaign.equipment_data["equipment"] = pool
 	purchased_items.append(selected_market_item.duplicate())

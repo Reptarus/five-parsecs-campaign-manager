@@ -46,11 +46,19 @@ class PsionicPower:
 	var name: String
 	var description: String
 	var enhanced: bool = false
+	## Compendium p.20-21: structured targeting metadata
+	var affects_robotic_targets: bool = false
+	var target_self: bool = false
+	var persists: bool = false
 
 	func _init(type: PsionicPowerType) -> void:
 		power_type = type
 		name = _get_power_name(type)
 		description = _get_power_description(type)
+		var meta: Dictionary = _get_power_metadata(type)
+		affects_robotic_targets = meta.get("affects_robotic_targets", false)
+		target_self = meta.get("target_self", false)
+		persists = meta.get("persists", false)
 
 	func _get_power_name(type: PsionicPowerType) -> String:
 		match type:
@@ -89,6 +97,32 @@ class PsionicPower:
 			PsionicPowerType.PSIONIC_SCARE:
 				return "Target makes immediate Morale check (unless immune)."
 			_: return "Unknown power"
+
+	static func _get_power_metadata(type: PsionicPowerType) -> Dictionary:
+		## Compendium pp.20-21: targeting metadata per power
+		match type:
+			PsionicPowerType.BARRIER:
+				return {"affects_robotic_targets": true, "target_self": true, "persists": true}
+			PsionicPowerType.GRAB:
+				return {"affects_robotic_targets": true, "target_self": false, "persists": false}
+			PsionicPowerType.LIFT:
+				return {"affects_robotic_targets": true, "target_self": true, "persists": false}
+			PsionicPowerType.SHROUD:
+				return {"affects_robotic_targets": true, "target_self": false, "persists": true}
+			PsionicPowerType.ENRAGE:
+				return {"affects_robotic_targets": false, "target_self": true, "persists": false}
+			PsionicPowerType.PREDICT:
+				return {"affects_robotic_targets": false, "target_self": true, "persists": true}
+			PsionicPowerType.SHOCK:
+				return {"affects_robotic_targets": false, "target_self": false, "persists": false}
+			PsionicPowerType.REJUVENATE:
+				return {"affects_robotic_targets": false, "target_self": true, "persists": false}
+			PsionicPowerType.GUIDE:
+				return {"affects_robotic_targets": false, "target_self": true, "persists": false}
+			PsionicPowerType.PSIONIC_SCARE:
+				return {"affects_robotic_targets": false, "target_self": false, "persists": false}
+			_:
+				return {}
 
 ## Psionic Character class
 class PsionicCharacter:
