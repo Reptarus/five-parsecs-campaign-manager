@@ -20,6 +20,6 @@
 	"units": [
 		{"id": "soulless_standard", "name": "Soulless Unit", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 20, "speed": 4, "reactions": 2, "combat_skill": 1, "toughness": 4, "kp": 1, "savvy": 1, "training": 1, "models": 5, "weapons": ["military_rifle"], "special_rules": [{"name": "Synthetic", "type": "defensive"}], "_note": "Single profile for all Soulless — no tiers"},
 		{"id": "soulless_infantry_squad", "name": "Infantry Squad", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 100, "speed": 4, "reactions": 2, "combat_skill": 1, "toughness": 4, "kp": 1, "savvy": 1, "training": 1, "models": 5, "min_models": 4, "max_models": 6, "weapons": ["military_rifle"], "special_rules": [{"name": "Synthetic", "type": "defensive"}]},
-		{"id": "soulless_weapon_team", "name": "Weapon Team", "type": "weapon_team", "org_slot": "support", "tier": "military", "cost": 60, "speed": 4, "reactions": 2, "combat_skill": 1, "toughness": 4, "kp": 1, "savvy": 1, "training": 1, "models": 3, "weapons": ["military_rifle"], "special_rules": [{"name": "Synthetic", "type": "defensive"}]}
+		{"id": "soulless_weapon_team", "name": "Weapon Team", "type": "weapon_team", "org_slot": "support", "tier": "military", "cost": 30, "speed": 4, "reactions": 2, "combat_skill": 1, "toughness": 4, "kp": 1, "savvy": 1, "training": 1, "models": 3, "weapons": ["military_rifle"], "special_rules": [{"name": "Synthetic", "type": "defensive"}]}
 	]
 }

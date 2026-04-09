@@ -1,0 +1,59 @@
+{
+	"_source": "Planetfall p.134, Post-Mission Finds Table",
+	"_description": "Rolled after winning missions as directed by mission rules. Some finds give bonuses for having a scientist or scout still standing at end of battle.",
+	"entries": [
+		{
+			"min": 1, "max": 25,
+			"id": "scientific_curiosities",
+			"name": "Scientific curiosities",
+			"description": "You collect samples that would be of interest to the research team.",
+			"reward": {"research_points": 2}
+		},
+		{
+			"min": 26, "max": 35,
+			"id": "building_materials",
+			"name": "Building materials",
+			"description": "You find a cache of valuable materials that you can dispatch a team to collect.",
+			"reward": {"build_points": 2}
+		},
+		{
+			"min": 36, "max": 60,
+			"id": "raw_materials",
+			"name": "Raw materials",
+			"description": "Receive 3 units of Raw Materials.",
+			"reward": {"raw_materials": 3}
+		},
+		{
+			"min": 61, "max": 70,
+			"id": "hints_of_planetary_history",
+			"name": "Hints of planetary history",
+			"description": "You find ruins, artifacts, or signs that could help unveil the history of this world.",
+			"reward": {"story_points": 1},
+			"scientist_bonus": {"research_points": 1}
+		},
+		{
+			"min": 71, "max": 80,
+			"id": "by_the_book_victory",
+			"name": "By the book victory",
+			"description": "Despite some hardships, it was a solid mission, and everyone performed well. Pick one character to have been the cornerstone behind it all.",
+			"reward": {"character_xp": 1},
+			"scout_bonus": {"raw_materials": 1}
+		},
+		{
+			"min": 81, "max": 95,
+			"id": "decisive_victory",
+			"name": "Decisive victory",
+			"description": "Success in the field will no doubt reassure the colonists.",
+			"reward": {"colony_morale": 1},
+			"scout_bonus": {"raw_materials": 1}
+		},
+		{
+			"min": 96, "max": 100,
+			"id": "ancient_sign",
+			"name": "Ancient Sign",
+			"description": "You dig up an artifact of decidedly unknown origin.",
+			"reward": {"ancient_signs": 1},
+			"scientist_bonus": {"research_points": 1}
+		}
+	]
+}

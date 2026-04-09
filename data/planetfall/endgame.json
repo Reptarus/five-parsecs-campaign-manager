@@ -1,0 +1,129 @@
+{
+	"_source": "Planetfall pp.160-164, The End Game",
+	"_description": "Upon achieving 7th Milestone, characters meet for Summit. Roll D6 per roster character (not bots/grunts) plus 1 for general population. Pick from supported opinions. Colony Security required before Final Milestone.",
+	"summit": {
+		"die": "D6",
+		"additional_die_for_population": true,
+		"exclude_bots_and_grunts": true,
+		"entries": [
+			{"min": 1, "max": 1, "id": "independence", "name": "Independence", "description": "This colony is strong enough to survive alone. We don't need Unity anymore."},
+			{"min": 2, "max": 2, "id": "ascension", "name": "Ascension", "description": "Through research, we have become more than we were. We now have a path to a more advanced state of being."},
+			{"min": 3, "max": 3, "id": "loyalty", "name": "Loyalty", "description": "This colony has achieved its objectives and so much more. It is time to take our rightful place as a fully-fledged member of the Unity polity."},
+			{"min": 4, "max": 4, "id": "isolation", "name": "Isolation", "description": "We are becoming one with this world. It is time for us to fulfil that destiny, to abandon the constraints of the colony and seek out the wilderness."},
+			{"min": 5, "max": 6, "id": "no_opinion", "name": "No opinion", "description": "We are capable of achieving whichever path we choose."}
+		]
+	},
+	"colony_security": {
+		"_note": "Must be achieved before Final Milestone can be constructed.",
+		"requirements": {
+			"independence": {"strongpoints_destroyed": 1},
+			"ascension": {"strongpoints_destroyed": 1},
+			"isolation": {"strongpoints_destroyed": 1},
+			"loyalty": {"strongpoints_destroyed": 2}
+		}
+	},
+	"final_milestones": {
+		"independence": {
+			"name": "Independence",
+			"cost_bp": 15, "cost_rp": 5,
+			"description": "With the colony set on a path of independence, you order the large-scale construction of defenses and issue a proclamation.",
+			"resolution": {
+				"type": "unity_response",
+				"die": "2D6",
+				"defense_network_bonus": "If you developed the Defense Network Mission Data Breakthrough, add +1 to rolls unless dice show a double.",
+				"entries": [
+					{"min": 2, "max": 2, "id": "total_war", "name": "Total war", "description": "Unity decides to make an example of you. The colony is obliterated unless you developed the Artificial Construction Mission Data Breakthrough. If so, you must go to War instead."},
+					{"min": 3, "max": 7, "id": "war", "name": "War", "description": "Unity responds with military force. See the War rules."},
+					{"min": 8, "max": 10, "id": "negotiations", "name": "Negotiations drag on", "description": "Roll again. Any 8 = War, any 10 = Recognized status."},
+					{"min": 11, "max": 12, "id": "recognized", "name": "Recognized status", "description": "Unity grants semi-autonomous status. Your colony becomes an independent, Unity-Allied world."}
+				]
+			},
+			"war_rules": {
+				"description": "Fought in rounds. Each round: 1D6 colony vs 1D6 Unity. Lowest = 1 War Fatigue. Draw = 1 random character killed + reroll. Warzone Breakthrough: Unity also takes 1 War Fatigue on draw. 3 War Fatigue = surrender.",
+				"fatigue_to_surrender": 3,
+				"warzone_bonus": true
+			}
+		},
+		"ascension": {
+			"name": "Ascension",
+			"cost_bp": 5, "cost_rp": 15,
+			"description": "Strange machines are built all over the colony as the engineers and scientists push themselves to align the moment of ascension.",
+			"resolution": {
+				"type": "character_ascension",
+				"die": "D6",
+				"moved_in_time_bonus": "If you completed the Moved in Time and Space Breakthrough, select one character that automatically rolls a 6.",
+				"per_character": [
+					{"min": 1, "max": 1, "result": "perish", "description": "They perish in the process as their body or mind rejects ascension."},
+					{"min": 2, "max": 4, "result": "ascend", "description": "They undergo ascension and join the new species."},
+					{"min": 5, "max": 6, "result": "energy", "description": "The ascension process succeeds and earns 1 point of ascension energy."}
+				],
+				"ascension_energy_check": "Tally ascension energy, roll 1D6. Signs of Genetic Modification Breakthrough: +2 energy. If roll exceeds energy = sub-species. If roll <= energy, consult fate table.",
+				"fate_table": [
+					{"value": 1, "description": "Your colonists become a new psionic sub-species."},
+					{"value": 2, "description": "Your colonists join into a single hivemind."},
+					{"value": 3, "description": "Your colonists join into a single hivemind."},
+					{"value": 4, "description": "Your colonists ascend to become beings of pure thought."},
+					{"value": 5, "description": "Your colonists leave for a parallel dimension shaped by thoughts."},
+					{"value": 6, "description": "Your colonists leave for a parallel dimension shaped by thoughts."}
+				]
+			}
+		},
+		"loyalty": {
+			"name": "Loyalty",
+			"cost_bp": 10, "cost_rp": 5,
+			"description": "You have completed all assigned tasks. The only step left is to prepare the colony for formal inclusion as a registered Unity Main World.",
+			"cost_reductions": {
+				"ancient_factory": {"bp": 5},
+				"terraforming": {"rp": 0},
+				"ancient_colony": {"bp": 6, "rp": 2}
+			},
+			"resolution": {
+				"type": "colony_future",
+				"colony_future_die": "2D6",
+				"colony_future_entries": [
+					{"value": 1, "name": "Trading post"},
+					{"value": 2, "name": "Staging ground for continued colonization missions"},
+					{"value": 3, "name": "Resource extraction"},
+					{"value": 4, "name": "Research station"},
+					{"value": 5, "name": "Unity naval base"},
+					{"value": 6, "name": "Major habitation"}
+				],
+				"character_future_die": "D6",
+				"character_future_entries": [
+					{"value": 1, "name": "Retires in civilian life"},
+					{"value": 2, "name": "Retire if Disloyal, otherwise assigned to a new expedition"},
+					{"value": 3, "name": "Assigned to a new expedition"},
+					{"value": 4, "name": "Assigned to Unity field agent or other operative"},
+					{"value": 5, "name": "Gets lucrative job with mega-corporation"},
+					{"value": 6, "name": "A future as an independent adventurer"}
+				]
+			}
+		},
+		"isolation": {
+			"name": "Isolation",
+			"cost_bp": 5, "cost_rp": 10,
+			"description": "Your scouts have already selected a suitable location for the new colony. Your characters set out on a lonely march.",
+			"resolution": {
+				"type": "nomad_struggles",
+				"die": "2D6",
+				"entries": [
+					{"min": 2, "max": 2, "id": "death", "description": "Someone in the column falls, never to stand again. Random character killed. Roll again unless all dead. Psionic Manipulation Breakthrough: first death gives 1 Wisdom instead."},
+					{"min": 3, "max": 7, "id": "hardship", "description": "A random character suffers hardship. Same character twice = death. Roll again unless all dead. Semi-Living Organism Breakthrough: ignore first 2 hardship results."},
+					{"min": 8, "max": 12, "id": "wisdom", "description": "You have a vision showing how to attain true oneness with nature. 1 Wisdom gained. Roll again unless you have 3 Wisdom (colony founded successfully)."}
+				],
+				"wisdom_to_win": 3
+			}
+		}
+	},
+	"characters_after_end": {
+		"_note": "Guidelines for moving characters to other campaigns (5PFH, Bug Hunt, Tactics).",
+		"artifact_limit": "Each character can take only one artifact weapon/armor/equipment.",
+		"upgraded_equipment": "Can be taken. Character can only take items they were able to use in Planetfall.",
+		"abilities_and_stats": "Characters bring all abilities and profile increases earned.",
+		"loyalty_bonus": "Random ship, no debt.",
+		"independence_won": "Ship with 2D6 Credits debt already paid + 2 additional Story Points.",
+		"independence_lost": "Escaped characters begin with 1 Rival (Enforcers or Bounty Hunters) + 2 additional Story Points.",
+		"isolation_bonus": "Select one character: +1 Luck. Only one character from Isolation per new campaign.",
+		"ascension_bonus": "Select one character: gains psionic abilities (5PFH Compendium p.17)."
+	}
+}

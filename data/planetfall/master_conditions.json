@@ -1,0 +1,185 @@
+{
+	"_source": "Planetfall pp.110-113, Master Condition Table",
+	"_description": "Campaign Condition Table is 10-slot persistent. When a blank slot is rolled on the Campaign Condition Table (D100 → slot), generate a new condition from this Master table.",
+	"campaign_condition_slots": [
+		{"min": 1, "max": 15, "slot": 0},
+		{"min": 16, "max": 30, "slot": 1},
+		{"min": 31, "max": 42, "slot": 2},
+		{"min": 43, "max": 52, "slot": 3},
+		{"min": 53, "max": 62, "slot": 4},
+		{"min": 63, "max": 72, "slot": 5},
+		{"min": 73, "max": 82, "slot": 6},
+		{"min": 83, "max": 90, "slot": 7},
+		{"min": 91, "max": 95, "slot": 8},
+		{"min": 96, "max": 100, "slot": 9}
+	],
+	"entries": [
+		{
+			"min": 1, "max": 8,
+			"id": "visibility_limits",
+			"name": "Visibility limits",
+			"description": "Your vision is limited due to impenetrable darkness, fog, psionic interference, or visual distortions. This seems to defeat all conventional technological solutions.",
+			"effect_type": "visibility",
+			"sub_roll": {
+				"die": "D100",
+				"entries": [
+					{"min": 1, "max": 30, "id": "variable_by_round", "name": "Variable by round", "description": "Roll 1D6+8 at the beginning of the game and again at the end of each battle round to determine the visibility limit in inches next round."},
+					{"min": 31, "max": 70, "id": "fixed", "name": "Fixed", "description": "The visibility limit is 1D6+8 inches. Roll once to determine what it will be in every instance this condition applies."},
+					{"min": 71, "max": 100, "id": "variable_by_battle", "name": "Variable by battle", "description": "When setting up a battle, roll 1D6+8 to determine the visibility limit for this battle."}
+				]
+			}
+		},
+		{
+			"min": 9, "max": 13,
+			"id": "shooting_penalties",
+			"name": "Shooting penalties",
+			"description": "Your ability to track and shoot targets is affected by a natural phenomenon such as psionic disturbances, malfunction due to background signals, clouds of gas, or similar. A -1 penalty applies to all ranged attacks in certain circumstances.",
+			"effect_type": "shooting",
+			"penalty": -1,
+			"sub_roll": {
+				"die": "D100",
+				"entries": [
+					{"min": 1, "max": 35, "id": "random_by_round", "name": "Random by round", "description": "Each battle round roll 1D6; on 5-6, the penalty applies that round."},
+					{"min": 36, "max": 65, "id": "range", "name": "Range", "description": "All attacks over 15 inch range are penalized."},
+					{"min": 66, "max": 100, "id": "certain_terrain", "name": "Certain terrain types", "description": "When setting up, randomly pick a terrain feature. All features of the same broad type (plants, rocks, water, etc.) apply the penalty to any shot that originates from, targets inside, or passes through the feature."}
+				]
+			}
+		},
+		{
+			"min": 14, "max": 19,
+			"id": "movement_penalty",
+			"name": "Movement penalty",
+			"description": "Due to gravity distortion, slippery surfaces, crumbling ground material, or grasping plants, you are unable to Dash under certain circumstances.",
+			"effect_type": "movement",
+			"sub_roll": {
+				"die": "D100",
+				"entries": [
+					{"min": 1, "max": 25, "id": "table_surface", "name": "Table surface", "description": "Anywhere on the table surface that is not a terrain feature. Figures in or on terrain features are not affected."},
+					{"min": 26, "max": 60, "id": "terrain_features", "name": "Terrain features", "description": "Anywhere that is in or on a terrain feature."},
+					{"min": 61, "max": 80, "id": "climbing", "name": "Climbing", "description": "While climbing up or down things."},
+					{"min": 81, "max": 100, "id": "crossing_obstacles", "name": "Crossing obstacles", "description": "When crossing any kind of obstacle."}
+				]
+			}
+		},
+		{
+			"min": 20, "max": 25,
+			"id": "uncertain_terrain_features",
+			"name": "Uncertain terrain features",
+			"description": "Long range scans are particularly unreliable here. If you use the Uncertain Terrain Features optional rule, add 1 additional Uncertain feature. If you do not use this rule, this result is instead treated as Unstable Terrain.",
+			"effect_type": "terrain",
+			"additional_uncertain_features": 1,
+			"fallback_if_not_using_rule": "unstable_terrain"
+		},
+		{
+			"min": 26, "max": 30,
+			"id": "unstable_terrain",
+			"name": "Unstable terrain",
+			"description": "Many seemingly solid features seem extremely unstable, and the slightest noise could collapse them. When setting up, randomly select a terrain feature. All features of the same general type (rock, plant, etc.) are unstable. Each time a figure moves adjacent to or on the feature, or is fired upon while on the feature, roll 1D6. On a 1, the feature collapses and is removed from the table. Any figures in or on the feature will be knocked Sprawling.",
+			"effect_type": "terrain",
+			"collapse_roll": 1,
+			"collapse_die": "D6"
+		},
+		{
+			"min": 31, "max": 35,
+			"id": "shifting_terrain",
+			"name": "Shifting terrain",
+			"description": "At the end of each battle round, randomly select a terrain feature and then move it 1D6 inches in a random direction. Features can move off the table, in which case they are simply gone. Figures in or on the feature move with it but must each roll 4+ on 1D6 or be knocked Sprawling. Features will stop if they would otherwise collide with each other.",
+			"effect_type": "terrain",
+			"shift_distance": "1D6",
+			"sprawling_threshold": 4
+		},
+		{
+			"min": 36, "max": 41,
+			"id": "hazardous_environment",
+			"name": "Hazardous environment",
+			"description": "Randomly select two terrain features which become Impassable.",
+			"effect_type": "terrain",
+			"impassable_features": 2
+		},
+		{
+			"min": 42, "max": 49,
+			"id": "resource_rich",
+			"name": "Resource rich",
+			"description": "If you win the mission, roll one additional time on the Post Mission Find table. This roll CAN be a duplicate of a result you obtained from any rolls normally awarded by a mission.",
+			"effect_type": "reward",
+			"extra_find_rolls": 1
+		},
+		{
+			"min": 50, "max": 55,
+			"id": "heavy_scanner_signals",
+			"name": "Heavy scanner signals",
+			"description": "If the mission uses Contacts, place one additional Contact marker initially. This has no other effect.",
+			"effect_type": "contacts",
+			"additional_contacts": 1
+		},
+		{
+			"min": 56, "max": 61,
+			"id": "unusual_activity_levels",
+			"name": "Unusual activity levels",
+			"description": "The area is particularly hostile or relaxed. If using Contacts, modify the Aggression die.",
+			"effect_type": "contacts",
+			"sub_roll": {
+				"die": "D100",
+				"entries": [
+					{"min": 1, "max": 55, "id": "increased", "name": "Increased activity", "description": "Modify the Aggression die by +1 when testing for Contacts.", "aggression_modifier": 1},
+					{"min": 56, "max": 100, "id": "decreased", "name": "Decreased activity", "description": "Modify the Aggression die by -1 when testing for Contacts.", "aggression_modifier": -1}
+				]
+			}
+		},
+		{
+			"min": 62, "max": 68,
+			"id": "enemy_activity",
+			"name": "Enemy activity",
+			"description": "The area is heavily patrolled, or the enemy is not here in great numbers. This affects the enemy number encountered when fighting Tactical Enemies.",
+			"effect_type": "enemy_count",
+			"sub_roll": {
+				"die": "D100",
+				"entries": [
+					{"min": 1, "max": 45, "id": "reduced", "name": "Reduced numbers", "description": "Encounter sizes reduced by 1.", "encounter_modifier": -1},
+					{"min": 46, "max": 100, "id": "increased", "name": "Increased numbers", "description": "Encounter sizes increased by 1.", "encounter_modifier": 1}
+				]
+			}
+		},
+		{
+			"min": 69, "max": 75,
+			"id": "drifting_clouds",
+			"name": "Drifting clouds",
+			"description": "Great clouds of gas, vapor, or pollen drift through the area. When setting up the battle, place three cloud markers 6 inches from the center of the table in random directions. Each produces a 2 inch radius cloud. These clouds cannot be fired through. Figures within a cloud can fire and be fired upon but it counts as cover. At the end of each round, roll 1D6 inches and a random direction. Every cloud drifts the same distance and direction.",
+			"effect_type": "clouds",
+			"cloud_count": 3,
+			"cloud_radius": 2,
+			"cloud_drift": "1D6",
+			"sub_roll": {
+				"die": "D100",
+				"entries": [
+					{"min": 1, "max": 70, "id": "safe", "name": "Safe", "description": "The clouds interfere with visibility, but are not dangerous."},
+					{"min": 71, "max": 85, "id": "toxic", "name": "Toxic", "description": "Each battle, roll two D6 and pick the highest of the results to determine the toxin level. Any non-Lifeform figure that makes base contact with a toxic cloud at any point must roll 1D6 and on a roll equal to or above the toxin level, they become a Casualty or lose 1 KP."},
+					{"min": 86, "max": 100, "id": "corrosive", "name": "Corrosive", "description": "Anyone that activates within a cloud takes a hit with +0 to the damage roll."}
+				]
+			}
+		},
+		{
+			"min": 76, "max": 82,
+			"id": "clear_escape_paths",
+			"name": "Clear escape paths",
+			"description": "Once per battle round, you may select any one character that escapes the battle just as if they had moved off a battlefield edge.",
+			"effect_type": "tactical",
+			"escapes_per_round": 1
+		},
+		{
+			"min": 83, "max": 90,
+			"id": "confined_spaces",
+			"name": "Confined spaces",
+			"description": "Randomly select two points on the battlefield edge when you set up terrain. The table can only be entered or exited at these two points.",
+			"effect_type": "deployment",
+			"entry_exit_points": 2
+		},
+		{
+			"min": 91, "max": 100,
+			"id": "no_conditions",
+			"name": "No Conditions",
+			"description": "All clear! No special conditions apply.",
+			"effect_type": "none"
+		}
+	]
+}

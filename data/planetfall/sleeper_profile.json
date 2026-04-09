@@ -1,0 +1,31 @@
+{
+	"_source": "Planetfall pp.154-155, The Sleepers",
+	"_description": "Ancient alien ruin defenders. All identical profile. Cannot be Stunned. Fearless (immune to Panic). Directional force screen grants 6+ Save vs ranged only (not brawling). Rapid Fire mode after scoring a hit.",
+	"profile": {
+		"speed": 5,
+		"combat_skill": 1,
+		"toughness": 4,
+		"force_screen": {
+			"save": 6,
+			"applies_to": "ranged_only",
+			"ignores_save_negation": true,
+			"description": "6+ Saving Throw against all weapons fire, including weapons that would normally negate Saving Throws. They do not receive this protection against Brawling hits."
+		}
+	},
+	"weapons": {
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 5, "id": "beam_weapon", "name": "Beam weapon", "range": 12, "shots": 1, "damage": 1},
+			{"min": 6, "max": 6, "id": "heavy_beam_weapon", "name": "Heavy beam weapon", "range": 18, "shots": 2, "damage": 1}
+		]
+	},
+	"cannot_be_stunned": true,
+	"fearless": true,
+	"rapid_fire": {
+		"trigger": "A Sleeper that scores a hit when firing immediately enters Rapid Fire mode.",
+		"effect": "On next activation, it will not move but will fire with 1 additional shot (2 for Beam, 3 for Heavy Beam).",
+		"exit_condition": "If no targets are visible, it leaves Rapid Fire mode but does not otherwise move or act.",
+		"persist": "If it has targets, it remains in Rapid Fire mode.",
+		"reminder": "A suitable counter can be placed next to the figure to remind you."
+	}
+}

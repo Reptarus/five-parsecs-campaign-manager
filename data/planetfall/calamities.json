@@ -1,0 +1,85 @@
+{
+	"_source": "Planetfall pp.165-169, Calamities",
+	"_description": "Check for Calamities each time you achieve a Milestone. Roll 1D6; if roll <= total Calamity Points, subtract roll from total, then D100 on this table. Same Calamity cannot occur twice (take next, wrap around).",
+	"entries": [
+		{
+			"min": 1, "max": 11,
+			"id": "swarm_infestation", "name": "Swarm Infestation",
+			"description": "The hostile alien lifeforms known as The Swarm have begun infesting the world.",
+			"setup": "Randomly select a non-enemy-held map sector. It is immediately infested.",
+			"ongoing_effect": "After each mission turn, roll D6 for each adjacent sector to a Swarm sector (choose test order). First 6 = infest that sector, stop testing. Adjacent to colony: D6 per infested sector (1-2 nothing, 3-5 damage equals die roll, 6 = 6 damage + grunt killed). Swarm expanding into colony sector = Pitched Battle next turn.",
+			"resolution": "Kill Swarm via Skirmish missions. Victory clears the sector. Calamity ends when every sector cleared.",
+			"enemy_profile": {
+				"name": "Swarm",
+				"speed": 6, "combat_skill": 1, "toughness": 4,
+				"brawling": "Claws, +1 Damage",
+				"ranged": "none",
+				"number": "2D6+4"
+			},
+			"reward": "Recruit one trooper to roster (can save for later, does not count against replacements)."
+		},
+		{
+			"min": 12, "max": 25,
+			"id": "environmental_risk", "name": "Environmental risk",
+			"description": "Long range scans have detected strange atmospheric anomalies that appear to be intensifying storms and radiation.",
+			"setup": "Randomly select 3 map sectors (can be enemy held). They are experiencing the anomalies.",
+			"ongoing_effect": "End of each campaign turn, roll D6 per anomalous sector: 1-4 no effect, 5-6 flare-up. Flare-up D6: 1-2 random crew in Sick Bay 1 turn, 3-4 colony sustains 1 damage (bypasses defenses), 5 no effect, 6 another random sector develops anomaly.",
+			"resolution": "Patrol Mission per sector with modifications: +1 Contact per round, complete 3 Objectives then move to one and roll 1D6+Savvy scoring 6+ (scientists roll twice pick best). Cleared sector = done.",
+			"reward": "2 Raw Materials per sector cleared."
+		},
+		{
+			"min": 26, "max": 36,
+			"id": "enemy_super_weapon", "name": "Enemy super weapon",
+			"description": "A random Tactical Enemy is building a super weapon that they intend to shoot at your colony.",
+			"setup": "Random Tactical Enemy (or roll new one if none on map). Weapon progress starts at 0.",
+			"ongoing_effect": "1D6 progress per campaign turn. At 15: launch — 3D6 colony Integrity damage. Every 6 on damage roll = random character rolls on Post-Battle Injury table. Then resets to 0 and starts building again.",
+			"resolution": "Track down weapon site via Enemy Information roll. Then play Strike mission — success destroys production capability, ending the Calamity.",
+			"reward": "Roll twice on Post-Mission Finds table."
+		},
+		{
+			"min": 37, "max": 48,
+			"id": "virus", "name": "Virus",
+			"description": "A dangerous virus is tearing through your colony.",
+			"setup": "Randomly select 2 roster characters. Roll 1D6 each: 1-5 = that many Virus Points, 6 = immediately ill.",
+			"ongoing_effect": "End of each campaign turn, select 3 roster characters. No Virus Points = roll as above. Has Virus Points = add +1. Total 6 = fall ill (quarantine in Sick Bay, no actions).",
+			"resolution": "Hunt missions yield 2 Cure Data each. Roll 2D6 at end of each turn (before virus spread). If roll <= total Cure Data, cure discovered. Virus stops spreading, all recover immediately.",
+			"reward": "Reduce any injury recovery times by total 4 turns spread among characters as desired (can save for later)."
+		},
+		{
+			"min": 49, "max": 63,
+			"id": "mega_predators", "name": "Mega predators",
+			"description": "Your scouts report seeing particularly large and menacing wildlife when they are patrolling.",
+			"setup": "Begins immediately upon triggering.",
+			"ongoing_effect": "Each time a Lifeform is revealed, roll 1D6. On 6, specimen has +1 KP. Roll again, adding KP until no 6.",
+			"resolution": "Patrol Missions. Each completed objective = +1 Contact (marked special). Special Contacts revealed = Lifeforms with +2 KP total. Kill 5 such enhanced Lifeforms to end Calamity.",
+			"reward": "Randomly select 3 map sectors, increase Resource ratings by +1 each."
+		},
+		{
+			"min": 64, "max": 77,
+			"id": "wildlife_aggression", "name": "Wildlife aggression",
+			"description": "The lifeforms are far more aggressive than usual. Something appears to be agitating them. Your researchers speak of a Controller that must be located and destroyed.",
+			"setup": "Begins immediately upon triggering.",
+			"ongoing_effect": "Any Contact reveal that places Lifeforms will place 1 additional Lifeform in nearest terrain feature.",
+			"resolution": "Hunt mission. Each Lifeform revealed: D6 per figure, on 6 = Controller (standard type + 3 KP). Controller flees toward nearest edge by shortest route (+1 inch move rate). Killing Controller + moving to confirm body = end Calamity.",
+			"reward": "1 Augmentation Point."
+		},
+		{
+			"min": 78, "max": 91,
+			"id": "robot_rampage", "name": "Robot rampage",
+			"description": "Suddenly, angry robots spill across the surface. They resemble the Sleepers detected before but appear to be acting as sentries.",
+			"setup": "In every mission, place a marker in each of the 6 terrain features closest to table center.",
+			"ongoing_effect": "When figure within 12 inches LoS of feature with marker: D6 per feature. 1-3 = nothing (remove marker), 4-5 = Sleeper with Beam Weapon, 6 = Sleeper + new marker in closest terrain feature (can chain).",
+			"resolution": "Kill Sleepers outside Delve missions, move to destruction location before battle ends, roll 1D6+Savvy (scientists roll twice pick best). 5+ = Sleeper chip found. Collect 5 chips = send shut-down signal at colony.",
+			"reward": "4 Research Points."
+		},
+		{
+			"min": 92, "max": 100,
+			"id": "slyn_assault", "name": "Slyn assault",
+			"description": "The Slyn are stepping up their attacks.",
+			"setup": "Begins immediately upon triggering.",
+			"ongoing_effect": "Every mission with Slyn interference chance: roll twice. If both indicate interference, automatically encounter 8 Slyn.",
+			"resolution": "Track Slyn kills. Once you have killed 30, they step down offensive. Calamity ends.",
+			"reward": "Immediately add 2 grunts to Colony Tracking Sheet."
+		}
+	]
+}

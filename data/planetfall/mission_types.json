@@ -1,7 +1,7 @@
 {
-	"_source": "Planetfall pp.64-65, 114-133, Mission Types",
-	"_description": "12 mission types available during Step 6: Mission Determination. Some are player-selected, others are forced by events.",
-	"_notes": "Step 7 (Lock and Load) specifies deployment limits per mission. See individual mission pages for full battlefield setup rules.",
+	"_source": "Planetfall pp.64-65, 114-133, Mission Types + Full Briefings",
+	"_description": "13 mission types for Step 6: Mission Determination. Each includes full battlefield setup, player forces, opposition, objectives, rewards, campaign factors, and special rules. Some missions forced by events, some require tactical enemies.",
+	"_notes": "Step 7 (Lock and Load) specifies deployment limits per mission. See individual mission entries for full battlefield setup rules.",
 	"missions": [
 		{
 			"id": "investigation",
@@ -10,20 +10,73 @@
 			"category": "exploration",
 			"description": "Long range scans show interesting sights in this sector. Your team is deployed to search the area, look for features of interest, and secure any valuable finds.",
 			"map_requirement": "sector_marked_for_investigation",
-			"max_deploy": 6,
 			"forced": false,
-			"rewards": ["resource_level_increase", "mission_data"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 4, "max_grunts": 0, "grunt_fireteams": 0},
+			"deployment": "Select battlefield edge, roll 1D6. On 4+, arrive from this edge; otherwise pick randomly from remaining. Crew sets up within 1 inch of each other and within 1 inch of the edge.",
+			"opposition": {
+				"type": "lifeforms",
+				"slyn_immune": true,
+				"contact_setup": "Place 1 Contact at center of each non-deployment edge (3 total).",
+				"contact_reinforcement": "Each Enemy Phase, label edges 1-3 (exclude deployment). Roll 1D6: matches edge = place Contact. 4-6 = no Contact.",
+				"first_contact_rule": "First hostile Contact revealed = roll on Campaign Lifeform Encounters table."
+			},
+			"battlefield_conditions": false,
+			"uncertain_features": "1 per table quarter (optional)",
+			"objectives": {
+				"type": "discovery_markers",
+				"marker_count": 4,
+				"marker_placement": "Center of each table quarter. If terrain feature covers exact location, place in center of that feature.",
+				"investigate_range": 2,
+				"investigation_table": {
+					"die": "D6",
+					"entries": [
+						{"min": 1, "max": 1, "id": "enemy", "result": "Enemy sentries! Place a Sleeper in the most distant terrain feature the investigating figure can see."},
+						{"min": 2, "max": 2, "id": "rewards", "result": "Tag location for later extraction. Roll once on Post-Mission Finds table after mission."},
+						{"min": 3, "max": 3, "id": "contact", "result": "Lifeforms lurking. Place a Contact in terrain feature closest to Discovery marker."},
+						{"min": 4, "max": 4, "id": "action_required", "result": "Character must move into base contact and take an action. Roll 1D6+Savvy. 5+ = 1 Raw Material."},
+						{"min": 5, "max": 6, "id": "data", "result": "Mission Data found. Character must move into base contact and spend an action to collect."}
+					]
+				}
+			},
+			"ending": "Mission ends when squad no longer on table (casualties or moved off any edge).",
+			"rewards": ["Rewards acquired during mission", "1+ Discovery completed = sector no longer Investigation site"],
+			"rewards_detail": "You receive any rewards acquired during the mission. If you completed at least 1 Discovery marker, the mission is no longer marked as an Investigation site. Investigating does not mean Explored or Exploited.",
+			"campaign_factors": "Sector no longer Investigation site if 1+ Discovery completed. Does not make sector Explored or Exploited.",
+			"special_rules": []
 		},
 		{
 			"id": "scouting",
 			"name": "Scouting Mission",
 			"page": 116,
 			"category": "exploration",
-			"description": "Visit a sector that has not yet been Explored and explore it.",
+			"description": "Visit a sector that has not yet been Explored and explore it. Alternative to Scout Action in campaign sequence.",
 			"map_requirement": "unexplored_sector",
-			"max_deploy": 6,
 			"forced": false,
-			"rewards": ["explore_sector", "resource_hazard_values"]
+			"table_size": "2x2",
+			"player_forces": {"max_characters": 2, "max_grunts": 0, "grunt_fireteams": 0},
+			"deployment": "Select edge, 1D6 on 4+ arrive there, else random remaining. Within 1 inch of each other and edge.",
+			"opposition": {
+				"type": "lifeforms",
+				"slyn_immune": true,
+				"contact_setup": "Place 1 Contact at center of table.",
+				"contact_reinforcement": "Each Enemy Phase, 1D6. On 6, Contact placed at center of random edge.",
+				"contact_special": "If Aggression and Random scores equal, Contact stays in place (no new Contact).",
+				"first_contact_rule": "First hostile Contact revealed = roll on Campaign Lifeform Encounters table."
+			},
+			"battlefield_conditions": false,
+			"uncertain_features": "1 per table quarter (optional)",
+			"objectives": {
+				"type": "recon_markers",
+				"marker_count": 6,
+				"marker_placement": "In the 6 largest terrain features.",
+				"recon_rule": "Scout = automatic on base contact. Other characters: base contact + 1D6+Savvy, 5+ succeeds. Failed = recon not possible."
+			},
+			"ending": "Mission ends when squad no longer on table.",
+			"rewards": ["Per Recon marker: 1D6, each 6 = sector Resource +1", "3+ markers cleared = 1 Post-Mission Find roll"],
+			"rewards_detail": "For each Recon marker successfully investigated, roll 1D6. For every 6, the Resource level of the sector is increased by +1. If you cleared at least 3 Recon markers, you may also roll for a Post-Mission Find.",
+			"campaign_factors": "Sector becomes Explored. Resource level: roll 2D6 pick lowest + any bonuses. Hazard level: roll 2D6 pick lowest.",
+			"special_rules": []
 		},
 		{
 			"id": "exploration",
@@ -32,9 +85,33 @@
 			"category": "exploration",
 			"description": "Go to a sector that has been Explored but not yet Exploited. Search for fresh resources to bolster the colony.",
 			"map_requirement": "explored_not_exploited_sector",
-			"max_deploy": 6,
 			"forced": false,
-			"rewards": ["raw_materials", "exploit_sector"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 6, "max_grunts": 0, "grunt_fireteams": 0},
+			"deployment": "Random edge. Within 4 inches of edge.",
+			"opposition": {
+				"type": "slyn_check",
+				"slyn_aggression": {"die": "2D6", "slyn_range_min": 2, "slyn_range_max": 4},
+				"lifeform_fallback": true,
+				"contact_setup": "Place Contacts equal to sector Hazard level, each in nearest terrain feature to center (1 per feature).",
+				"first_contact_rule": "First hostile Contact revealed = roll on Campaign Lifeform Encounters table.",
+				"slyn_deployment": "Randomly selected terrain features near opposite edge. Roll randomly for each pair."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": 2,
+			"objectives": {
+				"type": "sweep_objectives",
+				"marker_count": "sector_resource_value",
+				"marker_placement": "Distributed evenly around table, near interesting terrain.",
+				"sweep_rule": "End battle round with figure within 3 inches and no enemies closer. Only 1 per side per round.",
+				"slyn_objective_rule": "Slyn try to secure Objectives too. One random pair per Enemy Phase moves toward nearest Objective. Both sides use same rules.",
+				"lifeform_ignore": "Lifeforms ignore Objectives."
+			},
+			"ending": "Mission ends when squad gone. Slyn driven off = claim remaining Objectives.",
+			"rewards": ["1 Post-Mission Find per Objective completed"],
+			"rewards_detail": "You may roll on the Post-Mission Find table once per Objective you completed.",
+			"campaign_factors": "Roll 1D6 per Objective: 1 = Hazard +1, 2 = no effect, 3-6 = Resource -1. Resource 0 = sector Exploited.",
+			"special_rules": []
 		},
 		{
 			"id": "science",
@@ -42,10 +119,32 @@
 			"page": 119,
 			"category": "exploration",
 			"description": "Focus on obtaining research samples to improve your research programs.",
-			"map_requirement": "explored_not_exploited_sector",
-			"max_deploy": 6,
+			"map_requirement": "resource_value_1_or_more",
 			"forced": false,
-			"rewards": ["research_points", "mission_data"]
+			"table_size": "2x2",
+			"player_forces": {"max_characters": 2, "max_grunts": 0, "grunt_fireteams": 0},
+			"deployment": "Select edge, 1D6 on 4+ arrive there, else random. Within 1 inch of each other and edge.",
+			"opposition": {
+				"type": "lifeforms",
+				"slyn_immune": true,
+				"contact_setup": "Place 1 Contact at center of table.",
+				"contact_reinforcement": "Each Enemy Phase, 1D6 (2D6 if Hazard 4+). On 6, Contact at center of random edge.",
+				"contact_special": "If Aggression and Random scores equal, Contact stays in place.",
+				"first_contact_rule": "First hostile Contact revealed = roll on Campaign Lifeform Encounters table."
+			},
+			"battlefield_conditions": false,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "science_markers",
+				"marker_count": 6,
+				"marker_placement": "In the 6 largest terrain features.",
+				"collection_rule": "Scientist = automatic on base contact. Other characters: 1D6+Savvy, 5+ collects. Failed = sample ruined."
+			},
+			"ending": "Mission ends when squad gone.",
+			"rewards": ["Per sample: 1D6, on 4-6 = 1 RP", "Multiple 6s = also 1 Mission Data", "3+ markers = 1 Post-Mission Find"],
+			"rewards_detail": "For each sample collected, roll 1D6. On 4-6, receive 1 Research Point. If you roll more than a single 6, also receive 1 unit of Mission Data. If you cleared at least 3 Science markers, also roll for a Post-Mission Find.",
+			"campaign_factors": "If any samples collected, sector Resource value -1.",
+			"special_rules": []
 		},
 		{
 			"id": "hunt",
@@ -54,9 +153,30 @@
 			"category": "combat",
 			"description": "The researchers want you to acquire a specimen of a local Lifeform for investigation.",
 			"map_requirement": "within_4_sectors_of_colony",
-			"max_deploy": 6,
 			"forced": false,
-			"rewards": ["lifeform_sample", "bio_analysis"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 6, "max_grunts": 0, "grunt_fireteams": 0, "grunts_allowed": true},
+			"deployment": "Select edge. Within 3 inches of edge.",
+			"opposition": {
+				"type": "slyn_check",
+				"slyn_aggression": {"die": "2D6", "slyn_range_min": 2, "slyn_range_max": 4},
+				"lifeform_fallback": true,
+				"lifeform_contact_rule": "Roll 1D6 per terrain feature in LoS. Each 6 = Contact. First spotted feature also checked. Always at least 3 Contacts.",
+				"scout_identification": "First Contact revealed: one scout may roll 1D6+Savvy. 5+ = choose which Lifeform. Otherwise random.",
+				"slyn_deployment": "Randomly selected terrain features near opposite edge."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": 2,
+			"objectives": {
+				"type": "specimen_capture",
+				"slyn_rule": "If Slyn attacking, fight them off. No mission Rewards.",
+				"lifeform_rule": "Kill 2 Lifeforms, move figure into base contact with each, spend action to transmit data, then escape table."
+			},
+			"ending": "Mission ends when squad gone. Slyn driven off = claim remaining objectives.",
+			"rewards": ["2 Lifeform samples = authorize Bio-Analysis Research", "Slyn driven off = 1 Post-Mission Find"],
+			"rewards_detail": "If you obtain a sample from two Lifeforms, it authorizes you to carry out Bio-Analysis Research. If you fight the Slyn and drive them off, you may roll for a Post-Mission Find.",
+			"campaign_factors": "If sector has Hazard factor, roll 1D6. On 5-6, Hazard reduced by 1.",
+			"special_rules": []
 		},
 		{
 			"id": "patrol",
@@ -64,10 +184,32 @@
 			"page": 121,
 			"category": "defense",
 			"description": "Stay close to the colony and conduct a patrol. Can be used to explore nearby sectors and safeguard against future morale loss.",
-			"map_requirement": "near_colony",
-			"max_deploy": 6,
+			"map_requirement": "within_2_sectors_not_enemy_occupied",
 			"forced": false,
-			"rewards": ["morale_protection", "sector_exploration"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 2, "max_grunts": 4, "grunt_fireteams": 1},
+			"deployment": "Random edge. Within 4 inches of edge.",
+			"opposition": {
+				"type": "slyn_check",
+				"slyn_aggression": {"die": "2D6", "slyn_range_min": 2, "slyn_range_max": 4},
+				"lifeform_fallback": true,
+				"contact_setup": "No initial Contacts placed.",
+				"slyn_deployment": "Randomly selected terrain features near opposite edge."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "patrol_objectives",
+				"marker_count": 3,
+				"marker_placement": "3 terrain features closest to center.",
+				"clear_rule": "Figure within 2 inches and no enemies within same distance. Can clear multiple per round.",
+				"enemy_ignore": "Slyn and Lifeforms ignore Objectives."
+			},
+			"ending": "Mission ends when squad gone. Slyn driven off = clear remaining.",
+			"rewards": ["1+ Objective = Colony Morale +1", "All 3 Objectives = 1 Post-Mission Find"],
+			"rewards_detail": "If you complete at least 1 Objective, increase Colony Morale by 1. If you complete all 3 Objectives, roll for a Post-Mission Find.",
+			"campaign_factors": "None.",
+			"special_rules": ["If fighting Lifeforms, at end of each battle round, 1 Contact placed at center of random edge (not deployment edge). Contacts can move off table and are removed."]
 		},
 		{
 			"id": "skirmish",
@@ -76,10 +218,41 @@
 			"category": "combat",
 			"description": "Enemy activity has been intensifying, and it is time to fight back. Deploy to take on the enemy directly and capture a sector.",
 			"map_requirement": "enemy_occupied_sector",
-			"max_deploy": 6,
 			"forced": false,
 			"requires_tactical_enemies": true,
-			"rewards": ["capture_sector", "enemy_information", "xp"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 4, "max_grunts": 4, "grunt_fireteams": 1},
+			"deployment": "Random edge. Within 4 inches of edge.",
+			"opposition": {
+				"type": "tactical",
+				"slyn_immune": true,
+				"enemy_deployment": "6 terrain features closest to opposite edge. D6 per enemy for feature placement."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": 2,
+			"objectives": {
+				"type": "skirmish_objectives",
+				"marker_count": 2,
+				"objective_roll": "Roll 1D6 twice on Skirmish Objective table.",
+				"marker_placement": "Each placed randomly 1D6+1 inches from center.",
+				"carry_items": "A character can carry any number of mission items. Dropped on casualty. Retrieved on base contact. Cannot be voluntarily dropped. Enemy ignores items on ground.",
+				"skirmish_objective_table": {
+					"die": "D6",
+					"entries": [
+						{"min": 1, "max": 1, "id": "secure", "name": "Secure", "description": "End a battle round with only your characters within 3 inches of the Objective."},
+						{"min": 2, "max": 2, "id": "sweep", "name": "Sweep", "description": "Moving into contact with the Objective."},
+						{"min": 3, "max": 3, "id": "destroy", "name": "Destroy", "description": "Select one character to carry demo charges. Auto-destroy on base contact. Otherwise: base contact + 1D6 + Melee weapon damage, 6+ destroys."},
+						{"min": 4, "max": 4, "id": "search", "name": "Search", "description": "Take an action within 2 inches and roll 1D6+Savvy. 6+ completes."},
+						{"min": 5, "max": 5, "id": "deliver", "name": "Deliver", "description": "2 characters each carry an item. Either must move into base contact with Objective. 2 Deliver Objectives = 4 characters carry, usable for either."},
+						{"min": 6, "max": 6, "id": "retrieve", "name": "Retrieve", "description": "Move into base contact to retrieve item. Must then carry it off the table."}
+					]
+				}
+			},
+			"ending": "Mission ends when squad gone.",
+			"rewards": ["Complete mission = 1 Post-Mission Find", "+1 Enemy Information"],
+			"rewards_detail": "You may roll once on the Post-Mission Finds table if you complete the mission.",
+			"campaign_factors": "Both Objectives completed = enemy no longer occupies sector. If last sector, enemy moves to random adjacent. Cannot destroy final sector without Assault mission.",
+			"special_rules": ["Reinforcements: End of each round, 1D6 (+1D6 per completed Objective). Each 6 = regular enemy at random edge center. Two 6s = specialist + regular. Three 6s = leader + specialist + regular."]
 		},
 		{
 			"id": "rescue",
@@ -87,11 +260,32 @@
 			"page": 124,
 			"category": "special",
 			"description": "Save colonists in danger. Casualties during this mission do NOT cause Morale loss.",
-			"map_requirement": "event_triggered",
-			"max_deploy": 6,
+			"map_requirement": "within_3_sectors_of_colony",
 			"forced": false,
 			"event_triggered": true,
-			"rewards": ["colonists_saved", "morale"],
+			"table_size": "2x2",
+			"player_forces": {"max_characters": 6, "max_grunts": 0, "grunt_fireteams": 0, "grunts_allowed": true},
+			"deployment": "Shuttle insertion. Set up within 3 inches of center.",
+			"opposition": {
+				"type": "lifeforms",
+				"slyn_immune": true,
+				"contact_setup": "Place 2 Contacts at center of each edge (8 total).",
+				"first_contact_rule": "First hostile Contact = roll Campaign Lifeform Encounters.",
+				"contact_reinforcement": "End of each round: 1D6 per edge, on 6 = Contact at center. Contacts cannot exit table."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "rescue_colonists",
+				"colonist_count": 3,
+				"colonist_placement": "Center of table, near wrecked vehicle/crater/machinery.",
+				"save_rule": "Colonist exits any edge and was within 3 inches of squad member at start of move or at exit point. Without escort: 1D6, 5-6 = saved.",
+				"colonist_stats": "Civvy stats (see p.18). Act as part of squad. No weapons (can pick up from casualties)."
+			},
+			"ending": "Mission ends when squad and colonists no longer on table.",
+			"rewards": [],
+			"rewards_detail": "No special rewards.",
+			"campaign_factors": "Lose 1 Colony Morale per colonist not saved. Not attempting = lose 3 (all presumed dead). Squad casualties do NOT affect Morale during Rescue.",
 			"special_rules": ["no_casualty_morale_loss"]
 		},
 		{
@@ -99,12 +293,35 @@
 			"name": "Scout Down!",
 			"page": 125,
 			"category": "special",
-			"description": "The scout vehicle crashed. Rescue the downed scout before hostiles arrive.",
-			"map_requirement": "event_triggered",
-			"max_deploy": 6,
+			"description": "One of your scouts has been shot down with enemies closing in. Deploy to rescue them.",
+			"map_requirement": "any_unexplored_sector",
 			"forced": false,
 			"event_triggered": true,
-			"rewards": ["scout_rescued", "xp"]
+			"table_size": "2x2",
+			"player_forces": {"max_characters": 6, "max_grunts": 0, "grunt_fireteams": 0, "grunts_allowed": true},
+			"deployment": "Select any edge. Squad moves on from edge in first round.",
+			"opposition": {
+				"type": "slyn_check",
+				"slyn_aggression": {"die": "2D6", "slyn_range_min": 2, "slyn_range_max": 3},
+				"tactical_fallback": true,
+				"tactical_note": "If no Slyn: Tactical Enemies (closest on map or random). Roll normally for numbers. If no Tactical Enemies on map, random from table (not added to map).",
+				"enemy_deployment": "Opposite edge. 3 roughly equal groups spaced along edge. Arrive Round 1."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "rescue_scout",
+				"scout_placement": "Center of table, near wrecked vehicle or crater.",
+				"rescue_rule": "Save by moving off any edge.",
+				"scout_stats": "If roster scout: normal profile + choice of Scout weapons. Unknown scout: base profile + scout pistol.",
+				"scout_injured": "Can either move OR take action each round (not both).",
+				"scout_undetected": "Begins undetected. Detected if: fires weapon, spotted out of cover, or moves more than 2 inches. Until detected, enemy ignores."
+			},
+			"ending": "Mission ends when squad and scout have left table.",
+			"rewards": [],
+			"rewards_detail": "No special rewards.",
+			"campaign_factors": "Non-roster scout saved = +1 Colony Morale. If sector not Explored, becomes Explored (generate Resource and Hazard levels). Squad casualties do NOT affect Morale.",
+			"special_rules": ["Enemy reinforcement: 1D6 at end of each round, on 6 = standard enemy soldier at their edge center."]
 		},
 		{
 			"id": "pitched_battle",
@@ -112,11 +329,29 @@
 			"page": 126,
 			"category": "combat",
 			"description": "The enemy launches an attack. This is a defensive battle to protect your colony.",
-			"map_requirement": "none",
-			"max_deploy": 8,
+			"map_requirement": "colony_sector",
 			"forced": true,
 			"forced_by": "enemy_attack",
-			"rewards": ["enemy_information", "xp"],
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 4, "max_grunts": 8, "grunt_fireteams": 2},
+			"deployment": "Select any edge. Within 8 inches. May place barricades/foxholes.",
+			"opposition": {
+				"type": "tactical",
+				"slyn_immune": true,
+				"double_force": true,
+				"force_description": "Two enemy forces, each with own leaders and specialists. First force: normal numbers -1. Second force: normal numbers +1.",
+				"deployment": "Opposite edge. 3 markers equally spaced. Round 1 Enemy Phase: first force at random marker (remove it). Round 2: second force at random remaining marker."
+			},
+			"battlefield_conditions": false,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "fight_to_end",
+				"description": "Kill or drive off every enemy."
+			},
+			"ending": "Mission ends when squad gone or every enemy killed/panicked.",
+			"rewards": ["Win = each survivor +1 XP"],
+			"rewards_detail": "If you win, each survivor receives 1 additional XP.",
+			"campaign_factors": "If you fail, roll D100 on Campaign Consequences table: 01-20 Colony damage (1D6+2 Integrity, Defenses can negate), 21-40 Interruption (partial building/research lost), 41-60 Morale loss (1D6+2, Defenses can negate), 61-80 Attrition (lose 2 grunts), 81-00 Prolonged battle (2 random characters roll on Injury table).",
 			"special_rules": ["on_loss_colony_damage"]
 		},
 		{
@@ -125,11 +360,32 @@
 			"page": 127,
 			"category": "combat",
 			"description": "Track down and capture an enemy Boss. Requires Enemy Information or enemy Patrol activity.",
-			"map_requirement": "enemy_boss_located",
-			"max_deploy": 6,
+			"map_requirement": "adjacent_to_enemy_sector",
 			"forced": false,
 			"requires_tactical_enemies": true,
-			"rewards": ["capture_boss", "enemy_information"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 6, "max_grunts": 4, "grunt_fireteams": 1},
+			"deployment": "Set up AFTER enemy. Choose any edge, within 3 inches.",
+			"opposition": {
+				"type": "tactical",
+				"slyn_immune": true,
+				"extra_enemies": 2,
+				"boss_present": "If tracked via Enemy Information: Boss (2 KP, +1 Combat, +1 Toughness) added to normal opposition.",
+				"patrol_variant": "If responding to patrol: normal numbers, always 1 Leader.",
+				"deployment": "Boss/Leader at center. 1/3 remaining within 3 inches of center. Rest in pairs 2D6 inches from center in random directions."
+			},
+			"battlefield_conditions": true,
+			"uncertain_features": 2,
+			"objectives": {
+				"type": "capture_boss",
+				"description": "Defeat Boss/Leader in brawl or kill them and move character to their location to secure data. Then end mission by retreating or fighting it out.",
+				"enemy_data_recovery": "If Boss/Leader becomes casualty, nearest enemy each phase moves to where they fell. Enemy reaching location picks up data and moves to nearest edge to escape."
+			},
+			"ending": "Mission ends when squad gone or every enemy defeated.",
+			"rewards": ["Boss data secured = know Strongpoint location", "Leader data secured = +1 Enemy Information"],
+			"rewards_detail": "If you secure the data from a Boss, you now know the location of the enemy Strongpoint. If you secure the data from a Leader, you receive one additional Enemy Information.",
+			"campaign_factors": "No special effects.",
+			"special_rules": ["Undetected: Squad members that only move (no actions) are Undetected until they act or enemy has LoS outside cover.", "Defensive AI: Enemies remain in cover, fire when possible. Move to positions with line of fire then halt. Ignore Undetected squad members."]
 		},
 		{
 			"id": "assault",
@@ -138,11 +394,29 @@
 			"category": "combat",
 			"description": "A major attack on an enemy Strongpoint. This is a final assault where the enemy makes their last stand.",
 			"map_requirement": "enemy_strongpoint_located",
-			"max_deploy": 8,
 			"forced": false,
 			"requires_tactical_enemies": true,
-			"rewards": ["destroy_strongpoint", "milestone"],
-			"special_rules": ["bring_everything"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 6, "max_grunts": 8, "grunt_fireteams": 2},
+			"deployment": "Set up AFTER enemy. Choose any edge, within 3 inches.",
+			"opposition": {
+				"type": "tactical",
+				"slyn_immune": true,
+				"max_encounter": true,
+				"force_description": "Maximum encounter size + 2 regular + 2 specialist + 1 additional leader (+1 KP). Deployed evenly throughout central 12x12 area in cover as sentries.",
+				"readiness": "Round 1 Enemy Phase: enemies that had LoS to firing crew or saw crew without cover are ready (activate normally). Others not ready (can't activate Round 1). Round 2+ all ready."
+			},
+			"battlefield_conditions": false,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "fight_to_end",
+				"description": "Kill or drive off everybody. Mark off 12x12 inches as enemy base core."
+			},
+			"ending": "Mission ends when squad gone or every enemy defeated.",
+			"rewards": ["2 Post-Mission Find rolls"],
+			"rewards_detail": "You may roll twice on the Post-Mission Finds table if you complete the mission.",
+			"campaign_factors": "Win = eliminate enemy from campaign. All sectors relinquished. Immediately roll Resource/Hazard for Strongpoint sector. Lose/retreat = failure. Enemy restored to full strength. Random adjacent sector immediately occupied.",
+			"special_rules": ["bring_everything", "Panic reduced by 1 (defending home turf).", "Defensive AI: Remain in cover, fire, move to defensive positions.", "End of each round: 1D6, on 6 random enemy gets +1 KP."]
 		},
 		{
 			"id": "delve",
@@ -151,9 +425,33 @@
 			"category": "exploration",
 			"description": "Explore an Ancient Site to look for treasures and ancient technology.",
 			"map_requirement": "ancient_site_located",
-			"max_deploy": 6,
 			"forced": false,
-			"rewards": ["ancient_artifacts", "mission_data", "research_points"]
+			"table_size": "3x3",
+			"player_forces": {"max_characters": 6, "max_grunts": 0, "grunt_fireteams": 0},
+			"deployment": "Random point along any edge (roll random direction die from center). Characters enter during first round. Second exit point revealed at end of Round 1.",
+			"opposition": {
+				"type": "delve_hazards",
+				"slyn_immune": true,
+				"initial_hazards": 4,
+				"hazard_placement": "1 per table quarter, 1D6 inches randomly from quarter center. If within 3 inches of crew, move toward table center.",
+				"hazard_reinforcement": "Start of each Enemy Phase: if fewer than 4 markers, place 1 at table center.",
+				"hazard_movement": "From Round 2, each hazard moves 3 inches random direction. Halts on obstacle contact.",
+				"hazard_reveal": "Revealed when crew within 3 inches and LoS. Roll 1D6: 1-2 = Sleeper, 3-4 = Trap, 5-6 = Environmental Hazard."
+			},
+			"battlefield_conditions": false,
+			"uncertain_features": false,
+			"objectives": {
+				"type": "delve_devices",
+				"device_count": 4,
+				"device_placement": "Center of each table quarter.",
+				"activation_rule": "Move to base contact, take action. Roll 1D6 on Device Activation table. Duplicate results take first un-rolled result.",
+				"artifact_unlock": "3 activations (not counting Unusable) = Artifact location revealed at 2D6 inches random from center. Any character can pick up by base contact."
+			},
+			"ending": "Mission ends when no characters on table. Must exit via initial entrance or discovered exit.",
+			"rewards": ["Artifact found = random Alien Artifact"],
+			"rewards_detail": "You receive a random Alien Artifact if you find the Artifact during the mission. As the Artifact is extracted by drone, you may keep it even if all characters become casualties after picking it up.",
+			"campaign_factors": "Ancient Site is consumed whether successful or not.",
+			"special_rules": ["See delve_system.json for full Trap, Environmental Hazard, and Device Activation tables."]
 		}
 	]
 }

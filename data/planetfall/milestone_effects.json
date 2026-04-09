@@ -1,0 +1,94 @@
+{
+	"_source": "Planetfall pp.156-160, The Milestone System",
+	"_description": "7 Milestones to complete campaign. Each triggers: Lifeform Evolution roll + 1 additional replacement. Milestones earned from Buildings, Research Applications, Augmentations, and Alien Artifacts. Calamity check mechanics: Roll 1D6, if <= Calamity Points, subtract roll from total and roll D100 on Calamities table.",
+	"total_required": 7,
+	"per_milestone_effects": {
+		"every_milestone": [
+			"Roll a Lifeform Evolution (see lifeform_evolution.json)",
+			"You may recruit one additional replacement for your roster"
+		]
+	},
+	"milestones": [
+		{
+			"index": 1,
+			"name": "1st Milestone",
+			"effects": [
+				{"type": "character_events", "count": 2, "description": "Roll 2 Character Events immediately (in addition to normal turn event)."},
+				{"type": "mission_data", "amount": 1, "description": "Add 1 point of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 1, "description": "Add 1 Calamity Point and check for Calamity progress."},
+				{"type": "tactical_enemy_emerges", "description": "One Tactical Enemy emerges. Randomly select a map sector (not in/adjacent to colony) and mark it enemy-controlled."}
+			]
+		},
+		{
+			"index": 2,
+			"name": "2nd Milestone",
+			"effects": [
+				{"type": "colony_event", "description": "Immediately roll for a Colony Event (in addition to normal turn event)."},
+				{"type": "enemy_expansion", "description": "Every enemy on the map expands to occupy a random adjacent map sector."},
+				{"type": "ancient_sign", "amount": 1, "description": "You obtain 1 Ancient Sign."},
+				{"type": "mission_data", "amount": 1, "description": "Add 1 point of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 2, "description": "Add 2 Calamity Points and check for Calamity progress."},
+				{"type": "tactical_enemy_emerges", "description": "One Tactical Enemy emerges. Randomly select a map sector (not in/adjacent to colony or other enemy)."}
+			]
+		},
+		{
+			"index": 3,
+			"name": "3rd Milestone",
+			"effects": [
+				{"type": "story_points", "amount": 3, "description": "Gain 3 Story Points."},
+				{"type": "colony_integrity", "amount": 1, "description": "Increase Colony Integrity by +1."},
+				{"type": "enemy_activity_roll", "description": "Immediately roll on the Enemy Activity table (in addition to normal turn event)."},
+				{"type": "tactical_enemy_buff", "description": "From this point onwards, Tactical Enemies reduce their Panic range by 1. All tactical specialists receive 1 KP."},
+				{"type": "mission_data", "amount": 2, "description": "Add 2 points of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 2, "description": "Add 2 Calamity Points and check for Calamity progress."},
+				{"type": "tactical_enemy_emerges", "description": "One Tactical Enemy emerges. Randomly select a map sector (not in/adjacent to colony or other enemy)."}
+			]
+		},
+		{
+			"index": 4,
+			"name": "4th Milestone",
+			"effects": [
+				{"type": "replace_condition", "description": "Erase one campaign battlefield condition from the table and generate a new condition to take its place."},
+				{"type": "augmentation_points", "amount": 1, "description": "You receive 1 Augmentation Point."},
+				{"type": "grunts", "amount": 2, "description": "You may add 2 grunts to your list."},
+				{"type": "mission_data", "amount": 1, "description": "Add 1 point of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 1, "description": "Add 1 Calamity Point and check for Calamity progress."},
+				{"type": "slyn_tracking_begins", "description": "Track how many times you beat the Slyn from this point onwards. Each time you do, roll 2D6 and if the roll is equal to or below the tracked victories, the Slyn decide to leave you alone for the rest of this campaign. Victories prior to this point are not counted."}
+			]
+		},
+		{
+			"index": 5,
+			"name": "5th Milestone",
+			"effects": [
+				{"type": "augmentation_points", "amount": 1, "description": "You receive 1 Augmentation Point."},
+				{"type": "mission_data", "amount": 1, "description": "Add 1 point of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 2, "description": "Add 2 Calamity Points and check for Calamity progress."}
+			]
+		},
+		{
+			"index": 6,
+			"name": "6th Milestone",
+			"effects": [
+				{"type": "tactical_enemy_specialist_buff", "description": "All Tactical Enemy encounters add 1 additional specialist figure to the number encountered."},
+				{"type": "enemy_activity_all", "description": "For each turn of the rest of the campaign, roll on the Enemy Activity table for every enemy on the map."},
+				{"type": "mission_data", "amount": 2, "description": "Add 2 points of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 2, "description": "Add 2 Calamity Points and check for Calamity progress."}
+			]
+		},
+		{
+			"index": 7,
+			"name": "7th Milestone",
+			"effects": [
+				{"type": "endgame_launches", "description": "The End Game now launches. Proceed to the Summit."},
+				{"type": "mission_data", "amount": 2, "description": "Add 2 points of Mission Data and check for progress."},
+				{"type": "calamity_points", "amount": 1, "description": "Add 1 Calamity Point and check for Calamity progress. If no Calamity occurs, you no longer have to contend with Calamities in the campaign."}
+			]
+		}
+	],
+	"tech_that_grants_milestones": {
+		"buildings": ["galactic_comms_relay", "orbital_facility", "genetic_adaptation_facility", "terraforming_control_centre"],
+		"augmentations": ["mental_links"],
+		"alien_artifacts": ["neo_ancient_data_cache"],
+		"research_applications": ["frontier_world_doctrines", "integrated_post_organic_demarcation", "psionic_personality_integration"]
+	}
+}

@@ -1,0 +1,46 @@
+{
+	"_source": "Planetfall pp.152-155, The Slyn Threat",
+	"_description": "Enigmatic reptilian species. No leaders, no specialists — all identical profile. Operate in pairs. Cannot be Stunned. Withdraw when only 1 pair remains. Short Range Distortion teleportation each Enemy Phase.",
+	"profile": {
+		"speed": 5,
+		"combat_skill": 1,
+		"toughness": 4,
+		"brawling": {"name": "Claws", "damage": 1, "traits": ["melee"]},
+		"ranged": {"name": "Beam focus", "range": 18, "shots": 1, "damage": 1}
+	},
+	"encounter_sizes": {
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 4, "count": 6, "pairs": 3},
+			{"min": 5, "max": 6, "count": 8, "pairs": 4}
+		]
+	},
+	"pair_mechanics": {
+		"deployment": "Always set up in pairs within 1 inch of each other.",
+		"movement": "Each pair moves to remain within 1 inch. If separated, they try to reunite ASAP.",
+		"targeting": "Pairs fire at the same target when possible. If not, fire independently.",
+		"damage_tracking": "Damage taken as a pair: 1st casualty = marker (continue fighting). 2nd casualty (to either figure) = both destroyed and removed.",
+		"cannot_be_stunned": true
+	},
+	"withdrawal": {
+		"rule": "Slyn are not subject to Panic tests. They withdraw when only a single pair is left on the table at the end of a battle round. Remaining Slyn vanish without a trace."
+	},
+	"short_range_distortion": {
+		"timing": "Start of each Enemy Phase",
+		"mechanic": "Randomly select a Slyn pair and move them 2D6 inches in a random direction.",
+		"off_table": "If taken off battlefield edge, removed from table (can trigger withdrawal at end of round). At start of NEXT Enemy Phase, reappear 2D6 inches from center of table. This counts as the teleport for that round.",
+		"post_teleport": "Slyn can move and fight normally after a teleport. Does NOT replace normal movement.",
+		"brawl_on_emerge": "Slyn that emerge within 1 inch of an opponent will emerge directly into brawling combat. If they win, the figure cannot take any other actions this round."
+	},
+	"aggression_check": {
+		"description": "Each mission description explains if subject to Slyn attack. Generally a 2D6 roll with a range meaning you fight Slyn instead of regular enemy.",
+		"no_headquarters": "Slyn do not maintain headquarters or bases. Cannot be defeated in the course of the campaign — only via End Game conditions.",
+		"no_local_facilities": true
+	},
+	"using_slyn_in_5pfh": {
+		"substitute": "Substitute any one entry on a 5PFH encounter table for the Slyn.",
+		"held_field": "If Slyn withdraw, you have Held the Field.",
+		"no_rivals": "Slyn cannot become Rivals of your crew.",
+		"no_stealth_or_bug_hunt": "Cannot be defenders in Stealth missions, nor encountered in Bug Hunt hordes."
+	}
+}

@@ -1,0 +1,80 @@
+{
+	"_source": "Planetfall pp.146-150, Generating Lifeforms",
+	"_description": "4-step procedural lifeform generation. Roll on each sub-table in sequence. Campaign Lifeform Encounters table has 10 slots (D100 mapping below). If slot is blank, generate new lifeform. 6+ Lifeforms in a mission: 6th is pack leader (+2 KP).",
+	"encounter_table_slots": [
+		{"min": 1, "max": 18, "slot": 0},
+		{"min": 19, "max": 32, "slot": 1},
+		{"min": 33, "max": 44, "slot": 2},
+		{"min": 45, "max": 54, "slot": 3},
+		{"min": 55, "max": 64, "slot": 4},
+		{"min": 65, "max": 73, "slot": 5},
+		{"min": 74, "max": 82, "slot": 6},
+		{"min": 83, "max": 89, "slot": 7},
+		{"min": 90, "max": 95, "slot": 8},
+		{"min": 96, "max": 100, "slot": 9}
+	],
+	"pack_leader_threshold": 6,
+	"pack_leader_bonus_kp": 2,
+	"step_1_mobility": {
+		"_note": "If the roll ends in 0 or 5, creature is Partially Airborne (ignores terrain, hovers 1 inch above, +1 to hit while hovering).",
+		"airborne_trigger": "ends_in_0_or_5",
+		"entries": [
+			{"min": 1, "max": 25, "speed": 5},
+			{"min": 26, "max": 80, "speed": 6},
+			{"min": 81, "max": 100, "speed": 7}
+		]
+	},
+	"step_2a_combat_skill": {
+		"_note": "If roll ends in 0 or 5, also roll on Special Attacks table.",
+		"special_attack_trigger": "ends_in_0_or_5",
+		"entries": [
+			{"min": 1, "max": 25, "combat_skill": 0},
+			{"min": 26, "max": 85, "combat_skill": 1},
+			{"min": 86, "max": 100, "combat_skill": 2}
+		]
+	},
+	"step_2b_strike_power": {
+		"_note": "If roll ends in 0 or 5, also roll on Special Attacks table. If BOTH Combat Skill AND Strike Power rolls end in 0 or 5, roll TWICE on Special Attacks (ignore duplicate).",
+		"special_attack_trigger": "ends_in_0_or_5",
+		"entries": [
+			{"min": 1, "max": 20, "damage": 0, "description": "Melee, +0 Damage"},
+			{"min": 21, "max": 85, "damage": 1, "description": "Melee, +1 Damage"},
+			{"min": 86, "max": 100, "damage": 2, "description": "Melee, +2 Damage"}
+		]
+	},
+	"step_2c_special_attacks": {
+		"entries": [
+			{"min": 1, "max": 15, "id": "razor_claws", "name": "Razor Claws", "description": "Melee attacks negate Saving Throws."},
+			{"min": 16, "max": 30, "id": "eruption", "name": "Eruption", "description": "When the creature activates, roll D6 to hit every character within 6 inches and Line of Sight. On 6, they take a Damage +0 hit, and are knocked Sprawling."},
+			{"min": 31, "max": 50, "id": "shoot", "name": "Shoot", "description": "The creature has a ranged attack. Range 18 inches, Damage 1. On a natural 6 to hit, it may shoot again. Shooting creatures use their Combat Skill when shooting and count as +0 when brawling."},
+			{"min": 51, "max": 70, "id": "spit", "name": "Spit", "description": "The creature can spit acid or poison. Range 9 inches. The target and every figure within 1 inch is hit on a D6 roll of 5-6. Damage +0. Ignores Armor."},
+			{"min": 71, "max": 85, "id": "overpower", "name": "Overpower", "description": "A character that is hit but survives is thrown 1D6 inches backwards. If the creature also has a ranged attack, this applies to the ranged attack ONLY."},
+			{"min": 86, "max": 100, "id": "ferocity", "name": "Ferocity", "description": "When the creature initiates brawling, it rolls twice and picks the best die. This bonus does not apply if one of your characters moves to engage it."}
+		]
+	},
+	"step_3_defensive_abilities": {
+		"entries": [
+			{"min": 1, "max": 25, "toughness": 4, "additional": null},
+			{"min": 26, "max": 35, "toughness": 4, "additional": "armor_save_5plus", "description": "Armor Saving Throw of 5+"},
+			{"min": 36, "max": 45, "toughness": 3, "additional": "dodge", "description": "Dodge: The creature can evade any hit on a D6 roll of a 6, even if the attack would normally negate Saving Throws."},
+			{"min": 46, "max": 65, "toughness": 4, "additional": "1_kp", "kp": 1},
+			{"min": 66, "max": 80, "toughness": 5, "additional": null},
+			{"min": 81, "max": 90, "toughness": 5, "additional": "armor_save_5plus", "description": "Armor Saving Throw of 5+"},
+			{"min": 91, "max": 100, "toughness": 5, "additional": "1_kp", "kp": 1}
+		]
+	},
+	"step_4_unique_ability": {
+		"_note": "Randomly pick one creature at the start of each enemy phase. The ability activates from that creature. While only a single creature is on the table, it always activates its ability.",
+		"entries": [
+			{"min": 1, "max": 30, "id": "none", "name": "None", "description": "No special abilities of any kind."},
+			{"min": 31, "max": 40, "id": "pull", "name": "Pull", "description": "The closest character in sight is pulled 1D6 inches closer. If this pulls them into contact, brawl immediately. If the Lifeform inflicts any hits, they are resolved with +2 Damage (in place of any normal attack capability the Lifeform has)."},
+			{"min": 41, "max": 50, "id": "jump", "name": "Jump", "description": "The Lifeform jumps 1D6+1 inches towards the nearest character. It will clear Human-height obstacles and if the jump takes it into or past an enemy, they are knocked Sprawling."},
+			{"min": 51, "max": 55, "id": "teleport", "name": "Teleport", "description": "Teleports to a location 2D6 inches away in a random direction. If it would teleport off the table, replace the figure with a blip at the battlefield edge."},
+			{"min": 56, "max": 60, "id": "paralyze", "name": "Paralyze", "description": "All characters within 6 inches and Line of Sight must roll 1D6+Savvy. If they fail to score a 4+, they cannot act next time they are activated."},
+			{"min": 61, "max": 70, "id": "terror", "name": "Terror", "description": "All characters within 6 inches and Line of Sight must roll 1D6+Savvy. If they fail to score a 5+, they retreat 1D6+Speed inches and become Stunned."},
+			{"min": 71, "max": 80, "id": "confuse", "name": "Confuse", "description": "The closest character must roll 1D6+Savvy. If they fail to score 6+, they immediately take a full move in a random direction. If they move off the table, they cannot return during the battle."},
+			{"min": 81, "max": 90, "id": "hinder", "name": "Hinder", "description": "All characters within 8 inches have their movement halved next time they activate."},
+			{"min": 91, "max": 100, "id": "knock_down", "name": "Knock Down", "description": "Roll 1D6. Any characters within this range in inches are knocked Sprawling."}
+		]
+	}
+}

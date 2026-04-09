@@ -1,0 +1,109 @@
+{
+	"_source": "Planetfall pp.169-172, Mission Data & Breakthroughs",
+	"_description": "Mission Data obtained from missions, Research, Buildings, and Milestones. Each time MD gained: roll 1D6, if roll <= total MD, breakthrough occurs (subtract roll from total). 4 sequential breakthroughs, the 4th triggers a D100 roll.",
+	"check_mechanic": {
+		"die": "D6",
+		"rule": "If roll is equal to or below the amount of Mission Data acquired, a breakthrough occurs. Reduce Mission Data by the die roll."
+	},
+	"breakthroughs": [
+		{
+			"index": 1,
+			"name": "First Mission Data Breakthrough",
+			"description": "You have discovered the location of 2 Ancient Sites. Place them randomly on your map. Fully exploring each of these Sites awards you 1 point of Mission Data in addition to any other rewards.",
+			"effect": {"ancient_sites": 2, "md_per_site_explored": 1}
+		},
+		{
+			"index": 2,
+			"name": "Second Mission Data Breakthrough",
+			"description": "You have discovered multiple important resource caches. Randomly select four map sectors. Each of them that is not currently Explored is Explored immediately. Then increase the current Resource value by +2. This can turn an Exploited sector into an Explored sector.",
+			"effect": {"explore_sectors": 4, "resource_bonus": 2}
+		},
+		{
+			"index": 3,
+			"name": "Third Mission Data Breakthrough",
+			"description": "This world continues to intrigue you. Randomly select two sectors, marking them for Investigation.",
+			"effect": {"investigation_sectors": 2}
+		},
+		{
+			"index": 4,
+			"name": "Fourth Mission Data Breakthrough",
+			"description": "You have finally uncovered the information you need to put all the pieces together. This is the final Breakthrough, and after this point, Mission Data no longer has any value. Roll D100 on the Final Breakthrough table.",
+			"effect": {"roll_final_table": true, "md_no_longer_valuable": true}
+		}
+	],
+	"final_breakthrough_table": {
+		"die": "D100",
+		"entries": [
+			{
+				"min": 1, "max": 10,
+				"id": "ancient_colony", "name": "Ancient Colony",
+				"description": "The remnants of ruins make it clear that this was once a colony, though whoever settled here has completely disappeared.",
+				"immediate_effect": {"ancient_sites": 2},
+				"endgame_bonus": "loyalty"
+			},
+			{
+				"min": 11, "max": 20,
+				"id": "ancient_factory", "name": "Ancient Factory",
+				"description": "The world seems to have been intended as a site for a massive factory.",
+				"immediate_effect": {"build_points_per_turn": 1},
+				"endgame_bonus": "loyalty"
+			},
+			{
+				"min": 21, "max": 30,
+				"id": "artificial_construction", "name": "Artificial Construction",
+				"description": "Evidence increasingly points to the planet itself having been manufactured through unfathomable levels of technology.",
+				"immediate_effect": {"story_points": 3, "character_xp": 2, "character_xp_count": 3},
+				"endgame_bonus": "independence"
+			},
+			{
+				"min": 31, "max": 40,
+				"id": "defense_network", "name": "Defense Network",
+				"description": "The planet bears signs of having been constructed as part of a grand defensive network stretching across the stars.",
+				"immediate_effect": {"sleepers_lose_save": true},
+				"endgame_bonus": "independence"
+			},
+			{
+				"min": 41, "max": 50,
+				"id": "moved_in_time_or_space", "name": "Moved in Time or Space",
+				"description": "This is not the original location of this world, and it may not even be the original timeline either.",
+				"immediate_effect": {"research_points": 10},
+				"endgame_bonus": "ascension"
+			},
+			{
+				"min": 51, "max": 60,
+				"id": "psionic_manipulation", "name": "Psionic Manipulation",
+				"description": "The world has been subjected to some of the largest psionic engineering ever witnessed.",
+				"immediate_effect": {"character_reaction_bonus": 1, "character_reaction_count": 3},
+				"endgame_bonus": "isolation"
+			},
+			{
+				"min": 61, "max": 70,
+				"id": "semi_living_organism", "name": "Semi-living Organism",
+				"description": "The entire planet appears to be a cohesive organism.",
+				"immediate_effect": {"reduce_all_hazard_levels": 1},
+				"endgame_bonus": "isolation"
+			},
+			{
+				"min": 71, "max": 80,
+				"id": "signs_of_genetic_modification", "name": "Signs of Genetic Modification",
+				"description": "It becomes clear to you that the Lifeforms on this world are the result of intentional genetic modification.",
+				"immediate_effect": {"augmentation_points": 5},
+				"endgame_bonus": "ascension"
+			},
+			{
+				"min": 81, "max": 90,
+				"id": "terraforming", "name": "Terraforming",
+				"description": "The world underwent massive terraforming efforts on a scale that is beyond our technological reach.",
+				"immediate_effect": {"build_points": 10},
+				"endgame_bonus": "loyalty"
+			},
+			{
+				"min": 91, "max": 100,
+				"id": "warzone", "name": "Warzone",
+				"description": "The world bears the scars of a massive conflict fought here with weapons beyond our understanding.",
+				"immediate_effect": {"grunts": 4, "research_points": 3},
+				"endgame_bonus": "independence"
+			}
+		]
+	}
+}

@@ -1,0 +1,149 @@
+{
+	"_source": "Planetfall pp.149-153, Generating Tactical Enemies + Enemy Weapons",
+	"_description": "Campaign begins with 3 Tactical Enemies. One specialist always. 6+ enemies = 1 leader (1 KP). Bosses only in Strike missions (2 KP, +1 Combat, +1 Toughness). Split combat/toughness: first=grunts, second=leaders+specialists.",
+	"leader_rules": {
+		"threshold": 6,
+		"leader_kp": 1,
+		"boss_kp": 2,
+		"boss_combat_bonus": 1,
+		"boss_toughness_bonus": 1
+	},
+	"enemy_types": [
+		{
+			"min": 1, "max": 12,
+			"id": "outlaws", "name": "Outlaws",
+			"number": "2D3+3", "speed": 4, "combat_skill": [0], "toughness": [3], "panic": "1-2",
+			"description": "All manner of bandits, thieves and raiders trying to make a living by stealing your stuff.",
+			"special_rule": "fragile_discipline",
+			"special_rule_description": "If total outlaw casualties exceed 4 at the end of the turn, Panic range becomes 1-3."
+		},
+		{
+			"min": 13, "max": 22,
+			"id": "hostile_colonists", "name": "Hostile colonists",
+			"number": "1D3+5", "speed": 4, "combat_skill": [0], "toughness": [3], "panic": "1/1-2",
+			"description": "A rival group trying to muscle in on your claim and figuring that violence will deter you.",
+			"special_rule": "variable_motivation",
+			"special_rule_description": "When setting up, roll 1D6 to establish their level of determination. On 1-2, they will have a Panic range of 1; on 3-6, they will have a Panic range of 1-2."
+		},
+		{
+			"min": 23, "max": 30,
+			"id": "nomad_patrol", "name": "Nomad patrol",
+			"number": "1D3+5", "speed": 6, "combat_skill": [0, 1], "toughness": [3, 4], "panic": "1-2",
+			"description": "Some colonies are abandoned as the locals take to the wilderness. Nomad remnants often react extremely aggressively to renewed attempts.",
+			"special_rule": "keen_shots",
+			"special_rule_description": "Nomads firing from behind cover may reroll an initial 1 on the shooting dice."
+		},
+		{
+			"min": 31, "max": 39,
+			"id": "remnant_colonists", "name": "Remnant colonists",
+			"number": "1D6+3", "speed": 4, "combat_skill": [0], "toughness": [3], "panic": "1-3",
+			"description": "A prior colonization attempt here failed and the remnants have descended into barbarism.",
+			"special_rule": "blood_crazed",
+			"special_rule_description": "At the end of any battle round where Remnant colonists had figures removed due to Panic, the Panic range is reduced by 1 step (to 1-2, then 1, and finally 0)."
+		},
+		{
+			"min": 40, "max": 49,
+			"id": "renegades", "name": "Renegades",
+			"number": "1D3+5", "speed": 4, "combat_skill": [0], "toughness": [3, 4], "panic": "1-2",
+			"description": "The worst and most hardened types of outlaws.",
+			"special_rule": "mob_rules",
+			"special_rule_description": "A Renegade with any allies within 2 inches counts as +1 to Combat Skill when brawling."
+		},
+		{
+			"min": 50, "max": 61,
+			"id": "pirates_inexperienced", "name": "Pirates (Inexperienced)",
+			"number": "1D3+6", "speed": 4, "combat_skill": [0, 1], "toughness": [3], "panic": "1-2",
+			"description": "The difference between an outlaw and a pirate is that pirates have a ship.",
+			"special_rule": "lack_of_tactics",
+			"special_rule_description": "Each Enemy Phase, roll 1D6 and count back from the closest pirate to your battlefield edge. The selected figure will not move, but may fire normally."
+		},
+		{
+			"min": 62, "max": 71,
+			"id": "mysterious_raiders", "name": "Mysterious raiders",
+			"number": "1D3+4", "speed": 5, "combat_skill": [1], "toughness": [4], "panic": "1",
+			"description": "A strange group decked out in mysterious uniforms that you do not recognize.",
+			"special_rule": "intense_firepower",
+			"special_rule_description": "Randomly select a figure each Enemy Phase; they may fire twice. If they have an enemy in sight when they activate, they will remain stationary when doing so, otherwise they move normally and then fire twice if able."
+		},
+		{
+			"min": 72, "max": 78,
+			"id": "pirates_hardened", "name": "Pirates (Hardened)",
+			"number": "1D3+5", "speed": 5, "combat_skill": [1], "toughness": [4], "panic": "1",
+			"description": "Getting to be a famous pirate means being tough enough to defeat the people who defeated the pirates that did not make it.",
+			"special_rule": "vacc_suits",
+			"special_rule_description": "6+ Saving Throw."
+		},
+		{
+			"min": 79, "max": 87,
+			"id": "alien_raiders", "name": "Alien raiders",
+			"number": "1D3+4", "speed": 4, "combat_skill": [0, 1], "toughness": [4], "panic": "1-2",
+			"description": "A raiding party from a minor, hostile alien species known only in nearby sectors.",
+			"special_rule": "slip_sideways",
+			"special_rule_description": "At the start of each Enemy Phase, the raider closest to any player figures is teleported 2D6 inches in a random direction. If they end up off-table, they do not return."
+		},
+		{
+			"min": 88, "max": 95,
+			"id": "kerin_landing_party", "name": "K'Erin landing party",
+			"number": "1D3+4", "speed": 4, "combat_skill": [1], "toughness": [4, 5], "panic": "1",
+			"description": "The K'Erin are a species priding themselves on never backing down from a struggle.",
+			"special_rule": "paramilitary",
+			"special_rule_description": "Leaders, Bosses, and Specialists have a 6+ Saving Throw. Champion: Leader has 2 KP as standard; Bosses have 3 KP."
+		},
+		{
+			"min": 96, "max": 100,
+			"id": "converted_recon_team", "name": "Converted recon team",
+			"number": "1D3+4", "speed": 4, "combat_skill": [1], "toughness": [4], "panic": "0",
+			"description": "The cybernetic creatures known as the Converted descend upon colonies to collect bodies, alive or dead, that can be upgraded into more Converted.",
+			"special_rule": "fearless",
+			"special_rule_description": "Not subject to Panic checks. Bolt-on armor: 6+ Saving Throw. Enhanced models: Converted Specialists have 1 KP."
+		}
+	],
+	"weapon_profiles": [
+		{"id": "auto_rifle", "name": "Auto rifle", "range": 24, "shots": 2, "damage": 0, "traits": []},
+		{"id": "blade", "name": "Blade", "range": 0, "shots": 0, "damage": 1, "traits": ["melee"]},
+		{"id": "colony_rifle", "name": "Colony rifle", "range": 18, "shots": 1, "damage": 0, "traits": []},
+		{"id": "hand_cannon", "name": "Hand cannon", "range": 6, "shots": 1, "damage": 2, "traits": ["pistol"]},
+		{"id": "hunting_rifle", "name": "Hunting rifle", "range": 30, "shots": 1, "damage": 1, "traits": ["heavy", "critical"]},
+		{"id": "military_rifle", "name": "Military rifle", "range": 24, "shots": 1, "damage": 0, "traits": []},
+		{"id": "rattle_gun", "name": "Rattle gun", "range": 24, "shots": 3, "damage": 0, "traits": ["heavy"]},
+		{"id": "ripper_sword", "name": "Ripper sword", "range": 0, "shots": 0, "damage": 2, "traits": ["melee"]},
+		{"id": "scrap_gun", "name": "Scrap gun", "range": 7, "shots": 1, "damage": 0, "traits": ["pistol"]},
+		{"id": "shatter_axe", "name": "Shatter axe", "range": 0, "shots": 0, "damage": 3, "traits": ["melee", "clumsy", "shockwave"]},
+		{"id": "shotgun", "name": "Shotgun", "range": 8, "shots": 1, "damage": 1, "traits": ["critical"]}
+	],
+	"weapon_traits": {
+		"clumsy": "If the opponent has higher base Speed, -1 brawling penalty.",
+		"critical": "A natural 6 to hit inflicts 2 hits on the target.",
+		"heavy": "-1 to hit penalty if moving and firing.",
+		"melee": "+2 brawling bonus as main weapon.",
+		"pistol": "+1 to brawling if used as main weapon.",
+		"shockwave": "A surviving target is knocked 1D6 inches backwards."
+	},
+	"grunt_weapons": {
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 1, "weapons": ["scrap_gun"]},
+			{"min": 2, "max": 2, "weapons": ["colony_rifle"]},
+			{"min": 3, "max": 3, "weapons": ["colony_rifle", "blade"]},
+			{"min": 4, "max": 6, "weapons": ["military_rifle"]}
+		]
+	},
+	"specialist_weapons": {
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 2, "weapons": ["auto_rifle"]},
+			{"min": 3, "max": 4, "weapons": ["hunting_rifle"]},
+			{"min": 5, "max": 6, "weapons": ["rattle_gun"]}
+		]
+	},
+	"leader_weapons": {
+		"_note": "Leaders carry the grunt weapon PLUS one roll on this table.",
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 1, "weapons": ["shatter_axe"]},
+			{"min": 2, "max": 3, "weapons": ["hand_cannon"]},
+			{"min": 4, "max": 5, "weapons": ["ripper_sword"]},
+			{"min": 6, "max": 6, "weapons": ["shotgun"]}
+		]
+	}
+}

@@ -278,7 +278,7 @@
 			"type": "infantry",
 			"org_slot": "troop",
 			"tier": "military",
-			"cost": 50,
+			"cost": 55,
 			"speed": 4,
 			"reactions": 2,
 			"combat_skill": 1,
@@ -291,7 +291,7 @@
 			"max_models": 6,
 			"weapons": ["military_rifle"],
 			"special_rules": [],
-			"_note": "4 soldiers + 1 sergeant. Base cost = 5x10pts",
+			"_note": "4 soldiers + 1 sergeant. Base cost = 4x10 + 15pts",
 			"upgrade_groups": [
 				{
 					"label": "Squad weapon (replace 1 rifle)",

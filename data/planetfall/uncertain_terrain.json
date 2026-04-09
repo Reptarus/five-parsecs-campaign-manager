@@ -1,0 +1,20 @@
+{
+	"_source": "Planetfall pp.137-138, Uncertain Terrain Features (Optional Rule)",
+	"_description": "For more unpredictable battlefields. Mission briefings specify how many to place. 3 inch diameter markers. Cannot fire across until revealed. Revealed when crew within 9 inches, or within 18 inches and LoS, at end of each battle round. Roll D100 to determine actual terrain.",
+	"reveal_range_close": 9,
+	"reveal_range_los": 18,
+	"marker_diameter": 3,
+	"entries": [
+		{"min": 1, "max": 15, "id": "plant_growths", "name": "Plant growths", "description": "These plants do not inhibit movement, but figures within the feature count as being in cover."},
+		{"min": 16, "max": 30, "id": "scatter_terrain", "name": "Cluster of scatter terrain", "description": "3-5 pieces of Scatter."},
+		{"min": 31, "max": 45, "id": "heavy_growth", "name": "Heavy growth", "description": "An Area terrain feature that provides cover. Example: Forest."},
+		{"min": 46, "max": 50, "id": "heavy_growth_concerning", "name": "Heavy growth (concerning)", "description": "An Area terrain feature that provides cover. If the mission uses Contacts, place one marker in the center."},
+		{"min": 51, "max": 55, "id": "heavy_growth_promising", "name": "Heavy growth (promising)", "description": "An Area terrain feature that provides cover. If a squad member enters the feature, roll 1D6. On 6, roll once on the Post-Mission Finds table."},
+		{"min": 56, "max": 65, "id": "difficult_going", "name": "Difficult going", "description": "Difficult ground; does not affect visibility. Example: Swamp."},
+		{"min": 66, "max": 70, "id": "difficult_going_concerning", "name": "Difficult going (concerning)", "description": "Difficult ground that does not affect visibility. If the mission uses Contacts, place one marker in the center."},
+		{"min": 71, "max": 75, "id": "difficult_going_promising", "name": "Difficult going (promising)", "description": "Difficult ground that does not affect visibility. If a squad member enters the feature, roll 1D6. On 6, roll once on the Post-Mission Finds table."},
+		{"min": 76, "max": 85, "id": "difficult_going_dense", "name": "Difficult going (dense)", "description": "Area feature that provides cover and acts as Difficult ground. Example: Thick forest or jungle."},
+		{"min": 86, "max": 95, "id": "high_ground", "name": "High ground", "description": "Hill or slope."},
+		{"min": 96, "max": 100, "id": "terrain_block", "name": "Terrain block", "description": "Block feature that cannot be entered but can be climbed, such as boulders."}
+	]
+}

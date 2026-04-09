@@ -1,0 +1,59 @@
+{
+	"_source": "Planetfall pp.143-145, Random Table Setup",
+	"_description": "3-step random battlefield generation. Step 1: Ground type. Step 2: Organize table into clusters (12 inch square, 9 clusters in 3x3 foot table). Step 3: Primary terrain per cluster + sub-features. Map adjustments: if sector has characteristic terrain, center cluster features it.",
+	"step_1_ground_type": {
+		"die": "D100",
+		"entries": [
+			{"min": 1, "max": 15, "id": "sand_gravel", "name": "Sand or gravel"},
+			{"min": 16, "max": 30, "id": "dirt_mud", "name": "Dirt or mud"},
+			{"min": 31, "max": 80, "id": "plant_growth", "name": "Plant growth such as grass"},
+			{"min": 81, "max": 95, "id": "rocky_hard", "name": "Rocky and hard ground"},
+			{"min": 96, "max": 100, "id": "alien_surface", "name": "Alien surface such as remnant construction"}
+		]
+	},
+	"step_2_cluster_organization": {
+		"default_cluster_size": 12,
+		"default_cluster_count": 9,
+		"default_table_size": "3x3 foot",
+		"randomize_count": {
+			"formula": "1D6-3",
+			"description": "If negative, reduce total clusters by this amount."
+		}
+	},
+	"step_3_cluster_type": {
+		"die": "D100",
+		"entries": [
+			{"min": 1, "max": 5, "id": "alien_ruin", "name": "Alien ruin", "description": "Remains of an ancient alien construction."},
+			{"min": 6, "max": 10, "id": "wreckage", "name": "Wreckage", "description": "Shuttle crash site, overgrown alien ship wreckage."},
+			{"min": 11, "max": 25, "id": "foliage", "name": "Foliage", "description": "Tall bushes, forest."},
+			{"min": 26, "max": 40, "id": "high_ground", "name": "High ground", "description": "Hills, dunes, or other raised ground."},
+			{"min": 41, "max": 50, "id": "liquid", "name": "Liquid", "description": "Streams, lakes, or swamp. Can be water or other liquids."},
+			{"min": 51, "max": 65, "id": "boulders", "name": "Boulders", "description": "Large rock formations."},
+			{"min": 66, "max": 80, "id": "rough_ground", "name": "Rough ground", "description": "Broken ground with many rocks or other hindrances."},
+			{"min": 81, "max": 85, "id": "facility", "name": "Facility", "description": "Colony structure such as a habitation shelter or mining drill."},
+			{"min": 86, "max": 95, "id": "open_ground", "name": "Open ground", "description": "Fairly open ground with a few scatter features."},
+			{"min": 96, "max": 100, "id": "dense_terrain", "name": "Dense terrain", "description": "Dense mass of forest, rocks, or other obscuring terrain."}
+		]
+	},
+	"step_4_cluster_sub_feature": {
+		"_note": "Roll for clusters with open space remaining. Completely filled clusters skip this step.",
+		"die": "D100",
+		"entries": [
+			{"min": 1, "max": 14, "id": "none", "name": "None", "description": "No additional feature is present."},
+			{"min": 15, "max": 20, "id": "crystals", "name": "Crystals", "description": "Man-sized crystals."},
+			{"min": 21, "max": 27, "id": "probe", "name": "Probe", "description": "The wreck of a probe, drone or similar."},
+			{"min": 28, "max": 37, "id": "bushes", "name": "Bushes", "description": "Some shrubs or bushes."},
+			{"min": 38, "max": 49, "id": "rocks", "name": "Rocks", "description": "A few big rocks."},
+			{"min": 50, "max": 60, "id": "trees", "name": "Trees", "description": "A few single trees."},
+			{"min": 61, "max": 67, "id": "puddle", "name": "Puddle", "description": "A small liquid feature."},
+			{"min": 68, "max": 73, "id": "crater", "name": "Crater", "description": "A crater from a meteor strike."},
+			{"min": 74, "max": 80, "id": "hedge", "name": "Hedge", "description": "Plants forming a natural barrier."},
+			{"min": 81, "max": 89, "id": "sign", "name": "Sign", "description": "Sign placed by colony scout."},
+			{"min": 90, "max": 94, "id": "peculiar_item", "name": "Peculiar item", "description": "Something strange and inexplicable. Be creative!"},
+			{"min": 95, "max": 100, "id": "remnants", "name": "Remnants", "description": "Animal carcass or bones."}
+		]
+	},
+	"map_adjustments": {
+		"description": "If your location on the world map is characterized by a particular terrain type, one cluster at the center of the table will always feature that terrain type."
+	}
+}

@@ -1,6 +1,6 @@
 # Tactics Data Model Reference
 
-## TacticsCampaignCore (Resource — To Be Created)
+## TacticsCampaignCore (Resource — IMPLEMENTED)
 - **class_name**: TacticsCampaignCore
 - **extends**: Resource
 - **SEPARATE from FiveParsecsCampaignCore, BugHuntCampaignCore, PlanetfallCampaignCore**

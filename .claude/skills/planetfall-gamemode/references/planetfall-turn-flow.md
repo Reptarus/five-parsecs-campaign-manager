@@ -44,46 +44,67 @@ Planetfall:  RECOVERY -> REPAIRS -> SCOUTS -> ENEMY_ACTIVITY -> COLONY_EVENTS ->
 Bug Hunt:    SPECIAL_ASSIGNMENTS -> MISSION -> POST_BATTLE
 ```
 
-## PlanetfallPhaseManager (To Be Created)
+## PlanetfallPhaseManager (IMPLEMENTED — Session 56)
 
-Should follow BugHuntPhaseManager pattern:
+File: `src/core/campaign/PlanetfallPhaseManager.gd` (extends Node)
+Follows BugHuntPhaseManager pattern exactly.
 
 ```gdscript
-enum PlanetfallPhase {
-    RECOVERY,           # 0
-    REPAIRS,            # 1
-    SCOUT_REPORTS,      # 2
-    ENEMY_ACTIVITY,     # 3
-    COLONY_EVENTS,      # 4
-    MISSION_DETERMINATION, # 5
-    LOCK_AND_LOAD,      # 6
-    PLAY_MISSION,       # 7
-    INJURIES,           # 8
-    EXPERIENCE,         # 9
-    MORALE,             # 10
-    TRACK_INFO,         # 11
-    REPLACEMENTS,       # 12
-    RESEARCH,           # 13
-    BUILDING,           # 14
-    INTEGRITY_CHECK,    # 15
-    CHARACTER_EVENT,    # 16
-    UPDATE_SHEET        # 17
+enum Phase {
+    NONE = -1,
+    RECOVERY = 0, REPAIRS = 1, SCOUT_REPORTS = 2, ENEMY_ACTIVITY = 3,
+    COLONY_EVENTS = 4, MISSION_DETERMINATION = 5, LOCK_AND_LOAD = 6,
+    PLAY_OUT_MISSION = 7, INJURIES = 8, EXPERIENCE = 9,
+    MORALE_ADJUSTMENTS = 10, TRACK_ENEMY_INFO = 11, REPLACEMENTS = 12,
+    RESEARCH = 13, BUILDING = 14, COLONY_INTEGRITY = 15,
+    CHARACTER_EVENT = 16, UPDATE_TRACKING = 17
 }
 
-signal phase_changed(phase: PlanetfallPhase)
-signal phase_completed(phase: PlanetfallPhase, result: Dictionary)
-signal turn_completed(turn_number: int)
+signal phase_changed(old_phase: int, new_phase: int)
+signal phase_completed(phase: int)
+signal campaign_turn_started(turn_number: int)
+signal campaign_turn_completed(turn_number: int)
+signal navigation_updated(can_back: bool, can_forward: bool)
 ```
+
+## Turn Panel Types (all 18 steps implemented)
+
+| Panel Class | Steps | Type |
+|-------------|-------|------|
+| `PlanetfallAutoResolveDialog` | 1, 4, 16, 18 | Reusable (configured via step_id) |
+| `PlanetfallSimpleDialog` | 2, 12, 13, 17 | Reusable (configured via step_id) |
+| `PlanetfallScoutReportsPanel` | 3 | Dedicated |
+| `PlanetfallColonyEventsPanel` | 5 | Dedicated |
+| `PlanetfallMissionPanel` | 6 | Dedicated |
+| `PlanetfallLockAndLoadPanel` | 7 | Dedicated |
+| Placeholder (battle delegation) | 8 | TacticalBattleUI handoff |
+| `PlanetfallPostBattlePanel` | 9-10-11 | Combined (sub-step tracking) |
+| `PlanetfallResearchPanel` | 14 | Dedicated |
+| `PlanetfallBuildingPanel` | 15 | Dedicated |
+
+## Core Systems (RefCounted, JSON-driven)
+
+| System | File | Loads |
+|--------|------|-------|
+| `PlanetfallEventResolver` | `src/core/systems/PlanetfallEventResolver.gd` | colony_events, enemy_activity, pf_character_events, injury_table, replacement_table JSONs |
+| `PlanetfallAugmentationSystem` | `src/core/systems/PlanetfallAugmentationSystem.gd` | augmentations.json |
+| `PlanetfallResearchSystem` | `src/core/systems/PlanetfallResearchSystem.gd` | research_tree.json |
+| `PlanetfallBuildingSystem` | `src/core/systems/PlanetfallBuildingSystem.gd` | buildings.json |
+| `PlanetfallArmorySystem` | `src/core/systems/PlanetfallArmorySystem.gd` | armory.json |
 
 ## Dashboard Navigation Flow
 
 ```
 MainMenu → "Planetfall" → SceneRouter "planetfall_dashboard" → PlanetfallDashboard
-  ├─ Colony Overview (stat strip: Turn, Morale, Integrity, Grunts, Milestones, SP)
+  ├─ Colony Overview (stat strip: Turn, Morale, Integrity, SP, Grunts, Milestones)
   ├─ Roster Cards (class pills, loyalty badges)
-  ├─ Colony Systems Hub (Buildings, Research, Map — TODO)
-  ├─ Start Turn → SceneRouter "planetfall_turn_controller" → PlanetfallTurnController
-  └─ Back to Main Menu
+  ├─ Colony Management Hub Cards:
+  │   ├─ Colony Status → PlanetfallColonyStatusPanel (overlay)
+  │   ├─ Armory → PlanetfallEquipmentPanel (overlay)
+  │   ├─ Enemy Tracker → PlanetfallEnemyTrackerPanel (overlay)
+  │   └─ Augmentations → PlanetfallAugmentationPanel (overlay, standalone mode)
+  ├─ Continue Campaign → SceneRouter "planetfall_turn_controller" → PlanetfallTurnController
+  └─ Main Menu
 ```
 
 ## Creation Wizard (6-Step Flow)

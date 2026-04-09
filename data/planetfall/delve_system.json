@@ -1,0 +1,51 @@
+{
+	"_source": "Planetfall pp.130-135, Delve Mission Systems",
+	"_description": "Delve missions explore ancient sites. 4 Delve Hazard markers placed initially, replenished to 4 per round. Hazards move 3 inches random per round from Round 2. Revealed when crew within 3 inches and LoS. 4 Delve Device markers in table quarters — 3 activations unlock Artifact location.",
+	"hazard_reveal": {
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 2, "id": "enemy", "name": "Enemy", "description": "Place a Sleeper figure. The Sleeper will immediately fire its weapon."},
+			{"min": 3, "max": 4, "id": "trap", "name": "Trap", "description": "Roll on the Delve Trap table."},
+			{"min": 5, "max": 6, "id": "environmental_hazard", "name": "Environmental hazard", "description": "Roll on the Environmental Hazard table."}
+		]
+	},
+	"traps": {
+		"die": "D100",
+		"entries": [
+			{"min": 1, "max": 8, "id": "turret", "name": "Turret", "description": "Place a gun turret where the Delve Hazard was. At the end of each Enemy Phase it fires at the closest visible non-Sleeper, non-bot figure. Roll to hit with +0 Combat Skill. It strikes with +0 Damage but negates Saving Throws. The turret can be knocked out: attackers must roll a 6 to hit with ranged attacks or a 5+ with a Melee attack (add Combat Skill normally). A damage roll of 4+ destroys the turret. A scientist moving into base contact can shut down the turret by rolling 4+ on a Savvy test."},
+			{"min": 9, "max": 19, "id": "paralysis", "name": "Paralysis", "description": "The character that revealed the Delve Hazard cannot move or take any actions when next activated. They may roll 1D6+Toughness with a score of 8+ shaking off the paralysis. Scouts may roll twice and take the best die result."},
+			{"min": 20, "max": 30, "id": "blockage", "name": "Blockage", "description": "The area within 1 inch of the Delve Hazard becomes Impassable. A scout may move into base contact to remove the Blockage by rolling 5+ on a Savvy test."},
+			{"min": 31, "max": 40, "id": "laser_beam", "name": "Laser beam", "description": "The character that revealed the Delve Hazard takes a weapons hit with +0 Damage."},
+			{"min": 41, "max": 46, "id": "explosive_trap", "name": "Explosive trap", "description": "Every character within 3 inches of the Delve Hazard takes a weapons hit with +0 damage. If there is partial cover between a character and the Hazard, a 4+ roll on 1D6 is required to score a hit."},
+			{"min": 47, "max": 60, "id": "sleepers", "name": "Sleepers!", "description": "Randomly place 2 Sleepers within 6 inches of the Hazard. They do not activate this round."},
+			{"min": 61, "max": 68, "id": "alarm", "name": "Alarm", "description": "Until the alarm is shut down, a Sleeper arrives at the center of a random battlefield edge each future Enemy Phase. Shutting down the alarm requires moving into base contact with the Delve Hazard and rolling 6+ on a Savvy test."},
+			{"min": 69, "max": 80, "id": "gas", "name": "Gas", "description": "Everyone within 1 inch of the Delve Hazard is affected by the gas. At the start of the Enemy Phase in the next battle round, the gas expands to 2 inch radius and then 3 inch radius during the following battle round. Affected characters must roll 5+ to avoid being overcome. Scouts may add +1 to the roll. Overcome characters will move in a random direction when they next activate and cannot take any actions. If an overcome character finishes their move outside the gas cloud, they must roll 3+ to recover (+1 bonus for scouts)."},
+			{"min": 81, "max": 92, "id": "security_systems", "name": "Security systems", "description": "Place one additional Delve Hazard marker in the center of the table and one at the center of a random battlefield edge."},
+			{"min": 93, "max": 100, "id": "lock_down", "name": "Lock-down", "description": "One of the Delve Devices (determined randomly) is locked down. To unlock it, you must make base contact with it and roll 6+ on a Savvy test. Once successful, you can then roll on the normal Delve Device table to determine how to activate it. A natural 1 on the unlock roll spawns a Sleeper at the center of a random battlefield edge."}
+		]
+	},
+	"environmental_hazards": {
+		"die": "D100",
+		"entries": [
+			{"min": 1, "max": 15, "id": "confused_signal", "name": "Confused signal", "description": "A random Delve Device is moved 1D6+2 inches in a random direction. Reroll if it would be off the table."},
+			{"min": 16, "max": 24, "id": "high_security", "name": "High security", "description": "The area within 4 inches and Line of Sight of the Delve Hazard becomes high security. Any non-Sleeper figure that is within this area at any point of their activation must make a D6 roll. On 6, a Sleeper is placed at the nearest battlefield edge point. The status continues for the rest of the mission."},
+			{"min": 25, "max": 39, "id": "unstable_area", "name": "Unstable Area", "description": "The area within 3 inches of the Delve Hazard is unstable. Any figure moving through this area or firing a weapon into, out of, or through the area must roll 1D6. On 6, the area partially collapses. All figures in the area take a Damage +0 hit and the ground is Difficult for the rest of the mission. A second collapse makes it Impassable and causes all in the area to become casualties. Scouts can move through an unstable area without risk but must roll if they begin or end a move in the area."},
+			{"min": 40, "max": 50, "id": "shock_discharge", "name": "Shock discharge", "description": "Place a marker where the Delve Hazard was. Immediately and at the start of each Enemy Phase, roll 1D6. All characters within that distance in inches, regardless of intervening terrain, are unable to move or take any actions when next activated. Sleepers and bots also take a +0 Damage hit, ignoring Saving Throws. A roll of 6 for the distance ends the Shock discharge."},
+			{"min": 51, "max": 67, "id": "toxic_fog", "name": "Toxic fog", "description": "The fog expands 2 inches in every direction (blocked by solid walls) and moves at the end of each Enemy Phase 1D6 inches in a random direction, moving along walls if it would otherwise be stopped. Any non-Sleeper/bot character touched by the fog takes a +1 Damage hit, ignoring Saving Throws. Scouts are hit for +0 Damage instead."},
+			{"min": 68, "max": 79, "id": "sleeper_reset", "name": "Sleeper reset", "description": "All Sleepers on the table are unable to activate in the next Enemy Phase. At the end of that Phase, place an additional Sleeper in the center of two random battlefield edges."},
+			{"min": 80, "max": 88, "id": "collapse", "name": "Collapse", "description": "The marker is replaced with rubble, blocking all access. If the rubble falls in a corridor, it blocks the width of the corridor. If it falls in a room or open space, it blocks an area 1.5 inch radius centered on that location. Any figure within the blocked area can leap out of the way."},
+			{"min": 89, "max": 100, "id": "radiation_buildup", "name": "Radiation build-up", "description": "The area within 3 inches and Line of Sight of the Delve Hazard is radioactive. Any non-Sleeper/bot that begins or ends an activation in the area takes a Damage +0 hit, ignoring any existing Saving Throws. Instead, a special Saving Throw is allowed for scouts (5+) and scientists (4+)."}
+		]
+	},
+	"device_activation": {
+		"_note": "When you have performed 3 activations (not counting Unusable), you unlock the Artifact location. Placed 2D6 inches randomly from center.",
+		"activations_required": 3,
+		"die": "D6",
+		"entries": [
+			{"min": 1, "max": 1, "id": "unusable", "name": "Unusable", "description": "Ignore this Device. Does not count toward activation total."},
+			{"min": 2, "max": 3, "id": "time_based", "name": "Time based activation", "description": "A character must be within 1 inch for two consecutive battle rounds to activate the device."},
+			{"min": 4, "max": 5, "id": "automatic", "name": "Automatic activation", "description": "No actions are required."},
+			{"min": 6, "max": 6, "id": "skill_based", "name": "Skill-based activation", "description": "A character must take an action and roll 1D6+Savvy scoring a 4+."}
+		]
+	}
+}

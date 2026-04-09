@@ -1,0 +1,79 @@
+{
+	"_source": "Planetfall pp.159-160, Lifeform Evolution Table",
+	"_description": "Evolutions occur each time you achieve a campaign Milestone. Randomly select a Lifeform Encounter table entry. If entry blank, note the evolution — applied when entry is filled. Same Lifeform can evolve multiple times but cannot get same evolution twice. All future encounters with the creature feature the improved profile.",
+	"entries": [
+		{
+			"min": 1, "max": 10,
+			"id": "enhanced_profile", "name": "Enhanced Profile",
+			"description": "The creatures become more adapted to your specific combat methods. If the Lifeform would normally have a Combat Skill of +0, it is raised to +1. This includes reduced Combat Skills for Lifeforms capable of shooting. Add +1 inch to Speed. If the creature has a Strike Power of +0 damage, it is raised to +1.",
+			"stat_changes": {"combat_skill_min": 1, "speed_bonus": 1, "damage_min": 1}
+		},
+		{
+			"min": 11, "max": 20,
+			"id": "poison", "name": "Poison",
+			"description": "All of the creature's attack forms apply a slow-acting nerve toxin. Any character struck by the creature receives a Poison marker per hit. When the character activates, roll 1D6 for each Poison marker. If any of them result in a natural 6, the character becomes a casualty. If they do not, remove ONE Poison marker. A scientist within 2 inches can attempt to help by spending their action and rolling 6+ on a 1D6+Savvy test. This removes one Poison marker.",
+			"mechanic": "poison_markers"
+		},
+		{
+			"min": 21, "max": 30,
+			"id": "spines", "name": "Spines",
+			"description": "The creature becomes covered in sharp spikes. Any character that loses a brawl against the creature takes an additional hit at +0 Damage.",
+			"mechanic": "brawl_retaliation"
+		},
+		{
+			"min": 31, "max": 40,
+			"id": "duplication", "name": "Duplication",
+			"description": "Through a psionic manifestation, the Lifeform is capable of reproducing spontaneously and immediately. At the start of each Enemy Phase, roll 1D6. If the roll is a 6, a random Lifeform duplicates. Place a second Lifeform adjacent to it. This ability does not activate if only Contacts are present on the table.",
+			"mechanic": "duplication",
+			"trigger_roll": 6,
+			"trigger_die": "D6"
+		},
+		{
+			"min": 41, "max": 50,
+			"id": "dramatic_transformations", "name": "Dramatic transformations",
+			"description": "The creatures are changing rapidly in an unpredictable fashion. Delete any Unique Ability the Lifeform lists on the Unique Abilities table. Instead, each battle where the creature is encountered, roll on the Unique Abilities table again and use the indicated ability during that battle.",
+			"mechanic": "reroll_unique_ability"
+		},
+		{
+			"min": 51, "max": 60,
+			"id": "summoning", "name": "Summoning",
+			"description": "The creatures emit a strange call that attracts more of them to the battlefield. At the start of each Enemy Phase, roll 1D6. If the roll is a 6, place a Contact on a random table edge. This ability does not activate if no Contacts are present on the table.",
+			"mechanic": "summoning",
+			"trigger_roll": 6,
+			"trigger_die": "D6"
+		},
+		{
+			"min": 61, "max": 70,
+			"id": "evasion", "name": "Evasion",
+			"description": "Whether due to agility, chemical fog or psionic effects, the creatures are becoming difficult to target. Each time a creature is fired upon, roll a D6. On a 6, it evades and is not hit. A creature that evades remains unable to be hit for the rest of the current battle round. If a creature evades in the Quick Actions Phase, it cannot attack when it activates in that Enemy Phase. Evading creatures can be hit by brawling attacks but cannot initiate it themselves.",
+			"mechanic": "evasion",
+			"evade_roll": 6
+		},
+		{
+			"min": 71, "max": 80,
+			"id": "darts", "name": "Darts",
+			"description": "The Lifeform can now launch razor-tipped darts at nearby opponents. Each creature will launch a dart at the end of its activation after all of its attacks and brawls have taken place. Darts have Range 9 inches, target the closest opponent visible, hit on a D6 roll of a 6, and inflict a Damage +0 hit.",
+			"mechanic": "ranged_attack",
+			"dart_range": 9,
+			"dart_hit": 6,
+			"dart_damage": 0
+		},
+		{
+			"min": 81, "max": 90,
+			"id": "bigger_leaders", "name": "Bigger Leaders",
+			"description": "There are more pack leaders, and they are getting bigger as well. The 4th Lifeform encountered in a mission is now a secondary leader with +1 KP. The 6th Lifeform encountered in a mission is a pack leader as usual. They receive +3 KP instead of the customary +2.",
+			"mechanic": "enhanced_leaders",
+			"secondary_leader_threshold": 4,
+			"secondary_leader_kp": 1,
+			"pack_leader_kp": 3
+		},
+		{
+			"min": 91, "max": 100,
+			"id": "tougher_specimens", "name": "Tougher Specimens",
+			"description": "The creatures are getting bigger and meaner. Each time a Lifeform is placed on the table, roll a D6. On 5-6, it has +1 KP.",
+			"mechanic": "random_toughness",
+			"tough_roll_min": 5,
+			"tough_kp_bonus": 1
+		}
+	]
+}

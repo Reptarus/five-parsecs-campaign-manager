@@ -1,5 +1,5 @@
 {
-	"_source": "Five Parsecs: Tactics rulebook pp.36-42",
+	"_source": "Five Parsecs: Tactics rulebook pp.175-178",
 	"weapons": {
 		"blade": {
 			"name": "Blade",
@@ -174,6 +174,15 @@
 			"cost": 3,
 			"traits": []
 		},
+		"primitive_weapon": {
+			"name": "Primitive Weapon",
+			"category": "rifle",
+			"range": 18,
+			"shots": 1,
+			"damage": 0,
+			"cost": 1,
+			"traits": ["Weak"]
+		},
 		"shotgun": {
 			"name": "Shotgun",
 			"category": "rifle",
@@ -306,7 +315,7 @@
 			"damage": 4,
 			"damage_multiplier": 4,
 			"cost": 30,
-			"traits": ["Minimum Range(12)", "Lock On", "Crewed"]
+			"traits": ["Minimum Range(12)", "Limited Supply", "Lock On", "Crewed"]
 		},
 		"20mm_autocannon": {
 			"name": "20mm Autocannon",
@@ -333,8 +342,7 @@
 			"shots": 1,
 			"damage": 1,
 			"cost": 15,
-			"traits": ["Area", "Indirect", "Crewed"],
-			"_note": "Minimum range 12\""
+			"traits": ["Area", "Indirect", "Minimum Range(12)", "Crewed"]
 		},
 		"heavy_plasma_gun": {
 			"name": "Heavy Plasma Gun",
