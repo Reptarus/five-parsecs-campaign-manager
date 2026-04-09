@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: April 8, 2026 (Session 51 — Character Events full wiring: status_effects persistence, 6 enforcement gates, dashboard pills, item mutation, Swift departure, upkeep exemption)
+**Last Updated**: April 8, 2026 (Session 52 — Strange Character gameplay wiring 16/16 complete + Upkeep failure system fix: Sick Bay exclusion, crew lockout, sell-for-upkeep, dismiss crew)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -22,6 +22,8 @@
 | UI/UX Design System | **7/7** sprints + **8/8** integration audit |
 | UI/UX Visual QA | **28/28** issues found & fixed (Session 16, Mar 27) |
 | Character Events (Session 51) | **Complete** — 30 D100 events, status_effects persistence, 9 effect types, 6 enforcement gates, dashboard indicators, turn countdown, item mutation, Swift departure |
+| Strange Character Gameplay (Session 52) | **Complete** — 16/16 types fully wired (was 9/16). Unity Agent per-turn 2D6, De-converted/Assault Bot armor saves, Hulker shooting restriction, Primitive weapon limits, Empath task bonus, Feeler mental breakdown, implant capacity per species |
+| Upkeep Failure System (Session 52) | **Complete** — Sick Bay crew excluded from upkeep, crew lockout wired+enforced (was defined but disconnected), sell-equipment-for-upkeep dialog, dismiss crew dialog, ship seizure threshold fix |
 | Scene Routing & Navigation | **100%** — 20 calls migrated, back buttons, per-turn auto-save |
 | Core/Compendium Wiring Audit | **6/6** sprints — Dashboard fix, phase data, loans, psionics, names |
 | Compendium Mechanics Wiring | **10/10** sprints (C-1 to C-10) — 22/37 flags fully wired, 12 files modified |
@@ -88,7 +90,7 @@ Three-tier tracking system:
 - **Center**: BattlefieldGridPanel (visual 4x4 sector grid with canvas-drawn terrain shapes), RoundTracker, PhaseDisplay
 - **Right sidebar** (tabbed): DiceDashboard, CombatCalculator, CombatSituationPanel, DualInputRoll, CheatSheetPanel, WeaponTableDisplay, TerrainSetupGuide
 
-**Battlefield Grid**: 4x4 sector map (A1-D4) generated from compendium_terrain.json themes. Each cell renders terrain features as geometric shapes (buildings, walls, rocks, trees, water, etc.) via Godot's `_draw()` canvas API. Cells show cover ratings, notable feature indicators, and clickable detail popovers.
+**Battlefield Grid** (Session 50 overhaul): 4x4 sector map (A1-D4) generated from `compendium_terrain.json` (7 themes). Terrain features rendered as ScalableVectorShape2D nodes (buildings, walls, rocks, trees, water, crystals, hazards, debris, scatter) with adaptive density scaling. 10 world traits modify terrain (barren strips vegetation, flat strips hills, crystals adds 2D6). Map labels show terrain rules badges `[L]`/`[I]`/`[B]`/`[F]`/`[A]`. Planet type auto-selects theme (DESERT→wasteland, JUNGLE→wilderness, etc.). Seeded RNG for reproducibility. 12-entry legend with HFlowContainer wrapping. Clickable sector popovers with Core Rules terrain category descriptions.
 
 ### Character System
 Consolidated to **1 canonical Character class** (`src/core/character/Character.gd`, ~1,900 lines) with thin redirects for backward compatibility:
@@ -112,14 +114,12 @@ Character features: stats (combat, reaction, toughness, speed, savvy, luck), ski
 ### Other Completed Systems
 - **Victory Checking**: 21 victory types with real campaign data
 - **Trading Backend**: EquipmentManager + GameStateManager integration
-- **Crew Morale**: MoraleSystem.gd (0-100 scale)
-- **Bot/Precursor Upgrades**: Credit-based advancement
 - **Brawling**: Full rules with weapon bonuses, natural 6/1
 - **Escalating Battles**: EscalatingBattlesManager wired into battle setup
 - **Story Phase**: StoryPhasePanel wired to EventManager with 8 event catalog + GameState effects
 - **End Phase**: Snapshot/delta mechanism for turn summaries
 - **Battle Setup Wizard**: One-click battle generation from EnemyGenerator + GameState crew data
-- **Accessibility**: Focus indicator (cyan ring), automation settings panel options toggle
+- **Accessibility**: Colorblind (4 modes), Reduced Motion, Font Size (S/M/L), focus indicator (cyan ring)
 - **PatronSystem**: Fully wired into WorldPhase (job generation) + PostBattlePhase (job completion)
 - **FactionSystem**: Wired into PostBattlePhase (rival reputation/faction standing) + WorldPhase (faction missions)
 - **StoryTrackSystem**: Activated in CampaignPhaseManager (DLC-gated, 6-tick story clock)
@@ -127,6 +127,11 @@ Character features: stats (combat, reaction, toughness, speed, savvy, luck), ski
 - **LegacySystem**: Archives campaigns on victory, applies legacy bonus on new campaigns
 - **Mission Generators**: Stealth, StreetFight, Salvage generators wired into WorldPhase job pipeline
 - **Equipment Comparison**: Side-by-side stat comparison panel in TradePhasePanel
+- **Character Events (Session 51)**: 30 D100 events, status_effects persistence, 9 multi-turn effect types, 6 enforcement gates, turn countdown, dashboard pills, item mutation
+- **Strange Characters (Session 52)**: 16/16 species gameplay fully wired — Unity Agent per-turn 2D6, De-converted/Assault Bot armor saves, Hulker shooting restriction, Primitive weapon limits, Empath task bonus, implant capacity per species
+- **Upkeep Failure (Session 52)**: Sick Bay excluded, crew lockout enforced, sell-for-upkeep dialog, dismiss crew dialog, ship seizure threshold
+- **Battle Reconciliation (Session 48d)**: CampaignTurnController is production path. BattleTransitionUI bypassed (was fake loading), tier selector in PreBattleUI, rich Dictionary result (20+ fields), seize initiative context, deployment condition enemy modifiers
+- **Terrain Generator (Session 50)**: 8-phase overhaul — adaptive shape placement (no clustering/overflow), 10 world traits, scatter visibility, legend completion, rules badges [L]/[I]/[B]/[A], seeded RNG, planet-type-to-theme mapping
 
 ### TweenFX Animation System (Phase 26)
 Integrated the **TweenFX addon** (v1.2, EvilBunnyMan) across 23 UI files for comprehensive UX animation polish. The addon provides 70 animations (50 one-shot, 20 looping) via autoload `TweenFX`.

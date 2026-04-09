@@ -130,6 +130,9 @@ func _process_turn_rollover() -> void:
 
 	var campaign: Resource = game_state.current_campaign
 
+	# --- Clear Upkeep Lockouts from Previous Turn (Core Rules p.76) ---
+	_clear_upkeep_lockouts(campaign)
+
 	# --- Victory Condition Lock-In (Core Rules p.64) ---
 	# "Cannot add or change once the campaign starts."
 	# Lock on first turn so creation wizard can still set them.
@@ -565,6 +568,20 @@ func _log_unity_agent_event(char_name: String, roll: int, outcome: String) -> vo
 		"description": desc,
 		"tags": ["unity_agent", "species_ability"],
 	})
+
+func _clear_upkeep_lockouts(campaign: Resource) -> void:
+	## Clear upkeep lockout flags from previous turn (Core Rules p.76).
+	## Lockouts last one campaign turn only.
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	for member in crew:
+		if member is Resource and member.has_meta("locked_out_this_turn"):
+			member.remove_meta("locked_out_this_turn")
+		elif member is Dictionary and member.get("locked_out_this_turn", false):
+			member.erase("locked_out_this_turn")
 
 func start_new_campaign_turn() -> void:
 	start_new_turn()

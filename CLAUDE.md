@@ -36,6 +36,10 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | PostBattle Orchestrator (Session 47) | CampaignPhaseManager rewired to 14-step decomposed PostBattlePhase (was using old 5-step stub) |
 | New World Arrival UI (Session 47) | World trait display, rival follow results, forge license mechanic, travel event mutations |
 | Character Events (Session 51) | 30 D100 events fully wired — status_effects persistence, UI JSON lookup, turn countdown, 6 enforcement gates, dashboard pills, item mutation |
+| Strange Characters (Session 52) | 16/16 species gameplay wired — Unity Agent, Bot armor saves, Hulker restriction, Primitive limits, Empath bonus, implant capacity |
+| Upkeep Failure (Session 52) | Sick Bay exclusion, crew lockout enforced, sell-for-upkeep, dismiss crew, ship seizure |
+| Battle Reconciliation (Session 48d) | CampaignTurnController is live path, BattleTransitionUI bypassed, tier in PreBattleUI, rich result (20+ fields) |
+| Terrain Generator (Session 50) | 8-phase overhaul: shape placement fixes, 10 world traits, scatter visible, legend, rules badges, seeded RNG, planet→theme |
 | Event Queue System | CrewTaskEventDialog (26 event types, state mutations wired) |
 | Story Points (Session 43) | Fully integrated — earning (turn+battle), 5 spend types, XP picker, dashboard sync, Stars of the Story |
 | Difficulty System | 5 Core Rules modes + 12 Compendium toggles + Progressive Difficulty (2 options) |
@@ -203,6 +207,16 @@ UpkeepPhaseComponent (Step 0, travel decision)
 - **Journal**: Battle entries tagged `red_zone`/`black_zone`, enriched with threat/time/mission details, BZ victory/failure milestone entries, license purchase milestone
 - **Broker discount**: License fee -2cr if crew has Broker training (checks `has_broker_training` property + `"Broker Training"` trait)
 
+### Upkeep Failure System (Core Rules p.76, Session 52)
+
+Full Core Rules p.76 compliance for upkeep payment:
+- **Sick Bay exclusion**: Crew in Sick Bay (`in_sick_bay` or `recovery_turns > 0`) excluded from upkeep count (both UpkeepSystem and UpkeepPhaseComponent)
+- **Sell for upkeep**: Interactive dialog lists stash items at 1 credit each via `EquipmentManager.sell_equipment()`. Deficit decrements per sale
+- **Crew lockout**: `UpkeepSystem.handle_upkeep_failure()` locks out 1 crew per credit short. Sets `locked_out_this_turn` on both Resource (meta) and Dictionary (key). Enforced in `CrewTaskComponent._get_eligible_crew()`
+- **Dismiss crew**: Dialog to kick out crew member, recover 1 item to stash. Available anytime during upkeep (not just failure)
+- **Lockout clearing**: `CampaignPhaseManager._clear_upkeep_lockouts()` runs at turn rollover
+- **Ship debt seizure**: `ShiplessSystem` uses `>=75` threshold (was `>75`)
+
 ### Story Point System (Core Rules pp.66-67, Session 43)
 
 Meta-currency for narrative control. Fully integrated into campaign loop.
@@ -281,9 +295,10 @@ BattlefieldGenerator (RefCounted, Compendium 5-step)
 - API stub: `character_base.gd`
 - **Stats are flat properties**: `combat`, `reaction`, `toughness`, `speed`, `savvy`, `luck` (NO `stats` sub-object)
 - `CharacterStats.gd` exists as a separate Resource but is NOT used as a property on characters
-- Implants: 11 types (Core Rules p.55), max 2 per character. `Character.create_implant_from_loot()` does name-match scan (no separate map constant)
-- **Strange Character fields**: `species_id` (JSON lookup key), `special_rules` (Array[String] from JSON), `xp_discount_stat` (Minor Alien)
-- **Helper methods**: `can_receive_luck()`, `can_earn_xp()`, `get_bonus_xp()`, `can_perform_task(task_id)`
+- Implants: 11 types (Core Rules p.55), species-dependent max via `get_max_implants()` (De-converted=3, default=2). `Character.create_implant_from_loot()` does name-match scan (no separate map constant)
+- **Strange Character fields**: `species_id` (JSON lookup key), `special_rules` (Array[String] from JSON), `xp_discount_stat` (Minor Alien), `unity_agent_trait_lost` (bool, persisted)
+- **Helper methods**: `can_receive_luck()`, `can_earn_xp()`, `get_bonus_xp()`, `can_perform_task(task_id)`, `get_task_bonus(task_id)` (Empath +1), `get_max_implants()` (species-dependent)
+- **Strange Character gameplay**: All 16 types fully wired (Session 52). Unity Agent per-turn 2D6 in `CampaignPhaseManager._process_unity_agent_favor()`. Feeler mental breakdown in `CharacterEventEffects`. Hulker/Primitive/Traveler/De-converted/Assault Bot ability flags in `BattleCalculations.get_species_combat_abilities()`
 - **SpeciesDataService.gd** (`src/core/character/SpeciesDataService.gd`): static RefCounted, lazy-loads `character_species.json`, provides `get_species()`, `get_forced_motivation()`, `can_roll_creation_tables()`, etc. Character.gd does NOT import it (load order) — uses inline string checks instead
 
 ### BaseCharacterResource Combat Interface (Session 10)

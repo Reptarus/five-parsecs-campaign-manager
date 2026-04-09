@@ -31,7 +31,15 @@ Any enum change MUST touch all three files simultaneously:
 
 Values and ordering must match across all three. Misalignment causes wrong enum-to-int mapping and silent data corruption.
 
-### 2. Engine.has_singleton() vs Autoloads (Session 30)
+### 2. Implant Capacity is Species-Dependent (Session 52)
+
+`const MAX_IMPLANTS` was replaced by `get_max_implants() -> int`. De-converted returns 3 (Core Rules p.19), default returns 2 (Core Rules p.55). All callers use the method now. Test updated in `test_equipment_classes.gd`.
+
+### 3. Strange Character Gameplay — All 16 Types Wired (Session 52)
+
+New Character.gd methods: `get_task_bonus(task_id)` (Empath +1), `get_max_implants()` (species-dependent). New export: `unity_agent_trait_lost: bool` (serialized). Armor saves: `get_natural_armor_save()` now handles De-converted (6+) and Assault Bot (5+). BattleCalculations has 5 new species cases. Feeler breakdown in CharacterEventEffects.
+
+### 4. Engine.has_singleton() vs Autoloads (Session 30)
 
 `Engine.has_singleton("GlobalEnums")` ALWAYS returns false for autoloads. They're scene tree nodes, not C++ singletons. `Character._get_validated_enum_string()` was fixed in Session 30 to use `Engine.get_main_loop().root.get_node_or_null("/root/GlobalEnums")` instead. Without this fix, all character background/motivation/class properties default to fallback values.
 

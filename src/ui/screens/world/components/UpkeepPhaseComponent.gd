@@ -7,6 +7,7 @@ class_name UpkeepPhaseComponent
 
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
+const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 
@@ -138,10 +139,18 @@ func calculate_upkeep_costs() -> Dictionary:
 	
 	# Calculate crew upkeep with world trait modifiers (Core Rules p.76, p.87-89)
 	# Exclude unavailable/departed crew — Business Elsewhere has no_upkeep (Core Rules p.128)
+	# Exclude Sick Bay crew — "You do not have to count crew in Sick Bay" (Core Rules p.76)
 	var upkeep_exempt_count: int = 0
 	for member in crew_data:
 		var member_status: String = str(member.get("status", "ACTIVE"))
 		if member_status in ["DEPARTED", "DEAD", "RETIRED", "MISSING"]:
+			upkeep_exempt_count += 1
+			continue
+		# Sick Bay exclusion (Core Rules p.76)
+		var in_sick_bay: bool = member.get("in_sick_bay", false)
+		if not in_sick_bay:
+			in_sick_bay = member.get("recovery_turns", 0) > 0
+		if in_sick_bay:
 			upkeep_exempt_count += 1
 			continue
 		for eff in member.get("status_effects", []):
@@ -279,24 +288,202 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 	return false
 
 func _handle_insufficient_funds(upkeep_results: Dictionary) -> void:
-	## Handle case where crew cannot afford upkeep
+	## Handle case where crew cannot afford upkeep (Core Rules p.76)
+	## First offer to sell equipment, then lock out 1 crew per credit short.
 	var deficit: int = upkeep_results.total_cost - upkeep_results.current_credits
+	# Store for the sell dialog callback
+	_pending_upkeep_results = upkeep_results
+	_pending_deficit = deficit
 
-	# QA-FIX: Show visible error dialog — previously only published an event bus
-	# message that was never rendered, causing silent failure on "Pay Upkeep" click
-	var msg := (
-		"Cannot pay upkeep! Need %d credits but only have %d (short %d).\n"
-		+ "Per Core Rules: crew may go into debt or members may leave."
-	) % [upkeep_results.total_cost, upkeep_results.current_credits, deficit]
-	_show_help_dialog("Insufficient Credits", msg)
+	# Check if stash has items to sell
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	var stash_items: Array = []
+	if eq_mgr and eq_mgr.has_method("get_ship_stash"):
+		stash_items = eq_mgr.get_ship_stash()
+
+	if stash_items.size() > 0:
+		# Offer to sell equipment first (Core Rules p.76)
+		_show_sell_for_upkeep_dialog(deficit, stash_items)
+	else:
+		# No items to sell — go straight to lockout
+		_finalize_upkeep_shortfall(upkeep_results, deficit)
+
+var _pending_upkeep_results: Dictionary = {}
+var _pending_deficit: int = 0
+var _sell_dialog: Window
+var _sell_deficit_label: Label
+var _sell_item_container: VBoxContainer
+
+func _show_sell_for_upkeep_dialog(
+	deficit: int, stash_items: Array
+) -> void:
+	## Show dialog allowing player to sell stash items to cover upkeep
+	## Core Rules p.76: "you may sell equipment to pay Upkeep.
+	## For each item sold, you gain 1 credit worth of Upkeep."
+	if _sell_dialog:
+		_sell_dialog.queue_free()
+
+	_sell_dialog = Window.new()
+	_sell_dialog.title = "Sell Equipment for Upkeep"
+	_sell_dialog.size = Vector2i(450, 400)
+	_sell_dialog.exclusive = true
+	_sell_dialog.close_requested.connect(_on_sell_dialog_done)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_sell_dialog.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	# Header
+	var header := Label.new()
+	header.text = (
+		"Short %d credit(s) for upkeep.\n"
+		+ "Sell items from stash (1 credit each):"
+	) % deficit
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	# Deficit counter
+	_sell_deficit_label = Label.new()
+	_sell_deficit_label.text = "Still need: %d credit(s)" % deficit
+	_sell_deficit_label.add_theme_color_override(
+		"font_color", Color("#D97706"))
+	vbox.add_child(_sell_deficit_label)
+
+	# Scrollable item list
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 220)
+	vbox.add_child(scroll)
+
+	_sell_item_container = VBoxContainer.new()
+	_sell_item_container.add_theme_constant_override("separation", 4)
+	scroll.add_child(_sell_item_container)
+
+	for item in stash_items:
+		var item_name: String = ""
+		if item is Dictionary:
+			item_name = item.get("name", item.get("item_name", "Unknown"))
+		elif item is Resource and "name" in item:
+			item_name = str(item.name)
+		else:
+			item_name = str(item)
+		var item_id: String = ""
+		if item is Dictionary:
+			item_id = item.get("id", item.get("equipment_id", ""))
+		elif item is Resource and "id" in item:
+			item_id = str(item.id)
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		_sell_item_container.add_child(row)
+
+		var name_lbl := Label.new()
+		name_lbl.text = item_name
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+
+		var sell_btn := Button.new()
+		sell_btn.text = "Sell (1 cr)"
+		sell_btn.custom_minimum_size = Vector2(90, 36)
+		sell_btn.pressed.connect(
+			_on_sell_item_pressed.bind(row, item_id, item_name))
+		row.add_child(sell_btn)
+
+	# Done button
+	var done_btn := Button.new()
+	done_btn.text = "Done Selling"
+	done_btn.custom_minimum_size = Vector2(0, 44)
+	done_btn.pressed.connect(_on_sell_dialog_done)
+	vbox.add_child(done_btn)
+
+	add_child(_sell_dialog)
+	_sell_dialog.popup_centered()
+
+func _on_sell_item_pressed(
+	row: HBoxContainer, item_id: String, item_name: String
+) -> void:
+	## Sell one item, reduce deficit
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("sell_equipment"):
+		var sold: int = eq_mgr.sell_equipment(item_id)
+		if sold > 0:
+			_pending_deficit -= 1
+			row.queue_free()
+			if _pending_deficit <= 0:
+				_sell_deficit_label.text = "Upkeep fully covered!"
+				_sell_deficit_label.add_theme_color_override(
+					"font_color", Color("#10B981"))
+			else:
+				_sell_deficit_label.text = (
+					"Still need: %d credit(s)" % _pending_deficit)
+
+func _on_sell_dialog_done() -> void:
+	## Close sell dialog and apply remaining deficit as lockout
+	if _sell_dialog:
+		_sell_dialog.queue_free()
+		_sell_dialog = null
+	var remaining_deficit: int = maxi(0, _pending_deficit)
+	_finalize_upkeep_shortfall(
+		_pending_upkeep_results, remaining_deficit)
+
+func _finalize_upkeep_shortfall(
+	upkeep_results: Dictionary, deficit: int
+) -> void:
+	## Apply partial payment and crew lockout for remaining deficit
+	# Pay what we can afford
+	var available: int = GameStateManager.get_credits()
+	var to_pay: int = mini(available, upkeep_results.total_cost)
+	if to_pay > 0:
+		GameStateManager.remove_credits(to_pay)
+
+	# Apply lockout if still short
+	var locked_names: Array = []
+	if deficit > 0:
+		var gs = get_node_or_null("/root/GameState")
+		if gs and gs.current_campaign:
+			var upkeep_sys = UpkeepSystemClass.new()
+			var consequences: Dictionary = (
+				upkeep_sys.handle_upkeep_failure(
+					gs.current_campaign, deficit))
+			locked_names = consequences.get(
+				"locked_out_members", [])
+			# Also mark in crew_data (Dictionary path)
+			for member in crew_data:
+				var mname: String = member.get(
+					"character_name", member.get("name", ""))
+				if mname in locked_names:
+					member["locked_out_this_turn"] = true
+
+	# Show consequences dialog
+	if deficit > 0 and locked_names.size() > 0:
+		var msg: String = "Short %d credit(s) after selling.\n\n" % deficit
+		msg += "The following crew refuse to work this turn:\n"
+		for n in locked_names:
+			msg += "  • %s\n" % n
+		msg += "\n(Core Rules p.76)"
+		_show_help_dialog("Upkeep Shortfall", msg)
+	elif deficit <= 0:
+		_show_help_dialog("Upkeep Covered",
+			"Equipment sales covered the upkeep shortfall!")
+
+	# Mark upkeep as completed (partial payment — game continues)
+	upkeep_completed = true
+	current_upkeep_data = upkeep_results
 
 	if event_bus:
-		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.UPKEEP_ERROR, {
-			"error_type": "insufficient_funds",
-			"required": upkeep_results.total_cost,
-			"available": upkeep_results.current_credits,
-			"deficit": deficit
-		})
+		event_bus.publish_event(
+			CampaignTurnEventBus.TurnEvent.UPKEEP_ERROR, {
+				"error_type": "partial_payment",
+				"required": upkeep_results.total_cost,
+				"deficit": deficit,
+				"locked_out": locked_names
+			})
 
 ## Help System
 func _on_help_button_pressed() -> void:
@@ -1147,3 +1334,215 @@ func reset_upkeep_phase() -> void:
 	crew_data.clear()
 	_build_travel_section()
 	_update_ui_display()
+
+# ============================================================================
+# DISMISS CREW (Core Rules p.76)
+# "You can opt to kick out any crew member at this stage. If you do,
+#  you may pick one item they carry and return it to your Stash,
+#  but they take the rest of their equipment with them."
+# ============================================================================
+
+var _dismiss_dialog: Window
+var _dismiss_crew_list: VBoxContainer
+var _dismiss_equip_dialog: Window
+
+func show_dismiss_crew_dialog() -> void:
+	## PUBLIC API: Show crew dismissal dialog during upkeep phase
+	if _dismiss_dialog:
+		_dismiss_dialog.queue_free()
+
+	_dismiss_dialog = Window.new()
+	_dismiss_dialog.title = "Dismiss Crew Member"
+	_dismiss_dialog.size = Vector2i(400, 350)
+	_dismiss_dialog.exclusive = true
+	_dismiss_dialog.close_requested.connect(
+		func(): _dismiss_dialog.queue_free(); _dismiss_dialog = null)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_dismiss_dialog.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var header := Label.new()
+	header.text = (
+		"Select a crew member to dismiss.\n"
+		+ "You may keep 1 item they carry. (Core Rules p.76)")
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 200)
+	vbox.add_child(scroll)
+
+	_dismiss_crew_list = VBoxContainer.new()
+	_dismiss_crew_list.add_theme_constant_override("separation", 4)
+	scroll.add_child(_dismiss_crew_list)
+
+	for member in crew_data:
+		var mname: String = member.get(
+			"character_name", member.get("name", "Unknown"))
+		var status: String = str(member.get("status", "ACTIVE"))
+		if status in ["DEPARTED", "DEAD", "RETIRED"]:
+			continue
+		# Don't allow dismissing the captain
+		if member.get("is_captain", false):
+			continue
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		_dismiss_crew_list.add_child(row)
+
+		var name_lbl := Label.new()
+		name_lbl.text = mname
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+
+		var dismiss_btn := Button.new()
+		dismiss_btn.text = "Dismiss"
+		dismiss_btn.custom_minimum_size = Vector2(80, 36)
+		dismiss_btn.pressed.connect(
+			_on_dismiss_crew_pressed.bind(member))
+		row.add_child(dismiss_btn)
+
+	var cancel_btn := Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.custom_minimum_size = Vector2(0, 44)
+	cancel_btn.pressed.connect(func():
+		_dismiss_dialog.queue_free(); _dismiss_dialog = null)
+	vbox.add_child(cancel_btn)
+
+	add_child(_dismiss_dialog)
+	_dismiss_dialog.popup_centered()
+
+func _on_dismiss_crew_pressed(member: Dictionary) -> void:
+	## Player selected a crew member to dismiss — show equipment pick
+	if _dismiss_dialog:
+		_dismiss_dialog.queue_free()
+		_dismiss_dialog = null
+
+	var equipment: Array = member.get("equipment", [])
+	if equipment.is_empty():
+		# No equipment — just dismiss
+		_execute_crew_dismissal(member, -1)
+		return
+
+	# Show equipment selection dialog (pick 1 to keep)
+	_dismiss_equip_dialog = Window.new()
+	_dismiss_equip_dialog.title = "Keep One Item"
+	_dismiss_equip_dialog.size = Vector2i(400, 300)
+	_dismiss_equip_dialog.exclusive = true
+	_dismiss_equip_dialog.close_requested.connect(func():
+		_dismiss_equip_dialog.queue_free()
+		_dismiss_equip_dialog = null)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	_dismiss_equip_dialog.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var mname: String = member.get(
+		"character_name", member.get("name", "Unknown"))
+	var header := Label.new()
+	header.text = (
+		"Dismissing %s. Pick 1 item to return to stash:"
+	) % mname
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	for i in range(equipment.size()):
+		var item = equipment[i]
+		var item_name: String = ""
+		if item is Dictionary:
+			item_name = item.get("name", item.get("item_name", "Item"))
+		else:
+			item_name = str(item)
+
+		var keep_btn := Button.new()
+		keep_btn.text = "Keep: %s" % item_name
+		keep_btn.custom_minimum_size = Vector2(0, 40)
+		keep_btn.pressed.connect(
+			_execute_crew_dismissal.bind(member, i))
+		vbox.add_child(keep_btn)
+
+	var none_btn := Button.new()
+	none_btn.text = "Keep Nothing"
+	none_btn.custom_minimum_size = Vector2(0, 40)
+	none_btn.pressed.connect(
+		_execute_crew_dismissal.bind(member, -1))
+	vbox.add_child(none_btn)
+
+	add_child(_dismiss_equip_dialog)
+	_dismiss_equip_dialog.popup_centered()
+
+func _execute_crew_dismissal(
+	member: Dictionary, keep_item_index: int
+) -> void:
+	## Execute the dismissal: recover 1 item, remove crew member
+	if _dismiss_equip_dialog:
+		_dismiss_equip_dialog.queue_free()
+		_dismiss_equip_dialog = null
+
+	var mname: String = member.get(
+		"character_name", member.get("name", "Unknown"))
+
+	# Recover 1 item to stash (Core Rules p.76)
+	if keep_item_index >= 0:
+		var equipment: Array = member.get("equipment", [])
+		if keep_item_index < equipment.size():
+			var kept_item = equipment[keep_item_index]
+			var eq_mgr = get_node_or_null("/root/EquipmentManager")
+			if eq_mgr and eq_mgr.has_method("add_to_ship_stash"):
+				eq_mgr.add_to_ship_stash(kept_item)
+
+	# Remove crew member from campaign
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign:
+		var members: Array = []
+		if "crew_data" in gs.current_campaign:
+			members = gs.current_campaign.crew_data.get("members", [])
+		var member_id: String = member.get(
+			"id", member.get("character_id", ""))
+		for i in range(members.size()):
+			var m = members[i]
+			var mid: String = ""
+			if m is Dictionary:
+				mid = m.get("id", m.get("character_id", ""))
+			elif m is Resource and "id" in m:
+				mid = str(m.id)
+			if mid == member_id and not mid.is_empty():
+				members.remove_at(i)
+				break
+
+	# Remove from local crew_data too
+	crew_data.erase(member)
+
+	# Journal entry
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "crew_departure",
+			"auto_generated": true,
+			"title": "Crew Dismissed: %s" % mname,
+			"description": (
+				"%s was dismissed during upkeep (Core Rules p.76)"
+			) % mname,
+			"tags": ["crew_dismissed", "upkeep"],
+		})
+
+	# Recalculate upkeep with smaller crew
+	current_upkeep_data = calculate_upkeep_costs()
+	_update_ui_display()
+	_show_help_dialog("Crew Dismissed",
+		"%s has been dismissed from the crew." % mname)

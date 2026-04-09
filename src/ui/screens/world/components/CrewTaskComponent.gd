@@ -183,6 +183,9 @@ func _get_eligible_crew() -> Array:
 				break
 		if is_in_sick_bay and not has_extra_action:
 			continue
+		# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
+		if crew_member.get("locked_out_this_turn", false):
+			continue
 		# Character Event restrictions (Core Rules pp.128-130)
 		var has_task_block := false
 		for eff in crew_member.get("status_effects", []):

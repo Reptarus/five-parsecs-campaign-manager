@@ -14,6 +14,23 @@ const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_diffic
 const ExpansionFeatureSectionScript = preload("res://src/ui/components/dlc/ExpansionFeatureSection.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 
+# Compendium Setup Sequence flags (pp.11-12) — promoted to dedicated card
+# Labels/descriptions sourced from DLCContentCatalog.gd + Compendium page refs
+const COMPENDIUM_SETUP_FLAGS: Array[Dictionary] = [
+	{"flag": "EXPANDED_LOANS", "label": "Loans: Who Do You Owe?",
+		"description": "Borrow credits with consequences — loan origin, interest, and enforcement (Compendium pp.152-158)"},
+	{"flag": "EXPANDED_FACTIONS", "label": "Expanded Factions",
+		"description": "More factions with unique traits and relationships (Compendium pp.148-153)"},
+	{"flag": "FRINGE_WORLD_STRIFE", "label": "Fringe World Strife",
+		"description": "Planetary instability tracking and strife events (Compendium pp.148-153)"},
+	{"flag": "DRAMATIC_COMBAT", "label": "Dramatic Combat",
+		"description": "Cinematic combat with narrative beats and dramatic moments (Compendium pp.89-95)"},
+	{"flag": "CASUALTY_TABLES", "label": "Casualty Tables",
+		"description": "Detailed casualty outcomes after battle (Compendium pp.96-100)"},
+	{"flag": "DETAILED_INJURIES", "label": "Detailed Post-battle Injuries",
+		"description": "Expanded injury and recovery system (Compendium pp.101-104)"},
+]
+
 # GDScript 2.0: Typed signals
 signal campaign_config_updated(config: Dictionary)
 signal campaign_setup_complete(config: Dictionary)
@@ -100,6 +117,7 @@ var _story_track_enabled: bool = false
 var _intro_campaign_enabled: bool = false
 var selected_difficulty_toggles: Array[String] = []
 var difficulty_toggle_checkboxes: Dictionary = {}  # id -> CheckBox
+var _compendium_setup_checkboxes: Dictionary = {}  # flag_name -> CheckBox
 
 # Progressive Difficulty (Compendium pp.30-31)
 var progressive_basic_checkbox: CheckBox
@@ -230,6 +248,7 @@ func _initialize_components() -> void:
 	_build_difficulty_section(flow)
 	_build_victory_conditions_section(flow)
 	_build_narrative_options_section(flow)
+	_build_compendium_setup_section(flow)
 	_build_expansion_features_section(flow)
 	_build_progressive_difficulty_section(flow)
 
@@ -529,11 +548,98 @@ func _update_narrative_combo_label() -> void:
 			_story_track_enabled and _intro_campaign_enabled)
 
 
+func _build_compendium_setup_section(parent: Control) -> void:
+	## Compendium Setup Sequence options (pp.11-12) — per-campaign toggles
+	## for features that the Compendium says should be chosen at setup time.
+	var dlc: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.has_method("is_feature_available"):
+		return
+
+	# Filter to only flags whose DLC pack is owned
+	var available_flags: Array[Dictionary] = []
+	for opt: Dictionary in COMPENDIUM_SETUP_FLAGS:
+		var flag_val: int = dlc.ContentFlag.get(opt["flag"], -1)
+		if flag_val >= 0 and dlc.is_feature_available(flag_val):
+			available_flags.append(opt)
+
+	if available_flags.is_empty():
+		return
+
+	_compendium_setup_checkboxes.clear()
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+
+	var prev_pack := ""
+	for opt: Dictionary in available_flags:
+		var flag_name: String = opt["flag"]
+		var flag_val: int = dlc.ContentFlag.get(flag_name, -1)
+
+		# Determine which pack this flag belongs to for group separators
+		var current_pack := ""
+		if flag_name in ["EXPANDED_LOANS", "EXPANDED_FACTIONS", "FRINGE_WORLD_STRIFE"]:
+			current_pack = "fixers_guidebook"
+		else:
+			current_pack = "freelancers_handbook"
+
+		# Add separator between DLC pack groups
+		if not prev_pack.is_empty() and current_pack != prev_pack:
+			var sep := HSeparator.new()
+			sep.modulate = COLOR_BORDER
+			content.add_child(sep)
+		prev_pack = current_pack
+
+		# CheckBox with touch-friendly sizing
+		var cb := CheckBox.new()
+		cb.text = opt["label"]
+		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		if flag_val >= 0:
+			cb.button_pressed = dlc.is_feature_enabled(flag_val)
+		cb.toggled.connect(_on_compendium_setup_toggled.bind(flag_name))
+		content.add_child(cb)
+		_compendium_setup_checkboxes[flag_name] = cb
+
+		# Description label
+		var desc := Label.new()
+		desc.text = opt["description"]
+		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(desc)
+
+	var card := _create_section_card(
+		"COMPENDIUM SETUP OPTIONS",
+		content,
+		"Per-campaign optional rules from the Compendium (pp.11-12)"
+	)
+	# Force full-width row in HFlowContainer
+	card.custom_minimum_size.x = 1000
+	parent.add_child(card)
+
+func _on_compendium_setup_toggled(enabled: bool, flag_name: String) -> void:
+	var dlc: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc:
+		return
+	var flag_val: int = dlc.ContentFlag.get(flag_name, -1)
+	if flag_val < 0:
+		return
+	dlc.set_feature_enabled(flag_val, enabled)
+	if dlc.has_method("serialize_campaign_flags"):
+		local_campaign_config["enabled_flags"] = dlc.serialize_campaign_flags()
+	campaign_config_data_changed.emit(local_campaign_config)
+
+
 func _build_expansion_features_section(parent: Control) -> void:
 	## Unified expansion features section — replaces separate
 	## difficulty toggles + compendium options sections.
 	var section: VBoxContainer = ExpansionFeatureSectionScript.new()
-	section.setup("campaign_creation")
+	# Exclude flags already shown in the Compendium Setup Options card above
+	var excluded: Array[String] = []
+	for opt: Dictionary in COMPENDIUM_SETUP_FLAGS:
+		excluded.append(opt["flag"])
+	section.setup("campaign_creation", excluded)
 	section.flags_changed.connect(_on_expansion_flags_changed)
 	section.upsell_requested.connect(_on_expansion_upsell)
 

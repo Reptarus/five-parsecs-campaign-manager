@@ -578,19 +578,13 @@ func _process_battle_setup() -> void:
 func _generate_mission_type() -> int:
 	## Generate random mission type — returns enum for campaign phase tracking.
 	## The actual D10 objective roll is done separately in _roll_mission_objective().
+	# DEPRECATED: This entire file is dead (Session 48c/50). Using PATRON enum
+	# for patron missions; all others return NONE since RIVAL/QUEST/INVASION/
+	# OPPORTUNITY don't exist in GlobalEnums.MissionType.
 	if GlobalEnums:
-		# Map from mission source to MissionType enum
 		if battle_setup_data.get("is_patron_mission", false):
 			return GlobalEnums.MissionType.PATRON
-		elif battle_setup_data.get("is_rival_battle", false):
-			return GlobalEnums.MissionType.RIVAL
-		elif battle_setup_data.get("is_quest_mission", false):
-			return GlobalEnums.MissionType.QUEST
-		elif battle_setup_data.get("is_invasion", false):
-			return GlobalEnums.MissionType.INVASION
-		else:
-			return GlobalEnums.MissionType.OPPORTUNITY
-	return 0
+	return GlobalEnums.MissionType.NONE if GlobalEnums else 0
 
 func _roll_mission_objective(mission_type: int) -> Dictionary:
 	## Roll D10 on the mission objective table (Core Rules pp.89-91).

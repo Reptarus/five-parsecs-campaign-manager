@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-04-08",
-  "current_phase": "Post-Battle Polish (v0.9.7-dev) — Session 51: Character Events full wiring (status_effects persistence, 9 effect types, 6 enforcement gates, dashboard pills, item mutation, Swift departure, upkeep exemption, get_deployable_crew()). Session 50: Terrain generator overhaul. 0 compile errors.",
+  "current_phase": "Post-Battle Polish (v0.9.7-dev) — Session 52: Strange Character gameplay 16/16 wired (7 gaps fixed: Unity Agent per-turn 2D6, armor saves, Hulker shooting, Primitive weapons, Empath tasks, Feeler breakdown, implant capacity). Upkeep failure system fixed (Sick Bay exclusion, crew lockout wired+enforced, sell-for-upkeep dialog, dismiss crew, seizure threshold). 11 files, 0 compile errors.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",

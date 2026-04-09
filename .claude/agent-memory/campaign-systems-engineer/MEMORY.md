@@ -27,18 +27,38 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 52: Strange Characters + Upkeep Fix (Apr 8, 2026)
+
+### CampaignPhaseManager Turn Rollover Sequence (Updated)
+
+`_process_turn_rollover()` now has 9 steps in order:
+1. **`_clear_upkeep_lockouts()`** — Clear previous turn's locked_out_this_turn flags (NEW)
+2. `_restore_crew_luck()` — Core Rules p.91
+3. `_process_sick_bay_recovery()` — Core Rules p.99
+4. `_process_character_event_effects()` — Core Rules pp.128-130
+5. `_process_patron_expiration()` — Core Rules pp.81-88
+6. Story Points reset + auto-award — Core Rules pp.66-67
+7. Planet effects expiry
+8. **`_process_unity_agent_favor()`** — Unity Agent 2D6 per turn (Core Rules p.20) (NEW)
+9. Victory condition check — Core Rules p.64
+
+### Upkeep Failure System (Session 52)
+
+`UpkeepSystem.handle_upkeep_failure()` was DEFINED but NEVER CALLED. Now wired:
+- UpkeepPhaseComponent `_handle_insufficient_funds()` → offers sell dialog → applies lockout
+- `locked_out_this_turn` set as Dictionary key (not just Resource meta) for CrewTaskComponent compatibility
+- CrewTaskComponent `_get_eligible_crew()` enforces lockout check
+- Lockout cleared at turn rollover by `_clear_upkeep_lockouts()`
+- Sick Bay crew excluded from upkeep count (both UpkeepSystem and UpkeepPhaseComponent)
+
+### Unity Agent "Call in a Favor" (Session 52)
+
+New methods on CampaignPhaseManager:
+- `_process_unity_agent_favor(campaign)` — 2D6 each turn, 10-12 success / 2-4 forced travel
+- `resolve_unity_agent_favor(choice)` — PUBLIC API for UI callback
+- `mark_unity_agent_trait_lost(member)` — permanent disable
+
 ## Session 51: Character Events Turn Rollover (Apr 8, 2026)
-
-### CampaignPhaseManager Turn Rollover Sequence
-
-`_process_turn_rollover()` now has 7 steps in order:
-1. `_restore_crew_luck()` — Core Rules p.91
-2. `_process_sick_bay_recovery()` — Core Rules p.99
-3. **`_process_character_event_effects()`** — Core Rules pp.128-130 (NEW)
-4. `_process_patron_expiration()` — Core Rules pp.81-88
-5. Story Points reset + auto-award — Core Rules pp.66-67
-6. Planet effects expiry
-7. Victory condition check — Core Rules p.64
 
 Step 3 decrements `status_effects[].duration` for all crew (dual Resource + Dictionary path). Expired effects trigger `_on_character_event_expired()` — handles Business Elsewhere XP return and item recovery D6+Savvy check.
 

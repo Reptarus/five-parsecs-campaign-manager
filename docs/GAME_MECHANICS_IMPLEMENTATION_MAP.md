@@ -1,8 +1,8 @@
 ﻿# Five Parsecs Campaign Manager - Complete Data Flow & Implementation Map
 
 **Created**: 2025-11-29
-**Last Updated**: 2026-04-07
-**Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation, Phase 16-22J Battle+UI sprints
+**Last Updated**: 2026-04-08
+**Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation, Phase 16-22J Battle+UI sprints, Sessions 35-52 (Red/Black Zones, Story Track, Equipment Pipeline, Battle Reconciliation, Terrain Generator, Character Events, Strange Characters, Upkeep Failure)
 **Purpose**: Map every functional mechanic to implementation status
 
 ---
@@ -25,6 +25,33 @@
 **Including Compendium DLC: 100% Complete (170/170)**
 
 ### Recent Updates (April 2026)
+
+**Strange Characters + Upkeep Failure — Session 52 (Apr 8)**:
+- 16/16 Strange Character species fully gameplay-wired (was 9/16): Unity Agent per-turn 2D6, De-converted/Assault Bot armor saves, Hulker shooting restriction, Primitive weapon limits, Empath task bonus, Feeler mental breakdown, implant capacity per species
+- Upkeep failure system: Sick Bay crew excluded, crew lockout enforced (was defined but disconnected), sell-equipment-for-upkeep dialog, dismiss crew dialog, ship seizure threshold fix
+
+**Character Events — Session 51 (Apr 8, 9 files)**:
+- 30 D100 character events fully wired with status_effects persistence on Character.gd
+- 9 multi-turn effect types (GROUNDED, SUSPICIOUS, VENGEFUL, SHAKEN, FATIGUED, INSPIRED, LUCKY_STREAK, VENDETTA, UNDER_INVESTIGATION)
+- 6 enforcement gates across battle, upkeep, trading, character phase, world phase, crew tasks
+- Dashboard status pills, turn rollover countdown, item mutation, Swift departure
+
+**Terrain Generator Overhaul — Session 50 (Apr 8, 5 files)**:
+- Shape placement fixes: adaptive density scaling (0.6x-1.0x), proportional rotation margins, grid-distributed fallback, hard sector clamping (no more overflow)
+- 10 world trait terrain modifications (was 2): barren strips vegetation, flat strips hills, crystals adds 2D6, haze/gloom/fog visibility notes, frozen/reflective_dust/null_zone combat notes
+- Map labels show terrain rules badges [L]/[I]/[B]/[F]/[A], scatter terrain visible as tiny dots, legend completed (12 entries), seeded RNG, planet-type-to-theme mapping
+
+**Battle Phase Reconciliation — Session 48d (Apr 8, 4 files)**:
+- CampaignTurnController confirmed as production battle path (BattlePhase.gd is dead)
+- Missing mechanics wired: SeizeInitiativeSystem, rival attack types, SMALL_ENCOUNTER enemy -1/-2, quest finale +1, initiative_context dict
+- UX streamlined from 5 screens to 3: BattleTransitionUI bypassed, tier selector moved to PreBattleUI
+- Rich Dictionary result from TacticalBattleUI (20+ fields: held_field, crew_participants, defeated_enemies, mission flags)
+- BattlePhase.gd deprecated, battle_phase_handler removed from CampaignPhaseManager, 3 dead PostBattlePhase files deleted
+
+**Equipment Effects Pipeline — Session 47 (Apr 8, 12+ files)**:
+- 12-phase equipment pipeline: fabricated traits fixed, armor saves un-broken, single-use removal, overheat tracking, 7 protective devices, consumables, gun mods, utility devices, on-board items, Compendium traits
+- PostBattlePhase rewired to 14-step decomposed orchestrator (was using old 5-step stub)
+- World Arrival UI: world trait display, rival follow results, forge license mechanic, 10 travel event mutations
 
 **Red & Black Zone Jobs — Phase 35 (Apr 7, 11 files)**:
 - Core Rules Appendix III (pp.148-151) fully integrated

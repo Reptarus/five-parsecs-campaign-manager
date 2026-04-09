@@ -170,7 +170,8 @@ static func process_debt_interest(campaign: Resource) -> Dictionary:
 	campaign.ship_debt += interest
 
 	# Check for seizure risk
-	var seizure_risk: bool = campaign.ship_debt > SEIZURE_DEBT_THRESHOLD
+	# Core Rules p.76: "75 credits or more" triggers seizure risk
+	var seizure_risk: bool = campaign.ship_debt >= SEIZURE_DEBT_THRESHOLD
 	var ship_seized: bool = false
 
 	if seizure_risk:

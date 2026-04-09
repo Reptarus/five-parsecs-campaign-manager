@@ -38,18 +38,27 @@ These are direct properties on Character. There is NO `stats` Dictionary or sub-
 # All downstream consumers (CrewPanel, EquipmentPanel, coordinator, FinalPanel) read from this.
 ```
 
-### Strange Character Species Data (Session 34, Core Rules pp.19-22)
+### Strange Character Species Data (Session 34+52, Core Rules pp.19-22)
 ```gdscript
 @export var species_id: String = ""           # JSON id for lookup (e.g., "de_converted")
 @export var special_rules: Array[String] = [] # Populated at creation from character_species.json
 @export var xp_discount_stat: String = ""     # Minor Alien: one stat costs 1 less XP (rolled at creation)
+@export var unity_agent_trait_lost: bool = false  # Core Rules p.20: lost if can't travel on 2-4 roll
 ```
 
-Helper methods on Character:
+Helper methods on Character (all 16/16 Strange Character types wired as of Session 52):
 - `can_receive_luck() -> bool` — false for emo_suppressed and bot types
 - `can_earn_xp() -> bool` — false for bot, assault_bot
 - `get_bonus_xp() -> int` — 1 for hopeful_rookie
 - `can_perform_task(task_id: String) -> bool` — false for mutant on recruit/find_patron
+- `get_task_bonus(task_id: String) -> int` — +1 for empath on recruit/find_patron (lost with implants)
+- `get_max_implants() -> int` — 3 for de_converted, 2 default (replaces const MAX_IMPLANTS)
+- `get_natural_armor_save() -> int` — 5 for bot/soulless/assault_bot, 6 for reptilian/de_converted
+
+Gameplay wiring (Session 52):
+- Unity Agent per-turn 2D6: `CampaignPhaseManager._process_unity_agent_favor()`
+- Feeler mental breakdown: `CharacterEventEffects` on "Scrap with Crewmate"
+- Battle ability flags: `BattleCalculations.get_species_combat_abilities()` — hulker (shooting_skill_zero), primitive (no_gun_sights/max_range_8/melee_elegant), traveler (speed_+2_retreating), de_converted/assault_bot (armor saves + savvy_frozen)
 
 Central lookup: `SpeciesDataService.gd` (static RefCounted, lazy-loads `character_species.json`). Used by CharacterCreator, gameplay systems, and UI. Character.gd does NOT import SpeciesDataService directly (load order issue) — helper methods use inline string checks instead.
 
@@ -129,7 +138,7 @@ var morale: int = 5
 var equipment: Array[String]
 var injuries: Array[Dictionary]  # {type, severity, recovery_turns, turn_sustained}
 var status_effects: Array[Dictionary]  # {type, name, description, duration, source_event} — Character Events (Core Rules pp.128-130)
-var implants: Array[Dictionary]  # {type, name, stat_bonus} — max 3
+var implants: Array[Dictionary]  # {type, name, stat_bonus} — max via get_max_implants() (2 default, 3 de_converted)
 var bot_upgrades: Array[String]
 ```
 

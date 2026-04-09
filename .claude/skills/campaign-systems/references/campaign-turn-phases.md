@@ -104,4 +104,30 @@ complete_phase_action(action: String) → void
 calculate_upkeep() → Dictionary    # {crew, equipment, ship, total}
 validate_current_campaign() → bool
 get_campaign_results() → Dictionary
+resolve_unity_agent_favor(choice: String) → void  # "remove_rival"/"gain_quest_rumor"/"gain_patron"
+mark_unity_agent_trait_lost(member: Variant) → void  # Permanent disable
 ```
+
+### Turn Rollover Sequence (_process_turn_rollover)
+
+9 steps executed once at turn boundary (Session 52):
+
+1. `_clear_upkeep_lockouts()` — Clear locked_out_this_turn from previous turn
+2. `_restore_crew_luck()` — Core Rules p.91
+3. `_process_sick_bay_recovery()` — Core Rules p.99
+4. `_process_character_event_effects()` — Core Rules pp.128-130
+5. `_process_patron_expiration()` — Core Rules pp.81-88
+6. Story Points reset + auto-award — Core Rules pp.66-67
+7. Planet effects expiry
+8. `_process_unity_agent_favor()` — Unity Agent 2D6 per turn (Core Rules p.20)
+9. Victory condition check — Core Rules p.64
+
+### Upkeep Failure System (Session 52, Core Rules p.76)
+
+Full failure flow: insufficient funds → sell-for-upkeep dialog → lockout 1 crew per credit short → lockout enforced in CrewTaskComponent → cleared at turn rollover.
+
+- `UpkeepSystem.handle_upkeep_failure(campaign, deficit)` — sets `locked_out_this_turn` (both Resource meta + Dictionary key)
+- `UpkeepPhaseComponent._handle_insufficient_funds()` — sell dialog + lockout application
+- `UpkeepPhaseComponent.show_dismiss_crew_dialog()` — kick out crew, recover 1 item (available anytime)
+- `CrewTaskComponent._get_eligible_crew()` — checks `locked_out_this_turn`
+- Sick Bay crew excluded from upkeep count (both systems)

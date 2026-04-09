@@ -1820,6 +1820,9 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	_stored_mission_data = mission_data
 	_populate_setup_tab(mission_data)
 
+	# Detect Bug Hunt mode from mission context
+	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
+
 	# UX streamline: If tier was pre-selected in PreBattleUI, skip the
 	# TIER_SELECT overlay and go straight to COMBAT stage.
 	if mission_dict.has("selected_tier"):
@@ -1832,9 +1835,6 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# NOTE: Deployment phase starts AFTER tier selection completes
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
-
-	# Detect Bug Hunt mode from mission context
-	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
 	_is_bug_hunt_mode = mission_dict.get("battle_mode", "") == "bug_hunt"
 	if _is_bug_hunt_mode:
 		_log_message("Bug Hunt mode — morale hidden, contact markers active", UIColors.COLOR_AMBER)

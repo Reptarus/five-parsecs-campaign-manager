@@ -64,7 +64,19 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	var ship_data = _get_ship_data(campaign_data)
 
 	# Calculate crew upkeep (rulebook p.76: 1 credit for 4-6 crew, +1 per crew past 6)
-	var crew_size: int = crew_members.size()
+	# Exclude Sick Bay crew from count (Core Rules p.76: "You do not have to count
+	# crew members in Sick Bay towards the Upkeep cost")
+	var crew_size: int = 0
+	for member in crew_members:
+		var in_sick_bay: bool = false
+		if member is Resource and "in_sick_bay" in member:
+			in_sick_bay = member.in_sick_bay
+		elif member is Dictionary:
+			in_sick_bay = member.get("in_sick_bay", false)
+			if not in_sick_bay:
+				in_sick_bay = member.get("recovery_turns", 0) > 0
+		if not in_sick_bay:
+			crew_size += 1
 
 	# Suspension Pod: exclude suspended crew from count (Core Rules p.62)
 	var original_crew_size: int = crew_size
@@ -186,9 +198,11 @@ func handle_upkeep_failure(campaign_data: Resource, credits_short: int = 1) -> D
 		elif locked_member is Dictionary:
 			member_name = locked_member.get("character_name", locked_member.get("name", "Unknown"))
 		consequences.locked_out_members.append(member_name)
-		# Mark as locked out for this turn
+		# Mark as locked out for this turn (Core Rules p.76)
 		if locked_member is Resource and locked_member.has_method("set_meta"):
 			locked_member.set_meta("locked_out_this_turn", true)
+		elif locked_member is Dictionary:
+			locked_member["locked_out_this_turn"] = true
 
 	return consequences
 

@@ -41,9 +41,11 @@ var _toggle_rows: Dictionary = {}  # flag_name -> ToggleRow
 var _pack_containers: Dictionary = {}  # dlc_id -> VBoxContainer
 var _acknowledged_packs: Dictionary = {}  # dlc_id -> bool
 var _pending_toggle: Dictionary = {}  # temp storage during disclaimer
+var _excluded_flags: Array[String] = []  # flags handled elsewhere (e.g. Compendium Setup card)
 
-func setup(mode: String = "campaign_creation") -> void:
+func setup(mode: String = "campaign_creation", exclude_flags: Array[String] = []) -> void:
 	_mode = mode
+	_excluded_flags = exclude_flags
 	_dlc_mgr = Engine.get_main_loop().root.get_node_or_null(
 		"/root/DLCManager") if Engine.get_main_loop() else null
 	add_theme_constant_override("separation", SPACING_LG)
@@ -159,6 +161,8 @@ func _build_pack_section(
 
 	for feat: Dictionary in features:
 		var flag_name: String = feat.get("flag", "")
+		if flag_name in _excluded_flags:
+			continue
 		var flag_val: int = -1
 		if _dlc_mgr:
 			flag_val = _dlc_mgr.ContentFlag.get(flag_name, -1)
