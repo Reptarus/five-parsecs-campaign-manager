@@ -1,0 +1,65 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.28-43",
+  "_description": "Planetfall-specific combat rules differences from 5PFH. Same 6-phase battle round, but with class abilities, fireteams, contacts, and no Luck.",
+  "battle_round_sequence": [
+    "Start Phase",
+    "Reaction Roll",
+    "Quick Actions Phase",
+    "Enemy Actions Phase",
+    "Slow Actions Phase",
+    "End Phase"
+  ],
+  "differences_from_5pfh": {
+    "no_luck_stat": "Luck does not exist in Planetfall. Story Points at campaign level replace it.",
+    "no_seize_initiative": "There is no Seize the Initiative roll in Planetfall.",
+    "class_based_activation": {
+      "scientist_bot_civvy_grunt": "Move + single action",
+      "scout": "Move + action (action can be before OR after move)",
+      "trooper_quick_phase": "Move + action normally, OR forego move to take one action in Quick Phase AND one in Slow Phase"
+    },
+    "fireteams": {
+      "size": 4,
+      "initiative": "Single die for entire fireteam. All activate in same phase.",
+      "formation_range": 2,
+      "formation_bonus": "+1 Reaction (3 instead of 2) when all members within 2\" during Reaction Roll. Min 2 grunts.",
+      "cannot_form_mid_battle": true,
+      "members_independent_actions": "Not required to take same actions or pick same targets."
+    },
+    "hesitation_rule": "Lifeforms and Tactical Enemies without visible opponent: D6, on 1 do not act. Slyn and Sleepers immune.",
+    "player_chars_no_panic": "Player characters are not subject to morale tests during battle. They fight or retreat as player wishes.",
+    "retreat": "Player character can abandon battle by moving into base contact with any battlefield edge. Removed from battle, cannot return.",
+    "scientist_reaction_bonus": "+1 Reaction die per scientist on the table. After assigning, excess discarded. Lost if scientist becomes casualty (next round start)."
+  },
+  "shooting": {
+    "hit_table": {
+      "within_6_open": 3,
+      "in_open": 5,
+      "in_cover": 6
+    },
+    "scatter_terrain": "If LoS crosses scatter terrain, a die roll of exactly the score needed to hit means scatter absorbed the shot. Move scatter from play."
+  },
+  "damage": {
+    "above_toughness": "Casualty",
+    "equal_toughness": "Knocked Sprawling",
+    "below_toughness": "Stunned",
+    "stun_max": 3,
+    "stun_effect": "Move OR action, not both. Does NOT knock out at 3rd marker (unlike 5PFH).",
+    "sprawling_effect": "No actions next activation except regain footing. Forfeit Saving Throw, Toughness -1."
+  },
+  "armor_saving_throws": {
+    "trooper_armor": 5,
+    "bot": 6,
+    "soulless": 6,
+    "combining_saves": "Multiple saves = single combined save one step better than lowest. E.g. 5+ and two 6+ = 4+."
+  },
+  "brawling": {
+    "each_roll": "1D6 + Combat Skill",
+    "melee_bonus": "+2 with Melee weapon",
+    "pistol_bonus": "+1 with Pistol",
+    "natural_6": "Feint — bonus hit on opponent",
+    "natural_1": "Fumble — opponent inflicts bonus hit",
+    "knock_back": "1\" per hit taken, directly away. >1\" also Knocked Sprawling.",
+    "exploitation_move": "Eliminating opponent = 2\" move. Humanoids cannot enter new brawl, Lifeforms can."
+  },
+  "slyn_battle_end": "Battle ends if, at end of round, only a single Slyn pair remains on table (they teleport out)."
+}

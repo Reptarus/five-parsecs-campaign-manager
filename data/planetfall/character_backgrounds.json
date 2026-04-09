@@ -1,0 +1,91 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.21-25",
+  "_description": "Character background tables: Motivation (all chars), Prior Experience (experienced only), Notable Events (experienced only, narrative flavor)",
+  "experienced_count": 4,
+  "inexperienced_count": 4,
+  "motivation_table": {
+    "_note": "D100, rolled for ALL 8 characters",
+    "entries": [
+      {"min": 1, "max": 11, "motivation": "Curiosity", "notes": "If you didn't go, someone else would get to see all the cool stuff instead."},
+      {"min": 12, "max": 22, "motivation": "Personal Achievement", "notes": "Promotion, glory, or a place in the history books."},
+      {"min": 23, "max": 34, "motivation": "Loyalty", "notes": "Doing your duty for your organization."},
+      {"min": 35, "max": 41, "motivation": "Danger", "notes": "It's not a death-wish if you survive."},
+      {"min": 42, "max": 50, "motivation": "Independence", "notes": "Striking out on your own."},
+      {"min": 51, "max": 56, "motivation": "Circumstance", "notes": "This is where you ended up."},
+      {"min": 57, "max": 63, "motivation": "Progress", "notes": "The advancement of the Human species."},
+      {"min": 64, "max": 72, "motivation": "Adventure", "notes": "Excitement, amazing sights, and thrills."},
+      {"min": 73, "max": 82, "motivation": "Exploration", "notes": "Mapping out the galaxy one world at a time."},
+      {"min": 83, "max": 89, "motivation": "Greater Cause", "notes": "Being part of something much greater than yourself."},
+      {"min": 90, "max": 95, "motivation": "Escape", "notes": "Getting away from something or someone."},
+      {"min": 96, "max": 100, "motivation": "Obligation", "notes": "Fulfilling a responsibility, promise, or expectation."}
+    ]
+  },
+  "prior_experience_table": {
+    "_note": "D100, rolled for 4 experienced characters only. Stat bonuses added to starting profile.",
+    "entries": [
+      {"min": 1, "max": 5, "experience": "Army", "notes": "Unity armed forces or a mercenary outfit", "bonus_type": "stat", "bonus_stat": "reactions", "bonus_value": 1},
+      {"min": 6, "max": 11, "experience": "Freelancer", "notes": "Salvage missions, questionable jobs, and a bit of light mercenary work", "bonus_type": "stat", "bonus_stat": "reactions", "bonus_value": 1},
+      {"min": 12, "max": 21, "experience": "Researcher", "notes": "Science, information gathering, and analysis (often corporate in nature)", "bonus_type": "stat", "bonus_stat": "savvy", "bonus_value": 1},
+      {"min": 22, "max": 27, "experience": "Trader", "notes": "Independent space merchant or sector-level corporation", "bonus_type": "xp", "bonus_value": 3},
+      {"min": 28, "max": 37, "experience": "Orphan Utility Program", "notes": "Raised and given an education by Unity", "bonus_type": "loyalty", "bonus_value": "loyal"},
+      {"min": 38, "max": 44, "experience": "Unity Agent", "notes": "Affiliated with one of the many clandestine covert operations programs maintained by Unity", "bonus_type": "loyalty", "bonus_value": "loyal"},
+      {"min": 45, "max": 48, "experience": "Bug Hunter", "notes": "Served in one of the Bug Hunting squads; flinches when motion trackers beep", "bonus_type": "kp", "bonus_value": 1},
+      {"min": 49, "max": 56, "experience": "Administration", "notes": "Dutiful work in sector administration or the Unity Bureaucracy itself", "bonus_type": "loyalty", "bonus_value": "loyal"},
+      {"min": 57, "max": 61, "experience": "Corporate", "notes": "Worked for one of the giga-corporations", "bonus_type": "stat", "bonus_stat": "savvy", "bonus_value": 1},
+      {"min": 62, "max": 70, "experience": "Explorer", "notes": "Independent explorer or part of the Unity scout fleet", "bonus_type": "stat", "bonus_stat": "speed", "bonus_value": 1},
+      {"min": 71, "max": 77, "experience": "Adventurer", "notes": "Often driven by thrills and the promise of riches", "bonus_type": "xp", "bonus_value": 3},
+      {"min": 78, "max": 82, "experience": "Records Deleted", "notes": "No records found: please contact sector-level Enforcement Command for details", "bonus_type": "stat", "bonus_stat": "toughness", "bonus_value": 1},
+      {"min": 83, "max": 87, "experience": "Enforcer", "notes": "Sector-level law enforcement or Unity Security", "bonus_type": "stat", "bonus_stat": "toughness", "bonus_value": 1},
+      {"min": 88, "max": 96, "experience": "Fleet", "notes": "Officer or enlisted on a Unity military vessel", "bonus_type": "xp", "bonus_value": 3},
+      {"min": 97, "max": 100, "experience": "Access Denied", "notes": "Please insert Unity ID chip of security level 5Z or adjacent. Unauthorized access is prohibited.", "bonus_type": "story_point", "bonus_value": 1}
+    ]
+  },
+  "notable_event_table": {
+    "_note": "D100, rolled for experienced characters only. No gameplay effect — narrative flavor only.",
+    "entries": [
+      {"min": 1, "max": 5, "event": "Journey", "notes": "You went somewhere far from home."},
+      {"min": 6, "max": 10, "event": "Establish family", "notes": "You established or expanded your family, adopted or otherwise."},
+      {"min": 11, "max": 15, "event": "Betrayal", "notes": "Someone betrayed you or you betrayed someone."},
+      {"min": 16, "max": 20, "event": "Personal advancement", "notes": "You made great strides as a person."},
+      {"min": 21, "max": 25, "event": "Disaster struck", "notes": "A dreadful disaster struck you, your organization, or your home."},
+      {"min": 26, "max": 30, "event": "Injured", "notes": "You were seriously injured or sick."},
+      {"min": 31, "max": 35, "event": "Joined a group", "notes": "You joined an organization, community, or philosophical movement."},
+      {"min": 36, "max": 40, "event": "Changed perspective", "notes": "Life changed how you look at things."},
+      {"min": 41, "max": 45, "event": "Went missing", "notes": "You spent a period of time when nobody knew where you were."},
+      {"min": 46, "max": 50, "event": "Did a good deed", "notes": "Without expecting a reward, you did the right thing."},
+      {"min": 51, "max": 55, "event": "Became a student", "notes": "You decided to learn a new skill or career."},
+      {"min": 56, "max": 60, "event": "Was framed", "notes": "You did nothing but you got blamed regardless."},
+      {"min": 61, "max": 65, "event": "Made a mistake", "notes": "You screwed up and it got noticed."},
+      {"min": 66, "max": 70, "event": "Progressed a career", "notes": "You made advances in your career."},
+      {"min": 71, "max": 75, "event": "Good luck", "notes": "Something lucky and unlikely happened."},
+      {"min": 76, "max": 80, "event": "Confrontation", "notes": "You had a showdown with a rival or threat."},
+      {"min": 81, "max": 85, "event": "Great danger", "notes": "You experienced great physical danger."},
+      {"min": 86, "max": 90, "event": "Narrow escape", "notes": "Once arrested, destitute, or nearly dead, you eventually came out ahead."},
+      {"min": 91, "max": 95, "event": "Second chance", "notes": "Someone gave you a second chance."},
+      {"min": 96, "max": 100, "event": "Change of lifestyle", "notes": "You changed something fundamental about your lifestyle."}
+    ]
+  },
+  "character_conversion": {
+    "_source": "Planetfall pp.26-27",
+    "from_5pfh": {
+      "stats": "keep_all",
+      "luck_to_kp": "1 KP per Luck point",
+      "equipment": "personal_only_if_planetfall_function",
+      "loyalty": "loyal",
+      "credits": "no_value"
+    },
+    "from_bug_hunt": {
+      "stats": "keep_all",
+      "tech_to_savvy": true,
+      "equipment": "none_military_property",
+      "loyalty": "loyal",
+      "reputation": "no_value"
+    },
+    "from_tactics": {
+      "stats": "keep_all_except_training",
+      "kp_adjustment": -1,
+      "equipment": "none_military_property",
+      "veteran_skills": "retain_if_applicable"
+    }
+  }
+}

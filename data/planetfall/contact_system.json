@@ -1,0 +1,39 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.41-42",
+  "_description": "Contact marker system — scanner blips representing unknown forces during battle",
+  "contact_movement": {
+    "description": "Roll 2D6 (Aggression=red, Random=white). Higher die determines direction and distance.",
+    "aggression_wins": "Move towards nearest squad member, distance = Aggression die in inches",
+    "random_wins": "Move in random direction, distance = Random die in inches. Not affected by terrain penalties but cannot cross Impassable.",
+    "tied": "Contact remains in place. If 1 or 2 Contacts on table, place a new Contact adjacent.",
+    "edge_behavior": "Contacts reaching table edge halt in place instead of leaving."
+  },
+  "contact_interactions": {
+    "enemy_ignores_contacts": true,
+    "contacts_block_movement": false,
+    "contacts_attackable": false,
+    "contacts_affected_by_hazards": false,
+    "contacts_affected_by_area_weapons": false
+  },
+  "contact_detection": {
+    "automatic": "Clear Line of Sight with no intervening terrain between squad member and Contact. Occurs at earliest point of move.",
+    "obscured_test": {
+      "timing": "End of each Enemy Phase",
+      "condition": "Contact in LoS but partially obscured by terrain",
+      "die": "D6",
+      "success": 4,
+      "note": "Single roll per Contact regardless of number of characters in LoS"
+    }
+  },
+  "contact_reveal_table": {
+    "_note": "D6, rolled when Contact is detected",
+    "entries": [
+      {"roll": [1, 2], "result": "None: False alarm", "spawns": 0},
+      {"roll": [3], "result": "None: Place 2 new Contacts randomly along battlefield edges", "spawns": 0, "new_contacts": 2},
+      {"roll": [4, 5], "result": "1 Lifeform from Campaign Lifeform Encounters table", "spawns": 1},
+      {"roll": [6], "result": "2 Lifeforms from Campaign Lifeform Encounters table", "spawns": 2}
+    ]
+  },
+  "revealed_enemy_timing": "Revealed enemies always act during the NEXT Enemy Phase. If revealed during an Enemy Phase, they cannot act during the current Phase.",
+  "placement": "Contact marker removed. Revealed figures placed where marker was. Additional figures within 1\" in cover if possible."
+}

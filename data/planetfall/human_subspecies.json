@@ -1,0 +1,95 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.19-20",
+  "_description": "Human sub-species available for colony crew characters",
+  "roster_limits": {
+    "max_feral": 1,
+    "max_other": 1,
+    "description": "You may include a maximum of one Feral plus one sub-species of choice (Hulker, Stalker, or a second Feral)."
+  },
+  "subspecies": {
+    "feral": {
+      "name": "Feral",
+      "description": "Genetic uplifts based on various Earth carnivores. Most commonly resemble humanoids with fur and wolf-like facial features and tails.",
+      "stat_modifications": {},
+      "abilities": [
+        {
+          "name": "Keen Senses",
+          "description": "All visibility limitations and detection ranges are increased by +1\" for a Feral.",
+          "effect": "detection_range_bonus",
+          "value": 1
+        },
+        {
+          "name": "Impetuous",
+          "description": "When making a Reaction Roll, if you roll a single 1, it must be assigned to a Feral character, if possible. If you roll multiple 1s, you are not required to do so.",
+          "effect": "reaction_roll_constraint"
+        }
+      ],
+      "class_restriction": null
+    },
+    "hulker": {
+      "name": "Hulker",
+      "description": "Gene-modded to have massive strength, towering over the average Human.",
+      "stat_modifications": {
+        "toughness": 5
+      },
+      "abilities": [
+        {
+          "name": "Poor Aim",
+          "description": "Hulkers have poor eyesight. They always count as having Combat Skill +0 when shooting and can receive no weapon hit bonuses.",
+          "effect": "shooting_combat_skill_cap",
+          "value": 0
+        },
+        {
+          "name": "Great Strength",
+          "description": "Hulkers do not suffer a penalty when using heavy weapons. In brawling combat, they can strike using their fists (Melee weapon, +1 Damage).",
+          "effect": "no_heavy_penalty_and_fist_melee",
+          "fist_damage": 1
+        }
+      ],
+      "class_restriction": null
+    },
+    "stalker": {
+      "name": "Stalker",
+      "description": "A rare gene-mod. Physically resembles an ordinary Human except for the blue coloration of their skin.",
+      "stat_modifications": {},
+      "abilities": [
+        {
+          "name": "Shift!",
+          "description": "Instead of moving normally, the Stalker may conduct a short-range teleport. Roll 1D6 and position the figure anywhere within this distance in inches. This is not regular movement, and the figure can shift through terrain and other figures. They may still take a normal action.",
+          "effect": "teleport_move",
+          "die": "D6"
+        }
+      ],
+      "class_restriction": null
+    },
+    "soulless_emissary": {
+      "name": "Soulless Emissary",
+      "description": "Soulless representatives supporting the colony as robotic support and security. Unusual diplomatic partnerships.",
+      "stat_modifications": {
+        "toughness": 4,
+        "savvy": 1
+      },
+      "abilities": [
+        {
+          "name": "Metal Construction",
+          "description": "The Soulless character receives a 6+ Saving Throw due to their metal construction.",
+          "effect": "saving_throw",
+          "value": 6
+        },
+        {
+          "name": "No Augmentations",
+          "description": "Soulless cannot receive any Augmentations.",
+          "effect": "augmentation_blocked"
+        },
+        {
+          "name": "Normal Injuries",
+          "description": "Due to the need for repairs, they use the normal injury table after missions. They cannot benefit from any accelerated healing and recovery.",
+          "effect": "no_accelerated_healing"
+        }
+      ],
+      "class_restriction": "trooper",
+      "max_count": 1,
+      "saving_throw": 6
+    }
+  }
+}

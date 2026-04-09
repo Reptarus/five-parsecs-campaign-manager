@@ -1,0 +1,183 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.14-20",
+  "_description": "Character class profiles, abilities, and weapon restrictions",
+  "classes": {
+    "scientist": {
+      "name": "Scientist",
+      "description": "Researchers, biologists, technicians. Carry AI-assisted modules for wide expertise and analytics.",
+      "profiles": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 1
+      },
+      "weapon_categories": ["civilian", "scientist"],
+      "abilities": [
+        {
+          "name": "Scientific Mind",
+          "description": "When making a Savvy test, scientists may roll the die twice and pick the best score."
+        },
+        {
+          "name": "Problem Solving",
+          "description": "When making a Reaction roll, you may roll one additional die for each scientist on the table. After assigning initiative dice to your characters, any excess dice are dropped."
+        }
+      ],
+      "can_progress": true,
+      "roster_character": true
+    },
+    "scout": {
+      "name": "Scout",
+      "description": "Specially trained scouts with superior battlefield mobility and terrain flexibility.",
+      "profiles": {
+        "reactions": 1,
+        "speed": 5,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "weapon_categories": ["civilian", "scout"],
+      "abilities": [
+        {
+          "name": "Flexible Combat Training",
+          "description": "Unlike other characters, when a scout activates, they may choose to take their action before or after moving."
+        },
+        {
+          "name": "Jump Jets",
+          "description": "When moving, a scout can choose to jump instead of walking. The distance traversed is equal to the normal movement speed. The jump must be in a straight line but can clear obstacles up to double human height and can be used to jump on and off things. Scouts can descend from any height without taking damage, but a drop beyond their movement speed uses up the entire activation."
+        }
+      ],
+      "can_progress": true,
+      "roster_character": true
+    },
+    "trooper": {
+      "name": "Trooper",
+      "description": "Veteran soldiers capable of dealing with an array of battlefield challenges, with enhanced combat abilities and wide military weaponry access.",
+      "profiles": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 1,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "weapon_categories": ["civilian", "trooper"],
+      "abilities": [
+        {
+          "name": "Trooper Armor",
+          "description": "All troopers wear protective armor plating, giving them a 5+ Armor Saving Throw."
+        },
+        {
+          "name": "Intense Combat Training",
+          "description": "A trooper activated in the Quick Action Phase may move and attack as normal or may choose to take two actions (such as firing twice). If they do, one action happens in the Quick Action Phase and the second in the Slow Action Phase."
+        }
+      ],
+      "saving_throw": 5,
+      "can_progress": true,
+      "roster_character": true
+    },
+    "grunt": {
+      "name": "Grunt",
+      "description": "Common soldiers organized into fireteams. Not tracked individually on the roster.",
+      "profiles": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "weapon_categories": ["grunt"],
+      "abilities": [],
+      "starting_count": 12,
+      "can_progress": false,
+      "roster_character": false,
+      "fireteam_size": 4,
+      "fireteam_formation_range": 2,
+      "fireteam_formation_reaction_bonus": 1,
+      "simplified_casualty": {
+        "die": "D6",
+        "dead_range": [1, 2],
+        "survive_range": [3, 4, 5, 6]
+      }
+    },
+    "civvy": {
+      "name": "Civvy",
+      "description": "Civilians with no special abilities. Can fill missing positions if short on people.",
+      "profiles": {
+        "reactions": 1,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 3,
+        "savvy": 0
+      },
+      "weapon_categories": ["civilian"],
+      "abilities": [],
+      "can_progress": false,
+      "roster_character": false
+    },
+    "bot": {
+      "name": "Colony Bot",
+      "description": "Incremental Productions Synth-Person (Eypee). Cybernetic assistant optimized for durability. One per campaign.",
+      "profiles": {
+        "reactions": 2,
+        "speed": 4,
+        "combat_skill": 0,
+        "toughness": 4,
+        "savvy": 0
+      },
+      "weapon_categories": ["civilian"],
+      "abilities": [
+        {
+          "name": "Made of Metal",
+          "description": "Bots receive a 6+ Armor Saving Throw when hit by attacks."
+        },
+        {
+          "name": "Mindless and Strong",
+          "description": "Bots are never affected by psionic influences that are not strictly physical in nature. They are never penalized or slowed down for carrying or hauling heavy items."
+        },
+        {
+          "name": "Replaceable",
+          "description": "Bots do not roll for post-battle injuries. If a bot becomes a casualty during the game, it is broken. Your facilities can repair or replace one bot every campaign turn."
+        }
+      ],
+      "saving_throw": 6,
+      "max_count": 1,
+      "can_progress": false,
+      "roster_character": false
+    }
+  },
+  "roster_rules": {
+    "initial_roster_size": 8,
+    "max_roster_size": 10,
+    "min_per_class": {
+      "scientist": 1,
+      "scout": 1,
+      "trooper": 1
+    },
+    "recommended_composition": {
+      "scientist": 2,
+      "scout": 2,
+      "trooper": 4
+    }
+  },
+  "class_training": {
+    "_source": "Planetfall p.26-27",
+    "description": "Imported characters may be trained into a Planetfall class. Up to 3 characters total (1 per class).",
+    "max_trainees": 3,
+    "auto_qualify_backgrounds": {
+      "trooper": ["Military Brat", "War-Torn Hell Hole", "Soldier", "Mercenary", "Enforcer"],
+      "scientist": ["Tech-guild", "Research outpost", "Scientist", "Technician", "Hacker"],
+      "scout": ["Long Term Space Mission", "Drifter", "Explorer", "Scavenger", "Negotiator"]
+    },
+    "aptitude_test": {
+      "die": "D6",
+      "fail": [1, 2],
+      "random_class": {
+        "roll": 3,
+        "trooper": [1, 2],
+        "scientist": [3, 4],
+        "scout": [5, 6]
+      },
+      "player_choice": [4, 5, 6]
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall p.52",
+  "_description": "D100 Expedition Type table — rolled during Campaign Setup to determine colony purpose",
+  "entries": [
+    {
+      "min": 1, "max": 15,
+      "type": "Scientific Mission",
+      "description": "Your task is to develop a colony that will be usable as a research station in the future.",
+      "effect": "You begin the campaign with 3 Research Points.",
+      "bonus": {"research_points": 3}
+    },
+    {
+      "min": 16, "max": 30,
+      "type": "Corporate Funded",
+      "description": "Unity Corporations have an interest in developing colonies for resource extraction and often fund missions of their own.",
+      "effect": "Your initial campaign map begins with 2 additional Investigation Sites.",
+      "bonus": {"extra_investigation_sites": 2}
+    },
+    {
+      "min": 31, "max": 60,
+      "type": "Unity Colonization Drive",
+      "description": "All is proceeding according to the directives of the Bureaucracy.",
+      "effect": "You begin the campaign with 3 units of Raw Materials.",
+      "bonus": {"raw_materials": 3}
+    },
+    {
+      "min": 61, "max": 80,
+      "type": "Independent Mission",
+      "description": "Unity approves a number of independent missions with the goal of later incorporating them into Unity proper.",
+      "effect": "You begin the campaign with 1 additional Story Point.",
+      "bonus": {"story_points": 1}
+    },
+    {
+      "min": 81, "max": 90,
+      "type": "Military Expedition",
+      "description": "You are paving the way for a future military outpost.",
+      "effect": "You begin the game with 2 additional grunts on your roster.",
+      "bonus": {"grunts": 2}
+    },
+    {
+      "min": 91, "max": 100,
+      "type": "Affinity Group",
+      "description": "The colony will be built around a philosophical principle or belief system.",
+      "effect": "You begin the campaign with 5 Morale points.",
+      "bonus": {"colony_morale": 5}
+    }
+  ]
+}

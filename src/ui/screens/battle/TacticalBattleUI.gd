@@ -184,6 +184,7 @@ var enemy_units: Array[TacticalUnit] = []
 var all_units: Array[TacticalUnit] = []
 var current_turn: int = 0
 var _is_bug_hunt_mode: bool = false
+var _is_planetfall_mode: bool = false
 ## Battle stage enum — controls progressive disclosure UI
 enum BattleStage {
 	TIER_SELECT,
@@ -2001,9 +2002,13 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# NOTE: Deployment phase starts AFTER tier selection completes
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
-	_is_bug_hunt_mode = mission_dict.get("battle_mode", "") == "bug_hunt"
+	var battle_mode: String = mission_dict.get("battle_mode", "")
+	_is_bug_hunt_mode = battle_mode == "bug_hunt"
+	_is_planetfall_mode = battle_mode == "planetfall"
 	if _is_bug_hunt_mode:
 		_log_message("Bug Hunt mode — morale hidden, contact markers active", UIColors.COLOR_AMBER)
+	elif _is_planetfall_mode:
+		_log_message("Planetfall mode — colony mission, contacts system active", UIColors.COLOR_CYAN)
 
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())

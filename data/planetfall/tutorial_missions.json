@@ -1,0 +1,88 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.44-45",
+  "_description": "3 initial tutorial missions played before Campaign Setup begins. No injury rolls during these. Failure doesn't block campaign — just miss the bonus.",
+  "missions": [
+    {
+      "id": "beacons",
+      "name": "Beacons",
+      "subtitle": "Scout Mission",
+      "table_size": "2x2",
+      "description": "The first to land are the scouts, establishing the beacons required for the rest of the colonization fleet to begin deploying. The scouts must brave terrible storms to complete their mission.",
+      "teaches": "Movement rules, Battle Round Sequence",
+      "forces": {
+        "characters": "Any scouts from your roster",
+        "class_filter": "scout",
+        "grunts_allowed": false
+      },
+      "setup": "Place 3 Beacon locations on any raised ground. If no raised ground, place in terrain features. Randomly determine battlefield edge, deploy scouts within 1\".",
+      "objective": "Move scouts to each Beacon location. When a scout ends an activation on a location, the Beacon is deployed. Once all 3 deployed, mission is complete.",
+      "obstacles": {
+        "type": "storm_clusters",
+        "spawn": "Start of each Enemy Phase, 1 spawns at table center unless 5 already on table",
+        "movement": "1D6\" in random direction during Enemy Phase. Remove if leaves table.",
+        "effect": "Scout contacted by storm cluster takes a +0 Damage hit."
+      },
+      "reward_success": {
+        "description": "2 units of Raw Materials when establishing colony",
+        "bonus": {"raw_materials": 2}
+      },
+      "reward_failure": "No bonus, but may proceed to next mission (second wave of scouts succeeds).",
+      "injury_rolls": false
+    },
+    {
+      "id": "analysis",
+      "name": "Analysis",
+      "subtitle": "Scientist Mission",
+      "table_size": "2x2",
+      "description": "The second landing is by the Science Team, establishing the parameters of the mission site and conducting detailed scientific scans.",
+      "teaches": "Contact rules",
+      "forces": {
+        "characters": "Your scientist characters",
+        "class_filter": "scientist",
+        "grunts_allowed": false
+      },
+      "setup": "Place 6 Contact markers fairly evenly around the table. Randomly select a battlefield edge. Deploy scientists within 1\".",
+      "objective": "Uncover at least 4 Contacts. Contacts that leave the table count against you. Revealing a Contact simply removes it (no Contact Reveal table roll).",
+      "reward_success": {
+        "description": "2 Research Points (3 if all 6 Contacts revealed)",
+        "bonus": {"research_points": 2},
+        "bonus_all_six": {"research_points": 3}
+      },
+      "reward_failure": "No bonus, may proceed to next mission.",
+      "injury_rolls": false
+    },
+    {
+      "id": "perimeter",
+      "name": "Perimeter",
+      "subtitle": "Trooper Mission",
+      "table_size": "2x2",
+      "description": "The third landing is by the troopers, establishing a defensive perimeter as hostile Lifeforms are rapidly headed towards your drop site.",
+      "teaches": "Full combat rules",
+      "forces": {
+        "characters": "Any troopers from your roster",
+        "class_filter": "trooper",
+        "grunts_allowed": false,
+        "equipment": "Standard trooper rifle from the Armory"
+      },
+      "setup": "Set up troopers anywhere on the table. Place 6 Lifeforms along a randomly selected battlefield edge within 1\".",
+      "objective": "Kill all 6 Lifeforms.",
+      "enemy_profile": {
+        "name": "Tutorial Lifeform",
+        "speed": 5,
+        "combat_skill": 1,
+        "toughness": 4,
+        "damage": 0,
+        "behavior": "Move directly towards nearest trooper for brawling combat",
+        "panic": "Not subject to Panic tests"
+      },
+      "reward_success": {
+        "description": "+3 Colony Morale",
+        "bonus": {"colony_morale": 3}
+      },
+      "reward_failure": "No bonus. Troopers evacuated, grunt squad clears site. May proceed to Campaign Setup.",
+      "injury_rolls": false
+    }
+  ],
+  "play_order": "Recommended order: Beacons → Analysis → Perimeter. Can be played in any order.",
+  "post_tutorial": "Once all three completed (or skipped), proceed to Campaign Setup (p.52)."
+}

@@ -1,0 +1,51 @@
+{
+  "_source": "Five Parsecs From Home: Planetfall pp.32-33",
+  "_description": "Optional AI Enemy Variations — D6 at start of Enemy Actions Phase. Applies to Lifeforms and Tactical Enemies only (NOT Slyn or Sleepers).",
+  "activation_roll": {
+    "die": "D6",
+    "entries": [
+      {"roll": 1, "result": "Roll on Ploy table"},
+      {"roll": [2, 3, 4], "result": "Nothing happens"},
+      {"roll": [5, 6], "result": "Roll on AI Action table"}
+    ]
+  },
+  "tactical_enemy_ploys": {
+    "_note": "D6, affects a single randomly selected enemy figure",
+    "entries": [
+      {"roll": 1, "name": "Redeploy", "description": "The target is moved to the nearest terrain feature and placed on the highest point."},
+      {"roll": 2, "name": "Take charge", "description": "The next Panic die rolled by the enemy side is ignored."},
+      {"roll": 3, "name": "Recovery", "description": "The target removes all Stun and Sprawling markers. It then activates normally. Must target enemy with Stun/Sprawling. No effect if none eligible."},
+      {"roll": [4, 5], "name": "Reinforcements", "description": "An additional enemy with basic weapons arrives at the center of the enemy battlefield edge. The arriving figure does not activate this phase."},
+      {"roll": 6, "name": "Concentrated attack", "description": "Affects a player character. Any enemy that can see this character will fire on them this phase and receive a +1 hit bonus."}
+    ]
+  },
+  "tactical_enemy_actions": {
+    "_note": "D6, affects a single randomly selected enemy figure",
+    "entries": [
+      {"roll": 1, "name": "Hold position", "description": "The target will remain in place and defend their current position for the rest of the battle (unless selected as target for another AI action). They will move to cover within one move if in the open."},
+      {"roll": 2, "name": "Hesitate", "description": "The target does not act this phase unless they have opponents within 6\", in which case they remain in place and fire."},
+      {"roll": [3, 4], "name": "Brief halt", "description": "The target does not move this phase but may fire normally."},
+      {"roll": 5, "name": "Advance", "description": "The target will move towards the nearest terrain feature closer to the players battlefield edge, rushing if needed."},
+      {"roll": 6, "name": "Group up", "description": "The target will move towards the nearest ally and try to get within 2\". If already within 2\" of an ally, they will stick with them this activation."}
+    ]
+  },
+  "lifeform_ploys": {
+    "_note": "D6, affects a single randomly selected enemy figure",
+    "entries": [
+      {"roll": 1, "name": "Call for more", "description": "The target remains in place and takes no actions this phase. When they activate next, place an additional enemy within 1\" of their position. Interrupted if knocked Sprawling or killed."},
+      {"roll": 2, "name": "Hide", "description": "Remove the target from the table and place a Contact in the nearest terrain feature."},
+      {"roll": 3, "name": "Frenzy", "description": "The target removes all Stun and Sprawling markers. It will move at full speed towards the nearest opponent and may engage in brawling combat."},
+      {"roll": 4, "name": "Lurk", "description": "The target does not activate this phase. Until it has activated again, a -1 hit penalty applies to shots against it. When it activates again, roll for a lifeform ploy and apply the result."},
+      {"roll": [5, 6], "name": "Flanking attack", "description": "An additional Contact is placed at the center of a random battlefield edge. The new arrival does not activate this phase."}
+    ]
+  },
+  "lifeform_actions": {
+    "_note": "D6, affects a single randomly selected enemy figure",
+    "entries": [
+      {"roll": 1, "name": "Focus", "description": "The target randomly picks a visible opponent (closest if none visible). It will continue moving towards and trying to kill that target for the rest of the battle. Interrupted if same figure is target of another AI action."},
+      {"roll": 2, "name": "Hesitate", "description": "The target takes no actions this round but recovers normally if Stunned or Sprawling."},
+      {"roll": [3, 4], "name": "Move to cover", "description": "This activation, the target will move to the closest terrain feature that provides cover. If already in cover, it must remain there."},
+      {"roll": [5, 6], "name": "Move to flank", "description": "This activation, the target moves towards the nearest neutral battlefield edge, trying to remain out of sight or in cover."}
+    ]
+  }
+}

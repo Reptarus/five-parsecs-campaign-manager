@@ -476,6 +476,12 @@ func load_campaign(path: String) -> Dictionary:
 		)
 		if BugHuntCore:
 			loaded = BugHuntCore.load_from_file(path)
+	elif campaign_type == "planetfall":
+		var PlanetfallCore = load(
+			"res://src/game/campaign/PlanetfallCampaignCore.gd"
+		)
+		if PlanetfallCore:
+			loaded = PlanetfallCore.load_from_file(path)
 	else:
 		loaded = FiveParsecsCampaignCore.load_from_file(path)
 	if not loaded:

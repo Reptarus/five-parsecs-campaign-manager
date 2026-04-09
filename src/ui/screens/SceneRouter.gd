@@ -85,6 +85,11 @@ const SCENE_PATHS = {
 	"bug_hunt_dashboard": "res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
 	"bug_hunt_turn_controller": "res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
 
+	# Planetfall gamemode
+	"planetfall_creation": "res://src/ui/screens/planetfall/PlanetfallCreationUI.tscn",
+	"planetfall_dashboard": "res://src/ui/screens/planetfall/PlanetfallDashboard.tscn",
+	"planetfall_turn_controller": "res://src/ui/screens/planetfall/PlanetfallTurnController.tscn",
+
 	# Battle Simulator
 	"battle_simulator": "res://src/ui/screens/battle_simulator/BattleSimulatorUI.tscn",
 

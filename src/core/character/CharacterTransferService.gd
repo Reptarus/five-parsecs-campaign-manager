@@ -1,7 +1,11 @@
 class_name CharacterTransferService
 extends RefCounted
 
-## Handles character transfer between standard Five Parsecs and Bug Hunt campaigns.
+## Handles character transfer between Five Parsecs campaigns:
+##   - 5PFH ↔ Bug Hunt (Compendium pp.212-213)
+##   - 5PFH → Planetfall (Planetfall pp.26-27)
+##   - Bug Hunt → Planetfall (Planetfall pp.26-27)
+##   - Planetfall → 5PFH (Planetfall p.164, varies by ending)
 ##
 ## Enlistment (5PFH → Bug Hunt, Compendium p.212):
 ##   - Roll 2D6 + Combat Skill: need 7+ to succeed
@@ -14,6 +18,13 @@ extends RefCounted
 ##   - Stats carry over, game_mode set to "standard"
 ##   - Luck stat restored to base value
 ##   - Added as new crew member in target campaign
+##
+## Planetfall Import (5PFH/Bug Hunt → Planetfall, Planetfall pp.26-27):
+##   - All ability scores keep. Luck → 1 KP per Luck point (5PFH). Tech → Savvy (Bug Hunt).
+##   - 5PFH: personal equipment IF has Planetfall function. Bug Hunt: no equipment (military property).
+##   - Up to 3 imported chars can receive Class Training (D6 aptitude test).
+##   - Imported characters start as Loyal.
+##   - Credits/Reputation have no value in Planetfall.
 
 const ENLISTMENT_TARGET := 7  # 2D6 + Combat Skill >= 7+ (Compendium p.212)
 
@@ -311,3 +322,160 @@ static func apply_transfer_rewards(
 		"character": safe_char,
 		"summary": ", ".join(summary_parts) if not summary_parts.is_empty() else "Character transferred"
 	}
+
+
+## ============================================================================
+## PLANETFALL TRANSFERS (Planetfall pp.26-27, p.164)
+## ============================================================================
+
+func convert_to_planetfall(char_data: Dictionary, source: String = "5pfh") -> Dictionary:
+	## Convert a 5PFH or Bug Hunt character for Planetfall import.
+	## Source: "5pfh" or "bug_hunt"
+	## Returns a Planetfall-compatible character dict (no class assigned yet — needs Class Training).
+	var char_id: String = char_data.get("id", char_data.get("character_id", ""))
+
+	var result := {
+		"id": char_id,
+		"name": char_data.get("name", char_data.get("character_name", "Unknown")),
+		"class": "",  # Must be assigned via Class Training aptitude test
+		"subspecies": "",
+		"reactions": char_data.get("reactions", char_data.get("reaction", 1)),
+		"speed": char_data.get("speed", 4),
+		"combat_skill": char_data.get("combat_skill", char_data.get("combat", 0)),
+		"toughness": char_data.get("toughness", 3),
+		"savvy": char_data.get("savvy", 0),
+		"xp": char_data.get("xp", 0),
+		"kp": 0,
+		"loyalty": "loyal",  # Imported characters start as Loyal (p.24)
+		"motivation": "",
+		"prior_experience": char_data.get("background", ""),
+		"notable_event": "",
+		"abilities": [],
+		"is_imported": true,
+		"source_campaign": source,
+		"game_mode": "planetfall"
+	}
+
+	if source == "5pfh":
+		# Luck → Kill Points: 1 KP per Luck point (Planetfall p.26)
+		var luck: int = char_data.get("luck", 0)
+		result.kp = luck
+		# Personal equipment carries over IF it has Planetfall function
+		# (Items that affect Seize Initiative have no function — Planetfall p.27)
+		var equipment: Array = char_data.get("equipment", [])
+		result["imported_equipment"] = equipment.duplicate(true)
+	elif source == "bug_hunt":
+		# Tech → Savvy conversion (Planetfall p.26)
+		var tech: int = char_data.get("tech", char_data.get("savvy", 0))
+		result.savvy = tech
+		# Bug Hunt equipment is military property — not transferred (p.27)
+		result["imported_equipment"] = []
+		# Keep KP as-is
+		result.kp = char_data.get("kp", char_data.get("kill_points", 0))
+
+	return result
+
+
+func attempt_class_training(char_data: Dictionary, desired_class: String = "") -> Dictionary:
+	## Attempt the Class Training aptitude test for an imported character (Planetfall p.27).
+	## Up to 3 characters total can be trained (1 per class).
+	## Returns {success: bool, assigned_class: String, method: String}
+	var background: String = char_data.get("prior_experience", "")
+	var char_class: String = char_data.get("character_class", "")
+
+	# Load auto-qualify data
+	var classes_json := _load_planetfall_json("res://data/planetfall/character_classes.json")
+	var training_data: Dictionary = classes_json.get("class_training", {})
+	var auto_quals: Dictionary = training_data.get("auto_qualify_backgrounds", {})
+
+	# Check auto-qualification
+	for cls in auto_quals:
+		var qualifying: Array = auto_quals[cls]
+		if background in qualifying or char_class in qualifying:
+			if desired_class.is_empty() or desired_class == cls:
+				return {"success": true, "assigned_class": cls, "method": "auto_qualify"}
+
+	# Manual aptitude test (D6)
+	var dice := Engine.get_main_loop().root.get_node_or_null("/root/DiceManager") if Engine.get_main_loop() else null
+	var roll: int
+	if dice and dice.has_method("roll_d6"):
+		roll = dice.roll_d6()
+	else:
+		roll = randi_range(1, 6)
+
+	if roll <= 2:
+		return {"success": false, "assigned_class": "", "method": "aptitude_test_failed", "roll": roll}
+	elif roll == 3:
+		# Random class assignment
+		var class_roll: int = randi_range(1, 6)
+		var assigned: String
+		if class_roll <= 2:
+			assigned = "trooper"
+		elif class_roll <= 4:
+			assigned = "scientist"
+		else:
+			assigned = "scout"
+		return {"success": true, "assigned_class": assigned, "method": "aptitude_test_random", "roll": roll}
+	else:  # 4-6
+		var chosen: String = desired_class if not desired_class.is_empty() else "trooper"
+		return {"success": true, "assigned_class": chosen, "method": "aptitude_test_choice", "roll": roll}
+
+
+func convert_from_planetfall(char_data: Dictionary, ending: String = "") -> Dictionary:
+	## Convert a Planetfall character for export to 5PFH (Planetfall p.164).
+	## Export rules vary by campaign ending.
+	var char_id: String = char_data.get("id", "")
+
+	var result := {
+		"id": char_id,
+		"character_id": char_id,
+		"name": char_data.get("name", "Unknown"),
+		"character_name": char_data.get("name", "Unknown"),
+		"game_mode": "standard",
+		"reaction": char_data.get("reactions", 1),
+		"speed": char_data.get("speed", 4),
+		"combat": char_data.get("combat_skill", 0),
+		"toughness": char_data.get("toughness", 3),
+		"savvy": char_data.get("savvy", 0),
+		"luck": 1,  # Restore base Luck
+		"xp": char_data.get("xp", 0),
+		"equipment": [],
+		"status": "active",
+		"transferred_from_planetfall": true,
+		"planetfall_ending": ending
+	}
+
+	# Ending-specific bonuses (Planetfall p.164)
+	match ending:
+		"independence_won":
+			result["bonus_ship"] = true
+			result["ship_debt"] = 0
+		"independence_lost":
+			result["add_rival"] = "Enforcers"  # or Bounty Hunters
+		"loyalty":
+			result["bonus_ship"] = true
+			result["bonus_credits"] = 0  # 2D6 pre-paid (rolled at transfer time)
+		"isolation":
+			result.luck += 1  # 1 character gains +1 Luck
+		"ascension":
+			result["gains_psionic"] = true  # 1 character gains psionic abilities
+
+	# Each character can export only 1 artifact (p.164)
+	# Planetfall-specific weapons cannot be replaced in other campaigns
+	var imported_eq: Array = char_data.get("imported_equipment", [])
+	if not imported_eq.is_empty():
+		result.equipment = imported_eq.duplicate(true)
+
+	return result
+
+
+func _load_planetfall_json(path: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		file.close()
+		return {}
+	file.close()
+	return json.data if json.data is Dictionary else {}
