@@ -1,6 +1,14 @@
 class_name TacticsCreationCoordinator
 extends Node
 
+## Runtime loads for Tactics data classes (avoid class_name parse-order issues)
+var _SpeciesBookLoader: GDScript
+var _CompositionValidator: GDScript
+var _CampaignCore: GDScript
+var _CampaignUnit: GDScript
+var _Roster: GDScript
+var _RosterEntry: GDScript
+
 ## Orchestrates Tactics campaign creation — 5-step wizard.
 ## Follows the same coordinator pattern as BugHuntCreationCoordinator
 ## and PlanetfallCreationCoordinator.
@@ -30,18 +38,23 @@ var total_steps: int = 5
 var config_data: Dictionary = {}
 var species_id: String = ""
 var secondary_species_id: String = ""
-var roster_entries: Array = []  # Array of TacticsRosterEntry.to_dict()
+var roster_entries: Array = []  # Array of _RosterEntry.to_dict()
 var vehicle_entries: Array = []
 
 ## Loaded species book (cached after species selection)
-var _species_book: TacticsSpeciesBook = null
+var _species_book = null  # TacticsSpeciesBook
 
 ## Step completion flags
 var _step_complete: Array[bool] = [false, false, false, false, false]
 
 
 func _ready() -> void:
-	pass
+	_SpeciesBookLoader = load("res://src/data/tactics/TacticsSpeciesBookLoader.gd")
+	_CompositionValidator = load("res://src/data/tactics/TacticsCompositionValidator.gd")
+	_CampaignCore = load("res://src/game/campaign/TacticsCampaignCore.gd")
+	_CampaignUnit = load("res://src/data/tactics/TacticsCampaignUnit.gd")
+	_Roster = load("res://src/data/tactics/TacticsRoster.gd")
+	_RosterEntry = load("res://src/data/tactics/TacticsRosterEntry.gd")
 
 
 func go_to_step(step: int) -> void:
@@ -86,9 +99,9 @@ func get_step_name(step: int = -1) -> String:
 
 
 func _update_navigation() -> void:
-	var can_back := current_step > 0
-	var can_forward := current_step < total_steps - 1 and _step_complete[current_step]
-	var can_finish := current_step == total_steps - 1 and _can_finish()
+	var can_back = current_step > 0
+	var can_forward = current_step < total_steps - 1 and _step_complete[current_step]
+	var can_finish = current_step == total_steps - 1 and _can_finish()
 	navigation_updated.emit(can_back, can_forward, can_finish)
 
 
@@ -115,7 +128,7 @@ func update_species(data: Dictionary) -> void:
 
 	# Load the species book for roster building
 	if not species_id.is_empty():
-		_species_book = TacticsSpeciesBookLoader.load_species_book(species_id)
+		_species_book = _SpeciesBookLoader.load_species_book(species_id)
 
 	_step_complete[1] = not species_id.is_empty()
 
@@ -133,10 +146,10 @@ func update_roster(entries: Array) -> void:
 	roster_entries = entries.duplicate(true)
 
 	# Validate via composition validator
-	var valid := not roster_entries.is_empty()
+	var valid = not roster_entries.is_empty()
 	if valid and _species_book:
-		var roster := _build_temp_roster()
-		var errors: Array[String] = TacticsCompositionValidator.validate(roster)
+		var roster = _build_temp_roster()
+		var errors: Array[String] = _CompositionValidator.validate(roster)
 		valid = errors.is_empty()
 
 	_step_complete[2] = valid
@@ -149,14 +162,14 @@ func update_vehicles(entries: Array) -> void:
 	_update_navigation()
 
 
-func get_species_book() -> TacticsSpeciesBook:
+func get_species_book():  # -> TacticsSpeciesBook
 	return _species_book
 
 
 func get_validation_errors() -> Array[String]:
 	if _species_book:
-		var roster := _build_temp_roster()
-		return TacticsCompositionValidator.validate(roster)
+		var roster = _build_temp_roster()
+		return _CompositionValidator.validate(roster)
 	return ["No species selected"]
 
 
@@ -170,7 +183,7 @@ func finalize() -> void:
 		return
 
 	# Create campaign core
-	var campaign := TacticsCampaignCore.create_new_campaign(
+	var campaign = _CampaignCore.create_new_campaign(
 		config_data.get("campaign_name", "Tactics Campaign"),
 		species_id,
 		config_data.get("points_limit", 500),
@@ -195,7 +208,7 @@ func finalize() -> void:
 	var campaign_units: Array = []
 	for entry_dict in roster_entries:
 		var unit_dict: Dictionary = {
-			"unit_id": TacticsCampaignUnit.generate_id(),
+			"unit_id": _CampaignUnit.generate_id(),
 			"custom_name": entry_dict.get("display_name", ""),
 			"base_unit_id": entry_dict.get("unit_id", ""),
 			"species_id": species_id,
@@ -234,9 +247,9 @@ func finalize() -> void:
 		gs.set_current_campaign(campaign)
 
 	# Save to disk
-	var save_dir := "user://saves/"
+	var save_dir = "user://saves/"
 	DirAccess.make_dir_recursive_absolute(save_dir)
-	var save_path := save_dir + campaign.get_campaign_id() + ".save"
+	var save_path = save_dir + campaign.get_campaign_id() + ".save"
 	campaign.save_to_file(save_path)
 
 	# Navigate to dashboard
@@ -250,19 +263,19 @@ func finalize() -> void:
 ## PRIVATE
 ## ============================================================================
 
-func _build_temp_roster() -> TacticsRoster:
-	var roster := TacticsRoster.new()
+func _build_temp_roster() :
+	var roster = _Roster.new()
 	roster.points_limit = config_data.get("points_limit", 500)
 
 	var org_str: String = config_data.get("org_type", "platoon")
-	roster.org_type = TacticsRoster.OrgType.COMPANY if org_str == "company" \
-		else TacticsRoster.OrgType.PLATOON
+	roster.org_type = _Roster.OrgType.COMPANY if org_str == "company" \
+		else _Roster.OrgType.PLATOON
 	roster.platoon_count = config_data.get("platoon_count", 1)
 	roster.species_book = _species_book
 
 	# Build entries from stored dicts
 	for entry_dict in roster_entries:
-		var entry := TacticsRosterEntry.new()
+		var entry = _RosterEntry.new()
 		entry.entry_id = entry_dict.get("entry_id", "")
 		entry.platoon_index = entry_dict.get("platoon_index", 0)
 		entry.model_count = entry_dict.get("model_count", 0)

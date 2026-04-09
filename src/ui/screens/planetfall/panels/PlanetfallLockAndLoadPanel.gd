@@ -29,11 +29,17 @@ var _phase_manager: Node
 var _armory: PlanetfallArmoryScript
 var _deployed: Dictionary = {}  # character_id → {weapon_id: String}
 var _max_deploy: int = 6
+var _max_grunts: int = 0
+var _grunt_fireteams: int = 0
+var _grunts_deployed: int = 0
+var _force_limits: Dictionary = {}
 
 var _title_label: Label
 var _roster_container: VBoxContainer
+var _grunt_section: VBoxContainer
 var _weapon_container: VBoxContainer
 var _deploy_count_label: Label
+var _grunt_count_label: Label
 var _confirm_btn: Button
 
 
@@ -54,11 +60,23 @@ func set_phase_manager(pm: Node) -> void:
 	_phase_manager = pm
 
 
+func set_force_limits(limits: Dictionary) -> void:
+	## Called by TurnController with force_limits from MissionPanel result.
+	_force_limits = limits
+	_max_deploy = limits.get("max_characters", 6)
+	_max_grunts = limits.get("max_grunts", 0)
+	_grunt_fireteams = limits.get("grunt_fireteams", 0)
+
+
 func refresh() -> void:
 	_deployed = {}
+	_grunts_deployed = 0
 	_clear_container(_roster_container)
 	_clear_container(_weapon_container)
+	if _grunt_section:
+		_clear_container(_grunt_section)
 	_build_roster_list()
+	_build_grunt_section()
 	_update_deploy_count()
 	if _confirm_btn:
 		_confirm_btn.disabled = false
@@ -118,6 +136,18 @@ func _build_ui() -> void:
 	_roster_container = VBoxContainer.new()
 	_roster_container.add_theme_constant_override("separation", SPACING_SM)
 	vbox.add_child(_roster_container)
+
+	# Grunt deployment section (visible only when grunts allowed)
+	_grunt_section = VBoxContainer.new()
+	_grunt_section.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(_grunt_section)
+
+	_grunt_count_label = Label.new()
+	_grunt_count_label.text = ""
+	_grunt_count_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_grunt_count_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	_grunt_count_label.visible = false
+	vbox.add_child(_grunt_count_label)
 
 	# Weapon assignment placeholder
 	_weapon_container = VBoxContainer.new()
@@ -215,8 +245,69 @@ func _on_weapon_selected(
 
 func _update_deploy_count() -> void:
 	if _deploy_count_label:
-		_deploy_count_label.text = "Deployed: %d / %d" % [
-			_deployed.size(), _max_deploy]
+		var grunt_text: String = ""
+		if _max_grunts > 0:
+			grunt_text = "  |  Grunts: %d / %d" % [_grunts_deployed, _max_grunts]
+		_deploy_count_label.text = "Characters: %d / %d%s" % [
+			_deployed.size(), _max_deploy, grunt_text]
+
+	if _grunt_count_label:
+		if _max_grunts > 0:
+			var available_grunts: int = _campaign.grunts if _campaign and "grunts" in _campaign else 0
+			_grunt_count_label.text = "Colony grunts available: %d" % available_grunts
+			_grunt_count_label.visible = true
+		else:
+			_grunt_count_label.visible = false
+
+
+func _build_grunt_section() -> void:
+	if not _grunt_section:
+		return
+	_clear_container(_grunt_section)
+
+	if _max_grunts <= 0:
+		_grunt_section.visible = false
+		return
+	_grunt_section.visible = true
+
+	var header := Label.new()
+	header.text = "GRUNT FIRETEAMS"
+	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	_grunt_section.add_child(header)
+
+	var available: int = _campaign.grunts if _campaign and "grunts" in _campaign else 0
+	var per_fireteam: int = 4
+
+	for ft_idx in range(_grunt_fireteams):
+		var can_deploy: int = mini(per_fireteam, available - (ft_idx * per_fireteam))
+		if can_deploy <= 0:
+			break
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", SPACING_SM)
+		_grunt_section.add_child(row)
+
+		var check := CheckBox.new()
+		check.text = "Fireteam %d (up to %d grunts)" % [ft_idx + 1, mini(per_fireteam, can_deploy)]
+		check.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		check.toggled.connect(_on_grunt_fireteam_toggled.bind(ft_idx, mini(per_fireteam, can_deploy)))
+		row.add_child(check)
+
+	var info := Label.new()
+	info.text = "Each fireteam deploys up to 4 grunts. Grunts past 4 form a second team."
+	info.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_grunt_section.add_child(info)
+
+
+func _on_grunt_fireteam_toggled(toggled: bool, ft_idx: int, count: int) -> void:
+	if toggled:
+		_grunts_deployed += count
+	else:
+		_grunts_deployed = maxi(0, _grunts_deployed - count)
+	_update_deploy_count()
 
 
 func _on_confirm_pressed() -> void:
@@ -224,7 +315,10 @@ func _on_confirm_pressed() -> void:
 		_confirm_btn.disabled = true
 	phase_completed.emit({
 		"deployed_characters": _deployed.duplicate(true),
-		"deploy_count": _deployed.size()
+		"deploy_count": _deployed.size(),
+		"grunts_deployed": _grunts_deployed,
+		"grunt_fireteams": _grunt_fireteams if _grunts_deployed > 0 else 0,
+		"force_limits": _force_limits
 	})
 
 

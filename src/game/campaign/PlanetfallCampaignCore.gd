@@ -16,7 +16,7 @@ extends Resource
 ## - 7 milestones → 4 campaign endings
 ## - No ship, no patrons/rivals, no credits, no Luck stat
 
-@export var schema_version: int = 1
+@export var schema_version: int = 2
 @export var campaign_name: String = ""
 @export var campaign_id: String = ""
 @export var campaign_type: String = "planetfall"
@@ -56,6 +56,13 @@ extends Resource
 ## Mission Data counter (4 breakthroughs — Planetfall p.169)
 @export var mission_data: int = 0
 @export var mission_data_breakthroughs: int = 0
+
+## Slyn tracking (from 4th Milestone onward — Planetfall p.158)
+@export var slyn_victories: int = 0
+@export var slyn_departed: bool = false
+
+## End Game path selected (Planetfall pp.160-164)
+@export var endgame_path: String = ""
 
 ## Bot state (1 per campaign — Planetfall p.17)
 @export var bot_operational: bool = true
@@ -106,6 +113,12 @@ var ancient_signs: Array = []
 
 ## Active calamities (Array of Dictionaries)
 var active_calamities: Array = []
+
+## Alien Artifacts found (unique per campaign — Planetfall pp.135-136)
+var artifacts_found: Array = []
+
+## Defeated Tactical Enemy indices (eliminated via Assault missions)
+var defeated_enemies: Array = []
 
 ## Tutorial missions completed (Planetfall pp.44-45)
 var tutorial_missions: Dictionary = {
@@ -301,6 +314,91 @@ func is_endgame_eligible() -> bool:
 
 
 ## ============================================================================
+## SECTION 3+4 HELPERS (Conditions, Lifeforms, Enemies, Artifacts)
+## ============================================================================
+
+func add_condition(slot: int, condition: Dictionary) -> void:
+	while condition_table.size() < 10:
+		condition_table.append({})
+	if slot >= 0 and slot < 10:
+		condition_table[slot] = condition.duplicate(true)
+		_update_modified_time()
+
+
+func get_lifeform_at_slot(slot: int) -> Dictionary:
+	if slot >= 0 and slot < lifeform_table.size():
+		var entry: Variant = lifeform_table[slot]
+		if entry is Dictionary:
+			return entry
+	return {}
+
+
+func add_tactical_enemy(enemy: Dictionary) -> void:
+	tactical_enemies.append(enemy.duplicate(true))
+	_update_modified_time()
+
+
+func mark_enemy_defeated(enemy_index: int) -> void:
+	if enemy_index >= 0 and enemy_index < tactical_enemies.size():
+		var enemy: Variant = tactical_enemies[enemy_index]
+		if enemy is Dictionary:
+			enemy["defeated"] = true
+		if enemy_index not in defeated_enemies:
+			defeated_enemies.append(enemy_index)
+		_update_modified_time()
+
+
+func get_active_tactical_enemies() -> Array:
+	var active: Array = []
+	for i in range(tactical_enemies.size()):
+		var te: Variant = tactical_enemies[i]
+		if te is Dictionary and not te.get("defeated", false):
+			var entry: Dictionary = te.duplicate(true)
+			entry["index"] = i
+			active.append(entry)
+	return active
+
+
+func add_artifact(artifact: Dictionary) -> bool:
+	## Returns false if artifact already found (unique per campaign).
+	var artifact_id: String = artifact.get("id", "")
+	for existing in artifacts_found:
+		if existing is Dictionary and existing.get("id", "") == artifact_id:
+			return false
+	artifacts_found.append(artifact.duplicate(true))
+	_update_modified_time()
+	return true
+
+
+func has_artifact(artifact_id: String) -> bool:
+	for existing in artifacts_found:
+		if existing is Dictionary and existing.get("id", "") == artifact_id:
+			return true
+	return false
+
+
+func increment_enemy_info(enemy_index: int, amount: int) -> void:
+	var key: String = str(enemy_index)
+	var current: int = enemy_info.get(key, 0)
+	enemy_info[key] = current + amount
+	_update_modified_time()
+
+
+func get_enemy_info_count(enemy_index: int) -> int:
+	return enemy_info.get(str(enemy_index), 0)
+
+
+func is_slyn_active() -> bool:
+	## Slyn attacks begin from 4th milestone and end when slyn_departed is true.
+	return milestones_completed >= 4 and not slyn_departed
+
+
+func add_mission_data_points(amount: int) -> void:
+	mission_data += amount
+	_update_modified_time()
+
+
+## ============================================================================
 ## TURN-STEP HELPERS (used by PlanetfallPhaseManager + panels)
 ## ============================================================================
 
@@ -493,7 +591,10 @@ func to_dictionary() -> Dictionary:
 			"milestones_completed": milestones_completed,
 			"calamity_points": calamity_points,
 			"mission_data": mission_data,
-			"mission_data_breakthroughs": mission_data_breakthroughs
+			"mission_data_breakthroughs": mission_data_breakthroughs,
+			"slyn_victories": slyn_victories,
+			"slyn_departed": slyn_departed,
+			"endgame_path": endgame_path
 		},
 		"map_data": map_data.duplicate(true),
 		"research_data": research_data.duplicate(true),
@@ -507,6 +608,8 @@ func to_dictionary() -> Dictionary:
 		"enemy_info": enemy_info.duplicate(),
 		"ancient_signs": ancient_signs.duplicate(true),
 		"active_calamities": active_calamities.duplicate(true),
+		"artifacts_found": artifacts_found.duplicate(true),
+		"defeated_enemies": defeated_enemies.duplicate(),
 		"tutorial_missions": tutorial_missions.duplicate(),
 		"tutorial_bonuses": tutorial_bonuses.duplicate(),
 		"sick_bay": sick_bay.duplicate(),
@@ -566,6 +669,9 @@ func from_dictionary(data: Dictionary) -> void:
 		calamity_points = prog.get("calamity_points", 0)
 		mission_data = prog.get("mission_data", 0)
 		mission_data_breakthroughs = prog.get("mission_data_breakthroughs", 0)
+		slyn_victories = prog.get("slyn_victories", 0)
+		slyn_departed = prog.get("slyn_departed", false)
+		endgame_path = prog.get("endgame_path", "")
 
 	# Complex data
 	map_data = data.get("map_data", {}).duplicate(true)
@@ -580,6 +686,8 @@ func from_dictionary(data: Dictionary) -> void:
 	enemy_info = data.get("enemy_info", {}).duplicate()
 	ancient_signs = data.get("ancient_signs", []).duplicate(true)
 	active_calamities = data.get("active_calamities", []).duplicate(true)
+	artifacts_found = data.get("artifacts_found", []).duplicate(true)
+	defeated_enemies = data.get("defeated_enemies", []).duplicate()
 	tutorial_missions = data.get("tutorial_missions", {"beacons": false, "analysis": false, "perimeter": false}).duplicate()
 	tutorial_bonuses = data.get("tutorial_bonuses", {}).duplicate()
 	sick_bay = data.get("sick_bay", {}).duplicate()

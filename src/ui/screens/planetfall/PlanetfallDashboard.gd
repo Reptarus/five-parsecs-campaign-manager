@@ -14,6 +14,12 @@ const EnemyTrackerScript = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallEnemyTrackerPanel.gd")
 const AugmentationPanelScript = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallAugmentationPanel.gd")
+const MilestonePanelScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallMilestonePanel.gd")
+const CalamityPanelScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallCalamityPanel.gd")
+const EndGamePanelScript = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallEndGamePanel.gd")
 
 var _campaign: Resource
 var _content: VBoxContainer
@@ -95,7 +101,16 @@ func _build_dashboard() -> void:
 	_content.add_child(hub_box)
 
 	var continue_card := HubFeatureCardClass.new()
-	continue_card.setup("", "Continue Campaign", "Start the next campaign turn")
+	var gp: String = _campaign.game_phase if "game_phase" in _campaign else ""
+	var is_endgame: bool = gp == "endgame"
+	var is_completed: bool = gp == "completed"
+	if is_endgame:
+		continue_card.setup("", "Enter End Game",
+			"The 7th Milestone has been achieved")
+	elif is_completed:
+		continue_card.setup("", "Campaign Complete", "View your colony's final story")
+	else:
+		continue_card.setup("", "Continue Campaign", "Start the next campaign turn")
 	continue_card.card_pressed.connect(func(): _navigate("planetfall_turn_controller"))
 	hub_box.add_child(continue_card)
 
@@ -158,6 +173,29 @@ func _build_dashboard() -> void:
 		"%d owned | %d AP available" % [aug_count, aug_ap])
 	aug_card.card_pressed.connect(func(): _show_overlay_panel("augmentation"))
 	detail_box.add_child(aug_card)
+
+	# Milestones & Progression
+	var milestones: int = _campaign.milestones_completed \
+		if "milestones_completed" in _campaign else 0
+	var milestone_card := HubFeatureCardClass.new()
+	milestone_card.setup("", "Milestones & Progression",
+		"%d / 7 completed" % milestones)
+	milestone_card.card_pressed.connect(func(): _show_overlay_panel("milestones"))
+	detail_box.add_child(milestone_card)
+
+	# Active Calamities (only show if any exist)
+	var active_calamities: Array = []
+	if "active_calamities" in _campaign:
+		for cal in _campaign.active_calamities:
+			if cal is Dictionary and not cal.get("resolved", false):
+				active_calamities.append(cal)
+	if not active_calamities.is_empty():
+		var calamity_card := HubFeatureCardClass.new()
+		calamity_card.setup("", "Active Calamities",
+			"%d calamit%s" % [active_calamities.size(),
+				"y" if active_calamities.size() == 1 else "ies"])
+		calamity_card.card_pressed.connect(func(): _show_overlay_panel("calamities"))
+		detail_box.add_child(calamity_card)
 
 	# Roster summary
 	_build_roster_section(roster_arr)
@@ -250,6 +288,10 @@ func _show_overlay_panel(panel_type: String) -> void:
 			panel = AugmentationPanelScript.new()
 			if panel.has_method("set_standalone"):
 				panel.set_standalone(true)
+		"milestones":
+			panel = MilestonePanelScript.new()
+		"calamities":
+			panel = CalamityPanelScript.new()
 		_:
 			return
 

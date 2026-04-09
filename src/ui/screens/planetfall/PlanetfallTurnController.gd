@@ -28,6 +28,8 @@ const ResearchPanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallResearchPanel.gd")
 const BuildingPanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallBuildingPanel.gd")
+const EndGamePanelScript := preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallEndGamePanel.gd")
 
 var phase_manager: PlanetfallPhaseManagerScript
 var campaign: Resource  # PlanetfallCampaignCore
@@ -73,6 +75,12 @@ func _initialize() -> void:
 	var battle_result = null
 	if gs_mgr and gs_mgr.has_method("get_temp_data"):
 		battle_result = gs_mgr.get_temp_data("planetfall_battle_result")
+
+	# Check for endgame/completed — show EndGamePanel instead of turn flow
+	var gp: String = campaign.game_phase if "game_phase" in campaign else ""
+	if gp == "endgame" or gp == "completed":
+		_show_endgame_panel()
+		return
 
 	if battle_result is Dictionary and not battle_result.is_empty():
 		_resume_after_battle(battle_result)
@@ -403,6 +411,17 @@ func _on_turn_completed(_turn: int) -> void:
 
 
 func _on_panel_phase_completed(result_data: Dictionary) -> void:
+	# Pass force_limits from MissionPanel to LockAndLoadPanel
+	var current: int = phase_manager.current_phase
+	if current == PlanetfallPhaseManagerScript.Phase.MISSION_DETERMINATION:
+		var force_limits: Dictionary = result_data.get("force_limits", {})
+		if not force_limits.is_empty():
+			var lock_phase: int = PlanetfallPhaseManagerScript.Phase.LOCK_AND_LOAD
+			if lock_phase >= 0 and lock_phase < panels.size():
+				var lock_panel: Control = panels[lock_phase]
+				if lock_panel.has_method("set_force_limits"):
+					lock_panel.set_force_limits(force_limits)
+
 	phase_manager.complete_current_phase(result_data)
 
 
@@ -511,3 +530,29 @@ func _resume_after_battle(result: Dictionary) -> void:
 
 	# Jump directly to INJURIES phase
 	phase_manager.go_to_phase(PlanetfallPhaseManagerScript.Phase.INJURIES)
+
+
+func _show_endgame_panel() -> void:
+	## Replace the normal turn flow with the EndGamePanel.
+	if not _panel_container:
+		return
+	for child in _panel_container.get_children():
+		child.queue_free()
+
+	var endgame_panel := EndGamePanelScript.new()
+	endgame_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	endgame_panel.set_campaign(campaign)
+	_panel_container.add_child(endgame_panel)
+
+	endgame_panel.phase_completed.connect(func(data: Dictionary):
+		# Return to dashboard after endgame completion
+		_navigate("planetfall_dashboard")
+	)
+
+	endgame_panel.refresh()
+
+	# Update header
+	if _turn_label:
+		_turn_label.text = "END GAME"
+	if _phase_label:
+		_phase_label.text = "Decide the fate of your colony"

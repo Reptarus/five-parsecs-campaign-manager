@@ -1,15 +1,18 @@
 class_name PlanetfallPostBattlePanel
 extends Control
 
-## Combined panel for Steps 9 (Injuries), 10 (Experience), 11 (Morale).
-## The TurnController maps all three phase enum values to this single panel.
+## Combined panel for Steps 9-12: Injuries, Experience, Morale, Post-Mission
+## Finds, and Enemy Info tracking.
+## The TurnController maps phases 8-11 to this single panel.
 ## Internally tracks which sub-step is active and shows the appropriate section.
-## Source: Planetfall pp.66-68
+## Source: Planetfall pp.66-68, 134-136
 
 signal phase_completed(result_data: Dictionary)
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
+const PlanetfallPostMissionScript := preload(
+	"res://src/core/systems/PlanetfallPostMissionSystem.gd")
 
 const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
 const COLOR_TEXT_SECONDARY := Color("#808080")
@@ -26,16 +29,18 @@ const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
 
-enum SubStep { INJURIES, EXPERIENCE, MORALE }
+enum SubStep { INJURIES, EXPERIENCE, MORALE, POST_MISSION_FINDS, ENEMY_INFO }
 
 var _campaign: Resource
 var _phase_manager: Node
 var _resolver: PlanetfallEventResolverScript
+var _post_mission: PlanetfallPostMissionScript
 var _current_sub_step: int = SubStep.INJURIES
 var _battle_results: Dictionary = {}
 var _casualties_count: int = 0
 var _grunt_losses: int = 0
 var _xp_awarded: bool = false
+var _finds_rolled: Array = []
 
 var _title_label: Label
 var _section_label: Label
@@ -47,6 +52,7 @@ var _continue_btn: Button
 
 func _ready() -> void:
 	_resolver = PlanetfallEventResolverScript.new()
+	_post_mission = PlanetfallPostMissionScript.new()
 	_build_ui()
 
 
@@ -71,11 +77,14 @@ func refresh() -> void:
 	## Determine which sub-step to show based on the phase manager's current phase.
 	if _phase_manager:
 		var phase: int = _phase_manager.current_phase
-		# Phase enum values: INJURIES=8, EXPERIENCE=9, MORALE_ADJUSTMENTS=10
+		# Phase enum values: INJURIES=8, EXPERIENCE=9, MORALE_ADJUSTMENTS=10, TRACK_ENEMY_INFO=11
 		if phase == 9:
 			_current_sub_step = SubStep.EXPERIENCE
 		elif phase == 10:
 			_current_sub_step = SubStep.MORALE
+		elif phase == 11:
+			# Step 12 maps to both FINDS and ENEMY_INFO — show FINDS first
+			_current_sub_step = SubStep.POST_MISSION_FINDS
 		else:
 			_current_sub_step = SubStep.INJURIES
 
@@ -95,6 +104,14 @@ func refresh() -> void:
 			_title_label.text = "POST-BATTLE — MORALE"
 			_section_label.text = "Step 11: Calculate colony morale adjustments"
 			_action_btn.text = "Calculate Morale"
+		SubStep.POST_MISSION_FINDS:
+			_title_label.text = "POST-BATTLE — MISSION FINDS"
+			_section_label.text = "Step 12a: Roll for Post-Mission Finds"
+			_action_btn.text = "Roll Finds"
+		SubStep.ENEMY_INFO:
+			_title_label.text = "POST-BATTLE — ENEMY INFO"
+			_section_label.text = "Step 12b: Track Enemy Information & Mission Data"
+			_action_btn.text = "Process Intel"
 
 	_build_sub_step_info()
 	_action_btn.visible = true
@@ -194,6 +211,33 @@ func _build_sub_step_info() -> void:
 			_add_info_text(
 				"If Colony Morale reaches -10 or worse, roll on the Morale Incident table.")
 
+		SubStep.POST_MISSION_FINDS:
+			var find_rolls: int = _battle_results.get("find_rolls", 0)
+			var won: bool = _battle_results.get("won", false)
+			var mission_id: String = _battle_results.get("mission_id", "")
+			_add_info_text("Mission: %s" % mission_id.replace("_", " ").capitalize())
+			_add_info_text("Post-Mission Find rolls earned: %d" % find_rolls)
+			if not won:
+				_add_info_text("[color=#D97706]Mission not won — no Find rolls.[/color]")
+			var has_scientist: bool = _battle_results.get("has_scientist_standing", false)
+			var has_scout: bool = _battle_results.get("has_scout_standing", false)
+			if has_scientist:
+				_add_info_text("[color=#10B981]Scientist on feet — bonus available[/color]")
+			if has_scout:
+				_add_info_text("[color=#10B981]Scout on feet — bonus available[/color]")
+
+		SubStep.ENEMY_INFO:
+			var mission_id: String = _battle_results.get("mission_id", "")
+			var won: bool = _battle_results.get("won", false)
+			var enemy_fought: String = _battle_results.get("enemy_type", "")
+			if not enemy_fought.is_empty():
+				_add_info_text("Enemy fought: %s" % enemy_fought)
+			if won:
+				_add_info_text("Victory: +1 Enemy Information (if Tactical Enemy)")
+			var md_gained: int = _battle_results.get("mission_data_gained", 0)
+			if md_gained > 0:
+				_add_info_text("Mission Data gained: %d" % md_gained)
+
 
 ## ============================================================================
 ## ACTION HANDLERS
@@ -209,6 +253,10 @@ func _on_action_pressed() -> void:
 			_resolve_experience()
 		SubStep.MORALE:
 			_resolve_morale()
+		SubStep.POST_MISSION_FINDS:
+			_resolve_post_mission_finds()
+		SubStep.ENEMY_INFO:
+			_resolve_enemy_info()
 
 	_continue_btn.visible = true
 	_continue_btn.disabled = false
@@ -216,6 +264,21 @@ func _on_action_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	_continue_btn.disabled = true
+
+	# POST_MISSION_FINDS transitions to ENEMY_INFO instead of emitting
+	if _current_sub_step == SubStep.POST_MISSION_FINDS:
+		_current_sub_step = SubStep.ENEMY_INFO
+		_clear_container(_content_vbox)
+		_clear_container(_result_container)
+		_title_label.text = "POST-BATTLE — ENEMY INFO"
+		_section_label.text = "Step 12b: Track Enemy Information & Mission Data"
+		_action_btn.text = "Process Intel"
+		_build_sub_step_info()
+		_action_btn.visible = true
+		_action_btn.disabled = false
+		_continue_btn.visible = false
+		return
+
 	var result_data: Dictionary = {}
 
 	match _current_sub_step:
@@ -229,7 +292,12 @@ func _on_continue_pressed() -> void:
 		SubStep.MORALE:
 			result_data = {
 				"casualties_count": _casualties_count,
-				"colony_damage": 0  # Tracked separately
+				"colony_damage": 0
+			}
+		SubStep.ENEMY_INFO:
+			result_data = {
+				"finds": _finds_rolled,
+				"enemy_info_processed": true
 			}
 
 	phase_completed.emit(result_data)
@@ -373,6 +441,108 @@ func _resolve_morale() -> void:
 		_add_result_bbcode(
 			"\n[color=#DC2626]WARNING: Morale is -10 or worse! " +
 			"Roll on the Morale Incident table (Planetfall p.90).[/color]")
+
+
+## ============================================================================
+## POST-MISSION FINDS RESOLUTION (Step 12a)
+## ============================================================================
+
+func _resolve_post_mission_finds() -> void:
+	## Planetfall p.134 — roll on Finds table per earned roll.
+	_finds_rolled = []
+	var find_rolls: int = _battle_results.get("find_rolls", 0)
+	var won: bool = _battle_results.get("won", false)
+
+	if not won or find_rolls <= 0:
+		_add_result_bbcode("No Post-Mission Finds to roll.")
+		return
+
+	var has_scientist: bool = _battle_results.get("has_scientist_standing", false)
+	var has_scout: bool = _battle_results.get("has_scout_standing", false)
+
+	_add_result_bbcode("[b]Post-Mission Finds (%d roll%s):[/b]" % [
+		find_rolls, "s" if find_rolls != 1 else ""])
+
+	for i in range(find_rolls):
+		var roll: int = _post_mission.roll_d100()
+		var find: Dictionary = _post_mission.roll_find_with_bonuses(
+			roll, has_scientist, has_scout)
+
+		if find.is_empty():
+			_add_result_bbcode("  Roll %d: D100=%d → Nothing found" % [i + 1, roll])
+			continue
+
+		var find_name: String = find.get("name", "Unknown")
+		var reward: Dictionary = find.get("reward", {})
+		var reward_parts: Array = []
+
+		for key in reward:
+			if key == "character_xp":
+				reward_parts.append("+%d XP (pick 1 character)" % reward[key])
+			else:
+				reward_parts.append("+%d %s" % [reward[key], key.replace("_", " ")])
+
+		_add_result_bbcode("  Roll %d: D100=%d → [b]%s[/b]" % [i + 1, roll, find_name])
+		if not reward_parts.is_empty():
+			_add_result_bbcode("    Reward: %s" % ", ".join(reward_parts))
+
+		# Show bonuses
+		for bonus_entry in find.get("applied_bonuses", []):
+			var source: String = bonus_entry.get("source", "")
+			var bonus: Dictionary = bonus_entry.get("bonus", {})
+			var bonus_parts: Array = []
+			for bkey in bonus:
+				bonus_parts.append("+%d %s" % [bonus[bkey], bkey.replace("_", " ")])
+			_add_result_bbcode(
+				"    [color=#10B981]%s bonus: %s[/color]" % [
+					source.capitalize(), ", ".join(bonus_parts)])
+
+		# Apply to campaign
+		if _campaign:
+			_post_mission.apply_find_to_campaign(_campaign, find)
+
+		_finds_rolled.append(find)
+
+	_add_result_bbcode(
+		"\n[color=#10B981]%d find(s) processed and applied.[/color]" % _finds_rolled.size())
+
+
+## ============================================================================
+## ENEMY INFO RESOLUTION (Step 12b)
+## ============================================================================
+
+func _resolve_enemy_info() -> void:
+	## Planetfall p.68 — track Enemy Information and Mission Data.
+	var won: bool = _battle_results.get("won", false)
+	var enemy_index: int = _battle_results.get("tactical_enemy_index", -1)
+	var md_gained: int = _battle_results.get("mission_data_gained", 0)
+
+	_add_result_bbcode("[b]Intelligence Report:[/b]")
+
+	# Enemy Information
+	if won and enemy_index >= 0 and _campaign:
+		var status: Dictionary = _post_mission.process_enemy_info_gain(
+			_campaign, enemy_index, 1)
+		var total: int = status.get("total_info", 0)
+		_add_result_bbcode(
+			"  +1 Enemy Information (total: %d)" % total)
+
+		if status.get("boss_located", false):
+			_add_result_bbcode(
+				"  [color=#D97706]Boss location identified! Strike Mission now available.[/color]")
+	elif won:
+		_add_result_bbcode("  No Tactical Enemy fought — no Enemy Information gained.")
+	else:
+		_add_result_bbcode("  Mission not won — no Enemy Information gained.")
+
+	# Mission Data
+	if md_gained > 0 and _campaign:
+		if _campaign.has_method("add_mission_data_points"):
+			_campaign.add_mission_data_points(md_gained)
+		_add_result_bbcode(
+			"\n  +%d Mission Data (total: %d)" % [
+				md_gained,
+				_campaign.mission_data if "mission_data" in _campaign else 0])
 
 
 ## ============================================================================

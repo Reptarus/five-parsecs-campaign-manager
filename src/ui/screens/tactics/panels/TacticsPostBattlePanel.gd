@@ -29,7 +29,7 @@ var _complete_btn: Button
 
 
 func _scaled_font(base: int) -> int:
-	var rm := get_node_or_null("/root/ResponsiveManager")
+	var rm = get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
@@ -60,12 +60,12 @@ func show_phase(phase: int) -> void:
 
 
 func _build_ui() -> void:
-	var scroll := ScrollContainer.new()
+	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(vbox)
@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	_content.add_theme_constant_override("separation", SPACING_MD)
 	vbox.add_child(_content)
 
-	var nav := HBoxContainer.new()
+	var nav = HBoxContainer.new()
 	nav.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(nav)
 
@@ -103,7 +103,7 @@ func _build_post_battle_content() -> void:
 		var cp: int = 0
 		if _campaign.has_method("get_available_cp"):
 			cp = _campaign.get_available_cp()
-		var cp_lbl := Label.new()
+		var cp_lbl = Label.new()
 		cp_lbl.text = "Available CP: %d" % cp
 		cp_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 		cp_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
@@ -132,7 +132,7 @@ func _build_advancement_content() -> void:
 		var cp: int = 0
 		if _campaign.has_method("get_available_cp"):
 			cp = _campaign.get_available_cp()
-		var cp_lbl := Label.new()
+		var cp_lbl = Label.new()
 		cp_lbl.text = "CP Available to Spend: %d" % cp
 		cp_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 		cp_lbl.add_theme_color_override("font_color",
@@ -142,8 +142,8 @@ func _build_advancement_content() -> void:
 
 
 func _add_card(card_title: String, body: String) -> void:
-	var card := PanelContainer.new()
-	var style := StyleBoxFlat.new()
+	var card = PanelContainer.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
@@ -154,17 +154,17 @@ func _add_card(card_title: String, body: String) -> void:
 	style.content_margin_bottom = SPACING_SM
 	card.add_theme_stylebox_override("panel", style)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 	card.add_child(vbox)
 
-	var t := Label.new()
+	var t = Label.new()
 	t.text = card_title
 	t.add_theme_font_size_override("font_size", _scaled_font(16))
 	t.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(t)
 
-	var b := Label.new()
+	var b = Label.new()
 	b.text = body
 	b.add_theme_font_size_override("font_size", _scaled_font(14))
 	b.add_theme_color_override("font_color", COLOR_TEXT)

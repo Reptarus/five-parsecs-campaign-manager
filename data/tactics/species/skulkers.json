@@ -7,22 +7,216 @@
 		"fph_species_id": "skulker",
 		"description": "Stealthy ambush predators. Skulkers are difficult to detect and excel at striking from concealment.",
 		"traits": [
-			{"name": "Lurk", "type": "defensive", "description": "Enemy units reroll successful Observation tests when trying to spot Skulkers"},
-			{"name": "Ambush", "type": "movement", "description": "May set up hidden and deploy after the first round"}
+			{
+				"name": "Lurk",
+				"type": "defensive",
+				"description": "Enemy units reroll successful Observation tests when trying to spot Skulkers"
+			},
+			{
+				"name": "Ambush",
+				"type": "movement",
+				"description": "May set up hidden and deploy after the first round"
+			}
 		]
 	},
 	"weapons": {
-		"military_rifle": {"name": "Military Rifle", "category": "rifle", "range": 24, "shots": 1, "damage": 0, "cost": 3, "traits": []},
-		"blade": {"name": "Blade", "category": "melee", "range": 0, "shots": 0, "damage": 1, "cost": 1, "traits": ["Melee"]}
+		"military_rifle": {
+			"name": "Military Rifle",
+			"category": "rifle",
+			"range": 24,
+			"shots": 1,
+			"damage": 0,
+			"cost": 3,
+			"traits": []
+		},
+		"blade": {
+			"name": "Blade",
+			"category": "melee",
+			"range": 0,
+			"shots": 0,
+			"damage": 1,
+			"cost": 1,
+			"traits": [
+				"Melee"
+			]
+		}
 	},
 	"vehicles": {},
 	"units": [
-		{"id": "skulker_military", "name": "Military", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 11, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 1, "models": 5, "weapons": ["military_rifle", "blade"], "special_rules": []},
-		{"id": "skulker_sergeant", "name": "Sergeant", "type": "character", "org_slot": "leader", "tier": "sergeant", "cost": 17, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 2, "savvy": 0, "training": 1, "models": 1, "weapons": ["military_rifle", "blade"], "special_rules": []},
-		{"id": "skulker_major", "name": "Major Character", "type": "character", "org_slot": "leader", "tier": "major", "cost": 24, "speed": 5, "reactions": 2, "combat_skill": 2, "toughness": 3, "kp": 2, "savvy": 1, "training": 2, "models": 1, "weapons": ["military_rifle", "blade"], "special_rules": []},
-		{"id": "skulker_epic", "name": "Epic Character", "type": "character", "org_slot": "leader", "tier": "epic", "cost": 32, "speed": 6, "reactions": 3, "combat_skill": 2, "toughness": 4, "kp": 3, "savvy": 1, "training": 2, "models": 1, "weapons": ["military_rifle", "blade"], "special_rules": []},
-		{"id": "skulker_infantry_squad", "name": "Infantry Squad", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 55, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 1, "models": 5, "min_models": 4, "max_models": 6, "weapons": ["military_rifle", "blade"], "special_rules": []},
-		{"id": "skulker_ambush_team", "name": "Ambush Team", "type": "recon", "org_slot": "troop", "tier": "military", "cost": 50, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 1, "models": 4, "weapons": ["military_rifle", "blade"], "special_rules": [{"name": "Ambush", "type": "movement", "description": "May deploy hidden after first round"}]},
-		{"id": "skulker_weapon_team", "name": "Weapon Team", "type": "weapon_team", "org_slot": "support", "tier": "military", "cost": 28, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 1, "models": 3, "weapons": ["military_rifle"], "special_rules": []}
+		{
+			"id": "skulker_civilian",
+			"name": "Civilian",
+			"type": "character",
+			"org_slot": "troop",
+			"tier": "civilian",
+			"cost": 6,
+			"speed": 5,
+			"reactions": 1,
+			"combat_skill": 0,
+			"toughness": 3,
+			"kp": 1,
+			"savvy": 0,
+			"training": 0,
+			"models": 1,
+			"weapons": [
+				"blade"
+			],
+			"special_rules": []
+		},
+		{
+			"id": "skulker_military",
+			"name": "Military",
+			"type": "infantry",
+			"org_slot": "troop",
+			"tier": "military",
+			"cost": 12,
+			"speed": 5,
+			"reactions": 2,
+			"combat_skill": 1,
+			"toughness": 3,
+			"kp": 1,
+			"savvy": 0,
+			"training": 1,
+			"models": 5,
+			"weapons": [
+				"military_rifle",
+				"blade"
+			],
+			"special_rules": []
+		},
+		{
+			"id": "skulker_sergeant",
+			"name": "Sergeant",
+			"type": "character",
+			"org_slot": "leader",
+			"tier": "sergeant",
+			"cost": 17,
+			"speed": 5,
+			"reactions": 2,
+			"combat_skill": 1,
+			"toughness": 3,
+			"kp": 2,
+			"savvy": 0,
+			"training": 1,
+			"models": 1,
+			"weapons": [
+				"military_rifle",
+				"blade"
+			],
+			"special_rules": []
+		},
+		{
+			"id": "skulker_major",
+			"name": "Major Character",
+			"type": "character",
+			"org_slot": "leader",
+			"tier": "major",
+			"cost": 22,
+			"speed": 5,
+			"reactions": 2,
+			"combat_skill": 2,
+			"toughness": 3,
+			"kp": 2,
+			"savvy": 1,
+			"training": 2,
+			"models": 1,
+			"weapons": [
+				"military_rifle",
+				"blade"
+			],
+			"special_rules": []
+		},
+		{
+			"id": "skulker_epic",
+			"name": "Epic Character",
+			"type": "character",
+			"org_slot": "leader",
+			"tier": "epic",
+			"cost": 32,
+			"speed": 6,
+			"reactions": 3,
+			"combat_skill": 2,
+			"toughness": 4,
+			"kp": 3,
+			"savvy": 1,
+			"training": 2,
+			"models": 1,
+			"weapons": [
+				"military_rifle",
+				"blade"
+			],
+			"special_rules": []
+		},
+		{
+			"id": "skulker_infantry_squad",
+			"name": "Infantry Squad",
+			"type": "infantry",
+			"org_slot": "troop",
+			"tier": "military",
+			"cost": 65,
+			"speed": 5,
+			"reactions": 2,
+			"combat_skill": 1,
+			"toughness": 3,
+			"kp": 1,
+			"savvy": 0,
+			"training": 1,
+			"models": 5,
+			"min_models": 4,
+			"max_models": 6,
+			"weapons": [
+				"military_rifle",
+				"blade"
+			],
+			"special_rules": []
+		},
+		{
+			"id": "skulker_ambush_team",
+			"name": "Ambush Team",
+			"type": "recon",
+			"org_slot": "troop",
+			"tier": "military",
+			"cost": 50,
+			"speed": 5,
+			"reactions": 2,
+			"combat_skill": 1,
+			"toughness": 3,
+			"kp": 1,
+			"savvy": 0,
+			"training": 1,
+			"models": 4,
+			"weapons": [
+				"military_rifle",
+				"blade"
+			],
+			"special_rules": [
+				{
+					"name": "Ambush",
+					"type": "movement",
+					"description": "May deploy hidden after first round"
+				}
+			],
+			"_cost_source": "GAME_BALANCE_ESTIMATE"
+		},
+		{
+			"id": "skulker_weapon_team",
+			"name": "Weapon Team",
+			"type": "weapon_team",
+			"org_slot": "support",
+			"tier": "military",
+			"cost": 36,
+			"speed": 5,
+			"reactions": 2,
+			"combat_skill": 1,
+			"toughness": 3,
+			"kp": 1,
+			"savvy": 0,
+			"training": 1,
+			"models": 3,
+			"weapons": [
+				"military_rifle"
+			],
+			"special_rules": []
+		}
 	]
 }

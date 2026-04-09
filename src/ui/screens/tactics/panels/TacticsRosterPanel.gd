@@ -24,8 +24,10 @@ const SPACING_LG := _UC.SPACING_LG
 const TOUCH_TARGET_MIN := _UC.TOUCH_TARGET_MIN
 const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
 
+var _UnitProfile: GDScript
+
 var _coordinator = null
-var _species_book: TacticsSpeciesBook = null
+var _species_book = null
 var _roster_entries: Array = []  # Array of dict: {unit_id, display_name, model_count, platoon_index, selected_upgrades, entry_id}
 
 ## UI references
@@ -38,13 +40,14 @@ var _entry_counter: int = 0
 
 
 func _scaled_font(base: int) -> int:
-	var rm := get_node_or_null("/root/ResponsiveManager")
+	var rm = get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
 
 
 func _ready() -> void:
+	_UnitProfile = load("res://src/data/tactics/TacticsUnitProfile.gd")
 	_build_ui()
 
 
@@ -55,7 +58,7 @@ func set_coordinator(coord) -> void:
 ## Called by CreationUI when species changes or panel becomes visible
 func refresh() -> void:
 	if _coordinator and _coordinator.has_method("get_species_book"):
-		var book: TacticsSpeciesBook = _coordinator.get_species_book()
+		var book = _coordinator.get_species_book()
 		if book != _species_book:
 			_species_book = book
 			_roster_entries.clear()
@@ -66,22 +69,22 @@ func refresh() -> void:
 
 
 func _build_ui() -> void:
-	var scroll := ScrollContainer.new()
+	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
-	var outer := VBoxContainer.new()
+	var outer = VBoxContainer.new()
 	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	outer.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(outer)
 
 	# Title + Points counter
-	var header := HBoxContainer.new()
+	var header = HBoxContainer.new()
 	header.add_theme_constant_override("separation", SPACING_MD)
 	outer.add_child(header)
 
-	var title := Label.new()
+	var title = Label.new()
 	title.text = "ARMY ROSTER"
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -100,7 +103,7 @@ func _build_ui() -> void:
 	outer.add_child(_main_container)
 
 	# Available units section
-	var avail_header := Label.new()
+	var avail_header = Label.new()
 	avail_header.text = "Available Units"
 	avail_header.add_theme_font_size_override("font_size", _scaled_font(18))
 	avail_header.add_theme_color_override("font_color", COLOR_ACCENT)
@@ -111,7 +114,7 @@ func _build_ui() -> void:
 	_main_container.add_child(_available_list)
 
 	# Current roster section
-	var roster_header := Label.new()
+	var roster_header = Label.new()
 	roster_header.text = "Your Roster"
 	roster_header.add_theme_font_size_override("font_size", _scaled_font(18))
 	roster_header.add_theme_color_override("font_color", COLOR_ACCENT)
@@ -132,18 +135,18 @@ func _rebuild_available_list() -> void:
 		child.queue_free()
 
 	if not _species_book:
-		var empty := Label.new()
+		var empty = Label.new()
 		empty.text = "Select a species first"
 		empty.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		_available_list.add_child(empty)
 		return
 
 	# Group units by org slot
-	var slot_names := {
-		TacticsUnitProfile.OrgSlot.LEADER: "Leaders",
-		TacticsUnitProfile.OrgSlot.TROOP: "Troops",
-		TacticsUnitProfile.OrgSlot.SUPPORT: "Support",
-		TacticsUnitProfile.OrgSlot.SPECIALIST_SLOT: "Specialists",
+	var slot_names = {
+		_UnitProfile.OrgSlot.LEADER: "Leaders",
+		_UnitProfile.OrgSlot.TROOP: "Troops",
+		_UnitProfile.OrgSlot.SUPPORT: "Support",
+		_UnitProfile.OrgSlot.SPECIALIST_SLOT: "Specialists",
 	}
 
 	for slot in slot_names:
@@ -151,24 +154,24 @@ func _rebuild_available_list() -> void:
 		if units.is_empty():
 			continue
 
-		var slot_label := Label.new()
+		var slot_label = Label.new()
 		slot_label.text = slot_names[slot]
 		slot_label.add_theme_font_size_override("font_size", _scaled_font(14))
 		slot_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		_available_list.add_child(slot_label)
 
 		for unit in units:
-			if unit is TacticsUnitProfile:
-				var row := _create_available_unit_row(unit)
+			if unit and "unit_id" in unit:
+				var row = _create_available_unit_row(unit)
 				_available_list.add_child(row)
 
 
-func _create_available_unit_row(profile: TacticsUnitProfile) -> HBoxContainer:
-	var row := HBoxContainer.new()
+func _create_available_unit_row(profile) -> HBoxContainer:
+	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", SPACING_SM)
 	row.custom_minimum_size.y = TOUCH_TARGET_MIN
 
-	var name_lbl := Label.new()
+	var name_lbl = Label.new()
 	name_lbl.text = "%s (%dpts, %d models)" % [
 		profile.unit_name, profile.points_cost, profile.base_models]
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
@@ -176,7 +179,7 @@ func _create_available_unit_row(profile: TacticsUnitProfile) -> HBoxContainer:
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_lbl)
 
-	var add_btn := Button.new()
+	var add_btn = Button.new()
 	add_btn.text = "+ Add"
 	add_btn.custom_minimum_size = Vector2(70, TOUCH_TARGET_MIN)
 	var uid: String = profile.unit_id
@@ -189,7 +192,7 @@ func _create_available_unit_row(profile: TacticsUnitProfile) -> HBoxContainer:
 func _add_unit_to_roster(unit_id: String) -> void:
 	if not _species_book:
 		return
-	var profile: TacticsUnitProfile = _species_book.get_unit_profile(unit_id)
+	var profile = _species_book.get_unit_profile(unit_id)
 	if not profile:
 		return
 
@@ -225,7 +228,7 @@ func _rebuild_roster_list() -> void:
 		child.queue_free()
 
 	if _roster_entries.is_empty():
-		var empty := Label.new()
+		var empty = Label.new()
 		empty.text = "No units added yet. Add units from the list above."
 		empty.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		empty.add_theme_font_size_override("font_size", _scaled_font(14))
@@ -233,13 +236,13 @@ func _rebuild_roster_list() -> void:
 		return
 
 	for entry in _roster_entries:
-		var row := _create_roster_entry_row(entry)
+		var row = _create_roster_entry_row(entry)
 		_roster_list.add_child(row)
 
 
 func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
-	var card := PanelContainer.new()
-	var style := StyleBoxFlat.new()
+	var card = PanelContainer.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
@@ -250,25 +253,25 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 	style.content_margin_bottom = SPACING_SM
 	card.add_theme_stylebox_override("panel", style)
 
-	var hbox := HBoxContainer.new()
+	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", SPACING_SM)
 	card.add_child(hbox)
 
 	# Unit info
-	var info := VBoxContainer.new()
+	var info = VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 1)
 	hbox.add_child(info)
 
-	var name_lbl := Label.new()
+	var name_lbl = Label.new()
 	name_lbl.text = entry.get("display_name", "Unknown")
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	info.add_child(name_lbl)
 
 	# Cost + models
-	var cost := _get_entry_cost(entry)
-	var detail_lbl := Label.new()
+	var cost = _get_entry_cost(entry)
+	var detail_lbl = Label.new()
 	detail_lbl.text = "%dpts — %d models — Platoon %d" % [
 		cost, entry.get("model_count", 1), entry.get("platoon_index", 0) + 1]
 	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(11))
@@ -276,7 +279,7 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 	info.add_child(detail_lbl)
 
 	# Remove button
-	var remove_btn := Button.new()
+	var remove_btn = Button.new()
 	remove_btn.text = "X"
 	remove_btn.custom_minimum_size = Vector2(TOUCH_TARGET_MIN, TOUCH_TARGET_MIN)
 	var eid: String = entry.get("entry_id", "")
@@ -289,7 +292,7 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 func _get_entry_cost(entry: Dictionary) -> int:
 	if not _species_book:
 		return 0
-	var profile: TacticsUnitProfile = _species_book.get_unit_profile(
+	var profile = _species_book.get_unit_profile(
 		entry.get("unit_id", ""))
 	if profile:
 		return profile.points_cost
@@ -306,7 +309,7 @@ func _get_total_points() -> int:
 func _update_points_display() -> void:
 	if not _points_label:
 		return
-	var total := _get_total_points()
+	var total = _get_total_points()
 	var limit: int = 500
 	if _coordinator and "config_data" in _coordinator:
 		limit = _coordinator.config_data.get("points_limit", 500)
@@ -329,7 +332,7 @@ func _update_validation() -> void:
 	if _coordinator and _coordinator.has_method("get_validation_errors"):
 		var errors: Array[String] = _coordinator.get_validation_errors()
 		for err in errors:
-			var lbl := Label.new()
+			var lbl = Label.new()
 			lbl.text = "• " + err
 			lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 			lbl.add_theme_color_override("font_color", COLOR_DANGER)
@@ -337,7 +340,7 @@ func _update_validation() -> void:
 			_validation_box.add_child(lbl)
 
 		if errors.is_empty():
-			var ok := Label.new()
+			var ok = Label.new()
 			ok.text = "Composition valid"
 			ok.add_theme_font_size_override("font_size", _scaled_font(12))
 			ok.add_theme_color_override("font_color", COLOR_SUCCESS)

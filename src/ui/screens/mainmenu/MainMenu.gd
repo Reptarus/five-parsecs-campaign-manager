@@ -8,6 +8,7 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 @onready var coop_campaign_button = %CoopCampaign as Button
 @onready var battle_simulator_button = %BattleSimulator as Button
 @onready var bug_hunt_button = %BugHunt as Button
+var tactics_button: Button
 @onready var options_button = %Options as Button
 @onready var library_button = %Library as Button
 @onready var tutorial_popup = %TutorialPopup as Panel
@@ -104,15 +105,31 @@ func _connect_tutorial_signals() -> void:
 			button.pressed.connect(_on_tutorial_popup_button_pressed.bind(buttons[button_name]))
 
 func setup_ui() -> void:
+	_inject_tactics_button()
 	_connect_buttons()
 	_enforce_touch_targets()
 	add_fade_in_animation()
+
+func _inject_tactics_button() -> void:
+	# Dynamically add Tactics button after Bug Hunt
+	if not bug_hunt_button:
+		return
+	var menu_container := bug_hunt_button.get_parent()
+	if not menu_container:
+		return
+	tactics_button = Button.new()
+	tactics_button.name = "Tactics"
+	tactics_button.text = "Tactics"
+	tactics_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var idx := bug_hunt_button.get_index() + 1
+	menu_container.add_child(tactics_button)
+	menu_container.move_child(tactics_button, idx)
 
 func _enforce_touch_targets() -> void:
 	# Ensure all menu buttons meet TOUCH_TARGET_MIN (48px)
 	for btn in [continue_button, load_campaign_button, new_campaign_button,
 			coop_campaign_button, battle_simulator_button, bug_hunt_button,
-			options_button, library_button]:
+			tactics_button, options_button, library_button]:
 		if btn:
 			btn.custom_minimum_size.y = maxf(btn.custom_minimum_size.y, 48.0)
 
@@ -129,6 +146,8 @@ func _connect_buttons() -> void:
 		_safe_connect(battle_simulator_button, "pressed", _on_battle_simulator_pressed)
 	if bug_hunt_button:
 		_safe_connect(bug_hunt_button, "pressed", _on_bug_hunt_pressed)
+	if tactics_button:
+		_safe_connect(tactics_button, "pressed", _on_tactics_pressed)
 	if options_button:
 		_safe_connect(options_button, "pressed", _on_options_pressed)
 	if library_button:
@@ -1053,6 +1072,9 @@ func request_scene_change(scene_name: String) -> void:
 		"campaign_turn_controller": "campaign_turn_controller",
 		"bug_hunt_creation": "bug_hunt_creation",
 		"bug_hunt_dashboard": "bug_hunt_dashboard",
+		"tactics_creation": "tactics_creation",
+		"tactics_dashboard": "tactics_dashboard",
+		"tactics_turn_controller": "tactics_turn_controller",
 		"battle_simulator": "battle_simulator",
 		"compendium": "compendium",
 		"help": "help",

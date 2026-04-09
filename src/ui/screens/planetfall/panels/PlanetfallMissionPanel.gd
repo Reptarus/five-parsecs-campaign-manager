@@ -180,18 +180,24 @@ func _on_mission_selected(mission: Dictionary) -> void:
 func _show_mission_detail(mission: Dictionary) -> void:
 	_clear_container(_detail_container)
 
+	# Mission name
 	var name_lbl := Label.new()
 	name_lbl.text = mission.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_detail_container.add_child(name_lbl)
 
+	# Category + table size
+	var cat_text: String = "%s  |  Table: %s ft" % [
+		mission.get("category", "").capitalize(),
+		mission.get("table_size", "3x3")]
 	var cat_lbl := Label.new()
-	cat_lbl.text = "Category: %s" % mission.get("category", "").capitalize()
+	cat_lbl.text = cat_text
 	cat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	cat_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	_detail_container.add_child(cat_lbl)
 
+	# Description
 	var desc := RichTextLabel.new()
 	desc.bbcode_enabled = true
 	desc.fit_content = true
@@ -201,12 +207,27 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	desc.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc)
 
-	var deploy_lbl := Label.new()
-	deploy_lbl.text = "Max Deploy: %d characters" % mission.get("max_deploy", 6)
-	deploy_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	deploy_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	_detail_container.add_child(deploy_lbl)
+	# Briefing sections
+	_add_briefing_section("Player Forces", _format_player_forces(mission))
+	_add_briefing_section("Opposition", _format_opposition(mission))
+	_add_briefing_section("Objectives", _format_objectives(mission))
+	_add_briefing_section("Rewards", _format_rewards(mission))
 
+	# Special rules
+	var special: Array = mission.get("special_rules", [])
+	if not special.is_empty():
+		_add_briefing_section("Special Rules", "\n".join(special))
+
+	# Battlefield conditions indicator
+	var has_conditions: bool = mission.get("battlefield_conditions", false)
+	if has_conditions:
+		var cond_lbl := Label.new()
+		cond_lbl.text = "Battlefield Conditions: Roll on Campaign Condition table"
+		cond_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		cond_lbl.add_theme_color_override("font_color", COLOR_WARNING)
+		_detail_container.add_child(cond_lbl)
+
+	# Page reference
 	var page_lbl := Label.new()
 	page_lbl.text = "Rulebook: p.%d" % mission.get("page", 0)
 	page_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
@@ -214,10 +235,149 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	_detail_container.add_child(page_lbl)
 
 
+func _add_briefing_section(title: String, content: String) -> void:
+	if content.is_empty():
+		return
+
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_SM)
+	card.add_theme_stylebox_override("panel", style)
+	_detail_container.add_child(card)
+
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 4)
+	card.add_child(inner)
+
+	var title_lbl := Label.new()
+	title_lbl.text = title
+	title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	title_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
+	inner.add_child(title_lbl)
+
+	var content_lbl := RichTextLabel.new()
+	content_lbl.bbcode_enabled = true
+	content_lbl.fit_content = true
+	content_lbl.scroll_active = false
+	content_lbl.text = content
+	content_lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_XS)
+	content_lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
+	inner.add_child(content_lbl)
+
+
+func _format_player_forces(mission: Dictionary) -> String:
+	var forces: Dictionary = mission.get("player_forces", {})
+	var max_chars: int = forces.get("max_characters", 6)
+	var max_grunts: int = forces.get("max_grunts", 0)
+	var fireteams: int = forces.get("grunt_fireteams", 0)
+
+	var parts: Array = ["Characters: up to %d" % max_chars]
+	if max_grunts > 0:
+		parts.append("Grunts: up to %d (%d fireteam%s)" % [
+			max_grunts, fireteams, "s" if fireteams != 1 else ""])
+	else:
+		parts.append("No grunts")
+
+	var deployment: String = mission.get("deployment", "")
+	if not deployment.is_empty():
+		parts.append(deployment)
+	return "\n".join(parts)
+
+
+func _format_opposition(mission: Dictionary) -> String:
+	var opp: Dictionary = mission.get("opposition", {})
+	var opp_type: String = opp.get("type", "unknown")
+
+	match opp_type:
+		"lifeforms":
+			var contact_setup: String = opp.get("contact_setup", "")
+			if opp.get("slyn_immune", false):
+				return "Lifeforms (Contact system). Slyn will not interfere.\n%s" % contact_setup
+			return "Lifeforms (Contact system).\n%s" % contact_setup
+		"tactical":
+			var note: String = "Tactical Enemies."
+			if opp.get("slyn_immune", false):
+				note += " Slyn will not interfere."
+			if opp.get("double_force", false):
+				note += "\nTwo separate enemy forces!"
+			if opp.get("max_encounter", false):
+				note += "\nMaximum strength + reinforcements!"
+			return note
+		"slyn_check":
+			var aggro: Dictionary = opp.get("slyn_aggression", {})
+			var range_str: String = "%d-%d" % [
+				aggro.get("slyn_range_min", 2), aggro.get("slyn_range_max", 4)]
+			return "2D6 Slyn check: %s = Slyn attack. Otherwise Lifeforms/Tactical." % range_str
+		"delve_hazards":
+			return "Delve Hazards (4 initial markers). No conventional enemies — Sleepers and traps instead."
+		_:
+			return opp_type.capitalize()
+
+
+func _format_objectives(mission: Dictionary) -> String:
+	var obj: Dictionary = mission.get("objectives", {})
+	var obj_type: String = obj.get("type", "")
+	var desc: String = obj.get("description", "")
+	if not desc.is_empty():
+		return desc
+	match obj_type:
+		"discovery_markers":
+			return "Investigate %d Discovery markers (within %d inches). Each triggers a D6 table result." % [
+				obj.get("marker_count", 4), obj.get("investigate_range", 2)]
+		"recon_markers":
+			return "Recon %d markers in terrain features. Scouts auto-succeed; others: 1D6+Savvy, 5+." % obj.get("marker_count", 6)
+		"sweep_objectives":
+			return "Sweep Objectives (Resource value count). End round within 3 inches, no enemies closer."
+		"science_markers":
+			return "Collect samples from %d markers. Scientists auto-succeed; others: 1D6+Savvy, 5+." % obj.get("marker_count", 6)
+		"specimen_capture":
+			return "Kill 2 Lifeforms, transmit data from each, then escape. (Slyn attack = no specimens.)"
+		"patrol_objectives":
+			return "Clear 3 Objectives (within 2 inches, no enemies same distance). Can clear multiple per round."
+		"skirmish_objectives":
+			return "Complete 2 random Skirmish Objectives (D6 each). Carry items, complete conditions, evacuate."
+		"rescue_colonists":
+			return "Save 3 colonists by escorting them off any table edge."
+		"rescue_scout":
+			return "Rescue downed scout off any edge. Scout is injured (move OR act, not both)."
+		"delve_devices":
+			return "Activate 3 of 4 Delve Devices to unlock Artifact location. Each requires base contact + D6 check."
+		_:
+			return obj_type.replace("_", " ").capitalize()
+
+
+func _format_rewards(mission: Dictionary) -> String:
+	var rewards: Array = mission.get("rewards", [])
+	var detail: String = mission.get("rewards_detail", "")
+	if not detail.is_empty():
+		return detail
+	if not rewards.is_empty():
+		return "\n".join(rewards)
+	return "No special rewards."
+
+
 func _on_confirm_pressed() -> void:
 	if _confirm_btn:
 		_confirm_btn.disabled = true
-	phase_completed.emit({"selected_mission": _selected_mission})
+
+	# Extract force limits from the enriched mission data for LockAndLoadPanel
+	var forces: Dictionary = _selected_mission.get("player_forces", {})
+	var force_limits: Dictionary = {
+		"max_characters": forces.get("max_characters", 6),
+		"max_grunts": forces.get("max_grunts", 0),
+		"grunt_fireteams": forces.get("grunt_fireteams", 0)
+	}
+
+	phase_completed.emit({
+		"selected_mission": _selected_mission,
+		"force_limits": force_limits,
+		"battlefield_conditions": _selected_mission.get("battlefield_conditions", false),
+		"uncertain_features": _selected_mission.get("uncertain_features", false)
+	})
 
 
 ## ============================================================================

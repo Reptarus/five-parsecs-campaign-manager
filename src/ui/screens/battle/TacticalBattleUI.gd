@@ -1431,8 +1431,8 @@ func _find_psionic_crew_member() -> Dictionary:
 	if crew.is_empty():
 		# Fallback: try crew_units
 		for unit in crew_units:
-			var orig = unit.get("original_character") if unit is Dictionary else null
-			if orig and orig is Dictionary and not orig.get("psionic_powers", []).is_empty():
+			var orig = unit.original_data if "original_data" in unit else {}
+			if orig is Dictionary and not orig.get("psionic_powers", []).is_empty():
 				return orig
 		return {}
 	for member in crew:

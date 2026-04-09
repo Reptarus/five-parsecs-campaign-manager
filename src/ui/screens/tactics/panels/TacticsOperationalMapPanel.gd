@@ -29,7 +29,7 @@ var _complete_btn: Button
 
 
 func _scaled_font(base: int) -> int:
-	var rm := get_node_or_null("/root/ResponsiveManager")
+	var rm = get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
@@ -49,24 +49,24 @@ func show_phase(_phase: int) -> void:
 
 
 func _build_ui() -> void:
-	var scroll := ScrollContainer.new()
+	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(vbox)
 
-	var title := Label.new()
+	var title = Label.new()
 	title.text = "STRATEGIC PHASE"
 	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
-	var desc := Label.new()
+	var desc = Label.new()
 	desc.text = "Resolve operational combat, issue orders, "\
 		+ "redeploy forces, and open new zones."
 	desc.add_theme_font_size_override("font_size", _scaled_font(14))
@@ -79,7 +79,7 @@ func _build_ui() -> void:
 	_content.add_theme_constant_override("separation", SPACING_MD)
 	vbox.add_child(_content)
 
-	var nav := HBoxContainer.new()
+	var nav = HBoxContainer.new()
 	nav.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(nav)
 
@@ -95,7 +95,7 @@ func _rebuild_content() -> void:
 		child.queue_free()
 
 	if not _campaign or not "operational_map" in _campaign:
-		var lbl := Label.new()
+		var lbl = Label.new()
 		lbl.text = "No operational map data."
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		_content.add_child(lbl)
@@ -129,7 +129,7 @@ func _rebuild_content() -> void:
 	# Zones summary
 	var zones: Array = map.get("zones", [])
 	if not zones.is_empty():
-		var zone_lbl := Label.new()
+		var zone_lbl = Label.new()
 		zone_lbl.text = "Active Zones: %d" % zones.size()
 		zone_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 		zone_lbl.add_theme_color_override("font_color", COLOR_TEXT)
@@ -137,18 +137,18 @@ func _rebuild_content() -> void:
 
 
 func _add_stat_row(label: String, value: String, color: Color) -> void:
-	var hbox := HBoxContainer.new()
+	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", SPACING_MD)
 	_content.add_child(hbox)
 
-	var lbl := Label.new()
+	var lbl = Label.new()
 	lbl.text = label
 	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(lbl)
 
-	var val := Label.new()
+	var val = Label.new()
 	val.text = value
 	val.add_theme_font_size_override("font_size", _scaled_font(18))
 	val.add_theme_color_override("font_color", color)
@@ -156,8 +156,8 @@ func _add_stat_row(label: String, value: String, color: Color) -> void:
 
 
 func _add_card(card_title: String, body: String) -> void:
-	var card := PanelContainer.new()
-	var style := StyleBoxFlat.new()
+	var card = PanelContainer.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
@@ -168,17 +168,17 @@ func _add_card(card_title: String, body: String) -> void:
 	style.content_margin_bottom = SPACING_SM
 	card.add_theme_stylebox_override("panel", style)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 	card.add_child(vbox)
 
-	var t := Label.new()
+	var t = Label.new()
 	t.text = card_title
 	t.add_theme_font_size_override("font_size", _scaled_font(16))
 	t.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(t)
 
-	var b := Label.new()
+	var b = Label.new()
 	b.text = body
 	b.add_theme_font_size_override("font_size", _scaled_font(14))
 	b.add_theme_color_override("font_color", COLOR_TEXT)

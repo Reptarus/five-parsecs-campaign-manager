@@ -22,14 +22,14 @@ var _content: VBoxContainer
 
 
 func _scaled_font(base: int) -> int:
-	var rm := get_node_or_null("/root/ResponsiveManager")
+	var rm = get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
 
 
 func _ready() -> void:
-	var scroll := ScrollContainer.new()
+	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
@@ -54,7 +54,7 @@ func refresh() -> void:
 		return
 
 	# Title
-	var title := Label.new()
+	var title = Label.new()
 	title.text = "CAMPAIGN REVIEW"
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -94,9 +94,9 @@ func _build_species_summary() -> String:
 	var sid: String = _coordinator.species_id
 	if sid.is_empty():
 		return "No species selected"
-	var book: TacticsSpeciesBook = _coordinator.get_species_book()
+	var book = _coordinator.get_species_book()
 	if book and book.species:
-		var line := book.species.species_name
+		var line = book.species.species_name
 		if not book.species.species_traits.is_empty():
 			line += "\nTraits: %s" % book.species.get_traits_display()
 		return line
@@ -112,13 +112,13 @@ func _build_roster_summary() -> String:
 
 	var lines: Array[String] = []
 	var total_pts: int = 0
-	var book: TacticsSpeciesBook = _coordinator.get_species_book()
+	var book = _coordinator.get_species_book()
 
 	for entry in entries:
 		var name: String = entry.get("display_name", "Unknown")
 		var cost: int = 0
 		if book:
-			var profile: TacticsUnitProfile = book.get_unit_profile(entry.get("unit_id", ""))
+			var profile = book.get_unit_profile(entry.get("unit_id", ""))
 			if profile:
 				cost = profile.points_cost
 		total_pts += cost
@@ -137,7 +137,7 @@ func _add_validation_section() -> void:
 
 	var errors: Array[String] = _coordinator.get_validation_errors()
 
-	var header := Label.new()
+	var header = Label.new()
 	header.add_theme_font_size_override("font_size", _scaled_font(18))
 	if errors.is_empty():
 		header.text = "Validation: PASSED"
@@ -148,7 +148,7 @@ func _add_validation_section() -> void:
 	_content.add_child(header)
 
 	for err in errors:
-		var lbl := Label.new()
+		var lbl = Label.new()
 		lbl.text = "• " + err
 		lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 		lbl.add_theme_color_override("font_color", COLOR_DANGER)
@@ -157,8 +157,8 @@ func _add_validation_section() -> void:
 
 
 func _add_card(card_title: String, body_text: String) -> void:
-	var card := PanelContainer.new()
-	var style := StyleBoxFlat.new()
+	var card = PanelContainer.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
@@ -169,17 +169,17 @@ func _add_card(card_title: String, body_text: String) -> void:
 	style.content_margin_bottom = SPACING_SM
 	card.add_theme_stylebox_override("panel", style)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 	card.add_child(vbox)
 
-	var title_lbl := Label.new()
+	var title_lbl = Label.new()
 	title_lbl.text = card_title
 	title_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	title_lbl.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(title_lbl)
 
-	var body := Label.new()
+	var body = Label.new()
 	body.text = body_text
 	body.add_theme_font_size_override("font_size", _scaled_font(14))
 	body.add_theme_color_override("font_color", COLOR_TEXT)

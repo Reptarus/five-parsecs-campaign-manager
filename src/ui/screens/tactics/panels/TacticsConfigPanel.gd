@@ -53,7 +53,7 @@ const PLAY_MODES := [
 
 
 func _scaled_font(base: int) -> int:
-	var rm := get_node_or_null("/root/ResponsiveManager")
+	var rm = get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
@@ -68,24 +68,24 @@ func set_coordinator(coord) -> void:
 
 
 func _build_ui() -> void:
-	var scroll := ScrollContainer.new()
+	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(scroll)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(vbox)
 
 	# Title
-	var title := Label.new()
+	var title = Label.new()
 	title.text = "TACTICS — CAMPAIGN SETUP"
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
-	var flavor := Label.new()
+	var flavor = Label.new()
 	flavor.text = "Configure your Tactics campaign. Choose your force size, organization, and play mode."
 	flavor.add_theme_font_size_override("font_size", _scaled_font(14))
 	flavor.add_theme_color_override("font_color", COLOR_TEXT_SEC)
@@ -184,7 +184,7 @@ func _emit_update() -> void:
 
 
 func _add_section_label(parent: Control, text: String) -> void:
-	var lbl := Label.new()
+	var lbl = Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
@@ -192,10 +192,10 @@ func _add_section_label(parent: Control, text: String) -> void:
 
 
 func _create_styled_line_edit(placeholder: String) -> LineEdit:
-	var edit := LineEdit.new()
+	var edit = LineEdit.new()
 	edit.placeholder_text = placeholder
 	edit.custom_minimum_size.y = TOUCH_TARGET_COMFORT
-	var bg := StyleBoxFlat.new()
+	var bg = StyleBoxFlat.new()
 	bg.bg_color = COLOR_INPUT
 	bg.border_color = COLOR_BORDER
 	bg.set_border_width_all(1)

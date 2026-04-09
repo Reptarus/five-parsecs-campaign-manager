@@ -7,14 +7,10 @@ extends Control
 ##   Phases 5-6 (POST_BATTLE→ADVANCEMENT): TacticsPostBattlePanel
 ##   Phase 7 (STRATEGIC): TacticsOperationalMapPanel
 
-const PhaseManagerScript = preload(
-	"res://src/core/campaign/TacticsPhaseManager.gd")
-const BattleSetupScript = preload(
-	"res://src/ui/screens/tactics/panels/TacticsBattleSetupPanel.gd")
-const PostBattleScript = preload(
-	"res://src/ui/screens/tactics/panels/TacticsPostBattlePanel.gd")
-const OpMapScript = preload(
-	"res://src/ui/screens/tactics/panels/TacticsOperationalMapPanel.gd")
+var PhaseManagerScript: GDScript
+var BattleSetupScript: GDScript
+var PostBattleScript: GDScript
+var OpMapScript: GDScript
 
 const _UC = preload("res://src/ui/components/base/UIColors.gd")
 const COLOR_BASE := _UC.COLOR_BASE
@@ -54,6 +50,10 @@ func _scaled_font(base: int) -> int:
 
 
 func _ready() -> void:
+	PhaseManagerScript = load("res://src/core/campaign/PhaseManagerScript.gd")
+	BattleSetupScript = load("res://src/ui/screens/tactics/panels/TacticsBattleSetupPanel.gd")
+	PostBattleScript = load("res://src/ui/screens/tactics/panels/TacticsPostBattlePanel.gd")
+	OpMapScript = load("res://src/ui/screens/tactics/panels/TacticsOperationalMapPanel.gd")
 	call_deferred("_initialize")
 
 
@@ -86,7 +86,7 @@ func _initialize() -> void:
 			phase_manager.turn_number = turn
 			phase_manager.campaign_turn_started.emit(turn)
 			phase_manager.go_to_phase(
-				TacticsPhaseManager.Phase.ORDERS)
+				PhaseManagerScript.Phase.ORDERS)
 
 
 func _load_campaign() -> void:
@@ -159,7 +159,7 @@ func _build_layout() -> void:
 	_phase_strip.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(_phase_strip)
 
-	for i in range(TacticsPhaseManager.PHASE_COUNT):
+	for i in range(PhaseManagerScript.PHASE_COUNT):
 		var dot := Label.new()
 		dot.text = "○"
 		dot.add_theme_font_size_override("font_size", _scaled_font(14))
@@ -338,6 +338,6 @@ func _create_battle_indicator() -> VBoxContainer:
 func _resume_after_battle(result: Dictionary) -> void:
 	phase_manager.turn_number = campaign.campaign_turn \
 		if "campaign_turn" in campaign else 1
-	phase_manager.go_to_phase(TacticsPhaseManager.Phase.POST_BATTLE)
+	phase_manager.go_to_phase(PhaseManagerScript.Phase.POST_BATTLE)
 	phase_manager.complete_current_phase(
 		{"battle_result": result})

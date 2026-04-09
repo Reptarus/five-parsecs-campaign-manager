@@ -29,7 +29,7 @@ var _complete_btn: Button
 
 
 func _scaled_font(base: int) -> int:
-	var rm := get_node_or_null("/root/ResponsiveManager")
+	var rm = get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
@@ -48,13 +48,13 @@ func show_phase(phase: int) -> void:
 	if not _phase_title or not _phase_desc:
 		return
 
-	var phase_names := {
+	var phase_names = {
 		0: "Operational Orders",
 		1: "Reconnaissance",
 		2: "Battle Preparation",
 		3: "Deployment",
 	}
-	var phase_descs := {
+	var phase_descs = {
 		0: "Plan your approach. Assign units to operational zones and choose your battle plan for this turn.",
 		1: "Gather intelligence on enemy positions. Roll Observation tests to reveal enemy composition and terrain features.",
 		2: "Generate the battle scenario. Roll for scenario type, objectives, and battlefield conditions.",
@@ -69,12 +69,12 @@ func show_phase(phase: int) -> void:
 
 
 func _build_ui() -> void:
-	var scroll := ScrollContainer.new()
+	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(vbox)
@@ -99,7 +99,7 @@ func _build_ui() -> void:
 	vbox.add_child(_content)
 
 	# Complete button
-	var nav := HBoxContainer.new()
+	var nav = HBoxContainer.new()
 	nav.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(nav)
 
@@ -124,7 +124,7 @@ func _rebuild_phase_content(phase: int) -> void:
 				"Observation tests reveal enemy composition. "\
 				+ "Better intel means fewer surprises during battle.")
 		2:  # Battle Prep
-			var scenario_type := ["Skirmish", "Battle",
+			var scenario_type = ["Skirmish", "Battle",
 				"Grand Battle", "Evolving Objective"][randi() % 4]
 			_add_info_card("Scenario: %s" % scenario_type,
 				"Battlefield conditions generated. "\
@@ -136,8 +136,8 @@ func _rebuild_phase_content(phase: int) -> void:
 
 
 func _add_info_card(card_title: String, body: String) -> void:
-	var card := PanelContainer.new()
-	var style := StyleBoxFlat.new()
+	var card = PanelContainer.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
@@ -148,17 +148,17 @@ func _add_info_card(card_title: String, body: String) -> void:
 	style.content_margin_bottom = SPACING_SM
 	card.add_theme_stylebox_override("panel", style)
 
-	var vbox := VBoxContainer.new()
+	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 	card.add_child(vbox)
 
-	var title := Label.new()
+	var title = Label.new()
 	title.text = card_title
 	title.add_theme_font_size_override("font_size", _scaled_font(16))
 	title.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(title)
 
-	var desc := Label.new()
+	var desc = Label.new()
 	desc.text = body
 	desc.add_theme_font_size_override("font_size", _scaled_font(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT)

@@ -84,6 +84,8 @@ signal navigation_updated(can_back: bool, can_forward: bool)
 
 ## Core Systems (RefCounted, JSON-driven)
 
+### Section 1-2 Systems
+
 | System | File | Loads |
 |--------|------|-------|
 | `PlanetfallEventResolver` | `src/core/systems/PlanetfallEventResolver.gd` | colony_events, enemy_activity, pf_character_events, injury_table, replacement_table JSONs |
@@ -91,6 +93,26 @@ signal navigation_updated(can_back: bool, can_forward: bool)
 | `PlanetfallResearchSystem` | `src/core/systems/PlanetfallResearchSystem.gd` | research_tree.json |
 | `PlanetfallBuildingSystem` | `src/core/systems/PlanetfallBuildingSystem.gd` | buildings.json |
 | `PlanetfallArmorySystem` | `src/core/systems/PlanetfallArmorySystem.gd` | armory.json |
+
+### Section 3 Systems (Missions & Battles)
+
+| System | File | Loads |
+|--------|------|-------|
+| `PlanetfallConditionSystem` | `src/core/systems/PlanetfallConditionSystem.gd` | master_conditions.json |
+| `PlanetfallLifeformGenerator` | `src/core/systems/PlanetfallLifeformGenerator.gd` | lifeform_generation.json, lifeform_evolution.json |
+| `PlanetfallTacticalEnemyGenerator` | `src/core/systems/PlanetfallTacticalEnemyGenerator.gd` | tactical_enemies_generation.json |
+| `PlanetfallMissionSetup` | `src/core/systems/PlanetfallMissionSetup.gd` | mission_types.json, slyn_profile.json, sleeper_profile.json |
+| `PlanetfallDelveSystem` | `src/core/systems/PlanetfallDelveSystem.gd` | delve_system.json |
+| `PlanetfallPostMissionSystem` | `src/core/systems/PlanetfallPostMissionSystem.gd` | post_mission_finds.json, artifacts.json |
+
+### Section 4 Systems (Campaign Development)
+
+| System | File | Loads |
+|--------|------|-------|
+| `PlanetfallMilestoneSystem` | `src/core/systems/PlanetfallMilestoneSystem.gd` | milestone_effects.json |
+| `PlanetfallCalamitySystem` | `src/core/systems/PlanetfallCalamitySystem.gd` | calamities.json |
+| `PlanetfallMissionDataSystem` | `src/core/systems/PlanetfallMissionDataSystem.gd` | mission_data_breakthroughs.json |
+| `PlanetfallEndGameSystem` | `src/core/systems/PlanetfallEndGameSystem.gd` | endgame.json |
 
 ## Dashboard Navigation Flow
 
@@ -102,8 +124,11 @@ MainMenu → "Planetfall" → SceneRouter "planetfall_dashboard" → PlanetfallD
   │   ├─ Colony Status → PlanetfallColonyStatusPanel (overlay)
   │   ├─ Armory → PlanetfallEquipmentPanel (overlay)
   │   ├─ Enemy Tracker → PlanetfallEnemyTrackerPanel (overlay)
-  │   └─ Augmentations → PlanetfallAugmentationPanel (overlay, standalone mode)
+  │   ├─ Augmentations → PlanetfallAugmentationPanel (overlay, standalone mode)
+  │   ├─ Milestones & Progression → PlanetfallMilestonePanel (overlay)
+  │   └─ Active Calamities → PlanetfallCalamityPanel (overlay, visible only when active)
   ├─ Continue Campaign → SceneRouter "planetfall_turn_controller" → PlanetfallTurnController
+  │   (If game_phase == "endgame": shows PlanetfallEndGamePanel instead of turn flow)
   └─ Main Menu
 ```
 

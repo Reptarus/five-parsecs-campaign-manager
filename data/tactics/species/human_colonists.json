@@ -36,7 +36,9 @@
 			"shots": 1,
 			"damage": 0,
 			"cost": 4,
-			"traits": ["Snap Shot"]
+			"traits": [
+				"Snap Shot"
+			]
 		},
 		"service_pistol": {
 			"name": "Service Pistol",
@@ -45,7 +47,9 @@
 			"shots": 1,
 			"damage": 0,
 			"cost": 1,
-			"traits": ["Pistol"]
+			"traits": [
+				"Pistol"
+			]
 		},
 		"blade": {
 			"name": "Blade",
@@ -54,7 +58,9 @@
 			"shots": 0,
 			"damage": 1,
 			"cost": 1,
-			"traits": ["Melee"]
+			"traits": [
+				"Melee"
+			]
 		},
 		"light_machine_gun": {
 			"name": "Light Machine Gun",
@@ -63,7 +69,10 @@
 			"shots": 3,
 			"damage": 0,
 			"cost": 10,
-			"traits": ["Heavy", "Team"]
+			"traits": [
+				"Heavy",
+				"Team"
+			]
 		},
 		"sniper_rifle": {
 			"name": "Sniper Rifle",
@@ -73,7 +82,12 @@
 			"damage": 1,
 			"damage_multiplier": 2,
 			"cost": 10,
-			"traits": ["Heavy", "Piercing", "Sniping", "Team"]
+			"traits": [
+				"Heavy",
+				"Piercing",
+				"Sniping",
+				"Team"
+			]
 		},
 		"plasma_rifle": {
 			"name": "Plasma Rifle",
@@ -82,7 +96,12 @@
 			"shots": 2,
 			"damage": 1,
 			"cost": 8,
-			"traits": ["Focused", "Piercing", "Overheat", "Team"]
+			"traits": [
+				"Focused",
+				"Piercing",
+				"Overheat",
+				"Team"
+			]
 		},
 		"precision_rifle": {
 			"name": "Precision Rifle",
@@ -91,7 +110,10 @@
 			"shots": 1,
 			"damage": 1,
 			"cost": 6,
-			"traits": ["Critical", "Sniping"]
+			"traits": [
+				"Critical",
+				"Sniping"
+			]
 		}
 	},
 	"vehicles": {
@@ -105,7 +127,12 @@
 			"crew": 2,
 			"transport": 10,
 			"cost": 50,
-			"weapons": [{"weapon": "light_machine_gun", "mount": "turret"}]
+			"weapons": [
+				{
+					"weapon": "light_machine_gun",
+					"mount": "turret"
+				}
+			]
 		},
 		"ifv_tracked": {
 			"name": "IFV",
@@ -117,7 +144,22 @@
 			"crew": 3,
 			"transport": 6,
 			"cost": 70,
-			"weapons": [{"weapon": {"name": "20mm Autocannon", "category": "crewed_weapon", "range": 36, "shots": 3, "damage": 2, "cost": 20, "traits": ["Crewed"]}, "mount": "turret"}]
+			"weapons": [
+				{
+					"weapon": {
+						"name": "20mm Autocannon",
+						"category": "crewed_weapon",
+						"range": 36,
+						"shots": 3,
+						"damage": 2,
+						"cost": 20,
+						"traits": [
+							"Crewed"
+						]
+					},
+					"mount": "turret"
+				}
+			]
 		},
 		"light_tank_tracked": {
 			"name": "Light Tank",
@@ -129,7 +171,22 @@
 			"crew": 4,
 			"transport": 0,
 			"cost": 100,
-			"weapons": [{"weapon": {"name": "40mm Autocannon", "category": "crewed_weapon", "range": 48, "shots": 2, "damage": 3, "cost": 25, "traits": ["Crewed"]}, "mount": "turret"}]
+			"weapons": [
+				{
+					"weapon": {
+						"name": "40mm Autocannon",
+						"category": "crewed_weapon",
+						"range": 48,
+						"shots": 2,
+						"damage": 3,
+						"cost": 25,
+						"traits": [
+							"Crewed"
+						]
+					},
+					"mount": "turret"
+				}
+			]
 		}
 	},
 	"units": [
@@ -148,7 +205,9 @@
 			"savvy": 0,
 			"training": 0,
 			"models": 1,
-			"weapons": ["service_pistol"],
+			"weapons": [
+				"service_pistol"
+			],
 			"special_rules": []
 		},
 		{
@@ -166,15 +225,28 @@
 			"savvy": 0,
 			"training": 1,
 			"models": 5,
-			"weapons": ["military_rifle"],
+			"weapons": [
+				"military_rifle"
+			],
 			"special_rules": [],
 			"upgrade_groups": [
 				{
 					"label": "Replace Military Rifle",
 					"mode": "pick_one",
 					"options": [
-						{"name": "Infantry Laser", "type": "weapon_swap", "cost": 1, "replaces": "military_rifle", "grants_weapon": "infantry_laser"},
-						{"name": "Blade (close assault)", "type": "weapon_add", "cost": 1, "grants_weapon": "blade"}
+						{
+							"name": "Infantry Laser",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "military_rifle",
+							"grants_weapon": "infantry_laser"
+						},
+						{
+							"name": "Blade (close assault)",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "blade"
+						}
 					]
 				},
 				{
@@ -182,8 +254,18 @@
 					"mode": "pick_one",
 					"max_selections": 1,
 					"options": [
-						{"name": "Light Machine Gun", "type": "weapon_add", "cost": 10, "grants_weapon": "light_machine_gun"},
-						{"name": "Plasma Rifle", "type": "weapon_add", "cost": 8, "grants_weapon": "plasma_rifle"}
+						{
+							"name": "Light Machine Gun",
+							"type": "weapon_add",
+							"cost": 10,
+							"grants_weapon": "light_machine_gun"
+						},
+						{
+							"name": "Plasma Rifle",
+							"type": "weapon_add",
+							"cost": 8,
+							"grants_weapon": "plasma_rifle"
+						}
 					]
 				}
 			]
@@ -203,15 +285,30 @@
 			"savvy": 0,
 			"training": 1,
 			"models": 1,
-			"weapons": ["military_rifle", "service_pistol"],
+			"weapons": [
+				"military_rifle",
+				"service_pistol"
+			],
 			"special_rules": [],
 			"upgrade_groups": [
 				{
 					"label": "Replace Military Rifle",
 					"mode": "pick_one",
 					"options": [
-						{"name": "Infantry Laser", "type": "weapon_swap", "cost": 1, "replaces": "military_rifle", "grants_weapon": "infantry_laser"},
-						{"name": "Precision Rifle", "type": "weapon_swap", "cost": 3, "replaces": "military_rifle", "grants_weapon": "precision_rifle"}
+						{
+							"name": "Infantry Laser",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "military_rifle",
+							"grants_weapon": "infantry_laser"
+						},
+						{
+							"name": "Precision Rifle",
+							"type": "weapon_swap",
+							"cost": 3,
+							"replaces": "military_rifle",
+							"grants_weapon": "precision_rifle"
+						}
 					]
 				}
 			]
@@ -231,15 +328,30 @@
 			"savvy": 0,
 			"training": 2,
 			"models": 1,
-			"weapons": ["military_rifle", "service_pistol"],
+			"weapons": [
+				"military_rifle",
+				"service_pistol"
+			],
 			"special_rules": [],
 			"upgrade_groups": [
 				{
 					"label": "Replace Military Rifle",
 					"mode": "pick_one",
 					"options": [
-						{"name": "Infantry Laser", "type": "weapon_swap", "cost": 1, "replaces": "military_rifle", "grants_weapon": "infantry_laser"},
-						{"name": "Precision Rifle", "type": "weapon_swap", "cost": 3, "replaces": "military_rifle", "grants_weapon": "precision_rifle"}
+						{
+							"name": "Infantry Laser",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "military_rifle",
+							"grants_weapon": "infantry_laser"
+						},
+						{
+							"name": "Precision Rifle",
+							"type": "weapon_swap",
+							"cost": 3,
+							"replaces": "military_rifle",
+							"grants_weapon": "precision_rifle"
+						}
 					]
 				}
 			]
@@ -259,15 +371,30 @@
 			"savvy": 1,
 			"training": 2,
 			"models": 1,
-			"weapons": ["military_rifle", "service_pistol"],
+			"weapons": [
+				"military_rifle",
+				"service_pistol"
+			],
 			"special_rules": [],
 			"upgrade_groups": [
 				{
 					"label": "Replace Military Rifle",
 					"mode": "pick_one",
 					"options": [
-						{"name": "Infantry Laser", "type": "weapon_swap", "cost": 1, "replaces": "military_rifle", "grants_weapon": "infantry_laser"},
-						{"name": "Precision Rifle", "type": "weapon_swap", "cost": 3, "replaces": "military_rifle", "grants_weapon": "precision_rifle"}
+						{
+							"name": "Infantry Laser",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "military_rifle",
+							"grants_weapon": "infantry_laser"
+						},
+						{
+							"name": "Precision Rifle",
+							"type": "weapon_swap",
+							"cost": 3,
+							"replaces": "military_rifle",
+							"grants_weapon": "precision_rifle"
+						}
 					]
 				}
 			]
@@ -289,7 +416,9 @@
 			"models": 5,
 			"min_models": 4,
 			"max_models": 6,
-			"weapons": ["military_rifle"],
+			"weapons": [
+				"military_rifle"
+			],
 			"special_rules": [],
 			"_note": "4 soldiers + 1 sergeant. Base cost = 4x10 + 15pts",
 			"upgrade_groups": [
@@ -297,9 +426,27 @@
 					"label": "Squad weapon (replace 1 rifle)",
 					"mode": "pick_one",
 					"options": [
-						{"name": "Light Machine Gun", "type": "weapon_swap", "cost": 7, "replaces": "military_rifle", "grants_weapon": "light_machine_gun"},
-						{"name": "Plasma Rifle", "type": "weapon_swap", "cost": 5, "replaces": "military_rifle", "grants_weapon": "plasma_rifle"},
-						{"name": "Sniper Rifle", "type": "weapon_swap", "cost": 7, "replaces": "military_rifle", "grants_weapon": "sniper_rifle"}
+						{
+							"name": "Light Machine Gun",
+							"type": "weapon_swap",
+							"cost": 7,
+							"replaces": "military_rifle",
+							"grants_weapon": "light_machine_gun"
+						},
+						{
+							"name": "Plasma Rifle",
+							"type": "weapon_swap",
+							"cost": 5,
+							"replaces": "military_rifle",
+							"grants_weapon": "plasma_rifle"
+						},
+						{
+							"name": "Sniper Rifle",
+							"type": "weapon_swap",
+							"cost": 7,
+							"replaces": "military_rifle",
+							"grants_weapon": "sniper_rifle"
+						}
 					]
 				}
 			]
@@ -321,11 +468,18 @@
 			"models": 5,
 			"min_models": 4,
 			"max_models": 5,
-			"weapons": ["infantry_laser"],
-			"special_rules": [
-				{"name": "Scout", "type": "movement", "description": "+2 Observation, +1\" Speed"}
+			"weapons": [
+				"infantry_laser"
 			],
-			"_note": "Lighter, faster scout squad"
+			"special_rules": [
+				{
+					"name": "Scout",
+					"type": "movement",
+					"description": "+2 Observation, +1\" Speed"
+				}
+			],
+			"_note": "Lighter, faster scout squad",
+			"_cost_source": "GAME_BALANCE_ESTIMATE"
 		},
 		{
 			"id": "human_weapon_team",
@@ -342,7 +496,9 @@
 			"savvy": 0,
 			"training": 1,
 			"models": 3,
-			"weapons": ["light_machine_gun"],
+			"weapons": [
+				"light_machine_gun"
+			],
 			"special_rules": [],
 			"_note": "3 soldiers + crewed weapon",
 			"upgrade_groups": [
@@ -350,8 +506,20 @@
 					"label": "Replace crewed weapon",
 					"mode": "pick_one",
 					"options": [
-						{"name": "Sniper Rifle", "type": "weapon_swap", "cost": 0, "replaces": "light_machine_gun", "grants_weapon": "sniper_rifle"},
-						{"name": "Plasma Rifle", "type": "weapon_swap", "cost": -2, "replaces": "light_machine_gun", "grants_weapon": "plasma_rifle"}
+						{
+							"name": "Sniper Rifle",
+							"type": "weapon_swap",
+							"cost": 0,
+							"replaces": "light_machine_gun",
+							"grants_weapon": "sniper_rifle"
+						},
+						{
+							"name": "Plasma Rifle",
+							"type": "weapon_swap",
+							"cost": -2,
+							"replaces": "light_machine_gun",
+							"grants_weapon": "plasma_rifle"
+						}
 					]
 				}
 			]
@@ -371,10 +539,17 @@
 			"savvy": 1,
 			"training": 1,
 			"models": 1,
-			"weapons": ["service_pistol"],
+			"weapons": [
+				"service_pistol"
+			],
 			"special_rules": [
-				{"name": "Repair", "type": "special", "description": "Can repair 1 KP on a vehicle within 2\" as an action"}
-			]
+				{
+					"name": "Repair",
+					"type": "special",
+					"description": "Can repair 1 KP on a vehicle within 2\" as an action"
+				}
+			],
+			"_cost_source": "GAME_BALANCE_ESTIMATE"
 		},
 		{
 			"id": "human_sharpshooter",
@@ -391,10 +566,17 @@
 			"savvy": 0,
 			"training": 1,
 			"models": 1,
-			"weapons": ["precision_rifle"],
+			"weapons": [
+				"precision_rifle"
+			],
 			"special_rules": [
-				{"name": "Marksman", "type": "combat", "description": "+1 to hit with ranged attacks"}
-			]
+				{
+					"name": "Marksman",
+					"type": "combat",
+					"description": "+1 to hit with ranged attacks"
+				}
+			],
+			"_cost_source": "GAME_BALANCE_ESTIMATE"
 		},
 		{
 			"id": "human_medic",
@@ -411,10 +593,17 @@
 			"savvy": 1,
 			"training": 1,
 			"models": 1,
-			"weapons": ["service_pistol"],
+			"weapons": [
+				"service_pistol"
+			],
 			"special_rules": [
-				{"name": "Field Medic", "type": "special", "description": "Remove 1 Suppression marker from friendly unit within 4\" as an action"}
-			]
+				{
+					"name": "Field Medic",
+					"type": "special",
+					"description": "Remove 1 Suppression marker from friendly unit within 4\" as an action"
+				}
+			],
+			"_cost_source": "GAME_BALANCE_ESTIMATE"
 		},
 		{
 			"id": "human_comms_specialist",
@@ -431,10 +620,17 @@
 			"savvy": 0,
 			"training": 1,
 			"models": 1,
-			"weapons": ["military_rifle"],
+			"weapons": [
+				"military_rifle"
+			],
 			"special_rules": [
-				{"name": "Communications Expert", "type": "special", "description": "+1 to communications tests for calling support"}
-			]
+				{
+					"name": "Communications Expert",
+					"type": "special",
+					"description": "+1 to communications tests for calling support"
+				}
+			],
+			"_cost_source": "GAME_BALANCE_ESTIMATE"
 		}
 	],
 	"rules_text": {
