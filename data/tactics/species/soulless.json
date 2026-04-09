@@ -1,0 +1,23 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook — The Soulless species list",
+	"species": {
+		"species_id": "soulless",
+		"species_name": "The Soulless",
+		"power_level": "major",
+		"fph_species_id": "soulless",
+		"description": "Synthetic beings operating as a networked collective. All Soulless share a single profile — there are no tiers or individual variation.",
+		"traits": [
+			{"name": "Synthetic", "type": "defensive", "description": "Immune to morale effects, gas, and toxins"},
+			{"name": "Machine Learning", "type": "species", "description": "After a unit is destroyed, all remaining Soulless units get +1 to hit for the rest of the battle"},
+			{"name": "Hardened Network", "type": "defensive", "description": "3+ Saving Throw against hacking and electronic warfare"}
+		]
+	},
+	"weapons": {
+		"military_rifle": {"name": "Military Rifle", "category": "rifle", "range": 24, "shots": 1, "damage": 0, "cost": 3, "traits": []},
+		"blade": {"name": "Blade", "category": "melee", "range": 0, "shots": 0, "damage": 1, "cost": 1, "traits": ["Melee"]}
+	},
+	"vehicles": {},
+	"units": [
+		{"id": "soulless_standard", "name": "Soulless Unit", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 20, "speed": 4, "reactions": 2, "combat_skill": 1, "toughness": 4, "kp": 1, "savvy": 1, "training": 1, "models": 5, "weapons": ["military_rifle"], "special_rules": [{"name": "Synthetic", "type": "defensive"}], "_note": "Single profile for all Soulless — no tiers"}
+	]
+}

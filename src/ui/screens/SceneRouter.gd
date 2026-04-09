@@ -90,6 +90,11 @@ const SCENE_PATHS = {
 	"planetfall_dashboard": "res://src/ui/screens/planetfall/PlanetfallDashboard.tscn",
 	"planetfall_turn_controller": "res://src/ui/screens/planetfall/PlanetfallTurnController.tscn",
 
+	# Tactics gamemode
+	"tactics_creation": "res://src/ui/screens/tactics/TacticsCreationUI.tscn",
+	"tactics_dashboard": "res://src/ui/screens/tactics/TacticsDashboard.tscn",
+	"tactics_turn_controller": "res://src/ui/screens/tactics/TacticsTurnController.tscn",
+
 	# Battle Simulator
 	"battle_simulator": "res://src/ui/screens/battle_simulator/BattleSimulatorUI.tscn",
 

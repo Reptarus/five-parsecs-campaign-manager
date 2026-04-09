@@ -1,6 +1,6 @@
 # Agent Roster
 
-## 7 Agents
+## 9 Agents
 
 ### 1. character-data-engineer (sonnet, blue)
 **Domain**: Character model, 3 enum systems, JSON data, equipment, world/economy
@@ -41,12 +41,33 @@
 - `data/bug_hunt/` (15 files), any file with `bug_hunt` in name
 **Skill**: `bug-hunt-gamemode` (3 references)
 
-### 6. qa-specialist (sonnet, magenta)
+### 6. planetfall-specialist (sonnet, orange)
+**Domain**: Planetfall gamemode, colony management, 18-step turns, cross-mode safety for Planetfall
+**Files Owned**:
+- `src/ui/screens/planetfall/` (15 GDScript + 3 TSCN)
+- `src/game/campaign/PlanetfallCampaignCore.gd`
+- `data/planetfall/` (8 JSON files)
+- Future: `src/core/campaign/PlanetfallPhaseManager.gd`
+- Any file with `planetfall` in name
+**Skill**: `planetfall-gamemode` (3 references)
+
+### 7. tactics-specialist (sonnet, lime)
+**Domain**: Tactics gamemode, army building, species army lists, vehicles, cross-mode safety for Tactics
+**Files Owned**:
+- Future: `src/ui/screens/tactics/`
+- Future: `src/game/campaign/TacticsCampaignCore.gd`
+- Future: `data/tactics/`
+- Future: `src/core/campaign/TacticsPhaseManager.gd`
+- Any file with `tactics` in name (within FPCM project)
+**Skill**: `tactics-gamemode` (4 references)
+**Prototype Reference**: `c:\Users\admin\Desktop\tacticaprototype1\` (structure only, NOT data)
+
+### 8. qa-specialist (sonnet, magenta)
 **Domain**: Testing, QA, bug reporting, gdUnit4
 **Files Owned**: `tests/` (all test directories)
 **Skill**: `qa-specialist` (6 references)
 
-### 7. fpcm-project-manager (opus, white)
+### 9. fpcm-project-manager (opus, white)
 **Domain**: Orchestration, task decomposition, cross-agent coordination
 **Files Owned**: None (coordinator only)
 **Skill**: `fpcm-project-management` (3 references)
@@ -56,8 +77,9 @@
 1. Each agent owns specific files — don't route tasks to agents outside their domain
 2. `character-data-engineer` exclusively owns all enum files (three-enum sync)
 3. When a task touches files in multiple domains → decompose into sub-tasks
-4. `bug-hunt-specialist` has review authority over any shared file (TacticalBattleUI, GameState, SceneRouter, GameStateManager)
+4. All gamemode specialists (`bug-hunt-specialist`, `planetfall-specialist`, `tactics-specialist`) review shared file changes for their own mode's safety
 5. `qa-specialist` is always the final step for verification
+6. Never route Planetfall or Tactics tasks to `campaign-systems-engineer` (incompatible data models)
 
 ## Search Accuracy by Model Tier
 
@@ -107,8 +129,25 @@ Rulebook PDFs and Python tools are available for data extraction and verificatio
 ### Modifying battle UI tier system
 ```
 1. battle-systems-engineer → Change TacticalBattleUI._apply_tier_visibility()
-2. bug-hunt-specialist → Review for cross-mode safety
-3. qa-specialist → Test both Standard and Bug Hunt battle modes
+2. bug-hunt-specialist → Review for Bug Hunt cross-mode safety
+3. planetfall-specialist → Review for Planetfall cross-mode safety
+4. tactics-specialist → Review for Tactics cross-mode safety
+5. qa-specialist → Test all 4 battle modes
+```
+
+### Adding a Planetfall colony building type
+```
+1. planetfall-specialist → Add JSON data, update PlanetfallCampaignCore.buildings_data handling
+2. ui-panel-developer → Style building card in Planetfall dashboard
+3. qa-specialist → Test building construction, save/load, colony stats
+```
+
+### Adding a Tactics army species
+```
+1. tactics-specialist → Create species JSON army book, unit profiles, weapon profiles
+2. battle-systems-engineer → Wire any new special rules into BattleResolver (if shared)
+3. ui-panel-developer → Display species in army builder UI
+4. qa-specialist → Test army composition validation, points calculation, save/load
 ```
 
 ### Adding a new campaign phase

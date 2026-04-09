@@ -1,6 +1,6 @@
-# Campaign Creation Flow (7 Phases)
+# Campaign Creation Flows
 
-## Architecture
+## 5PFH Creation (7 Phases)
 
 ```
 MainMenu → CampaignCreationUI (thin shell) → CampaignCreationCoordinator → CampaignCreationStateManager
@@ -123,10 +123,50 @@ Each phase has validation rules checked by `coordinator.validate_current_phase()
 
 Navigation buttons are enabled/disabled based on `navigation_updated` signal.
 
+---
+
+## Planetfall Creation (6 Steps, Session 54)
+
+```
+MainMenu → PlanetfallCreationUI (code-built shell) → PlanetfallCreationCoordinator
+  Step 0: EXPEDITION_TYPE  → PlanetfallExpeditionPanel (D100 roll)
+  Step 1: ROSTER           → PlanetfallRosterPanel (class picker, sub-species, imports)
+  Step 2: BACKGROUNDS      → PlanetfallBackgroundsPanel (Motivation + Prior Exp + Notable Event)
+  Step 3: MAP_GENERATION   → PlanetfallMapPanel (grid size, home sector, 10 investigation sites)
+  Step 4: TUTORIAL_MISSIONS → PlanetfallTutorialPanel (3 missions — play or skip)
+  Step 5: FINAL_REVIEW     → PlanetfallReviewPanel
+```
+
+### Key Differences from 5PFH Creation
+- **3 character classes** (Scientist/Scout/Trooper) — min 1 of each, recommended 2/2/4
+- **Sub-species** (Feral/Hulker/Stalker/Soulless) — max 1 Feral + 1 other
+- **No equipment at creation** — central colony store, weapons assigned per mission
+- **Loyalty system** — Committed by default, Loyal from Prior Experience or import
+- **Character import** — from 5PFH (Luck→KP, personal equipment) or Bug Hunt (Tech→Savvy, no equipment)
+- **Class Training** — imported chars can take D6 aptitude test for class assignment (max 3)
+- **Tutorial missions** — 3 optional intro battles (Beacons/Analysis/Perimeter) with starting bonuses
+
+### Core Resource
+`PlanetfallCampaignCore.gd` (extends Resource) — follows BugHuntCampaignCore pattern.
+Colony stats: morale, integrity, BP/turn, RP/turn, repair_capacity, defenses, raw_materials, story_points, grunts, augmentation_points.
+Roster: lightweight dicts (NOT Character.gd Resources).
+Serialization: `to_dictionary()` / `from_dictionary()` / `save_to_file()` / `load_from_file()`.
+
+### Files
+- `src/ui/screens/planetfall/PlanetfallCreationUI.gd/.tscn`
+- `src/ui/screens/planetfall/PlanetfallCreationCoordinator.gd`
+- `src/ui/screens/planetfall/PlanetfallScreenBase.gd`
+- `src/ui/screens/planetfall/panels/Planetfall{Expedition,Roster,Backgrounds,Map,Tutorial,Review}Panel.gd`
+- `src/game/campaign/PlanetfallCampaignCore.gd`
+- `data/planetfall/{character_classes,human_subspecies,character_backgrounds,expedition_types}.json`
+
+---
+
 ## Rules PDF Reference
 
 Campaign creation rules (difficulty modes, victory conditions, crew sizes, starting equipment) can be verified against source PDFs:
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
-- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Planetfall PDF**: `docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/`
+- **Text extractions**: `docs/rules/core_rulebook.txt`, `docs/rules/compendium_source.txt`, `docs/rules/planetfall_source.txt`
 - **Python page extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (PyMuPDF 1.27.1 via `py` launcher)

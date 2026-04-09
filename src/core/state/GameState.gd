@@ -482,6 +482,12 @@ func load_campaign(path: String) -> Dictionary:
 		)
 		if PlanetfallCore:
 			loaded = PlanetfallCore.load_from_file(path)
+	elif campaign_type == "tactics":
+		var TacticsCore = load(
+			"res://src/game/campaign/TacticsCampaignCore.gd"
+		)
+		if TacticsCore:
+			loaded = TacticsCore.load_from_file(path)
 	else:
 		loaded = FiveParsecsCampaignCore.load_from_file(path)
 	if not loaded:

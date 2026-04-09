@@ -479,3 +479,131 @@ func _load_planetfall_json(path: String) -> Dictionary:
 		return {}
 	file.close()
 	return json.data if json.data is Dictionary else {}
+
+
+## ============================================================================
+## TACTICS TRANSFERS (Tactics rulebook p.184)
+## ============================================================================
+
+func validate_tactics_enlistment(character_data: Dictionary) -> Dictionary:
+	## Check if a 5PFH character is eligible for Tactics enlistment.
+	var game_mode: String = character_data.get("game_mode", "standard")
+	if game_mode != "standard":
+		return {
+			"eligible": false,
+			"reason": "Character must be from a standard 5PFH campaign",
+		}
+	var status: String = character_data.get("status", "active")
+	if status != "active":
+		return {
+			"eligible": false,
+			"reason": "Character must be active (not injured/dead)",
+		}
+	return {"eligible": true, "reason": "Eligible for Tactics transfer"}
+
+
+func convert_to_tactics(
+		char_data: Dictionary, source: String = "5pfh") -> Dictionary:
+	## Convert a 5PFH or Bug Hunt character for Tactics.
+	## Source: "5pfh", "bug_hunt", or "planetfall"
+	## Tactics rulebook p.184:
+	##   - Stats map directly
+	##   - Combat Skill capped at +2
+	##   - Each Luck → 1 KP (5PFH)
+	##   - Training assigned: +1 (or +2 if military background)
+	##   - Equipment is personal property for 5PFH, military for BH
+	var char_id: String = char_data.get(
+		"id", char_data.get("character_id", ""))
+
+	var combat: int = char_data.get(
+		"combat_skill", char_data.get("combat", 0))
+	combat = mini(combat, 2)  # Capped at +2
+
+	var toughness: int = char_data.get("toughness", 3)
+	toughness = mini(toughness, 5)  # Capped at 5
+
+	# Kill Points: Luck → KP (5PFH), keep KP (others)
+	var kp: int = 1
+	if source == "5pfh":
+		var luck: int = char_data.get("luck", 0)
+		kp = maxi(luck, 1)
+	elif source == "bug_hunt":
+		kp = char_data.get("kp", char_data.get("kill_points", 1))
+	elif source == "planetfall":
+		kp = maxi(char_data.get("kp", 1) - 1, 1)  # KP -1 (p.184)
+
+	# Training: +1 default, +2 if military background
+	var training: int = 1
+	var background: String = char_data.get(
+		"background", char_data.get("prior_experience", ""))
+	var military_backgrounds := [
+		"Military Brat", "War-Torn Hell Hole", "Soldier",
+		"Mercenary", "Enforcer", "Army", "Freelancer", "Bug Hunter"]
+	for mb in military_backgrounds:
+		if mb.to_lower() in background.to_lower():
+			training = 2
+			break
+
+	var result := {
+		"id": char_id,
+		"name": char_data.get(
+			"name", char_data.get("character_name", "Unknown")),
+		"game_mode": "tactics",
+		"speed": char_data.get("speed", 4),
+		"reactions": char_data.get(
+			"reactions", char_data.get("reaction", 2)),
+		"combat_skill": combat,
+		"toughness": toughness,
+		"kill_points": kp,
+		"savvy": char_data.get("savvy", 0),
+		"training": training,
+		"saving_throw": 0,
+		"is_imported": true,
+		"source_campaign": source,
+		"transferred_from_5pfh": source == "5pfh",
+		"transferred_from_bug_hunt": source == "bug_hunt",
+		"transferred_from_planetfall": source == "planetfall",
+	}
+
+	# Equipment transfer rules
+	if source == "5pfh":
+		# Personal equipment carries over
+		result["imported_equipment"] = char_data.get(
+			"equipment", []).duplicate(true)
+	else:
+		# Bug Hunt / Planetfall: military property, not transferred
+		result["imported_equipment"] = []
+
+	return result
+
+
+func convert_from_tactics(char_data: Dictionary) -> Dictionary:
+	## Convert a Tactics character for export to 5PFH.
+	## Tactics rulebook p.184:
+	##   - Stats keep (except Training — not used in 5PFH)
+	##   - Each KP after 1st → 1 Luck
+	##   - Veteran Skills retained when applicable
+	##   - Equipment is military property — not transferred
+	var char_id: String = char_data.get("id", "")
+
+	var kp: int = char_data.get(
+		"kill_points", char_data.get("kp", 1))
+	var luck: int = maxi(kp - 1, 0)  # Each KP after 1st → 1 Luck
+
+	return {
+		"id": char_id,
+		"character_id": char_id,
+		"name": char_data.get("name", "Unknown"),
+		"character_name": char_data.get("name", "Unknown"),
+		"game_mode": "standard",
+		"reaction": char_data.get("reactions", 2),
+		"speed": char_data.get("speed", 4),
+		"combat": char_data.get("combat_skill", 0),
+		"toughness": char_data.get("toughness", 3),
+		"savvy": char_data.get("savvy", 0),
+		"luck": luck,
+		"xp": 0,
+		"equipment": [],  # Military property — not transferred
+		"status": "active",
+		"transferred_from_tactics": true,
+	}

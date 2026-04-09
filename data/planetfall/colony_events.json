@@ -1,0 +1,174 @@
+{
+	"_source": "Planetfall pp.63-64, Colony Events table",
+	"_description": "D100 table for Step 5: Colony Events. Roll each campaign turn and implement the result immediately.",
+	"_notes": "If the effects of an event turn out to be impossible to implement, ignore it. Colony Damage also results in a loss of Morale.",
+	"entries": [
+		{
+			"min": 1,
+			"max": 5,
+			"id": "research_breakthrough",
+			"name": "Research Breakthrough",
+			"description": "One of the researchers had an epiphany that will solve a stubborn problem.",
+			"effect": {"research_points": 2}
+		},
+		{
+			"min": 6,
+			"max": 10,
+			"id": "catastrophic_malfunction",
+			"name": "Catastrophic Malfunction",
+			"description": "Whether a moment of neglect or a procedural failure, there is a major accident. You suffer 1 Colony Damage that cannot be mitigated.",
+			"effect": {"colony_damage": 1, "colony_damage_unmitigatable": true, "colony_morale": -1}
+		},
+		{
+			"min": 11,
+			"max": 15,
+			"id": "rapid_construction",
+			"name": "Rapid Construction",
+			"description": "Streamlining the process has made great strides.",
+			"effect": {"build_points": 2}
+		},
+		{
+			"min": 16,
+			"max": 20,
+			"id": "public_relations_demand",
+			"name": "Public Relations Demand",
+			"description": "Colony administration needs to put its best foot forward. Select a character who will not be able to participate in a mission this campaign turn. If you choose not to do so, Colony Morale drops by -2.",
+			"effect": {"player_choice": "select_character_unavailable_or_morale", "morale_penalty_if_declined": -2},
+			"requires_player_choice": true
+		},
+		{
+			"min": 21,
+			"max": 25,
+			"id": "specialist_training",
+			"name": "Specialist Training Program Initiated",
+			"description": "Colony life requires elite skills, and a crash course program can determine qualified candidates. You may either add a new character to your roster if you have a vacancy OR grant +3 XP to an existing character.",
+			"effect": {"player_choice": "add_character_or_xp_3"},
+			"requires_player_choice": true
+		},
+		{
+			"min": 26,
+			"max": 30,
+			"id": "scientific_dead_end",
+			"name": "Scientific Dead End",
+			"description": "A promising hypothesis turns out to lead nowhere. Your next 3 Research Points earned are wasted.",
+			"effect": {"research_points_wasted": 3}
+		},
+		{
+			"min": 31,
+			"max": 35,
+			"id": "new_scout_recruits",
+			"name": "New Scout Recruits",
+			"description": "A recruiting campaign has allowed the scout service to expand operations. You may carry out a free Scout action.",
+			"effect": {"free_scout_action": true}
+		},
+		{
+			"min": 36,
+			"max": 40,
+			"id": "gold_rush",
+			"name": "Gold Rush",
+			"description": "Colonists exploring have unveiled promising resource caches. Select 2 random sectors: If they are unexplored or have previously been Exploited, roll to generate Resource and Hazard values. If they are Explored but have not yet been Exploited, increase the Resource value by +1.",
+			"effect": {"map_action": "gold_rush", "sectors_affected": 2},
+			"requires_player_choice": true
+		},
+		{
+			"min": 41,
+			"max": 45,
+			"id": "colonists_find",
+			"name": "Colonists Find",
+			"description": "Unconfirmed reports indicate something of particular interest.",
+			"effect": {"ancient_signs": 1}
+		},
+		{
+			"min": 46,
+			"max": 50,
+			"id": "hostile_wildlife",
+			"name": "Hostile Wildlife",
+			"description": "The colonists are complaining about the hazards in the field. Unless you play a Patrol Mission this turn, Colony Morale drops by -2.",
+			"effect": {"player_choice": "patrol_mission_or_morale", "morale_penalty_if_declined": -2},
+			"requires_player_choice": true
+		},
+		{
+			"min": 51,
+			"max": 55,
+			"id": "new_training_program",
+			"name": "New Training Program Initiated",
+			"description": "The core team undergoes expanded and refresher training. Every character on your roster receives 1 XP. You may also add an additional grunt.",
+			"effect": {"xp_all_characters": 1, "grunts": 1}
+		},
+		{
+			"min": 56,
+			"max": 60,
+			"id": "experimental_medicine",
+			"name": "Experimental Local Medicine",
+			"description": "While it is not ready for mass production, a new drug extracted from local flora is showing promising results. Select a character recovering from injuries and reduce their recovery time by 2 turns. If completely recovered, they can act normally this campaign turn.",
+			"effect": {"reduce_recovery": 2, "colony_morale": 1},
+			"requires_player_choice": true
+		},
+		{
+			"min": 61,
+			"max": 65,
+			"id": "spare_parts_efficiency",
+			"name": "Spare Parts Efficiency Program",
+			"description": "The repair crews have improved their recovery program. Any damaged bots are repaired immediately. Also, repair 2 points of Colony Damage.",
+			"effect": {"repair_all_bots": true, "colony_damage_repair": 2}
+		},
+		{
+			"min": 66,
+			"max": 70,
+			"id": "report_on_progress",
+			"name": "Report on Progress",
+			"description": "The report to Unity colonization headquarters highlights the hard work of a crew member. Select one character to earn 1D6 XP.",
+			"effect": {"xp_one_character_d6": true, "colony_morale": 1},
+			"requires_player_choice": true
+		},
+		{
+			"min": 71,
+			"max": 75,
+			"id": "animal_migrations",
+			"name": "Animal Migrations",
+			"description": "The wildlife migrates according to changes in weather conditions. Erase a random existing entry from your Lifeform Encounter Table and leave it blank. It is filled again when you roll that entry again.",
+			"effect": {"erase_lifeform_entry": true}
+		},
+		{
+			"min": 76,
+			"max": 80,
+			"id": "hostile_virus",
+			"name": "Hostile Virus",
+			"description": "A particularly virulent infection has bypassed your biological containment systems. Roll a D6 for each character on your roster; any who roll a natural 1 have contracted the virus. For each infected character pick a random non-infected character and roll again. Continue until no more natural 1s. Each infected character must spend 1D3 campaign turns in Sick Bay.",
+			"effect": {"virus_spread": true, "sick_bay_per_infected": "1d3", "colony_morale": -2}
+		},
+		{
+			"min": 81,
+			"max": 85,
+			"id": "changing_climate",
+			"name": "Changing Climate Conditions",
+			"description": "Planetary phenomena change unpredictably. Erase a random existing entry from your Campaign Conditions table. It is filled again when you roll that entry again.",
+			"effect": {"erase_conditions_entry": true}
+		},
+		{
+			"min": 86,
+			"max": 90,
+			"id": "colony_unrest",
+			"name": "Colony Unrest",
+			"description": "Widespread protests break out due to dissatisfaction with administrative attention to a minor issue.",
+			"effect": {"colony_morale": -3}
+		},
+		{
+			"min": 91,
+			"max": 95,
+			"id": "supply_ship",
+			"name": "Supply Ship",
+			"description": "A Unity supply ship is en route carrying spare parts and fresh supplies. Select either Research or Build Points to be the priority, then roll 2D6. You receive the highest die for your priority choice and the lowest for the other choice.",
+			"effect": {"player_choice": "rp_or_bp_priority", "roll": "2d6_split_high_low", "grunts": 1},
+			"requires_player_choice": true
+		},
+		{
+			"min": 96,
+			"max": 100,
+			"id": "sense_of_foreboding",
+			"name": "Sense of Foreboding",
+			"description": "You realize that you are ultimately on your own out here. You cannot use any Story Points for the rest of this campaign turn.",
+			"effect": {"story_points_blocked_this_turn": true}
+		}
+	]
+}

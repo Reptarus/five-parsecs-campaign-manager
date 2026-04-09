@@ -1,0 +1,25 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook — The Swift species list",
+	"species": {
+		"species_id": "swift",
+		"species_name": "The Swift",
+		"power_level": "minor",
+		"fph_species_id": "",
+		"description": "Winged beings capable of limited flight. The Swift inspire each other through bonds of loyalty, recovering from suppression more easily.",
+		"traits": [
+			{"name": "Bonds of Inspiration", "type": "morale", "description": "When removing Suppression, on a roll of 6 remove an additional Suppression marker"},
+			{"name": "Winged", "type": "movement", "description": "Can descend safely from any height. No fall damage"}
+		]
+	},
+	"weapons": {
+		"military_rifle": {"name": "Military Rifle", "category": "rifle", "range": 24, "shots": 1, "damage": 0, "cost": 3, "traits": []},
+		"service_pistol": {"name": "Service Pistol", "category": "sidearm", "range": 9, "shots": 1, "damage": 0, "cost": 1, "traits": ["Pistol"]}
+	},
+	"vehicles": {},
+	"units": [
+		{"id": "swift_military", "name": "Military", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 11, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 1, "models": 5, "weapons": ["military_rifle"], "special_rules": []},
+		{"id": "swift_sergeant", "name": "Sergeant", "type": "character", "org_slot": "leader", "tier": "sergeant", "cost": 17, "speed": 5, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 2, "savvy": 0, "training": 1, "models": 1, "weapons": ["military_rifle", "service_pistol"], "special_rules": []},
+		{"id": "swift_major", "name": "Major Character", "type": "character", "org_slot": "leader", "tier": "major", "cost": 24, "speed": 5, "reactions": 2, "combat_skill": 2, "toughness": 3, "kp": 2, "savvy": 0, "training": 2, "models": 1, "weapons": ["military_rifle", "service_pistol"], "special_rules": []},
+		{"id": "swift_epic", "name": "Epic Character", "type": "character", "org_slot": "leader", "tier": "epic", "cost": 32, "speed": 6, "reactions": 3, "combat_skill": 2, "toughness": 4, "kp": 3, "savvy": 1, "training": 2, "models": 1, "weapons": ["military_rifle", "service_pistol"], "special_rules": []}
+	]
+}

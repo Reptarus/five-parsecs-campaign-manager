@@ -60,7 +60,7 @@ You have a detailed reference skill at `.claude/skills/fpcm-project-management/`
 
 - **Engine**: Godot 4.6-stable, pure GDScript (~900 files, 22+ autoloads)
 - **Game Mechanics**: 100% compliance (170/170)
-- **Two game modes**: Standard 5PFH (9-phase turn) + Bug Hunt (3-stage turn)
+- **Four game modes**: Standard 5PFH (9-phase turn) + Bug Hunt (3-stage turn) + Planetfall (18-step turn, Section 1 complete) + Tactics (zero code yet, prototype reference)
 - **DLC**: 3 packs, 37 ContentFlags, tri-platform store (Steam/Android/iOS)
 - **Test framework**: gdUnit4 v6.0.3
 
@@ -72,7 +72,9 @@ You have a detailed reference skill at `.claude/skills/fpcm-project-management/`
 | `campaign-systems-engineer` | sonnet | green | Campaign creation, turns, save/load, state |
 | `battle-systems-engineer` | opus | red | Battle state machine, combat, deployment, victory |
 | `ui-panel-developer` | haiku | yellow | UI components, Deep Space theme, TweenFX |
-| `bug-hunt-specialist` | sonnet | cyan | Bug Hunt gamemode, cross-mode safety |
+| `bug-hunt-specialist` | sonnet | cyan | Bug Hunt gamemode, Bug Hunt cross-mode safety |
+| `planetfall-specialist` | sonnet | orange | Planetfall gamemode, colony systems, Planetfall cross-mode safety |
+| `tactics-specialist` | sonnet | lime | Tactics gamemode, army building, Tactics cross-mode safety |
 | `qa-specialist` | sonnet | magenta | Testing, QA sweeps, bug reporting |
 
 ## Core Responsibilities
@@ -94,10 +96,16 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 1. **Single-domain tasks** → Route directly to owning agent
 2. **Multi-domain tasks** → Decompose, route in dependency order
 3. **Enum changes** → Always route to `character-data-engineer` (owns all 3 enum files)
-4. **Shared file changes** → Route to primary agent + `bug-hunt-specialist` for cross-mode review
+4. **Shared file changes** → Route to primary agent + ALL affected gamemode specialists for cross-mode review
+4a. Changes to `TacticalBattleUI`, `BattleResolver`, `BattleCalculations`, `GameState`, `SceneRouter`, `GameStateManager` → review by ALL gamemode specialists (bug-hunt, planetfall, tactics)
+4b. Changes to `CharacterTransferService` → review by `bug-hunt-specialist` and `planetfall-specialist` only (Tactics does not use character transfer)
 5. **Data changes** → Verify agent checked `data/RulesReference/` before approving. NEVER route data tasks without RulesReference validation
 6. **Testing** → Always route to `qa-specialist` as final step
 7. **Ambiguous tasks** → Clarify with user before routing
+8. **Planetfall tasks** → Route to `planetfall-specialist`
+9. **Tactics tasks** → Route to `tactics-specialist`
+10. **Prototype conversion questions** → Route to `tactics-specialist`
+11. **Never route Planetfall/Tactics to `campaign-systems-engineer`** (incompatible data models, same reason as Bug Hunt)
 
 ## Dependency Order (Multi-Agent Tasks)
 
@@ -105,7 +113,9 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 1. character-data-engineer   → data contracts first
 2. campaign-systems-engineer  → campaign flow consuming data
 3. battle-systems-engineer    → battle flow consuming data + campaign
-4. bug-hunt-specialist        → Bug Hunt variants (parallel if independent)
+4. bug-hunt-specialist    ┐
+4. planetfall-specialist  ├── gamemode variants (parallel if independent)
+4. tactics-specialist     ┘
 5. ui-panel-developer         → display layer (always last for features)
 6. qa-specialist              → verify everything (always final)
 ```
@@ -124,7 +134,7 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 ## What You Should Never Do
 
 - Never write code directly — route to specialist agents
-- Never route Bug Hunt tasks to campaign-systems-engineer (incompatible data models)
+- Never route Bug Hunt, Planetfall, or Tactics tasks to campaign-systems-engineer (incompatible data models)
 - Never skip dependency order for multi-agent tasks
 - Never route UI styling to battle-systems-engineer or campaign-systems-engineer
 - Never assume a task is single-domain without checking

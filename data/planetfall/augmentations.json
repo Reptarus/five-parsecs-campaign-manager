@@ -1,0 +1,66 @@
+{
+	"_source": "Planetfall p.105, Genetic Augmentation",
+	"_description": "8 augmentations purchasable with Augmentation Points. Cost = number of augmentations already owned + 1 (including current). Max 1 per campaign turn. Applies to all current and future characters (except Bots and Soulless imports).",
+	"_notes": "Augmentations take effect starting from the following campaign turn after purchase.",
+	"cost_formula": "augmentations_owned + 1",
+	"max_per_turn": 1,
+	"excludes": ["bot", "soulless"],
+	"augmentations": [
+		{
+			"id": "boosted_decision_making",
+			"name": "Boosted Decision Making",
+			"description": "Psionic engineering improves preternatural senses. Each battle round, you may pick up and reroll one of your Initiative dice.",
+			"effect_type": "battle",
+			"effect": {"reroll_initiative_dice": 1}
+		},
+		{
+			"id": "boosted_recovery",
+			"name": "Boosted Recovery",
+			"description": "Implantation of carefully selected plant DNA accelerates recovery from injury and illness. When a character is sent to Sick Bay, reduce the initial recovery time by 1 turn. No effect on Grunts.",
+			"effect_type": "campaign",
+			"effect": {"sick_bay_reduction": 1, "excludes_grunts": true}
+		},
+		{
+			"id": "claws",
+			"name": "Claws",
+			"description": "Retractable claws are convenient for labor tasks as well as enhancing defensive capabilities. All characters count as having a Damage +0 Melee weapon which cannot be lost.",
+			"effect_type": "battle",
+			"effect": {"innate_melee_weapon": {"damage": 0, "cannot_be_lost": true}}
+		},
+		{
+			"id": "enhanced_mobility",
+			"name": "Enhanced Mobility",
+			"description": "Adaptation of animal DNA to improve short-term running speed. Characters moving in a straight line may increase their base move by 1\". Dash moves are now 3\" instead of 2\".",
+			"effect_type": "battle",
+			"effect": {"straight_line_move_bonus": 1, "dash_distance": 3}
+		},
+		{
+			"id": "enhanced_vision",
+			"name": "Enhanced Vision",
+			"description": "Improves conventional vision and latent psionic senses. All visibility limits are increased by +3\".",
+			"effect_type": "battle",
+			"effect": {"visibility_bonus": 3}
+		},
+		{
+			"id": "inherent_protection",
+			"name": "Inherent Protection",
+			"description": "Adaptive skin that can harden in response to minor injuries. All characters receive a 6+ Saving Throw against incoming damage. Normal rules for combined Saving Throws apply.",
+			"effect_type": "battle",
+			"effect": {"saving_throw": 6}
+		},
+		{
+			"id": "mental_links",
+			"name": "Mental Links",
+			"description": "Connecting individuals together for rapid consensus-based decision making. Counts as a Milestone for campaign completion. Also adds 1 Story Point.",
+			"effect_type": "campaign",
+			"effect": {"milestone": 1, "story_points": 1}
+		},
+		{
+			"id": "psionic_cohesion",
+			"name": "Psionic Cohesion",
+			"description": "Improves psionic connections to increase cohesion and morale. Any character that would lose a level of Loyalty rolls 1D6. On 5-6, they do not lose a level.",
+			"effect_type": "campaign",
+			"effect": {"loyalty_loss_prevention_roll": {"threshold": 5, "die": "1d6"}}
+		}
+	]
+}

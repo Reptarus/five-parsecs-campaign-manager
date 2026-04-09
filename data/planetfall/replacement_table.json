@@ -1,0 +1,66 @@
+{
+	"_source": "Planetfall p.69, Step 13: Replacements",
+	"_description": "2D6 roll table for getting replacement characters. Number of attempts per turn = 1 + milestones achieved. All new characters enter with Loyalty: Committed.",
+	"_notes": "Can also dismiss characters at this stage. Dismissed characters cannot return. Civvy Heroic Promotion: if civvies participated, pick one non-casualty, roll 2D6 — on 10-12 they become a grunt.",
+	"replacement_roll": [
+		{
+			"min": 2,
+			"max": 6,
+			"result": "none",
+			"description": "No replacement is currently available."
+		},
+		{
+			"min": 7,
+			"max": 8,
+			"result": "random_class",
+			"description": "Roll 1D6 again: 1-2 Trooper, 3-4 Scientist, 5-6 Scout. Each begins with the standard profile.",
+			"class_roll": {
+				"trooper": {"min": 1, "max": 2},
+				"scientist": {"min": 3, "max": 4},
+				"scout": {"min": 5, "max": 6}
+			}
+		},
+		{
+			"min": 9,
+			"max": 12,
+			"result": "player_choice",
+			"description": "You may take a replacement of your choice."
+		}
+	],
+	"replacement_rules": {
+		"attempts_per_turn": "1 + milestones_achieved",
+		"starting_loyalty": "committed",
+		"requires_roster_vacancy": true,
+		"max_roster": 8
+	},
+	"civvy_heroic_promotion": {
+		"_source": "Planetfall p.68",
+		"roll": "2d6",
+		"threshold": 10,
+		"description": "If any civvies participated in the mission, pick one who did not become a casualty and roll 2D6. On 10-12, they are added to your grunts.",
+		"result": "add_grunt"
+	},
+	"alternate_advancement_options": {
+		"_source": "Planetfall p.68",
+		"_description": "A character eligible for advancement may instead choose one of these options.",
+		"options": [
+			{
+				"id": "increase_loyalty",
+				"description": "If currently Disloyal or Committed, increase Loyalty to Loyal.",
+				"requirement": "loyalty_below_loyal"
+			},
+			{
+				"id": "scientist_research",
+				"description": "If the character is a scientist, gain 3 Research Points instead.",
+				"requirement": "class_scientist",
+				"effect": {"research_points": 3}
+			},
+			{
+				"id": "scout_materials",
+				"description": "If the character is a scout, gain 3 units of Raw Materials instead.",
+				"requirement": "class_scout",
+				"effect": {"raw_materials": 3}
+			}
+		]
+	}
+}

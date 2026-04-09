@@ -1,0 +1,75 @@
+{
+	"_source": "Planetfall p.62, Enemy Activity table",
+	"_description": "D100 table for Step 4: Enemy Activity. Roll for a randomly selected Tactical Enemy each turn.",
+	"_notes": "If you won a battle against the selected enemy last turn, they do NOT carry out an activity (unless they are the Converted). Spending 1 Story Point can skip this step entirely.",
+	"entries": [
+		{
+			"min": 1,
+			"max": 25,
+			"type": "patrol",
+			"name": "Patrol",
+			"description": "The enemy is sending out patrols near their controlled zones. Normally this is not something you have to worry about but, if you wish, you may choose to play a Strike Mission this turn to track down an enemy Leader and gain 1 Enemy Information.",
+			"effect": {
+				"optional_mission": "strike",
+				"reward_if_played": {"enemy_information": 1}
+			}
+		},
+		{
+			"min": 26,
+			"max": 35,
+			"type": "relocate",
+			"name": "Relocate",
+			"description": "The enemy is shifting their deployments. Randomly pick an enemy-occupied sector. They move to a random adjacent unoccupied sector. If the selected sector is your colony, they launch a Raid instead and move in the opposite direction.",
+			"effect": {
+				"map_action": "relocate_sector",
+				"colony_fallback": "raid"
+			}
+		},
+		{
+			"min": 36,
+			"max": 65,
+			"type": "occupy",
+			"name": "Occupy",
+			"description": "The enemy expands into a random adjacent sector. If this would be your colony, treat this as a Raid instead. If this would be a sector occupied by another enemy, randomly determine who gains control.",
+			"effect": {
+				"map_action": "occupy_adjacent",
+				"sectors_gained": 1,
+				"colony_fallback": "raid"
+			}
+		},
+		{
+			"min": 66,
+			"max": 75,
+			"type": "rapid_expansion",
+			"name": "Rapid Expansion",
+			"description": "As Occupy, but two adjacent sectors are occupied.",
+			"effect": {
+				"map_action": "occupy_adjacent",
+				"sectors_gained": 2,
+				"colony_fallback": "raid"
+			}
+		},
+		{
+			"min": 76,
+			"max": 90,
+			"type": "attack",
+			"name": "Attack",
+			"description": "The enemy launches an attack on you. Play the Pitched Battle mission this campaign turn. If you lose, you take damage as per Raid.",
+			"effect": {
+				"forced_mission": "pitched_battle",
+				"on_loss": "raid_damage"
+			}
+		},
+		{
+			"min": 91,
+			"max": 100,
+			"type": "raid",
+			"name": "Raid",
+			"description": "The enemy launches a sneak attack on your colony. You suffer Colony Damage equal to the number of map sectors this enemy occupies +1. If you have Colony Defenses, roll D6s equal to the number of defenses; every die rolling 4+ negates a point of damage.",
+			"effect": {
+				"colony_damage": "occupied_sectors_plus_one",
+				"defense_roll": "d6_per_defense_4_plus_negates"
+			}
+		}
+	]
+}

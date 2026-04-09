@@ -1,0 +1,160 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook pp.38-42",
+	"traits": {
+		"area": {
+			"name": "Area",
+			"type": "weapon",
+			"description": "Hits all models within blast radius, not just target"
+		},
+		"ammo_choice": {
+			"name": "Ammo Choice",
+			"type": "weapon",
+			"description": "Before firing, choose between HE (Area, Damage 1) or AP (Piercing, Damage x3)"
+		},
+		"burn": {
+			"name": "Burn",
+			"type": "weapon",
+			"description": "Target continues to take damage in subsequent rounds until extinguished"
+		},
+		"clumsy": {
+			"name": "Clumsy",
+			"type": "weapon",
+			"description": "Cannot be used in the same activation as another weapon"
+		},
+		"crewed": {
+			"name": "Crewed",
+			"type": "weapon",
+			"description": "Requires a weapon team or vehicle mount to operate. Cannot fire if moved"
+		},
+		"critical": {
+			"name": "Critical",
+			"type": "weapon",
+			"description": "Natural 6 to hit causes an automatic wound regardless of Toughness"
+		},
+		"destructive": {
+			"name": "Destructive",
+			"type": "weapon",
+			"description": "Ignores Saving Throws"
+		},
+		"elegant": {
+			"name": "Elegant",
+			"type": "weapon",
+			"description": "User strikes first in close assault regardless of who charged"
+		},
+		"focused": {
+			"name": "Focused",
+			"type": "weapon",
+			"description": "All shots must target the same model"
+		},
+		"fog": {
+			"name": "Fog",
+			"type": "weapon",
+			"description": "Creates a fog cloud that blocks line of sight"
+		},
+		"gas": {
+			"name": "Gas",
+			"type": "weapon",
+			"description": "Ignores cover. Models with Enviro-suits are immune"
+		},
+		"heavy": {
+			"name": "Heavy",
+			"type": "weapon",
+			"description": "Cannot fire after moving unless unit has Relentless"
+		},
+		"indirect": {
+			"name": "Indirect",
+			"type": "weapon",
+			"description": "Can fire at targets without line of sight. Requires communications test"
+		},
+		"knock_back": {
+			"name": "Knock Back",
+			"type": "weapon",
+			"description": "Hit target is pushed 1\" directly away from the firer"
+		},
+		"launcher": {
+			"name": "Launcher",
+			"type": "weapon",
+			"description": "Fires grenades. Uses grenade profile for damage/traits. Range from launcher stat"
+		},
+		"limited_supply": {
+			"name": "Limited Supply",
+			"type": "weapon",
+			"description": "Can only be used once per battle"
+		},
+		"lock_on": {
+			"name": "Lock On",
+			"type": "weapon",
+			"description": "+1 to hit against vehicles"
+		},
+		"melee": {
+			"name": "Melee",
+			"type": "weapon",
+			"description": "Close combat weapon. Can only be used in close assault"
+		},
+		"minimum_range": {
+			"name": "Minimum Range",
+			"type": "weapon",
+			"description": "Cannot fire at targets closer than the specified range"
+		},
+		"overheat": {
+			"name": "Overheat",
+			"type": "weapon",
+			"description": "If any natural 1s rolled to hit, weapon overheats and cannot fire next activation"
+		},
+		"piercing": {
+			"name": "Piercing",
+			"type": "weapon",
+			"description": "Target's Saving Throw is worsened by 1 (e.g., 5+ becomes 6+)"
+		},
+		"pin_point": {
+			"name": "Pin-point",
+			"type": "weapon",
+			"description": "Ignores cover bonuses to hit"
+		},
+		"pistol": {
+			"name": "Pistol",
+			"type": "weapon",
+			"description": "Can be fired in close assault. Does not prevent charging"
+		},
+		"shock": {
+			"name": "Shock",
+			"type": "weapon",
+			"description": "Hit models gain a Suppression marker even if no damage caused"
+		},
+		"shrapnel": {
+			"name": "Shrapnel",
+			"type": "weapon",
+			"description": "After resolving hits, each missed shot that rolled 4+ causes a Suppression marker"
+		},
+		"snap_shot": {
+			"name": "Snap Shot",
+			"type": "weapon",
+			"description": "Can fire after moving with no penalty"
+		},
+		"sniping": {
+			"name": "Sniping",
+			"type": "weapon",
+			"description": "Can target specific models in a squad (normally random)"
+		},
+		"stream": {
+			"name": "Stream",
+			"type": "weapon",
+			"description": "Hits all models in a straight line from firer. No roll to hit needed"
+		},
+		"stun": {
+			"name": "Stun",
+			"type": "weapon",
+			"description": "Hit model cannot take actions next activation (only remove stun)"
+		},
+		"team": {
+			"name": "Team",
+			"type": "weapon",
+			"description": "Requires 2+ models to operate at full effectiveness. 1 model fires at -1 to hit"
+		},
+		"weak": {
+			"name": "Weak",
+			"type": "weapon",
+			"description": "Cannot damage targets with Toughness 6+"
+		}
+	}
+}

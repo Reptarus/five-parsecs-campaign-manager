@@ -1,0 +1,24 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook — Creatures",
+	"species": {
+		"species_id": "creatures",
+		"species_name": "Creatures",
+		"power_level": "creature",
+		"fph_species_id": "",
+		"description": "Native wildlife and engineered beasts found across Unified Space. Creatures are typically encountered as enemies in solo play or scenario play."
+	},
+	"weapons": {
+		"claws": {"name": "Claws", "category": "melee", "range": 0, "shots": 0, "damage": 1, "cost": 0, "traits": ["Melee"]},
+		"fangs": {"name": "Fangs", "category": "melee", "range": 0, "shots": 0, "damage": 2, "cost": 0, "traits": ["Melee", "Piercing"]},
+		"acid_spit": {"name": "Acid Spit", "category": "rifle", "range": 12, "shots": 1, "damage": 1, "cost": 0, "traits": ["Burn"]}
+	},
+	"vehicles": {},
+	"units": [
+		{"id": "swarm", "name": "The Swarm", "type": "infantry", "org_slot": "troop", "tier": "civilian", "cost": 5, "speed": 6, "reactions": 1, "combat_skill": 0, "toughness": 2, "kp": 1, "savvy": 0, "training": 0, "models": 8, "min_models": 6, "max_models": 12, "weapons": ["claws"], "special_rules": [{"name": "Fearsome", "type": "morale", "description": "Enemy units nearby suffer -1 to Morale tests"}]},
+		{"id": "razor_lizard", "name": "Razor Lizard", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 12, "speed": 6, "reactions": 2, "combat_skill": 1, "toughness": 4, "kp": 2, "savvy": 0, "training": 0, "models": 3, "weapons": ["fangs"], "special_rules": []},
+		{"id": "gene_dog", "name": "Gene-dog", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 8, "speed": 7, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 0, "models": 4, "weapons": ["claws"], "special_rules": [{"name": "Keen Senses", "type": "species", "description": "+1 to Observation tests"}]},
+		{"id": "sand_runner", "name": "Sand Runner", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 10, "speed": 8, "reactions": 2, "combat_skill": 0, "toughness": 3, "kp": 2, "savvy": 0, "training": 0, "models": 3, "weapons": ["claws"], "special_rules": []},
+		{"id": "krorg", "name": "Krorg", "type": "infantry", "org_slot": "support", "tier": "sergeant", "cost": 20, "speed": 5, "reactions": 1, "combat_skill": 2, "toughness": 6, "kp": 4, "savvy": 0, "training": 0, "models": 1, "weapons": ["fangs"], "special_rules": [{"name": "Fearsome", "type": "morale", "description": "Enemy units nearby suffer -1 to Morale tests"}]},
+		{"id": "brute_lizard", "name": "Brute Lizard", "type": "infantry", "org_slot": "support", "tier": "sergeant", "cost": 18, "speed": 5, "reactions": 1, "combat_skill": 1, "toughness": 5, "kp": 3, "savvy": 0, "training": 0, "models": 1, "weapons": ["fangs", "acid_spit"], "special_rules": []}
+	]
+}

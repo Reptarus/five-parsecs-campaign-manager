@@ -93,16 +93,30 @@ Must be cleared after navigation completes.
 
 ## Shared Files (Require Cross-Mode Review)
 
-| File | Why Shared | Safety Mechanism |
-|------|-----------|-----------------|
-| `TacticalBattleUI.gd` | Both modes use for battle | Mode detection at BugHuntBattleSetup level |
-| `BattleResolver.gd` | Both modes use for auto-resolve | Static methods, no mode-specific state |
-| `BattleCalculations.gd` | Both modes use for combat math | Static methods, trait effects via dict |
-| `GameState.gd` | Save/load both campaign types | `_detect_campaign_type()` peeks JSON |
-| `SceneRouter.gd` | Both modes navigate | Separate route keys (bug_hunt_*) |
-| `GameStateManager.gd` | Both use temp_data | Key namespacing (bug_hunt_* prefix) |
-| `HubFeatureCard.gd` | Both dashboards use | Pending data pattern (Session 45) |
-| `MainMenu.gd` | Bug Hunt dialog + routes | `bug_hunt_dashboard` in scene_map (Session 45) |
+**NOTE**: With 4 modes (Standard, Bug Hunt, Planetfall, Tactics), cross-mode review is distributed. Each gamemode agent reviews for its own mode's safety. The project manager routes shared file changes to ALL affected gamemode agents.
+
+| File | 5PFH | BH | PF | Tactics | Safety Mechanism |
+|------|:---:|:---:|:---:|:---:|-----------------|
+| `TacticalBattleUI.gd` | Y | Y | Y | Y | Mode detection at battle setup level |
+| `BattleResolver.gd` | Y | Y | Y | Y | Static methods, no mode-specific state |
+| `BattleCalculations.gd` | Y | Y | Y | Y | Static methods, trait effects via dict |
+| `GameState.gd` | Y | Y | Y | Y | `_detect_campaign_type()` handles 4 types |
+| `SceneRouter.gd` | Y | Y | Y | Y | Mode-prefixed route keys |
+| `GameStateManager.gd` | Y | Y | Y | Y | Key namespacing (mode prefix) |
+| `HubFeatureCard.gd` | Y | Y | Y | Y | Pending data pattern (Session 45) |
+| `MainMenu.gd` | Y | Y | Y | Y | Mode-specific dialogs + routes |
+| `CharacterTransferService.gd` | Y | Y | Y | N* | Deep copy, atomic writes |
+
+*Tactics uses army lists, not individual character transfer.
+
+### Temp Data Namespacing (4 Modes)
+
+| Mode | Prefix | Examples |
+|------|--------|---------|
+| Standard 5PFH | (none) | `world_phase_results`, `return_screen` |
+| Bug Hunt | `bug_hunt_*` | `bug_hunt_battle_context`, `bug_hunt_battle_result` |
+| Planetfall | `planetfall_*` | `planetfall_battle_context`, `planetfall_expedition` |
+| Tactics | `tactics_*` | `tactics_battle_context`, `tactics_army_list` |
 
 ### Session 47: BattleResolver Changes Affect Both Modes
 `BattleResolver.initialize_battle()` now extracts armor/screen from crew equipment

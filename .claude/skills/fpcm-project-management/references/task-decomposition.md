@@ -5,12 +5,14 @@
 When a task spans multiple agents, execute in this order:
 
 ```
-1. character-data-engineer   → data contracts (enums, JSON, Character API)
-2. campaign-systems-engineer  → campaign flow consuming data
-3. battle-systems-engineer    → battle flow consuming data + campaign context
-4. bug-hunt-specialist        → Bug Hunt variants (parallel with battle if independent)
-5. ui-panel-developer         → display layer (always last for new features)
-6. qa-specialist              → verify everything (always final)
+1. character-data-engineer     → data contracts (enums, JSON, Character API)
+2. campaign-systems-engineer   → campaign flow consuming data
+3. battle-systems-engineer     → battle flow consuming data + campaign context
+4. bug-hunt-specialist    ┐
+4. planetfall-specialist  ├── gamemode variants (parallel if independent)
+4. tactics-specialist     ┘
+5. ui-panel-developer          → display layer (always last for new features)
+6. qa-specialist               → verify everything (always final)
 ```
 
 ## Decomposition Steps
@@ -88,7 +90,7 @@ Order:
 - Steps at the same dependency level CAN run in parallel
 - Steps that consume another step's output MUST run sequentially
 - QA is always sequential (final)
-- Bug Hunt review is sequential after shared file changes
+- All gamemode reviews (Bug Hunt + Planetfall + Tactics) are sequential after shared file changes
 
 ## Sprint Completion Rule (MANDATORY)
 

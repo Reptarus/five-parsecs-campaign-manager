@@ -301,6 +301,65 @@ func is_endgame_eligible() -> bool:
 
 
 ## ============================================================================
+## TURN-STEP HELPERS (used by PlanetfallPhaseManager + panels)
+## ============================================================================
+
+func apply_morale_adjustments(casualties: int, colony_damage: int) -> void:
+	## Step 11: Automatic morale changes (Planetfall p.68).
+	## -1 per turn, -1 per battle casualty, -1 per colony damage this turn.
+	var total: int = -1 - casualties - colony_damage
+	colony_morale += total
+	_update_modified_time()
+
+
+func check_colony_integrity() -> bool:
+	## Step 16: Returns true if integrity failure test is needed (≤ -3).
+	## Planetfall p.69, p.87.
+	return colony_integrity <= -3
+
+
+func apply_colony_event(event_data: Dictionary) -> void:
+	## Apply the effects of a colony event (Step 5). Planetfall pp.63-64.
+	## Panels will call specific mutation methods; this is a convenience stub
+	## for events that only need simple stat changes.
+	if event_data.has("colony_morale"):
+		colony_morale += event_data.get("colony_morale", 0)
+	if event_data.has("research_points"):
+		var rp: int = event_data.get("research_points", 0)
+		if research_data.has("current_rp"):
+			research_data["current_rp"] += rp
+		else:
+			research_data["current_rp"] = rp
+	if event_data.has("build_points"):
+		var bp: int = event_data.get("build_points", 0)
+		if buildings_data.has("current_bp"):
+			buildings_data["current_bp"] += bp
+		else:
+			buildings_data["current_bp"] = bp
+	if event_data.has("ancient_signs"):
+		for _i in range(event_data.get("ancient_signs", 0)):
+			ancient_signs.append({})
+	if event_data.has("grunts"):
+		grunts += event_data.get("grunts", 0)
+	_update_modified_time()
+
+
+func apply_enemy_activity(activity_data: Dictionary) -> void:
+	## Apply enemy activity effects (Step 4). Planetfall p.62.
+	## Colony damage from raids is the primary effect.
+	if activity_data.has("colony_damage"):
+		var dmg: int = activity_data.get("colony_damage", 0)
+		colony_integrity -= dmg
+	_update_modified_time()
+
+
+func repair_colony(points: int) -> void:
+	## Step 2: Restore colony integrity. Planetfall p.59.
+	colony_integrity += points
+	_update_modified_time()
+
+
+## ============================================================================
 ## VALIDATION
 ## ============================================================================
 

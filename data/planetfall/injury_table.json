@@ -1,0 +1,70 @@
+{
+	"_source": "Planetfall p.66, Injury table + Grunt Casualties",
+	"_description": "D100 injury table for Step 9. Grunt casualties use a separate D6 roll.",
+	"_notes": "Characters removed from play as casualties roll on this table. Civvies do not roll (never recurring). Bots do not roll (marked Broken instead, repaired in Step 2).",
+	"character_injuries": [
+		{
+			"min": 1,
+			"max": 20,
+			"result": "dead",
+			"name": "Dead",
+			"description": "The character is gone.",
+			"sick_bay_turns": 0,
+			"permanent": true
+		},
+		{
+			"min": 21,
+			"max": 30,
+			"result": "seriously_wounded",
+			"name": "Seriously Wounded",
+			"description": "The character must recover for 5 campaign turns.",
+			"sick_bay_turns": 5,
+			"permanent": false
+		},
+		{
+			"min": 31,
+			"max": 45,
+			"result": "moderately_wounded",
+			"name": "Moderately Wounded",
+			"description": "The character must recover for 4 campaign turns.",
+			"sick_bay_turns": 4,
+			"permanent": false
+		},
+		{
+			"min": 46,
+			"max": 60,
+			"result": "lightly_wounded",
+			"name": "Lightly Wounded",
+			"description": "The character must recover for 2 campaign turns.",
+			"sick_bay_turns": 2,
+			"permanent": false
+		},
+		{
+			"min": 61,
+			"max": 95,
+			"result": "okay",
+			"name": "Okay",
+			"description": "The character is okay.",
+			"sick_bay_turns": 0,
+			"permanent": false
+		},
+		{
+			"min": 96,
+			"max": 100,
+			"result": "school_of_hard_knocks",
+			"name": "School of Hard Knocks",
+			"description": "The character is okay and gains +1 XP as they reflect on their experiences.",
+			"sick_bay_turns": 0,
+			"permanent": false,
+			"bonus_xp": 1
+		}
+	],
+	"grunt_casualties": {
+		"_source": "Planetfall p.66",
+		"_description": "Roll 1D6 for each grunt that became a casualty.",
+		"permanent_range": {"min": 1, "max": 2},
+		"okay_range": {"min": 3, "max": 6},
+		"permanent_description": "They have either died, their injuries were so severe they cannot continue the mission, or they opt to retire.",
+		"okay_description": "They are okay and recover in time for the next mission."
+	}
+}

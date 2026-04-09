@@ -1,0 +1,242 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook pp.43-48",
+	"vehicles": {
+		"nomad_bike": {
+			"name": "Nomad Bike",
+			"type": "bike",
+			"speed": 12,
+			"movement_type": "wheeled",
+			"toughness": 6,
+			"kp": 2,
+			"crew": 1,
+			"transport": 0,
+			"cost": 15,
+			"weapons": [],
+			"_note": "Unarmed. Optional LMG +10pts"
+		},
+		"scouter": {
+			"name": "Scouter",
+			"type": "bike",
+			"speed": 16,
+			"movement_type": "drifter",
+			"toughness": 5,
+			"kp": 2,
+			"crew": 1,
+			"transport": 0,
+			"cost": 35,
+			"weapons": [{"weapon": "light_machine_gun", "mount": "front"}]
+		},
+		"lancer": {
+			"name": "Lancer",
+			"type": "bike",
+			"speed": 12,
+			"movement_type": "drifter",
+			"toughness": 5,
+			"kp": 2,
+			"crew": 1,
+			"transport": 0,
+			"cost": 30,
+			"weapons": [{"weapon": "plasma_rifle", "mount": "front"}]
+		},
+		"frontier_trike": {
+			"name": "Frontier Trike",
+			"type": "trike",
+			"speed": 10,
+			"movement_type": "wheeled",
+			"toughness": 6,
+			"kp": 3,
+			"crew": 2,
+			"transport": 0,
+			"cost": 35,
+			"weapons": [{"weapon": "light_machine_gun", "mount": "turret"}]
+		},
+		"raider_trike": {
+			"name": "Raider Trike",
+			"type": "trike",
+			"speed": 15,
+			"movement_type": "wheeled",
+			"toughness": 5,
+			"kp": 3,
+			"crew": 2,
+			"transport": 0,
+			"cost": 35,
+			"weapons": [{"weapon": "light_machine_gun", "mount": "turret"}]
+		},
+		"armored_car": {
+			"name": "Armored Car",
+			"type": "armored_car",
+			"speed": 9,
+			"movement_type": "wheeled",
+			"toughness": 7,
+			"kp": 5,
+			"crew": 2,
+			"transport": 0,
+			"cost": 60,
+			"weapons": [{"weapon": "20mm_autocannon", "mount": "turret"}]
+		},
+		"apc_tracked": {
+			"name": "APC",
+			"type": "apc",
+			"speed": 8,
+			"movement_type": "tracked",
+			"toughness": 7,
+			"kp": 5,
+			"crew": 2,
+			"transport": 10,
+			"cost": 50,
+			"weapons": [{"weapon": "light_machine_gun", "mount": "turret"}]
+		},
+		"apc_grav": {
+			"name": "APC (Grav)",
+			"type": "apc",
+			"speed": 9,
+			"movement_type": "drifter",
+			"toughness": 7,
+			"kp": 4,
+			"crew": 2,
+			"transport": 8,
+			"cost": 55,
+			"weapons": [{"weapon": "light_machine_gun", "mount": "turret"}]
+		},
+		"ifv_tracked": {
+			"name": "IFV",
+			"type": "ifv",
+			"speed": 8,
+			"movement_type": "tracked",
+			"toughness": 7,
+			"kp": 5,
+			"crew": 3,
+			"transport": 6,
+			"cost": 70,
+			"weapons": [{"weapon": "20mm_autocannon", "mount": "turret"}]
+		},
+		"ifv_grav": {
+			"name": "IFV (Grav)",
+			"type": "ifv",
+			"speed": 9,
+			"movement_type": "drifter",
+			"toughness": 7,
+			"kp": 4,
+			"crew": 3,
+			"transport": 5,
+			"cost": 75,
+			"weapons": [{"weapon": "20mm_autocannon", "mount": "turret"}]
+		},
+		"light_tank_tracked": {
+			"name": "Light Tank",
+			"type": "light_tank",
+			"speed": 8,
+			"movement_type": "tracked",
+			"toughness": 8,
+			"kp": 6,
+			"crew": 4,
+			"transport": 0,
+			"cost": 100,
+			"weapons": [{"weapon": "40mm_autocannon", "mount": "turret"}]
+		},
+		"light_tank_grav": {
+			"name": "Light Tank (Grav)",
+			"type": "light_tank",
+			"speed": 7,
+			"movement_type": "drifter",
+			"toughness": 8,
+			"kp": 6,
+			"crew": 4,
+			"transport": 0,
+			"cost": 115,
+			"weapons": [{"weapon": "40mm_autocannon", "mount": "turret"}]
+		},
+		"medium_tank_tracked": {
+			"name": "Medium Tank",
+			"type": "medium_tank",
+			"speed": 7,
+			"movement_type": "tracked",
+			"toughness": 9,
+			"kp": 7,
+			"crew": 4,
+			"transport": 0,
+			"cost": 140,
+			"weapons": [{"weapon": "100mm_cannon", "mount": "turret"}]
+		},
+		"medium_tank_grav": {
+			"name": "Medium Tank (Grav)",
+			"type": "medium_tank",
+			"speed": 8,
+			"movement_type": "drifter",
+			"toughness": 9,
+			"kp": 6,
+			"crew": 4,
+			"transport": 0,
+			"cost": 150,
+			"weapons": [{"weapon": "100mm_cannon", "mount": "turret"}]
+		},
+		"heavy_tank": {
+			"name": "Heavy Tank",
+			"type": "heavy_tank",
+			"speed": 6,
+			"movement_type": "tracked",
+			"toughness": 10,
+			"kp": 8,
+			"crew": 5,
+			"transport": 0,
+			"cost": 200,
+			"weapons": [{"weapon": "100mm_cannon", "mount": "turret"}]
+		},
+		"light_walker": {
+			"name": "Light Walker",
+			"type": "light_walker",
+			"speed": 5,
+			"movement_type": "walker",
+			"toughness": 8,
+			"kp": 4,
+			"crew": 1,
+			"transport": 0,
+			"cost": 70,
+			"weapons": [
+				{"weapon": "20mm_autocannon", "mount": "hull"},
+				{"weapon": "flame_projector", "mount": "hull"}
+			]
+		},
+		"heavy_walker": {
+			"name": "Heavy Walker",
+			"type": "heavy_walker",
+			"speed": 4,
+			"movement_type": "walker",
+			"toughness": 8,
+			"kp": 5,
+			"crew": 1,
+			"transport": 0,
+			"cost": 100,
+			"weapons": [
+				{"weapon": "pulse_laser", "mount": "hull"},
+				{"weapon": "light_machine_gun", "mount": "hull"}
+			]
+		},
+		"cim_l_demon": {
+			"name": "CIM-L \"Demon\"",
+			"type": "combat_bot",
+			"speed": 6,
+			"movement_type": "walker",
+			"toughness": 7,
+			"kp": 9,
+			"crew": 0,
+			"transport": 0,
+			"cost": 35,
+			"ai_driven": true,
+			"weapons": [{"weapon": "hyper_blaster", "mount": "hull"}]
+		},
+		"cim_app_troll": {
+			"name": "CIM-APP \"Troll\"",
+			"type": "combat_bot",
+			"speed": 4,
+			"movement_type": "walker",
+			"toughness": 8,
+			"kp": 4,
+			"crew": 0,
+			"transport": 0,
+			"cost": 45,
+			"ai_driven": true,
+			"weapons": [{"weapon": "20mm_autocannon", "mount": "hull"}]
+		}
+	}
+}

@@ -1,0 +1,159 @@
+{
+	"_source": "Planetfall pp.64-65, 114-133, Mission Types",
+	"_description": "12 mission types available during Step 6: Mission Determination. Some are player-selected, others are forced by events.",
+	"_notes": "Step 7 (Lock and Load) specifies deployment limits per mission. See individual mission pages for full battlefield setup rules.",
+	"missions": [
+		{
+			"id": "investigation",
+			"name": "Investigation Mission",
+			"page": 115,
+			"category": "exploration",
+			"description": "Long range scans show interesting sights in this sector. Your team is deployed to search the area, look for features of interest, and secure any valuable finds.",
+			"map_requirement": "sector_marked_for_investigation",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["resource_level_increase", "mission_data"]
+		},
+		{
+			"id": "scouting",
+			"name": "Scouting Mission",
+			"page": 116,
+			"category": "exploration",
+			"description": "Visit a sector that has not yet been Explored and explore it.",
+			"map_requirement": "unexplored_sector",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["explore_sector", "resource_hazard_values"]
+		},
+		{
+			"id": "exploration",
+			"name": "Exploration Mission",
+			"page": 117,
+			"category": "exploration",
+			"description": "Go to a sector that has been Explored but not yet Exploited. Search for fresh resources to bolster the colony.",
+			"map_requirement": "explored_not_exploited_sector",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["raw_materials", "exploit_sector"]
+		},
+		{
+			"id": "science",
+			"name": "Science Mission",
+			"page": 119,
+			"category": "exploration",
+			"description": "Focus on obtaining research samples to improve your research programs.",
+			"map_requirement": "explored_not_exploited_sector",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["research_points", "mission_data"]
+		},
+		{
+			"id": "hunt",
+			"name": "Hunt Mission",
+			"page": 120,
+			"category": "combat",
+			"description": "The researchers want you to acquire a specimen of a local Lifeform for investigation.",
+			"map_requirement": "within_4_sectors_of_colony",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["lifeform_sample", "bio_analysis"]
+		},
+		{
+			"id": "patrol",
+			"name": "Patrol Mission",
+			"page": 121,
+			"category": "defense",
+			"description": "Stay close to the colony and conduct a patrol. Can be used to explore nearby sectors and safeguard against future morale loss.",
+			"map_requirement": "near_colony",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["morale_protection", "sector_exploration"]
+		},
+		{
+			"id": "skirmish",
+			"name": "Skirmish",
+			"page": 123,
+			"category": "combat",
+			"description": "Enemy activity has been intensifying, and it is time to fight back. Deploy to take on the enemy directly and capture a sector.",
+			"map_requirement": "enemy_occupied_sector",
+			"max_deploy": 6,
+			"forced": false,
+			"requires_tactical_enemies": true,
+			"rewards": ["capture_sector", "enemy_information", "xp"]
+		},
+		{
+			"id": "rescue",
+			"name": "Rescue Mission",
+			"page": 124,
+			"category": "special",
+			"description": "Save colonists in danger. Casualties during this mission do NOT cause Morale loss.",
+			"map_requirement": "event_triggered",
+			"max_deploy": 6,
+			"forced": false,
+			"event_triggered": true,
+			"rewards": ["colonists_saved", "morale"],
+			"special_rules": ["no_casualty_morale_loss"]
+		},
+		{
+			"id": "scout_down",
+			"name": "Scout Down!",
+			"page": 125,
+			"category": "special",
+			"description": "The scout vehicle crashed. Rescue the downed scout before hostiles arrive.",
+			"map_requirement": "event_triggered",
+			"max_deploy": 6,
+			"forced": false,
+			"event_triggered": true,
+			"rewards": ["scout_rescued", "xp"]
+		},
+		{
+			"id": "pitched_battle",
+			"name": "Pitched Battle",
+			"page": 126,
+			"category": "combat",
+			"description": "The enemy launches an attack. This is a defensive battle to protect your colony.",
+			"map_requirement": "none",
+			"max_deploy": 8,
+			"forced": true,
+			"forced_by": "enemy_attack",
+			"rewards": ["enemy_information", "xp"],
+			"special_rules": ["on_loss_colony_damage"]
+		},
+		{
+			"id": "strike",
+			"name": "Strike Mission",
+			"page": 127,
+			"category": "combat",
+			"description": "Track down and capture an enemy Boss. Requires Enemy Information or enemy Patrol activity.",
+			"map_requirement": "enemy_boss_located",
+			"max_deploy": 6,
+			"forced": false,
+			"requires_tactical_enemies": true,
+			"rewards": ["capture_boss", "enemy_information"]
+		},
+		{
+			"id": "assault",
+			"name": "Assault Mission",
+			"page": 128,
+			"category": "combat",
+			"description": "A major attack on an enemy Strongpoint. This is a final assault where the enemy makes their last stand.",
+			"map_requirement": "enemy_strongpoint_located",
+			"max_deploy": 8,
+			"forced": false,
+			"requires_tactical_enemies": true,
+			"rewards": ["destroy_strongpoint", "milestone"],
+			"special_rules": ["bring_everything"]
+		},
+		{
+			"id": "delve",
+			"name": "Delve Mission",
+			"page": 130,
+			"category": "exploration",
+			"description": "Explore an Ancient Site to look for treasures and ancient technology.",
+			"map_requirement": "ancient_site_located",
+			"max_deploy": 6,
+			"forced": false,
+			"rewards": ["ancient_artifacts", "mission_data", "research_points"]
+		}
+	]
+}

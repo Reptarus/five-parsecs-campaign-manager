@@ -1,0 +1,27 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook — K'Erin species list",
+	"species": {
+		"species_id": "kerin",
+		"species_name": "K'Erin",
+		"power_level": "major",
+		"fph_species_id": "kerin",
+		"description": "Proud warrior species who excel in close combat. K'Erin value honor and martial skill above all.",
+		"traits": [
+			{"name": "Brawlers", "type": "combat", "description": "All models get 2 attacks in close assault instead of 1"},
+			{"name": "Disciplined", "type": "morale", "description": "+1 to all Morale tests"}
+		]
+	},
+	"weapons": {
+		"military_rifle": {"name": "Military Rifle", "category": "rifle", "range": 24, "shots": 1, "damage": 0, "cost": 3, "traits": []},
+		"blade": {"name": "Blade", "category": "melee", "range": 0, "shots": 0, "damage": 1, "cost": 1, "traits": ["Melee"]},
+		"ripper_sword": {"name": "Ripper Sword", "category": "melee", "range": 0, "shots": 0, "damage": 2, "cost": 3, "traits": ["Melee", "Piercing"]},
+		"service_pistol": {"name": "Service Pistol", "category": "sidearm", "range": 9, "shots": 1, "damage": 0, "cost": 1, "traits": ["Pistol"]}
+	},
+	"vehicles": {},
+	"units": [
+		{"id": "kerin_military", "name": "Military", "type": "infantry", "org_slot": "troop", "tier": "military", "cost": 12, "speed": 4, "reactions": 2, "combat_skill": 1, "toughness": 3, "kp": 1, "savvy": 0, "training": 1, "models": 5, "weapons": ["military_rifle", "blade"], "special_rules": []},
+		{"id": "kerin_sergeant", "name": "Sergeant / Minor Character", "type": "character", "org_slot": "leader", "tier": "sergeant", "cost": 18, "speed": 4, "reactions": 2, "combat_skill": 2, "toughness": 3, "kp": 2, "savvy": 0, "training": 1, "models": 1, "weapons": ["military_rifle", "ripper_sword"], "special_rules": []},
+		{"id": "kerin_major", "name": "Major Character", "type": "character", "org_slot": "leader", "tier": "major", "cost": 25, "speed": 4, "reactions": 2, "combat_skill": 2, "toughness": 4, "kp": 2, "savvy": 0, "training": 2, "models": 1, "weapons": ["military_rifle", "ripper_sword"], "special_rules": []},
+		{"id": "kerin_epic", "name": "Epic Character", "type": "character", "org_slot": "leader", "tier": "epic", "cost": 35, "speed": 5, "reactions": 3, "combat_skill": 2, "toughness": 4, "kp": 3, "savvy": 0, "training": 2, "models": 1, "weapons": ["military_rifle", "ripper_sword"], "special_rules": []}
+	]
+}

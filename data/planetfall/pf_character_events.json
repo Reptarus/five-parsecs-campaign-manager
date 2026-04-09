@@ -1,0 +1,168 @@
+{
+	"_source": "Planetfall pp.70-71, Character Event table (Step 17)",
+	"_description": "D100 table for Character Events. Randomly select one character each turn. All characters eligible including those in Sick Bay. Administrator and grunts are not eligible.",
+	"_notes": "Characters absent from the campaign entirely (e.g., during R&R event) cannot be targeted. If effects are impossible to implement, ignore the event.",
+	"entries": [
+		{
+			"min": 1,
+			"max": 5,
+			"id": "personal_training",
+			"name": "Personal Training",
+			"description": "The character undergoes a training course to hone their mission-relevant skills.",
+			"effect": {"xp": 2}
+		},
+		{
+			"min": 6,
+			"max": 10,
+			"id": "minor_promotion",
+			"name": "Minor Promotion",
+			"description": "Proficiency is ideally rewarded with improvements in rank and responsibility. The character gains a level of Loyalty and +1 XP. If they were already Loyal, gain +2 XP total.",
+			"effect": {"loyalty_up": 1, "xp": 1, "xp_if_already_loyal": 2}
+		},
+		{
+			"min": 11,
+			"max": 15,
+			"id": "personal_investigation",
+			"name": "Personal Investigation",
+			"description": "The character does a bit of information gathering. Randomly choose a Tactical Enemy and receive +1 Enemy Information.",
+			"effect": {"enemy_information": 1}
+		},
+		{
+			"min": 16,
+			"max": 20,
+			"id": "something_in_the_water",
+			"name": "Something in the Water, I Suppose",
+			"description": "The character comes down with a minor illness. If in sick bay, increase recovery time by 1 turn. If not in sick bay, they get a tummy ache but are otherwise fine.",
+			"effect": {"sick_bay_extension": 1}
+		},
+		{
+			"min": 21,
+			"max": 25,
+			"id": "r_and_r",
+			"name": "R&R",
+			"description": "The character earns some time off world. The character is gone for 2 campaign turns during which they cannot be the target of events. They recover completely from any injuries. If Disloyal, roll 1D6: 1-2 do not return, 3-5 remain Disloyal, 6 become Committed.",
+			"effect": {"absent_turns": 2, "full_recovery": true, "disloyal_check": {"leave_range": [1, 2], "stay_disloyal_range": [3, 5], "become_committed": 6}}
+		},
+		{
+			"min": 26,
+			"max": 30,
+			"id": "change_of_assignment",
+			"name": "Change of Assignment",
+			"description": "The character is offered a new assignment. If they accept, they immediately earn 5 XP and are transferred to another Five Parsecs game. If they decline, gain 1 level of Loyalty.",
+			"effect": {"player_choice": "accept_transfer_or_loyalty"},
+			"requires_player_choice": true
+		},
+		{
+			"min": 31,
+			"max": 35,
+			"id": "disputes_with_leadership",
+			"name": "Disputes with Leadership",
+			"description": "The character has a heated disagreement with Administration. The character loses a level of Loyalty but cannot drop below Disloyal.",
+			"effect": {"loyalty_down": 1}
+		},
+		{
+			"min": 36,
+			"max": 40,
+			"id": "commitment_to_cause",
+			"name": "Commitment to the Cause",
+			"description": "The character is satisfied with recent Administration actions and is dedicated to the cause.",
+			"effect": {"loyalty_up": 1}
+		},
+		{
+			"min": 41,
+			"max": 45,
+			"id": "dispute",
+			"name": "Dispute",
+			"description": "A clash of personalities occurs on the team. Randomly pick a second character. The two cannot both be assigned to the mission next campaign turn unless fighting a Pitched Battle.",
+			"effect": {"dispute_pair": true, "mission_restriction_turns": 1}
+		},
+		{
+			"min": 46,
+			"max": 50,
+			"id": "personal_calibrations",
+			"name": "Personal Calibrations",
+			"description": "Time spent customizing gun sights and ammunition loads pays off. The next time the character is on a mission, select one weapon they carry which receives a +1 hit bonus for that mission.",
+			"effect": {"next_mission_weapon_bonus": 1}
+		},
+		{
+			"min": 51,
+			"max": 55,
+			"id": "sickness",
+			"name": "Sickness",
+			"description": "The character falls ill. They must spend 2 campaign turns recovering.",
+			"effect": {"sick_bay_turns": 2}
+		},
+		{
+			"min": 56,
+			"max": 60,
+			"id": "making_friends",
+			"name": "Making Friends",
+			"description": "The character has spent some quality time with a random character on your roster. They each earn +1 XP and may each roll 1D6: On 5-6, they gain one level of Loyalty.",
+			"effect": {"xp_pair": 1, "loyalty_roll_threshold": 5}
+		},
+		{
+			"min": 61,
+			"max": 65,
+			"id": "personal_life_achievement",
+			"name": "Personal Life Achievement",
+			"description": "Something significant happens in the character's life (marriage, a new baby, a graduation, etc.)",
+			"effect": {"story_points": 1, "colony_morale": 1}
+		},
+		{
+			"min": 66,
+			"max": 70,
+			"id": "excellent_health",
+			"name": "Excellent Health",
+			"description": "All that fresh air is paying off. If currently recovering from injuries, reduce the time required by 2 turns. If not injured, the effect can be saved.",
+			"effect": {"reduce_recovery": 2, "can_save_effect": true}
+		},
+		{
+			"min": 71,
+			"max": 75,
+			"id": "accident",
+			"name": "Accident",
+			"description": "The character injures themselves during work. Roll on the Post-battle Injury table to see how badly they are hurt. If you roll Dead, it instead counts as 5 turns of recovery.",
+			"effect": {"roll_injury_table": true, "dead_becomes_recovery": 5}
+		},
+		{
+			"min": 76,
+			"max": 80,
+			"id": "personal_reflection",
+			"name": "Personal Reflection",
+			"description": "After some hard lessons, the character is determined to learn. The next time they go on a mission, they earn double XP.",
+			"effect": {"next_mission_double_xp": true}
+		},
+		{
+			"min": 81,
+			"max": 85,
+			"id": "personal_conviction",
+			"name": "Personal Conviction",
+			"description": "If the last mission was a success, gain one level of Loyalty.",
+			"effect": {"loyalty_up_if_last_mission_success": 1}
+		},
+		{
+			"min": 86,
+			"max": 90,
+			"id": "losing_faith",
+			"name": "Losing Faith",
+			"description": "The character has serious disagreements over the mission and how it is being done. If the last mission was a failure, they lose one level of Loyalty.",
+			"effect": {"loyalty_down_if_last_mission_failure": 1}
+		},
+		{
+			"min": 91,
+			"max": 95,
+			"id": "personal_tragedy",
+			"name": "Personal Tragedy",
+			"description": "Something happens to throw the character off their game. Next campaign turn they forfeit all XP they would have earned. You may opt to keep them out of a mission to avoid losing out.",
+			"effect": {"forfeit_xp_next_turn": true}
+		},
+		{
+			"min": 96,
+			"max": 100,
+			"id": "new_hobby",
+			"name": "New Hobby",
+			"description": "The character has found something new to do in their spare time (sport, amateur band, wood working, miniatures painting). They receive +1 XP and will irritate everyone else.",
+			"effect": {"xp": 1}
+		}
+	]
+}

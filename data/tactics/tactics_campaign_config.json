@@ -1,0 +1,57 @@
+{
+	"_source": "Five Parsecs: Tactics rulebook pp.81-88, 155-168",
+	"points_tiers": {
+		"small": {"label": "Small / Learning Game", "points": 500, "typical_force": "~1 platoon"},
+		"standard": {"label": "Standard Game", "points": 750, "typical_force": "Sizable force"},
+		"large": {"label": "Large Game", "points": 1000, "typical_force": "Full evening game"}
+	},
+	"organization": {
+		"platoon": {
+			"label": "Platoon",
+			"min_troops": 2,
+			"max_troops": 5,
+			"max_supports": 4,
+			"max_specialists": 2,
+			"leaders_per_platoon": 1,
+			"support_rule": "Must have fewer supports than troops"
+		},
+		"company": {
+			"label": "Company",
+			"min_platoons": 2,
+			"max_platoons": 4,
+			"max_company_leaders": "Equal to platoon count",
+			"max_company_supports": "Equal to platoon count"
+		}
+	},
+	"campaign_progression": {
+		"cp_per_battle": 1,
+		"cp_per_victory": 1,
+		"cp_per_secondary_objective": 1,
+		"spending": {
+			"unit_upgrade": {"cost": 1, "description": "Acquire a veteran skill for one unit"},
+			"roster_change": {"cost": 1, "description": "Add or replace a unit in the roster"},
+			"battle_advantage": {"cost": 1, "description": "One-time bonus for next battle"}
+		}
+	},
+	"operational_turn_steps": [
+		{"step": 1, "name": "Play Tabletop Battles", "description": "Fight 1-3 battles on the tabletop"},
+		{"step": 2, "name": "Apply Player Battle Points", "description": "+1 PBP per tabletop victory"},
+		{"step": 3, "name": "Resolve Operational Combat", "description": "Roll dice pool for each contested zone"},
+		{"step": 4, "name": "Operational Orders", "description": "D6 table: Construct Defense, Continued Offensive, New Offensive, etc."},
+		{"step": 5, "name": "Commando Raids", "description": "Spend PBP to damage enemy Army Strength in a zone"},
+		{"step": 6, "name": "Redeploy Forces", "description": "Move Army Strength between adjacent zones"},
+		{"step": 7, "name": "Open New Zones", "description": "Open new operational zones, select focus"},
+		{"step": 8, "name": "Player Commitments", "description": "Choose where to commit forces next turn"}
+	],
+	"starting_values": {
+		"player_cohesion": 5,
+		"enemy_cohesion": 5,
+		"player_battle_points": 0
+	},
+	"mixed_army_rules": {
+		"pickup_max_species": 2,
+		"scenario_limit": "Any combination that makes narrative sense"
+	},
+	"veteran_skill_categories": ["squad", "sergeant", "individual", "vehicle"],
+	"scenario_types": ["skirmish", "battle", "grand_battle", "evolving_objective"]
+}
