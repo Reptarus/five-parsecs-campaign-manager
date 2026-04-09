@@ -51,6 +51,35 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## Session 49: UX Polish Sprint (Apr 8, 2026)
+
+8 items shipped in one sprint. Key changes in ui-panel-developer domain:
+
+### ThemeManager.gd — Two Bug Fixes
+- **Colorblind mode was silently broken**: `_apply_colorblind_variant()` checked for dict keys `"text"`/`"background"` but AccessibilityThemes palettes use `"text_primary"`/`"base"`. All 3 modes (Deuteranopia/Protanopia/Tritanopia) now apply correctly. Also wires accent, border, focus, success colors.
+- **Reduced animation toggle didn't apply immediately**: Added `_apply_animation_settings()` call inside `set_reduced_animation()`. Was only called at cold boot via `_load_config()`.
+
+### TweenFX Added to 4 Major Screens
+All guarded by `ThemeManager.is_reduced_animation_enabled()`. Explicit `var x: bool =` typing (Godot 4.6 can't infer `A and B` with nullable).
+- **CampaignDashboard**: Staggered `fade_in` cascade on crew cards (0.18s each, 50ms interval)
+- **WorldPhaseController**: `fade_in` on active step container in `_show_current_step()`
+- **CharacterDetailsScreen**: Staggered `pop_in` on stats_grid badges (needs `pivot_offset` set)
+- **SettingsScreen**: `fade_in` on scroll content after `_build_ui()`
+
+### MainMenu.gd — Load Campaign Dialog Styled
+Deep Space StyleBoxFlat (COLOR_BASE bg, COLOR_BORDER border, 6px corners) applied to AcceptDialog. Campaign buttons get COLOR_ELEVATED normal / COLOR_ACCENT hover. Import button gets cyan (#4FC3F7) border accent. Matches Bug Hunt dialog pattern at line 493.
+
+### CaptainPanel.gd + CrewPanel.gd — Help (?) Buttons
+Both preload `RulesPopupClass`. Cyan "?" button (40x40, flat) added to `$Content/Controls`. On press → `RulesPopupClass.show_rules()` with Core Rules page references (pp.12-22 captain, pp.23-25 crew).
+
+### FiveParsecsCrewExporter.gd — HP Integer Formatting
+Lines 149, 232: `str(health) + "/" + str(max_health)` → `"%d/%d" % [int(health), int(max_health)]`
+
+### Gotcha: Godot 4.6 Boolean Type Inference
+`var x := tm != null and tm.is_reduced_animation_enabled()` fails compile. Must use `var x: bool = ...` for compound boolean with nullable.
+
+---
+
 ## Session 47: Equipment Pipeline — UI Domain (Apr 8, 2026)
 
 ### UnifiedBattleLog — New Entry Types

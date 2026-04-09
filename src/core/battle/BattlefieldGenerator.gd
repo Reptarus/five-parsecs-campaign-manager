@@ -29,7 +29,8 @@ func _init() -> void:
 ## world_traits: Array of trait ID strings from world_traits.json (e.g., ["overgrown", "haze"])
 ## deployment_condition: Dictionary with deployment condition data (e.g., {"id": "toxic_environment"})
 func generate_terrain_suggestions(theme: String = "wilderness",
-		world_traits: Array = [], deployment_condition: Dictionary = {}) -> Dictionary:
+		world_traits: Array = [], deployment_condition: Dictionary = {},
+		rng_seed: int = 0) -> Dictionary:
 	_ensure_compendium_loaded()
 
 	var themes: Dictionary = _compendium_data.get("themes", {})
@@ -42,7 +43,10 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 	var sector_labels: Array = grid_info.get("labels", [])
 	var quarters: Dictionary = grid_info.get("quarters", {})
 	var local_rng := RandomNumberGenerator.new()
-	local_rng.seed = Time.get_unix_time_from_system()
+	if rng_seed != 0:
+		local_rng.seed = rng_seed
+	else:
+		local_rng.seed = Time.get_unix_time_from_system()
 
 	generation_started.emit(theme_data.get("name", theme))
 
@@ -110,6 +114,9 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 				open_ground_count_per_quarter[q_name] += 1
 				if open_ground_count_per_quarter[q_name] >= 2:
 					feature_text = "SMALL: Hill or elevated ground"
+			# Normalize: unprefixed non-open features default to SMALL
+			elif not _has_known_prefix(feature_text):
+				feature_text = "SMALL: %s" % feature_text
 			quarter_features.append(feature_text)
 
 		# Distribute features across the 4 sectors in this quarter.
@@ -135,11 +142,19 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 				_append_scatter_to_sector(sector_features, target_label, scatter_pick)
 
 	# ---- Compendium Step 5: Final Evaluation ----
-	# Validate terrain minimums (Core Rules p.109)
-	_validate_terrain_minimums_in_sectors(sector_features, theme_data, local_rng)
+	# Check if "flat" trait is active — suppresses elevated minimum (Core Rules p.80)
+	var has_flat_trait: bool = false
+	for trait_id in world_traits:
+		var tid_check: String = str(trait_id).to_lower() if trait_id is String else str(trait_id.get("id", "")).to_lower()
+		if tid_check == "flat":
+			has_flat_trait = true
+			break
+	_validate_terrain_minimums_in_sectors(
+		sector_features, theme_data, local_rng, has_flat_trait)
 
 	# ---- World Trait Terrain Modifications (Core Rules pp.72-75) ----
-	_apply_world_trait_modifications(sector_features, sector_labels, world_traits, local_rng)
+	var combat_notes: Array[String] = _apply_world_trait_modifications(
+		sector_features, sector_labels, world_traits, local_rng)
 
 	# ---- Deployment Condition Terrain Effects (Core Rules p.88) ----
 	var visibility_limit: String = ""
@@ -199,6 +214,9 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 	}
 	if not visibility_limit.is_empty():
 		result["visibility_limit"] = visibility_limit
+	if not combat_notes.is_empty():
+		result["combat_notes"] = combat_notes
+	result["seed"] = local_rng.seed
 
 	generation_completed.emit(result)
 	return result
@@ -338,10 +356,11 @@ func _sector_label_to_grid_center(label: String) -> Vector2:
 # ============================================================================
 
 func _validate_terrain_minimums_in_sectors(sector_features: Dictionary,
-		theme_data: Dictionary, local_rng: RandomNumberGenerator) -> void:
+		theme_data: Dictionary, local_rng: RandomNumberGenerator,
+		skip_elevated: bool = false) -> void:
 	## Core Rules p.109: At least 2 climbable, 1 elevated, 1 enterable.
-	## Scan all placed features and swap if needed.
-	var has_elevated: bool = false
+	## skip_elevated: true when "Flat" world trait is active (no hills/elevated).
+	var has_elevated: bool = skip_elevated  # If flat, pretend we have elevated
 	var has_enterable: bool = false
 	var climbable_count: int = 0
 
@@ -370,26 +389,102 @@ func _validate_terrain_minimums_in_sectors(sector_features: Dictionary,
 
 func _apply_world_trait_modifications(sector_features: Dictionary,
 		sector_labels: Array, world_traits: Array,
-		local_rng: RandomNumberGenerator) -> void:
+		local_rng: RandomNumberGenerator) -> Array[String]:
 	## Apply world trait terrain effects (Core Rules pp.72-75).
+	## Returns combat notes for non-terrain traits (visibility, movement, etc.).
+	var notes: Array[String] = []
+	var vegetation_keywords: Array = ["tree", "bush", "grass", "vegetation",
+		"vine", "growth", "plant", "mushroom", "flower", "spore", "fungal"]
+	var elevation_keywords: Array = ["hill", "elevated", "ridge",
+		"high ground", "mound", "hilltop"]
+
 	for trait_id in world_traits:
-		var tid: String = str(trait_id).to_lower() if trait_id is String else str(trait_id.get("id", "")).to_lower()
+		var tid: String = str(trait_id).to_lower() if trait_id is String \
+			else str(trait_id.get("id", "")).to_lower()
 		match tid:
 			"overgrown":
-				# "Add 1D6+2 individual plant features or 1D3 areas of vegetation"
+				# "Add 1D6+2 individual plant features" (Core Rules p.73)
 				var plant_count: int = local_rng.randi_range(1, 6) + 2
 				for pi: int in range(plant_count):
-					var target: String = str(sector_labels[local_rng.randi_range(0, sector_labels.size() - 1)])
-					sector_features[target].append("SMALL: Vegetation (world trait: Overgrown)")
+					var target: String = str(sector_labels[
+						local_rng.randi_range(0, sector_labels.size() - 1)])
+					sector_features[target].append(
+						"SMALL: Vegetation (world trait: Overgrown)")
 			"warzone":
-				# "Add 1D3 ruined buildings or craters"
+				# "Add 1D3 ruined buildings or craters" (Core Rules p.73)
 				var ruin_count: int = local_rng.randi_range(1, 3)
 				for ri: int in range(ruin_count):
-					var target: String = str(sector_labels[local_rng.randi_range(0, sector_labels.size() - 1)])
+					var target: String = str(sector_labels[
+						local_rng.randi_range(0, sector_labels.size() - 1)])
 					if local_rng.randi_range(0, 1) == 0:
-						sector_features[target].append("SMALL: Ruined building (world trait: Warzone)")
+						sector_features[target].append(
+							"SMALL: Ruined building (world trait: Warzone)")
 					else:
-						sector_features[target].append("SMALL: Crater (world trait: Warzone)")
+						sector_features[target].append(
+							"SMALL: Crater (world trait: Warzone)")
+			"haze":
+				# "Visibility reduced to 1D6+8\"" (Core Rules p.72)
+				notes.append("Haze: Visibility reduced to 1D6+8\" (reroll each round)")
+			"gloom":
+				# "Maximum visibility restricted to 1D6+6\"" (Core Rules p.75)
+				notes.append("Gloom: Max visibility 1D6+6\"")
+			"fog":
+				# "All shots beyond 8\" are -1 to Hit" (Core Rules p.76)
+				notes.append("Fog: All shots beyond 8\" are -1 to Hit")
+			"barren":
+				# "No plant features can be used" (Core Rules p.75)
+				for label: String in sector_labels:
+					var feats: Array = sector_features.get(label, [])
+					var filtered: Array = []
+					for feat in feats:
+						var dominated: bool = false
+						for kw: String in vegetation_keywords:
+							if kw in str(feat).to_lower():
+								dominated = true
+								break
+						if not dominated:
+							filtered.append(feat)
+					sector_features[label] = filtered
+				notes.append("Barren: No plant features on battlefield")
+			"flat":
+				# "Do not place any hills or raised ground" (Core Rules p.76)
+				for label: String in sector_labels:
+					var feats: Array = sector_features.get(label, [])
+					var filtered: Array = []
+					for feat in feats:
+						var dominated: bool = false
+						for kw: String in elevation_keywords:
+							if kw in str(feat).to_lower():
+								dominated = true
+								break
+						if not dominated:
+							filtered.append(feat)
+					sector_features[label] = filtered
+				notes.append("Flat: No hills or raised ground on battlefield")
+			"crystals":
+				# "Place 2D6 crystals on the battlefield" (Core Rules p.76)
+				var crystal_count: int = local_rng.randi_range(1, 6) \
+					+ local_rng.randi_range(1, 6)
+				for ci: int in range(crystal_count):
+					var target: String = str(sector_labels[
+						local_rng.randi_range(0, sector_labels.size() - 1)])
+					sector_features[target].append(
+						"SMALL: Crystal formation (world trait: Crystals)")
+			"frozen":
+				# Movement modifier, not terrain (Core Rules p.76)
+				notes.append(
+					"Frozen: Dash slide — move 1D6\" straight, " \
+					+ "collision = both Stunned + knocked 1\"")
+			"reflective_dust":
+				# Combat modifier (Core Rules p.76)
+				notes.append(
+					"Reflective Dust: Laser/Beam/Blast weapons " \
+					+ "-1 to Hit beyond 9\"")
+			"null_zone":
+				# Equipment restriction (Core Rules p.76)
+				notes.append(
+					"Null Zone: No teleportation devices work")
+	return notes
 
 # ============================================================================
 # UTILITY HELPERS
@@ -415,6 +510,13 @@ func _append_scatter_to_sector(sector_features: Dictionary, label: String, scatt
 			features[i] = "%s, %s" % [features[i], scatter_item]
 			return
 	features.append("Scatter: %s" % scatter_item)
+
+func _has_known_prefix(text: String) -> bool:
+	## Check if a feature text starts with a recognized size/type prefix.
+	for prefix: String in ["LARGE:", "SMALL:", "LINEAR:", "Scatter:", "HAZARD:", "NOTABLE:"]:
+		if text.begins_with(prefix):
+			return true
+	return false
 
 func _text_has_keyword(text: String, keywords: Array) -> bool:
 	for kw: String in keywords:

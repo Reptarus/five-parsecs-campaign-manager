@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-04-08",
-  "current_phase": "Library UI Overhaul Complete (v0.9.7-dev) — Session 48: Compendium renamed to Library, full responsive rewrite (FiveParsecsCampaignPanel + HFlowContainer), card-style item rows (cyan borders, type icons, hover effects), humanized filter tabs, section headers, 6 new SVG icons, responsive popups. 7 files modified, 0 compile errors.",
+  "current_phase": "Post-Battle Polish (v0.9.7-dev) — Session 51: Character Events full wiring (status_effects persistence, 9 effect types, 6 enforcement gates, dashboard pills, item mutation, Swift departure, upkeep exemption, get_deployable_crew()). Session 50: Terrain generator overhaul. 0 compile errors.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",

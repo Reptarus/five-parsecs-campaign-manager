@@ -18,7 +18,7 @@ description: "Use this skill when working with the battle state machine, combat 
 
 - **Battle phase stuck** → Read `battle-state-machine.md`
 - **Combat math wrong** → Read `combat-resolution.md`
-- **Deployment/terrain issues** → Read `deployment-victory.md`
+- **Deployment/terrain issues** → Read `deployment-victory.md` (also see BattlefieldGenerator for Compendium terrain themes)
 - **Victory condition** → Read `deployment-victory.md`
 - **Battle UI components** → Read `battle-ui-wiring.md`
 - **Pre-battle setup** → Read `battle-ui-wiring.md` (PreBattleUI section)
@@ -29,10 +29,13 @@ description: "Use this skill when working with the battle state machine, combat 
 |------|-----------|---------|
 | `src/core/battle/state/BattleStateMachine.gd` | `BattleStateMachineClass` | Battle state + phase flow (3 states, 6 phases) |
 | `src/core/battle/BattleResolver.gd` | `BattleResolver` | Static combat resolution (RefCounted) |
-| `src/core/managers/DeploymentManager.gd` | Resource | Deployment zones + terrain generation |
+| `src/core/battle/BattlefieldGenerator.gd` | `FPCM_BattlefieldGenerator` | Compendium 5-step terrain generation (7 themes, world traits, seeded RNG) |
+| `src/core/managers/DeploymentManager.gd` | Resource | Deployment zones + deployment type inference |
 | `src/core/victory/VictoryChecker.gd` | `VictoryChecker` | Victory condition evaluation (18 types) |
 | `src/ui/screens/battle/TacticalBattleUI.gd` | `FPCM_TacticalBattleUI` | Tactical battle companion (3 oracle tiers) |
-| `src/ui/screens/battle/PreBattleUI.gd` | Control | Pre-battle crew selection + preview |
+| `src/ui/screens/battle/PreBattleUI.gd` | Control | Pre-battle crew selection + tier selector + preview |
+| `src/ui/components/battle/BattlefieldMapView.gd` | `BattlefieldMapView` | Graph-paper terrain map (SVS shapes, objectives, units) |
+| `src/ui/components/battle/BattlefieldGridPanel.gd` | PanelContainer | Terrain map wrapper (header, legend, popover, regenerate) |
 | `src/ui/screens/battle_simulator/BattleSimulatorUI.gd` | Control | Standalone battle mode (Setup→Battle→Results) |
 | `src/core/battle/BattleSimulatorSetup.gd` | RefCounted | Lightweight crew/enemy data fabricator |
 | `src/game/combat/CombatResolver.gd` | Node | Combat resolution with 24-method character interface |
@@ -57,6 +60,9 @@ All battle mechanics MUST be verified against `data/RulesReference/` files. Key 
 1. **Tabletop companion, not simulator** — output is text instructions, not automatic movement
 2. **Three oracle tiers** — LOG_ONLY, ASSISTED, FULL_ORACLE — components are tier-aware
 3. **BattleResolver is static** — use `BattleResolver.resolve_battle()`, never instantiate as Node
-4. **PreBattleUI has two setup methods** — `setup_preview(data)` + `setup_crew_selection(crew)`, not one
+4. **PreBattleUI has two setup methods** — `setup_preview(data)` + `setup_crew_selection(crew)`, not one. Also has `selected_tier` (int 0/1/2) for tier selection
 5. **TacticalBattleUI shared across 3 modes** — Standard 5PFH, Bug Hunt, and Battle Simulator. Changes must work in all three
 6. **MAX_COMBAT_ROUNDS = 6** (Five Parsecs p.118 — verify in `data/RulesReference/`), MIN = 3
+7. **BattlefieldGenerator returns combat_notes** — `result["combat_notes"]` (Array[String]) for world trait non-terrain effects. Also `result["seed"]` for reproducibility
+8. **BattleTransitionUI is bypassed** — CampaignTurnController goes directly to PreBattleUI via `_launch_pre_battle_directly()`
+9. **tactical_battle_completed emits Dictionary** — not BattleResult class. 20+ fields (held_field, crew_participants, defeated_enemies, mission flags)

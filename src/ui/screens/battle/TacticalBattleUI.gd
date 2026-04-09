@@ -2405,20 +2405,28 @@ func _populate_setup_tab(mission_data) -> void:
 	var terrain_data: Dictionary = bf_data.get("terrain", {})
 	var deployment_condition: Dictionary = bf_data.get("deployment_condition", {})
 
-	# Determine terrain theme key for BattlefieldGenerator
-	# BUG-038 FIX: Check terrain sub-dict first, then fall back to top-level
-	var theme_name: String = terrain_data.get("theme",
-		bf_data.get("terrain_type", "Standard Battlefield"))
-	_current_terrain_theme = _map_theme_name_to_key(theme_name)
-
-	# Read world traits for terrain modification (Core Rules pp.72-75)
+	# Read world traits and planet type for terrain modification
 	var world_traits: Array = []
+	var planet_type_id: int = 0  # GlobalEnums.PlanetType.NONE
 	if game_state and game_state.current_campaign:
 		var campaign_res = game_state.current_campaign
 		if "current_planet" in campaign_res:
 			var planet = campaign_res.current_planet
 			if planet is Dictionary:
 				world_traits = planet.get("world_traits", [])
+				planet_type_id = planet.get("type",
+					planet.get("planet_type", 0))
+
+	# Determine terrain theme key for BattlefieldGenerator
+	# Priority: explicit theme in terrain data → planet type → fallback
+	var theme_name: String = terrain_data.get("theme",
+		bf_data.get("terrain_type", ""))
+	if not theme_name.is_empty():
+		_current_terrain_theme = _map_theme_name_to_key(theme_name)
+	elif planet_type_id > 0:
+		_current_terrain_theme = _planet_type_to_theme(planet_type_id)
+	else:
+		_current_terrain_theme = "wilderness"
 
 	# Generate Compendium-compliant terrain (5-step process)
 	var sector_data: Dictionary = (
@@ -2619,6 +2627,14 @@ func _populate_setup_tab(mission_data) -> void:
 		Color("#808080"))
 
 	_add_setup_separator()
+
+	# Section 1b: World Trait Combat Notes (from BattlefieldGenerator)
+	var combat_notes: Array = sector_data.get("combat_notes", [])
+	if not combat_notes.is_empty():
+		_add_setup_section_header("WORLD TRAIT EFFECTS")
+		for note: String in combat_notes:
+			_add_setup_text(note, Color("#E879F9"))
+		_add_setup_separator()
 
 	# Section 2: Sector-by-Sector Breakdown
 	_terrain_section_start_index = setup_content.get_child_count()
@@ -2855,6 +2871,29 @@ func _build_sector_labels(sector_data: Dictionary) -> void:
 			var color := Color("#10B981") if feat.begins_with("NOTABLE:") else (
 				Color("#6b7280") if feat.begins_with("Scatter:") else Color("#9ca3af"))
 			_add_setup_text("  %s" % feat, color, 13)
+
+## Map GlobalEnums.PlanetType ordinal → BattlefieldGenerator theme key.
+## Based on thematic fit — no Core Rules mapping exists, these are UX choices.
+func _planet_type_to_theme(planet_type: int) -> String:
+	# GlobalEnums.PlanetType: NONE=0, DESERT=1, ICE=2, JUNGLE=3,
+	# OCEAN=4, ROCKY=5, TEMPERATE=6, VOLCANIC=7
+	match planet_type:
+		1:  # DESERT
+			return "wasteland"
+		2:  # ICE
+			return "wilderness"
+		3:  # JUNGLE
+			return "wilderness"
+		4:  # OCEAN
+			return "crash_site"
+		5:  # ROCKY
+			return "alien_ruin"
+		6:  # TEMPERATE
+			return "urban_settlement"
+		7:  # VOLCANIC
+			return "wasteland"
+		_:
+			return "wilderness"
 
 func _map_theme_name_to_key(theme_name: String) -> String:
 	## Map display name → BattlefieldGenerator theme key

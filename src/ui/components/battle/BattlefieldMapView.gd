@@ -67,6 +67,7 @@ var zoom_level: float = 1.0
 var pan_offset: Vector2 = Vector2.ZERO
 var compact_mode: bool = false
 var show_unit_markers: bool = false
+var show_scatter: bool = true
 var theme_name: String = ""
 
 # ============================================================================
@@ -298,25 +299,55 @@ func _rebuild_terrain_shapes() -> void:
 				_sector_placements[sr][sc] = []
 				continue
 
-			# Inset placement area to account for rotation overflow
-			var rot_margin: float = 16.0
+			# Count non-scatter features for density-adaptive scaling
+			var feature_count: int = shapes.filter(
+				func(s): return not s.get("is_scatter", false)).size()
+
+			# Fix 0a: Adaptive scale for dense sectors — shapes must fit
+			var local_scale: float = scale_factor
+			if feature_count >= 4:
+				local_scale *= 0.6
+			elif feature_count >= 3:
+				local_scale *= 0.75
+
+			# Fix 0c: Proportional rotation margin based on actual shape rotations
+			var max_shape_rot: float = 0.0
+			for s_info: Dictionary in shapes:
+				if not s_info.get("is_scatter", false):
+					var st: String = s_info.get("shape", "rect")
+					max_shape_rot = maxf(max_shape_rot,
+						BattlefieldShapeLibrary.get_rotation_range(st))
+			var rot_margin: float = 4.0 + max_shape_rot * 8.0 / PI
+
 			var sector_origin := Vector2(
 				sc * sector_w + 4.0 + rot_margin,
 				sr * sector_h + 14.0 + rot_margin
 			)
-			var avail_w: float = sector_w - 8.0 - rot_margin * 2.0
-			var avail_h: float = sector_h - 18.0 - rot_margin * 2.0
+			var avail_w: float = maxf(sector_w - 8.0 - rot_margin * 2.0, 20.0)
+			var avail_h: float = maxf(sector_h - 18.0 - rot_margin * 2.0, 20.0)
+
+			# Fix 0e: Reduce padding for dense sectors
+			var total_shape_area: float = 0.0
+			for s_area: Dictionary in shapes:
+				if not s_area.get("is_scatter", false):
+					total_shape_area += s_area.get("width", 30.0) \
+						* s_area.get("height", 20.0) * local_scale * local_scale
+			var density: float = total_shape_area / maxf(
+				avail_w * avail_h, 1.0)
+			var effective_padding: float = PLACEMENT_PADDING
+			if density > 0.4:
+				effective_padding = maxf(PLACEMENT_PADDING * 0.5, 6.0)
 
 			var placed_rects: Array[Rect2] = []
 			var positions: Array = []
 
 			for shape_idx: int in range(shapes.size()):
 				var shape: Dictionary = shapes[shape_idx]
-				# BUG-040 FIX: Skip scatter items (flavor text, not counted features)
-				if shape.get("is_scatter", false):
+				# BUG-040: Skip scatter unless show_scatter is enabled
+				if shape.get("is_scatter", false) and not show_scatter:
 					continue
-				var w: float = shape.get("width", 30.0) * scale_factor
-				var h: float = shape.get("height", 20.0) * scale_factor
+				var w: float = shape.get("width", 30.0) * local_scale
+				var h: float = shape.get("height", 20.0) * local_scale
 
 				# Compute rotation-aware collision padding for this shape
 				var shape_type_str: String = shape.get("shape", "rect")
@@ -325,15 +356,13 @@ func _rebuild_terrain_shapes() -> void:
 
 				# Try random positions within sector
 				var placed: bool = false
+				var half_pad: float = (effective_padding + rot_padding) / 2.0
 				for attempt: int in range(PLACEMENT_ATTEMPTS):
 					var try_x: float = placement_rng.randf() * maxf(avail_w - w, 1.0)
 					var try_y: float = placement_rng.randf() * maxf(avail_h - h, 1.0)
 					var candidate := Rect2(try_x, try_y, w, h)
 
 					# Check collision with same-sector shapes (rotation-aware)
-					# Grow candidate by half padding, stored rects by half padding at
-					# store time — total effective gap = PLACEMENT_PADDING + rot_padding.
-					var half_pad: float = (PLACEMENT_PADDING + rot_padding) / 2.0
 					var collides: bool = false
 					for placed_rect: Rect2 in placed_rects:
 						if candidate.grow(half_pad).intersects(placed_rect.grow(half_pad)):
@@ -358,35 +387,33 @@ func _rebuild_terrain_shapes() -> void:
 						placed = true
 						break
 
-				# Fallback: flow-layout with rotation-aware spacing
+				# Fix 0d: Grid-distributed fallback instead of top-left stacking
 				if not placed:
-					var total_pad: float = PLACEMENT_PADDING + rot_padding
+					var total_pad: float = effective_padding + rot_padding
 					var half_pad_fb: float = total_pad / 2.0
-					var fallback_x: float = 0.0
-					var fallback_y: float = 0.0
-					for existing: Rect2 in placed_rects:
-						var candidate_x: float = existing.position.x + existing.size.x + total_pad
-						if candidate_x + w <= avail_w:
-							fallback_x = candidate_x
-							fallback_y = existing.position.y
-						else:
-							fallback_x = 0.0
-							fallback_y = maxf(fallback_y, existing.end.y + total_pad)
 
-					# If shape doesn't fit in sector at all, try placing in
-					# overflow area below normal bounds rather than clamping to
-					# (0,0) which causes overlaps.
-					var can_fit_x: bool = w <= avail_w
-					var can_fit_y: bool = fallback_y + h <= avail_h
-					if can_fit_x:
-						fallback_x = clampf(fallback_x, 0.0, maxf(avail_w - w, 0.0))
-					else:
-						fallback_x = 0.0
-					if can_fit_y:
-						fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
-					# else: let fallback_y exceed avail_h — shape overflows but doesn't overlap
+					# Compute grid slot for even distribution
+					var slot_idx: int = positions.size()
+					var grid_cols: int = maxi(
+						ceili(sqrt(float(feature_count))), 1)
+					var grid_rows_count: int = maxi(
+						ceili(float(feature_count) / float(grid_cols)), 1)
+					var slot_w: float = avail_w / float(grid_cols)
+					var slot_h: float = avail_h / float(grid_rows_count)
+					var gx: int = slot_idx % grid_cols
+					var gy: int = slot_idx / grid_cols
+					var fallback_x: float = gx * slot_w + maxf(
+						(slot_w - w) / 2.0, 0.0)
+					var fallback_y: float = gy * slot_h + maxf(
+						(slot_h - h) / 2.0, 0.0)
 
-					# Cross-sector collision check for fallback position
+					# Fix 0b: Hard clamp to sector bounds — never overflow
+					fallback_x = clampf(fallback_x, 0.0,
+						maxf(avail_w - w, 0.0))
+					fallback_y = clampf(fallback_y, 0.0,
+						maxf(avail_h - h, 0.0))
+
+					# Cross-sector collision nudge (stay in bounds)
 					var abs_fb := Rect2(
 						sector_origin.x + fallback_x,
 						sector_origin.y + fallback_y, w, h)
@@ -394,20 +421,24 @@ func _rebuild_terrain_shapes() -> void:
 					while fb_retry < 8:
 						var fb_collides: bool = false
 						for global_rect: Rect2 in all_placed_rects:
-							if abs_fb.grow(half_pad_fb).intersects(global_rect.grow(half_pad_fb)):
+							if abs_fb.grow(half_pad_fb).intersects(
+									global_rect.grow(half_pad_fb)):
 								fb_collides = true
 								break
-						# Also check same-sector rects
 						if not fb_collides:
-							var local_fb := Rect2(fallback_x, fallback_y, w, h)
+							var local_fb := Rect2(
+								fallback_x, fallback_y, w, h)
 							for pr: Rect2 in placed_rects:
-								if local_fb.grow(half_pad_fb).intersects(pr.grow(half_pad_fb)):
+								if local_fb.grow(half_pad_fb).intersects(
+										pr.grow(half_pad_fb)):
 									fb_collides = true
 									break
 						if not fb_collides:
 							break
-						# Nudge down by shape height + padding (no clamping — allow overflow)
-						fallback_y += h + total_pad
+						# Nudge down, clamped to sector bounds
+						fallback_y = minf(
+							fallback_y + h + total_pad,
+							maxf(avail_h - h, 0.0))
 						abs_fb = Rect2(
 							sector_origin.x + fallback_x,
 							sector_origin.y + fallback_y, w, h)
@@ -422,7 +453,7 @@ func _rebuild_terrain_shapes() -> void:
 
 				# Create the SVS terrain node — position at shape center for symmetric rotation
 				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
-					shape, scale_factor)
+					shape, local_scale)
 				var top_left: Vector2 = positions[positions.size() - 1]
 				svs.position = top_left + Vector2(w / 2.0, h / 2.0)
 				_terrain_container.add_child(svs)
@@ -734,8 +765,14 @@ func _draw_terrain_labels_on(canvas: Control, offset: Vector2, cs: float) -> voi
 				# BUG-041 FIX: Prepend size category prefix
 				var cat: String = shape.get("size_category", "")
 				var prefix: String = "%s: " % cat if not cat.is_empty() else ""
-				var callout: String = "%s%s %d\",%d\"" % [
-					prefix, short_label, inch_x, inch_y]
+				# Phase 5: Append terrain rules category badge
+				var full_label: String = shape.get("label", "")
+				var rules_cat: String = BattlefieldShapeLibrary \
+					.classify_terrain_rules_category(full_label)
+				var badge: String = rules_cat.substr(0, 1) \
+					if not rules_cat.is_empty() else ""
+				var callout: String = "%s%s %d\",%d\" [%s]" % [
+					prefix, short_label, inch_x, inch_y, badge]
 
 				# Position label below the shape
 				var label_x: float = offset.x + base_pos.x * scale

@@ -175,9 +175,10 @@ func _build_header_bar() -> void:
 	_header_bar.add_child(_collapse_button)
 
 func _build_legend() -> void:
-	var legend_container := HBoxContainer.new()
+	var legend_container := HFlowContainer.new()
 	legend_container.name = "TerrainLegend"
-	legend_container.add_theme_constant_override("separation", 12)
+	legend_container.add_theme_constant_override("h_separation", 12)
+	legend_container.add_theme_constant_override("v_separation", 4)
 	legend_container.custom_minimum_size = Vector2(0, 24)
 
 	var legend_title := Label.new()
@@ -196,6 +197,9 @@ func _build_legend() -> void:
 		[BattlefieldShapeLibrary.MAP_COLOR_CONTAINER, "Container"],
 		[BattlefieldShapeLibrary.MAP_COLOR_HAZARD, "Hazard"],
 		[BattlefieldShapeLibrary.MAP_COLOR_DEBRIS, "Debris"],
+		[BattlefieldShapeLibrary.MAP_COLOR_CRYSTAL, "Crystal"],
+		[BattlefieldShapeLibrary.MAP_COLOR_SCATTER, "Scatter"],
+		[BattlefieldShapeLibrary.MAP_COLOR_NOTABLE_STROKE, "Notable"],
 	]
 
 	for entry: Array in entries:

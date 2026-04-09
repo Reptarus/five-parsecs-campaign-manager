@@ -7,6 +7,22 @@
 
 The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
 
+## Session 49: UX Polish Sprint (Apr 8, 2026)
+
+Shotgun sprint — 8 non-blocked UX items shipped. UX checklist moved from **58/8/15** to **59/7/15** done/partial/pending.
+
+- **ThemeManager bug fixes**: Colorblind modes were silently broken (wrong dict keys), reduced animation toggle didn't apply at runtime. Both fixed.
+- **Load Campaign dialog**: Deep Space themed (was bare OS default)
+- **Help buttons**: CaptainPanel + CrewPanel get "?" buttons with RulesPopup (Core Rules pp.12-25)
+- **TweenFX expansion**: CampaignDashboard (crew card cascade), WorldPhaseController (step fade-in), CharacterDetailsScreen (stat pop-in), SettingsScreen (content fade). All guarded by reduced-animation setting.
+- **Phase header**: "World Step" → "World Phase" in CampaignTurnController
+- **HP formatting**: PDF exporter uses `%d/%d` instead of `str()` (prevents "3.0/5.0")
+- **Compendium font**: Marked as ✅ Done (Montserrat is intentional design, not a gap)
+- **Routing**: All work to `ui-panel-developer` domain. 11 files modified, 0 compile errors.
+- **Gotcha discovered**: `var x := A and B` with nullable A fails Godot 4.6 type inference. Use `var x: bool = ...`
+
+---
+
 ## Session 43: Story Points Full Integration (Apr 7, 2026)
 
 Closed all story point wiring gaps. StoryPointSystem.gd and UI (popover+dialog+badge) were already complete but campaign loop bypassed the system.

@@ -128,6 +128,7 @@ var morale: int = 5
 ```gdscript
 var equipment: Array[String]
 var injuries: Array[Dictionary]  # {type, severity, recovery_turns, turn_sustained}
+var status_effects: Array[Dictionary]  # {type, name, description, duration, source_event} — Character Events (Core Rules pp.128-130)
 var implants: Array[Dictionary]  # {type, name, stat_bonus} — max 3
 var bot_upgrades: Array[String]
 ```
@@ -248,6 +249,7 @@ Character.create_implant_from_loot(loot_name: String) -> Dictionary
   "status": "ACTIVE",
   "equipment": ["laser_rifle", "combat_armor"],
   "injuries": [],
+  "status_effects": [{"type": "skip_next_battle", "name": "Violence is Depressing", "duration": 1}],
   "implants": [{"type": "NEURAL_LINK", "name": "Neural Link", "stat_bonus": {"savvy": 1}}],
   "background": "MILITARY",
   "origin": "HUMAN",

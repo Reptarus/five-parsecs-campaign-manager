@@ -58,6 +58,35 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 	## Process a single injury (Core Rules p.94). Routes bots to separate table.
 	var crew_id = injury_data.get("crew_id", "")
 
+	# Feel Great: ignore next Injury Table roll (Core Rules p.130)
+	var crew_member_check: Variant = null
+	if ctx.has_method("get_crew_member"):
+		crew_member_check = ctx.get_crew_member(crew_id)
+	if crew_member_check:
+		var has_ignore_injury := false
+		if crew_member_check is Resource \
+				and crew_member_check.has_method("has_status_effect"):
+			has_ignore_injury = crew_member_check.has_status_effect(
+				"ignore_next_injury")
+			if has_ignore_injury:
+				crew_member_check.remove_status_effects_of_type(
+					"ignore_next_injury")
+		elif crew_member_check is Dictionary:
+			var effs: Array = crew_member_check.get("status_effects", [])
+			for i in range(effs.size() - 1, -1, -1):
+				if str(effs[i].get("type", "")) == "ignore_next_injury":
+					has_ignore_injury = true
+					effs.remove_at(i)
+					break
+		if has_ignore_injury:
+			return {
+				"crew_id": crew_id,
+				"type": "ignored",
+				"description": "Injury ignored (Feel Great effect)",
+				"recovery_turns": 0,
+				"is_fatal": false
+			}
+
 	var is_bot_character := false
 	var crew_origin: String = injury_data.get("origin", "")
 	if crew_origin.is_empty() and ctx.game_state_manager:

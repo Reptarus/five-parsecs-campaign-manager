@@ -73,6 +73,21 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 		if is_bot:
 			continue
 
+		# Melancholy: No XP this turn (Core Rules p.130)
+		var has_no_xp := false
+		var member_for_check: Variant = ctx.get_crew_member(crew_id) \
+			if ctx.has_method("get_crew_member") else participant
+		if member_for_check is Dictionary:
+			for eff in member_for_check.get("status_effects", []):
+				if str(eff.get("type", "")) == "no_xp":
+					has_no_xp = true
+					break
+		elif member_for_check is Resource \
+				and member_for_check.has_method("has_status_effect"):
+			has_no_xp = member_for_check.has_status_effect("no_xp")
+		if has_no_xp:
+			continue
+
 		var xp_earned: int = _calculate_crew_xp(ctx, crew_id)
 
 		# Hopeful Rookie: +1 bonus XP if not casualty (Core Rules p.21)

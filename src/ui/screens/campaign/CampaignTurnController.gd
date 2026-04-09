@@ -111,16 +111,8 @@ func _connect_core_signals() -> void:
 		push_warning("CampaignTurnController: post_battle_phase_handler is null - post-battle events (rival/patron resolution, XP) may not update correctly")
 		# Note: Post-battle will still function via UI signals from PostBattleSequence
 
-	# Sprint 13.3: Connect BattlePhase handler signals for battle mode selection
-	# Sprint 26.4: Added null guard with fallback warning for dead end prevention
-	var battle_phase_handler = campaign_phase_manager.battle_phase_handler
-	if battle_phase_handler:
-		if battle_phase_handler.has_signal("battle_mode_selection_requested"):
-			battle_phase_handler.battle_mode_selection_requested.connect(_on_battle_mode_selection_requested)
-		if battle_phase_handler.has_signal("battle_mode_selected"):
-			battle_phase_handler.battle_mode_selected.connect(_on_battle_mode_selected)
-	else:
-		pass
+	# battle_phase_handler removed (Session 50) — was always null.
+	# Battle flow runs through _initiate_battle_sequence() → PreBattleUI → TacticalBattleUI.
 
 	# Connect UI phase completion signals for phase transitions
 	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
@@ -210,14 +202,6 @@ func _exit_tree() -> void:
 				post_battle_handler.patron_status_resolved.disconnect(_on_post_battle_patron_resolved)
 			if post_battle_handler.has_signal("experience_awarded") and post_battle_handler.experience_awarded.is_connected(_on_post_battle_experience_awarded):
 				post_battle_handler.experience_awarded.disconnect(_on_post_battle_experience_awarded)
-
-		# Disconnect BattlePhase handler signals
-		var battle_phase_handler = campaign_phase_manager.battle_phase_handler
-		if battle_phase_handler:
-			if battle_phase_handler.has_signal("battle_mode_selection_requested") and battle_phase_handler.battle_mode_selection_requested.is_connected(_on_battle_mode_selection_requested):
-				battle_phase_handler.battle_mode_selection_requested.disconnect(_on_battle_mode_selection_requested)
-			if battle_phase_handler.has_signal("battle_mode_selected") and battle_phase_handler.battle_mode_selected.is_connected(_on_battle_mode_selected):
-				battle_phase_handler.battle_mode_selected.disconnect(_on_battle_mode_selected)
 
 	# Disconnect UI phase signals
 	if post_battle_ui and post_battle_ui.has_signal("post_battle_completed"):
@@ -1205,7 +1189,8 @@ func _on_return_to_battle_resolution() -> void:
 ## Sprint 13.3: Battle Mode Selection Handlers
 
 func _on_battle_mode_selection_requested(crew_count: int, enemy_count: int) -> void:
-	## Handle battle mode selection request from BattlePhase
+	## DEPRECATED (Session 50): Was connected to battle_phase_handler (always null).
+	## Battle flow now goes through _initiate_battle_sequence() → PreBattleUI.
 	# Show battle resolution UI for mode selection
 	_hide_all_phase_uis()
 	if battle_transition_ui:
@@ -1217,7 +1202,7 @@ func _on_battle_mode_selection_requested(crew_count: int, enemy_count: int) -> v
 			battle_transition_ui.show_mode_selection(crew_count, enemy_count)
 
 func _on_battle_mode_selected(use_tactical: bool) -> void:
-	## Handle battle mode selection from BattlePhase
+	## DEPRECATED (Session 50): Was connected to battle_phase_handler (always null).
 	if use_tactical:
 		# Transition to tactical battle UI
 		_hide_all_phase_uis()

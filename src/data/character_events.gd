@@ -1,6 +1,10 @@
 extends RefCounted
-## Character Phase Event Data (Five Parsecs character events table)
-## Extracted from CharacterPhasePanel.gd for data separation and reuse.
+## Character PHASE Event Data — World Phase / Character Phase simplified events.
+## NOTE: This is NOT the post-battle Character Events Table (Core Rules pp.128-130).
+## For post-battle character events (30 D100 events with status effects), see:
+##   - data/campaign_tables/character_events.json
+##   - src/core/campaign/phases/post_battle/CharacterEventEffects.gd
+## This file is used by CharacterPhasePanel.gd for the campaign turn Character Phase.
 
 const EVENT_TABLE: Array[Dictionary] = [
 	{"type": "NOTHING", "description": "Nothing eventful happens.", "weight": 30},

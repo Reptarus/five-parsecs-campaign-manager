@@ -1,9 +1,12 @@
 extends WorldPhaseComponent
 class_name CharacterEventComponent
 
-## Character Event Component - Personal Character Events
-## Implements Core Rules pp.129-132 - D100 Character Event Table
-## Select random non-Bot character and roll for personal events
+## DEPRECATED (Session 50): This component has a hardcoded 20-event table that is
+## incomplete and inaccurate. The canonical post-battle Character Events system is:
+##   - Data: data/campaign_tables/character_events.json (30 D100 events, Core Rules pp.128-130)
+##   - Backend: src/core/campaign/phases/post_battle/CharacterEventEffects.gd
+##   - UI: src/ui/screens/postbattle/PostBattleSequence.gd (Step 12)
+## This file is kept for scene tree compatibility but should not be used for new code.
 
 # UI Components
 @onready var character_label: Label = %CharacterLabel

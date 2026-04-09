@@ -146,7 +146,15 @@ func _populate_crew_list() -> void:
 
 		# Check if in Sick Bay (Core Rules - injured crew can't perform tasks)
 		var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
-		if is_in_sick_bay:
+
+		# Time to Burn: extra action even in Sick Bay (Core Rules p.130)
+		var has_extra_action := false
+		for eff in crew_member.get("status_effects", []):
+			if str(eff.get("type", "")) == "extra_action":
+				has_extra_action = true
+				break
+
+		if is_in_sick_bay and not has_extra_action:
 			crew_member_list.add_item("%s [SICK BAY]" % crew_name)
 			crew_member_list.set_item_disabled(crew_member_list.item_count - 1, true)
 			continue
@@ -161,12 +169,30 @@ func _populate_crew_list() -> void:
 		crew_member_list.add_item(crew_name + task_status)
 
 func _get_eligible_crew() -> Array:
-	## Get crew members not in Sick Bay
+	## Get crew members not in Sick Bay and not blocked by Character Events.
+	## Time to Burn (Core Rules p.130): extra_action allows tasks even in Sick Bay.
 	var eligible: Array = []
 	for crew_member in crew_data:
-		var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
-		if not is_in_sick_bay:
-			eligible.append(crew_member)
+		var is_in_sick_bay = crew_member.get("in_sick_bay", false) \
+			or crew_member.get("status", "") == "injured"
+		# Time to Burn overrides Sick Bay restriction
+		var has_extra_action := false
+		for eff in crew_member.get("status_effects", []):
+			if str(eff.get("type", "")) == "extra_action":
+				has_extra_action = true
+				break
+		if is_in_sick_bay and not has_extra_action:
+			continue
+		# Character Event restrictions (Core Rules pp.128-130)
+		var has_task_block := false
+		for eff in crew_member.get("status_effects", []):
+			var eff_type: String = str(eff.get("type", ""))
+			if eff_type == "skip_tasks" or eff_type == "unavailable" or eff_type == "departed":
+				has_task_block = true
+				break
+		if has_task_block:
+			continue
+		eligible.append(crew_member)
 	return eligible
 
 func _populate_available_tasks() -> void:
@@ -404,6 +430,14 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 	if character_bonus > 0:
 		modified_roll += character_bonus
 		result.details += ", +%d skill" % character_bonus
+
+	# Empath: +1 to Recruit and Find Patron tasks (Core Rules p.22)
+	# Lost permanently if character has any implants
+	var crew_species: String = crew_member.get("species_id", "").to_lower()
+	if crew_species == "empath" and crew_member.get("implants", []).is_empty():
+		if task_id in ["recruit", "find_patron"]:
+			modified_roll += 1
+			result.details += ", +1 Empath"
 
 	# --- Task-specific rules (Core Rules pp.77-78) ---
 

@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-04-07
+**Last Updated**: 2026-04-08
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -35,13 +35,14 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Equipment Effects Pipeline (Session 47) | 12 phases: trait fixes, armor saves, single-use removal, protective devices, consumables, gun mods, utility devices, on-board items, Compendium traits |
 | PostBattle Orchestrator (Session 47) | CampaignPhaseManager rewired to 14-step decomposed PostBattlePhase (was using old 5-step stub) |
 | New World Arrival UI (Session 47) | World trait display, rival follow results, forge license mechanic, travel event mutations |
+| Character Events (Session 51) | 30 D100 events fully wired — status_effects persistence, UI JSON lookup, turn countdown, 6 enforcement gates, dashboard pills, item mutation |
 | Event Queue System | CrewTaskEventDialog (26 event types, state mutations wired) |
 | Story Points (Session 43) | Fully integrated — earning (turn+battle), 5 spend types, XP picker, dashboard sync, Stars of the Story |
 | Difficulty System | 5 Core Rules modes + 12 Compendium toggles + Progressive Difficulty (2 options) |
 | Legal Stack (Session 40b) | EULA screen, privacy policy, consent manager, data export/delete, GitHub Pages docs |
 | Compendium Library (Session 40b) | 10 categories, 340+ items, game-icons.net icon SOP |
 | Modiphius Partnership | Ask list created (`docs/MODIPHIUS_ASK_LIST.md`) — 7 legal blockers, 6 publishing blockers |
-| UX Design Checklist | **58/81** done (8 partial, 15 blocked/post-launch) |
+| UX Design Checklist | **59/81** done (7 partial, 15 blocked/post-launch) |
 | Tutorial/Onboarding | First-run + dashboard tutorials, TutorialOverlay (L95, Deep Space theme) |
 | Accessibility Settings | Colorblind (4 modes) + Reduced Motion + Font Size (Small/Normal/Large) |
 | Compile Errors | 0 |
@@ -133,6 +134,32 @@ MainMenu → "Battle Simulator" button
 - **Results don't persist** — no campaign to save to, just Play Again / Main Menu
 - **SceneRouter key**: `battle_simulator`
 
+### Character Events System (Session 51, Core Rules pp.128-130)
+
+Post-battle D100 Character Events with persistent multi-turn status effects.
+
+```
+PostBattleSequence (UI, Step 12)
+  → _on_character_event_roll() → _interpret_character_event(roll)
+      → Loads data/campaign_tables/character_events.json
+      → Displays actual event name + description
+      → Calls PostBattlePhase.apply_character_event_effect()
+          → CharacterEventEffects.apply_effect() → ctx.apply_character_status_effect()
+              → Character.status_effects.append(effect_dict)
+
+CampaignPhaseManager._process_turn_rollover()
+  → _process_character_event_effects(campaign)
+      → For each crew member: decrement duration, remove expired
+      → _on_character_event_expired(): Business Elsewhere XP return, item recovery roll
+```
+
+- **Status Effects**: `Character.status_effects: Array[Dictionary]` — each `{type, name, description, duration, source_event}`
+- **9 effect types**: `skip_next_battle`, `unavailable`, `departed`, `skip_tasks`, `ignore_next_injury`, `item_damaged`, `item_lost_recovery`, `no_xp`, `extra_action`
+- **6 enforcement gates**: BattlePhase crew filter, CrewTaskComponent eligibility, ExperienceTrainingProcessor XP block, InjuryProcessor immunity, UpkeepPhaseComponent exemption, CampaignDashboard pill display
+- **Serialization**: Round-trips via `to_dictionary()`/`from_dictionary()`
+- **Turn countdown**: Follows sick bay recovery pattern (dual Resource + Dictionary path)
+- **GameStateManager.get_deployable_crew()**: Filters DEAD/RETIRED/DEPARTED/MISSING before BattlePhase
+
 ### Crew Task Event Queue (Session 21)
 
 Interactive dialog system for World Phase crew task results — every Trade/Explore outcome is a player-facing moment.
@@ -213,6 +240,26 @@ StoryTrackSystem (Resource, cached on CampaignPhaseManager.story_track)
 
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
+
+### Battlefield Terrain Generator (Session 50)
+
+```text
+BattlefieldGenerator (RefCounted, Compendium 5-step)
+  ├─ data/battlefield/themes/compendium_terrain.json (7 themes)
+  ├─ 10 world trait modifications (Core Rules pp.72-75)
+  ├─ Returns: {sectors, combat_notes, seed, ...}
+  └─ BattlefieldMapView (graph-paper canvas)
+       ├─ BattlefieldShapeLibrary (keyword → shape/color)
+       ├─ Adaptive placement (density-scaled shapes)
+       └─ BattlefieldGridPanel (header, legend 12 entries, popover)
+```
+
+- **7 themes**: industrial_zone, wilderness, alien_ruin, crash_site, urban_settlement, wasteland, ship_interior
+- **World traits**: barren (strips vegetation), flat (strips hills + suppresses elevated minimum), crystals (adds 2D6), haze/gloom/fog (visibility notes), frozen/reflective_dust/null_zone (combat notes)
+- **Shape placement**: Adaptive `local_scale` (0.6x-1.0x by density), proportional rotation margins, grid-distributed fallback, hard sector clamping
+- **Map labels**: Show `[L]`/`[I]`/`[B]`/`[F]`/`[A]` terrain rules category badges
+- **Scatter visible**: Tiny 16×10px dots, `show_scatter` toggle property
+- **Seeded RNG**: Optional `rng_seed` param on `generate_terrain_suggestions()`, `result["seed"]` for reproducibility
 
 ### Key Patterns (Phase 5 Consolidation)
 - **CampaignDashboard** uses `FiveParsecsCampaignPhase` (14 values, aliased as `FPC`). The old `CampaignPhase` enum (10 values) is deprecated.
@@ -685,6 +732,8 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **DifficultyLevel HARD/NIGHTMARE/ELITE are DEPRECATED**: GlobalEnums.DifficultyLevel has 3 fabricated values (HARD=3, NIGHTMARE=5, ELITE=7) that are NOT in Core Rules or Compendium. Kept for save compat, aliased to NORMAL/INSANITY/INSANITY in JSON. Never expose in UI or use in new code. Only 5 real modes: Easy(1), Normal(2), Challenging(4), Hardcore(6), Insanity(8)
 - **Progressive Difficulty is per-campaign**: Stored in `campaign.progress_data["progressive_difficulty_options"]` (Array of ints). Empty = disabled. `[1]`=basic, `[2]`=advanced, `[1,2]`=both. Read by BattlePhase, NOT by changing the difficulty enum
 - **SpeciesDataService load order**: `Character.gd` cannot import `SpeciesDataService` at parse time (Godot loads Character first). Character helper methods use inline `species_id` string checks. Other systems (CharacterCreator, LuckSystem) can reference SpeciesDataService safely
+- **Character.status_effects vs BaseCharacterResource.status_effects**: These are SEPARATE fields on SEPARATE classes. `Character.gd` (the main class used in campaigns) has `@export var status_effects: Array[Dictionary]` for Character Events. `BaseCharacterResource` (line 28) has its own `status_effects` for the combat interface. Don't confuse them
+- **Character Events: two systems, same name**: `data/campaign_tables/character_events.json` + `CharacterEventEffects.gd` = post-battle D100 table (30 events, Core Rules pp.128-130). `src/data/character_events.gd` = World Phase character events (7 weighted events, used by CharacterPhasePanel). `CharacterEventComponent.gd` is DEPRECATED (hardcoded 20-event table)
 - **GameEnums.StrangeCharacterType is DEPRECATED**: Use `Character.species_id` (String) + `SpeciesDataService` for Strange Character identification. The enum has only 8 of 16 types and is kept only for backwards compatibility
 - **Equipment data sources**: `gear_database.json` = D100 tables for character creation (backgrounds, weapon_tables, starting_rolls). `equipment_database.json` = weapon/armor/gear STATS (range, shots, damage, traits). These are separate files with different purposes
 - **Trade sell value is flat**: Core Rules p.125 — items sell for 1 credit each. No condition tiers, no quality multipliers, no percentage-of-purchase formulas

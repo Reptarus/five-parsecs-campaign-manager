@@ -137,7 +137,19 @@ func calculate_upkeep_costs() -> Dictionary:
 	results.current_credits = GameStateManager.get_credits()
 	
 	# Calculate crew upkeep with world trait modifiers (Core Rules p.76, p.87-89)
-	var effective_crew_size: int = crew_data.size()
+	# Exclude unavailable/departed crew — Business Elsewhere has no_upkeep (Core Rules p.128)
+	var upkeep_exempt_count: int = 0
+	for member in crew_data:
+		var member_status: String = str(member.get("status", "ACTIVE"))
+		if member_status in ["DEPARTED", "DEAD", "RETIRED", "MISSING"]:
+			upkeep_exempt_count += 1
+			continue
+		for eff in member.get("status_effects", []):
+			if eff.get("no_upkeep", false) \
+					or str(eff.get("type", "")) in ["unavailable", "departed"]:
+				upkeep_exempt_count += 1
+				break
+	var effective_crew_size: int = crew_data.size() - upkeep_exempt_count
 	var component_effects: Array = []
 
 	# Suspension Pod: exclude suspended crew (Core Rules p.62)

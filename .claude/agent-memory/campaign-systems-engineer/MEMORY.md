@@ -27,6 +27,27 @@ Source PDFs for verifying campaign rules — use these instead of guessing value
 
 ---
 
+## Session 51: Character Events Turn Rollover (Apr 8, 2026)
+
+### CampaignPhaseManager Turn Rollover Sequence
+
+`_process_turn_rollover()` now has 7 steps in order:
+1. `_restore_crew_luck()` — Core Rules p.91
+2. `_process_sick_bay_recovery()` — Core Rules p.99
+3. **`_process_character_event_effects()`** — Core Rules pp.128-130 (NEW)
+4. `_process_patron_expiration()` — Core Rules pp.81-88
+5. Story Points reset + auto-award — Core Rules pp.66-67
+6. Planet effects expiry
+7. Victory condition check — Core Rules p.64
+
+Step 3 decrements `status_effects[].duration` for all crew (dual Resource + Dictionary path). Expired effects trigger `_on_character_event_expired()` — handles Business Elsewhere XP return and item recovery D6+Savvy check.
+
+### GameStateManager.get_deployable_crew() (NEW)
+
+Filters out DEAD/RETIRED/DEPARTED/MISSING crew. BattlePhase._get_deployed_crew() calls this (previously the has_method check failed silently and fell through to _generate_default_crew).
+
+---
+
 ## Session 47: Equipment Pipeline — Campaign Domain (Apr 8, 2026)
 
 ### CampaignPhaseManager PostBattlePhase Rewiring

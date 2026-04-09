@@ -141,12 +141,60 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 		"Violence is Depressing":
 			if gsm and gsm.has_method("add_story_points"):
 				gsm.add_story_points(1)
+			ctx.apply_character_status_effect(character, {
+				"type": "skip_next_battle",
+				"name": "Violence is Depressing",
+				"description": "Refuses battle next turn (except Invasion)",
+				"duration": 1,
+				"invasion_exception": true,
+				"source_event": "Violence is Depressing"
+			})
 			return "%s refuses battle next turn (except Invasion). +1 Story Point" % char_name
 
 		"Business Elsewhere":
 			var xp_gain: int = randi_range(1, 6)
 			if origin_lower == "swift":
+				# Swift characters never return — mark as departed (Core Rules p.128)
+				# Set status to DEPARTED so dashboard/upkeep/battle all exclude them
+				if character is Resource and "status" in character:
+					character.status = "DEPARTED"
+				elif character is Dictionary:
+					character["status"] = "DEPARTED"
+				ctx.apply_character_status_effect(character, {
+					"type": "departed",
+					"name": "Business Elsewhere (Swift)",
+					"description": "Swift character departed permanently. Replace with new Swift character.",
+					"duration": -1,
+					"source_event": "Business Elsewhere"
+				})
+				# Journal entry for departure
+				if ctx.campaign_journal \
+						and ctx.campaign_journal.has_method("create_entry"):
+					var cid: String = ""
+					if character is Resource and "character_id" in character:
+						cid = str(character.character_id)
+					elif character is Dictionary:
+						cid = str(character.get("character_id", character.get("id", "")))
+					ctx.campaign_journal.create_entry({
+						"type": "character_event",
+						"title": "%s Has Left the Crew" % char_name,
+						"description": "%s (Swift) departed on business and will not return. Roll up a replacement Swift character." % char_name,
+						"characters_involved": [cid] if cid != "" else [],
+						"tags": ["character_event", "departure", "swift"],
+						"auto_generated": true,
+						"mood": "negative",
+					})
 				return "%s (Swift) has business elsewhere: Never returns. Replaced with new Swift character." % char_name
+			ctx.apply_character_status_effect(character, {
+				"type": "unavailable",
+				"name": "Business Elsewhere",
+				"description": "Unavailable for 2 turns. No Upkeep. Returns with %d XP + Loot roll." % xp_gain,
+				"duration": 2,
+				"no_upkeep": true,
+				"return_xp": xp_gain,
+				"return_loot_roll": 1,
+				"source_event": "Business Elsewhere"
+			})
 			return "%s unavailable 2 turns (no Upkeep). Returns with %d XP + Loot roll" % [char_name, xp_gain]
 
 		"Local Friends":
@@ -165,9 +213,36 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s got letter from home: +1 XP" % char_name
 
 		"Argue with Crew":
+			ctx.apply_character_status_effect(character, {
+				"type": "skip_tasks",
+				"name": "Argue with Crew",
+				"description": "Refuses tasks next turn (battles OK)",
+				"duration": 1,
+				"source_event": "Argue with Crew"
+			})
 			return "%s argues with crew: Refuses tasks next turn (battles OK)" % char_name
 
 		"Scrap with Crewmate":
+			# Feeler: mental breakdown if involved in crew fight (Core Rules p.22)
+			# "If the character ever ends up in a fight with another crew member,
+			#  they have a mental breakdown, and will leave the crew immediately"
+			var feeler_sid: String = _get_species_id(character, ctx)
+			if feeler_sid == "feeler":
+				# Log departure to journal
+				if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+					ctx.campaign_journal.create_entry({
+						"type": "character_departure",
+						"auto_generated": true,
+						"title": "Feeler Mental Breakdown",
+						"description": "%s suffered a mental breakdown from a crew fight and left permanently (Core Rules p.22)" % char_name,
+						"tags": ["feeler", "species_ability", "departure"],
+					})
+				# Mark character for removal — orchestrator handles actual crew removal
+				if character is Resource and "status" in character:
+					character.status = "departed"
+				elif character is Dictionary:
+					character["status"] = "departed"
+				return "%s (Feeler) has a mental breakdown from crew fight and leaves permanently" % char_name
 			if ctx.has_crew_with_origin("K'Erin") and origin_lower != "k'erin":
 				return "%s must scrap with K'Erin crewmate: D6+Combat each. Loser 1 turn Sick Bay (draw = both)" % char_name
 			return "%s in scrap: D6+Combat vs random crewmate. Loser to Sick Bay 1 turn (draw = both)" % char_name
@@ -238,6 +313,13 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s received a gift: Roll once on Loot Table" % char_name
 
 		"Feel Great":
+			ctx.apply_character_status_effect(character, {
+				"type": "ignore_next_injury",
+				"name": "Feel Great",
+				"description": "Next Injury Table roll is ignored",
+				"duration": 1,
+				"source_event": "Feel Great"
+			})
 			return "%s feels great: Next Injury Table roll is ignored" % char_name
 
 		"Someone Who Knows Someone":
@@ -253,16 +335,94 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s put in hard work: Repair 2 Hull OR 1 damaged item" % char_name
 
 		"Don't Make Them Like They Used To":
-			return "%s: Random carried item damaged" % char_name
+			# Core Rules p.130: Random carried item damaged, must be Repaired.
+			# Engineers are not affected (checked via species_exceptions upstream).
+			var equip_list: Array = _get_character_equipment(character)
+			if equip_list.size() > 0:
+				var dmg_idx: int = randi() % equip_list.size()
+				var damaged_item: String = equip_list[dmg_idx]
+				ctx.apply_character_status_effect(character, {
+					"type": "item_damaged",
+					"name": "Don't Make Them Like They Used To",
+					"description": "%s is damaged. Must be Repaired before use." % damaged_item,
+					"duration": 0,
+					"damaged_item": damaged_item,
+					"source_event": "Don't Make Them Like They Used To"
+				})
+				return "%s: '%s' is damaged (must be Repaired)" % [char_name, damaged_item]
+			return "%s: No items to damage" % char_name
 
 		"Where Did It Go":
-			return "%s lost random item. Next turn: D6+Savvy, 5+ = item returns" % char_name
+			# Core Rules p.130: Random item lost. Next turn D6+Savvy 5+ = returns.
+			var equip_for_loss: Array = _get_character_equipment(character)
+			var lost_item_name: String = "unknown item"
+			if equip_for_loss.size() > 0:
+				var loss_idx: int = randi() % equip_for_loss.size()
+				lost_item_name = equip_for_loss[loss_idx]
+				# Remove the item from equipment
+				if character is Resource and "equipment" in character:
+					var eq: Array = character.equipment
+					if loss_idx < eq.size():
+						eq.remove_at(loss_idx)
+				elif character is Dictionary:
+					var eq: Array = character.get("equipment", [])
+					if loss_idx < eq.size():
+						eq.remove_at(loss_idx)
+			ctx.apply_character_status_effect(character, {
+				"type": "item_lost_recovery",
+				"name": "Where Did It Go",
+				"description": "'%s' lost. Next turn: D6+Savvy, 5+ = returns." % lost_item_name,
+				"duration": 1,
+				"savvy_check_target": 5,
+				"lost_item": lost_item_name,
+				"source_event": "Where Did It Go"
+			})
+			return "%s lost '%s'. Next turn: D6+Savvy, 5+ = item returns" % [char_name, lost_item_name]
 
 		"Melancholy":
+			ctx.apply_character_status_effect(character, {
+				"type": "no_xp",
+				"name": "Melancholy",
+				"description": "No XP next campaign turn",
+				"duration": 1,
+				"source_event": "Melancholy"
+			})
 			return "%s: Melancholy. No XP next campaign turn" % char_name
 
 		"Time to Burn":
+			ctx.apply_character_status_effect(character, {
+				"type": "extra_action",
+				"name": "Time to Burn",
+				"description": "Extra action next turn (even in Sick Bay)",
+				"duration": 1,
+				"works_in_sick_bay": true,
+				"source_event": "Time to Burn"
+			})
 			return "%s has time to burn: Extra action next turn (even in Sick Bay)" % char_name
 
 		_:
 			return "%s: Character event '%s' (manual resolution)" % [char_name, event_title]
+
+
+func _get_species_id(character: Variant, ctx: PostBattleContextClass) -> String:
+	## Get species_id for a character (Resource, Dictionary, or crew_id String).
+	if character is String:
+		# It's a crew_id — look up the member
+		if ctx.has_method("get_crew_member"):
+			var member = ctx.get_crew_member(character)
+			if member:
+				return _get_species_id(member, ctx)
+		return ""
+	if character is Resource and "species_id" in character:
+		return str(character.species_id).to_lower()
+	elif character is Dictionary:
+		return character.get("species_id", "").to_lower()
+	return ""
+
+func _get_character_equipment(character: Variant) -> Array:
+	## Get the equipment array from a character (Resource or Dictionary).
+	if character is Resource and "equipment" in character:
+		return character.equipment
+	elif character is Dictionary:
+		return character.get("equipment", [])
+	return []

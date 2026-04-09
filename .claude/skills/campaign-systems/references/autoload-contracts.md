@@ -56,8 +56,16 @@ setup(state: FiveParsecsGameState) → void
 get_current_phase() → FiveParcsecsCampaignPhase
 get_turn_number() → int
 set_campaign(campaign: Resource) → void
-start_new_turn() → void
+start_new_turn() → void                 # calls _process_turn_rollover() internally
 start_new_campaign_turn() → void        # alias
+# Turn rollover sequence (called by start_new_turn):
+#   1. _restore_crew_luck()                    — Core Rules p.91
+#   2. _process_sick_bay_recovery()            — Core Rules p.99
+#   3. _process_character_event_effects()      — Core Rules pp.128-130 (Session 51)
+#   4. _process_patron_expiration()            — Core Rules p.81-88
+#   5. Story Points reset + auto-award         — Core Rules pp.66-67
+#   6. Planet effects expiry
+#   7. Victory condition check                 — Core Rules p.64
 complete_current_turn() → void
 complete_current_phase() → void
 start_phase(new_phase) → bool

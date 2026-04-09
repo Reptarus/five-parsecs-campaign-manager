@@ -1,8 +1,12 @@
 extends Node
 class_name BattlePhase
 
-## Battle Phase Implementation - Official Five Parsecs Rules
-## Handles the complete Battle Phase sequence (Phase 3 of campaign turn)
+## DEPRECATED (Session 48c/50): This file is NOT used in the production battle flow.
+## CampaignPhaseManager.battle_phase_handler is null — all battle mechanics run through
+## CampaignTurnController._initiate_battle_sequence() → PreBattleUI → TacticalBattleUI.
+## Kept for reference only. Safe to delete once all mechanics are verified in the live path.
+##
+## Original: Battle Phase Implementation - Official Five Parsecs Rules
 
 # Safe imports
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
@@ -1039,6 +1043,8 @@ func _get_deployed_crew() -> Array[Dictionary]:
 	## Uses GameStateManager.get_deployable_crew() which checks is_dead/is_wounded.
 	var crew: Array[Dictionary] = []
 
+	var is_invasion_battle: bool = battle_setup_data.get("is_invasion", false)
+
 	if game_state_manager and game_state_manager.has_method("get_deployable_crew"):
 		var deployable = game_state_manager.get_deployable_crew()
 		if deployable == null:
@@ -1046,6 +1052,23 @@ func _get_deployed_crew() -> Array[Dictionary]:
 			deployable = []
 		for member in deployable:
 			var member_dict: Dictionary = _normalize_crew_member_to_dict(member)
+
+			# Character Event restrictions (Core Rules pp.128-130)
+			var status_effs: Array = member_dict.get("status_effects", [])
+			var battle_blocked := false
+			for eff in status_effs:
+				var eff_type: String = str(eff.get("type", ""))
+				if eff_type == "unavailable" or eff_type == "departed":
+					battle_blocked = true
+					break
+				if eff_type == "skip_next_battle":
+					# Violence is Depressing: invasion exception (Core Rules p.128)
+					if not (is_invasion_battle and eff.get("invasion_exception", false)):
+						battle_blocked = true
+						break
+			if battle_blocked:
+				continue
+
 			crew.append(member_dict)
 
 	# Fallback: Generate default crew for testing when no game_state_manager

@@ -534,6 +534,37 @@ func _build_crew_card(member) -> PanelContainer:
 	pill_row.add_child(_create_pill(char_class, Color("#8b5cf6")))
 	vbox.add_child(pill_row)
 
+	# Status effect indicators (Core Rules pp.128-130)
+	var status_effs: Array = []
+	if is_dict:
+		status_effs = member.get("status_effects", [])
+	elif "status_effects" in member:
+		status_effs = member.status_effects
+	if status_effs.size() > 0:
+		var eff_row := HBoxContainer.new()
+		eff_row.add_theme_constant_override("separation", SPACING_XS)
+		for eff in status_effs:
+			var eff_type: String = str(eff.get("type", ""))
+			var eff_name: String = str(eff.get("name", eff_type))
+			var dur: int = eff.get("duration", 0)
+			var eff_color: Color
+			match eff_type:
+				"departed":
+					eff_color = Color("#DC2626")  # Red
+				"unavailable", "skip_next_battle":
+					eff_color = Color("#D97706")  # Orange
+				"skip_tasks", "no_xp", "item_damaged":
+					eff_color = Color("#D97706")
+				"extra_action", "ignore_next_injury":
+					eff_color = Color("#10B981")  # Green
+				_:
+					eff_color = Color("#808080")
+			var label_text: String = eff_name
+			if dur > 0:
+				label_text += " (%dt)" % dur
+			eff_row.add_child(_create_pill(label_text, eff_color))
+		vbox.add_child(eff_row)
+
 	# Stat line
 	var stat_parts: Array[String] = []
 	for key in stats:

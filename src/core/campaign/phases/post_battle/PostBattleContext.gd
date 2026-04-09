@@ -374,6 +374,18 @@ func injure_specific_crew(character: Variant, recovery_turns: int) -> void:
 				"duration": recovery_turns, "description": "Injury sustained"
 			})
 
+func apply_character_status_effect(character: Variant, effect: Dictionary) -> void:
+	## Apply a persistent status effect from a Character Event (Core Rules pp.128-130).
+	## Handles both Resource-based and Dictionary-format crew members.
+	if not character:
+		return
+	if character is Resource and character.has_method("add_status_effect"):
+		character.add_status_effect(effect)
+	elif character is Dictionary:
+		if not character.has("status_effects"):
+			character["status_effects"] = []
+		character["status_effects"].append(effect)
+
 func reduce_character_recovery(character: Variant, turns: int) -> void:
 	if not character:
 		return

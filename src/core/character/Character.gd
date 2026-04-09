@@ -130,6 +130,12 @@ var combat_skill: int:
 # Injury System (Five Parsecs Core Rules p.94-95)
 @export var injuries: Array[Dictionary] = []  # Each: {type: String, severity: int, recovery_turns: int, turn_sustained: int}
 
+# Character Event Status Effects (Core Rules pp.128-130)
+# Temporary conditions from post-battle Character Events with turn-based duration.
+# Each: {type: String, name: String, description: String, duration: int, source_event: String}
+# Types: skip_next_battle, unavailable, skip_tasks, no_xp, extra_action, ignore_next_injury, item_lost_recovery
+@export var status_effects: Array[Dictionary] = []
+
 # Bot Upgrade System (Five Parsecs Core Rules p.98)
 # Bots don't gain XP - they purchase upgrades with credits instead
 @export var bot_upgrades: Array[String] = []  # IDs of installed bot upgrades
@@ -165,6 +171,7 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 @export var species_id: String = ""           # JSON id for lookup (e.g., "de_converted")
 @export var special_rules: Array[String] = [] # Populated at creation from character_species.json
 @export var xp_discount_stat: String = ""     # Minor Alien: one stat costs 1 less XP (rolled at creation)
+@export var unity_agent_trait_lost: bool = false  # Core Rules p.20: lost if can't travel on 2-4 roll
 
 # Game-Specific Properties (merged from game/character/Character.gd)
 @export var portrait_path: String = ""
@@ -576,6 +583,14 @@ func can_perform_task(task_id: String) -> bool:
 		return task_id != "recruit" and task_id != "find_patron"
 	return true
 
+func get_task_bonus(task_id: String) -> int:
+	## Empath: +1 to Recruit and Find Patron tasks (Core Rules p.22)
+	## Lost permanently if character has any implants (Core Rules p.22)
+	if species_id.to_lower() == "empath" and implants.is_empty():
+		if task_id in ["recruit", "find_patron"]:
+			return 1
+	return 0
+
 ## Apply penalties from active injuries
 func _apply_injury_penalties(modifiers: Dictionary) -> void:
 	for injury in injuries:
@@ -637,10 +652,10 @@ func get_effective_speed() -> int:
 ## Get natural armor save (for species with natural armor)
 func get_natural_armor_save() -> int:
 	match origin.to_lower():
-		"bot", "soulless", "insectoid":
-			return 5  # 5+ save
-		"reptilian":
-			return 6  # 6+ save
+		"bot", "soulless", "insectoid", "assault bot", "assault_bot":
+			return 5  # 5+ save (Core Rules pp.15, 21)
+		"reptilian", "de-converted", "de_converted":
+			return 6  # 6+ save (Core Rules pp.15, 19)
 		_:
 			return 7  # No natural armor (7+ means impossible)
 
@@ -1016,9 +1031,54 @@ func process_recovery_turn() -> void:
 	if not injuries.is_empty():
 		recovery_progressed.emit(current_recovery_turns)
 
+# ========== STATUS EFFECT MANAGEMENT (Core Rules pp.128-130) ==========
+
+func add_status_effect(effect: Dictionary) -> void:
+	## Add a temporary status effect from a Character Event.
+	status_effects.append(effect)
+
+func has_status_effect(effect_type: String) -> bool:
+	## Check if the character has an active status effect of the given type.
+	return status_effects.any(func(e: Dictionary) -> bool: return e.get("type", "") == effect_type)
+
+func get_status_effect(effect_type: String) -> Dictionary:
+	## Get the first active status effect of the given type, or empty dict.
+	for e in status_effects:
+		if e.get("type", "") == effect_type:
+			return e
+	return {}
+
+func remove_status_effects_of_type(effect_type: String) -> void:
+	## Remove all status effects of a given type (e.g., when consumed).
+	var filtered: Array = status_effects.filter(
+		func(e: Dictionary) -> bool: return e.get("type", "") != effect_type)
+	status_effects.clear()
+	for e in filtered:
+		status_effects.append(e)
+
+func process_status_effect_turn() -> Array[Dictionary]:
+	## Decrement durations, remove expired effects. Returns list of expired effects
+	## for callback handling (e.g., Business Elsewhere return XP/loot).
+	## Called from CampaignPhaseManager._process_character_event_effects().
+	var expired: Array[Dictionary] = []
+	for i in range(status_effects.size() - 1, -1, -1):
+		var effect: Dictionary = status_effects[i]
+		if "duration" in effect:
+			effect["duration"] -= 1
+			if effect["duration"] <= 0:
+				expired.append(effect)
+				status_effects.remove_at(i)
+	return expired
+
 # ========== IMPLANT MANAGEMENT (Five Parsecs Odds & Ends Loot) ==========
 
-const MAX_IMPLANTS: int = 2
+## Get maximum implant capacity for this character's species (Core Rules pp.19, 55)
+func get_max_implants() -> int:
+	match species_id.to_lower():
+		"de_converted":
+			return 3  # Core Rules p.19: De-converted can have up to 3 implants
+		_:
+			return 2  # Standard limit (Core Rules p.55)
 
 ## Implant data loaded from implants.json (Core Rules p.55)
 ## Bots and Soulless cannot use implants. Once applied, cannot be damaged or removed.
@@ -1073,8 +1133,9 @@ func add_implant(implant: Dictionary) -> bool:
 	if not implant.has("type") or not implant.has("name"):
 		push_error("Character.add_implant: Invalid implant data - missing required fields")
 		return false
-	if implants.size() >= MAX_IMPLANTS:
-		push_warning("Character %s already has maximum implants (%d)" % [name, MAX_IMPLANTS])
+	var max_implants: int = get_max_implants()
+	if implants.size() >= max_implants:
+		push_warning("Character %s already has maximum implants (%d)" % [character_name, max_implants])
 		return false
 	var new_type: String = implant.get("type", "")
 	for existing in implants:
@@ -1171,6 +1232,8 @@ func to_dictionary() -> Dictionary:
 		"injuries": injuries.duplicate(),
 		"is_wounded": is_wounded,
 		"current_recovery_turns": current_recovery_turns,
+		# Character Event status effects (Core Rules pp.128-130)
+		"status_effects": status_effects.duplicate(),
 		# Augmentations
 		"psionic_power": psionic_power,
 		"psionic_power_enhanced": psionic_power_enhanced,
@@ -1196,7 +1259,8 @@ func to_dictionary() -> Dictionary:
 		# Strange Character species data (Core Rules pp.19-22)
 		"species_id": species_id,
 		"special_rules": special_rules.duplicate(),
-		"xp_discount_stat": xp_discount_stat
+		"xp_discount_stat": xp_discount_stat,
+		"unity_agent_trait_lost": unity_agent_trait_lost
 	}
 
 func _deserialize_enhanced_property(property_name: String, serialized_data: Variant) -> String:
@@ -1284,6 +1348,13 @@ func from_dictionary(data: Dictionary) -> void:
 		if injury is Dictionary:
 			injuries.append(injury)
 
+	# Character Event Status Effects (Core Rules pp.128-130)
+	var status_effects_data = data.get("status_effects", [])
+	status_effects.clear()
+	for effect in status_effects_data:
+		if effect is Dictionary:
+			status_effects.append(effect)
+
 	# Psionic Power (Precursor origin, Core Rules p.17)
 	psionic_power = data.get("psionic_power", "")
 	psionic_power_enhanced = data.get("psionic_power_enhanced", false)
@@ -1341,6 +1412,7 @@ func from_dictionary(data: Dictionary) -> void:
 	# Strange Character species data (Core Rules pp.19-22)
 	species_id = data.get("species_id", "")
 	xp_discount_stat = data.get("xp_discount_stat", "")
+	unity_agent_trait_lost = data.get("unity_agent_trait_lost", false)
 	var rules_data = data.get("special_rules", [])
 	special_rules.clear()
 	for rule in rules_data:

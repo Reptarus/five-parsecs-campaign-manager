@@ -33,6 +33,8 @@ description: "Use this skill when working with UI panels, components, the Deep S
 | `src/ui/screens/SceneRouter.gd` | Autoload | Scene navigation (70+ routes) |
 | `addons/TweenFX/TweenFX.gd` | Autoload | 95+ animation types |
 | `src/ui/components/base/UIColors.gd` | `UIColors` (RefCounted) | Canonical design token source |
+| `src/ui/themes/ThemeManager.gd` | Autoload | Theme switching, colorblind modes, reduced animation, font scaling |
+| `src/ui/themes/AccessibilityThemes.gd` | `AccessibilityThemes` (RefCounted) | WCAG 2.1 AA color palettes (high contrast + 3 colorblind) |
 | `src/ui/components/common/` | 14 files | Reusable widgets (see below) |
 
 ## Reusable Widget Library (`src/ui/components/common/`)
@@ -64,3 +66,6 @@ description: "Use this skill when working with UI panels, components, the Deep S
 6. **Autoload timing with `load()`** — Autoloads can't reference `class_name` of non-autoload scripts at parse time. Use `load("res://path.gd")` at runtime (see TransitionManager → LoadingScreen pattern)
 7. **`_pending_*` pattern for static factories** — Window subclasses with static `show_*()` methods must store data in `_pending_*` vars and apply in `_ready()`, because `_ready()` hasn't run when the factory sets properties
 8. **Never hardcode colors** — always use `UIColors.*` constants
+9. **Animation accessibility guard** — All TweenFX calls must be guarded: `var skip: bool = tm != null and tm.is_reduced_animation_enabled()`. Use explicit `bool` type (NOT `:=`) — Godot 4.6 can't infer compound booleans with nullable
+10. **AcceptDialog/Window Deep Space styling** — `add_theme_stylebox_override("panel", stylebox)` with COLOR_BASE bg, COLOR_BORDER border. See MainMenu Bug Hunt dialog (line ~493) for canonical pattern
+11. **ThemeManager colorblind dict keys** — AccessibilityThemes palettes use `"text_primary"`, `"base"`, `"accent"`, `"border"`, `"success"` (NOT `"text"`, `"background"`)

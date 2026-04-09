@@ -1501,6 +1501,28 @@ static func get_species_combat_abilities(character: Dictionary) -> Dictionary:
 
 		"hulker", "hulkers":
 			result["abilities"].append("melee_damage_+2")
+			result["abilities"].append("shooting_skill_zero")    # Core Rules p.21: Combat Skill always +0 when shooting
+			result["abilities"].append("no_shooting_bonuses")     # No weapon/sight/mod bonuses for shooting
+			result["abilities"].append("ignore_clumsy_heavy")     # Ignores Clumsy and Heavy weapon traits
+
+		"de_converted", "de-converted":
+			result["natural_armor_save"] = 6  # 6+ built-in plating (Core Rules p.19)
+			result["abilities"].append("natural_armor_6+")
+			result["abilities"].append("savvy_frozen")  # Savvy can never be improved
+
+		"assault_bot":
+			result["natural_armor_save"] = 5  # 5+ heavy metallic construction (Core Rules p.21)
+			result["abilities"].append("natural_armor_5+")
+			result["abilities"].append("ignore_clumsy_heavy")  # Ignores Clumsy and Heavy weapon traits
+			result["abilities"].append("savvy_frozen")  # Savvy +0 and cannot upgrade
+
+		"primitive", "primitive_character":
+			result["abilities"].append("no_gun_sights")   # Core Rules p.22: Cannot benefit from gun sights
+			result["abilities"].append("max_range_8")      # Cannot fire above 8" range
+			result["abilities"].append("melee_elegant")    # All melee weapons count as Elegant
+
+		"traveler", "traveller":
+			result["abilities"].append("speed_+2_retreating")  # Core Rules p.20: +2" speed when moving away from visible enemy
 
 		"swift":
 			result["speed_modifier"] = 2

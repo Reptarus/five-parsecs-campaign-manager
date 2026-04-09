@@ -66,6 +66,36 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 
 ---
 
+## Session 50: Battlefield Terrain Generator Enhancement (Apr 8, 2026)
+
+### Shape Placement Fixes (BattlefieldMapView._rebuild_terrain_shapes)
+
+- **Root cause**: Sectors only ~104×48px available, but shapes after 1.5x scale could be 84×57px
+- **Adaptive scaling**: Dense sectors (3+ features) get 0.6x-0.75x local_scale
+- **Proportional rotation margins**: Based on actual max rotation (buildings ~6px vs old fixed 16px)
+- **Grid-distributed fallback**: Overflow shapes placed in even grid slots, not stacked at (0,0)
+- **Hard sector clamping**: fallback_y always clamped — no more grid escape
+- **Density-aware padding**: When total shape area > 40% of sector, padding halved (min 6px)
+
+### World Trait Terrain Modifications (BattlefieldGenerator)
+
+- 10 battlefield traits now handled (was 2): overgrown, warzone, haze, gloom, fog, barren, flat, crystals, frozen, reflective_dust, null_zone
+- `_apply_world_trait_modifications()` now returns `Array[String]` combat notes
+- `barren` removes all vegetation features post-generation
+- `flat` removes elevation features AND suppresses `_validate_terrain_minimums` elevated injection
+- Result dict includes `"combat_notes"` and `"seed"` keys
+
+### Presentation Enhancements
+
+- **Scatter visible**: Tiny 16×10px dots on map (was invisible). `show_scatter` toggle property
+- **Legend complete**: Crystal/Scatter/Notable added (12 entries). HFlowContainer wraps on mobile
+- **Rules badges**: Map labels show `[L]`/`[I]`/`[B]`/`[F]`/`[A]` (Linear/Interior/Block/Field/Area)
+- **Combat notes**: "WORLD TRAIT EFFECTS" section in setup tab (purple, #E879F9)
+- **Seeded RNG**: Optional `rng_seed` param, seed stored in result for reproducibility
+- **Size normalization**: Unprefixed features get "SMALL:" prefix via `_has_known_prefix()`
+
+---
+
 ## Session 47: Equipment Pipeline — Battle Domain (Apr 8, 2026)
 
 ### BattleCalculations.gd — Weapon Trait Effects Integrated

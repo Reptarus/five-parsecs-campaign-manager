@@ -88,7 +88,7 @@ Each phase panel must:
 | STORY | TRAVEL | story_events | Array of triggered events |
 | TRAVEL | UPKEEP | travel_result | {destination, encounters} |
 | MISSION | POST_MISSION | battle_results | Via GameState.set_battle_results() |
-| POST_MISSION | ADVANCEMENT | post_battle_data | {loot, injuries, experience} |
+| POST_MISSION | ADVANCEMENT | post_battle_data | {loot, injuries, experience, character_events → status_effects} |
 | TRADING | CHARACTER | trade_results | {purchased, sold, credits_remaining} |
 
 Inter-phase data uses `GameStateManager.set_temp_data(key, value)`.

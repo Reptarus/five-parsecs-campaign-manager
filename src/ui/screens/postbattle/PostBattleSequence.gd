@@ -1282,11 +1282,12 @@ func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	return panel
 
 func _on_character_event_roll(crew_member: Dictionary, btn: Button = null) -> void:
-	## Handle character event roll
+	## Handle character event roll — looks up actual event from JSON (Core Rules pp.128-130)
+	## and persists multi-turn effects through the backend PostBattlePhase.
 	if btn:
 		btn.disabled = true
 	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
+	var roll: int = 0
 
 	if dice_manager:
 		roll = dice_manager.roll_d100(
@@ -1294,14 +1295,25 @@ func _on_character_event_roll(crew_member: Dictionary, btn: Button = null) -> vo
 	else:
 		roll = randi_range(1, 100)
 
-	var event_result = _interpret_character_event(roll)
-	var result_text = "Rolled %d - %s" % [roll, event_result]
+	# Look up actual event from JSON data
+	var event_data: Dictionary = _interpret_character_event(roll)
+	var event_name: String = event_data.get("name", "Unknown Event")
+	var event_desc: String = event_data.get("description", "")
+	var result_text: String = "Rolled %d — %s: %s" % [roll, event_name, event_desc]
+
+	# Apply effects through backend (persists status effects + immediate effects)
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and phase_manager.has_method("get_phase_handler"):
+		var pbp = phase_manager.get_phase_handler("post_battle")
+		if pbp and pbp.has_method("apply_character_event_effect"):
+			pbp.apply_character_event_effect(event_name, crew_member)
 
 	# Update UI
 	var result_label = step_content.find_child(
 		"char_event_" + str(crew_member.get("id", 0)))
 	if result_label:
 		result_label.text = result_text
+		result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		result_label.modulate = _get_event_color(roll)
 
 	_add_result_to_log(
@@ -1621,18 +1633,23 @@ func _interpret_campaign_event(roll: int) -> String:
 	else:
 		return "Major complication!"
 
-func _interpret_character_event(roll: int) -> String:
-	## Interpret character event roll
-	if roll >= 95:
-		return "Character gains special ability!"
-	elif roll >= 80:
-		return "Character makes useful contact"
-	elif roll >= 60:
-		return "Character gains minor benefit"
-	elif roll >= 40:
-		return "No event"
-	else:
-		return "Character faces personal challenge"
+func _interpret_character_event(roll: int) -> Dictionary:
+	## Look up character event from JSON data (Core Rules pp.128-130).
+	## Returns full event dict with name, description, and effects.
+	var file: FileAccess = FileAccess.open(
+		"res://data/campaign_tables/character_events.json", FileAccess.READ)
+	if not file:
+		return {"name": "Character Event", "description": "Roll %d (data unavailable)" % roll}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {"name": "Character Event", "description": "Roll %d (parse error)" % roll}
+	file.close()
+	var entries: Array = json.data.get("entries", [])
+	for entry in entries:
+		var r: Array = entry.get("roll_range", [0, 0])
+		if roll >= r[0] and roll <= r[1]:
+			return entry.get("result", {"name": "Unknown", "description": ""})
+	return {"name": "No Event", "description": "Roll %d — no matching event" % roll}
 
 # Enhanced signal handlers for specific rolls
 

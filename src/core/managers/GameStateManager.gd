@@ -317,6 +317,24 @@ func get_crew_size() -> int:
 		return c.get_crew_size()
 	return 0
 
+func get_deployable_crew() -> Array:
+	## Returns crew members eligible for battle deployment.
+	## Excludes dead, departed, unavailable, and skip_next_battle characters.
+	## Used by BattlePhase._get_deployed_crew() (Core Rules pp.128-130).
+	var all_crew: Array = get_crew_members()
+	var deployable: Array = []
+	for member in all_crew:
+		var status_val: String = ""
+		if member is Resource and "status" in member:
+			status_val = str(member.status)
+		elif member is Dictionary:
+			status_val = str(member.get("status", "ACTIVE"))
+		# Exclude dead, retired, departed characters
+		if status_val in ["DEAD", "RETIRED", "DEPARTED", "MISSING"]:
+			continue
+		deployable.append(member)
+	return deployable
+
 ## Returns the campaign crew size SETTING (4, 5, or 6) from Core Rules p.63.
 ## Used for enemy numbers, deployment limits, reaction dice — NOT roster count.
 func get_campaign_crew_size() -> int:

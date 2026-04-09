@@ -40,7 +40,8 @@ var previous_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
 # Turn tracking
 var turn_number: int = 0
 var post_battle_phase_handler = null  # Placeholder for future post-battle handler
-var battle_phase_handler = null  # Placeholder for future battle handler
+## battle_phase_handler removed (Session 50) — was always null.
+## Battle mechanics run through CampaignTurnController._initiate_battle_sequence().
 
 # Phase tracking
 var phase_actions_completed: Dictionary = {}
@@ -148,6 +149,11 @@ func _process_turn_rollover() -> void:
 	# Characters with recovery_turns reaching 0 are removed from sick bay.
 	_process_sick_bay_recovery(campaign)
 
+	# --- Character Event Effect Countdown (Core Rules pp.128-130) ---
+	# Decrement duration on temporary status effects from post-battle Character Events.
+	# Effects reaching 0 are removed; some trigger callbacks (Business Elsewhere return, etc.)
+	_process_character_event_effects(campaign)
+
 	# --- Patron Duration Expiration (Core Rules p.81-88) ---
 	# Decrement patron job durations; expire patrons whose time has run out.
 	_process_patron_expiration()
@@ -176,6 +182,9 @@ func _process_turn_rollover() -> void:
 	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
 	if planet_mgr and planet_mgr.has_method("process_turn_effects"):
 		planet_mgr.process_turn_effects(turn_number)
+
+	# --- Unity Agent: Call in a Favor (Core Rules p.20) ---
+	_process_unity_agent_favor(campaign)
 
 	# --- Victory Condition Check (Core Rules p.64) ---
 	# Evaluate whether any victory condition has been met
@@ -345,6 +354,106 @@ func _apply_medical_bay_bonus(member: Variant) -> void:
 			"mood": "neutral",
 		})
 
+func _process_character_event_effects(campaign: Resource) -> void:
+	## Core Rules pp.128-130: Character Event status effects have turn-based duration.
+	## Each turn, decrement duration by 1. Remove effects reaching 0.
+	## Some expired effects trigger callbacks (Business Elsewhere return, item recovery).
+	## Follows the same dual-path pattern as _process_sick_bay_recovery().
+	if not campaign.has_method("get_crew_members"):
+		return
+
+	var crew: Array = campaign.get_crew_members()
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+
+	for member in crew:
+		var expired_effects: Array[Dictionary] = []
+		var char_name: String = ""
+		var char_id: String = ""
+
+		if member is Resource and member.has_method("process_status_effect_turn"):
+			char_name = str(member.get("character_name")) if "character_name" in member else "Unknown"
+			char_id = str(member.get("character_id")) if "character_id" in member else ""
+			expired_effects = member.process_status_effect_turn()
+		elif member is Dictionary:
+			char_name = member.get("character_name", member.get("name", "Unknown"))
+			char_id = str(member.get("character_id", member.get("id", "")))
+			var effects: Array = member.get("status_effects", [])
+			for i in range(effects.size() - 1, -1, -1):
+				var eff: Dictionary = effects[i]
+				if "duration" in eff:
+					eff["duration"] -= 1
+					if eff["duration"] <= 0:
+						expired_effects.append(eff)
+						effects.remove_at(i)
+
+		# Handle expired effect callbacks
+		for effect in expired_effects:
+			_on_character_event_expired(member, effect, campaign, char_name, char_id, journal)
+
+
+func _on_character_event_expired(member: Variant, effect: Dictionary, campaign: Resource,
+		char_name: String, char_id: String, journal: Node) -> void:
+	## Handle callbacks when character event effects expire at turn boundary.
+	var effect_type: String = effect.get("type", "")
+	var effect_name: String = effect.get("name", effect_type)
+
+	match effect_type:
+		"unavailable":
+			# Business Elsewhere return: award pre-rolled XP + log loot instruction
+			var xp: int = effect.get("return_xp", randi_range(1, 6))
+			if member is Resource and "experience" in member:
+				member.experience += xp
+			elif member is Dictionary:
+				member["experience"] = member.get("experience", 0) + xp
+			# Restore to active status
+			if member is Resource and "status" in member:
+				member.status = "ACTIVE"
+			elif member is Dictionary:
+				member["status"] = "ACTIVE"
+			if journal and journal.has_method("create_entry"):
+				journal.create_entry({
+					"type": "character_event",
+					"title": "%s Returns" % char_name,
+					"description": "%s returns from business elsewhere with %d XP. Roll once on Loot Table." % [char_name, xp],
+					"characters_involved": [char_id] if char_id != "" else [],
+					"tags": ["character_event", "business_elsewhere", "return"],
+					"auto_generated": true,
+					"mood": "positive",
+				})
+
+		"item_lost_recovery":
+			# Where Did It Go: D6+Savvy >= 5 = item returns (Core Rules p.130)
+			var savvy_val: int = 0
+			if member is Resource and "savvy" in member:
+				savvy_val = member.savvy
+			elif member is Dictionary:
+				savvy_val = member.get("savvy", 0)
+			var dice_mgr = get_node_or_null("/root/DiceManager")
+			var recovery_roll: int = 0
+			if dice_mgr:
+				recovery_roll = dice_mgr.roll_d6("Item Recovery: " + char_name) + savvy_val
+			else:
+				recovery_roll = randi_range(1, 6) + savvy_val
+			var item_found: bool = recovery_roll >= 5
+			if journal and journal.has_method("create_entry"):
+				journal.create_entry({
+					"type": "character_event",
+					"title": "Lost Item %s" % ("Found!" if item_found else "Gone for Good"),
+					"description": "%s rolled D6+Savvy (%d): %s. %s" % [
+						char_name, recovery_roll,
+						"Item recovered!" if item_found else "Item lost permanently.",
+						"(Target: 5+)"],
+					"characters_involved": [char_id] if char_id != "" else [],
+					"tags": ["character_event", "item_recovery"],
+					"auto_generated": true,
+					"mood": "positive" if item_found else "negative",
+				})
+
+		_:
+			# Other effects just expire silently (skip_next_battle, skip_tasks, etc.)
+			pass
+
+
 func _process_patron_expiration() -> void:
 	## Core Rules p.81-88: Patrons have limited availability.
 	## Decrement duration_turns for tracked patrons; expire those at 0.
@@ -352,6 +461,110 @@ func _process_patron_expiration() -> void:
 	if not npc_tracker or not npc_tracker.has_method("process_patron_durations"):
 		return
 	npc_tracker.process_patron_durations(turn_number)
+
+func _process_unity_agent_favor(campaign: Resource) -> void:
+	## Core Rules p.20: Unity Agent "Call in a Favor" — roll 2D6 each campaign turn.
+	## 10-12: player choice (remove Rival, gain Quest Rumor, or gain Patron)
+	## 2-4: must travel to next planet immediately or lose trait permanently
+	## 5-9: nothing happens
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+
+	for member in crew:
+		if not member:
+			continue
+		var sid: String = ""
+		if member is Resource and "species_id" in member:
+			sid = str(member.species_id).to_lower()
+		elif member is Dictionary:
+			sid = member.get("species_id", "").to_lower()
+		if sid != "unity_agent":
+			continue
+
+		# Check if trait already lost permanently
+		var trait_lost: bool = false
+		if member is Resource and "unity_agent_trait_lost" in member:
+			trait_lost = member.unity_agent_trait_lost
+		elif member is Dictionary:
+			trait_lost = member.get("unity_agent_trait_lost", false)
+		if trait_lost:
+			continue
+
+		var die1: int = randi_range(1, 6)
+		var die2: int = randi_range(1, 6)
+		var roll: int = die1 + die2
+		var char_name: String = _get_member_name(member)
+
+		if roll >= 10:
+			# Success: player chooses — remove Rival, gain Quest Rumor, or gain Patron
+			phase_event_triggered.emit({
+				"type": "unity_agent_favor",
+				"subtype": "success",
+				"character_name": char_name,
+				"roll": roll,
+				"choices": ["remove_rival", "gain_quest_rumor", "gain_patron"]
+			})
+			_log_unity_agent_event(char_name, roll, "favor available")
+		elif roll <= 4:
+			# Penalty: must travel to next planet or lose trait permanently
+			phase_event_triggered.emit({
+				"type": "unity_agent_favor",
+				"subtype": "forced_travel",
+				"character_name": char_name,
+				"roll": roll
+			})
+			_log_unity_agent_event(char_name, roll, "forced travel")
+		# 5-9: nothing happens
+
+func resolve_unity_agent_favor(choice: String) -> void:
+	## PUBLIC API: Apply player's Unity Agent favor choice (Core Rules p.20)
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if not gsm:
+		return
+	match choice:
+		"remove_rival":
+			if gsm.has_method("remove_random_rival"):
+				gsm.remove_random_rival()
+		"gain_quest_rumor":
+			if gsm.has_method("add_quest_rumor"):
+				gsm.add_quest_rumor()
+		"gain_patron":
+			if gsm.has_method("add_patron"):
+				gsm.add_patron()
+
+func mark_unity_agent_trait_lost(member: Variant) -> void:
+	## PUBLIC API: Permanently remove Call in a Favor ability (Core Rules p.20)
+	## Called when Unity Agent rolls 2-4 and player cannot/won't travel.
+	if member is Resource and "unity_agent_trait_lost" in member:
+		member.unity_agent_trait_lost = true
+	elif member is Dictionary:
+		member["unity_agent_trait_lost"] = true
+	_log_unity_agent_event(_get_member_name(member), 0, "trait lost permanently")
+
+func _get_member_name(member: Variant) -> String:
+	if member is Resource and "character_name" in member:
+		return str(member.character_name)
+	elif member is Dictionary:
+		return member.get("character_name", member.get("name", "Unknown"))
+	return "Unknown"
+
+func _log_unity_agent_event(char_name: String, roll: int, outcome: String) -> void:
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("create_entry"):
+		return
+	var desc: String = "%s: Call in a Favor — %s" % [char_name, outcome]
+	if roll > 0:
+		desc += " (rolled 2D6=%d)" % roll
+	journal.create_entry({
+		"type": "species_ability",
+		"auto_generated": true,
+		"title": "Unity Agent: Call in a Favor",
+		"description": desc,
+		"tags": ["unity_agent", "species_ability"],
+	})
 
 func start_new_campaign_turn() -> void:
 	start_new_turn()

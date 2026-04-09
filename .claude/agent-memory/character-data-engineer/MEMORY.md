@@ -76,6 +76,10 @@ Using `"pool"` was a systemic bug fixed in Phase 22.
 
 Always include both aliases when creating character dicts manually (tests, factories).
 
+### 5. Character.status_effects (Session 51)
+
+`@export var status_effects: Array[Dictionary] = []` — Post-battle Character Events (Core Rules pp.128-130). Each dict: `{type, name, description, duration, source_event}`. 9 types: `skip_next_battle`, `unavailable`, `departed`, `skip_tasks`, `ignore_next_injury`, `item_damaged`, `item_lost_recovery`, `no_xp`, `extra_action`. Serialized in `to_dictionary()`/`from_dictionary()`. Duration decremented by `CampaignPhaseManager._process_character_event_effects()` each turn. Helper methods: `add_status_effect()`, `has_status_effect()`, `get_status_effect()`, `remove_status_effects_of_type()`, `process_status_effect_turn()`. **NOTE**: `BaseCharacterResource` has a separate `status_effects` at line 28 — don't confuse them.
+
 ### 5. PDF Rulebooks & Python Extraction Tools
 
 Source PDFs are available for direct data extraction — NEVER guess game values:

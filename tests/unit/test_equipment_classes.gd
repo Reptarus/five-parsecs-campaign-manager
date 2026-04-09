@@ -349,9 +349,16 @@ func test_character_implants_initially_empty():
 	var character := CharacterClass.new()
 	assert_that(character.implants.size()).is_equal(0)
 
-func test_character_max_implants_is_two():
-	# Core Rules p.55: "A character may have up to 2 implants"
-	assert_that(CharacterClass.MAX_IMPLANTS).is_equal(2)
+func test_character_max_implants_default_is_two():
+	# Core Rules p.55: "A character may have up to 2 implants" (standard)
+	var character := CharacterClass.new()
+	assert_that(character.get_max_implants()).is_equal(2)
+
+func test_character_max_implants_de_converted_is_three():
+	# Core Rules p.19: De-converted can have up to 3 implants
+	var character := CharacterClass.new()
+	character.species_id = "de_converted"
+	assert_that(character.get_max_implants()).is_equal(3)
 
 func test_implant_types_has_eleven_entries():
 	# Core Rules p.55 lists exactly 11 implants

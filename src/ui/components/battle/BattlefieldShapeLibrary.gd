@@ -65,7 +65,7 @@ func classify_feature(feat: String) -> Dictionary:
 	elif text.begins_with("scatter: "):
 		# BUG-040 FIX: Mark scatter as non-terrain (not counted in 13 max)
 		return {"shape": "scatter", "color": SHAPE_COLOR_SCATTER,
-			"width": 48.0, "height": 16.0, "notable": false,
+			"width": 16.0, "height": 10.0, "notable": false,
 			"is_scatter": true, "size_category": "",
 			"label": feat.substr(9) if feat.begins_with("Scatter: ") else feat}
 	elif text.begins_with("hazard: "):
