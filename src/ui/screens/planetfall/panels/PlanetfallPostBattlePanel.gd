@@ -74,17 +74,14 @@ func set_battle_results(results: Dictionary) -> void:
 
 
 func refresh() -> void:
-	## Determine which sub-step to show based on the phase manager's current phase.
-	if _phase_manager:
-		var phase: int = _phase_manager.current_phase
-		# Phase enum values: INJURIES=8, EXPERIENCE=9, MORALE_ADJUSTMENTS=10, TRACK_ENEMY_INFO=11
-		if phase == 9:
+	## Determine which sub-step to show based on the phase manager's phase name.
+	## Uses phase name strings to avoid hardcoding enum ordinals.
+	if _phase_manager and _phase_manager.has_method("get_phase_name"):
+		var name: String = _phase_manager.get_phase_name()
+		if name == "Experience Progression":
 			_current_sub_step = SubStep.EXPERIENCE
-		elif phase == 10:
+		elif name == "Colony Morale Adjustments":
 			_current_sub_step = SubStep.MORALE
-		elif phase == 11:
-			# Step 12 maps to both FINDS and ENEMY_INFO — show FINDS first
-			_current_sub_step = SubStep.POST_MISSION_FINDS
 		else:
 			_current_sub_step = SubStep.INJURIES
 
@@ -265,20 +262,24 @@ func _on_action_pressed() -> void:
 func _on_continue_pressed() -> void:
 	_continue_btn.disabled = true
 
-	# POST_MISSION_FINDS transitions to ENEMY_INFO instead of emitting
-	if _current_sub_step == SubStep.POST_MISSION_FINDS:
-		_current_sub_step = SubStep.ENEMY_INFO
-		_clear_container(_content_vbox)
-		_clear_container(_result_container)
-		_title_label.text = "POST-BATTLE — ENEMY INFO"
-		_section_label.text = "Step 12b: Track Enemy Information & Mission Data"
-		_action_btn.text = "Process Intel"
-		_build_sub_step_info()
-		_action_btn.visible = true
-		_action_btn.disabled = false
-		_continue_btn.visible = false
+	# MORALE transitions to POST_MISSION_FINDS instead of emitting
+	if _current_sub_step == SubStep.MORALE:
+		_transition_to_sub_step(SubStep.POST_MISSION_FINDS,
+			"POST-BATTLE — MISSION FINDS",
+			"Step 12a: Roll for Post-Mission Finds",
+			"Roll Finds")
 		return
 
+	# POST_MISSION_FINDS transitions to ENEMY_INFO instead of emitting
+	if _current_sub_step == SubStep.POST_MISSION_FINDS:
+		_transition_to_sub_step(SubStep.ENEMY_INFO,
+			"POST-BATTLE — ENEMY INFO",
+			"Step 12b: Track Enemy Information & Mission Data",
+			"Process Intel")
+		return
+
+	# INJURIES and EXPERIENCE emit phase_completed normally (advance phase)
+	# ENEMY_INFO emits phase_completed to finish the post-battle block
 	var result_data: Dictionary = {}
 
 	match _current_sub_step:
@@ -289,11 +290,6 @@ func _on_continue_pressed() -> void:
 			}
 		SubStep.EXPERIENCE:
 			result_data = {"xp_awarded": _xp_awarded}
-		SubStep.MORALE:
-			result_data = {
-				"casualties_count": _casualties_count,
-				"colony_damage": 0
-			}
 		SubStep.ENEMY_INFO:
 			result_data = {
 				"finds": _finds_rolled,
@@ -535,14 +531,15 @@ func _resolve_enemy_info() -> void:
 	else:
 		_add_result_bbcode("  Mission not won — no Enemy Information gained.")
 
-	# Mission Data
+	# Mission Data — add and note for breakthrough check at Step 12
 	if md_gained > 0 and _campaign:
 		if _campaign.has_method("add_mission_data_points"):
 			_campaign.add_mission_data_points(md_gained)
+		var md_total: int = _campaign.mission_data if "mission_data" in _campaign else 0
 		_add_result_bbcode(
-			"\n  +%d Mission Data (total: %d)" % [
-				md_gained,
-				_campaign.mission_data if "mission_data" in _campaign else 0])
+			"\n  +%d Mission Data (total: %d)" % [md_gained, md_total])
+		_add_result_bbcode(
+			"  [color=#808080]Breakthrough check will occur at Step 12.[/color]")
 
 
 ## ============================================================================
@@ -589,6 +586,22 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
+
+
+func _transition_to_sub_step(
+		step: SubStep, title: String,
+		section: String, action_text: String) -> void:
+	## Internal transition between sub-steps without emitting phase_completed.
+	_current_sub_step = step
+	_clear_container(_content_vbox)
+	_clear_container(_result_container)
+	_title_label.text = title
+	_section_label.text = section
+	_action_btn.text = action_text
+	_build_sub_step_info()
+	_action_btn.visible = true
+	_action_btn.disabled = false
+	_continue_btn.visible = false
 
 
 func _clear_container(container: VBoxContainer) -> void:

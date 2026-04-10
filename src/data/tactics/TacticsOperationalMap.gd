@@ -127,7 +127,8 @@ func to_dict() -> Dictionary:
 
 ## Deserialize from dictionary
 static func from_dict(data: Dictionary) -> TacticsOperationalMap:
-	var map := TacticsOperationalMap.new()
+	var _Self = load("res://src/data/tactics/TacticsOperationalMap.gd")
+	var map = _Self.new()
 	map.player_cohesion = data.get("player_cohesion", 5)
 	map.enemy_cohesion = data.get("enemy_cohesion", 5)
 	map.player_battle_points = data.get("player_battle_points", 0)

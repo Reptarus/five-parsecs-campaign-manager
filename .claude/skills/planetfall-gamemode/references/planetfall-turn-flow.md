@@ -77,8 +77,8 @@ signal navigation_updated(can_back: bool, can_forward: bool)
 | `PlanetfallColonyEventsPanel` | 5 | Dedicated |
 | `PlanetfallMissionPanel` | 6 | Dedicated |
 | `PlanetfallLockAndLoadPanel` | 7 | Dedicated |
-| Placeholder (battle delegation) | 8 | TacticalBattleUI handoff |
-| `PlanetfallPostBattlePanel` | 9-10-11 | Combined (sub-step tracking) |
+| TacticalBattleUI (via SceneRouter) | 8 | `_launch_planetfall_battle()` → temp_data → auto-init → result return |
+| `PlanetfallPostBattlePanel` | 9-10-11-12 | Combined (5 sub-steps: Injuries, XP, Morale, Finds, Enemy Info) |
 | `PlanetfallResearchPanel` | 14 | Dedicated |
 | `PlanetfallBuildingPanel` | 15 | Dedicated |
 

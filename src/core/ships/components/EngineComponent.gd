@@ -107,7 +107,8 @@ func serialize() -> Dictionary:
 	
 # Create EngineComponent from serialized data
 static func create_from_data(data: Dictionary) -> EngineComponent:
-	var component = EngineComponent.new()
+	var _Self = load("res://src/core/ships/components/EngineComponent.gd")
+	var component = _Self.new()
 	component.deserialize(data)
 	return component
 

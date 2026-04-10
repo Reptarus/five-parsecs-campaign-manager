@@ -20,6 +20,7 @@ const COLOR_WARNING := Color("#D97706")
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
+const FONT_SIZE_XS := 11
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
@@ -33,10 +34,14 @@ var _max_grunts: int = 0
 var _grunt_fireteams: int = 0
 var _grunts_deployed: int = 0
 var _force_limits: Dictionary = {}
+var _active_condition: Dictionary = {}
+var _slyn_attacking: bool = false
+var _opposition_type: String = ""
 
 var _title_label: Label
 var _roster_container: VBoxContainer
 var _grunt_section: VBoxContainer
+var _mission_info_section: VBoxContainer
 var _weapon_container: VBoxContainer
 var _deploy_count_label: Label
 var _grunt_count_label: Label
@@ -68,6 +73,13 @@ func set_force_limits(limits: Dictionary) -> void:
 	_grunt_fireteams = limits.get("grunt_fireteams", 0)
 
 
+func set_mission_context(context: Dictionary) -> void:
+	## Called by TurnController with condition/slyn data from MissionPanel.
+	_active_condition = context.get("active_condition", {})
+	_slyn_attacking = context.get("slyn_attacking", false)
+	_opposition_type = context.get("opposition_type", "")
+
+
 func refresh() -> void:
 	_deployed = {}
 	_grunts_deployed = 0
@@ -75,6 +87,9 @@ func refresh() -> void:
 	_clear_container(_weapon_container)
 	if _grunt_section:
 		_clear_container(_grunt_section)
+	if _mission_info_section:
+		_clear_container(_mission_info_section)
+	_build_mission_info()
 	_build_roster_list()
 	_build_grunt_section()
 	_update_deploy_count()
@@ -137,6 +152,11 @@ func _build_ui() -> void:
 	_roster_container.add_theme_constant_override("separation", SPACING_SM)
 	vbox.add_child(_roster_container)
 
+	# Mission info section (conditions, slyn warning, opposition)
+	_mission_info_section = VBoxContainer.new()
+	_mission_info_section.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(_mission_info_section)
+
 	# Grunt deployment section (visible only when grunts allowed)
 	_grunt_section = VBoxContainer.new()
 	_grunt_section.add_theme_constant_override("separation", SPACING_SM)
@@ -160,6 +180,91 @@ func _build_ui() -> void:
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
 	vbox.add_child(_confirm_btn)
 	_confirm_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+
+## ============================================================================
+## MISSION INFO (conditions, slyn, opposition)
+## ============================================================================
+
+func _build_mission_info() -> void:
+	if not _mission_info_section:
+		return
+	_clear_container(_mission_info_section)
+
+	var has_info: bool = false
+
+	# Slyn warning
+	if _slyn_attacking:
+		has_info = true
+		var slyn_card := _create_info_card(
+			"SLYN ATTACKING!",
+			"The Slyn have been detected. You will fight Slyn " +
+			"pairs instead of the regular opposition. Prepare " +
+			"for beam focus weapons and short-range distortion.",
+			Color("#DC2626"))
+		_mission_info_section.add_child(slyn_card)
+
+	# Active battlefield condition
+	if not _active_condition.is_empty():
+		has_info = true
+		var cond_name: String = _active_condition.get("name", "Unknown")
+		var cond_desc: String = _active_condition.get("description", "")
+		var resolved: Dictionary = _active_condition.get(
+			"resolved_sub_roll", {})
+		var sub_desc: String = resolved.get("description", "")
+		var full_desc: String = cond_desc
+		if not sub_desc.is_empty():
+			full_desc += "\n" + sub_desc
+		var cond_card := _create_info_card(
+			"Battlefield Condition: %s" % cond_name,
+			full_desc,
+			Color("#D97706"))
+		_mission_info_section.add_child(cond_card)
+
+	# Opposition type
+	if not _opposition_type.is_empty() and not _slyn_attacking:
+		has_info = true
+		var opp_text: String = _opposition_type.replace("_", " ").capitalize()
+		var opp_lbl := Label.new()
+		opp_lbl.text = "Opposition: %s" % opp_text
+		opp_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		opp_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
+		_mission_info_section.add_child(opp_lbl)
+
+	_mission_info_section.visible = has_info
+
+
+func _create_info_card(title_text: String, desc_text: String,
+		accent: Color) -> PanelContainer:
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = accent
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_SM)
+	card.add_theme_stylebox_override("panel", style)
+
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 4)
+	card.add_child(inner)
+
+	var t := Label.new()
+	t.text = title_text
+	t.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	t.add_theme_color_override("font_color", accent)
+	inner.add_child(t)
+
+	var d := RichTextLabel.new()
+	d.bbcode_enabled = true
+	d.fit_content = true
+	d.scroll_active = false
+	d.text = desc_text
+	d.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	d.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
+	inner.add_child(d)
+
+	return card
 
 
 ## ============================================================================

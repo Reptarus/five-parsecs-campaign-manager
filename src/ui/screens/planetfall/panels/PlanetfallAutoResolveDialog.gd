@@ -220,7 +220,8 @@ func _resolve_recovery() -> void:
 
 	# Bot repair check
 	if _campaign and "bot_operational" in _campaign and not _campaign.bot_operational:
-		_add_result_text("\n[color=#D97706]Colony Bot is Broken — will be repaired in Step 2 (Repairs).[/color]",
+		_add_result_text(
+			"\n[color=#D97706]Bot Broken — repair in Step 2.[/color]",
 			COLOR_WARNING)
 
 
@@ -233,7 +234,9 @@ func _resolve_enemy_activity() -> void:
 	# Check if tactical enemies exist
 	var enemies: Array = _campaign.tactical_enemies if "tactical_enemies" in _campaign else []
 	if enemies.is_empty():
-		_add_result_text("No Tactical Enemies present on the map. Step skipped.", COLOR_TEXT_SECONDARY)
+		_add_result_text(
+			"No Tactical Enemies on map. Step skipped.",
+			COLOR_TEXT_SECONDARY)
 		return
 
 	var roll: int = _resolver.roll_d100()
@@ -259,7 +262,7 @@ func _resolve_enemy_activity() -> void:
 		# Colony defenses mitigation
 		var defenses: int = _campaign.colony_defenses if "colony_defenses" in _campaign else 0
 		var mitigated: int = 0
-		for _i in range(defenses):
+		for idx in range(defenses):
 			if _resolver.roll_d6() >= 4:
 				mitigated += 1
 
@@ -284,11 +287,53 @@ func _resolve_colony_integrity() -> void:
 
 	if integrity <= -3:
 		_add_result_text(
-			"\n[color=#DC2626]INTEGRITY FAILURE — Colony Integrity is %d (threshold: -3).[/color]" % integrity,
+			"\n[color=#DC2626]INTEGRITY FAILURE" +
+			" — Integrity %d (threshold: -3).[/color]" % integrity,
 			COLOR_DANGER)
+
+		# Apply failure consequences (Planetfall p.87)
+		# Roll D6 for each point below 0 to determine damage severity
+		var damage_points: int = absi(integrity)
+		var morale_loss: int = 0
+		var grunts_lost: int = 0
+
+		for dmg_idx in range(damage_points):
+			var roll: int = randi_range(1, 6)
+			match roll:
+				1, 2:
+					# Minor structural damage — already reflected in integrity
+					pass
+				3, 4:
+					morale_loss += 1
+				5:
+					grunts_lost += 1
+				6:
+					morale_loss += 1
+					grunts_lost += 1
+
+		if morale_loss > 0:
+			if _campaign.has_method("adjust_morale"):
+				_campaign.adjust_morale(-morale_loss)
+			_add_result_text(
+				"Colony Morale: -%d (instability)" % morale_loss,
+				COLOR_WARNING)
+
+		if grunts_lost > 0:
+			for grunt_idx in range(grunts_lost):
+				if _campaign.has_method("lose_grunt"):
+					_campaign.lose_grunt()
+			_add_result_text(
+				"Grunts lost: %d (collapse)" % grunts_lost,
+				COLOR_DANGER)
+
+		if morale_loss == 0 and grunts_lost == 0:
+			_add_result_text(
+				"The colony weathers the damage with no additional casualties.",
+				COLOR_WARNING)
+
 		_add_result_text(
-			"Check the Integrity Failure table (Planetfall p.87) for consequences.",
-			COLOR_WARNING)
+			"\nRepair via Repairs step (Step 2).",
+			COLOR_TEXT_SECONDARY)
 	else:
 		_add_result_text(
 			"\n[color=#10B981]Colony integrity is stable (above -3 threshold).[/color]",
@@ -303,7 +348,7 @@ func _resolve_update_tracking() -> void:
 		COLOR_TEXT_SECONDARY)
 
 	# Auto-save
-	var gs := get_node_or_null("/root/GameState") if is_inside_tree() else null
+	var gs = get_node_or_null("/root/GameState") if is_inside_tree() else null
 	if gs and gs.has_method("save_campaign") and _campaign:
 		gs.save_campaign(_campaign)
 

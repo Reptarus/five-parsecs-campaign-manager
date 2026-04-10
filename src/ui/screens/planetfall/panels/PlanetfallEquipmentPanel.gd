@@ -23,6 +23,7 @@ const FONT_SIZE_XS := 11
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
+const COLOR_DANGER := Color("#DC2626")
 
 var _campaign: Resource
 var _armory: PlanetfallArmoryScript

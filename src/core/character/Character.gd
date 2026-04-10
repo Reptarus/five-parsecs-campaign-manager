@@ -682,7 +682,8 @@ func has_natural_armor() -> bool:
 static func generate_character(background_type: String = "") -> Character:
 	## Production-ready character generation with comprehensive validation
 	@warning_ignore("untyped_declaration")
-	var character = Character.new()
+	var _Self = load("res://src/core/character/Character.gd")
+	var character = _Self.new()
 	
 	# Safe random generation using Framework Bible patterns
 	character.name = _generate_name()

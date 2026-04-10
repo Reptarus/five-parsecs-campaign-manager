@@ -29,7 +29,8 @@ static func load_species_book(species_id: String) -> TacticsSpeciesBook:
 
 ## Load a species book from an explicit JSON file path.
 static func load_species_book_from_path(path: String) -> TacticsSpeciesBook:
-	var loader := TacticsSpeciesBookLoader.new()
+	var _Self = load("res://src/data/tactics/TacticsSpeciesBookLoader.gd")
+	var loader = _Self.new()
 	return loader._load(path)
 
 

@@ -29,14 +29,22 @@ description: "Use this skill when working with the Tactics gamemode — army bui
 
 | File | Class/Role | Purpose |
 |------|-----------|---------|
-| `src/game/campaign/TacticsCampaignCore.gd` | Resource (future) | Tactics campaign data |
-| `src/ui/screens/tactics/TacticsScreenBase.gd` | Control base (future) | Base class for Tactics screens |
-| `src/ui/screens/tactics/TacticsDashboard.gd` | Control (future) | Army/campaign overview |
-| `src/ui/screens/tactics/TacticsCreationUI.gd` | Control (future) | Army builder wizard (extends Control, NOT ScreenBase) |
-| `src/ui/screens/tactics/TacticsArmyBuilderUI.gd` | Control (future) | Points-based army composition |
-| `data/tactics/` | JSON (future) | Army lists, species, vehicles, missions |
-| `docs/rules/tactics_source.txt` | Text | Full rulebook extraction (503KB) |
-| `docs/TACTICS_EXPANSION_NOTES.md` | Markdown | Design notes and research |
+| `src/game/campaign/TacticsCampaignCore.gd` | Resource | Tactics campaign persistence (save/load) |
+| `src/data/tactics/*.gd` | 14 Resource classes | Data model (SpeciesBook, UnitProfile, Roster, etc.) |
+| `src/data/tactics/TacticsSpeciesBookLoader.gd` | RefCounted | JSON→Resource pipeline (species manifest for export) |
+| `src/ui/screens/tactics/TacticsScreenBase.gd` | Control base | Base class for Tactics screens |
+| `src/ui/screens/tactics/TacticsCreationUI.gd` | Control | 5-step creation wizard shell |
+| `src/ui/screens/tactics/TacticsCreationCoordinator.gd` | Node | Creation state machine + validation |
+| `src/ui/screens/tactics/TacticsDashboard.gd` | Control | Campaign overview + army roster display |
+| `src/ui/screens/tactics/TacticsTurnController.gd` | Control | 8-phase operational turn flow |
+| `src/ui/screens/tactics/panels/*.gd` | 7 panel scripts | Config, Species, Roster, Review, BattleSetup, PostBattle, OperationalMap |
+| `src/core/campaign/TacticsPhaseManager.gd` | RefCounted | 8-phase turn state machine |
+| `src/core/systems/TacticsInitiativeManager.gd` | RefCounted | D6 alternating activations |
+| `src/core/systems/TacticsEnemyGenerator.gd` | RefCounted | Enemy army generation |
+| `src/core/systems/TacticsMissionGenerator.gd` | RefCounted | D100 mission seed generation |
+| `data/tactics/` | 24 JSON files | Species (16), weapons, vehicles, traits, skills, events, config |
+| `docs/rules/Five Parsecs From Home - Tactics.pdf` | PDF | Tactics rulebook (212 pages) |
+| `docs/QA_TACTICS_AUDIT.md` | Markdown | QA audit — 108 costs verified, 9 bugs fixed, 5/7 scenarios PASS |
 
 ## Rules Data Authority
 
@@ -44,12 +52,13 @@ Tactics data — species profiles, point costs, weapon stats, vehicle rules, arm
 
 ## Critical Gotchas
 
-1. **ZERO code exists yet** — All Tactics files must be created from scratch, following Bug Hunt/Planetfall patterns
-2. **Prototype data is wrong IP** — Structure transfers, data does NOT. 17 fantasy factions ≠ 14 Five Parsecs species
-3. **GameState needs update** — `_detect_campaign_type()` doesn't handle `"tactics"` yet
-4. **SceneRouter needs routes** — No `tactics_*` routes exist yet
-5. **Training stat is new** — Not in 5PFH/Bug Hunt/Planetfall. Must be in all unit profiles
-6. **Kill Points (KP) replace wounds** — Vehicles have 2-8 KP, characters 1-3 KP
-7. **Temp data prefix** — All keys use `"tactics_*"` prefix
-8. **Creation UI extends Control** — NOT TacticsScreenBase (thin shell pattern, matches all other modes)
-9. **Army building validation** — Hero limit (1 per 375pts), duplicate limit (1+1 per 750pts), max 35% single unit
+1. **Implementation COMPLETE (Session 55-57)** — 59 files created, 108 costs verified, 5/7 QA scenarios PASS
+2. **class_name parse-order** — UI files use runtime `load()` for Tactics data classes, NOT `preload()` or bare class_names. This avoids Godot 4.6 parse-order issues across directories. See RT-003 in QA doc
+3. **Missing `.uid` files** — If new `.gd` files are created outside the Godot editor, UIDs won't be generated. Open the editor once to trigger UID generation. See RT-002 in QA doc
+4. **Training stat is new** — Not in 5PFH/Bug Hunt/Planetfall. In all unit profiles
+5. **Kill Points (KP) replace wounds** — Vehicles have 2-8 KP, characters 1-3 KP
+6. **Temp data prefix** — All keys use `"tactics_*"` prefix
+7. **Creation UI extends Control** — NOT TacticsScreenBase (thin shell pattern, matches all other modes)
+8. **Army building validation** — Hero limit (1 per 375pts), duplicate limit (1+1 per 750pts), max 35% single unit
+9. **15 specialist unit costs are GAME_BALANCE_ESTIMATE** — Not in Master Points Costs table (pp.178-180). Tagged in JSON
+10. **HubFeatureCards emit `card_pressed`** — Dashboard uses PanelContainers, not Button nodes. Can't use `click_element` in MCP testing

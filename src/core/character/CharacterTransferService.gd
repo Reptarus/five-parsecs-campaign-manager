@@ -396,7 +396,7 @@ func attempt_class_training(char_data: Dictionary, desired_class: String = "") -
 				return {"success": true, "assigned_class": cls, "method": "auto_qualify"}
 
 	# Manual aptitude test (D6)
-	var dice := Engine.get_main_loop().root.get_node_or_null("/root/DiceManager") if Engine.get_main_loop() else null
+	var dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager") if Engine.get_main_loop() else null
 	var roll: int
 	if dice and dice.has_method("roll_d6"):
 		roll = dice.roll_d6()

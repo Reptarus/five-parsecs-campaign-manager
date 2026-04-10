@@ -159,7 +159,8 @@ func _on_close() -> void:
 static func show_preview(
 	parent: Node, data: Dictionary
 ) -> ItemPreviewPopup:
-	var popup := ItemPreviewPopup.new()
+	var _Self = load("res://src/ui/components/common/ItemPreviewPopup.gd")
+	var popup = _Self.new()
 	popup._pending_data = data
 	parent.add_child(popup)
 	popup.popup_centered()

@@ -8,6 +8,10 @@ extends Control
 signal tutorials_updated(data: Dictionary)
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
+const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
+const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_ELEVATED := Color("#252542")
+const COLOR_BORDER := Color("#3A3A5C")
 
 var _coordinator = null
 var _results: Dictionary = {

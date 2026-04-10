@@ -43,7 +43,8 @@ func matches(name: String) -> bool:
 
 ## Create a TacticsSpecialRule from string format like "Piercing" or "Transport(10)"
 static func from_string(rule_string: String) -> TacticsSpecialRule:
-	var rule := TacticsSpecialRule.new()
+	var _Self = load("res://src/data/tactics/TacticsSpecialRule.gd")
+	var rule = _Self.new()
 
 	var paren_start := rule_string.find("(")
 	if paren_start != -1:
@@ -60,7 +61,8 @@ static func from_string(rule_string: String) -> TacticsSpecialRule:
 
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary) -> TacticsSpecialRule:
-	var rule := TacticsSpecialRule.new()
+	var _Self = load("res://src/data/tactics/TacticsSpecialRule.gd")
+	var rule = _Self.new()
 	rule.rule_name = data.get("name", data.get("rule_name", ""))
 	rule.description = data.get("description", "")
 	rule.rule_value = data.get("value", data.get("rule_value", 0))

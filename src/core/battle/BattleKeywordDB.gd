@@ -98,7 +98,7 @@ func parse_text_for_keywords(text: String) -> String:
 
 ## Register all battle keywords into the existing KeywordDB autoload.
 func register_with_keyword_db() -> void:
-	var keyword_db := Engine.get_singleton("KeywordDB") if Engine.has_singleton("KeywordDB") else null
+	var keyword_db = Engine.get_singleton("KeywordDB") if Engine.has_singleton("KeywordDB") else null
 	if not keyword_db:
 		keyword_db = _get_autoload("KeywordDB")
 	if not keyword_db:

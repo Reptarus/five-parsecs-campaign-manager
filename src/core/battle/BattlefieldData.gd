@@ -440,7 +440,7 @@ func _safe_dice_roll(pattern: String, rng: RandomNumberGenerator = null) -> int:
 
 func _fallback_dice_roll(pattern: String, rng: RandomNumberGenerator = null) -> int:
 	## Fallback dice rolling implementation
-	var local_rng := rng if rng else RandomNumberGenerator.new()
+	var local_rng: RandomNumberGenerator = rng if rng else RandomNumberGenerator.new()
 
 	match pattern.to_lower():
 		"d3": return local_rng.randi_range(1, 3)

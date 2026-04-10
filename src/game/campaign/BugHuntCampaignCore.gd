@@ -482,13 +482,15 @@ static func load_from_file(path: String) -> BugHuntCampaignCore:
 	if parse_result != OK:
 		return null
 
-	var campaign := BugHuntCampaignCore.new()
+	var _Self = load("res://src/game/campaign/BugHuntCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.from_dictionary(json.data)
 	return campaign
 
 
 static func create_new_campaign(name: String, difficulty_id: String = "mess_me_up") -> BugHuntCampaignCore:
-	var campaign := BugHuntCampaignCore.new()
+	var _Self = load("res://src/game/campaign/BugHuntCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.campaign_name = name
 	campaign.difficulty = difficulty_id
 	return campaign

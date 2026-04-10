@@ -62,12 +62,17 @@ Company
 | Savvy | Wits/tech aptitude | +0 to +2 |
 | Training | Military competence (NEW) | +0 to +3 |
 
-### Profile Tiers (per species)
-1. **Civilian** — untrained (~5 pts)
-2. **Military** — standard soldier (~10 pts)
-3. **Sergeant / Minor Character** — squad leader (~15 pts)
-4. **Major Character** — experienced officer (~20 pts)
-5. **Epic Character** — elite hero (~30 pts)
+### Profile Tiers (per species) — VERIFIED against Master Points Costs Table (pp.178-180)
+
+108/108 core costs verified (Session 57). 15 specialist units tagged GAME_BALANCE_ESTIMATE.
+
+1. **Civilian** — untrained (5-8 pts, varies by species)
+2. **Military** — standard soldier (8-20 pts)
+3. **Sergeant / Minor Character** — squad leader (13-20 pts)
+4. **Major Character** — experienced officer (18-30 pts)
+5. **Epic Character** — elite hero (27-40 pts)
+6. **Infantry Squad** — 4 military + 1 sergeant (pre-calculated, 45-100 pts)
+7. **Weapon Team** — 3 military (pre-calculated, 24-45 pts)
 
 ## 14 Species Army Lists
 

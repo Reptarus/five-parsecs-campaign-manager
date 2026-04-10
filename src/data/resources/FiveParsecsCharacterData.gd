@@ -257,9 +257,10 @@ func is_valid() -> bool:
 
 ## Factory Methods for Default Data
 
-static func create_default_character_data() -> FiveParsecsCharacterData:
+static func create_default_character_data() -> Resource:
 	## Create character data with Five Parsecs defaults
-	var data = FiveParsecsCharacterData.new()
+	var DataScript = load("res://src/data/resources/FiveParsecsCharacterData.gd")
+	var data = DataScript.new()
 	
 	# Create default backgrounds
 	data.backgrounds = _create_default_backgrounds()

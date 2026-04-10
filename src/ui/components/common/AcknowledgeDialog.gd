@@ -95,7 +95,8 @@ func _on_ok_pressed() -> void:
 static func show_message(
 	parent: Node, text: String
 ) -> AcknowledgeDialog:
-	var dialog := AcknowledgeDialog.new()
+	var _Self = load("res://src/ui/components/common/AcknowledgeDialog.gd")
+	var dialog = _Self.new()
 	dialog._pending_text = text
 	parent.add_child(dialog)
 	dialog.popup_centered()

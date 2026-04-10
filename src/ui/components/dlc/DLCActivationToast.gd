@@ -96,7 +96,7 @@ func _on_manage_pressed() -> void:
 	var DLCDialogScript := load(
 		"res://src/ui/dialogs/DLCManagementDialog.gd")
 	if DLCDialogScript:
-		var root := get_tree().root if get_tree() else null
+		var root = get_tree().root if get_tree() else null
 		if root:
 			var dialog: AcceptDialog = DLCDialogScript.new()
 			root.add_child(dialog)
@@ -111,6 +111,7 @@ static func show_for_dlc(dlc_id: String) -> void:
 	var root: Window = ml.root
 	if not root:
 		return
-	var toast := DLCActivationToast.new()
+	var _Self = load("res://src/ui/components/dlc/DLCActivationToast.gd")
+	var toast = _Self.new()
 	root.add_child(toast)
 	toast.show_activation(dlc_id)

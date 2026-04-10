@@ -1,4 +1,4 @@
-extends PlanetfallScreenBase
+extends "res://src/ui/screens/planetfall/PlanetfallScreenBase.gd"
 
 ## Planetfall Dashboard — Colony overview screen.
 ## Shows colony stats, roster, map, research tree, buildings, and milestones.
@@ -38,7 +38,7 @@ func _build_dashboard() -> void:
 	if not _campaign or not "roster" in _campaign:
 		var EmptyStateWidgetClass = load("res://src/ui/components/common/EmptyStateWidget.gd")
 		if EmptyStateWidgetClass:
-			var empty := EmptyStateWidgetClass.new()
+			var empty = EmptyStateWidgetClass.new()
 			empty.setup(
 				"No Active Colony",
 				"The landing site is empty. Start a new " +
@@ -175,11 +175,11 @@ func _build_dashboard() -> void:
 	detail_box.add_child(aug_card)
 
 	# Milestones & Progression
-	var milestones: int = _campaign.milestones_completed \
+	var ms_count: int = _campaign.milestones_completed \
 		if "milestones_completed" in _campaign else 0
 	var milestone_card := HubFeatureCardClass.new()
 	milestone_card.setup("", "Milestones & Progression",
-		"%d / 7 completed" % milestones)
+		"%d / 7 completed" % ms_count)
 	milestone_card.card_pressed.connect(func(): _show_overlay_panel("milestones"))
 	detail_box.add_child(milestone_card)
 

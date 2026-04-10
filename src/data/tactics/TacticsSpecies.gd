@@ -46,7 +46,8 @@ func get_traits_display() -> String:
 
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary) -> TacticsSpecies:
-	var species := TacticsSpecies.new()
+	var _Self = load("res://src/data/tactics/TacticsSpecies.gd")
+	var species = _Self.new()
 	species.species_id = data.get("species_id", data.get("id", ""))
 	species.species_name = data.get("species_name", data.get("name", ""))
 	species.description = data.get("description", "")

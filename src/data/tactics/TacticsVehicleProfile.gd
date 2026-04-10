@@ -112,7 +112,8 @@ func get_display_name() -> String:
 
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary) -> TacticsVehicleProfile:
-	var vehicle := TacticsVehicleProfile.new()
+	var _Self = load("res://src/data/tactics/TacticsVehicleProfile.gd")
+	var vehicle = _Self.new()
 	vehicle.vehicle_name = data.get("name", data.get("vehicle_name", ""))
 	vehicle.vehicle_id = data.get("id", data.get("vehicle_id", ""))
 	vehicle.points_cost = data.get("cost", data.get("points_cost", 0))

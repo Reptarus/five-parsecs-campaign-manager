@@ -297,12 +297,40 @@ func _on_research_app_pressed(theory_id: String) -> void:
 		var atype: String = app.get("type", "")
 		_add_result_bbcode(
 			"[color=#10B981]Discovered: %s (%s)![/color]" % [aname, atype])
+
+		# Check if this application grants a milestone
+		_check_milestone_grant("research_applications", theory_id)
+
 		_update_rp_display()
 		_show_theory_detail(theory_id)
 		_rebuild_theory_list()
 	else:
 		_add_result_bbcode(
 			"[color=#DC2626]%s[/color]" % result.get("error", "Failed"))
+
+
+func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
+	## Check if a completed research/building/augmentation grants a milestone.
+	## Accesses the TurnController's MilestoneSystem via phase_manager parent.
+	if not _phase_manager:
+		return
+	var controller: Node = _phase_manager.get_parent() if _phase_manager else null
+	if not controller:
+		# Walk up from phase_manager to find TurnController
+		var parent: Node = _phase_manager
+		while parent:
+			if parent.has_method("get_milestone_system"):
+				controller = parent
+				break
+			parent = parent.get_parent()
+	if controller and controller.has_method("get_milestone_system"):
+		var ms: RefCounted = controller.get_milestone_system()
+		if ms and ms.has_method("check_tech_grants_milestone"):
+			if ms.check_tech_grants_milestone(tech_type, tech_id):
+				_add_result_bbcode(
+					"\n[color=#D97706]*** MILESTONE GRANTED! ***[/color]")
+				_add_result_bbcode(
+					"[color=#D97706]Milestone effects will be processed at end of turn.[/color]")
 
 
 func _on_continue_pressed() -> void:

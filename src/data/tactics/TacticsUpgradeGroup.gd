@@ -45,7 +45,8 @@ func get_header_text() -> String:
 
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary, weapon_lookup: Dictionary = {}) -> TacticsUpgradeGroup:
-	var group := TacticsUpgradeGroup.new()
+	var _Self = load("res://src/data/tactics/TacticsUpgradeGroup.gd")
+	var group = _Self.new()
 	group.group_label = data.get("label", data.get("group_label", ""))
 	group.group_id = data.get("id", data.get("group_id", ""))
 	group.max_selections = data.get("max_selections", 1)

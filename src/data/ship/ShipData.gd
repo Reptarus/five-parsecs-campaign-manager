@@ -202,7 +202,8 @@ func to_dictionary() -> Dictionary:
 	}
 
 static func from_dictionary(data: Dictionary) -> ShipData:
-	var ship = ShipData.new()
+	var _Self = load("res://src/data/ship/ShipData.gd")
+	var ship = _Self.new()
 	ship.ship_name = data.get("ship_name", "")
 	ship.ship_class = data.get("ship_class", ShipClass.BASIC_SHIP)
 	ship.hull_points = data.get("hull_points", 8)

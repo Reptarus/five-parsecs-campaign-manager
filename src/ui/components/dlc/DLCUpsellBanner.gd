@@ -16,7 +16,8 @@ const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 ## Factory: create a banner for a specific ContentFlag name.
 static func create_for_flag(flag_name: String) -> DLCUpsellBanner:
-	var banner := DLCUpsellBanner.new()
+	var _Self = load("res://src/ui/components/dlc/DLCUpsellBanner.gd")
+	var banner = _Self.new()
 	var pack_id: String = DLCContentCatalogRef.get_pack_for_flag(
 		flag_name)
 	var pack_name: String = DLCContentCatalogRef.get_pack_name(

@@ -110,7 +110,8 @@ func serialize() -> Dictionary:
 
 # Factory method to create HullComponent from data
 static func create_from_data(data: Dictionary) -> HullComponent:
-	var component = HullComponent.new()
+	var _Self = load("res://src/core/ships/components/HullComponent.gd")
+	var component = _Self.new()
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data

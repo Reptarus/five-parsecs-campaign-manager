@@ -124,7 +124,8 @@ func to_dictionary() -> Dictionary:
 
 ## Deserialization from saved data
 static func from_dictionary(data: Dictionary) -> CampaignConfig:
-	var config = CampaignConfig.new()
+	var _Self = load("res://src/data/config/CampaignConfig.gd")
+	var config = _Self.new()
 
 	config.campaign_name = data.get("campaign_name", "")
 	config.difficulty_level = data.get("difficulty_level", 1)

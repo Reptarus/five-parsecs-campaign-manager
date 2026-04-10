@@ -151,7 +151,7 @@ func finalize() -> void:
 	# Initialize roster with backgrounds applied
 	var final_roster: Array = []
 	for char_dict in roster_data:
-		var enriched := char_dict.duplicate(true)
+		var enriched: Dictionary = char_dict.duplicate(true)
 		var cid: String = char_dict.get("id", "")
 		if background_data.has(cid):
 			var bg: Dictionary = background_data[cid]

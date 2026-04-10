@@ -392,13 +392,15 @@ static func load_from_file(path: String) -> TacticsCampaignCore:
 	if parse_result != OK:
 		return null
 
-	var campaign := TacticsCampaignCore.new()
+	var _Self = load("res://src/game/campaign/TacticsCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.from_dictionary(json.data)
 	return campaign
 
 
 static func create_new_campaign(name: String, species: String, points: int = 500) -> TacticsCampaignCore:
-	var campaign := TacticsCampaignCore.new()
+	var _Self = load("res://src/game/campaign/TacticsCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.campaign_name = name
 	campaign.species_id = species
 	campaign.points_limit = points

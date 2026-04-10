@@ -53,7 +53,8 @@ func conflicts_with(other_name: String) -> bool:
 
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary, weapon_lookup: Dictionary = {}) -> TacticsUpgradeOption:
-	var upgrade := TacticsUpgradeOption.new()
+	var _Self = load("res://src/data/tactics/TacticsUpgradeOption.gd")
+	var upgrade = _Self.new()
 	upgrade.upgrade_name = data.get("name", data.get("upgrade_name", ""))
 	upgrade.upgrade_id = data.get("id", data.get("upgrade_id", ""))
 	upgrade.points_cost = data.get("cost", data.get("points_cost", 0))

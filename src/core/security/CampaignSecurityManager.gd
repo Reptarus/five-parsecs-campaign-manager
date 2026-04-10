@@ -52,7 +52,8 @@ static var _session_start_time: int = 0
 static func get_instance() -> CampaignSecurityManager:
 	## Get singleton instance with lazy initialization
 	if not _instance:
-		_instance = CampaignSecurityManager.new()
+		var _Self = load("res://src/core/security/CampaignSecurityManager.gd")
+		_instance = _Self.new()
 		_initialize_security()
 	return _instance
 

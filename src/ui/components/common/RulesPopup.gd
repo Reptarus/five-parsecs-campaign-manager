@@ -139,7 +139,8 @@ static func show_rules(
 	body_text: String,
 	requirements: PackedStringArray = PackedStringArray()
 ) -> RulesPopup:
-	var popup := RulesPopup.new()
+	var _Self = load("res://src/ui/components/common/RulesPopup.gd")
+	var popup = _Self.new()
 	popup._pending_title = title_text
 	popup._pending_body = body_text
 	popup._pending_requirements = requirements

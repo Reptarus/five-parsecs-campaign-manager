@@ -109,7 +109,8 @@ func serialize() -> Dictionary:
 
 # Factory method to create MedicalBayComponent from data
 static func create_from_data(data: Dictionary) -> MedicalBayComponent:
-	var component = MedicalBayComponent.new()
+	var _Self = load("res://src/core/ships/components/MedicalBayComponent.gd")
+	var component = _Self.new()
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	
 	# Copy base data

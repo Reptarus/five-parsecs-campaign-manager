@@ -717,7 +717,8 @@ static func load_from_file(path: String) -> PlanetfallCampaignCore:
 	file.close()
 	if json.data is not Dictionary:
 		return null
-	var campaign := PlanetfallCampaignCore.new()
+	var _Self = load("res://src/game/campaign/PlanetfallCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.from_dictionary(json.data)
 	return campaign
 

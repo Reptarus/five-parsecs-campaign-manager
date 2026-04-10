@@ -73,6 +73,27 @@ func _create_action_button(text: String, is_primary: bool = false) -> Button:
 	return btn
 
 
+## Create a colored pill badge (text + border).
+func _create_pill(text: String, color: Color) -> PanelContainer:
+	var pill := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.2)
+	style.border_color = color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	pill.add_theme_stylebox_override("panel", style)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_color_override("font_color", color)
+	pill.add_child(lbl)
+	return pill
+
+
 ## Create a class-colored pill for Planetfall character cards.
 func _create_class_pill(character_class: String) -> PanelContainer:
 	var color: Color

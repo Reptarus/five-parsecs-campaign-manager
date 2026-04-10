@@ -179,7 +179,8 @@ func to_dictionary() -> Dictionary:
 
 ## Factory methods for common crew configurations
 static func create_starter_crew(size: int = 4) -> CrewData:
-	var crew = CrewData.new()
+	var _Self = load("res://src/data/resources/CrewData.gd")
+	var crew = _Self.new()
 	crew.total_size = size
 	crew.formation_date = Time.get_datetime_string_from_system()
 	crew.crew_name = "New Crew"
@@ -188,7 +189,8 @@ static func create_starter_crew(size: int = 4) -> CrewData:
 
 static func create_from_template(template_name: String) -> CrewData:
 	# Load predefined crew templates for quick setup
-	var crew = CrewData.new()
+	var _Self = load("res://src/data/resources/CrewData.gd")
+	var crew = _Self.new()
 	
 	match template_name:
 		"combat_specialists":

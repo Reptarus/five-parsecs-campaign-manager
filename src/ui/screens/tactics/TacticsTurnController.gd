@@ -50,7 +50,7 @@ func _scaled_font(base: int) -> int:
 
 
 func _ready() -> void:
-	PhaseManagerScript = load("res://src/core/campaign/PhaseManagerScript.gd")
+	PhaseManagerScript = load("res://src/core/campaign/TacticsPhaseManager.gd")
 	BattleSetupScript = load("res://src/ui/screens/tactics/panels/TacticsBattleSetupPanel.gd")
 	PostBattleScript = load("res://src/ui/screens/tactics/panels/TacticsPostBattlePanel.gd")
 	OpMapScript = load("res://src/ui/screens/tactics/panels/TacticsOperationalMapPanel.gd")

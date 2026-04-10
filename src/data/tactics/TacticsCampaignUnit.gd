@@ -107,7 +107,8 @@ static func generate_id() -> String:
 
 ## Create from a roster entry (at campaign start)
 static func from_roster_entry(entry: TacticsRosterEntry, species: String) -> TacticsCampaignUnit:
-	var unit := TacticsCampaignUnit.new()
+	var _Self = load("res://src/data/tactics/TacticsCampaignUnit.gd")
+	var unit = _Self.new()
 	unit.unit_id = generate_id()
 	unit.species_id = species
 	unit.custom_name = entry.get_display_name()
@@ -155,7 +156,8 @@ func to_dict() -> Dictionary:
 
 ## Deserialize from dictionary (for save load)
 static func from_dict(data: Dictionary) -> TacticsCampaignUnit:
-	var unit := TacticsCampaignUnit.new()
+	var _Self = load("res://src/data/tactics/TacticsCampaignUnit.gd")
+	var unit = _Self.new()
 	unit.unit_id = data.get("unit_id", "")
 	unit.custom_name = data.get("custom_name", "")
 	unit.base_unit_id = data.get("base_unit_id", "")

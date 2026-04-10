@@ -375,9 +375,10 @@ func is_valid() -> bool:
 
 ## Factory Methods for Default Data
 
-static func create_default_campaign_data() -> FiveParsecsCampaignDataResource:
+static func create_default_campaign_data() -> Resource:
 	## Create campaign data with Five Parsecs defaults
-	var data = FiveParsecsCampaignDataResource.new()
+	var DataScript = load("res://src/data/resources/FiveParsecsCampaignData.gd")
+	var data = DataScript.new()
 	
 	data.world_traits = _create_default_world_traits()
 	data.planet_types = _create_default_planet_types()

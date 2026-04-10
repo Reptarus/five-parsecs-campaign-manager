@@ -140,7 +140,8 @@ func get_stat_line() -> Dictionary:
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary, weapon_lookup: Dictionary = {},
 		vehicle_lookup: Dictionary = {}) -> TacticsUnitProfile:
-	var profile := TacticsUnitProfile.new()
+	var _Self = load("res://src/data/tactics/TacticsUnitProfile.gd")
+	var profile = _Self.new()
 	profile.unit_name = data.get("name", data.get("unit_name", ""))
 	profile.unit_id = data.get("id", data.get("unit_id", ""))
 	profile.points_cost = data.get("cost", data.get("points_cost", 0))

@@ -149,9 +149,6 @@ func _build_map_summary() -> void:
 		"Strategic overview")
 	_content.add_child(section)
 
-	var info_box: VBoxContainer = section.get_child(0).get_child(0) \
-		if section.get_child_count() > 0 else VBoxContainer.new()
-
 	# Find the VBoxContainer inside the section card
 	var card_content: VBoxContainer = null
 	for child in _recurse_children(section):

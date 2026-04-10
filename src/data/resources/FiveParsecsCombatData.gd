@@ -265,9 +265,10 @@ func is_valid() -> bool:
 
 ## Factory Methods for Default Data
 
-static func create_default_combat_data() -> FiveParsecsCombatDataResource:
+static func create_default_combat_data() -> Resource:
 	## Create combat data with Five Parsecs defaults
-	var data = FiveParsecsCombatDataResource.new()
+	var DataScript = load("res://src/data/resources/FiveParsecsCombatData.gd")
+	var data = DataScript.new()
 	
 	data.weapons = _create_default_weapons()
 	data.armor_types = _create_default_armor()

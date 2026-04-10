@@ -626,7 +626,8 @@ func _update_modified_time() -> void:
 
 static func create_new_campaign(name: String, difficulty: int = 0) -> FiveParsecsCampaignCore:
 	## Create a new campaign with basic settings
-	var campaign = FiveParsecsCampaignCore.new()
+	var _Self = load("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.campaign_name = name
 	campaign.difficulty = difficulty
 	return campaign
@@ -646,7 +647,8 @@ static func load_from_file(path: String) -> FiveParsecsCampaignCore:
 	if parse_result != OK:
 		return null
 
-	var campaign = FiveParsecsCampaignCore.new()
+	var _Self = load("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+	var campaign = _Self.new()
 	campaign.from_dictionary(json.data)
 	return campaign
 

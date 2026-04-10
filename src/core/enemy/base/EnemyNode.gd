@@ -62,7 +62,8 @@ static func is_node_script() -> bool:
 
 # Static helper method that creates a safe instance
 static func create_instance() -> EnemyNode: # Return specific type
-	return EnemyNode.new()
+	var _Self = load("res://src/core/enemy/base/EnemyNode.gd")
+	return _Self.new()
 
 func _ready() -> void:
 	# Set default position if needed (or rely on scene placement)

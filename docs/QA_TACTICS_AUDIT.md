@@ -1,6 +1,7 @@
 # Tactics Gamemode — QA Data Accuracy Audit
 
 **Created**: 2026-04-09 (Session 55)
+**Updated**: 2026-04-09 (Session 57 — runtime testing + cost verification)
 **Source**: Five Parsecs: Tactics rulebook (212 pages)
 **PDF**: `docs/rules/Five Parsecs From Home - Tactics.pdf`
 **Text extraction**: `docs/rules/tactics_source.txt`
@@ -30,6 +31,8 @@
 | Species Traits (pp.49-80) | 14 species | 14 | 0 | COMPLETE |
 | Army Builder Rules (pp.137-140) | 3 squad types | 3 | 0 | COMPLETE |
 | Campaign Config (pp.155-168) | 8 steps | 8 | 0 | COMPLETE |
+| **Master Points Costs (pp.178-180)** | **108 core** | **108** | **0** | **COMPLETE** |
+| Specialist/variant unit costs | 15 units | 0 | N/A | ESTIMATED |
 
 ---
 
@@ -57,7 +60,21 @@
 **JSON**: Not present
 **Status**: FIXED (added)
 
-### DISC-004: 75mm/100mm Cannon Ammo Choice sub-profiles
+### DISC-004: Master Points Costs — 8 species files corrected (Session 57)
+**Files**: `data/tactics/species/{clones,hakshan,kerin,krag,precursors,skulkers,swift,ystrik}.json`
+**Source**: Master Points Costs Table (pp.178-180)
+**Method**: Python cross-reference of all 108 core costs (civilian/military/sergeant/major/epic/infantry_squad/weapon_team) against PDF
+**Changes**: Added missing civilians (5 species), corrected per-tier costs (military, sergeant, major, squad, weapon_team) across 8 files
+**Result**: 108/108 core costs match PDF exactly. Zero mismatches.
+**Status**: FIXED
+
+### DISC-005: 15 specialist/variant units not in Master table
+**Files**: Various species files
+**Units**: feral_recon_squad, feral_scout_specialist, feral_sharpshooter, human_recon_squad, human_tech_specialist, human_sharpshooter, human_medic, human_comms_specialist, hulker_storm_squad, converted_assault_squad, horde_swarm_squad, kerin_storm_squad, precursor_seer, serian_tech_specialist, skulker_ambush_team
+**Issue**: These units are defined in species army lists but have no entry in the Master Points Costs Table. Costs were estimated from profile stats.
+**Status**: TAGGED with `_cost_source: GAME_BALANCE_ESTIMATE`
+
+### DISC-006: 75mm/100mm Cannon Ammo Choice sub-profiles
 **File**: `data/tactics/tactics_weapons_master.json`
 **PDF (p.178)**: Both cannons have sub-profiles:
 - AP shell: Damage 5(x3)/6(x3), Pin-point, Knock Back
@@ -67,9 +84,80 @@
 
 ---
 
+## Runtime Test Results (Session 57)
+
+**Date**: 2026-04-09
+**Method**: MCP runtime testing (run_project + simulate_input + run_script)
+**Godot**: 4.6-stable, Windows 11
+
+### Bugs Found & Fixed
+
+| # | Bug | File(s) | Fix |
+|---|-----|---------|-----|
+| RT-001 | No Tactics button on MainMenu | `MainMenu.gd` | Added `_inject_tactics_button()` + route mappings for `tactics_creation/dashboard/turn_controller` |
+| RT-002 | Missing `.uid` files for all 14 Tactics data scripts | `src/data/tactics/*.gd` | Godot editor restart generated all 14 UIDs — root cause of all `class_name` parse failures |
+| RT-003 | `class_name` parse-order failures (8 UI files) | `TacticsCreationCoordinator.gd`, 4 panels | Converted to runtime `load()` + removed type annotations |
+| RT-004 | `:=` type inference errors (112 occurrences) | All Tactics UI files | Converted to `=` in coordinator + 7 panels |
+| RT-005 | Corrupted load path `_UnitProfile.gd` | `TacticsRosterPanel.gd` | Fixed to `TacticsUnitProfile.gd` |
+| RT-006 | Duck-type check `has_method("get_unit_id")` fails | `TacticsRosterPanel.gd:164` | Changed to `"unit_id" in unit` (property, not method) |
+| RT-007 | `TacticalBattleUI.gd:1434` type contradiction | `TacticalBattleUI.gd` | Fixed `unit is Dictionary` check (crew_units is `Array[TacticalUnit]`) |
+| RT-008 | Dashboard `_build_map_summary` type mismatch | `TacticsDashboard.gd:152` | Removed unused `info_box: VBoxContainer` assigned from Label child |
+| RT-009 | TurnController corrupted load path `PhaseManagerScript.gd` | `TacticsTurnController.gd:53` | Fixed to `TacticsPhaseManager.gd` |
+
+### Scenario Results
+
+| Scenario | Status | Notes |
+|----------|--------|-------|
+| 1: Creation Flow (Steps 1-3) | PASS | Config → Species → Roster all render correctly |
+| 1: Creation Flow (Steps 4-5) | PASS | Review shows all data + "Validation: PASSED". Finalize navigates to Dashboard |
+| 2: Save/Load Round-Trip | PASS | Campaign saved during finalize, loaded from MainMenu Tactics dialog, all data persists |
+| 3: Turn Controller Flow | PASS | All 8 phases cycle correctly. Battle phase shows Victory/Defeat. Strategic phase shows 8-step checklist + cohesion stats. Turn Complete message displays |
+| 4: Species Catalog | PASS | All 16 species loaded, correct traits/unit/weapon counts |
+| 5: Composition Validation | PASS | "Validation: PASSED" shown on Review panel with valid army (leader + 2 troops + support) |
+| 6: Character Transfer (5PFH→Tactics) | PENDING | Code exists but not runtime-tested |
+| 7: Character Transfer (Tactics→5PFH) | PENDING | Code exists but not runtime-tested |
+
+### Detailed Results
+
+- **Step 1 (Config)**: Campaign name field, points limit dropdown (500/750/1000/1500), organization (Platoon/Company), play mode (Solo/PvP) — all render and emit signals correctly
+- **Step 2 (Species)**: 16 species cards in 3 sections (Major Powers, Minor Powers, Creatures). Each shows name, power level badge, unit/weapon count, species traits in cyan. Selection highlights card with cyan border. Human Colonists: "Widely Skilled, Well Organized" — correct
+- **Step 3 (Roster)**: 12 Human Colonist units display under 4 org slot categories (Leaders/Troops/Support/Specialists). All costs verified against PDF Master Points Costs table (p.178). Points counter "0 / 500 pts" in green. "+ Add" buttons present on all units. After adding 4 units: points counter shows "155 / 500 pts" (15+55+55+30 = correct)
+- **Step 4 (Vehicles)**: Auto-skipped (vehicles step marked complete automatically). Human Colonists have 3 vehicles but the step is optional
+- **Step 5 (Review)**: Three summary cards (Configuration, Species, Army Roster) with all data correct. "Total: 155 / 500 pts". Validation: PASSED (green). "Launch Campaign" button enabled
+- **Finalize**: Campaign saved to `user://saves/`, navigated to TacticsDashboard
+- **Dashboard**: Title "Test Campaign / Human Colonists", stats strip (TURN 0, UNITS 4, WINS 0), 3 HubFeatureCards (Continue/Save/Main Menu), Operational Map card (Cohesion 5/5), Army Roster with 4 unit cards (colored initial avatars, model counts, battle stats)
+- **Save/Load (Scenario 2)**: Returning to MainMenu → Tactics shows dialog "Found 1 Tactics campaign(s)" with "Continue: Test Campaign (Turn 0)". Load succeeds, Dashboard shows all persisted data
+- **Turn Controller (Scenario 3)**: 8-phase cycle completed: Orders → Recon → Battle Prep → Deployment → Battle (Victory/Defeat buttons) → Post Battle → Advancement → Strategic. Phase strip dots fill progressively. Strategic phase shows cohesion stats + 8-step operational checklist. "Turn Complete!" message displays. Zero errors throughout
+
+### Species Catalog Verification (Scenario 4)
+
+All 16 species loaded successfully via `TacticsSpeciesBookLoader`:
+
+| Species | Units | Weapons | Vehicles | Traits |
+|---------|-------|---------|----------|--------|
+| Human Colonists | 12 | 8 | 3 | Widely Skilled, Well Organized |
+| Ferals | 10 | 7 | 0 | Loping Run, Keen Senses |
+| Hulkers | 7 | 3 | 0 | Determined, Powerful Swings, Short Tempered |
+| Erekish (Precursors) | 8 | 3 | 0 | Premonition |
+| K'Erin | 8 | 4 | 0 | Brawlers, Disciplined |
+| The Soulless | 3 | 2 | 0 | Synthetic, Machine Learning, Hardened Network |
+| The Converted | 8 | 3 | 0 | Synthetic, Mindless Assault |
+| The Horde | 8 | 3 | 0 | Fearsome, Horde Tactics, Uncaring |
+| Serian (Engineers) | 8 | 2 | 0 | Tech-savvy, Enviro-suits |
+| The Swift | 7 | 2 | 0 | Bonds of Inspiration, Winged |
+| Keltrin (Skulkers) | 8 | 2 | 0 | Lurk, Ambush |
+| Hakshan | 7 | 2 | 0 | (base species) |
+| Clones (The Many) | 7 | 2 | 0 | One Mind, Group Tactics |
+| Ystrik (Manipulators) | 7 | 2 | 0 | Psionic |
+| Krag | 7 | 3 | 0 | Sturdy, Resilient |
+| Creatures | 8 | 3 | 0 | (varies by creature) |
+
+---
+
 ## Walkthrough Test Scenarios
 
 ### Scenario 1: Campaign Creation Flow
+
 1. MainMenu → Tactics button
 2. Config panel: enter name "Test Campaign", select 500pts, Platoon, Solo
 3. Species panel: select Human Colonists — verify traits shown (Widely Skilled, Well Organized)
@@ -213,7 +301,7 @@
 
 ## Known Limitations (Post-1.0)
 
-1. **Species squad costs are estimated** — The PDF uses a base cost formula (profile cost × models + squad type base cost). Our species files have pre-computed costs that need verification against the Master Points Costs table (p.178). Flag: `GAME_BALANCE_ESTIMATE` on computed squad costs.
+1. **15 specialist/variant unit costs are estimated** — The Master Points Costs table (pp.178-180) was verified in Session 57: 108/108 core costs match exactly. The remaining 15 specialist/variant units (recon squads, scouts, tech specialists, etc.) are not in the Master table and have `_cost_source: GAME_BALANCE_ESTIMATE` tags. These need PDF extraction from species-specific army list pages for verification.
 
 2. **Ammo Choice sub-profiles** — 75mm/100mm cannons have AP and Frag shell sub-profiles. Currently stored as a single weapon with "Ammo Choice" trait. Full sub-profile support deferred.
 

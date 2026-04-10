@@ -73,7 +73,8 @@ func to_dictionary() -> Dictionary:
 
 ## Factory method for safe instantiation
 static func create_new() -> CampaignCreationData:
-	var data = CampaignCreationData.new()
+	var _Self = load("res://src/data/resources/CampaignCreationData.gd")
+	var data = _Self.new()
 	data.config = Resource.new() # Placeholder for CampaignConfig
 	data.crew_data = CrewData.new()
 	data.equipment = Resource.new() # Placeholder for EquipmentData

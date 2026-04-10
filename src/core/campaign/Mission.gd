@@ -232,7 +232,8 @@ func to_dict() -> Dictionary:
 
 
 static func from_dict(data: Dictionary) -> Mission:
-	var mission := Mission.new()
+	var _Self = load("res://src/core/campaign/Mission.gd")
+	var mission = _Self.new()
 	mission.mission_id = data.get("mission_id", "")
 	mission.mission_name = data.get("mission_name", "")
 	mission.description = data.get("description", "")
@@ -256,7 +257,8 @@ static func from_dict(data: Dictionary) -> Mission:
 # === Factory Methods ===
 
 static func create_patrol_mission(patron: String, credits: int) -> Mission:
-	var mission := Mission.new()
+	var _Self = load("res://src/core/campaign/Mission.gd")
+	var mission = _Self.new()
 	mission.mission_name = "Patrol Assignment"
 	mission.mission_type = MissionType.PATRON_JOB
 	mission.patron_name = patron
@@ -270,7 +272,8 @@ static func create_patrol_mission(patron: String, credits: int) -> Mission:
 
 
 static func create_fight_mission(patron: String, credits: int, danger: int = 2) -> Mission:
-	var mission := Mission.new()
+	var _Self = load("res://src/core/campaign/Mission.gd")
+	var mission = _Self.new()
 	mission.mission_name = "Combat Mission"
 	mission.mission_type = MissionType.PATRON_JOB
 	mission.patron_name = patron

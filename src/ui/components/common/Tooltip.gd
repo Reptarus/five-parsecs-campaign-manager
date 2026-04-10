@@ -320,7 +320,8 @@ func _update_arrow_position(pos: Position, target_rect: Rect2) -> void:
 
 static func create_tooltip_for_control(control: Control, text: String, position: Position = Position.AUTO) -> Tooltip:
 	## Create and attach a tooltip to a control
-	var tooltip := Tooltip.new()
+	var _Self = load("res://src/ui/components/common/Tooltip.gd")
+	var tooltip = _Self.new()
 	control.get_tree().current_scene.add_child(tooltip)
 
 	# Connect mouse events

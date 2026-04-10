@@ -103,7 +103,8 @@ func get_traits_display() -> String:
 
 ## Create from a dictionary (JSON hydration)
 static func from_dict(data: Dictionary) -> TacticsWeaponProfile:
-	var weapon := TacticsWeaponProfile.new()
+	var _Self = load("res://src/data/tactics/TacticsWeaponProfile.gd")
+	var weapon = _Self.new()
 	weapon.weapon_name = data.get("name", data.get("weapon_name", ""))
 	weapon.weapon_id = data.get("id", data.get("weapon_id", ""))
 	weapon.points_cost = data.get("cost", data.get("points_cost", 0))

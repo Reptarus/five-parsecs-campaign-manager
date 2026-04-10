@@ -215,6 +215,12 @@ const AI_DESCRIPTIONS: Dictionary = {
 	"B": "Beast — move toward nearest figure, attack on contact",
 }
 
+# SceneRouter-based battle delegation (Bug Hunt, Planetfall, Tactics)
+# When loaded via SceneRouter (not embedded as child), these track the
+# return route and temp_data key for storing results.
+var _return_screen: String = ""
+var _result_temp_key: String = ""
+
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
 var _dlc_escalation_count: int = 0
@@ -306,13 +312,13 @@ func _setup_ui() -> void:
 	call_deferred("_apply_responsive_layout")
 
 func _check_standalone_mode() -> void:
-	## If initialize_battle() was never called (standalone/MCP/demo load),
-	## show tier selection overlay so the UI is usable (BUG-B01, B06, B17, B18 fix)
+	## If initialize_battle() was never called, check if battle context was
+	## stored in temp_data by a gamemode turn controller (Bug Hunt, Planetfall,
+	## Tactics). If so, auto-initialize from that context. Otherwise, show
+	## tier selection for standalone/MCP/demo mode (BUG-B01, B06, B17, B18 fix).
 	if _battle_initialized:
 		return
 	# QA-FIX: Only show tier selection if actually visible and not embedded in campaign flow.
-	# When loaded as a child of CampaignTurnController's PhaseContainer, this node starts
-	# hidden — tier selection should only appear when initialize_battle() is called explicitly.
 	if not visible:
 		return
 	var ancestor := get_parent()
@@ -320,8 +326,81 @@ func _check_standalone_mode() -> void:
 		if ancestor.name == "PhaseContainer":
 			return # Embedded in campaign turn flow — not standalone
 		ancestor = ancestor.get_parent()
+
+	# Check for SceneRouter-delegated battle context in temp_data
+	if _try_auto_init_from_temp_data():
+		return
+
 	_log_message("Standalone mode — no campaign data. Set up your table manually.", UIColors.COLOR_WARNING)
 	_show_tier_selection()
+
+
+func _try_auto_init_from_temp_data() -> bool:
+	## Check if a gamemode turn controller stored battle context in temp_data.
+	## Supports Bug Hunt, Planetfall, and Tactics delegation patterns.
+	## Returns true if auto-initialized from temp_data.
+	var gs_mgr = get_node_or_null("/root/GameStateManager")
+	if not gs_mgr or not gs_mgr.has_method("get_temp_data"):
+		return false
+
+	# Check each gamemode's battle context key
+	var context_keys: Array = [
+		{"context_key": "bug_hunt_battle_context", "result_key": "bug_hunt_battle_result", "return_screen": "bug_hunt_turn_controller"},
+		{"context_key": "planetfall_battle_context", "result_key": "planetfall_battle_result", "return_screen": "planetfall_turn_controller"},
+		{"context_key": "tactics_battle_context", "result_key": "tactics_battle_result", "return_screen": "tactics_turn_controller"},
+	]
+
+	for key_set in context_keys:
+		var context = gs_mgr.get_temp_data(key_set["context_key"])
+		if context is Dictionary and not context.is_empty():
+			_return_screen = key_set["return_screen"]
+			_result_temp_key = key_set["result_key"]
+
+			# Extract crew and enemies from context
+			var crew: Array = context.get("crew", [])
+			var enemies: Array = context.get("enemies", [])
+			var mission_data: Dictionary = context.get("mission_data", {})
+
+			# Ensure battle_mode is set in mission_data
+			if not mission_data.has("battle_mode"):
+				if "bug_hunt" in key_set["context_key"]:
+					mission_data["battle_mode"] = "bug_hunt"
+				elif "planetfall" in key_set["context_key"]:
+					mission_data["battle_mode"] = "planetfall"
+				elif "tactics" in key_set["context_key"]:
+					mission_data["battle_mode"] = "tactics"
+
+			_log_message("Auto-initializing from %s context..." % _return_screen.replace("_", " "),
+				UIColors.COLOR_CYAN)
+
+			# Connect our own signal to handle result storage + return
+			if not tactical_battle_completed.is_connected(_on_delegated_battle_completed):
+				tactical_battle_completed.connect(_on_delegated_battle_completed)
+
+			initialize_battle(crew, enemies, mission_data)
+
+			# Clear the context key (consumed)
+			gs_mgr.set_temp_data(key_set["context_key"], null)
+			return true
+
+	return false
+
+
+func _on_delegated_battle_completed(result: Dictionary) -> void:
+	## When battle was launched via SceneRouter delegation, store results
+	## in temp_data and navigate back to the calling turn controller.
+	var gs_mgr = get_node_or_null("/root/GameStateManager")
+	if gs_mgr and gs_mgr.has_method("set_temp_data") and not _result_temp_key.is_empty():
+		gs_mgr.set_temp_data(_result_temp_key, result)
+
+	if not _return_screen.is_empty():
+		var router = get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to(_return_screen)
+			return
+
+	# Fallback: just log if no router available
+	push_warning("TacticalBattleUI: Battle completed but no return route configured.")
 
 # ============================================================================
 # RESPONSIVE LAYOUT

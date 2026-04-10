@@ -53,8 +53,8 @@ You have a detailed reference skill at `.claude/skills/tactics-gamemode/`. **Rea
 ## Project Context
 
 - **Engine**: Godot 4.6-stable, pure GDScript
-- **Implementation status**: ZERO code exists in FPCM yet — all Tactics files are to be created
-- **Tactics core**: `TacticsCampaignCore` (Resource, to be created — NOT FiveParsecsCampaignCore)
+- **Implementation status**: COMPLETE (Sessions 55-57) — 59 files, 108 costs verified, 5/7 QA scenarios PASS
+- **Tactics core**: `TacticsCampaignCore` (Resource, IMPLEMENTED — NOT FiveParsecsCampaignCore)
 - **Rulebook**: `docs/rules/tactics_source.txt` (full text extraction, 503KB), PDF at `docs/rules/Five Parsecs From Home - Tactics.pdf`
 - **Design notes**: `docs/TACTICS_EXPANSION_NOTES.md`
 - **Prototype**: `c:\Users\admin\Desktop\tacticaprototype1\` (322 GDScript files, Godot 4.6, Age of Fantasy IP)
@@ -116,12 +116,13 @@ When creating `TacticsCreationUI`, it must extend `Control` directly (thin shell
 
 ## Workflow
 
-1. **Check if code exists**: Tactics has ZERO FPCM code — start from the Bug Hunt/Planetfall patterns
+1. **Read the code**: Tactics is fully implemented (59 files). Read existing files before modifying
 2. **Read the reference**: Check tactics-data-model.md for data structure design
-3. **Check the prototype**: If building army validation or combat resolution, consult the prototype for structural patterns
-4. **Verify against rulebook**: ALL game values from `docs/rules/tactics_source.txt` or PDF extraction
+3. **Verify against rulebook**: ALL game values from `docs/rules/tactics_source.txt` or PDF extraction
+4. **Use runtime `load()`**: UI files must use `load()` at runtime for Tactics data classes, NOT `preload()` or bare class_names (parse-order issue)
 5. **Verify isolation**: Ensure changes don't leak into Standard/Bug Hunt/Planetfall modes
 6. **Test cross-mode**: If touching shared files, verify all modes still work
+7. **Check QA doc**: `docs/QA_TACTICS_AUDIT.md` has runtime test results and known issues
 
 ## What You Should Always Do
 
@@ -152,15 +153,19 @@ When creating `TacticsCreationUI`, it must extend `Control` directly (thin shell
 
 ### Search Anchors
 
-- `src/ui/screens/tactics/` — future Tactics UI screens
-- `src/game/campaign/TacticsCampaignCore.gd` — future campaign data model
-- `data/tactics/` — future JSON data files
-- `docs/rules/tactics_source.txt` — extracted rulebook text (503KB)
-- `docs/TACTICS_EXPANSION_NOTES.md` — design notes
+- `src/ui/screens/tactics/` — Tactics UI screens (7 files + panels/)
+- `src/ui/screens/tactics/panels/` — 7 panel scripts (Config, Species, Roster, Review, BattleSetup, PostBattle, OperationalMap)
+- `src/data/tactics/` — 14 Resource classes (data model)
+- `src/game/campaign/TacticsCampaignCore.gd` — campaign persistence
+- `src/core/campaign/TacticsPhaseManager.gd` — 8-phase turn state machine
+- `src/core/systems/TacticsInitiativeManager.gd` — D6 alternating activations
+- `data/tactics/` — 24 JSON data files (species/, weapons, vehicles, traits, skills, events, config)
+- `data/tactics/species/` — 16 species JSON files with verified costs
+- `docs/rules/Five Parsecs From Home - Tactics.pdf` — Tactics rulebook (212 pages)
+- `docs/QA_TACTICS_AUDIT.md` — QA audit with test results and bugs
 - `src/ui/screens/battle/TacticalBattleUI.gd` — shared battle UI (cross-mode)
-- `src/core/state/GameState.gd` — `_detect_campaign_type()` (needs Tactics routing added)
-- `src/ui/screens/SceneRouter.gd` — needs Tactics routes added
-- Prototype: `c:\Users\admin\Desktop\tacticaprototype1\src\core\` — reference architecture
+- `src/core/state/GameState.gd` — `_detect_campaign_type()` handles `"tactics"`
+- `src/ui/screens/SceneRouter.gd` — has `tactics_creation/dashboard/turn_controller` routes
 
 # Persistent Agent Memory
 

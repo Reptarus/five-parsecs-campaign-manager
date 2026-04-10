@@ -23,10 +23,17 @@ const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
 
+const PlanetfallConditionScript := preload(
+	"res://src/core/systems/PlanetfallConditionSystem.gd")
+const PlanetfallMissionSetupScript := preload(
+	"res://src/core/systems/PlanetfallMissionSetup.gd")
+
 var _campaign: Resource
 var _phase_manager: Node
 var _missions: Array = []
 var _selected_mission: Dictionary = {}
+var _condition_sys: PlanetfallConditionScript
+var _mission_setup: PlanetfallMissionSetupScript
 
 var _title_label: Label
 var _list_container: VBoxContainer
@@ -35,6 +42,8 @@ var _confirm_btn: Button
 
 
 func _ready() -> void:
+	_condition_sys = PlanetfallConditionScript.new()
+	_mission_setup = PlanetfallMissionSetupScript.new()
 	_load_missions()
 	_build_ui()
 
@@ -364,7 +373,6 @@ func _on_confirm_pressed() -> void:
 	if _confirm_btn:
 		_confirm_btn.disabled = true
 
-	# Extract force limits from the enriched mission data for LockAndLoadPanel
 	var forces: Dictionary = _selected_mission.get("player_forces", {})
 	var force_limits: Dictionary = {
 		"max_characters": forces.get("max_characters", 6),
@@ -372,11 +380,37 @@ func _on_confirm_pressed() -> void:
 		"grunt_fireteams": forces.get("grunt_fireteams", 0)
 	}
 
+	# Generate battlefield condition if mission uses them
+	var active_condition: Dictionary = {}
+	var has_conditions: bool = _selected_mission.get(
+		"battlefield_conditions", false)
+	if has_conditions and _condition_sys and _campaign:
+		var slot_roll: int = randi_range(1, 100)
+		var slot: int = _condition_sys.get_slot_for_roll(slot_roll)
+		if slot >= 0:
+			var cond_roll: int = randi_range(1, 100)
+			active_condition = _condition_sys.fill_condition_slot(
+				_campaign, slot, cond_roll)
+
+	# Check Slyn aggression for missions with slyn_check opposition
+	var slyn_attacking: bool = false
+	var opposition: Dictionary = _selected_mission.get("opposition", {})
+	var opp_type: String = opposition.get("type", "")
+	if opp_type == "slyn_check" and _mission_setup:
+		var mid: String = _selected_mission.get("id", "")
+		var aggro_roll: int = randi_range(1, 6) + randi_range(1, 6)
+		slyn_attacking = _mission_setup.check_slyn_aggression(
+			mid, aggro_roll)
+
 	phase_completed.emit({
 		"selected_mission": _selected_mission,
 		"force_limits": force_limits,
-		"battlefield_conditions": _selected_mission.get("battlefield_conditions", false),
-		"uncertain_features": _selected_mission.get("uncertain_features", false)
+		"battlefield_conditions": has_conditions,
+		"active_condition": active_condition,
+		"uncertain_features": _selected_mission.get(
+			"uncertain_features", false),
+		"slyn_attacking": slyn_attacking,
+		"opposition_type": "slyn" if slyn_attacking else opp_type
 	})
 
 

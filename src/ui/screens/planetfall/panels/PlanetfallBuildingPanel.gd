@@ -349,9 +349,29 @@ func _on_invest_pressed(building_id: String, amount: int) -> void:
 		if result.get("completed", false):
 			_add_result_bbcode(
 				"[color=#10B981]%s construction complete![/color]" % bname)
+			# Check if this building grants a milestone
+			_check_milestone_grant("buildings", building_id)
 		_update_resource_display()
 		_show_building_detail(building_id)
 		_rebuild_building_list()
+
+
+func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
+	## Check if a completed building grants a milestone.
+	if not _phase_manager:
+		return
+	var parent: Node = _phase_manager
+	while parent:
+		if parent.has_method("get_milestone_system"):
+			var ms: RefCounted = parent.get_milestone_system()
+			if ms and ms.has_method("check_tech_grants_milestone"):
+				if ms.check_tech_grants_milestone(tech_type, tech_id):
+					_add_result_bbcode(
+						"\n[color=#D97706]*** MILESTONE GRANTED! ***[/color]")
+					_add_result_bbcode(
+						"[color=#D97706]Effects processed at end of turn.[/color]")
+			return
+		parent = parent.get_parent()
 
 
 func _on_continue_pressed() -> void:

@@ -1,4 +1,4 @@
-extends PlanetfallScreenBase
+extends "res://src/ui/screens/planetfall/PlanetfallScreenBase.gd"
 
 ## Planetfall Campaign Turn Controller — 18-step campaign turn.
 ## Manages the phase flow from Recovery (Step 1) through Update Tracking (Step 18).
@@ -30,11 +30,33 @@ const BuildingPanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallBuildingPanel.gd")
 const EndGamePanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallEndGamePanel.gd")
+const MilestoneSystemScript := preload(
+	"res://src/core/systems/PlanetfallMilestoneSystem.gd")
+const CalamitySystemScript := preload(
+	"res://src/core/systems/PlanetfallCalamitySystem.gd")
+const MissionDataSystemScript := preload(
+	"res://src/core/systems/PlanetfallMissionDataSystem.gd")
+const ConditionSystemScript := preload(
+	"res://src/core/systems/PlanetfallConditionSystem.gd")
+const LifeformGenScript := preload(
+	"res://src/core/systems/PlanetfallLifeformGenerator.gd")
+const TacticalEnemyGenScript := preload(
+	"res://src/core/systems/PlanetfallTacticalEnemyGenerator.gd")
 
 var phase_manager: PlanetfallPhaseManagerScript
 var campaign: Resource  # PlanetfallCampaignCore
 var panels: Array[Control] = []
 var current_panel: Control
+var _mission_context: Dictionary = {}  # Cached from Step 6+7 for battle launch
+var _deployed_data: Dictionary = {}    # Cached from Step 7 for battle launch
+
+## Progression systems (instantiated once per turn controller lifetime)
+var _milestone_sys: MilestoneSystemScript
+var _calamity_sys: CalamitySystemScript
+var _md_sys: MissionDataSystemScript
+var _condition_sys: ConditionSystemScript
+var _lifeform_gen: LifeformGenScript
+var _enemy_gen: TacticalEnemyGenScript
 
 var _turn_label: Label
 var _phase_label: Label
@@ -65,10 +87,20 @@ func _initialize() -> void:
 	_load_campaign()
 	if not campaign:
 		return
+	_init_progression_systems()
 	_build_layout()
 	_create_phase_manager()
 	_create_panels()
 	_connect_signals()
+
+
+func _init_progression_systems() -> void:
+	_milestone_sys = MilestoneSystemScript.new()
+	_calamity_sys = CalamitySystemScript.new()
+	_md_sys = MissionDataSystemScript.new()
+	_condition_sys = ConditionSystemScript.new()
+	_lifeform_gen = LifeformGenScript.new()
+	_enemy_gen = TacticalEnemyGenScript.new()
 
 	# Check if returning from battle
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
@@ -263,7 +295,7 @@ func _create_phase_manager() -> void:
 
 func _create_panels() -> void:
 	panels.clear()
-	var Phase := PlanetfallPhaseManagerScript.Phase
+	var ph := PlanetfallPhaseManagerScript.Phase
 
 	for i in range(PlanetfallPhaseManagerScript.PHASE_COUNT):
 		var panel: Control = _create_panel_for_phase(i)
@@ -279,7 +311,7 @@ func _create_panels() -> void:
 		panels.append(panel)
 
 	# Store reference for post-battle data injection
-	_post_battle_panel = panels[Phase.INJURIES] if Phase.INJURIES < panels.size() else null
+	_post_battle_panel = panels[ph.INJURIES] if ph.INJURIES < panels.size() else null
 
 
 func _create_panel_for_phase(phase: int) -> Control:
@@ -288,71 +320,71 @@ func _create_panel_for_phase(phase: int) -> Control:
 	## Simple input steps use PlanetfallSimpleDialog.
 	## Complex steps use dedicated panels.
 	## Unimplemented steps (Sprint 2) use PlaceholderPanel.
-	var Phase := PlanetfallPhaseManagerScript.Phase
+	var ph := PlanetfallPhaseManagerScript.Phase
 	var phase_name: String = PlanetfallPhaseManagerScript.PHASE_NAMES.get(
 		phase, "Step %d" % (phase + 1))
 
 	match phase:
 		# Auto-resolve steps (Sprint 3)
-		Phase.RECOVERY:
+		ph.RECOVERY:
 			var p := AutoResolveScript.new()
 			p.configure("recovery", phase)
 			return p
-		Phase.ENEMY_ACTIVITY:
+		ph.ENEMY_ACTIVITY:
 			var p := AutoResolveScript.new()
 			p.configure("enemy_activity", phase)
 			return p
-		Phase.COLONY_INTEGRITY:
+		ph.COLONY_INTEGRITY:
 			var p := AutoResolveScript.new()
 			p.configure("colony_integrity", phase)
 			return p
-		Phase.UPDATE_TRACKING:
+		ph.UPDATE_TRACKING:
 			var p := AutoResolveScript.new()
 			p.configure("update_tracking", phase)
 			return p
 
 		# Simple dialog steps (Sprint 3)
-		Phase.REPAIRS:
+		ph.REPAIRS:
 			var p := SimpleDialogScript.new()
 			p.configure("repairs", phase)
 			return p
-		Phase.TRACK_ENEMY_INFO:
+		ph.TRACK_ENEMY_INFO:
 			var p := SimpleDialogScript.new()
 			p.configure("track_enemy_info", phase)
 			return p
-		Phase.REPLACEMENTS:
+		ph.REPLACEMENTS:
 			var p := SimpleDialogScript.new()
 			p.configure("replacements", phase)
 			return p
-		Phase.CHARACTER_EVENT:
+		ph.CHARACTER_EVENT:
 			var p := SimpleDialogScript.new()
 			p.configure("character_event", phase)
 			return p
 
 		# Full panels (Sprint 3)
-		Phase.SCOUT_REPORTS:
+		ph.SCOUT_REPORTS:
 			return ScoutReportsScript.new()
-		Phase.COLONY_EVENTS:
+		ph.COLONY_EVENTS:
 			return ColonyEventsScript.new()
 
-		# Post-battle combined panel (Sprint 3) — steps 9, 10, 11 share one panel
-		Phase.INJURIES, Phase.EXPERIENCE, Phase.MORALE_ADJUSTMENTS:
+		# Post-battle combined panel — steps 9-12
+		ph.INJURIES, ph.EXPERIENCE, ph.MORALE_ADJUSTMENTS:
 			return PostBattleScript.new()
 
-		# Sprint 2 panels — core systems
-		Phase.MISSION_DETERMINATION:
+		# Core system panels
+		ph.MISSION_DETERMINATION:
 			return MissionPanelScript.new()
-		Phase.LOCK_AND_LOAD:
+		ph.LOCK_AND_LOAD:
 			return LockAndLoadScript.new()
-		Phase.RESEARCH:
+		ph.RESEARCH:
 			return ResearchPanelScript.new()
-		Phase.BUILDING:
+		ph.BUILDING:
 			return BuildingPanelScript.new()
 
-		# Battle delegation (step 8) — placeholder, actual delegation is in TurnController
-		Phase.PLAY_OUT_MISSION:
+		# Battle delegation — intercepted in _on_phase_changed
+		ph.PLAY_OUT_MISSION:
 			var p := PlaceholderPanelScript.new()
-			p.configure("Play Out Mission (Battle)", phase)
+			p.configure("Play Out Mission", phase)
 			return p
 
 	# Fallback
@@ -378,7 +410,21 @@ func _connect_signals() -> void:
 ## SIGNAL HANDLERS
 ## ============================================================================
 
-func _on_phase_changed(old_phase: int, new_phase: int) -> void:
+func _on_phase_changed(_old_phase: int, new_phase: int) -> void:
+	var ph := PlanetfallPhaseManagerScript.Phase
+
+	# Intercept Step 8 (PLAY_OUT_MISSION) — delegate to TacticalBattleUI
+	if new_phase == ph.PLAY_OUT_MISSION:
+		_launch_planetfall_battle()
+		return
+
+	# Auto-skip TRACK_ENEMY_INFO (phase 11) — PostBattlePanel at phase 10
+	# already handles POST_MISSION_FINDS and ENEMY_INFO internally.
+	if new_phase == ph.TRACK_ENEMY_INFO:
+		_process_mission_data_check()
+		phase_manager.complete_current_phase({})
+		return
+
 	_show_panel(new_phase)
 	_update_phase_display(new_phase)
 	_refresh_stat_strip()
@@ -402,6 +448,15 @@ func _on_turn_started(turn: int) -> void:
 	_turn_label.text = "TURN %d" % turn
 	_refresh_stat_strip()
 
+	# Process active calamity ongoing effects at turn start
+	if _calamity_sys and campaign:
+		var cal_effects: Dictionary = _calamity_sys.process_turn_effects(campaign)
+		for event in cal_effects.get("events", []):
+			if event is Dictionary:
+				var desc: String = event.get("description", "")
+				if not desc.is_empty():
+					push_warning("Calamity effect: %s" % desc)
+
 
 func _on_turn_completed(_turn: int) -> void:
 	_advance_button.text = "Start Next Turn"
@@ -411,16 +466,30 @@ func _on_turn_completed(_turn: int) -> void:
 
 
 func _on_panel_phase_completed(result_data: Dictionary) -> void:
-	# Pass force_limits from MissionPanel to LockAndLoadPanel
 	var current: int = phase_manager.current_phase
+
+	# Cache mission selection from Step 6 for battle launch
 	if current == PlanetfallPhaseManagerScript.Phase.MISSION_DETERMINATION:
-		var force_limits: Dictionary = result_data.get("force_limits", {})
-		if not force_limits.is_empty():
-			var lock_phase: int = PlanetfallPhaseManagerScript.Phase.LOCK_AND_LOAD
-			if lock_phase >= 0 and lock_phase < panels.size():
-				var lock_panel: Control = panels[lock_phase]
-				if lock_panel.has_method("set_force_limits"):
-					lock_panel.set_force_limits(force_limits)
+		_mission_context = result_data.get("selected_mission", {})
+		# Pass force limits + mission context to LockAndLoadPanel
+		var lock_phase: int = PlanetfallPhaseManagerScript.Phase.LOCK_AND_LOAD
+		if lock_phase >= 0 and lock_phase < panels.size():
+			var lock_panel: Control = panels[lock_phase]
+			var force_limits: Dictionary = result_data.get("force_limits", {})
+			if lock_panel.has_method("set_force_limits") and not force_limits.is_empty():
+				lock_panel.set_force_limits(force_limits)
+			if lock_panel.has_method("set_mission_context"):
+				lock_panel.set_mission_context(result_data)
+
+	# Cache deployment data from Step 7 for battle launch
+	if current == PlanetfallPhaseManagerScript.Phase.LOCK_AND_LOAD:
+		_deployed_data = result_data.duplicate(true)
+
+	# Step 14 (Research) / Step 15 (Building): Check for milestone grants
+	if current == PlanetfallPhaseManagerScript.Phase.RESEARCH:
+		_check_for_milestone_grants()
+	if current == PlanetfallPhaseManagerScript.Phase.BUILDING:
+		_check_for_milestone_grants()
 
 	phase_manager.complete_current_phase(result_data)
 
@@ -523,10 +592,12 @@ func _resume_after_battle(result: Dictionary) -> void:
 
 	_refresh_stat_strip()
 
-	# Pass battle results to PostBattlePanel BEFORE triggering phase change,
-	# because go_to_phase() synchronously fires phase_changed → refresh().
-	if _post_battle_panel and _post_battle_panel.has_method("set_battle_results"):
-		_post_battle_panel.set_battle_results(result)
+	# Pass battle results to ALL PostBattlePanel instances BEFORE triggering
+	# phase change, because go_to_phase() synchronously fires phase_changed
+	# → refresh(). Phases 8-10 are separate PostBattlePanel instances.
+	for panel in panels:
+		if panel.has_method("set_battle_results"):
+			panel.set_battle_results(result)
 
 	# Jump directly to INJURIES phase
 	phase_manager.go_to_phase(PlanetfallPhaseManagerScript.Phase.INJURIES)
@@ -556,3 +627,290 @@ func _show_endgame_panel() -> void:
 		_turn_label.text = "END GAME"
 	if _phase_label:
 		_phase_label.text = "Decide the fate of your colony"
+
+
+func _launch_planetfall_battle() -> void:
+	## Step 8: Delegate to TacticalBattleUI via SceneRouter.
+	## Stores battle context in temp_data for TacticalBattleUI to auto-initialize.
+	## On completion, TacticalBattleUI stores results and navigates back here.
+	if not campaign:
+		push_warning("PlanetfallTurnController: No campaign for battle launch")
+		phase_manager.complete_current_phase({})
+		return
+
+	# Build crew array from deployed characters
+	var crew: Array = []
+	var deployed_chars: Dictionary = _deployed_data.get("deployed_characters", {})
+	if "roster" in campaign:
+		for char_dict in campaign.roster:
+			if char_dict is Dictionary:
+				var cid: String = char_dict.get("id", "")
+				if deployed_chars.has(cid):
+					var deployed_entry: Dictionary = deployed_chars[cid]
+					var crew_entry: Dictionary = char_dict.duplicate(true)
+					# Attach weapon assignment from Lock and Load
+					crew_entry["assigned_weapon"] = deployed_entry.get("weapon_id", "")
+					crew.append(crew_entry)
+
+	# Build enemies array (placeholder — actual enemy generation depends on
+	# mission type: Lifeforms, Tactical Enemies, Slyn, or Delve Hazards)
+	var enemies: Array = []
+	var mission_id: String = _mission_context.get("id", "")
+	var opposition: Dictionary = _mission_context.get("opposition", {})
+	var opp_type: String = opposition.get("type", "lifeforms")
+
+	# For now, generate a basic enemy group. Full generation would use
+	# PlanetfallLifeformGenerator / PlanetfallTacticalEnemyGenerator / Slyn profile
+	# based on the opposition type. The tabletop player handles the actual minis.
+	enemies = _generate_opposition_for_battle(opp_type)
+
+	# Build mission_data dict for TacticalBattleUI
+	var mission_data: Dictionary = {
+		"battle_mode": "planetfall",
+		"type": mission_id,
+		"title": _mission_context.get("name", "Planetfall Mission"),
+		"objective": _mission_context.get("description", ""),
+		"table_size": _mission_context.get("table_size", "3x3"),
+		"battlefield_conditions": _mission_context.get("battlefield_conditions", false),
+		"grunts_deployed": _deployed_data.get("grunts_deployed", 0),
+		"opposition_type": opp_type,
+	}
+
+	# Build battle context for temp_data storage
+	var battle_context: Dictionary = {
+		"crew": crew,
+		"enemies": enemies,
+		"mission_data": mission_data,
+		"mission_context": _mission_context.duplicate(true),
+		"deployed_data": _deployed_data.duplicate(true)
+	}
+
+	# Store in temp_data for TacticalBattleUI to pick up
+	var gs_mgr = get_node_or_null("/root/GameStateManager")
+	if gs_mgr and gs_mgr.has_method("set_temp_data"):
+		gs_mgr.set_temp_data("planetfall_battle_context", battle_context)
+		gs_mgr.set_temp_data("planetfall_mission", _mission_context)
+
+	# Save campaign before leaving (in case of crash during battle)
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("save_campaign"):
+		game_state.save_campaign()
+
+	# Navigate to TacticalBattleUI — do NOT complete the phase here.
+	# TacticalBattleUI will auto-init from temp_data, and on completion
+	# store results in "planetfall_battle_result" and navigate back.
+	var router = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("tactical_battle")
+	else:
+		push_warning("PlanetfallTurnController: SceneRouter not available, skipping battle")
+		phase_manager.complete_current_phase({"skipped": true})
+
+
+func _generate_opposition_for_battle(opp_type: String) -> Array:
+	## Generate a basic enemy roster for the TacticalBattleUI.
+	## This is a tabletop companion — the actual minis are on the physical table.
+	## The enemies here provide stat references for the battle UI.
+	var enemies: Array = []
+
+	match opp_type:
+		"lifeforms":
+			# Use campaign lifeform table if available
+			if campaign and "lifeform_table" in campaign:
+				for slot in campaign.lifeform_table:
+					if slot is Dictionary and not slot.is_empty():
+						enemies.append({
+							"name": "Lifeform",
+							"speed": slot.get("speed", 6),
+							"combat_skill": slot.get("combat_skill", 1),
+							"toughness": slot.get("toughness", 4),
+							"type": "lifeform"
+						})
+						break  # Use first filled slot as representative
+			if enemies.is_empty():
+				enemies.append({"name": "Unknown Lifeform", "speed": 6,
+					"combat_skill": 1, "toughness": 4, "type": "lifeform"})
+
+		"tactical":
+			# Use campaign tactical enemies if available
+			if campaign and "tactical_enemies" in campaign:
+				for te in campaign.tactical_enemies:
+					if te is Dictionary and not te.get("defeated", false):
+						var te_type: Dictionary = te.get("type", {})
+						var cs = te_type.get("combat_skill", 0)
+						var tg = te_type.get("toughness", 3)
+						enemies.append({
+							"name": te_type.get("name", "Tactical Enemy"),
+							"speed": te_type.get("speed", 4),
+							"combat_skill": cs[0] if cs is Array else cs,
+							"toughness": tg[0] if tg is Array else tg,
+							"type": "tactical_enemy"
+						})
+						break
+			if enemies.is_empty():
+				enemies.append({"name": "Unknown Enemy", "speed": 4,
+					"combat_skill": 0, "toughness": 3, "type": "tactical_enemy"})
+
+		"slyn_check", "slyn":
+			var slyn: Dictionary = {"name": "Slyn", "speed": 5,
+				"combat_skill": 1, "toughness": 4, "type": "slyn"}
+			enemies.append(slyn)
+
+		"delve_hazards":
+			# Delve missions don't have conventional enemies at start
+			enemies.append({"name": "Sleeper", "speed": 5,
+				"combat_skill": 1, "toughness": 4, "type": "sleeper"})
+
+		_:
+			enemies.append({"name": "Unknown", "speed": 4,
+				"combat_skill": 0, "toughness": 3, "type": "unknown"})
+
+	return enemies
+
+
+## ============================================================================
+## PROGRESSION SYSTEM WIRING
+## ============================================================================
+
+func _check_for_milestone_grants() -> void:
+	## Check if any recently completed building/research/augmentation/artifact
+	## grants a milestone. Called after Research (Step 14) and Building (Step 15).
+	if not _milestone_sys or not campaign:
+		return
+
+	# Check buildings
+	if "buildings_data" in campaign:
+		for building_id in campaign.buildings_data.get("constructed", []):
+			if _milestone_sys.check_tech_grants_milestone("buildings", str(building_id)):
+				_trigger_milestone()
+				return
+
+	# Check research applications
+	if "research_data" in campaign:
+		for app_id in campaign.research_data.get("unlocked_applications", []):
+			if _milestone_sys.check_tech_grants_milestone("research_applications", str(app_id)):
+				_trigger_milestone()
+				return
+
+	# Check augmentations
+	if "research_data" in campaign:
+		for aug_id in campaign.research_data.get("augmentations_owned", []):
+			if _milestone_sys.check_tech_grants_milestone("augmentations", str(aug_id)):
+				_trigger_milestone()
+				return
+
+	# Check artifacts
+	if "artifacts_found" in campaign:
+		for artifact in campaign.artifacts_found:
+			if artifact is Dictionary:
+				var aid: String = artifact.get("id", "")
+				if _milestone_sys.check_tech_grants_milestone("alien_artifacts", aid):
+					_trigger_milestone()
+					return
+
+
+func _trigger_milestone() -> void:
+	## Apply milestone effects and process all cascading actions.
+	if not _milestone_sys or not campaign:
+		return
+	var current_milestones: int = campaign.milestones_completed \
+		if "milestones_completed" in campaign else 0
+	var next_index: int = current_milestones + 1
+	if next_index > 7:
+		return  # Already completed all milestones
+
+	var result: Dictionary = _milestone_sys.apply_milestone(campaign, next_index)
+
+	# Process actions_needed from milestone
+	for action in result.get("actions_needed", []):
+		if action is not Dictionary:
+			continue
+		var action_type: String = action.get("action", "")
+
+		match action_type:
+			"create_tactical_enemy":
+				if _enemy_gen:
+					_enemy_gen.create_full_enemy(campaign)
+
+			"roll_lifeform_evolution":
+				if _lifeform_gen and campaign and "lifeform_table" in campaign:
+					var slot: int = randi_range(0, 9)
+					var evo_roll: int = randi_range(1, 100)
+					_lifeform_gen.apply_evolution(campaign, slot, evo_roll)
+
+			"add_mission_data":
+				var amount: int = action.get("amount", 0)
+				_process_mission_data_addition(amount)
+
+			"check_calamity":
+				if _milestone_sys.check_calamity_trigger(campaign):
+					if _calamity_sys:
+						var cal_roll: int = randi_range(1, 100)
+						_calamity_sys.trigger_calamity(campaign, cal_roll)
+
+	_refresh_stat_strip()
+
+
+func _process_mission_data_check() -> void:
+	## After Step 12 (Track Enemy Info), check if any accumulated mission data
+	## triggers a breakthrough.
+	if not _md_sys or not campaign:
+		return
+	var md_total: int = campaign.mission_data if "mission_data" in campaign else 0
+	if md_total <= 0:
+		return
+	# The check happens inside add_and_check — but we only check here,
+	# we don't add more data. The PostBattlePanel already added the MD.
+	# We just need to roll the D6 check.
+	var roll: int = randi_range(1, 6)
+	if roll <= md_total:
+		# Breakthrough!
+		if "mission_data" in campaign:
+			campaign.mission_data -= roll
+		if "mission_data_breakthroughs" in campaign:
+			campaign.mission_data_breakthroughs += 1
+		var bt_index: int = campaign.mission_data_breakthroughs
+		var bt_result: Dictionary = _md_sys.process_breakthrough(campaign, bt_index)
+		push_warning("Mission Data Breakthrough #%d: %s" % [
+			bt_index, bt_result.get("name", "Unknown")])
+
+		# Handle 4th breakthrough (Final D100 table)
+		for needed in bt_result.get("actions_needed", []):
+			if needed is Dictionary and needed.get("action", "") == "roll_final_breakthrough":
+				var final_roll: int = randi_range(1, 100)
+				_md_sys.roll_final_breakthrough(campaign, final_roll)
+
+
+func _process_mission_data_addition(amount: int) -> void:
+	## Add mission data and check for breakthrough via MissionDataSystem.
+	if not _md_sys or not campaign:
+		return
+	var result: Dictionary = _md_sys.add_and_check(campaign, amount)
+	if result.get("breakthrough", false):
+		var bt_result: Dictionary = result.get("result", {})
+		push_warning("Mission Data Breakthrough: %s" % bt_result.get("name", "Unknown"))
+		for needed in bt_result.get("actions_needed", []):
+			if needed is Dictionary and needed.get("action", "") == "roll_final_breakthrough":
+				var final_roll: int = randi_range(1, 100)
+				_md_sys.roll_final_breakthrough(campaign, final_roll)
+
+
+## Accessors for progression systems (used by panels)
+
+func get_milestone_system() -> RefCounted:
+	return _milestone_sys
+
+func get_calamity_system() -> RefCounted:
+	return _calamity_sys
+
+func get_mission_data_system() -> RefCounted:
+	return _md_sys
+
+func get_condition_system() -> RefCounted:
+	return _condition_sys
+
+func get_lifeform_generator() -> RefCounted:
+	return _lifeform_gen
+
+func get_enemy_generator() -> RefCounted:
+	return _enemy_gen
