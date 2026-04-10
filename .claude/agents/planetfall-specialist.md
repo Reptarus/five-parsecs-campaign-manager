@@ -55,9 +55,11 @@ You have a detailed reference skill at `.claude/skills/planetfall-gamemode/`. **
 - **Dashboard**: `src/ui/screens/planetfall/PlanetfallDashboard.gd`
 - **Creation UI**: `src/ui/screens/planetfall/PlanetfallCreationUI.gd` (extends Control, NOT PlanetfallScreenBase)
 - **Coordinator**: `src/ui/screens/planetfall/PlanetfallCreationCoordinator.gd` (extends Node)
-- **Turn controller**: `src/ui/screens/planetfall/PlanetfallTurnController.gd` (placeholder — 18-step not yet wired)
-- **Panels**: `src/ui/screens/planetfall/panels/` (6 creation panels)
-- **Data files**: `data/planetfall/` (8 JSON files)
+- **Turn controller**: `src/ui/screens/planetfall/PlanetfallTurnController.gd` (18-step flow, runtime-verified Session 57d)
+- **Phase manager**: `src/core/campaign/PlanetfallPhaseManager.gd` (18 phases, auto-advance)
+- **Panels**: `src/ui/screens/planetfall/panels/` (18 turn panels + 6 creation panels)
+- **Data files**: `data/planetfall/` (15 JSON files)
+- **MainMenu**: Planetfall button wired in MainMenu.gd with save/load dialog
 - **Shared battle UI**: `src/ui/screens/battle/TacticalBattleUI.gd`
 - **Godot executable**: `"C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe"`
 - **Rulebook**: `docs/rules/planetfall_source.txt` (full text extraction), PDF in `docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/`

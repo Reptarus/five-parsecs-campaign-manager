@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-04-08
+**Last Updated**: 2026-04-09
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -30,6 +30,8 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Campaign Turn Phases | 9/9 fully wired |
 | Campaign Creation | 7-phase coordinator system |
 | Bug Hunt Gamemode | Phases 1-7 complete (38 files) |
+| Planetfall Gamemode (Session 54-57) | §1-4 COMPLETE, 63 files, 18-step turn flow runtime-verified, MainMenu button wired, save/load round-trip PASS |
+| Tactics Gamemode (Session 55-57) | ALL 7 PHASES implemented, 59 files, 108 costs verified, 9 runtime bugs fixed, 5/7 scenarios PASS |
 | Store/Paywall System (Phase 24) | Tri-platform (Steam/Android/iOS) |
 | Fabricated Data Purge | Complete — MoraleSystem deleted, equipment/loot/advancement rewritten |
 | Equipment Effects Pipeline (Session 47) | 12 phases: trait fixes, armor saves, single-use removal, protective devices, consumables, gun mods, utility devices, on-board items, Compendium traits |
@@ -137,6 +139,46 @@ MainMenu → "Battle Simulator" button
 - **Critical timing**: `initialize_battle()` must be called sync after `add_child()` — TacticalBattleUI `call_deferred("_check_standalone_mode")` fires otherwise
 - **Results don't persist** — no campaign to save to, just Play Again / Main Menu
 - **SceneRouter key**: `battle_simulator`
+
+### Planetfall Gamemode (Compendium Expansion)
+
+Colony-building campaign variant with 18-step turn flow, separate from the 9-phase standard campaign.
+
+```
+MainMenu → "Planetfall" button → PlanetfallCreationUI (6-step wizard) → PlanetfallDashboard
+  └─ PlanetfallTurnController (18-step turn flow)
+       PRE-BATTLE: Recovery → Repairs → Scout Reports → Enemy Activity → Colony Events → Mission Determination
+       BATTLE: Lock and Load → Play Out Mission (delegates to TacticalBattleUI)
+       POST-BATTLE: Injuries → Experience → Morale → Replacements
+       COLONY: Research → Building → Integrity → Character Event → Update Colony Sheet
+```
+
+- **PlanetfallCampaignCore** (Resource): Separate from FiveParsecsCampaignCore — has `colony` dict (morale/integrity/grunts/story_points), `roster` array, `progression` dict
+- **PlanetfallPhaseManager**: 18-phase turn orchestration, `Phase` enum (0-17), `complete_current_phase()` auto-advances
+- **PlanetfallCreationCoordinator**: 6-step wizard (Expedition Type, Roster, Backgrounds, Map, Tutorials, Review)
+- **PlanetfallScreenBase**: Extends CampaignScreenBase, adds `_create_pill()` method + Planetfall-specific constants
+- **TacticalBattleUI** reused: `_on_phase_changed` intercepts `PLAY_OUT_MISSION` phase → `_launch_planetfall_battle()` → SceneRouter to tactical_battle
+- **Battle return**: `_resume_after_battle(result)` called when TurnController reinitializes with temp_data `planetfall_battle_result`
+- **Save/load**: `PlanetfallCampaignCore.save_to_file()` / `.load_from_file()` — JSON with `campaign_type: "planetfall"`, nested `config/colony/progression/meta` dicts
+- **SceneRouter keys**: `planetfall_creation`, `planetfall_dashboard`, `planetfall_turn_controller`
+- **15 JSON data files** in `data/planetfall/`, **63 GDScript files** across `src/`
+- **Runtime verified**: Session 57d — full 18-step turn cycle, battle delegation, save/load round-trip, multi-turn (Turn 1→2)
+
+### Tactics Gamemode (Standalone Expansion)
+
+Points-based army building and operational campaign variant.
+
+```
+MainMenu → "Tactics" button → TacticsCreationUI (army builder) → TacticsDashboard
+  └─ TacticsTurnController (operational campaign phases)
+```
+
+- **TacticsCampaignCore** (Resource): Army lists, units, vehicles, points budgets
+- **TacticsSpeciesBookLoader**: Loads species army lists from `data/tactics/species_books/` JSON files
+- **Data model**: TacticsUnitProfile, TacticsVehicleProfile, TacticsWeaponProfile, TacticsSpecialRule, TacticsUpgradeGroup/Option
+- **108 weapon/vehicle/unit costs** verified against rulebook (Session 57b)
+- **SceneRouter keys**: `tactics_creation`, `tactics_dashboard`, `tactics_turn_controller`
+- **59 GDScript files** across `src/`, **18 JSON data files** in `data/tactics/`
 
 ### Character Events System (Session 51, Core Rules pp.128-130)
 
@@ -582,7 +624,7 @@ panel.captain_updated.connect(func(captain): coordinator.update_captain_state({"
 
 ## Agent & Skill Architecture (Token Optimization)
 
-Seven specialized agents with three-tier model routing to minimize token usage on routine tasks:
+Nine specialized agents with three-tier model routing to minimize token usage on routine tasks:
 
 | Agent | Model | Domain |
 | ----- | ----- | ------ |
@@ -591,14 +633,16 @@ Seven specialized agents with three-tier model routing to minimize token usage o
 | `campaign-systems-engineer` | **sonnet** | Campaign creation/turns, save/load, state management |
 | `character-data-engineer` | **sonnet** | Character model, enums, JSON data, equipment, world |
 | `bug-hunt-specialist` | **sonnet** | Bug Hunt gamemode, cross-mode safety |
+| `planetfall-specialist` | **sonnet** | Planetfall gamemode, colony systems, 18-step turn flow |
+| `tactics-specialist` | **sonnet** | Tactics gamemode, army building, operational campaign |
 | `qa-specialist` | **sonnet** | Testing, QA, gdUnit4 |
 | `ui-panel-developer` | **haiku** | UI components, Deep Space theme, TweenFX |
 
 ### Agent Files
 
-- **Agent definitions**: `.claude/agents/*.md` (7 files)
-- **Agent memory**: `.claude/agent-memory/{agent-name}/MEMORY.md` (7 files, persistent across sessions)
-- **Skills**: `.claude/skills/{skill-name}/SKILL.md` + `references/*.md` (7 skills, 22 reference files)
+- **Agent definitions**: `.claude/agents/*.md` (9 files)
+- **Agent memory**: `.claude/agent-memory/{agent-name}/MEMORY.md` (9 files, persistent across sessions)
+- **Skills**: `.claude/skills/{skill-name}/SKILL.md` + `references/*.md` (9 skills, ~26 reference files)
 - **Token settings**: `MAX_THINKING_TOKENS=10000`, `AUTOCOMPACT_PCT=50` in `.claude/settings.local.json`
 
 ### Routing Rules
@@ -607,8 +651,10 @@ Seven specialized agents with three-tier model routing to minimize token usage o
 - `character-data-engineer` exclusively owns all 3 enum files (three-enum sync rule)
 - Multi-domain tasks → decompose via `fpcm-project-manager`
 - `bug-hunt-specialist` reviews any shared file changes (TacticalBattleUI, GameState, SceneRouter)
+- `planetfall-specialist` owns all `src/ui/screens/planetfall/`, `src/game/campaign/PlanetfallCampaignCore.gd`, `data/planetfall/`
+- `tactics-specialist` owns all `src/ui/screens/tactics/`, `src/data/tactics/`, `src/game/campaign/TacticsCampaignCore.gd`, `data/tactics/`
 - `qa-specialist` is always the final verification step
-- Dependency order: data → campaign → battle → bug-hunt → UI → QA
+- Dependency order: data → campaign → battle → bug-hunt/planetfall/tactics → UI → QA
 
 ---
 
@@ -725,6 +771,12 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **Bug Hunt temp_data keys use `"bug_hunt_*"` prefix**: `"bug_hunt_battle_context"`, `"bug_hunt_battle_result"`, `"bug_hunt_mission"`. Standard keys: `"world_phase_results"`, `"return_screen"`, `"selected_character"`. No collisions
 - **TacticalBattleUI shared between both modes**: Bug Hunt code is guarded by `battle_mode == "bug_hunt"` and `_check_bug_hunt_launch()` validation. Standard flow unaffected
 - **Bug Hunt equipment step auto-completes**: `BugHuntCreationCoordinator.go_to_step()` marks EQUIPMENT complete automatically since Bug Hunt uses standard issue (read-only panel). Without this, the Next button won't appear on step 3
+- **Planetfall campaign type**: `PlanetfallCampaignCore` uses nested dicts (`config`, `colony`, `progression`, `meta`, `roster`). Campaign type is `"planetfall"`. Save/load uses `PlanetfallCampaignCore.load_from_file()` (not GameState.load_campaign)
+- **Planetfall temp_data keys use `"planetfall_*"` prefix**: `"planetfall_battle_result"`, `"planetfall_mission"`. Cleared after `_resume_after_battle()` consumes them
+- **PlanetfallTurnController init order**: `_start_or_resume_turn()` MUST be called after `_create_phase_manager()`. Battle phase (7) triggers SceneRouter navigation — completing it via phase_manager frees the TurnController
+- **PlanetfallScreenBase extends path-based**: Uses `extends "res://..."` not class_name, due to Godot 4.6 parse order issues. PlanetfallDashboard + TurnController also use path-based extends
+- **Planetfall panels extend Control directly**: Not BaseCampaignPanel — they define their own `COLOR_*`/`FONT_SIZE_*` constants locally
+- **Tactics data model**: TacticsUnitProfile/VehicleProfile/WeaponProfile are RefCounted with static `from_dict()` factories. Use `load()` pattern in static methods (not `ClassName.new()`)
 - **CombatResolver `_validate_character_interface()`**: Runs in `_ready()` via `assert()`. Will crash if `BaseCharacterResource` is missing any of the 24 required methods. All 22 previously-missing methods were added in Session 10
 - **TweenFX pivot_offset**: TweenFX NEVER sets `pivot_offset`. Must call `node.pivot_offset = node.size / 2` before any scale/rotation animation (`press`, `pop_in`, `pulsate`, `punch_in`, `breathe`, `tada`, `critical_hit`, `upgrade`, `attract`, `headshake`). Safe without: `fade_in`, `fade_out`, `blink`, `spotlight`, `alarm`, `shake`
 - **TweenFX looping cleanup**: Looping animations (`alarm`, `breathe`, `attract`, `glow_pulse`) must be explicitly stopped with `TweenFX.stop(node, TweenFX.Animations.X)` or `TweenFX.stop_all(node)` in cleanup/hide code

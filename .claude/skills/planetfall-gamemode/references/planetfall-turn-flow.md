@@ -44,10 +44,21 @@ Planetfall:  RECOVERY -> REPAIRS -> SCOUTS -> ENEMY_ACTIVITY -> COLONY_EVENTS ->
 Bug Hunt:    SPECIAL_ASSIGNMENTS -> MISSION -> POST_BATTLE
 ```
 
-## PlanetfallPhaseManager (IMPLEMENTED — Session 56)
+## PlanetfallPhaseManager (IMPLEMENTED + RUNTIME VERIFIED — Session 57d)
 
 File: `src/core/campaign/PlanetfallPhaseManager.gd` (extends Node)
 Follows BugHuntPhaseManager pattern exactly.
+
+### Runtime QA Results (Session 57d)
+- Full 18-step turn cycle: **PASS** (all phases advance cleanly, zero errors)
+- Battle delegation (Phase 7 → TacticalBattleUI → return): **PASS**
+- Save/load round-trip: **PASS** (all colony/roster/progression data persists)
+- Multi-turn (Turn 1 → Turn 2): **PASS** (phase_manager.start_new_turn() works)
+- MainMenu Planetfall button: **PASS** (save detection + creation flow)
+
+### Key Init Order Fix (Session 57d)
+`PlanetfallTurnController._start_or_resume_turn()` MUST be called AFTER `_create_phase_manager()`.
+Previously was in `_init_progression_systems()` which runs before phase_manager exists — caused nil crash.
 
 ```gdscript
 enum Phase {

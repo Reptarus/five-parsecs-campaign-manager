@@ -1,8 +1,15 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-03-30
+**Last Updated**: 2026-04-09
 **Engine**: Godot 4.6-stable
 **Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete**, **28/28 UI issues fixed (Session 16)**. KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json (24 events data-driven). See QA_RULES_ACCURACY_AUDIT.md for details.
+
+### Expansion Gamemodes (April 2026)
+| Gamemode | Files | Data Verified | Runtime QA | Status |
+|----------|-------|---------------|------------|--------|
+| **Planetfall** | 63 files | 15 JSON | Full 18-step turn cycle PASS, save/load PASS, multi-turn PASS | MainMenu button wired |
+| **Tactics** | 59 files | 108 costs verified | 5/7 scenarios PASS, 9 bugs fixed | MainMenu button wired |
+| **Bug Hunt** | 38 files | 15 JSON verified | End-to-end flow verified (Session 45) | MainMenu button wired |
 
 ---
 
