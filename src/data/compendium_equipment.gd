@@ -165,13 +165,13 @@ static func get_trade_phase_items_with_lock_status() -> Array:
 static func get_advancement_phase_items() -> Array:
 	var items: Array = []
 	for item in get_advanced_training():
-		var tagged := item.duplicate()
+		var tagged: Dictionary = item.duplicate()
 		tagged["compendium_category"] = "training"
 		items.append(tagged)
 	for item in get_bot_upgrades():
-		var tagged := item.duplicate()
-		tagged["compendium_category"] = "bot_upgrade"
-		items.append(tagged)
+		var tagged_bot: Dictionary = item.duplicate()
+		tagged_bot["compendium_category"] = "bot_upgrade"
+		items.append(tagged_bot)
 	return items
 
 

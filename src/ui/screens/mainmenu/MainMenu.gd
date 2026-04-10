@@ -9,6 +9,7 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 @onready var battle_simulator_button = %BattleSimulator as Button
 @onready var bug_hunt_button = %BugHunt as Button
 var tactics_button: Button
+var planetfall_button: Button
 @onready var options_button = %Options as Button
 @onready var library_button = %Library as Button
 @onready var tutorial_popup = %TutorialPopup as Panel
@@ -106,6 +107,7 @@ func _connect_tutorial_signals() -> void:
 
 func setup_ui() -> void:
 	_inject_tactics_button()
+	_inject_planetfall_button()
 	_connect_buttons()
 	_enforce_touch_targets()
 	add_fade_in_animation()
@@ -125,11 +127,27 @@ func _inject_tactics_button() -> void:
 	menu_container.add_child(tactics_button)
 	menu_container.move_child(tactics_button, idx)
 
+func _inject_planetfall_button() -> void:
+	# Dynamically add Planetfall button after Tactics
+	var anchor: Button = tactics_button if tactics_button else bug_hunt_button
+	if not anchor:
+		return
+	var menu_container := anchor.get_parent()
+	if not menu_container:
+		return
+	planetfall_button = Button.new()
+	planetfall_button.name = "Planetfall"
+	planetfall_button.text = "Planetfall"
+	planetfall_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var idx := anchor.get_index() + 1
+	menu_container.add_child(planetfall_button)
+	menu_container.move_child(planetfall_button, idx)
+
 func _enforce_touch_targets() -> void:
 	# Ensure all menu buttons meet TOUCH_TARGET_MIN (48px)
 	for btn in [continue_button, load_campaign_button, new_campaign_button,
 			coop_campaign_button, battle_simulator_button, bug_hunt_button,
-			tactics_button, options_button, library_button]:
+			tactics_button, planetfall_button, options_button, library_button]:
 		if btn:
 			btn.custom_minimum_size.y = maxf(btn.custom_minimum_size.y, 48.0)
 
@@ -148,6 +166,8 @@ func _connect_buttons() -> void:
 		_safe_connect(bug_hunt_button, "pressed", _on_bug_hunt_pressed)
 	if tactics_button:
 		_safe_connect(tactics_button, "pressed", _on_tactics_pressed)
+	if planetfall_button:
+		_safe_connect(planetfall_button, "pressed", _on_planetfall_pressed)
 	if options_button:
 		_safe_connect(options_button, "pressed", _on_options_pressed)
 	if library_button:
@@ -831,6 +851,150 @@ func _load_tactics_save(path: String) -> void:
 				"message", "Unknown error"))
 
 
+func _on_planetfall_pressed() -> void:
+	var pf_saves := _find_planetfall_saves()
+	if pf_saves.is_empty():
+		request_scene_change("planetfall_creation")
+		return
+
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.name = "__pf_backdrop"
+	add_child(backdrop)
+
+	var dialog := AcceptDialog.new()
+	dialog.title = "Planetfall"
+	dialog.ok_button_text = "Cancel"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1A1A2E")
+	panel_style.border_color = Color("#3A3A5C")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(6)
+	panel_style.content_margin_left = 16
+	panel_style.content_margin_right = 16
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override("font_color", Color("#E0E0E0"))
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.custom_minimum_size = Vector2(400, 0)
+
+	var info_lbl := Label.new()
+	info_lbl.text = "Found %d Planetfall campaign(s)." % pf_saves.size()
+	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info_lbl.add_theme_color_override("font_color", Color("#E0E0E0"))
+	vbox.add_child(info_lbl)
+
+	var latest: Dictionary = pf_saves[0]
+	var continue_btn := Button.new()
+	continue_btn.text = "Continue: %s (Turn %d)" % [
+		latest.get("name", "Unknown"), int(latest.get("turn", 0))]
+	continue_btn.custom_minimum_size.y = 48
+	continue_btn.pressed.connect(func():
+		var p: String = latest.get("path", "")
+		dialog.queue_free()
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+		get_tree().create_timer(0.05).timeout.connect(
+			func(): _load_planetfall_save(p))
+	)
+	vbox.add_child(continue_btn)
+
+	if pf_saves.size() > 1:
+		for i in range(1, mini(pf_saves.size(), 4)):
+			var save_info: Dictionary = pf_saves[i]
+			var load_btn := Button.new()
+			load_btn.text = "Load: %s (Turn %d)" % [
+				save_info.get("name", "Unknown"),
+				int(save_info.get("turn", 0))]
+			load_btn.custom_minimum_size.y = 44
+			var path_ref: String = save_info.get("path", "")
+			load_btn.pressed.connect(func():
+				dialog.queue_free()
+				if is_instance_valid(backdrop):
+					backdrop.queue_free()
+				var pr: String = path_ref
+				get_tree().create_timer(0.05).timeout.connect(
+					func(): _load_planetfall_save(pr))
+			)
+			vbox.add_child(load_btn)
+
+	var new_btn := Button.new()
+	new_btn.text = "New Planetfall Campaign"
+	new_btn.custom_minimum_size.y = 48
+	new_btn.pressed.connect(func():
+		dialog.queue_free()
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+		get_tree().create_timer(0.05).timeout.connect(
+			func(): request_scene_change("planetfall_creation"))
+	)
+	vbox.add_child(new_btn)
+
+	dialog.add_child(vbox)
+	dialog.confirmed.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
+	dialog.canceled.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
+	add_child(dialog)
+	_active_dialogs.append(dialog)
+	dialog.popup_centered()
+
+
+func _find_planetfall_saves() -> Array:
+	var saves: Array = []
+	var dir := DirAccess.open("user://saves/")
+	if not dir:
+		return saves
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while not file_name.is_empty():
+		if not dir.current_is_dir() and file_name.ends_with(".save"):
+			var path := "user://saves/" + file_name
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file:
+				var text := file.get_as_text()
+				file.close()
+				var data = JSON.parse_string(text)
+				if data is Dictionary \
+						and data.get("campaign_type", "") == "planetfall":
+					var meta: Dictionary = data.get("meta", {})
+					var progression: Dictionary = data.get("progression", {})
+					saves.append({
+						"path": path,
+						"name": data.get("campaign_name",
+							meta.get("campaign_name", file_name)),
+						"turn": progression.get("campaign_turn",
+							data.get("campaign_turn", 0)),
+						"modified": FileAccess.get_modified_time(path)
+					})
+		file_name = dir.get_next()
+	dir.list_dir_end()
+	saves.sort_custom(func(a, b): return a.modified > b.modified)
+	return saves
+
+
+func _load_planetfall_save(path: String) -> void:
+	var PCC = load("res://src/game/campaign/PlanetfallCampaignCore.gd")
+	var campaign = PCC.load_from_file(path)
+	if not campaign:
+		show_message("Failed to load Planetfall save.")
+		return
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("set_current_campaign"):
+		gs.set_current_campaign(campaign)
+		request_scene_change("planetfall_dashboard")
+	else:
+		show_message("Game state not available.")
+
+
 func _on_options_pressed() -> void:
 	request_scene_change("options")
 
@@ -1075,6 +1239,9 @@ func request_scene_change(scene_name: String) -> void:
 		"tactics_creation": "tactics_creation",
 		"tactics_dashboard": "tactics_dashboard",
 		"tactics_turn_controller": "tactics_turn_controller",
+		"planetfall_creation": "planetfall_creation",
+		"planetfall_dashboard": "planetfall_dashboard",
+		"planetfall_turn_controller": "planetfall_turn_controller",
 		"battle_simulator": "battle_simulator",
 		"compendium": "compendium",
 		"help": "help",

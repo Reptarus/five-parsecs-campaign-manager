@@ -92,6 +92,7 @@ func _initialize() -> void:
 	_create_phase_manager()
 	_create_panels()
 	_connect_signals()
+	_start_or_resume_turn()
 
 
 func _init_progression_systems() -> void:
@@ -102,17 +103,19 @@ func _init_progression_systems() -> void:
 	_lifeform_gen = LifeformGenScript.new()
 	_enemy_gen = TacticalEnemyGenScript.new()
 
-	# Check if returning from battle
-	var gs_mgr = get_node_or_null("/root/GameStateManager")
-	var battle_result = null
-	if gs_mgr and gs_mgr.has_method("get_temp_data"):
-		battle_result = gs_mgr.get_temp_data("planetfall_battle_result")
 
+func _start_or_resume_turn() -> void:
 	# Check for endgame/completed — show EndGamePanel instead of turn flow
 	var gp: String = campaign.game_phase if "game_phase" in campaign else ""
 	if gp == "endgame" or gp == "completed":
 		_show_endgame_panel()
 		return
+
+	# Check if returning from battle
+	var gs_mgr = get_node_or_null("/root/GameStateManager")
+	var battle_result = null
+	if gs_mgr and gs_mgr.has_method("get_temp_data"):
+		battle_result = gs_mgr.get_temp_data("planetfall_battle_result")
 
 	if battle_result is Dictionary and not battle_result.is_empty():
 		_resume_after_battle(battle_result)

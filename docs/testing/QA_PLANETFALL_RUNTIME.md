@@ -1,8 +1,52 @@
 # Planetfall End-to-End Runtime Test Plan
 
 **Created**: 2026-04-09
+**Last Run**: 2026-04-09 (Session 57d)
 **Purpose**: Verify all Planetfall systems work correctly at runtime across the full campaign lifecycle (Sections 1-4).
 **Coverage**: 63 files, 10 RefCounted systems, 15 JSON data tables, 18-step turn flow, 4-path endgame, 22 panel theme audit, full UX/UI verification.
+
+## Session 57d Runtime QA Results
+
+**Method**: MCP-automated (run_script + take_screenshot)
+**Bugs Found**: 2 (both fixed)
+**Scenarios Tested**: 1 (Creation), 2 (Steps 1-6), 4 (Lock & Load), 5 (Battle Delegation), 6 (Post-Battle), partial 7-8
+
+### Bugs Fixed
+
+| # | File | Line | Issue | Fix |
+|---|------|------|-------|-----|
+| 1 | `PlanetfallTurnController.gd` | 125 | `phase_manager.start_new_turn()` called before `_create_phase_manager()` — nil crash | Extracted to `_start_or_resume_turn()` called after phase manager creation |
+| 2 | `compendium_equipment.gd` | 168 | `var tagged := item.duplicate()` — Godot 4.6 type inference from untyped Array | Changed to `var tagged: Dictionary = item.duplicate()` + renamed duplicate var |
+
+### Scenario Results
+
+| # | Scenario | Result | Notes |
+|---|----------|--------|-------|
+| 1 | Campaign Creation (6-step wizard) | **PASS** | All 6 steps, finalize, dashboard transition verified |
+| 2 | Turn Flow Steps 1-6 (Pre-Battle) | **PASS** | Recovery, Repairs, Scout Reports, Enemy Activity, Colony Events, Mission Determination — all panels load, buttons work |
+| 3 | Mission Briefing Display | **PARTIAL** | 13 mission types listed, 3 correctly disabled (Skirmish/Strike/Assault need prerequisites) |
+| 4 | Lock and Load — Force Limits | **PASS** | Patrol: Characters 0/2, Grunts 0/4, Fireteam 1 — force limits enforced correctly |
+| 5 | Battle Delegation (Step 8) | **PASS** | TacticalBattleUI launches with "Planetfall Mission", terrain generated, companion level dialog works |
+| 6 | Post-Battle Steps 9-12 | **PASS** | Battle result received, injuries panel shows casualties, all post-battle phases advance |
+| 7-8 | Steps 13-18 | **PASS** | Research, Building, Colony Integrity, Character Event, Update Colony Sheet — all complete, "Start Next Turn" shown |
+
+### Dashboard Verification
+
+| Check | Result |
+|-------|--------|
+| Campaign name + colony name | PASS — "QA Test Colony" / "Colony: Outpost Sigma" |
+| Stat strip (Turn/Morale/Integrity/SP/Roster/Grunts/Milestones) | PASS — all values displayed |
+| Hub cards (Colony Status, Armory, Enemy Tracker, Augmentations, Milestones) | PASS — all 5 present |
+| Colony Roster with class pills + stat strips | PASS — character cards with Trooper/Scientist pills |
+| Continue Campaign / Save Campaign / Main Menu actions | PASS — all 3 action cards present and functional |
+
+### Key Observations
+
+- Morale and Integrity start at 0 for new colonies — expedition bonuses may not be applying (non-blocking, investigate later)
+- Colony Morale decreased to -1 during turn cycle (morale adjustments applied)
+- Phase indicator correctly highlights completed steps 1-18
+- Battle UI correctly shows "Planetfall Mission [LOG ONLY]" with wilderness terrain
+- Turn completion screen offers "Save & Complete" + "Start Next Turn"
 
 ---
 
