@@ -5,7 +5,7 @@ signal character_created(character)
 signal character_edited(character)
 signal creation_cancelled
 
-const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
+const FiveParsecsCharacter = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
 const FiveParsecsCharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
 const StartingEquipmentGen = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
