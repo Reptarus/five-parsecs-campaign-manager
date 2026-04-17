@@ -704,11 +704,13 @@ func _instance_log_only_components() -> void:
 	# Connect component signals to journal logging
 	_connect_component_signals()
 
-	# Instance ASSISTED tier components (hidden by tab visibility)
-	_instance_assisted_components()
-
-	# Instance FULL_ORACLE tier components (hidden by tab visibility)
-	_instance_oracle_components()
+	# Tier-conditional component instantiation (Phase 58 fix)
+	# Only instantiate higher-tier components if the tier warrants it.
+	# Previously all tiers got all components, making LOG_ONLY identical to ASSISTED.
+	if tier_controller and tier_controller.current_tier >= 1:
+		_instance_assisted_components()
+	if tier_controller and tier_controller.current_tier >= 2:
+		_instance_oracle_components()
 
 func _build_quick_dice_bar() -> void:
 	## Build a persistent quick dice bar at the bottom of the right panel.
@@ -1192,13 +1194,80 @@ func _on_checklist_completed() -> void:
 	)
 
 func _on_checklist_dismissed() -> void:
-	## Player clicked Begin Battle — transition to deployment
+	## Player clicked Begin Battle — transition depends on tier
+	if tier_controller and tier_controller.current_tier == 0:
+		# LOG_ONLY: Skip deployment and combat, show results input form
+		_show_log_only_results_form()
+		return
 	_apply_stage_visibility(BattleStage.DEPLOYMENT)
 	_update_action_buttons_for_deployment()
 	_log_message(
 		"Deploy your crew in the deployment zone",
 		UIColors.COLOR_CYAN
 	)
+
+## LOG_ONLY Results Form (Phase 58)
+
+var _log_only_results_form: Control = null
+
+func _show_log_only_results_form() -> void:
+	## Show the battle results input form for LOG_ONLY tier.
+	## Skips deployment and combat — player enters outcomes directly.
+	var FormClass = load(
+		"res://src/ui/components/battle/BattleResultsInputForm.gd")
+	_log_only_results_form = FormClass.new()
+
+	# Gather crew data from units or stored mission data
+	var crew_data: Array = []
+	for unit in crew_units:
+		if unit.original_character:
+			crew_data.append(unit.original_character)
+		else:
+			crew_data.append({
+				"character_name": unit.unit_name,
+				"combat": unit.combat_skill,
+				"reactions": unit.reactions,
+				"toughness": unit.toughness,
+				"speed": unit.speed,
+			})
+	if crew_data.is_empty() and not _stored_mission_data is Dictionary:
+		crew_data = [{"character_name": "Crew", "combat": 1, "reactions": 1,
+			"toughness": 3, "speed": 4}]
+
+	var enemy_count: int = enemy_units.size()
+	if enemy_count == 0:
+		enemy_count = 8
+
+	_log_only_results_form.setup(
+		crew_data, enemy_count,
+		_stored_mission_data if _stored_mission_data is Dictionary else {})
+	_log_only_results_form.results_submitted.connect(
+		_on_log_only_results_submitted)
+
+	# Show form in center panel, hide combat-specific UI
+	current_stage = BattleStage.COMBAT
+	if left_panel: left_panel.visible = false
+	if center_panel:
+		center_panel.visible = true
+		# Hide battlefield grid, show form in its place
+		if battlefield_grid_panel: battlefield_grid_panel.visible = false
+		if phase_content_panel: phase_content_panel.visible = false
+		# Add form directly to center panel for full-height layout
+		center_panel.add_child(_log_only_results_form)
+	if right_panel: right_panel.visible = true
+	if right_tabs: right_tabs.current_tab = 1 # Tools tab
+	if bottom_bar: bottom_bar.visible = false
+	if battle_round_hud: battle_round_hud.visible = false
+	if return_button: return_button.visible = true
+	if auto_resolve_button: auto_resolve_button.visible = false
+	if turn_indicator:
+		turn_indicator.text = "Enter your battle results"
+
+func _on_log_only_results_submitted(result: Dictionary) -> void:
+	## Handle LOG_ONLY form submission — transition to resolution
+	_log_message("Battle results recorded", UIColors.COLOR_EMERALD)
+	_apply_stage_visibility(BattleStage.RESOLUTION)
+	tactical_battle_completed.emit(result)
 
 ## Tier Visibility
 

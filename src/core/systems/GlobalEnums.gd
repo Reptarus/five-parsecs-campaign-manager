@@ -77,6 +77,24 @@ enum CampaignSubPhase {
 	MISSION_SELECTION
 }
 
+enum PostBattleSubPhase {
+	NONE,
+	RIVAL_STATUS,
+	PATRON_STATUS,
+	QUEST_PROGRESS,
+	GET_PAID,
+	BATTLEFIELD_FINDS,
+	CHECK_INVASION,
+	GATHER_LOOT,
+	INJURIES,
+	EXPERIENCE,
+	TRAINING,
+	PURCHASES,
+	CAMPAIGN_EVENT,
+	CHARACTER_EVENT,
+	GALACTIC_WAR
+}
+
 const PHASE_NAMES = {
 	FiveParcsecsCampaignPhase.NONE: "None",
 	FiveParcsecsCampaignPhase.SETUP: "Setup",

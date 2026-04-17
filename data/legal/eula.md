@@ -1,7 +1,7 @@
 # End User License Agreement
 
 **Version 1.0**
-**Last Updated: [DATE OF RELEASE]**
+**Last Updated: April 2026**
 
 This End User License Agreement ("Agreement") is a legal agreement between you ("User") and ReptarusOnIce ("Developer") for the use of the Five Parsecs Campaign Manager application ("App").
 

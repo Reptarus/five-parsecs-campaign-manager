@@ -52,6 +52,9 @@ var _cached_global_enums = null
 # Helper method for validated enum string conversion
 func _get_validated_enum_string(value: Variant, enum_type: String, default: String) -> String:
 	## Production-safe enum validation with defensive GlobalEnums access
+	# If value is already a String, accept it directly (e.g. Strange Character species names)
+	if value is String:
+		return value if not value.is_empty() else default
 	# Try cached reference first (fastest path)
 	if _cached_global_enums != null:
 		@warning_ignore("unsafe_method_access")
@@ -105,6 +108,12 @@ var combat_skill: int:
 	set(value): combat = value
 
 @export var reactions: int = 0
+
+# Bridge alias: CharacterCreator and BaseCharacterResource use singular 'reaction'
+var reaction: int:
+	get: return reactions
+	set(value): reactions = value
+
 @export var toughness: int = 0
 @export var savvy: int = 0
 @export var tech: int = 0

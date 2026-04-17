@@ -149,7 +149,7 @@ var _motivation_d100: Dictionary = {}
 var _origin_species_ids: Array[String] = []
 
 func _init() -> void:
-	current_character = FiveParsecsCharacter.new()
+	current_character = Character.new()
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -281,7 +281,7 @@ func edit_character(character: FiveParsecsCharacter) -> void:
 	show()
 
 func clear() -> void:
-	current_character = FiveParsecsCharacter.new()
+	current_character = Character.new()
 	_set_base_stats()
 	if creator_mode == CreatorMode.CAPTAIN:
 		_setup_captain_bonuses()
@@ -1130,25 +1130,25 @@ func _sync_ui_from_character() -> void:
 		name_input.text = _get_character_property(
 			current_character, "character_name", "")
 	if origin_options:
-		var origin_val: int = _get_character_property(
+		var origin_val = _get_character_property(
 			current_character, "origin", 0)
 		origin_options.select(
-			_find_item_by_id(origin_options, origin_val))
+			_find_item_by_value(origin_options, origin_val))
 	if background_options:
-		var bg_val: int = _get_character_property(
+		var bg_val = _get_character_property(
 			current_character, "background", 0)
 		background_options.select(
-			_find_item_by_id(background_options, bg_val))
+			_find_item_by_value(background_options, bg_val))
 	if class_options:
-		var cls_val: int = _get_character_property(
+		var cls_val = _get_character_property(
 			current_character, "character_class", 0)
 		class_options.select(
-			_find_item_by_id(class_options, cls_val))
+			_find_item_by_value(class_options, cls_val))
 	if motivation_options:
-		var mot_val: int = _get_character_property(
+		var mot_val = _get_character_property(
 			current_character, "motivation", 0)
 		motivation_options.select(
-			_find_item_by_id(motivation_options, mot_val))
+			_find_item_by_value(motivation_options, mot_val))
 	if confirm_btn:
 		confirm_btn.disabled = not _validate_character()
 
@@ -1157,6 +1157,19 @@ func _find_item_by_id(btn: OptionButton, id: int) -> int:
 		if btn.get_item_id(i) == id:
 			return i
 	return 0
+
+func _find_item_by_value(btn: OptionButton, value) -> int:
+	# Handle String values (enum names from Character properties)
+	if value is String:
+		for i in range(btn.item_count):
+			if btn.get_item_text(i) == value:
+				return i
+			# Also check uppercase enum key vs display text
+			if btn.get_item_text(i).to_upper().replace(" ", "_").replace("'", "") == value:
+				return i
+		return 0
+	# Handle int values (enum ordinals)
+	return _find_item_by_id(btn, value as int)
 
 func _get_portrait_size() -> int:
 	var vp = get_viewport()
@@ -1227,7 +1240,7 @@ func _update_preview() -> void:
 	bbcode += "[color=yellow]Luck:[/color] %d\n" % current_character.luck
 
 	# Psionic powers (Compendium pp.19-22)
-	if current_character and not current_character.psionic_powers.is_empty():
+	if current_character and "psionic_powers" in current_character and not current_character.psionic_powers.is_empty():
 		bbcode += "\n[color=#4FC3F7]Psionic Powers:[/color]\n"
 		var psi_data: Dictionary = _load_psionic_powers()
 		for pid in current_character.psionic_powers:

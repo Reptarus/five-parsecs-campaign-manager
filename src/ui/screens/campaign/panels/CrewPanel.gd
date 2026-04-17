@@ -382,7 +382,10 @@ func _card_style() -> StyleBoxFlat:
 	style.set_content_margin_all(12)
 	return style
 
-func _enum_value_name(enum_dict: Dictionary, value: int) -> String:
+func _enum_value_name(enum_dict: Dictionary, value) -> String:
+	# Handle String values (Character stores enums as Strings)
+	if value is String:
+		return value.replace("_", " ").capitalize() if not value.is_empty() else "Unknown"
 	for key in enum_dict:
 		if enum_dict[key] == value:
 			return key.capitalize()

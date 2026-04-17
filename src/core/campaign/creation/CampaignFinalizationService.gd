@@ -394,11 +394,14 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var crew_members_for_bonus = crew_data.get("members", [])
 	for member in crew_members_for_bonus:
 		if member is Dictionary:
-			var m: int = member.get("motivation", 0)
-			if m == GlobalEnums.Motivation.WEALTH:
-				total_credits += randi_range(1, 6)  # +1D6 credits per Core Rules
-			elif m == GlobalEnums.Motivation.FAME:
-				motivation_story_bonus += 1  # +1 story point
+			var m = member.get("motivation", 0)
+			# Handle both String and int motivation values
+			var is_wealth: bool = (m is String and m == "WEALTH") or (m is int and m == GlobalEnums.Motivation.WEALTH)
+			var is_fame: bool = (m is String and m == "FAME") or (m is int and m == GlobalEnums.Motivation.FAME)
+			if is_wealth:
+				total_credits += randi_range(1, 6)
+			elif is_fame:
+				motivation_story_bonus += 1
 
 	# DATA MAPPING FIX: Coordinator stores patrons/rivals in crew dict, not resources
 	# Fall back to crew_data if resources dict doesn't have them
