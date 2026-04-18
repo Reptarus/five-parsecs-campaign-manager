@@ -427,9 +427,13 @@ static func _execute_unit_attacks(
 				"weapon_id": str(weapon.get("id", ""))
 			})
 
-		# Apply damage if hit
-		if attack_result["hit"] and not attack_result.get("armor_saved", false):
-			var damage: int = attack_result.get("wounds_inflicted", 1)
+		# Apply damage if hit and not saved (check BOTH armor and screen saves)
+		var was_saved: bool = attack_result.get("armor_saved", false) or attack_result.get("screen_saved", false)
+		if attack_result["hit"] and not was_saved:
+			# Core Rules: an unsaved hit always causes at least 1 wound.
+			# calculate_damage_after_armor can return 0 when weapon damage <= toughness,
+			# but in Five Parsecs a failed save = casualty, so minimum 1 wound per hit.
+			var damage: int = maxi(1, int(attack_result.get("wounds_inflicted", 1)))
 			if not target.has("hp_current"):
 				target["hp_current"] = target.get("toughness", DEFAULT_TOUGHNESS)
 			target["hp_current"] -= damage
@@ -470,7 +474,7 @@ static func _execute_unit_attacks(
 					"type": "stunned",
 					"target": target.get("name", "Unknown")
 				})
-		elif attack_result["hit"] and attack_result.get("armor_saved", false):
+		elif attack_result["hit"] and was_saved:
 			# Stun still applies even when saved — Core Rules p.51
 			if "stun" in attack_result.get("effects", []):
 				target["is_stunned"] = true

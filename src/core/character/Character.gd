@@ -580,11 +580,13 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 ## Strange Character helper methods (Core Rules pp.19-22)
 
 func can_receive_luck() -> bool:
-	## Emo-suppressed and bot types cannot receive Luck
+	## Bots, Soulless, and Emo-suppressed cannot receive Luck (Core Rules p.15)
+	if is_bot or is_soulless:
+		return false
 	var sid := species_id.to_lower()
 	if sid.is_empty():
 		return true
-	return sid != "emo_suppressed" and sid != "bot" and sid != "assault_bot"
+	return sid != "emo_suppressed" and sid != "bot" and sid != "assault_bot" and sid != "soulless"
 
 func can_earn_xp() -> bool:
 	## Bots cannot earn XP (Core Rules p.15)
@@ -1294,7 +1296,10 @@ func to_dictionary() -> Dictionary:
 		"species_id": species_id,
 		"special_rules": special_rules.duplicate(),
 		"xp_discount_stat": xp_discount_stat,
-		"unity_agent_trait_lost": unity_agent_trait_lost
+		"unity_agent_trait_lost": unity_agent_trait_lost,
+		# Bot/Soulless flags (must persist through save/load)
+		"is_bot": is_bot,
+		"is_soulless": is_soulless
 	}
 
 func _deserialize_enhanced_property(property_name: String, serialized_data: Variant) -> String:
@@ -1466,3 +1471,7 @@ func from_dictionary(data: Dictionary) -> void:
 	for rule in rules_data:
 		if rule is String:
 			special_rules.append(rule)
+
+	# Bot/Soulless flags (must persist through save/load)
+	is_bot = data.get("is_bot", false)
+	is_soulless = data.get("is_soulless", false)

@@ -1,8 +1,13 @@
 Five Parsecs Campaign Manager — Internal Testing Build
 ======================================================
 Version: 0.9.7-dev
-Date: April 16, 2026
+Date: April 17, 2026
 Engine: Godot 4.6-stable (Windows x86_64)
+
+Build Notes (April 17 update):
+- Fixed battle auto-resolve infinite loop (battles now resolve correctly)
+- Fixed screen saves being incorrectly bypassed in combat resolution
+- 125/125 battle system tests passing
 
 RUNNING THE APP
 ---------------
