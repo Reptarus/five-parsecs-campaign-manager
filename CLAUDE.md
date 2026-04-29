@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-04-09
+**Last Updated**: 2026-04-28
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -681,13 +681,13 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 ### Python Tools
 
 Python 3.14.2 is available via `py` launcher (NOT `python` — Windows app alias blocks that).
-Installed PDF libraries:
 
-- **PyPDF2** 3.0.1 — PDF text extraction, page manipulation
-- **PyMuPDF** 1.27.1 (fitz) — Fast PDF rendering, text extraction, image extraction
+**ALL rules data MUST be extracted from the PDFs via PyPDF2.** This is the only PDF tool used in this project — do NOT install or reference PyMuPDF, fitz, pdfplumber, or any other library.
+
+- **PyPDF2** 3.0.1 — the canonical and ONLY PDF extraction tool
 
 Use for: extracting game data values from rulebook PDFs, verifying text extractions, batch PDF operations.
-Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home-Compendium.pdf'); print(doc[5].get_text())"`
+Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Parsecs From Home-Compendium.pdf'); print(r.pages[5].extract_text())"`
 
 ---
 
@@ -734,7 +734,7 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **NEVER create duplicate data sources**: If a value already exists in a JSON file, load it from there. Do not create a parallel constant in GDScript. Single Source of Truth: JSON file is canonical for each data domain.
 - **All data changes require book page citation**: Include the Core Rules page number in commit messages when modifying game data. Example: `"Fix Infantry Laser range to 30" (Core Rules p.50)"`
 - **Data Source Authority Hierarchy (absolute, no exceptions)**:
-  1. **Core Rules PDF + Compendium PDF** — Word of God. Always right. Extract with `py -c "import fitz; ..."`
+  1. **Core Rules PDF + Compendium PDF** — Word of God. Always right. Extract with `py -c "from PyPDF2 import PdfReader; r = PdfReader('...'); print(r.pages[PAGE].extract_text())"` (PyPDF2 ONLY — no PyMuPDF/fitz)
   2. `data/RulesReference/*.json` — Direct extractions from the PDFs. Trust these, but verify against PDF if suspicious
   3. Dedicated JSON data file in `data/` — May have errors introduced by agents
   4. GDScript constants file — Lowest code authority
@@ -805,6 +805,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **Equipment data sources**: `gear_database.json` = D100 tables for character creation (backgrounds, weapon_tables, starting_rolls). `equipment_database.json` = weapon/armor/gear STATS (range, shots, damage, traits). These are separate files with different purposes
 - **Trade sell value is flat**: Core Rules p.125 — items sell for 1 credit each. No condition tiers, no quality multipliers, no percentage-of-purchase formulas
 - **`get_crew_size()` ≠ `get_campaign_crew_size()`**: `get_crew_size()` returns the fluctuating roster count (for upkeep, travel). `get_campaign_crew_size()` returns the fixed 4/5/6 setting chosen at creation (Core Rules p.63) — used for enemy count dice formula, deployment cap, reaction dice, stealth sentries (Compendium p.124), and salvage tension (Compendium p.141). NEVER use roster count where the setting is required
+- **Project-level perf settings (Session 59, Apr 28)**: `project.godot` has `[application] run/max_fps=60` and `[physics] common/physics_ticks_per_second=30`. Do NOT bump physics rate back to 60 unless adding real-time physics gameplay (none today — battles are turn-based, no RigidBody2D updates per frame). FPS cap applies to high-refresh displays; expose via Settings UI later if needed.
+- **`Assets/BookImages/` is gitignored**: capital-A directory is excluded as "large art assets." On Windows (case-insensitive FS), edits to `assets/BookImages/` (lowercase) match the same files locally but git treats them as ignored. Bulk import-config edits won't show in `git status`. Plan accordingly when changing texture compression for those files.
+- **Lazy-init autoload pattern (Session 59)**: `GalacticWarManager.gd` and `ReviewManager.gd` defer `_ready()` work to first public access via `_ensure_initialized()` / `_ensure_platform_initialized()`. When extending: any new public method must call the guard first; any `load_save_data()` MUST set `_initialized = true` BEFORE applying data so lazy-init can't overwrite restored state.
 
 ---
 

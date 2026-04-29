@@ -5,7 +5,7 @@
 
 ## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
 
-The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
+The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. **All agents extract from the PDFs using PyPDF2 ONLY** — do NOT use PyMuPDF/fitz. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/...'); print(r.pages[PAGE].extract_text())"`.
 
 ## Session 49: UX Polish Sprint (Apr 8, 2026)
 
@@ -169,8 +169,8 @@ All agents can now extract data directly from source PDFs — route data verific
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
-- **Python**: `py` launcher (NOT `python`), PyMuPDF 1.27.1 (fitz) installed
-- **Example**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
+- **Python (PyPDF2 ONLY)**: `py` launcher (NOT `python`). PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz.
+- **Example**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"`
 
 ---
 

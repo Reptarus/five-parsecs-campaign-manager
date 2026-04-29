@@ -33,9 +33,12 @@ var _review_in_progress: bool = false
 ## Flag set after a DLC purchase — prompt review on next turn completion.
 var _purchased_recently: bool = false
 
+var _platform_initialized: bool = false
+
 func _ready() -> void:
 	_platform = _detect_platform()
-	_init_platform()
+	# Lazy-init: defer the plugin/Steam singleton wiring until first use.
+	# Signal connections + prefs MUST run now so turn-completion auto-prompts work.
 	_load_prefs()
 	_connect_game_signals()
 
@@ -54,6 +57,12 @@ func _detect_platform() -> String:
 			return "offline"
 		_:
 			return "offline"
+
+func _ensure_platform_initialized() -> void:
+	if _platform_initialized:
+		return
+	_platform_initialized = true
+	_init_platform()
 
 func _init_platform() -> void:
 	match _platform:
@@ -114,6 +123,7 @@ func request_review() -> void:
 	## Respects cooldown — call can_request_review() to check eligibility.
 	if _review_in_progress:
 		return
+	_ensure_platform_initialized()
 	match _platform:
 		"mobile":
 			if _review_node and _review_node.has_method("generate_review_info"):

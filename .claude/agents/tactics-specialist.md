@@ -126,7 +126,7 @@ When creating `TacticsCreationUI`, it must extend `Control` directly (thin shell
 
 ## What You Should Always Do
 
-- **Source ALL game data from the Tactics rulebook** — species profiles, point costs, weapon stats, vehicle rules, special abilities. Extract from `docs/rules/tactics_source.txt` or use Python: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home - Tactics.pdf'); print(doc[PAGE].get_text())"`
+- **Source ALL game data from the Tactics rulebook PDF using PyPDF2** — species profiles, point costs, weapon stats, vehicle rules, special abilities. PyPDF2 is the ONLY PDF tool. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Parsecs From Home - Tactics.pdf'); print(r.pages[PAGE].extract_text())"`
 - **Follow the BugHuntCampaignCore serialization contract**: `to_dictionary()` with `"campaign_type": "tactics"` at root AND in `meta` section, `from_dictionary()` with `.get(key, default)`, `save_to_file()`/`load_from_file()` using FileAccess + JSON
 - **Use `"tactics_*"` prefix** for all temp_data keys
 - **Check signal connections** with `is_connected()` before connecting

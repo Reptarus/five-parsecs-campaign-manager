@@ -467,6 +467,11 @@ func _apply_stage_visibility(stage: int) -> void:
 	# Update breadcrumb
 	_update_breadcrumb(stage)
 
+	# EDIT 17: enable map drag-drop only during DEPLOYMENT (positions are
+	# player-managed on the physical table during COMBAT).
+	if battlefield_grid_panel and battlefield_grid_panel.has_method("set_allow_unit_drag"):
+		battlefield_grid_panel.set_allow_unit_drag(stage == BattleStage.DEPLOYMENT)
+
 	match stage:
 		BattleStage.TIER_SELECT:
 			# Only overlay visible — everything else hidden
@@ -791,6 +796,56 @@ func _build_quick_dice_bar() -> void:
 	_quick_dice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	dice_bar.add_child(_quick_dice_label)
 
+func _on_unit_right_clicked(unit_idx: int, screen_pos: Vector2) -> void:
+	## Right-click on a unit token → context menu for marking casualty.
+	## Increments BattleRoundHUD's casualty counter so morale prompt fires correctly.
+	var menu := PopupMenu.new()
+	menu.add_item("Mark Wounded", 0)
+	menu.add_item("Mark Dead", 1)
+	menu.add_separator()
+	menu.add_item("Show Details", 2)
+	menu.id_pressed.connect(func(id: int) -> void:
+		match id:
+			0:
+				if unified_log and unified_log.has_method("add_entry"):
+					unified_log.add_entry("INJURY", "Unit %d marked Wounded" % unit_idx, {})
+			1:
+				if battle_round_hud and battle_round_hud.has_method("report_casualty"):
+					battle_round_hud.report_casualty()
+				if unified_log and unified_log.has_method("add_entry"):
+					unified_log.add_entry("INJURY", "Unit %d marked Dead" % unit_idx, {})
+			2:
+				if unified_log and unified_log.has_method("add_entry"):
+					unified_log.add_entry("INFO", "Unit %d details" % unit_idx, {})
+		menu.queue_free()
+	)
+	add_child(menu)
+	menu.position = Vector2i(screen_pos)
+	menu.popup()
+
+func _on_round_hud_roll_dice() -> void:
+	## Player clicked the "Roll Dice" button on the auto-prompt.
+	## Pick a sensible phase-appropriate dice pattern and run it through
+	## the existing _on_quick_dice_pressed handler so it logs identically.
+	if not round_tracker:
+		return
+	var current_round_num: int = round_tracker.get_current_round() if round_tracker.has_method("get_current_round") else 1
+	var current_phase_idx: int = round_tracker.get_current_phase() if round_tracker.has_method("get_current_phase") else 0
+	match current_phase_idx:
+		0:  # REACTION_ROLL
+			_on_quick_dice_pressed(1, 6, "Reaction roll")
+		2:  # ENEMY_ACTIONS — no inherent roll, but allow 1D6 for enemy targeting
+			_on_quick_dice_pressed(1, 6, "Enemy roll")
+		4:  # END_PHASE
+			if current_round_num == 2 or current_round_num == 4:
+				_on_quick_dice_pressed(1, 100, "Battle event (Core Rules p.116)")
+			elif current_round_num > 4:
+				_on_quick_dice_pressed(1, 6, "Escalation check")
+			else:
+				_on_quick_dice_pressed(1, 6, "Morale check")
+		_:
+			_on_quick_dice_pressed(1, 6, "Quick roll")
+
 func _on_quick_dice_pressed(count: int, sides: int, label: String) -> void:
 	## Roll dice from the quick dice bar
 	var dice_mgr = get_node_or_null("/root/DiceManager")
@@ -1066,6 +1121,9 @@ func _connect_component_signals() -> void:
 		battle_round_hud.next_phase_requested.connect(
 			_on_advance_phase_pressed
 		)
+		if battle_round_hud.has_signal("roll_dice_requested") \
+				and not battle_round_hud.roll_dice_requested.is_connected(_on_round_hud_roll_dice):
+			battle_round_hud.roll_dice_requested.connect(_on_round_hud_roll_dice)
 
 	# WeaponTableDisplay — weapon reference selection
 	if weapon_table_display and unified_log:
@@ -1294,6 +1352,44 @@ func _apply_tier_visibility(tier: int) -> void:
 			1: tier_badge.text = "[ASSISTED]"
 			2: tier_badge.text = "[FULL ORACLE]"
 
+	# EDIT 12: process_mode optimization — disable processing for hidden tab content
+	_apply_inactive_tab_processing()
+	if right_tabs and not right_tabs.tab_changed.is_connected(_on_right_tabs_tab_changed):
+		right_tabs.tab_changed.connect(_on_right_tabs_tab_changed)
+
+func _on_right_tabs_tab_changed(_idx: int) -> void:
+	## Re-apply process_mode whenever the active tab changes.
+	_apply_inactive_tab_processing()
+
+func _apply_inactive_tab_processing() -> void:
+	## Set PROCESS_MODE_DISABLED on inactive tab children, INHERIT on the active one.
+	## Per Godot 4.6 docs, this stops _process and _input on hidden tab content.
+	if not right_tabs:
+		return
+	var active: int = right_tabs.current_tab
+	for i in range(right_tabs.get_tab_count()):
+		var tab_node: Control = right_tabs.get_tab_control(i)
+		if tab_node == null:
+			continue
+		tab_node.process_mode = Node.PROCESS_MODE_INHERIT if i == active else Node.PROCESS_MODE_DISABLED
+
+# EDIT 8: F1 keyboard shortcut to toggle CheatSheetPanel
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		var key_event: InputEventKey = event
+		if key_event.keycode == KEY_F1:
+			_toggle_cheat_sheet()
+			accept_event()
+
+func _toggle_cheat_sheet() -> void:
+	if not cheat_sheet_panel:
+		return
+	cheat_sheet_panel.visible = not cheat_sheet_panel.visible
+	if cheat_sheet_panel.visible and round_tracker \
+			and cheat_sheet_panel.has_method("expand_section_for_phase"):
+		var phase_idx: int = round_tracker.get_current_phase() if round_tracker.has_method("get_current_phase") else 0
+		cheat_sheet_panel.expand_section_for_phase(phase_idx)
+
 ## Sprint 11.4: BattleRoundTracker Integration Methods
 
 func set_round_tracker(tracker: Node) -> void:
@@ -1407,6 +1503,9 @@ func _on_round_started(round_number: int) -> void:
 	if unified_log:
 		unified_log.new_round()
 	_reset_all_unit_reactions()
+	# Tick down battle event overlay durations (fog/hazard/reinforcement markers expire)
+	if battlefield_grid_panel and battlefield_grid_panel.has_method("tick_overlay_durations"):
+		battlefield_grid_panel.tick_overlay_durations()
 
 func _on_round_ended(round_number: int) -> void:
 	## Handle round end
@@ -1451,6 +1550,37 @@ func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 
 	_show_overlay(event_resolution)
 	event_resolution.display_event(event_dict)
+
+func _on_battle_terrain_effect(effect: Dictionary) -> void:
+	## Render battle event visual on the map (fog cloud, hazard zone, reinforcement marker).
+	if battlefield_grid_panel and battlefield_grid_panel.has_method("add_terrain_overlay"):
+		battlefield_grid_panel.add_terrain_overlay(effect)
+	if unified_log and unified_log.has_method("add_entry"):
+		unified_log.add_entry(
+			"ENVIRONMENT_CHANGE",
+			"%s appeared on battlefield" % str(effect.get("label", "Effect")),
+			effect)
+
+func _on_battle_hazard_activated(hazard) -> void:
+	## Render environmental hazard activation on the map.
+	if not hazard:
+		return
+	var radius_val: float = 1.0
+	if "affects_radius" in hazard:
+		radius_val = float(hazard.affects_radius)
+	var is_perm: bool = false
+	if "is_permanent" in hazard:
+		is_perm = bool(hazard.is_permanent)
+	var effect_payload: Dictionary = {
+		"id": str(hazard.hazard_id) if "hazard_id" in hazard else "hazard",
+		"type": "hazard",
+		"center": Vector2(12, 8),
+		"radius": radius_val,
+		"label": str(hazard.hazard_name) if "hazard_name" in hazard else "Hazard",
+		"duration_rounds": 0 if is_perm else 2,
+	}
+	if battlefield_grid_panel and battlefield_grid_panel.has_method("add_terrain_overlay"):
+		battlefield_grid_panel.add_terrain_overlay(effect_payload)
 
 func _on_tracker_battle_started() -> void:
 	## Handle battle start from tracker — transition to COMBAT stage
@@ -2130,6 +2260,13 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 		if BES:
 			_battle_events_system = BES.new()
 			_battle_events_system.initialize_battle()
+			# WIRING FIX: connect terrain visual + hazard signals to map overlay
+			if _battle_events_system.has_signal("terrain_effect_triggered") \
+					and not _battle_events_system.terrain_effect_triggered.is_connected(_on_battle_terrain_effect):
+				_battle_events_system.terrain_effect_triggered.connect(_on_battle_terrain_effect)
+			if _battle_events_system.has_signal("environmental_hazard_activated") \
+					and not _battle_events_system.environmental_hazard_activated.is_connected(_on_battle_hazard_activated):
+				_battle_events_system.environmental_hazard_activated.connect(_on_battle_hazard_activated)
 
 	# Populate battlefield setup tab (data only, no stage change)
 	_stored_mission_data = mission_data
@@ -2760,11 +2897,15 @@ func _populate_setup_tab(mission_data) -> void:
 		var sectors_arr: Array = sector_data.get("sectors", [])
 		var theme_display_name: String = sector_data.get(
 			"theme_name", theme_name)
-		battlefield_grid_panel.populate(sectors_arr, theme_display_name)
+		battlefield_grid_panel.populate(sectors_arr, theme_display_name, world_traits)
 		if not battlefield_grid_panel.regenerate_requested.is_connected(
 				_on_regenerate_terrain_pressed):
 			battlefield_grid_panel.regenerate_requested.connect(
 				_on_regenerate_terrain_pressed)
+		# EDIT 13: right-click unit → mark casualty PopupMenu
+		if battlefield_grid_panel.has_signal("unit_right_clicked") \
+				and not battlefield_grid_panel.unit_right_clicked.is_connected(_on_unit_right_clicked):
+			battlefield_grid_panel.unit_right_clicked.connect(_on_unit_right_clicked)
 
 	# Compute mission-aware objective positions (Core Rules pp.89-91)
 	var mission_dict_obj: Dictionary = (
@@ -3134,7 +3275,7 @@ func _on_regenerate_terrain_pressed() -> void:
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("populate"):
 		var new_sectors: Array = new_sector_data.get("sectors", [])
 		var theme_display: String = new_sector_data.get("theme_name", _current_terrain_theme)
-		battlefield_grid_panel.populate(new_sectors, theme_display)
+		battlefield_grid_panel.populate(new_sectors, theme_display, regen_world_traits)
 
 	# Re-insert terrain section — clamp index to actual child count
 	# (queue_free'd nodes are now gone after await, child count is lower)

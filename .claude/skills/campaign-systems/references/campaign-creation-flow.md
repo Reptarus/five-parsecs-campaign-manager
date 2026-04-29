@@ -169,4 +169,4 @@ Campaign creation rules (difficulty modes, victory conditions, crew sizes, start
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Planetfall PDF**: `docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/`
 - **Text extractions**: `docs/rules/core_rulebook.txt`, `docs/rules/compendium_source.txt`, `docs/rules/planetfall_source.txt`
-- **Python page extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (PyMuPDF 1.27.1 via `py` launcher)
+- **Python page extraction (PyPDF2 ONLY)**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"` (PyPDF2 3.0.1 via `py` launcher — do NOT use PyMuPDF/fitz)

@@ -165,6 +165,27 @@ func trigger_battle_event() -> void:
 
 		events_triggered.append(event)
 		battle_event_triggered.emit(event)
+
+		var visual_type: String = ""
+		var event_id_lower: String = String(event.event_id).to_lower()
+		if "fog" in event_id_lower or "smoke" in event_id_lower or "obscured" in event_id_lower:
+			visual_type = "fog"
+		elif "hazard" in event_id_lower or "fire" in event_id_lower or "explos" in event_id_lower:
+			visual_type = "hazard"
+		elif "reinforcement" in event_id_lower or "marker" in event_id_lower:
+			visual_type = "reinforcement_marker"
+
+		if not visual_type.is_empty():
+			var effect_payload: Dictionary = {
+				"id": String(event.event_id),
+				"type": visual_type,
+				"center": Vector2(12, 8),
+				"radius": float(FOG_RADIUS) if visual_type == "fog" else float(HAZARD_RADIUS),
+				"label": String(event.title),
+				"duration_rounds": event.duration if event.duration > 0 else 2,
+			}
+			terrain_effect_triggered.emit(effect_payload)
+
 		_apply_event_effects(event)
 
 

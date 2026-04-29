@@ -16,6 +16,7 @@ const BattleRoundTrackerClass = preload("res://src/core/battle/BattleRoundTracke
 signal phase_clicked(phase: int)
 signal round_info_requested()
 signal next_phase_requested()
+signal roll_dice_requested()
 
 # Constants from UIColors design system
 const SPACING_XS := UIColors.SPACING_XS
@@ -53,6 +54,9 @@ var _phase_buttons: Array[Button] = []
 var _reminder_label: Label
 var _next_phase_button: Button
 var _auto_prompt_label: Label
+var _prompt_actions: HBoxContainer
+var _prompt_roll_button: Button
+var _prompt_done_button: Button
 
 # Current state
 var _current_round: int = 1
@@ -141,8 +145,16 @@ func _on_tracker_battle_started() -> void:
 	_update_display()
 
 func _on_tracker_battle_ended() -> void:
-	## Handle battle end
+	## Handle battle end - clear all per-battle UI state to avoid bleed-through
+	## into the PostBattleSequence transition.
 	_hide_event_indicator()
+	_casualties_this_round = 0
+	if _auto_prompt_label:
+		_auto_prompt_label.visible = false
+	# Forward-compatible with EDIT 5: action button row may not exist yet
+	var actions_node: Node = get_node_or_null("MainVBox/PromptActions")
+	if actions_node:
+		actions_node.visible = false
 
 # UI building
 
@@ -243,6 +255,27 @@ func _build_ui() -> void:
 	_auto_prompt_label.visible = false
 	main_vbox.add_child(_auto_prompt_label)
 
+	# Auto-prompt action row (Tier 1+, visible only when prompt is showing)
+	_prompt_actions = HBoxContainer.new()
+	_prompt_actions.name = "PromptActions"
+	_prompt_actions.visible = false
+	_prompt_actions.add_theme_constant_override("separation", SPACING_SM)
+	main_vbox.add_child(_prompt_actions)
+
+	_prompt_roll_button = Button.new()
+	_prompt_roll_button.text = "Roll Dice"
+	_prompt_roll_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_prompt_roll_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_prompt_roll_button.pressed.connect(_on_prompt_roll_pressed)
+	_prompt_actions.add_child(_prompt_roll_button)
+
+	_prompt_done_button = Button.new()
+	_prompt_done_button.text = "Mark Done"
+	_prompt_done_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_prompt_done_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_prompt_done_button.pressed.connect(_on_prompt_done_pressed)
+	_prompt_actions.add_child(_prompt_done_button)
+
 	# "Next Phase" button (touch-friendly)
 	_next_phase_button = Button.new()
 	_next_phase_button.name = "NextPhaseButton"
@@ -273,6 +306,14 @@ func _style_next_phase_button() -> void:
 	_next_phase_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 
 func _on_next_phase_pressed() -> void:
+	next_phase_requested.emit()
+
+func _on_prompt_roll_pressed() -> void:
+	## Player clicked "Roll Dice" on the auto-prompt — TacticalBattleUI opens QuickDicePopup.
+	roll_dice_requested.emit()
+
+func _on_prompt_done_pressed() -> void:
+	## Player marked the auto-prompt instruction as done — advance to next phase.
 	next_phase_requested.emit()
 
 func _style_phase_button(button: Button, is_active: bool) -> void:
@@ -359,17 +400,24 @@ func _hide_event_indicator() -> void:
 		_event_indicator.visible = false
 
 func _animate_phase_transition() -> void:
-	## Animate phase change (simple pulse effect)
+	## Animate phase change via TweenFX pop_in (replaces ad-hoc tween).
+	if _current_phase < 0 or _current_phase >= _phase_buttons.size():
+		return
 	var active_button: Button = _phase_buttons[_current_phase]
-	
-	# Create tween for pulse animation
-	var tween: Tween = create_tween()
-	tween.set_ease(Tween.EASE_OUT)
-	tween.set_trans(Tween.TRANS_CUBIC)
-	
-	# Pulse scale
-	tween.tween_property(active_button, "scale", Vector2(1.1, 1.1), 0.2)
-	tween.tween_property(active_button, "scale", Vector2(1.0, 1.0), 0.2)
+	if not active_button:
+		return
+	# TweenFX project rule: set pivot_offset before any scale/rotation animation
+	active_button.pivot_offset = active_button.size / 2.0
+	var tweenfx_singleton: Node = get_node_or_null("/root/TweenFX")
+	if tweenfx_singleton and tweenfx_singleton.has_method("pop_in"):
+		tweenfx_singleton.pop_in(active_button, 0.25, 0.15)
+	else:
+		# Fallback if TweenFX autoload absent
+		var tween: Tween = create_tween()
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_CUBIC)
+		tween.tween_property(active_button, "scale", Vector2(1.1, 1.1), 0.2)
+		tween.tween_property(active_button, "scale", Vector2(1.0, 1.0), 0.2)
 
 # Input handlers
 
@@ -413,39 +461,58 @@ func _update_auto_prompt() -> void:
 	if not _auto_prompt_label:
 		return
 
-	# Auto-prompts only at Tier 2 (ASSISTED) and above
+	# Auto-prompts active at ASSISTED tier (1) and above
 	if _display_tier < 1:
 		_auto_prompt_label.visible = false
+		_sync_prompt_actions_visibility()
 		return
 
 	var prompt_text: String = ""
 
-	# End phase specific prompts
-	if _current_phase == 4: # END_PHASE
-		if _casualties_this_round > 0:
-			prompt_text = "Morale check needed - %d casualt%s this round." % [
-				_casualties_this_round,
-				"y" if _casualties_this_round == 1 else "ies"]
-
-		if _current_round == 2 or _current_round == 4:
-			if not prompt_text.is_empty():
-				prompt_text += " "
-			prompt_text += "Roll d100 for Battle Event (Core Rules p.116)."
-
-		if _current_round > 4:
-			if not prompt_text.is_empty():
-				prompt_text += " "
-			prompt_text += "Roll d6 for escalation: 1-2 battle ends, 6 escalation event."
-
-	# Enemy actions phase: Tier 3 reminder
-	if _current_phase == 2 and _display_tier >= 2: # ENEMY_ACTIONS + FULL_ORACLE
-		prompt_text = "See AI Oracle panel for enemy behavior instructions."
+	match _current_phase:
+		0:  # REACTION_ROLL
+			prompt_text = "Roll 1D6 per crew. Result <= Reactions = Quick Action."
+		1:  # QUICK_ACTIONS
+			prompt_text = "Crew who passed reactions act now."
+		2:  # ENEMY_ACTIONS
+			# Surface AI brief from battle context (AI_BRIEF dict, lines 67-75)
+			var ef: Dictionary = _battle_context.get("enemy_force", {}) if _battle_context else {}
+			var ai_code: String = str(ef.get("ai", ""))
+			if not ai_code.is_empty() and AI_BRIEF.has(ai_code):
+				prompt_text = "Enemy turn: %s" % AI_BRIEF[ai_code]
+			else:
+				prompt_text = "Resolve all enemy actions."
+			# FULL_ORACLE supplements with the oracle reminder
+			if _display_tier >= 2:
+				prompt_text += " See AI Oracle panel for instructions."
+		3:  # SLOW_ACTIONS
+			prompt_text = "Remaining crew act now."
+		4:  # END_PHASE
+			if _casualties_this_round > 0:
+				prompt_text = "Morale check needed - %d casualt%s this round." % [
+					_casualties_this_round,
+					"y" if _casualties_this_round == 1 else "ies"]
+			if _current_round == 2 or _current_round == 4:
+				if not prompt_text.is_empty():
+					prompt_text += " "
+				prompt_text += "Roll d100 for Battle Event (Core Rules p.116)."
+			if _current_round > 4:
+				if not prompt_text.is_empty():
+					prompt_text += " "
+				prompt_text += "Roll d6 for escalation: 1-2 battle ends, 6 escalation event."
 
 	if prompt_text.is_empty():
 		_auto_prompt_label.visible = false
 	else:
 		_auto_prompt_label.text = prompt_text
 		_auto_prompt_label.visible = true
+	_sync_prompt_actions_visibility()
+
+func _sync_prompt_actions_visibility() -> void:
+	## Forward-compatible with EDIT 5 — prompt action row may not exist yet.
+	var actions_node: Node = get_node_or_null("MainVBox/PromptActions")
+	if actions_node:
+		actions_node.visible = _auto_prompt_label and _auto_prompt_label.visible
 
 ## Set the display tier for tier-aware features.
 func set_display_tier(tier: int) -> void:

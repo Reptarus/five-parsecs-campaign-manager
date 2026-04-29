@@ -10,6 +10,8 @@ extends Control
 
 signal cell_hovered(sector_label: String, features: Array)
 signal cell_clicked(sector_label: String, features: Array)
+signal unit_right_clicked(unit_index: int, screen_pos: Vector2)
+signal unit_position_changed(unit_index: int, new_grid_pos: Vector2i)
 
 # ============================================================================
 # GRID CONSTANTS
@@ -69,6 +71,8 @@ var compact_mode: bool = false
 var show_unit_markers: bool = false
 var show_scatter: bool = true
 var theme_name: String = ""
+# Set by populate_from_sectors caller — drives atmospheric overlay rendering
+var current_world_traits: Array = []
 
 # ============================================================================
 # INTERNAL STATE
@@ -83,6 +87,10 @@ var _pan_start: Vector2 = Vector2.ZERO
 var _deployment_highlighted: bool = false
 var _objective_positions: Array[Dictionary] = []  # [{type, grid_pos, label}]
 var _active_overlays: Array[Dictionary] = []  # Battle event overlays [{id, type, center, radius, color}]
+
+# EDIT 15: drag-and-drop state — caller toggles allow_unit_drag during DEPLOYMENT.
+var _dragging_unit_idx: int = -1
+var allow_unit_drag: bool = false
 
 # Terrain rendering
 var _terrain_container: Node2D
@@ -103,6 +111,7 @@ var _tooltip_label: RichTextLabel
 func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_ALL  # Enable keyboard input for pan/zoom shortcuts
 
 	# Terrain container (Node2D) — holds ScalableVectorShape2D children
 	_terrain_container = Node2D.new()
@@ -157,8 +166,10 @@ func _build_tooltip() -> void:
 # PUBLIC API
 # ============================================================================
 
-func populate_from_sectors(sectors: Array, p_theme_name: String = "") -> void:
+func populate_from_sectors(sectors: Array, p_theme_name: String = "",
+		world_traits: Array = []) -> void:
 	theme_name = p_theme_name
+	current_world_traits = world_traits
 
 	# Initialize 4x4 sector arrays
 	_sector_shapes = []
@@ -198,6 +209,16 @@ func populate_from_sectors(sectors: Array, p_theme_name: String = "") -> void:
 
 func set_unit_positions(units: Array) -> void:
 	_unit_positions = units
+	_overlay_control.queue_redraw()
+
+func set_show_scatter(enabled: bool) -> void:
+	## Toggle scatter (small terrain dots) visibility. Triggers full terrain rebuild
+	## since scatter is filtered during _rebuild_terrain_shapes.
+	if show_scatter == enabled:
+		return
+	show_scatter = enabled
+	_rebuild_terrain_shapes()
+	queue_redraw()
 	_overlay_control.queue_redraw()
 
 func set_compact_mode(enabled: bool) -> void:
@@ -242,6 +263,43 @@ func remove_terrain_overlay(overlay_id: String) -> void:
 func clear_terrain_overlays() -> void:
 	_active_overlays.clear()
 	_overlay_control.queue_redraw()
+
+func _hit_test_unit_marker(local_pos: Vector2) -> int:
+	## Returns the unit index if local_pos is within the marker radius of any
+	## unit, else -1. Mirrors the marker-rendering geometry in _draw_unit_markers_on.
+	if _unit_positions.is_empty():
+		return -1
+	var effective_cell: float = _get_effective_cell_size()
+	var grid_pixel_w: float = GRID_COLUMNS * effective_cell
+	var grid_pixel_h: float = GRID_ROWS * effective_cell
+	var offset: Vector2 = _get_draw_offset(grid_pixel_w, grid_pixel_h)
+	var marker_radius: float = effective_cell * 0.35
+	for i in range(_unit_positions.size()):
+		var unit: Dictionary = _unit_positions[i]
+		var grid_pos: Vector2i = unit.get("position", Vector2i.ZERO)
+		var center := Vector2(
+			offset.x + (grid_pos.x + 0.5) * effective_cell,
+			offset.y + (grid_pos.y + 0.5) * effective_cell)
+		if local_pos.distance_to(center) <= marker_radius:
+			return i
+	return -1
+
+func tick_overlay_durations() -> void:
+	## Decrement duration_rounds on all overlays. Remove those that expire.
+	## Permanent overlays (duration_rounds = 0) are unaffected.
+	## Called by TacticalBattleUI on each round_started.
+	var still_alive: Array[Dictionary] = []
+	for overlay: Dictionary in _active_overlays:
+		var dur: int = int(overlay.get("duration_rounds", 0))
+		if dur <= 0:
+			still_alive.append(overlay)
+		else:
+			overlay["duration_rounds"] = dur - 1
+			if overlay["duration_rounds"] > 0:
+				still_alive.append(overlay)
+	if still_alive.size() != _active_overlays.size():
+		_active_overlays = still_alive
+		_overlay_control.queue_redraw()
 
 func clear() -> void:
 	_sector_shapes = []
@@ -696,6 +754,12 @@ func _draw_overlay() -> void:
 	var grid_pixel_h: float = GRID_ROWS * effective_cell
 	var offset: Vector2 = _get_draw_offset(grid_pixel_w, grid_pixel_h)
 
+	# World trait atmospheric overlay (haze/gloom/frozen/null_zone/warzone/overgrown/...)
+	# Renders BEFORE terrain labels so labels stay readable.
+	if not current_world_traits.is_empty():
+		var full_rect := Rect2(offset, Vector2(grid_pixel_w, grid_pixel_h))
+		_draw_world_trait_atmosphere(_overlay_control, full_rect, effective_cell)
+
 	# Terrain labels (notable terrain only, when zoomed in enough)
 	if effective_cell >= 20.0:
 		_draw_terrain_labels_on(_overlay_control, offset, effective_cell)
@@ -787,6 +851,21 @@ func _draw_terrain_labels_on(canvas: Control, offset: Vector2, cs: float) -> voi
 				canvas.draw_rect(
 					Rect2(label_x, label_y - font_size, label_w, font_size + 4),
 					bg_color)
+				# Cover indicator chip — green (full), orange (partial), none (open Field)
+				# Drives off the same rules_cat as the [L]/[I]/[A]/[F]/[B]/[I] badge above.
+				var cover_chip_color: Color = Color.TRANSPARENT
+				match rules_cat:
+					"Block", "Interior":
+						cover_chip_color = Color(0.06, 0.73, 0.51, 0.9)  # Green = full cover
+					"Linear", "Area":
+						cover_chip_color = Color(0.85, 0.46, 0.02, 0.9)  # Orange = partial
+					"Individual":
+						cover_chip_color = Color(0.85, 0.46, 0.02, 0.7)
+					# Field gets no chip (no cover available)
+				if cover_chip_color.a > 0:
+					canvas.draw_circle(
+						Vector2(label_x + label_w - 8.0, label_y - font_size / 2.0),
+						3.5, cover_chip_color)
 				# White text
 				canvas.draw_string(font,
 					Vector2(label_x + 4, label_y),
@@ -860,6 +939,55 @@ func _draw_objective_marker(canvas: Control, offset: Vector2,
 		Vector2(center.x - 10, center.y + hw + fsize + 4),
 		short_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize,
 		Color(0.96, 0.78, 0.04, 1.0))
+
+func _draw_world_trait_atmosphere(canvas: Control, full_rect: Rect2, effective_cell: float) -> void:
+	## Render visual representation for the 10 silent world traits.
+	## Driven by current_world_traits set in populate_from_sectors.
+	## Trait keywords match data/world_traits.json IDs (Core Rules pp.72-75).
+	for trait_entry in current_world_traits:
+		var tid: String = ""
+		if trait_entry is String:
+			tid = String(trait_entry).to_lower()
+		elif trait_entry is Dictionary:
+			tid = String(trait_entry.get("id", "")).to_lower()
+		else:
+			continue
+		match tid:
+			"haze":
+				canvas.draw_rect(full_rect, Color(1.0, 0.7, 0.3, 0.10))
+			"gloom":
+				canvas.draw_rect(full_rect, Color(0.3, 0.2, 0.5, 0.12))
+			"frozen":
+				canvas.draw_rect(full_rect, Color(0.7, 0.85, 1.0, 0.10))
+			"null_zone":
+				canvas.draw_rect(full_rect, Color(0.0, 0.0, 0.0, 0.20))
+			"reflective_dust":
+				# Subtle white shimmer (looping animation handled by caller if desired)
+				canvas.draw_rect(full_rect, Color(1.0, 1.0, 1.0, 0.06))
+			"warzone":
+				# 4 craters at deterministic positions (seed by theme_name for stability)
+				var crater_rng := RandomNumberGenerator.new()
+				crater_rng.seed = hash("warzone:" + theme_name)
+				for ci in range(4):
+					var cx: float = full_rect.position.x + crater_rng.randf() * full_rect.size.x
+					var cy: float = full_rect.position.y + crater_rng.randf() * full_rect.size.y
+					canvas.draw_circle(
+						Vector2(cx, cy),
+						effective_cell * 1.2,
+						Color(0.15, 0.10, 0.08, 0.50))
+			"overgrown":
+				var veg_rng := RandomNumberGenerator.new()
+				veg_rng.seed = hash("overgrown:" + theme_name)
+				for vi in range(12):
+					var vx: float = full_rect.position.x + veg_rng.randf() * full_rect.size.x
+					var vy: float = full_rect.position.y + veg_rng.randf() * full_rect.size.y
+					canvas.draw_circle(
+						Vector2(vx, vy),
+						effective_cell * 0.18,
+						Color(0.13, 0.40, 0.18, 0.6))
+			# barren / flat / crystals / fog handled by generator + event overlays already
+			_:
+				pass
 
 func _draw_battle_event_overlay(canvas: Control,
 		offset: Vector2, cs: float, overlay: Dictionary) -> void:
@@ -937,12 +1065,37 @@ func _gui_input(event: InputEvent) -> void:
 					_is_panning = true
 					_pan_start = mb.position
 					accept_event()
+				MOUSE_BUTTON_RIGHT:
+					var hit_idx: int = _hit_test_unit_marker(mb.position)
+					if hit_idx >= 0:
+						unit_right_clicked.emit(hit_idx, mb.global_position)
+						accept_event()
 				MOUSE_BUTTON_LEFT:
+					if allow_unit_drag:
+						var hit_idx: int = _hit_test_unit_marker(mb.position)
+						if hit_idx >= 0:
+							_dragging_unit_idx = hit_idx
+							accept_event()
+							return
 					_handle_click(mb.position)
 					accept_event()
 		else:
 			if mb.button_index == MOUSE_BUTTON_MIDDLE:
 				_is_panning = false
+			elif mb.button_index == MOUSE_BUTTON_LEFT and _dragging_unit_idx >= 0:
+				# Drag release — validate deployment zone and commit
+				var new_cell: Vector2i = _mouse_to_grid(mb.position)
+				if new_cell != Vector2i(-1, -1):
+					var unit: Dictionary = _unit_positions[_dragging_unit_idx]
+					var is_crew: bool = str(unit.get("team", "crew")) == "crew"
+					var in_zone: bool = (is_crew and new_cell.y < 8) or \
+						(not is_crew and new_cell.y >= 8)
+					if in_zone:
+						_unit_positions[_dragging_unit_idx]["position"] = new_cell
+						unit_position_changed.emit(_dragging_unit_idx, new_cell)
+						_overlay_control.queue_redraw()
+				_dragging_unit_idx = -1
+				accept_event()
 
 	elif event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event
@@ -953,6 +1106,49 @@ func _gui_input(event: InputEvent) -> void:
 			_overlay_control.queue_redraw()
 		else:
 			_update_hover(mm.position)
+
+	elif event is InputEventKey and event.pressed and not event.echo:
+		var k: InputEventKey = event
+		var center: Vector2 = size / 2.0
+		var pan_step: float = 24.0
+		match k.keycode:
+			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
+				_zoom(ZOOM_STEP, center)
+				accept_event()
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				_zoom(-ZOOM_STEP, center)
+				accept_event()
+			KEY_0, KEY_KP_0:
+				zoom_level = 1.0
+				pan_offset = Vector2.ZERO
+				_update_terrain_transform()
+				queue_redraw()
+				_overlay_control.queue_redraw()
+				accept_event()
+			KEY_LEFT:
+				pan_offset.x += pan_step
+				_update_terrain_transform()
+				queue_redraw()
+				_overlay_control.queue_redraw()
+				accept_event()
+			KEY_RIGHT:
+				pan_offset.x -= pan_step
+				_update_terrain_transform()
+				queue_redraw()
+				_overlay_control.queue_redraw()
+				accept_event()
+			KEY_UP:
+				pan_offset.y += pan_step
+				_update_terrain_transform()
+				queue_redraw()
+				_overlay_control.queue_redraw()
+				accept_event()
+			KEY_DOWN:
+				pan_offset.y -= pan_step
+				_update_terrain_transform()
+				queue_redraw()
+				_overlay_control.queue_redraw()
+				accept_event()
 
 func _zoom(delta: float, anchor: Vector2) -> void:
 	var old_zoom: float = zoom_level

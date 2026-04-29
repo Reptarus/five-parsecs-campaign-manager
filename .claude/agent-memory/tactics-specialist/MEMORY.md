@@ -101,6 +101,6 @@ Vehicles have 2-8 KP. Characters have 1-3 KP. Different from the binary alive/de
 ### 4. Modiphius Approval Pending
 Meeting 2026-04-23. Code proceeds, shipping blocked.
 
-### 5. PDF Extraction
-- Python: `py` launcher (NOT `python`), PyMuPDF installed
-- Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home - Tactics.pdf'); print(doc[PAGE].get_text())"`
+### 5. PDF Extraction (PyPDF2 ONLY)
+- Python: `py` launcher (NOT `python`). **PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz.**
+- All Tactics rules come from the PDF via PyPDF2. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Parsecs From Home - Tactics.pdf'); print(r.pages[PAGE].extract_text())"`

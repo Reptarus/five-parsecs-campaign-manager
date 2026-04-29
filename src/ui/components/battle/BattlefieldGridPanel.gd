@@ -6,6 +6,7 @@ extends PanelContainer
 
 signal regenerate_requested
 signal sector_clicked(sector_label: String, features: Array)
+signal unit_right_clicked(unit_index: int, screen_pos: Vector2)
 
 # Color palette (matching deep space theme for the panel chrome)
 const COLOR_TEXT_PRIMARY := Color(0.878, 0.878, 0.878, 1.0)
@@ -92,6 +93,9 @@ func _build_ui() -> void:
 	_map_view.custom_minimum_size = Vector2(640, 420)
 	_map_view.show_unit_markers = true
 	_map_view.cell_clicked.connect(_on_map_cell_clicked)
+	if _map_view.has_signal("unit_right_clicked"):
+		_map_view.unit_right_clicked.connect(
+			func(idx: int, pos: Vector2): unit_right_clicked.emit(idx, pos))
 	_main_vbox.add_child(_map_view)
 
 	# Terrain legend
@@ -139,6 +143,17 @@ func _build_header_bar() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_header_bar.add_child(spacer)
+
+	# Scatter toggle — surfaces the existing show_scatter property as a UI affordance
+	var scatter_toggle := CheckBox.new()
+	scatter_toggle.text = "Scatter"
+	scatter_toggle.button_pressed = true
+	scatter_toggle.add_theme_font_size_override("font_size", 12)
+	scatter_toggle.toggled.connect(func(on: bool):
+		if _map_view and _map_view.has_method("set_show_scatter"):
+			_map_view.set_show_scatter(on)
+	)
+	_header_bar.add_child(scatter_toggle)
 
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
@@ -274,10 +289,10 @@ func _build_popover() -> void:
 	add_child(_popover)
 
 ## Public API: Populate the map with sector data from BattlefieldGenerator
-func populate(sectors: Array, theme_name: String = "") -> void:
+func populate(sectors: Array, theme_name: String = "", world_traits: Array = []) -> void:
 	_current_theme_name = theme_name
 	_theme_label.text = theme_name
-	_map_view.populate_from_sectors(sectors, theme_name)
+	_map_view.populate_from_sectors(sectors, theme_name, world_traits)
 	_popover.visible = false
 
 ## Collapse the panel, showing only the header bar
@@ -330,6 +345,16 @@ func remove_terrain_overlay(overlay_id: String) -> void:
 
 func clear_terrain_overlays() -> void:
 	_map_view.clear_terrain_overlays()
+
+func tick_overlay_durations() -> void:
+	## Forwarder — called by TacticalBattleUI on round_started
+	if _map_view and _map_view.has_method("tick_overlay_durations"):
+		_map_view.tick_overlay_durations()
+
+func set_allow_unit_drag(enabled: bool) -> void:
+	## Forwarder — TacticalBattleUI toggles this when entering / leaving DEPLOYMENT stage.
+	if _map_view:
+		_map_view.allow_unit_drag = enabled
 
 ## Handle map cell click — show popover with terrain details
 func _on_map_cell_clicked(sector_label: String, features: Array) -> void:

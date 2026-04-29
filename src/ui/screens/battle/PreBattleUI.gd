@@ -306,7 +306,8 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		map_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 		map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		map_view.populate_from_sectors(sector_array, theme_name)
+		var world_traits: Array = terrain_data.get("world_traits", [])
+		map_view.populate_from_sectors(sector_array, theme_name, world_traits)
 		battlefield_preview.add_child(map_view)
 
 		# Store terrain data for passthrough to post-battle

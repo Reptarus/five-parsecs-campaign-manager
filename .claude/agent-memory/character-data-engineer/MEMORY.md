@@ -5,7 +5,7 @@
 
 ## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
 
-The Core Rules PDF and Compendium PDF are the **canonical, final authority** for ALL game mechanics, values, names, stats, tables, and terminology. If code disagrees with the book, the code is wrong. No exceptions. No "balancing." No "improvements." Extract values with `py -c "import fitz; doc = fitz.open('docs/rules/...'); print(doc[PAGE].get_text())"`.
+The Core Rules PDF and Compendium PDF are the **canonical, final authority** for ALL game mechanics, values, names, stats, tables, and terminology. If code disagrees with the book, the code is wrong. No exceptions. No "balancing." No "improvements." Extract values with PyPDF2 (the ONLY PDF tool — do NOT use PyMuPDF/fitz): `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/...'); print(r.pages[PAGE].extract_text())"`.
 
 ---
 
@@ -94,8 +94,8 @@ Source PDFs are available for direct data extraction — NEVER guess game values
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
-- **Python**: `py` launcher (NOT `python`), PyPDF2 3.0.1, PyMuPDF 1.27.1 (fitz) installed
-- **Example**: `py -c "import fitz; doc = fitz.open('path/to/pdf'); print(doc[PAGE].get_text())"`
+- **Python (PyPDF2 ONLY)**: `py` launcher (NOT `python`). PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz.
+- **Example**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path/to/pdf'); print(r.pages[PAGE].extract_text())"`
 
 Always extract from the PDF when `data/RulesReference/` doesn't have the value you need.
 

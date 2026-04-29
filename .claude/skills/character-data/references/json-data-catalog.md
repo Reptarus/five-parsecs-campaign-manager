@@ -118,7 +118,7 @@ Game data values must originate from the rulebooks, never be invented. PDFs and 
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
-- **Python extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (PyMuPDF 1.27.1 via `py` launcher)
+- **Python extraction (PyPDF2 ONLY)**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"` (PyPDF2 3.0.1 via `py` launcher — do NOT use PyMuPDF/fitz)
 
 Always check `data/RulesReference/` first, then the PDFs, before adding or modifying any game data value.
 

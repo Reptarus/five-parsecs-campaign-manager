@@ -65,7 +65,32 @@
 
 **Date**: Wednesday, April 22, 2026, 10:00 AM
 **Attendees**: Elijah, Chris Birch, Gavin (5PFH Project Manager)
-**Agenda**: Review revenue proposal, internal testing build, next steps
+
+### Pre-Meeting Status (updated April 21)
+
+Based on light back-and-forth over the week, Modiphius hasn't had bandwidth to play through the build internally yet. Resetting expectations for tomorrow accordingly.
+
+**Adjusted expectations**:
+
+- Primarily an **introduction meeting with Gavin** (5PFH Project Manager) — relationship-building, not a deep product review
+- **No hard agenda on our side** — let Modiphius drive the conversation
+- **UK/EU privacy/accessibility** likely to come up — quick discussion, not a full compliance deep-dive
+- **Ask list feedback** — sent ahead of time, expect updates/responses on some items but not all
+- Build was sent April 17 — they may not have touched it yet; don't lead with product walkthrough unless Gavin prompts
+
+**Topics to be ready for (not push)**:
+
+- Who Gavin is, how he works with 5PFH, where our handoff points will be
+- Any preliminary thoughts on revenue proposal (if Chris brings it up)
+- Which store accounts (Google/Apple) are already staged under Modiphius
+- Access to art/logos/press kit assets (was on ask list)
+- EU Accessibility Act — what research they've done already vs. what we need to do
+
+**What NOT to do**:
+
+- Don't push through the full ask list — let them surface what they've actually looked at
+- Don't demo the build unprompted — if they haven't played it, a live walkthrough will feel rushed
+- Don't lock in revenue numbers on this call — that's for a later dedicated conversation
 
 ---
 

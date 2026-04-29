@@ -75,7 +75,6 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 ### 5. Modiphius Approval Pending
 Meeting scheduled 2026-04-23. Code implementation proceeds, but shipping is blocked until approval.
 
-### 6. PDF Extraction Tools
-- Python: `py` launcher (NOT `python`), PyMuPDF installed
-- Example: `py -c "import fitz; doc = fitz.open('docs/rules/planetfall_source.txt'); print(doc[PAGE].get_text())"`
-- For PDF: `py -c "import fitz; doc = fitz.open('docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/Five Parsecs From Home - [Modiphius Entertainment] - Planetfall [MUH084V044][OEF][2026-03-16].pdf'); print(doc[PAGE].get_text())"`
+### 6. PDF Extraction Tools (PyPDF2 ONLY)
+- Python: `py` launcher (NOT `python`). **PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz.**
+- All Planetfall rules come from the PDF via PyPDF2. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/Five Parsecs From Home - [Modiphius Entertainment] - Planetfall [MUH084V044][OEF][2026-03-16].pdf'); print(r.pages[PAGE].extract_text())"`

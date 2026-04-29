@@ -30,13 +30,21 @@ var war_tracks: Dictionary = {}  # track_id -> war track data
 var active_track_ids: Array[String] = []
 var current_effects: Dictionary = {}  # effect_id -> effect data
 var dice_system: Node = null
+var _initialized: bool = false
 
 ## Initialization
 
 func _ready() -> void:
+	# Lazy-init: defer JSON load + dice_system lookup until first public access.
+	# Saves startup cost; war tracks aren't needed until campaign turn processing.
+	pass
+
+func _ensure_initialized() -> void:
+	if _initialized:
+		return
+	_initialized = true
 	dice_system = get_node_or_null("/root/DiceSystem")
 	load_war_tracks()
-	pass
 
 func load_war_tracks() -> void:
 	## Load war track definitions from JSON
@@ -77,6 +85,7 @@ func process_turn_war_progression() -> Array[Dictionary]:
 	## Process war advancement for all active tracks.
 	## Called once per campaign turn.
 	## Returns array of events that occurred.
+	_ensure_initialized()
 	var events: Array[Dictionary] = []
 	
 	# Advance active tracks
@@ -147,6 +156,7 @@ func _check_dormant_activation() -> Array[Dictionary]:
 func advance_war_track(track_id: String, amount: int = 1) -> Array[Dictionary]:
 	## Advance a war track by specified amount.
 	## Returns array of threshold events triggered.
+	_ensure_initialized()
 	var events: Array[Dictionary] = []
 	
 	if not track_id in war_tracks:
@@ -181,6 +191,7 @@ func advance_war_track(track_id: String, amount: int = 1) -> Array[Dictionary]:
 func reduce_war_track(track_id: String, amount: int = 1) -> void:
 	## Reduce a war track (player successfully opposed faction).
 	## Does not trigger threshold events in reverse.
+	_ensure_initialized()
 	if not track_id in war_tracks:
 		return
 	
@@ -256,6 +267,7 @@ func _check_campaign_ending(track_id: String) -> void:
 
 func activate_war_track(track_id: String) -> void:
 	## Activate a dormant war track
+	_ensure_initialized()
 	if track_id in active_track_ids:
 		return  # Already active
 	
@@ -270,6 +282,7 @@ func activate_war_track(track_id: String) -> void:
 
 func deactivate_war_track(track_id: String) -> void:
 	## Deactivate an active war track
+	_ensure_initialized()
 	var index = active_track_ids.find(track_id)
 	if index == -1:
 		return  # Not active
@@ -283,10 +296,12 @@ func deactivate_war_track(track_id: String) -> void:
 
 func get_war_track(track_id: String) -> Dictionary:
 	## Get war track data
+	_ensure_initialized()
 	return war_tracks.get(track_id, {})
 
 func get_all_war_tracks() -> Dictionary:
 	## Get all war track data
+	_ensure_initialized()
 	return war_tracks.duplicate(true)
 
 func get_active_war_tracks() -> Array[Dictionary]:
@@ -294,6 +309,7 @@ func get_active_war_tracks() -> Array[Dictionary]:
 	## Defensive dedupe: filter out duplicate track IDs at read time so
 	## the UI never shows the same war card twice even if active_track_ids
 	## was corrupted (e.g., by a pre-fix save).
+	_ensure_initialized()
 	var active_tracks: Array[Dictionary] = []
 	var seen: Dictionary = {}
 	for track_id in active_track_ids:
@@ -306,6 +322,7 @@ func get_active_war_tracks() -> Array[Dictionary]:
 
 func get_current_progress(track_id: String) -> int:
 	## Get current progress for a track
+	_ensure_initialized()
 	if not track_id in war_tracks:
 		return 0
 	return war_tracks[track_id].current_progress
@@ -334,6 +351,7 @@ func get_effect_modifier(effect_id: String, default_value: float = 0.0) -> float
 
 func player_mission_success(track_id: String, mission_type: String = "defense") -> void:
 	## Called when player completes mission opposing a faction
+	# (reduce_war_track calls _ensure_initialized internally)
 	reduce_war_track(track_id, 1)
 
 func player_mission_failure(track_id: String) -> void:
@@ -348,6 +366,7 @@ func player_sabotage_success(track_id: String) -> void:
 
 func get_save_data() -> Dictionary:
 	## Get war state for saving
+	_ensure_initialized()
 	return {
 		"war_tracks": war_tracks.duplicate(true),
 		"active_track_ids": active_track_ids.duplicate(),
@@ -355,7 +374,9 @@ func get_save_data() -> Dictionary:
 	}
 
 func load_save_data(data: Dictionary) -> void:
-	## Restore war state from save
+	## Restore war state from save.
+	## Mark initialized BEFORE applying data so lazy-init won't overwrite later.
+	_initialized = true
 	if "war_tracks" in data:
 		war_tracks = data.war_tracks.duplicate(true)
 	
@@ -383,6 +404,7 @@ func _roll_d6() -> int:
 
 func reset_all_tracks() -> void:
 	## Reset all war tracks to starting state (for testing/new campaign)
+	_ensure_initialized()
 	for track_id in war_tracks.keys():
 		var track = war_tracks[track_id]
 		track.current_progress = track.starting_progress

@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/Dec_12_escape_.jpg-61e7ef4a1cb7b73ffb361f8aed
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

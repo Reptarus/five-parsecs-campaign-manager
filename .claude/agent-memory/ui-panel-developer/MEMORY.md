@@ -273,7 +273,7 @@ else:
 If you need to verify UI labels, stat names, or game terminology against the source material:
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
-- **Python**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
+- **Python (PyPDF2 ONLY)**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"` — do NOT use PyMuPDF/fitz
 
 ### 9. UIColors Over Local Constants
 

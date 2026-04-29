@@ -172,4 +172,4 @@ All combat constants (hit thresholds, range bands, damage, toughness saves) must
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf` (combat: pp.113-125)
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
-- **Python page extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (PyMuPDF 1.27.1 via `py` launcher)
+- **Python page extraction (PyPDF2 ONLY)**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"` (PyPDF2 3.0.1 via `py` launcher — do NOT use PyMuPDF/fitz)

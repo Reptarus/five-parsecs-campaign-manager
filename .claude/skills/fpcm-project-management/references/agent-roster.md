@@ -105,8 +105,9 @@ Rulebook PDFs and Python tools are available for data extraction and verificatio
 - **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
-- **Python**: 3.14.2 via `py` launcher (NOT `python`). PyPDF2 3.0.1 and PyMuPDF 1.27.1 (fitz) installed.
-- **Example**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
+- **Python**: 3.14.2 via `py` launcher (NOT `python`). **PyPDF2 3.0.1 is the ONLY PDF tool — do NOT use PyMuPDF/fitz.**
+- **Example**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"`
+- **All rules data is extracted from the PDFs via PyPDF2** — no exceptions.
 
 ## Cross-Domain Flow Examples
 
