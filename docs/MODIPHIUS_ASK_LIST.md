@@ -1,17 +1,33 @@
 # Modiphius Partnership — Ask List & Open Questions
 
-**Last Updated**: 2026-04-16 (post-meeting with Chris Birch)
-**Purpose**: Remaining items needed from Modiphius before launch, updated after April 16 meeting.
-**Next Meeting**: Wednesday April 22, 10AM — Chris Birch + Gavin (5PFH Project Manager)
-**Related docs**: [MODIPHIUS_PROGRESS_DEMO.md](MODIPHIUS_PROGRESS_DEMO.md) | [Meeting Notes](MEETING_NOTES_2026-04-16.md) | [Steam Research](archive/modiphius-steam-research.md)
+**Last Updated**: 2026-04-29 (post-meeting with Chris Birch + Gavin)
+**Purpose**: Living tracker of items needed from Modiphius before launch. Updated after each meeting.
+**Active follow-up cycle**: [MEETING_FOLLOWUPS_2026-04-29.md](MEETING_FOLLOWUPS_2026-04-29.md) — canonical asks list from Apr 29 meeting; this doc is the longer-running tracker
+**Cadence (post Apr 29)**: weekly with Gavin (CC Chris); bi-weekly strategic with Chris; CC Gavin on all outbound
+**Related docs**: [MODIPHIUS_DIGITAL_FORECAST.md](MODIPHIUS_DIGITAL_FORECAST.md) | [MODIPHIUS_PROGRESS_DEMO.md](MODIPHIUS_PROGRESS_DEMO.md) | [Steam Research](archive/modiphius-steam-research.md)
 
 ---
 
-## Resolved / In Progress (April 16 Meeting)
+## Confirmed at the Apr 29 Meeting
 
 | Item | Outcome |
 |------|---------|
-| Sales numbers | **30-35K** 5PFH core, **30-35K** Five Leagues, **5K** Tactics+Bug Hunt, **6K** Planetfall |
+| **DTRPG sales (direct)** | **5PFH Core 4,219 units; 5 Leagues 2,700 units** |
+| **Physical sales** | 5PFH **30K**, 5 Leagues **20K**, Tactics+Bug Hunt **5K**, Planetfall **6K** |
+| **Physical-PDF bundling** | Every physical book ships with a PDF — bundled fulfillment, NOT separate revenue events |
+| **Net revenue split** | **50/50 after platform fees** (working deal frame) |
+| **Closed alpha** | Ivan + his playtesting Discord circle receive a copy; kickoff late May |
+| **Store listings** | Through Modiphius's publisher accounts and public-facing channels |
+| **Asset delivery** | ~1 week+ once Modiphius's asset person is back from travel |
+| **Communications** | CC Gavin on outbound to Chris; weekly cadence with Gavin; bi-weekly strategic with Chris |
+| **5x system positioning** | This build is the foundation of Modiphius's wider digital strategy across other licensed IPs |
+
+---
+
+## Resolved at the Apr 16 Meeting
+
+| Item | Outcome |
+|------|---------|
 | Publisher accounts | Modiphius has **both Google Play Console and Apple App Store accounts** |
 | Product priority | Core Five Parsecs first, then Five Leagues |
 | Product vision | **"The digital version of Five Parsecs"** — not just companion app. Enhance for Steam |
@@ -25,16 +41,17 @@
 
 ### 1. Legal Framework
 
-To be covered in April 22 meeting and ongoing.
+Raised in Apr 29 follow-up email (ask #5). Modiphius's legal team to take the lead — draft to follow from their side or work from ours.
 
 | Item | Details | Status |
 |------|---------|--------|
-| **IP license grant scope** | What exactly are we licensed to use? Game mechanics, text, terminology, artwork, trade dress? EULA has 3 `[PENDING MODIPHIUS REVIEW]` markers | BLOCKED — raise April 22 |
-| **Sublicensing terms** | Platform stores (Apple, Google, Steam) require sublicensing rights in their distribution agreements | BLOCKED |
-| **EULA legal review** | Do they want their legal team to draft/review, or are they happy with our draft? | BLOCKED |
-| **IP attribution requirements** | Exact copyright line, trademark notices, "used under license" phrasing | BLOCKED |
-| **Governing law / jurisdiction** | England and Wales vs developer's jurisdiction? | BLOCKED |
-| **Support email** | `[CONTACT EMAIL]` placeholder in EULA + Privacy Policy — whose email? | BLOCKED |
+| **IP license grant scope** | What exactly are we licensed to use? Game mechanics, text, terminology, artwork, trade dress? | OPEN — Apr 29 followup #5 |
+| **Sublicensing terms** | Platform stores (Apple, Google, Steam) require sublicensing rights in their distribution agreements | OPEN — Apr 29 followup #5 |
+| **EULA legal review** | Modiphius's legal team to lead per Apr 29 ask. Working from their draft or ours, whichever they prefer. | OPEN — Apr 29 followup #5 |
+| **IP attribution requirements** | Exact copyright line, trademark notices, "used under license" phrasing | OPEN — Apr 29 followup #5 |
+| **Governing law / jurisdiction** | England and Wales vs developer's jurisdiction? | OPEN — Apr 29 followup #5 |
+| **Support email** | EULA + Privacy Policy support placeholder — whose email? | OPEN — Apr 29 followup #6 |
+| **Partnership-on-paper progression** | LOI now → MOU during alpha+refinement (Jun-Jul) → Definitive Agreement before Steam EA (Aug-Sep) | OPEN — Apr 29 followup #1 |
 
 ### 2. Accessibility & Compliance
 
@@ -49,61 +66,78 @@ European and UK regulations — research needed, guidance from Modiphius appreci
 
 ### 3. Art & Visual Assets
 
-Everything and anything they can provide. This is the single biggest quality gap.
+Raised in Apr 29 follow-up email (ask #3). Asset person back in ~1 week+; Modiphius to confirm which items they'll provide vs. which we treat as our own (placeholder strategy).
 
 | Item | Details | Status |
 |------|---------|--------|
-| **Game logo / wordmark** | Official "Five Parsecs From Home" logo in vector format (SVG/AI) — splash screen, loading, store listing, about page | NEED |
-| **Modiphius logo** | Vector format for "Published by" attribution | NEED |
-| **App icon** | Official or co-branded. Needs 1024x1024 (Apple), 512x512 (Google), various smaller sizes | NEED |
-| **Book cover art / key art** | High-res versions of the 5PFH cover art, Compendium cover, Planetfall cover, Tactics cover — for loading screens, mode selection tiles, store listing | NEED |
-| **Interior art / illustrations** | Character art, species illustrations, equipment art, ship art, world art — anything from the books we can use in-app | NEED |
-| **Icon set / game iconography** | If Modiphius has existing icons for stats, weapons, equipment categories — official ones for consistency with print materials | NEED (currently using game-icons.net generics) |
-| **Miniature renders** | **NOTE: Minis are licensed through Titan Forge** (designer/printer). Renders may not be available depending on that license. However, if we can vertically integrate mini promotion in the app (e.g., "buy the mini" links, 3D viewers), it could justify the licensing cost to Titan Forge | ASK — may require Titan Forge conversation |
-| **Miniature photography** | High-res painted mini photos for faction tiles, character cards, backgrounds. Even if Titan Forge renders don't work out, Modiphius may have promotional photos | ASK |
-| **Press kit / marketing materials** | Store listing screenshots, promotional banners, any existing marketing assets | NEED for store submission |
+| **Game logo / wordmark** | Vector "Five Parsecs From Home" logo (SVG/AI) — splash, loading, store listing | OPEN — Apr 29 followup #3 |
+| **Modiphius logo** | Vector format for "Published by" attribution | OPEN — Apr 29 followup #3 |
+| **App icon** | 1024x1024 (Apple), 512x512 (Google), smaller sizes | OPEN — Apr 29 followup #3 |
+| **Book cover art** | 5PFH, Compendium, Planetfall, Tactics covers — loading screens, mode tiles, store | OPEN — Apr 29 followup #3 |
+| **Interior art / illustrations** | Character, species, equipment, ship, world art for in-app use | OPEN — Apr 29 followup #3 |
+| **Icon set / official iconography** | Stats, weapons, equipment categories — for consistency with print | OPEN — Apr 29 followup #3 (currently using game-icons.net generics) |
+| **Images of the miniatures** | Whatever they have available (renders or photography) | OPEN — Apr 29 followup #3 |
+| **Press kit / marketing materials** | Store listing screenshots, promotional banners | OPEN — Apr 29 followup #3 |
 
 ---
 
-## OUR DELIVERABLES — Before April 22
+## OUR DELIVERABLES
 
-| Item | Details | Status |
-|------|---------|--------|
-| **Windows .exe build** | Fine-tuned, crunched for internal testing at Modiphius | TODO |
-| **Revenue proposal** | Proposed revenue streams, pricing model, and splits — based on 30-35K user base, platform fees, and comparable apps | TODO |
-| **Mock storefront page** | Draft Steam/App Store page — screenshots, description, pricing, DLC structure | TODO |
-| **EU/UK accessibility research** | Summary of what's required and what we already have | TODO |
-| **Steam pricing strategy** | Price points for base app, DLC packs, potential bundle. Factor in "digital version" positioning (higher value than companion app) | TODO |
+### Sent before Apr 22 meeting
+
+| Item | Status |
+|------|--------|
+| Windows .exe build | DELIVERED |
+| Revenue proposal v1 (60/40 baseline) | DELIVERED — superseded by 50/50 baseline post Apr 29 |
+
+### Sent post Apr 29 (next 1-3 days)
+
+| Item | Status |
+|------|--------|
+| Apr 29 follow-up email + ask list | SENT Apr 29 |
+| Updated forecast doc (50/50 baseline, 4,219 DTRPG anchor, contractor scope frames A/B/C) | EN ROUTE — by May 1 |
+| Updated progress/build snapshot | EN ROUTE — by May 4 |
+| Closed alpha plan v1 (for review before kickoff) | EN ROUTE — by May 11 |
+
+### Held for post-MVP / post-alpha
+
+| Item | Held until |
+|------|------------|
+| Steam EA store page brief | Once closed alpha tells us the MVP and core selling point |
+| EU/UK accessibility research summary | Phase C (refinement) |
+| Final pricing strategy | After closed alpha pricing-perception data lands |
 
 ---
 
-## MEDIUM PRIORITY — Post-April 22
+## MEDIUM PRIORITY — In flight (Apr 29 follow-up cycle)
 
 ### Content & Rules
 
 | Item | Details | Status |
 |------|---------|--------|
 | **Rules errata list** | Official errata for Core Rules + Compendium | Would improve accuracy |
-| **Canonical rules clarifications** | Ambiguous edge cases — official Q&A channel or ruling from Gavin | Ask Gavin April 22 |
-| **Permission to extract PDF data** | Explicit written permission for programmatic extraction | Legal clarity |
+| **Canonical rules clarifications** | Ambiguous edge cases — official Q&A channel or ruling from Gavin | OPEN — Apr 29 followup #12 |
+| **Permission to extract PDF data** | Explicit written permission for programmatic extraction (5 Leagues post-EA) | OPEN — Apr 29 followup #11 |
 
 ### Storefront & Launch
 
 | Item | Details | Status |
 |------|---------|--------|
-| **App naming** | "Five Parsecs Campaign Manager" or "Five Parsecs From Home: Digital Edition"? The "digital version" framing may warrant a name change | DISCUSS |
+| **App naming** | Keep "Five Parsecs Campaign Manager" or rebrand toward "Five Parsecs From Home: Digital Edition"? | OPEN — Apr 29 followup #7 |
+| **Pricing approval workflow** | Sign-off on EA price + DLC structure, or FYI? | OPEN — Apr 29 followup #8 |
+| **Store listing workflow** | Listings go through Modiphius's publisher accounts — what's the prep-and-handoff process? | OPEN — Apr 29 followup #9 |
 | **Age rating alignment** | PEGI 7-12 / Apple 9+ / Steam E10+ — confirm with Modiphius | Needs confirmation |
-| **Store listing approval workflow** | Do they want sign-off on descriptions, screenshots, promotional text? | DISCUSS |
-| **Beta testing / soft launch plan** | Community beta through their channels? | DISCUSS |
-| **Launch promotion** | Newsletter, social media, store page cross-linking | DISCUSS |
+| **Modiphius newsletter timing** | Best month for the 5PFH digital announcement to existing audience | OPEN — Apr 29 followup #10 (held post-MVP) |
+| **NDA stance for closed alpha** | No-NDA gentleman's agreement vs formal NDA | OPEN — Apr 29 followup #4 |
+| **EU/UK accessibility compliance guidance** | Modiphius prior legal opinions / compliance docs from other digital products? | OPEN — Apr 29 followup #13 |
 
 ### Future Growth
 
 | Item | Details | Status |
 |------|---------|--------|
-| **Five Leagues From the Borderlands** | Priority 2 after core 5PFH. Same framework, same audience size (30-35K). Needs rulebook access + data extraction | CONFIRMED as next target |
+| **Five Leagues From the Borderlands** | Priority 2 after core 5PFH. **20K physical, 2,700 DTRPG** confirmed Apr 29. Same framework, code reuse. | CONFIRMED as next target |
 | **Five Klicks From the Zone** | Completes the 5X trilogy. Same engine, massive code reuse | Future |
-| **Titan Forge mini integration** | If renders available: 3D viewer, "buy the mini" links, collection tracking. Could drive physical product sales from the app | EXPLORE with Titan Forge |
+| **5x system across other Modiphius IPs** | Apr 29 framing — this build is the foundation of Modiphius's wider digital strategy. Star Trek Adventures, Achtung Cthulhu, Fallout, Dune as candidate downstream integrations. | STRATEGIC FRAME — informs deal structure |
 
 ---
 
@@ -120,4 +154,4 @@ Everything and anything they can provide. This is the single biggest quality gap
 
 ---
 
-*Document created 2026-04-07. Updated 2026-04-16 post-meeting. Update after April 22 follow-up.*
+*Document created 2026-04-07. Updated 2026-04-16, 2026-04-22, and 2026-04-29 post-meetings. Update as Modiphius responses to the Apr 29 follow-up cycle arrive — log replies in [MEETING_FOLLOWUPS_2026-04-29.md](MEETING_FOLLOWUPS_2026-04-29.md) §9 tracking table.*

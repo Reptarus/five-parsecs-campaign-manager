@@ -1,0 +1,132 @@
+==============================================================
+EMAIL DRAFT — Apr 29 2026 Modiphius Follow-up
+==============================================================
+
+To:      Chris Birch <chris@modiphius.com>          [verify exact address]
+CC:      Gavin <gavin@modiphius.com>                [verify exact address]
+From:    Elijah Rhyne <elijahrhyne@gmail.com>
+Subject: 5PFH Digital — Apr 29 follow-up & asks list
+
+==============================================================
+
+Hi Chris (and Gavin),
+
+Thanks for the meeting today — really appreciated the open conversation about the 5x-system-as-foundation framing. The idea that this build sets the template for Modiphius's wider digital strategy is exciting to me, and I want to make sure we set the right tone from the start.
+
+Quick recap of what I heard, so we're aligned in writing:
+
+• DTRPG-direct sales: 5PFH Core 4,219, 5 Leagues 2,700
+• Physical: 5PFH 30K, 5 Leagues 20K, Tactics+Bug Hunt 5K, Planetfall 6K
+• Every physical book ships with a PDF (bundled, not a separate sale)
+• Net revenue split: 50/50 after platform fees
+• Ivan and his playtesting circle will receive a copy of the app to put through its paces; closed alpha kicks off late May
+• Store listings will go through Modiphius's publisher accounts and public-facing channels
+• Asset delivery ~1 week+ once your asset person is back
+• CC Gavin going forward; weekly cadence with Gavin starting next week
+• 5x system being lined up for other Modiphius licensed projects
+
+My read on the next 1-2 weeks: foundational setup — paperwork groundwork, email intros, touching base on the open items below, and getting unanimous agreement on the step forward. Below are my asks coming out of the meeting, ordered by urgency. I'll be sending some artifacts separately over the next 1-3 days.
+
+
+URGENT (would love answers within ~1 week)
+
+1. Partnership on paper. Per your suggestion to start getting this on paper, here's my proposed phased approach:
+
+• LOI (Letter of Intent) now — non-binding, captures key terms (deal structure, scope, timeline, IP license outline)
+• MOU (Memorandum of Understanding) during alpha + refinement (~Jun-Jul) — payment milestones, deliverables, IP attribution
+• Definitive Agreement during beta + EA prep (~Aug-Sep) — full contract, signed before Steam EA goes live
+
+Open questions: are you comfortable kicking off the LOI in the next 2-3 weeks while alpha runs? Should the LOI scope to 5PFH digital only, or include language about future 5x-system projects? And will Modiphius's legal team draft the MOU and Definitive Agreement, or do you want me to bring my own?
+
+2. Contractor structure scopes. Three concrete options on the table for your consideration. Each addresses a different concern, not just a pricing tweak:
+
+• Frame A (intro-project contractor): $30-45K up-front + reduced rev share (20-25%). Best when Modiphius wants to capitalize the platform-establishment work for downstream IP integrations.
+• Frame B (post-launch support retainer): monthly retainer ~$3-5K/mo for 6-12 months post-EA + pure 50/50 rev share. Best when the build is mine to bear via rev share but Modiphius wants dedicated post-launch availability.
+• Frame C (hybrid): smaller intro fee ($15-20K) + 50/50 + post-launch retainer ($3K/mo × 6mo). Phased commitment.
+
+Multi-project reframe: if you view this build as the foundation for the 5x system across other licensed IPs, the contractor structure is closer to platform R&D investment than per-product cost. A retainer also locks in the dev who built the platform for the next IP integration.
+
+I'll send the full forecast doc separately with the math worked out under all three frames (50/50 baseline, break-even tables, scope rationale). What I'd like from you is a directional read on which frame resonates so I can refine the proposal accordingly. No commitment yet — this is a starting-point conversation.
+
+3. Asset delivery confirmation. Once your asset person is back, can you confirm which items below we can expect from your team and which I should treat as "we're on our own" for placeholder planning? Even yes/no per row unblocks me on placeholder strategy.
+
+• Game logo / wordmark (vector — splash, loading, store)
+• Modiphius logo (vector — "Published by" attribution)
+• App icon (1024×1024 Apple, 512×512 Google, smaller sizes)
+• Book cover art (5PFH, Compendium, Planetfall, Tactics)
+• Interior art / illustrations (character, species, equipment, ship, world)
+• Icon set / official iconography
+• Images of the miniatures (whatever you have available)
+• Press kit / marketing materials
+
+4. NDA stance for closed alpha. Industry norm for indie closed alphas is a no-NDA gentleman's agreement ("please don't post screenshots / streams of pre-1.0 builds"). Comfortable with that for Ivan's group, or does Modiphius want a formal NDA? The only case where I'd argue for an NDA is if we end up exposing unannounced 5x-system content during alpha.
+
+
+MEDIUM-PRIORITY (within 2-3 weeks)
+
+5. Legal framework. Can your legal team take the lead on the following items? Happy to share our current draft as a starting point or work from yours, whichever you prefer.
+
+• IP license grant scope (game mechanics, text, terminology, artwork, trade dress — what exactly are we licensed to use?)
+• Sublicensing language for platform stores (Steam, Apple, Google all require sublicensing rights in their distribution agreements)
+• Governing law / jurisdiction (England and Wales vs US?)
+• IP attribution requirements (exact copyright line, trademark notices, "used under license" phrasing)
+
+6. Support email. EULA and Privacy Policy have a placeholder for a support contact. Whose email goes there? Shared support@modiphius.net, personal, or a dedicated alias?
+
+7. App naming. Keep "Five Parsecs Campaign Manager" (utility-sounding) or rebrand toward "Five Parsecs From Home: Digital Edition" (matches the digital-version framing from Apr 16)?
+
+8. Pricing approval workflow. Once I have closed alpha feedback on pricing perception, do you want sign-off on EA price + DLC structure, or is that mine to decide and you review?
+
+9. Store listing workflow. Since listings go through your publisher accounts, what's the handoff process? I'll prep copy, screenshots, and "Why Early Access?" answers — does your team take that and publish, or do you want a final approval gate before submission?
+
+
+LOWER-PRIORITY / FYI (revisit post-MVP)
+
+The items below depend on us nailing the core selling point first. Holding for now until closed alpha tells us what the minimum viable product really is.
+
+10. Modiphius newsletter timing for the 5PFH digital announcement to your existing audience. Revisit once we understand the MVP and core value prop.
+
+11. Five Leagues data extraction permission (post-EA, when 5 Leagues becomes Priority 2). Heads up only, not blocking.
+
+12. Errata + rules clarifications channel. Best path to clarifications from Gavin for ambiguous edge cases?
+
+13. EU/UK accessibility compliance guidance. Does your team have prior legal opinions or compliance docs from other Modiphius digital products I can reference? We already have colorblind modes, reduced motion, and font size options — just want to target the right WCAG level.
+
+
+WHAT'S EN ROUTE FROM ME (next 1-3 days)
+
+• Updated forecast doc with 50/50 baseline, 4,219 DTRPG anchor, and contractor scope math (Frames A/B/C)
+• Updated progress/build snapshot
+• Closed alpha plan draft for review before kickoff
+• Steam EA store page brief follows once we've nailed the MVP and core selling point
+
+
+CADENCE PROPOSAL
+
+• Weekly 30-min sync with Gavin starting next week — async-friendly format works if that's easier on his calendar
+• Bi-weekly with Chris (or as you prefer) for strategic items only
+• Suggest first Gavin sync Mon May 4 or Tue May 5 — let me know which works
+
+Excited about the path forward. Looking forward to next week.
+
+Best,
+Elijah
+
+==============================================================
+END EMAIL DRAFT
+==============================================================
+
+PRE-SEND CHECKLIST:
+[ ] Verify Gavin's exact email address (don't fire off without it)
+[ ] Re-read once more with fresh eyes
+[ ] Confirm forecast doc is committed/shareable before sending
+[ ] Adjust tone if needed (match Chris's warm voice from meeting)
+[ ] Optionally attach §9.5 of FORECAST.md or share GitHub link
+    so the contractor math is visible
+[ ] Send target: by May 1 EOD at the latest
+
+POST-SEND:
+[ ] Update docs/MEETING_FOLLOWUPS_2026-04-29.md §9 tracking table
+    as responses arrive
+[ ] Log responses to launch-dashboard.html "Modiphius Asks" tab
+    once dashboard is built (Phase A.1 deliverable)

@@ -7,6 +7,113 @@
 
 The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. **All agents extract from the PDFs using PyPDF2 ONLY** — do NOT use PyMuPDF/fitz. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/...'); print(r.pages[PAGE].extract_text())"`.
 
+## Session 60.1: Apr 30 Forecast Deep-Dive — Steam-First + Industry Research + Strategic Theses Captured
+
+Apr 30 follow-up to Apr 29 meeting. Forecast doc deep-dive over the course of one session. Three substantive changes baked in:
+
+### 1. Steam-first refocus (forecast §6 → §9)
+- Phase 1 (EA + 1.0) targets Steam exclusively. Mobile reframed as Phase 2 "pocket edition" port (post-1.0, separate revenue stream)
+- Platform-cut multiplier: 0.72 (blended Steam + mobile Small Business) → **0.70 (flat Steam 30%)**
+- All net revenue figures, 50/50 splits, and contractor break-even tables recomputed
+- Break-even thresholds (N\*) UNCHANGED — they're rev-share-delta-driven, not platform-cut-driven. Defensible talking point.
+- New §6c: mobile pocket edition forward-looking sizing ($4.99-9.99, Apple/Google Small Business 0.85 multiplier, post-Steam-EA scope decision)
+
+### 2. §11 Industry Research added (~2,500 words, 30+ sources)
+Seven subsections with external research validating/challenging forecast assumptions:
+- §11.1 Steam tabletop products (RIGHT comparison vector restructure — 4 subsections splitting digital REPLACEMENTS from digital COMPANIONS; Gloomhaven retired as product comp, retained only as audience-size ceiling)
+- §11.1c lists 12 off-Steam companion-app peers (Mythic GME Digital, Quest Companion, World Anvil, Kanka, New Recruit, Army Forge, BattleScribe, Old World Builder, Campaign Console, Warscribe, Frostgrave Campaign Tracker, Stargrave Crew Builder)
+- §11.1d category whitespace finding — empty Steam category = both moat AND discovery risk
+- §11.2 wishlist conversion benchmarks (5-10% industry-wide 2026, EA ~20% first month median, target 10K-20K wishlists)
+- §11.3 EA risk environment (31-50% failure rate)
+- §11.4 pricing psychology (anchoring, charm pricing, AAA $60 ceiling)
+- §11.5 cannibalization → §11.5a active digital→physical strategy (5 mechanisms)
+- §11.6 TTRPG market tailwinds (13.2% CAGR, solo segment fastest-growing)
+- §11.7 synthesis (now ternary: Reinforced / **Reframed** / Challenged)
+
+### 3. FOUR MUTUALLY AGREED STRATEGIC THESES captured (durable framings)
+Both Elijah and Modiphius have stated these positions repeatedly across conversations. Apr 30 made them explicit and durable:
+- **T1**: Companion app, not digital port — defuses cannibalization concern
+- **T2**: Establishing a category, not entering one — solo-RPG/wargame digital companion apps absent on Steam
+- **T3**: Multi-project platform R&D investment — foundation for Modiphius's wider digital strategy
+- **T4**: Active digital→physical conversion strategy — 5 in-app mechanisms drive Steam users to physical books
+
+### Files updated Apr 30 (deep-dive)
+- `docs/MODIPHIUS_DIGITAL_FORECAST.md` — header rev notes, §3 date fix, §4c + §5a conservatism footnotes, §6 Steam-first rewrite, §6c new mobile sizing, §7b/c table updates, §8 two new "what would change" rows, §9b three table updates (50/50 baseline x 0.70 multiplier), §9c Steam-only context note, §9.5 multi-project reframe promoted to baseline, §9e bug fix (60/40 → 50/50), §10 next-actions updated with Phase B/C deliverables, §11 NEW (7 subsections), §11.1 four-subsection restructure, §11.5a NEW (5 mechanisms), §11.7 ternary synthesis
+- `docs/MEETING_FOLLOWUPS_2026-04-29.md` — new §1.5 mutually agreed strategic theses table, §5 deliverables updated to reflect SENT/in-flight
+- `docs/CLOSED_ALPHA_PLAN.md` — new §6.1 category-perception probe + new §6.5 digital→physical mechanism specs
+- `CLAUDE.md` — header partnership block + 4 strategic theses block + 7 new Apr 30 gotchas
+- `.claude/skills/fpcm-project-management/references/project-status.json` — current_phase + roadmap rewritten, new strategic_theses + phase_B_alpha_deliverables_apr30 sections
+- `docs/launch-dashboard.html` — Phase B/C deliverables added (category-perception probe, digital→physical mechanism specs, Steam-store-positioning brief)
+
+### Files updated Apr 30 (evening delivery prep)
+- `docs/MODIPHIUS_FORECAST_SUMMARY.md` (NEW) — 1-page executive summary for email attachment. Section A confirmed numbers · Section B T1-T4 · Section C 3-row revenue table (Conservative/Moderate/Strong, Steam-only 0.70 multiplier, 50/50 split) · Section D 3 contractor frames · Section E 5 mechanisms · Section F industry research highlights · "what's en route" footer
+- `docs/MODIPHIUS_FORECAST_SUMMARY.html` (NEW, rendered) — print-ready HTML for browser → Save as PDF
+- `docs/MODIPHIUS_DIGITAL_FORECAST.html` (NEW, rendered) — full forecast in print-ready HTML for held-in-reserve PDF render
+- `docs/EMAIL_DRAFT_FORECAST_DELIVERY.txt` (NEW) — ~150-word email body, paste-and-send. Headline bullets pulled from 1-pager. Coordination items listed (discount sizing, contractor frame preference)
+- `scripts/render_md_to_print_html.py` (NEW) — reusable markdown→HTML print-ready renderer. Pure Python (markdown library only). NO PyMuPDF (per project rule). Browser Print-to-PDF flow eliminates Pandoc/wkhtmltopdf system dependency
+- Spot-check completed before send: Section D Frame B/C break-even labels were incorrectly conflating Frames with §9b Structures. **Frame A has $100K-$180K break-even range (Structure 1 or 2 math). Frames B and C are pure additional cost (no rev-share concession, no break-even threshold).** Fix applied, HTML re-rendered.
+
+### Forecast SENT (A1.10 marked done 2026-04-30)
+- Sent date: 2026-04-30 (one day ahead of May 1 EOD target)
+- Recipients: Chris Birch + CC Gavin (per Apr 29 cadence agreement)
+- Attachments: `MODIPHIUS_FORECAST_SUMMARY.pdf` (rendered from .html via Chrome Print-to-PDF) + current Windows build .exe (post-Apr 28 perf sprint)
+- Held in reserve: `MODIPHIUS_DIGITAL_FORECAST.pdf` (full forecast, send if Modiphius requests)
+- Awaiting reply — log responses in `MEETING_FOLLOWUPS_2026-04-29.md` §9 tracking table as they land
+- Routing for replies: any partnership-related response goes to project-manager (me); domain-specific clarifications get triaged to the right agent
+
+### Coordination items needed from Modiphius (Phase A.2)
+- T4 discount-code sizing (15-20% placeholder)
+- T4 redemption mechanism (one-time codes? promo codes? URL parameter?)
+- T4 co-branded landing page
+- T4 newsletter API endpoint
+- T2 store-positioning input (Modiphius newsletter timing already in §2.5 ask)
+
+### Routing notes (unchanged from Session 60)
+- **Strategic / partnership tasks**: route to me (project-manager). NOT delegated to domain agents.
+- **T4 mechanism implementation in app**: route to ui-panel-developer (frontend) + campaign-systems-engineer (state persistence for opt-in flows / consent) once mock-ups exist
+- **Category-perception data analysis**: capture during alpha, synthesize end-of-alpha → Phase C Steam-store-positioning brief
+
+### See also
+- Plan: `C:\Users\admin\.claude\plans\5pfh-4219-dtrpg-jiggly-charm.md`
+- Research sidecar: `C:\Users\admin\.claude\plans\5pfh-4219-dtrpg-jiggly-charm-agent-a6522ae24714bef96.md` (30+ sourced URLs)
+- User memory: `project_session_apr30_forecast_deepdive.md`, `feedback_strategic_theses_t1_t4.md`, `reference_steam_companion_app_landscape.md`
+
+---
+
+## Session 60: Modiphius Partnership Workback (Apr 29, 2026) — DEAL FRAME LOCKED
+
+Apr 29 meeting with Chris Birch + Gavin (Modiphius). Three things changed strategic posture:
+- **Sales numbers confirmed**: 5PFH 4,219 DTRPG / 30K phys, 5L 2,700 DTRPG / 20K phys. Every physical book bundles a PDF (NOT separate revenue events).
+- **50/50 net revenue split** confirmed as working deal. Prior 60/40 baseline superseded across all docs. Contractor structures re-run on 50/50 — break-evens shifted: Structure 1 $75K→$100K, Structure 3 $200K→$400K (no longer viable).
+- **5x system positioned as foundation** for Modiphius's wider digital strategy across other licensed IPs (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune). Quality bar = "template for Modiphius digital."
+
+### Phase A.1 deliverables COMPLETE (Apr 29 same-day)
+- `docs/MODIPHIUS_DIGITAL_FORECAST.md` — updated with 50/50 baseline + new §9.5 (three contractor scope frames A/B/C)
+- `docs/MODIPHIUS_ASK_LIST.md` — updated with Apr 29 confirmations + linked to MEETING_FOLLOWUPS
+- `docs/MEETING_FOLLOWUPS_2026-04-29.md` — canonical 13-ask list with email draft embedded + tracking table
+- `docs/EMAIL_DRAFT_2026-04-29.txt` — plain-text email body, SENT to Chris (CC Gavin)
+- `docs/launch-dashboard.html` — interactive HTML PM dashboard (tabs: Kanban/Phases/Timeline/Asks/Critical/Risks). Personal-use only, NOT shared with Modiphius.
+- `docs/CLOSED_ALPHA_PLAN.md` — 10-20 testers from Ivan's Discord, 6-week window, weekly builds, 6 graduation gates
+- `docs/PRICING_RESEARCH_PLAN.md` — Van Westendorp + Prolific n=200 + Gabor-Granger methodology
+
+### Workback (Apr 29 → Steam EA late Sep 2026)
+A.1 (this wk Apr 29-May 4 internal) → A.2 (next wk May 5-11 external + partnership-on-paper) → A.3 (May 12-24 alpha prep) → B (May 25-Jul 6 closed alpha 6wk) → C (Jul 7-20 refinement 2wk) → D (Jul 21-Sep 1 beta/Steam Playtest 6wk) → E (Sep 2-22 marketing lock 3wk) → F (Sep 23-30 Steam EA launch) → G (post-EA 6-12mo to 1.0).
+
+### Routing notes for partnership-era tasks
+- **Strategic / partnership tasks**: route to me (project-manager). NOT delegated to domain agents — these are strategy + business + comms work, not code.
+- **Domain tasks during alpha**: standard agent routing applies. Bug-hunt/character-data/battle/UI agents continue normal work.
+- **MVP / core selling point gate**: pricing, store-page, Modiphius newsletter timing all gated on alpha pricing-perception data. Don't lock these in advance.
+- **Partnership-on-paper**: LOI in Phase A.2 → MOU in alpha+refinement (Jun-Jul) → Definitive Agreement before Steam EA. Cannot launch without Definitive Agreement signed.
+- **Asset placeholder strategy**: ~1 week+ ETA from Modiphius asset person. Don't block Phases A/B on assets. Use placeholder pattern (TextureRect-swap-ready).
+- **Closed alpha cohort**: Ivan's private playtesting Discord (10-20 testers). No external recruitment workstream needed.
+
+### See also
+- Plan: `C:\Users\admin\.claude\plans\5pfh-4219-dtrpg-jiggly-charm.md`
+- Research sidecar: `C:\Users\admin\.claude\plans\5pfh-4219-dtrpg-jiggly-charm-agent-a6522ae24714bef96.md` (30+ sourced URLs)
+- User memory: `project_session_apr29_modiphius_meeting.md`, `project_workback_to_steam_ea.md`, `project_contractor_scope_frames.md`, `reference_html_dashboard_template.md`
+
+---
+
 ## Session 49: UX Polish Sprint (Apr 8, 2026)
 
 Shotgun sprint — 8 non-blocked UX items shipped. UX checklist moved from **58/8/15** to **59/7/15** done/partial/pending.

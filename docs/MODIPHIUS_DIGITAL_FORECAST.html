@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MODIPHIUS_DIGITAL_FORECAST</title>
+<style>
+@page {
+    size: A4;
+    margin: 0.6in 0.5in;
+}
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.4;
+    color: #111;
+    max-width: 7.5in;
+    margin: 0 auto;
+    padding: 0;
+}
+h1 {
+    font-size: 18pt;
+    margin: 0 0 0.4em 0;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.2em;
+}
+h2 {
+    font-size: 13pt;
+    margin: 0.8em 0 0.3em 0;
+    color: #1a3a5c;
+    page-break-after: avoid;
+}
+h3 {
+    font-size: 11pt;
+    margin: 0.6em 0 0.2em 0;
+    color: #2d5a7b;
+    page-break-after: avoid;
+}
+h4 {
+    font-size: 10.5pt;
+    margin: 0.5em 0 0.2em 0;
+    page-break-after: avoid;
+}
+p, ul, ol {
+    margin: 0.3em 0;
+}
+ul, ol {
+    padding-left: 1.4em;
+}
+li {
+    margin: 0.15em 0;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.4em 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+}
+th, td {
+    border: 1px solid #999;
+    padding: 0.25em 0.5em;
+    text-align: left;
+    vertical-align: top;
+}
+th {
+    background-color: #f0f0f0;
+    font-weight: 600;
+}
+code {
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.92em;
+    background-color: #f5f5f5;
+    padding: 0.1em 0.3em;
+    border-radius: 2px;
+}
+pre {
+    background-color: #f5f5f5;
+    padding: 0.6em;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 9pt;
+    overflow-x: auto;
+    page-break-inside: avoid;
+}
+pre code {
+    background: transparent;
+    padding: 0;
+}
+hr {
+    border: none;
+    border-top: 1px solid #999;
+    margin: 0.8em 0;
+}
+blockquote {
+    border-left: 3px solid #ccc;
+    margin: 0.4em 0;
+    padding: 0.1em 0.8em;
+    color: #555;
+}
+strong {
+    font-weight: 600;
+}
+em {
+    font-style: italic;
+}
+a {
+    color: #1a5490;
+    text-decoration: none;
+}
+@media print {
+    body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+</style>
+</head>
+<body>
+<h1>Modiphius Digital Forecast &amp; Revenue Model</h1>
+<p><strong>Owner</strong>: Elijah Rhyne
+<strong>Last Updated</strong>: 2026-04-29 (post-meeting)
+<strong>Purpose</strong>: Plug-in financial forecast model for the 5PFH app partnership proposal. Swap placeholder assumptions for real Modiphius data as it arrives.</p>
+<p><strong>Apr 29 meeting changes baked into this revision</strong>:
+- DTRPG-direct sales numbers confirmed: 5PFH Core 4,219; 5 Leagues 2,700 (replaces badge-floor estimates)
+- 50/50 net revenue split (after platform fees) confirmed as the working deal frame
+- Section 9 break-even tables re-run on 50/50 baseline (was 60/40)
+- New Section 9.5: three contractor scope frames (intro project / post-launch retainer / hybrid)
+- New caveat in §2b + §4c: every physical book ships with a PDF — physical-PDF bundling distorts "digital reach" metrics</p>
+<p><strong>Apr 30 strategic refocus baked into §6 → §9</strong>:
+- <strong>Steam-first launch strategy</strong>: Phase 1 (EA + 1.0) targets Steam exclusively to establish platform presence; mobile reframed as a Phase 2 "pocket edition" port (post-1.0)
+- Platform-cut multiplier changed from blended 0.72 (Steam + mobile Small Business) to <strong>flat 0.70 (Steam-only 30%)</strong> — all §6, §7, §9b tables recomputed
+- New §6c: mobile pocket edition forward-looking sizing (not modeled in EA-window forecast)
+- <strong>Platform-establishment thesis confirmed as mutually agreed partnership goal</strong>: 5PFH on Steam is establishing a category (single-player solo-RPG/wargame digital companion), not entering one. This thesis ties together the §9.5 contractor scope frames (multi-project R&amp;D investment), the §11.1 category-whitespace finding, and the §11.5 digital→physical conversion strategy. <strong>All three sections assume this thesis is baseline, not pitch ammunition.</strong></p>
+<hr />
+<h2>1. Legend</h2>
+<table>
+<thead>
+<tr>
+<th>Marker</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>[CONFIRMED]</strong></td>
+<td>Number directly sourced — Modiphius stated verbatim or verified via public channel</td>
+</tr>
+<tr>
+<td><strong>[ESTIMATE]</strong></td>
+<td>Derived from industry benchmarks — replace when real data arrives</td>
+</tr>
+<tr>
+<td><strong>[UNKNOWN]</strong></td>
+<td>Input we need Modiphius to provide</td>
+</tr>
+<tr>
+<td><strong>[FORMULA]</strong></td>
+<td>Cell is computed — update inputs, recompute</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. Confirmed Data</h2>
+<h3>2a. Physical sales (from Chris Birch, 2026-04-16 meeting)</h3>
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th style="text-align: right;">Physical Units Sold</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5PFH Core Rulebook</td>
+<td style="text-align: right;">30,000 – 35,000</td>
+<td><strong>[CONFIRMED]</strong> Chris Birch verbal</td>
+</tr>
+<tr>
+<td>5 Leagues From the Borderlands</td>
+<td style="text-align: right;">30,000 – 35,000</td>
+<td><strong>[CONFIRMED]</strong> Chris Birch verbal</td>
+</tr>
+<tr>
+<td>Tactics + Bug Hunt (bundled)</td>
+<td style="text-align: right;">~5,000</td>
+<td><strong>[CONFIRMED]</strong> Chris Birch verbal</td>
+</tr>
+<tr>
+<td>Planetfall</td>
+<td style="text-align: right;">~6,000</td>
+<td><strong>[CONFIRMED]</strong> Chris Birch verbal</td>
+</tr>
+<tr>
+<td><strong>Total 5X ecosystem</strong></td>
+<td style="text-align: right;"><strong>~71,000 – 81,000</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>2b. Digital sales — DriveThruRPG channel direct sales</h3>
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th>DTRPG Badge</th>
+<th style="text-align: right;">DTRPG Units</th>
+<th style="text-align: right;">PDF Price</th>
+<th>Listed Since</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5PFH Core Rulebook (MUH052345-PDF)</td>
+<td><strong>Mithral</strong></td>
+<td style="text-align: right;"><strong>4,219</strong> <strong>[CONFIRMED]</strong> Apr 29 mtg</td>
+<td style="text-align: right;">$21.00</td>
+<td>May 27, 2021</td>
+</tr>
+<tr>
+<td>5 Leagues From the Borderlands</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>2,700</strong> <strong>[CONFIRMED]</strong> Apr 29 mtg</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+<tr>
+<td>5PFH Compendium &amp; Bug Hunt</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+<tr>
+<td>5PFH Bug Hunt (standalone)</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+<tr>
+<td>5PFH Trailblazer's Toolkit (Exp 1)</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+<tr>
+<td>5PFH Freelancer's Handbook (Exp 2)</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+<tr>
+<td>5PFH Tactics</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+<tr>
+<td>5PFH Fixer's Guidebook (Exp 3)</td>
+<td><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td><strong>[UNKNOWN]</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>CRITICAL CAVEAT (Apr 29 meeting)</strong>: Every physical book ships with a PDF. Those bundled-fulfillment PDFs do NOT show as DTRPG sales. The 4,219 / 2,700 figures are <strong>DTRPG-direct revenue events only</strong> — addressable "PDF reach" includes physical buyers too, but those are subset of the physical count, not additions to it. See Section 5.5.</p>
+<p><strong>Action</strong>: Check the DTRPG product page for each remaining SKU and fill in the badge + visible price. The badge alone gives a hard floor even without exact numbers.</p>
+</blockquote>
+<h3>2c. DriveThruRPG economics</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th style="text-align: right;">Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Publisher royalty (exclusive)</td>
+<td style="text-align: right;">70% of sale price</td>
+<td><strong>[CONFIRMED]</strong> DTRPG help</td>
+</tr>
+<tr>
+<td>Publisher royalty (non-exclusive)</td>
+<td style="text-align: right;">65% of sale price</td>
+<td><strong>[CONFIRMED]</strong> DTRPG help</td>
+</tr>
+<tr>
+<td>Minimum qualifying price for rankings</td>
+<td style="text-align: right;">$0.20 USD</td>
+<td><strong>[CONFIRMED]</strong> DTRPG help</td>
+</tr>
+<tr>
+<td>5PFH Core listed price</td>
+<td style="text-align: right;">$21.00</td>
+<td><strong>[CONFIRMED]</strong> DTRPG product page</td>
+</tr>
+<tr>
+<td>Modiphius exclusive status</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td>Ask Gavin</td>
+</tr>
+</tbody>
+</table>
+<h3>2d. DriveThruRPG badge thresholds</h3>
+<table>
+<thead>
+<tr>
+<th>Badge</th>
+<th style="text-align: right;">Min Units</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Copper</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr>
+<td>Silver</td>
+<td style="text-align: right;">101</td>
+</tr>
+<tr>
+<td>Electrum</td>
+<td style="text-align: right;">251</td>
+</tr>
+<tr>
+<td>Gold</td>
+<td style="text-align: right;">501</td>
+</tr>
+<tr>
+<td>Platinum</td>
+<td style="text-align: right;">1,001</td>
+</tr>
+<tr>
+<td>Mithral</td>
+<td style="text-align: right;">2,501</td>
+</tr>
+<tr>
+<td>Adamantine</td>
+<td style="text-align: right;">5,001</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Unknowns We Need From Modiphius</h2>
+<p>Priority-ordered asks for follow-up email after April 29 meeting (mirror of <code>docs/MEETING_FOLLOWUPS_2026-04-29.md</code>):</p>
+<ol>
+<li><strong>Modiphius.net direct-store PDF units per SKU</strong> — filter their internal system by stock number (<code>MUH052345-PDF</code> for Core, etc.)</li>
+<li><strong>Channel mix</strong> — for 5PFH Core, roughly what % of digital sold via Modiphius direct vs. DTRPG vs. other (Humble, Bundle of Holding, etc.)?</li>
+<li><strong>Kickstarter digital fulfillment counts</strong> — how many PDFs shipped as part of physical-tier KS rewards? (these don't show as "sales" but are real reader units)</li>
+<li><strong>Exclusive or non-exclusive on DTRPG?</strong> — determines 70% vs 65% royalty</li>
+<li><strong>Attach rate observation</strong> — has Modiphius measured physical→digital attach for any prior product line (Star Trek, Fallout, Dune)? Even a rough sense helps.</li>
+</ol>
+<hr />
+<h2>4. Forecasting Logic</h2>
+<h3>4a. Industry-benchmark digital attach rates</h3>
+<p>Used when publisher-specific data is unavailable. Apply to physical unit counts to estimate total digital units across all channels.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Attach Rate</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pessimistic floor</td>
+<td style="text-align: right;">15%</td>
+<td>Print-dominated product, weak digital infrastructure</td>
+</tr>
+<tr>
+<td>Conservative</td>
+<td style="text-align: right;">25%</td>
+<td>Industry baseline for traditional-audience RPG</td>
+</tr>
+<tr>
+<td>Moderate</td>
+<td style="text-align: right;">40%</td>
+<td>Industry median (matches "40% of TTRPG revenue is digital" benchmark)</td>
+</tr>
+<tr>
+<td>Strong</td>
+<td style="text-align: right;">60%</td>
+<td>Solo/international-skewing product with multi-SKU line</td>
+</tr>
+<tr>
+<td>Aggressive</td>
+<td style="text-align: right;">80–100%</td>
+<td>"Digital rivals print" — flagship title, global fanbase</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sources</strong>: 40% digital share — WifiTalents TTRPG 2026 report; "digital rivals print for some products" — RPGdrop 2024 market analysis; DTRPG attach skew — industry averages for branded publishers.</p>
+<h3>4b. Channel split assumption (branded mid-size publisher)</h3>
+<p>When we don't know the exact split, assume:</p>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th style="text-align: right;">% of digital volume</th>
+<th style="text-align: right;">Publisher net margin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modiphius direct store</td>
+<td style="text-align: right;">50% <strong>[ESTIMATE]</strong></td>
+<td style="text-align: right;">~95% (payment processing only)</td>
+</tr>
+<tr>
+<td>DriveThruRPG</td>
+<td style="text-align: right;">33% <strong>[ESTIMATE]</strong></td>
+<td style="text-align: right;">70% (if exclusive) or 65% (if non-exclusive)</td>
+</tr>
+<tr>
+<td>Other (Humble, bundles, itch.io, Roll20)</td>
+<td style="text-align: right;">17% <strong>[ESTIMATE]</strong></td>
+<td style="text-align: right;">~50–70% (varies)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Back-solve sanity check (Apr 29 update)</strong>: With DTRPG-confirmed 4,219 units for 5PFH Core and DTRPG = 33% of digital volume, implied total digital = 12,785. That's ~42.6% attach rate against 30K physical — lands in the "Moderate" tier of §4a, not "Conservative." <strong>Audience is materially larger than previously modeled.</strong></p>
+<h3>4c. Per-SKU physical-to-digital conversion worksheet</h3>
+<p>Fill in as data arrives. Formulas below.</p>
+<table>
+<thead>
+<tr>
+<th>SKU</th>
+<th style="text-align: right;">Physical Units</th>
+<th style="text-align: right;">DTRPG Units</th>
+<th style="text-align: right;">Implied Total Digital (if DTRPG=33%)</th>
+<th style="text-align: right;">Attach Rate vs. Physical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5PFH Core</td>
+<td style="text-align: right;">30,000 <strong>[CONFIRMED]</strong></td>
+<td style="text-align: right;"><strong>4,219 [CONFIRMED]</strong></td>
+<td style="text-align: right;"><strong>12,785 [FORMULA]</strong></td>
+<td style="text-align: right;"><strong>42.6% [FORMULA]</strong></td>
+</tr>
+<tr>
+<td>5 Leagues</td>
+<td style="text-align: right;">20,000 <strong>[CONFIRMED]</strong></td>
+<td style="text-align: right;"><strong>2,700 [CONFIRMED]</strong></td>
+<td style="text-align: right;"><strong>8,182 [FORMULA]</strong></td>
+<td style="text-align: right;"><strong>40.9% [FORMULA]</strong></td>
+</tr>
+<tr>
+<td>5PFH Compendium</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>5PFH Bug Hunt</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>5PFH Trailblazer's</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>5PFH Freelancer's</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>5PFH Tactics</td>
+<td style="text-align: right;">5,000 <strong>[CONFIRMED]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>5PFH Fixer's</td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>Planetfall</td>
+<td style="text-align: right;">6,000 <strong>[CONFIRMED]</strong></td>
+<td style="text-align: right;"><strong>[UNKNOWN]</strong></td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Formulas</strong>:
+- Implied Total Digital = DTRPG Units ÷ 0.33
+- Attach Rate = Implied Total Digital ÷ Physical Units</p>
+<p><strong>Footnote — physical-unit anchor choice</strong>: §2a confirms physical sales as a 30,000–35,000 range for 5PFH Core. The §4c table anchors to <strong>30,000 (low end of range)</strong> rather than the 32,500 midpoint, producing a conservative attach-rate calculation. Using the midpoint would lower the attach percentage to ~39.3%, still in Moderate tier — directional conclusions unchanged. Using 35,000 lowers it to ~36.5%. <strong>Anchoring low is the defensible choice for a partnership pitch</strong>: it understates the audience, which protects against revenue overpromises.</p>
+<p><strong>Caveat — physical-PDF bundling distorts the channel-mix assumption (Apr 29 meeting)</strong>: Modiphius confirmed every physical book ships with a PDF. The 33% DTRPG channel-mix estimate from §4b assumed digital channels are independent of physical. With bundled PDFs, the <strong>true total PDF reach is higher</strong> than <code>DTRPG ÷ 0.33</code> (because every physical buyer also has a PDF), but addressable <em>unique players</em> is closer to <code>physical + DTRPG-only buyers</code> (subtracting overlap). Net effect: attach-rate-to-physical figures above are conservative; <strong>addressable reader base is closer to the higher end of §5a estimates</strong>.</p>
+<hr />
+<h2>5. Addressable Market for the App</h2>
+<p>The app doesn't need PDF owners — it needs <strong>people who play the game</strong>, which is the physical + digital readership combined (with overlap).</p>
+<h3>5a. Total reader/player base (estimate)</h3>
+<p>Physical owners + Digital owners who don't also own physical. Assume 30% of digital buyers also bought physical (double-dippers).</p>
+<table>
+<thead>
+<tr>
+<th>Line</th>
+<th style="text-align: right;">Physical</th>
+<th style="text-align: right;">Digital (est. at 25% attach)</th>
+<th style="text-align: right;">Net unique players (est.)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5PFH Core</td>
+<td style="text-align: right;">32,500</td>
+<td style="text-align: right;">8,125</td>
+<td style="text-align: right;">32,500 + (8,125 × 0.70) = <strong>38,188</strong></td>
+</tr>
+<tr>
+<td>Full 5PFH ecosystem</td>
+<td style="text-align: right;">43,500 (Core 32,500 + Planetfall 6,000 + Tactics/BH 5,000; excludes 5 Leagues)</td>
+<td style="text-align: right;">10,875</td>
+<td style="text-align: right;">43,500 + (10,875 × 0.70) = <strong>51,113</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Footnote — attach-rate conservatism</strong>: This table uses the <strong>25% Conservative attach rate</strong> from §4a, even though the §4b sanity check (4,219 DTRPG ÷ 0.33 channel mix ÷ 30,000 physical = 42.6%) implies the actual attach rate is closer to <strong>Moderate tier (~40%)</strong>. Using the implied-actual rate would push the 5PFH Core unique-player estimate to ~52,000 and the full-ecosystem estimate to ~70,000 — meaningfully larger. <strong>The conservative 25% choice is intentional</strong>: revenue projections downstream (§5c, §5d, §6, §7, §9) inherit this floor, so partnership-pitch numbers are anchored to a defensible underestimate rather than a bullish best-case. If Modiphius asks "couldn't this be bigger?", the honest answer is <strong>yes — and the §4b math suggests by ~30-40%</strong>.</p>
+<p><strong>Footnote — category-discovery caveat</strong>: Audience-size estimates above assume the category-discovery question (§11.1d) resolves favorably during closed alpha — i.e., that the addressable solo-RPG/wargame audience accepts a paid Steam companion app rather than defaulting to the free web tools that currently dominate the §11.1c peer set. If alpha cohort data shows the audience explicitly prefers web/mobile, the §5 Steam-conversion math needs a separate channel-attenuation factor that this version does not model.</p>
+<h3>5b. App conversion scenarios</h3>
+<p>Apply app conversion rate to addressable market. Industry benchmarks for companion-app attach to a physical/digital RPG product:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Conversion</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Floor</td>
+<td style="text-align: right;">2%</td>
+<td>Typical unprompted companion-app attach, no marketing</td>
+</tr>
+<tr>
+<td>Conservative</td>
+<td style="text-align: right;">5%</td>
+<td>Lightly promoted, niche visibility</td>
+</tr>
+<tr>
+<td>Moderate</td>
+<td style="text-align: right;">10%</td>
+<td>Modiphius actively cross-promotes, Steam presence</td>
+</tr>
+<tr>
+<td>Strong</td>
+<td style="text-align: right;">20%</td>
+<td>Well-regarded, "the digital version" positioning, featured</td>
+</tr>
+<tr>
+<td>Aggressive</td>
+<td style="text-align: right;">30%+</td>
+<td>Breakout hit, word-of-mouth, cross-platform viral</td>
+</tr>
+</tbody>
+</table>
+<h3>5c. App revenue scenarios (5PFH Core audience only, ~38K players)</h3>
+<p>Price points under consideration: $9.99 / $14.99 / $19.99 / $24.99 base + DLC.</p>
+<p>Assume <strong>weighted ARPU</strong> (average revenue per user, base purchase + DLC upsells) of <strong>$18</strong> at midpoint pricing (e.g., $9.99 base + ~$8 in DLC attach).</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Conversion</th>
+<th style="text-align: right;">Players Converting</th>
+<th style="text-align: right;">Gross Revenue @ $18 ARPU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2%</td>
+<td style="text-align: right;">764</td>
+<td style="text-align: right;">$13,752</td>
+</tr>
+<tr>
+<td style="text-align: right;">5%</td>
+<td style="text-align: right;">1,909</td>
+<td style="text-align: right;">$34,362</td>
+</tr>
+<tr>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">3,819</td>
+<td style="text-align: right;">$68,742</td>
+</tr>
+<tr>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">7,638</td>
+<td style="text-align: right;">$137,484</td>
+</tr>
+<tr>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">11,456</td>
+<td style="text-align: right;">$206,208</td>
+</tr>
+</tbody>
+</table>
+<h3>5d. Full-ecosystem revenue scenarios (51,113 players)</h3>
+<p>Players Converting = 51,113 × conversion%, rounded to whole integers. Gross = Players × $18.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Conversion</th>
+<th style="text-align: right;">Players Converting</th>
+<th style="text-align: right;">Gross Revenue @ $18 ARPU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2%</td>
+<td style="text-align: right;">1,022</td>
+<td style="text-align: right;">$18,396</td>
+</tr>
+<tr>
+<td style="text-align: right;">5%</td>
+<td style="text-align: right;">2,556</td>
+<td style="text-align: right;">$46,008</td>
+</tr>
+<tr>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">5,111</td>
+<td style="text-align: right;">$91,998</td>
+</tr>
+<tr>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">10,223</td>
+<td style="text-align: right;">$184,014</td>
+</tr>
+<tr>
+<td style="text-align: right;">30%</td>
+<td style="text-align: right;">15,334</td>
+<td style="text-align: right;">$276,012</td>
+</tr>
+</tbody>
+</table>
+<h3>5e. With ecosystem growth (Modiphius pushes + new Steam audience)</h3>
+<p>The above assumes <strong>zero new readers</strong> from the app's existence. Realistically, a good companion app for a solo RPG drives Steam/mobile discovery of the game itself — buyers who had never heard of 5PFH. A 25% audience lift on top of converted users is a common benchmark for "digital version" pitches.</p>
+<p>Formula: <code>Base gross × 1.25</code>. Applied to Section 5d rows:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Base gross (5d)</th>
+<th style="text-align: right;">With +25% lift</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Conservative (5% conv)</td>
+<td style="text-align: right;">$46,008</td>
+<td style="text-align: right;">$57,510</td>
+</tr>
+<tr>
+<td>Moderate (10% conv)</td>
+<td style="text-align: right;">$91,998</td>
+<td style="text-align: right;">$114,998</td>
+</tr>
+<tr>
+<td>Strong (20% conv)</td>
+<td style="text-align: right;">$184,014</td>
+<td style="text-align: right;">$230,018</td>
+</tr>
+<tr>
+<td>Aggressive (30% conv)</td>
+<td style="text-align: right;">$276,012</td>
+<td style="text-align: right;">$345,015</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>6. Storefront Fees (Net Revenue After Platform Cut)</h2>
+<p><strong>Strategy: Steam-first launch, mobile pocket edition as Phase 2.</strong></p>
+<p>The launch focuses on <strong>Steam exclusively</strong> to establish platform presence on the dominant PC storefront before expanding. A mobile "pocket edition" — a slimmed-down "for when you need that fix" port — is sized as a separate Phase 2 product (post-1.0) and is <strong>not included</strong> in the EA-window forecast below. All §6 → §9 calculations use Steam-only platform economics.</p>
+<h3>6a. Platform reference (for context)</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Phase</th>
+<th style="text-align: right;">Platform Cut</th>
+<th style="text-align: right;">Net to Dev/Pub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steam</strong></td>
+<td><strong>Phase 1 (EA + 1.0)</strong></td>
+<td style="text-align: right;"><strong>30%</strong> (tiered to 25% after $10M, 20% after $50M lifetime)</td>
+<td style="text-align: right;"><strong>70%</strong></td>
+</tr>
+<tr>
+<td>Apple App Store</td>
+<td>Phase 2 (mobile pocket port)</td>
+<td style="text-align: right;">30% (15% Small Business &lt;$1M/yr)</td>
+<td style="text-align: right;">70% / 85%</td>
+</tr>
+<tr>
+<td>Google Play</td>
+<td>Phase 2 (mobile pocket port)</td>
+<td style="text-align: right;">30% (15% first $1M/yr)</td>
+<td style="text-align: right;">70% / 85%</td>
+</tr>
+<tr>
+<td>Itch.io</td>
+<td>Optional secondary</td>
+<td style="text-align: right;">10% (default, configurable)</td>
+<td style="text-align: right;">90%+</td>
+</tr>
+</tbody>
+</table>
+<h3>6b. Steam-only baseline (Phase 1 EA-window forecast)</h3>
+<p>Steam takes a flat 30% cut at our revenue scale. <strong>Net multiplier: 0.70.</strong> Tiered reductions ($10M / $50M lifetime gross thresholds) are not modeled — none of the §5 scenarios approach those thresholds in the EA-through-1.0 window.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Gross</th>
+<th style="text-align: right;">Net after Steam (× 0.70)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Floor (2% conv, Core only)</td>
+<td style="text-align: right;">$13,752</td>
+<td style="text-align: right;">$9,626</td>
+</tr>
+<tr>
+<td>Conservative (5% conv, ecosystem, no lift)</td>
+<td style="text-align: right;">$46,008</td>
+<td style="text-align: right;">$32,206</td>
+</tr>
+<tr>
+<td>Conservative + 25% lift</td>
+<td style="text-align: right;">$57,510</td>
+<td style="text-align: right;">$40,257</td>
+</tr>
+<tr>
+<td>Moderate (10% conv, ecosystem, no lift)</td>
+<td style="text-align: right;">$91,998</td>
+<td style="text-align: right;">$64,399</td>
+</tr>
+<tr>
+<td>Moderate + 25% lift</td>
+<td style="text-align: right;">$114,998</td>
+<td style="text-align: right;">$80,499</td>
+</tr>
+<tr>
+<td>Strong (20% conv, ecosystem, no lift)</td>
+<td style="text-align: right;">$184,014</td>
+<td style="text-align: right;">$128,810</td>
+</tr>
+<tr>
+<td>Strong + 25% lift</td>
+<td style="text-align: right;">$230,018</td>
+<td style="text-align: right;">$161,013</td>
+</tr>
+<tr>
+<td>Aggressive (30% conv, ecosystem, no lift)</td>
+<td style="text-align: right;">$276,012</td>
+<td style="text-align: right;">$193,208</td>
+</tr>
+<tr>
+<td>Aggressive + 25% lift</td>
+<td style="text-align: right;">$345,015</td>
+<td style="text-align: right;">$241,511</td>
+</tr>
+</tbody>
+</table>
+<h3>6c. Mobile pocket edition — Phase 2 sizing (forward-looking, not modeled)</h3>
+<p>A mobile pocket edition is on the roadmap as a <strong>post-1.0 Phase 2 product</strong>, not part of the EA forecast. Strategic shape:</p>
+<ul>
+<li><strong>Positioning</strong>: "the pocket version" — quick-access companion for between-session play, not a full feature port</li>
+<li><strong>Pricing posture</strong>: lower entry ($4.99–$9.99 base) with potentially higher unit volume than Steam due to App Store / Play Store impulse-buy dynamics</li>
+<li><strong>Platform economics</strong>: Apple Small Business + Google Play first-$1M tier give <strong>15% cut → 0.85 net multiplier</strong> until we cross $1M/yr per platform</li>
+<li><strong>Launch trigger</strong>: scope and sizing decisions deferred until Steam EA performance data tells us whether the audience exists for a mobile-first companion experience</li>
+<li><strong>Why not bundle the forecast</strong>: mobile addresses a different use-case than Steam (on-the-go vs. desk session). Bundling forecasts makes both numbers harder to defend. Better to model each phase against its own adoption curve.</li>
+</ul>
+<p><strong>Implication for the partnership pitch</strong>: Steam-first sizing is <strong>conservative against the full opportunity</strong>. If Modiphius asks "what about mobile?", the answer is "Phase 2, sized separately when Steam tells us what the audience wants." Don't pre-commit to numbers we can't yet defend.</p>
+<hr />
+<h2>7. Revenue Split — 50/50 Confirmed (Apr 29 Meeting)</h2>
+<p>The Apr 29 meeting confirmed <strong>50/50 net revenue split</strong> (after platform fees) as the working deal frame. This replaces the prior 60/40 starting position.</p>
+<h3>7a. Confirmed split structure</h3>
+<table>
+<thead>
+<tr>
+<th>Split Structure</th>
+<th style="text-align: right;">Dev Share</th>
+<th style="text-align: right;">IP Holder Share</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Co-publish (CONFIRMED)</strong></td>
+<td style="text-align: right;"><strong>50%</strong></td>
+<td style="text-align: right;"><strong>50%</strong></td>
+<td><strong>Apr 29 meeting — working deal</strong></td>
+</tr>
+<tr>
+<td>Dev-heavy (legacy alt)</td>
+<td style="text-align: right;">70%</td>
+<td style="text-align: right;">30%</td>
+<td>For reference only</td>
+</tr>
+<tr>
+<td>Balanced (legacy alt)</td>
+<td style="text-align: right;">60%</td>
+<td style="text-align: right;">40%</td>
+<td>For reference only</td>
+</tr>
+<tr>
+<td>IP-heavy (legacy alt)</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">60%</td>
+<td>For reference only</td>
+</tr>
+</tbody>
+</table>
+<p>Shared marketing, shared risk. Modiphius brings IP + cross-promotion via newsletter/community; Elijah brings build + post-launch maintenance.</p>
+<h3>7b. Net-to-each-party scenarios under 50/50 (Steam-only)</h3>
+<p>Using §6b net-after-Steam figures × 0.50:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Net after Steam</th>
+<th style="text-align: right;">Elijah share (50%)</th>
+<th style="text-align: right;">Modiphius share (50%)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Floor (2% conv, Core only)</td>
+<td style="text-align: right;">$9,626</td>
+<td style="text-align: right;">$4,813</td>
+<td style="text-align: right;">$4,813</td>
+</tr>
+<tr>
+<td>Conservative (5% conv, ecosystem)</td>
+<td style="text-align: right;">$32,206</td>
+<td style="text-align: right;">$16,103</td>
+<td style="text-align: right;">$16,103</td>
+</tr>
+<tr>
+<td>Moderate (10% conv, ecosystem)</td>
+<td style="text-align: right;">$64,399</td>
+<td style="text-align: right;">$32,199</td>
+<td style="text-align: right;">$32,199</td>
+</tr>
+<tr>
+<td>Moderate + 25% lift</td>
+<td style="text-align: right;">$80,499</td>
+<td style="text-align: right;">$40,249</td>
+<td style="text-align: right;">$40,249</td>
+</tr>
+<tr>
+<td>Strong (20% conv, ecosystem)</td>
+<td style="text-align: right;">$128,810</td>
+<td style="text-align: right;">$64,405</td>
+<td style="text-align: right;">$64,405</td>
+</tr>
+<tr>
+<td>Strong + 25% lift</td>
+<td style="text-align: right;">$161,013</td>
+<td style="text-align: right;">$80,506</td>
+<td style="text-align: right;">$80,506</td>
+</tr>
+<tr>
+<td>Aggressive (30% conv, ecosystem)</td>
+<td style="text-align: right;">$193,208</td>
+<td style="text-align: right;">$96,604</td>
+<td style="text-align: right;">$96,604</td>
+</tr>
+<tr>
+<td>Aggressive + 25% lift</td>
+<td style="text-align: right;">$241,511</td>
+<td style="text-align: right;">$120,755</td>
+<td style="text-align: right;">$120,755</td>
+</tr>
+</tbody>
+</table>
+<h3>7c. Revenue share example (Moderate scenario, no lift, 50/50 split, Steam-only)</h3>
+<ul>
+<li>Gross: $91,998</li>
+<li>Net after Steam (× 0.70): $64,399 (exact: $64,398.60, rounded)</li>
+<li>Elijah share (50%): <strong>$32,199</strong> (exact: $32,199.30)</li>
+<li>Modiphius share (50%): <strong>$32,199</strong> (exact: $32,199.30)</li>
+<li>Sum check: $32,199 + $32,199 = $64,398 ≈ $64,399 (penny rounding)</li>
+</ul>
+<hr />
+<h2>8. What Would Change The Numbers</h2>
+<p>Variables that could materially shift the forecast:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Directional Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modiphius confirms digital &gt; physical parity</td>
+<td>+2x to +3x on addressable market estimates</td>
+</tr>
+<tr>
+<td>Steam feature / front-page</td>
+<td>+50% to +100% on conversion rate</td>
+</tr>
+<tr>
+<td>Modiphius direct newsletter push</td>
+<td>+25% conversion from existing customer base</td>
+</tr>
+<tr>
+<td>Mobile-first pricing ($4.99 base, higher DLC attach)</td>
+<td>+2x unit volume, -30% ARPU → net +40% gross</td>
+</tr>
+<tr>
+<td>Planetfall + Tactics add separate purchase tiers</td>
+<td>+30% ARPU on ecosystem buyers</td>
+</tr>
+<tr>
+<td>Poor review scores at launch (&lt;4 stars)</td>
+<td>-60% conversion, multi-year drag</td>
+</tr>
+<tr>
+<td><strong>Solo-RPG segment growth (~25% over launch window)</strong></td>
+<td><strong>+25% on conversion-rate ceilings (§11.6 — TTRPG market 13.2% CAGR, solo segment fastest-growing)</strong></td>
+</tr>
+<tr>
+<td><strong>Empty-Steam-category discovery success/failure</strong></td>
+<td><strong>±50% on §5 conversion (§11.1d — moat if audience accepts paid Steam companion, headwind if they default to free web tools)</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>9. Contractor vs. Pure Rev-Share Break-Even Analysis</h2>
+<p>Evaluates the deal-structure argument: <em>"Paying me a contractor fee upfront is cheaper for you than paying pure revenue share later."</em> The argument is conditionally true — it depends on how well the product performs.</p>
+<h3>9a. Break-even formula</h3>
+<pre><code class="language-text">N* = F ÷ (R_base − R_new)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>N*</code></td>
+<td>Break-even net revenue — the point where the two deal structures cost Modiphius the same</td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Contractor fee paid upfront</td>
+</tr>
+<tr>
+<td><code>R_base</code></td>
+<td>Elijah's rev-share % without contractor fee (baseline 60%)</td>
+</tr>
+<tr>
+<td><code>R_new</code></td>
+<td>Elijah's rev-share % with contractor fee</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Above N*</strong>: contractor structure is cheaper for Modiphius (contractor path wins)
+<strong>Below N*</strong>: pure rev-share would have been cheaper for Modiphius (rev-share path wins)</p>
+<p><strong>Savings to Modiphius above break-even</strong>: <code>(R_base − R_new) × (N − N*)</code></p>
+<h3>9b. Three proposed deal structures (re-run on 50/50 baseline + Steam-only — Apr 30)</h3>
+<p>Baseline comparison: pure 50/50 rev-share (CONFIRMED at Apr 29 meeting), no contractor fee. All numbers use the §6b Steam-only net revenue figures (after 30% Steam cut, mobile excluded). Modiphius cost under pure 50/50 = net × 0.50.</p>
+<p><strong>Note on baseline shifts</strong>:
+- Apr 29: Prior 60/40 baseline replaced by 50/50 — break-even formula unchanged but contractor-path savings to Modiphius shrunk
+- Apr 30: Platform multiplier tightened from blended 0.72 (Steam + mobile) to flat 0.70 (Steam-only) — net revenue figures are now ~3% lower across all scenarios; break-even thresholds (N*) <strong>unchanged</strong> because they depend only on rev-share deltas, not platform cuts</p>
+<h4>Structure 1: $30K contractor + 20% Elijah rev share</h4>
+<p><strong>Break-even</strong>: <code>$30,000 ÷ (0.50 − 0.20) = $100,000 net</code> (Steam net revenue)</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Net Revenue</th>
+<th style="text-align: right;">Modiphius cost (pure 50/50)</th>
+<th style="text-align: right;">Modiphius cost (contractor path)</th>
+<th style="text-align: right;">Savings to Modiphius</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Moderate no lift</td>
+<td style="text-align: right;">$64,399</td>
+<td style="text-align: right;">$32,199</td>
+<td style="text-align: right;">$42,880</td>
+<td style="text-align: right;"><strong>−$10,680</strong> (rev-share cheaper)</td>
+</tr>
+<tr>
+<td>Moderate + lift</td>
+<td style="text-align: right;">$80,499</td>
+<td style="text-align: right;">$40,249</td>
+<td style="text-align: right;">$46,100</td>
+<td style="text-align: right;"><strong>−$5,850</strong></td>
+</tr>
+<tr>
+<td>Strong no lift</td>
+<td style="text-align: right;">$128,810</td>
+<td style="text-align: right;">$64,405</td>
+<td style="text-align: right;">$55,762</td>
+<td style="text-align: right;"><strong>+$8,643</strong></td>
+</tr>
+<tr>
+<td>Strong + lift</td>
+<td style="text-align: right;">$161,013</td>
+<td style="text-align: right;">$80,506</td>
+<td style="text-align: right;">$62,203</td>
+<td style="text-align: right;"><strong>+$18,304</strong></td>
+</tr>
+<tr>
+<td>Aggressive no lift</td>
+<td style="text-align: right;">$193,208</td>
+<td style="text-align: right;">$96,604</td>
+<td style="text-align: right;">$68,642</td>
+<td style="text-align: right;"><strong>+$27,963</strong></td>
+</tr>
+<tr>
+<td>Aggressive + lift</td>
+<td style="text-align: right;">$241,511</td>
+<td style="text-align: right;">$120,755</td>
+<td style="text-align: right;">$78,302</td>
+<td style="text-align: right;"><strong>+$42,453</strong></td>
+</tr>
+</tbody>
+</table>
+<h4>Structure 2: $45K contractor + 25% Elijah rev share</h4>
+<p><strong>Break-even</strong>: <code>$45,000 ÷ (0.50 − 0.25) = $180,000 net</code></p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Net Revenue</th>
+<th style="text-align: right;">Pure 50/50</th>
+<th style="text-align: right;">Contractor path</th>
+<th style="text-align: right;">Savings to Modiphius</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Moderate no lift</td>
+<td style="text-align: right;">$64,399</td>
+<td style="text-align: right;">$32,199</td>
+<td style="text-align: right;">$61,100</td>
+<td style="text-align: right;"><strong>−$28,900</strong></td>
+</tr>
+<tr>
+<td>Moderate + lift</td>
+<td style="text-align: right;">$80,499</td>
+<td style="text-align: right;">$40,249</td>
+<td style="text-align: right;">$65,125</td>
+<td style="text-align: right;"><strong>−$24,875</strong></td>
+</tr>
+<tr>
+<td>Strong no lift</td>
+<td style="text-align: right;">$128,810</td>
+<td style="text-align: right;">$64,405</td>
+<td style="text-align: right;">$77,202</td>
+<td style="text-align: right;"><strong>−$12,798</strong></td>
+</tr>
+<tr>
+<td>Strong + lift</td>
+<td style="text-align: right;">$161,013</td>
+<td style="text-align: right;">$80,506</td>
+<td style="text-align: right;">$85,253</td>
+<td style="text-align: right;"><strong>−$4,747</strong></td>
+</tr>
+<tr>
+<td>Aggressive no lift</td>
+<td style="text-align: right;">$193,208</td>
+<td style="text-align: right;">$96,604</td>
+<td style="text-align: right;">$93,302</td>
+<td style="text-align: right;"><strong>+$3,302</strong></td>
+</tr>
+<tr>
+<td>Aggressive + lift</td>
+<td style="text-align: right;">$241,511</td>
+<td style="text-align: right;">$120,755</td>
+<td style="text-align: right;">$105,378</td>
+<td style="text-align: right;"><strong>+$15,378</strong></td>
+</tr>
+</tbody>
+</table>
+<h4>Structure 3: $40K ($30K retainer + $10K launch milestone) + 40% Elijah rev share</h4>
+<p><strong>Break-even</strong>: <code>$40,000 ÷ (0.50 − 0.40) = $400,000 net</code></p>
+<p>Almost certainly above realistic Steam EA-window revenue. Not a viable "cheaper for Modiphius" argument under 50/50.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th style="text-align: right;">Net Revenue</th>
+<th style="text-align: right;">Pure 50/50</th>
+<th style="text-align: right;">Contractor path</th>
+<th style="text-align: right;">Savings to Modiphius</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Moderate no lift</td>
+<td style="text-align: right;">$64,399</td>
+<td style="text-align: right;">$32,199</td>
+<td style="text-align: right;">$65,759</td>
+<td style="text-align: right;"><strong>−$33,560</strong></td>
+</tr>
+<tr>
+<td>Strong no lift</td>
+<td style="text-align: right;">$128,810</td>
+<td style="text-align: right;">$64,405</td>
+<td style="text-align: right;">$91,524</td>
+<td style="text-align: right;"><strong>−$27,119</strong></td>
+</tr>
+<tr>
+<td>Aggressive no lift</td>
+<td style="text-align: right;">$193,208</td>
+<td style="text-align: right;">$96,604</td>
+<td style="text-align: right;">$117,283</td>
+<td style="text-align: right;"><strong>−$20,679</strong></td>
+</tr>
+<tr>
+<td>Aggressive + lift</td>
+<td style="text-align: right;">$241,511</td>
+<td style="text-align: right;">$120,755</td>
+<td style="text-align: right;">$136,604</td>
+<td style="text-align: right;"><strong>−$15,849</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>9c. Comparison summary (50/50 baseline, Steam-only)</h3>
+<table>
+<thead>
+<tr>
+<th>Structure</th>
+<th style="text-align: right;">Upfront to Elijah</th>
+<th style="text-align: right;">Rev-share to Elijah</th>
+<th style="text-align: right;">Break-even N*</th>
+<th>Strongest at</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td style="text-align: right;">$30,000</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">$100,000 Steam net</td>
+<td>Strong-and-above</td>
+</tr>
+<tr>
+<td>2</td>
+<td style="text-align: right;">$45,000</td>
+<td style="text-align: right;">25%</td>
+<td style="text-align: right;">$180,000 Steam net</td>
+<td>Aggressive-and-above</td>
+</tr>
+<tr>
+<td>3</td>
+<td style="text-align: right;">$40,000</td>
+<td style="text-align: right;">40%</td>
+<td style="text-align: right;">$400,000 Steam net</td>
+<td>Effectively never (above realistic EA-window revenue)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Steam-only context for break-even targets</strong>: $100K Steam net = ~$143K Steam gross (before 30% cut), which the §6b Strong-tier scenarios reach without the +25% audience lift. $180K and $400K targets become correspondingly harder. <strong>Mobile pocket edition revenue (Phase 2) would compound on top of these figures</strong>, making break-evens easier to clear if the partnership extends past 1.0.</p>
+<p><strong>Interpretation under 50/50</strong>:</p>
+<ul>
+<li><strong>Structure 1</strong> → still the strongest "cheaper for Modiphius" pitch, but the break-even ($100K) requires Modiphius to believe the product clears Strong-tier. The pure-cost argument is harder to win than under 60/40.</li>
+<li><strong>Structure 2</strong> → break-even nearly doubled to $180K. Now requires Aggressive-tier conviction. Marginal pitch.</li>
+<li><strong>Structure 3</strong> → break-even doubled to $400K — outside realistic EA revenue band. Drop from any proposal.</li>
+</ul>
+<p><strong>The honest reframe under 50/50</strong>: the contractor argument is no longer primarily about cost arbitrage. The stronger frames are <strong>risk transfer</strong> and <strong>multi-project platform investment</strong> — see §9.5.</p>
+<h3>9d. Recommended negotiation framing</h3>
+<p>Present the argument conditionally, not absolutely:</p>
+<blockquote>
+<p>"Above break-even net revenue of $X, the contractor structure is cheaper for you than pure rev-share — and the savings scale up quickly at better performance. Below $X, pure rev-share would be cheaper for you. The real question isn't 'pay now or pay later' — it's <strong>whether you believe the product will clear $X in net revenue</strong>. If you do, the contractor structure is better for you financially and gives me the stability to focus on delivery. If you don't, we should probably restructure or reconsider the deal."</p>
+</blockquote>
+<p>This framing is honest, puts the decision burden on Modiphius's own conviction about the product, and uses real math instead of wishful thinking.</p>
+<h3>9e. Risk-transfer caveat</h3>
+<p><strong>Do not hide this from Modiphius.</strong> The contractor structure shifts product-performance risk from Elijah to Modiphius. At very low net revenue (e.g., $20,000), Modiphius loses money vs. pure rev-share under all three structures because the contractor fee exceeds what rev-share would have cost them.</p>
+<p>Example at $20K Steam net revenue under Structure 1 (50/50 baseline):</p>
+<ul>
+<li>Pure 50/50: Modiphius pays Elijah $20,000 × 0.50 = <strong>$10,000</strong></li>
+<li>Contractor path: Modiphius pays $30K upfront + ($20,000 × 0.20) = $30,000 + $4,000 = <strong>$34,000</strong></li>
+<li>Modiphius is <strong>$24K worse off</strong> under the contractor structure</li>
+</ul>
+<p>This risk is <strong>the reason</strong> Modiphius might prefer pure rev-share. Acknowledging it openly in the proposal builds trust and signals sophisticated negotiation posture.</p>
+<h3>9f. What would change the break-even</h3>
+<ul>
+<li><strong>Lower contractor fee</strong> (<code>F ↓</code>) → lower break-even, easier to argue "cheaper now"</li>
+<li><strong>Smaller rev-share delta</strong> (<code>R_base − R_new ↓</code>) → higher break-even, harder to argue</li>
+<li><strong>Bigger rev-share delta</strong> (<code>R_base − R_new ↑</code>) → lower break-even, stronger argument (but Elijah gives up more upside)</li>
+<li><strong>Milestone-based structure</strong> (fee paid on deliverables, not calendar-based) → same break-even math, but Modiphius's risk is capped to completed milestones</li>
+</ul>
+<h3>9g. Practical recommendation for the proposal (revised post-Apr 29)</h3>
+<p>The 50/50 confirmation makes "cheaper for Modiphius via contractor" a harder argument to win on pure cost. Don't lead with it — lead with the <strong>three scope frames in §9.5</strong> instead. Use the break-even tables in §9b only as supporting math when Modiphius asks for the cost-arbitrage view.</p>
+<p>If Modiphius engages on a contractor structure:</p>
+<ul>
+<li><strong>Structure 1</strong> is still the only viable contractor pitch at moderate scenarios (break-even $100K, achievable in Strong tier)</li>
+<li><strong>Structure 2</strong> requires Aggressive-tier belief to be cost-positive — only present if Modiphius signals strong conviction</li>
+<li><strong>Structure 3</strong> is no longer viable as a cost argument — drop from proposals</li>
+</ul>
+<hr />
+<h2>9.5. Contractor Structure Scopes — Three Distinct Framings</h2>
+<p>The Apr 29+ partnership conversation split the contractor question into three meaningfully different scopes. Each tells a different story and answers a different Modiphius concern. <strong>Use these instead of leading with the cost-arbitrage tables in §9b.</strong></p>
+<h3>Frame A — Contractor for the introductory project</h3>
+<ul>
+<li><strong>Structure</strong>: $30-45K up-front + reduced rev share (e.g., 20-25% instead of 50%)</li>
+<li><strong>Story to Modiphius</strong>: "I bear the platform-establishment cost; you fund the digital R&amp;D that benefits the entire 5x system across all your future licensed projects (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune)."</li>
+<li><strong>When it makes sense</strong>: Modiphius believes the 5x-platform thesis and is willing to capitalize the foundation work for downstream IP integrations</li>
+<li><strong>Risk</strong>: Modiphius pays up-front for an unproven product. Use Structure 1 break-even math (§9b) for the conditional argument</li>
+<li><strong>Best for Elijah</strong>: maximum upfront stability ($30K covers ~4-6 months runway)</li>
+</ul>
+<h3>Frame B — Contractor for post-launch support only</h3>
+<ul>
+<li><strong>Structure</strong>: monthly retainer (~$3-5K/month for 6-12 months post-EA, decreasing tier) + pure 50/50 rev share on the project</li>
+<li><strong>Story to Modiphius</strong>: "The build cost is mine to bear via rev share. The post-launch support that keeps the product (and your IP) alive — bug fixes, content updates, telemetry monitoring, platform compliance — is a service. You fund that service so I'm not forced to take other contracts that pull me away from your product."</li>
+<li><strong>When it makes sense</strong>: Modiphius views the build itself as Elijah's risk to take but recognizes ongoing support requires dedicated availability post-launch. Cleaner separation of "build risk" (Elijah) and "platform maintenance commitment" (Modiphius via retainer)</li>
+<li><strong>Math</strong>: $3K/mo × 12mo = $36K. Modiphius's net cost = ($36K + 50% of net revenue). Compare to pure 50/50 with no retainer: ($0 + 50%). Retainer is clearly an additional cost — but it buys <strong>dedicated availability</strong>, which is a real product asset</li>
+<li><strong>Risk for Elijah</strong>: less upfront stability than Frame A; build phase rev-share-dependent. Best when Elijah has personal runway to cover the build window</li>
+</ul>
+<h3>Frame C — Hybrid (intro + post-launch)</h3>
+<ul>
+<li><strong>Structure</strong>: smaller intro contractor fee ($15-20K) + 50/50 rev share + post-launch retainer ($3K/mo for 6 months)</li>
+<li><strong>Story to Modiphius</strong>: "Phased commitment. You de-risk the foundation work with a smaller upfront, you preserve full rev-share parity, and you pay for guaranteed post-launch attention."</li>
+<li><strong>When it makes sense</strong>: Modiphius wants to participate in upside fully (no rev-share concession) but is willing to share risk on both ends of the timeline</li>
+<li><strong>Math</strong>: $15-20K + 6×$3K = $33-38K total upfront commitment from Modiphius — comparable to Structure 1's $30K but split across two phases of the project lifecycle</li>
+<li><strong>Negotiation appeal</strong>: hardest to attack because it directly addresses both common objections — "what about post-launch?" and "what's the upfront risk?"</li>
+</ul>
+<h3>Multi-project / 5x-platform reframe (applies to all three frames)</h3>
+<p>The Apr 29 meeting positioned this app as the <strong>foundation for Modiphius's wider digital strategy</strong> across other licensed IPs (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune). <strong>This is now a mutually agreed partnership thesis, not a pitch hypothesis</strong> — both Elijah and Modiphius treat 5PFH digital as the category-establishment template (see §11.1d for the category whitespace finding that makes this work). That reframes the contractor question from "is this cheaper for one product" to "<strong>how do we structure the platform-investment commitment across the IP portfolio?</strong>"</p>
+<ul>
+<li>A contractor fee on this intro project IS <strong>platform R&amp;D investment</strong> for the downstream IP integrations — the build work, the Steam-store positioning, the audience network, and the technical platform are all reusable across future Modiphius licensed-IP companion apps</li>
+<li>A post-launch retainer keeps Elijah available for the <strong>next IP integration</strong> when Modiphius is ready, instead of forcing the dev who built the platform to take outside contracts that pull them away from the portfolio</li>
+<li>Contractor structure isn't a per-product cost — it is a <strong>multi-project relationship investment</strong> with the dev who built the platform</li>
+</ul>
+<p>This is also why the post-launch retainer (Frame B / hybrid C) is strategically valuable to Modiphius beyond the intro fee alone — it secures continuity with the dev who built the platform for the rest of the IP portfolio. <strong>Locking in continuity for downstream IP integrations is the core platform-establishment payoff.</strong></p>
+<h3>Recommended pitch sequence</h3>
+<ol>
+<li><strong>Lead with Frame B (post-launch retainer + 50/50)</strong> — least friction, smallest immediate ask, addresses Modiphius's likely-real concern (post-launch support)</li>
+<li><strong>If Modiphius is bullish on the multi-project thesis</strong>: pivot to Frame C (hybrid) as the "phased platform investment" pitch</li>
+<li><strong>Use Frame A as the "if you're really bullish" maximum ask</strong> — only if multi-project commitment is explicit</li>
+<li><strong>Anchor pure 50/50 as the fallback</strong> — that's the agreed baseline if no contractor structure lands</li>
+</ol>
+<hr />
+<h2>10. Next Actions (post Apr 29 meeting)</h2>
+<h3>Completed at the Apr 29 meeting</h3>
+<ul>
+<li>[x] Confirm 5PFH Core DTRPG units: <strong>4,219</strong></li>
+<li>[x] Confirm 5 Leagues DTRPG units: <strong>2,700</strong></li>
+<li>[x] Confirm physical sales ranges (5PFH 30K, 5L 20K, Tactics+BH 5K, Planetfall 6K)</li>
+<li>[x] Confirm net revenue split: <strong>50/50 after platform fees</strong></li>
+<li>[x] Confirm physical-PDF bundling (every physical book ships with a PDF)</li>
+</ul>
+<h3>Up next (Phase A.1, this week — Apr 29 to May 4)</h3>
+<ul>
+<li>[x] Send post-meeting follow-up email to Chris (CC Gavin) with documented ask list (sent Apr 29 — see <code>docs/EMAIL_DRAFT_2026-04-29.txt</code> and <code>docs/MEETING_FOLLOWUPS_2026-04-29.md</code>)</li>
+<li>[ ] Send updated forecast doc to Modiphius (this doc — target May 1)</li>
+<li>[ ] Send progress/build snapshot to Modiphius (<code>docs/MODIPHIUS_PROGRESS_DEMO.md</code> refresh — target May 4)</li>
+<li>[ ] Get DTRPG badges/units for remaining SKUs (Compendium, Bug Hunt, Trailblazer's, Freelancer's, Tactics, Fixer's, Planetfall) — fill in §2b + §4c</li>
+<li>[ ] Confirm DTRPG channel mix vs Modiphius direct store (drives §4b channel-split assumption)</li>
+</ul>
+<h3>Up next (Phase A.2, next week — May 5 to May 11)</h3>
+<ul>
+<li>[ ] First weekly cadence meeting with Gavin (proposed Mon May 4 / Tue May 5)</li>
+<li>[ ] Initiate "what does the partnership look like on paper" conversation — LOI → MOU → Definitive Agreement progression</li>
+<li>[ ] Discuss contractor scopes (Frame A intro / Frame B post-launch retainer / Frame C hybrid — see §9.5)</li>
+<li>[ ] Stress-test forecast with Modiphius — "does a $X net revenue figure at Y% conversion feel realistic based on your other licensed titles?"</li>
+<li>[ ] <strong>Wishlist target — set 10K–20K wishlists by EA launch as the §5 Moderate-feasibility benchmark (per §11.2 Steam-wishlist conversion math)</strong></li>
+</ul>
+<h3>During Phase B (closed alpha — May 25 to Jul 6)</h3>
+<ul>
+<li>[ ] Run Van Westendorp survey on alpha cohort (n=10-20 directional) + paid Prolific survey (n=200 statistical)</li>
+<li>[ ] Fill in remaining DTRPG-unknowns as data arrives, re-run §4c attach rates</li>
+<li>[ ] Capture alpha pricing-perception data into <code>docs/PRICING_PERCEPTION_REPORT.md</code> for end-of-alpha decision</li>
+<li>[ ] <strong>Category-perception probe — collect alpha cohort language for the product (campaign manager / solo RPG companion / digital edition / etc.) per §11.1d. Feeds into store-positioning brief.</strong></li>
+<li>[ ] <strong>Digital→physical conversion mechanism specs — design and prototype the 5 in-app mechanisms in §11.5a (discount code, Get-the-Physical-Edition CTA, bundled-PDF reminder, expansion pre-order incentives, newsletter capture). Coordinate discount sizing with Modiphius before alpha kickoff.</strong></li>
+</ul>
+<h3>During Phase C (refinement — Jul 7 to Aug 11)</h3>
+<ul>
+<li>[ ] <strong>Steam-store-positioning brief — synthesize alpha category-perception data (§11.1d) into capsule images, store-page copy, "Why Early Access?" answers, and screenshot strategy. Hand to Modiphius publisher accounts for store-page build.</strong></li>
+<li>[ ] Run Gabor-Granger pricing validation on refined cohort</li>
+<li>[ ] Lock EA pricing decision based on §6 Steam-only model + alpha pricing-perception data + category-discovery findings</li>
+</ul>
+<hr />
+<hr />
+<h2>11. Industry Research &amp; Benchmarks (Apr 30 2026)</h2>
+<p>External data points used to validate or challenge the assumptions in §4–§9. Decision-relevant findings only — not a literature review.</p>
+<h3>11.1 Comparable products on Steam — finding the right reference vector</h3>
+<p><strong>Two kinds of "tabletop on Steam" exist, and they aren't comparable to each other</strong>:</p>
+<ul>
+<li><strong>Digital replacements</strong>: full ports that play the game <em>for</em> you (Gloomhaven, Frosthaven, Wingspan). The physical book/box is unnecessary while the digital product runs.</li>
+<li><strong>Digital companions</strong>: tools that <em>complement</em> physical play — campaign trackers, character sheets, dice automation, rules lookup. The physical book is required to use the tool productively.</li>
+</ul>
+<p>5PFH is a digital companion. Comparing it to Gloomhaven (Modiphius's likely instinct, and a previous comparison vector this project moved away from along with the Fallout Tactics comp) <strong>systematically distorts the conversation</strong> — different product, different audience, different price expectation, different cannibalization profile. This subsection separates the two reference vectors.</p>
+<h4>11.1a Digital REPLACEMENTS — useful for <em>audience-size ceiling</em> only, not product comparison</h4>
+<table>
+<thead>
+<tr>
+<th>Title</th>
+<th style="text-align: right;">Steam Owners (est.)</th>
+<th style="text-align: right;">Reviews</th>
+<th>Rating</th>
+<th style="text-align: right;">Launch Price</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gloomhaven</td>
+<td style="text-align: right;">500K–1M</td>
+<td style="text-align: right;">15,532</td>
+<td>82% ("Very Positive")</td>
+<td style="text-align: right;">$34.99</td>
+</tr>
+<tr>
+<td>Frosthaven</td>
+<td style="text-align: right;">n/a (recent)</td>
+<td style="text-align: right;">673 (24 recent)</td>
+<td>72% (79% recent)</td>
+<td style="text-align: right;">$34.99</td>
+</tr>
+<tr>
+<td>Tabletop Simulator</td>
+<td style="text-align: right;">2M–5M</td>
+<td style="text-align: right;">(high volume)</td>
+<td>94%</td>
+<td style="text-align: right;">$19.99</td>
+</tr>
+<tr>
+<td>Mansions of Madness: Mother's Embrace</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td>—</td>
+<td style="text-align: right;"><strong>Delisted</strong> (failed)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How to read this table</strong>: it tells us <em>how many people show up on Steam for a tabletop product if marketing and quality both clear the bar</em>. Gloomhaven's ~750K owners is the upper-bound reference for <em>audience interest in a Steam tabletop product with full publisher backing</em>. Our §5 scenarios target 1,022–15,334 paying users — <strong>0.1%–2% of Gloomhaven's owner base</strong>. Conservative against that ceiling, but Gloomhaven also had Kickstarter brand + Asmodee Digital marketing weight that 5PFH does not match.</p>
+<p><strong>How NOT to use this table</strong>: as a product comparison. Gloomhaven Digital replaces the board game; players who own it generally don't need the physical box for solo play. That is the opposite of what 5PFH does, so the cannibalization, pricing, and review-expectation profiles diverge sharply.</p>
+<h4>11.1b Digital COMPANIONS on Steam — the actual product peer set</h4>
+<table>
+<thead>
+<tr>
+<th>Title</th>
+<th style="text-align: right;">Steam Owners (est.)</th>
+<th style="text-align: right;">Reviews</th>
+<th>Rating</th>
+<th style="text-align: right;">Price</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fantasy Grounds VTT</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">1,025</td>
+<td>81% ("Very Positive")</td>
+<td style="text-align: right;">$39.99 base + per-system DLCs</td>
+<td>VTT/companion hybrid, multiplayer-focused</td>
+</tr>
+<tr>
+<td>Tabletop Simulator</td>
+<td style="text-align: right;">2M–5M</td>
+<td style="text-align: right;">high volume</td>
+<td>94%</td>
+<td style="text-align: right;">$19.99</td>
+<td>Sandbox table — repurposed as companion via mods</td>
+</tr>
+<tr>
+<td>RPG Plus — Virtual Tabletop</td>
+<td style="text-align: right;">small</td>
+<td style="text-align: right;">small</td>
+<td>mixed</td>
+<td style="text-align: right;">$9.99</td>
+<td><strong>Being delisted Dec 15</strong> — failed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The whitespace finding (decision-relevant)</strong>: dedicated single-player <strong>solo-RPG / solo-wargame campaign-companion apps essentially do not exist on Steam</strong>. Fantasy Grounds is the nearest analog and it is a multiplayer-VTT-first product. Tabletop Simulator only fills the role through user-built mods (e.g., the Stargrave Crew Builder Workshop item, which is a Tabletop Simulator scene file, not an app). RPG Plus is the only Steam-listed product that attempted a dedicated companion-app role, and it is shutting down.</p>
+<h4>11.1c Off-Steam companion apps — where the actual product peers live</h4>
+<p>The companion-app category is mature, but <strong>on web and mobile, not on Steam</strong>. Reference products and their footprints:</p>
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Platform</th>
+<th>Niche</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mythic GME Digital</td>
+<td>itch.io + mobile</td>
+<td>Solo RPG oracle/journaling</td>
+<td>$12.99, by Jason Holt; pioneering solo-RPG digital companion</td>
+</tr>
+<tr>
+<td>Quest Companion</td>
+<td>Web</td>
+<td>TTRPG character/campaign tracking</td>
+<td>Generic, system-agnostic</td>
+</tr>
+<tr>
+<td>World Anvil</td>
+<td>Web</td>
+<td>Worldbuilding + DM tools</td>
+<td>Subscription, system-agnostic</td>
+</tr>
+<tr>
+<td>Kanka</td>
+<td>Web</td>
+<td>Worldbuilding + campaign mgmt</td>
+<td>Free tier + subscription</td>
+</tr>
+<tr>
+<td>New Recruit</td>
+<td>Web</td>
+<td>Multi-system wargame army builder</td>
+<td>Warhammer 40K, Old World, AoS, Kill Team — free + subscription</td>
+</tr>
+<tr>
+<td>Army Forge</td>
+<td>Web</td>
+<td>One Page Rules army builder</td>
+<td>Tied to OPR rulesets</td>
+</tr>
+<tr>
+<td>BattleScribe</td>
+<td>Mobile + Web</td>
+<td>Cross-system wargame army builder</td>
+<td>Free, community-maintained datafiles</td>
+</tr>
+<tr>
+<td>Old World Builder</td>
+<td>Web</td>
+<td>Warhammer: The Old World army builder</td>
+<td>Free</td>
+</tr>
+<tr>
+<td>Campaign Console</td>
+<td>Web</td>
+<td>Tabletop wargame campaign tracker</td>
+<td>Free, GM-focused</td>
+</tr>
+<tr>
+<td>Warscribe</td>
+<td>Web</td>
+<td>Tabletop wargame empire/campaign tracker</td>
+<td>Crowdfunder origin</td>
+</tr>
+<tr>
+<td>Frostgrave Campaign Tracker (2e)</td>
+<td>Web</td>
+<td>Frostgrave-specific warband tracker</td>
+<td>Real-time sync, two-player</td>
+</tr>
+<tr>
+<td>Stargrave Crew Builder</td>
+<td>Tabletop Simulator mod</td>
+<td>Stargrave-specific crew builder</td>
+<td>Workshop-distributed, not standalone</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key observation</strong>: every Frostgrave/Stargrave/Bolt Action/40K companion tool listed exists as a <strong>web app or mobile app, not a Steam product</strong>. The closest direct genre analog to 5PFH (Frostgrave/Stargrave companion tools) explicitly chose <strong>non-Steam distribution</strong>. That is informative about what the precedent set looks like — and where the gap is.</p>
+<h4>11.1d The category whitespace — confirmed partnership thesis</h4>
+<p><strong>Mutually agreed between Elijah and Modiphius</strong>: 5PFH on Steam is <strong>establishing a category, not entering one</strong>. Existing companion tools (Mythic GME, New Recruit, Campaign Console, Frostgrave Campaign Tracker) chose web/mobile distribution because no Steam precedent existed for single-player solo-RPG/wargame campaign-companion apps. <strong>5PFH builds that precedent for the wider 5x system and any downstream Modiphius licensed-IP digital companions</strong> (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune). This thesis is now baseline assumption across §9.5 contractor scope frames, §11.1 category whitespace, and §11.5 digital→physical conversion strategy — not pitch material.</p>
+<p>This category-establishment posture cuts two ways and the partnership has to plan for both edges:</p>
+<p><strong>The moat (why we lead the category)</strong>:
+- No direct Steam competitors — search/discovery for "solo RPG companion," "tabletop campaign tracker," "wargame manager" is uncontested
+- Companion-app players currently scattered across web tools — Steam offers a single distribution channel with built-in payments, updates, cloud saves, and reviews; we consolidate that audience
+- First-mover positioning for the 5x system means subsequent IP-integration projects inherit the platform investment, the brand presence, and the reviewer/community network 5PFH established
+- The Fantasy Grounds 81%-positive / 1,025-review benchmark confirms Steam <em>will</em> sustain a tabletop-companion product even at premium pricing ($39.99 base + per-system DLCs) — the audience exists; the category is what's missing</p>
+<p><strong>The discovery question (why this is hard)</strong>:
+- Unproven category on Steam — companion-app users currently look for tools on web/mobile, so we have to <em>introduce</em> them to Steam as a companion-tool channel, not just convert them within it
+- Steam's discovery algorithms reward "games"; companion apps may struggle for organic visibility — Modiphius newsletter / cross-promo carries disproportionate weight against the algorithm's instincts
+- Empty category could exist <em>because</em> the audience doesn't want this on Steam — failure mode is real and worth alpha-testing for explicitly (does the cohort <em>use</em> it on PC, or do they wish it were mobile?)
+- No category default means we have to <em>define</em> the product to the audience, not position against an existing competitor — store-listing copy and screenshots carry more strategic weight than for a "Steam-native" launch</p>
+<p><strong>Store-positioning posture (decision-relevant)</strong>: Lead with "solo RPG digital companion" framing, not "tabletop campaign manager." Use the 5x system + Modiphius brand as the primary discovery hook. Anchor at <strong>$9.99–$14.99 base price</strong> during the category-establishment phase (EA window) — low enough to remove price-friction while we're educating the audience about the product, paid enough to signal quality and avoid "this should be free / web tool" associations. Raise on 1.0 release once review count, reputation, and category presence are established. The §11.4 anchoring research supports this anchor-low-then-raise posture; do not lead with a high anchor we'll discount from.</p>
+<p><strong>Implication for the build roadmap</strong>: because the partnership is committed to category establishment as an explicit goal, Steam-store positioning is <strong>not a marketing-team afterthought</strong> — it is a co-engineered deliverable. Specifically:</p>
+<ul>
+<li>Closed alpha (Phase B) should include a <em>category-perception probe</em>: do testers describe the product as "a campaign manager," "a solo RPG companion," "a digital edition," or something else? That tells us what the audience already wants to call it.</li>
+<li>Capsule images and store-page copy should iterate during alpha based on that perception data — the words the audience uses are the words the store page should use</li>
+<li>The §10 next-actions list adds a "Steam-store-positioning brief" as a Phase C deliverable (was implicit, now explicit)</li>
+</ul>
+<p><strong>Connection to other sections</strong> (because this thesis is now baseline, not standalone):
+- <strong>§9.5 contractor scope frames</strong> — category-establishment work <em>is</em> the platform R&amp;D investment; the multi-project reframe and the category whitespace argument are the same argument in two registers
+- <strong>§11.5 digital→physical conversion strategy</strong> — the in-app book-purchase mechanisms work because we control the platform; on a generic VTT or web tool, that integration would not be available
+- <strong>§5 addressable market</strong> — the category-discovery question caveats audience-size estimates; even a perfectly conservative §5 number assumes the audience finds us on Steam, which the empty-category whitespace makes a question rather than a default</p>
+<p><em>Sources</em>: <a href="https://steamspy.com/app/780290">SteamSpy — Gloomhaven</a>, <a href="https://steambase.io/games/tabletop-simulator/steam-charts">Steambase — Tabletop Simulator</a>, <a href="https://steamcommunity.com/app/1196310/reviews/">Steam Community — Fantasy Grounds VTT reviews</a>, <a href="https://steamcommunity.com/app/2072070">Steam Community — RPG Plus delisting notice</a>, <a href="https://jasonholtdigital.itch.io/mythic-gme-digital">Mythic GME Digital — itch.io</a>, <a href="https://www.newrecruit.eu/">New Recruit</a>, <a href="https://army-forge.onepagerules.com/">Army Forge — One Page Rules</a>, <a href="https://campaignconsole.xyz/">Campaign Console</a>, <a href="https://frostgravetool.lovable.app/">Frostgrave Campaign Tracker (2e)</a>, <a href="https://www.makeuseof.com/tag/must-have-tabletop-roleplaying-game-companion-apps-software/">BoLS — TTRPG Companion Apps</a>.</p>
+<h3>11.2 Steam wishlist conversion benchmarks (2025–2026)</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Median</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Industry-wide wishlist-to-purchase (2026)</td>
+<td style="text-align: right;"><strong>5%–10%</strong></td>
+<td>Down from ~20% in 2018 — competition saturation</td>
+</tr>
+<tr>
+<td>Launch-week conversion (median)</td>
+<td style="text-align: right;">10%–15%</td>
+<td>Games priced &gt;$10 trend toward low end</td>
+</tr>
+<tr>
+<td>First-month conversion</td>
+<td style="text-align: right;">12%–18%</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Early Access first-month conversion (median)</strong></td>
+<td style="text-align: right;"><strong>~20%</strong></td>
+<td>Below full-release median (~30%)</td>
+</tr>
+<tr>
+<td>Lifetime conversion (with seasonal sales)</td>
+<td style="text-align: right;">20%–40%</td>
+<td></td>
+</tr>
+<tr>
+<td>Games with 25K+ wishlists — first-week multiplier</td>
+<td style="text-align: right;">0.15×</td>
+<td>i.e., 15K first-week sales per 100K wishlists</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implication for our forecast</strong>: §5 conversion scenarios (2%/5%/10%/20%/30%) are framed against <em>the addressable reader population</em> (~51K), NOT against Steam wishlists. These are different denominators. The Steam-wishlist metric matters for <strong>launch-window forecasting</strong>, not the §5 readership-conversion model. Both views need to coexist:</p>
+<ul>
+<li><em>§5 view (audience-share)</em>: "Of 51K 5PFH-aware readers, what % adopt the digital companion?" — Moderate 10% = 5,111 buyers</li>
+<li><em>Steam-wishlist view (launch-channel)</em>: "Of N wishlists at EA launch, what % convert in week 1?" — at 10K wishlists × 15% = 1,500 first-week sales</li>
+</ul>
+<p>These should be <strong>cross-checked</strong>, not summed. If §5 Moderate predicts 5,111 buyers across the EA-through-1.0 window and the Steam-wishlist channel only yields 1,500 in week 1, the remaining ~3,600 must come from later waves: post-launch wishlist additions, Modiphius newsletter pushes, sale events, organic discovery. <strong>Realistic path: target ~10K–20K wishlists by EA launch to make Moderate feasible.</strong></p>
+<p><em>Sources</em>: <a href="https://gamedevreports.substack.com/p/gamediscoverco-the-state-of-steam">GameDiscoverCo: State of Steam Wishlist Conversions 2024–2025</a>, <a href="https://www.game-oracle.com/blog/wishlist-to-sales-2025">Game-Oracle: Steam Wishlist to Sales Ratio 2025</a>, <a href="https://www.immutable.com/insights/steam-wishlist-conversion-rates">Immutable Insights: Avg Wishlist Conversion 2026</a>.</p>
+<h3>11.3 Steam Early Access — risk environment</h3>
+<ul>
+<li>2014 baseline: only <strong>25%</strong> of EA titles ever reached 1.0 release</li>
+<li>2016 cohort: <strong>~90% never reached full release</strong> (worst-cohort outlier)</li>
+<li>2019–2020 cohort: <strong>~50%</strong> reached 1.0 — Valve's 2018 algorithm changes improved survival</li>
+<li>Current (2025) failure rate: <strong>31%–50%</strong> depending on dataset</li>
+<li>14,000+ EA titles currently listed; many abandoned ("EA abandonware" problem erodes consumer trust)</li>
+</ul>
+<p><strong>Implication</strong>: Players approach EA with documented skepticism. Two consequences for our launch:</p>
+<ol>
+<li><strong>Reviews and update cadence carry disproportionate weight</strong> during EA. The §11.1 reception table shows Frosthaven at 72% positive vs. Gloomhaven at 82% — that 10-point gap correlates with fewer recent buyers. Anything below ~75% positive in EA is a measurable revenue drag.</li>
+<li><strong>Price posture during EA matters.</strong> Standard EA practice: launch at ~70–80% of intended 1.0 price, raise on full release with "thanks to early supporters" messaging. This both rewards early adopters and signals confidence in delivering 1.0 — which directly addresses the EA-skepticism problem.</li>
+</ol>
+<p><em>Sources</em>: <a href="https://www.pcgamer.com/only-25-percent-of-early-access-games-have-made-it-to-full-release-eedar-says/">PC Gamer: 25% of EA Games Reach Full Release (EEDAR)</a>, <a href="https://steamdb.info/stats/releases/">SteamDB EA Stats</a>.</p>
+<h3>11.4 Pricing psychology — implications for our price band</h3>
+<p><strong>Key findings from anchoring research and game-pricing studies</strong>:</p>
+<ul>
+<li><strong>Charm pricing ($9.99 / $14.99 / $19.99) is the genre default</strong> — humans don't distinguish between prices starting with the same digit ($59.99 reads ~$50, not ~$60). Our §5c price band ($9.99 / $14.99 / $19.99 / $24.99) is psychologically defensible.</li>
+<li><strong>Anchoring effect is robust</strong> — initial price exposure shapes willingness-to-pay even when consumers reject the anchor. <em>Action</em>: the <strong>first price a player sees</strong> in the store listing should be the price we want them to internalize as "fair." Don't lead with a high anchor we'll discount from — that signals "wait for sale."</li>
+<li><strong>AAA is anchored to $60</strong> — backlash at $70 attempts. <strong>Tabletop digital ports are anchored well below</strong> that ceiling. Gloomhaven launched at $34.99, Frosthaven at $34.99, Tabletop Simulator at $19.99. <strong>Our $9.99–$24.99 band is on the low end</strong> of the genre — defensible for a "companion app" framing, would be underpriced for a "full digital port" framing.</li>
+<li><strong>DLC architecture lets us price-discriminate</strong> — players with high willingness-to-pay self-select into DLC purchases, while base game stays accessible. The existing 3-pack DLC + Bug Hunt mode structure is the right shape; the question is base-price + DLC ratio.</li>
+</ul>
+<p><strong>Implication for our $18 ARPU assumption (§5c)</strong>: Likely conservative if the DLC attach rate is well-tuned. Industry benchmarks for premium PC games with optional DLC see ARPU 1.5×–2.5× the base price for engaged players. At $9.99 base, $18 ARPU implies 1.8× — reasonable but not aggressive.</p>
+<p><em>Sources</em>: <a href="https://www.gsb.stanford.edu/faculty-research/working-papers/anchoring-effects-consumers-willingness-pay-willingness-accept">Anchoring Effects on Consumers' WTP (Simonson &amp; Drolet, Stanford)</a>, <a href="https://www.apricitas.io/p/video-games-price-architecture-and">Apricitas: Video Games Price Architecture</a>, <a href="https://www.superjumpmagazine.com/a-fistful-of-coins-the-psychology-of-game-pricing/">SuperJump: Psychology of Game Pricing</a>.</p>
+<h3>11.5 The cannibalization question — and our active digital→physical strategy</h3>
+<p>This is the question Stonemaier Games (Wingspan, Scythe) wrestles with publicly. It directly affects how Modiphius should think about the partnership — and unlike most digital-tabletop projects, <strong>we have an explicit strategy to invert the cannibalization problem and turn the app into a physical-sales driver</strong>. Both Elijah and Modiphius have repeatedly aligned on this framing in conversation; this section makes the strategic posture explicit.</p>
+<p><strong>Stonemaier 2023 demographic survey findings (the baseline concern)</strong>:</p>
+<ul>
+<li><strong>Only ~4% of digital-tabletop players</strong> bought 6+ physical games as a result of playing them digitally</li>
+<li><strong>Over half</strong> of surveyed digital-port players didn't buy a <em>single</em> physical game after digital play</li>
+<li>Stonemaier's response: <strong>delays full digital ports several years post-physical release</strong> to protect physical sales window; uses Tabletopia (lighter format) at launch instead</li>
+</ul>
+<p><strong>Why our project is structurally different from the Stonemaier baseline</strong>:</p>
+<ol>
+<li><strong>5PFH is solo / cooperative</strong> — physical sales are driven by individual hobbyists buying for themselves, not groups buying for play nights. The "I played digitally and didn't need physical" cannibalization story is <strong>weaker</strong> for solo RPGs than for multiplayer board games (where the physical box is the social object).</li>
+<li><strong>The product IS a companion app, not a digital port</strong> — agreed framing between Elijah and Modiphius from day one. The app does not replace the rulebook; it <em>complements</em> it (campaign tracking, character sheets, dice automation, rules lookup, scenario generation). Players cannot use the app productively without owning or having access to the rules — the rulebook is the source-of-truth dictionary the app references. This is <strong>structurally inverted</strong> from Gloomhaven Digital, which fully replaces the board game.</li>
+<li><strong>The bundled-PDF reality changes the math</strong> — every physical book ships with a PDF (per Apr 29 meeting confirmation). That means a physical-book purchase is <em>also</em> a digital purchase. The cannibalization framing assumes physical and digital compete; in our case, <strong>buying physical = getting both formats</strong>, which makes the physical purchase the dominant-strategy choice for engaged players.</li>
+</ol>
+<h3>11.5a Active digital→physical conversion strategy (decision-relevant)</h3>
+<p>Both parties have discussed adding <strong>in-app promotional pathways to drive Steam users toward physical book purchase</strong>. This converts the app from a passive cannibalization risk into an <em>active physical-sales channel</em>. Concrete mechanisms under consideration:</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>What it does</th>
+<th>Where it lives in the app</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discount code for physical book</strong></td>
+<td>Steam buyers get a Modiphius-store coupon (e.g., 15-20% off Core Rulebook) at app first-launch or after N hours played</td>
+<td>First-launch dialog, Settings → "Get the Book", post-tutorial completion</td>
+</tr>
+<tr>
+<td><strong>"Get the Physical Edition" CTA</strong></td>
+<td>Persistent low-friction link to Modiphius store with co-branded landing page</td>
+<td>Main menu footer, Help screen, post-campaign-completion screen</td>
+</tr>
+<tr>
+<td><strong>Bundled-PDF reminder</strong></td>
+<td>Surface the "physical includes free PDF" message at the right moments — prevents Steam users from thinking physical is a strict upgrade-cost over PDF-only</td>
+<td>Compendium screen, expansion-purchase upsell flows</td>
+</tr>
+<tr>
+<td><strong>Tier-locked physical pre-order incentives</strong></td>
+<td>Future physical expansions get a Steam-side "pre-order the book" callout with a limited-time discount tied to the digital release</td>
+<td>Expansion pack store screen, news/updates panel</td>
+</tr>
+<tr>
+<td><strong>Modiphius newsletter capture</strong></td>
+<td>Optional in-app "subscribe to Modiphius for new releases" flow (with explicit consent per legal stack)</td>
+<td>Settings, post-purchase success screens</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why this matters for the partnership pitch</strong>: each mechanism above turns a Steam app session into a <em>Modiphius-store-traffic event</em>. Even at modest conversion rates (1-3% of engaged Steam users → physical purchase), this is <strong>net additive to Modiphius's physical revenue line</strong> rather than competing with it. At 5,000 Steam buyers (Moderate scenario) × 2% → 100 physical-book purchases driven by the app, on a product where Modiphius keeps the full physical-margin (no 50/50 split applies to physical).</p>
+<p><strong>The "free PDF with physical" lever specifically</strong>: this is structurally the strongest anti-cannibalization mechanic available. A Steam user who paid $9.99–$24.99 for the app sees a CTA: <em>"Get the physical Core Rulebook for $X (includes the official PDF free)."</em> The math favors physical for any user who values the rulebook as a reference object. <strong>The app should make this offer visible and recurring, not buried.</strong></p>
+<p><strong>Implication for the partnership pitch</strong>: this strategy needs to be a <strong>centerpiece of the proposal</strong>, not a footnote. Recommended pitch sequence:</p>
+<ol>
+<li><em>Acknowledge the Stonemaier finding upfront</em> — "The default expectation is digital cannibalizes physical."</li>
+<li><em>Pivot to structural difference</em> — "5PFH is a solo RPG with a companion-app product, not a digital port; bundled PDFs make physical a strict upgrade."</li>
+<li><em>Lead with the active strategy</em> — "We have explicit digital→physical conversion mechanisms designed into the app, listed in §11.5a. The app is a sales channel for the books, not a competitor to them."</li>
+<li><em>Close on the math</em> — "Even at conservative 1-2% of Steam users converting to physical buyers, this is net additive to Modiphius's physical revenue at no incremental cost."</li>
+</ol>
+<p><strong>Implication for the build roadmap</strong>: the digital→physical mechanisms above should be tracked as a discrete deliverable in Phase A.2 / closed alpha planning, not deferred to "post-launch polish." If Modiphius is going to evaluate the partnership partly on this strategy's credibility, the app needs to <em>demonstrably</em> execute on it before the Definitive Agreement is signed. <strong>Add to docs/MEETING_FOLLOWUPS_2026-04-29.md as a confirmed-strategy item.</strong></p>
+<p><em>Sources</em>: <a href="https://stonemaiergames.com/the-current-state-of-digital-versions-of-tabletop-games-2024/">Stonemaier Games: Current State of Digital Versions of Tabletop Games (2024)</a>.</p>
+<h3>11.6 TTRPG market tailwinds — solo RPG segment growth</h3>
+<ul>
+<li><strong>TTRPG total market</strong>: $1.8B (2025) → projected $4.9B (2033), <strong>13.2% CAGR</strong></li>
+<li><strong>Solo RPG segment</strong>: explicit fastest-growing sub-segment; <strong>33% of TTRPG developers</strong> added solo modes in recent years</li>
+<li><strong>19% of players aged 50+</strong> are exploring solo / journaling RPG formats — older demographic with disposable income</li>
+<li><strong>Digital-integrated RPGs</strong> are the fastest-growing segment within TTRPG digital (virtual tabletops, mobile companion apps, integration tools)</li>
+</ul>
+<p><strong>Implication for forecast timing</strong>: We are launching into a <em>growing</em> segment, not a saturated one. The 13.2% CAGR translates to ~25% real-dollar segment growth over the EA-through-1.0 window (~24 months). This is a <em>tailwind</em>, not a headwind. <strong>The §8 "What Would Change The Numbers" table should add a row</strong>: <em>"Solo-RPG-segment growth (25% over launch window) → +25% on conversion-rate ceilings"</em>.</p>
+<p><em>Sources</em>: <a href="https://marketmindpartners.com/tabletop-role-playing-game-ttrpg-market">Market Mind Partners: TTRPG Market Forecast</a>, <a href="https://www.globalgrowthinsights.com/market-reports/tabletop-role-playing-game-ttrpg-market-103239">GlobalGrowthInsights: TTRPG Market 2026</a>, <a href="https://wifitalents.com/tabletop-rpg-industry-statistics/">WifiTalents: TTRPG Industry Statistics 2026</a>.</p>
+<h3>11.7 Synthesis — what the research changes about our forecast</h3>
+<p><strong>Reinforced (research supports the existing model)</strong>:
+- §5 conversion scenarios are conservative against Gloomhaven's proven <em>audience-size ceiling</em> (with the §11.1a caveat: Gloomhaven is a digital replacement, not a product peer)
+- §5c price band ($9.99–$24.99) is psychologically appropriate for tabletop digital companion apps and matches the §11.1d store-positioning posture
+- §6 Steam-only baseline is the right launch focus given EA's risk environment AND the category-establishment thesis (§11.1d)</p>
+<p><strong>Reframed (research changes how we describe what we're doing)</strong>:
+- The mutually agreed <strong>category-establishment thesis</strong> (§11.1d) is now baseline assumption — Gloomhaven is no longer the product comparison vector; the right peer set is the off-Steam companion apps in §11.1c (Mythic GME Digital, New Recruit, Campaign Console, Frostgrave Campaign Tracker)
+- The cannibalization question (§11.5) reframed from defensive ("here's why we're less affected") to offensive ("here's our active digital→physical strategy") — this is also mutually agreed and is treated as partnership infrastructure, not pitch ammunition
+- Multi-project / 5x-platform reframe in §9.5 is now baseline — contractor scope frames are about how to structure the platform-investment commitment, not whether one is justified</p>
+<p><strong>Challenged or qualified (research raises new considerations)</strong>:
+- §5 readership-conversion model needs cross-checking against Steam-wishlist channel forecast (§11.2). <strong>Action</strong>: add a wishlist-target row to §10 next-actions (target ~10K–20K wishlists by EA launch to make Moderate scenario feasible)
+- §8 "What Would Change The Numbers" table should incorporate solo-RPG-segment growth tailwind (+25% over launch window per §11.6)
+- The empty Steam category (§11.1d) is both moat AND discovery risk — closed alpha (Phase B) needs an explicit <em>category-perception probe</em> to validate that the audience accepts a paid Steam companion app vs. defaulting to free web tools</p>
+<p><strong>Takeaways for the partnership conversation</strong> (now that platform-establishment is baseline):
+- Anchor language: <em>companion app, not a digital port</em> — already mutually agreed, treat as durable framing across all docs
+- Comparable products: cite the §11.1c off-Steam peer set (companion-app maturity exists, just not on Steam yet) — NOT Gloomhaven (audience-size reference only, not product peer)
+- Quality bar: 75%+ positive review target during EA, weekly build cadence as the moat against EA-abandonware skepticism (§11.3)
+- Category narrative: 5PFH digital establishes the template; subsequent IP integrations inherit the platform — this is the partnership thesis, written into both the build roadmap and the contractor scope frames</p>
+<hr />
+<p><em>This is a living document. Update numbers, re-run formulas, and revise scenarios as real data arrives. Last big revision: Apr 30 2026 — Steam-first refocus + industry research section added.</em></p>
+</body>
+</html>

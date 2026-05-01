@@ -1,0 +1,52 @@
+==============================================================
+EMAIL DRAFT — Forecast Delivery (Apr 30 / May 1 2026)
+==============================================================
+
+To:      Chris Birch <chris@modiphius.com>
+CC:      Gavin <gavin@modiphius.com>
+From:    Elijah Rhyne <elijahrhyne@gmail.com>
+Subject: 5PFH Digital — forecast summary + current build
+
+==============================================================
+
+Hi Chris (and Gavin),
+
+Following up on what's en route per the Apr 29 thread. Two things attached:
+
+1. **5PFH Digital — Forecast Summary** (1 page) — high-level numbers, contractor scope frames, digital→physical strategy, industry research highlights
+2. **Current Windows build** (signed .exe) — v0.9.7-dev reflecting the build state from the progress snapshot, post the Apr 28 performance sprint
+
+Headline items from the summary:
+
+- **50/50 baseline** locked in across all math; **Steam-first** launch focus (mobile pocket edition is Phase 2 post-1.0)
+- **Three contractor scope frames** (A intro / B post-launch retainer / C hybrid) ready for your directional read — Frame B is my recommended pitch lead given the multi-project platform thesis
+- **Active digital→physical conversion strategy** designed in (5 in-app mechanisms — Steam-buyer discount codes, "Get the Physical Edition" CTAs, bundled-PDF reminders, expansion pre-order incentives, newsletter capture). Modiphius keeps 100% of physical margin, so every app→book conversion is net additive
+- **Industry research** backing the conversion scenarios — Steam category whitespace finding, wishlist conversion benchmarks, TTRPG market tailwinds (13.2% CAGR, solo segment fastest-growing)
+
+The full forecast doc with complete break-even tables, sensitivity analysis, and 30+ research citations is ready on request — happy to send the full PDF or step through specific sections in the May 4/5 sync.
+
+Coordination items I'd like your input on (no rush, can roll into the Gavin sync):
+
+- Discount sizing for the in-app physical-book offer (the summary uses 15-20% as a placeholder)
+- Whichever contractor frame resonates most with how you're thinking about the partnership shape
+
+Looking forward to next week.
+
+Best,
+Elijah
+
+==============================================================
+END EMAIL DRAFT
+==============================================================
+
+PRE-SEND CHECKLIST:
+[ ] Verify Gavin's exact email address (don't fire off without it)
+[ ] Confirm MODIPHIUS_FORECAST_SUMMARY.pdf renders to 1 page
+[ ] Confirm Windows .exe is the build state you intend
+[ ] Stage full MODIPHIUS_DIGITAL_FORECAST.pdf locally for instant send-on-request
+[ ] Send target: by May 1 EOD
+
+POST-SEND:
+[ ] Update docs/MEETING_FOLLOWUPS_2026-04-29.md §5 deliverables status
+[ ] Update launch-dashboard.html forecast-send task to "done"
+[ ] Watch for Modiphius reply, log responses in §9 tracking table

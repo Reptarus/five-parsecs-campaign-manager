@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5PFH Digital — Road to EA Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-elev: #1e293b;
+    --bg-elev-2: #334155;
+    --border: #475569;
+    --text: #f1f5f9;
+    --text-dim: #94a3b8;
+    --text-dimmer: #64748b;
+    --amber: #f59e0b;
+    --amber-dim: #b45309;
+    --purple: #a855f7;
+    --purple-dim: #7e22ce;
+    --green: #10b981;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --orange: #f97316;
+    --cyan: #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  body { padding: 1rem 1.5rem 4rem; max-width: 1600px; margin: 0 auto; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  header h1 .amber { color: var(--amber); }
+  header h1 .purple { color: var(--purple); }
+  header .meta {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+  header .meta strong { color: var(--text); }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.875rem 1rem;
+  }
+  .stat .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-bottom: 0.25rem;
+  }
+  .stat .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .stat.done .value { color: var(--green); }
+  .stat.blocking .value { color: var(--red); }
+  .stat.amber .value { color: var(--amber); }
+  .stat.purple .value { color: var(--purple); }
+
+  .progress-bar {
+    margin-top: 0.5rem;
+    height: 6px;
+    background: var(--bg-elev-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--amber), var(--purple));
+    transition: width 0.3s;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .tab {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: inherit;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--amber);
+    border-bottom-color: var(--amber);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Kanban */
+  .kanban {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .kanban-col {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.875rem;
+    min-height: 200px;
+  }
+  .kanban-col h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .kanban-col h3 .count {
+    color: var(--text-dimmer);
+    font-weight: 400;
+    margin-left: 0.25rem;
+  }
+  .kanban-col[data-col="pending"] h3 { color: var(--text-dimmer); }
+  .kanban-col[data-col="in-progress"] h3 { color: var(--amber); }
+  .kanban-col[data-col="done"] h3 { color: var(--green); }
+  .kanban-col[data-col="blocked"] h3 { color: var(--red); }
+
+  .task {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--text-dimmer);
+    border-radius: 0.375rem;
+    padding: 0.625rem 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+    font-size: 0.8rem;
+  }
+  .task:hover {
+    transform: translateY(-1px);
+    border-color: var(--amber);
+  }
+  .task .id {
+    display: inline-block;
+    background: var(--bg);
+    color: var(--text-dim);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.2rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.7rem;
+    margin-right: 0.4rem;
+  }
+  .task.done {
+    opacity: 0.55;
+    text-decoration: line-through;
+  }
+  .task .meta {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .task .pill {
+    font-size: 0.65rem;
+    background: var(--bg);
+    color: var(--text-dim);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.2rem;
+    border: 1px solid var(--border);
+  }
+  .task .pill.dep { font-family: ui-monospace, monospace; }
+
+  .task.phase-A1 { border-left-color: var(--red); }
+  .task.phase-A2 { border-left-color: var(--orange); }
+  .task.phase-A3 { border-left-color: var(--amber); }
+  .task.phase-B { border-left-color: var(--green); }
+  .task.phase-C { border-left-color: var(--cyan); }
+  .task.phase-D { border-left-color: var(--blue); }
+  .task.phase-E { border-left-color: var(--purple); }
+  .task.phase-F { border-left-color: #ec4899; }
+  .task.phase-G { border-left-color: var(--text-dimmer); }
+
+  /* Timeline */
+  .timeline-week {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .timeline-week h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--amber);
+    margin-bottom: 0.25rem;
+  }
+  .timeline-week .dates {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+  }
+  .timeline-week .blurb {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+    font-style: italic;
+  }
+
+  /* Phases */
+  .phases {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .phase {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+  }
+  .phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .phase-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .phase-header .ph-id {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 1.6rem;
+    padding: 0 0.5rem;
+    border-radius: 0.25rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .phase-header .ph-id.A1 { background: var(--red); }
+  .phase-header .ph-id.A2 { background: var(--orange); }
+  .phase-header .ph-id.A3 { background: var(--amber); color: #000; }
+  .phase-header .ph-id.B { background: var(--green); color: #000; }
+  .phase-header .ph-id.C { background: var(--cyan); color: #000; }
+  .phase-header .ph-id.D { background: var(--blue); }
+  .phase-header .ph-id.E { background: var(--purple); }
+  .phase-header .ph-id.F { background: #ec4899; }
+  .phase-header .ph-id.G { background: var(--text-dimmer); }
+  .phase-header .ph-progress { font-size: 0.8rem; color: var(--text-dim); }
+  .phase .ph-dates {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+  }
+  .phase .ph-blurb {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.75rem;
+    font-style: italic;
+  }
+
+  /* Modiphius Asks */
+  .asks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .asks-table th, .asks-table td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .asks-table th {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-elev);
+  }
+  .asks-table td.urgency-urgent { color: var(--red); font-weight: 600; }
+  .asks-table td.urgency-med { color: var(--amber); }
+  .asks-table td.urgency-fyi { color: var(--text-dim); }
+  .asks-table td.status-open { color: var(--text); }
+  .asks-table td.status-resolved { color: var(--green); }
+  .asks-table .ask-num {
+    font-family: ui-monospace, monospace;
+    color: var(--text-dimmer);
+    width: 2rem;
+  }
+
+  /* Critical path / Risks shared */
+  .crit-path, .decisions {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .crit-path h2, .decisions h2 {
+    font-size: 1rem;
+    color: var(--amber);
+    margin-bottom: 0.75rem;
+  }
+  .crit-path-flow {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    background: var(--bg);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    overflow-x: auto;
+    line-height: 1.8;
+    white-space: pre;
+  }
+  .crit-path .est {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .risks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .risks-table th, .risks-table td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .risks-table th {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .risks-table td.lvl-high { color: var(--red); font-weight: 600; }
+  .risks-table td.lvl-med { color: var(--amber); }
+  .risks-table td.lvl-low { color: var(--green); }
+
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .controls button, .controls select {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .controls button:hover { background: #3f4d63; }
+  .controls .legend {
+    display: flex;
+    gap: 0.75rem;
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+  .controls .legend .item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .controls .legend .item .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .empty {
+    color: var(--text-dimmer);
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  .last-update {
+    font-size: 0.7rem;
+    color: var(--text-dimmer);
+    margin-top: 2rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>5PFH <span class="amber">Digital</span> — Road to <span class="purple">Steam EA</span></h1>
+    <div style="font-size:0.8rem;color:var(--text-dim);margin-top:0.25rem;">v0.9.7-dev · Modiphius partnership · 50/50 net split · Closed alpha kickoff late May</div>
+  </div>
+  <div class="meta">
+    <div><strong id="today-display">—</strong><br>Today</div>
+    <div><strong id="phase-display">A.1</strong><br>Current Phase</div>
+    <div><strong id="alpha-countdown">—</strong><br>Days to Alpha</div>
+    <div><strong id="ea-countdown">—</strong><br>Days to EA</div>
+    <div><strong id="overall-pct">0%</strong><br>Phase A Complete</div>
+  </div>
+</header>
+
+<div class="summary" id="summary"></div>
+
+<div class="tabs">
+  <button class="tab active" data-panel="kanban">Kanban</button>
+  <button class="tab" data-panel="phases">Phases</button>
+  <button class="tab" data-panel="timeline">Timeline</button>
+  <button class="tab" data-panel="asks">Modiphius Asks</button>
+  <button class="tab" data-panel="critical">Critical Path</button>
+  <button class="tab" data-panel="risks">Risks</button>
+</div>
+
+<!-- KANBAN -->
+<div class="tab-panel active" id="panel-kanban">
+  <div class="controls">
+    <button onclick="resetAll()" title="Wipe progress and reset all tasks to pending">Reset all</button>
+    <select id="filter-phase" onchange="render()">
+      <option value="">All phases</option>
+      <option value="A1">A.1 · This week (internal)</option>
+      <option value="A2">A.2 · Next week (external)</option>
+      <option value="A3">A.3 · Alpha launch prep</option>
+      <option value="B">B · Closed Alpha</option>
+      <option value="C">C · Refinement</option>
+      <option value="D">D · Beta / Steam Playtest</option>
+      <option value="E">E · Marketing Lock + EA Prep</option>
+      <option value="F">F · Steam EA Launch</option>
+      <option value="G">G · Post-EA / Toward 1.0</option>
+    </select>
+    <span style="font-size:0.75rem;color:var(--text-dim);">Click a task to cycle: pending → in-progress → done → blocked → pending</span>
+    <div class="legend">
+      <div class="item"><span class="swatch" style="background:#ef4444"></span>A.1 internal</div>
+      <div class="item"><span class="swatch" style="background:#f97316"></span>A.2 external</div>
+      <div class="item"><span class="swatch" style="background:#f59e0b"></span>A.3 alpha prep</div>
+      <div class="item"><span class="swatch" style="background:#10b981"></span>B alpha</div>
+      <div class="item"><span class="swatch" style="background:#06b6d4"></span>C refinement</div>
+      <div class="item"><span class="swatch" style="background:#3b82f6"></span>D beta</div>
+      <div class="item"><span class="swatch" style="background:#a855f7"></span>E marketing</div>
+      <div class="item"><span class="swatch" style="background:#ec4899"></span>F EA launch</div>
+      <div class="item"><span class="swatch" style="background:#64748b"></span>G post-EA</div>
+    </div>
+  </div>
+  <div class="kanban" id="kanban-board"></div>
+</div>
+
+<!-- PHASES -->
+<div class="tab-panel" id="panel-phases">
+  <div class="phases" id="phases-content"></div>
+</div>
+
+<!-- TIMELINE -->
+<div class="tab-panel" id="panel-timeline">
+  <div id="timeline-content"></div>
+</div>
+
+<!-- MODIPHIUS ASKS -->
+<div class="tab-panel" id="panel-asks">
+  <div class="crit-path">
+    <h2>Modiphius Apr 29 Follow-up Cycle</h2>
+    <div class="est">Email sent <strong>2026-04-29</strong>. Mirrors <code>docs/MEETING_FOLLOWUPS_2026-04-29.md</code> §9 tracking table. Update status here as Modiphius responds. Source of truth lives in the markdown — this view is for at-a-glance tracking.</div>
+    <table class="asks-table" style="margin-top:1rem;">
+      <thead>
+        <tr>
+          <th class="ask-num">#</th>
+          <th>Ask</th>
+          <th>Urgency</th>
+          <th>Status</th>
+          <th>Response / Notes</th>
+        </tr>
+      </thead>
+      <tbody id="asks-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CRITICAL PATH -->
+<div class="tab-panel" id="panel-critical">
+  <div class="crit-path">
+    <h2>Workback Critical Path</h2>
+    <div class="crit-path-flow">A.1 (this wk) → A.2 (next wk, partnership-on-paper) → A.3 (alpha prep) → B (closed alpha, 6wk)
+                                                                                          ↓
+                                                                                  6 graduation gates
+                                                                                          ↓
+                                                              C (refinement, 2wk) → D (beta / Steam Playtest, 6wk)
+                                                                                          ↓
+                                                                          E (marketing lock, 3wk, overlaps end of D)
+                                                                                          ↓
+                                                                                  F (Steam EA Launch)
+                                                                                          ↓
+                                                                          G (post-EA, 6-12mo to 1.0)</div>
+    <div class="est">Working target: <strong>Steam EA ~late September 2026</strong>. Realistic fallback: Q4 2026 if alpha pricing data says we need more polish. Phase B alpha gates are AND, not OR — five-out-of-six is a fail.</div>
+  </div>
+  <div class="crit-path">
+    <h2>External Dependencies (gated on Modiphius)</h2>
+    <div class="crit-path-flow">Apr 29 email sent → Modiphius responses to 13 asks → LOI drafted → MOU drafted (Jun-Jul) → Definitive Agreement (Aug-Sep, signed before EA)
+                       ↓
+              Asset delivery (~1 week+ from asset person back) → integrated in Phase D-E
+                       ↓
+              Modiphius newsletter slot (deferred until MVP locked)</div>
+    <div class="est">Critical path bottleneck = legal framework + LOI/MOU/Definitive Agreement progression. Build can run in parallel through alpha + refinement, but Steam EA cannot launch without Definitive Agreement signed.</div>
+  </div>
+  <div class="decisions">
+    <h2>Decisions Owed (active)</h2>
+    <ol style="padding-left:1.25rem;font-size:0.9rem;color:var(--text-dim);">
+      <li><strong>MVP / core selling point</strong> — locked at end of Phase B based on closed alpha feedback. Frames EA pricing, store-page positioning, and DLC scope.</li>
+      <li><strong>Contractor structure</strong> — Frame A (intro project) vs Frame B (post-launch retainer) vs Frame C (hybrid). Awaiting directional read from Modiphius before refining proposal.</li>
+      <li><strong>App naming</strong> — keep "Five Parsecs Campaign Manager" or rebrand "Five Parsecs From Home: Digital Edition". Awaiting Modiphius preference.</li>
+      <li><strong>NDA stance for closed alpha</strong> — no-NDA gentleman's agreement vs formal NDA. Awaiting Modiphius preference.</li>
+      <li><strong>EA price band</strong> — $14.99 / $19.99 / $24.99. Locked at end of Phase B once VW + cohort data lands.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- RISKS -->
+<div class="tab-panel" id="panel-risks">
+  <div class="crit-path">
+    <h2>Risks &amp; Mitigations</h2>
+    <table class="risks-table">
+      <thead>
+        <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Asset delivery slips past 1 week</td><td class="lvl-med">Med</td><td class="lvl-med">Med</td><td>Don't block Phases A/B on assets at all. Use placeholder art, TextureRect-swap-ready architecture (already in place per CrewTaskEventDialog pattern). Lock real assets in Phase E.</td></tr>
+        <tr><td>Alpha invalidates value-anchor hypotheses</td><td class="lvl-med">Med</td><td class="lvl-high">High</td><td>Instrument all 4 anchor candidates (rules+bookkeeping, battle assistant, narrative depth, cross-game ecosystem), not just the favored one. Mid-alpha checkpoint at week 3 re-prioritizes.</td></tr>
+        <tr><td>5x-platform scope creep into v1</td><td class="lvl-med">Med</td><td class="lvl-med">Med</td><td>Keep "5x platform" feature backlog separate from "5PFH v1" backlog. Don't commingle. Modiphius asks for cross-IP features go into post-1.0 roadmap.</td></tr>
+        <tr><td>Steam EA target ~Sep is aggressive</td><td class="lvl-med">Med</td><td class="lvl-low">Low</td><td>Realistic fallback: Q4 2026 if alpha pricing data says we need more polish. EA gates are clear; missing them extends rather than ships broken.</td></tr>
+        <tr><td>Wishlist target 5K-10K is ambitious for niche tabletop companion</td><td class="lvl-med">Med</td><td class="lvl-high">High</td><td>Modiphius newsletter cross-promo + Reddit niche communities (r/Solo_Roleplaying, r/FiveParsecs) + Coming Soon page UP IMMEDIATELY in Phase E. Steam Next Fest demo if eligible.</td></tr>
+        <tr><td>Localization (esp. Simplified Chinese) gap</td><td class="lvl-med">Med</td><td class="lvl-med">Med</td><td>#4 EA mistake per research. Plan Simplified Chinese before 1.0 launch. Decide in Phase F whether v1.0 ships with it or saves for first major content drop post-1.0.</td></tr>
+        <tr><td>Modiphius doesn't respond to follow-up email asks promptly</td><td class="lvl-med">Med</td><td class="lvl-med">Med</td><td>Weekly Gavin sync starting next week is the recurring channel for status. Re-raise specific asks during sync. Don't let any single ask block more than 2 weeks without escalation.</td></tr>
+        <tr><td>Contractor structure rejected, deal stays pure 50/50</td><td class="lvl-low">Low</td><td class="lvl-med">Med</td><td>50/50 is the agreed baseline — fall back gracefully. Frame B (post-launch retainer) is the lowest-friction ask; if rejected, Frame A and C are also off the table. Math still works at Strong-tier scenarios.</td></tr>
+        <tr><td>Modiphius legal team slow on EULA / IP license review</td><td class="lvl-med">Med</td><td class="lvl-high">High</td><td>Cannot launch Steam EA without Definitive Agreement signed. Start the LOI conversation in Phase A.2 (next week). Push for MOU during alpha so legal cycles overlap with build, not gate it.</td></tr>
+        <tr><td>Closed alpha cohort under-recruits below 10</td><td class="lvl-low">Low</td><td class="lvl-med">Med</td><td>Ivan brings the network — confirm tester count in Phase A.2 sync. If under 10, supplement with 2-3 trusted Modiphius community contacts before kickoff.</td></tr>
+        <tr><td>Closed alpha tester churn / fatigue past week 5</td><td class="lvl-med">Med</td><td class="lvl-low">Low</td><td>Weekly debriefs (rotating 2-3 testers) keep engagement high. If a tester drops, don't replace mid-alpha — adjust expectations and proceed.</td></tr>
+        <tr><td>Pricing data inconclusive at end of Phase B</td><td class="lvl-low">Low</td><td class="lvl-med">Med</td><td>Extend alpha by 2 weeks; supplement with Prolific paid survey n=200 if not already run. Don't guess pricing — defer EA launch by 2-3 weeks if data doesn't converge.</td></tr>
+        <tr><td>Modiphius wants name change late (Phase E or later)</td><td class="lvl-low">Low</td><td class="lvl-med">Med</td><td>Raise app naming question in Apr 29 email (ask #7). Lock decision by end of Phase B at latest so Phase E marketing prep is unaffected.</td></tr>
+        <tr><td>5 Leagues digital data extraction blocked by Modiphius legal</td><td class="lvl-low">Low</td><td class="lvl-low">Low</td><td>Post-EA Priority 2 — not blocking 5PFH v1. Revisit after EA stabilizes.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PHASE DATA — single source of truth, mirrors plan §5 workback
+// ============================================================
+const PHASES = {
+  A1: { name: "This week (internal)", dates: "Apr 29 → May 4", color: "#ef4444",
+        blurb: "Internal preliminary planning — forecast doc edits, dashboard scaffold, follow-up email drafted and sent." },
+  A2: { name: "Next week (external)", dates: "May 5 → May 11", color: "#f97316",
+        blurb: "External preliminary planning — first weekly cadence with Gavin, partnership-on-paper conversation, contractor scope discussion, asset delivery begins." },
+  A3: { name: "Alpha launch prep", dates: "May 12 → May 24", color: "#f59e0b",
+        blurb: "Build alpha branch, telemetry scaffolding, tester onboarding doc, Discord bug-intake structure. Alpha kicks off Mon May 25." },
+  B:  { name: "Closed Alpha", dates: "May 25 → Jul 6 (6 weeks)", color: "#10b981",
+        blurb: "10-20 testers from Ivan's Discord. Weekly builds A1→A6. 6 graduation gates (AND, not OR). Validates value prop + pricing perception." },
+  C:  { name: "Refinement", dates: "Jul 7 → Jul 20 (2 weeks)", color: "#06b6d4",
+        blurb: "Act on alpha findings. No new testers. Draft beta gates from actual alpha data. Begin marketing prep in parallel." },
+  D:  { name: "Beta / Steam Playtest", dates: "Jul 21 → Sep 1 (6 weeks)", color: "#3b82f6",
+        blurb: "100-200 testers via Steam Playtest. Coming Soon page up. Gabor-Granger pricing validation. Asset integration." },
+  E:  { name: "Marketing Lock + EA Prep", dates: "Sep 2 → Sep 22 (3 weeks, overlaps end of D)", color: "#a855f7",
+        blurb: "Capsule art final, Steam EA page populated, tags locked, wishlist push activated, EA pricing locked." },
+  F:  { name: "Steam EA Launch", dates: "Sep 23 → Sep 30 (target)", color: "#ec4899",
+        blurb: "Public EA build live. Modiphius cross-promo. Wishlist target 5K-10K. EA pricing $19.99 (or $14.99 if alpha data supports)." },
+  G:  { name: "Post-EA / Toward 1.0", dates: "6-12 months in EA", color: "#64748b",
+        blurb: "Monthly minor / quarterly major content drops. EA fatigue mitigation. 1.0 launch +$5 price, treat as relaunch." },
+};
+
+const TASKS = [
+  // A.1 — This week (internal)
+  { id: "A1.1", ph: "A1", title: "Update MODIPHIUS_DIGITAL_FORECAST.md (50/50 baseline, 4,219 DTRPG, contractor scope frames)", deps: [], defaultStatus: "done" },
+  { id: "A1.2", ph: "A1", title: "Update MODIPHIUS_ASK_LIST.md (link to MEETING_FOLLOWUPS, update resolved items)", deps: [], defaultStatus: "done" },
+  { id: "A1.3", ph: "A1", title: "Draft MEETING_FOLLOWUPS_2026-04-29.md (canonical ask list)", deps: [], defaultStatus: "done" },
+  { id: "A1.4", ph: "A1", title: "Compose + send Apr 29 follow-up email to Chris (CC Gavin)", deps: ["A1.3"], defaultStatus: "done" },
+  { id: "A1.5", ph: "A1", title: "Bootstrap launch-dashboard.html (this dashboard, personal-use)", deps: [], defaultStatus: "done" },
+  { id: "A1.6", ph: "A1", title: "Draft CLOSED_ALPHA_PLAN.md v1 (10-20 testers, 6-week window, 6 graduation gates)", deps: [], defaultStatus: "done" },
+  { id: "A1.7", ph: "A1", title: "Draft PRICING_RESEARCH_PLAN.md (Van Westendorp + Prolific n=200 + Gabor-Granger plan)", deps: [], defaultStatus: "done" },
+  { id: "A1.8", ph: "A1", title: "Apr 30 forecast deep-dive: Steam-first refocus (0.72→0.70 multiplier), §11 industry research (7 subsections, 30+ sources), T1-T4 strategic theses captured, §11.5a 5-mechanism digital→physical strategy, §11.1 right-comparison-vector restructure", deps: ["A1.1"], defaultStatus: "done" },
+  { id: "A1.9", ph: "A1", title: "Apr 30 forecast delivery prep: 1-page exec summary (MODIPHIUS_FORECAST_SUMMARY.md→.html/PDF), full forecast PDF held in reserve, EMAIL_DRAFT_FORECAST_DELIVERY.txt body, render script (scripts/render_md_to_print_html.py). Spot-check completed (Section D Frame B/C break-even mapping corrected)", deps: ["A1.8"], defaultStatus: "done" },
+  { id: "A1.10", ph: "A1", title: "[T1-T4 mutually agreed] Send forecast summary PDF + current Windows build .exe to Chris (CC Gavin) — SENT 2026-04-30", deps: ["A1.9"], defaultStatus: "done" },
+
+  // A.2 — Next week (external)
+  { id: "A2.1", ph: "A2", title: "First weekly cadence meeting with Gavin (Mon May 4 or Tue May 5)", deps: ["A1.4"] },
+  { id: "A2.2", ph: "A2", title: "Initiate partnership-on-paper conversation (LOI → MOU → Definitive Agreement)", deps: ["A2.1"] },
+  { id: "A2.3", ph: "A2", title: "Discuss contractor structure scopes (Frame A / B / C)", deps: ["A2.1"] },
+  { id: "A2.4", ph: "A2", title: "Confirm tester cohort size + Discord access logistics with Ivan", deps: [] },
+  { id: "A2.5", ph: "A2", title: "Asset delivery begins (Modiphius asset person back from travel)", deps: [] },
+  { id: "A2.6", ph: "A2", title: "Begin telemetry scaffolding code (Talo or GameAnalytics autoload, 10-event minimum)", deps: [] },
+  { id: "A2.7", ph: "A2", title: "Begin Van Westendorp paid survey recruitment (Prolific or Pollfish, n=200)", deps: ["A1.7"] },
+
+  // A.3 — Alpha launch prep
+  { id: "A3.1", ph: "A3", title: "Cut alpha-tagged release branch from master", deps: ["A2.6"] },
+  { id: "A3.2", ph: "A3", title: "In-app survey + opt-in telemetry verified working", deps: ["A3.1"] },
+  { id: "A3.3", ph: "A3", title: "Distribution mechanism verified (signed exe + Defender whitelist instructions)", deps: ["A3.1"] },
+  { id: "A3.4", ph: "A3", title: "Tester onboarding doc (1-page README in build .zip)", deps: ["A3.3"] },
+  { id: "A3.5", ph: "A3", title: "Discord bug-intake structure (channels, pinned templates, daily triage rhythm)", deps: ["A2.4"] },
+  { id: "A3.6", ph: "A3", title: "Build version A0 (release-candidate) sent to Ivan for sanity-check Wed May 20", deps: ["A3.4","A3.5"] },
+  { id: "A3.7", ph: "A3", title: "Alpha kickoff Mon May 25 (or May 18 if A0 sanity-check passes early)", deps: ["A3.6"] },
+
+  // B — Closed Alpha
+  { id: "B.1", ph: "B", title: "Build A1: alpha kickoff build distributed to 10-20 testers", deps: ["A3.7"] },
+  { id: "B.2", ph: "B", title: "Builds A2-A6: weekly cadence, P0/P1 hotfixes between as needed", deps: ["B.1"] },
+  { id: "B.3", ph: "B", title: "Weekly cadence meeting with Gavin (CC Chris) throughout alpha", deps: ["A2.1"] },
+  { id: "B.4", ph: "B", title: "Weekly tester debrief (rotating 2-3 testers, 30-min Discord voice)", deps: ["B.1"] },
+  { id: "B.5", ph: "B", title: "Run Van Westendorp survey on alpha cohort + paid Prolific n=200", deps: ["A2.7"] },
+  { id: "B.6", ph: "B", title: "Mid-alpha checkpoint (week 3): identify price-justifying anchor, re-prioritize", deps: ["B.2"] },
+  { id: "B.7", ph: "B", title: "[T2] Category-perception probe — open-ended language probe (Wks 1, 3, 6) + forced-choice category labels (Wks 3, 6) + Steam discovery hypothetical (Wk 6). Output: docs/CATEGORY_PERCEPTION_REPORT.md (CLOSED_ALPHA_PLAN.md §6.1)", deps: ["B.1"] },
+  { id: "B.8", ph: "B", title: "[T4] Digital→physical mechanism specs — design + prototype 5 mechanisms (discount code, Get-the-Physical-Edition CTA, bundled-PDF reminder, expansion pre-order, newsletter capture) before alpha kickoff so testers can react (CLOSED_ALPHA_PLAN.md §6.5)", deps: ["A2.6"] },
+  { id: "B.9", ph: "B", title: "[T4] Modiphius coordination on T4 mechanisms — discount sizing (15-20% placeholder), redemption mechanism, co-branded landing page, newsletter API endpoint", deps: ["A2.1"] },
+  { id: "B.10", ph: "B", title: "Alpha graduation gates verified (all 6 must pass — see plan §6.8)", deps: ["B.2","B.5"] },
+  { id: "B.11", ph: "B", title: "End-alpha report: PRICING_PERCEPTION_REPORT.md (VW data, retention, recommended price band, EA-ready feature scope) + CATEGORY_PERCEPTION_REPORT.md (T2 language data)", deps: ["B.10","B.7"] },
+
+  // C — Refinement
+  { id: "C.1", ph: "C", title: "Synthesize alpha findings into prioritized refinement backlog", deps: ["B.11"] },
+  { id: "C.2", ph: "C", title: "Apply UX redesigns surfaced by alpha (no new features)", deps: ["C.1"] },
+  { id: "C.3", ph: "C", title: "Stability builds R1, R2", deps: ["C.2"] },
+  { id: "C.4", ph: "C", title: "Draft BETA_PLAN.md with beta graduation gates calibrated to alpha data", deps: ["B.11"] },
+  { id: "C.5", ph: "C", title: "Commission capsule artist (highest-ROI marketing investment, $500-1500)", deps: [] },
+  { id: "C.6", ph: "C", title: "Draft Coming Soon page copy", deps: [] },
+  { id: "C.7", ph: "C", title: "Lock pricing decision based on VW + cohort data", deps: ["B.11"] },
+  { id: "C.8", ph: "C", title: "Confirm Steam Playtest cohort target (100-200) with Modiphius", deps: ["B.3"] },
+  { id: "C.9", ph: "C", title: "EULA / legal review closed with Modiphius (per ASK_LIST blockers)", deps: [] },
+  { id: "C.10", ph: "C", title: "[T2] Steam-store-positioning brief — synthesize alpha category-perception data into capsule images, store-page copy, Why Early Access? answers, screenshot strategy. Hand to Modiphius publisher accounts (CLOSED_ALPHA_PLAN.md §6.1, FORECAST §11.1d)", deps: ["B.11","C.1"] },
+  { id: "C.11", ph: "C", title: "[T4] Refine digital→physical mechanisms based on tester feedback (helpful vs salesy signal). Lock final UX before EA build certification", deps: ["B.7","B.11"] },
+
+  // D — Beta / Steam Playtest
+  { id: "D.1", ph: "D", title: "Steam Playtest opened — recruit 100-200 testers", deps: ["C.4","C.8"] },
+  { id: "D.2", ph: "D", title: "Coming Soon page up (target 6+ months pre-EA per research)", deps: ["C.5","C.6"] },
+  { id: "D.3", ph: "D", title: "Run Gabor-Granger pricing validation on wider cohort", deps: ["D.1"] },
+  { id: "D.4", ph: "D", title: "Modiphius assets received + integrated (logo, key art, app icon, interior art)", deps: ["A2.5"] },
+  { id: "D.5", ph: "D", title: "Press kit assembled (base: docs/archive/marketing/press_kit_guide.md)", deps: ["D.4"] },
+  { id: "D.6", ph: "D", title: "Trailer cut (60-90s, gameplay first 10-15s, auto-plays muted)", deps: ["D.4"] },
+  { id: "D.7", ph: "D", title: "Beta graduation gates verified before Phase E", deps: ["D.1","D.3"] },
+  { id: "D.8", ph: "D", title: "Wishlist velocity tracking visible on telemetry dashboard", deps: ["D.2"] },
+
+  // E — Marketing Lock + EA Prep
+  { id: "E.1", ph: "E", title: "All capsule art final (main, header, small, vertical, library hero/logo/capsule)", deps: ["C.5"] },
+  { id: "E.2", ph: "E", title: "Steam EA page populated and reviewed against plan §7 checklist", deps: ["E.1","D.6"] },
+  { id: "E.3", ph: "E", title: "Why Early Access? answers locked (4 mandatory + pricing disclosure)", deps: ["E.2"] },
+  { id: "E.4", ph: "E", title: "Tags locked (top 5 — see plan §7.4)", deps: ["E.2"] },
+  { id: "E.5", ph: "E", title: "Wishlist push: Modiphius newsletter slot booked, Reddit posts scheduled, indie showcases filed", deps: ["E.2"] },
+  { id: "E.6", ph: "E", title: "EA pricing locked using VW + Gabor-Granger data", deps: ["D.3"] },
+  { id: "E.7", ph: "E", title: "Day-1 patch prepared", deps: [] },
+  { id: "E.8", ph: "E", title: "Support channels live", deps: [] },
+  { id: "E.9", ph: "E", title: "Telemetry dashboards live for Modiphius visibility", deps: [] },
+  { id: "E.10", ph: "E", title: "Definitive Agreement signed before Steam EA goes live", deps: ["A2.2"] },
+
+  // F — Steam EA Launch
+  { id: "F.1", ph: "F", title: "Steam EA build certified (compile clean, gdUnit4 green, MCP scenarios pass)", deps: ["E.2","E.10"] },
+  { id: "F.2", ph: "F", title: "EA roadmap public (what's in EA vs. v1.0)", deps: ["F.1"] },
+  { id: "F.3", ph: "F", title: "Modiphius newsletter + social goes live", deps: ["F.1","E.5"] },
+  { id: "F.4", ph: "F", title: "Wishlist target verified at launch (5K floor / 7K healthy / 10K strong)", deps: ["F.1"] },
+
+  // G — Post-EA / Toward 1.0
+  { id: "G.1", ph: "G", title: "Monthly minor updates / quarterly major content drops cadence", deps: ["F.1"] },
+  { id: "G.2", ph: "G", title: "EA fatigue mitigation (roadmap items shipped on cadence, dev comms ≥monthly)", deps: ["F.1"] },
+  { id: "G.3", ph: "G", title: "Plan second Steam Next Fest if eligible (1.0 launch as relaunch)", deps: ["F.1"] },
+  { id: "G.4", ph: "G", title: "1.0 launch: +$5 price ($24.99), 10% × 14d launch discount, full press push", deps: ["G.1"] },
+];
+
+// Modiphius asks from Apr 29 followup
+const ASKS = [
+  { num: 1, title: "Partnership on paper (LOI → MOU → Definitive Agreement)", urgency: "urgent", status: "open", notes: "Awaiting Modiphius response" },
+  { num: 2, title: "Contractor structure scopes (Frame A / B / C)", urgency: "urgent", status: "open", notes: "Forecast doc with math en route — directional read requested" },
+  { num: 3, title: "Asset delivery confirmation (yes/no per item)", urgency: "urgent", status: "open", notes: "Asset person back ~1 week+" },
+  { num: 4, title: "NDA stance for closed alpha", urgency: "urgent", status: "open", notes: "Argued for no-NDA gentleman's agreement" },
+  { num: 5, title: "Legal framework (IP license, sublicensing, governing law, attribution)", urgency: "med", status: "open", notes: "Modiphius legal team to lead per email" },
+  { num: 6, title: "Support email (EULA + Privacy Policy placeholder)", urgency: "med", status: "open", notes: "" },
+  { num: 7, title: "App naming (current vs digital-edition rebrand)", urgency: "med", status: "open", notes: "" },
+  { num: 8, title: "Pricing approval workflow", urgency: "med", status: "open", notes: "Sign-off vs FYI?" },
+  { num: 9, title: "Store listing workflow (publisher account handoff)", urgency: "med", status: "open", notes: "Listings go through Modiphius accounts" },
+  { num: 10, title: "Modiphius newsletter timing", urgency: "fyi", status: "open", notes: "Held until MVP / core selling point locked" },
+  { num: 11, title: "Five Leagues data extraction permission (post-EA)", urgency: "fyi", status: "open", notes: "Heads up only, not blocking" },
+  { num: 12, title: "Errata + rules clarifications channel from Gavin", urgency: "fyi", status: "open", notes: "" },
+  { num: 13, title: "EU/UK accessibility compliance guidance", urgency: "fyi", status: "open", notes: "" },
+];
+
+const STATUSES = ["pending", "in-progress", "done", "blocked"];
+const STORAGE_KEY = "5pfh-launch-dashboard-v1";
+const ASKS_STORAGE_KEY = "5pfh-asks-v1";
+
+let state = {};
+let asksState = {};
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) state = JSON.parse(saved);
+  const savedAsks = localStorage.getItem(ASKS_STORAGE_KEY);
+  if (savedAsks) asksState = JSON.parse(savedAsks);
+} catch (e) { state = {}; asksState = {}; }
+
+function getStatus(id) {
+  const task = TASKS.find(t => t.id === id);
+  if (task?.defaultStatus === "done") return "done";
+  return state[id] || task?.defaultStatus || "pending";
+}
+function setStatus(id, status) {
+  const task = TASKS.find(t => t.id === id);
+  if (task?.defaultStatus === "done") return;
+  state[id] = status;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+function cycleStatus(id) {
+  const cur = getStatus(id);
+  const next = STATUSES[(STATUSES.indexOf(cur) + 1) % STATUSES.length];
+  setStatus(id, next);
+  render();
+}
+function resetAll() {
+  if (!confirm("Reset all task statuses to pending?")) return;
+  state = {};
+  asksState = {};
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ASKS_STORAGE_KEY);
+  } catch(e) {}
+  render();
+}
+
+function getFiltered() {
+  const phaseF = document.getElementById("filter-phase").value;
+  return TASKS.filter(t => {
+    if (phaseF && t.ph !== phaseF) return false;
+    return true;
+  });
+}
+
+function taskCardHtml(t) {
+  const status = getStatus(t.id);
+  const doneClass = status === "done" ? " done" : "";
+  const depsStr = t.deps && t.deps.length ? `← ${t.deps.join(", ")}` : "";
+  return `<div class="task phase-${t.ph}${doneClass}" data-id="${t.id}" onclick="cycleStatus('${t.id}')">
+    <span class="id">${t.id}</span>${t.title}
+    <div class="meta">
+      <span class="pill">${t.ph}</span>
+      ${depsStr ? `<span class="pill dep">${depsStr}</span>` : ""}
+    </div>
+  </div>`;
+}
+
+function renderKanban() {
+  const tasks = getFiltered();
+  const cols = { "pending": [], "in-progress": [], "done": [], "blocked": [] };
+  tasks.forEach(t => cols[getStatus(t.id)].push(t));
+  const labels = { "pending": "Pending", "in-progress": "In Progress", "done": "Done", "blocked": "Blocked" };
+  const board = document.getElementById("kanban-board");
+  board.innerHTML = STATUSES.map(s => {
+    const items = cols[s].map(taskCardHtml).join("") || `<div class="empty">—</div>`;
+    return `<div class="kanban-col" data-col="${s}">
+      <h3>${labels[s]} <span class="count">(${cols[s].length})</span></h3>
+      ${items}
+    </div>`;
+  }).join("");
+}
+
+function renderPhases() {
+  const html = Object.entries(PHASES).map(([phId, ph]) => {
+    const tasks = TASKS.filter(t => t.ph === phId);
+    const done = tasks.filter(t => getStatus(t.id) === "done").length;
+    const taskHtml = tasks.map(taskCardHtml).join("") || `<div class="empty">No tasks defined</div>`;
+    return `<div class="phase">
+      <div class="phase-header">
+        <h2><span class="ph-id ${phId}">${phId}</span>${ph.name}</h2>
+        <span class="ph-progress">${done}/${tasks.length} done</span>
+      </div>
+      <div class="ph-dates">${ph.dates}</div>
+      <div class="ph-blurb">${ph.blurb}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.5rem;">${taskHtml}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("phases-content").innerHTML = html;
+}
+
+function renderTimeline() {
+  const html = Object.entries(PHASES).map(([phId, ph]) => {
+    const tasks = TASKS.filter(t => t.ph === phId);
+    const taskHtml = tasks.map(taskCardHtml).join("");
+    return `<div class="timeline-week">
+      <h2>${phId} — ${ph.name}</h2>
+      <div class="dates">${ph.dates}</div>
+      <div class="blurb">${ph.blurb}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.5rem;">${taskHtml}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("timeline-content").innerHTML = html;
+}
+
+function renderAsks() {
+  const tbody = document.getElementById("asks-tbody");
+  tbody.innerHTML = ASKS.map(a => {
+    const status = asksState[a.num] || a.status;
+    const urgencyClass = "urgency-" + a.urgency;
+    const statusClass = "status-" + status;
+    return `<tr>
+      <td class="ask-num">${a.num}</td>
+      <td>${a.title}</td>
+      <td class="${urgencyClass}">${a.urgency.toUpperCase()}</td>
+      <td class="${statusClass}" onclick="toggleAskStatus(${a.num})" style="cursor:pointer;" title="Click to toggle status">${status.toUpperCase()}</td>
+      <td style="color:var(--text-dim);font-size:0.8rem;">${a.notes || "—"}</td>
+    </tr>`;
+  }).join("");
+}
+
+function toggleAskStatus(num) {
+  const cur = asksState[num] || ASKS.find(a => a.num === num).status;
+  asksState[num] = cur === "open" ? "resolved" : "open";
+  try { localStorage.setItem(ASKS_STORAGE_KEY, JSON.stringify(asksState)); } catch(e) {}
+  renderAsks();
+}
+
+function renderSummary() {
+  const total = TASKS.length;
+  const done = TASKS.filter(t => getStatus(t.id) === "done").length;
+  const inProg = TASKS.filter(t => getStatus(t.id) === "in-progress").length;
+  const blocked = TASKS.filter(t => getStatus(t.id) === "blocked").length;
+  const pending = total - done - inProg - blocked;
+
+  // Phase A progress (A1+A2+A3)
+  const phaseATasks = TASKS.filter(t => t.ph === "A1" || t.ph === "A2" || t.ph === "A3");
+  const phaseADone = phaseATasks.filter(t => getStatus(t.id) === "done").length;
+  const phaseAPct = phaseATasks.length > 0 ? Math.round((phaseADone / phaseATasks.length) * 100) : 0;
+
+  // Asks tracking
+  const asksTotal = ASKS.length;
+  const asksOpen = ASKS.filter(a => (asksState[a.num] || a.status) === "open").length;
+  const asksResolved = asksTotal - asksOpen;
+
+  document.getElementById("overall-pct").textContent = phaseAPct + "%";
+  document.getElementById("summary").innerHTML = `
+    <div class="stat"><div class="label">Total tasks</div><div class="value">${total}</div></div>
+    <div class="stat done"><div class="label">Done</div><div class="value">${done}</div>
+      <div class="progress-bar"><div class="fill" style="width:${total > 0 ? Math.round((done / total) * 100) : 0}%"></div></div></div>
+    <div class="stat amber"><div class="label">In progress</div><div class="value">${inProg}</div></div>
+    <div class="stat blocking"><div class="label">Blocked</div><div class="value">${blocked}</div></div>
+    <div class="stat"><div class="label">Pending</div><div class="value">${pending}</div></div>
+    <div class="stat purple"><div class="label">Modiphius asks open</div><div class="value">${asksOpen}/${asksTotal}</div>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.25rem;">${asksResolved} resolved</div></div>
+    <div class="stat"><div class="label">Phase A progress</div><div class="value">${phaseADone}/${phaseATasks.length}</div>
+      <div class="progress-bar"><div class="fill" style="width:${phaseAPct}%"></div></div></div>
+  `;
+}
+
+function renderCountdowns() {
+  const today = new Date();
+  const alphaKickoff = new Date("2026-05-25");
+  const eaTarget = new Date("2026-09-25");
+  const dayMs = 1000 * 60 * 60 * 24;
+  const daysToAlpha = Math.ceil((alphaKickoff - today) / dayMs);
+  const daysToEA = Math.ceil((eaTarget - today) / dayMs);
+  document.getElementById("alpha-countdown").textContent = daysToAlpha > 0 ? daysToAlpha : "—";
+  document.getElementById("ea-countdown").textContent = daysToEA > 0 ? daysToEA : "—";
+  document.getElementById("today-display").textContent = today.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  // Determine current phase
+  let currentPhase = "G";
+  if (today < new Date("2026-05-05")) currentPhase = "A.1";
+  else if (today < new Date("2026-05-12")) currentPhase = "A.2";
+  else if (today < new Date("2026-05-25")) currentPhase = "A.3";
+  else if (today < new Date("2026-07-07")) currentPhase = "B";
+  else if (today < new Date("2026-07-21")) currentPhase = "C";
+  else if (today < new Date("2026-09-02")) currentPhase = "D";
+  else if (today < new Date("2026-09-23")) currentPhase = "E";
+  else if (today < new Date("2026-10-01")) currentPhase = "F";
+  document.getElementById("phase-display").textContent = currentPhase;
+}
+
+function render() {
+  renderCountdowns();
+  renderSummary();
+  renderKanban();
+  renderPhases();
+  renderTimeline();
+  renderAsks();
+}
+
+// Tab switching
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + btn.dataset.panel).classList.add("active");
+  });
+});
+
+render();
+</script>
+
+<div class="last-update">
+  Last updated: <strong>2026-04-30</strong> (forecast SENT) — Apr 30 forecast deep-dive added Phase B [T2] category-perception probe (B.7), [T4] digital→physical mechanism specs (B.8), Modiphius coordination (B.9); Phase C [T2] Steam-store-positioning brief (C.10), [T4] mechanism refinement (C.11). Apr 30 evening: A1.8 forecast deep-dive done, A1.9 delivery prep done, **A1.10 forecast summary + Windows build SENT to Chris (CC Gavin) on 2026-04-30**. Awaiting Modiphius reply — log responses in MEETING_FOLLOWUPS_2026-04-29.md §9 tracking table as they land. T1-T4 = mutually agreed strategic theses (see CLAUDE.md header + MEETING_FOLLOWUPS_2026-04-29.md §1.5).<br><br>
+  Single source of truth = embedded JS data above. Edit PHASES/TASKS/ASKS arrays to update. Status changes are saved to localStorage per browser.
+  Mirrors plan at <code>C:\Users\admin\.claude\plans\5pfh-4219-dtrpg-jiggly-charm.md</code>.
+  Personal-use only — not shared with Modiphius.
+</div>
+
+</body>
+</html>
