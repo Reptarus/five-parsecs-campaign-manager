@@ -14,6 +14,7 @@ var _mission_data: Dictionary = {}
 var _casualty_checks: Array[CheckBox] = []
 var _injury_checks: Array[CheckBox] = []
 
+var _pending_prefill: Dictionary = {}
 var _outcome_btn: OptionButton
 var _held_field_check: CheckBox
 var _rounds_spin: SpinBox
@@ -21,10 +22,16 @@ var _enemies_defeated_spin: SpinBox
 var _enemies_total_label: Label
 var _submit_btn: Button
 
-func setup(crew: Array, enemy_count: int, mission_data: Dictionary = {}) -> void:
+## prefill: optional {victory, enemies_defeated, rounds, held_field} from
+## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
+## of _build_ui() — NOT here — because the UI nodes do not exist until then
+## (setup() may be called before the form enters the tree).
+func setup(crew: Array, enemy_count: int, mission_data: Dictionary = {},
+		prefill: Dictionary = {}) -> void:
 	_crew = crew
 	_enemy_count = enemy_count
 	_mission_data = mission_data
+	_pending_prefill = prefill
 	if is_inside_tree():
 		_build_ui()
 
@@ -202,6 +209,32 @@ func _build_ui() -> void:
 	_submit_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_submit_btn.pressed.connect(_on_submit)
 	vbox.add_child(_submit_btn)
+
+	_apply_prefill()
+
+## Seed inputs from BattleObjectiveTracker so the player starts from the
+## objective-accurate guess. The player still confirms/edits — their submitted
+## outcome remains authoritative for LOG_ONLY (they played it on the table).
+func _apply_prefill() -> void:
+	if _pending_prefill.is_empty():
+		return
+	if _pending_prefill.has("victory") and _outcome_btn:
+		_outcome_btn.selected = 0 if bool(_pending_prefill["victory"]) else 1
+		# selected= does not emit item_selected — sync dependent UI manually.
+		_on_outcome_changed(_outcome_btn.selected)
+	if _pending_prefill.has("held_field") and _held_field_check \
+			and not _held_field_check.disabled:
+		_held_field_check.button_pressed = bool(
+			_pending_prefill["held_field"])
+	if _pending_prefill.has("rounds") and _rounds_spin:
+		_rounds_spin.value = clampf(
+			float(_pending_prefill["rounds"]),
+			_rounds_spin.min_value, _rounds_spin.max_value)
+	if _pending_prefill.has("enemies_defeated") and _enemies_defeated_spin:
+		_enemies_defeated_spin.value = clampf(
+			float(_pending_prefill["enemies_defeated"]),
+			_enemies_defeated_spin.min_value,
+			_enemies_defeated_spin.max_value)
 
 func _create_section(title_text: String) -> Array:
 	## Returns [outer_container, inner_content] — add outer to parent, children to inner

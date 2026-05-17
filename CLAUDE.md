@@ -1,9 +1,10 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-04-30 (Apr 30 forecast deep-dive — Steam-first refocus + industry research + 4 mutually agreed strategic theses captured)
+**Last Updated**: 2026-05-13 (May 13 deal-frame clarification — recoupment Reading B confirmed, quarterly maintenance fee structure introduced post-recoupment, Phase 1 / Phase 2 arc reframe captured)
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
-**Partnership status**: Modiphius 50/50 net split confirmed, 5x system positioned as foundation for wider digital strategy, closed alpha kickoff target Mon May 25 2026, Steam EA target late Sep 2026
+**Partnership status**: Modiphius deal frame settling — $X "total dev budget" recoupment (Reading B: dev keeps 100% of net receipts until $X recouped, no upfront), 50/50 split post-recoupment with quarterly maintenance/support/development fee carve-out to dev BEFORE the split, pro-rata recoupment if Modiphius later contributes budget. Phase 1 = prove the thesis (this deal). Phase 2 = lock-in conversation (career sweetener / multi-IP commitment) arrives later if Phase 1 succeeds. May 18-22 follow-up call. Closed alpha kickoff target Mon May 25 2026. Steam EA target late Sep 2026.
+**Active partnership artifacts**: `docs/MODIPHIUS_CORRESPONDENCE_JOURNAL.md` (chronological log), `docs/MEETING_PREP_2026-05-18.md` (LOI talking points), `docs/BROADENING_SCOPE_SKETCH.md` (1-pager for Chris), `docs/BOILERPLATE_REVIEW_CHECKLIST.md` (Definitive Agreement defense), `docs/PARTNERSHIP_PAPERWORK_PRIMER.md` (LOI → MOU → Definitive Agreement mental model)
 **Mutually agreed strategic theses** (do NOT re-argue these in any doc):
   - **T1**: Companion app, not digital port — complements physical, doesn't replace it
   - **T2**: Establishing a category, not entering one — solo-RPG/wargame digital companion apps essentially absent on Steam
@@ -450,6 +451,8 @@ Cross-platform in-app review prompts via ReviewManager autoload:
 | GalacticWarManager | src/core/campaign/GalacticWarManager.gd | Galactic war progress tracking |
 | FactionSystem | src/core/systems/FactionSystem.gd | Faction/rival management + DLC expanded factions |
 | LegalConsentManager | src/core/legal/LegalConsentManager.gd | EULA/privacy consent, analytics opt-in, data export/delete |
+| CampaignAnalytics | src/core/analytics/CampaignAnalytics.gd | In-memory analytics (Phase 0.6 — promoted from RefCounted to Node autoload; class_name removed) |
+| TaloAnalyticsAdapter | src/core/analytics/TaloAnalyticsAdapter.gd | Bridges CampaignAnalytics signal → Talo telemetry SDK, gates on consent, null-safe pre-Talo-install |
 
 ---
 
@@ -832,6 +835,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **Steam wishlist target (Apr 30)**: target 10K-20K wishlists by EA launch. Per `MODIPHIUS_DIGITAL_FORECAST.md` §11.2: 2026 industry-wide wishlist→player conversion is 5-10% (down from ~20% in 2018), Early Access first-month median is ~20%, games priced >$10 trend lower. To make §5 Moderate scenario (5,111 buyers) feasible, the Steam-wishlist channel needs to deliver ~1,500-3,000 first-month sales — math requires the wishlist target.
 - **Don't conflate audience-share conversion with wishlist conversion**: §5 conversion scenarios (2%/5%/10%/20%/30%) are *audience-share* against ~51K reachable readers, NOT *wishlist conversion*. Both views need to coexist and cross-check. See forecast §11.2.
 - **Industry-research-backed forecast (Apr 30)**: forecast §11 added 7 subsections of external research with sources — Steam tabletop comps, wishlist conversion benchmarks, EA risk environment (31-50% failure rate), pricing psychology (anchoring, charm pricing), cannibalization-and-active-digital→physical strategy, TTRPG market tailwinds (13.2% CAGR, solo segment fastest-growing), synthesis. Use these as defensible references in the partnership pitch, not internal hypotheses.
+- **`ScalableVectorShape2D` draws its body on the rotated `offset`, not `position` (May 17, BUG-101)**: the addon centers the ellipse/shape at local origin then translates by `offset`, and `offset` is rotated by the node rotation. On-screen center = `position + offset.rotated(rotation)`, NOT `position`. To place a shape's DRAWN center at point `c`: `svs.position = c - svs.offset.rotated(svs.rotation)`. Any grid/sector clamp must clamp the DRAWN center (+ `stroke_width/2` envelope) then back-solve position. This caused TWO premature BUG-101 "verified"s — verify SVS placement empirically via `get_bounding_rect()`×`transform` vs the target rect. See `BattlefieldMapView._rebuild_terrain_shapes()`.
+- **`BattlefieldMapView.cell_size` is the STABLE placement base (24), NEVER mutate it (May 17, BUG-102)**: on-screen scaling is the `_terrain_container` display transform via `_get_effective_cell_size()`, not a `cell_size` setter. `BattlefieldGridPanel._update_map_cell_size()` formerly mutated it 16/24→48 on resize after placement baked → top-left cluster. The resize handler is neutered; do not reintroduce any `cell_size` write.
+- **Detached `.new()` nodes can't call tree-dependent methods, even `get_node_or_null("/root/X")` (May 17)**: a bare `PostBattlePhase.new()` (or any Node) not added to the scene tree errors "Can't use get_node() with absolute paths from outside the active scene tree" when a method internally resolves autoloads. In unit tests, either `add_child()` it first or don't invoke orchestration methods — a field-contract assertion should not run the full orchestrator.
 
 ---
 

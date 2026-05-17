@@ -1,8 +1,9 @@
 # Integration Test Scenarios
 
-**Last Updated**: 2026-03-20
+**Last Updated**: 2026-05-01 (added S11-S15 for alpha-1; S4 deferred; fixed S5 flag count 37→33)
 **Purpose**: End-to-end workflow test scripts covering multi-system data flows
 **Extends**: `docs/testing/DEMO_QA_SCRIPT.md` (which covers CC→2 turns→save/load)
+**Alpha-1 specific**: Scenarios S11-S15 are alpha-1 deliverables. Scenario 4 (Cross-Mode Isolation) is DEFERRED to alpha-2. See `docs/testing/ALPHA_1_QA_PLAN.md` for scope decision.
 
 ---
 
@@ -25,13 +26,18 @@ Each scenario has:
 | 1 | Full Campaign Lifecycle (5+ turns → victory) | P0 | 90 min | 25 | MCP |
 | 2 | Battle Lifecycle — All 3 Oracle Tiers | P0 | 45 min | 18 per tier | HYBRID |
 | 3 | Save/Load Roundtrip Deep Validation | P0 | 30 min | 20 | MCP |
-| 4 | Cross-Mode Isolation (5PFH ↔ Bug Hunt) | P0 | 30 min | 12 | MCP |
-| 5 | DLC Gating Validation (37 flags) | P1 | 45 min | 37 | MCP |
+| ~~4~~ | ~~Cross-Mode Isolation (5PFH ↔ Bug Hunt)~~ — **DEFERRED to alpha-2** | — | — | — | — |
+| 5 | DLC Gating Validation (33 flags — TT=7, FH=17, FG=9) | P1 | 45 min | 33 | MCP |
 | 6 | Difficulty Modifier Propagation | P1 | 30 min | 15 | MCP |
 | 7 | Elite Ranks Cross-Campaign Flow | P1 | 20 min | 8 | MCP |
-| 8 | Store/Paywall Adapter Testing | P2 | 20 min | 6 | MANUAL |
+| ~~8~~ | ~~Store/Paywall Adapter Testing~~ — **DEFERRED to beta** (alpha runs offline mode) | — | — | — | — |
 | 9 | Three-Enum Sync Validation | P0 | 15 min | 5 | MCP |
 | 10 | Rules Accuracy Spot Check | P0 | 60 min | 20 | HYBRID |
+| **11** | **Compendium DLC Toggle Lifecycle** (33 flags ON/OFF mid-campaign) | **P0 (alpha-1)** | 45 min | 18 | MCP |
+| **12** | **Telemetry Consent + No-PII Audit** | **P0 (alpha-1)** | 30 min | 12 | MCP |
+| **13** | **Category-Perception Probe Surfaces** | **P1 (alpha-1)** | 20 min | 8 | HYBRID |
+| **14** | **Conversion Mechanism Placement + Tone** | **P1 (alpha-1)** | 30 min | 10 | HYBRID + tester debrief |
+| **15** | **Pre-Alpha A0 Smoke (Standard 5PFH only)** | **P0 (alpha-1)** | 60 min | 11 | MCP |
 
 ---
 
@@ -178,6 +184,8 @@ Each scenario has:
 
 ## Scenario 4: Cross-Mode Isolation — 5PFH vs Bug Hunt (P0, ~30 min)
 
+> **DEFERRED to alpha-2** (decision 2026-05-01): Bug Hunt is out of alpha-1 scope per `docs/testing/ALPHA_1_QA_PLAN.md` §1. This scenario is preserved for alpha-2 / beta when cross-mode coverage re-enters scope. Do NOT execute against alpha-1 builds.
+
 **Goal**: Verify standard campaign and Bug Hunt campaigns don't contaminate each other's data.
 
 **Prerequisites**: Both gamemodes accessible
@@ -210,28 +218,31 @@ Each scenario has:
 
 ## Scenario 5: DLC Gating Validation (P1, ~45 min)
 
-**Goal**: Verify all 37 content flags properly gate their features.
+**Goal**: Verify all 33 content flags properly gate their features. (Canonical count verified 2026-05-01 against `src/core/systems/DLCManager.gd:34` — TT=7, FH=17, FG=9. Prior "37" was incorrect.)
 
 **Prerequisites**: Access to DLCManager to toggle flags
 
 ### Steps
 
 1. **Disable all DLC flags**
-   - `[CHECK-5.1-37]` For each of 37 flags: verify gated content is NOT accessible
+   - `[CHECK-5.1-33]` For each of 33 flags: verify gated content is NOT accessible
    - Key areas: Character creation (no Krag/Skulker), missions (no Stealth/Street/Salvage), CheatSheet (no compendium sections)
 
-2. **Enable Trailblazer's Toolkit (12 flags)**
+2. **Enable Trailblazer's Toolkit (7 flags)**
    - `[CHECK-5.TT]` Species selection shows Krag + Skulker
    - `[CHECK-5.TT]` Psionic legality check runs
    - `[CHECK-5.TT]` Bot upgrade options appear in Advancement
+   - Flags: SPECIES_KRAG, SPECIES_SKULKER, PSIONICS, NEW_TRAINING, BOT_UPGRADES, NEW_SHIP_PARTS, PSIONIC_EQUIPMENT
 
-3. **Enable Freelancer's Handbook (12 flags)**
+3. **Enable Freelancer's Handbook (17 flags)**
    - `[CHECK-5.FH]` Difficulty toggles available in config
    - `[CHECK-5.FH]` Expanded missions appear in job offers
+   - Flags: PROGRESSIVE_DIFFICULTY, DIFFICULTY_TOGGLES, PVP_BATTLES, COOP_BATTLES, AI_VARIATIONS, DEPLOYMENT_VARIABLES, ESCALATING_BATTLES, ELITE_ENEMIES, EXPANDED_MISSIONS, EXPANDED_QUESTS, EXPANDED_CONNECTIONS, DRAMATIC_COMBAT, NO_MINIS_COMBAT, GRID_BASED_MOVEMENT, TERRAIN_GENERATION, CASUALTY_TABLES, DETAILED_INJURIES
 
-4. **Enable Fixer's Guidebook (11 flags)**
+4. **Enable Fixer's Guidebook (9 flags)**
    - `[CHECK-5.FG]` Stealth/Street/Salvage missions in job pipeline
    - `[CHECK-5.FG]` Expanded loans available
+   - Flags: STEALTH_MISSIONS, STREET_FIGHTS, SALVAGE_JOBS, EXPANDED_FACTIONS, FRINGE_WORLD_STRIFE, EXPANDED_LOANS, NAME_GENERATION, INTRODUCTORY_CAMPAIGN, PRISON_PLANET_CHARACTER
 
 5. **Toggle mid-campaign**
    - `[CHECK-5.MID]` No crash when enabling/disabling DLC during active campaign
@@ -301,6 +312,8 @@ Each scenario has:
 ---
 
 ## Scenario 8: Store/Paywall Adapter Testing (P2, ~20 min)
+
+> **DEFERRED to beta / Steam Playtest** (decision 2026-05-01): Alpha runs in offline mode with all Compendium content unlocked per `docs/CLOSED_ALPHA_PLAN.md` §3. Store adapter testing requires real device + real billing accounts; out of scope for closed alpha. Re-enters scope in Phase D.
 
 **Goal**: Verify store adapter pattern works for DLC purchases.
 
@@ -406,6 +419,235 @@ Requires a human with the physical Core Rules book open.
     - Enter battle phase
     - `[CHECK-10.19]` Enemy count formula matches book
     - `[CHECK-10.20]` Spot check 3 enemy type stat blocks against book
+
+---
+
+## Scenario 11: Compendium DLC Toggle Lifecycle (P0 alpha-1, ~45 min)
+
+**Goal**: Verify all 33 ContentFlags toggle correctly via Settings UI, content surfaces appear/disappear as expected, and toggle state survives mid-campaign + save/load.
+
+**Prerequisites**: Fresh `user://` state OR existing campaign
+
+**Method**: MCP
+
+### Steps
+
+1. **Pre-condition: all DLC OFF**
+   - `[CHECK-11.1]` Settings → DLC management shows all 33 flags OFF
+   - `[CHECK-11.2]` `DLCManager.is_feature_enabled(ContentFlag.SPECIES_KRAG)` returns false (and equivalent for any 5 sampled flags)
+
+2. **Enable Trailblazer's Toolkit (7 flags) all at once via "Enable Pack"**
+   - `[CHECK-11.3]` All 7 TT flags now ON
+   - `[CHECK-11.4]` New Campaign → Captain creation → species dropdown shows Krag + Skulker
+   - `[CHECK-11.5]` Advancement panel shows Bot Upgrade options
+   - `[CHECK-11.6]` Equipment panel shows psionic items category
+
+3. **Enable Freelancer's Handbook (17 flags) all at once**
+   - `[CHECK-11.7]` All 17 FH flags now ON
+   - `[CHECK-11.8]` Config panel shows 12 Compendium difficulty toggles
+   - `[CHECK-11.9]` Job offers panel shows expanded mission types
+
+4. **Enable Fixer's Guidebook (9 flags) all at once**
+   - `[CHECK-11.10]` All 9 FG flags now ON
+   - `[CHECK-11.11]` World phase shows Stealth/Street/Salvage mission types in job pipeline
+   - `[CHECK-11.12]` Loans panel accessible from world phase
+
+5. **Mid-campaign disable**: turn off Fixer's Guidebook entirely while a campaign is loaded
+   - `[CHECK-11.13]` No crash; campaign continues
+   - `[CHECK-11.14]` Next world phase shows no Stealth/Street/Salvage missions
+   - `[CHECK-11.15]` Existing campaign data not corrupted (credits/crew preserved)
+
+6. **Save → reload → verify toggle state preserved**
+   - `[CHECK-11.16]` After reload, Settings → DLC management shows TT+FH ON, FG OFF (matches pre-save state)
+   - `[CHECK-11.17]` `dlc_states` dict in save JSON serialized correctly
+
+7. **Re-enable all 33 flags + save → reload**
+   - `[CHECK-11.18]` All 33 flags persisted ON across save cycle
+
+---
+
+## Scenario 12: Telemetry Consent + No-PII Audit (P0 alpha-1, ~30 min)
+
+**Goal**: Verify the analytics consent gate works correctly + payloads contain zero PII.
+
+**Prerequisites**: Fresh `user://` state OR known consent state; Talo dashboard access
+
+**Method**: MCP + manual payload inspection
+
+### Steps
+
+1. **First-launch consent flow**
+   - `[CHECK-12.1]` `LegalConsentManager.needs_legal_consent()` returns true; first launch routes to EULA
+   - `[CHECK-12.2]` After EULA accept → Privacy → Analytics opt-in screen
+   - `[CHECK-12.3]` Analytics opt-in screen shows OFF as default (must explicitly click to enable)
+
+2. **Default-OFF gate enforcement**
+   - Decline analytics; complete onboarding to MainMenu
+   - `[CHECK-12.4]` `LegalConsentManager.get_analytics_consent()` returns false
+   - Trigger 5+ events that would normally be analytics-recorded (phase changes, validation events, feature usage)
+   - `[CHECK-12.5]` Talo dashboard shows ZERO new events for this session
+
+3. **Opt-in via Settings**
+   - Settings → Privacy → enable analytics
+   - `[CHECK-12.6]` `LegalConsentManager.get_analytics_consent()` returns true; `consent_updated` signal fires
+   - Trigger phase changes, save event, feature usage
+   - `[CHECK-12.7]` Talo dashboard receives matching events within 60 seconds
+   - `[CHECK-12.8]` Each event has anonymous session UUID; no name, email, IP, save content, character names, custom strings
+
+4. **Mid-session opt-out**
+   - Settings → Privacy → disable analytics
+   - Continue playing; trigger more events
+   - `[CHECK-12.9]` Talo dashboard receives NO new events for this session_id from opt-out timestamp forward
+
+5. **No-PII payload audit**
+   - Inspect last 10 events in Talo dashboard
+   - `[CHECK-12.10]` Zero events contain: email, real name, IP, save file content, character names, captain custom name, ship custom name
+   - `[CHECK-12.11]` Free-text survey responses (NPS open-ended fields) are stored separately and consent-gated
+
+6. **GDPR data export + delete**
+   - Settings → Privacy → "Export my data" → file written to `user://`
+   - `[CHECK-12.12]` JSON manifest lists all `user://` files; opening it shows expected structure (consent state, save files, no orphan PII)
+
+---
+
+## Scenario 13: Category-Perception Probe Surfaces (P1 alpha-1, ~20 min)
+
+**Goal**: Verify pricing-perception modal triggers correctly at session-end and category-perception modal triggers at week-3 + week-6 build checkpoints. Per `docs/CLOSED_ALPHA_PLAN.md` §6.1 and `docs/PRICING_RESEARCH_PLAN.md` §4.
+
+**Prerequisites**: Analytics consent ON; survey state file fresh (`user://survey_state.cfg` deleted)
+
+**Method**: HYBRID — MCP for trigger logic + manual review of question content
+
+### Steps
+
+1. **First session-end trigger (pricing modal)**
+   - Play 1 campaign turn; navigate to MainMenu (session end)
+   - `[CHECK-13.1]` Pricing modal appears with 4 Van Westendorp questions + 1 NPS question + 2 free-text questions (7 total)
+   - `[CHECK-13.2]` 4 VW questions appear in randomized order (verify across 3 sessions)
+   - `[CHECK-13.3]` Modal is dismissable (cancel button works without submission)
+
+2. **Second session-end trigger (same build)**
+   - Restart app; play 1 turn; navigate to MainMenu
+   - `[CHECK-13.4]` Pricing modal does NOT reappear (once-per-build-version persistence working)
+
+3. **Submit a complete pricing survey**
+   - Trigger modal again on a fresh build version (or delete `user://survey_state.cfg`)
+   - Fill all 7 fields; submit
+   - `[CHECK-13.5]` Submission succeeds; toast confirms
+   - `[CHECK-13.6]` Talo dashboard shows event `pricing_survey_submitted` with anonymized payload
+
+4. **Category-perception modal at week-3 checkpoint (build A3)**
+   - Set `application/config/version` = "v0.9.7-alpha1.A3" via debug or simulate
+   - Trigger session-end
+   - `[CHECK-13.7]` Category-perception modal appears (forced choice from 6 labels: campaign manager / solo RPG companion / digital edition / tabletop assistant / campaign tracker / gamemaster tool)
+   - `[CHECK-13.8]` Submission produces Talo event `category_perception_choice`
+
+5. **Category-perception trigger at A1 (should NOT fire)**
+   - Reset state; set version "v0.9.7-alpha1.A1"
+   - `[CHECK-13.9]` Category modal does NOT appear at session-end (only A3 + A6 are checkpoints)
+
+---
+
+## Scenario 14: Conversion Mechanism Placement + Tone (P1 alpha-1, ~30 min)
+
+**Goal**: Verify all 5 §6.5 conversion mechanisms render in their specified placements and capture subjective tester signal during alpha-week-1 debrief. Per `docs/CLOSED_ALPHA_PLAN.md` §6.5.
+
+**Prerequisites**: Fresh `user://` (for first-launch mechanism) OR existing campaign (for in-game placements)
+
+**Method**: HYBRID — MCP for placement verification + tester debrief for tone signal
+
+### Steps
+
+1. **Mechanism #1: Discount code dialog**
+   - Fresh launch → consent flow → MainMenu
+   - `[CHECK-14.1]` Discount code dialog appears once after consent (placeholder code "ALPHA-TESTER-15" visible)
+   - `[CHECK-14.2]` "Get the Book" entry visible in Settings → second appearance same dialog
+
+2. **Mechanism #2: "Get the Physical Edition" CTA — 3 placements**
+   - `[CHECK-14.3]` MainMenu footer shows "Get the Physical Edition" link
+   - `[CHECK-14.4]` Help screen shows the link
+   - `[CHECK-14.5]` Post-campaign-completion EndPhasePanel shows the link
+   - `[CHECK-14.6]` Click in any placement opens external URL (mock during alpha)
+
+3. **Mechanism #3: Bundled-PDF reminder tooltip**
+   - Navigate to Compendium screen
+   - `[CHECK-14.7]` Tooltip on hover/focus reads "Physical book includes free PDF — no need to repurchase digital content"
+
+4. **Mechanism #4: Pre-order incentive mockup**
+   - Navigate to Store / Expansions screen
+   - `[CHECK-14.8]` "Coming Soon" panel section labeled "Future expansions: pre-order to receive [tier 1/2/3] incentives"; greyed-out tiers; non-interactive
+
+5. **Mechanism #5: Newsletter capture form**
+   - Settings → "Get Modiphius Newsletter" entry
+   - `[CHECK-14.9]` Form requires email + name; consent checkbox unchecked by default
+   - `[CHECK-14.10]` Submit triggers mock POST + success toast
+
+6. **Subjective tone signal (week-1 tester debrief)**
+   - During first weekly Discord debrief, ask 3 testers verbatim: "Which of these 5 in-app prompts about the physical book felt helpful, which felt pushy?" Capture exact words.
+   - Acceptance: ≥2 of 3 testers describe at least 4 of 5 mechanisms as "helpful" / "respectful" / "obvious" — NOT "pushy" / "salesy" / "annoying"
+
+---
+
+## Scenario 15: Pre-Alpha A0 Smoke (Standard 5PFH only, P0 alpha-1, ~60 min)
+
+**Goal**: Final pre-distribution smoke test for A0 build (Wed May 20). Mirrors §Verification of `C:\Users\admin\.claude\plans\warm-weaving-llama.md`.
+
+**Prerequisites**: Clean Windows VM with no prior `user://` state; fresh A0 .exe build
+
+**Method**: MCP-automated where possible + manual SmartScreen walkthrough
+
+**Pass criteria**: All 11 checkpoints pass with ZERO P0 (game-breaking) issues. P1 (major UX) issues triaged into hotfix budget for Thu May 21.
+
+### Steps
+
+1. **Clean install**
+   - Extract A0 .zip → double-click .exe → walk through SmartScreen "More info → Run anyway"
+   - `[CHECK-15.1]` App launches within 10 seconds of "Run anyway" click
+
+2. **First-launch flow**
+   - `[CHECK-15.2]` EULA → privacy → analytics opt-in (default OFF) → MainMenu loads
+   - `[CHECK-15.3]` Analytics defaults to OFF (verified `user://legal_consent.cfg` post-acceptance)
+
+3. **Standard 5PFH campaign creation**
+   - Run 7-step wizard end-to-end
+   - `[CHECK-15.4]` Wizard completes; campaign saves to `user://saves/<campaign_name>.json`
+
+4. **Compendium DLC toggle test (33 flags)**
+   - Settings → DLC management → enable Trailblazer's Toolkit (7 flags) → New Campaign → verify Krag/Skulker species appear
+   - Toggle OFF → verify they disappear
+   - Repeat for FH (17) + FG (9)
+   - `[CHECK-15.5]` All 33 flags toggle correctly without crash
+
+5. **Standard 5PFH turn 1**
+   - All 9 phases (Story → Travel → Upkeep → Mission → Post-Mission → Advancement → Trading → Character → Retirement) complete without crash
+   - Save mid-turn → reload → verify state preserved
+   - `[CHECK-15.6]` Turn 1 completes; save/reload roundtrip clean
+
+6. **Battle Simulator standalone**
+   - MainMenu → Battle Simulator → 1 battle resolves
+   - `[CHECK-15.7]` Battle resolves; results screen shows; return to MainMenu works
+
+7. **Pricing-perception survey**
+   - Trigger session-end → survey appears
+   - Submit valid responses
+   - `[CHECK-15.8]` Modal works as designed; Talo dashboard receives event with no PII
+
+8. **5 conversion mechanisms render**
+   - `[CHECK-15.9]` All 5 placements visible per Scenario 14 above
+
+9. **Telemetry consent gate**
+   - Settings → disable analytics → trigger phase change
+   - `[CHECK-15.10]` Talo receives no new events; re-enable → events resume
+
+10. **GDPR data export**
+    - Settings → Privacy → "Export my data"
+    - `[CHECK-15.11.a]` JSON manifest written to `user://`
+
+11. **Crash auto-capture**
+    - Manually trigger `assert(false)` somewhere (debug-only fault injection)
+    - `[CHECK-15.11.b]` Crash log file appears in `user://crash_logs/`; on next launch, dialog with "Open Folder" button appears
+
+**Fail action**: Triage failures into P3.T4 hotfix sprint (Thu May 21). If P0 cannot be fixed by Sun May 24, slip A1 distribution to Mon Jun 1 and notify Modiphius via Gavin sync.
 
 ---
 

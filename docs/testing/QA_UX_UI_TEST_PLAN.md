@@ -1,8 +1,9 @@
 # UX/UI QA Test Plan — Systematic Coverage
 
-**Last Updated**: 2026-03-23
+**Last Updated**: 2026-05-01 (added 12 routes to §1a; added §10 Conversion Mechanism Dialog Accessibility for alpha-1)
 **Complements**: `docs/testing/UI_UX_TEST_PLAN.md` (session-based walkthroughs, ~200 tests)
 **Purpose**: Systematic design-system and accessibility coverage that session walkthroughs miss
+**Alpha-1 specific**: §10 covers the 5 §6.5 digital→physical conversion mechanism dialogs. See `docs/testing/ALPHA_1_QA_PLAN.md` for scope.
 
 ---
 
@@ -59,6 +60,18 @@ Every SceneRouter key must be reachable, have a back path, and not dead-end.
 | `bug_hunt_creation` | Bug Hunt | MainMenu → Bug Hunt | Cancel | [ ] |
 | `bug_hunt_dashboard` | Bug Hunt | After BH creation | MainMenu | [ ] |
 | `bug_hunt_turn_controller` | Bug Hunt | BH Dashboard → Turn | End → BH Dashboard | [ ] |
+| `planetfall_creation` | Planetfall | MainMenu → Planetfall | Cancel | [ ] |
+| `planetfall_dashboard` | Planetfall | After PF creation | MainMenu | [ ] |
+| `planetfall_turn_controller` | Planetfall | PF Dashboard → Turn | End → PF Dashboard | [ ] |
+| `tactics_creation` | Tactics | MainMenu → Tactics | Cancel | [ ] |
+| `tactics_dashboard` | Tactics | After Tactics creation | MainMenu | [ ] |
+| `tactics_turn_controller` | Tactics | Tactics Dashboard → Turn | End → Tactics Dashboard | [ ] |
+| `battle_simulator` | Battle Simulator | MainMenu → Battle Simulator | Back → MainMenu | [ ] |
+| `store` | Store | MainMenu → Expansions | Back → MainMenu | [ ] |
+| `eula` | Legal | First-launch flow | (auto-progresses to privacy) | [ ] |
+| `legal_viewer` | Legal | Settings → Privacy → View documents | Close | [ ] |
+| `compendium` | Compendium | MainMenu → Library | Back → MainMenu | [ ] |
+| `compendium_category` | Compendium | Compendium → category drilldown | Back → Compendium | [ ] |
 
 ### 1b. Dead End Audit
 
@@ -725,3 +738,118 @@ for e in expected:
         missing.append(e)
 return "Patron types: %d/6 present. Missing: %s" % [6 - missing.size(), str(missing)]
 ```
+
+---
+
+## 10. Conversion Mechanism Dialog Accessibility (alpha-1, added 2026-05-01)
+
+This section covers UI/UX coverage for the 5 digital→physical conversion mechanism dialogs introduced for the closed alpha per `docs/CLOSED_ALPHA_PLAN.md` §6.5 (T4 thesis). These dialogs ship in alpha-1 and feed Phase B tester signal on whether placement + framing reads as "respectful / helpful / obvious" or "annoying / pushy / salesy".
+
+### 10a. Five mechanisms covered
+
+| # | Mechanism | Dialog/Surface | Placement(s) |
+|---|---|---|---|
+| 1 | Discount code | `DiscountCodeDialog.tscn` | First-launch (after consent), Settings → "Get the Book" |
+| 2 | "Get Physical Edition" CTA | inline link/button (no dialog) | MainMenu footer, Help screen, EndPhasePanel post-victory |
+| 3 | Bundled-PDF reminder | tooltip | CompendiumScreen, DLCPackCard hover |
+| 4 | Pre-order incentive mockup | inline panel section (greyed) | StoreScreen "Coming Soon" |
+| 5 | Newsletter capture | `NewsletterOptInForm.tscn` | Settings, post-purchase success screen |
+
+### 10b. Theme compliance per mechanism
+
+For each of the 5 mechanisms, verify Deep Space theme compliance per §2 of this document:
+
+| Check | DiscountCodeDialog | "Get Physical" CTA | Bundled-PDF tooltip | Pre-order mockup | Newsletter form |
+|---|---|---|---|---|---|
+| Background uses COLOR_BASE / COLOR_ELEVATED | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Border uses COLOR_BORDER | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Accent uses COLOR_ACCENT | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Body text uses COLOR_TEXT_PRIMARY | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Helper text uses COLOR_TEXT_SECONDARY | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Spacing follows 8px grid (SPACING_XS/SM/MD/LG/XL) | [ ] | [ ] | [ ] | [ ] | [ ] |
+| Typography matches scale (FONT_SIZE_XS/SM/MD/LG/XL) | [ ] | [ ] | [ ] | [ ] | [ ] |
+
+### 10c. Touch target compliance
+
+All interactive elements in these dialogs must meet TOUCH_TARGET_MIN (48px):
+
+- `[CHECK-10c.1]` DiscountCodeDialog "Visit Modiphius store" button ≥48px
+- `[CHECK-10c.2]` DiscountCodeDialog "Close" button ≥48px
+- `[CHECK-10c.3]` "Get Physical Edition" link buttons (3 placements) ≥48px
+- `[CHECK-10c.4]` Bundled-PDF tooltip dismiss area ≥48px (or n/a if non-interactive)
+- `[CHECK-10c.5]` Pre-order mockup section ≥48px row height (visual only, non-interactive)
+- `[CHECK-10c.6]` NewsletterOptInForm email + name fields use TOUCH_TARGET_COMFORT (56px)
+- `[CHECK-10c.7]` NewsletterOptInForm consent checkbox + submit button ≥48px
+
+### 10d. Contrast ratio compliance (per §6a)
+
+All conversion mechanism text on its background must meet AA contrast (4.5:1) at minimum:
+
+- `[CHECK-10d.1]` Discount code body text on dialog bg ≥4.5:1
+- `[CHECK-10d.2]` "Get Physical" link color (likely COLOR_ACCENT) on its container bg ≥4.5:1
+- `[CHECK-10d.3]` Bundled-PDF tooltip text on its bg ≥4.5:1
+- `[CHECK-10d.4]` Pre-order "Coming Soon" greyed-tier text on its bg — must remain readable per "Disabled text" guideline (clearly disabled, not invisible)
+- `[CHECK-10d.5]` Newsletter form labels on input bg ≥4.5:1
+
+### 10e. Focus management
+
+Each dialog/form must support keyboard navigation (per §6b):
+
+| Dialog | Tab order | Focus indicator visible | Esc closes | Tested |
+|---|---|---|---|---|
+| DiscountCodeDialog | Visit store → Close | [ ] | [ ] | [ ] |
+| "Get Physical" CTA | Tab reaches the link | [ ] | n/a (inline) | [ ] |
+| Bundled-PDF tooltip | n/a (hover/focus surface) | [ ] | n/a | [ ] |
+| Pre-order mockup | n/a (non-interactive) | n/a | n/a | [ ] |
+| NewsletterOptInForm | Email → Name → Consent → Submit → Cancel | [ ] | [ ] | [ ] |
+
+### 10f. Reduced animation respect
+
+Conversion dialogs MUST honor `ThemeManager.is_reduced_animation_enabled()`:
+
+- `[CHECK-10f.1]` DiscountCodeDialog open/close: no fade/scale animation when reduced animation ON
+- `[CHECK-10f.2]` Newsletter form open/close: same
+- `[CHECK-10f.3]` Bundled-PDF tooltip: instant appear/disappear when reduced animation ON
+- `[CHECK-10f.4]` "Get Physical" CTA hover effects: no pulse / breathe when reduced animation ON
+- `[CHECK-10f.5]` Pre-order mockup: no looping animations regardless
+
+### 10g. Content + tone (subjective)
+
+Per Scenario 14 (`QA_INTEGRATION_SCENARIOS.md`), capture during week-1 tester debrief:
+
+- `[CHECK-10g.1]` Tester verbatim language describing each of 5 mechanisms — record exact words, do not lead
+- `[CHECK-10g.2]` ≥2 of 3 testers describe ≥4 of 5 mechanisms as "helpful" / "respectful" / "obvious"
+- `[CHECK-10g.3]` Zero testers describe any mechanism as "spammy" / "pushy" / "manipulative"
+
+Output captured in `docs/CONVERSION_MECHANISM_TONE_REPORT.md` (populated end of week 1).
+
+### 10h. MCP automation
+
+```gdscript
+# Verify all 5 conversion mechanisms render correctly at runtime
+extends RefCounted
+func execute(scene_tree: SceneTree) -> Variant:
+    var checks = []
+    # Mechanism 1: DiscountCodeDialog can be instantiated
+    var ddc_path = "res://src/ui/components/conversion/DiscountCodeDialog.tscn"
+    if ResourceLoader.exists(ddc_path):
+        checks.append("DiscountCodeDialog: PASS")
+    else:
+        checks.append("DiscountCodeDialog: FAIL — scene not found")
+    # Mechanism 2: "Get Physical" CTA exists in MainMenu footer
+    var mm = scene_tree.root.get_node_or_null("/root/MainMenu")
+    if mm:
+        var footer = mm.get_node_or_null("Footer/GetPhysicalEditionLink")
+        checks.append("MainMenu footer CTA: " + ("PASS" if footer else "FAIL"))
+    # Mechanism 5: NewsletterOptInForm
+    var nl_path = "res://src/ui/components/conversion/NewsletterOptInForm.tscn"
+    if ResourceLoader.exists(nl_path):
+        checks.append("NewsletterOptInForm: PASS")
+    else:
+        checks.append("NewsletterOptInForm: FAIL — scene not found")
+    return "\n".join(checks)
+```
+
+---
+
+*§10 added 2026-05-01 for alpha-1. Update with actual test results during P2.T11 self-pass + P3.T1 final pass per `C:\Users\admin\.claude\plans\warm-weaving-llama.md`.*

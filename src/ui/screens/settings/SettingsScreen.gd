@@ -242,6 +242,9 @@ func _build_ui() -> void:
 	# Legal & Privacy section
 	_build_legal_section(content)
 
+	# About section (build version + engine version for tester bug reports)
+	_build_about_section(content)
+
 	# Footer buttons
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -523,6 +526,115 @@ func _build_legal_section(parent: VBoxContainer) -> void:
 	DialogStyles.style_danger_button(delete_btn)
 	delete_btn.pressed.connect(_on_delete_data_pressed)
 	card_vbox.add_child(delete_btn)
+
+
+func _build_about_section(parent: VBoxContainer) -> void:
+	var card_vbox := _create_section_card("About", parent)
+
+	var app_name: String = str(ProjectSettings.get_setting("application/config/name", "Five Parsecs Campaign Manager"))
+	var app_version: String = str(ProjectSettings.get_setting("application/config/version", "0.9.7-dev"))
+	var godot_info: Dictionary = Engine.get_version_info()
+	var godot_version: String = str(godot_info.get("string", "4.6"))
+
+	var rows := [
+		["Application", app_name],
+		["Version", app_version],
+		["Engine", "Godot " + godot_version],
+		["Build", "alpha development build (closed alpha cycle May-Jul 2026)"],
+	]
+
+	for row_data: Array in rows:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", _spacing_md)
+
+		var label := Label.new()
+		label.text = row_data[0]
+		label.add_theme_font_size_override("font_size", _font_sm)
+		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		label.custom_minimum_size.x = 120
+		row.add_child(label)
+
+		var value := Label.new()
+		value.text = row_data[1]
+		value.add_theme_font_size_override("font_size", _font_md)
+		value.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(value)
+
+		card_vbox.add_child(row)
+
+	# Bug-report convenience: tells testers what to copy when filing
+	var hint_sep := HSeparator.new()
+	card_vbox.add_child(hint_sep)
+
+	var hint := Label.new()
+	hint.text = "When filing a bug report, include the Version + Build values shown above."
+	hint.add_theme_font_size_override("font_size", _font_sm)
+	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card_vbox.add_child(hint)
+
+	# Telemetry diagnostic — debug-only smoke-test entry point.
+	# Fires a single CampaignAnalytics event through the consent gate
+	# and the TaloAnalyticsAdapter, so we can verify end-to-end pipeline
+	# health without waiting for in-game events to organically fire.
+	if OS.is_debug_build():
+		var diag_sep := HSeparator.new()
+		card_vbox.add_child(diag_sep)
+
+		var diag_label := Label.new()
+		diag_label.text = "Telemetry diagnostics (debug build)"
+		diag_label.add_theme_font_size_override("font_size", _font_md)
+		diag_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		card_vbox.add_child(diag_label)
+
+		var status_label := Label.new()
+		status_label.name = "TelemetryStatusLabel"
+		status_label.text = _get_telemetry_status_text()
+		status_label.add_theme_font_size_override("font_size", _font_sm)
+		status_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card_vbox.add_child(status_label)
+
+		var test_btn := Button.new()
+		test_btn.text = "Send Test Telemetry Event"
+		test_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		test_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		test_btn.pressed.connect(_on_send_test_telemetry_pressed.bind(status_label))
+		card_vbox.add_child(test_btn)
+
+
+func _get_telemetry_status_text() -> String:
+	## Reads the live status from TaloAnalyticsAdapter for display in the
+	## telemetry diagnostic card. Returns a single-line human-readable string.
+	var adapter := get_node_or_null("/root/TaloAnalyticsAdapter")
+	if adapter and adapter.has_method("get_status_string"):
+		return "Status: " + str(adapter.get_status_string())
+	return "Status: TaloAnalyticsAdapter autoload not found"
+
+
+func _on_send_test_telemetry_pressed(status_label: Label) -> void:
+	## Fires a single smoke_test event through CampaignAnalytics. The adapter
+	## subscribes to this signal — if consent is granted and Talo is available,
+	## the event flows to the dashboard. If gated (consent OFF or Talo missing),
+	## the adapter silently drops it (correct behavior). Either way, this button
+	## tells you which state you're actually in via the status label refresh.
+	var ca := get_node_or_null("/root/CampaignAnalytics")
+	if not ca or not ca.has_method("record_feature_usage"):
+		if status_label:
+			status_label.text = "Status: CampaignAnalytics autoload not found"
+		return
+
+	ca.record_feature_usage("smoke_test", {
+		"source": "settings_about_diagnostic",
+		"timestamp": Time.get_datetime_string_from_system(true),
+		"app_version": str(ProjectSettings.get_setting("application/config/version", "unknown")),
+	})
+
+	# Refresh status display after the event — adapter may have flipped
+	# from "Pending" to "Active" if this was the first event after consent.
+	if status_label:
+		status_label.text = _get_telemetry_status_text() + "  |  Last fired: " + Time.get_time_string_from_system()
 
 
 func _on_export_data_pressed() -> void:

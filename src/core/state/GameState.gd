@@ -51,6 +51,10 @@ var _battlefield_data: Dictionary = {}
 const SAVE_DIRECTORY := "user://saves/"
 const SETTINGS_PATH := "user://settings.cfg"
 const OPTIONS_PATH := "user://options.cfg"
+## BUG-100: window state shared with SettingsScreen.gd (_window_config_path).
+## Restored at boot here (autoload) because SettingsScreen's _enter_tree()
+## restore only runs when the user opens Settings, never at game launch.
+const WINDOW_CONFIG_PATH := "user://window.ini"
 
 # Game options with defaults
 var default_options := {
@@ -120,6 +124,9 @@ func _try_auto_load_last_campaign() -> void:
 		push_warning("GameState: Failed to auto-load from: %s" % path)
 
 func _ready() -> void:
+	# BUG-100: restore saved window state at boot (mirrors SettingsScreen
+	# _enter_tree() so the preference applies on launch, not just in Settings)
+	_restore_window_state_at_boot()
 	# Apply deferred QoL data now that scene tree is ready
 	if current_campaign and current_campaign.has_method("apply_pending_qol_data"):
 		current_campaign.apply_pending_qol_data()
@@ -127,6 +134,34 @@ func _ready() -> void:
 	var dlc_mgr := get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_signal("dlc_pack_required"):
 		dlc_mgr.dlc_pack_required.connect(_on_dlc_pack_required)
+
+func _restore_window_state_at_boot() -> void:
+	## BUG-100: replay user://window.ini (screen/mode/position/size) at launch.
+	## Same semantics as SettingsScreen._enter_tree() (L95-121); not
+	## reimplemented, mirrored. project.godot window/size/mode=2 (Maximized)
+	## is the first-run default when no window.ini exists yet.
+	if not OS.has_feature("pc"):
+		return
+	if Engine.is_editor_hint():
+		return
+	var wc := ConfigFile.new()
+	if wc.load(WINDOW_CONFIG_PATH) != OK:
+		return
+	var win := get_window()
+	if not win:
+		return
+	var screen = wc.get_value("main", "screen", -1)
+	if screen is int and screen >= 0:
+		win.current_screen = screen
+	var mode = wc.get_value("main", "mode", -1)
+	if mode is int and mode >= 0:
+		win.mode = mode
+	var pos = wc.get_value("main", "position", -1)
+	if pos is Vector2i:
+		win.position = pos
+	var sz = wc.get_value("main", "size", -1)
+	if sz is Vector2i:
+		win.size = sz
 
 func _on_dlc_pack_required(dlc_id: String) -> void:
 	if current_campaign \

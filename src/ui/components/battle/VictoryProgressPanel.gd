@@ -8,6 +8,11 @@ class_name VictoryProgressPanel
 signal victory_condition_met(condition_type: String)
 signal defeat_condition_triggered(reason: String)
 signal objective_status_changed(objective_id: String, status: String)
+## Player override of objective progress (companion app — the player owns the
+## physical table). value is int for counter objectives, bool for toggles.
+signal objective_progress_input(condition_id: String, value)
+
+const StepperControlScene = preload("res://src/ui/components/common/StepperControl.gd")
 
 # Design system constants (from UIColors)
 const SPACING_SM := UIColors.SPACING_SM
@@ -39,6 +44,10 @@ var _progress_bar: ProgressBar
 var _progress_label: Label
 var _conditions_container: VBoxContainer
 var _turns_label: Label
+# set_conditions() now has external callers (BattleObjectiveTracker) that may
+# (in edge orderings) fire before _ready() builds the UI. Data is stored either
+# way; rendering is deferred until the UI exists.
+var _ui_built: bool = false
 
 func _ready() -> void:
 	_setup_ui()
@@ -133,6 +142,12 @@ func _setup_ui() -> void:
 	_turns_label.visible = false
 	main_vbox.add_child(_turns_label)
 
+	# UI is now built — render any state set before _ready().
+	_ui_built = true
+	_update_conditions_display()
+	_recalculate_overall_progress()
+	_update_turns_display()
+
 func set_conditions(conditions: Array) -> void:
 	## Set victory conditions to track
 	_conditions.clear()
@@ -142,7 +157,11 @@ func set_conditions(conditions: Array) -> void:
 			"name": condition.get("name", "Unknown Objective"),
 			"description": condition.get("description", ""),
 			"progress": condition.get("progress", 0.0),
-			"status": condition.get("status", "pending")
+			"status": condition.get("status", "pending"),
+			# Companion-app override metadata (BattleObjectiveTracker rows).
+			"interactive": condition.get("interactive", false),
+			"input_kind": condition.get("input_kind", "none"),
+			"input_max": condition.get("input_max", 1)
 		}
 		_conditions.append(condition_dict)
 	_update_conditions_display()
@@ -152,17 +171,25 @@ func update_condition_progress(condition_id: String, progress: float, status: St
 	## Update specific condition progress (0.0-1.0)
 	for condition in _conditions:
 		if condition.get("id") == condition_id:
+			var old_status: String = str(condition.get("status", "pending"))
 			condition["progress"] = clamp(progress, 0.0, 1.0)
 			if status != "":
 				condition["status"] = status
-
-			# Emit signal for status change
-			objective_status_changed.emit(condition_id, status)
-
-			# Check if condition met
-			if progress >= 1.0 and status != "complete":
+			# Auto-complete on full progress (one-shot via status delta below)
+			if progress >= 1.0 and str(condition.get("status", "")) != "complete":
 				condition["status"] = "complete"
-				victory_condition_met.emit(condition_id)
+			var new_status: String = str(condition.get("status", "pending"))
+
+			# Emit ONLY on an actual status change. This signal is named
+			# *_changed and is logged to the battle log — firing it every
+			# refresh (e.g. "pending" each round) is spam. Also routes the
+			# dedicated complete/defeat signals, which previously never fired.
+			if new_status != old_status:
+				objective_status_changed.emit(condition_id, new_status)
+				if new_status == "complete":
+					victory_condition_met.emit(condition_id)
+				elif new_status == "failed":
+					defeat_condition_triggered.emit(condition_id)
 
 			break
 
@@ -176,6 +203,8 @@ func set_turns_remaining(turns: int) -> void:
 
 func _update_conditions_display() -> void:
 	## Clear and rebuild condition rows
+	if not _ui_built or _conditions_container == null:
+		return  # state stored; rendered when _setup_ui() completes
 	# Clear existing condition rows
 	for child in _conditions_container.get_children():
 		child.queue_free()
@@ -246,10 +275,41 @@ func _create_condition_row(condition: Dictionary) -> HBoxContainer:
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hbox.add_child(progress_label)
 
+	# Companion-app override control: the app cannot see the physical table
+	# (which marker, who exited), so the player drives spatial/uncovered
+	# objectives manually. Auto-derived rows (FIGHT_OFF, survival) are read-only.
+	if bool(condition.get("interactive", false)):
+		var cond_id: String = condition.get("id", "")
+		match str(condition.get("input_kind", "none")):
+			"counter":
+				var input_max: int = int(condition.get("input_max", 1))
+				var have: int = int(round(
+					float(condition.get("progress", 0.0)) * float(input_max)))
+				var stepper := StepperControlScene.new()
+				stepper.value_changed.connect(
+					func(v: int) -> void:
+						objective_progress_input.emit(cond_id, v))
+				hbox.add_child(stepper)
+				# setup() touches nodes built in _ready(); defer until in-tree.
+				stepper.call_deferred("setup", have, 0, input_max, 1)
+			"bool":
+				var chk := CheckButton.new()
+				chk.button_pressed = (
+					str(condition.get("status", "")) == "complete")
+				chk.custom_minimum_size.y = TOUCH_TARGET_MIN
+				chk.toggled.connect(
+					func(pressed: bool) -> void:
+						objective_progress_input.emit(cond_id, pressed))
+				hbox.add_child(chk)
+			_:
+				pass
+
 	return hbox
 
 func _recalculate_overall_progress() -> void:
 	## Average all condition progress and update overall bar
+	if not _ui_built or _progress_bar == null:
+		return  # state stored; rendered when _setup_ui() completes
 	if _conditions.is_empty():
 		_overall_progress = 0.0
 		_progress_bar.value = 0.0
@@ -277,6 +337,8 @@ func _recalculate_overall_progress() -> void:
 
 func _update_turns_display() -> void:
 	## Update turns remaining label
+	if not _ui_built or _turns_label == null:
+		return  # state stored; rendered when _setup_ui() completes
 	if _turns_remaining < 0:
 		_turns_label.visible = false
 	else:

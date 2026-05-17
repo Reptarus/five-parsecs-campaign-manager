@@ -64,6 +64,10 @@ const ZOOM_STEP := 0.15
 # PROPERTIES
 # ============================================================================
 
+# STABLE placement-base unit. Terrain is baked in this space; the transform,
+# my BUG-101 grid-rect clamp, and label/inch conversions all divide by it.
+# Do NOT mutate after construction (BattlefieldGridPanel used to, which
+# collapsed terrain top-left — see BUG-102). On-screen size = _get_effective_cell_size().
 var cell_size: float = 24.0
 var zoom_level: float = 1.0
 var pan_offset: Vector2 = Vector2.ZERO
@@ -96,6 +100,11 @@ var allow_unit_drag: bool = false
 var _terrain_container: Node2D
 var _overlay_control: Control
 var _shape_library := BattlefieldShapeLibrary.new()
+
+# BUG-102: set when _update_terrain_transform() ran before the control had a
+# valid size (terrain clustered top-left). Healed on the first _draw() with a
+# real size, so the first battle render no longer needs a manual Regenerate.
+var _transform_dirty: bool = false
 
 # Pre-computed organic placements: [row][col] -> Array[Vector2] (normalized 0-1)
 var _sector_placements: Array = []
@@ -513,14 +522,53 @@ func _rebuild_terrain_shapes() -> void:
 				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
 					shape, local_scale)
 				var top_left: Vector2 = positions[positions.size() - 1]
-				svs.position = top_left + Vector2(w / 2.0, h / 2.0)
+				var center: Vector2 = top_left + Vector2(w / 2.0, h / 2.0)
+
+				# Decide rotation up front — the rotated AABB is larger than
+				# w x h, so the bound clamp must account for it.
+				var rot: float = 0.0
+				if max_rot > 0.0:
+					rot = placement_rng.randf_range(-max_rot, max_rot)
+
+				# BUG-101: clamp the shape's DRAWN center so the rotated, stroked
+				# footprint stays inside the grid rect. Placement coords are based on
+				# cell_size and 4*sector_w == GRID_COLUMNS*cell_size (verified), so the
+				# grid rect in placement space is GRID_COLUMNS x GRID_ROWS cells.
+				# stroke_pad = the visible line width that extends beyond the body
+				# edge (literally "the width of the circle") — measured, not assumed.
+				var stroke_pad: float = 1.0
+				if "stroke_width" in svs:
+					stroke_pad = maxf(float(svs.stroke_width) * 0.5, 0.0)
+				var cosr: float = absf(cos(rot))
+				var sinr: float = absf(sin(rot))
+				var half_x: float = (cosr * w + sinr * h) / 2.0 + stroke_pad
+				var half_y: float = (sinr * w + cosr * h) / 2.0 + stroke_pad
+				var grid_pc_w: float = GRID_COLUMNS * cell_size
+				var grid_pc_h: float = GRID_ROWS * cell_size
+				if half_x * 2.0 >= grid_pc_w:
+					center.x = grid_pc_w / 2.0
+				else:
+					center.x = clampf(center.x, half_x, grid_pc_w - half_x)
+				if half_y * 2.0 >= grid_pc_h:
+					center.y = grid_pc_h / 2.0
+				else:
+					center.y = clampf(center.y, half_y, grid_pc_h - half_y)
+
+				# Keep the cached placement consistent with the clamped DRAWN
+				# center — terrain labels + inch readout read _sector_placements.
+				positions[positions.size() - 1] = center - Vector2(w / 2.0, h / 2.0)
+
+				# ScalableVectorShape2D draws the body centered on `offset` in LOCAL
+				# space, and offset is rotated by the node rotation. So the on-screen
+				# center is `position + offset.rotated(rot)`, NOT `position`. Back-solve
+				# position so the DRAWN center lands exactly on the clamped point.
+				var body_offset := Vector2(-w / 2.0, -h / 2.0)
 				_terrain_container.add_child(svs)
 				# Set offset AFTER add_child so _ready() wires dimensions_changed first
-				svs.offset = Vector2(-w / 2.0, -h / 2.0)
-
-				# Apply random rotation (now pivots around shape center)
-				if max_rot > 0.0:
-					svs.rotation = placement_rng.randf_range(-max_rot, max_rot)
+				svs.offset = body_offset
+				if rot != 0.0:
+					svs.rotation = rot
+				svs.position = center - body_offset.rotated(rot)
 
 			_sector_placements[sr][sc] = positions
 
@@ -539,21 +587,38 @@ func _get_base_cell_size() -> float:
 func _update_terrain_transform() -> void:
 	if not is_instance_valid(_terrain_container):
 		return
+	# BUG-102: before the control has a valid size, _get_effective_cell_size()
+	# falls back to cell_size and _get_draw_offset() clamps to ~top-left, so
+	# applying now clusters all terrain in the corner. Defer to the first
+	# _draw() with a real size instead of baking a wrong transform.
+	var margin: float = 0.0 if compact_mode else AXIS_MARGIN * 2
+	var avail: Vector2 = size - Vector2(margin, margin)
+	if avail.x <= 0.0 or avail.y <= 0.0:
+		_transform_dirty = true
+		return
 	var effective_cs: float = _get_effective_cell_size()
 	var grid_w: float = GRID_COLUMNS * effective_cs
 	var grid_h: float = GRID_ROWS * effective_cs
 	var offset: Vector2 = _get_draw_offset(grid_w, grid_h)
 
-	# Scale terrain from placement coords (based on cell_size=24) to actual pixels
+	# Scale terrain from the fixed placement space (cell_size, stable 24) to
+	# screen pixels. cell_size MUST equal the value placement was baked with;
+	# it is never mutated now (BUG-102 root-cause fix).
 	var base_scale: float = effective_cs / cell_size
 	_terrain_container.scale = Vector2(base_scale, base_scale)
 	_terrain_container.position = offset
+	_transform_dirty = false
 
 # ============================================================================
 # RENDERING — Background layer (_draw on self)
 # ============================================================================
 
 func _draw() -> void:
+	# BUG-102: heal a transform computed before this control had a valid size.
+	# _draw() runs only once the control is laid out, so the size is real here.
+	if _transform_dirty:
+		_update_terrain_transform()
+
 	var effective_cell: float = _get_effective_cell_size()
 	var grid_pixel_w: float = GRID_COLUMNS * effective_cell
 	var grid_pixel_h: float = GRID_ROWS * effective_cell
@@ -769,9 +834,10 @@ func _draw_overlay() -> void:
 		var grid_pos: Vector2 = obj_data.get("grid_pos", Vector2(-1, -1))
 		if grid_pos != Vector2(-1, -1):
 			var obj_label: String = obj_data.get("label", "OBJ")
+			var obj_rule: String = obj_data.get("rule", "")
 			_draw_objective_marker(
 				_overlay_control, offset, effective_cell,
-				grid_pos, obj_label)
+				grid_pos, obj_label, obj_rule)
 
 	# Battle event overlays (fog, hazard zones, reinforcement markers)
 	for overlay: Dictionary in _active_overlays:
@@ -904,7 +970,8 @@ func _draw_unit_markers_on(canvas: Control, offset: Vector2, cs: float) -> void:
 			canvas.draw_circle(center, marker_radius * 0.3, color.lightened(0.4))
 
 func _draw_objective_marker(canvas: Control, offset: Vector2,
-		cs: float, grid_pos: Vector2, label_text: String) -> void:
+		cs: float, grid_pos: Vector2, label_text: String,
+		rule_text: String = "") -> void:
 	var center := Vector2(
 		offset.x + grid_pos.x * cs,
 		offset.y + grid_pos.y * cs)
@@ -931,14 +998,39 @@ func _draw_objective_marker(canvas: Control, offset: Vector2,
 	canvas.draw_circle(
 		center, cs * 0.2, Color(0.96, 0.78, 0.04, 0.8))
 
-	# Label
+	# Label — primary objective name, centered under the diamond, prefixed
+	# "OBJECTIVE:" so a center-pinned marker reads as deliberate.
 	var font: Font = ThemeDB.fallback_font
 	var fsize: int = clampi(int(cs * 0.5), 8, 14)
-	var short_label: String = label_text.left(12)
+	var box_w: float = maxf(cs * 10.0, 160.0)
+	var box_x: float = center.x - box_w / 2.0
+	var primary: String = "OBJECTIVE: %s" % _truncate_words(label_text, 22)
+	var primary_y: float = center.y + hw + fsize + 4
 	canvas.draw_string(font,
-		Vector2(center.x - 10, center.y + hw + fsize + 4),
-		short_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize,
+		Vector2(box_x, primary_y),
+		primary, HORIZONTAL_ALIGNMENT_CENTER, box_w, fsize,
 		Color(0.96, 0.78, 0.04, 1.0))
+
+	# Rule cite — verbatim-faithful provenance from BattlefieldGenerator
+	# (Core Rules p.90). Communicates the dead-center placement is the
+	# intended tabletop rule, not a layout bug.
+	if not rule_text.is_empty():
+		var rsize: int = clampi(int(cs * 0.38), 7, 11)
+		canvas.draw_string(font,
+			Vector2(box_x, primary_y + rsize + 3),
+			rule_text, HORIZONTAL_ALIGNMENT_CENTER, box_w, rsize,
+			Color(0.96, 0.78, 0.04, 0.62))
+
+func _truncate_words(text: String, max_len: int) -> String:
+	## Word-boundary truncation with ellipsis — avoids cutting mid-word so a
+	## long mission objective still reads as a deliberate label, not garbled.
+	if text.length() <= max_len:
+		return text
+	var cut: String = text.substr(0, max_len)
+	var last_space: int = cut.rfind(" ")
+	if last_space >= int(max_len * 0.5):
+		cut = cut.substr(0, last_space)
+	return cut.strip_edges() + "…"
 
 func _draw_world_trait_atmosphere(canvas: Control, full_rect: Rect2, effective_cell: float) -> void:
 	## Render visual representation for the 10 silent world traits.
@@ -1162,6 +1254,73 @@ func _zoom(delta: float, anchor: Vector2) -> void:
 	queue_redraw()
 	_overlay_control.queue_redraw()
 
+## BUG-105: feature labels for the shapes ACTUALLY rendered in sector (sr, sc).
+## Mirrors the render skip predicate in _rebuild_terrain_shapes() (scatter is
+## hidden unless show_scatter), so the hover tooltip and the click popover
+## describe what is drawn instead of the raw _sector_features list (which
+## listed hidden scatter and read as per-cell when it is per-sector).
+func get_rendered_feature_labels(sr: int, sc: int) -> Array:
+	var out: Array = []
+	if _sector_shapes.is_empty():
+		return out
+	if sr < 0 or sr >= _sector_shapes.size():
+		return out
+	var row: Array = _sector_shapes[sr]
+	if sc < 0 or sc >= row.size():
+		return out
+	for s in row[sc]:
+		if not (s is Dictionary):
+			continue
+		if s.get("is_scatter", false) and not show_scatter:
+			continue
+		var lbl: String = str(s.get("label", ""))
+		if not lbl.is_empty():
+			out.append(lbl)
+	return out
+
+const LEGEND_ORDER: Array = ["building", "wall", "rock", "hill", "vegetation",
+	"water", "container", "crystal", "hazard", "debris", "scatter", "notable"]
+
+## BUG-103: map a drawn shape type to a legend key. Mirrors the renderer's own
+## _get_map_color() shape->color match so the legend cannot drift from what is
+## actually painted.
+func _shape_to_legend_key(shape_type: String) -> String:
+	match shape_type:
+		"rect": return "building"
+		"line": return "wall"
+		"circle": return "rock"
+		"triangle": return "hill"
+		"tree": return "vegetation"
+		"water": return "water"
+		"box": return "container"
+		"diamond": return "crystal"
+		"hazard": return "hazard"
+		"debris": return "debris"
+		"scatter": return "scatter"
+	return "debris"
+
+## BUG-103: ordered legend keys for terrain ACTUALLY rendered (scatter excluded
+## when hidden, "notable" added when any notable piece is drawn) so the panel
+## legend lists only this mission's terrain, not all 12 categories.
+func get_rendered_legend_keys() -> Array:
+	var present: Dictionary = {}
+	for sr in _sector_shapes.size():
+		var row: Array = _sector_shapes[sr]
+		for sc in row.size():
+			for s in row[sc]:
+				if not (s is Dictionary):
+					continue
+				if s.get("is_scatter", false) and not show_scatter:
+					continue
+				present[_shape_to_legend_key(s.get("shape", "debris"))] = true
+				if s.get("notable", false):
+					present["notable"] = true
+	var out: Array = []
+	for k in LEGEND_ORDER:
+		if present.has(k):
+			out.append(k)
+	return out
+
 func _handle_click(mouse_pos: Vector2) -> void:
 	var cell: Vector2i = _mouse_to_grid(mouse_pos)
 	if cell == Vector2i(-1, -1):
@@ -1170,8 +1329,8 @@ func _handle_click(mouse_pos: Vector2) -> void:
 	var sector_label: String = _grid_to_sector_label(cell)
 	var sr: int = cell.y / SECTOR_ROWS
 	var sc: int = cell.x / SECTOR_COLS
-	if sr >= 0 and sr < 4 and sc >= 0 and sc < 4 and not _sector_features.is_empty():
-		cell_clicked.emit(sector_label, _sector_features[sr][sc])
+	if sr >= 0 and sr < 4 and sc >= 0 and sc < 4 and not _sector_shapes.is_empty():
+		cell_clicked.emit(sector_label, get_rendered_feature_labels(sr, sc))
 
 func _update_hover(mouse_pos: Vector2) -> void:
 	var cell: Vector2i = _mouse_to_grid(mouse_pos)
@@ -1193,12 +1352,14 @@ func _update_hover(mouse_pos: Vector2) -> void:
 		return
 
 	var sector_label: String = _grid_to_sector_label(cell)
-	var features: Array = _sector_features[sr][sc]
+	var features: Array = get_rendered_feature_labels(sr, sc)
 	cell_hovered.emit(sector_label, features)
 
-	var bbcode: String = "[b]%s[/b]" % sector_label
+	# BUG-105: frame as the SECTOR (the tooltip is sector-granular, not per
+	# cell) and list only the terrain actually drawn here.
+	var bbcode: String = "[b]Sector %s[/b]" % sector_label
 	if features.is_empty():
-		bbcode += "\nOpen ground"
+		bbcode += "\n[i]No terrain drawn here[/i]"
 	else:
 		for feat: String in features:
 			bbcode += "\n%s" % feat

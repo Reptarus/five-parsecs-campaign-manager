@@ -168,26 +168,10 @@ func test_calculate_initiative_roll_insanity():
 		5, GlobalEnumsRef.DifficultyLevel.INSANITY)).is_equal(2)
 
 # ============================================================================
-# Rival Resistance Modifier (HARDCORE: -2)
+# Rival Resistance Modifier — REMOVED (Session 40 fabricated-data purge)
+# `rival_resistance_modifier` was a fabricated key not in Core Rules. Tests
+# for it were deleted along with the JSON key + DifficultyModifiers methods.
 # ============================================================================
-
-func test_rival_resistance_normal_is_zero():
-	assert_that(DifficultyModifiers.get_rival_resistance_modifier(
-		GlobalEnumsRef.DifficultyLevel.NORMAL)).is_equal(0)
-
-func test_rival_resistance_hardcore_is_minus_two():
-	assert_that(DifficultyModifiers.get_rival_resistance_modifier(
-		GlobalEnumsRef.DifficultyLevel.HARDCORE)).is_equal(-2)
-
-func test_rival_resistance_insanity_is_zero():
-	"""INSANITY does NOT modify rival resistance per Core Rules"""
-	assert_that(DifficultyModifiers.get_rival_resistance_modifier(
-		GlobalEnumsRef.DifficultyLevel.INSANITY)).is_equal(0)
-
-func test_calculate_rival_resistance_hardcore():
-	"""Base roll 4 + HARDCORE (-2) = 2"""
-	assert_that(DifficultyModifiers.calculate_rival_resistance_roll(
-		4, GlobalEnumsRef.DifficultyLevel.HARDCORE)).is_equal(2)
 
 # ============================================================================
 # Unique Individual (HARDCORE: +1 roll, INSANITY: forced every battle)
@@ -244,7 +228,6 @@ func test_all_modifiers_hardcore_complete():
 	assert_that(mods.enemy_count_modifier).is_equal(1)
 	assert_that(mods.invasion_roll_modifier).is_equal(2)
 	assert_that(mods.seize_initiative_modifier).is_equal(-2)
-	assert_that(mods.rival_resistance_modifier).is_equal(-2)
 	assert_that(mods.unique_individual_roll_modifier).is_equal(1)
 	assert_that(mods.unique_individual_forced).is_false()
 	assert_that(mods.story_points_disabled).is_false()

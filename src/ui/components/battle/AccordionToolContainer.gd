@@ -10,10 +10,12 @@ extends ScrollContainer
 const SPACING_SM: int = UIColors.SPACING_SM
 const TOUCH_TARGET_MIN: int = UIColors.TOUCH_TARGET_MIN
 const FONT_SIZE_MD: int = UIColors.FONT_SIZE_MD
+const FONT_SIZE_SM: int = UIColors.FONT_SIZE_SM
 const COLOR_ELEVATED: Color = UIColors.COLOR_ELEVATED
 const COLOR_ACCENT: Color = UIColors.COLOR_ACCENT
 const COLOR_BORDER: Color = UIColors.COLOR_BORDER
 const COLOR_TEXT_PRIMARY: Color = UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY: Color = UIColors.COLOR_TEXT_SECONDARY
 
 var _vbox: VBoxContainer
 var _section_headers: Array[Button] = []
@@ -37,7 +39,7 @@ func _init() -> void:
 
 
 ## Add a collapsible section wrapping a tool component
-func add_section(title: String, content: Control) -> void:
+func add_section(title: String, content: Control, subtitle: String = "") -> void:
 	var index := _section_bodies.size()
 
 	# Header button
@@ -61,6 +63,18 @@ func add_section(title: String, content: Control) -> void:
 	header.pressed.connect(_toggle_section.bind(index))
 	_vbox.add_child(header)
 	_section_headers.append(header)
+
+	# BUG-104: one-line description so a collapsed section still says what it
+	# does. Separate sibling Label — the [+]/[-] toggle text is untouched, and
+	# toggling works off _section_headers/_section_bodies indices, not child
+	# order, so the extra node is safe.
+	if not subtitle.is_empty():
+		var sub := Label.new()
+		sub.text = subtitle
+		sub.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		sub.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_vbox.add_child(sub)
 
 	# Body — starts collapsed
 	content.visible = false
