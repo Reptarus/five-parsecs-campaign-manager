@@ -1,8 +1,13 @@
-class_name CampaignAnalytics
-extends RefCounted
+extends Node
 
 ## CampaignAnalytics - Comprehensive analytics tracking for campaign creation
-## Tracks completion times, validation errors, drop-off points, and feature usage
+## Tracks completion times, validation errors, drop-off points, and feature usage.
+##
+## Registered as autoload "CampaignAnalytics" in project.godot (Phase 0.6 promotion).
+## class_name was removed when promoted to autoload — Godot 4.6 errors with
+## "Class hides an autoload singleton" if both are present. Reference this
+## autoload via `get_node("/root/CampaignAnalytics")` or `Engine.get_main_loop()
+## .root.get_node_or_null("/root/CampaignAnalytics")` from non-Node contexts.
 
 # Analytics data storage
 var session_data: Dictionary = {}

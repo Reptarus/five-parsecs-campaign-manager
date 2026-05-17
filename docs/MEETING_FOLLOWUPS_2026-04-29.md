@@ -105,6 +105,35 @@ These items unblock work scheduled for Phase A.2 (next week) and Phase B (alpha 
 
 > For wishlist accumulation, your newsletter is one of the highest-leverage promotional channels for cold-traffic-to-wishlist conversion. Steam research suggests 6-12 months pre-EA is the right window for Coming Soon page push. Roughly which month works best for the 5PFH digital announcement to your existing customer base? Knowing this lets me reverse-plan the Coming Soon page launch and trailer cut.
 
+### 2.6 Physical-book discount code for alpha cohort (T4 conversion mechanism #1)
+
+> Per the digital→physical conversion strategy (T4 thesis, see forecast §11.5a), the alpha build ships with an in-app dialog at first-launch + Settings → "Get the Book" entry, offering testers a discount on the physical edition. Two questions:
+>
+> - **Sizing**: I'm placeholdering 15-20% — is that the right range, or do you want lower (10-12%, anchoring as "appreciation" not "discount") or higher (25-30%, more aggressive conversion play)?
+> - **Redemption mechanism**: should this be a single shared promo code (e.g., `5PFH-ALPHA-15`) we mint on the Modiphius store, or per-tester unique one-time codes generated programmatically? Shared is operationally simpler; unique gives us per-tester redemption tracking we can attribute back to alpha conversion data.
+>
+> Either is fine. I just need a placeholder value to ship A1 May 25, and the real value plugged in by ~late June so testers seeing the dialog week-after-week respond to a real offer rather than a mock.
+
+### 2.7 Co-branded landing URL for "Get the Physical Edition" CTA (T4 conversion mechanism #2)
+
+> The "Get the Physical Edition" CTA appears in 3 placements (main menu footer, Help screen, post-campaign-completion screen). It currently links to a placeholder URL. Two options for the real link:
+>
+> - **Direct to Modiphius store product page** for the 5PFH Core Rules — simplest path, but the visitor doesn't know they came from the app
+> - **Co-branded landing page** at e.g. `modiphius.us/5pfh-digital-companion` that explains the digital companion + physical relationship and links to all relevant SKUs (Core Rules, Compendium, expansions) — better for cross-sell + UTM tracking
+>
+> If the second option is workable, I can supply the copy + structure. Even a stub page works for alpha — testers click through to validate the funnel.
+>
+> If your team can add UTM parameters to the landing URL (`?utm_source=5pfh_digital&utm_medium=app&utm_campaign=alpha`), that gives us attribution data for end-of-alpha synthesis.
+
+### 2.8 Newsletter API endpoint for in-app capture (T4 conversion mechanism #5)
+
+> The Settings screen has an opt-in newsletter capture form (email + name + explicit consent checkbox). It currently mock-POSTs the data and shows a success toast. Two questions:
+>
+> - **Endpoint**: do you have a Modiphius newsletter signup API I can POST to? Either a direct REST endpoint or a Mailchimp/SendGrid form action URL works. If not, a sign-up page URL we open in browser is the fallback.
+> - **Consent capture format**: what fields/format does your newsletter system expect? (Just email? email + name + consent timestamp? GDPR-compliant payload?)
+>
+> If we don't have this resolved by A1 ship May 25, the form ships with a stub endpoint and explicit "preview — not yet active" labeling so testers know it's not yet live. Real wiring as soon as endpoint is provided.
+
 ---
 
 ## 3. Medium-Priority Asks (need answers within 2-3 weeks — gates Phase C)
@@ -273,6 +302,9 @@ This doc is the **canonical record of what was asked**. As Modiphius responds, l
 | 2.3 Asset delivery | Open | — | — |
 | 2.4 NDA stance | Open | — | — |
 | 2.5 Newsletter timing | Open | — | — |
+| 2.6 Discount code (T4-#1) | Open | — | — |
+| 2.7 Co-branded landing URL (T4-#2) | Open | — | — |
+| 2.8 Newsletter API endpoint (T4-#5) | Open | — | — |
 | 3.1 EULA review | Open | — | — |
 | 3.2 Support email | Open | — | — |
 | 3.3 App naming | Open | — | — |

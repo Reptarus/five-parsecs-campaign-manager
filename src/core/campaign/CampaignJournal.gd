@@ -139,6 +139,14 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 		"black_zone_mission", "")
 	if not bz_mission.is_empty():
 		description += " | Objective: %s" % bz_mission
+	# Mission objective (BattleObjectiveTracker) — show what the crew was
+	# fighting for and whether it was achieved.
+	var obj_id: String = battle_result.get("objective_id", "")
+	if not obj_id.is_empty():
+		var obj_label: String = obj_id.capitalize().replace("_", " ")
+		var obj_done: bool = battle_result.get("objective_met", false)
+		description += " | Objective: %s (%s)" % [
+			obj_label, "achieved" if obj_done else "failed"]
 
 	# Build tags with zone tag
 	var tags: Array = [

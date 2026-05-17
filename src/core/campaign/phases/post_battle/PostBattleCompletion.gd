@@ -97,6 +97,15 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 			entry_data["black_zone_mission"] = bz_mission.get(
 				"name", "Unknown")
 
+	# Add mission objective context (BattleObjectiveTracker). The result dict
+	# carries objective_id/objective_met from TacticalBattleUI; record what the
+	# crew was actually fighting for, not just victory/defeat.
+	var obj_id: String = str(ctx.battle_result.get("objective_id", ""))
+	if not obj_id.is_empty():
+		entry_data["objective_id"] = obj_id
+		entry_data["objective_met"] = bool(
+			ctx.battle_result.get("objective_met", ctx.mission_successful))
+
 	# Add Story Track event context (Core Rules Appendix V)
 	if ctx.battle_result.get("is_story_battle", false):
 		entry_data["story_event_id"] = ctx.battle_result.get(

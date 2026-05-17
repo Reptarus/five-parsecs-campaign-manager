@@ -1,8 +1,9 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-04-09
+**Last Updated**: 2026-05-17 (BUG-101 RE-FIXED: 05-16 verify was premature — user re-reported residual 3-10px terrain bleed; true root cause empirically isolated (SVS draws body on rotated `offset`, not `position`), back-solved position + stroke envelope, MCP-verified 0/316 offenders across 10 distinct seeds. CLR-101: objective "dead center" confirmed verbatim rules-correct vs Core Rules PDF p.90 — kept position, added rule-cite label (user-chosen). objective-tracker 14/14 PASS. Prev 2026-05-16: Battle-UI Sweep BUG-100..106 filed; BUG-100/102/103/104/105 fixed+verified, BUG-106 umbrella)
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete**, **28/28 UI issues fixed (Session 16)**. KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json (24 events data-driven). See QA_RULES_ACCURACY_AUDIT.md for details.
+**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete**, **30/30 UI issues fixed**. KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json (24 events data-driven). See QA_RULES_ACCURACY_AUDIT.md for details.
+**Alpha context**: Closed alpha kickoff target Mon May 25, 2026. See §11 below for alpha-1 scope (Core + Compendium DLC only) and `docs/testing/ALPHA_1_QA_PLAN.md` for execution detail.
 
 ### Expansion Gamemodes (April 2026)
 | Gamemode | Files | Data Verified | Runtime QA | Status |
@@ -30,6 +31,65 @@
 | Integration Test Files | 22 (tests/integration/) |
 | MCP Test Sessions Completed | 18+ (106 bugs found, 102 fixed) |
 | Demo Path Status | PASS (CC-1→CC-11, 5 turns, save/reload) |
+
+---
+
+## §11 — Alpha-1 Scope (added 2026-05-01)
+
+> **Scope decision (May 1):** Alpha-1 covers **Core Rules + 3 Compendium DLC packs only** — Standard 5PFH 9-phase campaign + 33 ContentFlags. Bug Hunt / Planetfall / Tactics gamemodes deferred to alpha-2 or beta. See `docs/testing/ALPHA_1_QA_PLAN.md` for detail and `docs/CLOSED_ALPHA_PLAN.md` §1.5 for the canonical scoping statement.
+
+### Alpha-1 IN-scope coverage
+
+| Surface | Files | Data Verified | Runtime QA | Status |
+|---|---|---|---|---|
+| **Standard 5PFH 9-phase campaign** | core campaign system | 925/925 values | Sessions 47-52 deep-dive, 18+ MCP runs | **HIGH CONFIDENCE** |
+| **7-phase campaign creation wizard** | CampaignCreationCoordinator + 7 panels | full | MCP-validated 5x | **HIGH CONFIDENCE** |
+| **TacticalBattleUI** (3 oracle tiers) | battle subsystem | full | Session 48d battle reconciliation | **HIGH CONFIDENCE** |
+| **Battle Simulator standalone** | battle_simulator dir | full | Session 31 fixes | **HIGH CONFIDENCE** |
+| **Compendium DLC** (33 ContentFlags) | DLCManager + content | TT=7, FH=17, FG=9 verified | Session 5/53 wiring; toggle-lifecycle test pending P0.T1 of plan | MED — toggle path needs S11 stress |
+| **Strange Characters** (16 species) | Character.gd species_id | Session 52 wiring | All 16 wired | **HIGH CONFIDENCE** |
+| **Story Track** (Appendix V) | StoryTrackSystem | Session 36 integration | full | **HIGH CONFIDENCE** |
+| **Red & Black Zone Jobs** | RedZoneSystem, BlackZoneSystem | Session 35 | full | **HIGH CONFIDENCE** |
+| **Telemetry consent + opt-in** | LegalConsentManager | EXISTS | wiring pending P1.T4 of plan | NEW — alpha deliverable |
+| **Pricing-perception survey** | new — PricingPerceptionSurvey.tscn | n/a | wiring pending P2.T1 of plan | NEW — alpha deliverable |
+| **5 conversion mechanisms** | new — discount/CTA/tooltip/preorder/newsletter | n/a | wiring pending P2.T5-T9 of plan | NEW — alpha deliverable |
+
+### Alpha-1 OUT-of-scope (deferred)
+
+| Surface | Status | Where it goes |
+|---|---|---|
+| Bug Hunt gamemode (38 files) | Out | alpha-2 or beta |
+| Planetfall gamemode (63 files) | Out | alpha-2 or beta |
+| Tactics gamemode (59 files) | Out | alpha-2 or beta |
+| Cross-Mode Isolation (Scenario 4) | Out | alpha-2 |
+| Character Transfer Service | Out | alpha-2 |
+| Store/Paywall commerce flows (Scenario 8) | Out | beta / Steam Playtest (alpha runs offline mode) |
+| Localization | Out | Phase D |
+| Code-signing cert | Out | Phase D |
+| In-game bug report dialog (cloud function) | Out | beta or post-launch |
+| MCP-automated regression for alpha-1 scope | Out | Phase C refinement Jul 7-20 |
+
+### Alpha-1 specific risk areas
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| Compendium DLC mid-campaign toggle misbehavior | Med | Med | S11 stress test pre-A0; hotfix budget reserved |
+| Survey opt-in fatigue (testers dismiss week-after-week) | Med | Med | Once-per-build-version persistence; Google Form alternative |
+| Conversion mechanism mocks read as "salesy" | Med | High | Tester debrief explicitly probes tone; Modiphius coordination on real values reduces mock-detection risk |
+| Crash auto-capture misses Godot-internal crashes (no `unhandled_exception` signal in 4.6) | Med | Low | CrashLogger captures push_error/push_warning; Discord-uploaded saves enable manual repro |
+
+### Alpha-1 graduation gate readiness
+
+Per `docs/CLOSED_ALPHA_PLAN.md` §7. Each gate now has measurement instrumentation defined:
+
+| # | Gate | Threshold | Current state |
+|---|---|---|---|
+| 1 | Stability | P0=0; P1<5; <1 crash/10 sessions | TBD — A0 sanity-check Wed May 20 |
+| 2 | Comprehension | ≥80% testers describe value prop in 1 sentence after 2 sessions | TBD — week-1 debriefs |
+| 3 | Retention | ≥60% complete 3+ sessions; ≥40% reach Turn 5 | TBD — Talo dashboard tracks |
+| 4 | Pricing band converges | ±$3 within $14.99-$24.99 | Prolific n=200 + alpha cohort VW (Phase B) |
+| 5 | Recommendation NPS | ≥7/10 | TBD — pricing modal NPS field |
+| 6 | Bug discovery rate trending down | New P1+ bugs/build declining by week 5 | TBD — Discord intake counts |
 
 ---
 
@@ -61,6 +121,23 @@
 | ~~BUG-037~~ | **FIXED** | Swift species now +2 Speed (was +1 Speed +1 Reactions) | Matched Core Rules p.50 |
 | ~~BUG-038~~ | **FIXED** | Soulless species now +1 Toughness only (removed extra +1 Reactions) | Matched Core Rules p.50 |
 | ~~BUG-040~~ | **FIXED** | InjuryProcessor.gd:99,155 — unsafe `turn_number` access on GameStateManager (missing `"turn_number" in` guard). Crashed during post-battle injury processing when no campaign loaded. | Added property existence check, matching pattern from line 45 |
+| ~~BUG-044~~ | **FIXED** (P1) | TacticalBattleUI: ASSISTED/FULL_ORACLE components (VictoryProgressPanel, ObjectiveDisplay, MoralePanicTracker, ActivationTrackerPanel, ReactionDicePanel, EnemyIntentPanel) **never instantiated in any battle**. `_setup_ui()` ran the tier-gated `_instance_*` calls before tier selection (tier_controller null → gates skipped); `_on_tier_selected()` only updated badge/tabs. Regression from the "Phase 58 tier-differentiation fix" — silently degraded every battle to LOG_ONLY. Found via runtime MCP testing. | Fixed: `_on_tier_selected()` now calls `_instance_assisted_components()` / `_instance_oracle_components()` (guarded against double-instance) after tier_controller is created. Runtime-verified all 5+ components instance at ASSISTED. |
+| ~~BUG-045~~ | **FIXED** (P0 hang) | Infinite loop froze the game when a VictoryProgressPanel interactive objective row changed: `_refresh_objective_panel()` → `update_condition_progress()` rebuilds rows → new StepperControl → deferred `setup()` → `value_changed` echo → `objective_progress_input` → refresh → … (cross-frame, so a same-frame guard alone wouldn't catch it). Found via runtime MCP testing of the new BattleObjectiveTracker. | Fixed: no-op guard in `_on_objective_progress_input` (JSON-snapshot before/after `apply_panel_input`; skip rebuild when unchanged — the programmatic-setup echo carries the value the tracker already holds) + `_objective_refreshing` re-entrancy guard. Runtime-verified: 3 consecutive/echo emits stay responsive. |
+
+### Battle-UI Sweep — Filed in DEFECTS_LOG, Verified (May 16)
+
+Full detail: `docs/testing/DEFECTS_LOG.md` (BUG-100..106).
+
+| Bug | Severity | Description | Status |
+|-----|----------|-------------|--------|
+| ~~BUG-100~~ | **FIXED** (P1) | Window never filled a 4K display — saved display mode applied only on the Settings screen, never at boot. `project.godot window/size/mode=2` (Maximized first-run default) + `GameState._restore_window_state_at_boot()` replays `user://window.ini`. | Verified (MCP: setting=2; saved ini mode=0 restored live at launch) |
+| ~~BUG-101~~ | **FIXED** (P1) | Terrain bled past the grid. **Reopened** — the 05-16 rotation-aware center clamp was right in concept but used the wrong position basis (user re-reported 3-10px residual bleed). TRUE root cause (empirically isolated): `ScalableVectorShape2D` draws its body centered on `offset` in local space and `offset` is rotated by node rotation, so drawn center = `position + offset.rotated(rot)`, not `position`. Fix: back-solve `position = clamped_center - offset.rotated(rot)` + `stroke_width/2` envelope. Geometry-only. | Verified 2026-05-17 (MCP: same diagnostic that found 3 bleeders → 0 offenders / 316 shapes / 10 distinct seeds / worst 0.0px; 3 fresh-seed screenshots in-grid; objective-tracker 14/14 PASS) |
+| ~~BUG-102~~ | **FIXED** (P1) | First-render terrain cluster. **Reopened during cross-mode smoke** — initial `_transform_dirty` self-heal fixed only a secondary case; user spotted residual cluster. TRUE root cause: `BattlefieldGridPanel._update_map_cell_size()` mutated `cell_size` (16→48) on resize after placement was baked, breaking `effective_cs/cell_size` scale. Fix: cell_size is now the stable placement base, never mutated. | Verified (MCP: quadrant histogram TL28/0/0/0 → TL8/TR6/BL6/BR7; D4 corner populated on screenshot) |
+| ~~BUG-103~~ | **FIXED** (P2) | Legend always showed all 12 categories. Now data-driven from terrain actually rendered, scatter-aware, rebuilt in `populate()`. | Verified (MCP: 4 keys scatter-off / 5 on; screenshot 5-entry legend) |
+| ~~BUG-104~~ | **FIXED** (P2) | Tools accordion was 5 unlabeled all-collapsed sections. Added per-section subtitles + a hint + default-expand via existing `open_section(0)`. Wiring check found+fixed 2 tools (CharacterQuickRoll, Brawl) never echoed to the log. | Verified (gdUnit 18/18 no regression; runtime boot clean) |
+| ~~BUG-105~~ | **FIXED** (P2) | Hover tooltip + click popover listed raw features (incl. hidden scatter) not the drawn shapes. Both now read a single render-equivalent label source. | Verified (MCP: scatter excluded/included matching show_scatter both ways) |
+| BUG-106 | **OPEN** (P3) | Tracking umbrella: battle-UI "lots of small things not fully wired". Wiring item already resolved (2 tools). Remaining checklist in DEFECTS_LOG; promote each confirmed item to its own BUG. | Triaged (ongoing) |
+| CLR-101 | **WAI + UX** | User flagged objective marker "stuck dead center" alongside BUG-101. Verified verbatim against the Core Rules PDF (p.90: Access/Acquire/Secure/Deliver = "exact center of the table/battlefield"). Moving it would make the app rules-incorrect + violate data-integrity. Position kept; added verbatim Core Rules p.90 rule cite + 2-line "OBJECTIVE:" marker so it reads as intentional. **Not a bug — no BUG number.** | Verified (MCP: all 14 objective types correct, grid_pos unchanged at center; 2-line label screenshot-confirmed) |
 
 ### Weapon Data — Book Verified (Mar 23)
 
@@ -143,6 +220,29 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Phase | Date | Scope | Bugs Found | Bugs Fixed |
 |-------|------|-------|------------|------------|
+| Battle-UI Issues Sweep (BUG-100..106) | May 16, 2026 | 4K-monitor battle-mode audit. BUG-100 window never filled display (GameState boot restore + project.godot mode=2). BUG-101 terrain bled past grid (rotation-aware center clamp). BUG-102 first-render top-left cluster (transform self-heal). BUG-103 legend always 12 (data-driven via populate). BUG-104 illegible Tools accordion (subtitles + open_section(0) + hint; wiring check found+fixed 2 unwired tools CharacterQuickRoll/Brawl). BUG-105 tooltip/popover ≠ drawn (render-equivalent label source). BUG-106 P3 wiring-sweep umbrella. Verified: headless compile clean, gdUnit 18/18 no regression, 0 new lint, MCP runtime (7/7 terrain in-bounds, legend 4/5 keys scatter-aware, window.ini restored live, screenshot). Shared battle files: cross-mode review pending. | 7 | 6 fixed+verified (BUG-106 umbrella ongoing) |
+| Battle Objective Tracking Runtime QA | May 16, 2026 | New BattleObjectiveTracker end-to-end. Layer 1: tracker vs REAL JSON-backed MissionObjectiveSystem (11-type registry confirmed, coverage matrix validated live). Layer 2-3: real `_on_tracker_battle_started`/`_on_round_started`/`objective_progress_input` paths — VictoryProgressPanel fed, FIGHT_OFF interactive counter (7-enemy battle: 5/7 pending → 7/7 complete). Layer 4: post-battle `success` cascade → PostBattlePhase.mission_successful (4 gdUnit tests, incl. legacy-bug regression guard). 18 unit tests total green. | 2 | 2 (BUG-044 tier components never instanced; BUG-045 P0 infinite-loop hang) |
+| Session 59: Godot Perf Sprint | Apr 28, 2026 | project.godot tuning (max_fps=60, physics_ticks_per_second=30); GalacticWarManager + ReviewManager lazy-init pattern; 71 JPGs to VRAM compression; 5 items verified clean, 2 evaluated-and-skipped. | 0 | 0 (perf-only) |
+| Session 57d: Planetfall Turn QA | Apr 9, 2026 | Full 18-step turn cycle runtime-verified; save/load round-trip PASS; multi-turn (T1→T2) verified. | 2 | 2 |
+| Session 57c: Planetfall Runtime Fixes | Apr 9, 2026 | 50+ parse errors triaged; `_create_pill` root cause identified; PlanetfallDashboard loads. | 50+ | 50+ |
+| Session 57b: Tactics Runtime Testing | Apr 9, 2026 | 108 weapon/vehicle/unit costs verified against rulebook; 5/7 scenarios PASS. | 9 | 9 |
+| Session 57: Planetfall §3+4 + Battle Delegation | Apr 9, 2026 | §3+4 complete + battle delegation + progression wiring + QA doc (28 scenarios, 255 checks). | 0 | 0 (impl) |
+| Session 56: Planetfall §2 (Sprints 2-4) | Apr 9, 2026 | Section 2 multi-sprint implementation. | 0 | 0 (impl) |
+| Session 55: Tactics ALL 7 Phases | Apr 9, 2026 | 59 new files; full Tactics gamemode implemented. | 0 | 0 (impl) |
+| Session 54: Planetfall §1 Crews & Combat | Apr 9, 2026 | Section 1 implementation. | 0 | 0 (impl) |
+| Session 53b: Psionics UI + Enforcement Gaps | Apr 9, 2026 | Psionics UI wiring, enforcement gaps closed, DLC enum key bug fix. | 1 | 1 |
+| Session 53: Compendium §1-2 Sprint | Apr 9, 2026 | Compendium sections 1-2 implementation. | 0 | 0 (impl) |
+| Session 52: Strange Characters + Upkeep | Apr 8, 2026 | All 16 Strange Character species fully wired; Upkeep failure system per Core Rules p.76 (Sick Bay exclusion, lockout, sell-for-upkeep, dismiss crew, ship seizure fix). | 7 gaps + upkeep | 7 + 5 mechanics |
+| Session 51: Character Events Wiring | Apr 8, 2026 | 30 D100 events fully wired; status_effects persistence; 9 effect types; 6 enforcement gates; dashboard pills; item mutation; Swift departure; upkeep exemption. | 0 | 0 (impl) |
+| Session 50: Terrain Generator Overhaul | Apr 8, 2026 | 8-phase overhaul: shape placement fixes, 10 world traits, scatter visibility, legend, rules badges, seeded RNG, planet→theme. | 0 | 0 (impl) |
+| Session 49: UX Polish Sprint | Apr 8, 2026 | 8 items: colorblind fix, TweenFX 4 screens, Load dialog themed, help buttons, checklist 59/7/15. | 0 | 0 (UX) |
+| Session 48: Library UI Overhaul | Apr 8, 2026 | Responsive HFlowContainer grid, card-style rows, humanized filter tabs, section headers, 6 SVG icons, FiveParsecsCampaignPanel responsive base. | 0 | 0 (UX) |
+| Session 48d: Battle Reconciliation Implementation | Apr 8, 2026 | 4 parts: missing mechanics, UX 5→3 screens, AI-type deploy markers, rich result contract. | 0 | 0 (impl) |
+| Session 48c: Battle Reconciliation Plan | Apr 8, 2026 | Discovered dual battle paths (CampaignTurnController=live, BattlePhase.gd=dead); plan approved. | 1 architecture | 1 (plan→impl 48d) |
+| Session 47b: World Arrival + PostBattle Rewire | Apr 8, 2026 | World Arrival UI (trait/rivals/license/forge); 10 travel event mutations wired; PostBattlePhase orchestrator rewiring (CPM was using wrong 5-step stub); 3 deprecated files; equipment effect UI. | 1 routing bug | 1 |
+| Session 47: Equipment Pipeline Fix | Apr 8, 2026 | All 12 phases implemented: fabricated traits fixed, armor saves un-broken, single-use removal, overheat tracking, 7 protective devices, consumables, gun mods, utility devices, on-board items, Compendium traits. | 12 phases | 12 |
+| Session 46: Equipment Pipeline Audit | Apr 8, 2026 | Found 3 fabricated traits (Focused/Heavy/Overheat); armor saves completely broken; single-use items never removed; 11-phase fix plan produced. | 3 critical | 0 (audit, fixed in 47) |
+| Session 45: Bug Hunt Runtime QA | Apr 8, 2026 | 14 bugs fixed; HubFeatureCard pending data pattern; BugHuntTurnController call_deferred; full Bug Hunt flow verified end-to-end. | 14 | 14 |
 | Session 18: Rules Audit + Schema Unification | Mar 30, 2026 | Full QA_RULES_ACCURACY_AUDIT.md pass: 308→0 UNVERIFIED entries. PDF-verified all remaining items. 2 rules bugs FIXED (rival follow ≤3→≥5 per p.72, license cost single-roll→two-roll per p.72). 3 data duplication CONFLICTs FIXED (Stealth/Street/Salvage generators unified onto Compendium schema). StreetFightPanel hostile check updated for new schema. EquipmentPanel credits warning threshold fixed (500→1). Headless compile verified: 0 errors. | 2 rules bugs + 3 conflicts | 5 (all fixed) |
 | Runtime QA Wave 5 (Cross-Mode + DLC) | Mar 23, 2026 | Bug Hunt data model isolation MCP-verified: main_characters/grunts (flat), NO ship/patrons/rivals, campaign_type="bug_hunt". Serialization roundtrip: squad/meta keys correct, no ship data. DLC 2-layer gating: 33 flags across 3 packs (TT=7, FH=17, FG=9), ownership+toggle verified, unowned-pack gate blocks correctly, serialize/deserialize roundtrip PASS. Difficulty: EASY(+1 XP), HARDCORE(+1 enemy, -2 seize), INSANITY(story disabled, -3 seize, unique individual forced) all correct. Enum sync: GlobalEnums(31)=GameEnums(31), FPGameEnums(37, +6 expected). Cross-load gap: `_detect_campaign_type()` added to GameState (Mar 23 fix). | 0 bugs | 0 (cross-load fixed) |
 | Runtime QA Wave 4 (Battle System) | Mar 23, 2026 | BattleResolver MCP-tested: 4v5 combat resolved (5 rounds, crew victory, held field, all 10 result keys). Injury D100: full coverage verified (zero gaps/overlaps), GRUESOME_FATE(1-5)/FATAL(6-15) confirmed. Bot injury table verified. Post-battle 14-step pipeline: all 10 subsystems loaded+instantiated as RefCounted, Steps 4/7/8/9 exercised end-to-end (payment 8cr, loot 1 item, injury processed, 3 XP each). Oracle tiers: 3-tier cumulative architecture (5→12→14 components), purely UI layer. BUG-040 found+fixed. 2 weapon values flagged for book check. | 1 bug | 1 (BUG-040 InjuryProcessor turn_number) |

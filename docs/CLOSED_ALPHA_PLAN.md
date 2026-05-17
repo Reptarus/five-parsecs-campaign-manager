@@ -24,6 +24,30 @@ Bug-finding is the obvious part. The pricing-validation part matters more long-t
 
 ---
 
+## 1.5 Alpha-1 vs Alpha-2 Scoping (added 2026-05-01)
+
+**Alpha-1 scope (this document covers May 25 → Jul 6):** Standard 5PFH 9-phase campaign mode + the 3 Compendium DLC packs (33 ContentFlags) only.
+
+**Deferred to alpha-2 or beta:** Bug Hunt gamemode (38 files), Planetfall gamemode (63 files), Tactics gamemode (59 files), cross-mode isolation testing, character-transfer service.
+
+**Why narrow alpha-1 to one game mode + DLC layered on top:**
+
+- The Standard 5PFH surface is the most-tested in the codebase (925/925 data values verified, 18+ MCP test sessions, Sessions 47-59 deep-dive coverage). Alpha-1 stresses the highest-confidence surface first.
+- Alpha-1 validates the *alpha process* + the *price-point of the core experience*, not catalog breadth. Cohort size (10-20 testers) is appropriate for one-mode depth, not four-mode breadth.
+- Pricing-band convergence (Gate 4) anchors to "Standard 5PFH + Compendium DLC". When alpha-2 widens the surface, testers re-anchor higher (more content = more value), so alpha-1's band becomes the EA price *floor*, not its ceiling.
+- Alpha-2 (post-refinement, late Jul or Aug) widens the surface once the alpha *process* is proven.
+
+**Operational impact on this plan:**
+
+- §6 mid-alpha checkpoint reads only Standard 5PFH retention/comprehension data (not 4-mode comparison)
+- §7 graduation gates measure against Standard 5PFH only
+- §10 risk register's "Modiphius wants formal NDA after alpha starts" applies to alpha-1; alpha-2 may be re-scoped
+- §11 open items are alpha-1 specific
+
+Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing/ALPHA_1_QA_PLAN.md). Alpha-1 readiness workback (May 1 → May 25) lives in `C:\Users\admin\.claude\plans\warm-weaving-llama.md`.
+
+---
+
 ## 2. Tester Profile
 
 ### Who's a good fit

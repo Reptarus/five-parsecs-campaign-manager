@@ -31,7 +31,6 @@ var systems_ready: Dictionary = {}
 # Type-safe signals
 signal systems_initialized(success: bool, errors: Array)
 signal game_state_ready(game_state)
-signal campaign_creation_ready(manager)
 signal system_error(system_name, error_message)
 signal all_systems_ready()
 signal manager_ready(manager_name, manager_instance)
@@ -253,10 +252,6 @@ func get_game_state_manager() -> Node:
 		return null
 		
 	return game_state_manager
-
-func get_campaign_creation_manager() -> Node:
-	# Get the CampaignCreationManager instance
-	return campaign_creation_manager
 
 func get_campaign_phase_manager() -> Node:
 	# Get the CampaignPhaseManager instance (CampaignPhaseManager when available)
@@ -577,10 +572,6 @@ func restart_systems() -> void:
 		campaign_phase_manager.queue_free()
 		campaign_phase_manager = null
 
-	if campaign_creation_manager and is_instance_valid(campaign_creation_manager):
-		campaign_creation_manager.queue_free()
-		campaign_creation_manager = null
-
 	# Clear caches for fresh start
 	clear_autoload_cache()
 	
@@ -634,10 +625,6 @@ func _exit_tree() -> void:
 		campaign_phase_manager.queue_free()
 		campaign_phase_manager = null
 
-	if campaign_creation_manager and is_instance_valid(campaign_creation_manager):
-		campaign_creation_manager.queue_free()
-		campaign_creation_manager = null
-
 	# Clear state
 	systems_ready.clear()
 	initialization_errors.clear()
@@ -666,9 +653,6 @@ func _on_game_state_changed(new_state: Variant) -> void:
 	# Propagate to dependent systems
 	if campaign_phase_manager and campaign_phase_manager.has_method("on_state_changed"):
 		campaign_phase_manager.on_state_changed(new_state)
-		
-	if campaign_creation_manager and campaign_creation_manager.has_method("on_state_changed"):
-		campaign_creation_manager.on_state_changed(new_state)
-	
+
 	# Emit our own signal for UI updates
 	manager_ready.emit("GameStateManager", game_state_manager)

@@ -168,7 +168,9 @@ tracked in the Demo QA Script's Resolved Bugs table, not in the main bug tracker
 | Bug ID | Severity | Screen | Description | Fix | Status |
 |--------|----------|--------|-------------|-----|--------|
 | BUG-031 | Major | Main Menu | Bug Hunt button shows "coming soon" instead of routing to implemented creation wizard | Added `bug_hunt_creation` to MainMenu scene_map + registered 3 Bug Hunt routes in SceneRouter SCENE_PATHS | FIXED |
-| BUG-035 | Major | Bug Hunt Creation | No Cancel/Back button to exit wizard back to main menu | Added Cancel button in header → `SceneRouter.navigate_to("main_menu")` | FIXED |
+| BUG-099 | Major | Bug Hunt Creation | No Cancel/Back button to exit wizard back to main menu | Added Cancel button in header → `SceneRouter.navigate_to("main_menu")` | FIXED |
+
+> **Note** (2026-05-05): BUG-099 was originally filed as BUG-035; renumbered to resolve a numbering collision with `DEMO_QA_SCRIPT.md` BUG-035 (the canonical equipment-stash-restore bug). See `DEFECTS_LOG.md` header anchor for next-available bug ID convention.
 
 #### T-5 UX Audit Observations
 

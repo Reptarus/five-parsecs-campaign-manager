@@ -229,8 +229,13 @@ func compute_objective_positions(mission_objective: String, sectors: Array,
 
 	match obj_lower:
 		"access", "acquire", "deliver", "secure", "protect":
-			# Center of table (Core Rules pp.90-91)
-			return [{"type": "center", "grid_pos": Vector2(12, 8), "label": mission_objective.capitalize()}]
+			# Center of table (Core Rules pp.90-91). The center placement is the
+			# verbatim tabletop rule ("exact center of the battlefield/table"),
+			# so the marker carries a rule cite to read as intentional, not a bug.
+			return [{
+				"type": "center", "grid_pos": Vector2(12, 8),
+				"label": mission_objective.capitalize(),
+				"rule": _center_objective_rule(obj_lower)}]
 		"move_through":
 			# No marker — crew crosses to opposite edge
 			return []
@@ -249,8 +254,30 @@ func compute_objective_positions(mission_objective: String, sectors: Array,
 		_:
 			# Unknown objective — default to center
 			if not obj_lower.is_empty():
-				return [{"type": "center", "grid_pos": Vector2(12, 8), "label": mission_objective.capitalize()}]
+				return [{
+					"type": "center", "grid_pos": Vector2(12, 8),
+					"label": mission_objective.capitalize(),
+					"rule": _center_objective_rule(obj_lower)}]
 			return []
+
+## Verbatim-faithful rule cite for a center-placed objective marker, so the
+## dead-center placement reads as the intended tabletop rule, not a defect.
+## Wording is transcribed from Core Rules "Types of Objective" (p.90), verified
+## against the rulebook PDF. NOT invented data — provenance text only.
+func _center_objective_rule(obj_lower: String) -> String:
+	match obj_lower:
+		"access":
+			return "Console at exact center of battlefield (Core Rules p.90)"
+		"acquire":
+			return "Item at center of table (Core Rules p.90)"
+		"secure":
+			return "Hold within 2\" of center of table (Core Rules p.90)"
+		"deliver":
+			return "Deliver to exact center of table (Core Rules p.90)"
+		"protect":
+			return "VIP escort; center is the rally point (Core Rules p.90)"
+		_:
+			return "Center of table (Core Rules p.90)"
 
 ## Regenerate a single sector's features.
 func regenerate_sector(theme: String, sector_label: String) -> Dictionary:

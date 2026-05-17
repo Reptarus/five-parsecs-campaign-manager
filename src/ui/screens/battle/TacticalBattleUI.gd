@@ -18,6 +18,7 @@ const BattleTierControllerClass = preload("res://src/core/battle/BattleTierContr
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
+const BattleObjectiveTrackerClass = preload("res://src/core/battle/BattleObjectiveTracker.gd")
 
 # Design system spacing (UIColors canonical source)
 const SPACING_XS := UIColors.SPACING_XS
@@ -122,6 +123,8 @@ var battle_tracker: Node = null # For reaction economy tracking
 var round_tracker: Node = null # BattleRoundTracker instance for Five Parsecs combat rounds
 var _round_tracker_connected: bool = false
 var _battle_events_system: Resource = null # FPCM_BattleEventsSystem (lazy-loaded data Resource)
+var _objective_tracker = null # BattleObjectiveTracker — single owner of battle end-state
+var _objective_refreshing: bool = false # re-entrancy guard for _refresh_objective_panel
 
 # Tier controller for component visibility (wired in Sprint 2)
 var tier_controller: Resource = null # FPCM_BattleTierController instance
@@ -677,15 +680,33 @@ func _instance_log_only_components() -> void:
 
 	# Wrap tools in accordion (exclusive mode — one open at a time)
 	if tools_content:
+		# BUG-104: hint so the collapsed accordion is discoverable.
+		var tools_hint := Label.new()
+		tools_hint.text = "Tap a section to expand (one open at a time)."
+		tools_hint.add_theme_font_size_override("font_size", 12)
+		tools_hint.add_theme_color_override(
+			"font_color", Color(0.61, 0.64, 0.69))
+		tools_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tools_content.add_child(tools_hint)
+
 		var tools_accordion := FPCM_AccordionToolContainer.new()
 		tools_accordion.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tools_accordion.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		tools_accordion.add_section("Quick Dice Rolls", dice_dashboard)
-		tools_accordion.add_section("Combat Calculator", combat_calculator)
-		tools_accordion.add_section("Combat Situation", combat_situation_panel)
-		tools_accordion.add_section("Character Quick Roll", character_quick_roll)
-		tools_accordion.add_section("Brawl Resolver", brawl_resolver)
+		# BUG-104: one-line description per section so each says what it does.
+		tools_accordion.add_section("Quick Dice Rolls", dice_dashboard,
+			"Roll dice for any check (d6, 2d6, d100)")
+		tools_accordion.add_section("Combat Calculator", combat_calculator,
+			"Compute hit chance and damage for an attack")
+		tools_accordion.add_section("Combat Situation", combat_situation_panel,
+			"Track cover, range and modifiers for the current shot")
+		tools_accordion.add_section("Character Quick Roll", character_quick_roll,
+			"Roll a stat check for a specific crew member")
+		tools_accordion.add_section("Brawl Resolver", brawl_resolver,
+			"Resolve a melee brawl between two fighters")
 		tools_content.add_child(tools_accordion)
+		# BUG-104: default-expand the most-used section so the panel is not
+		# all-collapsed on entry (reuses existing open_section()).
+		tools_accordion.open_section(0)
 		# DualInputRoll stays always-visible (compact single row)
 		tools_content.add_child(dual_input_roll)
 
@@ -808,15 +829,15 @@ func _on_unit_right_clicked(unit_idx: int, screen_pos: Vector2) -> void:
 		match id:
 			0:
 				if unified_log and unified_log.has_method("add_entry"):
-					unified_log.add_entry("INJURY", "Unit %d marked Wounded" % unit_idx, {})
+					unified_log.add_entry("INJURY", "Unit %d marked Wounded" % unit_idx)
 			1:
 				if battle_round_hud and battle_round_hud.has_method("report_casualty"):
 					battle_round_hud.report_casualty()
 				if unified_log and unified_log.has_method("add_entry"):
-					unified_log.add_entry("INJURY", "Unit %d marked Dead" % unit_idx, {})
+					unified_log.add_entry("INJURY", "Unit %d marked Dead" % unit_idx)
 			2:
 				if unified_log and unified_log.has_method("add_entry"):
-					unified_log.add_entry("INFO", "Unit %d details" % unit_idx, {})
+					unified_log.add_entry("INFO", "Unit %d details" % unit_idx)
 		menu.queue_free()
 	)
 	add_child(menu)
@@ -1010,6 +1031,13 @@ func _connect_assisted_signals() -> void:
 			func(objective_id: String, status: String) -> void:
 				unified_log.log_action("Objective", "%s: %s" % [objective_id, status])
 		)
+		# Player override of objective progress (companion app — player owns
+		# the physical table). Routes through the tracker, then refreshes.
+		if victory_progress.has_signal("objective_progress_input") \
+				and not victory_progress.objective_progress_input.is_connected(
+					_on_objective_progress_input):
+			victory_progress.objective_progress_input.connect(
+				_on_objective_progress_input)
 
 	# ActivationTrackerPanel — unit turn tracking
 	if activation_tracker and unified_log:
@@ -1117,6 +1145,30 @@ func _connect_component_signals() -> void:
 					)
 			)
 
+	# BUG-104 wiring check / BUG-106: CharacterQuickRollPanel and
+	# BrawlResolverPanel were shown in the Tools accordion but their results
+	# were never echoed to the log like the other tools. Wire them to match.
+	if character_quick_roll and unified_log:
+		if character_quick_roll.has_signal("roll_completed"):
+			character_quick_roll.roll_completed.connect(
+				func(char_name: String, roll_type: String,
+						result: Dictionary) -> void:
+					var detail: String = str(result.get("summary",
+						result.get("explanation", roll_type)))
+					unified_log.log_action(
+						"Quick Roll", "%s: %s" % [char_name, detail]
+					)
+			)
+
+	if brawl_resolver and unified_log:
+		if brawl_resolver.has_signal("brawl_resolved"):
+			brawl_resolver.brawl_resolved.connect(
+				func(result: Dictionary) -> void:
+					var detail: String = str(result.get("summary",
+						result.get("explanation", "resolved")))
+					unified_log.log_action("Brawl", detail)
+			)
+
 	if battle_round_hud:
 		battle_round_hud.next_phase_requested.connect(
 			_on_advance_phase_pressed
@@ -1201,6 +1253,17 @@ func _on_tier_selected(tier: int) -> void:
 	# Create tier controller
 	tier_controller = BattleTierControllerClass.new()
 	tier_controller.set_tier(tier, true) # force = true at battle start
+
+	# Instance tier-gated components NOW that the tier is known. _setup_ui()
+	# ran _instance_log_only_components() before tier selection (tier_controller
+	# was null → the >=1 / >=2 gates were skipped), so without this the
+	# assisted/oracle components (VictoryProgressPanel, ObjectiveDisplay,
+	# MoralePanicTracker, ActivationTrackerPanel, ReactionDicePanel,
+	# EnemyIntentPanel) would never instantiate. Guarded against double-instance.
+	if tier >= 1 and victory_progress == null:
+		_instance_assisted_components()
+	if tier >= 2 and enemy_intent_panel == null:
+		_instance_oracle_components()
 
 	_apply_tier_visibility(tier)
 	_hide_overlay()
@@ -1465,6 +1528,10 @@ func _disconnect_round_tracker_signals() -> void:
 func _exit_tree() -> void:
 	# Clean up BattleEventsSystem (RefCounted Resource — nulling frees it)
 	_battle_events_system = null
+	# Objective tracker is RefCounted held by one var — null frees it. The
+	# objective_progress_input connection drops automatically when the
+	# victory_progress child frees with this parent (see note below).
+	_objective_tracker = null
 	# Disconnect round tracker signals (autoload-child, persists across scenes)
 	_disconnect_round_tracker_signals()
 	# Disconnect FiveParsecsCombatSystem autoload signals
@@ -1506,6 +1573,10 @@ func _on_round_started(round_number: int) -> void:
 	# Tick down battle event overlay durations (fog/hazard/reinforcement markers expire)
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("tick_overlay_durations"):
 		battlefield_grid_panel.tick_overlay_durations()
+	# Advance objective progress (auto-derives rounds_survived + turn countdown)
+	if _objective_tracker != null:
+		_objective_tracker.on_round_advanced(round_number)
+		_refresh_objective_panel()
 
 func _on_round_ended(round_number: int) -> void:
 	## Handle round end
@@ -1558,8 +1629,7 @@ func _on_battle_terrain_effect(effect: Dictionary) -> void:
 	if unified_log and unified_log.has_method("add_entry"):
 		unified_log.add_entry(
 			"ENVIRONMENT_CHANGE",
-			"%s appeared on battlefield" % str(effect.get("label", "Effect")),
-			effect)
+			"%s appeared on battlefield" % str(effect.get("label", "Effect")))
 
 func _on_battle_hazard_activated(hazard) -> void:
 	## Render environmental hazard activation on the map.
@@ -1596,6 +1666,79 @@ func _on_tracker_battle_started() -> void:
 		cheat_sheet_panel.set_battle_context(_battle_context)
 	# Show briefing as initial PhaseContent before Reaction Roll
 	_show_battle_briefing()
+	# Battle end-state tracker — wires the (previously dead) VictoryProgressPanel
+	# + ObjectiveDisplay to live progress. Gated on mission_objective presence;
+	# rival attacks / non-objective battles fall through harmlessly.
+	_init_objective_tracker()
+
+## Build the objective tracker from battle context and feed the UI panels.
+func _init_objective_tracker() -> void:
+	var mission_obj: Dictionary = {}
+	if _battle_context is Dictionary:
+		mission_obj = _battle_context.get("mission_objective", {})
+	if mission_obj == null or mission_obj.is_empty():
+		_objective_tracker = null
+		return
+	var enemy_count: int = enemy_units.size()
+	_objective_tracker = BattleObjectiveTrackerClass.new()
+	_objective_tracker.init_from_context(mission_obj, enemy_count)
+	if not _objective_tracker.has_objective():
+		_objective_tracker = null
+		return
+	if victory_progress and victory_progress.has_method("set_conditions"):
+		victory_progress.set_conditions(
+			_objective_tracker.get_panel_conditions())
+		victory_progress.set_turns_remaining(
+			_objective_tracker.get_turns_remaining())
+	if objective_display and objective_display.has_method("display_objective"):
+		var os = _objective_tracker._system  # resolved Objective lives here
+		if os and os.current_objective:
+			objective_display.display_objective(os.current_objective, 0)
+	# Announce the objective in the battle log at start. display_objective()
+	# (unlike roll_objective()) does not emit objective_rolled, so without this
+	# the player's log would never record what they were fighting for.
+	if unified_log and unified_log.has_method("log_event"):
+		var _mo: Dictionary = mission_obj
+		unified_log.log_event(
+			"Objective: %s" % str(_mo.get("name", _objective_tracker.get_objective_id())),
+			str(_mo.get("victory_condition", _mo.get("description", ""))))
+
+## Push current tracker state into VictoryProgressPanel + flag complete/failed.
+func _refresh_objective_panel() -> void:
+	if _objective_tracker == null or victory_progress == null:
+		return
+	# Re-entrancy guard: update_condition_progress() rebuilds rows, recreating
+	# the StepperControl whose deferred setup() re-emits value_changed. Without
+	# this + the no-op guard in _on_objective_progress_input, that forms an
+	# infinite refresh→rebuild→setup→signal→refresh loop (found in runtime QA).
+	if _objective_refreshing:
+		return
+	_objective_refreshing = true
+	for cond in _objective_tracker.get_panel_conditions():
+		if victory_progress.has_method("update_condition_progress"):
+			victory_progress.update_condition_progress(
+				cond.get("id", ""),
+				cond.get("progress", 0.0),
+				cond.get("status", ""))
+	if victory_progress.has_method("set_turns_remaining"):
+		victory_progress.set_turns_remaining(
+			_objective_tracker.get_turns_remaining())
+	_objective_refreshing = false
+
+## Player override from VictoryProgressPanel — route through the tracker.
+## A programmatic StepperControl.setup() re-emits value_changed; that echo
+## carries the value the tracker already holds, so it is a no-op. Only refresh
+## when the tracker state actually changed — this breaks the cross-frame
+## setup→signal→refresh→rebuild loop at its semantic root.
+func _on_objective_progress_input(_condition_id: String, value) -> void:
+	if _objective_tracker == null:
+		return
+	var before: String = JSON.stringify(_objective_tracker.get_panel_conditions())
+	_objective_tracker.apply_panel_input(value)
+	var after: String = JSON.stringify(_objective_tracker.get_panel_conditions())
+	if before == after:
+		return  # echo from programmatic setup — no real change, do not rebuild
+	_refresh_objective_panel()
 
 func _on_tracker_battle_ended() -> void:
 	## Handle battle end from tracker — transition to RESOLUTION stage
@@ -2509,10 +2652,29 @@ func _resolve_battle() -> void:
 	var md: Dictionary = _stored_mission_data \
 		if _stored_mission_data is Dictionary else {}
 
+	# Objective-accurate mission success. Fixes a pre-existing latent bug:
+	# PostBattlePhase reads battle_data.get("success", false) but this path
+	# never set "success", so won battles cascaded as failures into pay/quests.
+	# Falls back to won/held_field when there is no trackable objective.
+	var obj_success: bool = victory
+	var obj_id: String = ""
+	var obj_met: bool = victory
+	var obj_progress: Array = []
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		obj_success = _objective_tracker.get_mission_success(
+			victory, held_field)
+		obj_id = _objective_tracker.get_objective_id()
+		obj_met = _objective_tracker.is_complete()
+		obj_progress = _objective_tracker.get_panel_conditions()
+
 	var result_dict: Dictionary = {
 		"victory": victory,
 		"won": victory,  # Alias for CampaignTurnController
+		"success": obj_success,  # consumed by PostBattlePhase.mission_successful
 		"held_field": held_field,
+		"objective_id": obj_id,
+		"objective_met": obj_met,
+		"objective_progress": obj_progress,
 		"rounds_fought": rounds,
 		"crew_casualties": casualties_data.size(),
 		"crew_injuries": injuries_data.size(),
@@ -2668,13 +2830,39 @@ func _on_auto_resolve_battle() -> void:
 	_log_message("Battle %s!" % ("WON" if result.victory else "LOST"),
 		UIColors.COLOR_EMERALD if result.victory else UIColors.COLOR_RED)
 
+	# Objective-accurate success for the auto-resolve path. Auto-resolve is an
+	# abstract sim with no per-round play, so only trust the tracker for
+	# objectives derivable from rounds + enemy counts (FIGHT_OFF / survival);
+	# everything else falls back to the sim outcome (no regression).
+	var obj_success: bool = result.victory
+	var obj_id: String = ""
+	var obj_met: bool = result.victory
+	var obj_progress: Array = []
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		_objective_tracker.on_round_advanced(result.rounds_fought)
+		var er: int = maxi(
+			enemies_deployed.size() - enemies_defeated_count, 0)
+		_objective_tracker.set_manual("enemies_remaining", er)
+		obj_id = _objective_tracker.get_objective_id()
+		obj_progress = _objective_tracker.get_panel_conditions()
+		if _objective_tracker.is_auto_derivable():
+			obj_success = _objective_tracker.is_complete()
+			obj_met = obj_success
+		else:
+			obj_success = result.victory or held_field
+			obj_met = _objective_tracker.is_complete()
+
 	# Emit rich Dictionary (same contract as _resolve_battle)
 	var md: Dictionary = _stored_mission_data \
 		if _stored_mission_data is Dictionary else {}
 	var auto_result_dict: Dictionary = {
 		"victory": result.victory,
 		"won": result.victory,
+		"success": obj_success,  # consumed by PostBattlePhase.mission_successful
 		"held_field": held_field,
+		"objective_id": obj_id,
+		"objective_met": obj_met,
+		"objective_progress": obj_progress,
 		"rounds_fought": result.rounds_fought,
 		"crew_casualties": result.crew_casualties.size(),
 		"crew_injuries": result.crew_injuries.size(),

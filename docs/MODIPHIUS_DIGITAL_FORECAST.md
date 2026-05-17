@@ -1,7 +1,7 @@
 # Modiphius Digital Forecast & Revenue Model
 
 **Owner**: Elijah Rhyne
-**Last Updated**: 2026-04-29 (post-meeting)
+**Last Updated**: 2026-05-05 (Fallout app calibration — Chris's autumn 2025 internal numbers folded in as publisher-internal benchmark; deal frame note: superseded by May 5 MG + threshold reproposal — see `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` Entry #6)
 **Purpose**: Plug-in financial forecast model for the 5PFH app partnership proposal. Swap placeholder assumptions for real Modiphius data as it arrives.
 
 **Apr 29 meeting changes baked into this revision**:
@@ -10,6 +10,13 @@
 - Section 9 break-even tables re-run on 50/50 baseline (was 60/40)
 - New Section 9.5: three contractor scope frames (intro project / post-launch retainer / hybrid)
 - New caveat in §2b + §4c: every physical book ships with a PDF — physical-PDF bundling distorts "digital reach" metrics
+
+**May 5 calibration update baked into §5b-cal + §11.8**:
+
+- **Modiphius-internal Fallout app data (autumn 2025 check)** integrated as a publisher-internal calibration benchmark for §5 conversion scenarios — see new §5b-cal "Calibration against Modiphius's Fallout app data" and new §11.8 "Publisher-internal benchmarks (Fallout app)"
+- Source: Chris Birch's May 5 reply email (verbatim transcribed in `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` Entry #6)
+- Conversion ladder (§5b 2/5/10/20/30%) NOT changed — calibration shows existing scenarios are well-anchored: Conservative (5%) ≈ Fallout per-year track record; Moderate (10%) ≈ Fallout 2-year linear; Strong/Aggressive are explicit stretch
+- Existing §5c-§9 revenue tables remain valid; calibration adds interpretive context, not new numbers
 
 **Apr 30 strategic refocus baked into §6 → §9**:
 - **Steam-first launch strategy**: Phase 1 (EA + 1.0) targets Steam exclusively to establish platform presence; mobile reframed as a Phase 2 "pocket edition" port (post-1.0)
@@ -178,6 +185,69 @@ Apply app conversion rate to addressable market. Industry benchmarks for compani
 | Strong | 20% | Well-regarded, "the digital version" positioning, featured |
 | Aggressive | 30%+ | Breakout hit, word-of-mouth, cross-platform viral |
 
+### 5b-cal. Calibration against Modiphius's Fallout app data (Chris's autumn 2025 internal check)
+
+> **Source**: Chris Birch, May 5 2026 reply email — verbatim transcription in `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` Entry #6. Treat as ⚠ AGENT-REPORTED — Modiphius-internal data, not independently verifiable.
+
+**Fallout RPG digital app — what Chris shared:**
+
+| Metric | Value | Source |
+|---|---:|---|
+| Total paying users 2022-2025 (~3 years) | 6,350 | Chris email |
+| Active paying users (autumn 2025 snapshot) | 2,850 | Chris email |
+| Active subscriptions | 1,200 | Chris email |
+| Customers with non-subscription purchases since 2022 | 1,650 | Chris email |
+| Android customers since launch | ~3,500 | Chris email |
+| Installed base | ~40,000 | Chris email |
+| iOS-direct count | NOT directly comparable | Apple groups by day/week/month, double-counts cross-period buyers |
+| Free rules download caveat | Installed base is undercounted | Chris email — actual base may be larger than 40K |
+
+**Derived conversion ratios (calculations, not Chris's words):**
+
+| Ratio | Value | Calculation |
+|---|---:|---|
+| Lifetime paid conversion (3 years) | **15.875%** | 6,350 / 40,000 |
+| Active paying conversion (snapshot) | **7.125%** | 2,850 / 40,000 |
+| Active subscription rate | **3.0%** | 1,200 / 40,000 |
+| Non-subscription customer rate (since 2022) | **4.125%** | 1,650 / 40,000 |
+| Linear per-year conversion (lifetime ÷ 3 years) | **~5.3%/year** | 15.875% / 3 |
+
+**How the §5b ladder calibrates against Fallout:**
+
+| §5b scenario | Conversion | Fallout-equivalent framing |
+|---|---:|---|
+| Floor | 2% | **0.4× Fallout per-year** — pessimistic vs. Fallout's 5.3%/year track record |
+| Conservative | 5% | **~1× Fallout per-year** — matches Fallout's linear annual rate; defensible Year 1 anchor |
+| Moderate | 10% | **~2× Fallout per-year** — matches Fallout's 2-year linear projection; defensible EA-through-1.0 window anchor |
+| Strong | 20% | **~4× Fallout per-year** — explicit stretch; requires sustained breakout dynamics |
+| Aggressive | 30% | **~6× Fallout per-year** — Steam-category-establishment success scenario |
+
+**Critical caveats — why Fallout 5.3%/year is a BULLISH anchor for 5PFH (adjust DOWN):**
+
+1. **Bethesda IP marketing tailwinds.** Fallout app benefits from Bethesda's catalog (Fallout 4 / Fallout 76 / 100M+ Fallout-game-units sold). 5PFH has Modiphius's audience (~70-80K total ecosystem). Per-installed-base conversion rates are not directly portable — Fallout has stronger marketing pull behind every install. Adjustment: **conservative read, 5PFH first-year conversion likely 3-5%**, not 5-7%.
+2. **Free rules download means installed base >40K.** Chris explicitly flagged: "the app does let you play the game with the free rules download so the actual base maybe a bit higher." So Fallout's true denominator is larger, true conversion is *lower* than 15.875% lifetime. Adjustment: **Fallout reality is somewhere below 16% lifetime**, not at 16%.
+3. **Mobile App Store ≠ Steam paid SKU dynamics.** Mobile = lower friction at install + impulse-buy ergonomics + freemium-to-paid funnel. Steam = higher friction at purchase (paid up front), but every "buyer" is a fully converted user with full per-user revenue. The "paying user" definitions are not directly portable.
+4. **Subscription revenue counts the same user repeatedly.** Fallout's 1,200 active subscriptions generate recurring revenue from a stable user pool. Steam paid SKU is one-time conversion + DLC attach. Subscription LTV ≠ Steam paid LTV.
+
+**Fallout-anchored Year-1 read for 5PFH on Steam:**
+
+- **Floor (2%)** is now the explicit "Modiphius does light marketing only, no §11.5a digital→physical mechanisms wired up, Steam discovery is poor" scenario
+- **Conservative (5%)** is the **Fallout-comparable Year 1 baseline** — assumes Modiphius active marketing commitment from Apr 29 meeting holds, but adjusts down for missing Bethesda IP tailwinds
+- **Moderate (10%)** requires **Fallout 2-year track record AND Steam category-establishment success** — feasible if §11.1d category-perception probe lands favorably during closed alpha
+- **Strong/Aggressive** remain explicit stretch scenarios
+
+**What this calibration adds to the partnership pitch:**
+
+- *Conservative scenario is now defensible against publisher-internal data, not just industry benchmarks* — when Chris asks "is 5% achievable," the answer is "your own Fallout app delivered ~5.3%/year over 3 years; Conservative on our side is calibrated to that."
+- *Moderate scenario has a real-world precedent path* — Fallout reached 16% lifetime over 3 years; our Moderate (10%) over the EA-through-1.0 window (~24 months) is structurally similar.
+- *We don't need to claim Strong/Aggressive* — the math works at Conservative-Moderate, and both are now publisher-data-anchored.
+
+**What this calibration does NOT change:**
+
+- Existing §5c, §5d, §5e, §6b, §7b revenue tables — the math is unchanged; calibration just adds interpretive context to which scenario is realistic
+- Deal-structure recommendations — see `PARTNERSHIP_DEAL_STRUCTURE_RESEARCH.md` §8
+- Mac/iOS hardware integration math — see `UPFRONT_INVESTMENT_TRANSPARENCY.md` §3 (ROI math anchored to §5 Moderate; Fallout calibration confirms Moderate is achievable)
+
 ### 5c. App revenue scenarios (5PFH Core audience only, ~38K players)
 
 Price points under consideration: $9.99 / $14.99 / $19.99 / $24.99 base + DLC.
@@ -250,17 +320,63 @@ Steam takes a flat 30% cut at our revenue scale. **Net multiplier: 0.70.** Tiere
 | Aggressive (30% conv, ecosystem, no lift) | $276,012 | $193,208 |
 | Aggressive + 25% lift | $345,015 | $241,511 |
 
-### 6c. Mobile pocket edition — Phase 2 sizing (forward-looking, not modeled)
+### 6c. Mobile pocket edition — Phase 2 sizing (May 6 update — citation-anchored scenarios)
 
-A mobile pocket edition is on the roadmap as a **post-1.0 Phase 2 product**, not part of the EA forecast. Strategic shape:
+A mobile pocket edition is on the roadmap as a **post-1.0 Phase 2 product**, partway-overlapping the EA forecast window. Updated 2026-05-06 with research from `APPLE_ECOSYSTEM_RESEARCH.md`.
+
+**Strategic shape**:
 
 - **Positioning**: "the pocket version" — quick-access companion for between-session play, not a full feature port
-- **Pricing posture**: lower entry ($4.99–$9.99 base) with potentially higher unit volume than Steam due to App Store / Play Store impulse-buy dynamics
-- **Platform economics**: Apple Small Business + Google Play first-$1M tier give **15% cut → 0.85 net multiplier** until we cross $1M/yr per platform
-- **Launch trigger**: scope and sizing decisions deferred until Steam EA performance data tells us whether the audience exists for a mobile-first companion experience
-- **Why not bundle the forecast**: mobile addresses a different use-case than Steam (on-the-go vs. desk session). Bundling forecasts makes both numbers harder to defend. Better to model each phase against its own adoption curve.
+- **Pricing posture**: $4.99-$9.99 iOS base + smaller DLC (vs Steam $14.99-$24.99 + DLC). **Direct precedent: Six Ages 2: Lights Going Out (2023)** ships $9.99 iOS / $24.99 Steam simultaneously, 96% positive Steam, universal acclaim
+- **Platform economics**: Apple Small Business Program (≤$1M proceeds/yr) = **15% commission → 0.85 net multiplier** until we cross $1M threshold. Source: [Apple Developer SBP](https://developer.apple.com/app-store/small-business-program/) ⚠ AGENT-INFERRED — verify before binding
+- **Apple ecosystem cross-purchase potential**: ~80% of iPhone users own another Apple device; ~58% multi-device concentration in 25-44 demo (5PFH wheelhouse). Steam-Mac sales lead-indicate iOS conversion among cross-shoppers — see §6d SKU strategy
 
-**Implication for the partnership pitch**: Steam-first sizing is **conservative against the full opportunity**. If Modiphius asks "what about mobile?", the answer is "Phase 2, sized separately when Steam tells us what the audience wants." Don't pre-commit to numbers we can't yet defend.
+### 6c.1 iOS revenue scenarios (over ~15-18 month in-market window)
+
+iOS launches Q1-Q2 2027, ~5-9 months after Steam EA. Audience derived from Modiphius newsletter cross-promo (~70-80K ecosystem × ~45% iOS ownership = ~32-36K iOS-addressable) + organic App Store discovery + iOS-side cross-promotion.
+
+| Tier | iOS audience | Conversion | ARPU | Gross | **Net (×0.85)** |
+|---|---:|---:|---:|---:|---:|
+| **Pessimistic** | 20K | 6% | $7 | $8,400 | **$7,140** |
+| **Conservative** | 35K | 9% | $8 | $25,200 | **$21,420** |
+| **Moderate** | 50K | 11% | $9 | $49,500 | **$42,075** |
+| **Strong** | 60K | 13% | $10 | $78,000 | **$66,300** |
+
+Conversion anchored against Modiphius's own Fallout app (15.875% lifetime / 3 years per §11.8 — adjusted down for shorter window). Recommend Conservative tier as defensible anchor; Moderate is upside.
+
+### 6c.2 iOS lift over Steam-only Moderate baseline ($64,399 net Steam)
+
+| iOS tier | Lift over Steam Moderate | Combined dev pre-tax (Moderate Steam + iOS) |
+|---|---:|---:|
+| Pessimistic iOS only | +11% | ~$87,000 |
+| Conservative iOS only | +33% | ~$98,000 |
+| Conservative iOS + Android | +50-62% | ~$112,000 |
+| Moderate iOS + Android | +98-124% | ~$148,000 |
+
+### 6c.3 Premium narrative iOS proof-of-category-durability
+
+Three indie narrative apps in the same category, all holding $9.99 iOS pricing 5+ years post-launch with 90%+ ratings:
+
+- **King of Dragon Pass iOS** (2011 launch, A Sharp/HeroCraft) — A Sharp publicly stated iOS outsold the original PC release. 30K iOS copies by 2013, 150K all-platform lifetime. ⚠ AGENT-INFERRED via [Wikipedia: KoDP](https://en.wikipedia.org/wiki/King_of_Dragon_Pass)
+- **Six Ages: Ride Like the Wind** (2018 iOS, 2019 Steam) — 96% positive Steam, $9.99 iOS held 7+ years
+- **Six Ages 2: Lights Going Out** (2023 simul) — $9.99 iOS / $24.99 Steam, universal acclaim
+
+**Direct pitchable line**: "Six Ages 2 is the precedent for our pricing strategy — same $9.99 iOS / $24.99 Steam split, simultaneous launch, sustained at full price."
+
+### 6d. SKU strategy decision (Universal Purchase) — recommended config
+
+Apple Universal Purchase lets one App Store SKU cover Mac + iPhone + iPad. To preserve cross-purchase math (Steam-Mac buyer + iOS App Store buyer = two sales), DO NOT use full Universal Purchase to Mac App Store. Recommended:
+
+| Channel | SKU | Platform fee | Net multiplier |
+|---|---|---|---|
+| Steam (Windows) | Steam-Win SKU | 30% | 0.70 |
+| Steam (macOS) | Steam-Mac SKU (same Steam app, OS-specific build) | 30% | 0.70 |
+| iOS App Store | iOS SKU with iPad-included Universal Purchase | 15% (SBP) | 0.85 |
+| Mac App Store | NOT shipped | — | — |
+
+**Rationale**: Mac gamers buy via Steam (where they already are), not Mac App Store. iPad gets "free" via App Store Universal Purchase. No Mac App Store overhead. Cross-purchase math holds for the segment of Mac-on-Steam buyers who are also iPhone owners (~80% per ecosystem ownership data).
+
+**Implication for the partnership pitch**: Steam-first sizing is **conservative against the full Apple-ecosystem opportunity**. Mobile pocket edition Conservative scenario adds 33% revenue lift over Steam-only; combined Mac+iOS ecosystem play opens path to 50-65% lift in plausible scenarios. Don't pre-commit to numbers we can't yet defend, but the data supports surfacing this as upside.
 
 ---
 
@@ -730,12 +846,65 @@ Both parties have discussed adding **in-app promotional pathways to drive Steam 
 
 *Sources*: [Market Mind Partners: TTRPG Market Forecast](https://marketmindpartners.com/tabletop-role-playing-game-ttrpg-market), [GlobalGrowthInsights: TTRPG Market 2026](https://www.globalgrowthinsights.com/market-reports/tabletop-role-playing-game-ttrpg-market-103239), [WifiTalents: TTRPG Industry Statistics 2026](https://wifitalents.com/tabletop-rpg-industry-statistics/).
 
+### 11.8 Publisher-internal benchmarks (Modiphius Fallout app — Chris's autumn 2025 check)
+
+**Source**: Chris Birch's May 5 2026 reply email (verbatim transcription in `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` Entry #6). ⚠ AGENT-REPORTED — Modiphius-internal data, not independently verifiable.
+
+**Why this matters**: §11.1-§11.6 cover *industry-wide* benchmarks (GameDiscoverCo wishlist data, Stonemaier cannibalization survey, TTRPG market growth). §11.8 captures *publisher-internal* data from Modiphius's own existing licensed-IP digital app — the closest direct precedent we have access to. This anchors our forecast against real performance from the same publisher under the same partnership-style operating constraints.
+
+**Fallout RPG app — what's known publicly + what Chris shared**:
+
+| Datum | Value | Source / status |
+|---|---|---|
+| Product type | Freemium subscription + non-subscription purchases | Public (Demiplane FAQ + Modiphius press) |
+| Distribution | Cross-platform (App Store + Google Play) since 2022 | Chris email |
+| Free rules download | Yes — installed base includes free-only users | Chris email |
+| Installed base | ~40,000 units | Chris autumn 2025 check |
+| Total paying users 2022-2025 | 6,350 | Chris autumn 2025 check |
+| Active paying users (snapshot) | 2,850 | Chris autumn 2025 check |
+| Active subscriptions | 1,200 | Chris autumn 2025 check |
+| Non-subscription customer count (since 2022) | 1,650 | Chris autumn 2025 check |
+| Android customers since launch | ~3,500 | Chris autumn 2025 check |
+| iOS-direct count | NOT directly comparable | Apple groups by day/week/month, double-counts cross-period buyers |
+
+**Derived ratios** (calculations, not Chris's words — verify before quoting):
+
+| Ratio | Value | Calculation |
+|---|---:|---|
+| Lifetime paid conversion (3 years) | **15.875%** | 6,350 / 40,000 |
+| Active paying conversion (snapshot) | **7.125%** | 2,850 / 40,000 |
+| Active subscription rate | **3.0%** | 1,200 / 40,000 |
+| Non-subscription customer rate (since 2022) | **4.125%** | 1,650 / 40,000 |
+| Linear per-year conversion (lifetime ÷ 3 years) | **~5.3%/year** | 15.875% / 3 |
+
+**What this confirms (cross-check against §11.2 industry-wide benchmarks)**:
+
+- Industry-wide first-month Steam conversion median: 12-18% (§11.2)
+- Industry-wide EA first-month: ~20% (§11.2)
+- Fallout-app lifetime conversion: ~16% over 3 years
+- **The numbers are roughly consistent.** Steam first-month conversion (one-time event) is in the same range as Fallout's *lifetime* conversion (3-year accumulation) — different denominators, similar order of magnitude. Suggests audience-share conversion at ~5-15% is the realistic band for both Steam paid SKUs and tabletop-IP digital companion apps.
+
+**Caveats on direct read-across to 5PFH Steam app** (these matter):
+
+1. **Bethesda IP marketing pull is a major confound.** Fallout app benefits from Bethesda's massive catalog driving discovery. 5PFH does not. Adjust **DOWN** when porting Fallout rates to 5PFH.
+2. **Free rules download means denominator >40K.** Chris flagged this directly. So Fallout's true conversion is *lower* than the 15.875% lifetime headline.
+3. **App Store / Google Play freemium dynamics ≠ Steam paid SKU dynamics.** Mobile = low friction install + impulse-buy + subscription model. Steam = high friction at purchase + one-time conversion + DLC attach.
+4. **Subscription revenue counts the same user multiple times.** 1,200 active subscriptions ≠ 1,200 unique paying customers per year. Steam paid SKU LTV is structurally different.
+
+**Implication for §5 conversion scenarios**: see §5b-cal for the full mapping. Headline takeaway:
+
+- **§5b Conservative (5%)** = ~1× Fallout per-year track record — defensible Year 1 anchor
+- **§5b Moderate (10%)** = ~2× Fallout per-year track record (i.e., Fallout 2-year linear) — defensible EA-through-1.0 window anchor
+- Above Moderate = explicit stretch scenarios, no longer publisher-data-anchored
+
 ### 11.7 Synthesis — what the research changes about our forecast
 
 **Reinforced (research supports the existing model)**:
+
 - §5 conversion scenarios are conservative against Gloomhaven's proven *audience-size ceiling* (with the §11.1a caveat: Gloomhaven is a digital replacement, not a product peer)
 - §5c price band ($9.99–$24.99) is psychologically appropriate for tabletop digital companion apps and matches the §11.1d store-positioning posture
 - §6 Steam-only baseline is the right launch focus given EA's risk environment AND the category-establishment thesis (§11.1d)
+- **§5b Conservative (5%) and Moderate (10%) scenarios are now publisher-data-anchored** via the May 5 Fallout app calibration (§5b-cal + §11.8). Conservative ≈ Fallout's per-year track record; Moderate ≈ Fallout's 2-year linear projection. Strong/Aggressive remain explicit stretch scenarios with no publisher-internal precedent.
 
 **Reframed (research changes how we describe what we're doing)**:
 - The mutually agreed **category-establishment thesis** (§11.1d) is now baseline assumption — Gloomhaven is no longer the product comparison vector; the right peer set is the off-Steam companion apps in §11.1c (Mythic GME Digital, New Recruit, Campaign Console, Frostgrave Campaign Tracker)

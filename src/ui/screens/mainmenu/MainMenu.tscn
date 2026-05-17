@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://5ws0uspoh6vk"]
 
 [ext_resource type="Script" uid="uid://gtopn7whi6gy" path="res://src/ui/screens/mainmenu/MainMenu.gd" id="1_eb6mc"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/Nov_15_cityatnight.jpg" id="1_jq64m"]
+[ext_resource type="Texture2D" uid="uid://b60cxo4vrvhkh" path="res://assets/backgrounds/Nov_15_cityatnight.jpg" id="1_jq64m"]
 
 [node name="MainMenu" type="Control" unique_id=2113381539]
 layout_mode = 3
@@ -92,7 +92,7 @@ text = "Bug Hunt"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-text = "Options"
+text = "Settings"
 
 [node name="Library" type="Button" parent="MenuButtons" unique_id=1764279588]
 unique_name_in_owner = true
@@ -113,9 +113,9 @@ offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 0
 grow_vertical = 0
-text = "v0.9.7-dev"
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 0.6)
+theme_override_font_sizes/font_size = 12
+text = "v0.9.7-dev"
 horizontal_alignment = 2
 
 [node name="TutorialPopup" type="Panel" parent="." unique_id=543640377]

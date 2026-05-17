@@ -34,29 +34,27 @@ var _map_view: BattlefieldMapView
 var _popover: PanelContainer
 var _popover_label: RichTextLabel
 var _popover_close_btn: Button
+var _legend_flow: HFlowContainer  # BUG-103: rebuilt per mission from drawn terrain
 
 func _ready() -> void:
 	_build_ui()
-	resized.connect(_update_map_cell_size)
+	# BUG-102 (root cause): do NOT drive cell_size from resize. cell_size is the
+	# STABLE placement-base unit; on-screen scaling is owned by
+	# BattlefieldMapView._get_effective_cell_size() (derived from control size).
+	# Mutating cell_size AFTER terrain placement was baked is what collapsed all
+	# terrain into the top-left quadrant ("fixed by Regenerate" because that
+	# re-baked placement at the post-resize value).
 
 func _update_map_cell_size() -> void:
-	## Dynamically scale map cell_size based on available panel space
-	if not _map_view:
-		return
-	var available := size
-	if available.x <= 0 or available.y <= 0:
-		return
-	# Subtract header bar (~40px) + legend (~30px) + padding
-	var usable_h := available.y - 80.0
-	var usable_w := available.x - BattlefieldMapView.AXIS_MARGIN * 2
-	if usable_h <= 0 or usable_w <= 0:
-		return
-	var cell_w := usable_w / float(BattlefieldMapView.GRID_COLUMNS)
-	var cell_h := (usable_h - BattlefieldMapView.AXIS_MARGIN) / float(BattlefieldMapView.GRID_ROWS)
-	var new_cell_size := clampf(minf(cell_w, cell_h), 16.0, 48.0)
-	if absf(new_cell_size - _map_view.cell_size) > 0.5:
-		_map_view.cell_size = new_cell_size
-		_map_view.queue_redraw()
+	## BUG-102 (root cause): intentionally a no-op. This used to mutate
+	## _map_view.cell_size on every resize, but cell_size is the STABLE base
+	## unit terrain placement is baked in. Changing it after placement made
+	## _update_terrain_transform()'s `effective_cs / cell_size` scale wrong,
+	## collapsing all terrain into the top-left quadrant. On-screen cell sizing
+	## is correctly handled by BattlefieldMapView._get_effective_cell_size()
+	## (fit-to-size) scaling the fixed placement space — no panel-side mutation
+	## needed. Kept as a no-op so any stale caller cannot reintroduce the bug.
+	return
 
 func _build_ui() -> void:
 	# Panel styling
@@ -197,27 +195,64 @@ func _build_legend() -> void:
 	legend_container.custom_minimum_size = Vector2(0, 24)
 
 	var legend_title := Label.new()
+	legend_title.name = "LegendTitle"
 	legend_title.text = "LEGEND:"
 	legend_title.add_theme_font_size_override("font_size", 11)
 	legend_title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	legend_container.add_child(legend_title)
 
-	var entries: Array = [
-		[BattlefieldShapeLibrary.MAP_COLOR_BUILDING, "Building"],
-		[BattlefieldShapeLibrary.MAP_COLOR_WALL, "Wall"],
-		[BattlefieldShapeLibrary.MAP_COLOR_ROCK, "Rock"],
-		[BattlefieldShapeLibrary.MAP_COLOR_HILL, "Hill"],
-		[BattlefieldShapeLibrary.MAP_COLOR_VEGETATION, "Trees"],
-		[BattlefieldShapeLibrary.MAP_COLOR_WATER, "Water"],
-		[BattlefieldShapeLibrary.MAP_COLOR_CONTAINER, "Container"],
-		[BattlefieldShapeLibrary.MAP_COLOR_HAZARD, "Hazard"],
-		[BattlefieldShapeLibrary.MAP_COLOR_DEBRIS, "Debris"],
-		[BattlefieldShapeLibrary.MAP_COLOR_CRYSTAL, "Crystal"],
-		[BattlefieldShapeLibrary.MAP_COLOR_SCATTER, "Scatter"],
-		[BattlefieldShapeLibrary.MAP_COLOR_NOTABLE_STROKE, "Notable"],
-	]
+	_legend_flow = legend_container
 
-	for entry: Array in entries:
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.add_child(legend_container)
+	_main_vbox.add_child(margin)
+
+	# BUG-103: start empty; populate() drives the real rows from the terrain
+	# actually rendered for this mission.
+	_rebuild_legend([])
+
+## BUG-103: data-driven legend. Shows only the categories whose terrain is
+## actually drawn this mission (BattlefieldMapView.get_rendered_legend_keys())
+## rather than a static 12-entry list. Re-runnable: called from populate().
+func _rebuild_legend(keys: Array) -> void:
+	if not is_instance_valid(_legend_flow):
+		return
+	# Drop existing swatch/label items, keep the "LEGEND:" title (child 0).
+	while _legend_flow.get_child_count() > 1:
+		var c: Node = _legend_flow.get_child(_legend_flow.get_child_count() - 1)
+		_legend_flow.remove_child(c)
+		c.queue_free()
+
+	var defs: Dictionary = {
+		"building": [BattlefieldShapeLibrary.MAP_COLOR_BUILDING, "Building"],
+		"wall": [BattlefieldShapeLibrary.MAP_COLOR_WALL, "Wall"],
+		"rock": [BattlefieldShapeLibrary.MAP_COLOR_ROCK, "Rock"],
+		"hill": [BattlefieldShapeLibrary.MAP_COLOR_HILL, "Hill"],
+		"vegetation": [BattlefieldShapeLibrary.MAP_COLOR_VEGETATION, "Trees"],
+		"water": [BattlefieldShapeLibrary.MAP_COLOR_WATER, "Water"],
+		"container": [BattlefieldShapeLibrary.MAP_COLOR_CONTAINER, "Container"],
+		"crystal": [BattlefieldShapeLibrary.MAP_COLOR_CRYSTAL, "Crystal"],
+		"hazard": [BattlefieldShapeLibrary.MAP_COLOR_HAZARD, "Hazard"],
+		"debris": [BattlefieldShapeLibrary.MAP_COLOR_DEBRIS, "Debris"],
+		"scatter": [BattlefieldShapeLibrary.MAP_COLOR_SCATTER, "Scatter"],
+		"notable": [BattlefieldShapeLibrary.MAP_COLOR_NOTABLE_STROKE, "Notable"],
+	}
+
+	if keys.is_empty():
+		var none_lbl := Label.new()
+		none_lbl.text = "(no terrain)"
+		none_lbl.add_theme_font_size_override("font_size", 11)
+		none_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		_legend_flow.add_child(none_lbl)
+		return
+
+	for key in keys:
+		if not defs.has(key):
+			continue
+		var entry: Array = defs[key]
 		var item := HBoxContainer.new()
 		item.add_theme_constant_override("separation", 4)
 
@@ -232,14 +267,7 @@ func _build_legend() -> void:
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		item.add_child(lbl)
 
-		legend_container.add_child(item)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 4)
-	margin.add_child(legend_container)
-	_main_vbox.add_child(margin)
+		_legend_flow.add_child(item)
 
 func _build_popover() -> void:
 	_popover = PanelContainer.new()
@@ -293,6 +321,8 @@ func populate(sectors: Array, theme_name: String = "", world_traits: Array = [])
 	_current_theme_name = theme_name
 	_theme_label.text = theme_name
 	_map_view.populate_from_sectors(sectors, theme_name, world_traits)
+	# BUG-103: legend reflects only the terrain actually drawn this mission.
+	_rebuild_legend(_map_view.get_rendered_legend_keys())
 	_popover.visible = false
 
 ## Collapse the panel, showing only the header bar

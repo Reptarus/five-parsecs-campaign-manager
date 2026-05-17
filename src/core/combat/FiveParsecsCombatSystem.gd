@@ -201,7 +201,7 @@ func roll_reaction_dice() -> void:
 	unassigned_dice.sort()
 	unassigned_dice.reverse()
 
-	reaction_dice_rolled.emit(reaction_dice_pool, crew_size)
+	reaction_dice_rolled.emit(reaction_dice_pool, dice_count)
 
 func assign_reaction_die(character: Character, die_index: int) -> bool:
 	## Assign a reaction die to a character - determines Quick vs Slow action

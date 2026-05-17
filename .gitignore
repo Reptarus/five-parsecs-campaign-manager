@@ -10,10 +10,16 @@ export_presets.cfg
 # Builds and exports
 /android/
 /builds/
+/build/
+/dist/
 *.apk
 *.idsig
 *.pck
 *.exe
+
+# Project-local secrets (never commit)
+.env.local
+addons/talo/settings.cfg
 
 # Imported translations (automatically generated from CSV files)
 *.translation

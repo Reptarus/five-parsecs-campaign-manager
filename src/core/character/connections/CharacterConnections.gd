@@ -7,7 +7,8 @@ extends RefCounted
 
 # Safe imports
 const UniversalResourceLoader := preload("res://src/core/systems/UniversalResourceLoader.gd")
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums is available globally as an autoload — no preload needed (and a const here
+# would shadow the autoload and break type inference at parse time).
 
 # Cached connection data
 static var _connections_table: Dictionary = {}

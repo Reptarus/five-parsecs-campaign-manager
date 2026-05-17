@@ -3,15 +3,17 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dlxpfgtixftjb"
-path="res://.godot/imported/portrait_01.jpg-944f57d6e106c5e1e2c881cfcb29aa1f.ctex"
+path.s3tc="res://.godot/imported/portrait_01.jpg-944f57d6e106c5e1e2c881cfcb29aa1f.s3tc.ctex"
+path.etc2="res://.godot/imported/portrait_01.jpg-944f57d6e106c5e1e2c881cfcb29aa1f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/portraits/portrait_01.jpg"
-dest_files=["res://.godot/imported/portrait_01.jpg-944f57d6e106c5e1e2c881cfcb29aa1f.ctex"]
+dest_files=["res://.godot/imported/portrait_01.jpg-944f57d6e106c5e1e2c881cfcb29aa1f.s3tc.ctex", "res://.godot/imported/portrait_01.jpg-944f57d6e106c5e1e2c881cfcb29aa1f.etc2.ctex"]
 
 [params]
 
