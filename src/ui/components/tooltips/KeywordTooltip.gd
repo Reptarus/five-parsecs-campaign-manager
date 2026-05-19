@@ -118,11 +118,17 @@ func format_keyword_text(keyword_data: Dictionary) -> String:
 	return bbcode
 
 ## Display tooltip for the specified keyword at the given position.
-## 
+##
 ## Args:
 ##   keyword: The keyword term to display
 ##   position: Screen position for contextual placement (desktop mode)
+##
+## Gated by SettingsManager.are_tooltips_enabled() — when off, returns silently.
 func show_for_keyword(keyword: String, position: Vector2) -> void:
+	# Respect the user's "Show Tooltips" preference before any work.
+	var sm := get_tree().root.get_node_or_null("/root/SettingsManager") if get_tree() else null
+	if sm and not sm.are_tooltips_enabled():
+		return
 	# Debounce rapid taps
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if current_time - _last_tap_time < DEBOUNCE_TIMEOUT:

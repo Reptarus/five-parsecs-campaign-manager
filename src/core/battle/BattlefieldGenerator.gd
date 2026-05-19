@@ -4,7 +4,8 @@ extends RefCounted
 ## Battlefield Terrain Generator for Five Parsecs From Home
 ##
 ## Generates text-based terrain suggestions following the Compendium 5-step process
-## (pp.96-100) for the player to set up their physical tabletop.
+## (pp.94-98: steps pp.94-95, terrain tables pp.96-98) for the player to set
+## up their physical tabletop. (pp.99-100 are the Casualty Tables, not terrain.)
 ## Also supports world trait terrain modifications (Core Rules pp.72-75).
 
 # Signals for integration with the battle workflow
@@ -190,7 +191,7 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 	var summary_lines: Array[String] = []
 	summary_lines.append("Theme: %s" % theme_data.get("name", theme))
 	summary_lines.append(theme_data.get("description", ""))
-	summary_lines.append("Compendium terrain generation (pp.96-100): Notable center + 4D6 per quarter + scatter")
+	summary_lines.append("Compendium terrain generation (pp.94-98): Notable center + 4D6 per quarter + scatter")
 	summary_lines.append("Placed features: %d" % feature_count)
 	if not visibility_limit.is_empty():
 		summary_lines.append("Visibility limit: %s" % visibility_limit)

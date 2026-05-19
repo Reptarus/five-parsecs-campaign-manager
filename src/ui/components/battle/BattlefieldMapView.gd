@@ -401,12 +401,25 @@ func _rebuild_terrain_shapes() -> void:
 						* s_area.get("height", 20.0) * local_scale * local_scale
 			var density: float = total_shape_area / maxf(
 				avail_w * avail_h, 1.0)
+			# AREA-FIT (terrain-overlap root fix): collision can only REJECT
+			# positions, never create space. If a sector holds more padded
+			# feature area than random packing fits, the fallback stacks
+			# features (observed 100% overlap). Shrink ALL of this sector's
+			# shapes up front to a packable density. Better small terrain
+			# than overlapping terrain (the map is suggestive, not to scale).
+			if density > 0.42:
+				var fit_factor: float = sqrt(0.42 / density)
+				var new_scale: float = maxf(local_scale * fit_factor, scale_factor * 0.22)
+				density *= pow(new_scale / local_scale, 2.0)
+				local_scale = new_scale
+
 			var effective_padding: float = PLACEMENT_PADDING
 			if density > 0.4:
 				effective_padding = maxf(PLACEMENT_PADDING * 0.5, 6.0)
 
-			var placed_rects: Array[Rect2] = []
 			var positions: Array = []
+			var grid_pc_w: float = GRID_COLUMNS * cell_size
+			var grid_pc_h: float = GRID_ROWS * cell_size
 
 			for shape_idx: int in range(shapes.size()):
 				var shape: Dictionary = shapes[shape_idx]
@@ -415,51 +428,66 @@ func _rebuild_terrain_shapes() -> void:
 					continue
 				var w: float = shape.get("width", 30.0) * local_scale
 				var h: float = shape.get("height", 20.0) * local_scale
-
-				# Compute rotation-aware collision padding for this shape
 				var shape_type_str: String = shape.get("shape", "rect")
 				var max_rot: float = BattlefieldShapeLibrary.get_rotation_range(shape_type_str)
-				var rot_padding: float = (sqrt(w * w + h * h) - maxf(w, h)) * 0.5 + 4.0 if max_rot > 0.0 else 0.0
 
-				# Try random positions within sector
+				# TERRAIN-OVERLAP FIX: the deconfliction MUST test the final
+				# drawn footprint. Previously the boundary clamp + rotation ran
+				# AFTER collision/recording, so shapes were nudged into each
+				# other post-test (and oversized shapes all snapped to grid
+				# centre). Decide rotation + the true rotation/stroke-aware
+				# half-extents FIRST, clamp every candidate to grid bounds
+				# BEFORE the collision test, and store that exact rect.
+				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
+					shape, local_scale)
+				var rot: float = 0.0
+				if max_rot > 0.0:
+					rot = placement_rng.randf_range(-max_rot, max_rot)
+				var stroke_pad: float = 1.0
+				if "stroke_width" in svs:
+					stroke_pad = maxf(float(svs.stroke_width) * 0.5, 0.0)
+				var cosr: float = absf(cos(rot))
+				var sinr: float = absf(sin(rot))
+				var half_x: float = (cosr * w + sinr * h) / 2.0 + stroke_pad
+				var half_y: float = (sinr * w + cosr * h) / 2.0 + stroke_pad
+				var pad: float = effective_padding / 2.0
+
+				# NOTE: NO lambdas here. A captured Array closure made the
+				# collision test read stale/empty data (every shape "passed"
+				# -> 100% overlaps). All collision math is inline so it reads
+				# the shared `all_placed_rects` directly.
+
+				# Random placement: clamp the DRAWN centre to grid bounds, then
+				# test that exact footprint against everything already placed.
+				var final_center := Vector2.ZERO
 				var placed: bool = false
-				var half_pad: float = (effective_padding + rot_padding) / 2.0
 				for attempt: int in range(PLACEMENT_ATTEMPTS):
 					var try_x: float = placement_rng.randf() * maxf(avail_w - w, 1.0)
 					var try_y: float = placement_rng.randf() * maxf(avail_h - h, 1.0)
-					var candidate := Rect2(try_x, try_y, w, h)
-
-					# Check collision with same-sector shapes (rotation-aware)
+					var c := sector_origin + Vector2(
+						try_x + w / 2.0, try_y + h / 2.0)
+					if half_x * 2.0 >= grid_pc_w:
+						c.x = grid_pc_w / 2.0
+					else:
+						c.x = clampf(c.x, half_x, grid_pc_w - half_x)
+					if half_y * 2.0 >= grid_pc_h:
+						c.y = grid_pc_h / 2.0
+					else:
+						c.y = clampf(c.y, half_y, grid_pc_h - half_y)
+					var fr := Rect2(c.x - half_x, c.y - half_y,
+						half_x * 2.0, half_y * 2.0).grow(pad)
 					var collides: bool = false
-					for placed_rect: Rect2 in placed_rects:
-						if candidate.grow(half_pad).intersects(placed_rect.grow(half_pad)):
+					for gr: Rect2 in all_placed_rects:
+						if fr.intersects(gr):
 							collides = true
 							break
-
-					# Check collision with shapes from other sectors (absolute coords)
 					if not collides:
-						var abs_candidate := Rect2(
-							sector_origin.x + try_x, sector_origin.y + try_y, w, h)
-						for global_rect: Rect2 in all_placed_rects:
-							if abs_candidate.grow(half_pad).intersects(global_rect.grow(half_pad)):
-								collides = true
-								break
-
-					if not collides:
-						placed_rects.append(candidate)
-						positions.append(sector_origin + Vector2(try_x, try_y))
-						all_placed_rects.append(Rect2(
-							sector_origin.x + try_x, sector_origin.y + try_y,
-						w, h))
+						final_center = c
 						placed = true
 						break
 
-				# Fix 0d: Grid-distributed fallback instead of top-left stacking
+				# Grid-distributed fallback (still clamped + collision-nudged).
 				if not placed:
-					var total_pad: float = effective_padding + rot_padding
-					var half_pad_fb: float = total_pad / 2.0
-
-					# Compute grid slot for even distribution
 					var slot_idx: int = positions.size()
 					var grid_cols: int = maxi(
 						ceili(sqrt(float(feature_count))), 1)
@@ -469,106 +497,52 @@ func _rebuild_terrain_shapes() -> void:
 					var slot_h: float = avail_h / float(grid_rows_count)
 					var gx: int = slot_idx % grid_cols
 					var gy: int = slot_idx / grid_cols
-					var fallback_x: float = gx * slot_w + maxf(
-						(slot_w - w) / 2.0, 0.0)
-					var fallback_y: float = gy * slot_h + maxf(
-						(slot_h - h) / 2.0, 0.0)
-
-					# Fix 0b: Hard clamp to sector bounds — never overflow
-					fallback_x = clampf(fallback_x, 0.0,
-						maxf(avail_w - w, 0.0))
-					fallback_y = clampf(fallback_y, 0.0,
-						maxf(avail_h - h, 0.0))
-
-					# Cross-sector collision nudge (stay in bounds)
-					var abs_fb := Rect2(
-						sector_origin.x + fallback_x,
-						sector_origin.y + fallback_y, w, h)
+					var fb_x: float = gx * slot_w + maxf((slot_w - w) / 2.0, 0.0)
+					var fb_y: float = gy * slot_h + maxf((slot_h - h) / 2.0, 0.0)
+					var c := sector_origin + Vector2(
+						fb_x + w / 2.0, fb_y + h / 2.0)
 					var fb_retry: int = 0
-					while fb_retry < 8:
-						var fb_collides: bool = false
-						for global_rect: Rect2 in all_placed_rects:
-							if abs_fb.grow(half_pad_fb).intersects(
-									global_rect.grow(half_pad_fb)):
-								fb_collides = true
+					while fb_retry < 16:
+						if half_x * 2.0 >= grid_pc_w:
+							c.x = grid_pc_w / 2.0
+						else:
+							c.x = clampf(c.x, half_x, grid_pc_w - half_x)
+						if half_y * 2.0 >= grid_pc_h:
+							c.y = grid_pc_h / 2.0
+						else:
+							c.y = clampf(c.y, half_y, grid_pc_h - half_y)
+						var fr := Rect2(c.x - half_x, c.y - half_y,
+							half_x * 2.0, half_y * 2.0).grow(pad)
+						var coll: bool = false
+						for gr: Rect2 in all_placed_rects:
+							if fr.intersects(gr):
+								coll = true
 								break
-						if not fb_collides:
-							var local_fb := Rect2(
-								fallback_x, fallback_y, w, h)
-							for pr: Rect2 in placed_rects:
-								if local_fb.grow(half_pad_fb).intersects(
-										pr.grow(half_pad_fb)):
-									fb_collides = true
-									break
-						if not fb_collides:
+						if not coll:
 							break
-						# Nudge down, clamped to sector bounds
-						fallback_y = minf(
-							fallback_y + h + total_pad,
-							maxf(avail_h - h, 0.0))
-						abs_fb = Rect2(
-							sector_origin.x + fallback_x,
-							sector_origin.y + fallback_y, w, h)
+						# Nudge down a full footprint; re-clamped next pass.
+						c.y += half_y * 2.0 + effective_padding
 						fb_retry += 1
+					final_center = c
 
-					var fb_rect := Rect2(fallback_x, fallback_y, w, h)
-					placed_rects.append(fb_rect)
-					positions.append(sector_origin + Vector2(fallback_x, fallback_y))
-					all_placed_rects.append(Rect2(
-						sector_origin.x + fallback_x,
-						sector_origin.y + fallback_y, w, h))
+				# Record the EXACT drawn footprint (collision + cache agree).
+				all_placed_rects.append(Rect2(
+					final_center.x - half_x, final_center.y - half_y,
+					half_x * 2.0, half_y * 2.0))
+				positions.append(final_center - Vector2(w / 2.0, h / 2.0))
 
-				# Create the SVS terrain node — position at shape center for symmetric rotation
-				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
-					shape, local_scale)
-				var top_left: Vector2 = positions[positions.size() - 1]
-				var center: Vector2 = top_left + Vector2(w / 2.0, h / 2.0)
-
-				# Decide rotation up front — the rotated AABB is larger than
-				# w x h, so the bound clamp must account for it.
-				var rot: float = 0.0
-				if max_rot > 0.0:
-					rot = placement_rng.randf_range(-max_rot, max_rot)
-
-				# BUG-101: clamp the shape's DRAWN center so the rotated, stroked
-				# footprint stays inside the grid rect. Placement coords are based on
-				# cell_size and 4*sector_w == GRID_COLUMNS*cell_size (verified), so the
-				# grid rect in placement space is GRID_COLUMNS x GRID_ROWS cells.
-				# stroke_pad = the visible line width that extends beyond the body
-				# edge (literally "the width of the circle") — measured, not assumed.
-				var stroke_pad: float = 1.0
-				if "stroke_width" in svs:
-					stroke_pad = maxf(float(svs.stroke_width) * 0.5, 0.0)
-				var cosr: float = absf(cos(rot))
-				var sinr: float = absf(sin(rot))
-				var half_x: float = (cosr * w + sinr * h) / 2.0 + stroke_pad
-				var half_y: float = (sinr * w + cosr * h) / 2.0 + stroke_pad
-				var grid_pc_w: float = GRID_COLUMNS * cell_size
-				var grid_pc_h: float = GRID_ROWS * cell_size
-				if half_x * 2.0 >= grid_pc_w:
-					center.x = grid_pc_w / 2.0
-				else:
-					center.x = clampf(center.x, half_x, grid_pc_w - half_x)
-				if half_y * 2.0 >= grid_pc_h:
-					center.y = grid_pc_h / 2.0
-				else:
-					center.y = clampf(center.y, half_y, grid_pc_h - half_y)
-
-				# Keep the cached placement consistent with the clamped DRAWN
-				# center — terrain labels + inch readout read _sector_placements.
-				positions[positions.size() - 1] = center - Vector2(w / 2.0, h / 2.0)
-
-				# ScalableVectorShape2D draws the body centered on `offset` in LOCAL
-				# space, and offset is rotated by the node rotation. So the on-screen
-				# center is `position + offset.rotated(rot)`, NOT `position`. Back-solve
-				# position so the DRAWN center lands exactly on the clamped point.
+				# ScalableVectorShape2D draws the body centered on `offset` in
+				# LOCAL space, rotated by the node rotation. On-screen centre is
+				# `position + offset.rotated(rot)`, NOT `position`. Back-solve
+				# position so the DRAWN centre lands exactly on final_center
+				# (BUG-101).
 				var body_offset := Vector2(-w / 2.0, -h / 2.0)
 				_terrain_container.add_child(svs)
 				# Set offset AFTER add_child so _ready() wires dimensions_changed first
 				svs.offset = body_offset
 				if rot != 0.0:
 					svs.rotation = rot
-				svs.position = center - body_offset.rotated(rot)
+				svs.position = final_center - body_offset.rotated(rot)
 
 			_sector_placements[sr][sc] = positions
 

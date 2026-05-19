@@ -80,28 +80,48 @@ func _get_res(key: String) -> Resource:
 @onready var tier_badge: Label = %TierBadge
 @onready var phase_breadcrumb: HBoxContainer = %PhaseBreadcrumb
 
-# Panel containers (visibility controlled by _apply_stage_visibility)
-@onready var left_panel: PanelContainer = %LeftPanel
-@onready var crew_content: VBoxContainer = %CrewContent
-@onready var center_panel: VBoxContainer = %CenterPanel
-@onready var battlefield_grid_panel: PanelContainer = %BattlefieldGridPanel
-@onready var phase_content_panel: PanelContainer = %PhaseContentPanel
-@onready var phase_content: VBoxContainer = %PhaseContent
-@onready var right_panel: PanelContainer = %RightPanel
-@onready var right_tabs: TabContainer = %RightTabs
-@onready var tools_content: VBoxContainer = %ToolsContent
-@onready var reference_content: VBoxContainer = %ReferenceContent
-@onready var setup_content: VBoxContainer = %SetupContent
+# --- Map-Primary + Drawers frame (redesign) -------------------------------
+# Real .tscn nodes of the new glance frame.
+@onready var crew_rail_panel: PanelContainer = %CrewRailPanel
+@onready var crew_rail: VBoxContainer = %CrewRail
+@onready var map_host: PanelContainer = %MapHost
+@onready var info_rail_panel: PanelContainer = %InfoRailPanel
+@onready var info_rail: VBoxContainer = %InfoRail
+@onready var feed_strip: PanelContainer = %FeedStrip
+@onready var feed_host: VBoxContainer = %FeedHost
+@onready var drawer_layer: CanvasLayer = $DrawerLayer
 
-# Bottom bar (two rows: PhaseHUD + ActionBar)
+## Compatibility shims (Phase-1 port). The legacy layout funneled ~165 call
+## sites into phase_content / tools_content / reference_content / right_tabs /
+## etc. Rather than rewrite every site on this 4-game-mode shared file, those
+## vars are REPOINTED in _setup_ui at the new structure's drawer-body VBoxes
+## (Tracking / Dice / Reference) and rails, so existing component-funneling
+## logic lands in the right drawer with the layout fully restructured.
+var left_panel: PanelContainer = null            # → %CrewRailPanel
+var crew_content: VBoxContainer = null           # → %CrewRail
+var center_panel: Control = null                 # → %MapHost
+var battlefield_grid_panel: Control = null       # → code-built BattlefieldMapView
+var phase_content_panel: PanelContainer = null   # → null (guarded everywhere)
+var phase_content: VBoxContainer = null          # → Tracking drawer body
+var right_panel: PanelContainer = null           # → %InfoRailPanel
+var right_tabs: TabContainer = null              # → null (all uses guarded)
+var tools_content: VBoxContainer = null          # → Dice drawer body
+var reference_content: VBoxContainer = null      # → Reference drawer body
+var setup_content: VBoxContainer = null          # → Tracking drawer body
+var battle_log: RichTextLabel = null             # → detached sink; real feed = unified_log
+
+# Keeper drawer instances (SlideOverDrawer), one per toolbar surface.
+const DrawerClass = preload("res://src/ui/components/common/SlideOverDrawer.gd")
+var _drawers: Dictionary = {}            # id -> SlideOverDrawer
+var _drawer_bodies: Dictionary = {}      # id -> VBoxContainer (content host)
+var _toolbar_built: bool = false
+
+# Bottom bar (two rows: PhaseHUD + ActionBar) — UNCHANGED nodes
 @onready var bottom_bar: PanelContainer = $EdgeMargin/MainContainer/BottomBar
 @onready var phase_hud: HBoxContainer = %PhaseHUD
 @onready var turn_indicator: Label = %TurnIndicator
 @onready var action_buttons: HBoxContainer = %PhaseButtonsContainer
 @onready var end_turn_button: Button = %EndTurnButton
-
-# Battle log (inside PhaseContentPanel)
-@onready var battle_log: RichTextLabel = %FallbackLog
 
 # Overlay nodes (for tier selection, checklists, popups)
 @onready var overlay_bg: ColorRect = $OverlayLayer/OverlayBackground
@@ -134,7 +154,9 @@ var unified_log: FPCM_UnifiedBattleLog = null  # Replaces BattleJournal + Fallba
 var dice_dashboard: Control = null
 var combat_calculator: Control = null
 var battle_round_hud: Control = null
-var character_cards: Array = [] # Array of CharacterStatusCard instances
+var character_cards: Array = [] # Array of CharacterStatusCard instances (crew + enemy drawer cards)
+var _unit_card_by_id: Dictionary = {}   # _unit_id(unit) -> CharacterStatusCard (live drawer card)
+var _drawer_repopulate_queued: bool = false  # re-entrancy guard for deferred drawer rebuilds
 
 # ASSISTED component instances (Sprint 4)
 var morale_tracker: PanelContainer = null
@@ -180,6 +202,9 @@ var _current_terrain_theme: String = ""
 var _stored_mission_data: Variant = null
 var _terrain_section_start_index: int = -1
 var _terrain_section_end_index: int = -1
+## Last BattlefieldGenerator result (sectors/combat_notes/visibility_limit) —
+## drives the redesign's info-rail BATTLEFIELD card + TERRAIN KEY legend.
+var _battlefield_data: Dictionary = {}
 
 # Battle State
 var crew_units: Array[TacticalUnit] = []
@@ -292,14 +317,19 @@ func _connect_signals() -> void:
 			combat_system.reaction_dice_assigned.connect(_on_reaction_dice_assigned)
 
 func _setup_ui() -> void:
-	## Setup the tactical UI with progressive disclosure
+	## Setup the tactical UI — Map-Primary + Drawers frame (redesign port).
+	# Build the new glance frame + keeper drawers, then repoint the legacy
+	# layout vars (shims) so existing component-funneling logic lands in the
+	# right drawer/rail with the layout fully restructured.
+	_build_redesign_frame()
+
 	if turn_indicator:
 		turn_indicator.text = "Setting Up"
 	if battle_log:
 		battle_log.clear()
 	_log_message("Tactical battle mode activated", UIColors.COLOR_EMERALD)
 
-	# Instance LOG_ONLY components into their zones
+	# Instance LOG_ONLY components — now funnel into drawer bodies via shims
 	_instance_log_only_components()
 
 	# Default to LOG_ONLY visibility until tier is selected
@@ -313,6 +343,353 @@ func _setup_ui() -> void:
 
 	# Initial responsive layout pass
 	call_deferred("_apply_responsive_layout")
+
+
+# ============================================================================
+# MAP-PRIMARY + DRAWERS FRAME (Phase-1 port of the approved Phase-0 prototype)
+# ============================================================================
+
+func _build_redesign_frame() -> void:
+	## Build the new frame's runtime pieces and repoint legacy shims.
+	# Detached log sink so battle_log.clear()/_log_message stay harmless;
+	# the real feed is the UnifiedBattleLog placed in FeedHost.
+	battle_log = RichTextLabel.new()
+	battle_log.bbcode_enabled = true
+
+	# Simple structural shims (valid same-type nodes).
+	left_panel = crew_rail_panel
+	crew_content = crew_rail
+	center_panel = map_host
+	right_panel = info_rail_panel
+	right_tabs = null
+	phase_content_panel = null
+
+	# Bare BattlefieldMapView in MapHost (requirement iter-2: real rules-
+	# accurate map, no GridPanel chrome). Built in code like the prototype.
+	if map_host and map_host.get_child_count() == 0:
+		var mv := BattlefieldMapView.new()
+		mv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mv.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		map_host.add_child(mv)
+		battlefield_grid_panel = mv
+		# NOTE: do NOT call set_show_scatter() here — the MapView builds its
+		# _terrain_container in _ready(), which has not run on the same frame
+		# it is added. Scatter defaults TRUE; the real map is populated later
+		# by the generator (populate_from_sectors), where toggles are safe.
+
+	# Keeper drawers (one per surface). Bodies always exist so the ~165
+	# legacy add_child(phase_content/tools_content/...) sites never null-
+	# deref; tier gating controls which toolbar buttons appear, not whether
+	# the body exists.
+	# "wide" drawers hold full component panels (unit-tracker cards with a
+	# 5-button action row, DiceDashboard, MoralePanicTracker, EnemyIntentPanel)
+	# whose natural width exceeds the tight reading column — they opt into a
+	# wider panel so content fits instead of horizontally clipping/scrolling.
+	# Reference stays the tight column (text/cheat-sheet; WeaponTableDisplay
+	# scrolls inside it by the Phase-1 keeper contract).
+	_make_drawer("crew", "Crew", DrawerClass.Edge.LEFT, true)
+	_make_drawer("enemies", "Enemy Tracker", DrawerClass.Edge.RIGHT, true)
+	_make_drawer("dice", "Dice Roller", DrawerClass.Edge.RIGHT, true)
+	_make_drawer("reference", "Battle Round Reference (Core Rules p.119)",
+		DrawerClass.Edge.RIGHT)
+	_make_drawer("tracking", "Tracking", DrawerClass.Edge.RIGHT, true)
+	_make_drawer("oracle", "Enemy AI Oracle", DrawerClass.Edge.RIGHT, true)
+
+	# Repoint the funnel shims at drawer bodies. setup_content stays a valid
+	# host for any legacy funnel, but the pre-battle checklist itself is a
+	# CENTERED MODAL (approved plan: "ModalLayer (existing OverlayLayer):
+	# tier select, pre-battle checklist, enemy-gen wizard"), not a drawer.
+	phase_content = _drawer_bodies["tracking"]
+	setup_content = _drawer_bodies["tracking"]
+	tools_content = _drawer_bodies["dice"]
+	reference_content = _drawer_bodies["reference"]
+
+	# Single canonical feed.
+	if feed_host and feed_host.get_child_count() == 0:
+		unified_log = FPCM_UnifiedBattleLog.new()
+		unified_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		unified_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		feed_host.add_child(unified_log)
+
+
+func _make_drawer(id: String, title: String, edge: int,
+		wide: bool = false) -> void:
+	## Create one keeper SlideOverDrawer with an empty VBox body. `wide`
+	## drawers fit full component panels (≈480px min) instead of the tight
+	## reading column, so a 5-button card row never clips/scrolls sideways.
+	if _drawers.has(id):
+		return
+	var d = DrawerClass.new()
+	d.edge = edge
+	d.drawer_title = title
+	if wide:
+		d.min_panel_width = 480.0
+	drawer_layer.add_child(d)
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	d.set_content(body)
+	_drawers[id] = d
+	_drawer_bodies[id] = body
+
+
+func _open_drawer(id: String) -> void:
+	## Exclusive open: tapping a drawer toggles it; others close.
+	for key in _drawers:
+		var d = _drawers[key]
+		if key == id:
+			if d.is_open(): d.close()
+			else: d.open()
+		else:
+			d.close()
+
+
+func _sync_redesign_for_stage(stage: int) -> void:
+	## Feed strip + rails follow the battle stage (rails/feed are NEW nodes
+	## the legacy match never touches, so order vs the match is irrelevant).
+	var combatish: bool = stage in [
+		BattleStage.DEPLOYMENT, BattleStage.COMBAT]
+	if feed_strip:
+		feed_strip.visible = stage != BattleStage.TIER_SELECT
+	if crew_rail_panel:
+		crew_rail_panel.visible = combatish or stage == BattleStage.SETUP
+	if info_rail_panel:
+		info_rail_panel.visible = combatish or stage == BattleStage.SETUP
+	if map_host:
+		map_host.visible = stage != BattleStage.TIER_SELECT \
+			and stage != BattleStage.RESOLUTION
+	_rebuild_crew_rail()
+	_rebuild_info_rail()
+
+
+func _rebuild_crew_rail() -> void:
+	if not crew_rail:
+		return
+	for c in crew_rail.get_children():
+		c.queue_free()
+	if crew_units.is_empty():
+		return
+	var alive: int = 0
+	var acted: int = 0
+	var q_pending: int = 0
+	var s_pending: int = 0
+	for u in crew_units:
+		if not u.is_dead:
+			alive += 1
+			if u.is_activated:
+				acted += 1
+			elif u.react_slot == 1:
+				q_pending += 1
+			elif u.react_slot == 2:
+				s_pending += 1
+	_rail_header(crew_rail, "CREW  %d / %d" % [alive, crew_units.size()])
+	# Live activation bookkeeping (Core Rules p.114) — who has acted, and how
+	# many still owe a Quick / Slow activation this round.
+	_rail_header(crew_rail, "ACTIVATED %d/%d · Q %d · S %d" % [
+		acted, alive, q_pending, s_pending])
+	var reset_btn := Button.new()
+	reset_btn.text = "↺ Round"
+	reset_btn.tooltip_text = "Manually reset all crew activation for a new round"
+	reset_btn.add_theme_font_size_override("font_size", 11)
+	reset_btn.pressed.connect(_on_manual_round_reset)
+	crew_rail.add_child(reset_btn)
+	for u in crew_units:
+		crew_rail.add_child(_unit_minicard(
+			u.node_name, u.health, u.max_health, u.is_dead,
+			"C%d T%d Sv%d R%d" % [u.combat_skill, u.toughness,
+				u.savvy, u.reactions],
+			"Acts %d" % u.actions_remaining,
+			func() -> void: _open_drawer("crew"), u))
+
+
+func _rebuild_info_rail() -> void:
+	if not info_rail:
+		return
+	for c in info_rail.get_children():
+		c.queue_free()
+
+	# OBJECTIVE (mission objective is also marked on the map via the real
+	# BattlefieldGenerator.compute_objective_positions → set_objective_positions).
+	var md: Dictionary = (_stored_mission_data
+		if _stored_mission_data is Dictionary else {})
+	var obj_txt: String = str(md.get("objective", md.get("type", "")))
+	if obj_txt != "":
+		_rail_header(info_rail, "OBJECTIVE")
+		var ol := Label.new()
+		ol.text = "◆ %s (marked on map)" % obj_txt.capitalize()
+		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ol.add_theme_font_size_override("font_size", 12)
+		ol.add_theme_color_override("font_color", UIColors.COLOR_SUCCESS)
+		info_rail.add_child(ol)
+
+	# BATTLEFIELD — real modifiers from the generator result (visibility +
+	# world-trait combat_notes). No invented data: only what it returned.
+	var notes: Array = _battlefield_data.get("combat_notes", [])
+	var vis: String = str(_battlefield_data.get("visibility_limit", ""))
+	if vis != "" or not notes.is_empty():
+		info_rail.add_child(HSeparator.new())
+		_rail_header(info_rail, "BATTLEFIELD")
+		if vis != "":
+			_info_modifier_line(info_rail, "👁 Visibility: " + vis,
+				UIColors.COLOR_WARNING)
+		for note in notes:
+			_info_modifier_line(info_rail, "• " + str(note),
+				UIColors.COLOR_TEXT_PRIMARY)
+		# TERRAIN KEY — decodes hazardous vs difficult (Core Rules p.117/p.119).
+		_info_modifier_line(info_rail,
+			"■ Hazardous: Dmg +1, ignores Armor (p.117)",
+			UIColors.COLOR_DANGER)
+		_info_modifier_line(info_rail,
+			"■ Difficult: Move +1\" per 2\" (p.119)",
+			UIColors.COLOR_WARNING)
+	info_rail.add_child(HSeparator.new())
+
+	var n_active: int = 0
+	for e in enemy_units:
+		if not e.is_dead:
+			n_active += 1
+	_rail_header(info_rail, "ENEMIES  %d / %d active" % [
+		n_active, enemy_units.size()])
+	# This-round casualties feed the End Phase Morale check (Core Rules
+	# pp.114-115) — surfaced so the trigger is glanceable, not hidden.
+	var cas: int = 0
+	if morale_tracker and is_instance_valid(morale_tracker) \
+			and "casualties_this_round" in morale_tracker:
+		cas = morale_tracker.casualties_this_round
+	if cas > 0:
+		_info_modifier_line(info_rail,
+			"☠ Casualties this round: %d (→ End Phase Morale)" % cas,
+			UIColors.COLOR_DANGER)
+	for e in enemy_units:
+		info_rail.add_child(_unit_minicard(
+			e.node_name, e.health, e.max_health, e.is_dead,
+			"C%d T%d R%d" % [e.combat_skill, e.toughness, e.reactions],
+			"", func() -> void: _open_drawer("enemies"), e))
+
+
+func _rail_header(parent: Node, txt: String) -> void:
+	var l := Label.new()
+	l.text = txt
+	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	parent.add_child(l)
+
+
+func _info_modifier_line(parent: Node, txt: String, col: Color) -> void:
+	var l := Label.new()
+	l.text = txt
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 11)
+	l.add_theme_color_override("font_color", col)
+	parent.add_child(l)
+
+
+func _unit_minicard(nm: String, hp: int, mx: int, dead: bool,
+		stats: String, badge: String, on_press: Callable,
+		unit = null) -> Control:
+	## Rail mini-card = the glance bookkeeping layer (plan iters 3/7). When a
+	## TacticalUnit is passed it renders per-figure state: a Q/S reaction-slot
+	## chip (Core Rules p.114), amber stun pips (stackable, p.116-118), and an
+	## "activated recede" (acted figures dim + lose the accent border so the
+	## eye lands on who still has to act this round).
+	var stun: int = unit.stun_markers if unit else 0
+	var activated: bool = unit.is_activated if unit else false
+	var slot: int = unit.react_slot if unit else 0
+	# A still-to-act crew figure gets the accent border (draws the eye);
+	# activated / dead figures recede.
+	var pending: bool = (not dead) and (not activated)
+	# Highlight only a crew figure that still has to act AND has a real
+	# reaction slot (1 QUICK / 2 SLOW). Enemies (slot 3) never highlight.
+	var highlight: bool = pending and (slot == 1 or slot == 2)
+	var card := PanelContainer.new()
+	var st := StyleBoxFlat.new()
+	st.bg_color = UIColors.COLOR_BASE if dead else UIColors.COLOR_INPUT
+	st.border_color = UIColors.COLOR_FOCUS if highlight else UIColors.COLOR_BORDER
+	st.set_border_width_all(2 if highlight else 1)
+	st.set_corner_radius_all(8)
+	st.set_content_margin_all(UIColors.SPACING_SM)
+	card.add_theme_stylebox_override("panel", st)
+	if dead or activated:
+		card.modulate = Color(1, 1, 1, 0.55)  # recede; eye lands on pending
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed \
+				and ev.button_index == MOUSE_BUTTON_LEFT:
+			on_press.call())
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", UIColors.SPACING_XS)
+	card.add_child(vb)
+	var top := HBoxContainer.new()
+	vb.add_child(top)
+	# Q/S reaction-slot chip (crew only — slot 1=QUICK, 2=SLOW; enemies are
+	# slot 3=ENEMY phase and need no chip). Empty until the Reaction Roll.
+	if slot == 1 or slot == 2:
+		var chip := Label.new()
+		chip.text = " Q " if slot == 1 else " S "
+		chip.add_theme_font_size_override("font_size", 11)
+		chip.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = UIColors.COLOR_ACCENT if slot == 1 else UIColors.COLOR_WARNING
+		cs.set_corner_radius_all(4)
+		chip.add_theme_stylebox_override("normal", cs)
+		top.add_child(chip)
+	var nl := Label.new()
+	nl.text = ("☠ " if dead else ("✓ " if activated else "")) + nm
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nl.add_theme_font_size_override("font_size", 14)
+	nl.add_theme_color_override("font_color",
+		UIColors.COLOR_TEXT_DISABLED if dead else UIColors.COLOR_TEXT_PRIMARY)
+	top.add_child(nl)
+	# Stun pips — one amber ● per marker (Core Rules: Stunned figures may Move
+	# OR Combat Action; a marker is removed only after the figure acts).
+	if stun > 0 and not dead:
+		var pips := Label.new()
+		pips.text = "●".repeat(stun)
+		pips.tooltip_text = "%d Stun marker(s) — Move OR Combat, not both" % stun
+		pips.add_theme_font_size_override("font_size", 11)
+		pips.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+		top.add_child(pips)
+	if badge != "":
+		var bl := Label.new()
+		bl.text = badge
+		bl.add_theme_font_size_override("font_size", 11)
+		bl.add_theme_color_override("font_color", UIColors.COLOR_ACCENT)
+		top.add_child(bl)
+	vb.add_child(_rail_hp_bar(hp, mx))
+	var sl := Label.new()
+	sl.text = stats
+	sl.add_theme_font_size_override("font_size", 11)
+	sl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vb.add_child(sl)
+	return card
+
+
+func _rail_hp_bar(hp: int, mx: int) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	var bar := ProgressBar.new()
+	bar.max_value = maxf(1.0, float(mx))
+	bar.value = float(hp)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 10)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var frac: float = float(hp) / maxf(1.0, float(mx))
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = (UIColors.COLOR_DANGER if frac <= 0.3
+		else (UIColors.COLOR_WARNING if frac <= 0.6 else UIColors.COLOR_SUCCESS))
+	fill.set_corner_radius_all(5)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = UIColors.COLOR_INPUT
+	bg.set_corner_radius_all(5)
+	bar.add_theme_stylebox_override("fill", fill)
+	bar.add_theme_stylebox_override("background", bg)
+	row.add_child(bar)
+	var lbl := Label.new()
+	lbl.text = "%d/%d" % [hp, mx]
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	row.add_child(lbl)
+	return row
 
 func _check_standalone_mode() -> void:
 	## If initialize_battle() was never called, check if battle context was
@@ -474,6 +851,10 @@ func _apply_stage_visibility(stage: int) -> void:
 	# player-managed on the physical table during COMBAT).
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("set_allow_unit_drag"):
 		battlefield_grid_panel.set_allow_unit_drag(stage == BattleStage.DEPLOYMENT)
+
+	# Redesign frame: feed strip + rails follow the stage (non-conflicting
+	# with the legacy match below, which only touches the shimmed panels).
+	_sync_redesign_for_stage(stage)
 
 	match stage:
 		BattleStage.TIER_SELECT:
@@ -1265,28 +1646,59 @@ func _on_tier_selected(tier: int) -> void:
 	if tier >= 2 and enemy_intent_panel == null:
 		_instance_oracle_components()
 
+	# initialize_battle() ran _create_character_cards() BEFORE the player
+	# picked a tier, so the per-figure drawers were built while
+	# activation_tracker was still null (its units were never registered).
+	# Now that the ASSISTED rules engines exist, rebuild the drawers so the
+	# Tracking drawer's ActivationTrackerPanel is populated and in lock-step.
+	if tier >= 1 and (not crew_units.is_empty() or not enemy_units.is_empty()):
+		_create_character_cards([])
+
 	_apply_tier_visibility(tier)
 	_hide_overlay()
 	_apply_stage_visibility(BattleStage.SETUP)
 
-	# Embed checklist in Setup tab (non-blocking, grid stays visible)
-	_embed_checklist_in_setup_tab(tier)
+	# Pre-battle checklist: a CENTERED MODAL on the existing OverlayLayer
+	# (approved plan ModalLayer role), not the deleted Setup tab.
+	_show_pre_battle_checklist(tier)
 
-func _embed_checklist_in_setup_tab(tier: int) -> void:
-	## Embed the pre-battle checklist in the Setup tab so the battlefield grid
-	## remains visible while the player sets up their physical table.
-	# Clear existing setup tab content
-	for child in setup_content.get_children():
-		child.queue_free()
+func _show_pre_battle_checklist(tier: int) -> void:
+	## Show the pre-battle checklist as a centered modal. The dense per-step
+	## rows (label + Roll/I-rolled controls) need the wide OverlayContent
+	## (>=500px), not a tight 380px keeper drawer. Scrollable so a tall
+	## checklist never overflows the viewport.
+	# modal_root = [ scroller(checklist) | fixed Begin-Battle footer ].
+	# The button MUST live OUTSIDE the scroller: a tall checklist scrolls
+	# its rows below the clip fold, and a clipped button is not clickable
+	# (verified at runtime). A fixed footer keeps the primary action
+	# always reachable regardless of scroll position.
+	var modal_root := VBoxContainer.new()
+	modal_root.custom_minimum_size = Vector2(560, 0)
+	modal_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modal_root.add_theme_constant_override("separation", UIColors.SPACING_MD)
 
-	# Create checklist and add to Setup tab
+	var scroller := ScrollContainer.new()
+	scroller.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroller.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Cap scroller height (leave room for the fixed footer button).
+	var vp_h: float = float(get_viewport().get_visible_rect().size.y)
+	scroller.custom_minimum_size.y = clampf(vp_h * 0.70, 280, vp_h - 180.0)
+	modal_root.add_child(scroller)
+
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	scroller.add_child(col)
+
+	# Create checklist and add to the scrolled column
 	var checklist: Control = _get_res("pre_battle_checklist").new()
+	checklist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	checklist.checklist_completed.connect(_on_checklist_completed)
-	setup_content.add_child(checklist)
+	col.add_child(checklist)
 	# Set tier AFTER adding to tree so _ready() has built the UI
 	checklist.set_tier(tier)
 
-	# Add "Begin Battle" button at bottom of Setup tab
+	# "Begin Battle" fixed footer (sibling of scroller, never clipped)
 	var begin_btn := Button.new()
 	begin_btn.text = "Begin Battle"
 	begin_btn.custom_minimum_size = Vector2(0, 56)
@@ -1303,10 +1715,10 @@ func _embed_checklist_in_setup_tab(tier: int) -> void:
 	btn_hover.bg_color = UIColors.COLOR_ACCENT_HOVER
 	begin_btn.add_theme_stylebox_override("hover", btn_hover)
 	begin_btn.pressed.connect(_on_checklist_dismissed)
-	setup_content.add_child(begin_btn)
+	modal_root.add_child(begin_btn)
 
-	# Switch to Setup tab so checklist is immediately visible (tab 0 = Setup)
-	right_tabs.current_tab = 0
+	# Surface it immediately as the modal (scrim + centered).
+	_show_overlay(modal_root)
 
 func _on_checklist_completed() -> void:
 	## All checklist items checked — log it (player can still click Begin)
@@ -1315,7 +1727,8 @@ func _on_checklist_completed() -> void:
 	)
 
 func _on_checklist_dismissed() -> void:
-	## Player clicked Begin Battle — transition depends on tier
+	## Player clicked Begin Battle — close the modal, transition by tier
+	_hide_overlay()
 	if tier_controller and tier_controller.current_tier == 0:
 		# LOG_ONLY: Skip deployment and combat, show results input form
 		_show_log_only_results_form()
@@ -1365,24 +1778,21 @@ func _show_log_only_results_form() -> void:
 	_log_only_results_form.results_submitted.connect(
 		_on_log_only_results_submitted)
 
-	# Show form in center panel, hide combat-specific UI
+	# LOG_ONLY: enter results in a slide-over drawer (plan §Tier scaling) —
+	# no deployment/combat screen takeover. Form still emits
+	# results_submitted → _on_log_only_results_submitted unchanged.
 	current_stage = BattleStage.COMBAT
-	if left_panel: left_panel.visible = false
-	if center_panel:
-		center_panel.visible = true
-		# Hide battlefield grid, show form in its place
-		if battlefield_grid_panel: battlefield_grid_panel.visible = false
-		if phase_content_panel: phase_content_panel.visible = false
-		# Add form directly to center panel for full-height layout
-		center_panel.add_child(_log_only_results_form)
-	if right_panel: right_panel.visible = true
-	if right_tabs: right_tabs.current_tab = 1 # Tools tab
-	if bottom_bar: bottom_bar.visible = false
-	if battle_round_hud: battle_round_hud.visible = false
+	_make_drawer("results", "Record Battle Result", DrawerClass.Edge.RIGHT, true)
+	var rbody: VBoxContainer = _drawer_bodies["results"]
+	for c in rbody.get_children():
+		c.queue_free()
+	_log_only_results_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rbody.add_child(_log_only_results_form)
 	if return_button: return_button.visible = true
 	if auto_resolve_button: auto_resolve_button.visible = false
 	if turn_indicator:
 		turn_indicator.text = "Enter your battle results"
+	_open_drawer("results")
 
 func _on_log_only_results_submitted(result: Dictionary) -> void:
 	## Handle LOG_ONLY form submission — transition to resolution
@@ -1393,32 +1803,45 @@ func _on_log_only_results_submitted(result: Dictionary) -> void:
 ## Tier Visibility
 
 func _apply_tier_visibility(tier: int) -> void:
-	## Show/hide tabs and components based on tracking tier.
-	## Called after tier selection and on mid-battle tier upgrade.
-	## Tier 0 (LOG_ONLY): Crew tab, Battle Log tab, Tools tab, Reference tab
-	## Tier 1 (ASSISTED): + Units tab, Tracking tab, Events tab
-	## Tier 2 (FULL_ORACLE): + Enemies tab
-	var show_assisted := tier >= 1
-	var show_oracle := tier >= 2
-
-	# Left panel: crew cards (no tabs — single scroll)
-	# PhaseContentPanel: phase-specific components shown/hidden per phase
-	# No tab-hiding needed — visibility controlled by _apply_stage_visibility()
-
-	# Right sidebar tabs: always visible (0=Tools, 1=Reference, 2=Setup)
-	# No changes needed — all three tabs shown at all tiers
-
-	# Update tier badge text
+	## REAL per-tier gating (was inert pre-redesign): build the drawer
+	## toolbar for this tier. LOG_ONLY = crew/enemies/dice/reference;
+	## ASSISTED = + tracking; FULL_ORACLE = + oracle. (Plan §Tier scaling.)
 	if tier_badge:
 		match tier:
 			0: tier_badge.text = "[LOG ONLY]"
 			1: tier_badge.text = "[ASSISTED]"
 			2: tier_badge.text = "[FULL ORACLE]"
+	_rebuild_drawer_toolbar(tier)
 
-	# EDIT 12: process_mode optimization — disable processing for hidden tab content
-	_apply_inactive_tab_processing()
-	if right_tabs and not right_tabs.tab_changed.is_connected(_on_right_tabs_tab_changed):
-		right_tabs.tab_changed.connect(_on_right_tabs_tab_changed)
+
+func _rebuild_drawer_toolbar(tier: int) -> void:
+	## (Re)build the drawer-button bar in a dedicated child of the action
+	## row so it never clobbers phase buttons added by other code.
+	if not action_buttons:
+		return
+	var bar: HBoxContainer = action_buttons.get_node_or_null("DrawerBar")
+	if bar == null:
+		bar = HBoxContainer.new()
+		bar.name = "DrawerBar"
+		bar.add_theme_constant_override("separation", UIColors.SPACING_SM)
+		action_buttons.add_child(bar)
+		action_buttons.move_child(bar, 0)
+	for c in bar.get_children():
+		c.queue_free()
+	var ids: Array = ["crew", "enemies", "dice", "reference"]
+	if tier >= 1:
+		ids.append("tracking")
+	if tier >= 2:
+		ids.append("oracle")
+	for id: String in ids:
+		var b := Button.new()
+		b.text = id.capitalize()
+		b.custom_minimum_size = Vector2(92, 44)
+		b.focus_mode = Control.FOCUS_NONE
+		var cap_id: String = id
+		b.pressed.connect(func() -> void: _open_drawer(cap_id))
+		bar.add_child(b)
+	_toolbar_built = true
 
 func _on_right_tabs_tab_changed(_idx: int) -> void:
 	## Re-apply process_mode whenever the active tab changes.
@@ -1445,13 +1868,15 @@ func _input(event: InputEvent) -> void:
 			accept_event()
 
 func _toggle_cheat_sheet() -> void:
-	if not cheat_sheet_panel:
-		return
-	cheat_sheet_panel.visible = not cheat_sheet_panel.visible
-	if cheat_sheet_panel.visible and round_tracker \
+	## F1 now opens the Reference drawer (CheatSheetPanel lives inside it).
+	if cheat_sheet_panel and cheat_sheet_panel.visible == false:
+		cheat_sheet_panel.visible = true
+	if cheat_sheet_panel and round_tracker \
 			and cheat_sheet_panel.has_method("expand_section_for_phase"):
 		var phase_idx: int = round_tracker.get_current_phase() if round_tracker.has_method("get_current_phase") else 0
 		cheat_sheet_panel.expand_section_for_phase(phase_idx)
+	if _drawers.has("reference"):
+		_open_drawer("reference")
 
 ## Sprint 11.4: BattleRoundTracker Integration Methods
 
@@ -1556,6 +1981,25 @@ func _on_round_phase_changed(phase: int, phase_name: String) -> void:
 		turn_indicator.text = "Round %d - %s" % [round_num, phase_name]
 	_log_message("Phase: %s" % phase_name, UIColors.COLOR_AMBER)
 	_update_action_buttons_for_phase(phase)
+
+	# Redesign: keep rails fresh as the round advances (HP/active counts).
+	_rebuild_crew_rail()
+	_rebuild_info_rail()
+
+	# Phase-spine auto-surface (plan §Core Rules phase alignment): at
+	# ASSISTED+ the phase-relevant deep surface opens (player can close).
+	# round_tracker phase enum: 0=REACTION, 2=ENEMY, 4=END_PHASE.
+	if tier_controller and tier_controller.current_tier >= 1:
+		if phase == 0:
+			# Reaction Roll (Core Rules p.114): D6 per crew figure vs its
+			# Reactions populates the rail's Q/S slots. The rail is downstream
+			# of the roll (plan iter 9) — static no longer.
+			_assign_crew_reaction_slots()
+		if phase == 4 and _drawers.has("tracking"):
+			_open_drawer("tracking")        # morale/victory at End Phase
+			# End Phase Morale (Core Rules pp.114-115): ONLY if the enemy
+			# lost figures this round; the player never tests morale.
+			_resolve_end_phase_morale()
 
 	# Show InitiativeCalculator overlay at REACTION_ROLL phase
 	if phase == 0 and initiative_calculator and tier_controller:
@@ -2450,46 +2894,266 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	elif mission_type == "salvage":
 		_setup_salvage_panel(mission_dict)
 
-func _create_character_cards(crew_members: Array) -> void:
-	## Create a CharacterStatusCard for each crew member
-	# Clear existing cards
+func _create_character_cards(_crew_members: Array) -> void:
+	## Phase 2: the Crew and Enemy SlideOverDrawers ARE the per-figure battle
+	## tracker (plan iters 1/2). One CharacterStatusCard per TacticalUnit goes
+	## into each drawer body; the TacticalUnit is the single source of truth
+	## (CLAUDE.md SSOT) and the card is a view that signals mutations back up.
+	## The legacy `crew_content` (= crew_rail) parenting is gone — the rail is
+	## the glance summary, the drawer is the detail (built from `crew_units`/
+	## `enemy_units`, the normalized model, NOT the raw `crew_members` source).
 	for card in character_cards:
 		if is_instance_valid(card):
 			card.queue_free()
 	character_cards.clear()
+	_unit_card_by_id.clear()
 
-	if not crew_content:
+	_populate_unit_drawer(_drawer_bodies.get("crew"), crew_units, true)
+	_populate_unit_drawer(_drawer_bodies.get("enemies"), enemy_units, false)
+
+
+func _unit_id(unit) -> String:
+	## Stable per-battle key. TacticalUnit is RefCounted (no `extends`), so
+	## get_instance_id() is unique and stable for the object's lifetime —
+	## no new model field, no name-collision risk for identical enemy types.
+	return str(unit.get_instance_id()) if unit else ""
+
+
+func _unit_card_dict(unit) -> Dictionary:
+	## Build the card/activation-tracker dict from the live TacticalUnit so
+	## the view always reflects current model state (health/stun/activation),
+	## never stale source data. Keys match CharacterStatusCard.set_character_data
+	## and ActivationTrackerPanel.add_unit (which requires a non-empty "id").
+	return {
+		"id": _unit_id(unit),
+		"character_name": unit.node_name,
+		"name": unit.node_name,
+		"combat": unit.combat_skill,
+		"toughness": unit.toughness,
+		"speed": unit.movement_points,
+		"savvy": unit.savvy,
+		"reactions": unit.reactions,
+		"max_health": unit.max_health,
+		"health": unit.health,
+		"actions_remaining": unit.actions_remaining,
+		"stun_markers": unit.stun_markers,
+		"is_activated": unit.is_activated,
+	}
+
+
+func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
+	## Rebuild one drawer body: a CharacterStatusCard + a "Mark Down" eliminate
+	## button per TacticalUnit, signals wired card -> model -> log/trackers.
+	if body == null or not is_instance_valid(body):
 		return
+	for c in body.get_children():
+		c.queue_free()
 
-	for crew_member in crew_members:
+	var tier: int = tier_controller.current_tier if tier_controller else 0
+
+	# FULL_ORACLE: EnemyIntentPanel is an AI-intent layer ON TOP of the
+	# per-figure enemy tracker (plan iter 1), not a replacement. Reparent it
+	# to the top of the enemy drawer body.
+	if not is_crew and tier >= 2 and enemy_intent_panel \
+			and is_instance_valid(enemy_intent_panel):
+		var prev := enemy_intent_panel.get_parent()
+		if prev and prev != body:
+			prev.remove_child(enemy_intent_panel)
+		if enemy_intent_panel.get_parent() == null:
+			body.add_child(enemy_intent_panel)
+			body.move_child(enemy_intent_panel, 0)
+
+	# ActivationTrackerPanel mirrors the same figures (Tracking drawer). Clear
+	# then re-add so a rebuild never double-registers (add_unit warns on dup).
+	if activation_tracker and is_instance_valid(activation_tracker) \
+			and activation_tracker.has_method("clear_all_units") and is_crew:
+		activation_tracker.clear_all_units()
+
+	for unit in units:
+		var data: Dictionary = _unit_card_dict(unit)
 		var card: PanelContainer = _get_res("character_status_card").instantiate()
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		crew_content.add_child(card)
+		body.add_child(card)
+		card.set_character_data(data)
+		card.set_display_tier(tier)
+		if card.has_method("set_activated"):
+			card.set_activated(unit.is_activated)
+		# Host-side overflow guard (CharacterStatusCard reused unchanged):
+		# autowrap its status/stats labels so a long status line
+		# ("Stunned x1 (Move OR Combat, not both) | Actions: 2") wraps inside
+		# the drawer column instead of forcing a horizontal scrollbar.
+		for lbl_name in ["status_label", "stats_label"]:
+			if lbl_name in card and card.get(lbl_name) is Label:
+				var lbl: Label = card.get(lbl_name)
+				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				lbl.custom_minimum_size.x = 0.0
 
-		# Set character data (accepts Resource or Dictionary)
-		card.set_character_data(crew_member)
+		# Register with the Tracking drawer's ActivationTrackerPanel so its
+		# crew/enemy sections stay in lock-step with these figures.
+		if activation_tracker and is_instance_valid(activation_tracker) \
+				and activation_tracker.has_method("add_unit"):
+			activation_tracker.add_unit(data, is_crew)
 
-		# Set tier display level
-		if tier_controller:
-			card.set_display_tier(tier_controller.current_tier)
+		# Card (view) -> model + log + trackers. bind() appends the unit so
+		# each card mutates exactly its own TacticalUnit (SSOT).
+		card.damage_taken.connect(_on_card_damage.bind(unit, is_crew))
+		card.stun_marked.connect(_on_card_stun.bind(unit))
+		card.action_used.connect(_on_card_action.bind(unit))
 
-		# Connect signals to journal
-		if unified_log:
-			card.action_used.connect(
-				func(char_name: String, action_type: String) -> void:
-					unified_log.log_action(
-						char_name, action_type
-					)
-			)
-			card.damage_taken.connect(
-				func(char_name: String, amount: int) -> void:
-					unified_log.log_action(
-						char_name,
-						"took %d damage" % amount
-					)
-			)
+		# Explicit eliminate path (instant kill: die = 6 or score >= Toughness,
+		# Core Rules pp.116-118) — no damage ticking required.
+		var down_btn := Button.new()
+		down_btn.text = "✖ Mark Down" if not unit.is_dead else "☠ Down"
+		down_btn.disabled = unit.is_dead
+		down_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+		var down_style := StyleBoxFlat.new()
+		down_style.bg_color = UIColors.COLOR_DANGER
+		down_style.set_corner_radius_all(6)
+		down_btn.add_theme_stylebox_override("normal", down_style)
+		down_btn.add_theme_stylebox_override("hover", down_style)
+		down_btn.add_theme_stylebox_override("pressed", down_style)
+		down_btn.pressed.connect(_mark_casualty.bind(unit, is_crew))
+		body.add_child(down_btn)
 
 		character_cards.append(card)
+		_unit_card_by_id[_unit_id(unit)] = card
+
+
+func _on_card_damage(char_name: String, amount: int, unit, is_crew: bool) -> void:
+	## CharacterStatusCard "Damage" -> model. Health 0 = casualty (the card
+	## already updated its own display; we only sync model/log/trackers/rail).
+	unit.health = max(0, unit.health - amount)
+	if unified_log:
+		unified_log.log_action(char_name, "took %d damage" % amount)
+	if unit.health <= 0 and not unit.is_dead:
+		_mark_casualty(unit, is_crew)
+	else:
+		_refresh_unit_rails()
+
+
+func _on_card_stun(char_name: String, unit) -> void:
+	## CharacterStatusCard "Stun" -> model. Stackable; persists across rounds
+	## (Core Rules: removed only after the stunned figure acts).
+	unit.stun_markers += 1
+	if unified_log:
+		unified_log.log_action(char_name, "Stunned (x%d)" % unit.stun_markers)
+	_refresh_unit_rails()
+
+
+func _on_card_action(char_name: String, action_type: String, unit) -> void:
+	## Only the generic Use-Action consumes the once-per-round activation
+	## (Core Rules p.114). Aim/Snap toggles are tactical state, not activation.
+	if action_type == "generic_action":
+		unit.is_activated = true
+		if activation_tracker and is_instance_valid(activation_tracker) \
+				and activation_tracker.has_method("set_unit_activated"):
+			activation_tracker.set_unit_activated(_unit_id(unit), true)
+	if unified_log:
+		unified_log.log_action(char_name, action_type)
+	_refresh_unit_rails()
+
+
+func _mark_casualty(unit, is_crew: bool, feed_morale: bool = true) -> void:
+	## Single casualty chokepoint (idempotent). Model -> trackers -> the
+	## iter-3 morale bridge (enemy casualties this round feed End Phase
+	## Morale, Core Rules pp.114-115). Player figures never feed enemy morale.
+	## feed_morale=false when REMOVING a Bailed enemy (a bail is not a kill,
+	## so it must not re-inflate casualties_this_round).
+	if unit == null or unit.is_dead:
+		return
+	unit.is_dead = true
+	unit.health = 0
+	if unified_log:
+		unified_log.log_action(unit.node_name, "is DOWN")
+	if activation_tracker and is_instance_valid(activation_tracker) \
+			and activation_tracker.has_method("set_unit_defeated"):
+		activation_tracker.set_unit_defeated(_unit_id(unit), true)
+	if feed_morale and not is_crew and morale_tracker \
+			and is_instance_valid(morale_tracker):
+		# casualties_this_round drives perform_morale_check() at End Phase.
+		if morale_tracker.has_method("add_casualty"):
+			morale_tracker.add_casualty()
+		elif "casualties_this_round" in morale_tracker:
+			morale_tracker.casualties_this_round += 1
+	_refresh_unit_rails()
+	_queue_drawer_repopulate()
+
+
+func _assign_crew_reaction_slots() -> void:
+	## Core Rules p.114 Reaction Roll: roll 1D6 per crew figure. Roll <= that
+	## figure's Reactions => it acts in the QUICK phase (slot 1); otherwise
+	## SLOW (slot 2). Enemies never roll (always ENEMY phase, slot 3).
+	var dm = get_node_or_null("/root/DiceManager")
+	var q: int = 0
+	var s: int = 0
+	for unit in crew_units:
+		if unit.is_dead:
+			unit.react_slot = 0
+			continue
+		var d6: int = 0
+		if dm and dm.has_method("roll_d6"):
+			d6 = dm.roll_d6("Reaction Roll: %s" % unit.node_name)
+		else:
+			d6 = (randi() % 6) + 1
+		if d6 <= unit.reactions:
+			unit.react_slot = 1
+			q += 1
+		else:
+			unit.react_slot = 2
+			s += 1
+	if unified_log:
+		unified_log.log_action("Reaction Roll", "%d Quick · %d Slow" % [q, s])
+	_refresh_unit_rails()
+
+
+func _resolve_end_phase_morale() -> void:
+	## Core Rules pp.114-115: at End Phase, if the enemy lost figures this
+	## round, roll 1D6 per casualty; each within the Bail Range = 1 enemy
+	## Bails (removed from play). The player never tests morale.
+	## casualties_this_round is fed by _mark_casualty (the iter-3 bridge).
+	if not (morale_tracker and is_instance_valid(morale_tracker)):
+		return
+	var cas: int = 0
+	if "casualties_this_round" in morale_tracker:
+		cas = morale_tracker.casualties_this_round
+	if cas <= 0 or not morale_tracker.has_method("perform_morale_check"):
+		return
+	var result: Dictionary = morale_tracker.perform_morale_check()
+	var bails: int = int(result.get("bails", 0))
+	if bails <= 0:
+		return
+	# A Bailed enemy leaves play — remove it WITHOUT re-feeding morale.
+	var removed: int = 0
+	for e in enemy_units:
+		if removed >= bails:
+			break
+		if not e.is_dead:
+			_mark_casualty(e, false, false)
+			removed += 1
+	if unified_log and removed > 0:
+		unified_log.log_morale("Bailed", removed)
+
+
+func _refresh_unit_rails() -> void:
+	## Rails are the glance layer — cheap to rebuild every mutation. Drawer
+	## cards self-update (CharacterStatusCard._update_display), so we do NOT
+	## rebuild the drawer here (would free a card mid-signal-emit).
+	_rebuild_crew_rail()
+	_rebuild_info_rail()
+
+
+func _queue_drawer_repopulate() -> void:
+	## Deferred so a card is never freed while it is mid-signal-emit
+	## (e.g. damage -> casualty -> rebuild). Coalesced via a re-entrancy flag.
+	if _drawer_repopulate_queued:
+		return
+	_drawer_repopulate_queued = true
+	call_deferred("_do_drawer_repopulate")
+
+
+func _do_drawer_repopulate() -> void:
+	_drawer_repopulate_queued = false
+	_create_character_cards([])
 
 func _start_deployment_phase() -> void:
 	## Start the deployment phase
@@ -2525,10 +3189,15 @@ func _update_action_buttons_for_deployment() -> void:
 ## are now created by _show_reaction_roll_ui(), _show_quick_actions_ui(), etc.
 
 func _clear_action_buttons() -> void:
-	## Clear all action buttons
+	## Clear all per-stage action buttons. The DrawerBar (Crew/Enemies/Dice/
+	## Reference/...) is a PERSISTENT toolbar (approved plan: drawer buttons
+	## are always-visible glanceable affordances across every stage), so it
+	## must survive the per-stage rebuilds that recreate the spine buttons.
 	if not action_buttons:
 		return
 	for child in action_buttons.get_children():
+		if child.name == "DrawerBar":
+			continue
 		child.queue_free()
 
 ## Legacy _update_unit_info_display() removed — CharacterStatusCards show unit info
@@ -2566,11 +3235,36 @@ func _on_auto_deploy_clicked() -> void:
 ## Round progression now driven by BattleRoundTracker.advance_phase()
 
 func _reset_all_unit_reactions() -> void:
-	## Reset reactions for all units at the start of a new round
+	## Round reset (Core Rules p.114): each surviving figure acts once per
+	## round, so activation + the reaction economy clear every round. Stun
+	## markers deliberately do NOT reset — a Stun marker is removed only
+	## after the stunned figure acts. ASSISTED+ also resyncs the rules
+	## engines in the Tracking drawer so they stay in lock-step.
 	for unit in all_units:
 		if unit.health > 0:
-			unit.reset_reactions()
-	_log_message("All units' reactions reset for Round %d" % current_turn, UIColors.COLOR_CYAN)
+			unit.reset_for_new_round()
+	if tier_controller and tier_controller.current_tier >= 1:
+		if activation_tracker and is_instance_valid(activation_tracker) \
+				and activation_tracker.has_method("reset_all_activations"):
+			activation_tracker.reset_all_activations()
+		if reaction_dice_panel and is_instance_valid(reaction_dice_panel) \
+				and reaction_dice_panel.has_method("reset_all_dice"):
+			reaction_dice_panel.reset_all_dice()
+		if morale_tracker and is_instance_valid(morale_tracker) \
+				and morale_tracker.has_method("new_round"):
+			morale_tracker.new_round()
+	_log_message("All units reset for Round %d (activation + reactions)"
+		% current_turn, UIColors.COLOR_CYAN)
+	_refresh_unit_rails()
+	_queue_drawer_repopulate()
+
+
+func _on_manual_round_reset() -> void:
+	## Rail "↺ Round" affordance — a tabletop player who advances their own
+	## physical round just wants the digital tracker cleared to match.
+	_reset_all_unit_reactions()
+	if unified_log:
+		unified_log.log_action("Round", "Activation manually reset")
 
 ## Legacy _check_victory_conditions() removed — VictoryProgressPanel handles this in END_PHASE
 
@@ -2617,15 +3311,21 @@ func _resolve_battle() -> void:
 					"Outnumbered by enemies %d to %d" % [
 						enemies_alive, crew_alive])
 
-	# Build casualties and injuries lists
+	# Build casualties and injuries lists.
+	# Core Rules p.122 (user-confirmed, rules-faithful): a crew figure that
+	# went Out of Action ALWAYS rolls the standard post-battle Injury Table —
+	# the roll itself determines dead / injured / recovered. Being downed
+	# mid-battle does NOT pre-classify the figure as a confirmed casualty
+	# (that forced the harsher "Roll Severity" sub-path with no "no effect"
+	# outcome). So every downed crew member routes to injuries_data → the
+	# Injury Table decides, not the in-battle Mark-Down button. Enemies are
+	# not in this loop; they die outright in battle (they feed End-Phase
+	# Morale, they do not roll the crew Injury Table).
 	var casualties_data: Array = []
 	var injuries_data: Array = []
 	for unit in crew_units:
 		if unit.health <= 0:
-			if unit.is_dead:
-				casualties_data.append(unit.original_character)
-			else:
-				injuries_data.append(unit.original_character)
+			injuries_data.append(unit.original_character)
 
 	# Build defeated enemy list for loot/XP
 	var defeated_enemies: Array = []
@@ -3080,14 +3780,29 @@ func _populate_setup_tab(mission_data) -> void:
 			_current_terrain_theme, world_traits,
 			deployment_condition))
 
-	# Populate the visual battlefield grid in center area
-	if battlefield_grid_panel and battlefield_grid_panel.has_method("populate"):
+	# Store the generator result so the info-rail BATTLEFIELD card +
+	# TERRAIN KEY (redesign) can read real combat_notes/objective data.
+	_battlefield_data = sector_data
+
+	# Populate the visual battlefield. The redesign swapped the chromed
+	# BattlefieldGridPanel for the bare BattlefieldMapView (requirement
+	# iter-2) — prefer its populate_from_sectors API, fall back to the
+	# legacy populate() if a GridPanel is ever wired again.
+	if battlefield_grid_panel:
 		var sectors_arr: Array = sector_data.get("sectors", [])
 		var theme_display_name: String = sector_data.get(
 			"theme_name", theme_name)
-		battlefield_grid_panel.populate(sectors_arr, theme_display_name, world_traits)
-		if not battlefield_grid_panel.regenerate_requested.is_connected(
-				_on_regenerate_terrain_pressed):
+		if battlefield_grid_panel.has_method("populate_from_sectors"):
+			battlefield_grid_panel.populate_from_sectors(
+				sectors_arr, theme_display_name, world_traits)
+		elif battlefield_grid_panel.has_method("populate"):
+			battlefield_grid_panel.populate(
+				sectors_arr, theme_display_name, world_traits)
+		# regenerate_requested is GridPanel chrome only — guard has_signal
+		# (the bare MapView does not expose it).
+		if battlefield_grid_panel.has_signal("regenerate_requested") \
+				and not battlefield_grid_panel.regenerate_requested.is_connected(
+					_on_regenerate_terrain_pressed):
 			battlefield_grid_panel.regenerate_requested.connect(
 				_on_regenerate_terrain_pressed)
 		# EDIT 13: right-click unit → mark casualty PopupMenu
@@ -3960,6 +4675,15 @@ class TacticalUnit:
 	var max_reactions_per_round: int = 3
 	var reactions_used_this_round: int = 0
 
+	# Per-figure battle bookkeeping (Core Rules Battle Round Ref pp.116-118).
+	# stun_markers: stackable; gained surviving a Hit ("pushed 1\" back and
+	#   Stunned"). NOT reset at round start (Core Rules: removed after acting).
+	# is_activated: each figure acts once per round; reset every round.
+	# react_slot: Reaction Roll outcome — 0 none / 1 QUICK / 2 SLOW / 3 ENEMY.
+	var stun_markers: int = 0
+	var is_activated: bool = false
+	var react_slot: int = 0
+
 	# Equipment
 	var _weapon_range: int = 12
 	var _weapon_shots: int = 1
@@ -4009,6 +4733,11 @@ class TacticalUnit:
 		max_health = max(1, toughness)
 		health = max_health
 
+		# Enemies always act in the ENEMY phase (Core Rules p.114) — they do
+		# not make a Reaction Roll. react_slot = 3 from creation so the rail
+		# reads correctly even before the first round reset.
+		react_slot = 3
+
 		# Initialize reaction economy from enemy character
 		initialize_reactions_from_character()
 
@@ -4048,6 +4777,19 @@ class TacticalUnit:
 	func reset_reactions() -> void:
 		## Reset reactions at start of new round
 		reactions_used_this_round = 0
+
+	func reset_for_new_round() -> void:
+		## Core Rules p.114: each figure acts once per round; activation and
+		## the reaction economy reset every round. Stun markers do NOT reset
+		## here (Core Rules: a Stun marker is removed only after the stunned
+		## figure acts). Enemies keep react_slot = 3 (always ENEMY phase);
+		## crew react_slot is repopulated by the Reaction Roll each round.
+		is_activated = false
+		reactions_used_this_round = 0
+		if team == "enemy":
+			react_slot = 3
+		else:
+			react_slot = 0
 
 	func initialize_reactions_from_character() -> void:
 		## Initialize reaction cap from original character (Swift = 1)

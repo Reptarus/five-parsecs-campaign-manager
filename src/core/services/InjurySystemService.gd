@@ -60,7 +60,14 @@ static func determine_injury(d100_roll: int) -> Dictionary:
 		if d100_roll >= range_data.min and d100_roll <= range_data.max:
 			result.injury_type = injury_type
 			result.type_name = InjurySystemConstants.INJURY_TYPE_NAMES[injury_type]
-			result.description = range_data.description
+			# INJURY_ROLL_RANGES entries only carry {min, max} (see
+			# InjurySystemConstants line ~108) — they have NO "description"
+			# key, so `range_data.description` errored out for EVERY valid
+			# roll, breaking the post-battle injury roll. The canonical
+			# description lives in INJURY_DESCRIPTIONS; read it the same way
+			# type_name is read above (rules-faithful, no fabricated text).
+			result.description = InjurySystemConstants.get_injury_description(
+				injury_type)
 			result.is_fatal = InjurySystemConstants.is_fatal(injury_type)
 			result.requires_surgery = InjurySystemConstants.requires_surgery(injury_type)
 

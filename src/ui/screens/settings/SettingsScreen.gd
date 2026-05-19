@@ -43,9 +43,10 @@ const BASE_FONT_LG := 18
 const BASE_FONT_XL := 24
 
 # Persistence
-var _config_path := "user://options.cfg"
+## Options live in SettingsManager (autoload, owns `user://options.cfg`).
+## Window state stays here per BUG-100 — separate file, separate concern.
 var _window_config_path := "user://window.ini"
-var _config := ConfigFile.new()
+var _sm: Node  # /root/SettingsManager, cached in _ready
 
 # Responsive manager ref
 var _responsive: Node
@@ -84,12 +85,13 @@ var _font_xl: int
 
 func _ready() -> void:
 	_responsive = get_node_or_null("/root/ResponsiveManager")
+	_sm = get_node_or_null("/root/SettingsManager")
 	_is_desktop = OS.has_feature("pc")
 	_is_mobile = OS.has_feature("mobile")
 	_compute_responsive_sizes()
-	_load_config()
+	# Boot apply lives in SettingsManager._ready() — no _apply_settings() here.
+	# Controls live-write to SettingsManager via their change signals (see _build_*).
 	_build_ui()
-	_apply_settings()
 
 
 func _enter_tree() -> void:
@@ -246,15 +248,14 @@ func _build_ui() -> void:
 	_build_about_section(content)
 
 	# Footer buttons
+	## Note: "Save Settings" button removed — every control writes to
+	## SettingsManager live via its change signal. Persistence is debounced
+	## inside the manager. Reset stays since it's a one-shot action with no
+	## continuous control equivalent.
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_CENTER
 	footer.add_theme_constant_override("separation", _spacing_md)
 	root_vbox.add_child(footer)
-
-	var save_btn := _create_accent_button("Save Settings")
-	save_btn.pressed.connect(_on_save_pressed)
-	save_btn.accessibility_name = "Save all settings changes"
-	footer.add_child(save_btn)
 
 	var reset_btn := _create_button("Reset to Defaults")
 	reset_btn.pressed.connect(_on_reset_pressed)
@@ -290,14 +291,20 @@ func _build_ui() -> void:
 func _build_audio_section(parent: VBoxContainer) -> void:
 	var card := _create_section_card("Audio", parent)
 
+	var master_initial: float = _sm.get_master_volume() if _sm else 1.0
 	_master_vol_slider = _add_slider_row(card, "Master Volume", 0.0, 1.0, 0.05,
-		_config.get_value("audio", "master_volume", 1.0), "Master volume control")
+		master_initial, "Master volume control")
+	_bind_slider(_master_vol_slider, "audio", "master_volume")
 
+	var music_initial: float = _sm.get_music_volume() if _sm else 0.8
 	_music_vol_slider = _add_slider_row(card, "Music Volume", 0.0, 1.0, 0.05,
-		_config.get_value("audio", "music_volume", 0.8), "Music volume control")
+		music_initial, "Music volume control")
+	_bind_slider(_music_vol_slider, "audio", "music_volume")
 
+	var sfx_initial: float = _sm.get_sfx_volume() if _sm else 0.8
 	_sfx_vol_slider = _add_slider_row(card, "SFX Volume", 0.0, 1.0, 0.05,
-		_config.get_value("audio", "sfx_volume", 0.8), "Sound effects volume control")
+		sfx_initial, "Sound effects volume control")
+	_bind_slider(_sfx_vol_slider, "audio", "sfx_volume")
 
 
 # ============ DISPLAY ============
@@ -306,8 +313,12 @@ func _build_display_section(parent: VBoxContainer) -> void:
 
 	# Desktop-only: Fullscreen and VSync
 	if _is_desktop:
+		var fs_initial: bool = _sm.is_fullscreen() if _sm else false
 		_fullscreen_check = _add_toggle_row(card, "Fullscreen",
-			_config.get_value("display", "fullscreen", false), "Toggle fullscreen mode")
+			fs_initial, "Toggle fullscreen mode")
+		if _sm:
+			_fullscreen_check.toggled.connect(func(v: bool):
+				_sm.set_setting("display", "fullscreen", v))
 
 		# VSync — 4 modes per Godot docs best practice
 		var vsync_row := HBoxContainer.new()
@@ -325,7 +336,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 		_vsync_option.add_item("Enabled", DisplayServer.VSYNC_ENABLED)
 		_vsync_option.add_item("Adaptive", DisplayServer.VSYNC_ADAPTIVE)
 		_vsync_option.add_item("Mailbox", DisplayServer.VSYNC_MAILBOX)
-		var saved_vsync: int = _config.get_value("display", "vsync_mode", DisplayServer.VSYNC_ENABLED)
+		var saved_vsync: int = _sm.get_vsync_mode() if _sm else DisplayServer.VSYNC_ENABLED
 		# Find matching index by ID
 		for i in range(_vsync_option.item_count):
 			if _vsync_option.get_item_id(i) == saved_vsync:
@@ -333,6 +344,9 @@ func _build_display_section(parent: VBoxContainer) -> void:
 				break
 		_vsync_option.custom_minimum_size = Vector2(200, _touch_target)
 		_vsync_option.accessibility_name = "Vertical sync mode selection"
+		if _sm:
+			_vsync_option.item_selected.connect(func(idx: int):
+				_sm.set_setting("display", "vsync_mode", _vsync_option.get_item_id(idx)))
 		vsync_row.add_child(_vsync_option)
 
 	# UI Scale — all platforms
@@ -351,7 +365,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	_ui_scale_slider.min_value = 0.75
 	_ui_scale_slider.max_value = 2.0
 	_ui_scale_slider.step = 0.05
-	_ui_scale_slider.value = _config.get_value("display", "ui_scale", 1.0)
+	_ui_scale_slider.value = _sm.get_ui_scale() if _sm else 1.0
 	_ui_scale_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_ui_scale_slider.custom_minimum_size.y = _touch_target
 	_ui_scale_slider.value_changed.connect(_on_ui_scale_changed)
@@ -372,20 +386,24 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	var card := _create_section_card("Gameplay", parent)
 
 	_auto_save_check = _add_toggle_row(card, "Auto-Save",
-		_config.get_value("gameplay", "auto_save", true), "Toggle automatic saving",
+		_sm.is_auto_save_enabled() if _sm else true, "Toggle automatic saving",
 		"Automatically save your campaign at the end of each turn.")
+	_bind_toggle(_auto_save_check, "gameplay", "auto_save")
 
 	_show_tooltips_check = _add_toggle_row(card, "Show Tooltips",
-		_config.get_value("gameplay", "show_tooltips", true), "Toggle keyword tooltips",
+		_sm.are_tooltips_enabled() if _sm else true, "Toggle keyword tooltips",
 		"Display keyword explanations when hovering game terms.")
+	_bind_toggle(_show_tooltips_check, "gameplay", "show_tooltips")
 
 	_show_fps_check = _add_toggle_row(card, "Show FPS Counter",
-		_config.get_value("gameplay", "show_fps", false), "Toggle frames per second display",
+		_sm.is_fps_visible() if _sm else false, "Toggle frames per second display",
 		"Show a framerate counter in the corner of the screen.")
+	_bind_toggle(_show_fps_check, "gameplay", "show_fps")
 
 	_screen_shake_check = _add_toggle_row(card, "Screen Shake",
-		_config.get_value("gameplay", "screen_shake", true), "Toggle screen shake effects",
+		_sm.is_screen_shake_enabled() if _sm else true, "Toggle screen shake effects",
 		"Enable camera shake during combat and critical events.")
+	_bind_toggle(_screen_shake_check, "gameplay", "screen_shake")
 
 
 # ============ MOBILE-ONLY ============
@@ -393,11 +411,13 @@ func _build_mobile_section(parent: VBoxContainer) -> void:
 	var card := _create_section_card("Touch & Haptics", parent)
 
 	_haptic_check = _add_toggle_row(card, "Haptic Feedback",
-		_config.get_value("mobile", "haptic_feedback", true), "Toggle vibration feedback",
+		_sm.is_haptic_enabled() if _sm else true, "Toggle vibration feedback",
 		"Vibrate on dice rolls, critical hits, and important events.")
+	_bind_toggle(_haptic_check, "mobile", "haptic_feedback")
 
 	_touch_sensitivity_slider = _add_slider_row(card, "Touch Sensitivity", 0.5, 2.0, 0.1,
-		_config.get_value("mobile", "touch_sensitivity", 1.0), "Adjust touch input sensitivity")
+		_sm.get_touch_sensitivity() if _sm else 1.0, "Adjust touch input sensitivity")
+	_bind_slider(_touch_sensitivity_slider, "mobile", "touch_sensitivity")
 
 
 # ============ EXPANSIONS ============
@@ -825,80 +845,59 @@ func _create_button(text: String) -> Button:
 	return btn
 
 
-# ============ PERSISTENCE ============
-func _load_config() -> void:
-	_config.load(_config_path)
+# ============ LIVE-APPLY BINDING HELPERS ============
+## Each interactive control in this screen wires its change signal directly
+## to SettingsManager.set_setting() so the manager applies + persists the
+## change live. These two helpers keep that boilerplate at one line per
+## control in the section builders above.
+
+func _bind_toggle(toggle: CheckButton, section: String, key: String) -> void:
+	if _sm:
+		toggle.toggled.connect(func(v: bool):
+			_sm.set_setting(section, key, v))
 
 
-func _on_save_pressed() -> void:
-	# Audio
-	_config.set_value("audio", "master_volume", _master_vol_slider.value)
-	_config.set_value("audio", "music_volume", _music_vol_slider.value)
-	_config.set_value("audio", "sfx_volume", _sfx_vol_slider.value)
-
-	# Display (desktop-only fields guarded)
-	if _is_desktop:
-		_config.set_value("display", "fullscreen", _fullscreen_check.button_pressed)
-		_config.set_value("display", "vsync_mode", _vsync_option.get_selected_id())
-	_config.set_value("display", "ui_scale", _ui_scale_slider.value)
-
-	# Gameplay
-	_config.set_value("gameplay", "auto_save", _auto_save_check.button_pressed)
-	_config.set_value("gameplay", "show_tooltips", _show_tooltips_check.button_pressed)
-	_config.set_value("gameplay", "show_fps", _show_fps_check.button_pressed)
-	_config.set_value("gameplay", "screen_shake", _screen_shake_check.button_pressed)
-
-	# Mobile
-	if _is_mobile:
-		_config.set_value("mobile", "haptic_feedback", _haptic_check.button_pressed)
-		_config.set_value("mobile", "touch_sensitivity", _touch_sensitivity_slider.value)
-
-	_config.save(_config_path)
-	_apply_settings()
+func _bind_slider(slider: HSlider, section: String, key: String) -> void:
+	if _sm:
+		slider.value_changed.connect(func(v: float):
+			_sm.set_setting(section, key, v))
 
 
+# ============ RESET ============
 func _on_reset_pressed() -> void:
-	_master_vol_slider.value = 1.0
-	_music_vol_slider.value = 0.8
-	_sfx_vol_slider.value = 0.8
+	if _sm:
+		_sm.reset_to_defaults()
+	# Pull fresh values from manager back into the controls (no signal storm —
+	# we set .value/.button_pressed which doesn't re-fire the change handlers
+	# we set via `connect`, because we set value directly. Actually Godot DOES
+	# emit value_changed on .value assignment, so we'd re-write the same value
+	# back to SM. That's a harmless idempotent write; the debounced save
+	# coalesces to one disk write.).
+	_master_vol_slider.value = _sm.get_master_volume() if _sm else 1.0
+	_music_vol_slider.value = _sm.get_music_volume() if _sm else 0.8
+	_sfx_vol_slider.value = _sm.get_sfx_volume() if _sm else 0.8
 	if _is_desktop:
-		_fullscreen_check.button_pressed = false
+		_fullscreen_check.button_pressed = _sm.is_fullscreen() if _sm else false
+		var v: int = _sm.get_vsync_mode() if _sm else DisplayServer.VSYNC_ENABLED
 		for i in range(_vsync_option.item_count):
-			if _vsync_option.get_item_id(i) == DisplayServer.VSYNC_ENABLED:
+			if _vsync_option.get_item_id(i) == v:
 				_vsync_option.select(i)
 				break
-	_ui_scale_slider.value = 1.0
-	_auto_save_check.button_pressed = true
-	_show_tooltips_check.button_pressed = true
-	_show_fps_check.button_pressed = false
-	_screen_shake_check.button_pressed = true
+	_ui_scale_slider.value = _sm.get_ui_scale() if _sm else 1.0
+	_auto_save_check.button_pressed = _sm.is_auto_save_enabled() if _sm else true
+	_show_tooltips_check.button_pressed = _sm.are_tooltips_enabled() if _sm else true
+	_show_fps_check.button_pressed = _sm.is_fps_visible() if _sm else false
+	_screen_shake_check.button_pressed = _sm.is_screen_shake_enabled() if _sm else true
 	if _is_mobile:
-		_haptic_check.button_pressed = true
-		_touch_sensitivity_slider.value = 1.0
-
-
-func _apply_settings() -> void:
-	# Audio buses
-	var master_idx: int = AudioServer.get_bus_index("Master")
-	if master_idx >= 0:
-		AudioServer.set_bus_volume_db(master_idx, linear_to_db(_master_vol_slider.value))
-
-	for bus_info in [["Music", _music_vol_slider], ["SFX", _sfx_vol_slider]]:
-		var idx: int = AudioServer.get_bus_index(bus_info[0])
-		if idx >= 0:
-			AudioServer.set_bus_volume_db(idx, linear_to_db(bus_info[1].value))
-
-	# Display — desktop only
-	if _is_desktop:
-		var mode: int = DisplayServer.WINDOW_MODE_FULLSCREEN if _fullscreen_check.button_pressed \
-			else DisplayServer.WINDOW_MODE_WINDOWED
-		DisplayServer.window_set_mode(mode)
-		DisplayServer.window_set_vsync_mode(_vsync_option.get_selected_id())
+		_haptic_check.button_pressed = _sm.is_haptic_enabled() if _sm else true
+		_touch_sensitivity_slider.value = _sm.get_touch_sensitivity() if _sm else 1.0
 
 
 func _on_ui_scale_changed(value: float) -> void:
 	if _ui_scale_label:
 		_ui_scale_label.text = "%d%%" % int(value * 100)
+	if _sm:
+		_sm.set_setting("display", "ui_scale", value)
 
 
 func _on_debug_pressed() -> void:

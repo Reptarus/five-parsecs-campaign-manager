@@ -85,6 +85,7 @@
 
 - **[Testing Guide](../tests/TESTING_GUIDE.md)** - gdUnit4 test methodology
 - **[Demo QA Script](testing/DEMO_QA_SCRIPT.md)** - Demo recording QA gate
+- **[Battle UI Redesign](testing/BATTLE_UI_REDESIGN.md)** - Map-Primary + Drawers design-spec, element→zone→tier map, Core Rules anchoring, per-figure bookkeeping wiring (durable QA reference for the shared `TacticalBattleUI`)
 - **[UX/UI Test Plan](testing/QA_UX_UI_TEST_PLAN.md)** - Systematic UI coverage
 - **[Integration Scenarios](testing/QA_INTEGRATION_SCENARIOS.md)** - 10 end-to-end workflow test scripts (S11-S15 alpha-1 specific)
 - **[Playtesting Strategy](testing/EFFICIENT_PLAYTESTING_STRATEGY.md)** - Testing methodology

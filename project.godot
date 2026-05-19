@@ -27,6 +27,7 @@ config/icon="res://assets/iconnew.png"
 
 [autoload]
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
+SettingsManager="*res://src/autoload/SettingsManager.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
 DLCManager="*res://src/core/systems/DLCManager.gd"

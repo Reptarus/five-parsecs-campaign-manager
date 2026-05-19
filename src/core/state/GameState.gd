@@ -27,7 +27,9 @@ var campaign:
 	set(value):
 		current_campaign = value
 var game_settings: Dictionary = {}
-var game_options: Dictionary = {}
+## game_options removed — owned by SettingsManager autoload (user://options.cfg).
+## Consumers call /root/SettingsManager.get_setting(section, key) or the typed
+## getters (is_auto_save_enabled(), get_master_volume(), etc.) instead.
 
 # Game state variables
 var _turn_number: int = 1
@@ -50,23 +52,15 @@ var _battlefield_data: Dictionary = {}
 # File paths
 const SAVE_DIRECTORY := "user://saves/"
 const SETTINGS_PATH := "user://settings.cfg"
-const OPTIONS_PATH := "user://options.cfg"
+## OPTIONS_PATH constant moved to SettingsManager.CONFIG_PATH (single owner).
 ## BUG-100: window state shared with SettingsScreen.gd (_window_config_path).
 ## Restored at boot here (autoload) because SettingsScreen's _enter_tree()
 ## restore only runs when the user opens Settings, never at game launch.
 const WINDOW_CONFIG_PATH := "user://window.ini"
 
-# Game options with defaults
-var default_options := {
-	"tutorials_enabled": true,
-	"music_volume": 0.8,
-	"sfx_volume": 1.0,
-	"fullscreen": false,
-	"ui_scale": 1.0,
-	"auto_save": true,
-	"enable_animations": true,
-	"enable_combat_log": true
-}
+## default_options dict moved to SettingsManager.DEFAULTS (sectioned format).
+## Three legacy keys are intentionally dropped during migration —
+## see SettingsManager.LEGACY_KEY_MAP for the migration map.
 
 # Settings with defaults
 var default_settings := {
@@ -100,9 +94,9 @@ func _init() -> void:
 	if not _error_logger:
 		push_error("Failed to create ErrorLogger instance")
 		
-	# Load settings and options
+	# Load settings (options are owned by SettingsManager autoload, which
+	# loads + applies them in its own _ready() — no call from here).
 	load_settings()
-	load_options()
 
 	# Auto-load last campaign if available
 	_try_auto_load_last_campaign()
@@ -213,50 +207,10 @@ func load_settings() -> bool:
 			
 	return true
 
-## Save the current options to disk
-## @return Whether the save operation was successful
-func save_options() -> bool:
-	var config = ConfigFile.new()
-	if not config:
-		_log_error("Failed to create ConfigFile for options")
-		return false
-		
-	for key in game_options:
-		config.set_value("options", key, game_options[key])
-	
-	var error = config.save(OPTIONS_PATH)
-	if error != OK:
-		_log_error("Failed to save options", error)
-		return false
-		
-	return true
-
-## Load options from disk
-## @return Whether the load operation was successful
-func load_options() -> bool:
-	# Start with defaults
-	game_options = default_options.duplicate(true)
-	
-	var config = ConfigFile.new()
-	if not config:
-		_log_error("Failed to create ConfigFile for loading options")
-		return false
-		
-	var error = config.load(OPTIONS_PATH)
-	
-	if error != OK:
-		# If the file doesn't exist, create it with defaults
-		if error == ERR_FILE_NOT_FOUND:
-			return save_options()
-		_log_error("Error loading options", error)
-		return false
-	
-	# Load values from file
-	if config.has_section("options"):
-		for key in config.get_section_keys("options"):
-			game_options[key] = config.get_value("options", key)
-			
-	return true
+## save_options() / load_options() removed — SettingsManager autoload owns
+## user://options.cfg and handles load + boot apply + live save. See its
+## _load_with_migration() for the one-time migration of legacy [options]
+## sections written by the deleted methods.
 
 ## Create a new campaign from data
 ## @param campaign_data The data to initialize the campaign with
@@ -890,9 +844,11 @@ func get_date_string(unix_time: int) -> String:
 # Auto-save functionality
 
 func auto_save() -> void:
-	if not get_option("auto_save", true):
+	# Auto-save toggle lives in SettingsManager (single owner of options).
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm and not sm.is_auto_save_enabled():
 		return
-	
+
 	if current_campaign == null:
 		return
 	
@@ -906,19 +862,20 @@ func persist_game_state() -> void:
 	# Save current campaign if exists
 	if current_campaign != null:
 		save_campaign()
-	
-	# Save settings and options
+
+	# Save settings (options are saved live by SettingsManager on every change).
 	save_settings()
-	save_options()
 
 # Reset functionality (for testing)
 
 func reset_to_defaults() -> void:
-	game_options = default_options.duplicate(true)
+	# Options are owned by SettingsManager — delegate reset there.
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm and sm.has_method("reset_to_defaults"):
+		sm.reset_to_defaults()
 	game_settings = default_settings.duplicate(true)
-	save_options()
 	save_settings()
-	
+
 	current_campaign = null
 	emit_signal("state_changed")
 
@@ -948,12 +905,13 @@ func set_use_story_track(value: bool) -> bool:
 		game_settings.use_story_track = value
 	return true
 	
+## Compat shim — delegates to the canonical owner.
 func set_auto_save_enabled(value: bool) -> bool:
-	if not game_options.has("auto_save"):
-		game_options["auto_save"] = value
-	else:
-		game_options.auto_save = value
-	return true
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm and sm.has_method("set_setting"):
+		sm.set_setting("gameplay", "auto_save", value)
+		return true
+	return false
 	
 func set_last_save_time(time: int) -> bool:
 	if not game_settings.has("last_save_time"):
@@ -975,8 +933,12 @@ func is_permadeath_enabled() -> bool:
 func is_story_track_enabled() -> bool:
 	return game_settings.get("use_story_track", true)
 	
+## Compat shim — delegates to the canonical owner.
 func is_auto_save_enabled() -> bool:
-	return game_options.get("auto_save", true)
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm and sm.has_method("is_auto_save_enabled"):
+		return sm.is_auto_save_enabled()
+	return true
 
 # Campaign options methods
 func get_campaign_option(option_name: String, default_value = null) -> Variant:
@@ -986,15 +948,11 @@ func get_campaign_option(option_name: String, default_value = null) -> Variant:
 		return is_story_track_enabled()
 	elif option_name == "auto_save_enabled":
 		return is_auto_save_enabled()
-	
+
 	# Check game_settings first
 	if game_settings.has(option_name):
 		return game_settings[option_name]
-	
-	# Then check game_options
-	if game_options.has(option_name):
-		return game_options[option_name]
-	
+
 	return default_value
 
 func set_campaign_option(option_name: String, value) -> bool:
@@ -1005,15 +963,13 @@ func set_campaign_option(option_name: String, value) -> bool:
 		game_settings["use_story_track"] = value
 		return true
 	elif option_name == "auto_save_enabled":
-		game_options["auto_save"] = value
-		return true
-	
-	# Try to determine the appropriate dictionary
-	if option_name in ["difficulty_level", "last_save_time", "last_campaign"]:
-		game_settings[option_name] = value
-	else:
-		game_options[option_name] = value
-	
+		return set_auto_save_enabled(value)
+
+	# Campaign-scoped state lives in game_settings. App-wide preferences
+	# (volume, vsync, ui_scale, etc.) belong in SettingsManager; routing
+	# unknown options into game_settings is the conservative choice — those
+	# keys aren't preferences, they're test/runtime state.
+	game_settings[option_name] = value
 	return true
 
 # Resource-related methods required by tests
@@ -1155,9 +1111,18 @@ func has_crew() -> bool:
 	return crew.size() > 0
 
 # Get an option value with default fallback
+## Compat shim — delegates to the canonical owner. Section is inferred
+## from the SettingsManager DEFAULTS so legacy callers using flat keys
+## (e.g. get_option("auto_save")) still resolve correctly.
 func get_option(option_name: String, default_value = null) -> Variant:
-	if option_name in game_options:
-		return game_options[option_name]
+	var sm := get_node_or_null("/root/SettingsManager")
+	if not sm or not sm.has_method("get_setting"):
+		return default_value
+	# Walk the manager's DEFAULTS to find which section owns this key.
+	var defaults: Dictionary = sm.DEFAULTS if "DEFAULTS" in sm else {}
+	for section in defaults:
+		if defaults[section].has(option_name):
+			return sm.get_setting(section, option_name)
 	return default_value
 
 func get_crew_size() -> int:

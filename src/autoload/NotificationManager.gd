@@ -109,6 +109,7 @@ func show_info(message: String, duration: float = DEFAULT_DURATION) -> void:
 func show_success(message: String, duration: float = DEFAULT_DURATION) -> void:
 	## Show a success notification (green)
 	_queue_notification(message, NotificationType.SUCCESS, duration)
+	_haptic_pulse(40)  # brief tap for positive moments — gated in SettingsManager
 
 func show_warning(message: String, duration: float = DEFAULT_DURATION) -> void:
 	## Show a warning notification (orange)
@@ -117,6 +118,15 @@ func show_warning(message: String, duration: float = DEFAULT_DURATION) -> void:
 func show_error(message: String, duration: float = LONG_DURATION) -> void:
 	## Show an error notification (red, longer duration)
 	_queue_notification(message, NotificationType.ERROR, duration)
+	_haptic_pulse(80)  # firmer tap for errors so users feel the failure
+
+
+## Routes haptic feedback through SettingsManager so the user toggle + platform
+## guard live in one place. No-op on desktop and when the user disables haptics.
+func _haptic_pulse(ms: int) -> void:
+	var sm := get_tree().root.get_node_or_null("/root/SettingsManager") if get_tree() else null
+	if sm and sm.has_method("vibrate"):
+		sm.vibrate(ms)
 
 func show_toast(message: String, type: String = "info", duration: float = DEFAULT_DURATION) -> void:
 	## Generic toast method - type can be "info", "success", "warning", "error" 
