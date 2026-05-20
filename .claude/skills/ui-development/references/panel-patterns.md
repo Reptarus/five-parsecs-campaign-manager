@@ -111,3 +111,60 @@ get_validation_message() -> String
 _validate_and_emit_completion() -> void
 safe_validate_and_complete() -> void
 ```
+
+## SlideOverDrawer — Reusable Slide-Over Widget
+
+`src/ui/components/common/SlideOverDrawer.gd` (keeper widget, gdUnit 10/10).
+Edge-anchored non-blocking drawer on a CanvasLayer (L92 in TacticalBattleUI).
+ESC / scrim-tap closes; exclusivity is the host's responsibility (call
+`close()` on the others before `open()`-ing one).
+
+```gdscript
+@export var edge: Edge = Edge.RIGHT      # LEFT / RIGHT / BOTTOM
+@export var drawer_title: String = ""
+@export var animate: bool = true         # false in tests for snap behavior
+@export var min_panel_width: float = 0.0 # 0 = tight reading column (default)
+```
+
+**Width contract (LEFT/RIGHT):**
+- `min_panel_width == 0` → tight reading column `clampf(vp.x * 0.26, 300, 380)`.
+  Use for text/cheat-sheet drawers (Reference card).
+- `min_panel_width > 0` → CONTENT-sized `minf(min_panel_width, vp.x * 0.5)`.
+  Set to ~480 for drawers that host full component panels (unit-tracker
+  cards with a 5-button action row, DiceDashboard, MoralePanicTracker,
+  EnemyIntentPanel). **NEVER size a content panel as a viewport fraction**
+  — `vp.x * 0.42` balloons to ~828px on a 1972px monitor (a half-screen
+  takeover that defeats the "readable column, map stays visible" intent).
+  Content widgets are content-sized; viewport sizing is for the chrome.
+
+```gdscript
+# Tight reading column (Reference card text)
+_make_drawer("reference", "Battle Round Reference", DrawerClass.Edge.RIGHT)
+
+# Wide drawer (full unit-tracker cards)
+_make_drawer("crew", "Crew", DrawerClass.Edge.LEFT, true)   # wide=true → 480
+```
+
+**Drawer owns scrolling.** The internal `ScrollContainer` uses
+`SCROLL_MODE_AUTO` horizontal (a wide production body like
+`WeaponTableDisplay` ~420px min scrolls inside the column rather than
+overhanging the viewport). Production bodies pass plain content — no
+per-body `ScrollContainer` / vertical-expand. `_fit_panel_height()`
+re-asserts the capped width/position after a late layout pass.
+
+**`set_content()` replaces** — one content `Control` at a time. Previous
+content is `remove_child` → `queue_free` then the new one is `add_child`'d.
+This is the documented Godot 4.6 reparenting pattern (Context7-confirmed:
+`class_packedscene.html` / `instancing_with_signals.html`).
+
+**Host-side overflow guard for reused cards** (no edit to the shared
+component): after `instantiate()` + `add_child`, set the card's text labels
+to autowrap so long lines don't propagate width past the column cap:
+
+```gdscript
+for lbl_name in ["status_label", "stats_label"]:
+    if lbl_name in card and card.get(lbl_name) is Label:
+        var lbl: Label = card.get(lbl_name)
+        lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        lbl.custom_minimum_size.x = 0.0
+```

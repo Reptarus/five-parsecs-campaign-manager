@@ -14,6 +14,7 @@ The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority 
 1. **FiveParsecsCampaignCore is Resource**: `campaign["key"] = val` **silently fails**. Use `progress_data["key"]` for runtime state. Use `"key" in campaign` instead of `.has("key")`.
 2. **GameStateManager dual-sync**: ALL setters that modify campaign state MUST also write to `progress_data`. The canonical pattern: update campaign property → sync to progress_data → emit signal.
 3. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions.
+4. **`user://options.cfg` is owned by SettingsManager autoload (since May 19, 2026)**: NOT GameState. `GameState.game_options`/`load_options`/`save_options`/`default_options`/`OPTIONS_PATH` are all deleted. `GameState.auto_save()` reads `/root/SettingsManager.is_auto_save_enabled()` with null-guard. The legacy `is_auto_save_enabled`/`get_option`/`set_auto_save_enabled` methods on GameState remain as thin SettingsManager-delegating shims (test-API compat). Sectioned format `[audio]/[display]/[gameplay]/[mobile]` — never write a flat `[options]` section, the migrator will fold it away on next boot. `user://settings.cfg` (campaign meta — last_campaign, difficulty default, etc.) is still GameState-owned and unchanged.
 
 ---
 

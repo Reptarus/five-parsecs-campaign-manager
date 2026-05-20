@@ -187,15 +187,42 @@ LegalConsentManager (autoload) → user://legal_consent.cfg
 
 ## Settings Persistence (Separate from Campaign)
 
+**Settings** (GameState-owned, app-startup state):
 ```
 GameState.save_settings() → user://settings.cfg
 GameState.load_settings() → user://settings.cfg
-GameState.save_options() → user://options.cfg
-GameState.load_options() → user://options.cfg
 ```
+Settings include: difficulty default, last campaign, recently-used campaigns,
+auto-load preference, language. These live in `GameState.game_settings` dict.
 
-Settings include: difficulty, last campaign, language
-Options include: music volume, UI scale, auto_save toggle
+**Options** (SettingsManager-owned, user preferences) — refactored May 19, 2026:
+```
+SettingsManager._ready() → loads + migrates + applies user://options.cfg
+SettingsManager.set_setting(section, key, value) → writes + applies + debounced save
+SettingsManager.get_setting(section, key) → reads with DEFAULTS fallback
+```
+File schema is sectioned: `[audio]`, `[display]`, `[gameplay]`, `[mobile]`.
+SettingsManager owns the file end-to-end — `GameState` no longer reads or writes
+it. Three legacy paths were removed: `GameState.save_options()`,
+`GameState.load_options()`, and `game_options` dict. The old flat `[options]`
+section is migrated into the sectioned schema once at boot via
+`SettingsManager._load_with_migration()`, then erased.
+
+Settings consumed live across the codebase via SettingsManager's typed getters
+(each is a single chokepoint):
+- `is_auto_save_enabled()` → `GameState.auto_save()`
+- `is_screen_shake_enabled()` → `TweenFX.shake()` gate
+- `are_tooltips_enabled()` → `KeywordTooltip.show_for_keyword()` gate
+- `is_haptic_enabled()` + `vibrate(ms)` → `NotificationManager.show_success/error`
+- `is_fps_visible()` → SettingsManager-owned FPS overlay (CanvasLayer 95)
+- `get_ui_scale()` → `get_tree().root.content_scale_factor` (Godot 4.6 canonical
+  runtime UI-scale knob — NOT `Theme.default_base_scale` which is startup-only)
+- audio/vsync/fullscreen → `AudioServer.set_bus_volume_db` + `DisplayServer`
+  (idempotent fullscreen flip preserves Maximized state from `window.ini`)
+
+`user://window.ini` is a separate concern (BUG-100, screen/mode/position/size)
+owned by `GameState._restore_window_state_at_boot()` and
+`SettingsScreen._enter_tree`/`_exit_tree`. Do not conflate with options.
 
 ## Save Directory
 

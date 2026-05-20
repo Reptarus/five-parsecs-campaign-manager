@@ -13,6 +13,10 @@ The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority 
 1. **BattleResolver is static** (RefCounted) — use `BattleResolver.resolve_battle()`, never instantiate as Node.
 2. **TacticalBattleUI shared** between Standard and Bug Hunt — changes must not break either mode.
 3. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions.
+4. **Per-figure SSOT (Phase 2)**: `TacticalUnit` is the model — `stun_markers`/`is_activated`/`react_slot` live there; `CharacterStatusCard`/rails/`ActivationTrackerPanel` are views. Parent calls down, child signals up via `_on_card_*` handlers. `_mark_casualty` is the single idempotent casualty chokepoint (guarded by `is_dead`); `feed_morale=false` is for bail-removal only.
+5. **Crew "Mark Down" = Out of Action, NOT confirmed dead**: `_resolve_battle()` routes ALL downed crew (`health<=0`) to `crew_injuries_data` → standard post-battle Injury Table (Core Rules p.122) decides dead/injured/recovered. The table is the arbiter, not the in-battle button. Enemies still die outright (feed End-Phase Morale, don't roll injury). DO NOT re-split by `is_dead` at resolve time.
+6. **SlideOverDrawer wide-drawer contract**: opt-in `@export var min_panel_width: float = 0.0` (default 0 = unchanged tight column, keeper gdUnit 10/10 stays green). Wide drawers (Crew/Enemies/Dice/Tracking/Oracle/Results) request ~480px CONTENT-sized (`minf(min_panel_width, vp.x*0.5)`). NEVER size a content panel as a viewport fraction (`vp.x*0.42` balloons to 828px on wide monitors → half-screen takeover).
+7. **BattleRoundTracker `battle_event_triggered` requires UI to call `check_battle_event()` after overlay** (line ~186) to avoid modal double-fire. Bare `advance_phase()×5` does NOT auto-emit. A pre-existing test (`test_battle_event_triggers_on_round_2`) encodes the wrong expectation — kept out-of-scope.
 
 ---
 
@@ -23,6 +27,68 @@ Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
 - **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
 - **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
 - **Python (PyPDF2 ONLY)**: `py` launcher (NOT `python`). PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"`
+
+---
+
+## Battle Screen UX/UI Redesign (May 17–19, 2026) — Phase 0+1+2 COMPLETE
+
+Canonical doc: `docs/testing/BATTLE_UI_REDESIGN.md` (Map-Primary + Drawers,
+indexed). Plan: `~/.claude/plans/i-think-i-got-binary-comet.md`.
+
+### What shipped
+
+- **Frame port + keeper widget**: `TacticalBattleUI.tscn`/`.gd` restructured
+  to map-primary + thin crew/enemy rails + collapsible feed + persistent
+  drawer toolbar; keeper `src/ui/components/common/SlideOverDrawer.gd`
+  (gdUnit 10/10). All 3 tiers (LOG_ONLY/ASSISTED/FULL_ORACLE) + all 4
+  entry-point `battle_mode` branches (Battle Sim, Bug Hunt, Planetfall,
+  Tactics) MCP-verified.
+- **Phase 2 per-figure bookkeeping**: `TacticalUnit` gained `stun_markers`,
+  `is_activated`, `react_slot` (enemy=3 in `initialize_from_enemy`) +
+  `reset_for_new_round()` (KEEPS stun — Core Rules: removed only after
+  acting). Crew/Enemy drawers populated via `_populate_unit_drawer` (one
+  `CharacterStatusCard` + a red "✖ Mark Down" Button per `TacticalUnit`).
+  `ActivationTrackerPanel` populated via `add_unit` in the same loop;
+  `_on_tier_selected` re-populates after ASSISTED engines instance
+  (fixes initial null-tracker register skip). Reaction Roll =
+  `_assign_crew_reaction_slots()` at phase 0 (D6 vs `reactions` → 1/2);
+  End-Phase Morale = `_resolve_end_phase_morale()` (only if enemy lost
+  figures — Core Rules pp.114–115; `_mark_casualty(unit, false, false)`
+  removes bailed enemies without re-feeding morale).
+- **Rules-faithful crew injury routing** (user-confirmed): `_resolve_battle()`
+  sends ALL downed crew to `crew_injuries_data` → standard post-battle
+  Injury Table (Core Rules p.122). `is_dead` is retained ONLY as the
+  clean in-battle off-table flag (rail/Down-button/morale idempotency).
+- **Wide drawers**: opt-in `min_panel_width` on `SlideOverDrawer`; Crew /
+  Enemies / Dice / Tracking / Oracle / Results = 480px content-sized.
+- **Bug found & fixed during consistency verification** (NOT a Phase 2
+  regression — file untouched since 2026-04-02):
+  `src/core/services/InjurySystemService.gd:63` accessed `range_data.description`
+  but `INJURY_ROLL_RANGES` entries are `{min, max}` only → SCRIPT ERROR
+  spam + blank descriptions in every post-battle injury roll. Fixed →
+  `InjurySystemConstants.get_injury_description(injury_type)` (canonical
+  `INJURY_DESCRIPTIONS`, mirrors adjacent `type_name` lookup).
+
+### Verification
+
+gdUnit: keeper 10/10, activation_tracker 12/12, objective_tracker 14/14,
+post_battle_cascade 4/4, tier_controller 13/13, injury_determination 13/13,
+injury_recovery 15/15, post_battle_subsystems 10/10. ONE PRE-EXISTING
+out-of-scope fail (`test_battle_event_triggers_on_round_2` — see gotcha #7).
+Empirical d100 sweep of `determine_injury`: 15/100 fatal, 50/100 recovery,
+35/100 no-effect — confirming downed crew can still die or recover via the
+"Roll Injury" path. End-to-end empirical: card → model SSOT (stun/damage/
+action), round reset KEEPS stun, iter-3 morale bridge + bail removal,
+`crew_injuries=2 / crew_casualties=0` after 2 player-marked-down crew.
+
+### Files
+
+`src/ui/screens/battle/TacticalBattleUI.gd` (Phase 2 fields/methods + wide
+`_make_drawer` + crew injury routing in `_resolve_battle`),
+`src/ui/components/common/SlideOverDrawer.gd` (`min_panel_width` +
+`_lr_width`), `src/core/services/InjurySystemService.gd` (line ~63
+description fix). NEW: `docs/testing/BATTLE_UI_REDESIGN.md`. DELETED:
+`src/ui/screens/battle/prototype/` (untracked throwaway).
 
 ---
 

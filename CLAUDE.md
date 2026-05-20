@@ -427,6 +427,7 @@ Cross-platform in-app review prompts via ReviewManager autoload:
 | Autoload | Path | Purpose |
 |----------|------|---------|
 | GlobalEnums | src/core/systems/GlobalEnums.gd | Shared enum definitions |
+| SettingsManager | src/autoload/SettingsManager.gd | Single owner of `user://options.cfg`; boot-time apply (audio/vsync/fullscreen/UI scale), live-apply on change, FPS overlay, haptic helper |
 | GameState | src/core/state/GameState.gd | Campaign state singleton |
 | GameStateManager | src/core/managers/GameStateManager.gd | State mutation helper |
 | GameDataManager | src/core/managers/GameDataManager.gd | Data loading |

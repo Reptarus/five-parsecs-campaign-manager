@@ -13,6 +13,9 @@ The Core Rules PDF and Compendium PDF are the **canonical, final authority** for
 1. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions. This is the #1 cause of compile errors in new code.
 2. **Three-Enum Sync Rule**: GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned. When testing enum-dependent code, verify all three.
 3. **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check.
+4. **GDScript does NOT hot-reload in a running Godot instance**: after editing a `.gd`, you MUST `stop_project` + `run_project` (or reboot the editor) before re-probing via MCP `run_script` — otherwise you verify against stale launch-time bytecode. Symptom: empirical probe reports values inconsistent with the on-disk source.
+5. **MCP `run_script` runs in DEBUG mode (break-on-error)**: a "debugger break" from `run_script` may be log-spam in normal play. Godot continues past Dictionary missing-key access (returns null + `SCRIPT ERROR` in console); the shipped game / gdUnit do not halt. Inspect carefully before claiming "crash" — distinguish hard-halt from logged-error-continues.
+6. **Green unit tests ≠ exercised runtime path**: `test_injury_determination` 13/13 passed both BEFORE and AFTER fixing a real crash-spam bug in the very function it tests — because the test data path didn't trip the offending line. Empirical d100 sweeps / MCP runtime exercises catch what unit tests miss. The MCP runtime is the real gate (per CLAUDE.md).
 
 ---
 
@@ -26,6 +29,61 @@ For RULES_VERIFIED status, extract values directly from source PDFs:
 - **Example**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path/to/pdf'); print(r.pages[PAGE].extract_text())"`
 
 Use this to cross-reference game values when promoting mechanics from MCP_VALIDATED to RULES_VERIFIED.
+
+---
+
+## Battle UI Redesign — Post-Battle Consistency Sweep (May 17–19, 2026)
+
+Triggered by the user's request: "make sure post battle phase and the data
+roll over into the next turn are still consistent" after the Phase 2 crew
+injury-routing change. The static trace alone (gdUnit 50/51 + scoped
+post_battle_subsystems 10/10 + injury_determination 13/13) said
+"consistent" — but empirical exercise of the live path surfaced a real
+defect the unit tests had been silently passing through.
+
+### Found & fixed (PRE-EXISTING, surfaced by the sweep)
+
+`src/core/services/InjurySystemService.gd:63` (untouched since 2026-04-02,
+NOT a Phase 2 regression): `result.description = range_data.description`
+but `INJURY_ROLL_RANGES` entries are `{min, max}` only (no `description`
+key). Every post-battle injury roll logged a `SCRIPT ERROR` and returned
+a blank description. NOT a hard player-facing crash — Godot continues
+past Dictionary missing-key access; `is_fatal`/`recovery_turns` stayed
+correct; the debugger-break first seen via MCP was a `run_script` debug-
+mode artifact. Fixed → `InjurySystemConstants.get_injury_description(injury_type)`
+(canonical `INJURY_DESCRIPTIONS`, mirrors adjacent `type_name` lookup,
+no fabricated data). Surfaced BECAUSE the rules-faithful crew routing
+(`_resolve_battle()`) now sends 100% of downed crew through this path.
+
+### Consistency verdict
+
+`_resolve_battle()` only relabels the display bucket (all downed crew →
+"Roll Injury"); persist/recovery/rollover mechanism unchanged.
+`determine_injury()` is roll-only (one table, no `is_casualty` branch),
+empirical d100 sweep: **15/100 fatal** (e.g. roll 1 = GRUESOME_FATE),
+**50/100 recovery** (feeds `_process_sick_bay_recovery` turn decrement),
+**35/100 no-effect**. Bitter Day (Core Rules p.67) reads the PROCESSED
+`battle_result["casualties"]` by `type`, not the pre-roll count — still
+fires on an injury-roll fatality. No downstream consumer requires
+`crew_casualties > 0`.
+
+### Regression suite (run after both fixes)
+
+`test_slide_over_drawer` 10/10, `test_activation_tracker` 12/12,
+`test_battle_objective_tracker` 14/14, `test_post_battle_success_cascade`
+4/4, `test_battle_tier_controller` 13/13, `test_injury_determination`
+13/13, `test_injury_recovery` 15/15, `test_post_battle_subsystems` 10/10.
+**One pre-existing fail tracked separately**:
+`test_battle_round_tracker::test_battle_event_triggers_on_round_2`
+encodes a stale expectation (bare `advance_phase()×5` to auto-emit);
+the tracker's documented contract (line ~186) requires the UI to call
+`check_battle_event()` post-overlay to avoid modal double-fire. Out of
+scope (file unchanged by this plan).
+
+### Lessons recorded as Critical Gotchas above (#4-6)
+
+(1) GDScript hot-reload trap; (2) MCP `run_script` debug-mode break ≠
+player-facing crash; (3) green unit tests ≠ exercised runtime path.
 
 ---
 

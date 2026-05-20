@@ -194,3 +194,109 @@ CampaignDashboard
           → GameState.set_battle_results(result)
           → SceneRouter.navigate_to("post_battle")
 ```
+
+## Battle UI Redesign (Map-Primary + Drawers, May 2026)
+
+Canonical doc: `docs/testing/BATTLE_UI_REDESIGN.md`. Keeper widget:
+`src/ui/components/common/SlideOverDrawer.gd`. Drawer host: `DrawerLayer`
+CanvasLayer L92 inside `TacticalBattleUI.tscn`.
+
+### Frame
+
+```
+TopBar  [TIER]  ‹ROUND n · PHASE›                  Return
+┌─ CrewRail (LEFT glance) ── MAP (BattlefieldMapView) ──┐
+│  mini-cards: Q/S chip · stun pips · HP                │  InfoRail (RIGHT)
+│  ACTIVATED a/M · Q · S · ↺ Round                      │  OBJECTIVE + BATTLEFIELD
+└── FeedStrip (BOTTOM, UnifiedBattleLog) ───────────────┘
+Toolbar: [Crew][Enemies][Dice][Reference]  + journey-spine button
+         (+[Tracking] ASSISTED+, +[Oracle] FULL_ORACLE)
+DrawerLayer (L92): SlideOverDrawers, one open at a time, scrim, non-blocking
+OverlayLayer (L10): tier select / pre-battle checklist / enemy-gen modals
+```
+
+### Per-figure SSOT (Phase 2)
+
+The `TacticalUnit` inner class is the model. Cards, rails, and the
+Tracking drawer's `ActivationTrackerPanel` are views.
+
+```gdscript
+# Model fields added Phase 2 (Core Rules pp.114-118)
+var stun_markers: int = 0       # stackable; NOT reset at round start
+var is_activated: bool = false  # per-figure, reset every round
+var react_slot: int = 0         # 0 none / 1 QUICK / 2 SLOW / 3 ENEMY
+
+func reset_for_new_round() -> void:
+    is_activated = false
+    reactions_used_this_round = 0
+    react_slot = 3 if team == "enemy" else 0  # enemy always ENEMY phase
+    # stun_markers stays — Core Rules: removed only after the figure acts
+```
+
+### Drawer population + signal wiring
+
+`_populate_unit_drawer(body, units, is_crew)` instances ONE
+`CharacterStatusCard` + a red "✖ Mark Down" Button per `TacticalUnit`
+into the drawer body. Card signals route to the model via bound handlers
+(view → model via `.bind(unit)`):
+
+| Card signal           | Handler              | Effect on `TacticalUnit`              |
+|-----------------------|----------------------|---------------------------------------|
+| `damage_taken(n,amt)` | `_on_card_damage`    | `health -= amt`; if ≤0 → `_mark_casualty` |
+| `stun_marked(n)`      | `_on_card_stun`      | `stun_markers += 1`                   |
+| `action_used(n,type)` | `_on_card_action`    | only `"generic_action"` → `is_activated = true` |
+| (Mark Down pressed)   | `_mark_casualty`     | crew: out-of-action; enemy: dead + morale feed |
+
+`_mark_casualty(unit, is_crew, feed_morale := true)` is the **single
+idempotent casualty chokepoint**. Guard: `if unit == null or unit.is_dead`.
+Bail-removal passes `feed_morale=false` so a Bailed enemy isn't re-counted
+as a kill. `set_unit_defeated` on `activation_tracker` for both teams.
+
+### Round-machine binding
+
+`round_tracker` (5-phase `BattleRoundTracker`) drives the UI:
+
+| `round_tracker` signal      | `TacticalBattleUI` handler            |
+|-----------------------------|---------------------------------------|
+| `round_started(n)`          | `_reset_all_unit_reactions()` — calls `unit.reset_for_new_round()` for all alive units (keeps stun), resets ASSISTED engines (activation_tracker, reaction_dice, morale_tracker) |
+| `phase_changed(phase, name)`| Phase 0 REACTION_ROLL → `_assign_crew_reaction_slots()` (D6 vs `reactions` → 1/2; ASSISTED+ shows `initiative_calculator` overlay). Phase 4 END_PHASE → auto-open Tracking drawer + `_resolve_end_phase_morale()` (only if `morale_tracker.casualties_this_round > 0`; applies bails via `_mark_casualty(.., false, false)`) |
+| `round_ended(n)`            | log + `_check_escalating_battles(n)` |
+
+The rail "↺ Round" affordance calls `_on_manual_round_reset()` for
+tabletop players who advance their own physical round.
+
+### Tier-select repopulate gotcha (fixed in P2)
+
+`_create_character_cards()` runs INSIDE `initialize_battle()`, BEFORE the
+player picks a tier — so `activation_tracker` is still `null`, and
+`add_unit` calls were skipped. `_on_tier_selected(tier)` then instances
+the ASSISTED engines but the drawers were never re-populated → the
+Tracking drawer's `ActivationTrackerPanel` stayed empty +
+`set_unit_defeated` warned "non-existent unit". **Fix**: `_on_tier_selected`
+calls `_create_character_cards([])` again at `tier >= 1` (after the
+engines exist) so the trackers are populated in lock-step.
+
+### Rules-faithful crew injury routing (user-confirmed, Core Rules p.122)
+
+`_resolve_battle()` routes ALL downed crew (`health <= 0`) to
+`crew_injuries_data`. **Do NOT split by `is_dead`** — that pre-classified
+Mark-Down crew onto the harsher "Roll Severity" sub-table (no "no effect"
+outcome). The standard post-battle Injury Table decides dead/injured/
+recovered. `is_dead` is retained ONLY as the clean in-battle off-table
+flag (rail/Down-button/morale idempotency, enemy-at-0-HP). Enemies are
+not in this loop — they die outright in battle (`_mark_casualty` sets
+`is_dead = true` + feeds End-Phase Morale) and never roll the crew
+Injury Table.
+
+Result-dict contract preserved (`crew_casualties`/`crew_casualties_data`
+still present, just always empty for this path; no downstream consumer
+requires `crew_casualties > 0` — Bitter Day p.67 reads the PROCESSED
+`battle_result["casualties"]` by `type`, not the pre-roll count).
+
+### Pre-existing bug to know about (fixed during P2 consistency sweep)
+
+`src/core/services/InjurySystemService.gd:63` — `range_data.description`
+where `INJURY_ROLL_RANGES` entries are `{min, max}` only. SCRIPT ERROR
+spam + blank injury descriptions on every post-battle injury roll
+(NOT a hard crash; Godot continues; `is_fatal`/`recovery_turns` correct).
+Fix in place → `InjurySystemConstants.get_injury_description(injury_type)`.
