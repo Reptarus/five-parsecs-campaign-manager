@@ -66,6 +66,15 @@ var _reset_button: Button
 var _results_label: Label
 var _entry_list: ItemList
 var _detail_richtext: RichTextLabel
+var _detail_actions_hbox: HBoxContainer
+var _edit_notes_button: Button
+var _attach_photo_button: Button
+var _view_photos_button: Button
+var _photo_file_dialog: FileDialog
+var _notes_dialog: Window           ## Lazy-built when first edit pressed
+var _notes_editor_text: TextEdit
+var _photos_dialog: Window           ## Lazy-built when first view pressed
+var _photos_grid: GridContainer
 var _empty_label: Label
 var _debounce_timer: Timer
 var _type_chip_buttons: Dictionary = {}    ## type_string → Button
@@ -313,6 +322,11 @@ func _build_content_split() -> Control:
 	detail_inner.add_theme_constant_override("margin_right", 16)
 	detail_inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail_scroll.add_child(detail_inner)
+	var detail_vbox := VBoxContainer.new()
+	detail_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_vbox.add_theme_constant_override("separation", SPACING_MD)
+	detail_inner.add_child(detail_vbox)
+
 	_detail_richtext = RichTextLabel.new()
 	_detail_richtext.bbcode_enabled = true
 	_detail_richtext.fit_content = true
@@ -321,7 +335,35 @@ func _build_content_split() -> Control:
 	_detail_richtext.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
 	_detail_richtext.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_detail_richtext.meta_clicked.connect(_on_meta_clicked)
-	detail_inner.add_child(_detail_richtext)
+	detail_vbox.add_child(_detail_richtext)
+
+	_detail_actions_hbox = HBoxContainer.new()
+	_detail_actions_hbox.add_theme_constant_override("separation", SPACING_SM)
+	_detail_actions_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_vbox.add_child(_detail_actions_hbox)
+
+	_edit_notes_button = Button.new()
+	_edit_notes_button.text = "Edit Notes"
+	_edit_notes_button.tooltip_text = "Add or edit your personal notes for this entry"
+	_edit_notes_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_edit_notes_button.pressed.connect(_on_edit_notes_pressed)
+	_detail_actions_hbox.add_child(_edit_notes_button)
+
+	_attach_photo_button = Button.new()
+	_attach_photo_button.text = "Attach Photo"
+	_attach_photo_button.tooltip_text = (
+		"Attach a PNG/JPG screenshot or tabletop photo to this entry")
+	_attach_photo_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_attach_photo_button.pressed.connect(_on_attach_photo_pressed)
+	_detail_actions_hbox.add_child(_attach_photo_button)
+
+	_view_photos_button = Button.new()
+	_view_photos_button.text = "View Photos"
+	_view_photos_button.tooltip_text = "Open the attached photos for this entry"
+	_view_photos_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_view_photos_button.pressed.connect(_on_view_photos_pressed)
+	_detail_actions_hbox.add_child(_view_photos_button)
+
 	split.add_child(detail_panel)
 
 	return split
@@ -479,9 +521,17 @@ func _on_journal_entry_changed(_entry: Dictionary) -> void:
 	_apply_filters()
 
 
-func _on_journal_entry_id_changed(_entry_id: String) -> void:
+func _on_journal_entry_id_changed(entry_id: String) -> void:
 	_load_entries()
 	_apply_filters()
+	# If the selected entry was edited in-place, re-render the detail pane
+	# with the fresh dict (otherwise we'd display the stale pre-edit copy).
+	if not _selected_entry.is_empty() and str(_selected_entry.get("id", "")) == entry_id:
+		for fresh: Dictionary in _all_entries:
+			if str(fresh.get("id", "")) == entry_id:
+				_selected_entry = fresh
+				_show_entry_detail(_selected_entry)
+				return
 
 
 # ── Filter Application ──────────────────────────────────────────────────────
@@ -580,6 +630,8 @@ func _render_empty_detail() -> void:
 	_detail_richtext.text = (
 		"[center][color=#808080][i]No entries match these filters.[/i]"
 		+ "\n\nUse Reset Filters to clear all active filters.[/color][/center]")
+	if _detail_actions_hbox != null:
+		_detail_actions_hbox.visible = false
 
 
 # ── Selection + Detail Rendering ────────────────────────────────────────────
@@ -647,7 +699,18 @@ func _show_entry_detail(entry: Dictionary) -> void:
 		bb += "[color=#%s]Notes:[/color]\n[i]%s[/i]\n" % [
 			COLOR_TEXT_SECONDARY.to_html(false), player_notes]
 
+	var photos: Array = entry.get("photos", [])
+	if not photos.is_empty():
+		bb += "\n[color=#%s]Photos:[/color] %d attached\n" % [
+			COLOR_TEXT_SECONDARY.to_html(false), photos.size()]
+
 	_detail_richtext.text = bb
+
+	if _detail_actions_hbox != null:
+		_detail_actions_hbox.visible = true
+		_edit_notes_button.text = "Edit Notes" if player_notes.is_empty() else "Edit Notes (1)"
+		_view_photos_button.visible = not photos.is_empty()
+		_view_photos_button.text = "View Photos (%d)" % photos.size()
 
 
 # ── Filter Signal Handlers (all debounced via _schedule_filter) ─────────────
@@ -964,6 +1027,199 @@ func _on_meta_clicked(meta: Variant) -> void:
 		var router: Node = get_node_or_null("/root/SceneRouter")
 		if router and router.has_method("navigate_to"):
 			router.navigate_to("character_details", {"character_id": parts[1]})
+
+
+# ── Notes Editor (lazy-built Window with TextEdit) ─────────────────────────
+
+func _on_edit_notes_pressed() -> void:
+	if _selected_entry.is_empty():
+		return
+	_ensure_notes_dialog()
+	_notes_editor_text.text = str(_selected_entry.get("player_notes", ""))
+	_notes_dialog.title = "Notes — %s" % str(_selected_entry.get("title", "Entry"))
+	_notes_dialog.popup_centered(Vector2i(560, 320))
+
+
+func _ensure_notes_dialog() -> void:
+	if _notes_dialog != null:
+		return
+	_notes_dialog = Window.new()
+	_notes_dialog.title = "Player Notes"
+	_notes_dialog.exclusive = true
+	_notes_dialog.transient = true
+	_notes_dialog.close_requested.connect(func() -> void: _notes_dialog.hide())
+	add_child(_notes_dialog)
+
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", SPACING_MD)
+	pad.add_theme_constant_override("margin_right", SPACING_MD)
+	pad.add_theme_constant_override("margin_top", SPACING_MD)
+	pad.add_theme_constant_override("margin_bottom", SPACING_MD)
+	_notes_dialog.add_child(pad)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_SM)
+	pad.add_child(vbox)
+
+	var hint := Label.new()
+	hint.text = "Add a free-form note for sharing or future reference."
+	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	hint.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	vbox.add_child(hint)
+
+	_notes_editor_text = TextEdit.new()
+	_notes_editor_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_notes_editor_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_notes_editor_text.custom_minimum_size = Vector2(0, 180)
+	_notes_editor_text.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	vbox.add_child(_notes_editor_text)
+
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_END
+	actions.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(actions)
+	var cancel_btn := Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	cancel_btn.pressed.connect(func() -> void: _notes_dialog.hide())
+	actions.add_child(cancel_btn)
+	var save_btn := Button.new()
+	save_btn.text = "Save"
+	save_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	save_btn.pressed.connect(_on_notes_save_pressed)
+	actions.add_child(save_btn)
+
+
+func _on_notes_save_pressed() -> void:
+	if _selected_entry.is_empty() or _journal == null:
+		return
+	var entry_id: String = str(_selected_entry.get("id", ""))
+	if entry_id.is_empty():
+		return
+	var new_notes: String = _notes_editor_text.text
+	var ok: bool = _journal.update_entry(entry_id, {"player_notes": new_notes})
+	if ok:
+		_notes_dialog.hide()
+		_notify_success("Notes saved")
+	else:
+		_notify_error("Failed to save notes")
+
+
+# ── Photo Attachment (lazy-built FileDialog + viewer Window) ───────────────
+
+func _on_attach_photo_pressed() -> void:
+	if _selected_entry.is_empty():
+		return
+	_ensure_photo_file_dialog()
+	_photo_file_dialog.popup_centered_ratio(0.6)
+
+
+func _ensure_photo_file_dialog() -> void:
+	if _photo_file_dialog != null:
+		return
+	_photo_file_dialog = FileDialog.new()
+	_photo_file_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	_photo_file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	_photo_file_dialog.title = "Attach Photo"
+	_photo_file_dialog.filters = PackedStringArray([
+		"*.png, *.jpg, *.jpeg, *.webp ; Image Files",
+	])
+	_photo_file_dialog.file_selected.connect(_on_photo_file_selected)
+	add_child(_photo_file_dialog)
+
+
+func _on_photo_file_selected(path: String) -> void:
+	if _selected_entry.is_empty() or _journal == null:
+		return
+	var image := Image.new()
+	var err: int = image.load(path)
+	if err != OK:
+		_notify_error("Failed to load image: %s" % path)
+		return
+	var entry_id: String = str(_selected_entry.get("id", ""))
+	var ok: bool = _journal.attach_photo_to_entry(entry_id, image, path.get_file())
+	if ok:
+		_notify_success("Photo attached")
+	else:
+		_notify_error("Failed to attach photo (entry full or save error)")
+
+
+# ── Photo Viewer (lazy-built Window with TextureRect grid) ─────────────────
+
+func _on_view_photos_pressed() -> void:
+	if _selected_entry.is_empty():
+		return
+	_ensure_photos_dialog()
+	_populate_photos_grid(_selected_entry.get("photos", []))
+	_photos_dialog.title = "Photos — %s" % str(_selected_entry.get("title", "Entry"))
+	_photos_dialog.popup_centered(Vector2i(640, 480))
+
+
+func _ensure_photos_dialog() -> void:
+	if _photos_dialog != null:
+		return
+	_photos_dialog = Window.new()
+	_photos_dialog.title = "Photos"
+	_photos_dialog.exclusive = true
+	_photos_dialog.transient = true
+	_photos_dialog.close_requested.connect(func() -> void: _photos_dialog.hide())
+	add_child(_photos_dialog)
+
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", SPACING_MD)
+	pad.add_theme_constant_override("margin_right", SPACING_MD)
+	pad.add_theme_constant_override("margin_top", SPACING_MD)
+	pad.add_theme_constant_override("margin_bottom", SPACING_MD)
+	_photos_dialog.add_child(pad)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_child(scroll)
+	_photos_grid = GridContainer.new()
+	_photos_grid.columns = 2
+	_photos_grid.add_theme_constant_override("h_separation", SPACING_MD)
+	_photos_grid.add_theme_constant_override("v_separation", SPACING_MD)
+	_photos_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_photos_grid)
+
+
+func _populate_photos_grid(photos: Array) -> void:
+	for child in _photos_grid.get_children():
+		child.queue_free()
+	if photos.is_empty():
+		var hint := Label.new()
+		hint.text = "No photos attached yet."
+		hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		_photos_grid.add_child(hint)
+		return
+	for photo_v in photos:
+		var photo: Dictionary = photo_v as Dictionary
+		var path: String = str(photo.get("path", ""))
+		var caption: String = str(photo.get("caption", ""))
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", SPACING_XS)
+		_photos_grid.add_child(cell)
+		var tex_rect := TextureRect.new()
+		tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		tex_rect.custom_minimum_size = Vector2(260, 180)
+		var img := Image.new()
+		if img.load(path) == OK:
+			tex_rect.texture = ImageTexture.create_from_image(img)
+		cell.add_child(tex_rect)
+		var caption_label := Label.new()
+		caption_label.text = caption if not caption.is_empty() else path.get_file()
+		caption_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		caption_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cell.add_child(caption_label)
+
+
+func _notify_success(msg: String) -> void:
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_success"):
+		nm.show_success(msg)
+	else:
+		print("[Journal] ", msg)
 
 
 func _consume_scene_router_context() -> void:

@@ -4,8 +4,6 @@ extends CampaignScreenBase
 
 const GameEnums = preload(
 	"res://src/core/enums/GameEnums.gd")
-const CampaignTimelinePanelClass = preload(
-	"res://src/ui/components/history/CampaignTimelinePanel.gd")
 const CharacterHistoryPanelClass = preload(
 	"res://src/ui/components/history/CharacterHistoryPanel.gd")
 const StoryPointSystemClass = preload(

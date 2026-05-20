@@ -395,6 +395,123 @@ func get_summary() -> String:
 	return summary
 
 
+## Serialize the round-by-round battle narrative as Markdown,
+## suitable for embedding into a CampaignJournal "battle" entry description.
+## Groups entries by round and includes a casualty roll-up footer.
+func serialize_for_journal(turn: int = 0) -> String:
+	if entries.is_empty():
+		return ""
+
+	var crew_cas := 0
+	var enemy_cas := 0
+	var by_round: Dictionary = {}  ## round_num: int -> Array[Dictionary]
+	for entry_v in entries:
+		var entry: Dictionary = entry_v
+		var r: int = int(entry.get("round", 1))
+		if not by_round.has(r):
+			by_round[r] = []
+		by_round[r].append(entry)
+		var t: String = str(entry.get("type", ""))
+		if t == "casualty_crew":
+			crew_cas += 1
+		elif t == "casualty_enemy":
+			enemy_cas += 1
+
+	var lines: PackedStringArray = []
+	if turn > 0:
+		lines.append("**Battle log — Turn %d**" % turn)
+	else:
+		lines.append("**Battle log**")
+	lines.append("")
+
+	var round_keys: Array = by_round.keys()
+	round_keys.sort()
+	for r_v in round_keys:
+		var r: int = int(r_v)
+		lines.append("### Round %d" % r)
+		for entry_v in by_round[r]:
+			var entry: Dictionary = entry_v
+			var t: String = str(entry.get("type", "")).capitalize()
+			var text: String = str(entry.get("text", ""))
+			var details: String = str(entry.get("details", ""))
+			if details.is_empty():
+				lines.append("- _%s_: %s" % [t, text])
+			else:
+				lines.append("- _%s_: %s — %s" % [t, text, details])
+		lines.append("")
+
+	lines.append("**Summary** — Rounds: %d · Crew casualties: %d · Enemy casualties: %d" % [
+		current_round, crew_cas, enemy_cas])
+	return "\n".join(lines)
+
+
+## Push the round-by-round narrative into the CampaignJournal autoload as a
+## "battle" entry. Returns true on success, false if the journal is unreachable
+## or entries are empty.
+##
+## Caller is the battle-end path (TacticalBattleUI or PostBattlePhase).
+## If a battle entry already exists for this turn, the narrative is appended
+## via update_entry; otherwise a fresh entry is created.
+func merge_into_campaign_journal(
+	turn: int,
+	location: String = "",
+	mood: String = "neutral",
+	characters_involved: Array = [],
+	journal: Node = null
+) -> bool:
+	if entries.is_empty():
+		return false
+	var j: Node = journal
+	if j == null:
+		j = get_node_or_null("/root/CampaignJournal")
+	if j == null:
+		return false
+
+	var blob: String = serialize_for_journal(turn)
+	if blob.is_empty():
+		return false
+
+	# Look for an existing battle entry on this turn we can enrich
+	if j.has_method("get_entries_by_turn"):
+		for entry_v in j.get_entries_by_turn(turn):
+			var entry: Dictionary = entry_v
+			if str(entry.get("type", "")) == "battle":
+				var existing_desc: String = str(entry.get("description", ""))
+				var enriched: String = existing_desc + "\n\n" + blob
+				return j.update_entry(
+					str(entry.get("id", "")),
+					{"description": enriched})
+
+	# Otherwise create a fresh battle entry seeded with the round narrative
+	var crew_cas := 0
+	var enemy_cas := 0
+	for entry_v in entries:
+		var entry: Dictionary = entry_v
+		var t: String = str(entry.get("type", ""))
+		if t == "casualty_crew":
+			crew_cas += 1
+		elif t == "casualty_enemy":
+			enemy_cas += 1
+
+	var payload: Dictionary = {
+		"type": "battle",
+		"title": "Battle — Turn %d" % turn,
+		"description": blob,
+		"turn_number": turn,
+		"location": location,
+		"mood": mood,
+		"tags": ["battle"],
+		"characters_involved": characters_involved,
+		"stats": {
+			"rounds": current_round,
+			"crew_casualties": crew_cas,
+			"enemy_casualties": enemy_cas,
+		},
+	}
+	var created: String = j.create_entry(payload)
+	return not created.is_empty()
+
+
 # ============================================================================
 # INTERNAL
 # ============================================================================

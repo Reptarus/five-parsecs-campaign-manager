@@ -264,7 +264,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 			# Official Five Parsecs Four-Phase structure
 			scenes = ["travel_phase", "world_phase", "post_battle_sequence"]
 		"utility":
-			scenes = ["game_over", "logbook", "settings"]
+			scenes = ["game_over", "campaign_journal", "settings"]
 		"tutorial":
 			scenes = ["tutorial_selection", "new_campaign_tutorial"]
 	return scenes
