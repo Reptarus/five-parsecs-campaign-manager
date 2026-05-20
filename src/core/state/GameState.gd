@@ -124,6 +124,10 @@ func _ready() -> void:
 	# Apply deferred QoL data now that scene tree is ready
 	if current_campaign and current_campaign.has_method("apply_pending_qol_data"):
 		current_campaign.apply_pending_qol_data()
+	# Flush any campaign-id propagation that was queued during pre-tree init
+	# (e.g. _try_auto_load_last_campaign called set_current_campaign before
+	# this autoload was attached to the scene tree).
+	_flush_pending_journal_propagation()
 	# Listen for DLC pack requirements to stamp active campaign
 	var dlc_mgr := get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_signal("dlc_pack_required"):
@@ -244,22 +248,59 @@ func set_current_campaign(campaign) -> void:
 	if campaign != null and not is_instance_valid(campaign):
 		_log_error("Invalid campaign instance")
 		return
-		
+
 	current_campaign = campaign
 	if campaign != null:
 		campaign_loaded.emit(campaign)
-		
+
 		# Update recent campaigns list if campaign has campaign_id property
 		var campaign_id = ""
 		if campaign.has_method("get_campaign_id"):
 			campaign_id = campaign.get_campaign_id()
 		elif "campaign_id" in campaign:
 			campaign_id = campaign.campaign_id
-		
+
 		if campaign_id and not campaign_id.is_empty():
 			update_recent_campaigns(campaign_id)
-	
+
+		# Propagate the campaign id to CampaignJournal so exports/saves
+		# carry the correct label. Non-destructive — the journal's entries
+		# array is populated separately via apply_pending_qol_data() on load.
+		_propagate_campaign_id_to_journal(campaign_id)
+	else:
+		# Campaign cleared (quit to menu, etc.) — clear journal id too
+		_propagate_campaign_id_to_journal("")
+
 	state_changed.emit()
+
+
+var _pending_journal_campaign_id: String = ""
+var _pending_journal_propagation: bool = false
+
+
+func _propagate_campaign_id_to_journal(campaign_id: String) -> void:
+	## Defer to next idle frame if GameState isn't in the tree yet — this
+	## happens at boot when _try_auto_load_last_campaign() runs before _ready().
+	## Calling get_node_or_null("/root/X") from outside the active scene tree
+	## raises "Can't use get_node() with absolute paths..." (CLAUDE.md gotcha).
+	if not is_inside_tree():
+		_pending_journal_campaign_id = campaign_id
+		_pending_journal_propagation = true
+		return
+
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("set_current_campaign_id"):
+		journal.set_current_campaign_id(campaign_id)
+
+
+func _flush_pending_journal_propagation() -> void:
+	## Called from _ready() after the autoload is attached to the tree.
+	## Applies any campaign id that was queued during pre-tree initialization.
+	if not _pending_journal_propagation:
+		return
+	_pending_journal_propagation = false
+	_propagate_campaign_id_to_journal(_pending_journal_campaign_id)
+	_pending_journal_campaign_id = ""
 
 ## Start a new campaign from the provided config
 ## @param config The campaign to start

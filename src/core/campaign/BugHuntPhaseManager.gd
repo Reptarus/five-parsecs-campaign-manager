@@ -52,6 +52,7 @@ func start_new_turn() -> void:
 
 	_reset_phase_completion()
 	campaign_turn_started.emit(turn_number)
+	_journal_log_turn_start(turn_number)
 	_go_to_phase(Phase.SPECIAL_ASSIGNMENTS)
 
 
@@ -68,6 +69,7 @@ func complete_current_phase(result_data: Dictionary = {}) -> void:
 
 	_phase_complete[current_phase] = true
 	phase_completed.emit(current_phase)
+	_journal_log_phase_complete(current_phase, result_data)
 
 	# Apply phase results to campaign
 	_apply_phase_results(current_phase, result_data)
@@ -110,6 +112,7 @@ func _complete_turn() -> void:
 		campaign.save_to_file(path)
 
 	campaign_turn_completed.emit(turn_number)
+	_journal_log_turn_complete(turn_number)
 
 
 func _reset_phase_completion() -> void:
@@ -202,3 +205,67 @@ func _apply_post_battle_results(result: Dictionary) -> void:
 	# Tick sick bay (reduce turns remaining for pre-existing injuries)
 	if campaign.has_method("tick_sick_bay"):
 		campaign.tick_sick_bay()
+
+
+# ── Journal integration (cross-mode coverage) ────────────────────────
+
+func _journal() -> Node:
+	## Lookup the CampaignJournal autoload safely. Returns null if absent
+	## (e.g. headless tests where the autoload isn't registered).
+	if Engine.get_main_loop() == null:
+		return null
+	return Engine.get_main_loop().root.get_node_or_null("/root/CampaignJournal")
+
+
+func _journal_log_turn_start(turn: int) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	j.create_entry({
+		"type": "milestone",
+		"title": "Bug Hunt — Turn %d begins" % turn,
+		"description": "Operational turn %d opens with Special Assignments." % turn,
+		"turn_number": turn,
+		"tags": ["bug_hunt", "milestone", "campaign_setup"],
+		"mood": "neutral",
+	})
+
+
+func _journal_log_phase_complete(phase: int, result_data: Dictionary) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	var phase_name: String = PHASE_NAMES.get(phase, "Unknown")
+	var desc: String = "Phase complete: %s." % phase_name
+	# Enrich description with notable result data when available
+	if phase == Phase.MISSION and result_data.has("battle_result"):
+		var br: Dictionary = result_data.battle_result
+		var cas: int = (br.get("casualties", []) as Array).size()
+		desc += " Casualties: %d." % cas
+	elif phase == Phase.POST_BATTLE and result_data.has("post_battle_result"):
+		var pbr: Dictionary = result_data.post_battle_result
+		var mo: int = (pbr.get("mustered_out", []) as Array).size()
+		if mo > 0:
+			desc += " %d crew mustered out." % mo
+	j.create_entry({
+		"type": "milestone",
+		"title": "Bug Hunt — %s" % phase_name,
+		"description": desc,
+		"turn_number": turn_number,
+		"tags": ["bug_hunt", "milestone"],
+		"mood": "neutral",
+	})
+
+
+func _journal_log_turn_complete(turn: int) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	j.create_entry({
+		"type": "milestone",
+		"title": "Bug Hunt — Turn %d completed" % turn,
+		"description": "Operational turn %d finished." % turn,
+		"turn_number": turn,
+		"tags": ["bug_hunt", "milestone"],
+		"mood": "neutral",
+	})

@@ -122,6 +122,7 @@ func start_new_turn() -> void:
 
 	_reset_turn_state()
 	campaign_turn_started.emit(turn_number)
+	_journal_log_turn_start(turn_number)
 	_go_to_phase(Phase.RECOVERY)
 
 
@@ -148,6 +149,7 @@ func complete_current_phase(result_data: Dictionary = {}) -> void:
 
 	_phase_complete[current_phase] = true
 	phase_completed.emit(current_phase)
+	_journal_log_phase_complete(current_phase, result_data)
 
 	# Apply phase results to campaign
 	_apply_phase_results(current_phase, result_data)
@@ -201,6 +203,7 @@ func _complete_turn() -> void:
 		campaign.save_to_file(path)
 
 	campaign_turn_completed.emit(turn_number)
+	_journal_log_turn_complete(turn_number)
 
 
 func _reset_turn_state() -> void:
@@ -316,3 +319,100 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 		Phase.UPDATE_TRACKING:
 			# Final save — handled by _complete_turn()
 			pass
+
+
+# ── Journal integration (cross-mode coverage) ────────────────────────
+
+## Curated set of phases that warrant a journal entry. The 18-step turn
+## would otherwise spam ~20 entries per turn; this curated list keeps the
+## chronicle readable while covering the narrative-significant beats.
+const _JOURNAL_PHASES: Array[int] = [
+	Phase.COLONY_EVENTS,
+	Phase.PLAY_OUT_MISSION,
+	Phase.COLONY_INTEGRITY,
+	Phase.CHARACTER_EVENT,
+]
+
+
+func _journal() -> Node:
+	if Engine.get_main_loop() == null:
+		return null
+	return Engine.get_main_loop().root.get_node_or_null("/root/CampaignJournal")
+
+
+func _colony_state_summary() -> String:
+	## Compact colony-state badge for journal descriptions.
+	if campaign == null or not "colony" in campaign:
+		return ""
+	var c: Dictionary = campaign.colony
+	return "Morale: %d · Integrity: %d · Grunts: %d" % [
+		int(c.get("morale", 0)),
+		int(c.get("integrity", 0)),
+		int(c.get("grunts", 0)),
+	]
+
+
+func _journal_log_turn_start(turn: int) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	var summary: String = _colony_state_summary()
+	var desc: String = "Operational turn %d opens with Recovery." % turn
+	if not summary.is_empty():
+		desc += " %s" % summary
+	j.create_entry({
+		"type": "milestone",
+		"title": "Planetfall — Turn %d begins" % turn,
+		"description": desc,
+		"turn_number": turn,
+		"tags": ["planetfall", "milestone", "campaign_setup"],
+		"mood": "neutral",
+	})
+
+
+func _journal_log_phase_complete(phase: int, _result_data: Dictionary) -> void:
+	if not _JOURNAL_PHASES.has(phase):
+		return  # Skip low-signal phases to keep the chronicle readable
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	var phase_name: String = PHASE_NAMES.get(phase, "Unknown")
+	var summary: String = _colony_state_summary()
+	var desc: String = "Phase complete: %s." % phase_name
+	if not summary.is_empty():
+		desc += " %s" % summary
+	# Pick entry type by phase semantics for taxonomy alignment
+	var entry_type: String = "milestone"
+	if phase == Phase.PLAY_OUT_MISSION:
+		entry_type = "battle"
+	elif phase == Phase.CHARACTER_EVENT:
+		entry_type = "character_event"
+	j.create_entry({
+		"type": entry_type,
+		"title": "Planetfall — %s" % phase_name,
+		"description": desc,
+		"turn_number": turn_number,
+		"tags": ["planetfall", "milestone"],
+		"mood": "neutral",
+	})
+
+
+func _journal_log_turn_complete(turn: int) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	var summary: String = _colony_state_summary()
+	var desc: String = "Operational turn %d finished." % turn
+	if not summary.is_empty():
+		desc += " %s" % summary
+	var casualty_note: String = ""
+	if _turn_casualties > 0:
+		casualty_note = " Casualties this turn: %d." % _turn_casualties
+	j.create_entry({
+		"type": "milestone",
+		"title": "Planetfall — Turn %d completed" % turn,
+		"description": desc + casualty_note,
+		"turn_number": turn,
+		"tags": ["planetfall", "milestone"],
+		"mood": "somber" if _turn_casualties > 0 else "neutral",
+	})

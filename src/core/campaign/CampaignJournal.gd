@@ -864,7 +864,11 @@ func save_to_dict() -> Dictionary:
 	}
 
 func initialize_for_campaign(campaign_id: String) -> void:
-	## Initialize journal for new campaign
+	## Initialize journal for new campaign — DESTRUCTIVE.
+	## Wipes entries/milestones/character_histories. Use only when starting
+	## a fresh campaign that should not inherit stale data from a previous one.
+	## For load paths where entries are already populated, use
+	## set_current_campaign_id() instead.
 	current_campaign_id = campaign_id
 	campaign_created_at = Time.get_unix_time_from_system()
 	entries.clear()
@@ -872,3 +876,10 @@ func initialize_for_campaign(campaign_id: String) -> void:
 	milestones.clear()
 	character_histories.clear()
 	next_entry_id = 1
+
+
+func set_current_campaign_id(campaign_id: String) -> void:
+	## Non-destructive setter — updates which campaign this journal belongs to
+	## without touching entries. Used by GameState.set_current_campaign() so
+	## that exports/saves carry the correct campaign_id label.
+	current_campaign_id = campaign_id

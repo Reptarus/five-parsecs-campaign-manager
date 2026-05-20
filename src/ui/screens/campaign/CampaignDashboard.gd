@@ -1229,6 +1229,45 @@ func _build_narrative_status(campaign) -> void:
 	var searching: bool = st_data.get("in_evidence_search", false)
 	var pending: bool = st_data.get("pending_story_event", false)
 
+	# Event 7 banner (Core Rules p.159) — when the final event becomes
+	# available, player can play it now or delay up to 3 turns.
+	var event_7_available: bool = st_data.get("event_7_available", false)
+	if event_7_available:
+		var delay_remaining: int = st_data.get("delay_turns_remaining", 0)
+		var banner := Label.new()
+		banner.text = "Final Story Event ready!"
+		banner.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		banner.add_theme_color_override("font_color", COLOR_AMBER)
+		right_vbox.add_child(banner)
+
+		var sub := Label.new()
+		if delay_remaining > 0:
+			sub.text = "You may delay up to %d more turn(s)." % delay_remaining
+		else:
+			sub.text = "Last chance — fires at next turn rollover."
+		sub.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		sub.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		right_vbox.add_child(sub)
+
+		var btn_row := HBoxContainer.new()
+		btn_row.add_theme_constant_override("separation", SPACING_SM)
+		right_vbox.add_child(btn_row)
+
+		var play_btn := Button.new()
+		play_btn.text = "Play now"
+		play_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		play_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		play_btn.pressed.connect(_on_event_7_play_now_pressed)
+		btn_row.add_child(play_btn)
+
+		if delay_remaining > 0:
+			var delay_btn := Button.new()
+			delay_btn.text = "Delay"
+			delay_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+			delay_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			delay_btn.pressed.connect(_on_event_7_delay_pressed)
+			btn_row.add_child(delay_btn)
+
 	right_vbox.add_child(
 		_create_info_row(
 			"Clock", "%d ticks" % ticks,
@@ -1286,6 +1325,30 @@ func _add_exploration_bar(progress: float) -> void:
 	pct.add_theme_color_override("font_color", COLOR_EMERALD)
 	row.add_child(pct)
 	right_vbox.add_child(row)
+
+func _on_event_7_play_now_pressed() -> void:
+	## Player chose to play Story Track Event 7 immediately (Core Rules p.159).
+	## Delegates to StoryTrackSystem which emits story_event_triggered for
+	## CampaignPhaseManager to pick up; UI is then refreshed.
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not "story_track" in cpm or cpm.story_track == null:
+		push_warning("CampaignDashboard: StoryTrackSystem not reachable for Event 7")
+		return
+	if not cpm.story_track.has_method("trigger_event_7_now"):
+		return
+	cpm.story_track.trigger_event_7_now()
+	# Persist the change so st_data reflects event_7_available = false next render
+	if cpm.has_method("save_story_track_state"):
+		cpm.save_story_track_state()
+	_update_all()
+
+
+func _on_event_7_delay_pressed() -> void:
+	## Player chose to delay Event 7. No state change required — the timer
+	## ticks down in StoryTrackSystem._check_event_7_delay() at next turn rollover.
+	## Banner stays visible until next turn (Core Rules p.159).
+	pass
+
 
 func _on_view_world_log() -> void:
 	## Open a world log overlay showing full planet details + journal.

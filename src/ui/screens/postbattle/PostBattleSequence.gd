@@ -184,6 +184,12 @@ func _connect_backend_signals() -> void:
 	if post_battle_phase.has_signal("precursor_event_choice_available"):
 		post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
 
+	if post_battle_phase.has_signal("traveler_event_occurred"):
+		post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
+
+	if post_battle_phase.has_signal("manipulator_bonus_earned"):
+		post_battle_phase.manipulator_bonus_earned.connect(_on_backend_manipulator_bonus)
+
 	if post_battle_phase.has_signal("loot_gathered"):
 		post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
 
@@ -231,6 +237,10 @@ func _exit_tree() -> void:
 			_pbp.training_completed.disconnect(_on_backend_training_result)
 		if _pbp.has_signal("precursor_event_choice_available") and _pbp.precursor_event_choice_available.is_connected(_on_backend_precursor_event_choice):
 			_pbp.precursor_event_choice_available.disconnect(_on_backend_precursor_event_choice)
+		if _pbp.has_signal("traveler_event_occurred") and _pbp.traveler_event_occurred.is_connected(_on_backend_traveler_event):
+			_pbp.traveler_event_occurred.disconnect(_on_backend_traveler_event)
+		if _pbp.has_signal("manipulator_bonus_earned") and _pbp.manipulator_bonus_earned.is_connected(_on_backend_manipulator_bonus):
+			_pbp.manipulator_bonus_earned.disconnect(_on_backend_manipulator_bonus)
 		if _pbp.has_signal("loot_gathered") and _pbp.loot_gathered.is_connected(_on_backend_loot_generated):
 			_pbp.loot_gathered.disconnect(_on_backend_loot_generated)
 		if _pbp.has_signal("items_consumed_in_battle") and _pbp.items_consumed_in_battle.is_connected(_on_backend_items_consumed):
@@ -340,6 +350,52 @@ func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) 
 	## Handle Precursor event choice available - auto-select first event for now
 	# NOTE: Deferred — show PrecursorEventChoiceDialog for player selection instead of auto-selecting
 	_handle_precursor_choice(1, event1, event2)
+
+func _on_backend_traveler_event(results: Array) -> void:
+	## Strange Character: Traveler post-battle disappearance check (Core Rules p.20)
+	## results is Array[Dictionary] with one entry per Traveler crew member
+	if results.is_empty():
+		return
+	for entry_v in results:
+		var entry: Dictionary = entry_v
+		var char_name: String = str(entry.get("character_name", "Traveler"))
+		var disappeared: bool = bool(entry.get("disappeared", false))
+		var msg: String = "%s departed mysteriously." % char_name if disappeared \
+			else "%s remains with the crew." % char_name
+		_add_result_to_log("Traveler check: %s" % msg)
+		var nm: Node = get_node_or_null("/root/NotificationManager")
+		if nm and nm.has_method("show_info"):
+			nm.show_info(msg)
+		var journal: Node = get_node_or_null("/root/CampaignJournal")
+		if journal and journal.has_method("create_entry"):
+			journal.create_entry({
+				"type": "character_event",
+				"title": "Traveler — %s" % char_name,
+				"description": msg,
+				"tags": ["post_battle", "character_event", "strange_character"],
+				"characters_involved": [str(entry.get("character_id", char_name))],
+				"mood": "somber" if disappeared else "neutral",
+			})
+
+func _on_backend_manipulator_bonus(bonus: int) -> void:
+	## Strange Character: K'Erin Manipulator post-battle bonus credits (Core Rules p.21)
+	if bonus <= 0:
+		return
+	var msg: String = "K'Erin Manipulator influence yields +%d credits." % bonus
+	_add_result_to_log(msg)
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_success"):
+		nm.show_success(msg)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "payment",
+			"title": "Manipulator Bonus",
+			"description": msg,
+			"tags": ["post_battle", "finance", "strange_character"],
+			"stats": {"credits": bonus},
+			"mood": "triumph",
+		})
 
 func _handle_precursor_choice(choice: int, event1: Dictionary, event2: Dictionary) -> void:
 

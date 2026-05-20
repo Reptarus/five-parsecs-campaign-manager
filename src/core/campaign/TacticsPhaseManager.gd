@@ -91,6 +91,7 @@ func start_new_turn() -> void:
 	_reset_phase_completion()
 	campaign_turn_started.emit(turn_number)
 	operational_turn_started.emit(operational_turn)
+	_journal_log_turn_start(turn_number, operational_turn)
 	_go_to_phase(Phase.ORDERS)
 
 
@@ -112,6 +113,7 @@ func complete_current_phase(result_data: Dictionary = {}) -> void:
 
 	_phase_complete[current_phase] = true
 	phase_completed.emit(current_phase)
+	_journal_log_phase_complete(current_phase, result_data)
 
 	_apply_phase_results(current_phase, result_data)
 
@@ -169,6 +171,7 @@ func _complete_turn() -> void:
 
 	campaign_turn_completed.emit(turn_number)
 	operational_turn_completed.emit(operational_turn)
+	_journal_log_turn_complete(turn_number, operational_turn)
 
 
 func _reset_phase_completion() -> void:
@@ -337,3 +340,72 @@ func _replace_unit(change: Dictionary) -> void:
 			break
 	# Add new
 	campaign.campaign_units.append(new_unit)
+
+
+# ── Journal integration (cross-mode coverage) ────────────────────────
+
+func _journal() -> Node:
+	if Engine.get_main_loop() == null:
+		return null
+	return Engine.get_main_loop().root.get_node_or_null("/root/CampaignJournal")
+
+
+func _journal_log_turn_start(turn: int, op_turn: int) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	j.create_entry({
+		"type": "milestone",
+		"title": "Tactics — Operational Turn %d begins" % op_turn,
+		"description": "Campaign turn %d. Operational turn %d opens with Orders." % [
+			turn, op_turn],
+		"turn_number": turn,
+		"tags": ["tactics", "milestone", "campaign_setup"],
+		"mood": "neutral",
+	})
+
+
+func _journal_log_phase_complete(phase: int, _result_data: Dictionary) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	var phase_name: String = PHASE_NAMES.get(phase, "Unknown")
+	# BATTLE phase can fire 1-3 times per operational turn; surface which one
+	var desc: String = "Phase complete: %s." % phase_name
+	if phase == Phase.BATTLE:
+		desc += " Battle %d of %d this operational turn." % [
+			battles_this_turn + 1, MAX_BATTLES_PER_TURN]
+	# Pick entry type by phase semantics for taxonomy alignment
+	var entry_type: String = "milestone"
+	if phase == Phase.BATTLE:
+		entry_type = "battle"
+	elif phase == Phase.POST_BATTLE:
+		entry_type = "event"
+	elif phase == Phase.ADVANCEMENT:
+		entry_type = "experience"
+	j.create_entry({
+		"type": entry_type,
+		"title": "Tactics — %s" % phase_name,
+		"description": desc,
+		"turn_number": turn_number,
+		"tags": ["tactics", "milestone"],
+		"mood": "neutral",
+	})
+
+
+func _journal_log_turn_complete(turn: int, op_turn: int) -> void:
+	var j: Node = _journal()
+	if j == null or not j.has_method("create_entry"):
+		return
+	var battle_count_note: String = ""
+	if battles_this_turn > 0:
+		battle_count_note = " Battles fought: %d." % battles_this_turn
+	j.create_entry({
+		"type": "milestone",
+		"title": "Tactics — Operational Turn %d completed" % op_turn,
+		"description": "Campaign turn %d, operational turn %d finished.%s" % [
+			turn, op_turn, battle_count_note],
+		"turn_number": turn,
+		"tags": ["tactics", "milestone"],
+		"mood": "neutral",
+	})

@@ -312,6 +312,16 @@ func _initialize_backend_systems() -> void:
 	else:
 		push_warning("CampaignTurnController: RivalBattleGenerator not available")
 
+	# Connect GalacticWarManager endgame signal — one-shot per campaign.
+	# When a war track reaches its max-progress threshold with
+	# effects.campaign_ending == true (JSON-driven), this fires and we route
+	# the player to GameOverScreen. CONNECT_ONE_SHOT auto-disconnects so the
+	# signal can't fire twice on the same controller instance.
+	var war_manager: Node = get_node_or_null("/root/GalacticWarManager")
+	if war_manager and war_manager.has_signal("campaign_ending_triggered"):
+		war_manager.campaign_ending_triggered.connect(
+			_on_galactic_war_endgame, CONNECT_ONE_SHOT)
+
 
 ## Backend System Signal Handlers
 
@@ -348,6 +358,34 @@ func _on_backend_rival_escalated(_rival_id: String, _new_threat_level: int) -> v
 func _on_backend_rival_defeated(_rival_id: String) -> void:
 	## Handle rival permanent defeat from backend
 	pass
+
+func _on_galactic_war_endgame(track_id: String, ending_type: String) -> void:
+	## Handle GalacticWarManager.campaign_ending_triggered — campaign-over transition.
+	## CONNECT_ONE_SHOT ensures this fires only once per controller lifetime.
+	push_warning("CampaignTurnController: Galactic War endgame triggered: %s (%s)" % [
+		track_id, ending_type])
+
+	# Write a journal entry so the endgame appears in the chronicle.
+	# Use create_entry directly — auto_create_milestone_entry has internal
+	# title/description lookups that don't cover the galactic_war milestone type.
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "galactic_war",
+			"title": "Galactic War: %s" % ending_type.capitalize().replace("_", " "),
+			"description": ("The %s track has reached its endgame condition." % track_id),
+			"tags": ["galactic_war", "milestone", "endgame"],
+			"mood": "triumph" if ending_type.ends_with("_victory") else "defeat",
+		})
+
+	# Route to GameOverScreen
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("game_over", {
+			"reason": "galactic_war",
+			"track_id": track_id,
+			"ending_type": ending_type,
+		})
 
 ## Post-Battle Phase Signal Handlers
 
