@@ -1852,7 +1852,12 @@ func _setup_story_systems() -> void:
 		_stars_system.deserialize(
 			campaign.stars_of_the_story)
 	else:
-		_stars_system.initialize(0, campaign.difficulty)
+		# Fresh init for legacy/incomplete saves. After FinalPanel's
+		# Elite Rank picker (Phase 2), new campaigns ALWAYS seed
+		# stars_of_the_story so this branch is defensive only.
+		_stars_system.initialize(campaign.difficulty)
+		# Seed campaign so subsequent loads take the populated branch
+		campaign.stars_of_the_story = _stars_system.serialize()
 
 	# Create popover
 	_sp_popover = StoryPointPopover.new()
@@ -2246,10 +2251,13 @@ func _build_history_buttons() -> void:
 	_style_button(hof_btn)
 
 func _on_journal_pressed() -> void:
-	var panel := CampaignTimelinePanelClass.new()
-	panel.back_pressed.connect(_hide_history_overlay)
-	panel.character_selected.connect(_on_timeline_character_selected)
-	_show_history_panel(panel)
+	## Route to the canonical CampaignJournalScreen (multi-filter + sharing).
+	## Replaces the legacy CampaignTimelinePanel overlay path.
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("campaign_journal")
+	else:
+		_show_message("Cannot open Campaign Journal.")
 
 func _on_contacts_pressed() -> void:
 	var panel := _build_contacts_panel()

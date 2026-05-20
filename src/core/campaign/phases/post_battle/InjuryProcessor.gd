@@ -16,29 +16,20 @@ func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 		var processed_injury = process_single_injury(ctx, injury_data)
 		processed_injuries.append(processed_injury)
 
-	# Stars of the Story: "It Wasn't That Bad!" - remove worst non-fatal injury
-	if processed_injuries.size() > 0 and ctx.campaign and "stars_of_story_data" in ctx.campaign and not ctx.campaign.stars_of_story_data.is_empty():
+	# Stars of the Story: "Looked worse than it was!" (Core Rules p.67)
+	# Flag eligible injuries so PostBattleSequence can surface a "ignore this roll"
+	# nudge button to the player. The book says player CHOOSES which roll to ignore,
+	# so we flag every non-fatal injury; the UI enforces single-use via the star.
+	if processed_injuries.size() > 0 and ctx.campaign \
+			and "stars_of_the_story" in ctx.campaign \
+			and not ctx.campaign.stars_of_the_story.is_empty():
 		var StarsSystem = preload("res://src/core/systems/StarsOfTheStorySystem.gd")
 		var stars := StarsSystem.new()
-		stars.deserialize(ctx.campaign.stars_of_story_data)
-		if stars.can_use(StarsSystem.StarAbility.IT_WASNT_THAT_BAD):
-			var worst_idx := -1
-			var worst_recovery := 0
-			for i in range(processed_injuries.size()):
-				var inj = processed_injuries[i]
-				if inj.get("is_fatal", false):
-					continue
-				var rec: int = inj.get("recovery_turns", 0)
-				if rec > worst_recovery:
-					worst_recovery = rec
-					worst_idx = i
-			if worst_idx >= 0:
-				var removed_injury = processed_injuries[worst_idx]
-				var context = {"character": {"name": removed_injury.get("crew_id", ""), "injuries": [removed_injury.get("type", "")]}, "injury": removed_injury.get("type", "")}
-				var star_result = stars.use_ability(StarsSystem.StarAbility.IT_WASNT_THAT_BAD, context)
-				if star_result.get("success", false):
-					processed_injuries.remove_at(worst_idx)
-					ctx.campaign.stars_of_story_data = stars.serialize()
+		stars.deserialize(ctx.campaign.stars_of_the_story)
+		if stars.can_use(StarsSystem.StarAbility.LOOKED_WORSE):
+			for inj in processed_injuries:
+				if not inj.get("is_fatal", false):
+					inj["star_offer_available"] = "LOOKED_WORSE"
 
 	# Log injuries to CampaignJournal
 	if ctx.campaign_journal and ctx.campaign_journal.has_method("auto_create_character_event"):
@@ -138,25 +129,13 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		"bonus_xp": bonus_xp
 	}
 
-	# Handle fatal injuries - check for Stars of the Story protection
+	# Fatal injuries: return early. The "Dramatic Escape" mechanic previously
+	# wired here was fabricated (NOT in Core Rules p.67) and has been removed.
+	# Per the book, the only post-battle injury star is "Looked worse than it was!"
+	# which is offered to the player via PostBattleSequence nudge UI for any
+	# non-fatal injury (flagged via star_offer_available in process_injuries()).
 	if is_fatal:
-		var star_saved := false
-		if ctx.campaign and "stars_of_story_data" in ctx.campaign and not ctx.campaign.stars_of_story_data.is_empty():
-			var StarsSystem = preload("res://src/core/systems/StarsOfTheStorySystem.gd")
-			var stars := StarsSystem.new()
-			stars.deserialize(ctx.campaign.stars_of_story_data)
-			if stars.can_use(StarsSystem.StarAbility.DRAMATIC_ESCAPE):
-				var crew_name: String = injury_data.get("crew_name", crew_id)
-				var star_result = stars.use_ability(StarsSystem.StarAbility.DRAMATIC_ESCAPE, {"character": {"name": crew_name, "current_hp": 0}})
-				if star_result.get("success", false):
-					star_saved = true
-					processed_injury["is_fatal"] = false
-					processed_injury["star_protected"] = true
-					processed_injury["star_ability_used"] = "DRAMATIC_ESCAPE"
-					processed_injury["recovery_turns"] = maxi(recovery_time, 3)
-					ctx.campaign.stars_of_story_data = stars.serialize()
-		if not star_saved:
-			return processed_injury
+		return processed_injury
 
 	# Apply injury to crew member
 	if ctx.game_state_manager and ctx.game_state_manager.has_method("apply_crew_injury"):

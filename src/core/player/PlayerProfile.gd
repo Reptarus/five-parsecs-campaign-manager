@@ -166,10 +166,16 @@ func get_extra_starting_characters() -> int:
 	return elite_ranks / EXTRA_CHARACTER_EVERY
 
 
-## Returns how many times "Stars of the Story" abilities can be used
-## Formula: Base 1 + (elite_ranks / 5)
-func get_stars_of_story_bonus_uses() -> int:
-	return 1 + (elite_ranks / STARS_BONUS_EVERY)
+## Returns number of "Stars of the Story" bonus picks available at campaign setup
+##
+## Per Core Rules p.65: "For every 5 Elite Ranks, you may pick one 'Stars of the
+## Story' option that can be used twice. You must pick when setting up the campaign."
+##
+## This is a SETUP-TIME selection, NOT a runtime bonus. Each pick lets the player
+## choose ONE of the 5 abilities to double. Capped at 3 because the rulebook caps
+## Elite Ranks at 17 (= 3 picks max).
+func get_elite_rank_picks_available() -> int:
+	return mini(elite_ranks / STARS_BONUS_EVERY, 3)
 
 
 ## Returns a summary of all bonuses for display
@@ -179,7 +185,7 @@ func get_bonus_summary() -> Dictionary:
 		"story_points": get_starting_story_point_bonus(),
 		"bonus_xp": get_starting_xp_bonus(),
 		"extra_characters": get_extra_starting_characters(),
-		"stars_uses": get_stars_of_story_bonus_uses(),
+		"bonus_picks_available": get_elite_rank_picks_available(),
 		"campaigns_completed": total_campaigns_completed,
 		"campaigns_started": total_campaigns_started
 	}

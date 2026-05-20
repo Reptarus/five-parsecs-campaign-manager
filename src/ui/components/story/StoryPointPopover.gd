@@ -157,22 +157,27 @@ func _build_ui() -> void:
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(stars_header)
 
-	_create_star_row(
-		vbox,
-		StarsSystemClass.StarAbility.IT_WASNT_THAT_BAD,
-		"It Wasn't That Bad!")
-	_create_star_row(
-		vbox,
-		StarsSystemClass.StarAbility.DRAMATIC_ESCAPE,
-		"Dramatic Escape")
+	# 5 book-accurate options (Core Rules p.67)
 	_create_star_row(
 		vbox,
 		StarsSystemClass.StarAbility.ITS_TIME_TO_GO,
-		"It's Time To Go")
+		"It's time to go!")
+	_create_star_row(
+		vbox,
+		StarsSystemClass.StarAbility.LOOKED_WORSE,
+		"Looked worse than it was!")
+	_create_star_row(
+		vbox,
+		StarsSystemClass.StarAbility.DID_YOU_EVER_MEET,
+		"Did you ever meet my mate?")
+	_create_star_row(
+		vbox,
+		StarsSystemClass.StarAbility.LUCKY_SHOT,
+		"Lucky shot!")
 	_create_star_row(
 		vbox,
 		StarsSystemClass.StarAbility.RAINY_DAY_FUND,
-		"Rainy Day Fund")
+		"Rainy day fund!")
 
 
 func _create_spend_button(
@@ -294,9 +299,8 @@ func _update_star_rows() -> void:
 		var can_use: bool = _stars_system.can_use(ability)
 
 		# Battle-only abilities disabled outside active battle
-		var battle_only: bool = ability in [
-			StarsSystemClass.StarAbility.DRAMATIC_ESCAPE,
-			StarsSystemClass.StarAbility.ITS_TIME_TO_GO]
+		# (Source of truth: StarsOfTheStorySystem.is_battle_only())
+		var battle_only: bool = StarsSystemClass.is_battle_only(ability)
 		if battle_only:
 			can_use = false
 

@@ -133,6 +133,12 @@ var dice_pool_display: HBoxContainer = null
 var character_assignment_list: VBoxContainer = null
 var confirm_assignments_button: Button = null
 
+# Stars of the Story battle HUD (Core Rules p.67 — 3 mid-battle abilities)
+var _stars_battle_button: Button = null
+var _stars_battle_popup: PopupPanel = null
+const _StarsSysClassRef = preload(
+	"res://src/core/systems/StarsOfTheStorySystem.gd")
+
 # Core Systems
 ## battlefield_manager removed — terrain handled by BattlefieldGenerator + GridPanel
 var dice_manager: Node = null
@@ -315,6 +321,9 @@ func _connect_signals() -> void:
 			combat_system.reaction_dice_rolled.connect(_on_reaction_dice_rolled)
 		if combat_system.has_signal("reaction_dice_assigned"):
 			combat_system.reaction_dice_assigned.connect(_on_reaction_dice_assigned)
+
+	# Stars of the Story HUD — deferred so campaign data is loaded
+	call_deferred("_setup_stars_battle_ui")
 
 func _setup_ui() -> void:
 	## Setup the tactical UI — Map-Primary + Drawers frame (redesign port).
@@ -4809,3 +4818,333 @@ class TacticalUnit:
 				origin_str = str(original_character._origin).to_lower()
 			if "swift" in origin_str:
 				max_reactions_per_round = 1 # Swift limited to 1 reaction
+
+
+## ============================================================================
+## Stars of the Story — Mid-Battle HUD (Core Rules p.67)
+## ============================================================================
+##
+## Three abilities are available DURING battle:
+##   - "It's time to go!"          — end battle, all crew escape (no hold field)
+##   - "Did you ever meet my mate?" — add new crew member at battlefield edge
+##   - "Lucky shot!"               — turn a missed shot into a hit
+##
+## Disabled in non-5PFH battle modes (Bug Hunt / Planetfall / Tactics) and in
+## Insanity difficulty. Per Compendium p.214, stars don't carry to Bug Hunt.
+
+func _setup_stars_battle_ui() -> void:
+	if not is_inside_tree():
+		return
+
+	# Only standard 5PFH battles offer stars
+	if _is_bug_hunt_mode or _is_planetfall_mode:
+		return
+
+	# Need a campaign with stars data
+	var campaign = _get_campaign_for_stars()
+	if not campaign or campaign.stars_of_the_story.is_empty():
+		return
+
+	# Verify any battle-only star is usable
+	var stars = _build_stars_system_from_campaign(campaign)
+	if not stars or not stars.is_active():
+		return
+	if not (stars.can_use(_StarsSysClassRef.StarAbility.ITS_TIME_TO_GO)
+			or stars.can_use(_StarsSysClassRef.StarAbility.DID_YOU_EVER_MEET)
+			or stars.can_use(_StarsSysClassRef.StarAbility.LUCKY_SHOT)):
+		return
+
+	# Add Stars button to ActionBar (sibling of EndTurnButton)
+	var action_bar: HBoxContainer = end_turn_button.get_parent() if end_turn_button else null
+	if not action_bar:
+		return
+	_stars_battle_button = Button.new()
+	_stars_battle_button.text = "⭐ Stars"
+	_stars_battle_button.tooltip_text = "Use a Stars of the Story emergency ability (Core Rules p.67)"
+	_stars_battle_button.custom_minimum_size = Vector2(96, 0)
+	_stars_battle_button.pressed.connect(_on_stars_battle_button_pressed)
+	# Insert before EndTurnButton so it's left of "End Turn"
+	action_bar.add_child(_stars_battle_button)
+	var end_idx: int = end_turn_button.get_index()
+	action_bar.move_child(_stars_battle_button, end_idx)
+
+
+func _get_campaign_for_stars():
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_current_campaign"):
+		return gs.get_current_campaign()
+	return null
+
+
+func _build_stars_system_from_campaign(campaign):
+	if not campaign or campaign.stars_of_the_story.is_empty():
+		return null
+	var s = _StarsSysClassRef.new()
+	s.deserialize(campaign.stars_of_the_story)
+	return s
+
+
+func _on_stars_battle_button_pressed() -> void:
+	_show_stars_battle_popup()
+
+
+func _show_stars_battle_popup() -> void:
+	# Lazy-build popup
+	if _stars_battle_popup == null or not is_instance_valid(_stars_battle_popup):
+		_stars_battle_popup = PopupPanel.new()
+		_stars_battle_popup.size = Vector2i(360, 0)
+		add_child(_stars_battle_popup)
+		_build_stars_battle_popup_content()
+	# Refresh ability state before showing
+	_refresh_stars_battle_popup()
+	# Anchor below the button
+	if _stars_battle_button:
+		var rect: Rect2 = _stars_battle_button.get_global_rect()
+		_stars_battle_popup.popup(Rect2i(
+			Vector2i(int(rect.position.x), int(rect.end.y + 4)),
+			_stars_battle_popup.size))
+	else:
+		_stars_battle_popup.popup_centered()
+
+
+func _build_stars_battle_popup_content() -> void:
+	if not _stars_battle_popup:
+		return
+	for child in _stars_battle_popup.get_children():
+		child.queue_free()
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	_stars_battle_popup.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var header := Label.new()
+	header.text = "STARS OF THE STORY (Battle)"
+	header.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(header)
+
+	var help := Label.new()
+	help.text = "Each ability usable ONCE per campaign (Core Rules p.67)."
+	help.add_theme_font_size_override("font_size", 11)
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(help)
+
+	vbox.add_child(HSeparator.new())
+
+	# 3 mid-battle ability rows (each named for later refresh by node name)
+	_build_stars_battle_row(vbox,
+		_StarsSysClassRef.StarAbility.ITS_TIME_TO_GO,
+		"It's time to go!", "ItsTimeToGoBtn")
+	_build_stars_battle_row(vbox,
+		_StarsSysClassRef.StarAbility.DID_YOU_EVER_MEET,
+		"Did you ever meet my mate?", "MetMyMateBtn")
+	_build_stars_battle_row(vbox,
+		_StarsSysClassRef.StarAbility.LUCKY_SHOT,
+		"Lucky shot!", "LuckyShotBtn")
+
+
+func _build_stars_battle_row(parent: VBoxContainer, ability: int,
+		label_text: String, btn_node_name: String) -> void:
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 8)
+	parent.add_child(hbox)
+
+	var name_lbl := Label.new()
+	name_lbl.text = label_text
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.name = btn_node_name + "Label"
+	hbox.add_child(name_lbl)
+
+	var uses_lbl := Label.new()
+	uses_lbl.text = "1/1"
+	uses_lbl.add_theme_font_size_override("font_size", 12)
+	uses_lbl.name = btn_node_name + "Uses"
+	hbox.add_child(uses_lbl)
+
+	var use_btn := Button.new()
+	use_btn.text = "Use"
+	use_btn.name = btn_node_name
+	use_btn.custom_minimum_size = Vector2(60, 32)
+	use_btn.pressed.connect(_on_battle_star_use_pressed.bind(ability))
+	hbox.add_child(use_btn)
+
+
+func _refresh_stars_battle_popup() -> void:
+	if not _stars_battle_popup:
+		return
+	var campaign = _get_campaign_for_stars()
+	var stars = _build_stars_system_from_campaign(campaign)
+	if not stars:
+		return
+	_refresh_star_row(stars, _StarsSysClassRef.StarAbility.ITS_TIME_TO_GO, "ItsTimeToGoBtn")
+	_refresh_star_row(stars, _StarsSysClassRef.StarAbility.DID_YOU_EVER_MEET, "MetMyMateBtn")
+	_refresh_star_row(stars, _StarsSysClassRef.StarAbility.LUCKY_SHOT, "LuckyShotBtn")
+
+
+func _refresh_star_row(stars, ability: int, btn_node_name: String) -> void:
+	var btn := _stars_battle_popup.find_child(btn_node_name, true, false) as Button
+	var uses_lbl := _stars_battle_popup.find_child(btn_node_name + "Uses",
+		true, false) as Label
+	if not btn or not uses_lbl:
+		return
+	var remaining: int = stars.get_uses_remaining(ability)
+	var maximum: int = stars.get_max_uses(ability)
+	uses_lbl.text = "%d/%d" % [remaining, maximum]
+	btn.disabled = not stars.can_use(ability)
+
+
+func _on_battle_star_use_pressed(ability: int) -> void:
+	var campaign = _get_campaign_for_stars()
+	var stars = _build_stars_system_from_campaign(campaign)
+	if not stars or not stars.can_use(ability):
+		return
+
+	# Route by ability
+	match ability:
+		_StarsSysClassRef.StarAbility.ITS_TIME_TO_GO:
+			_use_battle_star_its_time_to_go(campaign, stars)
+		_StarsSysClassRef.StarAbility.DID_YOU_EVER_MEET:
+			_use_battle_star_met_my_mate(campaign, stars)
+		_StarsSysClassRef.StarAbility.LUCKY_SHOT:
+			_use_battle_star_lucky_shot(campaign, stars)
+
+
+func _use_battle_star_its_time_to_go(campaign, stars) -> void:
+	# Confirm via simple ConfirmationDialog (tabletop companion style)
+	var dlg := ConfirmationDialog.new()
+	dlg.title = "It's time to go!"
+	dlg.dialog_text = ("All crew immediately escape the battle.\n\n"
+		+ "You do NOT hold the field. Any objectives are abandoned.\n\n"
+		+ "Once per campaign — confirm?")
+	add_child(dlg)
+	dlg.confirmed.connect(func():
+		_apply_its_time_to_go(campaign, stars)
+		dlg.queue_free())
+	dlg.canceled.connect(func(): dlg.queue_free())
+	dlg.popup_centered()
+
+
+func _apply_its_time_to_go(campaign, stars) -> void:
+	var result: Dictionary = stars.use_ability(
+		_StarsSysClassRef.StarAbility.ITS_TIME_TO_GO, {})
+	if not result.get("success", false):
+		return
+	# Persist + log
+	campaign.stars_of_the_story = stars.serialize()
+	_log_battle_star_use(_StarsSysClassRef.StarAbility.ITS_TIME_TO_GO,
+		{}, result, campaign)
+	# Hide popup + Stars button (one-shot used; popup also reflects 0/1 anyway)
+	if _stars_battle_popup:
+		_stars_battle_popup.hide()
+	# Build battle_result and emit completion
+	var battle_result := {
+		"victory": false,
+		"held_field": false,
+		"evacuated": true,
+		"evacuated_via_star": true,
+		"crew_casualties": [],
+		"crew_injuries": [],
+		"rounds_fought": 0,
+		"objectives_met": []
+	}
+	tactical_battle_completed.emit(battle_result)
+
+
+func _use_battle_star_met_my_mate(campaign, stars) -> void:
+	# Tabletop companion: instruct the player to add a new model.
+	# Spawn a random character via CharacterGenerator if available, else generic note.
+	var new_char_name: String = _roll_random_recruit_name()
+
+	var dlg := AcceptDialog.new()
+	dlg.title = "Did you ever meet my mate?"
+	dlg.dialog_text = ("A new crew member joins immediately!\n\n"
+		+ "Name (suggested): %s\n\n" % new_char_name
+		+ "Place the model within 6\" of any battlefield edge.\n"
+		+ "They can act this round.\n\n"
+		+ "(Roll up full stats post-battle and add them to your crew.)")
+	add_child(dlg)
+	dlg.confirmed.connect(func():
+		_apply_met_my_mate(campaign, stars, new_char_name)
+		dlg.queue_free())
+	dlg.canceled.connect(func(): dlg.queue_free())
+	dlg.popup_centered()
+
+
+func _apply_met_my_mate(campaign, stars, new_char_name: String) -> void:
+	var ctx := {
+		"new_character": {
+			"character_name": new_char_name,
+			"name": new_char_name,
+			"character_id": "",
+			"id": ""
+		},
+		"placement_tile": Vector2i.ZERO
+	}
+	var result: Dictionary = stars.use_ability(
+		_StarsSysClassRef.StarAbility.DID_YOU_EVER_MEET, ctx)
+	if not result.get("success", false):
+		return
+	campaign.stars_of_the_story = stars.serialize()
+	_log_battle_star_use(_StarsSysClassRef.StarAbility.DID_YOU_EVER_MEET,
+		ctx, result, campaign)
+	_refresh_stars_battle_popup()
+
+
+func _roll_random_recruit_name() -> String:
+	# Light random name — full creation happens post-battle via CharacterCreator
+	var firsts: Array = ["Kai", "Vex", "Jax", "Nyx", "Rho", "Mira", "Zane",
+		"Lir", "Ash", "Quill"]
+	var lasts: Array = ["Cross", "Vane", "Stark", "Rook", "Hale", "Drift",
+		"Pyre", "Vance", "Mox", "Reaper"]
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	return "%s %s" % [firsts[rng.randi() % firsts.size()],
+		lasts[rng.randi() % lasts.size()]]
+
+
+func _use_battle_star_lucky_shot(campaign, stars) -> void:
+	# Tabletop companion: instruct the player to apply the hit.
+	var dlg := AcceptDialog.new()
+	dlg.title = "Lucky shot!"
+	dlg.dialog_text = ("Your most recent missed shot is now a hit.\n\n"
+		+ "Apply the shot's damage as if it had hit (single shot only,\n"
+		+ "even if the weapon rolls multiple attack dice).\n\n"
+		+ "Once per campaign — confirm to use this star.")
+	add_child(dlg)
+	dlg.confirmed.connect(func():
+		_apply_lucky_shot(campaign, stars)
+		dlg.queue_free())
+	dlg.canceled.connect(func(): dlg.queue_free())
+	dlg.popup_centered()
+
+
+func _apply_lucky_shot(campaign, stars) -> void:
+	# Synthesize a minimal shot_result dict — tabletop player applies damage manually
+	var ctx := {"shot_result": {"hit": false, "shooter_name": "Crew", "target_name": "target"}}
+	var result: Dictionary = stars.use_ability(
+		_StarsSysClassRef.StarAbility.LUCKY_SHOT, ctx)
+	if not result.get("success", false):
+		return
+	campaign.stars_of_the_story = stars.serialize()
+	_log_battle_star_use(_StarsSysClassRef.StarAbility.LUCKY_SHOT,
+		ctx, result, campaign)
+	_refresh_stars_battle_popup()
+
+
+func _log_battle_star_use(ability: int, context: Dictionary,
+		result: Dictionary, campaign) -> void:
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if not journal:
+		return
+	var turn_num: int = 0
+	if campaign and "progress_data" in campaign:
+		turn_num = campaign.progress_data.get("turns_played", 0)
+	_StarsSysClassRef.log_use_to_journal(
+		ability, context, result, journal, turn_num, "battle")

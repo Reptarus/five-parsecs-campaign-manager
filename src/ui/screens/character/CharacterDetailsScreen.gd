@@ -831,6 +831,28 @@ func _populate_history_section() -> void:
 		main_vbox.get_child_count() - 1))
 	event_timeline.setup(char_id)
 
+	# "View Full Journal (filtered to this character)" link
+	var journal_link := Button.new()
+	journal_link.name = "__ViewFullJournalLink"
+	journal_link.text = "View Full Journal for %s →" % current_character.character_name
+	journal_link.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	journal_link.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	journal_link.flat = true
+	journal_link.add_theme_color_override("font_color", COLOR_FOCUS)
+	journal_link.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	journal_link.pressed.connect(_on_view_full_journal_pressed.bind(char_id))
+	main_vbox.add_child(journal_link)
+	main_vbox.move_child(journal_link, mini(
+		event_timeline.get_index() + 1,
+		main_vbox.get_child_count() - 1))
+
+
+func _on_view_full_journal_pressed(char_id: String) -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("campaign_journal",
+			{"pre_filter_character_id": char_id})
+
 func _hide_history_back_button(panel: PanelContainer) -> void:
 	var header: Node = panel.get_node_or_null(
 		"ScrollContainer/VBoxContainer/HBoxContainer")

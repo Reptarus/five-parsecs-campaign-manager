@@ -25,6 +25,13 @@ extends RefCounted
 ##   - Up to 3 imported chars can receive Class Training (D6 aptitude test).
 ##   - Imported characters start as Loyal.
 ##   - Credits/Reputation have no value in Planetfall.
+##
+## INTENTIONALLY NOT transferred: Stars of the Story options (Compendium p.214):
+##   "You cannot carry over 'Stars of the Story' options or Story Points to Bug Hunt.
+##    Keep a record of them, in case you want to return to 5PFH play."
+## The 5PFH campaign retains its stars_of_the_story field; Bug Hunt and Planetfall
+## campaign cores DO NOT have this field by design. Do not "fix" this by plumbing
+## stars through transfer — it would violate the book.
 
 const ENLISTMENT_TARGET := 7  # 2D6 + Combat Skill >= 7+ (Compendium p.212)
 

@@ -759,6 +759,7 @@ An equipment item is like a physical card — it exists in exactly one location 
 
 ## Gotchas
 
+- **Stars of the Story has FIVE options, not four (Core Rules p.67)**: `StarsOfTheStorySystem.StarAbility` = `{ITS_TIME_TO_GO, LOOKED_WORSE, DID_YOU_EVER_MEET, LUCKY_SHOT, RAINY_DAY_FUND}`. Three are mid-battle (`StarsOfTheStorySystem.is_battle_only()` returns true). `DRAMATIC_ESCAPE` was a fabricated mechanic deleted May 2026 — do NOT re-add it. Elite Rank ×5 bonus is a campaign-setup pick via `apply_elite_rank_pick()`, NOT a runtime accrual (book p.65: "You must pick when setting up the campaign"). Persistence field on `FiveParsecsCampaignCore` is `stars_of_the_story` (NOT `stars_of_story_data` — that typo caused a silent failure). Insanity disables all stars. Bug Hunt/Planetfall correctly omit the field (Compendium p.214 forbids carry-over). All journal logging routes through static `StarsOfTheStorySystem.log_use_to_journal(ability, context, result, journal, turn, source)` with `source ∈ {"battle", "post_battle", "dashboard"}`.
 - **`.exe` directory name**: The Godot installation folder IS named `*.exe` — this is a directory, not an executable
 - **`replace_all` substring trap**: Short identifiers corrupt longer ones (e.g., replacing "HARD" also matches inside "HARDCORE"). Always check for substring collisions
 - **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check

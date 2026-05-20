@@ -1,4 +1,42 @@
 {
+  "stars_of_the_story": {
+    "_doc": "Core Rules p.67. Five once-per-campaign emergency narrative abilities. Three are mid-battle (its_time_to_go, did_you_ever_meet, lucky_shot); two are non-battle (looked_worse, rainy_day_fund). Disabled entirely in Insanity difficulty.",
+    "popover_badge": {
+      "title": "Stars of the Story",
+      "tooltip": "Once-per-campaign emergency abilities (Core Rules p.67). Not available in Insanity mode.",
+      "help": "Each option may be used ONCE per campaign. Every 5 Elite Ranks earned across campaigns grants 1 pick at campaign setup to double one ability's usage."
+    },
+    "elite_rank_picker": {
+      "title": "Elite Rank Bonus Picks",
+      "tooltip": "Pick distinct Stars of the Story abilities to use twice this campaign.",
+      "help": "Core Rules p.65: For every 5 Elite Ranks you may pick ONE Stars of the Story option to use twice. You must pick when setting up the campaign — picks cannot be made mid-campaign."
+    },
+    "its_time_to_go": {
+      "title": "It's time to go!",
+      "tooltip": "End battle, all crew escape. You do NOT hold the field.",
+      "help": "The crew may immediately end a battle, with all remaining characters escaping from the fight. Available only during battle."
+    },
+    "looked_worse": {
+      "title": "Looked worse than it was!",
+      "tooltip": "Ignore a roll on the Injury Table.",
+      "help": "Ignore a roll on the Injury Table for one character — they recover immediately. Surfaced as a nudge button in the post-battle injury screen."
+    },
+    "did_you_ever_meet": {
+      "title": "Did you ever meet my mate?",
+      "tooltip": "Add a new crew member mid-battle within 6\" of any edge.",
+      "help": "Add a new character to your team immediately, even mid-battle. Place the model within 6\" of any battlefield edge. They can act immediately."
+    },
+    "lucky_shot": {
+      "title": "Lucky shot!",
+      "tooltip": "Turn a missed shot into a hit (single shot only).",
+      "help": "If a character just missed a shot, turn it into a hit. Only applies to a single shot, even if the weapon rolls multiple attack dice."
+    },
+    "rainy_day_fund": {
+      "title": "Rainy day fund!",
+      "tooltip": "Immediately gain 1D6+5 credits.",
+      "help": "Add 1D6+5 credits to your available funds immediately. Usable from the dashboard at any time outside of battle."
+    }
+  },
   "campaign_creation": {
     "config_panel": {
       "campaign_name": {

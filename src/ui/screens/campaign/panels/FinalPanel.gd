@@ -30,6 +30,14 @@ var create_button: Button = null
 var campaign_data: Dictionary = {}
 var campaign_state: Dictionary = {}  # Add missing campaign_state variable
 var is_campaign_complete: bool = false
+
+# Stars of the Story: Elite Rank picks at campaign setup (Core Rules p.65)
+# Each int is a StarAbility enum value; picks must target distinct abilities.
+var _elite_rank_picks: Array[int] = []
+var _stars_picker_buttons: Dictionary = {}  # ability_int -> Button
+var _stars_picker_status_label: Label = null
+var _stars_preview_panel: Node = null
+var _stars_preview_system = null
 # Note: last_validation_errors is inherited from BaseCampaignPanel
 
 # Coordinator reference for consistent access
@@ -806,6 +814,11 @@ func _create_extras_summary_card() -> PanelContainer:
 
 func _create_elite_bonuses_card() -> PanelContainer:
 	## Create Card 6: Elite Rank Bonuses & Stars of the Story
+	##
+	## Per Core Rules p.65: every 5 Elite Ranks grants ONE pick to double a
+	## Stars of the Story option (max 3 picks at 17 Elite Ranks). The player
+	## "must pick when setting up the campaign" — so we surface a picker UI
+	## here when elite_ranks >= 5; otherwise read-only display.
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_MD)
 
@@ -825,14 +838,13 @@ func _create_elite_bonuses_card() -> PanelContainer:
 		rank_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(rank_label)
 
-	# Show bonuses if any
+	# Other Elite Rank bonuses (Story Points, XP, extra chars)
 	if elite_ranks > 0 and profile:
 		var bonus_summary = profile.get_bonus_summary()
 
 		var bonuses_container := VBoxContainer.new()
 		bonuses_container.add_theme_constant_override("separation", SPACING_XS)
 
-		# Story Points bonus
 		if bonus_summary.get("story_points", 0) > 0:
 			var sp_label := Label.new()
 			sp_label.text = "+%d Starting Story Points" % bonus_summary.story_points
@@ -840,7 +852,6 @@ func _create_elite_bonuses_card() -> PanelContainer:
 			sp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(sp_label)
 
-		# Bonus XP
 		if bonus_summary.get("bonus_xp", 0) > 0:
 			var xp_label := Label.new()
 			xp_label.text = "+%d Bonus XP (distributable)" % bonus_summary.bonus_xp
@@ -848,7 +859,6 @@ func _create_elite_bonuses_card() -> PanelContainer:
 			xp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(xp_label)
 
-		# Extra starting characters
 		if bonus_summary.get("extra_characters", 0) > 0:
 			var char_label := Label.new()
 			char_label.text = "+%d Extra Starting Characters" % bonus_summary.extra_characters
@@ -856,39 +866,185 @@ func _create_elite_bonuses_card() -> PanelContainer:
 			char_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(char_label)
 
-		# Stars of the Story uses
-		var stars_label := Label.new()
-		stars_label.text = "%d Stars of the Story Uses" % bonus_summary.get("stars_uses", 1)
-		stars_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-		stars_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-		bonuses_container.add_child(stars_label)
-
 		content.add_child(bonuses_container)
 
-	# Add Stars of the Story panel preview
-	var stars_header := Label.new()
-	stars_header.text = "Emergency Abilities Available:"
-	stars_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	stars_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	content.add_child(stars_header)
-
-	# Create a preview StarsOfTheStorySystem with current elite ranks and difficulty
+	# Resolve difficulty
 	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	var difficulty_raw = config_data.get("difficulty_level", config_data.get("difficulty", 2))
-	var difficulty: int = difficulty_raw if difficulty_raw is int else 2  # Convert string to default 2
+	var difficulty: int = difficulty_raw if difficulty_raw is int else 2
 
-	var preview_stars_system = StarsOfTheStorySystem.new()
-	preview_stars_system.initialize(elite_ranks, difficulty)
+	# Build the preview StarsOfTheStorySystem (cached for picker to mutate)
+	_stars_preview_system = StarsOfTheStorySystem.new()
+	_stars_preview_system.initialize(difficulty)
+	# Re-apply any picks the player already made (e.g. re-entering this step)
+	for ability_idx in _elite_rank_picks:
+		_stars_preview_system.apply_elite_rank_pick(ability_idx)
 
-	# Instantiate and initialize the StarsOfTheStoryPanel
-	var stars_panel = StarsOfTheStoryPanelScene.instantiate()
-	if stars_panel:
-		content.add_child(stars_panel)
-		# Initialize after adding to tree
-		if stars_panel.has_method("initialize"):
-			stars_panel.initialize(preview_stars_system)
+	# Picker section (only if Elite Ranks >= 5 AND not Insanity)
+	var picks_available: int = mini(elite_ranks / 5, 3) if _stars_preview_system.is_active() else 0
+	if picks_available > 0:
+		content.add_child(_build_elite_rank_picker_section(picks_available))
 
-	return _create_section_card("Elite Bonuses & Abilities", content, "Bonuses from completed campaigns", "⭐")
+	# Stars preview panel (always shown unless Insanity)
+	if _stars_preview_system.is_active():
+		var stars_header := Label.new()
+		stars_header.text = "Emergency Abilities Available:"
+		stars_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		stars_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		content.add_child(stars_header)
+
+		_stars_preview_panel = StarsOfTheStoryPanelScene.instantiate()
+		if _stars_preview_panel:
+			content.add_child(_stars_preview_panel)
+			if _stars_preview_panel.has_method("initialize"):
+				_stars_preview_panel.initialize(_stars_preview_system)
+	else:
+		# Insanity: no stars
+		var insanity_label := Label.new()
+		insanity_label.text = "⚠ Insanity Mode: Stars of the Story NOT available"
+		insanity_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		insanity_label.add_theme_color_override("font_color", COLOR_DANGER)
+		content.add_child(insanity_label)
+
+	return _create_section_card("Elite Bonuses & Abilities", content,
+		"Bonuses from completed campaigns", "⭐")
+
+
+func _build_elite_rank_picker_section(picks_available: int) -> VBoxContainer:
+	## Build the Elite Rank Stars-of-the-Story picker (Core Rules p.65)
+	## Pick N distinct abilities to use twice this campaign.
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", SPACING_SM)
+
+	# Header
+	var header := Label.new()
+	header.text = "Elite Rank Bonus Picks (Core Rules p.65)"
+	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_color_override("font_color", COLOR_ACCENT)
+	section.add_child(header)
+
+	var help := Label.new()
+	help.text = ("Every 5 Elite Ranks grants 1 pick. Pick"
+		+ " distinct abilities to use twice this campaign.")
+	help.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	help.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	section.add_child(help)
+
+	# Status label
+	_stars_picker_status_label = Label.new()
+	_stars_picker_status_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	section.add_child(_stars_picker_status_label)
+
+	# Toggle button per ability
+	_stars_picker_buttons.clear()
+	for ability_idx in StarsOfTheStorySystem.StarAbility.values():
+		var btn := Button.new()
+		btn.toggle_mode = true
+		btn.text = _stars_preview_system.get_ability_name(ability_idx)
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		btn.button_pressed = ability_idx in _elite_rank_picks
+		btn.toggled.connect(_on_elite_rank_pick_toggled.bind(ability_idx))
+		section.add_child(btn)
+		_stars_picker_buttons[ability_idx] = btn
+
+	_update_elite_rank_picker_status(picks_available)
+	return section
+
+
+func _on_elite_rank_pick_toggled(pressed: bool, ability_idx: int) -> void:
+	## Handle a pick toggle. Enforce distinct picks; cap at picks_available.
+	var profile = PlayerProfile.get_instance()
+	var elite_ranks: int = profile.elite_ranks if profile else 0
+	var picks_available: int = mini(elite_ranks / 5, 3)
+
+	if pressed:
+		if _elite_rank_picks.size() >= picks_available:
+			# Cap reached — revert the toggle (silently, no toast spam)
+			if _stars_picker_buttons.has(ability_idx):
+				_stars_picker_buttons[ability_idx].set_pressed_no_signal(false)
+			return
+		if not ability_idx in _elite_rank_picks:
+			_elite_rank_picks.append(ability_idx)
+	else:
+		_elite_rank_picks.erase(ability_idx)
+
+	# Rebuild preview system to reflect picks (simplest path; no diff logic)
+	if _stars_preview_system:
+		var config_data = campaign_data.get("campaign_config",
+			campaign_data.get("config", {}))
+		var diff_raw = config_data.get("difficulty_level",
+			config_data.get("difficulty", 2))
+		var difficulty: int = diff_raw if diff_raw is int else 2
+		_stars_preview_system.initialize(difficulty)
+		for idx in _elite_rank_picks:
+			_stars_preview_system.apply_elite_rank_pick(idx)
+		if _stars_preview_panel and _stars_preview_panel.has_method("refresh_display"):
+			_stars_preview_panel.refresh_display()
+
+	_update_elite_rank_picker_status(picks_available)
+
+
+func _apply_elite_rank_picks_to_campaign(finalized_campaign, save_path: String) -> void:
+	## Flush Elite Rank picks into the new Campaign Resource's stars_of_the_story
+	## field, then re-save and log a milestone per pick.
+	##
+	## Called after CampaignFinalizationService returns successfully.
+	if not finalized_campaign:
+		return
+
+	# Build the stars system from difficulty + apply picks
+	var difficulty: int = 2  # NORMAL default
+	if "difficulty" in finalized_campaign:
+		var diff_val = finalized_campaign.difficulty
+		difficulty = diff_val if diff_val is int else 2
+
+	var stars_sys = StarsOfTheStorySystem.new()
+	stars_sys.initialize(difficulty)
+	for ability_idx in _elite_rank_picks:
+		stars_sys.apply_elite_rank_pick(ability_idx)
+
+	# Always write the serialized state — empty picks still seed the dict
+	# so downstream Dashboard takes the populated branch.
+	if "stars_of_the_story" in finalized_campaign:
+		finalized_campaign.stars_of_the_story = stars_sys.serialize()
+
+	# Re-save if we have a save path
+	if not save_path.is_empty() and finalized_campaign.has_method("save_to_file"):
+		finalized_campaign.save_to_file(save_path)
+
+	# Log milestone entries — one per pick
+	if _elite_rank_picks.is_empty():
+		return
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("auto_create_milestone_entry"):
+		return
+	for ability_idx in _elite_rank_picks:
+		var ability_name: String = stars_sys.get_ability_name(ability_idx)
+		journal.auto_create_milestone_entry("campaign_setup", {
+			"turn": 0,
+			"title": "Elite Rank Bonus: %s doubled" % ability_name,
+			"description": ("Selected '%s' as a Stars of the Story option"
+				+ " to use twice this campaign (Core Rules p.65).") % ability_name,
+			"tags": ["stars_of_the_story", "elite_rank", "campaign_setup"],
+		})
+
+
+func _update_elite_rank_picker_status(picks_available: int) -> void:
+	if not _stars_picker_status_label:
+		return
+	var used: int = _elite_rank_picks.size()
+	var remaining: int = picks_available - used
+	if remaining > 0:
+		_stars_picker_status_label.text = ("Picks used: %d / %d"
+			+ "  (%d remaining)") % [used, picks_available, remaining]
+		_stars_picker_status_label.add_theme_color_override(
+			"font_color", COLOR_WARNING)
+	else:
+		_stars_picker_status_label.text = ("All %d pick(s) used"
+			+ " — ready to start campaign") % picks_available
+		_stars_picker_status_label.add_theme_color_override(
+			"font_color", COLOR_SUCCESS)
 
 
 func _update_crew_preview() -> void:
@@ -1132,6 +1288,11 @@ func _on_create_campaign_pressed() -> void:
 			# SPRINT 26.23: Extract the finalized Campaign resource from result
 			var finalized_campaign = result.get("campaign")
 			var save_path = result.get("save_path", "")
+
+			# Stars of the Story: flush Elite Rank picks into the new campaign
+			# (Core Rules p.65 — picks made at setup, persisted via stars_of_the_story)
+			_apply_elite_rank_picks_to_campaign(finalized_campaign, save_path)
+
 			campaign_creation_requested.emit(campaign_data)
 			# SPRINT 26.23: Emit result with Campaign resource, not just raw dictionary
 			campaign_finalization_complete.emit({

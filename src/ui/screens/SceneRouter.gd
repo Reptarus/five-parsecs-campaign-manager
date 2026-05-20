@@ -67,7 +67,7 @@ const SCENE_PATHS = {
 
 	# Utility screens
 	"game_over": "res://src/ui/screens/utils/GameOverScreen.tscn",
-	"logbook": "res://src/ui/screens/utils/logbook.tscn",
+	"campaign_journal": "res://src/ui/screens/campaign/CampaignJournalScreen.tscn",
 	"settings": "res://src/ui/screens/settings/SettingsScreen.tscn",
 
 	# Tutorial

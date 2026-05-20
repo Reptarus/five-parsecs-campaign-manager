@@ -96,7 +96,12 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="CrewVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftColumn/LeftScroll"]
+[node name="LeftScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftColumn/LeftScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 16
+
+[node name="CrewVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftColumn/LeftScroll/LeftScrollMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -114,7 +119,12 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="CenterVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterColumn/CenterScroll"]
+[node name="CenterScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterColumn/CenterScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 16
+
+[node name="CenterVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterColumn/CenterScroll/CenterScrollMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -132,7 +142,12 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="RightVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightColumn/RightScroll"]
+[node name="RightScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainContent/RightColumn/RightScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 16
+
+[node name="RightVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightColumn/RightScroll/RightScrollMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

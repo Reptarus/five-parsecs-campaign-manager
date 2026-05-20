@@ -164,17 +164,18 @@ func _setup_ui() -> void:
 	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_main_vbox.add_child(_info_label)
 	
-	# Grid of ability cards (2 columns)
+	# Grid of ability cards (1 column — 5 abilities don't fit a 2x2 grid cleanly)
 	_abilities_grid = GridContainer.new()
-	_abilities_grid.columns = 2
+	_abilities_grid.columns = 1
 	_abilities_grid.add_theme_constant_override("h_separation", SPACING_MD)
 	_abilities_grid.add_theme_constant_override("v_separation", SPACING_MD)
 	_main_vbox.add_child(_abilities_grid)
-	
-	# Create ability cards
-	_create_ability_card(StarsOfTheStorySystem.StarAbility.IT_WASNT_THAT_BAD)
-	_create_ability_card(StarsOfTheStorySystem.StarAbility.DRAMATIC_ESCAPE)
+
+	# Create ability cards (book-accurate order, Core Rules p.67)
 	_create_ability_card(StarsOfTheStorySystem.StarAbility.ITS_TIME_TO_GO)
+	_create_ability_card(StarsOfTheStorySystem.StarAbility.LOOKED_WORSE)
+	_create_ability_card(StarsOfTheStorySystem.StarAbility.DID_YOU_EVER_MEET)
+	_create_ability_card(StarsOfTheStorySystem.StarAbility.LUCKY_SHOT)
 	_create_ability_card(StarsOfTheStorySystem.StarAbility.RAINY_DAY_FUND)
 
 
@@ -312,16 +313,19 @@ func _style_button(button: Button) -> void:
 
 
 ## Get default ability name (fallback if system not initialized)
+## Core Rules p.67 wording.
 func _get_default_ability_name(ability: int) -> String:
 	match ability:
-		StarsOfTheStorySystem.StarAbility.IT_WASNT_THAT_BAD:
-			return "It Wasn't That Bad!"
-		StarsOfTheStorySystem.StarAbility.DRAMATIC_ESCAPE:
-			return "Dramatic Escape"
 		StarsOfTheStorySystem.StarAbility.ITS_TIME_TO_GO:
-			return "It's Time To Go"
+			return "It's time to go!"
+		StarsOfTheStorySystem.StarAbility.LOOKED_WORSE:
+			return "Looked worse than it was!"
+		StarsOfTheStorySystem.StarAbility.DID_YOU_EVER_MEET:
+			return "Did you ever meet my mate?"
+		StarsOfTheStorySystem.StarAbility.LUCKY_SHOT:
+			return "Lucky shot!"
 		StarsOfTheStorySystem.StarAbility.RAINY_DAY_FUND:
-			return "Rainy Day Fund"
+			return "Rainy day fund!"
 		_:
 			return "Unknown Ability"
 

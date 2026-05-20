@@ -97,33 +97,39 @@ func test_extra_characters_boundary_four_ranks():
 	assert_that(profile.get_extra_starting_characters()).is_equal(1)
 
 # ============================================================================
-# Stars of the Story Bonus Uses (1 + rank/5)
+# Stars of the Story Elite Rank Picks (setup-time, Core Rules p.65)
+# Formula: min(elite_ranks / 5, 3) — capped at 3 because max Elite Ranks is 17
 # ============================================================================
 
-func test_stars_uses_zero_ranks():
-	"""Base = 1 use even with no elite ranks"""
+func test_elite_rank_picks_zero_ranks():
+	"""0 picks below 5 Elite Ranks"""
 	profile.elite_ranks = 0
-	assert_that(profile.get_stars_of_story_bonus_uses()).is_equal(1)
+	assert_that(profile.get_elite_rank_picks_available()).is_equal(0)
 
-func test_stars_uses_four_ranks():
-	"""1 + 4/5 = 1 + 0 = 1"""
+func test_elite_rank_picks_four_ranks():
+	"""4 / 5 = 0 picks"""
 	profile.elite_ranks = 4
-	assert_that(profile.get_stars_of_story_bonus_uses()).is_equal(1)
+	assert_that(profile.get_elite_rank_picks_available()).is_equal(0)
 
-func test_stars_uses_five_ranks():
-	"""1 + 5/5 = 1 + 1 = 2"""
+func test_elite_rank_picks_five_ranks():
+	"""5 / 5 = 1 pick"""
 	profile.elite_ranks = 5
-	assert_that(profile.get_stars_of_story_bonus_uses()).is_equal(2)
+	assert_that(profile.get_elite_rank_picks_available()).is_equal(1)
 
-func test_stars_uses_ten_ranks():
-	"""1 + 10/5 = 1 + 2 = 3"""
+func test_elite_rank_picks_ten_ranks():
+	"""10 / 5 = 2 picks"""
 	profile.elite_ranks = 10
-	assert_that(profile.get_stars_of_story_bonus_uses()).is_equal(3)
+	assert_that(profile.get_elite_rank_picks_available()).is_equal(2)
 
-func test_stars_uses_seven_ranks():
-	"""1 + 7/5 = 1 + 1 = 2 (integer division)"""
+func test_elite_rank_picks_capped_at_three():
+	"""17 / 5 = 3 picks (cap at 3, since max Elite Ranks is 17)"""
+	profile.elite_ranks = 17
+	assert_that(profile.get_elite_rank_picks_available()).is_equal(3)
+
+func test_elite_rank_picks_seven_ranks():
+	"""7 / 5 = 1 pick (integer division)"""
 	profile.elite_ranks = 7
-	assert_that(profile.get_stars_of_story_bonus_uses()).is_equal(2)
+	assert_that(profile.get_elite_rank_picks_available()).is_equal(1)
 
 # ============================================================================
 # Award Elite Rank (duplicate prevention)
@@ -180,7 +186,7 @@ func test_bonus_summary_structure():
 	assert_that(summary.story_points).is_equal(6)
 	assert_that(summary.bonus_xp).is_equal(12)
 	assert_that(summary.extra_characters).is_equal(2)
-	assert_that(summary.stars_uses).is_equal(2)
+	assert_that(summary.bonus_picks_available).is_equal(1)  ## 6 / 5 = 1
 	assert_that(summary.campaigns_completed).is_equal(3)
 	assert_that(summary.campaigns_started).is_equal(5)
 
@@ -190,7 +196,7 @@ func test_bonus_summary_all_zero():
 	assert_that(summary.story_points).is_equal(0)
 	assert_that(summary.bonus_xp).is_equal(0)
 	assert_that(summary.extra_characters).is_equal(0)
-	assert_that(summary.stars_uses).is_equal(1)  # Base 1 even at rank 0
+	assert_that(summary.bonus_picks_available).is_equal(0)  ## 0 / 5 = 0 picks
 
 # ============================================================================
 # Campaign Start Registration

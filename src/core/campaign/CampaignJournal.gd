@@ -3,6 +3,13 @@
 ## Automatically tracks major events, allows manual notes, visualizes campaign timeline
 ## Singleton autoload: CampaignJournal
 
+const JournalEntryTypesClass := preload(
+	"res://src/core/campaign/JournalEntryTypes.gd")
+
+## Bumped to 2 when JournalEntryTypes canonical taxonomy + filter helpers landed.
+## Saves predating v2 still load (validation is warn-only).
+const JOURNAL_SCHEMA_VERSION := 2
+
 signal entry_created(entry: Dictionary)
 signal entry_updated(entry_id: String)
 signal entry_deleted(entry_id: String)
@@ -61,6 +68,8 @@ func create_entry(data: Dictionary) -> String:
 		# Player notes
 		"player_notes": data.get("player_notes", "")
 	}
+
+	JournalEntryTypesClass.validate_entry(entry)
 
 	entries.append(entry)
 	entries_by_id[entry_id] = entry
@@ -673,6 +682,149 @@ func _count_by_type(entry_type: String) -> int:
 			count += 1
 	return count
 
+## ===== FILTER + AGGREGATION HELPERS (v2) =====
+
+func get_entries_by_turn(turn: int) -> Array[Dictionary]:
+	## Entries for a specific campaign turn, preserves chronological order.
+	var out: Array[Dictionary] = []
+	for entry: Dictionary in entries:
+		if int(entry.get("turn_number", 0)) == turn:
+			out.append(entry)
+	return out
+
+func get_entries_by_location(location: String) -> Array[Dictionary]:
+	## Entries tagged with a specific location (planet name / ship_stash / etc).
+	var out: Array[Dictionary] = []
+	for entry: Dictionary in entries:
+		if str(entry.get("location", "")) == location:
+			out.append(entry)
+	return out
+
+func get_used_types() -> Array[String]:
+	## Unique non-empty `type` values across all entries.
+	var seen: Dictionary = {}
+	for entry: Dictionary in entries:
+		var t: String = str(entry.get("type", ""))
+		if not t.is_empty():
+			seen[t] = true
+	var out: Array[String] = []
+	for k in seen.keys():
+		out.append(k)
+	out.sort()
+	return out
+
+func get_used_tags() -> Array[String]:
+	## Unique tag strings across all entries.
+	var seen: Dictionary = {}
+	for entry: Dictionary in entries:
+		for tag_value in entry.get("tags", []):
+			var tag_str: String = str(tag_value)
+			if not tag_str.is_empty():
+				seen[tag_str] = true
+	var out: Array[String] = []
+	for k in seen.keys():
+		out.append(k)
+	out.sort()
+	return out
+
+func get_used_locations() -> Array[String]:
+	## Unique non-empty `location` values across all entries.
+	var seen: Dictionary = {}
+	for entry: Dictionary in entries:
+		var loc: String = str(entry.get("location", ""))
+		if not loc.is_empty():
+			seen[loc] = true
+	var out: Array[String] = []
+	for k in seen.keys():
+		out.append(k)
+	out.sort()
+	return out
+
+func get_used_turns() -> Array[int]:
+	## Unique turn numbers across all entries, ascending.
+	var seen: Dictionary = {}
+	for entry: Dictionary in entries:
+		seen[int(entry.get("turn_number", 0))] = true
+	var out: Array[int] = []
+	for k in seen.keys():
+		out.append(k)
+	out.sort()
+	return out
+
+func get_tag_frequency() -> Dictionary:
+	## Map tag → count for "top N tags" UI chip ordering.
+	var freq: Dictionary = {}
+	for entry: Dictionary in entries:
+		for tag_value in entry.get("tags", []):
+			var tag_str: String = str(tag_value)
+			if not tag_str.is_empty():
+				freq[tag_str] = int(freq.get(tag_str, 0)) + 1
+	return freq
+
+## ===== SINGLE-TURN EXPORT (share-card format) =====
+
+func export_turn_markdown(turn: int, campaign_name: String = "") -> String:
+	## Episode-card Markdown for a single turn — Discord/forum friendly.
+	## Framing inspired by Core Rules p.68 ("each campaign turn is an episode").
+	var turn_entries: Array[Dictionary] = get_entries_by_turn(turn)
+	var md: String = "# Campaign Turn %d" % turn
+	if not campaign_name.is_empty():
+		md += " — *%s*" % campaign_name
+	md += "\n\n"
+
+	if turn_entries.is_empty():
+		md += "*No entries recorded for this turn.*\n"
+		return md
+
+	var moods: Dictionary = {}
+	for entry: Dictionary in turn_entries:
+		var m: String = str(entry.get("mood", "neutral"))
+		moods[m] = int(moods.get(m, 0)) + 1
+	var dominant_mood: String = "neutral"
+	var top_count: int = 0
+	for m in moods.keys():
+		if moods[m] > top_count:
+			top_count = moods[m]
+			dominant_mood = m
+	md += "**Mood:** %s · **Entries:** %d\n\n" % [
+		dominant_mood.capitalize(), turn_entries.size()]
+
+	md += "## What happened\n\n"
+	for entry: Dictionary in turn_entries:
+		var icon: String = JournalEntryTypesClass.type_to_icon(
+			str(entry.get("type", "")))
+		var title: String = str(entry.get("title", "Untitled"))
+		var desc: String = str(entry.get("description", ""))
+		md += "- %s **%s** — %s\n" % [icon, title, desc.split("\n")[0]]
+	md += "\n"
+
+	var all_tags: Dictionary = {}
+	for entry: Dictionary in turn_entries:
+		for t in entry.get("tags", []):
+			all_tags[str(t)] = true
+	if not all_tags.is_empty():
+		md += "## Tags\n\n"
+		var tag_strs: Array[String] = []
+		for k in all_tags.keys():
+			tag_strs.append("`%s`" % k)
+		md += " ".join(tag_strs) + "\n\n"
+
+	md += "---\n*Five Parsecs from Home — Campaign Journal*\n"
+	return md
+
+func export_turn_json(turn: int) -> String:
+	## Single-turn JSON dump matching the project's `user://saves/{id}.save` shape.
+	## Returns the same schema saved inside campaigns under `qol_data.journal`.
+	var turn_entries: Array[Dictionary] = get_entries_by_turn(turn)
+	var payload: Dictionary = {
+		"schema_version": JOURNAL_SCHEMA_VERSION,
+		"turn": turn,
+		"campaign_id": current_campaign_id,
+		"exported_at": Time.get_unix_time_from_system(),
+		"entries": turn_entries,
+	}
+	return JSON.stringify(payload, "\t")
+
 ## ===== SAVE/LOAD =====
 
 func load_from_save(save_data: Dictionary) -> void:
@@ -702,6 +854,7 @@ func load_from_save(save_data: Dictionary) -> void:
 func save_to_dict() -> Dictionary:
 	## Save journal to dictionary for campaign save
 	return {
+		"schema_version": JOURNAL_SCHEMA_VERSION,
 		"entries": entries.duplicate(),
 		"milestones": milestones.duplicate(),
 		"character_histories": character_histories.duplicate(),
