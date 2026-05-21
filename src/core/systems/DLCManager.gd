@@ -23,7 +23,9 @@ const DLC_IDS := {
 	"trailblazers_toolkit": "Trailblazer's Toolkit",
 	"freelancers_handbook": "Freelancer's Handbook",
 	"fixers_guidebook": "Fixer's Guidebook",
-	"bug_hunt": "Bug Hunt",  # Future, separate game mode
+	"bug_hunt": "Bug Hunt",  # Separate game mode (Compendium-derived)
+	"planetfall_pack": "Planetfall",  # Separate game mode (own book)
+	"tactics_pack": "Tactics",  # Separate game mode (own book)
 }
 
 

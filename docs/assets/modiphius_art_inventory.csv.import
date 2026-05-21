@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://buw46gyg4y6so"
+
+[deps]
+
+files=["res://docs/assets/modiphius_art_inventory.category.translation", "res://docs/assets/modiphius_art_inventory.filename.translation", "res://docs/assets/modiphius_art_inventory.ext.translation", "res://docs/assets/modiphius_art_inventory.usage.translation", "res://docs/assets/modiphius_art_inventory.size.translation", "res://docs/assets/modiphius_art_inventory.size.translation", "res://docs/assets/modiphius_art_inventory.width.translation", "res://docs/assets/modiphius_art_inventory.height.translation", "res://docs/assets/modiphius_art_inventory.orientation.translation", "res://docs/assets/modiphius_art_inventory.size.translation", "res://docs/assets/modiphius_art_inventory.suggested.translation", "res://docs/assets/modiphius_art_inventory.subject.translation", "res://docs/assets/modiphius_art_inventory.relative.translation", "res://docs/assets/modiphius_art_inventory.status.translation", "res://docs/assets/modiphius_art_inventory.en.translation", "res://docs/assets/modiphius_art_inventory.en.translation"]
+
+source_file="res://docs/assets/modiphius_art_inventory.csv"
+dest_files=["res://docs/assets/modiphius_art_inventory.category.translation", "res://docs/assets/modiphius_art_inventory.filename.translation", "res://docs/assets/modiphius_art_inventory.ext.translation", "res://docs/assets/modiphius_art_inventory.usage.translation", "res://docs/assets/modiphius_art_inventory.size.translation", "res://docs/assets/modiphius_art_inventory.size.translation", "res://docs/assets/modiphius_art_inventory.width.translation", "res://docs/assets/modiphius_art_inventory.height.translation", "res://docs/assets/modiphius_art_inventory.orientation.translation", "res://docs/assets/modiphius_art_inventory.size.translation", "res://docs/assets/modiphius_art_inventory.suggested.translation", "res://docs/assets/modiphius_art_inventory.subject.translation", "res://docs/assets/modiphius_art_inventory.relative.translation", "res://docs/assets/modiphius_art_inventory.status.translation", "res://docs/assets/modiphius_art_inventory.en.translation", "res://docs/assets/modiphius_art_inventory.en.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

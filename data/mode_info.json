@@ -1,0 +1,77 @@
+{
+	"_comment": "Per-mode marketing copy for MainMenu ModeShowcaseCard. Descriptions are VERBATIM from the rulebooks (Core p.4 'Introduction', Compendium p.166 'Bug Hunt Introduction', Planetfall p.10 'An Introduction for NEW SETTLERS', Tactics p.8 'Introduction'). Do not paraphrase. If text needs trimming for display, prefer truncation with ellipsis over rewriting. Source citations live in `source` field.",
+	"modes": {
+		"standard": {
+			"id": "standard",
+			"display_name": "Five Parsecs From Home",
+			"tagline": "You're about to enter Fringe Space.",
+			"cover_path": "res://assets/covers/cover_standard.png",
+			"button_node": "NewCampaign",
+			"description": "Behind you, a few jumps from this decrepit starport, lie the Core Worlds: gleaming megacities and bustling space ports, with Unity armed forces maintaining security and safety. Here, in front of you, is the Fringe: a scattered array of worlds that defy generalization, anarchistic colonies of determined frontier settlers, crime-ridden concrete towns, corporate-controlled extraction bases, and battle-grounds for warlords and pirates. Opportunities for credits are everywhere you care to look: mercenary work, doing dirty jobs for the corporations, helping solve the trouble of some colony. If you have a ship to your name and a crew you can trust, you can go far. Sometimes it even pays well.",
+			"key_features": [
+				"9-phase campaign turn loop with story, travel, upkeep, missions, advancement",
+				"Full crew creation with 16 species, multiple classes, traits, and motivations",
+				"Tabletop-companion tactical battles with 100+ randomized events",
+				"Story Track + Red/Black Zone endgame content"
+			],
+			"required_dlc": null,
+			"source": "Core Rulebook p.4 'Introduction'",
+			"cta_label_owned": "New Campaign",
+			"cta_label_locked": "Included in the app"
+		},
+		"bug_hunt": {
+			"id": "bug_hunt",
+			"display_name": "Bug Hunt",
+			"tagline": "A Hunter Squad. Deep-space wrecks. Hostile alien lifeforms.",
+			"cover_path": "res://assets/covers/cover_bug_hunt.png",
+			"button_node": "BugHunt",
+			"description": "In Bug Hunt - a variant of Five Parsecs from Home - you take charge of a 'Hunter Squad' tasked with going into deep-space wrecks, abandoned colonies, or decrepit space stations to clear out any hostile alien lifeforms found there. This is not honorable combat against a foe that believes in self-preservation or a negotiated truce - it's brutal, dirty fighting at close quarters, lasting until the last lifeform crawls from the battle site. As you play, your characters will gain in experience and reputation, hopefully earning promotions and commendations... or at least five days of R&R all paid for.",
+			"key_features": [
+				"Three-stage turn: Special Assignments, Mission, Post-Battle",
+				"Small core squad backed by expendable Grunts",
+				"Tense contact-marker tactical encounters",
+				"Bidirectional character transfer with Standard 5PFH"
+			],
+			"required_dlc": "bug_hunt",
+			"source": "Compendium p.166 'Bug Hunt Introduction'",
+			"cta_label_owned": "Begin Mission",
+			"cta_label_locked": "Unlock Bug Hunt"
+		},
+		"planetfall": {
+			"id": "planetfall",
+			"display_name": "Planetfall",
+			"tagline": "Welcome to the Unity Colonization Program!",
+			"cover_path": "res://assets/covers/cover_planetfall.png",
+			"button_node": "Planetfall",
+			"description": "In Planetfall, you lead a crew tasked with helping a colony grow and survive on a colony world. You set up there not just because of the rich resources, but because of the wreckage and ruins littered across them. There are unknown dangers, ancient mysteries, dangerous new lifeforms, but huge opportunities to discover the secrets of your world and forge a future for your settlers! You will need to be creative, decisive, and occasionally lucky, but the journey ahead of you will be filled with amazing moments!",
+			"key_features": [
+				"18-phase turn cycle blending tactical combat with colony management",
+				"Research tree, building queue, lifeform generation, expedition types",
+				"Roster of 8-10 characters with Loyalty and an Administrator role",
+				"Colony Morale and Integrity drive the long campaign arc"
+			],
+			"required_dlc": "planetfall_pack",
+			"source": "Planetfall p.10 'An Introduction for NEW SETTLERS'",
+			"cta_label_owned": "Found a Colony",
+			"cta_label_locked": "Unlock Planetfall"
+		},
+		"tactics": {
+			"id": "tactics",
+			"display_name": "Tactics",
+			"tagline": "From the starports and back alleys to the battlefields of Unified Space.",
+			"cover_path": "res://assets/covers/cover_tactics.png",
+			"button_node": "Tactics",
+			"description": "Welcome to Five Parsecs from Home: Tactics. This book gives you everything you need to play dramatic science fiction wargaming campaigns in the worlds of Unified Space (and beyond!) Whether you intend to play solo, with a friend, in a single game or campaign, and with or without a Game Master, Tactics takes the concept of adventure wargaming from the starports and back alleys to the battlefields of Unified Space. While Five Parsecs from Home and Tactics use the same troop and weapon profiles at their core, in Tactics, creatures and weapons do not have to be confined to the man-to-man personal scale.",
+			"key_features": [
+				"Points-based army building with vehicle rules and species lists",
+				"Operational campaign layer over tactical battles",
+				"Scenario-driven play: solo, co-op, or with a Game Master",
+				"Compatible with Standard 5PFH troop and weapon profiles"
+			],
+			"required_dlc": "tactics_pack",
+			"source": "Tactics p.8 'Introduction'",
+			"cta_label_owned": "Deploy Army",
+			"cta_label_locked": "Unlock Tactics"
+		}
+	}
+}

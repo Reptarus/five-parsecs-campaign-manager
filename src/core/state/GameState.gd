@@ -278,6 +278,13 @@ var _pending_journal_campaign_id: String = ""
 var _pending_journal_propagation: bool = false
 
 
+func propagate_campaign_id_to_journal(campaign_id: String) -> void:
+	## Public passthrough for the contamination guard. Production code reaches
+	## this indirectly via set_current_campaign(); unit tests call it directly
+	## to exercise just the heuristic without full campaign setup.
+	_propagate_campaign_id_to_journal(campaign_id)
+
+
 func _propagate_campaign_id_to_journal(campaign_id: String) -> void:
 	## Defer to next idle frame if GameState isn't in the tree yet — this
 	## happens at boot when _try_auto_load_last_campaign() runs before _ready().
@@ -289,7 +296,35 @@ func _propagate_campaign_id_to_journal(campaign_id: String) -> void:
 		return
 
 	var journal: Node = get_node_or_null("/root/CampaignJournal")
-	if journal and journal.has_method("set_current_campaign_id"):
+	if journal == null:
+		return
+
+	# Cross-campaign contamination guard: when switching to a different
+	# campaign and the autoload's entries[] are non-empty, those entries
+	# belong to the previous campaign. Wipe them so the new campaign
+	# starts with a clean journal.
+	#
+	# Safe for the LOAD path: apply_pending_qol_data() runs after this
+	# in GameState._ready() (line ~126) and calls journal.load_from_save()
+	# which re-clears and repopulates from the save data. Ordering
+	# dependency — DO NOT call apply_pending_qol_data before this without
+	# also re-evaluating the wipe.
+	var current_id: String = ""
+	if "current_campaign_id" in journal:
+		current_id = str(journal.current_campaign_id)
+	var entry_count: int = 0
+	if "entries" in journal:
+		entry_count = (journal.entries as Array).size()
+
+	var is_switching_campaigns: bool = campaign_id != current_id
+	var has_stale_entries: bool = entry_count > 0
+
+	if is_switching_campaigns and has_stale_entries \
+			and journal.has_method("initialize_for_campaign"):
+		# DESTRUCTIVE wipe — safe per docstring on initialize_for_campaign
+		journal.initialize_for_campaign(campaign_id)
+	elif journal.has_method("set_current_campaign_id"):
+		# Pure id update — non-destructive
 		journal.set_current_campaign_id(campaign_id)
 
 
@@ -537,6 +572,14 @@ func load_campaign(path: String) -> Dictionary:
 		var faction_state: Dictionary = loaded.progress_data.get("faction_state", {})
 		if not faction_state.is_empty():
 			faction_sys.update_data(faction_state)
+
+	# Restore QoL autoload state (journal, NPCTracker, etc.) for ALL modes.
+	# Without this, mid-session loads (via MainMenu → Load) silently drop
+	# the saved journal/NPCTracker/economy data. The boot-time auto-load
+	# path was already covered by GameState._ready() but this code path
+	# (mid-session load) needs an explicit call.
+	if loaded.has_method("apply_pending_qol_data"):
+		loaded.apply_pending_qol_data()
 
 	# Update settings with loaded campaign ID
 	var loaded_id: String = ""

@@ -850,11 +850,18 @@ func load_from_save(save_data: Dictionary) -> void:
 	campaign_created_at = journal_data.get("created_at", 0)
 	last_updated = journal_data.get("last_updated", 0)
 	next_entry_id = journal_data.get("next_entry_id", 1)
+	# Restore campaign_id label so exports/markdown chronicles can carry
+	# the correct attribution even if the journal autoload is loaded
+	# without GameState propagation (e.g. from a manual JSON re-import).
+	var loaded_id: String = str(journal_data.get("current_campaign_id", ""))
+	if not loaded_id.is_empty():
+		current_campaign_id = loaded_id
 
 func save_to_dict() -> Dictionary:
 	## Save journal to dictionary for campaign save
 	return {
 		"schema_version": JOURNAL_SCHEMA_VERSION,
+		"current_campaign_id": current_campaign_id,
 		"entries": entries.duplicate(),
 		"milestones": milestones.duplicate(),
 		"character_histories": character_histories.duplicate(),

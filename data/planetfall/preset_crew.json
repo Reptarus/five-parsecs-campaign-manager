@@ -1,0 +1,76 @@
+{
+	"_comment": "Pre-made crew featured in the Planetfall rulebook character spread. Art delivered by Modiphius May 2026. Stats/class/background intentionally NOT specified — the character creation flow applies defaults so this stays compatible if the book later prescribes them. Edit this file (not the loader) to add/remove preset crews.",
+	"presets": [
+		{
+			"id": "original_seven",
+			"name": "The Original Seven",
+			"description": "The pre-made crew shown in the Planetfall rulebook character spread.",
+			"source": "Planetfall character spread, Modiphius art delivery (May 2026)",
+			"members": [
+				{
+					"id": "captain",
+					"character_name": "Captain",
+					"role": "Captain",
+					"species_id": "human",
+					"is_captain": true,
+					"portrait_path": "res://assets/portraits/planetfall/preset_captain.png",
+					"sku": "84-1683-01"
+				},
+				{
+					"id": "science_officer",
+					"character_name": "Science Officer",
+					"role": "Science Officer",
+					"species_id": "human",
+					"is_captain": false,
+					"portrait_path": "res://assets/portraits/planetfall/preset_science_officer.png",
+					"sku": "84-1683-02"
+				},
+				{
+					"id": "old_man",
+					"character_name": "The Old Man",
+					"role": "Veteran",
+					"species_id": "human",
+					"is_captain": false,
+					"portrait_path": "res://assets/portraits/planetfall/preset_old_man.png",
+					"sku": "84-1683-03"
+				},
+				{
+					"id": "engineer_twins",
+					"character_name": "Engineer Twins",
+					"role": "Engineer",
+					"species_id": "feral",
+					"is_captain": false,
+					"portrait_path": "res://assets/portraits/planetfall/preset_engineer_twins.png",
+					"sku": "84-1683-04"
+				},
+				{
+					"id": "navigator",
+					"character_name": "The Navigator",
+					"role": "Navigator",
+					"species_id": "swift",
+					"is_captain": false,
+					"portrait_path": "res://assets/portraits/planetfall/preset_navigator.png",
+					"sku": "84-1683-05"
+				},
+				{
+					"id": "pilot",
+					"character_name": "The Pilot",
+					"role": "Pilot",
+					"species_id": "k_erin",
+					"is_captain": false,
+					"portrait_path": "res://assets/portraits/planetfall/preset_pilot.png",
+					"sku": "84-1683-06"
+				},
+				{
+					"id": "security",
+					"character_name": "Security",
+					"role": "Security",
+					"species_id": "soulless",
+					"is_captain": false,
+					"portrait_path": "res://assets/portraits/planetfall/preset_security.png",
+					"sku": "84-1683-07"
+				}
+			]
+		}
+	]
+}

@@ -6,6 +6,8 @@ class_name Character
 ## This consolidation eliminates Manager pattern violations while maintaining all functionality.
 ## All character generation logic now lives here instead of scattered across 15+ files.
 
+const SpeciesPortraitRegistry = preload("res://src/core/character/SpeciesPortraitRegistry.gd")
+
 ## Schema version for save file migration (CRITICAL for data integrity)
 @export var schema_version: int = 1
 
@@ -919,9 +921,14 @@ func get_faction_relation(faction_id: String) -> int:
 	return faction_relations.get(faction_id, 0)
 
 func get_portrait() -> String:
-	if portrait_path.is_empty():
-		return "res://assets/portraits/default.png"
-	return portrait_path
+	# Explicit user pick wins.
+	if not portrait_path.is_empty():
+		return portrait_path
+	# Bundled Modiphius species portrait, deterministic per character_id.
+	var from_registry: String = SpeciesPortraitRegistry.get_portrait_for(species_id, character_id)
+	if not from_registry.is_empty():
+		return from_registry
+	return SpeciesPortraitRegistry.DEFAULT_PORTRAIT
 
 func set_portrait(path: String) -> void:
 	portrait_path = path

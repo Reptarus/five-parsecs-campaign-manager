@@ -33,6 +33,11 @@ extends Resource
 ## Squad reputation (expendable resource pool)
 @export var reputation: int = 0
 
+## QoL data captured during from_dictionary, applied to autoloads later.
+## See apply_pending_qol_data() — called by GameState after the campaign is
+## set as current. Mirrors FiveParsecsCampaignCore's pattern.
+var _pending_qol_data: Dictionary = {}
+
 ## Operational progress modifier (cumulative from post-battle table)
 @export var operational_progress_modifier: int = 0
 ## Extra contact markers from operational progress
@@ -369,7 +374,8 @@ func to_dictionary() -> Dictionary:
 		"current_mission": current_mission.duplicate(true),
 		"dlc_flags": dlc_flags.duplicate(),
 		"stashed_equipment": stashed_equipment.duplicate(true),
-		"original_character_snapshots": original_character_snapshots.duplicate(true)
+		"original_character_snapshots": original_character_snapshots.duplicate(true),
+		"qol_data": _build_qol_data(),
 	}
 
 
@@ -433,6 +439,47 @@ func from_dictionary(data: Dictionary) -> void:
 			"lucky_find", "reinforcements", "remove_contact", "survived", "you_want_some_too"]:
 		if not movie_magic_used.has(ability_id):
 			movie_magic_used[ability_id] = false
+
+	# Capture qol_data for deferred apply (after autoloads are reachable).
+	# Wrap to match the load_from_save({"qol_data": ...}) contract used by
+	# the journal autoload.
+	if data.has("qol_data"):
+		_pending_qol_data = {"qol_data": data.get("qol_data", {}).duplicate(true)}
+
+
+## ============================================================================
+## QOL DATA (cross-mode journal persistence)
+## ============================================================================
+
+func _build_qol_data() -> Dictionary:
+	## Collect QoL system data for save. Currently only the CampaignJournal —
+	## NPCTracker / WorldEconomyManager / etc. are 5PFH-specific and not
+	## populated in Bug Hunt mode.
+	var qol: Dictionary = {}
+	var tree = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root = tree.root if tree else null
+	if not root:
+		return qol
+	var journal = root.get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("save_to_dict"):
+		qol["journal"] = journal.save_to_dict()
+	return qol
+
+
+func apply_pending_qol_data() -> void:
+	## Called after scene tree is ready (boot auto-load) OR after mid-session
+	## load (via GameState.load_campaign). Restores journal entries that the
+	## campaign accumulated before save.
+	if _pending_qol_data.is_empty():
+		return
+	var tree = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root = tree.root if tree else null
+	if not root:
+		return
+	var journal = root.get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("load_from_save"):
+		journal.load_from_save(_pending_qol_data)
+	_pending_qol_data = {}
 
 
 ## ============================================================================

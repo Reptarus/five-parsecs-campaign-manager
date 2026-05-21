@@ -17,6 +17,17 @@ var planetfall_button: Button
 var game_state_manager: Node
 var _active_dialogs: Array[Node] = []
 
+# Mode info card on the empty left half of the menu. Swaps mode on hover.
+# Data lives in data/mode_info.json (verbatim rulebook copy).
+const ModeShowcaseCardScript = preload("res://src/ui/screens/mainmenu/ModeShowcaseCard.gd")
+const MODE_HOVER_MAP := {
+	"NewCampaign": "standard",
+	"BugHunt": "bug_hunt",
+	"Tactics": "tactics",
+	"Planetfall": "planetfall",
+}
+var _showcase_card: PanelContainer = null
+
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
@@ -109,6 +120,8 @@ func setup_ui() -> void:
 	_inject_tactics_button()
 	_inject_planetfall_button()
 	_connect_buttons()
+	_build_mode_showcase()
+	_wire_mode_hovers()
 	_enforce_touch_targets()
 	add_fade_in_animation()
 
@@ -177,6 +190,78 @@ func _safe_connect(node: Node, signal_name: String, callback: Callable) -> void:
 	if node.is_connected(signal_name, callback):
 		node.disconnect(signal_name, callback)
 	node.connect(signal_name, callback)
+
+func _build_mode_showcase() -> void:
+	# Mode info card anchored to the left half of the menu. The card itself
+	# is a PanelContainer (Deep Space themed) that swaps mode data on hover.
+	_showcase_card = ModeShowcaseCardScript.new()
+	_showcase_card.name = "ModeShowcaseCard"
+	_showcase_card.layout_mode = 1
+	_showcase_card.anchor_left = 0.0
+	_showcase_card.anchor_top = 0.0
+	_showcase_card.anchor_right = 0.5
+	_showcase_card.anchor_bottom = 1.0
+	_showcase_card.offset_left = 60
+	_showcase_card.offset_top = 180
+	_showcase_card.offset_right = -40
+	_showcase_card.offset_bottom = -80
+	_showcase_card.grow_horizontal = Control.GROW_DIRECTION_END
+	_showcase_card.grow_vertical = Control.GROW_DIRECTION_END
+	_showcase_card.modulate = Color(1, 1, 1, 0.0)
+	add_child(_showcase_card)
+	move_child(_showcase_card, 1)
+	_showcase_card.cta_pressed.connect(_on_mode_cta_pressed)
+	# Defer the initial populate by one frame so freshly-imported textures
+	# (cover PNGs) finish decoding before the card tries to load them.
+	_initial_mode_swap.call_deferred()
+
+func _initial_mode_swap() -> void:
+	if not _showcase_card:
+		return
+	_showcase_card.set_mode("standard", true)
+	# Fade the card itself in for a smooth first-paint.
+	var t := create_tween()
+	t.tween_property(_showcase_card, "modulate:a", 1.0, 0.30)
+
+func _wire_mode_hovers() -> void:
+	var hover_pairs := [
+		[new_campaign_button, "standard"],
+		[bug_hunt_button, "bug_hunt"],
+		[tactics_button, "tactics"],
+		[planetfall_button, "planetfall"],
+	]
+	for pair in hover_pairs:
+		var btn: Button = pair[0]
+		var key: String = pair[1]
+		if btn:
+			btn.mouse_entered.connect(_on_mode_button_hovered.bind(key))
+
+func _on_mode_button_hovered(mode_id: String) -> void:
+	if _showcase_card:
+		_showcase_card.set_mode(mode_id, false)
+
+## CTA on the info card was pressed. If unlocked, route through the existing
+## per-mode button so we reuse all existing flow (save detection, dialogs,
+## etc.). If locked, route to the store screen.
+func _on_mode_cta_pressed(mode_id: String, is_unlocked: bool) -> void:
+	if not is_unlocked:
+		request_scene_change("store")
+		return
+	# Trigger the underlying mode button so existing handlers run unchanged.
+	var btn_name: String = ""
+	for n in MODE_HOVER_MAP:
+		if MODE_HOVER_MAP[n] == mode_id:
+			btn_name = n
+			break
+	if btn_name.is_empty():
+		return
+	var btn = get_node_or_null("MenuButtons/" + btn_name)
+	if not btn:
+		# Dynamically-injected buttons (Tactics/Planetfall) live by name on the
+		# menu container; find_child handles them.
+		btn = find_child(btn_name, true, false)
+	if btn and btn is Button:
+		btn.pressed.emit()
 
 func add_fade_in_animation() -> void:
 	modulate = Color(1, 1, 1, 0)
@@ -1190,6 +1275,10 @@ func _on_viewport_resized() -> void:
 	var social_footer := get_node_or_null("SocialFooter")
 	if social_footer:
 		social_footer.visible = not is_narrow
+
+	# Mode info card: hide on narrow (buttons take center stage on mobile)
+	if _showcase_card:
+		_showcase_card.visible = not is_narrow
 
 	if is_narrow:
 		# Portrait/narrow: center buttons, scale down title

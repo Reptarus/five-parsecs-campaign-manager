@@ -377,12 +377,28 @@ func _update_portrait() -> void:
 	if not icon_node:
 		return
 
-	# Try custom portrait first
-	var pp: String = character_data.portrait_path if character_data.portrait_path else ""
+	# Resolve portrait: get_portrait() handles explicit pick -> species registry
+	# fallback -> default. Existence check below filters out the default if it
+	# isn't on disk so we still drop to colored-initials fallback.
+	var pp: String = ""
+	if character_data.has_method("get_portrait"):
+		pp = character_data.get_portrait()
+	elif character_data.portrait_path:
+		pp = character_data.portrait_path
 	if not pp.is_empty() and _portrait_file_exists(pp):
-		var img := Image.new()
-		if img.load(pp) == OK:
-			var custom_tex := ImageTexture.create_from_image(img)
+		# For res:// paths use load() so the imported CompressedTexture2D is
+		# fetched (export-safe). For user:// or absolute paths fall back to
+		# Image.load (runtime image, dev/portrait-upload only).
+		var custom_tex: Texture2D = null
+		if pp.begins_with("res://"):
+			var res = load(pp)
+			if res is Texture2D:
+				custom_tex = res
+		else:
+			var img := Image.new()
+			if img.load(pp) == OK:
+				custom_tex = ImageTexture.create_from_image(img)
+		if custom_tex:
 			icon_node.texture = custom_tex
 			icon_node.modulate = Color.WHITE
 			icon_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

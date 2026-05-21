@@ -17,6 +17,11 @@ extends Resource
 @export var campaign_id: String = ""
 @export var campaign_type: String = "tactics"
 
+## QoL data captured during from_dictionary, applied to autoloads later.
+## See apply_pending_qol_data() — called by GameState after the campaign is
+## set as current. Mirrors FiveParsecsCampaignCore's pattern.
+var _pending_qol_data: Dictionary = {}
+
 ## Army identity
 @export var army_name: String = ""
 @export var species_id: String = ""  # Which species book (e.g., "human_colonists")
@@ -303,6 +308,7 @@ func to_dictionary() -> Dictionary:
 		"story_events": story_events.duplicate(true),
 		"current_battle": current_battle.duplicate(true),
 		"dlc_flags": dlc_flags.duplicate(),
+		"qol_data": _build_qol_data(),
 	}
 
 
@@ -357,6 +363,44 @@ func from_dictionary(data: Dictionary) -> void:
 	story_events = data.get("story_events", []).duplicate(true)
 	current_battle = data.get("current_battle", {}).duplicate(true)
 	dlc_flags = data.get("dlc_flags", {}).duplicate()
+
+	# Capture qol_data for deferred apply (after autoloads are reachable).
+	if data.has("qol_data"):
+		_pending_qol_data = {"qol_data": data.get("qol_data", {}).duplicate(true)}
+
+
+## ============================================================================
+## QOL DATA (cross-mode journal persistence)
+## ============================================================================
+
+func _build_qol_data() -> Dictionary:
+	## Collect QoL system data for save. Currently only the CampaignJournal —
+	## other 5PFH-specific autoloads are not populated in Tactics mode.
+	var qol: Dictionary = {}
+	var tree = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root = tree.root if tree else null
+	if not root:
+		return qol
+	var journal = root.get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("save_to_dict"):
+		qol["journal"] = journal.save_to_dict()
+	return qol
+
+
+func apply_pending_qol_data() -> void:
+	## Called after scene tree is ready (boot auto-load) OR after mid-session
+	## load (via GameState.load_campaign). Restores journal entries that the
+	## campaign accumulated before save.
+	if _pending_qol_data.is_empty():
+		return
+	var tree = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root = tree.root if tree else null
+	if not root:
+		return
+	var journal = root.get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("load_from_save"):
+		journal.load_from_save(_pending_qol_data)
+	_pending_qol_data = {}
 
 
 ## ============================================================================
