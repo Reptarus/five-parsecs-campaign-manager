@@ -1,0 +1,91 @@
+{
+  "id": "shipyard",
+  "source_psd": "Shipyard.psd",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "bg_layers": [
+    "res://assets/scenes/shipyard/bg/bg_00.png",
+    "res://assets/scenes/shipyard/bg/bg_01.png",
+    "res://assets/scenes/shipyard/bg/bg_02.png",
+    "res://assets/scenes/shipyard/bg/bg_03.png",
+    "res://assets/scenes/shipyard/bg/bg_04.png",
+    "res://assets/scenes/shipyard/bg/bg_05.png",
+    "res://assets/scenes/shipyard/bg/bg_06.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "prop_layers": [
+    {
+      "id": "prop_00",
+      "path": "res://assets/scenes/shipyard/props/prop_00.png",
+      "z_order": 4,
+      "default_visible": true,
+      "bbox": [
+        2924,
+        1163,
+        3512,
+        1559
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_01",
+      "path": "res://assets/scenes/shipyard/props/prop_01.png",
+      "z_order": 5,
+      "default_visible": true,
+      "bbox": [
+        2906,
+        1292,
+        3494,
+        1688
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_02",
+      "path": "res://assets/scenes/shipyard/props/prop_02.png",
+      "z_order": 6,
+      "default_visible": true,
+      "bbox": [
+        2747,
+        1332,
+        3335,
+        1728
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_03",
+      "path": "res://assets/scenes/shipyard/props/prop_03.png",
+      "z_order": 8,
+      "default_visible": true,
+      "bbox": [
+        2525,
+        959,
+        3152,
+        1364
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_04",
+      "path": "res://assets/scenes/shipyard/props/prop_04.png",
+      "z_order": 12,
+      "default_visible": true,
+      "bbox": [
+        1715,
+        1268,
+        5127,
+        3375
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    }
+  ]
+}

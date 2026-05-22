@@ -13,6 +13,7 @@ description: "Use this skill when working with UI panels, components, the Deep S
 | `references/panel-patterns.md` | BaseCampaignPanel factory methods, signal-up/call-down, responsive layout, glass card styles |
 | `references/tweenfx-guide.md` | 70 animations, pivot_offset requirement list, looping cleanup, accessibility, .tada() signature |
 | `references/scene-router.md` | SceneRouter 70+ routes, navigation methods, history, caching, category helpers |
+| `references/narrative-screen.md` | NarrativeScreen (CanvasLayer L95), advisor system, text generator, integration pattern for phase-panel branches |
 
 ## Quick Decision Tree
 
@@ -23,6 +24,8 @@ description: "Use this skill when working with UI panels, components, the Deep S
 - **Responsive layout** → Read `panel-patterns.md` (responsive section)
 - **Button styling** → Use `DialogStyles` utility or read `panel-patterns.md`
 - **Reusable widgets** → Check `src/ui/components/common/` first (14 components)
+- **Narrative event overlay** → Read `narrative-screen.md` (extending Phase 1 to other phase panels, or modifying the overlay)
+- **Full-screen overlay z-order issues** → Read `narrative-screen.md` (CanvasLayer L95 pattern, never extend Control for these)
 
 ## Key Source Files
 
@@ -69,3 +72,6 @@ description: "Use this skill when working with UI panels, components, the Deep S
 9. **Animation accessibility guard** — All TweenFX calls must be guarded: `var skip: bool = tm != null and tm.is_reduced_animation_enabled()`. Use explicit `bool` type (NOT `:=`) — Godot 4.6 can't infer compound booleans with nullable
 10. **AcceptDialog/Window Deep Space styling** — `add_theme_stylebox_override("panel", stylebox)` with COLOR_BASE bg, COLOR_BORDER border. See MainMenu Bug Hunt dialog (line ~493) for canonical pattern
 11. **ThemeManager colorblind dict keys** — AccessibilityThemes palettes use `"text_primary"`, `"base"`, `"accent"`, `"border"`, `"success"` (NOT `"text"`, `"background"`)
+12. **Full-screen overlays use CanvasLayer L95** — Never `extends Control` for full-screen narrative/event overlays; a Control added to root renders BEHIND MainMenu's chrome CanvasLayers (L80/90). Use `extends CanvasLayer`, `layer = 95`, wrap UI in a `_root: Control` at `PRESET_FULL_RECT`. See `narrative-screen.md`.
+13. **Optional asset paths need `ResourceLoader.exists()` guard** — Registries like `SpeciesPortraitRegistry.DEFAULT_PORTRAIT` can point at res:// art that doesn't ship. `if ResourceLoader.exists(p): load(p)` before consuming; fall back to colored-initials / gradient
+14. **Cleanup with `_exit_tree()` not `tree_exited`** — For chrome restore on overlay dismiss, override `_exit_tree()`. `tree_exited` fires AFTER detachment so `/root/PersistentResourceBar` lookups fail

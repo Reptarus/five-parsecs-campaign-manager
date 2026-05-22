@@ -1,0 +1,79 @@
+{
+	"_source": "Five Parsecs Digital narrative design (docs/design/narrative_system_design.md §5). Phase 1 sprint scaffold per docs/plans/narrative-screen-phase-1.md.",
+	"_note": "{world_name} placeholders are substituted at runtime via String.format(). One world-trait modifier appended per scene (first match by table order — does not stack).",
+	"openers": {
+		"ship_interior": [
+			"The recycled air aboard the ship carries its usual metallic tang.",
+			"Somewhere in the ship's guts, a pipe rattles with the rhythm of an old engine.",
+			"The overhead lights flicker — another power coupling that needs attention.",
+			"The hum of the Svensen drive fills the silence between conversations."
+		],
+		"starport": [
+			"The starport on {world_name} is like every other — crowded, loud, and smelling of engine grease and alien cooking.",
+			"Docking fees paid, your crew steps out into the press of bodies and commerce.",
+			"The market stalls stretch in every direction, a maze of salvage and stolen goods.",
+			"Somewhere nearby, a Unity recruitment poster peels from a rust-stained wall.",
+			"A K'Erin merchant argues prices with a Soulless trader. Neither seems to be winning."
+		],
+		"wilderness": [
+			"Beyond the settlement perimeter, {world_name} stretches to the horizon.",
+			"The terrain here hasn't been mapped properly. Typical Fringe cartography.",
+			"Your boots crunch on unfamiliar ground. The air tastes different on every world.",
+			"Somewhere out there, something is watching. You can feel it."
+		],
+		"battle_aftermath": [
+			"The dust is still settling. Somewhere, a weapon hisses as it cools.",
+			"Silence, finally. The kind that follows violence.",
+			"Your crew moves through the aftermath, checking corners out of habit.",
+			"The locals are already emerging from cover. They've seen this before."
+		],
+		"space_travel": [
+			"The stars outside the viewport blur into streaks as the Svensen drive engages.",
+			"Three days in Tunnel space. Nothing but the hum of the drive and the tick of the nav computer.",
+			"The ship settles into the familiar rhythm of transit. Time to catch up on maintenance.",
+			"Somewhere between worlds, the universe feels smaller. Just you and the void."
+		]
+	},
+	"trait_modifiers": {
+		"haze": "The ever-present haze turns everything past fifty meters into grey suggestions.",
+		"frozen": "Frost clings to every surface. Your breath hangs in the air like smoke.",
+		"barren": "Nothing grows here. The landscape is naked rock and dust.",
+		"rampant_crime": "A pair of enforcers watch from a rooftop. Nobody makes eye contact.",
+		"warzone": "Blast craters mark the street. This place has seen better decades.",
+		"overgrown": "Vegetation pushes through every crack. The planet is reclaiming its cities.",
+		"fog": "Fog rolls in thick. Visibility is an optimistic word.",
+		"crystals": "Strange crystalline formations catch the light, casting prismatic shadows.",
+		"flat": "The terrain is featureless to the horizon. Nowhere to hide.",
+		"heavily_enforced": "Unity patrol bots sweep the streets in formation. The locals keep their heads down.",
+		"dangerous": "This world has teeth. Even the locals carry weapons.",
+		"corporate_state": "Corporate logos are everywhere. Someone owns this world, and they don't let you forget it."
+	},
+	"art_tag_to_category": {
+		"ship_interior_crew": "ship_interior",
+		"ship_interior_bridge": "ship_interior",
+		"ship_interior_medbay": "ship_interior",
+		"ship_interior_damaged": "ship_interior",
+		"ship_cargo": "ship_interior",
+		"starport_market": "starport",
+		"starport_bar": "starport",
+		"starport_street": "starport",
+		"starport_docks": "starport",
+		"wilderness_approach": "wilderness",
+		"urban_approach": "wilderness",
+		"industrial_zone": "wilderness",
+		"alien_ruins": "wilderness",
+		"wasteland": "wilderness",
+		"crash_site": "wilderness",
+		"battle_aftermath_victory": "battle_aftermath",
+		"battle_aftermath_retreat": "battle_aftermath",
+		"space_travel": "space_travel",
+		"world_arrival": "space_travel",
+		"story_event_01": "wilderness",
+		"story_event_02": "starport",
+		"story_event_03": "wilderness",
+		"story_event_04": "starport",
+		"story_event_05": "wilderness",
+		"story_event_06": "wilderness",
+		"story_event_07": "wilderness"
+	}
+}

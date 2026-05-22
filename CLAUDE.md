@@ -327,6 +327,32 @@ BattlefieldGenerator (RefCounted, Compendium 5-step)
 - **Scatter visible**: Tiny 16×10px dots, `show_scatter` toggle property
 - **Seeded RNG**: Optional `rng_seed` param on `generate_terrain_suggestions()`, `result["seed"]` for reproducibility
 
+### Narrative System (Phase 1, May 22 2026)
+
+King-of-Dragon-Pass-style full-screen narrative window for campaign events. Phase 1 wired to Story Track; Phases 2-6 will extend to CharacterPhase, CrewTaskEvents, Travel, PostBattle, and polish.
+
+```text
+NarrativeScreen.gd (CanvasLayer L95)
+  └─ _root: Control (PRESET_FULL_RECT)
+       ├─ BackgroundDim (ColorRect, blocks input)
+       ├─ IllustrationFrame (Control, top 55%)
+       │    ├─ GradientFallback (ColorRect, always-renders fallback)
+       │    └─ SceneStage (the only rendering path for layered/flat art)
+       ├─ NarrativePanel (PanelContainer, bottom 45%)
+       │    └─ Title / Text / AdvisorRow / Briefing / Restrictions / Bonus / Choices
+       └─ SkipButton (top-right)
+```
+
+- **CanvasLayer L95** (not Control): MUST extend CanvasLayer to render above chrome (L80 PersistentResourceBar, L90 NotificationManager). Wrap UI in `_root: Control` child for layout
+- **NarrativeTextGenerator** (RefCounted, static SSOT cache): `compose_full_text(event_data, context)` → opener (from category) + trait modifier + verbatim core_text. Core Rules text is sacred
+- **AdvisorSystem** (RefCounted, static SSOT cache): `select_advisor(role, crew, art_tag)` with **training > class > species** priority. 6 roles: Broker / Medic / Fighter / Tech / Scout / Social. 18-quote scaffold (1 per role×mood)
+- **NarrativeChoiceButton**: Button + hint label, fires `choice_pressed(int)` signal
+- **Data files** (`data/narrative/`): `atmosphere_openers.json` (5 categories + 12 trait modifiers + art_tag map), `advisor_quotes.json` (6 roles × 3 moods), `species_personality.json` (10 species)
+- **Settings toggle**: `SettingsManager.are_narrative_events_enabled()` defaults `true`. Off path falls through to existing card UI (StoryPhasePanel)
+- **Integration pattern** (replicate for Phases 3-5): in the phase panel's render method, branch on `SettingsManager.are_narrative_events_enabled()`. If on, instantiate NarrativeScreen, add to `get_tree().root`, listen for `narrative_completed`, delegate completion back to existing flow trigger (e.g. `_on_action_pressed()`)
+- **Art tag fallback**: `StoryEvent` has no `get_art_tag()` accessor — `StoryPhasePanel._event_to_narrative_dict()` uses `"story_event_%02d" % event.event_number` fallback. All 7 Story Track event JSONs gained an `art_tag` field for Phase 3+ when the accessor lands
+- **Chrome restore**: `_exit_tree()` (NOT `tree_exited` — see Gotchas) restores PersistentResourceBar visibility
+
 ### Key Patterns (Phase 5 Consolidation)
 - **CampaignDashboard** uses `FiveParsecsCampaignPhase` (14 values, aliased as `FPC`). The old `CampaignPhase` enum (10 values) is deprecated.
 - **BattlePhase._simulate_battle_outcome()** delegates to `BattleResolver.resolve_battle()` for rules-accurate combat. Injects `battlefield_data["seize_initiative_modifier"]` for Hardcore(-2)/Insanity(-3).
@@ -550,6 +576,7 @@ COLOR_DANGER := Color("#DC2626")   # Red
 ```
 Layer 80  — PersistentResourceBar (campaign resources overlay)
 Layer 90  — NotificationManager (toasts, battle events)
+Layer 95  — NarrativeScreen (full-screen KoDP-style event overlay)
 Layer 99  — LoadingScreen (itemized loading)
 Layer 100 — TransitionManager (fade overlay), DLCActivationToast
 ```
@@ -840,6 +867,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **`ScalableVectorShape2D` draws its body on the rotated `offset`, not `position` (May 17, BUG-101)**: the addon centers the ellipse/shape at local origin then translates by `offset`, and `offset` is rotated by the node rotation. On-screen center = `position + offset.rotated(rotation)`, NOT `position`. To place a shape's DRAWN center at point `c`: `svs.position = c - svs.offset.rotated(svs.rotation)`. Any grid/sector clamp must clamp the DRAWN center (+ `stroke_width/2` envelope) then back-solve position. This caused TWO premature BUG-101 "verified"s — verify SVS placement empirically via `get_bounding_rect()`×`transform` vs the target rect. See `BattlefieldMapView._rebuild_terrain_shapes()`.
 - **`BattlefieldMapView.cell_size` is the STABLE placement base (24), NEVER mutate it (May 17, BUG-102)**: on-screen scaling is the `_terrain_container` display transform via `_get_effective_cell_size()`, not a `cell_size` setter. `BattlefieldGridPanel._update_map_cell_size()` formerly mutated it 16/24→48 on resize after placement baked → top-left cluster. The resize handler is neutered; do not reintroduce any `cell_size` write.
 - **Detached `.new()` nodes can't call tree-dependent methods, even `get_node_or_null("/root/X")` (May 17)**: a bare `PostBattlePhase.new()` (or any Node) not added to the scene tree errors "Can't use get_node() with absolute paths from outside the active scene tree" when a method internally resolves autoloads. In unit tests, either `add_child()` it first or don't invoke orchestration methods — a field-contract assertion should not run the full orchestrator.
+- **Full-screen overlays MUST extend CanvasLayer, not Control (May 22, NarrativeScreen)**: a `Control` added to root renders BEHIND MainMenu's CanvasLayers (L80 PersistentResourceBar, L90 NotificationManager). For full-screen takeover, `extends CanvasLayer` with `layer = 95` (between chrome and TransitionManager L100), then wrap your UI tree in a child `Control` at `PRESET_FULL_RECT`. The first MCP verification screenshot for NarrativeScreen showed MainMenu because the overlay was a Control. See `src/ui/screens/narrative/NarrativeScreen.gd` for the canonical pattern.
+- **Optional asset paths from registries must be ResourceLoader.exists()-guarded (May 22, NarrativeScreen)**: `SpeciesPortraitRegistry.DEFAULT_PORTRAIT` returns `res://assets/portraits/default.png` which doesn't ship. Calling `load(path)` directly on a missing res:// path crashes with "Resource file not found". Always `if ResourceLoader.exists(path): load(path)` before consuming a registry-provided path; let the colored-initials / gradient fallback handle the miss. Pattern in `NarrativeScreen._apply_advisor_portrait()`.
+- **`_exit_tree()` not `tree_exited` for autoload access on cleanup (May 22, NarrativeScreen)**: `tree_exited` fires AFTER the node detaches; absolute-path lookups like `get_node_or_null("/root/PersistentResourceBar")` fail at that point with the same "Can't use get_node() with absolute paths from outside the active scene tree" error. Override `_exit_tree()` instead — it fires WHILE the node is still in the tree, so autoload access works. Restore chrome (resource bars, notification manager visibility) from `_exit_tree()`.
 
 ---
 
@@ -880,6 +910,20 @@ Agents frequently return inaccurate search results — claiming files are stubs,
 - `docs/PROJECT_STATUS_2026.md` — Current project status
 - `docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md` — 100% compliance tracker (170/170)
 - `tests/TESTING_GUIDE.md` — Test methodology (needs update for 4.6)
+
+### Standard Operating Procedures (`docs/sop/`)
+
+Institutional knowledge. **Read the relevant SOP before touching its subsystem; update the SOP in the same commit as the code change that justifies the update.** When SOPs disagree with code, the code wins — but investigate the divergence (update SOP if code is correct; fix code if SOP is correct; never silently delete a rule because current code violates it).
+
+| Doc | Read when |
+|-----|-----------|
+| `docs/sop/README.md` | SOP index + anti-regressions log (specific traps + the rule that prevents each) |
+| `docs/sop/asset-pipeline.md` | Before touching `assets/`, `data/scenes/`, or running any extraction script |
+| `docs/sop/visual-runtime-verification.md` | Before merging any change that affects rendering (portraits, scenes, animations, UI textures) |
+| `docs/sop/component-patterns.md` | Before writing any new `.gd` component or data file (SSOT accessor, JSON+static loader, path-loaded preload, export-safe `load()`, deferred initial swap) |
+| `docs/sop/decision-log.md` | When tempted to second-guess a pattern, or before proposing to replace one. Append-only — supersede with new entries, never delete |
+
+**Rule for adding an SOP**: only document a pattern after you've used it *twice*. First time is experiment, second time is pattern, third is when you wish you'd written it down. Document at the second.
 
 ### QA Documentation Suite (Mar 2026)
 

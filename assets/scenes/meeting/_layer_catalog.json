@@ -1,0 +1,667 @@
+{
+  "source_psd": "C:\\Users\\admin\\Downloads\\5PFH Art\\Other Books\\Compendium\\PSD\\Meeting.psd",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "category_counts": {
+    "bg": 13,
+    "actor": 5,
+    "fx": 0,
+    "prop": 12,
+    "skip": 1
+  },
+  "layers": [
+    {
+      "index": 0,
+      "name": "Background",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_000_background.png",
+      "path": "bg/bg_00.png"
+    },
+    {
+      "index": 1,
+      "name": "Layer 1",
+      "kind": "pixel",
+      "bbox": [
+        -328,
+        1891,
+        7558,
+        3493
+      ],
+      "width": 7886,
+      "height": 1602,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_001_layer_1.png",
+      "path": "props/prop_00.png"
+    },
+    {
+      "index": 2,
+      "name": "Layer 3",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3057
+      ],
+      "width": 6000,
+      "height": 3057,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_002_layer_3.png",
+      "path": "bg/bg_01.png"
+    },
+    {
+      "index": 3,
+      "name": "Layer 2",
+      "kind": "pixel",
+      "bbox": [
+        1034,
+        124,
+        4396,
+        2977
+      ],
+      "width": 3362,
+      "height": 2853,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_003_layer_2.png",
+      "path": "props/prop_01.png"
+    },
+    {
+      "index": 4,
+      "name": "Layer 7",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "MULTIPLY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_004_layer_7.png",
+      "path": "bg/bg_02.png"
+    },
+    {
+      "index": 5,
+      "name": "Layer 16",
+      "kind": "pixel",
+      "bbox": [
+        3434,
+        872,
+        3927,
+        1467
+      ],
+      "width": 493,
+      "height": 595,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_005_layer_16.png",
+      "path": "props/prop_02.png"
+    },
+    {
+      "index": 6,
+      "name": "Layer 17",
+      "kind": "pixel",
+      "bbox": [
+        3249,
+        593,
+        3849,
+        1810
+      ],
+      "width": 600,
+      "height": 1217,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_006_layer_17.png",
+      "path": "actors/actor_00.png"
+    },
+    {
+      "index": 7,
+      "name": "Layer 18",
+      "kind": "pixel",
+      "bbox": [
+        2928,
+        289,
+        4252,
+        1894
+      ],
+      "width": 1324,
+      "height": 1605,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_007_layer_18.png",
+      "path": "actors/actor_01.png"
+    },
+    {
+      "index": 8,
+      "name": "Layer 22",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_008_layer_22.png",
+      "path": "bg/bg_03.png"
+    },
+    {
+      "index": 9,
+      "name": "Layer 8",
+      "kind": "pixel",
+      "bbox": [
+        544,
+        0,
+        4816,
+        3375
+      ],
+      "width": 4272,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "MULTIPLY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_009_layer_8.png",
+      "path": "bg/bg_04.png"
+    },
+    {
+      "index": 10,
+      "name": "Layer 5",
+      "kind": "pixel",
+      "bbox": [
+        989,
+        1666,
+        4915,
+        3173
+      ],
+      "width": 3926,
+      "height": 1507,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_010_layer_5.png",
+      "path": "props/prop_03.png"
+    },
+    {
+      "index": 11,
+      "name": "Layer 20",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "OVERLAY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_011_layer_20.png",
+      "path": "bg/bg_05.png"
+    },
+    {
+      "index": 12,
+      "name": "Layer 24",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        1262,
+        5829,
+        3375
+      ],
+      "width": 5829,
+      "height": 2113,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_012_layer_24.png",
+      "path": "bg/bg_06.png"
+    },
+    {
+      "index": 13,
+      "name": "Layer 23",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "width": 0,
+      "height": 0,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_013_layer_23.png",
+      "path": null
+    },
+    {
+      "index": 14,
+      "name": "Layer 6 copy 2",
+      "kind": "pixel",
+      "bbox": [
+        -96,
+        1922,
+        5915,
+        3538
+      ],
+      "width": 6011,
+      "height": 1616,
+      "opacity": 122,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_014_layer_6_copy_2.png",
+      "path": "props/prop_04.png"
+    },
+    {
+      "index": 15,
+      "name": "Layer 5 copy 2",
+      "kind": "pixel",
+      "bbox": [
+        4286,
+        3057,
+        5229,
+        3587
+      ],
+      "width": 943,
+      "height": 530,
+      "opacity": 145,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_015_layer_5_copy_2.png",
+      "path": "props/prop_05.png"
+    },
+    {
+      "index": 16,
+      "name": "Layer 6 copy",
+      "kind": "pixel",
+      "bbox": [
+        3269,
+        1400,
+        4429,
+        3699
+      ],
+      "width": 1160,
+      "height": 2299,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_016_layer_6_copy.png",
+      "path": "actors/actor_02.png"
+    },
+    {
+      "index": 17,
+      "name": "Layer 6 copy 3",
+      "kind": "pixel",
+      "bbox": [
+        4816,
+        1377,
+        6431,
+        4578
+      ],
+      "width": 1615,
+      "height": 3201,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_017_layer_6_copy_3.png",
+      "path": "actors/actor_03.png"
+    },
+    {
+      "index": 18,
+      "name": "Layer 5 copy 3",
+      "kind": "pixel",
+      "bbox": [
+        2129,
+        3031,
+        3005,
+        3597
+      ],
+      "width": 876,
+      "height": 566,
+      "opacity": 120,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_018_layer_5_copy_3.png",
+      "path": "props/prop_06.png"
+    },
+    {
+      "index": 19,
+      "name": "Layer 4",
+      "kind": "pixel",
+      "bbox": [
+        1477,
+        1643,
+        3620,
+        3812
+      ],
+      "width": 2143,
+      "height": 2169,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_019_layer_4.png",
+      "path": "props/prop_07.png"
+    },
+    {
+      "index": 20,
+      "name": "Layer 4 copy",
+      "kind": "pixel",
+      "bbox": [
+        -210,
+        1400,
+        2631,
+        4276
+      ],
+      "width": 2841,
+      "height": 2876,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_020_layer_4_copy.png",
+      "path": "props/prop_08.png"
+    },
+    {
+      "index": 21,
+      "name": "Layer 19",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "MULTIPLY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_021_layer_19.png",
+      "path": "bg/bg_07.png"
+    },
+    {
+      "index": 22,
+      "name": "Layer 21",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "MULTIPLY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_022_layer_21.png",
+      "path": "bg/bg_08.png"
+    },
+    {
+      "index": 23,
+      "name": "Layer 25",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "MULTIPLY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_023_layer_25.png",
+      "path": "bg/bg_09.png"
+    },
+    {
+      "index": 24,
+      "name": "Layer 26",
+      "kind": "pixel",
+      "bbox": [
+        331,
+        0,
+        6000,
+        3375
+      ],
+      "width": 5669,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_024_layer_26.png",
+      "path": "bg/bg_10.png"
+    },
+    {
+      "index": 25,
+      "name": "Layer 27",
+      "kind": "pixel",
+      "bbox": [
+        2251,
+        168,
+        4383,
+        2761
+      ],
+      "width": 2132,
+      "height": 2593,
+      "opacity": 255,
+      "blend_mode": "OVERLAY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_025_layer_27.png",
+      "path": "actors/actor_04.png"
+    },
+    {
+      "index": 26,
+      "name": "Layer 28",
+      "kind": "pixel",
+      "bbox": [
+        1321,
+        25,
+        5099,
+        2978
+      ],
+      "width": 3778,
+      "height": 2953,
+      "opacity": 255,
+      "blend_mode": "COLOR_DODGE",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_026_layer_28.png",
+      "path": "props/prop_09.png"
+    },
+    {
+      "index": 27,
+      "name": "Layer 31",
+      "kind": "pixel",
+      "bbox": [
+        405,
+        75,
+        5552,
+        1637
+      ],
+      "width": 5147,
+      "height": 1562,
+      "opacity": 255,
+      "blend_mode": "OVERLAY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_027_layer_31.png",
+      "path": "props/prop_10.png"
+    },
+    {
+      "index": 28,
+      "name": "Layer 32",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        585,
+        5874,
+        3375
+      ],
+      "width": 5874,
+      "height": 2790,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_028_layer_32.png",
+      "path": "bg/bg_11.png"
+    },
+    {
+      "index": 29,
+      "name": "Layer 29",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "OVERLAY",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_029_layer_29.png",
+      "path": "bg/bg_12.png"
+    },
+    {
+      "index": 30,
+      "name": "Layer 30",
+      "kind": "pixel",
+      "bbox": [
+        2111,
+        121,
+        5520,
+        1814
+      ],
+      "width": 3409,
+      "height": 1693,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_030_layer_30.png",
+      "path": "props/prop_11.png"
+    }
+  ]
+}

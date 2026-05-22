@@ -3,6 +3,7 @@
   "event_id": "on_the_trail",
   "event_number": 2,
   "title": "On the Trail",
+  "art_tag": "story_event_02",
   "narrative": {
     "intro": "Your snooping around has paid off. Q'narr, a smuggler and petty crook from one of the disputed sectors: you and he used to be tight back in the day, but he got a deal that you couldn't take. You weren't angels by any means, but it was too dirty, and you said as much. He never quite forgave you, especially since he almost got killed attempting the job himself. Looks like he's quite the big shot now, and he's decided to get even.",
     "briefing": "Q'narr has hired a squad of Blood Storm Mercenaries to cover his tracks. You're going to have to go in hard. Fight a standard battle against Blood Storm Mercs. Minimum encounter size is 4.",

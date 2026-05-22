@@ -44,6 +44,7 @@ const DEFAULTS := {
 		"show_tooltips": true,
 		"show_fps": false,
 		"screen_shake": true,
+		"use_narrative_events": true,
 	},
 	"mobile": {
 		"haptic_feedback": true,
@@ -322,6 +323,9 @@ func is_fps_visible() -> bool:
 
 func is_screen_shake_enabled() -> bool:
 	return get_setting("gameplay", "screen_shake")
+
+func are_narrative_events_enabled() -> bool:
+	return get_setting("gameplay", "use_narrative_events")
 
 func is_haptic_enabled() -> bool:
 	return get_setting("mobile", "haptic_feedback")

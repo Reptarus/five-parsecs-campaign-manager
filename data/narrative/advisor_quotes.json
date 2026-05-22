@@ -1,0 +1,80 @@
+{
+	"_source": "Narrative system design §4. Phase 1 sprint scaffold: 1 quote per role-mood cell = 18 quotes total. Content expansion to ~10 per cell happens in Phase 3 during CharacterPhasePanel integration.",
+	"_note": "Species personality flavor is applied as an optional substitution by AdvisorSystem.generate_quote() based on the advisor's species. The base quote is the fallback.",
+	"roles": {
+		"broker": {
+			"positive": [
+				"I know someone who deals in these. Could be worth triple on the right world."
+			],
+			"warning": [
+				"Those markings are Unity military. Could be trouble."
+			],
+			"neutral": [
+				"Standard merchant fare. Nothing special."
+			]
+		},
+		"medic": {
+			"positive": [
+				"Patch jobs hold. They'll be back on their feet by morning."
+			],
+			"warning": [
+				"That wound is going to fester if we don't get supplies soon."
+			],
+			"neutral": [
+				"Vitals are stable. For now."
+			]
+		},
+		"fighter": {
+			"positive": [
+				"Good fight. They won't be coming back."
+			],
+			"warning": [
+				"We are outnumbered. But that has never stopped us before."
+			],
+			"neutral": [
+				"Keep your weapon ready. Always."
+			]
+		},
+		"tech": {
+			"positive": [
+				"Interface looks clean. We can work with this."
+			],
+			"warning": [
+				"This system is failing. Cascade is going to take everything if we don't isolate it."
+			],
+			"neutral": [
+				"Specs are within tolerance. Nothing remarkable."
+			]
+		},
+		"scout": {
+			"positive": [
+				"Tracks lead the way we want. Whoever was here, they're long gone."
+			],
+			"warning": [
+				"Something has been watching us for a while. I do not like it."
+			],
+			"neutral": [
+				"Terrain is what we expected. No surprises."
+			]
+		},
+		"social": {
+			"positive": [
+				"They like us. That is rarer than it sounds."
+			],
+			"warning": [
+				"He's playing a long game. Whatever this is, it's personal — and that makes him predictable."
+			],
+			"neutral": [
+				"Talk is cheap. Let's hear what they actually want."
+			]
+		}
+	},
+	"role_to_art_tags": {
+		"broker": ["trade_shady", "patron_meeting", "starport_market"],
+		"medic": ["ship_interior_medbay", "battle_aftermath_retreat"],
+		"fighter": ["battle_aftermath_victory", "rival_encounter", "wilderness_approach", "story_event_03", "story_event_04", "story_event_07"],
+		"tech": ["ship_interior_damaged", "crash_site", "industrial_zone"],
+		"scout": ["wilderness_approach", "world_arrival", "quest_discovery", "story_event_01", "story_event_05", "story_event_06"],
+		"social": ["starport_bar", "character_social", "patron_meeting", "story_event_02"]
+	}
+}

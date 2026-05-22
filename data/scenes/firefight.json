@@ -1,0 +1,342 @@
+{
+  "id": "firefight",
+  "source_psd": "Firefight.psd",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "bg_layers": [
+    "res://assets/scenes/firefight/bg/bg_00.png",
+    "res://assets/scenes/firefight/bg/bg_01.png",
+    "res://assets/scenes/firefight/bg/bg_02.png",
+    "res://assets/scenes/firefight/bg/bg_03.png",
+    "res://assets/scenes/firefight/bg/bg_04.png",
+    "res://assets/scenes/firefight/bg/bg_05.png",
+    "res://assets/scenes/firefight/bg/bg_06.png",
+    "res://assets/scenes/firefight/bg/bg_07.png",
+    "res://assets/scenes/firefight/bg/bg_08.png",
+    "res://assets/scenes/firefight/bg/bg_09.png"
+  ],
+  "actor_layers": [
+    {
+      "id": "actor_00",
+      "path": "res://assets/scenes/firefight/actors/actor_00.png",
+      "z_order": 11,
+      "default_visible": true,
+      "bbox": [
+        4327,
+        0,
+        6000,
+        2535
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "actor_01",
+      "path": "res://assets/scenes/firefight/actors/actor_01.png",
+      "z_order": 12,
+      "default_visible": true,
+      "bbox": [
+        0,
+        1899,
+        1161,
+        3375
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "actor_02",
+      "path": "res://assets/scenes/firefight/actors/actor_02.png",
+      "z_order": 18,
+      "default_visible": true,
+      "bbox": [
+        0,
+        0,
+        1068,
+        2806
+      ],
+      "blend_mode": "DARKEN",
+      "opacity": 255
+    }
+  ],
+  "fx_layers": [
+    {
+      "id": "fx_00",
+      "path": "res://assets/scenes/firefight/fx/fx_00.png",
+      "z_order": 17,
+      "default_visible": true,
+      "blend_mode": "MULTIPLY",
+      "opacity": 41
+    }
+  ],
+  "prop_layers": [
+    {
+      "id": "prop_00",
+      "path": "res://assets/scenes/firefight/props/prop_00.png",
+      "z_order": 3,
+      "default_visible": true,
+      "bbox": [
+        4720,
+        831,
+        6000,
+        1199
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_01",
+      "path": "res://assets/scenes/firefight/props/prop_01.png",
+      "z_order": 9,
+      "default_visible": true,
+      "bbox": [
+        3270,
+        171,
+        5915,
+        2269
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_02",
+      "path": "res://assets/scenes/firefight/props/prop_02.png",
+      "z_order": 10,
+      "default_visible": true,
+      "bbox": [
+        0,
+        847,
+        3079,
+        3375
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_03",
+      "path": "res://assets/scenes/firefight/props/prop_03.png",
+      "z_order": 13,
+      "default_visible": true,
+      "bbox": [
+        187,
+        1913,
+        6000,
+        3375
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_04",
+      "path": "res://assets/scenes/firefight/props/prop_04.png",
+      "z_order": 15,
+      "default_visible": true,
+      "bbox": [
+        872,
+        2087,
+        6000,
+        3375
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_05",
+      "path": "res://assets/scenes/firefight/props/prop_05.png",
+      "z_order": 19,
+      "default_visible": true,
+      "bbox": [
+        1509,
+        0,
+        3832,
+        2492
+      ],
+      "blend_mode": "DARKEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_06",
+      "path": "res://assets/scenes/firefight/props/prop_06.png",
+      "z_order": 20,
+      "default_visible": true,
+      "bbox": [
+        3718,
+        695,
+        6000,
+        2790
+      ],
+      "blend_mode": "DARKEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_07",
+      "path": "res://assets/scenes/firefight/props/prop_07.png",
+      "z_order": 21,
+      "default_visible": true,
+      "bbox": [
+        855,
+        0,
+        4400,
+        2368
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_08",
+      "path": "res://assets/scenes/firefight/props/prop_08.png",
+      "z_order": 24,
+      "default_visible": true,
+      "bbox": [
+        3718,
+        695,
+        6000,
+        2790
+      ],
+      "blend_mode": "DARKEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_09",
+      "path": "res://assets/scenes/firefight/props/prop_09.png",
+      "z_order": 26,
+      "default_visible": true,
+      "bbox": [
+        3313,
+        1718,
+        6000,
+        3375
+      ],
+      "blend_mode": "DARKEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_10",
+      "path": "res://assets/scenes/firefight/props/prop_10.png",
+      "z_order": 28,
+      "default_visible": true,
+      "bbox": [
+        0,
+        781,
+        2255,
+        3375
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_11",
+      "path": "res://assets/scenes/firefight/props/prop_11.png",
+      "z_order": 29,
+      "default_visible": true,
+      "bbox": [
+        0,
+        1439,
+        5118,
+        3375
+      ],
+      "blend_mode": "MULTIPLY",
+      "opacity": 255
+    },
+    {
+      "id": "prop_12",
+      "path": "res://assets/scenes/firefight/props/prop_12.png",
+      "z_order": 32,
+      "default_visible": true,
+      "bbox": [
+        3832,
+        1768,
+        6000,
+        2507
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_13",
+      "path": "res://assets/scenes/firefight/props/prop_13.png",
+      "z_order": 33,
+      "default_visible": true,
+      "bbox": [
+        3441,
+        1841,
+        4575,
+        3024
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_14",
+      "path": "res://assets/scenes/firefight/props/prop_14.png",
+      "z_order": 36,
+      "default_visible": true,
+      "bbox": [
+        0,
+        1541,
+        1911,
+        3375
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_15",
+      "path": "res://assets/scenes/firefight/props/prop_15.png",
+      "z_order": 37,
+      "default_visible": true,
+      "bbox": [
+        937,
+        31,
+        5099,
+        2639
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_16",
+      "path": "res://assets/scenes/firefight/props/prop_16.png",
+      "z_order": 38,
+      "default_visible": true,
+      "bbox": [
+        2517,
+        31,
+        6055,
+        3406
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_17",
+      "path": "res://assets/scenes/firefight/props/prop_17.png",
+      "z_order": 39,
+      "default_visible": true,
+      "bbox": [
+        0,
+        1977,
+        1650,
+        3375
+      ],
+      "blend_mode": "LIGHTEN",
+      "opacity": 255
+    },
+    {
+      "id": "prop_18",
+      "path": "res://assets/scenes/firefight/props/prop_18.png",
+      "z_order": 42,
+      "default_visible": true,
+      "bbox": [
+        1334,
+        1881,
+        3250,
+        3375
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    }
+  ]
+}

@@ -3,6 +3,7 @@
   "event_id": "were_coming",
   "event_number": 6,
   "title": "We're Coming!",
+  "art_tag": "story_event_06",
   "narrative": {
     "intro": "You have managed to track down where they are holding your friend. It's time to have some diplomacy, Fringe-style!",
     "briefing": "Roll once on Hired Muscle Subtable. Enemy count is automatically 5 + any modifier from enemy table. Set up 2 basic sentries near center. Rest halfway between center and enemy edge in/near a building. One captive inside building.",

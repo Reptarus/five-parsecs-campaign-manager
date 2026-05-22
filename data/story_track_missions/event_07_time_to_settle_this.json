@@ -3,6 +3,7 @@
   "event_id": "time_to_settle_this",
   "event_number": 7,
   "title": "Time to Settle This",
+  "art_tag": "story_event_07",
   "narrative": {
     "intro": "This is it. You've managed to track your old rival to his hide-out. His forces are depleted and worn down. You are never going to get a better chance than this.",
     "briefing": "Set up two thirds of the battlefield as barren moonscape (craters, hills, rocks, no vegetation). Last third: large building/compound/underground facility. Crew suited in atmosphere suits (6+ Armor Save, replaces normal armor). Bots and Soulless do not wear suits.",

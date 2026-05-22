@@ -1,0 +1,667 @@
+{
+  "source_psd": "C:\\Users\\admin\\Downloads\\5PFH Art\\Other Books\\Compendium\\PSD\\2Engineers.psd",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "category_counts": {
+    "bg": 6,
+    "actor": 3,
+    "fx": 0,
+    "prop": 17,
+    "skip": 5
+  },
+  "layers": [
+    {
+      "index": 0,
+      "name": "Background",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_000_background.png",
+      "path": "bg/bg_00.png"
+    },
+    {
+      "index": 1,
+      "name": "Layer 7",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_001_layer_7.png",
+      "path": "bg/bg_01.png"
+    },
+    {
+      "index": 2,
+      "name": "Layer 10",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3113
+      ],
+      "width": 6000,
+      "height": 3113,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_002_layer_10.png",
+      "path": "bg/bg_02.png"
+    },
+    {
+      "index": 3,
+      "name": "Layer 11",
+      "kind": "pixel",
+      "bbox": [
+        2311,
+        1511,
+        3688,
+        1863
+      ],
+      "width": 1377,
+      "height": 352,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_003_layer_11.png",
+      "path": "props/prop_00.png"
+    },
+    {
+      "index": 4,
+      "name": "Layer 3",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_004_layer_3.png",
+      "path": "bg/bg_03.png"
+    },
+    {
+      "index": 5,
+      "name": "Layer 16",
+      "kind": "pixel",
+      "bbox": [
+        2371,
+        -517,
+        3984,
+        0
+      ],
+      "width": 1613,
+      "height": 517,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_005_layer_16.png",
+      "path": null
+    },
+    {
+      "index": 6,
+      "name": "Layer 5",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "width": 0,
+      "height": 0,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_006_layer_5.png",
+      "path": null
+    },
+    {
+      "index": 7,
+      "name": "Layer 5 copy 3",
+      "kind": "pixel",
+      "bbox": [
+        3191,
+        1075,
+        5639,
+        2200
+      ],
+      "width": 2448,
+      "height": 1125,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_007_layer_5_copy_3.png",
+      "path": "props/prop_01.png"
+    },
+    {
+      "index": 8,
+      "name": "Layer 9 copy",
+      "kind": "pixel",
+      "bbox": [
+        1145,
+        987,
+        2716,
+        1224
+      ],
+      "width": 1571,
+      "height": 237,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_008_layer_9_copy.png",
+      "path": "props/prop_02.png"
+    },
+    {
+      "index": 9,
+      "name": "Layer 17",
+      "kind": "pixel",
+      "bbox": [
+        2514,
+        485,
+        4560,
+        2045
+      ],
+      "width": 2046,
+      "height": 1560,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_009_layer_17.png",
+      "path": "props/prop_03.png"
+    },
+    {
+      "index": 10,
+      "name": "Layer 17 copy",
+      "kind": "pixel",
+      "bbox": [
+        778,
+        685,
+        2609,
+        1491
+      ],
+      "width": 1831,
+      "height": 806,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_010_layer_17_copy.png",
+      "path": "props/prop_04.png"
+    },
+    {
+      "index": 11,
+      "name": "Layer 17 copy 2",
+      "kind": "pixel",
+      "bbox": [
+        2311,
+        792,
+        3117,
+        2623
+      ],
+      "width": 806,
+      "height": 1831,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_011_layer_17_copy_2.png",
+      "path": "actors/actor_00.png"
+    },
+    {
+      "index": 12,
+      "name": "Layer 17 copy 3",
+      "kind": "pixel",
+      "bbox": [
+        2267,
+        -700,
+        3073,
+        1131
+      ],
+      "width": 806,
+      "height": 1831,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_012_layer_17_copy_3.png",
+      "path": "actors/actor_01.png"
+    },
+    {
+      "index": 13,
+      "name": "Layer 12",
+      "kind": "pixel",
+      "bbox": [
+        299,
+        748,
+        4008,
+        2789
+      ],
+      "width": 3709,
+      "height": 2041,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_013_layer_12.png",
+      "path": "props/prop_05.png"
+    },
+    {
+      "index": 14,
+      "name": "Layer 12 copy",
+      "kind": "pixel",
+      "bbox": [
+        2559,
+        1377,
+        5715,
+        3194
+      ],
+      "width": 3156,
+      "height": 1817,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_014_layer_12_copy.png",
+      "path": "props/prop_06.png"
+    },
+    {
+      "index": 15,
+      "name": "Layer 3 copy",
+      "kind": "pixel",
+      "bbox": [
+        167,
+        485,
+        3537,
+        2890
+      ],
+      "width": 3370,
+      "height": 2405,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_015_layer_3_copy.png",
+      "path": "props/prop_07.png"
+    },
+    {
+      "index": 16,
+      "name": "Layer 9",
+      "kind": "pixel",
+      "bbox": [
+        1148,
+        2448,
+        2390,
+        2861
+      ],
+      "width": 1242,
+      "height": 413,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_016_layer_9.png",
+      "path": "props/prop_08.png"
+    },
+    {
+      "index": 17,
+      "name": "Layer 9 copy 2",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        2406,
+        734,
+        2803
+      ],
+      "width": 734,
+      "height": 397,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_017_layer_9_copy_2.png",
+      "path": "props/prop_09.png"
+    },
+    {
+      "index": 18,
+      "name": "Layer 9 copy 3",
+      "kind": "pixel",
+      "bbox": [
+        3047,
+        0,
+        5869,
+        2890
+      ],
+      "width": 2822,
+      "height": 2890,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_018_layer_9_copy_3.png",
+      "path": "props/prop_10.png"
+    },
+    {
+      "index": 19,
+      "name": "Layer 9 copy 4",
+      "kind": "pixel",
+      "bbox": [
+        2401,
+        2467,
+        4789,
+        2842
+      ],
+      "width": 2388,
+      "height": 375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_019_layer_9_copy_4.png",
+      "path": "props/prop_11.png"
+    },
+    {
+      "index": 20,
+      "name": "Layer 6",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_020_layer_6.png",
+      "path": "bg/bg_04.png"
+    },
+    {
+      "index": 21,
+      "name": "Layer 15",
+      "kind": "pixel",
+      "bbox": [
+        -274,
+        2077,
+        8547,
+        4151
+      ],
+      "width": 8821,
+      "height": 2074,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_021_layer_15.png",
+      "path": "bg/bg_05.png"
+    },
+    {
+      "index": 22,
+      "name": "Layer 14",
+      "kind": "pixel",
+      "bbox": [
+        -1074,
+        1916,
+        9905,
+        3864
+      ],
+      "width": 10979,
+      "height": 1948,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_022_layer_14.png",
+      "path": "props/prop_12.png"
+    },
+    {
+      "index": 23,
+      "name": "Layer 21",
+      "kind": "pixel",
+      "bbox": [
+        1638,
+        2495,
+        2810,
+        2609
+      ],
+      "width": 1172,
+      "height": 114,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_023_layer_21.png",
+      "path": null
+    },
+    {
+      "index": 24,
+      "name": "Layer 19",
+      "kind": "pixel",
+      "bbox": [
+        2058,
+        2408,
+        3060,
+        2583
+      ],
+      "width": 1002,
+      "height": 175,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_024_layer_19.png",
+      "path": null
+    },
+    {
+      "index": 25,
+      "name": "Layer 10 copy 6",
+      "kind": "pixel",
+      "bbox": [
+        1924,
+        0,
+        2609,
+        1088
+      ],
+      "width": 685,
+      "height": 1088,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "actor",
+      "auto_category": true,
+      "raw_path": "_raw/layer_025_layer_10_copy_6.png",
+      "path": "actors/actor_02.png"
+    },
+    {
+      "index": 26,
+      "name": "Layer 10 copy 8",
+      "kind": "pixel",
+      "bbox": [
+        479,
+        1131,
+        715,
+        2133
+      ],
+      "width": 236,
+      "height": 1002,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_026_layer_10_copy_8.png",
+      "path": "props/prop_13.png"
+    },
+    {
+      "index": 27,
+      "name": "Layer 20",
+      "kind": "pixel",
+      "bbox": [
+        -2375,
+        1345,
+        6507,
+        3167
+      ],
+      "width": 8882,
+      "height": 1822,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_027_layer_20.png",
+      "path": "props/prop_14.png"
+    },
+    {
+      "index": 28,
+      "name": "Layer 2",
+      "kind": "pixel",
+      "bbox": [
+        4019,
+        2552,
+        5232,
+        3506
+      ],
+      "width": 1213,
+      "height": 954,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_028_layer_2.png",
+      "path": "props/prop_15.png"
+    },
+    {
+      "index": 29,
+      "name": "Layer 1",
+      "kind": "pixel",
+      "bbox": [
+        704,
+        2448,
+        1694,
+        3445
+      ],
+      "width": 990,
+      "height": 997,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_029_layer_1.png",
+      "path": "props/prop_16.png"
+    },
+    {
+      "index": 30,
+      "name": "Brightness/Contrast 1",
+      "kind": "brightnesscontrast",
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "width": 0,
+      "height": 0,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": true,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_030_brightness_contrast_1.png",
+      "path": null
+    }
+  ]
+}

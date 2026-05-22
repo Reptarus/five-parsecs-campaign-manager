@@ -1,0 +1,331 @@
+{
+  "source_psd": "C:\\Users\\admin\\Downloads\\5PFH Art\\Other Books\\Compendium\\PSD\\Shipyard.psd",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "category_counts": {
+    "bg": 7,
+    "actor": 0,
+    "fx": 0,
+    "prop": 5,
+    "skip": 3
+  },
+  "layers": [
+    {
+      "index": 0,
+      "name": "Background",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_000_background.png",
+      "path": "bg/bg_00.png"
+    },
+    {
+      "index": 1,
+      "name": "Layer 1",
+      "kind": "pixel",
+      "bbox": [
+        -59,
+        -43,
+        6214,
+        3464
+      ],
+      "width": 6273,
+      "height": 3507,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_001_layer_1.png",
+      "path": "bg/bg_01.png"
+    },
+    {
+      "index": 2,
+      "name": "Layer 2",
+      "kind": "pixel",
+      "bbox": [
+        -65,
+        -38,
+        6090,
+        3399
+      ],
+      "width": 6155,
+      "height": 3437,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_002_layer_2.png",
+      "path": "bg/bg_02.png"
+    },
+    {
+      "index": 3,
+      "name": "Layer 3",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        6000,
+        3375
+      ],
+      "width": 6000,
+      "height": 3375,
+      "opacity": 143,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_003_layer_3.png",
+      "path": "bg/bg_03.png"
+    },
+    {
+      "index": 4,
+      "name": "Layer 22 copy 6",
+      "kind": "pixel",
+      "bbox": [
+        2924,
+        1163,
+        3512,
+        1559
+      ],
+      "width": 588,
+      "height": 396,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_004_layer_22_copy_6.png",
+      "path": "props/prop_00.png"
+    },
+    {
+      "index": 5,
+      "name": "Layer 22 copy 7",
+      "kind": "pixel",
+      "bbox": [
+        2906,
+        1292,
+        3494,
+        1688
+      ],
+      "width": 588,
+      "height": 396,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_005_layer_22_copy_7.png",
+      "path": "props/prop_01.png"
+    },
+    {
+      "index": 6,
+      "name": "Layer 22 copy 8",
+      "kind": "pixel",
+      "bbox": [
+        2747,
+        1332,
+        3335,
+        1728
+      ],
+      "width": 588,
+      "height": 396,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_006_layer_22_copy_8.png",
+      "path": "props/prop_02.png"
+    },
+    {
+      "index": 7,
+      "name": "Layer 4",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "width": 0,
+      "height": 0,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_007_layer_4.png",
+      "path": null
+    },
+    {
+      "index": 8,
+      "name": "Layer 5",
+      "kind": "pixel",
+      "bbox": [
+        2525,
+        959,
+        3152,
+        1364
+      ],
+      "width": 627,
+      "height": 405,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_008_layer_5.png",
+      "path": "props/prop_03.png"
+    },
+    {
+      "index": 9,
+      "name": "Layer 6",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "width": 0,
+      "height": 0,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_009_layer_6.png",
+      "path": null
+    },
+    {
+      "index": 10,
+      "name": "Layer 7",
+      "kind": "pixel",
+      "bbox": [
+        0,
+        0,
+        5845,
+        3010
+      ],
+      "width": 5845,
+      "height": 3010,
+      "opacity": 255,
+      "blend_mode": "COLOR_DODGE",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_010_layer_7.png",
+      "path": "bg/bg_04.png"
+    },
+    {
+      "index": 11,
+      "name": "Layer 9",
+      "kind": "pixel",
+      "bbox": [
+        -4889,
+        -5794,
+        5580,
+        2277
+      ],
+      "width": 10469,
+      "height": 8071,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_011_layer_9.png",
+      "path": "bg/bg_05.png"
+    },
+    {
+      "index": 12,
+      "name": "Layer 8",
+      "kind": "pixel",
+      "bbox": [
+        1715,
+        1268,
+        5127,
+        3375
+      ],
+      "width": 3412,
+      "height": 2107,
+      "opacity": 255,
+      "blend_mode": "LIGHTEN",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "prop",
+      "auto_category": true,
+      "raw_path": "_raw/layer_012_layer_8.png",
+      "path": "props/prop_04.png"
+    },
+    {
+      "index": 13,
+      "name": "Levels 1",
+      "kind": "levels",
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "width": 0,
+      "height": 0,
+      "opacity": 255,
+      "blend_mode": "NORMAL",
+      "has_mask": true,
+      "has_clip_layers": false,
+      "category": "skip",
+      "auto_category": true,
+      "raw_path": "_raw/layer_013_levels_1.png",
+      "path": null
+    },
+    {
+      "index": 14,
+      "name": "Layer 10",
+      "kind": "pixel",
+      "bbox": [
+        2492,
+        -4729,
+        9748,
+        2977
+      ],
+      "width": 7256,
+      "height": 7706,
+      "opacity": 255,
+      "blend_mode": "COLOR_DODGE",
+      "has_mask": false,
+      "has_clip_layers": false,
+      "category": "bg",
+      "auto_category": true,
+      "raw_path": "_raw/layer_014_layer_10.png",
+      "path": "bg/bg_06.png"
+    }
+  ]
+}

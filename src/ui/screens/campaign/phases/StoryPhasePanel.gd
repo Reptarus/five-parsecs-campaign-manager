@@ -148,6 +148,14 @@ func _show_event_view() -> void:
 		_show_clock_view()
 		return
 
+	# Narrative-mode branch (default ON via SettingsManager). Fallback is the
+	# existing card UI below — toggling the setting off restores prior behavior.
+	var settings = get_node_or_null("/root/SettingsManager")
+	if settings and settings.has_method("are_narrative_events_enabled") \
+			and settings.are_narrative_events_enabled():
+		_present_via_narrative_screen()
+		return
+
 	_title_label.text = "EVENT %d: %s" % [
 		_current_event.event_number,
 		_current_event.title.to_upper()]
@@ -235,3 +243,96 @@ func get_phase_data() -> Dictionary:
 		data["event_id"] = _current_event.event_id
 		data["event_number"] = _current_event.event_number
 	return data
+
+
+# ── NarrativeScreen integration (May 2026) ────────────────────────
+# Plan: C:/Users/admin/.claude/plans/elegant-strolling-zephyr.md
+# Toggle: SettingsManager.are_narrative_events_enabled() (default ON).
+# Fallback: existing card UI in _show_event_view continues unchanged when
+# toggle is off or NarrativeScreen load fails.
+
+func _present_via_narrative_screen() -> void:
+	var NarrativeScreenClass = load(
+		"res://src/ui/screens/narrative/NarrativeScreen.gd")
+	if not NarrativeScreenClass:
+		push_warning("StoryPhasePanel: narrative screen load failed, " \
+			+ "falling back to card UI")
+		_title_label.text = "EVENT %d: %s" % [
+			_current_event.event_number,
+			_current_event.title.to_upper()]
+		return
+	var screen = NarrativeScreenClass.new()
+	get_tree().root.add_child(screen)
+	screen.narrative_completed.connect(_on_narrative_done)
+	screen.skip_requested.connect(_on_narrative_skipped)
+	screen.present(_event_to_narrative_dict(_current_event),
+		_build_narrative_context())
+
+
+func _event_to_narrative_dict(event) -> Dictionary:
+	# `get_art_tag()` does not exist on StoryEvent today; canonical fallback
+	# string format keyed by event_number is documented in the sprint plan.
+	var art_tag := "story_event_%02d" % event.event_number
+	var bonus_dict: Dictionary = {}
+	if "objectives" in event and event.objectives is Dictionary:
+		var bonus_value = event.objectives.get("bonus", {})
+		if bonus_value is Dictionary:
+			bonus_dict = bonus_value
+	var restrictions: Array = []
+	if event.has_method("get_turn_restriction_strings"):
+		restrictions = event.get_turn_restriction_strings()
+	return {
+		"id": event.event_id,
+		"title": event.title,
+		"art_tag": art_tag,
+		"core_text": event.narrative_intro,
+		"briefing_text": event.narrative_briefing,
+		"advisor_role": "social",
+		"advisor_mood": "warning",
+		"turn_restrictions": restrictions,
+		"bonus_objective": bonus_dict,
+		"choices": [{"id": 0, "label": "Continue to Battle", "hint": ""}],
+	}
+
+
+func _build_narrative_context() -> Dictionary:
+	# World data lives on /root/PlanetDataManager.get_current_planet(), NOT
+	# on the campaign Resource. PlanetData is an inner class with .name/.traits.
+	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
+	var planet = null
+	if planet_mgr and planet_mgr.has_method("get_current_planet"):
+		planet = planet_mgr.get_current_planet()
+	var game_state_node = get_node_or_null("/root/GameState")
+	var campaign = null
+	if game_state_node and "current_campaign" in game_state_node:
+		campaign = game_state_node.get("current_campaign")
+	var crew: Array = []
+	if campaign and campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	var world_name: String = "Unknown"
+	var world_traits: Array = []
+	if planet:
+		if "name" in planet:
+			world_name = str(planet.get("name"))
+		if "traits" in planet and planet.get("traits") is Array:
+			world_traits = planet.get("traits")
+	var turn_number: int = 0
+	if campaign and "turn_number" in campaign:
+		turn_number = int(campaign.get("turn_number"))
+	return {
+		"world_name": world_name,
+		"world_traits": world_traits,
+		"crew": crew,
+		"turn_number": turn_number,
+	}
+
+
+func _on_narrative_done(_result: Dictionary) -> void:
+	# Delegate to the existing acknowledgment path so the battle launch
+	# flow downstream sees no behavior change.
+	_on_action_pressed()
+
+
+func _on_narrative_skipped() -> void:
+	# Story Track events are inevitable — skip = continue.
+	_on_action_pressed()

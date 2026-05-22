@@ -106,6 +106,8 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 9. **Tactics tasks** → Route to `tactics-specialist`
 10. **Prototype conversion questions** → Route to `tactics-specialist`
 11. **Never route Planetfall/Tactics to `campaign-systems-engineer`** (incompatible data models, same reason as Bug Hunt)
+12. **Narrative system files** (`src/ui/screens/narrative/*`, `data/narrative/*`) → Route to `ui-panel-developer`. The system Phase 1 SHIPPED May 22 2026 and lives under UI ownership
+13. **Narrative-mode integration into a phase panel** (CharacterPhasePanel, CrewTaskEventDialog, TravelPhase, PostBattlePhase) → Decompose: `campaign-systems-engineer` builds the settings-gated branch + helpers in the panel; `ui-panel-developer` modifies NarrativeScreen/AdvisorSystem if needed; `qa-specialist` verifies. Pattern documented in `.claude/skills/ui-development/references/narrative-screen.md`
 
 ## Dependency Order (Multi-Agent Tasks)
 

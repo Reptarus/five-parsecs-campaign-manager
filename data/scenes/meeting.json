@@ -1,0 +1,266 @@
+{
+  "id": "meeting",
+  "source_psd": "Meeting.psd",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "bg_layers": [
+    "res://assets/scenes/meeting/bg/bg_00.png",
+    "res://assets/scenes/meeting/bg/bg_01.png",
+    "res://assets/scenes/meeting/bg/bg_02.png",
+    "res://assets/scenes/meeting/bg/bg_03.png",
+    "res://assets/scenes/meeting/bg/bg_04.png",
+    "res://assets/scenes/meeting/bg/bg_05.png",
+    "res://assets/scenes/meeting/bg/bg_06.png",
+    "res://assets/scenes/meeting/bg/bg_07.png",
+    "res://assets/scenes/meeting/bg/bg_08.png",
+    "res://assets/scenes/meeting/bg/bg_09.png",
+    "res://assets/scenes/meeting/bg/bg_10.png",
+    "res://assets/scenes/meeting/bg/bg_11.png",
+    "res://assets/scenes/meeting/bg/bg_12.png"
+  ],
+  "actor_layers": [
+    {
+      "id": "actor_00",
+      "path": "res://assets/scenes/meeting/actors/actor_00.png",
+      "z_order": 6,
+      "default_visible": true,
+      "bbox": [
+        3249,
+        593,
+        3849,
+        1810
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "actor_01",
+      "path": "res://assets/scenes/meeting/actors/actor_01.png",
+      "z_order": 7,
+      "default_visible": true,
+      "bbox": [
+        2928,
+        289,
+        4252,
+        1894
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "actor_02",
+      "path": "res://assets/scenes/meeting/actors/actor_02.png",
+      "z_order": 16,
+      "default_visible": true,
+      "bbox": [
+        3269,
+        1400,
+        4429,
+        3699
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "actor_03",
+      "path": "res://assets/scenes/meeting/actors/actor_03.png",
+      "z_order": 17,
+      "default_visible": true,
+      "bbox": [
+        4816,
+        1377,
+        6431,
+        4578
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "actor_04",
+      "path": "res://assets/scenes/meeting/actors/actor_04.png",
+      "z_order": 25,
+      "default_visible": true,
+      "bbox": [
+        2251,
+        168,
+        4383,
+        2761
+      ],
+      "blend_mode": "OVERLAY",
+      "opacity": 255
+    }
+  ],
+  "fx_layers": [],
+  "prop_layers": [
+    {
+      "id": "prop_00",
+      "path": "res://assets/scenes/meeting/props/prop_00.png",
+      "z_order": 1,
+      "default_visible": true,
+      "bbox": [
+        -328,
+        1891,
+        7558,
+        3493
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_01",
+      "path": "res://assets/scenes/meeting/props/prop_01.png",
+      "z_order": 3,
+      "default_visible": true,
+      "bbox": [
+        1034,
+        124,
+        4396,
+        2977
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_02",
+      "path": "res://assets/scenes/meeting/props/prop_02.png",
+      "z_order": 5,
+      "default_visible": true,
+      "bbox": [
+        3434,
+        872,
+        3927,
+        1467
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_03",
+      "path": "res://assets/scenes/meeting/props/prop_03.png",
+      "z_order": 10,
+      "default_visible": true,
+      "bbox": [
+        989,
+        1666,
+        4915,
+        3173
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_04",
+      "path": "res://assets/scenes/meeting/props/prop_04.png",
+      "z_order": 14,
+      "default_visible": true,
+      "bbox": [
+        -96,
+        1922,
+        5915,
+        3538
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 122
+    },
+    {
+      "id": "prop_05",
+      "path": "res://assets/scenes/meeting/props/prop_05.png",
+      "z_order": 15,
+      "default_visible": true,
+      "bbox": [
+        4286,
+        3057,
+        5229,
+        3587
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 145
+    },
+    {
+      "id": "prop_06",
+      "path": "res://assets/scenes/meeting/props/prop_06.png",
+      "z_order": 18,
+      "default_visible": true,
+      "bbox": [
+        2129,
+        3031,
+        3005,
+        3597
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 120
+    },
+    {
+      "id": "prop_07",
+      "path": "res://assets/scenes/meeting/props/prop_07.png",
+      "z_order": 19,
+      "default_visible": true,
+      "bbox": [
+        1477,
+        1643,
+        3620,
+        3812
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_08",
+      "path": "res://assets/scenes/meeting/props/prop_08.png",
+      "z_order": 20,
+      "default_visible": true,
+      "bbox": [
+        -210,
+        1400,
+        2631,
+        4276
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    },
+    {
+      "id": "prop_09",
+      "path": "res://assets/scenes/meeting/props/prop_09.png",
+      "z_order": 26,
+      "default_visible": true,
+      "bbox": [
+        1321,
+        25,
+        5099,
+        2978
+      ],
+      "blend_mode": "COLOR_DODGE",
+      "opacity": 255
+    },
+    {
+      "id": "prop_10",
+      "path": "res://assets/scenes/meeting/props/prop_10.png",
+      "z_order": 27,
+      "default_visible": true,
+      "bbox": [
+        405,
+        75,
+        5552,
+        1637
+      ],
+      "blend_mode": "OVERLAY",
+      "opacity": 255
+    },
+    {
+      "id": "prop_11",
+      "path": "res://assets/scenes/meeting/props/prop_11.png",
+      "z_order": 30,
+      "default_visible": true,
+      "bbox": [
+        2111,
+        121,
+        5520,
+        1814
+      ],
+      "blend_mode": "NORMAL",
+      "opacity": 255
+    }
+  ]
+}

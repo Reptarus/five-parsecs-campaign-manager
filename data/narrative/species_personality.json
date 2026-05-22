@@ -1,0 +1,56 @@
+{
+	"_source": "Narrative system design §4 species personality flavors, traceable to Core Rules species descriptions (pp.19-22).",
+	"_note": "Maps a species id (lowercase, underscores) to flavor metadata used by AdvisorSystem.generate_quote() to optionally tint a base quote. Phase 1 scaffold ships 10 of the 16 species; full coverage expands in Phase 3.",
+	"species": {
+		"k_erin": {
+			"flavor_words": ["honor", "challenge", "battle", "weak"],
+			"speech_pattern": "blunt",
+			"source": "Core Rules p.19 — 'Proud and warlike aliens with a penchant for brutality and a peculiar sense of honor'"
+		},
+		"engineer": {
+			"flavor_words": ["interface", "circuit", "tolerance", "spec"],
+			"speech_pattern": "technical",
+			"source": "Core Rules p.20 — 'Innate talent for interfacing with machinery'"
+		},
+		"precursor": {
+			"flavor_words": ["pattern", "echoes", "convergence"],
+			"speech_pattern": "cryptic",
+			"source": "Core Rules p.20 — 'Enlightened beyond the likes of you and me'"
+		},
+		"soulless": {
+			"flavor_words": ["collective", "concurs", "optimal"],
+			"speech_pattern": "hive_voice",
+			"source": "Core Rules p.21 — 'Connected to a hive-mind. It is like having 20 million friends'"
+		},
+		"feral": {
+			"flavor_words": ["scent", "movement", "wrong"],
+			"speech_pattern": "instinctive",
+			"source": "Core Rules p.21 — 'Humanoid-animal hybrids, originally engineered for military purposes'"
+		},
+		"swift": {
+			"flavor_words": ["quick", "look look", "yes"],
+			"speech_pattern": "excitable",
+			"source": "Core Rules p.21 — 'Erratic, jerky motions... the chirping sound — they make that all day long'"
+		},
+		"manipulator": {
+			"flavor_words": ["leverage", "angle", "useful"],
+			"speech_pattern": "political",
+			"source": "Core Rules p.22 — 'Renowned for talents at communication and large-scale political machinations'"
+		},
+		"traveler": {
+			"flavor_words": ["already", "again", "remember"],
+			"speech_pattern": "knowing",
+			"source": "Core Rules p.22 — 'Claiming they are not really from this moment in space and time'"
+		},
+		"hulker": {
+			"flavor_words": ["break", "lift", "easy"],
+			"speech_pattern": "blunt",
+			"source": "Core Rules p.21 — 'Bulging with muscles and rage, perfect for hauling, crushing, and breaking'"
+		},
+		"hopeful_rookie": {
+			"flavor_words": ["amazing", "really", "wow"],
+			"speech_pattern": "wide_eyed",
+			"source": "Core Rules p.22 — 'Wide-eyed and enthusiastic, you almost feel bad for this kid'"
+		}
+	}
+}

@@ -3,6 +3,7 @@
   "event_id": "foiled",
   "event_number": 1,
   "title": "Foiled!",
+  "art_tag": "story_event_01",
   "narrative": {
     "intro": "The captain was excited this morning. A big job lined up. Mega-corp, good benefits. Quite a deal. Then it all went haywire. When you showed up at the designated meeting place, hired guns were waiting for you. What's going on?",
     "briefing": "You are under attack! Set up exactly 12\" apart with each side in a rough line. All opposing figures must be set up behind Cover, but able to fire.",

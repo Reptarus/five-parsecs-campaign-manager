@@ -27,12 +27,14 @@
 **Skill**: `battle-systems` (4 references)
 
 ### 4. ui-panel-developer (haiku, yellow)
-**Domain**: UI components, Deep Space theme, TweenFX, scene routing
+**Domain**: UI components, Deep Space theme, TweenFX, scene routing, narrative event overlay system
 **Files Owned**:
 - `src/ui/components/` (125+ files)
 - `src/ui/screens/` (non-campaign, non-battle, non-bug-hunt subdirs)
 - `src/ui/screens/SceneRouter.gd`
-**Skill**: `ui-development` (4 references)
+- `src/ui/screens/narrative/` (NarrativeScreen, NarrativeTextGenerator, AdvisorSystem, NarrativeChoiceButton, SceneStage)
+- `data/narrative/` (atmosphere_openers.json, advisor_quotes.json, species_personality.json)
+**Skill**: `ui-development` (5 references including narrative-screen)
 
 ### 5. bug-hunt-specialist (sonnet, cyan)
 **Domain**: Bug Hunt gamemode, cross-mode safety

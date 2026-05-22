@@ -1,7 +1,7 @@
 # Modiphius Partnership Correspondence Journal
 
 **Owner**: Elijah Rhyne
-**Last Updated**: 2026-05-13 (Three previously-missing entries added: #3a April 29 13-item outbound, #8 May 8 Chris reply, #9 May 13 Chris maintenance-fee email. Target entries renumbered #10/#11. Phase 1 / Phase 2 arc reframe captured. Entry #9b added — Chris's 12:16 PM asset-delivery email opens new operational thread with Richard Gale, Modiphius Art Dept. Asset deliverable stance captured: underlying art primary + final cover art for digital→physical conversion screens. Draft #D added in Section 6.)
+**Last Updated**: 2026-05-22 (MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.)
 **Purpose**: Chronological log of all Modiphius partnership touchpoints — meetings, emails, deliverables sent, decisions made by either side. Acts as a written timeline that's independent of the email archive (in case emails are lost, replaced, or contested).
 
 > **Maintenance protocol**: Add a new entry within 24 hours of any touchpoint. Include verbatim excerpts of key passages when they contain commitments or numbers. Cross-reference to source documents, meeting notes, and email subjects so the journal remains an index, not the only record. Verbatim quotes use blockquotes and are clearly marked as such.
@@ -25,8 +25,11 @@
 | 8 | 2026-05-08 | Email inbound | Chris → Elijah (Gavin presumed CC) | Inline blue replies on Entry #3a 13-item email: LOI gated on commercial agreement, boilerplate licensing contract ready, B2B NDA + closed-beta-tester NDA standard, "monday board" suggestion for tracking, pricing/naming/store workflow gated on commercial deal | This document, Entry #8 |
 | 9 | 2026-05-13 | Email inbound | Chris → Elijah (Gavin presumed CC) | Clarification email: recoupment confirmed as Reading B (no upfront, dev keeps 100% until $X recouped), quarterly maintenance/support/development fee carve-out to dev introduced post-recoupment, pro-rata recoup mechanism if Modiphius contributes budget, make-good partial answer ("we maybe able to find a way") | This document, Entry #9 |
 | 9b | 2026-05-13 (12:16 PM) | Email inbound | Chris → Richard Gale (Art Dept), Gavin, Elijah | `Five Parsecs Assets for App` — opens operational art-delivery thread; Richard Gale (Modiphius Art Dept) introduced as asset-delivery contact; Chris asks Elijah underlying-vs-final cover-art clarifying question; notes 5PFH logo refresh planned for "next year" | This document, Entry #9b |
-| 10 | (target) 2026-05-18 to 2026-05-22 | Meeting (Zoom) | Elijah, Chris, Gavin | Phase 1 terms conversation: $X figure, maintenance fee figure, Y threshold status, wider-scope pitch, Phase 2 placeholder ask | TBD |
-| 11 | (target) 2026-05-25 | Milestone | — | Closed alpha kickoff | `CLOSED_ALPHA_PLAN.md` |
+| 10 | 2026-05-14 (01:50 UTC) | Email outbound | Elijah → Chris (Gavin CC) | Reply to Entry #9 — structural paraphrase of recoupment Reading B + maintenance fee + pro-rata (locks deal frame in writing for first time); soft ask for LOI template / sample partnership documents; open Mon-Thu May 18-22 availability window | This document, Entry #10 (PROMOTED from Draft #C) |
+| 10a | 2026-05-18 to 2026-05-22 | Meeting (Zoom) — SLIPPED | — | DEFERRED — Modiphius internal IT/Tax/Accounting sprint deferred Chris's bandwidth; superseded by Mon May 25 reschedule per Entry #11a | (no touchpoint occurred) |
+| 11 | 2026-05-22 (04:29 AM) | Email inbound | Chris → Elijah, Gavin | Reply to Entry #10 — CHRIS-prefixed inline responses confirm deal structure ("yes that would how we'd propose it"), propose broadening as "stage 2" ("Keen not to let the project bloat"), request prioritised support list, ask for next-week availability | This document, Entry #11 |
+| 11a | 2026-05-22 (06:04 AM) | Email inbound | Chris → Elijah, Gavin | Forward of QA-docs thread + skim review — flags Ivan compensation as new dependency ("Ivan is not paid beyond writing the books"); flags competitor web-based tool as differentiation concern; asks Elijah to articulate product differentiation (UI + content); proposes Mon May 25 at 4:30/5pm UK (≈ 12pm Eastern) | This document, Entry #11a |
+| 12 | (target) 2026-05-25 | Meeting (Zoom) + Milestone | Elijah, Chris, Gavin | Combined: deal-frame call (subsumes Entry #10a) + alpha A1 cohort decision (Ivan's Discord OR public-beta-via-Five-Parsecs-Discord-and-subreddit per Draft #E proposal) | TBD |
 
 ---
 
@@ -634,33 +637,198 @@
 
 ---
 
-### Entry #10 (Target) — 2026-05-18 to 2026-05-22 — Meeting (Zoom) — Phase 1 terms conversation
+### Entry #10 — 2026-05-14 (01:50 UTC) — Email outbound — Reply to Entry #9 structural clarification + May 18-22 availability (PROMOTED from Draft #C)
 
-- **Mode**: Scheduled call (TBD exact day, week of May 18)
-- **Participants**: Elijah, Chris, Gavin (presumed)
-- **Pre-meeting deliverables Elijah needs ready**:
+- **Mode**: Email outbound, Elijah → Chris (Gavin CC'd)
+- **From**: Elijah Rhyne
+- **To**: Chris Birch
+- **CC**: Gavin Dady (presumed)
+- **Subject**: Reply to Chris's May 13 deal-structure email (Re: thread continuation)
+- **Promotion source**: Draft #C in Section 6 (v2 with LOI template ask + open Mon-Thu window)
+
+- **Summary**: Elijah replies to Chris's May 13 structural clarification (Entry #9). Paraphrases recoupment Reading B + quarterly maintenance fee + pro-rata structure back using Chris's $5/$1/$4 worked example. Forward-commits to bringing broadening one-pager to the May 18-22 call. Asks soft for LOI template / sample partnership documents. Confirms Mon-Thu May 18-22 availability window.
+
+- **Strategic importance**: This is the email that gets the deal structure formally on the record from the dev side. Chris's May 22 response (Entry #11) confirms "yes that would how we'd propose it" — meaning the paraphrase in this email becomes the canonical written description of the Phase 1 commercial structure.
+
+- **Body**: See Draft #C (now PROMOTED) in Section 6 for verbatim text.
+
+- **References**:
+  - Draft #C in Section 6 (verbatim source, marked PROMOTED)
+  - Entry #9 (the May 13 inbound being responded to)
+  - Entry #11 (May 22 inbound confirming this paraphrase locks the structure)
+
+---
+
+### Entry #10a — 2026-05-18 to 2026-05-22 — Meeting (Zoom) — SLIPPED (deferred by Modiphius IT/Tax/Accounting sprint)
+
+- **Mode**: Scheduled call window — did NOT occur
+- **Reason**: Per Entry #11, Modiphius opened an internal IT/Tax/Accounting project that consumed Chris's bandwidth. Chris explicitly apologized for the slow pace and asked to reschedule to the following week.
+- **Original purpose** (still relevant for Entry #12 rescheduled call):
   - Phase 1 terms talking points (re-framed per Phase 1 = prove thesis / Phase 2 = lock-in, NOT one-shot extraction)
   - $X figure honest anchor with line items ($30-40K range)
   - Maintenance fee honest anchor with rationale ($2-3K/quarter range)
   - Y threshold clarifying question (does it still apply alongside maintenance fee?)
-  - 1-page broadening-scope positioning sketch (KoDP/Six Ages + Apple ecosystem) — supports Chris's funding-opportunity angle
-  - Phase-2-closing clauses checklist (engine ownership, exclusivity, IP-grab, non-compete, ROFR) — defensive items for boilerplate review
-  - Phase 2 placeholder ask (line in LOI/MOU acknowledging wider 5x-system conversation post-Phase-1)
-- **Pre-meeting deliverables Modiphius-side may bring**:
-  - Chris's review notes on the Windows build
-  - Any input from the UK video-game-firm investment contact
-  - Their own number proposals for $X and quarterly maintenance fee
-  - Possibly: sample of the boilerplate licensing contract (if requested)
-- **Status**: NOT YET HAPPENED. To be journalized within 24 hours of the call.
+  - Broadening-scope discussion — SUPERSEDED by Chris independently arriving at "stage 2" framing in Entry #11 (the one-pager pivots from "make the case" to "Stage 2 placeholder line for LOI")
+  - Phase-2-closing clauses checklist (engine ownership, exclusivity, IP-grab, non-compete, ROFR)
+  - Phase 2 placeholder ask
+- **Status**: SLIPPED. Talking points carry forward to Entry #12 (Mon May 25 reschedule).
+- **References**:
+  - Entry #11 (May 22 04:29 AM — reschedule request)
+  - Entry #12 (target Mon May 25 — combined deal-frame call + alpha A1 kickoff)
+  - `docs/MEETING_PREP_2026-05-18.md` — original talking-points doc, carries forward with Stage 2 reframe noted
 
 ---
 
-### Entry #11 (Target) — 2026-05-25 — Closed alpha kickoff
+### Entry #11 — 2026-05-22 (04:29 AM) — Email inbound — Chris's reply to Entry #10: deal structure CONFIRMED, "stage 2" framing for broadening, reschedule request
 
-- **Mode**: Milestone (not a Modiphius touchpoint per se, but partnership-relevant)
-- **Summary**: Closed alpha A1 build ships to Ivan's Discord cohort. 6-week window through ~Jul 6.
-- **Status**: NOT YET HAPPENED.
-- **References**: `CLOSED_ALPHA_PLAN.md`
+- **Mode**: Email inbound, parallel to Entry #11a (same morning, separate skim of Elijah's two threads)
+- **From**: Chris Birch
+- **To**: Elijah Rhyne
+- **CC**: Gavin Dady
+- **Subject**: (continuation of May 13 deal-structure thread, quoting Elijah's May 14 message)
+- **Time**: 04:29 AM (Elijah-local) — implies ~9:29 AM UK time, normal Chris-morning batch
+
+- **Summary**: Chris opens by apologizing for slow pace and flagging Modiphius internal capacity constraint ("we also have a major IT/Tax/Accounting project kicked off internally that's going to take some time to manage"). Then provides inline CHRIS-prefixed responses to Elijah's May 14 paraphrase email (Entry #10). Three substantive responses: (1) confirms the recoupment + maintenance fee + pro-rata structural paraphrase verbatim, (2) introduces "stage 2" framing for the broadening conversation with explicit anti-bloat motivation, (3) requests reschedule of the May 18-22 call to next week and asks for a prioritised support list.
+
+- **Verbatim email body**:
+
+  > Hi Elijah sorry for the slow pace, we also have a major IT/Tax/Accounting project kicked off internally that's going to take some time to manage.
+  >
+  > Notes below:
+  >
+  > On 14 May 2026, at 01:50, Elijah Rhyne <elijahrhyne@gmail.com> wrote:
+  >
+  > Hi Chris,
+  >
+  > Thanks for walking through the structure with the worked examples. That helps a lot. Let me paraphrase it back so I know we're reading it the same way.
+  >
+  > The way I'm understanding it: $X is a total dev budget figure. From dollar one, I keep 100% of net receipts until cumulative receipts hit $X. After that, future quarters get split. Within each quarter, an agreed maintenance / support / development fee goes to me first, then the remainder splits 50/50. So in your example, $5 quarterly total minus the $1 fee leaves $4 splitting to $2 each, with my total at $3 of $5 and yours at $2.And if Modiphius is later able to allocate budget, recoupment becomes pro-rata to your contributed share. Got it. That gives both sides flexibility on timing.
+  >
+  > **CHRIS - yes that would how we'd propose it.**
+  >
+  > On the funding-opportunities angle and the wider-scope question you raised earlier, I've been pulling together some thinking on how the app concept might extend beyond core Five Parsecs fans without bloating dev scope. I'll bring a one-pager to the call so we can talk through whether the framing resonates with what you're hearing from your UK contact.
+  >
+  > **CHRIS - any thoughts on that yet. Keen not to let the project bloat, and maybe that's a stage 2, it's a tricky balance to have the best chance of revenue day 1 vs being able to reach day 1!**
+  >
+  > For the week of May 18, I can do Monday May 18 or Wednesday May 20 (any time that works for you in those days). If neither lands, Thursday or Friday May 21/22 also works on my side.
+  >
+  > **CHRIS - Can we look at next week and let me know some days and times you can make?**
+  >
+  > What would help is a prioritised support list. What do you most need help with, then nice to have's etc?
+  >
+  > thanks
+  > Chris
+
+- **Key decisions / commitments locked**:
+  - **Deal structure CONFIRMED IN WRITING**: "yes that would how we'd propose it." This is the first written confirmation. The structure (recoupment Reading B + quarterly maintenance fee + pro-rata) goes from "Chris's narrative proposal" to "Chris's confirmed proposal" in correspondence-record terms. Major.
+  - **"Stage 2" framing for broadening**: Chris independently arrived at the Phase 1 / Phase 2 arc framing Elijah locked into memory on May 13 (`feedback_phase1_prove_phase2_lockin.md`). The broadening one-pager goes from "make the case for broadening as Phase 1 work" to "name Stage 2 as a future conversation in the LOI." Much easier for Elijah.
+  - **Modiphius internal capacity constraint**: IT/Tax/Accounting sprint is consuming Chris's bandwidth. This affects pacing, not direction.
+  - **Reschedule request**: May 18-22 call did not happen. Chris wants next-week availability (week of May 25).
+  - **Prioritised support list ask**: Chris is asking Elijah to be direct about what would help most, with bandwidth in mind.
+
+- **Action items resulting**:
+  - Elijah-side:
+    - Confirm Mon May 25 4:30/5pm UK (≈ 12pm Eastern) — per Entry #11a proposal
+    - Send prioritised support list (need-to-have / nice-to-have format)
+    - Accept Chris's "stage 2" framing for broadening, propose LOI line acknowledging it
+    - Confirm Stage 2 deferral applies to the broadening one-pager that was originally planned for the May 18 call
+  - Filing decisions:
+    - Update `MEETING_PREP_2026-05-18.md` to reflect Stage 2 reframe of broadening conversation (talking points carry forward to Entry #12)
+    - Lock the deal-structure-confirmed Decision Made into the journal — this is the load-bearing record
+
+- **References**:
+  - Entry #10 (Elijah's May 14 outbound being responded to)
+  - Entry #9 (Chris's original May 13 structural-clarification email)
+  - Memory: `feedback_phase1_prove_phase2_lockin.md` (Stage 2 arc — Chris's framing aligns)
+  - Memory: `feedback_negotiation_grace_posture.md` (response to "slow pace" apology should grace-acknowledge, not pressure)
+
+---
+
+### Entry #11a — 2026-05-22 (06:04 AM) — Email inbound — Chris's skim of QA docs: Ivan compensation problem + competitor web-tool concern + UI differentiation ask + Mon May 25 time proposal
+
+- **Mode**: Email inbound, parallel to Entry #11 (same morning, separate skim of Elijah's QA-docs thread)
+- **From**: Chris Birch
+- **To**: Elijah Rhyne
+- **CC**: Gavin Dady
+- **Subject**: Forward of Entry #7c (QA-docs delivery thread) with skim review on top
+- **Time**: 06:04 AM (Elijah-local) — ~95 minutes after Entry #11; same morning batch but second pass
+
+- **Summary**: Chris responds to the QA-docs package Elijah sent on May 6/8 (Entry #7a/#7c). Five substantive items: (1) names Ivan compensation as a new dependency Modiphius hadn't priced into the alpha cohort, (2) flags an unnamed competitor web-based tool as a differentiation concern, (3) asks Elijah to articulate the product's UI + content differentiation, (4) proposes Mon May 25 at 4:30/5pm UK (12pm Eastern) for the rescheduled call, (5) forwards the original QA-docs thread for reference.
+
+- **Verbatim email body**:
+
+  > Hi Elijah, I've had a skim through the below and there's a lot of complex information and I need to understand better what you will need us to do. Ivan is not paid beyond writing the books so we will either have to pay him to take part in the process for the early testings, or figure out a way to involve him so Im conscious of any requirement for him and his play testers to be testing and reporting on this.
+  >
+  > I've seen another creator is doing a web based tool and integrating the various books. We plan to review it to see if it's using too much of the books information like table results as we will be able to limit that if it's going to far.
+  >
+  > I think we then need to be clear how this product is different, is offering more both from a UI perspective but also content. Have you seen the other web based version being discussed recently we should keep an eye on it as it will compete with this project.
+  >
+  > I can speak monday at 4.30/5pm UK time  - 12noon Easter if that works?
+  >
+  > Begin forwarded message:
+  > [Forward of Entry #7c QA-docs package, attachments: Strategic QA Plan, Operational Test Plan (IEEE 829), Tester Onboarding]
+
+- **Key items raised**:
+  - **Ivan compensation as new dependency**: "Ivan is not paid beyond writing the books." Modiphius cannot involve Ivan in alpha cohort coordination without either paying him or finding a structural workaround. This is a NEW constraint Modiphius hadn't surfaced before. Closed-alpha-cohort-from-Ivan's-Discord path now has a budget question attached.
+  - **Competitor web-based tool**: Chris has identified an unnamed web-based competitor that's "integrating the various books." Unclear which tool — needs identification ask in the reply. Chris is nervous about IP-information limits ("if it's going to far"). He may also be considering limiting Elijah's project similarly. This is a competitive-positioning moment.
+  - **UI + content differentiation ask**: Chris wants explicit articulation of how this product differs from the web-based competitor. T1 (companion-app-on-Steam, not digital port) and T2 (establishing-a-category) are the canonical answers. Steam-as-platform is a structural differentiator the web tool cannot match.
+  - **Mon May 25 time proposal**: 4:30/5pm UK time = 11:30 AM / 12:00 PM Eastern (presumed "Easter" = typo for "Eastern"). Likely Chris is offering either time, with 12pm Eastern (5pm UK) as the cleaner round number.
+  - **QA-docs reception**: "had a skim" + "lot of complex information" + "need to understand better what you will need us to do." Chris has not deeply reviewed, but is engaged and asking for direction.
+
+- **Strategic implications**:
+  - Ivan compensation problem creates an opening for an alternative cohort proposal (per Elijah's May 22 strategic call: public-beta-via-Discord-and-subreddit with feedback pipeline + crediting Ivan and his playtesters in app credits instead of paying). See Draft #E in Section 6.
+  - Competitor concern is a positioning opportunity — answer with T1 + T2 + Steam-as-platform structural differentiation, plus the UI bar Elijah is building toward.
+  - Mon May 25 collides with the original target Entry #11 (alpha A1 kickoff). Resolution: combined call + kickoff day. Call in the morning (Eastern), A1 ships same day or shortly after.
+
+- **Action items resulting**:
+  - Elijah-side:
+    - Confirm Mon May 25 12pm Eastern (5pm UK) for the call — or 11:30am if Chris prefers
+    - Propose public-beta-via-Discord-and-subreddit as Ivan workaround (credits-not-pay) in reply (Draft #E)
+    - Ask which web-based tool Chris is seeing
+    - Articulate T1 + T2 + Steam-as-platform differentiation in reply
+    - Frame graphics-light A1 build as deliberate (not "not ready") in reply
+    - Wire feedback pipeline (in-app reporting + designated Discord channel + Talo telemetry) before A1 ships
+  - Filing decisions:
+    - Note Ivan compensation as a new blocker to closed-cohort path
+    - Public-beta path becomes a serious proposal pending Chris's response in the May 25 call
+
+- **References**:
+  - Entry #7a/#7c (QA-docs delivery being skimmed)
+  - Entry #11 (parallel email same morning — read together)
+  - Draft #E in Section 6 (Elijah's pending reply, addresses all 5 items)
+  - Memory: `feedback_strategic_theses_t1_t4.md` (T1 + T2 differentiation framings)
+  - Memory: `reference_steam_companion_app_landscape.md` (off-Steam competitor research, Steam-as-platform differentiation)
+
+---
+
+### Entry #12 (Target) — 2026-05-25 — Meeting (Zoom) + Milestone — Combined deal-frame call + alpha A1 kickoff
+
+- **Mode**: Scheduled call (target Mon May 25 12pm Eastern / 5pm UK per Entry #11a) + same-day or near-day alpha A1 build release
+- **Participants**: Elijah, Chris, Gavin (presumed)
+
+- **Pre-meeting deliverables Elijah needs ready**:
+  - Phase 1 terms talking points (carry forward from `MEETING_PREP_2026-05-18.md` with Stage 2 reframe per Entry #11)
+  - $X figure honest anchor with line items ($30-40K range)
+  - Maintenance fee honest anchor ($2-3K/quarter range)
+  - Y threshold clarifying question (does it still apply alongside maintenance fee?)
+  - **REVISED**: Broadening-scope one-pager pivots from "make the case" to "Stage 2 placeholder language for LOI"
+  - Phase-2-closing clauses checklist (engine ownership, exclusivity, IP-grab, non-compete, ROFR) — defensive items for boilerplate review
+  - **NEW**: Prioritised support list (per Entry #11 ask — need-to-have / nice-to-have)
+  - **NEW**: Public-beta-via-Discord-and-subreddit pitch with Ivan-credits workaround (per Draft #E)
+  - **NEW**: Feedback-pipeline architecture (in-app reporting + designated Discord channel + Talo telemetry, all opt-in)
+  - **NEW**: Competitive differentiation talking points (T1 + T2 + Steam-as-platform)
+  - **NEW**: Graphics-light A1 framing (mechanics + narrative spine first; art integration phased across A2-A6)
+
+- **Pre-meeting deliverables Modiphius-side may bring**:
+  - Confirmation on public-beta route
+  - Decision on Ivan involvement (credits workaround OR pay-to-participate)
+  - Identification of the competitor web-based tool
+  - LOI template / sample partnership documents (per Elijah's Draft #C ask)
+  - Possibly: boilerplate licensing contract sample
+  - Possibly: their own number proposals for $X and quarterly maintenance fee
+  - Possibly: chris's input from the UK video-game-firm investment contact
+- **Status**: NOT YET HAPPENED. To be journalized within 24 hours of the call.
+- **Alpha A1 release**: Pending the call's outcome on public-beta-vs-closed-cohort decision. If public beta is greenlit, A1 ships to Five Parsecs Discord + subreddit. If closed-cohort wins, A1 ships to Ivan's Discord (assuming Ivan-comp workaround agreed).
 
 ---
 
@@ -675,12 +843,12 @@
 | Y threshold status post-maintenance-fee | OPEN (NEW 2026-05-13) | Elijah | Ask at May 18 whether the May 5 Y threshold ("50/50 if monthly revenue > Y, else dev gets 100%") still applies alongside the new quarterly maintenance fee carve-out, or whether one replaces the other |
 | Real quarterly maintenance fee figure | OPEN (NEW 2026-05-13) | Both | Chris's $1 was illustrative. Negotiate real figure at May 18. Elijah anchor: $2-3K/quarter (full-time-dev maintenance reality) |
 | Pre-launch cash within current deal frame | OPEN (NEW 2026-05-13) | Both | Per Entry #9 Reading B confirmation, no upfront cash in current structure. Three paths: (a) Modiphius budget contribution pro-rata, (b) external funding via wider-scope pitch, (c) separate dev advance on top of $X. Surface at May 18 with Phase 1 / Phase 2 framing |
-| Phase 2 placeholder language in LOI/MOU | OPEN (NEW 2026-05-13) | Elijah | Propose at May 18: line acknowledging "wider 5x-system conversation happens after Phase 1 succeeds". Low-cost for Modiphius to agree, names the next conversation |
+| Phase 2 placeholder language in LOI/MOU | MUCH EASIER 2026-05-22 (Chris arrived at "stage 2" framing independently in Entry #11) | Elijah | Propose at Entry #12 (Mon May 25) call: short LOI line acknowledging Stage 2 as a future conversation. Chris's own language ("maybe that's a stage 2") is the lock — Elijah just confirms |
 | Phase-2-closing clauses checklist for boilerplate review | OPEN (NEW 2026-05-13) | Elijah | Identify and watch for: engine ownership, exclusivity, IP-grab language, non-compete, ROFR. Block any of these in Phase 1 boilerplate that would lock out Phase 2 negotiation leverage |
 | Boilerplate licensing contract sample | OPEN (NEW 2026-05-13) | Modiphius | Request via Gavin (soft approach) before any LOI signing. Boilerplate is the contract basis — should not sign without reading |
 | Sample platform-store sublicensing language | OPEN (NEW 2026-05-13) | Elijah | Chris asked for samples in Entry #8 Item 5. Research Steam/Apple/Google distribution-agreement language we'd be sublicensing back |
 | Monday.com board for operational tracking | OPEN (NEW 2026-05-13) | Both | Accept Chris's suggestion in next operational reply. Confirm setup ownership (Modiphius admin or Elijah-as-guest) |
-| Open-testing preference for closed alpha | OPEN (NEW 2026-05-13) | Elijah | Communicate in writing before alpha kickoff. Overrides Modiphius's default closed-beta NDA pattern (per Entry #8 Item 4). Marketing rationale: hype, social media visibility, organic wishlist conversion |
+| Open-testing preference for closed alpha | SUPERSEDED 2026-05-22 by public-beta-via-Discord-and-subreddit proposal | Elijah | Earlier "open testing" stance refined into community-channel-limited public beta (Five Parsecs Discord + subreddit). See new thread below + Draft #E in Section 6 |
 | First weekly Gavin sync (QA docs delivery) | AWAITING RESPONSE (Gavin) | Gavin | Sent in Entry #7a/#7c cluster. Expected response window: 2-5 business days |
 | Operational QA companion docs (Entry/Exit Criteria, Regression Checklist, Traceability Matrix, Defects Log) | ON STANDBY | Elijah | Send if Gavin requests after reviewing first batch |
 | Gavin's preferred ongoing cadence | AWAITING RESPONSE (Gavin) | Gavin | Tuesday async default proposed; awaiting his preference |
@@ -702,7 +870,16 @@
 | Reply to Chris on underlying-vs-final cover art question | OPEN (NEW 2026-05-13) | Elijah | Send Draft #D from Section 6 (Re: Five Parsecs Assets for App): underlying art primary, final cover art as secondary ask for T4 conversion screens, format/resolution specs for Richard |
 | Five Parsecs logo refresh timeline | OPEN (NEW 2026-05-13) | Chris / Modiphius | Chris noted in Entry #9b that logo "WILL CHANGE FOR NEXT YEAR." Confirm target date verbally at May 18 call so app's branded surfaces can stage rollover to coincide with the refresh |
 | Modiphius unified icon set existence check | OPEN (NEW 2026-05-13) | Richard / Modiphius | Chris uncertain in Entry #9b ("I don't think we have any?"). If none exist, Elijah continues current game-icons.net SOP as working art direction. If any are found, evaluate for inclusion |
-| Asset licensing-of-use under LOI/MOU | OPEN (NEW 2026-05-13) | Elijah | Ensure LOI/MOU explicitly covers app-use rights for Modiphius source art (covers, interior art, logos). Flag at May 18 call. DO NOT raise on Richard's operational thread — would mix legal into art delivery |
+| Asset licensing-of-use under LOI/MOU | OPEN (NEW 2026-05-13) | Elijah | Ensure LOI/MOU explicitly covers app-use rights for Modiphius source art (covers, interior art, logos). Flag at Entry #12 (May 25) call. DO NOT raise on Richard's operational thread — would mix legal into art delivery |
+| Public-beta-via-Discord-and-subreddit proposal | OPEN (NEW 2026-05-22) | Modiphius | Proposed in Draft #E. Community-channel-limited beta (Five Parsecs Discord + subreddit, not fully public). Awaiting Chris's confirmation at Entry #12 (May 25) call |
+| Feedback pipeline architecture | OPEN (NEW 2026-05-22) | Elijah | Hard requirement before A1 public beta ships: in-app reporting widget + designated Discord channel(s) for bugs/feedback + Talo telemetry, all opt-in via LegalConsentManager. Wire and smoke-test before May 25 |
+| Ivan compensation workaround (credits, not pay) | OPEN (NEW 2026-05-22) | Modiphius | Per Entry #11a, Ivan isn't paid beyond writing books. Elijah's proposal in Draft #E: credit Ivan and any of his playtesters in app credits as contributors — recognition without budget exposure. Awaiting Chris's response |
+| Competitor web-based tool identification | OPEN (NEW 2026-05-22) | Chris | Chris flagged unnamed competitor in Entry #11a ("another creator is doing a web based tool"). Asked in Draft #E for the specific tool URL/name. Affects differentiation positioning |
+| UI + content differentiation framing | OPEN (NEW 2026-05-22) | Elijah | Chris asked in Entry #11a: "be clear how this product is different, is offering more both from a UI perspective but also content." Articulate T1 (companion-app-on-Steam, not digital port) + T2 (establishing category) + Steam-as-platform structural differentiation. Draft #E names it, sharpen at Entry #12 call once competitor identified |
+| Prioritised support list | SENT IN DRAFT #E 2026-05-22 | Chris | Chris asked in Entry #11 "What would help is a prioritised support list. What do you most need help with, then nice to have's etc?" Draft #E delivers it: need-to-have (public-beta confirmation, Ivan workaround decision, competitor identification, LOI template) + nice-to-have (logo refresh date, asset folder delivery) |
+| Entry #12 (Mon May 25) call time confirmation | OPEN (NEW 2026-05-22) | Both | Chris proposed 4:30/5pm UK (≈ 12pm Eastern) in Entry #11a. Draft #E confirms 5pm UK / 12pm Eastern as the default with 4:30pm UK as fallback. Awaiting Chris's lock |
+| Graphics-light A1 framing communication | SENT IN DRAFT #E 2026-05-22 | Chris | Chris's "UI perspective" concern (Entry #11a) needs context: A1 ships mechanics + narrative spine first, art integration phased across A2-A6 informed by playtest data. NOT UI-quality compromise, it's UI-investment targeting. Awaiting Chris's read |
+| Modiphius IT/Tax/Accounting capacity constraint | TRACKING (NEW 2026-05-22) | Chris | Chris flagged in Entry #11: "we also have a major IT/Tax/Accounting project kicked off internally that's going to take some time to manage." Affects pacing, not direction. Grace-acknowledge in Draft #E, don't push timeline |
 
 ---
 
@@ -733,6 +910,13 @@
 - 2026-05-13: **Asset categories defined** for app delivery: logo (current + refresh) + book covers (4 titles: 5PFH / Compendium / Planetfall / Tactics) + interior art (5 sub-categories: character / species / equipment / ship / world) + icon set status uncertain (Entry #9b)
 - 2026-05-13: **Five Parsecs logo refresh planned for "next year"** — implies upcoming logo change affects branded surfaces in the app, requires staged rollout coordination (Entry #9b)
 - 2026-05-13: **Modiphius logo delivered** as Entry #9b email attachment (display-resolution format; high-resolution version expected through Richard's folder)
+- 2026-05-22: **Deal structure CONFIRMED IN WRITING** — Chris's inline reply in Entry #11 ("yes that would how we'd propose it") confirms Elijah's May 14 paraphrase. Recoupment Reading B (no upfront, dev keeps 100% until $X recouped) + quarterly maintenance/support/development fee carve-out to dev before 50/50 split + pro-rata recoup if Modiphius later contributes budget — ALL LOCKED IN CORRESPONDENCE RECORD. First written confirmation of the structure
+- 2026-05-22: **Broadening as "stage 2" framing introduced by Chris** — Entry #11 inline: "Keen not to let the project bloat, and maybe that's a stage 2, it's a tricky balance to have the best chance of revenue day 1 vs being able to reach day 1!" Chris independently arrived at the Phase 1 / Phase 2 arc framing Elijah locked into memory May 13. Massively reduces Elijah's negotiation lift on broadening — Stage 2 placeholder language for LOI becomes a confirmation, not a pitch
+- 2026-05-22: **Modiphius internal capacity constraint flagged** — IT/Tax/Accounting sprint in progress, affects Chris's bandwidth (Entry #11 opening). Caused the May 18-22 meeting (Entry #10a) to slip, rescheduled to Mon May 25 (Entry #12 target)
+- 2026-05-22: **Ivan compensation surfaced as new dependency** — Entry #11a: "Ivan is not paid beyond writing the books so we will either have to pay him to take part in the process for the early testings, or figure out a way to involve him." NEW constraint not previously communicated. Closed-cohort-via-Ivan's-Discord path now has a budget question
+- 2026-05-22: **Competitor web-based tool flagged** — Entry #11a: Modiphius has identified an unnamed competitor "doing a web based tool and integrating the various books." Modiphius reviewing for IP-information limits. Differentiation positioning becomes more important
+- 2026-05-22: **QA-docs package skim-reviewed** — Entry #11a confirms Chris saw the QA materials Elijah sent in Entry #7c. "Complex information" + "need to understand better what you will need us to do" — engagement signal but light depth
+- 2026-05-22: **Mon May 25 4:30/5pm UK (12pm Eastern) proposed for rescheduled call** (Entry #11a)
 
 ### Decisions made by Elijah-side
 
@@ -750,6 +934,11 @@
 - 2026-05-13: **Mac/iOS hardware moved to bootstrap-side** — per `feedback_personal_bootstrap_invisible_to_partner.md`, hardware procurement is Elijah's bootstrap cost, not a partnership line item (deprioritized from May 18 talking points)
 - 2026-05-13: **Art asset stance** = underlying art primary (raw illustrations without typeset titles / logos / trade dress overlays — usable across splash, in-app cards, marketing, multi-aspect-ratio composition) + final cover art secondary (current versions + new-logo refresh when ready) for in-app digital→physical conversion screens (T4 thesis). Reply pending in Draft #D, Section 6
 - 2026-05-13: **Game-icons.net SOP confirmed as working art direction** — given Chris's uncertainty about Modiphius unified icon set existence (Entry #9b), the project's existing `feedback_icon_sop_game_icons.md` SOP stands. Re-evaluate only if Richard surfaces an unknown Modiphius icon set
+- 2026-05-22: **Public-beta-via-Discord-and-subreddit proposed as A1 cohort path** — Elijah-side strategic decision: limit alpha A1 distribution to Five Parsecs Discord + subreddit (not fully public). Rationale: word will spread once an official Modiphius-backed product is in user hands anyway, so leaning into community-controlled channels contains visibility to engaged fans (higher-signal feedback) AND drives Discord membership growth as a side effect (community asset growth on Modiphius's side). Awaiting Chris's confirmation at Entry #12 call. Proposed in Draft #E
+- 2026-05-22: **Ivan compensation workaround proposed** — credit Ivan and any of his playtesters in the app credits as contributors instead of paying. Recognition without budget exposure on Modiphius's side. Solves Chris's Entry #11a Ivan dependency problem. Pitched in Draft #E
+- 2026-05-22: **Feedback pipeline as HARD REQUIREMENT for public beta** — Elijah-side gate: A1 does NOT ship to public-beta cohort without a wired feedback pipeline. In-app reporting widget + designated Discord channel(s) for bugs/feedback + Talo telemetry (already scaffolded per Phase 0.6 work), all opt-in via LegalConsentManager. Build before May 25
+- 2026-05-22: **Graphics-light A1 build as deliberate framing** — Elijah-side commitment to ship mechanics + narrative-spine A1 first, art integration phased across A2-A6 informed by playtest data. Two reasons: (1) ships most-up-to-date build to player hands faster, (2) art investment targets screens that actually matter once usage data lands. Framed in Draft #E to Chris as UI-investment targeting (NOT UI-quality compromise) so it doesn't read as "we're not ready"
+- 2026-05-22: **Accept Chris's "stage 2" framing for broadening** — Elijah-side decision (Entry #11 alignment with `feedback_phase1_prove_phase2_lockin.md`). Broadening one-pager scope pivots from "pitch deck for the call" to "Stage 2 placeholder line for LOI." Saves the wider-scope material for Phase 2 conversation post-ship
 
 ### Joint decisions (both parties)
 
@@ -900,9 +1089,9 @@ When sent, append a new `### Entry #7c — 2026-05-08 — Email outbound — QA 
 
 ---
 
-### Draft #C — Reply to Chris's May 13 email (recoupment + maintenance fee acknowledgment + May 18 confirmation)
+### Draft #C — Reply to Chris's May 13 email (recoupment + maintenance fee acknowledgment + May 18 confirmation) — **PROMOTED → Entry #10 (2026-05-14 01:50 UTC)**
 
-**Status**: DRAFT — ready for Elijah review + send. Replies to Entry #9 (Chris's May 13 structural clarification email).
+**Status**: PROMOTED. Sent 2026-05-14 at 01:50 UTC. Confirmed via Chris's quoted-reply context in Entry #11 ("On 14 May 2026, at 01:50, Elijah Rhyne wrote: …"). The verbatim body in this draft is the canonical record of what was sent. See Entry #10 in §2 for the journal record.
 
 **Mode**: Email outbound, Elijah → Chris (Gavin CC'd per the standard cadence).
 
@@ -1040,3 +1229,229 @@ When sent, append a new `### Entry #10 — 2026-05-13 — Email outbound — Rep
 **On promotion to numbered Entry**:
 
 When sent, append a new `### Entry #9c — 2026-05-13 — Email outbound — Reply to Five Parsecs Assets for App` block under Entry #9b in Section 2. Numbering rationale: stays parallel to Entry #9b's operational-thread numbering rather than colliding with Draft #C's commercial-thread #10 slot. If both Draft #C and Draft #D send on the same calendar day, they become Entry #10 (commercial reply) and Entry #9c (operational reply) — distinct threads, distinct numbering. Mark this Draft #D as `[PROMOTED → Entry #9c]` when sent.
+
+---
+
+### Draft #E — Reply to Chris's two May 22 emails (Entry #11 + #11a): public-beta proposal + Ivan workaround + prioritised support list + Mon May 25 confirmation — **SUPERSEDED → see Draft #F (2026-05-22 v2)**
+
+**Status**: SUPERSEDED. v1 was drafted pre-recon and asked Chris which web-based tool he meant. Post-recon (runtime MCP audit of fiveparsecs.online, see `docs/internal-recon/may-25-call/recon-notes.md`) and post-player-experience-thesis articulation (Elijah verbatim 2026-05-22, see [[feedback-strategic-theses-t1-t4]] T1 sharpening), the draft was substantially rewritten as Draft #F. v1 retained below for reference; v2 is the send-ready version.
+
+**Originally**: DRAFT — ready for Elijah review + send. Replies to BOTH Entry #11 (deal-structure confirmation + Stage 2 framing + reschedule) and Entry #11a (Ivan compensation + competitor + UI differentiation + Mon May 25 proposal). Consolidates into a single reply since both Chris emails landed within ~95 minutes and Chris is bandwidth-constrained (don't make him read two replies).
+
+**Mode**: Email outbound, Elijah → Chris (Gavin CC'd per standard cadence).
+
+**Strategic intent**:
+
+- Match Chris's grace by grace-acknowledging the IT/Tax/Accounting bandwidth note, NOT pushing timeline
+- Close the structural-paraphrase loop ("yes, exactly that") so the deal-frame lock is mutual
+- Accept Chris's "stage 2" framing verbatim — converts Phase 2 placeholder from a fight into a confirmation
+- Deliver the prioritised support list HE asked for (this is the structural spine of the reply, not a tacked-on item)
+- Propose public-beta-via-Discord-and-subreddit as the Ivan-compensation workaround AND as a wishlist driver AND as competitive flag-planting — three benefits, one ask
+- Name the feedback pipeline as a hard requirement on Elijah's side so Chris sees the proposal is engineered, not improvised
+- Ask which web-based tool Chris saw (cheap info ask that lets Elijah sharpen positioning)
+- Frame graphics-light A1 explicitly as deliberate UI-investment targeting, NOT "not ready"
+- Confirm Mon May 25 time so the call locks
+- Stay short on the deal-frame topics that belong in the verbal Monday conversation
+
+**What this draft DOES contain**:
+
+- Grace acknowledgment of Modiphius's IT/Tax/Accounting bandwidth note (no timeline pressure)
+- Mon May 25 12pm Eastern (5pm UK) confirmation with 4:30pm UK fallback
+- Structural-paraphrase close ("yes, exactly that")
+- Stage 2 acceptance + LOI placeholder language proposal
+- Prioritised support list (need-to-have / nice-to-have, format Chris asked for)
+- Public-beta-via-Discord-and-subreddit proposal with feedback-pipeline detail
+- Ivan-credits workaround
+- Question back: which web-based tool
+- Graphics-light A1 framing
+- T1 + T2 + Steam-as-platform differentiation pitch (brief)
+- Close warm but tight
+
+**What this draft deliberately DOES NOT contain**:
+
+- No $X or maintenance fee numbers (verbal at Mon May 25 preserves anchoring optionality)
+- No Y threshold question in writing (better verbal)
+- No make-good push (his finance team is still swamped)
+- No pre-launch cash pitch in writing (verbal at May 25)
+- No defensive boilerplate-clauses language (operational asks only)
+- No personal bootstrap/hardware/career details (per `feedback_personal_bootstrap_invisible_to_partner.md`)
+- No detailed broadening-scope material (Chris's Stage 2 framing makes the one-pager a Stage 2 artifact, not a Stage 1 deliverable)
+- No reference to the asset-delivery thread (separate thread per Entry #9b / Draft #D)
+
+**Subject line (proposed)**: `Re: [Chris's deal-frame thread subject line]` — consolidates both Chris-replies into a single thread reply
+
+**Body (verbatim draft, ~430 words)**:
+
+> Hi Chris,
+>
+> No worries on the pace. Glad you flagged the IT/Tax/Accounting sprint — I'd rather you have the bandwidth to give the project the strategic attention it needs than rush.
+>
+> Confirming Mon May 25 works. 5pm UK / 12pm Eastern fits cleanly. Let me know if the earlier 4:30pm UK slot is easier and I can shift.
+>
+> Quick close on the structural paraphrase: yes, exactly that. Glad we're reading it the same way. On broadening as a Stage 2 conversation, that framing works for me. Worth a line in the LOI naming Stage 2 as a future thing so the door's marked without committing scope.
+>
+> On your ask for a prioritised support list:
+>
+> **Most useful this week:**
+>
+> - Confirmation on a community-channel beta route (Five Parsecs Discord + subreddit, not fully public, see below)
+> - Decision on Ivan involvement. I'd propose we sidestep paid involvement entirely by crediting Ivan and any of his playtesters in the app credits as contributors. Recognition without budget exposure on your side.
+> - Which web-based tool you've seen, so I can review it and articulate the differentiation
+> - LOI template / sample partnership documents when convenient
+>
+> **Nice to have:**
+>
+> - Logo refresh target date so the app's branded surfaces can stage to it
+> - Original-resolution asset folder (Richard's task from the May 13 thread)
+>
+> On the beta route: word will probably spread fairly quickly once an official Modiphius-backed product is in user hands, so I'd rather lean into community-controlled channels than try to keep it sealed. Discord + subreddit contains visibility to engaged Five Parsecs fans who give higher-signal feedback, and drives Discord membership growth as a side effect (community asset growth on your side too). Hard requirement on my end is a clean feedback pipeline back to me: in-app reporting + designated Discord channel + Talo telemetry, all opt-in. I'll have that wired before A1 ships.
+>
+> A note on what A1 looks like: mechanics and narrative-spine first, with art integration phased across A2 to A6 as we tune to actual playtest data. Two reasons. First, it lets me ship the most-up-to-date build to player hands faster rather than holding for art polish. Second, art lands on the screens that actually matter once we know which screens players spend time on. This isn't UI-quality compromise, it's UI-investment targeting.
+>
+> On the web-based tool: I'm leaning on the companion-app-on-Steam framing as the differentiator (not a digital port, establishing a category that doesn't exist on Steam yet), plus the visual / UI bar. Once you point me at the specific tool I can sharpen that pitch.
+>
+> Talk Monday.
+>
+> Elijah
+
+**Posture check** (per `feedback_negotiation_grace_posture.md`, `feedback_phase1_prove_phase2_lockin.md`, `feedback_no_em_dashes.md`, `feedback_personal_bootstrap_invisible_to_partner.md`):
+
+- ✅ Grace-acknowledges Chris's bandwidth flag without pressure
+- ✅ Closes structural-paraphrase loop in writing — deal frame is now bilaterally locked
+- ✅ Accepts Stage 2 framing verbatim (Chris's own language: "stage 2") — confirms his framing, doesn't fight it
+- ✅ Delivers prioritised support list in exactly the format Chris asked for
+- ✅ Public-beta proposal frames three benefits as one ask (Ivan workaround + community asset growth + competitive positioning) — recognized Modiphius-side upside, not pure dev-side extraction
+- ✅ Feedback pipeline named as Elijah-side hard requirement — signals engineered proposal, not improvised
+- ✅ Ivan-credits workaround respects Modiphius's budget reality (Chris's "Ivan is not paid" constraint becomes a non-blocker, not a $-ask)
+- ✅ Graphics-light A1 framed as deliberate ("UI-investment targeting"), not as "not ready" — preempts Chris's UI-differentiation concern
+- ✅ Web-based-tool question is cheap to ask + helps Elijah position — moves the conversation forward
+- ✅ No $X / maintenance fee / Y threshold numbers in writing — anchoring optionality preserved for Mon May 25 verbal
+- ✅ No em dashes
+- ✅ No personal bootstrap details (hardware, career framing, etc.)
+- ✅ Closes warm but tight ("Talk Monday") — matches Chris's email register
+- ✅ Arc-aware: doesn't extract from Phase 1, leaves Phase 2 as the next conversation
+
+**Revision history**:
+
+- 2026-05-22 v1: First draft per this strategic call
+
+**On promotion to numbered Entry**:
+
+When sent, append a new `### Entry #11b — 2026-05-22 — Email outbound — Reply to Chris's two May 22 emails (Entry #11 + #11a)` block under Entry #11a in Section 2. Numbering follows the precedent of grouping same-day-same-thread entries under one number with letter suffixes (#11 inbound 1, #11a inbound 2, #11b outbound reply). Mark this Draft #E as `[PROMOTED → Entry #11b]` when sent.
+
+**Pre-send checklist for Elijah**:
+
+- [ ] Verify Mon May 25 12pm Eastern doesn't conflict with the same-day A1 alpha kickoff target (build release can be later in the day or May 26 if the call runs)
+- [ ] Confirm Talo plugin install status before sending (need to know if "feedback pipeline before A1 ships" is realistic)
+- [ ] Decide whether to send under the deal-frame thread subject or open a new "Re: 5PFH Digital — May 25 call confirmation + support list" thread (recommendation: reply under existing thread to keep history threaded)
+- [ ] CC Gavin per standard cadence
+- [ ] Spot-check there's no leftover em dash anywhere in the body (a single one slipped into Draft #C v1 and had to be cleaned in v2)
+
+---
+
+### Draft #F — Reply to Chris (combines May 22 thread topics: time confirm + beta route + alpha shape + web-tool observations + expansion + Monday priority)
+
+**Status**: DRAFT — ready for Elijah review + send. This is the v2 of Draft #E, rewritten after (1) the runtime MCP audit of fiveparsecs.online surfaced concrete neutral observations that can be cited in writing without leaning on "I'll look later," and (2) Elijah's verbatim 2026-05-22 articulation of the player-experience thesis underneath T1 (see [[feedback-strategic-theses-t1-t4]] T1 sharpening).
+
+**Mode**: Email outbound, Elijah → Chris (Gavin CC'd per standard cadence). Reply-all on existing thread to preserve history.
+
+**Strategic intent (delta vs. Draft #E)**:
+
+- v1 asked Chris "which web-based tool" — v2 names it (`fiveparsecs.online`, since Elijah's recon confirmed it's the tool Chris meant) and offers concrete neutral observations
+- v1 said "art integration phased across A2 to A6" without addressing the implied "where's the art in A1?" — v2 explicitly notes A1 ships with initial art integration visible, so testers see visual direction from day one
+- v1 used "companion-app-on-Steam framing + visual/UI bar" as the differentiation hook — v2 leads with the **player-experience thesis**: automation exists to free the player to focus on PLAYING the game and on the story being told; player throughput per session is the operative metric
+- v1 closed warm but tight ("Talk Monday") with no structural ask — v2 adds an explicit Monday priority statement: lock alpha testing approach + duration, defer pricing/revenue until tester data lands ("right now we're speculating about a product nobody's seen yet"). This sequences the call so commercial conversation has product evidence to anchor against. Aligns with the MVP-gate principle in `CLAUDE.md` partnership-status block.
+
+**What this draft DOES contain**:
+
+- Mon May 25 12pm Eastern (5pm UK) confirmation, "Looking forward to it" relational beat
+- Public-beta-via-Discord-and-subreddit proposal with feedback-pipeline detail (preserved from v1)
+- Alpha-shape paragraph WITH A1-art-visible reframe ("A1 will already have initial art integration visible, so testers see the visual direction coming together from day one rather than a stripped-down placeholder build")
+- Web-tool section with neutral observations (auto-populate enemy stat block, inline weapon/trait popovers, clean state-tracking layer) + player-experience pivot
+- Expansion paragraph with explicit web-tool contrast (visual-narrative integration is structurally hard for a logging tool)
+- Monday-priority statement (alpha terms first, pricing downstream)
+- **Paperwork progression statement (added v3 2026-05-22): names LOI + MOU as the next priority after alpha terms lock; offers initial language so Modiphius's team has something concrete to react to rather than starting from blank page. Anchor-first strategy per [docs/PARTNERSHIP_TERM_POSITIONS.md](PARTNERSHIP_TERM_POSITIONS.md) doc rationale.**
+- Warm-but-tight close ("Talk Monday")
+
+**What this draft deliberately DOES NOT contain**:
+
+- No $X / maintenance fee / Y threshold numbers in writing (verbal at Mon May 25 preserves anchoring optionality — same as Draft #E)
+- No prioritised support list this round (was in Draft #E; in this version the asks are folded into the body — community-beta route, feedback pipeline already named as Elijah-side hard requirement, web-tool question already answered, LOI/sample-paperwork ask can land verbally on Mon May 25)
+- No make-good push (Chris's finance team still swamped per Entry #11)
+- No depth of recon revealed — "I took a closer look" is the framing, not "I ran a 3-turn audit with screenshots" (per `feedback_internal_notes_not_comparison_reports.md`)
+- No threat or violation framing of the competitor (per `feedback_competitor_framing_difference_not_violation.md`)
+- No personal bootstrap/hardware/career details (per `feedback_personal_bootstrap_invisible_to_partner.md`)
+- No em dashes (per `feedback_no_em_dashes.md`)
+
+**Subject line (proposed)**: reply-all on existing Chris thread (preserves history; do not open a new subject)
+
+**Body (verbatim draft, ~530 words)**:
+
+> Hey Chris,
+>
+> Combining both threads into this email so nothing gets lost in the mix.
+>
+> May 25th works for me. 4:30 UK is 8:30 AM my time (I'm in the Seattle area). Looking forward to it.
+>
+> **On the beta route**: word will probably spread fairly quickly once an official Modiphius-backed product is in user hands, so we could lean into community-controlled channels rather than try to keep it sealed. Doing a test limited to a Discord or subreddit contains visibility to engaged Five Parsecs fans who give higher-signal feedback, and drives Discord membership growth as a side effect (community asset growth on your side too). Hard requirement on my end is a clean feedback pipeline back to me: in-app reporting, all opt-in. I'll have that wired before the alpha ships.
+>
+> **On what alpha looks like**: mechanics and narrative-spine first, with art integration starting in A1 and deepening across A2 to A6 as we tune to actual playtest data. Two reasons for the phasing. First, it lets me ship a current build to players faster rather than holding for art polish. Second, art lands on the screens that actually matter once we know which screens players spend time on. This isn't UI-quality compromise, it's UI-investment targeting. Worth noting: A1 will already have initial art integration visible, so testers see the visual direction coming together from day one rather than a stripped-down placeholder build.
+>
+> **On the web-based tool**: if you're referring to [fiveparsecs.online](https://fiveparsecs.online), I took a closer look. It's well-built for what it is, which is a campaign-logging tool. You pick an enemy from a catalog and it auto-populates the full stat block inline, you can click any weapon or trait to surface the rules text, and it has a clean state-tracking layer for credits, XP, and ship hull. Solid recording surface.
+>
+> Where ours sits in a different category: the goal is to free the player from logging the game so they can focus on actually playing it and on the story being told. The automation exists to handle the page-flipping, the dice math, and the table lookups, so a session translates into more turns, more battles, and more time at the table rather than more time entering individual rolls and items into a form. Their tool records what happened; ours clears the way for more to happen. Different products in overlapping space, not competing products.
+>
+> **On the expansion of the app concept**: my ideas are based around what I'll be able to do with the images Richard sent earlier this week. The best way I can describe it is using the Photoshop files and their layers to build scenario-specific images for travel events, battle events, story track events, and similar moments. That's the kind of visual-narrative integration a web-based logging tool isn't structurally set up for, and it's how the digital companion ends up serving the story being told at the table rather than just documenting what happened on it.
+>
+> **Priority for Monday**: locking alpha testing approach and duration. Once we're in playtester hands we can iron out pricing and revenue against real data. Right now we're speculating about a product nobody's seen yet. I'd rather use Monday to commit to the testing process so we have something concrete to point at when the commercial conversation comes around.
+>
+> **On paperwork progression**: once we have alpha terms locked, I'd like to start moving the LOI and MOU drafting forward as the next priority on our shared workstream. Happy to contribute initial language so your team has something concrete to react to rather than starting from a blank page.
+>
+> Talk Monday.
+>
+> Elijah
+
+**Posture check** (per `feedback_negotiation_grace_posture.md`, `feedback_phase1_prove_phase2_lockin.md`, `feedback_competitor_framing_difference_not_violation.md`, `feedback_internal_notes_not_comparison_reports.md`, `feedback_no_em_dashes.md`, `feedback_personal_bootstrap_invisible_to_partner.md`, `feedback_strategic_theses_t1_t4.md` T1 sharpening):
+
+- ✅ Grace-acknowledges via "Looking forward to it" without obsequiousness
+- ✅ Web-tool observations are positive about the competitor before the category pivot (auto-populate, popovers, state tracking all praised as "well-built", "solid"); pivot uses "different category" framing, never deficiency framing
+- ✅ Player-experience thesis lands ("focus on PLAYING the game and on the story being told"); player throughput per session is the operative metric implied, not feature comparison
+- ✅ "Their tool records what happened; ours clears the way for more to happen" is the cleanest single-line category articulation in the email
+- ✅ Expansion paragraph connects back to the same player-experience throughline ("serving the story being told at the table rather than just documenting what happened on it")
+- ✅ "Took a closer look" preserves recon-as-internal-only — depth of audit not revealed; Chris reads it as light due diligence
+- ✅ A1 art-visible note preempts "where's the art?" pushback before it's raised
+- ✅ "UI-investment targeting" sentence preempts "you're shipping ugly" pushback
+- ✅ Monday-priority statement sequences alpha-before-pricing — anchors commercial conversation in product evidence, honors MVP gate per `CLAUDE.md`
+- ✅ "Right now we're speculating about a product nobody's seen yet" is direct but not aggressive; gives Chris room to push back
+- ✅ No em dashes anywhere in body (verified via grep)
+- ✅ No $X / maintenance / Y threshold numbers in writing — anchoring optionality preserved
+- ✅ No personal bootstrap details
+- ✅ Bold-headed paragraph structure matches Elijah's standard register from prior sends (Drafts #C, #D, #E)
+- ✅ Closes warm but tight ("Talk Monday") — matches Chris's email register
+
+**Revision history**:
+
+- 2026-05-22 v1 (Draft #E): pre-recon, pre-player-experience-thesis. Asked Chris which tool he meant. No A1-art-visible note. No Monday-priority statement.
+- 2026-05-22 v2 (Draft #F initial): post-recon (`docs/internal-recon/may-25-call/recon-notes.md` Section 8 + 9 audit), post-T1-sharpening (`[[feedback-strategic-theses-t1-t4]]`), post-art-from-A1 reframe, post-Monday-priority addition.
+- 2026-05-22 v3 (Draft #F current): added paperwork-progression closing paragraph naming LOI + MOU as next priority. Triggered by Elijah's observation that Chris has been more reactive than directive on partnership-paperwork progression; v3 surfaces that progression explicitly so Monday can make it a named workstream commitment. Offers dev-drafted initial language as the mechanism (relieves Modiphius's IT/Tax/Accounting bandwidth burden per Entry #11; aligns with anchor-first strategy in [docs/PARTNERSHIP_TERM_POSITIONS.md](PARTNERSHIP_TERM_POSITIONS.md)).
+
+**Open questions for Elijah pre-send**:
+
+- Tone of the Monday-priority paragraph: keep as "Priority for Monday:" (current, more directive) or soften to "What I'd love to lock on Monday:" (more invitation-shaped)?
+- Mention specific cohort size (10-20 testers per Ivan's Discord, per `MEMORY.md` project notes) or hold for verbal Monday?
+- Name the 6-week alpha duration target in writing, or let Chris co-own that number on the call?
+- Include Discord/subreddit cohort sizing details or keep at level of "Discord or subreddit" abstraction?
+
+**On promotion to numbered Entry**:
+
+When sent, append `### Entry #11b — 2026-05-22 — Email outbound — Reply to Chris's two May 22 emails (Entry #11 + #11a)` block under Entry #11a in Section 2. Mark Draft #F as `[PROMOTED → Entry #11b]` when sent. Draft #E remains marked SUPERSEDED.
+
+**Pre-send checklist**:
+
+- [ ] Verify Mon May 25 12pm Eastern doesn't conflict with the same-day A1 alpha kickoff target
+- [ ] Confirm Talo plugin install status (needed for "feedback pipeline before alpha ships" claim)
+- [ ] Reply-all on existing thread (do not open new subject) to preserve history
+- [ ] CC Gavin per standard cadence
+- [ ] Final grep for em dashes before sending (one slipped into Draft #C v1 historically)
+- [ ] Decide on the tone-shape question for the Monday-priority paragraph (current = directive)
+- [ ] Decide on cohort-size / alpha-duration disclosure level for written record vs. verbal Monday

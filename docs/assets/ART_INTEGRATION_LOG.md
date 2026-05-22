@@ -81,6 +81,73 @@ them. Edit the JSON (not the loader) to add more presets.
 
 ---
 
+## 2026-05-21 (late) - PSD layered composition pilot (Meeting.psd)
+
+### Scope
+
+User flagged that the Modiphius PSDs are fully layered. Pilot to prove
+KoDP/Six Ages style scene composition: one PSD becomes many runtime scene
+variants by mixing/matching figure overlays on a shared background. Plan
+lives at `C:/Users/admin/.claude/plans/elegant-strolling-zephyr.md`.
+
+### Pipeline built
+
+- **`scripts/psd_extract.py`** - end-to-end auto-extraction. Uses `psd-tools`
+  1.17.0 (`py -m pip install psd-tools`). Per Context7 verification, uses
+  `psd.composite(layer_filter=lambda l, t=layer: l is t)` (canvas-sized output
+  with position preserved in alpha), NOT `layer.composite()` (bbox-cropped).
+  Walks `psd.descendants()`, skips groups/hidden/text layers, bounding-box
+  heuristics assign each leaf layer to bg/actor/fx/prop/skip.
+- **`src/ui/screens/narrative/SceneStage.gd`** - runtime composer. Loads
+  `data/scenes/<id>.json`, stacks bg/actor/fx layers as same-sized
+  TextureRects. Public API: `set_scene(id)`, `show_actor(id, fade)`,
+  `hide_actor(id, fade)`, `set_actor_visibility(id, bool)`, `get_actor_ids()`,
+  `clear()`. Uses `load()` for `res://` paths (export-safe).
+- **`.gitignore`** - `assets/scenes/*/_raw/` excluded (raw cache, big files).
+  The categorized copies in `bg/`, `actors/`, `fx/`, `props/` are committed.
+
+### Meeting.psd extraction result
+
+- 31 candidate leaf layers (after skipping groups/hidden/text)
+- Categorized as: 13 bg + 5 actor + 0 fx + 12 prop + 1 skip
+- Output sizes: actors 4.1 MB, bg 87 MB, props 13 MB, _raw cache 104 MB
+- Composition manifest at `data/scenes/meeting.json`
+- Per-layer catalog at `assets/scenes/meeting/_layer_catalog.json`
+
+### Visual proof captured
+
+3 SceneStage instances side-by-side on MainMenu showing:
+1. Full scene (all 5 actors visible) - captain center + silhouettes bottom
+2. Empty corridor (all actors hidden) - just architecture
+3. Foreground figure only (1 actor visible) - silhouettes only, captain gone
+
+Same architectural backdrop in all 3 cells, different figure composition.
+Architecture proven. Screenshot saved in `.mcp/screenshots/`.
+
+### Quirks / followups
+
+- Heuristic miscategorization: my guess that `actor_03` was the captain was
+  wrong - it turned out to be the silhouette layer. Categorization itself is
+  correct (5 actor layers identified accurately), just need to inspect which
+  ID is which for specific-actor compositions. The catalog JSON has bbox
+  data to disambiguate.
+- 13 bg layers feels high - the artist stacked many environmental plates
+  (lighting passes, atmospheric haze, structural elements). They render fine
+  stacked but each one is ~7 MB and they add up to 87 MB for one PSD. At
+  scale (50 PSDs) this would be 4+ GB. Mitigation candidates: flatten bg
+  layers in the extractor down to 1-3 representative plates, or apply VRAM
+  compression via `.import` overrides.
+- Heuristics don't yet detect fx layers from Meeting.psd (it doesn't use
+  blend modes). Other PSDs likely do; need a real fx-heavy PSD to validate.
+
+### What this unlocks
+
+The narrative system can now do per-event visual citation: same "Meeting"
+backdrop, but the rendered actors change depending on whether the player is
+meeting a patron, a rival, an alien, or finding an empty room. That's the
+KoDP/Six Ages multiplier we wanted. Production code unchanged - SceneStage
+is ready to be wired into NarrativeScreen when that exists.
+
 ## 2026-05-21 (later) - Mode info card + portrait fallback fix + bug squash
 
 ### Scope expansion: ModeShowcaseCard
@@ -203,6 +270,76 @@ Visual bugs to fix:
    `.godot/imported/` cache is warm. Fix: defer the initial swap by one frame
    (`await get_tree().process_frame` before the first `_swap_cover` call in
    `_build_mode_showcase`) so import settles.
+
+## Session 4 (May 21, 2026) - PSD batch + layer review tool
+
+Added per-PSD `_review.html` triage tool (self-contained browser app,
+embedded base64 thumbnails on checkerboard, click-to-recategorize,
+download-JSON workflow) and extracted 3 more PSDs to validate
+generalization.
+
+### Tools added
+
+- **`scripts/psd_review_html.py`**: generates `_review.html` next to
+  any `_layer_catalog.json`. Embeds 256px PNG thumbnails as base64
+  data URIs, single-file output, ~0.2-0.4 MB per PSD
+- **`scripts/psd_apply_review.py`**: reads edited catalog, re-shuffles
+  PNGs between `bg/`/`actors/`/`fx/`/`props/` to match new categories,
+  rewrites `data/scenes/<stem>.json` so Godot's SceneStage picks up
+  changes without code edits. Idempotent
+- **`scripts/psd_extract.py`** updated to emit `_review.html` at end of
+  extraction automatically
+
+### Batch results (4 PSDs)
+
+| PSD | Layers | bg | actor | fx | prop | skip | Notes |
+|---|---|---|---|---|---|---|---|
+| Meeting (re-emitted) | 31 | 13 | 5 | 0 | 12 | 1 | Pilot — review HTML generated standalone |
+| Firefight | 45 | 10 | 3 | 1 | 19 | 12 | First FX layer auto-detected — combat scene with opacity-reduced effects |
+| Shipyard | 15 | 7 | 0 | 0 | 5 | 3 | **0 actors auto-detected** — wide landscape, figures fell under 3% area floor |
+| 2Engineers | 31 | 6 | 3 | 0 | 17 | 5 | Character close-up, clean detection |
+
+122 layers across 4 PSDs. ~30s-1m extraction time per PSD.
+
+### Heuristic failure modes observed (now documented in SOP)
+
+1. **MULTIPLY/OVERLAY/COLOR_DODGE plates at opacity 255 tagged BG/PROP**:
+   The fx heuristic requires `opacity < 230`. Most lighting plates in
+   Meeting are 255 → categorized as BG. Visible in review tool by
+   non-NORMAL blend mode tag. User reassigns to FX in browser
+2. **Wide landscape, no actors detected (Shipyard)**: 3% canvas-area
+   floor for the actor heuristic is too high for figures in a 6000px-
+   wide scene. User reassigns small portrait-shaped layers to ACTOR
+3. **Layers wider than canvas tagged as PROP instead of BG**: 70%/60%
+   width/height gate doesn't always fire when overlap is one-sided
+4. **Adjustment layers (gradients, Brightness/Contrast)**: psd-tools
+   cannot composite without scipy. Auto-categorized as SKIP, safe to
+   ignore. Install with `pip install 'psd-tools[composite]'` if needed
+
+Captured in `docs/sop/decision-log.md` as "Conservative-bias heuristics
+over aggressive-bias" — false negatives are visible at review time;
+false positives only surface at runtime composition
+
+### Verification
+
+Browser-rendered review tool screenshot at
+`.mcp/screenshots/psd_review_tool_meeting.png` shows the 31-card grid
+with Deep Space theme, filter bar with counts, per-card dropdowns,
+working footer state. Heuristic misfires (MULTIPLY shadow plates tagged
+BG, COLOR_DODGE prop tagged PROP) are immediately visible at-a-glance
+from the metadata strip on each card
+
+### What's pending now
+
+- Manual triage pass on the 4 extracted PSDs (`_review.html` workflow)
+- Re-extracting any PSD where the review reveals systematic issues vs
+  one-off misfires (run `apply_review.py` for one-offs, edit
+  `psd_extract.py` heuristics + re-extract for systematic)
+- Visual MCP verification of SceneStage rendering one of the new PSDs
+  (currently only Meeting was visually proven)
+- Decision: tune the fx heuristic (drop `opacity < 230` requirement,
+  letting any non-NORMAL blend mode qualify) — would re-categorize most
+  shadow/lighting plates correctly on first pass for future PSDs
 
 ## What's still pending
 

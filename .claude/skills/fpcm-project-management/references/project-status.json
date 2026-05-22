@@ -1,5 +1,41 @@
 {
-  "last_updated": "2026-05-19",
+  "last_updated": "2026-05-22",
+  "narrative_system_phase1": {
+    "date": "2026-05-22",
+    "status": "SHIPPED",
+    "summary": "King-of-Dragon-Pass-style full-screen narrative event overlay integrated into Story Track. NarrativeScreen extends CanvasLayer at layer 95 (between L80/90 chrome and L100 TransitionManager), wraps UI in _root Control at PRESET_FULL_RECT. Story Track events with `SettingsManager.are_narrative_events_enabled()` true (default) open the narrative window; off-path falls through to legacy card UI in StoryPhasePanel.",
+    "files_created": [
+      "src/ui/screens/narrative/NarrativeScreen.gd (609 lines, CanvasLayer L95)",
+      "src/ui/screens/narrative/NarrativeTextGenerator.gd (107 lines, SSOT composer)",
+      "src/ui/screens/narrative/AdvisorSystem.gd (215 lines, training>class>species priority)",
+      "src/ui/screens/narrative/NarrativeChoiceButton.gd (111 lines, Button + hint)",
+      "data/narrative/atmosphere_openers.json (5 categories + 12 trait modifiers + art_tag map)",
+      "data/narrative/advisor_quotes.json (6 roles x 3 moods x 1 quote scaffold)",
+      "data/narrative/species_personality.json (10 species flavor entries)"
+    ],
+    "files_modified": [
+      "src/autoload/SettingsManager.gd (use_narrative_events: true in DEFAULTS.gameplay + are_narrative_events_enabled() accessor)",
+      "src/ui/screens/campaign/phases/StoryPhasePanel.gd (settings-gated narrative branch + _present_via_narrative_screen + _event_to_narrative_dict + _on_narrative_done)",
+      "data/story_track_missions/event_01..07.json (art_tag field added)"
+    ],
+    "runtime_bugs_fixed": [
+      "First MCP screenshot showed MainMenu, not overlay — Control extension rendered behind MainMenu's CanvasLayers L80/L90. Fixed: extends CanvasLayer, layer = 95, UI wrapped in _root Control.",
+      "Resource file not found: res://assets/portraits/default.png — SpeciesPortraitRegistry.DEFAULT_PORTRAIT points at unshipped art. Fixed: ResourceLoader.exists(pp) guard before load(pp) in _apply_advisor_portrait.",
+      "Can't use get_node() with absolute paths from outside the active scene tree — tree_exited fires AFTER detachment, breaking /root/PersistentResourceBar restore. Fixed: override _exit_tree() instead, fires while still in tree."
+    ],
+    "deferred_to_phase_2_plus": [
+      "Settings UI checkbox for the toggle (currently .cfg only)",
+      "Real SceneStage manifests for story_event_01..07 (gradient fallback renders today)",
+      "Quote pool expansion beyond 1-per-cell (18 quotes scaffold)",
+      "CharacterPhasePanel integration (Phase 3)",
+      "CrewTaskEventDialog replacement (Phase 4)",
+      "TravelPhase + PostBattle narrative beats (Phase 5)",
+      "Polish: typewriter, Ken Burns, atmosphere overlay, audio (Phase 6)"
+    ],
+    "session_log_memory": "project_session_may22_narrative_screen_phase1.md",
+    "plan_file": "C:\\Users\\admin\\.claude\\plans\\elegant-strolling-zephyr.md (marked SHIPPED)",
+    "agent_ownership": "ui-panel-developer owns src/ui/screens/narrative/ + data/narrative/ (see ui-development skill, narrative-screen.md reference)"
+  },
   "recent_engineering_qa": {
     "date": "2026-05-17 to 2026-05-19",
     "summary": "Battle Screen UX/UI Redesign (Map-Primary + Drawers) — Phase 0 prototype + Phase 1 frame port + Phase 2 per-figure bookkeeping ALL COMPLETE & runtime-verified across all 3 tiers and 4 entry points (Battle Sim, Bug Hunt, Planetfall, Tactics). Plan: C:\\Users\\admin\\.claude\\plans\\i-think-i-got-binary-comet.md. Design-spec/QA reference: docs/testing/BATTLE_UI_REDESIGN.md (indexed). Keeper widget: src/ui/components/common/SlideOverDrawer.gd (gdUnit 10/10). Phase 2 wired per-figure SSOT: TacticalUnit gained stun_markers/is_activated/react_slot + reset_for_new_round() (enemies react_slot=3); Crew/Enemy SlideOverDrawers ARE the per-figure tracker (CharacterStatusCard + Mark-Down per TacticalUnit); card buttons → _on_card_damage/stun/action → mutate model + log + ActivationTrackerPanel; _mark_casualty is single idempotent chokepoint with iter-3 morale bridge; rails got stun pips/Q-S chip/activated-recede/casualty styling + live ACTIVATED a/M · Q · S header + ↺ Round reset + this-round-casualties line; round machine: _reset_all_unit_reactions keeps Stun (Core Rules: removed only after acting), _assign_crew_reaction_slots at REACTION_ROLL (D6 vs Reactions → Q/S), _resolve_end_phase_morale at END_PHASE (Core Rules pp.114-115). User-confirmed RULES-FAITHFUL crew injury routing (Core Rules p.122): _resolve_battle() now routes ALL downed crew to crew_injuries_data → standard post-battle Injury Table decides dead/injured/recovered (was forced harsh Severity sub-path); enemies still die outright + feed morale. SlideOverDrawer wide-drawer pattern: opt-in @export min_panel_width (default 0 = unchanged keeper contract), wide drawers (Crew/Enemies/Dice/Tracking/Oracle/Results) = 480px CONTENT-sized (minf(min_panel_width, vp.x*0.5)) NOT viewport fraction (initial vp.x*0.42 attempt ballooned to 828px on 1972 screen = half-takeover; corrected). Post-battle + turn-rollover consistency VERIFIED end-to-end after the routing change.",

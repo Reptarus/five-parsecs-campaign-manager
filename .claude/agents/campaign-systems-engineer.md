@@ -91,6 +91,17 @@ CampaignDashboard uses `FiveParsecsCampaignPhase` (aliased as `FPC`). The old `C
 ### 6. World Phase Components Need Refresh
 Panels initialized at `_ready()` with stale data. Must call `_refresh_*()` from `_show_current_step()` when entering each step.
 
+### 7. Narrative Mode Branch in Phase Panels (Phase 1 SHIPPED May 22 2026)
+StoryPhasePanel ships with a settings-gated narrative branch. When `SettingsManager.are_narrative_events_enabled()` returns true (default), the panel calls `_present_via_narrative_screen()` instead of rendering the legacy card UI. The off-path stays unchanged. **This is the integration pattern** for extending narrative mode to CharacterPhasePanel, CrewTaskEventDialog, TravelPhase, PostBattlePhase in Phases 3-5:
+
+1. Add a settings-toggle branch at the top of the panel's render method
+2. Build a narrative-dict from your panel's current data (see `StoryPhasePanel._event_to_narrative_dict()` for the canonical shape)
+3. Build a context-dict (world_name, world_traits, crew) — world data comes from `PlanetDataManager.get_current_planet()`, NOT from the campaign Resource
+4. Instantiate NarrativeScreen via `load("res://src/ui/screens/narrative/NarrativeScreen.gd")`, add to `get_tree().root`, listen for `narrative_completed`
+5. On completion, delegate back to the panel's existing flow trigger (`_on_action_pressed()` or equivalent — never duplicate the downstream signal chain)
+
+See `.claude/skills/ui-development/references/narrative-screen.md` for the full integration recipe with code.
+
 ## Workflow
 
 1. **Identify the phase/system**: Is this creation, turn loop, save/load, or dashboard?

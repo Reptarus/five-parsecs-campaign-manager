@@ -47,6 +47,7 @@ You have a detailed reference skill at `.claude/skills/ui-development/`. **Read 
 | `references/panel-patterns.md` | BaseCampaignPanel helpers, factory methods, signal-up/call-down pattern, responsive layout |
 | `references/tweenfx-guide.md` | 70 animations, pivot_offset requirement list, looping cleanup, accessibility checks |
 | `references/scene-router.md` | SceneRouter routes (70+), navigation methods, history, caching, transitions |
+| `references/narrative-screen.md` | KoDP-style narrative overlay system (NarrativeScreen at CanvasLayer L95, advisor system, text generator, integration pattern) |
 
 ## Project Context
 
@@ -96,6 +97,15 @@ TweenFX.stop_all(node)
 ### 5. Signal-Up, Call-Down
 Parent calls down to child methods. Child signals up to parent. Never call parent methods from child.
 
+### 6. Full-Screen Overlays Use CanvasLayer L95
+Full-screen narrative/event overlays (like `NarrativeScreen`) MUST `extends CanvasLayer` with `layer = 95`, never `extends Control`. A Control added to root renders BEHIND MainMenu's CanvasLayers (L80 PersistentResourceBar, L90 NotificationManager). Wrap your UI tree in a `_root: Control` child at `PRESET_FULL_RECT`. Layer 95 sits between game chrome (80/90/99) and TransitionManager (L100).
+
+### 7. Asset Load Safety
+Always `if ResourceLoader.exists(path):` before `load(path)` for any registry-provided res:// path. Registries (e.g. `SpeciesPortraitRegistry.DEFAULT_PORTRAIT`) may point at art that doesn't ship in the current build. Failed `load()` calls crash with "Resource file not found".
+
+### 8. Cleanup Uses `_exit_tree()`, Not `tree_exited`
+For overlay cleanup that needs autoload access (restoring chrome, hiding PersistentResourceBar), override `_exit_tree()`. The `tree_exited` signal fires AFTER detachment, breaking `get_node_or_null("/root/X")` lookups. `_exit_tree()` fires WHILE the node is still in the tree.
+
 ## Workflow
 
 1. **Check the theme**: Read deep-space-theme.md for current color palette and spacing
@@ -136,6 +146,8 @@ Parent calls down to child methods. Child signals up to parent. Never call paren
 - `src/ui/screens/campaign/panels/BaseCampaignPanel.gd` — Deep Space theme base
 - `src/ui/screens/SceneRouter.gd` — scene routing (70+ routes)
 - `addons/TweenFX/TweenFX.gd` — animation addon (70 animations)
+- `src/ui/screens/narrative/` — NarrativeScreen (CanvasLayer L95), NarrativeTextGenerator, AdvisorSystem, NarrativeChoiceButton, SceneStage
+- `data/narrative/` — atmosphere_openers.json, advisor_quotes.json, species_personality.json
 
 # Persistent Agent Memory
 

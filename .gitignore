@@ -40,6 +40,10 @@ data_*/
 # Large art assets (not source code)
 Assets/BookImages/
 
+# PSD extraction recovery cache (raw per-layer dumps; categorized copies live
+# alongside in bg/, actors/, fx/, props/ and ARE committed)
+assets/scenes/*/_raw/
+
 # Third-party addons with large binary content
 addons/curved_lines_2d/
 

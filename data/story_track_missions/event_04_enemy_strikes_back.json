@@ -3,6 +3,7 @@
   "event_id": "enemy_strikes_back",
   "event_number": 4,
   "title": "The Enemy Strikes Back",
+  "art_tag": "story_event_04",
   "narrative": {
     "intro": "A direct attack on your ship, while docked in port. They must have distracted starport security. Now you have to fight for your life!",
     "briefing": "Set up the battlefield as a starport with crates, boxes, machinery, vehicles scattered everywhere. Your crew sets up within 5\" of your battlefield edge. You may include Sick Bay crew (marked Impaired). Two enemy groups: first at 18\", second arrives Round 3.",
