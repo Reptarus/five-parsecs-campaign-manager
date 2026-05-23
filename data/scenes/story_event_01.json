@@ -1,0 +1,29 @@
+{
+  "id": "story_event_01",
+  "_event_title": "Foiled!",
+  "_event_source": "Core Rules Appendix V pp.153-154",
+  "_scene_summary": "Corporate-meeting ambush. Crew arrives at the rendezvous to find hired guns waiting. Mid-range cover-to-cover firefight in an urban/industrial setting.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Nov_16_Meeting.png OR composite of Meeting.png + Ambush.png",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
+  "_tier2_planned_actors": [
+    {"id": "actor_corp_contact_dead", "intent": "corporate contact's body, mid-foreground"},
+    {"id": "actor_hired_gun_L", "intent": "first hired gun behind left cover"},
+    {"id": "actor_big_gun_R", "intent": "heavy weapon (Rattle Gun) on right flank"},
+    {"id": "actor_leader", "intent": "enemy leader, center-back, visible silhouette"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_smoke_thin", "blend": "MULTIPLY", "intent": "thin smoke drift across scene"},
+    {"id": "fx_muzzle_flash", "blend": "ADD", "intent": "brief flash overlay, modulate-pulsed"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: thin urban smoke/dust (SceneAtmosphereLayer)",
+    "FX modulate pulse on muzzle_flash for periodic firefight feel",
+    "Optional: Ken Burns slow zoom toward leader silhouette"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_01/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}

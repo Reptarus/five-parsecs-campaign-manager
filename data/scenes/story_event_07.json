@@ -1,0 +1,36 @@
+{
+  "id": "story_event_07",
+  "_event_title": "Time to Settle This",
+  "_event_source": "Core Rules Appendix V pp.159-160",
+  "_scene_summary": "Final confrontation on a dead moon. Two zones: barren moonscape (two-thirds) with surface sentries, then interior compound/facility (one-third) holding Q'narr. Crew in atmosphere suits. This is the climactic scene.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Red Desert.png OR Jan_10_Desert_explo.png (both wasteland category, fit dead-moon vibe)",
+  "_tier1_alternative": "If splitting two zones into separate scenes is desirable, future work: create story_event_07_surface.json + story_event_07_interior.json and route by mission phase",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
+  "_tier2_planned_actors": [
+    {"id": "actor_compound_entrance", "intent": "the facility entrance, mid-background, the goal"},
+    {"id": "actor_qnarr_nemesis", "intent": "Q'narr silhouette in compound window, the final target"},
+    {"id": "actor_surface_sentry_1", "intent": "atmosphere-suited sentry, left"},
+    {"id": "actor_surface_sentry_2", "intent": "atmosphere-suited sentry, center-left"},
+    {"id": "actor_surface_sentry_3", "intent": "atmosphere-suited sentry, center-right"},
+    {"id": "actor_surface_sentry_4", "intent": "atmosphere-suited sentry, right"},
+    {"id": "actor_crew_in_suits", "intent": "crew foreground in atmosphere suits, hero shot"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_dust_atmospheric", "blend": "MULTIPLY", "intent": "moondust kicked up by movement"},
+    {"id": "fx_void_stars", "blend": "SCREEN", "intent": "starfield above moonscape - airless world, no atmosphere haze"},
+    {"id": "fx_compound_lights", "blend": "ADD", "intent": "compound windows glow - the only warm light in the scene"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: heavy moondust drift, low gravity feel",
+    "FX compound_lights modulate breathe - life inside the dead world",
+    "Q'narr silhouette modulate pulse - menacing presence",
+    "Ken Burns slow zoom toward compound entrance - building inevitability",
+    "This is THE climactic scene - allocate the most animation polish here"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_07/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}

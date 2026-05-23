@@ -1,0 +1,30 @@
+{
+  "id": "story_event_04",
+  "_event_title": "The Enemy Strikes Back",
+  "_event_source": "Core Rules Appendix V pp.156-157",
+  "_scene_summary": "Direct attack on the crew's ship at the starport. Defensive battle amid crates, machinery, and vehicles. Second enemy wave arrives Round 3.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Shipyard.png (already-extracted scene 'shipyard' could be reused via scene_id remap)",
+  "_tier1_alternative": "Set art_tag to 'shipyard' or 'firefight' in event_04_enemy_strikes_back.json to reuse existing extracted scenes instead of populating new bg_00.png",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source OR remap art_tag to existing scene",
+  "_tier2_planned_actors": [
+    {"id": "actor_crew_defending", "intent": "crew silhouettes behind starport crates"},
+    {"id": "actor_hired_muscle_wave1", "intent": "first wave at 18 inches, rough line"},
+    {"id": "actor_hired_muscle_wave2", "intent": "second wave arriving from behind, default_visible: false until Round 3"},
+    {"id": "actor_ship_background", "intent": "the crew's ship docked, mid-background, the thing being defended"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_explosion_glow", "blend": "ADD", "intent": "explosion flash bursts, modulate-pulsed"},
+    {"id": "fx_smoke_billowing", "blend": "MULTIPLY", "intent": "heavy industrial smoke from damaged equipment"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: heavy smoke + sparks",
+    "Actor fade-in: wave2 appears on Round 3 trigger",
+    "FX modulate pulse explosion_glow at irregular intervals for chaotic feel"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_04/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}

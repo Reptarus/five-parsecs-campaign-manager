@@ -1,0 +1,29 @@
+{
+  "id": "story_event_05",
+  "_event_title": "Kidnap",
+  "_event_source": "Core Rules Appendix V pp.157-158",
+  "_scene_summary": "Investigation scene. Natural terrain with a central building. Six markers around the field hide evidence, bodies, or concealed war bots. Tension-building, not initial combat.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Investigating Ruin Scene 8 F copy.png OR Hacking Ruin V2.png",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
+  "_tier2_planned_actors": [
+    {"id": "actor_central_building", "intent": "the central building, mid-background, foreboding"},
+    {"id": "actor_marker_glow_1", "intent": "first marker, foreground-left"},
+    {"id": "actor_marker_glow_2", "intent": "second marker, foreground-center"},
+    {"id": "actor_marker_glow_3", "intent": "third marker, foreground-right"},
+    {"id": "actor_war_bot_revealed", "intent": "concealed war bot, default_visible: false - shown only when scene state = bot_revealed"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_volumetric_fog", "blend": "SCREEN", "intent": "low-lying fog around markers, mysterious atmosphere"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: drifting fog, very slow",
+    "Marker glow modulate pulse - subtle breathing rhythm",
+    "Actor fade-in for war_bot_revealed when scene state changes (reveal moment)"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_05/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}

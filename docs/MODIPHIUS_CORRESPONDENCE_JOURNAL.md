@@ -744,6 +744,48 @@
 
 ---
 
+### Entry #11b — 2026-05-22 (afternoon) — Email outbound — Reply to Chris (both threads consolidated): May 25 time confirm + beta route via Discord/subreddit + alpha shape with A1 art visible + fiveparsecs.online observations with player-experience pivot + expansion concept + Monday priority (alpha lock) + paperwork progression (LOI/MOU next priority)
+
+**Mode**: Email outbound to Chris, Gavin CC'd. Reply-all on the existing two-thread combination from Entries #11 + #11a.
+
+**Subject**: [reply on existing thread; preserves history]
+
+**Sender state at send**: Post the multi-turn runtime audit of fiveparsecs.online (recon Section 9 complete) and post the T1 player-experience thesis articulation (this session). Email is the consolidated reply to Chris's two May 22 morning emails.
+
+**Send context**: Elijah evolved the draft across this session through three versions in `docs/MODIPHIUS_CORRESPONDENCE_JOURNAL.md` Section 6 — Draft #E (pre-recon) → Draft #F initial (post-recon) → Draft #F v3 (added paperwork-progression closing). v3 was sent.
+
+**Verbatim body sent**: see Draft #F v3 in Section 6 below.
+
+**Key strategic moves landed in this email**:
+
+1. **Monday May 25 12pm Eastern (5pm UK) confirmed**, "Looking forward to it" relational beat
+2. **Beta route via Discord/subreddit** proposed with feedback-pipeline detail (in-app reporting, opt-in, wired before alpha ships) — community-controlled channels framed as natural fit for a Modiphius-backed product
+3. **A1 art-visible reframe** — "A1 will already have initial art integration visible, so testers see the visual direction coming together from day one rather than a stripped-down placeholder build". Preempts the implied "where's the art?" concern
+4. **fiveparsecs.online named explicitly** as the web-based tool Chris meant, with three neutral positive observations (catalog auto-populate, weapon/trait popovers, clean state-tracking) before the player-experience category pivot
+5. **Player-experience thesis lands** (T1 sharpening): "the goal is to free the player from logging the game so they can focus on actually playing it and on the story being told... more turns, more battles, and more time at the table rather than more time entering individual rolls and items into a form. Their tool records what happened; ours clears the way for more to happen."
+6. **Expansion concept frames the Modiphius art investment** as visual-narrative integration ("using the Photoshop files and their layers to build scenario-specific images for travel events, battle events, story track events"). Implicit T4 reinforcement.
+7. **Monday priority statement** (agenda-forcing): "Priority for Monday: locking alpha testing approach and duration. Once we're in playtester hands we can iron out pricing and revenue against real data. Right now we're speculating about a product nobody's seen yet."
+8. **Paperwork progression closing** (agenda-forcing v2): "once we have alpha terms locked, I'd like to start moving the LOI and MOU drafting forward as the next priority on our shared workstream. Happy to contribute initial language so your team has something concrete to react to rather than starting from a blank page."
+
+**Posture preserved**: Difference framing on competitor, not violation framing. Grace posture on Chris's bandwidth (no pressure). Anchor-first strategy on paperwork (Elijah offers to draft). No em dashes (verified).
+
+**Open expectations for Mon May 25 call**:
+
+- Alpha approach + duration commitment from Chris
+- Acknowledgment that paperwork progression is next workstream
+- Possible Phase 2 reference (Chris already framed "stage 2" in Entry #11)
+- Pricing/revenue conversation deferred until alpha data lands
+
+**Cross-references**:
+
+- Draft history: Section 6 Drafts #E (superseded) → #F v1 → #F v2 → #F v3 (sent, this entry)
+- Recon source for the web-tool observations: `docs/internal-recon/may-25-call/recon-notes.md` Sections 8-9
+- T1 player-experience articulation: [[feedback-strategic-theses-t1-t4]] T1 sharpening
+- Term-position anchor for paperwork progression follow-up: `docs/PARTNERSHIP_TERM_POSITIONS.md`
+- Session memory: [[may-22-session-recon-email-term-positions-qol-scoping]]
+
+---
+
 ### Entry #11a — 2026-05-22 (06:04 AM) — Email inbound — Chris's skim of QA docs: Ivan compensation problem + competitor web-tool concern + UI differentiation ask + Mon May 25 time proposal
 
 - **Mode**: Email inbound, parallel to Entry #11 (same morning, separate skim of Elijah's QA-docs thread)
@@ -1349,9 +1391,11 @@ When sent, append a new `### Entry #11b — 2026-05-22 — Email outbound — Re
 
 ---
 
-### Draft #F — Reply to Chris (combines May 22 thread topics: time confirm + beta route + alpha shape + web-tool observations + expansion + Monday priority)
+### Draft #F — Reply to Chris (combines May 22 thread topics: time confirm + beta route + alpha shape + web-tool observations + expansion + Monday priority + paperwork progression) — **PROMOTED → Entry #11b (2026-05-22 afternoon)**
 
-**Status**: DRAFT — ready for Elijah review + send. This is the v2 of Draft #E, rewritten after (1) the runtime MCP audit of fiveparsecs.online surfaced concrete neutral observations that can be cited in writing without leaning on "I'll look later," and (2) Elijah's verbatim 2026-05-22 articulation of the player-experience thesis underneath T1 (see [[feedback-strategic-theses-t1-t4]] T1 sharpening).
+**Status**: PROMOTED. v3 was sent late afternoon 2026-05-22. See Entry #11b in Section 2 for the canonical sent record. Draft body retained below as archive reference (the actually-sent text may differ slightly from this; the journal entry above captures the canonical send).
+
+**Originally**: DRAFT — ready for Elijah review + send. This is the v2 of Draft #E, rewritten after (1) the runtime MCP audit of fiveparsecs.online surfaced concrete neutral observations that can be cited in writing without leaning on "I'll look later," and (2) Elijah's verbatim 2026-05-22 articulation of the player-experience thesis underneath T1 (see [[feedback-strategic-theses-t1-t4]] T1 sharpening).
 
 **Mode**: Email outbound, Elijah → Chris (Gavin CC'd per standard cadence). Reply-all on existing thread to preserve history.
 

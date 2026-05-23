@@ -1,0 +1,28 @@
+{
+  "id": "story_event_02",
+  "_event_title": "On the Trail",
+  "_event_source": "Core Rules Appendix V pp.154-155",
+  "_scene_summary": "Tracking Q'narr through hostile territory. Standard battle against Blood Storm Mercs, who initiate combat aggressively. Open terrain or starport outskirts.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/AttackFormation_Freestyle.png OR Field_Ambush.png",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
+  "_tier2_planned_actors": [
+    {"id": "actor_qnarr_silhouette", "intent": "Q'narr seen at distance, top-of-frame, hinted not centered"},
+    {"id": "actor_merc_1", "intent": "Blood Storm merc charging foreground-left"},
+    {"id": "actor_merc_2", "intent": "Blood Storm merc covering mid-right"},
+    {"id": "actor_merc_3", "intent": "Blood Storm merc rear, just visible"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_dust_kicked_up", "blend": "MULTIPLY", "intent": "low-lying dust from sprint movement"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: dust kicked up by aggressive movement",
+    "Actor fade-in sequence: mercs appear one-by-one for tension on first display",
+    "Q'narr silhouette modulate pulse - emphasize 'he's just out of reach'"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_02/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}

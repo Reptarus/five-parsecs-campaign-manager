@@ -67,6 +67,7 @@ var _auto_save_check: CheckButton
 var _show_tooltips_check: CheckButton
 var _show_fps_check: CheckButton
 var _screen_shake_check: CheckButton
+var _narrative_events_check: CheckButton
 # Mobile-only
 var _haptic_check: CheckButton
 var _touch_sensitivity_slider: HSlider
@@ -404,6 +405,12 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		_sm.is_screen_shake_enabled() if _sm else true, "Toggle screen shake effects",
 		"Enable camera shake during combat and critical events.")
 	_bind_toggle(_screen_shake_check, "gameplay", "screen_shake")
+
+	_narrative_events_check = _add_toggle_row(card, "Narrative Events",
+		_sm.are_narrative_events_enabled() if _sm else true,
+		"Toggle full-screen narrative event windows",
+		"Show full-screen story moments with art and advisor reactions. When off, events use the classic card layout.")
+	_bind_toggle(_narrative_events_check, "gameplay", "use_narrative_events")
 
 
 # ============ MOBILE-ONLY ============
@@ -888,6 +895,7 @@ func _on_reset_pressed() -> void:
 	_show_tooltips_check.button_pressed = _sm.are_tooltips_enabled() if _sm else true
 	_show_fps_check.button_pressed = _sm.is_fps_visible() if _sm else false
 	_screen_shake_check.button_pressed = _sm.is_screen_shake_enabled() if _sm else true
+	_narrative_events_check.button_pressed = _sm.are_narrative_events_enabled() if _sm else true
 	if _is_mobile:
 		_haptic_check.button_pressed = _sm.is_haptic_enabled() if _sm else true
 		_touch_sensitivity_slider.value = _sm.get_touch_sensitivity() if _sm else 1.0

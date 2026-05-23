@@ -1,0 +1,31 @@
+{
+  "id": "story_event_06",
+  "_event_title": "We're Coming!",
+  "_event_source": "Core Rules Appendix V pp.158-159",
+  "_scene_summary": "Stealth rescue. Compound with central building holding the captive. Two sentries near center, main force in/near the building. Crew sneaks in from far edge.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Halflong-Lurking-p5.6.png (fits stealth theme) OR Dec_10_preparing_Ambush.png",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
+  "_tier2_planned_actors": [
+    {"id": "actor_compound_building", "intent": "central building, mid-background, lit from within"},
+    {"id": "actor_sentry_L", "intent": "first sentry patrolling left of center"},
+    {"id": "actor_sentry_R", "intent": "second sentry patrolling right of center"},
+    {"id": "actor_captive_bound", "intent": "captive inside building, dimly seen through window"},
+    {"id": "actor_main_force", "intent": "guards near building, default_visible: false until alarm raised"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_moonlight_rays", "blend": "ADD", "intent": "soft moonlight from above, night-stealth atmosphere"},
+    {"id": "fx_searchlight_cone", "blend": "ADD", "intent": "sentry searchlight, rotates via modulate animation"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: night dust, low-density",
+    "FX searchlight_cone rotation animation via property tween (the most KoDP-feeling animation in the whole set)",
+    "Actor fade-in main_force when scene state = alarmed",
+    "Captive figure subtle modulate breathe to draw eye"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_06/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}

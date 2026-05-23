@@ -1,0 +1,30 @@
+{
+  "id": "story_event_03",
+  "_event_title": "Disrupting the Plan",
+  "_event_source": "Core Rules Appendix V pp.155-156",
+  "_scene_summary": "Raid on Q'narr's contraband storage. Camp/factory compound with goons scattered defensively. Sabotage device at battlefield center is the win condition.",
+  "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Camp Building Up 2 Scene 5 F.png",
+  "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
+  "_tier2_planned_actors": [
+    {"id": "actor_goon_cluster", "intent": "5 goons scattered defensively, mid-distance"},
+    {"id": "actor_bruiser_L", "intent": "first bruiser with shotgun, left mid"},
+    {"id": "actor_bruiser_R", "intent": "second bruiser, right mid"},
+    {"id": "actor_leader_center", "intent": "enemy leader with blast pistol, center compound"},
+    {"id": "actor_sabotage_target", "intent": "the device location at battlefield center, glowing marker"}
+  ],
+  "_tier2_planned_fx": [
+    {"id": "fx_smoke_columns", "blend": "MULTIPLY", "intent": "industrial smoke from compound stacks"},
+    {"id": "fx_alarm_red_glow", "blend": "ADD", "intent": "red alarm glow over compound, pulses if alarm raised"}
+  ],
+  "_animation_hints": [
+    "Atmosphere particles: industrial particulate/embers",
+    "FX modulate pulse on alarm_red_glow if scene state = alarmed",
+    "Actor fade-in: reinforcements appear when scene re-enters"
+  ],
+  "canvas_size": [6000, 3375],
+  "bg_layers": [
+    "res://assets/scenes/story_event_03/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": []
+}
