@@ -156,7 +156,7 @@ func setup(summary_data: Dictionary) -> void:
 
 func _setup_battlefield_recap() -> void:
 	## Add compact battlefield map recap between stats and crew changes.
-	## Reads terrain data from summary_data or GameState temp_data.
+	## Reads terrain data from summary_data or GameStateManager passthrough.
 	## Hidden entirely if no terrain data is available (backwards compatible).
 
 	# Clean up previous recap section if re-setup
@@ -164,14 +164,17 @@ func _setup_battlefield_recap() -> void:
 		_battlefield_recap_section.queue_free()
 		_battlefield_recap_section = null
 
-	# Try to get terrain data from summary or GameState passthrough
+	# Try to get terrain data from summary or GameStateManager passthrough.
+	# (Pre-Sprint-2 this targeted GameState.temp_data, which does not exist
+	# as a field — dead code. Retargeted to GameStateManager during Sprint 2 F1.)
 	var terrain_sectors: Array = _summary_data.get("terrain_sectors", [])
 	var terrain_theme: String = _summary_data.get("terrain_theme", "")
 
 	if terrain_sectors.is_empty():
-		var game_state = get_node_or_null("/root/GameState")
-		if game_state and "temp_data" in game_state:
-			var bf_terrain: Dictionary = game_state.temp_data.get("battlefield_terrain", {})
+		var gsm: Node = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("get_temp_data"):
+			var bf_terrain: Dictionary = gsm.get_temp_data(
+				"battlefield_terrain", {})
 			terrain_sectors = bf_terrain.get("sectors", [])
 			terrain_theme = bf_terrain.get("theme_name", "")
 

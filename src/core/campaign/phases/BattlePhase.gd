@@ -440,6 +440,7 @@ func _process_battle_setup() -> void:
 
 	# Build canonical enemy_force dict (single type per Core Rules pp.91-94)
 	var _primary_template: Dictionary = {}
+	var _primary_category: Dictionary = {}
 	if enemy_generator:
 		# Re-lookup the type name from the first enemy's type field
 		var _primary_name: String = ""
@@ -451,14 +452,20 @@ func _process_battle_setup() -> void:
 				for _entry in _cat.get("enemies", []):
 					if _entry.get("name", "") == _primary_name:
 						_primary_template = _entry
+						_primary_category = _cat
 						break
 
 	var _ef_type: String = _primary_template.get(
 		"name", enemy_types[0].get("type", "Unknown") if not enemy_types.is_empty() else "Unknown")
 	var _ef_category: String = enemy_types[0].get("category", "") if not enemy_types.is_empty() else ""
+	if _ef_category.is_empty():
+		_ef_category = _primary_category.get("id", "")
 	var enemy_force_dict: Dictionary = {
 		"type": _ef_type,
 		"category": _ef_category,
+		"category_name": _primary_category.get("name", ""),
+		"category_rules": _primary_category.get("category_rules", ""),
+		"seize_initiative_modifier": int(_primary_category.get("seize_initiative_modifier", 0)),
 		"count": enemy_types.size(),
 		"panic": _primary_template.get("panic", "1-2"),
 		"speed": _primary_template.get("speed", 4),

@@ -711,7 +711,7 @@ func _on_assign_job_pressed(dialog: Control) -> void:
 			
 			pass # Job assigned to patron
 		else:
-			_show_assignment_error("Please select both a patron and a job to assign.")
+			_show_assignment_error("Pick both a patron and one of their jobs to send a crew member out.")
 	else:
 		push_error("PatronRivalManager: Could not find patron or job lists in dialog")
 

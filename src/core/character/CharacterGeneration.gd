@@ -1149,7 +1149,7 @@ static func validate_character(character: Character) -> Dictionary:
 
 	# Check character name
 	if character.character_name.is_empty():
-		result.errors.append("Character must have a name")
+		result.errors.append("Give this crew member a name to continue.")
 		result.valid = false
 
 	# Check health calculation (Five Parsecs rule: toughness + 2)

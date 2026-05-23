@@ -20,7 +20,7 @@ func validate_campaign_data(data: Dictionary) -> Dictionary:
 	if data.has("config") and not data["config"].is_empty():
 		var config = data["config"]
 		if not config.has("name") or config["name"].is_empty():
-			errors.append("Campaign must have a name")
+			errors.append("Pick a name for your campaign. Anything memorable works.")
 		if not config.has("difficulty"):
 			warnings.append("No difficulty selected, using default")
 
@@ -28,7 +28,7 @@ func validate_campaign_data(data: Dictionary) -> Dictionary:
 	if data.has("crew") and not data["crew"].is_empty():
 		var crew = data["crew"]
 		if not crew.has("members") or crew["members"].size() == 0:
-			errors.append("Campaign must have at least one crew member")
+			errors.append("Add at least one crew member to start the campaign.")
 		elif crew["members"].size() > 8:
 			warnings.append("Large crew size may affect game balance")
 
@@ -36,7 +36,7 @@ func validate_campaign_data(data: Dictionary) -> Dictionary:
 	if data.has("captain") and not data["captain"].is_empty():
 		var captain = data["captain"]
 		if not captain.has("name") or captain["name"].is_empty():
-			errors.append("Captain must have a name")
+			errors.append("Give the Captain a name to continue.")
 
 	# Validate ship section
 	if data.has("ship") and not data["ship"].is_empty():
@@ -63,17 +63,17 @@ func validate_phase_data(phase: int, data: Dictionary) -> Dictionary:
 	match phase:
 		0: # CONFIG
 			if not data.has("name") or data.name.is_empty():
-				errors.append("Campaign name is required")
+				errors.append("Pick a name for your campaign. Anything memorable works.")
 			if not data.has("difficulty"):
-				warnings.append("Difficulty not set")
-		
+				warnings.append("Pick a difficulty mode to continue.")
+
 		1: # CREW_SETUP
 			if not data.has("members") or data.members.size() == 0:
-				errors.append("At least one crew member required")
-		
+				errors.append("Add at least one crew member to start the campaign.")
+
 		2: # CAPTAIN_CREATION
 			if not data.has("name") or data.name.is_empty():
-				errors.append("Captain name is required")
+				errors.append("Give the Captain a name to continue.")
 		
 		3: # SHIP_ASSIGNMENT
 			if data.is_empty():

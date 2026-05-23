@@ -129,9 +129,9 @@ static func _validate_config_data(config_data: Dictionary, result: CampaignValid
 	if config_data.has("campaign_name"):
 		var name = str(config_data.campaign_name).strip_edges()
 		if name.length() < 3:
-			result.add_error("Campaign name must be at least 3 characters")
+			result.add_error("Campaign names need at least 3 characters.")
 		elif name.length() > 50:
-			result.add_error("Campaign name must be 50 characters or less")
+			result.add_error("Campaign names cap at 50 characters. Try a shorter version.")
 	
 	if config_data.has("difficulty"):
 		var difficulty = config_data.difficulty
@@ -150,7 +150,7 @@ static func _validate_crew_data(crew_data: Dictionary, result: CampaignValidatio
 	if crew_data.has("crew_members"):
 		var crew_members = crew_data.crew_members
 		if not (crew_members is Array) or crew_members.is_empty():
-			result.add_error("Crew must have at least one crew member")
+			result.add_error("Add at least one crew member to start the campaign.")
 		else:
 			# Validate each crew member
 			for i in range(crew_members.size()):

@@ -184,7 +184,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 func _on_name_changed(new_name: String) -> void:
 	_config_data.campaign_name = new_name
 	if new_name.strip_edges().is_empty():
-		_validation_label.text = "Campaign name is required"
+		_validation_label.text = "Pick a name for your campaign. Anything memorable works."
 		_validation_label.visible = true
 	else:
 		_validation_label.visible = false

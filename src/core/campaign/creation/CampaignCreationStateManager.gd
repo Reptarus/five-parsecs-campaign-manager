@@ -212,7 +212,7 @@ func _validate_config_phase() -> bool:
 	var config: Dictionary = campaign_data["config"] as Dictionary
 
 	if not config.has("campaign_name") or str(config.get("campaign_name", "")).is_empty():
-		validation_errors.append("Campaign name is required")
+		validation_errors.append("Pick a name for your campaign. Anything memorable works.")
 		return false
 
 	# GDScript 2.0: Victory conditions validation (NEW)
@@ -229,7 +229,7 @@ func _validate_config_phase() -> bool:
 				break
 
 	if not has_victory:
-		validation_errors.append("At least one victory condition must be selected")
+		validation_errors.append("Pick at least one victory condition. It's the goal your crew is working toward.")
 		return false
 
 	return true
@@ -249,17 +249,17 @@ func _validate_crew_phase() -> bool:
 	# If members array exists but is empty, that's an error
 	var members_array: Array = crew["members"] as Array
 	if members_array.is_empty():
-		validation_errors.append("At least one crew member is required")
+		validation_errors.append("Add at least one crew member to start the campaign.")
 		return false
 
 	if int(crew.get("size", 0)) < 1:
-		validation_errors.append("Invalid crew size")
+		validation_errors.append("Crew size is missing. Pick 4, 5, or 6 from the config step.")
 		return false
 
 	# Enhanced validation for character completeness
 	var required_size: int = int(crew.get("size", 4))
 	if members_array.size() < required_size:
-		validation_errors.append("Crew requires %d members, currently has %d" % [required_size, members_array.size()])
+		validation_errors.append("Crew is short %d member(s). You picked a crew of %d at config." % [required_size - members_array.size(), required_size])
 		return false
 
 	# SPRINT 26.21 FIX: Check for captain assignment - accept either has_captain flag OR captain object
@@ -280,7 +280,7 @@ func _validate_crew_phase() -> bool:
 					break
 
 	if not has_captain:
-		validation_errors.append("Crew must have an assigned captain")
+		validation_errors.append("Pick one crew member as the Captain to continue.")
 		return false
 
 	# SPRINT 26.21 FIX: Relaxed validation - customization completeness is optional
@@ -304,21 +304,21 @@ func _validate_captain_phase() -> bool:
 
 	# Basic captain validation
 	if not captain.has("character_name") or str(captain.get("character_name", "")).is_empty():
-		validation_errors.append("Captain must have a name")
+		validation_errors.append("Give the Captain a name to continue.")
 		return false
 
 	if not captain.has("combat") or int(captain.get("combat", 0)) < 1:
-		validation_errors.append("Captain needs valid combat attribute")
+		validation_errors.append("Captain's combat stat looks off. Try rerolling stats or check the Captain step.")
 		return false
 
 	if not captain.has("toughness") or int(captain.get("toughness", 0)) < 1:
-		validation_errors.append("Captain needs valid toughness attribute")
+		validation_errors.append("Captain's toughness stat looks off. Try rerolling stats or check the Captain step.")
 		return false
 
 	# Optional: Check for captain customization completeness
 	var completeness: float = float(captain.get("customization_completeness", 1.0))
 	if completeness < 0.6: # Require 60% completion minimum
-		validation_errors.append("Captain needs more customization")
+		validation_errors.append("Finish customizing the Captain — pick a background, motivation, and origin to continue.")
 		return false
 
 	pass # Captain validation passed
@@ -329,11 +329,11 @@ func _validate_ship_phase() -> bool:
 	var ship: Dictionary = campaign_data["ship"] as Dictionary
 
 	if not ship.has("name") or str(ship.get("name", "")).is_empty():
-		validation_errors.append("Ship name is required")
+		validation_errors.append("Give your ship a name to continue.")
 		return false
 
 	if not ship.has("type") or str(ship.get("type", "")).is_empty():
-		validation_errors.append("Ship type must be selected")
+		validation_errors.append("Pick a ship type to continue. Hulls determine cargo space and combat resilience.")
 		return false
 
 	# SPRINT 26.21 FIX: Check both is_configured and is_complete (they are semantically equivalent)
@@ -1047,7 +1047,7 @@ func confirm_captain_creation(captain_data: Dictionary) -> Dictionary:
 	
 	# Validate captain data before confirmation
 	if not captain_data.has("character_name") or str(captain_data.get("character_name", "")).is_empty():
-		result.error = "Captain must have a name before confirmation"
+		result.error = "Give the Captain a name to continue."
 		_is_processing_confirmation = false
 		return result
 

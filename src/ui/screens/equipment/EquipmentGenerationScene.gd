@@ -212,7 +212,7 @@ func _is_valid_class_enum(char_class: Variant) -> bool:
 func generate_equipment_for_crew() -> Dictionary:
 	## Generate equipment for crew with comprehensive error handling
 	if crew_members.is_empty():
-		_show_error("No crew members available for equipment generation")
+		_show_error("Add crew members before generating equipment.")
 		return {}
 	
 	pass # Starting equipment generation
@@ -409,7 +409,7 @@ func _on_regenerate_pressed() -> void:
 func _on_finish_pressed() -> void:
 	## Handle finish button press
 	if equipment_data.is_empty():
-		_show_error("No equipment generated - cannot finish")
+		_show_error("Generate some starting gear first before finishing setup.")
 		return
 	
 	pass # Equipment generation finalized

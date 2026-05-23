@@ -203,13 +203,13 @@ func validate_panel_data() -> ValidationResult:
 	
 	# Validate crew size
 	if crew_members.size() < MIN_CREW_SIZE:
-		errors.append("Crew must have at least %d member" % MIN_CREW_SIZE)
+		errors.append("Add at least %d crew member(s) to start the campaign." % MIN_CREW_SIZE)
 	elif crew_members.size() > MAX_CREW_SIZE:
-		errors.append("Crew cannot exceed %d members" % MAX_CREW_SIZE)
-	
+		errors.append("Crew caps at %d. Remove someone to continue." % MAX_CREW_SIZE)
+
 	# Validate that crew has a captain
 	if not _has_captain():
-		errors.append("Crew must have a designated captain")
+		errors.append("Pick one crew member as the Captain to continue.")
 	
 	# Validate crew member data
 	for i in range(crew_members.size()):

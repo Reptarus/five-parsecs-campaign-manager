@@ -175,6 +175,14 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 	if not zone_type.is_empty():
 		stats["zone_type"] = zone_type
 
+	# Battle Notes carryback (Sprint 1 QOL Item 5) — player jots from the
+	# TacticalBattleUI floating notes textbox arrive via GameStateManager
+	# temp-data. Append to description and clear after read so the next
+	# battle starts fresh.
+	var player_notes: String = _consume_battle_player_notes(battle_result)
+	if not player_notes.is_empty():
+		description += "\n\n[Notes] %s" % player_notes
+
 	create_entry({
 		"turn_number": battle_result.get("turn", 0),
 		"type": "battle",
@@ -186,7 +194,27 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 		"characters_involved": battle_result.get("crew_ids", []),
 		"location": battle_result.get("location", ""),
 		"stats": stats,
+		"player_notes": player_notes,
 	})
+
+## Pull and clear the player's battle-note text. Prefers an explicit
+## `player_notes` field on the battle result; otherwise falls back to the
+## GameStateManager temp-data key "battle_player_notes". Either source is
+## cleared after read so notes from one battle never bleed into the next.
+func _consume_battle_player_notes(battle_result: Dictionary) -> String:
+	var explicit: String = str(battle_result.get("player_notes", ""))
+	if not explicit.is_empty():
+		return explicit
+	var tree := Engine.get_main_loop()
+	if tree == null:
+		return ""
+	var gsm: Node = tree.root.get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_temp_data"):
+		return ""
+	var notes: String = str(gsm.get_temp_data("battle_player_notes", ""))
+	if gsm.has_method("clear_temp_data") and not notes.is_empty():
+		gsm.clear_temp_data("battle_player_notes")
+	return notes
 
 func auto_create_milestone_entry(milestone_type: String, data: Dictionary) -> void:
 	## Auto-generate milestone entry
@@ -326,6 +354,36 @@ func filter_entries(filter: Dictionary) -> Array[Dictionary]:
 			filtered.append(entry)
 
 	return filtered
+
+## Aggregate per-type counts for a single turn.
+## Returns: {turn_number: int, total: int, by_type: Dictionary[String, int]}
+## Empty input or no-entry turns return total=0 with all type-buckets at 0.
+## Used by the dashboard activity-feed surface to render "Turn N: X battles, Y events" chips.
+func get_turn_summary(turn_number: int) -> Dictionary:
+	var by_type: Dictionary = {
+		"battle": 0,
+		"story": 0,
+		"purchase": 0,
+		"injury": 0,
+		"milestone": 0,
+		"custom": 0,
+	}
+	var total: int = 0
+	for entry: Dictionary in entries:
+		if int(entry.get("turn_number", 0)) != turn_number:
+			continue
+		total += 1
+		var t: String = str(entry.get("type", "custom"))
+		if by_type.has(t):
+			by_type[t] += 1
+		else:
+			# Unknown / non-default type — track it but don't lose the count.
+			by_type[t] = 1
+	return {
+		"turn_number": turn_number,
+		"total": total,
+		"by_type": by_type,
+	}
 
 ## ===== CHARACTER TRACKING =====
 

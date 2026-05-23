@@ -127,9 +127,9 @@ func _display_summary() -> void:
 func _get_validation_errors(config: Dictionary, characters: Array) -> Array:
 	var errors: Array = []
 	if config.get("campaign_name", "").is_empty():
-		errors.append("Campaign name is required")
+		errors.append("Pick a name for your campaign. Anything memorable works.")
 	if characters.size() < 3:
-		errors.append("Need at least 3 Main Characters")
+		errors.append("Bug Hunt needs at least 3 Main Characters. Add a few in the Characters step.")
 	return errors
 
 

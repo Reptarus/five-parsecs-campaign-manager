@@ -276,6 +276,10 @@ func _update_stat_strip(campaign) -> void:
 	var old := parent_vbox.get_node_or_null("__stat_strip")
 	if old:
 		old.queue_free()
+	# Also drop any stale last-turn recap label so refreshes don't stack.
+	var old_recap := parent_vbox.get_node_or_null("__last_turn_recap")
+	if old_recap:
+		old_recap.queue_free()
 
 	var pd: Dictionary = campaign.progress_data \
 		if "progress_data" in campaign else {}
@@ -296,6 +300,51 @@ func _update_stat_strip(campaign) -> void:
 		COLOR_AMBER if campaign.credits < 5 else COLOR_EMERALD))
 	strip.add_child(_create_colored_badge(
 		"STORY PTS", str(campaign.story_points), COLOR_BLUE))
+
+	# Last-turn activity recap. Shows what happened on the previous turn so
+	# players resuming a saved campaign can orient quickly. Skipped on Turn 1
+	# (nothing has happened yet) and on no-activity turns (would be noise).
+	_render_last_turn_recap(parent_vbox, strip, turn)
+
+## Append a "Last turn: X battles, Y events" recap label under the stat strip.
+## Reads from the CampaignJournal autoload; safe if the journal is empty.
+func _render_last_turn_recap(
+	parent_vbox: Node, strip: Node, current_turn: int
+) -> void:
+	if current_turn <= 1:
+		return
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal == null or not journal.has_method("get_turn_summary"):
+		return
+	var summary: Dictionary = journal.get_turn_summary(current_turn - 1)
+	if int(summary.get("total", 0)) <= 0:
+		return
+
+	# Build a "N battles, M events, K purchases" string from non-zero buckets.
+	var parts: Array[String] = []
+	var by_type: Dictionary = summary.get("by_type", {})
+	for label_pair in [
+		["battle", "battle", "battles"],
+		["story", "event", "events"],
+		["purchase", "purchase", "purchases"],
+		["injury", "injury", "injuries"],
+		["milestone", "milestone", "milestones"],
+	]:
+		var key: String = label_pair[0]
+		var count: int = int(by_type.get(key, 0))
+		if count > 0:
+			parts.append("%d %s" % [count, label_pair[1] if count == 1 else label_pair[2]])
+	if parts.is_empty():
+		return
+
+	var recap := Label.new()
+	recap.name = "__last_turn_recap"
+	recap.text = "Last turn: " + ", ".join(parts)
+	recap.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	recap.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	recap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	parent_vbox.add_child(recap)
+	parent_vbox.move_child(recap, strip.get_index() + 1)
 
 func _create_colored_badge(
 	label_text: String, value_text: String, color: Color

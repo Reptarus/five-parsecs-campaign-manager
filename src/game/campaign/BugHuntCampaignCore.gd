@@ -271,11 +271,11 @@ func validate() -> bool:
 func get_validation_errors() -> Array[String]:
 	var errors: Array[String] = []
 	if campaign_name.is_empty():
-		errors.append("Campaign name is required")
+		errors.append("Pick a name for your campaign. Anything memorable works.")
 	if main_characters.size() < 3:
-		errors.append("Bug Hunt requires at least 3 main characters")
+		errors.append("Bug Hunt needs at least 3 Main Characters. Add a few in the Characters step.")
 	if main_characters.size() > 5:
-		errors.append("Bug Hunt allows at most 5 main characters (Compendium p.170)")
+		errors.append("Bug Hunt caps at 5 Main Characters (Compendium p.170). Remove one to continue.")
 	return errors
 
 

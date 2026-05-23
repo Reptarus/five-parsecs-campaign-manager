@@ -267,11 +267,11 @@ func validate_panel_data() -> ValidationResult:
 	# Validate ship name
 	var name = ship_data.get("name", "")
 	if name.is_empty():
-		errors.append("Ship must have a name")
+		errors.append("Give your ship a name to continue.")
 	elif name.length() < 3:
-		errors.append("Ship name must be at least 3 characters")
+		errors.append("Ship names need at least 3 characters.")
 	elif name.length() > 30:
-		errors.append("Ship name cannot exceed 30 characters")
+		errors.append("Ship names cap at 30 characters. Try a shorter version.")
 	
 	# Validate ship type
 	var ship_type = ship_data.get("type", "")
@@ -281,21 +281,21 @@ func validate_panel_data() -> ValidationResult:
 	# Validate hull points
 	var hull = ship_data.get("hull_points", 0)
 	if hull < 1:
-		errors.append("Ship must have at least 1 hull point")
+		errors.append("Ships need at least 1 hull point to fly.")
 	elif hull > 50:
-		errors.append("Ship hull cannot exceed 50 points")
-	
+		errors.append("Ship hull caps at 50 points.")
+
 	# Validate debt
 	var debt = ship_data.get("debt", -1)
 	if debt < 0:
-		errors.append("Ship debt cannot be negative")
+		errors.append("Ship debt can't be negative.")
 	elif debt > 10:
-		errors.append("Ship debt cannot exceed 10")
-	
+		errors.append("Ship debt caps at 10. Pay some off to continue.")
+
 	# Validate traits
 	var traits = ship_data.get("traits", [])
 	if traits.is_empty():
-		errors.append("Ship must have at least one trait")
+		errors.append("Pick at least one trait for your ship.")
 	
 	if errors.is_empty():
 		return ValidationResult.new(true)

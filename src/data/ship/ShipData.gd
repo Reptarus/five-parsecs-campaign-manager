@@ -133,7 +133,7 @@ func validate() -> ValidationResult:
 	# Ship name validation
 	if ship_name.strip_edges().is_empty():
 		result.valid = false
-		result.error = "Ship name is required"
+		result.error = "Give your ship a name to continue."
 		return result
 	
 	# Hull integrity validation

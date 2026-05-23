@@ -1408,9 +1408,9 @@ func _validate_ship_data() -> Array[String]:
 	
 	# Rule: Must have a name
 	if ship_data.name.strip_edges().is_empty():
-		errors.append("Ship name is required.")
+		errors.append("Give your ship a name to continue.")
 	elif ship_data.name.strip_edges().length() < 2:
-		errors.append("Ship name must be at least 2 characters long.")
+		errors.append("Ship names need at least 2 characters.")
 	
 	# Rule: Must have a valid ship type
 	if not ship_data.has("type") or ship_data.type.is_empty():
@@ -1418,11 +1418,11 @@ func _validate_ship_data() -> Array[String]:
 	
 	# Rule: Must have valid hull points
 	if ship_data.get("hull_points", 0) <= 0:
-		errors.append("Ship must have valid hull points.")
-	
+		errors.append("Ships need at least 1 hull point to fly.")
+
 	# Rule: Must have reasonable debt amount
 	if ship_data.get("debt", 0) < 0:
-		errors.append("Ship debt cannot be negative.")
+		errors.append("Ship debt can't be negative.")
 	
 	return errors
 

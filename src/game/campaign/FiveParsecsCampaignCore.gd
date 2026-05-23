@@ -227,17 +227,17 @@ func get_validation_errors() -> Array[String]:
 	var errors: Array[String] = []
 	
 	if campaign_name.is_empty():
-		errors.append("Campaign name is required")
-	
+		errors.append("Pick a name for your campaign. Anything memorable works.")
+
 	if crew_data.is_empty():
-		errors.append("Crew data is missing")
+		errors.append("Crew setup is empty. Head to the crew step to add members.")
 	elif not crew_data.has("members") or crew_data.members.size() == 0:
-		errors.append("Campaign must have at least one crew member")
-	
+		errors.append("Add at least one crew member to start the campaign.")
+
 	if captain_data.is_empty():
-		errors.append("Captain data is missing")
+		errors.append("Captain hasn't been set up yet. Head to the Captain step.")
 	elif not captain_data.has("name") or captain_data.name.is_empty():
-		errors.append("Captain must have a name")
+		errors.append("Give the Captain a name to continue.")
 	
 	return errors
 

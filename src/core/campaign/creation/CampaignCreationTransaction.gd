@@ -363,7 +363,7 @@ func _validate_captain_data(captain_data: Dictionary) -> FiveParsecsValidationRe
 	# Basic validation
 	if not captain_data.has("character_name") or captain_data.character_name.is_empty():
 		result.valid = false
-		result.error = "Captain name is required"
+		result.error = "Give the Captain a name to continue."
 		return result
 	
 	# Security validation

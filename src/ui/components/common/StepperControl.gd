@@ -20,9 +20,17 @@ var min_value: int = 0
 var max_value: int = 99
 var step: int = 1
 
+# Baseline mode: when set via setup_with_baseline(), the stepper renders a
+# leading "Was: N →" prefix and color-shifts the target value based on delta.
+# Lets stat-edit screens (PostBattle XP, Advancement, equipment trade) show
+# current → target side-by-side without per-surface wiring.
+var baseline_value: int = 0
+var _show_baseline: bool = false
+
 var _minus_btn: Button
 var _plus_btn: Button
 var _value_label: Label
+var _baseline_label: Label
 
 func _ready() -> void:
 	_build_ui()
@@ -31,6 +39,20 @@ func _ready() -> void:
 func _build_ui() -> void:
 	add_theme_constant_override("separation", UIColors.SPACING_XS)
 	alignment = BoxContainer.ALIGNMENT_CENTER
+
+	# Baseline label — hidden by default, populated + shown in baseline mode.
+	# Inserted first so the row reads "Was: 3 → [-] 4 [+]".
+	_baseline_label = Label.new()
+	_baseline_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_baseline_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_baseline_label.add_theme_font_size_override(
+		"font_size", UIColors.FONT_SIZE_SM
+	)
+	_baseline_label.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_MUTED
+	)
+	_baseline_label.visible = false
+	add_child(_baseline_label)
 
 	# Minus button
 	_minus_btn = Button.new()
@@ -111,6 +133,17 @@ func _update_display() -> void:
 		# Punch animation on change
 		_value_label.pivot_offset = _value_label.size / 2
 		TweenFX.punch_in(_value_label, 0.15, 0.2)
+		# Baseline-mode delta color: green if improved, red if reduced, default cyan if equal.
+		if _show_baseline:
+			var color: Color = UIColors.COLOR_CYAN
+			if value > baseline_value:
+				color = UIColors.COLOR_EMERALD
+			elif value < baseline_value:
+				color = UIColors.COLOR_RED
+			_value_label.add_theme_color_override("font_color", color)
+
+	if _baseline_label and _show_baseline:
+		_baseline_label.text = "Was: %d →" % baseline_value
 
 	if _minus_btn:
 		_minus_btn.disabled = (value <= min_value)
@@ -128,4 +161,32 @@ func setup(
 	max_value = max_val
 	step = step_val
 	value = clampi(initial, min_val, max_val)
+	_show_baseline = false
+	if _baseline_label:
+		_baseline_label.visible = false
+	return self
+
+## Configure the stepper in baseline mode. Renders "Was: <baseline> →" prefix and
+## color-shifts the target based on delta sign (green up / red down / cyan equal).
+##
+## Use when the player is editing a stat from a known starting point, e.g.:
+##   PostBattle XP-spend (current XP → after spending)
+##   Advancement phase (current stat → upgraded stat)
+##   Equipment trade (current credits → after purchase)
+func setup_with_baseline(
+	baseline: int,
+	initial_target: int,
+	min_val: int = 0,
+	max_val: int = 99,
+	step_val: int = 1
+) -> StepperControl:
+	min_value = min_val
+	max_value = max_val
+	step = step_val
+	baseline_value = baseline
+	_show_baseline = true
+	if _baseline_label:
+		_baseline_label.visible = true
+	value = clampi(initial_target, min_val, max_val)
+	_update_display()
 	return self

@@ -15,11 +15,17 @@ func _init() -> void:
 var _pending_data: Dictionary = {}
 
 func _ready() -> void:
-	var vp: Vector2 = get_viewport().get_visible_rect().size
-	size = Vector2i(
-		mini(420, int(vp.x * 0.85)),
-		mini(360, int(vp.y * 0.7))
-	)
+	# Size is normally set by show_preview() before popup_centered() so the
+	# popup opens correctly on first frame (Window race: popup_centered() runs
+	# before _ready() fires, so without an explicit size the OS draws the
+	# popup at the ~100x100 window minimum, clipping the content).
+	# Defensive default in case the popup is instantiated without show_preview().
+	if size.x < 200 or size.y < 200:
+		var vp: Vector2 = get_viewport().get_visible_rect().size
+		size = Vector2i(
+			mini(420, int(vp.x * 0.85)),
+			mini(360, int(vp.y * 0.7))
+		)
 	_build_ui()
 	if not _pending_data.is_empty():
 		_populate(_pending_data)
@@ -156,6 +162,8 @@ func _on_close() -> void:
 	queue_free()
 
 ## Show a preview popup for the given item data dictionary.
+## Sizes the Window BEFORE popup_centered() to dodge the Window-_ready race
+## (popup_centered fires synchronously after add_child; _ready is deferred).
 static func show_preview(
 	parent: Node, data: Dictionary
 ) -> ItemPreviewPopup:
@@ -163,5 +171,10 @@ static func show_preview(
 	var popup = _Self.new()
 	popup._pending_data = data
 	parent.add_child(popup)
-	popup.popup_centered()
+	var vp: Vector2 = parent.get_viewport().get_visible_rect().size
+	var target_size := Vector2i(
+		mini(420, int(vp.x * 0.85)),
+		mini(360, int(vp.y * 0.7))
+	)
+	popup.popup_centered(target_size)
 	return popup

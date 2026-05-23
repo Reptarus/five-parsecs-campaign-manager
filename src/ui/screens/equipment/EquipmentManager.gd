@@ -740,7 +740,7 @@ func _on_buy_equipment_pressed(dialog: Control) -> void:
 			else:
 				_show_trade_error("Insufficient credits to purchase this item.")
 		else:
-			_show_trade_error("Please select an item to purchase.")
+			_show_trade_error("Pick an item from the stock first, then hit Buy.")
 
 func _on_sell_equipment_pressed(dialog: Control) -> void:
 	## Handle sell equipment button press
@@ -767,7 +767,7 @@ func _on_sell_equipment_pressed(dialog: Control) -> void:
 			
 			pass # Equipment sold
 		else:
-			_show_trade_error("Please select an item to sell.")
+			_show_trade_error("Pick an item from your stash first, then hit Sell.")
 
 func _on_refresh_market_pressed(market_list: ItemList) -> void:
 	## Handle market refresh button press
@@ -819,7 +819,7 @@ func _on_repair_equipment_pressed(dialog: Control) -> void:
 			else:
 				_show_trade_error("Insufficient credits for repair.")
 		else:
-			_show_trade_error("Please select equipment to repair.")
+			_show_trade_error("Pick a damaged item first, then hit Repair.")
 
 func _on_repair_all_pressed(dialog: Control) -> void:
 	## Handle repair all button press

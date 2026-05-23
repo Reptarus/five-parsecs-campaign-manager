@@ -763,15 +763,15 @@ func _validate_current_step() -> bool:
 func _validate_basic_info() -> bool:
 	## Validate basic info step
 	if not editing_character.character_name or editing_character.character_name.is_empty():
-		_show_validation_error("Character name is required")
+		_show_validation_error("Give this crew member a name to continue.")
 		return false
-	
+
 	if editing_character.background.is_empty() or editing_character.background == "Unknown":
-		_show_validation_error("Please select a background")
+		_show_validation_error("Pick a background. It shapes starting skills and gear.")
 		return false
-	
+
 	if editing_character.motivation.is_empty() or editing_character.motivation == "Unknown":
-		_show_validation_error("Please select a motivation")
+		_show_validation_error("Pick a motivation. It gives this character their drive.")
 		return false
 	
 	return true

@@ -177,7 +177,7 @@ func _on_mode_changed(idx: int) -> void:
 func _emit_update() -> void:
 	# Validation feedback
 	if _config_data.campaign_name.is_empty():
-		_validation_label.text = "Campaign name is required"
+		_validation_label.text = "Pick a name for your campaign. Anything memorable works."
 	else:
 		_validation_label.text = ""
 	config_updated.emit(_config_data.duplicate())

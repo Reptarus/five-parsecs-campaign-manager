@@ -151,7 +151,7 @@ func validate_campaign_state(campaign_state: Dictionary) -> Array[String]:
 	
 	# Check for crew
 	if not campaign_state.has("crew") or not campaign_state.crew is Array or campaign_state.crew.size() < 1:
-		errors.append("Campaign must have at least one crew member")
+		errors.append("Add at least one crew member to start the campaign.")
 	
 	# Check for resources
 	if not campaign_state.has("resources") or not campaign_state.resources is Dictionary:
@@ -212,19 +212,19 @@ func validate_mission(mission_data: Dictionary) -> Array[String]:
 	
 	# Check for required mission fields
 	if not mission_data.has("mission_id"):
-		errors.append("Mission is missing an ID")
-	
+		errors.append("Mission setup looks incomplete (no ID). Check the mission step.")
+
 	if not mission_data.has("mission_name") or mission_data.mission_name.strip_edges().is_empty():
-		errors.append("Mission is missing a name")
-	
+		errors.append("Mission needs a name. Check the mission step.")
+
 	if not mission_data.has("mission_type"):
-		errors.append("Mission is missing a type")
+		errors.append("Mission needs a type. Check the mission step.")
 	
 	if not mission_data.has("objectives") or not mission_data.objectives is Array or mission_data.objectives.size() < 1:
-		errors.append("Mission must have at least one objective")
+		errors.append("This mission has no objectives. Check the mission setup.")
 	
 	if not mission_data.has("reward") or not mission_data.reward is Dictionary:
-		errors.append("Mission is missing reward data")
+		errors.append("Mission is missing reward data. Check the mission step.")
 	
 	return errors
 

@@ -148,8 +148,8 @@ func validate_panel_data() -> ValidationResult:
 	
 	# Check if captain exists
 	if not current_captain:
-		errors.append("Captain is required")
-		return ValidationResult.new(false, "No captain created")
+		errors.append("Pick one crew member as the Captain to continue.")
+		return ValidationResult.new(false, "Pick one crew member as the Captain to continue.")
 	
 	# Validate captain properties
 	var required_props = ["character_name", "combat", "toughness", "savvy", "tech", "speed", "luck"]
@@ -161,11 +161,11 @@ func validate_panel_data() -> ValidationResult:
 	# Validate captain name
 	var name = _safe_get_character_property(current_captain, "character_name", "")
 	if name.is_empty():
-		errors.append("Captain must have a name")
+		errors.append("Give the Captain a name to continue.")
 	elif name.length() < 2:
-		errors.append("Captain name must be at least 2 characters")
+		errors.append("Captain names need at least 2 characters.")
 	elif name.length() > 30:
-		errors.append("Captain name cannot exceed 30 characters")
+		errors.append("Captain names cap at 30 characters. Try a shorter version.")
 	
 	# Validate stats are within reasonable bounds
 	var stats = ["combat", "toughness", "savvy", "tech", "speed", "luck"]

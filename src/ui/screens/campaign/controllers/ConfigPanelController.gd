@@ -146,16 +146,16 @@ func validate_panel_data() -> ValidationResult:
 	# Validate campaign name
 	var name = panel_data.get("name", "")
 	if name.is_empty():
-		errors.append("Campaign name is required")
+		errors.append("Pick a name for your campaign. Anything memorable works.")
 	elif name.length() < 3:
-		errors.append("Campaign name must be at least 3 characters")
+		errors.append("Campaign names need at least 3 characters.")
 	elif name.length() > 50:
-		errors.append("Campaign name cannot exceed 50 characters")
-	
+		errors.append("Campaign names cap at 50 characters. Try a shorter version.")
+
 	# Validate difficulty
 	var difficulty = panel_data.get("difficulty", -1)
 	if difficulty < 0 or difficulty > 4:
-		errors.append("Invalid difficulty level selected")
+		errors.append("Pick a difficulty mode to continue.")
 	
 	# Validate victory condition
 	var victory = panel_data.get("victory_condition", "")

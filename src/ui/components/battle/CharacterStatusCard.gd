@@ -7,6 +7,10 @@ extends PanelContainer
 ## Shows health, stats, actions, and provides manual confirmation buttons
 ## for Five Parsecs tabletop-style combat.
 
+# Preload-based refs — global class_name cache can lag behind file edits
+# (see CLAUDE.md "Preload Pattern for UI Class References").
+const KeywordLinker = preload("res://src/ui/components/tooltips/KeywordLinker.gd")
+
 # Signals for manual action confirmation
 signal action_used(character_name: String, action_type: String)
 signal damage_taken(character_name: String, amount: int)
@@ -30,9 +34,12 @@ var is_aiming: bool = false          # Didn't move, chose to aim (Core Rules p.4
 var is_holding_snap: bool = false    # Quick Action char holding for snap fire (p.113)
 var has_panic_fired: bool = false    # Used panic fire — weapon empty rest of battle (p.46)
 
+# Lazy keyword tooltip for inline stat-name popovers (Sprint 2 F2).
+var _keyword_tooltip: KeywordTooltip = null
+
 # UI References
 @onready var name_label: Label = %CharacterName
-@onready var stats_label: Label = %StatsDisplay
+@onready var stats_label: RichTextLabel = %StatsDisplay
 @onready var health_bar: ProgressBar = %HealthBar
 @onready var health_text: Label = %HealthText
 @onready var status_label: Label = %StatusLabel
@@ -121,13 +128,11 @@ func _update_display() -> void:
 	if name_label:
 		name_label.text = char_name
 
-	# Update stats display
+	# Update stats display — RichTextLabel with clickable keyword links
+	# so a player can tap "Combat" / "Tough" / "Speed" for the rules tooltip.
 	if stats_label:
-		stats_label.text = "Combat: %d | Tough: %d | Speed: %d" % [
-			character_data.get("combat", 0),
-			character_data.get("toughness", 4),
-			character_data.get("speed", 4)
-		]
+		stats_label.text = _build_basic_stats_bbcode()
+		_ensure_keyword_tooltip_attached()
 
 	# Update health bar
 	if health_bar:
@@ -352,24 +357,14 @@ func _apply_tier_display() -> void:
 	# Tier 0: Basic - name + health + damage/stun buttons always visible
 	# (these are the default visible elements)
 
-	# Tier 1+: Show stats and status details
+	# Tier 1+: Show stats and status details — BBCode with keyword links
 	if stats_label:
 		if _display_tier >= 1:
-			var reactions: int = character_data.get("reactions", 1)
-			var savvy: int = character_data.get("savvy", 0)
-			var weapon: String = character_data.get("weapon_name", "")
-			stats_label.text = "Combat: %d | Tough: %d | React: %d | Savvy: %d" % [
-				character_data.get("combat", 0),
-				character_data.get("toughness", 4),
-				reactions,
-				savvy]
-			if not weapon.is_empty():
-				stats_label.text += "\nWeapon: %s" % weapon
+			stats_label.text = _build_tier1_stats_bbcode()
 		else:
 			# Tier 0: minimal stats
-			stats_label.text = "Combat: %d | Tough: %d" % [
-				character_data.get("combat", 0),
-				character_data.get("toughness", 4)]
+			stats_label.text = _build_basic_stats_bbcode()
+		_ensure_keyword_tooltip_attached()
 
 	# Tier 1+: Show activation status
 	if status_label and _display_tier >= 1:
@@ -397,3 +392,54 @@ func set_activated(activated: bool) -> void:
 ## Check if character has been activated this round.
 func is_activated() -> bool:
 	return _is_activated
+
+# =====================================================
+# KEYWORD-LINKED STATS DISPLAY (Sprint 2 F2)
+# =====================================================
+
+## Tier 0 stat strip: Combat | Tough | Speed.
+## Each label is a clickable keyword link wired to KeywordTooltip.
+func _build_basic_stats_bbcode() -> String:
+	var combat: int = character_data.get("combat", 0)
+	var tough: int = character_data.get("toughness", 4)
+	var speed: int = character_data.get("speed", 4)
+	return "%s: %d | %s: %d | %s: %d" % [
+		KeywordLinker.build_keyword_link_labeled("combat_skill", "Combat"),
+		combat,
+		KeywordLinker.build_keyword_link_labeled("toughness", "Tough"),
+		tough,
+		KeywordLinker.build_keyword_link_labeled("speed", "Speed"),
+		speed]
+
+## Tier 1+ stat strip: + Reactions + Savvy (and optional weapon line).
+func _build_tier1_stats_bbcode() -> String:
+	var combat: int = character_data.get("combat", 0)
+	var tough: int = character_data.get("toughness", 4)
+	var reactions: int = character_data.get("reactions", 1)
+	var savvy: int = character_data.get("savvy", 0)
+	var weapon: String = character_data.get("weapon_name", "")
+	var line: String = "%s: %d | %s: %d | %s: %d | %s: %d" % [
+		KeywordLinker.build_keyword_link_labeled("combat_skill", "Combat"),
+		combat,
+		KeywordLinker.build_keyword_link_labeled("toughness", "Tough"),
+		tough,
+		KeywordLinker.build_keyword_link_labeled("reactions", "React"),
+		reactions,
+		KeywordLinker.build_keyword_link_labeled("savvy", "Savvy"),
+		savvy]
+	if not weapon.is_empty():
+		# Weapon name itself isn't a KeywordDB term, but trait words inside
+		# weapon descriptions get wrapped where they're rendered (e.g. enemy
+		# weapons col). Here just include the name.
+		line += "\nWeapon: %s" % weapon
+	return line
+
+## Lazy-instantiate KeywordTooltip + wire stats_label meta_clicked once.
+## Idempotent: safe to call from both display paths.
+func _ensure_keyword_tooltip_attached() -> void:
+	if stats_label == null:
+		return
+	if _keyword_tooltip == null:
+		_keyword_tooltip = KeywordTooltip.new()
+		add_child(_keyword_tooltip)
+	KeywordLinker.attach(stats_label, _keyword_tooltip)

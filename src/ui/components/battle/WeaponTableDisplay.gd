@@ -8,6 +8,11 @@ extends PanelContainer
 
 const WeaponTableSystem = preload("res://src/core/battle/WeaponTableSystem.gd")
 const FiveParsecsCampaignPanel = preload("res://src/ui/screens/campaign/panels/BaseCampaignPanel.gd")
+# Preload-based ref bypasses the global class_name cache (which can be stale
+# until the editor reopens — see CLAUDE.md "Preload Pattern for UI Class
+# References"). Sprint 2 F4 MCP verification surfaced a parse error caused by
+# the cache missing KeywordLinker.
+const KeywordLinker = preload("res://src/ui/components/tooltips/KeywordLinker.gd")
 
 # Signals
 signal weapon_selected(weapon_data: WeaponTableSystem.WeaponData)
@@ -24,6 +29,7 @@ signal weapon_selected(weapon_data: WeaponTableSystem.WeaponData)
 var weapon_system: WeaponTableSystem
 var current_category: String = "all"
 var selected_weapon: WeaponTableSystem.WeaponData
+var _keyword_tooltip: KeywordTooltip = null  # Lazy-instantiated for clickable trait popovers
 
 func _ready() -> void:
 	weapon_system = WeaponTableSystem.new()
@@ -162,17 +168,36 @@ func _create_weapon_entry(weapon: WeaponTableSystem.WeaponData) -> Control:
 		dmg_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	container.add_child(dmg_label)
 
-	# Traits
-	var traits_label := Label.new()
-	var trait_names: String = ", ".join(weapon.traits)
-	traits_label.text = trait_names if not trait_names.is_empty() else "-"
-	traits_label.custom_minimum_size.x = 120
-	traits_label.add_theme_font_size_override("font_size", 12)
-	traits_label.add_theme_color_override("font_color", Color.GOLD)
-	traits_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	container.add_child(traits_label)
+	# Traits — clickable keyword links so players can pop the rule for
+	# "Pistol", "Heavy", "Area", etc. without leaving the table.
+	if weapon.traits.is_empty():
+		var traits_dash := Label.new()
+		traits_dash.text = "-"
+		traits_dash.custom_minimum_size.x = 120
+		traits_dash.add_theme_font_size_override("font_size", 12)
+		traits_dash.add_theme_color_override(
+			"font_color", UIColors.COLOR_TEXT_MUTED)
+		container.add_child(traits_dash)
+	else:
+		var traits_rtl := RichTextLabel.new()
+		traits_rtl.bbcode_enabled = true
+		traits_rtl.fit_content = true
+		traits_rtl.scroll_active = false
+		traits_rtl.text = KeywordLinker.build_traits_bbcode(weapon.traits)
+		traits_rtl.custom_minimum_size.x = 120
+		traits_rtl.add_theme_font_size_override("normal_font_size", 12)
+		traits_rtl.add_theme_color_override("default_color", Color.GOLD)
+		KeywordLinker.attach(traits_rtl, _ensure_keyword_tooltip())
+		container.add_child(traits_rtl)
 
 	return container
+
+## Lazy-instantiate the shared keyword tooltip used by trait popovers.
+func _ensure_keyword_tooltip() -> KeywordTooltip:
+	if _keyword_tooltip == null:
+		_keyword_tooltip = KeywordTooltip.new()
+		add_child(_keyword_tooltip)
+	return _keyword_tooltip
 
 func _on_category_changed(tab_index: int) -> void:
 	match tab_index:
@@ -211,30 +236,34 @@ func _show_weapon_details(weapon: WeaponTableSystem.WeaponData) -> void:
 	if not weapon.traits.is_empty():
 		text += "\n[b]Traits:[/b]\n"
 		for trait_name in weapon.traits:
-			var trait_desc := _get_trait_description(trait_name)
-			text += "  [color=gold]%s[/color]: %s\n" % [trait_name, trait_desc]
+			# Trait name is a clickable KeywordDB link (Sprint 2 F3).
+			var trait_link: String = KeywordLinker.build_keyword_link(trait_name)
+			var trait_desc: String = _get_trait_description(trait_name)
+			text += "  %s: %s\n" % [trait_link, trait_desc]
 
 	details_label.bbcode_enabled = true
 	details_label.text = text
+	# Wire details_label clicks to the shared KeywordTooltip.
+	KeywordLinker.attach(details_label, _ensure_keyword_tooltip())
 
+## Trait description via KeywordDB autoload (Sprint 2 F3).
+## Replaces the previously hardcoded p.51 trait table — KeywordDB is now the
+## single source of truth. Handles space → underscore for multi-word trait
+## keys ("Single use" → single_use, "Snap Shot" → snap_shot).
 func _get_trait_description(trait_name: String) -> String:
-	## Core Rules p.51 weapon trait descriptions
-	match trait_name:
-		"Area": return "Resolve all shots on target, then 1 shot vs every figure within 2\""
-		"Clumsy": return "-1 to Brawling rolls if opponent has higher Speed"
-		"Critical": return "Natural 6 on Hit roll inflicts 2 Hits on target"
-		"Elegant": return "May reroll the die when Brawling"
-		"Focused": return "All shots must be against a single target"
-		"Heavy": return "-1 penalty to Hit if firer moved this round"
-		"Impact": return "If target already Stunned, place a second Stun marker"
-		"Melee": return "+2 to Brawling rolls"
-		"Piercing": return "Ignore Armor Saving Throws"
-		"Pistol": return "+1 to Brawling rolls"
-		"Single use": return "Can only be used once per battle"
-		"Snap Shot": return "+1 to Hit within 6\""
-		"Stun": return "Targets hit are Stunned (Toughness ignored, Saves apply)"
-		"Terrifying": return "Target hit must retreat 1D6\" away from firer"
-		_: return trait_name
+	var kdb: Node = get_node_or_null("/root/KeywordDB")
+	if kdb == null or not kdb.has_method("get_keyword"):
+		return trait_name  # Autoload missing — fall back to raw name
+	var lookup: String = trait_name.strip_edges()
+	var entry: Dictionary = kdb.get_keyword(lookup)
+	if str(entry.get("category", "")) == "unknown":
+		# Try underscored variant ("Single use" → single_use).
+		lookup = lookup.replace(" ", "_")
+		entry = kdb.get_keyword(lookup)
+	var def: String = str(entry.get("definition", ""))
+	if def.is_empty() or str(entry.get("category", "")) == "unknown":
+		return trait_name
+	return def
 
 ## Show specific weapon by ID
 func show_weapon(weapon_id: String) -> void:

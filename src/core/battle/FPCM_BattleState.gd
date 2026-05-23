@@ -84,15 +84,15 @@ func _init() -> void:
 ## p_mission_data can be Resource or Dictionary (for testing)
 func initialize_with_mission(p_mission_data: Variant, p_crew: Array, p_enemies: Array) -> bool:
 	if not p_mission_data:
-		_add_validation_error("Mission data is required")
+		_add_validation_error("Mission data is missing. Head back and pick a mission.")
 		return false
-	
+
 	if p_crew.is_empty():
-		_add_validation_error("At least one crew member is required")
+		_add_validation_error("Add at least one crew member before starting the battle.")
 		return false
-	
+
 	if p_enemies.is_empty():
-		_add_validation_error("At least one enemy is required")
+		_add_validation_error("No enemies generated yet. Check the mission setup.")
 		return false
 	
 	# Initialize core data

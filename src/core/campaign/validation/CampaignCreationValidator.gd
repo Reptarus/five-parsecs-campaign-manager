@@ -218,13 +218,13 @@ static func validate_complete_campaign(campaign_data: Dictionary) -> ValidationR
 static func _validate_campaign_name(name: String) -> ValidationResult:
 	## Validate campaign name
 	if name.is_empty():
-		return ValidationResult.new(false, "Campaign name is required")
-	
+		return ValidationResult.new(false, "Pick a name for your campaign. Anything memorable works.")
+
 	if name.length() < 3:
-		return ValidationResult.new(false, "Campaign name must be at least 3 characters")
-	
+		return ValidationResult.new(false, "Campaign names need at least 3 characters.")
+
 	if name.length() > 50:
-		return ValidationResult.new(false, "Campaign name cannot exceed 50 characters")
+		return ValidationResult.new(false, "Campaign names cap at 50 characters. Try a shorter version.")
 	
 	# Security validation
 	var security_validator = SecurityValidator.new()
@@ -274,10 +274,10 @@ static func _validate_victory_condition(victory_condition: String) -> Validation
 static func _validate_starting_credits(credits: int) -> ValidationResult:
 	## Validate starting credits (Core Rules p.28: typically 6-30 for a starting crew)
 	if credits < 0:
-		return ValidationResult.new(false, "Starting credits cannot be negative")
+		return ValidationResult.new(false, "Starting credits can't be negative.")
 
 	if credits > 100:
-		return ValidationResult.new(false, "Starting credits cannot exceed 100 (Core Rules p.28)")
+		return ValidationResult.new(false, "Starting credits cap at 100 (Core Rules p.28).")
 
 	var result = ValidationResult.new(true)
 
@@ -291,10 +291,10 @@ static func _validate_starting_credits(credits: int) -> ValidationResult:
 static func _validate_crew_size(size: int) -> ValidationResult:
 	## Validate crew size
 	if size < 1:
-		return ValidationResult.new(false, "Crew must have at least 1 member")
-	
+		return ValidationResult.new(false, "Add at least one crew member to start the campaign.")
+
 	if size > 8:
-		return ValidationResult.new(false, "Crew cannot exceed 8 members")
+		return ValidationResult.new(false, "Crew size caps at 8. Remove someone to continue.")
 	
 	var result = ValidationResult.new(true)
 	
@@ -322,11 +322,11 @@ static func _validate_crew_member(member: Variant, index: int) -> ValidationResu
 	# Validate character name
 	var name = _get_character_property(member, "character_name", "")
 	if name.is_empty():
-		errors.append("Character name is required")
+		errors.append("Give this crew member a name to continue.")
 	elif name.length() < 2:
-		errors.append("Character name must be at least 2 characters")
+		errors.append("Crew names need at least 2 characters.")
 	elif name.length() > 30:
-		errors.append("Character name cannot exceed 30 characters")
+		errors.append("Crew names cap at 30 characters. Try a shorter version.")
 	
 	# Validate stats
 	var stats = ["reactions", "savvy", "luck", "combat", "toughness", "tech", "speed"]
@@ -360,10 +360,10 @@ static func _validate_captain_assignment(crew: Array) -> ValidationResult:
 			captain_index = i
 	
 	if captain_count == 0:
-		return ValidationResult.new(false, "Crew must have a designated captain")
-	
+		return ValidationResult.new(false, "Pick one crew member as the Captain to continue.")
+
 	if captain_count > 1:
-		return ValidationResult.new(false, "Crew cannot have multiple captains")
+		return ValidationResult.new(false, "Only one Captain per crew. Demote the extras to continue.")
 	
 	var result = ValidationResult.new(true)
 	
@@ -416,11 +416,11 @@ static func _validate_ship_data(ship: Dictionary) -> ValidationResult:
 	# Validate ship name
 	var name = ship.get("name", "")
 	if name.is_empty():
-		errors.append("Ship must have a name")
+		errors.append("Give your ship a name to continue.")
 	elif name.length() < 3:
-		errors.append("Ship name must be at least 3 characters")
+		errors.append("Ship names need at least 3 characters.")
 	elif name.length() > 30:
-		errors.append("Ship name cannot exceed 30 characters")
+		errors.append("Ship names cap at 30 characters. Try a shorter version.")
 	
 	# Validate ship type
 	var ship_type = ship.get("type", "")
@@ -431,16 +431,16 @@ static func _validate_ship_data(ship: Dictionary) -> ValidationResult:
 	# Validate hull points
 	var hull = ship.get("hull_points", 0)
 	if hull < 1:
-		errors.append("Ship must have at least 1 hull point")
+		errors.append("Ships need at least 1 hull point to fly.")
 	elif hull > 50:
-		errors.append("Ship hull cannot exceed 50 points")
-	
+		errors.append("Ship hull caps at 50 points.")
+
 	# Validate debt
 	var debt = ship.get("debt", -1)
 	if debt < 0:
-		errors.append("Ship debt cannot be negative")
+		errors.append("Ship debt can't be negative.")
 	elif debt > 10:
-		errors.append("Ship debt cannot exceed 10")
+		errors.append("Ship debt caps at 10. Pay some off to continue.")
 	
 	# Note: 7 of 13 Core Rules ships have no traits (p.31) — not a warning
 	
@@ -503,7 +503,7 @@ static func _validate_equipment_list(equipment: Array) -> ValidationResult:
 	var warnings: Array[String] = []
 	
 	if equipment.is_empty():
-		return ValidationResult.new(false, "Equipment list cannot be empty")
+		return ValidationResult.new(false, "Roll some starting gear first. Head back to the Equipment step.")
 	
 	# Validate individual items
 	for i in range(equipment.size()):

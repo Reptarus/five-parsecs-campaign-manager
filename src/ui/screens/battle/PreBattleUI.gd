@@ -7,6 +7,10 @@ extends Control
 ## Dependencies
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+# KeywordLinker preload — bypasses the global class_name cache which can be
+# stale until editor reopens (CLAUDE.md "Preload Pattern for UI Class
+# References").
+const KeywordLinker = preload("res://src/ui/components/tooltips/KeywordLinker.gd")
 
 ## Optional dependencies that may not exist
 var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
@@ -22,6 +26,19 @@ signal back_pressed
 ## 0 = LOG_ONLY, 1 = ASSISTED, 2 = FULL_ORACLE
 var selected_tier: int = 0
 
+## AI letter codes → human-readable names (Core Rules p.99, EnemyAI.json).
+## Used to decode the AI cell in the enemy stat table so testers don't need
+## the rulebook open to know what "T" means.
+const AI_TYPE_NAMES: Dictionary = {
+	"A": "Aggressive",
+	"C": "Cautious",
+	"T": "Tactical",
+	"D": "Defensive",
+	"R": "Rampage",
+	"B": "Beast",
+	"G": "Guardian",
+}
+
 ## Node references
 @onready var mission_info_panel = $MarginContainer/VBoxContainer/MainContent/LeftPanel/MissionInfo/VBoxContainer/Content
 @onready var enemy_info_panel = $MarginContainer/VBoxContainer/MainContent/LeftPanel/EnemyInfo/VBoxContainer/Content
@@ -36,6 +53,7 @@ var selected_crew: Array = []
 var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
 var _max_deploy: int = 6  # Campaign crew size deployment limit (Core Rules p.63/85)
 var _deploy_label: Label  # "Deploying X / Y max" display
+var _keyword_tooltip: KeywordTooltip = null  # Lazy-instantiated for inline rules popovers
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -68,6 +86,15 @@ func _initialize_systems() -> void:
 			battlefield_preview.add_child(terrain_system)
 			if terrain_system.has_signal("terrain_generated"):
 				terrain_system.terrain_generated.connect(_on_terrain_generated)
+
+## Lazy-instantiate the shared keyword tooltip used by inline rules popovers.
+## Called only when a clickable keyword surface is built, so PreBattleUI without
+## special_rules / weapon traits avoids the AcceptDialog allocation entirely.
+func _ensure_keyword_tooltip() -> KeywordTooltip:
+	if _keyword_tooltip == null:
+		_keyword_tooltip = KeywordTooltip.new()
+		add_child(_keyword_tooltip)
+	return _keyword_tooltip
 
 ## Connect UI signals
 func _connect_signals() -> void:
@@ -216,7 +243,12 @@ func _setup_enemy_info(data: Dictionary) -> void:
 	var tgh: int = enemy_force.get("toughness", 0)
 	var numbers_str: String = str(enemy_force.get("numbers", ""))
 	var panic_str: String = str(enemy_force.get("panic", ""))
-	var ai_str: String = str(enemy_force.get("ai", ""))
+	var ai_raw: String = str(enemy_force.get("ai", ""))
+	# Decode AI letter to letter+name (e.g. "T → Tactical") for readability.
+	# Falls back to raw letter if unrecognized.
+	var ai_str: String = ai_raw
+	if AI_TYPE_NAMES.has(ai_raw):
+		ai_str = "%s (%s)" % [ai_raw, AI_TYPE_NAMES[ai_raw]]
 	var weapons_val = enemy_force.get("weapons", "")
 	var weapons_str: String = ""
 	if weapons_val is Array:
@@ -230,8 +262,25 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		'%d"' % spd, cmb_str, str(tgh), ai_str, weapons_str]
 
 	for i in range(values.size()):
+		var raw_value: String = str(values[i])
+		# Col 7 = weapons. Wrap recognized trait/weapon keywords as clickable
+		# popovers (Pistol, Heavy, etc. are all in KeywordDB).
+		if i == 7 and not raw_value.is_empty():
+			var weapons_rtl := RichTextLabel.new()
+			weapons_rtl.bbcode_enabled = true
+			weapons_rtl.fit_content = true
+			weapons_rtl.scroll_active = false
+			weapons_rtl.text = KeywordLinker.wrap_known_keywords(raw_value)
+			weapons_rtl.add_theme_font_size_override(
+				"normal_font_size", _scaled_font(13))
+			weapons_rtl.add_theme_color_override(
+				"default_color", Color("#4FC3F7"))
+			KeywordLinker.attach(weapons_rtl, _ensure_keyword_tooltip())
+			grid.add_child(weapons_rtl)
+			continue
+
 		var lbl := Label.new()
-		lbl.text = values[i]
+		lbl.text = raw_value
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		if i == 0:
@@ -256,16 +305,55 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		count_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
 		container.add_child(count_lbl)
 
+	# ── Category rules (Core Rules pp.95-96) ──
+	# Surfaces the parent enemy-category's rules block (Criminal Elements,
+	# Hired Muscle, Interested Parties, Roving Threats). Players need this to
+	# understand category-wide modifiers like "Hired Muscle: -1 to Seize the
+	# Initiative" before they decide on tier.
+	var category_name: String = str(enemy_force.get("category_name", ""))
+	var category_rules: String = str(enemy_force.get("category_rules", ""))
+	var seize_init_mod: int = int(enemy_force.get("seize_initiative_modifier", 0))
+	if not category_name.is_empty() or not category_rules.is_empty():
+		var cat_header := Label.new()
+		var header_text: String = "Category: %s" % category_name if not category_name.is_empty() else "Category"
+		if seize_init_mod != 0:
+			header_text += "  (Seize Init %+d)" % seize_init_mod
+		cat_header.text = header_text
+		cat_header.add_theme_font_size_override("font_size", _scaled_font(12))
+		cat_header.add_theme_color_override("font_color", Color("#10B981"))  # COLOR_SUCCESS
+		container.add_child(cat_header)
+
+		if not category_rules.is_empty():
+			var cat_rules_rtl := RichTextLabel.new()
+			cat_rules_rtl.bbcode_enabled = true
+			cat_rules_rtl.fit_content = true
+			cat_rules_rtl.scroll_active = false
+			cat_rules_rtl.text = KeywordLinker.wrap_known_keywords(category_rules)
+			cat_rules_rtl.add_theme_font_size_override(
+				"normal_font_size", _scaled_font(11))
+			cat_rules_rtl.add_theme_color_override(
+				"default_color", Color("#808080"))  # COLOR_TEXT_SECONDARY
+			cat_rules_rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			KeywordLinker.attach(cat_rules_rtl, _ensure_keyword_tooltip())
+			container.add_child(cat_rules_rtl)
+
 	# ── Special rules ──
+	# RichTextLabels with KeywordLinker so terms like "Heavy", "Area", "Stun" pop
+	# the rules tooltip on click (Core Rules trait names live in KeywordDB).
 	var rules: Array = enemy_force.get("special_rules", [])
 	for rule in rules:
-		var rule_lbl := Label.new()
-		rule_lbl.text = str(rule)
-		rule_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
-		rule_lbl.add_theme_color_override(
-			"font_color", Color("#D97706"))
-		rule_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		container.add_child(rule_lbl)
+		var rule_rtl := RichTextLabel.new()
+		rule_rtl.bbcode_enabled = true
+		rule_rtl.fit_content = true
+		rule_rtl.scroll_active = false
+		rule_rtl.text = KeywordLinker.wrap_known_keywords(str(rule))
+		rule_rtl.add_theme_font_size_override(
+			"normal_font_size", _scaled_font(12))
+		rule_rtl.add_theme_color_override(
+			"default_color", Color("#D97706"))
+		rule_rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		KeywordLinker.attach(rule_rtl, _ensure_keyword_tooltip())
+		container.add_child(rule_rtl)
 
 	enemy_info_panel.add_child(container)
 
@@ -348,14 +436,18 @@ func _extract_sector_array(terrain_data: Dictionary) -> Array:
 
 	return []
 
-## Store terrain data in GameState temp_data for post-battle passthrough
+## Store terrain data in GameStateManager temp-data for post-battle passthrough.
+## Consumed by PostBattleSummarySheet._setup_battlefield_recap on the next screen.
+## (Pre-Sprint-2 this targeted GameState.temp_data, which does not exist — dead code.
+## Retargeted to GameStateManager during Sprint 2 F1.)
 func _store_terrain_for_passthrough(sectors: Array, theme_name: String) -> void:
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and "temp_data" in game_state:
-		game_state.temp_data["battlefield_terrain"] = {
-			"sectors": sectors,
-			"theme_name": theme_name
-		}
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("set_temp_data"):
+		return
+	gsm.set_temp_data("battlefield_terrain", {
+		"sectors": sectors,
+		"theme_name": theme_name
+	})
 
 ## Text fallback for terrain data without structured sectors
 func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) -> void:

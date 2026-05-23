@@ -13,6 +13,7 @@
 - **[Game Mechanics Map](GAME_MECHANICS_IMPLEMENTATION_MAP.md)** - 100% compliance (170/170)
 - **[QA Status Dashboard](QA_STATUS_DASHBOARD.md)** - Consolidated QA health overview
 - **[QA Rules Accuracy Audit](QA_RULES_ACCURACY_AUDIT.md)** - Master data verification (925 values)
+- **[QOL Feature Candidates](QOL_FEATURE_CANDIDATES.md)** - Product backlog of 10 QOL items from May 22 fiveparsecs.online audit; per-item depth analysis, sequencing, sprint shapes. **Sprint 1 (Shape A) active 2026-05-22**.
 - **[Core Rules](core_rules.md)** / **[Compendium](compendium.md)** - Digitized rulebook references
 
 ## Technical Architecture (`technical/`)

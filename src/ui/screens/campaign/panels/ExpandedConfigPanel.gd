@@ -1287,13 +1287,13 @@ func _validate_campaign_config() -> Array[String]:
 	
 	# Validate campaign name
 	if local_campaign_config.campaign_name.strip_edges().is_empty():
-		errors.append("Campaign name cannot be empty")
+		errors.append("Pick a name for your campaign. Anything memorable works.")
 	elif local_campaign_config.campaign_name.length() > 50:
-		errors.append("Campaign name cannot exceed 50 characters")
-	
+		errors.append("Campaign names cap at 50 characters. Try a shorter version.")
+
 	# Validate campaign type
 	if not campaign_types.has(local_campaign_config.campaign_type):
-		errors.append("Invalid campaign type selection")
+		errors.append("Pick a campaign type to continue.")
 	
 	# Victory conditions validated at finalization (Step 7), not here —
 	# blocking here prevents campaign name from propagating to coordinator

@@ -55,6 +55,10 @@ const COLOR_ELEVATED := UIColors.COLOR_ELEVATED
 const COLOR_INPUT := UIColors.COLOR_INPUT
 const COLOR_ACCENT := UIColors.COLOR_ACCENT
 
+# Preload-based ref bypasses the global class_name cache (Sprint 2 Item 6).
+# See CLAUDE.md "Preload Pattern for UI Class References".
+const EntityCardActionsRow = preload("res://src/ui/components/common/EntityCardActionsRow.gd")
+
 # ============ PROPERTIES ============
 var current_variant: CardVariant = CardVariant.STANDARD
 var character_data: Character = null
@@ -488,35 +492,25 @@ func _create_stat_label(stat_name: String, value: int) -> Label:
 	return label
 
 func _create_action_buttons() -> HBoxContainer:
-	## Create action button row for EXPANDED variant
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", SPACING_XS)
-	
-	# View button (primary action)
-	var view_btn := Button.new()
-	view_btn.text = "View"
-	view_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	view_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	view_btn.pressed.connect(_on_view_pressed)
-	hbox.add_child(view_btn)
-	
-	# Edit button (secondary)
-	var edit_btn := Button.new()
-	edit_btn.text = "Edit"
-	edit_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	edit_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	edit_btn.pressed.connect(_on_edit_pressed)
-	hbox.add_child(edit_btn)
-	
-	# Remove button (danger)
-	var remove_btn := Button.new()
-	remove_btn.text = "Remove"
-	remove_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	remove_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	remove_btn.pressed.connect(_on_remove_pressed)
-	hbox.add_child(remove_btn)
-	
-	return hbox
+	## Create action button row for EXPANDED variant via the shared
+	## EntityCardActionsRow component (Sprint 2 Item 6 standardization).
+	## Per-verb signals (view_details_pressed, edit_pressed, remove_pressed)
+	## are still emitted for backwards compatibility with existing consumers.
+	var row := EntityCardActionsRow.new()
+	row.setup(EntityCardActionsRow.default_actions())
+	row.action_pressed.connect(_on_actions_row_pressed)
+	return row
+
+## Translate the standardized action_pressed signal into the per-verb
+## signals the rest of CharacterCard's API already exposes.
+func _on_actions_row_pressed(action_id: String) -> void:
+	match action_id:
+		EntityCardActionsRow.ACTION_INSPECT:
+			_on_view_pressed()
+		EntityCardActionsRow.ACTION_EDIT:
+			_on_edit_pressed()
+		EntityCardActionsRow.ACTION_DELETE:
+			_on_remove_pressed()
 
 func _update_display() -> void:
 	## Update card display with character data

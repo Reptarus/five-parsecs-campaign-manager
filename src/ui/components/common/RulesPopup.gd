@@ -20,7 +20,12 @@ func _init() -> void:
 	close_requested.connect(_on_close)
 
 func _ready() -> void:
-	_apply_responsive_size()
+	# show_rules() normally sets size before popup_centered() to dodge the
+	# Window-_ready race (popup_centered runs sync after add_child; _ready is
+	# deferred). Defensive default for callers that instantiate without
+	# show_rules.
+	if size.x < 200 or size.y < 200:
+		_apply_responsive_size()
 	_build_ui()
 	_populate()
 
@@ -133,6 +138,10 @@ func _on_close() -> void:
 	queue_free()
 
 ## Show a rules reference popup.
+## Sizes the Window BEFORE popup_centered() to dodge the Window-_ready race
+## (popup_centered fires synchronously after add_child; _ready is deferred,
+## so without an explicit size the OS draws the popup at the ~100x100 window
+## minimum, clipping the content).
 static func show_rules(
 	parent: Node,
 	title_text: String,
@@ -145,5 +154,10 @@ static func show_rules(
 	popup._pending_body = body_text
 	popup._pending_requirements = requirements
 	parent.add_child(popup)
-	popup.popup_centered()
+	var vp: Vector2 = parent.get_viewport().get_visible_rect().size
+	var target_size := Vector2i(
+		mini(520, int(vp.x * 0.9)),
+		mini(480, int(vp.y * 0.8))
+	)
+	popup.popup_centered(target_size)
 	return popup

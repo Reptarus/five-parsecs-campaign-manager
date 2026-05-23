@@ -11,18 +11,18 @@ static func validate_character_name(name: String) -> ValidationResult:
 	
 	if name.is_empty():
 		result.valid = false
-		result.error = "Character name cannot be empty"
+		result.error = "Give this crew member a name to continue."
 		return result
-	
+
 	# Check length constraints (2-50 characters)
 	if name.length() < 2:
 		result.valid = false
-		result.error = "Character name must be at least 2 characters long"
+		result.error = "Crew names need at least 2 characters."
 		return result
-	
+
 	if name.length() > 50:
 		result.valid = false
-		result.error = "Character name cannot exceed 50 characters"
+		result.error = "Crew names cap at 50 characters. Try a shorter version."
 		return result
 	
 	# Basic sanitization
@@ -318,7 +318,7 @@ static func validate_campaign_name(name: String) -> ValidationResult:
 	
 	if name.is_empty():
 		result.valid = false
-		result.error = "Campaign name cannot be empty"
+		result.error = "Pick a name for your campaign. Anything memorable works."
 		return result
 	
 	# Check length
@@ -326,12 +326,12 @@ static func validate_campaign_name(name: String) -> ValidationResult:
 	var max_length = 50
 	if name.length() < min_length:
 		result.valid = false
-		result.error = "Campaign name must be at least %d characters" % min_length
+		result.error = "Campaign names need at least %d characters." % min_length
 		return result
-	
+
 	if name.length() > max_length:
 		result.valid = false
-		result.error = "Campaign name cannot exceed %d characters" % max_length
+		result.error = "Campaign names cap at %d characters. Try a shorter version." % max_length
 		return result
 	
 	# Check for invalid characters (only allow alphanumeric, spaces, and basic punctuation)

@@ -503,11 +503,11 @@ func validate() -> bool:
 func get_validation_errors() -> Array[String]:
 	var errors: Array[String] = []
 	if campaign_name.is_empty():
-		errors.append("Campaign name is required")
+		errors.append("Pick a name for your campaign. Anything memorable works.")
 	if roster.size() < 3:
-		errors.append("Planetfall requires at least 3 roster characters")
+		errors.append("Planetfall needs at least 3 roster characters. Add a few in the Roster step.")
 	if roster.size() > 10:
-		errors.append("Planetfall allows at most 10 roster characters")
+		errors.append("Planetfall caps at 10 roster characters. Remove someone to continue.")
 	# Check class minimums
 	var class_counts := {"scientist": 0, "scout": 0, "trooper": 0}
 	for char_dict in roster:

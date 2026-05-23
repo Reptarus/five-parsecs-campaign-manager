@@ -49,24 +49,24 @@ func validate() -> ValidationResult:
 	# Campaign name validation
 	if campaign_name.strip_edges().is_empty():
 		result.valid = false
-		result.error = "Campaign name is required"
+		result.error = "Pick a name for your campaign. Anything memorable works."
 		return result
-	
+
 	if campaign_name.length() < 3:
 		result.valid = false
-		result.error = "Campaign name must be at least 3 characters"
+		result.error = "Campaign names need at least 3 characters."
 		return result
-	
+
 	# Difficulty validation
 	if difficulty_level < 1 or difficulty_level > 5:
 		result.valid = false
-		result.error = "Difficulty level must be between 1 and 5"
+		result.error = "Pick a difficulty mode to continue."
 		return result
-	
+
 	# Credits validation
 	if starting_credits < 0:
 		result.valid = false
-		result.error = "Starting credits cannot be negative"
+		result.error = "Starting credits cannot be negative."
 		return result
 	
 	if starting_credits > 10000:
@@ -75,13 +75,13 @@ func validate() -> ValidationResult:
 	# Crew size validation
 	if max_crew_size < 1 or max_crew_size > 8:
 		result.valid = false
-		result.error = "Maximum crew size must be between 1 and 8"
+		result.error = "Crew size needs to be between 1 and 8."
 		return result
-	
+
 	# Campaign length validation
 	if campaign_length < 10:
 		result.valid = false
-		result.error = "Campaign length must be at least 10 turns"
+		result.error = "Campaign length needs to be at least 10 turns to leave room for a story."
 		return result
 	
 	if campaign_length > 1000:

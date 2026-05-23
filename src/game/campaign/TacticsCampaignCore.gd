@@ -217,11 +217,11 @@ func validate() -> bool:
 func get_validation_errors() -> Array[String]:
 	var errors: Array[String] = []
 	if campaign_name.is_empty():
-		errors.append("Campaign name is required")
+		errors.append("Pick a name for your campaign. Anything memorable works.")
 	if species_id.is_empty():
-		errors.append("Species must be selected")
+		errors.append("Pick a species for your army to continue.")
 	if roster_entries.is_empty():
-		errors.append("Roster must have at least one unit")
+		errors.append("Your roster is empty. Add at least one unit to continue.")
 	return errors
 
 

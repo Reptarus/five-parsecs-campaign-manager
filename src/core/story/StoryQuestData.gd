@@ -240,10 +240,10 @@ func validate() -> Dictionary:
 	
 	# Validate basic properties
 	if mission_id.is_empty():
-		errors.append("Mission ID is required")
-	
+		errors.append("Mission setup looks incomplete (no ID). Check the mission step.")
+
 	if name.is_empty():
-		errors.append("Mission name is required")
+		errors.append("Mission needs a name. Check the mission step.")
 	
 	if description.is_empty():
 		warnings.append("Mission description is empty")
@@ -254,7 +254,7 @@ func validate() -> Dictionary:
 	
 	# Validate objectives
 	if primary_objective == GameEnums.MissionObjective.NONE:
-		errors.append("Primary objective is required")
+		errors.append("Mission needs a primary objective. Check the mission step.")
 	
 	var has_primary = false
 	for objective in objectives:

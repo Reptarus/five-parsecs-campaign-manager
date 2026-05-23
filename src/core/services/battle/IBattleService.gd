@@ -199,7 +199,7 @@ func validate_mission_data(mission_data: Dictionary) -> Dictionary:
 			return {"valid": false, "error": "Missing required field: " + field}
 	
 	if not mission_data.objectives is Array or mission_data.objectives.is_empty():
-		return {"valid": false, "error": "Mission must have at least one objective"}
+		return {"valid": false, "error": "This mission has no objectives. Check the mission setup."}
 	
 	return {"valid": true}
 

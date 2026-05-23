@@ -37,9 +37,9 @@ func validate() -> ValidationResult:
 	
 	# Captain validation
 	if not captain:
-		result.add_error("Crew must have a designated captain")
+		result.add_error("Pick one crew member as the Captain to continue.")
 	elif captain not in members:
-		result.add_error("Captain must be a member of the crew")
+		result.add_error("The Captain needs to be in the crew roster.")
 	
 	# Character validation
 	for i in range(members.size()):

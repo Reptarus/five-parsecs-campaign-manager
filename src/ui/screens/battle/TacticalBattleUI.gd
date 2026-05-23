@@ -192,6 +192,12 @@ var reaction_assignment: PanelContainer = null
 # Quick Dice Bar (always visible in right panel)
 var _quick_dice_label: Label = null
 
+# Battle Notes carryback (Sprint 1 QOL Item 5) — player jots observations
+# that get folded into the post-battle CampaignJournal entry via the
+# GameStateManager.set_temp_data("battle_player_notes", ...) channel.
+var _battle_note_layer: CanvasLayer = null
+var _battle_note_edit: TextEdit = null
+
 # Compendium DLC panel instances
 var no_minis_combat_panel: PanelContainer = null
 var stealth_mission_panel: PanelContainer = null
@@ -349,6 +355,9 @@ func _setup_ui() -> void:
 
 	# Start with everything hidden — tier selection deferred to initialize_battle()
 	_apply_stage_visibility(BattleStage.TIER_SELECT)
+
+	# Battle Notes carryback widget — small floating textbox for player notes.
+	_setup_battle_notes_widget()
 
 	# Initial responsive layout pass
 	call_deferred("_apply_responsive_layout")
@@ -5148,3 +5157,62 @@ func _log_battle_star_use(ability: int, context: Dictionary,
 		turn_num = campaign.progress_data.get("turns_played", 0)
 	_StarsSysClassRef.log_use_to_journal(
 		ability, context, result, journal, turn_num, "battle")
+
+## Build the small floating "Battle Notes" textbox in the top-right corner.
+## Player jots quick observations during battle; the text is written via
+## GameStateManager.set_temp_data("battle_player_notes", ...) on every change
+## and consumed by CampaignJournal.auto_create_battle_entry() when the
+## post-battle entry is constructed.
+func _setup_battle_notes_widget() -> void:
+	if _battle_note_layer != null:
+		return
+	_battle_note_layer = CanvasLayer.new()
+	_battle_note_layer.layer = 30  # Above main UI, below modals
+	_battle_note_layer.name = "__battle_notes_layer"
+	add_child(_battle_note_layer)
+
+	var anchor := Control.new()
+	anchor.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_battle_note_layer.add_child(anchor)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	panel.offset_left = -260
+	panel.offset_top = 16
+	panel.offset_right = -16
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.10, 0.85)
+	style.border_color = UIColors.COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(8)
+	panel.add_theme_stylebox_override("panel", style)
+	anchor.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	panel.add_child(vbox)
+
+	var label := Label.new()
+	label.text = "Battle Notes"
+	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
+	vbox.add_child(label)
+
+	_battle_note_edit = TextEdit.new()
+	_battle_note_edit.placeholder_text = "Jot what happened. Carries to the journal."
+	_battle_note_edit.custom_minimum_size = Vector2(228, 70)
+	_battle_note_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	_battle_note_edit.add_theme_font_size_override(
+		"font_size", UIColors.FONT_SIZE_SM)
+	_battle_note_edit.text_changed.connect(_on_battle_note_changed)
+	vbox.add_child(_battle_note_edit)
+
+func _on_battle_note_changed() -> void:
+	if _battle_note_edit == null:
+		return
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("set_temp_data"):
+		return
+	gsm.set_temp_data("battle_player_notes", _battle_note_edit.text)
