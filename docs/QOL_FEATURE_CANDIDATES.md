@@ -1,10 +1,10 @@
 # QOL Feature Candidates — Product Backlog
 
-**Last Updated**: 2026-05-22
+**Last Updated**: 2026-05-23
 **Origin**: May 22 runtime audit of fiveparsecs.online (recon for May 25 Modiphius call) surfaced 10 interaction-pattern QOL features that are product-category-neutral and worth adopting into 5PFH as alpha-1 / alpha-2 polish.
-**Status**: **Sprint 1 ACTIVE (Shape A, 5 items)**. See [Sprint Status](#sprint-status) below for which items are in-flight.
+**Status**: **Sprints 1 and 2 SHIPPED 2026-05-22** (Shape A items 1, 2, 4, 5, 7 + Shape S2-A F1, F2, F3, Item 6, Item 9). **RulesPopup popup-race hotfix SHIPPED 2026-05-23**. See [Sprint Status](#sprint-status) for per-item detail; see [Sprint 3 Candidates](#sprint-3-candidates) for remaining follow-ups.
 **Recon source**: [internal-recon/may-25-call/recon-notes.md](internal-recon/may-25-call/recon-notes.md) §8-9
-**Working plan workspace** (ephemeral): `C:\Users\admin\.claude\plans\i-guess-i-need-hashed-chipmunk.md`
+**Plan workspaces** (ephemeral; deleted after shipping): `i-guess-i-need-hashed-chipmunk.md` (Sprint 1 scoping), `qol-sprint-2-scoping.md` (Sprint 2 scoping), `staged-noodling-wilkes.md` (popup fix + Story Track verification handoff)
 
 This doc is the durable product backlog. The plan file is a workspace and may be deleted; this doc is the source of truth for future sessions evaluating "what QOL work remains?"
 
@@ -177,16 +177,16 @@ Items 1-5 + 6 + 9. ~8-10 days. Adds verb-row standardization + enemy populate ve
 
 Items 1-9 minus 10. ~12-18 days. All items including Draft autosave (item 8) and Print Sheet (item 3) which are strategic but heavier. Maps to Phase C in the [workback](#cross-references).
 
-### Sprint 2 candidates (prepped 2026-05-22, awaiting Elijah's pick)
+### Sprint 2 candidates (prepped 2026-05-22, S2-A picked and shipped)
 
-Full scoping doc with per-item depth + risk analysis: `C:\Users\admin\.claude\plans\qol-sprint-2-scoping.md`.
+Full scoping doc was at `C:\Users\admin\.claude\plans\qol-sprint-2-scoping.md` (workspace deleted post-shipping; this doc is the durable record).
 
-| Shape | Scope | Effort | Best fit |
+| Shape | Scope | Effort | Status |
 |---|---|---|---|
-| **S2-A "Alpha-1 safety net"** (recommended) | F1 (dead temp_data) + F4 (MCP runtime verify) + Item 9 (enemy populate) + F2 (CharacterStatusCard) + F3 (kill `_get_trait_description`) + Item 6 (EntityCardActionsRow) | ~5-7 days | Tight low-risk consolidation before closed alpha kickoff May 25 |
-| S2-B "Single big bet: Draft autosave" | Item 8 (greenfield service) + F1 + F4 | ~5-7 days | Highest-felt-impact win for alpha testers; mitigates "lost work" complaints |
-| S2-C "Strategic: Print Sheet" | Item 3 (character + encounter print) + F1 + F4 | ~5-7 days | Concrete T4 digital→physical artifact for May 25 Modiphius call |
-| S2-D "Validator DRY" | F5 (consolidate ~77 validation strings) + F1 + F3 | ~2-3 days | Pure codebase-quality refactor; no new player-facing surface |
+| **S2-A "Alpha-1 safety net"** | F1 (dead temp_data) + F4 (MCP runtime verify) + Item 9 (enemy populate) + F2 (CharacterStatusCard) + F3 (kill `_get_trait_description`) + Item 6 (EntityCardActionsRow) | ~5-7 days | **PICKED + SHIPPED 2026-05-22** (commit 839524c6, bundled with Sprint 1). 17 new gdUnit4 tests, 35/35 total pass. See [Sprint Status](#sprint-status). |
+| S2-B "Single big bet: Draft autosave" | Item 8 (greenfield service) + F1 + F4 | ~5-7 days | Not picked. Candidate for Sprint 3 if "lost work" complaints surface during closed alpha. |
+| S2-C "Strategic: Print Sheet" | Item 3 (character + encounter print) + F1 + F4 | ~5-7 days | Not picked. Concrete T4 digital→physical artifact; revisit if needed for Modiphius positioning. |
+| S2-D "Validator DRY" | F5 (consolidate ~77 validation strings) + F1 + F3 | ~2-3 days | Not picked. Pure codebase-quality refactor; F5 remains open as a Sprint 3 candidate. |
 
 **Carryover follow-ups (referenced above)**:
 - **F1** — Retarget dead `GameState.temp_data` callers (`PreBattleUI`, `PostBattleSummarySheet`) to `GameStateManager` API
@@ -200,7 +200,7 @@ Full scoping doc with per-item depth + risk analysis: `C:\Users\admin\.claude\pl
 
 ## Sprint Status
 
-### Sprint 1 (active, started 2026-05-22)
+### Sprint 1 (shipped 2026-05-22, commit 839524c6)
 
 | Item | Status | Notes |
 |---|---|---|
@@ -210,18 +210,16 @@ Full scoping doc with per-item depth + risk analysis: `C:\Users\admin\.claude\pl
 | Item 4 — Activity feed turn-summary | **done 2026-05-22** | `CampaignJournal.get_turn_summary(turn_number)` aggregates per-type counts. `CampaignDashboard._render_last_turn_recap()` shows "Last turn: N battles, M events, K purchases" line under the stat strip when turn > 1 and the previous turn has activity. 4 gdUnit4 tests pass. |
 | Item 5 — Battle Note carryback | **done 2026-05-22** | Floating "Battle Notes" TextEdit added to TacticalBattleUI (top-right, CanvasLayer L30). Writes via `GameStateManager.set_temp_data("battle_player_notes", ...)`. `CampaignJournal.auto_create_battle_entry()` consumes + clears it, appending the note to the journal entry description with a `[Notes]` prefix. 3 gdUnit4 tests pass. |
 
-**Sprint 1 totals**: 18 gdUnit4 tests added, 4 helper modules/methods, 1 new dashboard surface, ~52 user-facing strings rewritten, 5 of 5 Shape A items shipped (Item 1 widget done; adopters deferred to a future stepper-introduction sprint).
+**Sprint 1 totals**: 18 gdUnit4 tests added, 4 helper modules/methods, 1 new dashboard surface, ~77 user-facing strings rewritten (after the verification pass), 5 of 5 Shape A items shipped (Item 1 widget done; adopters deferred to a future stepper-introduction sprint).
 
-Update this section after each item ships (status → "done", add commit ref).
+#### Follow-ups opened by Sprint 1 (reconciled 2026-05-23)
 
-#### Follow-ups opened by Sprint 1
+These were discovered during Sprint 1 execution. Sprint 2 closed three of them; one remains open.
 
-These were discovered during Sprint 1 execution and are worth tracking explicitly so they don't get lost.
-
-1. **Dead `GameState.temp_data` accesses** — `PreBattleUI._store_terrain_for_passthrough` (line 388) and `PostBattleSummarySheet` (line 174) read/write `GameState.temp_data` but `GameState` has no such property. Guards always fail, making both code paths dead. The real `temp_data` lives on `GameStateManager` (with `_temp_data` storage and `set_temp_data()` / `get_temp_data()` / `has_temp_data()` / `clear_temp_data()` accessors). Either retarget those callers to use `GameStateManager`, or add a `temp_data` property to `GameState`. Item 5 chose the former path for the new write.
-2. **CharacterStatusCard keyword-link retrofit** — Item 2 deferred the trait-keyword wire-up because `stats_label` is typed `Label` in `CharacterStatusCard.tscn` and would need a scene edit. Worth doing once the in-flight battle-UI redesign settles.
-3. **Stepper baseline-mode adopters** — Item 1 widget shipped but the 3 named adopters (PostBattle XP-spend, Advancement, equipment trade) use `ItemList` selection today, not steppers. Introducing steppers to those surfaces is a UX refactor worth its own sprint slot.
-4. **WeaponTableDisplay `_get_trait_description()` hardcoded table** — Item 2 left this in place. Once KeywordDB covers all Core Rules trait names (audit which are missing), the duplicate table can be deleted and the details panel can use `KeywordLinker` instead.
+1. ~~**Dead `GameState.temp_data` accesses**~~ — **CLOSED by Sprint 2 F1**. Both `PreBattleUI._store_terrain_for_passthrough` and `PostBattleSummarySheet._setup_battlefield_recap` retargeted to `GameStateManager.set_temp_data()` / `.get_temp_data()`. The dead-path discovery promoted to a reference memory ([[reference-temp-data-lives-on-gamestatemanager]]).
+2. ~~**CharacterStatusCard keyword-link retrofit**~~ — **CLOSED by Sprint 2 F2**. `stats_label` converted from `Label` to `RichTextLabel` in the .tscn; both display paths refactored through new `KeywordLinker.build_keyword_link_labeled()` helper. 3 gdUnit4 tests pass.
+3. **Stepper baseline-mode adopters** — **STILL OPEN**. Widget shipped Sprint 1 but the 3 named adopters (PostBattle XP-spend, Advancement, equipment trade) use `ItemList` selection today. Introducing steppers to those surfaces is a UX refactor worth its own sprint slot. Tracked as F6 in [Sprint 3 candidates](#sprint-3-candidates).
+4. ~~**WeaponTableDisplay `_get_trait_description()` hardcoded table**~~ — **CLOSED by Sprint 2 F3**. Audit confirmed all 14 Core Rules weapon traits are in `data/keywords.json`; the method now calls `KeywordDB.get_keyword()` with space→underscore retry. Trait names in the details panel also wrapped as `KeywordLinker.build_keyword_link()` chips.
 
 #### Item 2 — Audit findings (kept for follow-up reference)
 
@@ -236,9 +234,70 @@ These were discovered during Sprint 1 execution and are worth tracking explicitl
 | `CharacterCard` equipment badges | Plain item-name Labels; never display trait keywords. | **N/A** — structural gap (badge doesn't carry trait data), not a wire-up gap. Revisit when battle-UI redesign extends card content. |
 
 **Follow-up backlog opened by Item 2**:
-- Convert `CharacterStatusCard.stats_label` to RichTextLabel (scene edit + tier-aware text rebuild)
-- Kill `WeaponTableDisplay._get_trait_description()` once KeywordDB covers all Core Rules trait names (audit which are missing)
-- Expand `CharacterCard` equipment badges to show traits, then wire keyword links
+- ~~Convert `CharacterStatusCard.stats_label` to RichTextLabel~~ — **CLOSED by Sprint 2 F2** (scene edit + tier-aware bbcode rebuild shipped)
+- ~~Kill `WeaponTableDisplay._get_trait_description()` once KeywordDB covers all Core Rules trait names~~ — **CLOSED by Sprint 2 F3** (KeywordDB confirmed to cover all 14 traits; method now delegates with space→underscore retry)
+- Expand `CharacterCard` equipment badges to show traits, then wire keyword links — **STILL OPEN** (structural data-shape change; revisit when battle-UI redesign extends badge content)
+
+---
+
+### Sprint 2 (shipped 2026-05-22, commit 839524c6)
+
+Shape S2-A "Alpha-1 safety net" — 5 items, 17 new gdUnit4 tests (35/35 total Sprint 1+2 pass), headless compile clean.
+
+| Item | Status | Notes |
+|---|---|---|
+| F1 — Dead `GameState.temp_data` retarget | **done 2026-05-22** | Both `PreBattleUI._store_terrain_for_passthrough` and `PostBattleSummarySheet._setup_battlefield_recap` retargeted to `GameStateManager.set_temp_data()` / `.get_temp_data()` API. Architectural discovery promoted to a reference memory ([[reference-temp-data-lives-on-gamestatemanager]]). 2 contract tests. |
+| Item 9 — PreBattleUI enemy populate verification | **done 2026-05-22** | Three player-invisible gaps closed: (a) `AI_TYPE_NAMES` const decodes the AI cell to `"T (Tactical)"` etc., (b) category rules surfaced in `_setup_enemy_info` (including the seize-init modifier badge when nonzero), (c) `BattlePhase` template scan now propagates `_primary_category` so `category_name` / `category_rules` / `seize_initiative_modifier` reach `enemy_force_dict`. 4 cases including a "no invented AI letters" guard. |
+| F2 — CharacterStatusCard keyword retrofit | **done 2026-05-22** | Scene edit converted `stats_label` from `Label` to `RichTextLabel` with `bbcode_enabled = true`. Both display paths refactored through a new `KeywordLinker.build_keyword_link_labeled(key, display_label)` helper that handles the "Combat" displayed / `combat_skill` DB key mismatch. 3 tests. |
+| F3 — Kill `_get_trait_description()` hardcoded table | **done 2026-05-22** | Audit confirmed all 14 Core Rules traits in `data/keywords.json`. Method delegates to `KeywordDB.get_keyword()` with space→underscore retry. Trait names in the details panel also wrap as `KeywordLinker.build_keyword_link()` chips. 3 tests including the "all 14 traits resolve" guard. |
+| Item 6 — `EntityCardActionsRow` standardization | **done 2026-05-22** | New component at `src/ui/components/common/EntityCardActionsRow.gd` (HBoxContainer, ~75 lines). 4 canonical action IDs (EDIT/INSPECT/PRINT/DELETE), two convenience static factories (`default_actions()`, `actions_with_print()`), unified `action_pressed` signal. First adopter: `CharacterCard._create_action_buttons()` — translates unified signal into existing per-verb signals for backwards compat. 5 tests. |
+
+**F4 — MCP runtime verification (shipped post-Sprint-2-body)**: stale `.godot/global_script_class_cache.cfg` bug caught — `KeywordLinker` and `EntityCardActionsRow` not in the class cache caused a Parser Error at scene load that headless `--quit` missed. Fix: switched 4 caller files to preload-based const references per the CLAUDE.md "Preload Pattern for UI Class References" pattern. Runtime contract checks via `mcp__godot__run_script` on all Sprint 2 items returned green.
+
+**Sprint 2 totals**: 17 gdUnit4 tests added, 1 new component (EntityCardActionsRow), 1 new helper method (`KeywordLinker.build_keyword_link_labeled`), 4 caller-side preload refactors, scene edit for CharacterStatusCard, 5 of 5 Shape S2-A items shipped.
+
+#### Follow-ups opened by Sprint 2 (tracked into Sprint 3)
+
+These are deferred backlog items, captured for [Sprint 3 candidates](#sprint-3-candidates):
+
+- **EntityCardActionsRow adopters beyond CharacterCard** — ShipCard, EquipmentCard, anything that lands in the Print Sheet sprint. Per data-ownership posture in CLAUDE.md, don't migrate adopters speculatively; wait for a second usage point.
+- **KeywordDB `space→underscore` normalization promotion** — Currently handled at the `WeaponTableDisplay` call site. If a 2nd consumer needs the same normalization, promote it to `KeywordDB.get_keyword()` itself.
+- **AI letter tooltip enrichment** — Item 9 added the "T (Tactical)" letter+name display. Wrapping each AI letter as a KeywordDB tooltip would require a JSON extension first (no AI-type entries today).
+- **Lambda-capture shutdown warnings** — 10× "Lambda capture at index 0 was freed. Passed null instead." during project teardown. Non-fatal, likely from `EntityCardActionsRow.setup()` button lambdas during destruction order, but count suggests pre-existing issues elsewhere. Low priority cleanup target.
+
+---
+
+### Popup hotfix (shipped 2026-05-23)
+
+**Bug**: Clicking a weapon row in MainMenu → Library → Weapons opened the detail popup at ~80×100 px instead of ~520×480 px, clipping content to "Beam" + "Military-gr…".
+
+**Root cause**: `Window` lifecycle race. `RulesPopup.show_rules()` called `parent.add_child(popup)` then `popup.popup_centered()` **synchronously**. `_ready()` runs `_apply_responsive_size()` to set `size = Vector2i(520, 480)`, but `_ready` is deferred to the next idle frame. So `popup_centered()` opened the OS Window at the platform-default minimum (~100×100 on Windows) before `_ready()` could correct it. (Same race the F4 session preemptively fixed in `ItemPreviewPopup`.)
+
+**Fix** (in `src/ui/components/common/RulesPopup.gd`):
+1. `show_rules()` now computes `target_size` from the parent viewport and passes it to `popup_centered(target_size)`.
+2. `_ready()` turns `_apply_responsive_size()` into a defensive default (`if size.x < 200 or size.y < 200`) for callers that instantiate without going through `show_rules()`.
+
+**Verification**: Headless compile clean. MCP runtime + cross-caller verification both passed at 520×480 (weapon-style content with requirements list; species-style content without requirements). Both Library callers (`CompendiumCategoryView.gd:625` + `CompendiumScreen.gd:335`) confirmed to route through the same static method, so the fix is single-point.
+
+---
+
+## Sprint 3 Candidates
+
+Items deferred from Sprints 1+2 that didn't ship, plus original 10-item backlog items not yet picked. Sequencing depends on closed-alpha (May 25) signal — different alpha findings will push different candidates up the stack.
+
+| ID | Item | Source | Effort | Notes |
+|---|---|---|---|---|
+| F5 | Validator-string DRY consolidation | Sprint 2 S2-D shape | ~2-3 days | Consolidate the ~77 duplicated validation strings (from Item 7) into a shared module. Pure codebase-quality refactor; no new player-facing surface. |
+| F6 | Stepper baseline-mode adopters | Sprint 1 carryover | ~3-5 days | Widget shipped Sprint 1. Adopting requires first introducing steppers to PostBattle XP-spend / Advancement / equipment-trade surfaces (currently ItemList-based). UX refactor. |
+| Item 3 | Print Sheet view | Original backlog | M-H (2-3 days character; +1-2 days encounter) | T4 digital→physical bridge; reinforces companion-app positioning. Strategic for Modiphius pitch. Triggers EntityCardActionsRow Print verb adoption. |
+| Item 8 | Draft autosave with resume | Original backlog | H (3-5 days) | Invisible until the user loses 10 minutes of work, then most important feature. Greenfield `DraftPersistenceService`. Promote if closed alpha surfaces "lost work" complaints. |
+| Item 6+ | EntityCardActionsRow adopters | Sprint 2 carryover | ~1-2 days | Migrate ShipCard, EquipmentCard, etc. to the canonical row. Best done as part of Item 3 sprint. |
+| — | KeywordDB lookup normalization promotion | Sprint 2 carryover | XS | Only if a 2nd consumer arises. |
+| — | AI letter tooltip enrichment | Sprint 2 carryover | S | Requires JSON extension (no AI-type entries today). |
+| — | CharacterCard equipment badge traits | Sprint 1 Item 2 carryover | M | Structural data-shape change; revisit when battle-UI redesign extends badge content. |
+| — | Lambda-capture shutdown cleanup | Sprint 2 F4 finding | XS-S | 10× "Lambda capture freed" warnings during teardown. Non-fatal, low priority. |
+
+**Recommended Sprint 3 shape** depends on alpha signal. If "lost work" complaints surface → Item 8 (Draft autosave). If "feels disconnected from physical play" complaints → Item 3 (Print Sheet) + F6 (stepper adopters as cohesion polish). If alpha quiet → F5 (validator DRY) as backlog cleanup.
 
 ---
 
