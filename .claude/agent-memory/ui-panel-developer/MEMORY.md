@@ -293,6 +293,31 @@ New code-built components in `src/ui/components/dlc/` and `src/ui/screens/store/
 - **StoreScreen.gd** — Extends CampaignScreenBase. Uses DLCPackCard, BundleCard, BugHuntCard
 - **MainMenu** — "Expansions" button routes to SceneRouter `"store"`. Social footer at bottom-left (code-built, hides on narrow)
 
+### 11. Asset Generation Requires `--import` Before Runtime Test
+
+After any script generates new PNGs (or other assets) into `assets/`, MUST run `Godot --headless --import --quit` before runtime testing. `.import` sidecar files don't exist until Godot scans the asset, and `ResourceLoader.exists()` returns false until that scan completes. Silent-fallback patterns (atlas-load misses, portrait-load misses) render nothing without errors. Bit OrnamentPanel atlas sprint (May 23, 2026).
+
+### 12. Modiphius .ai Border Delivery Is Page-Chrome ONLY
+
+The Modiphius `.ai` border delivery at `assets/ui/borders/ornaments/ornament_*.svg` contains ONLY page-chrome: chapter title brackets, edge accents, page-corner ornaments at PAGE corners. It does NOT contain the small panel-corner brackets the rulebook uses on individual content panels (NORMS OF THE GAME p.11, CHARACTER CREATION p.12, COVER EXAMPLES p.39, etc.) — those are typography decoration drawn in InDesign during typesetting, not delivered as Illustrator assets. Verified 2026-05-23 via 37-fragment extraction + filesystem search.
+
+For per-panel corner brackets use **`OrnamentPanel.gd`** with a procedurally-generated atlas (`scripts/generate_corner_bracket_atlas.py`). Two atlas variants: `ornament_atlas_compact.png` (128×128, 32px corners) for badges, `ornament_atlas_9slice.png` (256×256, 64px corners) for sections. NinePatchRect's "corners stay fixed when scaled" behavior matches the rulebook's "brackets are fixed size at all panel sizes" rule exactly. See `.claude/skills/ui-development/references/ornament-panel.md` for API + tuning workflow + decision matrix vs CalloutCard/BookFrame.
+
+Sci-fi vs fantasy bracket-read: multiple notches per leg + stepped tips = sci-fi machined panel. Clean L with one notch = fantasy RPG corner ornament. Tune via `*_FRAC` constants in the generator script, then re-run `--import` (see #11).
+
+### 13. Design Analysis Before Coding When Matching Printed Source
+
+When the task is "build a UI component to match printed reference material" (rulebook, magazine, design system spec): pause before coding. The 30-60min analysis phase saves multiple code-tinker iterations.
+
+1. **Render the source at HIGH RES** — ≥2x scale (`pypdfium2 ... .render(scale=2.5)`). 80 DPI hides small details and leads to wrong conclusions. I once concluded "rulebook has no per-panel corner brackets" because my 80 DPI renders blurred them.
+2. **Sample 8-12 representative page types** — chapter intros, body content, callouts, tables, appendix. One page won't reveal the system.
+3. **Build an element-by-page-type comparison table** — forces you to be explicit instead of generalizing from gut feel.
+4. **Look at FACING PAGES** — tabletop rulebooks often mirror-symmetric. ONE asset + 4 flips often = 4 corners.
+5. **Infer the design rules** from the table (what always appears with what, what scales, what stays fixed). Those become your component requirements.
+6. **THEN design the component API.** Not before.
+
+Anti-pattern: "I see the reference, I'll just start building." Visual ≠ design rules. Burned 3+ iterations on OrnamentPanel before doing this (2026-05-23). Once analysis was done, the architecture was obvious within an hour.
+
 ### Session 36: Story Track UI + Character QOL (Apr 7, 2026)
 
 - **StoryPhasePanel.gd** — Rewritten: 3 modes (clock, event briefing, evidence search). Code-built UI, extends BasePhasePanel

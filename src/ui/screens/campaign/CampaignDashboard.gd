@@ -66,6 +66,7 @@ func _setup_screen() -> void:
 	_add_help_button()
 	_check_dashboard_tutorial.call_deferred()
 
+
 func _exit_tree() -> void:
 	# Disconnect autoload signals to prevent memory leaks
 	if phase_manager:
@@ -103,7 +104,37 @@ func _connect_signals() -> void:
 		load_button.pressed.connect(_on_load_pressed)
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
+	_add_sheets_button()
 	pass  # Hub cards added in _update_ship_and_equipment
+
+
+## Add a "Sheets" button to the dashboard action row (Item 3 / sheet export
+## SOP — May 23 2026). Built programmatically rather than editing the .tscn
+## so the dashboard scene file stays clean. Sibling-inserted next to the
+## existing Export button.
+func _add_sheets_button() -> void:
+	if export_button == null or not is_instance_valid(export_button):
+		return
+	var parent: Node = export_button.get_parent()
+	if parent == null:
+		return
+	var sheets_btn := Button.new()
+	sheets_btn.text = "Sheets"
+	sheets_btn.tooltip_text = "Open printable sheets (Crew Log, " \
+		+ "Encounter Log, World Record)"
+	_style_button(sheets_btn)
+	sheets_btn.pressed.connect(_on_sheets_pressed)
+	parent.add_child(sheets_btn)
+	# Insert immediately after export_button (sibling order = visual order).
+	parent.move_child(sheets_btn, export_button.get_index() + 1)
+
+
+func _on_sheets_pressed() -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("print_sheet")
+	else:
+		push_warning("CampaignDashboard: SceneRouter unavailable for print_sheet")
 
 func _add_help_button() -> void:
 	if not header_panel:

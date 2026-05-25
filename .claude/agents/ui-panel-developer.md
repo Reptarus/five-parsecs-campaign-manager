@@ -48,6 +48,8 @@ You have a detailed reference skill at `.claude/skills/ui-development/`. **Read 
 | `references/tweenfx-guide.md` | 70 animations, pivot_offset requirement list, looping cleanup, accessibility checks |
 | `references/scene-router.md` | SceneRouter routes (70+), navigation methods, history, caching, transitions |
 | `references/narrative-screen.md` | KoDP-style narrative overlay system (NarrativeScreen at CanvasLayer L95, advisor system, text generator, integration pattern) |
+| `references/sheet-export.md` | Sheet/PDF export system — SheetRenderer + PdfExportRouter + GodotPDF/GodotHaru backends, field manifest schema, addon gotchas (PDF_DOC is RefCounted not Object, GodotPDF page size hardcoded 612×792, FORMAT_RGB8/RGBA8 requirement), Sprint 3 PDF-native text overlay design |
+| `references/ornament-panel.md` | OrnamentPanel rulebook-faithful callout chrome (rounded + colored stroke + procedural corner brackets via 9-slice atlas). Atlas variants, sci-fi-vs-fantasy tuning rules, decision matrix vs CalloutCard/BookFrame. ALSO covers why we can't repurpose Modiphius .ai border art at panel scale |
 
 ## Project Context
 
@@ -148,6 +150,19 @@ For overlay cleanup that needs autoload access (restoring chrome, hiding Persist
 - `addons/TweenFX/TweenFX.gd` — animation addon (70 animations)
 - `src/ui/screens/narrative/` — NarrativeScreen (CanvasLayer L95), NarrativeTextGenerator, AdvisorSystem, NarrativeChoiceButton, SceneStage
 - `data/narrative/` — atmosphere_openers.json, advisor_quotes.json, species_personality.json
+- `src/ui/screens/print/` — PrintSheetScreen (tab bar + right rail for sheet export)
+- `src/ui/components/sheet/SheetRenderer.gd` — manifest-driven sheet renderer + SubViewport PNG/PDF export
+- `src/core/export/PdfExportRouter.gd` — PDF backend abstraction (GodotHaru / GodotPDF / none)
+- `data/sheets/<book>/*_fields.json` — field manifests (rect, source dot-path, font_size, align)
+- `assets/sheets/<book>/*.png` — source sheet PNGs (Core Rulebook ships at 2764×1843)
+- `addons/godotpdf/PDF.gd` + `addons/godotharu/godotharu.gdextension` — PDF backend addons
+- `src/ui/components/common/OrnamentPanel.gd` — rulebook-faithful callout chrome (rounded + colored stroke + procedural corner brackets via NinePatchRect)
+- `src/ui/components/common/BookFrame.gd` — page-level chrome wrapper (chapter-bracket + page-corner ornaments; NOT for individual panels)
+- `src/ui/components/common/CalloutCard.gd` — sharp-corner Elite-Ranks-style callout (title inline upper-left)
+- `scripts/generate_corner_bracket_atlas.py` — procedural PIL generator for OrnamentPanel's bracket atlases (run after tuning `*_FRAC` constants)
+- `scripts/build_ornament_9slice_atlas.py` — Inkscape-based edge-strip variant (reserved for future PageChrome use)
+- `assets/ui/borders/ornament_atlas_9slice.png` (256×256, 64px corners) + `ornament_atlas_compact.png` (128×128, 32px corners) — the two generated atlases consumed by OrnamentPanel
+- `assets/ui/borders/ornaments/ornament_*.svg` — RESERVED Modiphius page-chrome extracts (NOT used by OrnamentPanel; reserved for future BookFrame work)
 
 # Persistent Agent Memory
 

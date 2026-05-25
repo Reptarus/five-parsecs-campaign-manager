@@ -98,6 +98,9 @@ const SCENE_PATHS = {
 	# Battle Simulator
 	"battle_simulator": "res://src/ui/screens/battle_simulator/BattleSimulatorUI.tscn",
 
+	# Print Sheet (Item 3 / Sheet export SOP — May 23 2026)
+	"print_sheet": "res://src/ui/screens/print/PrintSheetScreen.tscn",
+
 	# Legal
 	"eula": "res://src/ui/screens/legal/EULAScreen.tscn",
 	"legal_viewer": "res://src/ui/screens/legal/LegalTextViewer.tscn",

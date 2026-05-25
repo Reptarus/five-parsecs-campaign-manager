@@ -571,6 +571,9 @@ COLOR_DANGER := Color("#DC2626")   # Red
 | `OverflowMenu` | Button | `add_item(id, label, count)`, `set_count(id, count)` → `signal item_selected(String)` |
 | `DialogStyles` | RefCounted | Static: `style_confirm_button(btn)`, `style_danger_button(btn)`, `style_primary_button(btn)` |
 | `RulesPopup` | Window | Static: `RulesPopup.show_rules(parent, title, body, requirements)` |
+| `BookFrame` | Control | Page-level chrome wrapper (chapter-bracket + page-corner ornaments). Page-chrome only — NOT for individual panels. `setup(content, color)`, `show_background` toggle for overlay mode, `show_ornaments` subset. See [project_book_frame_callout_card_shipped.md](memory) |
+| `CalloutCard` | PanelContainer | Sharp-corner Elite-Ranks-style callout (StyleBoxFlat + colored stroke + title inline upper-left). `setup(title, content, color)`. 5 semantic colors |
+| `OrnamentPanel` | Control | Rounded sci-fi callout chrome (StyleBoxFlat + colored stroke + procedural corner brackets via NinePatchRect). `accent_color`, `title_text`, `add_content_child()`. Auto-picks compact (32px) or standard (64px) atlas based on `custom_minimum_size`. See [docs/sop/ornament-panel-pattern.md](docs/sop/ornament-panel-pattern.md) |
 
 ### CanvasLayer Layering Convention
 ```
@@ -921,6 +924,7 @@ Institutional knowledge. **Read the relevant SOP before touching its subsystem; 
 | `docs/sop/asset-pipeline.md` | Before touching `assets/`, `data/scenes/`, or running any extraction script |
 | `docs/sop/visual-runtime-verification.md` | Before merging any change that affects rendering (portraits, scenes, animations, UI textures) |
 | `docs/sop/component-patterns.md` | Before writing any new `.gd` component or data file (SSOT accessor, JSON+static loader, path-loaded preload, export-safe `load()`, deferred initial swap) |
+| `docs/sop/ornament-panel-pattern.md` | Before writing new rulebook-styled callout panels (rounded chrome + colored stroke + corner brackets via 9-slice atlas). Procedural bracket generator, compact/standard atlas variants, decision matrix vs CalloutCard/BookFrame |
 | `docs/sop/decision-log.md` | When tempted to second-guess a pattern, or before proposing to replace one. Append-only — supersede with new entries, never delete |
 
 **Rule for adding an SOP**: only document a pattern after you've used it *twice*. First time is experiment, second time is pattern, third is when you wish you'd written it down. Document at the second.

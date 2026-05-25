@@ -1,0 +1,89 @@
+{
+  "sheet_id": "encounter_log",
+  "book": "core",
+  "source_png": "res://assets/sheets/core/encounter_log.png",
+  "source_size": [2764, 1843],
+  "_calibration_note": "Starter coordinates. Source values from journal context — uses the most recent battle entry from CampaignJournal. Use SheetRenderer debug overlay to calibrate.",
+  "fields": [
+    {
+      "id": "campaign_name",
+      "type": "text",
+      "rect": [200, 80, 1200, 80],
+      "font_size": 48,
+      "align": "left",
+      "source": "campaign.campaign_name"
+    },
+    {
+      "id": "turn_number",
+      "type": "text",
+      "rect": [2100, 80, 480, 80],
+      "font_size": 36,
+      "align": "right",
+      "source": "campaign.progress_data.turns_played"
+    },
+    {
+      "id": "world_name",
+      "type": "text",
+      "rect": [320, 240, 800, 60],
+      "font_size": 36,
+      "align": "left",
+      "source": "world.name"
+    },
+    {
+      "id": "mission_type",
+      "type": "text",
+      "rect": [1180, 240, 800, 60],
+      "font_size": 32,
+      "align": "left",
+      "source": "journal.last_battle.mission_type"
+    },
+    {
+      "id": "enemy_faction",
+      "type": "text",
+      "rect": [320, 360, 800, 60],
+      "font_size": 32,
+      "align": "left",
+      "source": "journal.last_battle.enemy_faction"
+    },
+    {
+      "id": "enemy_count",
+      "type": "number",
+      "rect": [1180, 360, 240, 60],
+      "font_size": 32,
+      "align": "right",
+      "source": "journal.last_battle.enemy_count"
+    },
+    {
+      "id": "result",
+      "type": "text",
+      "rect": [320, 480, 800, 60],
+      "font_size": 32,
+      "align": "left",
+      "source": "journal.last_battle.result"
+    },
+    {
+      "id": "credits_earned",
+      "type": "number",
+      "rect": [1180, 480, 240, 60],
+      "font_size": 32,
+      "align": "right",
+      "source": "journal.last_battle.credits_earned"
+    },
+    {
+      "id": "xp_earned",
+      "type": "number",
+      "rect": [1500, 480, 240, 60],
+      "font_size": 32,
+      "align": "right",
+      "source": "journal.last_battle.xp_earned"
+    },
+    {
+      "id": "notes",
+      "type": "multiline_text",
+      "rect": [320, 600, 2120, 800],
+      "font_size": 24,
+      "align": "left",
+      "source": "journal.last_battle.notes"
+    }
+  ]
+}

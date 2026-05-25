@@ -1,0 +1,81 @@
+{
+  "sheet_id": "world_record_sheet",
+  "book": "core",
+  "source_png": "res://assets/sheets/core/world_record_sheet.png",
+  "source_size": [2764, 1843],
+  "_calibration_note": "Starter coordinates. Source values from PlanetDataManager.get_current_planet(). Use SheetRenderer debug overlay to calibrate.",
+  "fields": [
+    {
+      "id": "world_name",
+      "type": "text",
+      "rect": [320, 200, 1200, 80],
+      "font_size": 48,
+      "align": "left",
+      "source": "world.name"
+    },
+    {
+      "id": "world_type",
+      "type": "text",
+      "rect": [1720, 200, 720, 80],
+      "font_size": 36,
+      "align": "left",
+      "source": "world.type"
+    },
+    {
+      "id": "danger_level",
+      "type": "text",
+      "rect": [320, 340, 600, 60],
+      "font_size": 32,
+      "align": "left",
+      "source": "world.danger"
+    },
+    {
+      "id": "license_required",
+      "type": "checkbox",
+      "rect": [1080, 340, 60, 60],
+      "font_size": 32,
+      "align": "center",
+      "source": "world.license_required"
+    },
+    {
+      "id": "trait_1",
+      "type": "text",
+      "rect": [320, 480, 1800, 60],
+      "font_size": 28,
+      "align": "left",
+      "source": "world.traits[0]"
+    },
+    {
+      "id": "trait_2",
+      "type": "text",
+      "rect": [320, 580, 1800, 60],
+      "font_size": 28,
+      "align": "left",
+      "source": "world.traits[1]"
+    },
+    {
+      "id": "trait_3",
+      "type": "text",
+      "rect": [320, 680, 1800, 60],
+      "font_size": 28,
+      "align": "left",
+      "source": "world.traits[2]"
+    },
+    {
+      "id": "turns_visited",
+      "type": "number",
+      "rect": [320, 820, 240, 60],
+      "font_size": 32,
+      "align": "right",
+      "source": "world.turns_visited"
+    },
+    {
+      "id": "notes",
+      "type": "multiline_text",
+      "rect": [320, 980, 2120, 600],
+      "font_size": 24,
+      "align": "left",
+      "source": "world.notes"
+    }
+  ]
+}

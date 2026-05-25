@@ -27,14 +27,19 @@
 **Skill**: `battle-systems` (4 references)
 
 ### 4. ui-panel-developer (haiku, yellow)
-**Domain**: UI components, Deep Space theme, TweenFX, scene routing, narrative event overlay system
+**Domain**: UI components, Deep Space theme, TweenFX, scene routing, narrative event overlay system, sheet/PDF export
 **Files Owned**:
-- `src/ui/components/` (125+ files)
+- `src/ui/components/` (125+ files, incl. `src/ui/components/sheet/SheetRenderer.gd`)
 - `src/ui/screens/` (non-campaign, non-battle, non-bug-hunt subdirs)
 - `src/ui/screens/SceneRouter.gd`
 - `src/ui/screens/narrative/` (NarrativeScreen, NarrativeTextGenerator, AdvisorSystem, NarrativeChoiceButton, SceneStage)
+- `src/ui/screens/print/` (PrintSheetScreen — tab bar + right rail for sheet export)
+- `src/core/export/PdfExportRouter.gd` (PDF backend abstraction: GodotHaru → GodotPDF → none)
 - `data/narrative/` (atmosphere_openers.json, advisor_quotes.json, species_personality.json)
-**Skill**: `ui-development` (5 references including narrative-screen)
+- `data/sheets/` (field manifests: rect, source dot-path, font_size per field)
+- `assets/sheets/` (source sheet PNGs from Modiphius bundles, by book)
+- `addons/godotpdf/` + `addons/godotharu/` (third-party PDF addons — read-only awareness)
+**Skill**: `ui-development` (6 references including narrative-screen + sheet-export)
 
 ### 5. bug-hunt-specialist (sonnet, cyan)
 **Domain**: Bug Hunt gamemode, cross-mode safety

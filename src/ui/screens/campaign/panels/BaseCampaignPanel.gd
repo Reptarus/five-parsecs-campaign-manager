@@ -673,6 +673,39 @@ const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_DISABLED
 
 # ============ UI COMPONENT FACTORY METHODS ============
 
+## Wrap section content in CalloutCard chrome (rulebook-style yellow-bordered
+## callout box). Mirrors the "Elite Ranks" box style from Core Rules p.65.
+## Returns a Control (the CalloutCard, which extends PanelContainer).
+##
+## Unlike _create_section_card, the title is rendered by CalloutCard itself
+## (in border-matching color) — don't pass content that already includes a
+## redundant title. If a description is given, it's appended below content
+## as a secondary explanation label.
+func _create_callout_card(title: String, content: Control,
+		description: String = "",
+		border_color: Color = Color("#D97706")) -> Control:
+	var CalloutCardScript := preload("res://src/ui/components/common/CalloutCard.gd")
+	var callout: PanelContainer = CalloutCardScript.new()
+	callout.title_text = title
+	callout.border_color = border_color
+	if description != "":
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", SPACING_SM)
+		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vbox.add_child(content)
+		var desc := Label.new()
+		desc.text = description
+		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(desc)
+		callout.add_content_child(vbox)
+	else:
+		content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		callout.add_content_child(content)
+	return callout
+
+
 func _create_section_card(title: String, content: Control, description: String = "", icon: String = "") -> PanelContainer:
 	## Create a styled section card with title, content, optional description and icon.
 	var panel := PanelContainer.new()

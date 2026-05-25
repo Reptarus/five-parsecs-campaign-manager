@@ -1,0 +1,121 @@
+{
+  "sheet_id": "crew_log",
+  "book": "core",
+  "source_png": "res://assets/sheets/core/crew_log.png",
+  "source_size": [2764, 1843],
+  "_calibration_note": "Starter coordinates from initial MVP pass. Field rects are conservative guesses spread across the sheet. Use SheetRenderer.set_debug_overlay(true) to view red bounding rects, then adjust rect values in graphics-tool pixel coordinates relative to source_size. Per docs/sop/sheet-export.md.",
+  "fields": [
+    {
+      "id": "campaign_name",
+      "type": "text",
+      "rect": [200, 80, 1200, 80],
+      "font_size": 48,
+      "align": "left",
+      "source": "campaign.campaign_name"
+    },
+    {
+      "id": "turn_number",
+      "type": "text",
+      "rect": [2100, 80, 480, 80],
+      "font_size": 36,
+      "align": "right",
+      "source": "campaign.progress_data.turns_played"
+    },
+    {
+      "id": "captain_name",
+      "type": "text",
+      "rect": [320, 240, 800, 60],
+      "font_size": 36,
+      "align": "left",
+      "source": "campaign.captain.character_name"
+    },
+    {
+      "id": "captain_species",
+      "type": "text",
+      "rect": [1180, 240, 400, 60],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.captain.species_id"
+    },
+    {
+      "id": "captain_class",
+      "type": "text",
+      "rect": [1620, 240, 400, 60],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.captain.character_class"
+    },
+    {
+      "id": "ship_name",
+      "type": "text",
+      "rect": [320, 1620, 800, 60],
+      "font_size": 32,
+      "align": "left",
+      "source": "campaign.ship_data.name"
+    },
+    {
+      "id": "credits",
+      "type": "number",
+      "rect": [1620, 1620, 240, 60],
+      "font_size": 36,
+      "align": "right",
+      "source": "campaign.credits"
+    },
+    {
+      "id": "story_points",
+      "type": "number",
+      "rect": [2000, 1620, 240, 60],
+      "font_size": 36,
+      "align": "right",
+      "source": "campaign.story_points"
+    },
+    {
+      "id": "crew_member_1_name",
+      "type": "text",
+      "rect": [320, 380, 800, 50],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[0].character_name"
+    },
+    {
+      "id": "crew_member_2_name",
+      "type": "text",
+      "rect": [320, 480, 800, 50],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[1].character_name"
+    },
+    {
+      "id": "crew_member_3_name",
+      "type": "text",
+      "rect": [320, 580, 800, 50],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[2].character_name"
+    },
+    {
+      "id": "crew_member_4_name",
+      "type": "text",
+      "rect": [320, 680, 800, 50],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[3].character_name"
+    },
+    {
+      "id": "crew_member_5_name",
+      "type": "text",
+      "rect": [320, 780, 800, 50],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[4].character_name"
+    },
+    {
+      "id": "crew_member_6_name",
+      "type": "text",
+      "rect": [320, 880, 800, 50],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[5].character_name"
+    }
+  ]
+}

@@ -18,6 +18,8 @@ same commit as the code change. Stale SOPs are worse than no SOPs.
 | [asset-pipeline.md](./asset-pipeline.md) | Cataloging Drive deliveries, PSD layer extraction, naming conventions, directory layout | Before touching `assets/`, `data/scenes/`, or running any extraction script |
 | [visual-runtime-verification.md](./visual-runtime-verification.md) | When MCP visual verification is mandatory vs optional, screenshot evidence, gallery overlay pattern | Before merging any change that affects rendering (portraits, scenes, animations, UI components with textures) |
 | [component-patterns.md](./component-patterns.md) | Single-source-of-truth JSON + loader, path-loaded preload, export-safe `load()` rule, deferred initial swap | Before writing any new `.gd` component or data file |
+| [sheet-export.md](./sheet-export.md) | Field-coordinate JSON manifest, SubViewport PNG export, PDF router (GodotHaru/GodotPDF), debug-overlay calibration | Before adding a new printable sheet, swapping the PDF backend, or modifying SheetRenderer / PdfExportRouter |
+| [ornament-panel-pattern.md](./ornament-panel-pattern.md) | OrnamentPanel architecture (rounded chrome + colored stroke + corner brackets via 9-slice atlas), procedural bracket generator, decision matrix vs CalloutCard/BookFrame | Before writing new section cards / dialog panels that should match the Modiphius rulebook aesthetic, or before tuning bracket art |
 | [decision-log.md](./decision-log.md) | Material "we picked X over Y because Z" records | When you're tempted to second-guess a pattern, or before proposing to replace one |
 
 ## Anti-regressions log

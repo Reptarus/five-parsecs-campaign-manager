@@ -282,6 +282,10 @@ func populate_ui() -> void:
 	# Portrait upload button (overlay on HeroCard)
 	if not hero_card.get_node_or_null("__ChangePortraitBtn"):
 		_setup_portrait_upload()
+	# Print Sheet button (overlay on HeroCard, mirror of Change Portrait)
+	# Item 3 / sheet export SOP — May 23 2026
+	if not hero_card.get_node_or_null("__PrintSheetBtn"):
+		_setup_print_sheet_button()
 	# Status summary bar
 	_build_status_bar()
 	# XP Progress Bar
@@ -940,6 +944,47 @@ func _setup_portrait_upload() -> void:
 	# Position at bottom-left of hero card
 	btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	btn.position = Vector2(SPACING_SM, -40)
+
+## Add a "Print Sheet" button to the HeroCard, mirror position of the Change
+## Portrait button. Opens the PrintSheetScreen via SceneRouter so the player
+## can render their character on the official Modiphius CrewLog and export.
+## Sheet export SOP — May 23 2026.
+func _setup_print_sheet_button() -> void:
+	if not hero_card:
+		return
+	var btn := Button.new()
+	btn.name = "__PrintSheetBtn"
+	btn.text = "Print Sheet"
+	btn.tooltip_text = "Open printable sheets (Crew Log / Encounter Log / " \
+		+ "World Record)"
+	btn.custom_minimum_size = Vector2(120, 32)
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.85)
+	style.border_color = COLOR_ACCENT
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_XS)
+	btn.add_theme_stylebox_override("normal", style)
+	var hover := style.duplicate()
+	hover.bg_color = COLOR_ACCENT
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.pressed.connect(_on_print_sheet_pressed)
+	hero_card.add_child(btn)
+	# Mirror position of Change Portrait — bottom-right of the hero card.
+	btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	btn.position = Vector2(-btn.custom_minimum_size.x - SPACING_SM, -40)
+
+
+func _on_print_sheet_pressed() -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("print_sheet")
+	else:
+		push_warning("CharacterDetailsScreen: SceneRouter unavailable " \
+			+ "for print_sheet")
+
 
 func _on_change_portrait_pressed() -> void:
 	var dialog := FileDialog.new()
