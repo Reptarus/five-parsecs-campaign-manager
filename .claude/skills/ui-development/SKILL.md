@@ -13,7 +13,7 @@ description: "Use this skill when working with UI panels, components, the Deep S
 | `references/panel-patterns.md` | BaseCampaignPanel factory methods, signal-up/call-down, responsive layout, glass card styles |
 | `references/tweenfx-guide.md` | 70 animations, pivot_offset requirement list, looping cleanup, accessibility, .tada() signature |
 | `references/scene-router.md` | SceneRouter 70+ routes, navigation methods, history, caching, category helpers |
-| `references/narrative-screen.md` | NarrativeScreen (CanvasLayer L95), advisor system, text generator, integration pattern for phase-panel branches |
+| `references/narrative-screen.md` | NarrativeScreen (CanvasLayer L95), advisor system, text generator, integration pattern for phase-panel branches, SceneStage character slots + ambient motion. For scene AUTHORING (manifest schema, layer contract, verification) see `docs/sop/narrative-scene-authoring.md` |
 | `references/sheet-export.md` | Sheet/PDF export system (SheetRenderer, PdfExportRouter, GodotPDF/GodotHaru backends), field manifests, Sprint 3 PDF-native text overlay design |
 | `references/ornament-panel.md` | OrnamentPanel rulebook-faithful callout chrome (rounded + colored stroke + procedural corner brackets via 9-slice atlas). Atlas variants, sci-fi vs fantasy reading, decision matrix vs CalloutCard/BookFrame, tuning workflow |
 
@@ -28,6 +28,9 @@ description: "Use this skill when working with UI panels, components, the Deep S
 - **Reusable widgets** → Check `src/ui/components/common/` first (14 components)
 - **Narrative event overlay** → Read `narrative-screen.md` (extending Phase 1 to other phase panels, or modifying the overlay)
 - **Full-screen overlay z-order issues** → Read `narrative-screen.md` (CanvasLayer L95 pattern, never extend Control for these)
+- **Authoring/editing a narrative SCENE** (manifest, art layers, crew figures, motion) → Read `docs/sop/narrative-scene-authoring.md` (layer contract, manifest schema, verification)
+- **Roster-aware crew figures in a scene** → Read `narrative-screen.md` (character slots — SpeciesFigureRegistry, tree-order depth NOT z_index, feet anchoring)
+- **Ambient / "living painting" motion** → Read `narrative-screen.md` (ambient motion — drift+breathe+overscan on layer CONTAINERS, gate on Reduced Motion, verify via transform-probe not screenshot)
 - **Sheet rendering / PDF export / printable sheets** → Read `sheet-export.md` (SheetRenderer, PdfExportRouter, GodotPDF/GodotHaru gotchas, Sprint 3 PDF-native text overlay design)
 - **Rulebook-styled callout panel (rounded + colored stroke + corner brackets)** → Read `ornament-panel.md` (OrnamentPanel, atlas variants, tuning workflow). DO NOT try to repurpose Modiphius .ai border art at panel scale — brackets are procedurally generated, not extracted
 
@@ -47,6 +50,10 @@ description: "Use this skill when working with UI panels, components, the Deep S
 | `src/ui/components/sheet/SheetRenderer.gd` | `SheetRenderer` | Manifest-driven overlay renderer (PNG background + Label fields), SubViewport PNG/PDF export |
 | `src/core/export/PdfExportRouter.gd` | `PdfExportRouter` | Plugin abstraction: GodotHaru (preferred) / GodotPDF (fallback) / none |
 | `data/sheets/<book>/*_fields.json` | Field manifests | Pixel-coord field rects, source dot-paths, font sizes — calibrated via debug overlay |
+| `src/ui/screens/narrative/SceneStage.gd` | path-loaded | Layered scene composer: bg/slot/actor/fx layers, `set_character_slots()`, ambient motion. See `narrative-screen.md` + `docs/sop/narrative-scene-authoring.md` |
+| `src/core/character/SpeciesFigureRegistry.gd` | path-loaded | `species_id → full-figure PNG(s)`, existence-aware variant pick (parallel to `SpeciesPortraitRegistry`) |
+| `src/ui/screens/dev/SceneViewer.gd` + `.tscn` | path-loaded | Dev harness: preview a scene manifest in isolation (`-- scene_id=X test_crew=... autoshot`) |
+| `data/scenes/<id>.json` | Scene manifest | SceneStage bg/actor/fx layers + `character_slots` + `ambient_motion` |
 
 ## Reusable Widget Library (`src/ui/components/common/`)
 
@@ -87,4 +94,8 @@ description: "Use this skill when working with UI panels, components, the Deep S
 13. **Optional asset paths need `ResourceLoader.exists()` guard** — Registries like `SpeciesPortraitRegistry.DEFAULT_PORTRAIT` can point at res:// art that doesn't ship. `if ResourceLoader.exists(p): load(p)` before consuming; fall back to colored-initials / gradient
 14. **Cleanup with `_exit_tree()` not `tree_exited`** — For chrome restore on overlay dismiss, override `_exit_tree()`. `tree_exited` fires AFTER detachment so `/root/PersistentResourceBar` lookups fail
 15. **Modiphius .ai border delivery has page-chrome ONLY** — Don't try to repurpose `assets/ui/borders/ornaments/ornament_*.svg` for panel-corner brackets. Those are 170×231 chapter-title-bracket composites for page-edge use. The rulebook's small panel-corner brackets are typography decoration drawn in InDesign, NOT in the Illustrator delivery. For per-panel corner brackets use `OrnamentPanel.gd` (procedurally-generated atlas via `scripts/generate_corner_bracket_atlas.py`). See `references/ornament-panel.md`
-16. **After generating new asset PNGs via script, MUST run `Godot --headless --import --quit`** — `.import` files don't exist until Godot scans. `ResourceLoader.exists()` returns false until that scan completes, and silent-fallback patterns render nothing without errors. Applies to OrnamentPanel atlases after running the bracket generator
+16. **After generating new asset PNGs via script, MUST run `Godot --headless --import --quit`** — `.import` files don't exist until Godot scans. `ResourceLoader.exists()` returns false until that scan completes, and silent-fallback patterns render nothing without errors. Applies to OrnamentPanel atlases after running the bracket generator, and to SceneStage scene/figure PNGs
+17. **SceneStage depth = TREE ORDER, never `z_index`** — character-slot figures render behind baked foreground actors because a `SlotLayer` sits between bg and actor layers in the node tree. `z_index` overrides tree order across parents and would let crew jump in front of enemies. See `references/narrative-screen.md`
+18. **Ambient motion applies to layer CONTAINERS, never individual rects** — `_layout_character_slots()` owns each figure's `rect.position`; drifting a rect fights the layout on resize. Drift the container, the transform composes on top. Overscan (1.04) hides the letterbox edge drift exposes
+19. **A screenshot CANNOT verify motion** — drift/breathe/parallax need a headless transform-probe (sample node transforms at t0 vs t+N). A still frame proves only that it renders. See `docs/sop/visual-runtime-verification.md`
+20. **Ambient/scene motion MUST gate on Reduced Motion** — `get_node_or_null("/root/ThemeManager").is_reduced_animation_enabled()` (the same accessibility setting TweenFX honors via #9). Off must mean perfectly static (scale 1, pos 0)

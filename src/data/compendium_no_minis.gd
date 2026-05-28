@@ -1,6 +1,6 @@
 class_name CompendiumNoMinisCombat
 extends RefCounted
-## No-Minis Combat Resolution - Compendium pp.68-75 (book pp.66-73)
+## No-Minis Combat Resolution - Compendium pp.66-73
 ##
 ## Abstract battle resolution without miniatures. Allows campaign
 ## progression without a physical table. Can be mixed with tabletop battles.
@@ -170,7 +170,7 @@ static func generate_setup_text(battle: Dictionary) -> String:
 	var ff_count: int = battle.get("firefight_selection_count", 3)
 
 	var lines: Array[String] = [
-		"[b]NO-MINIS COMBAT SETUP[/b] (Compendium pp.68-75)",
+		"[b]NO-MINIS COMBAT SETUP[/b] (Compendium pp.66-73)",
 		"",
 		"[b]Crew:[/b] %d figures." % crew_size,
 		"[b]Enemies:[/b] %d figures." % enemy_count,

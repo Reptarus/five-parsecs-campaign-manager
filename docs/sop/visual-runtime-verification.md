@@ -22,6 +22,7 @@ Trigger a visual MCP run before declaring "done" if your change touches:
 | Layout changes (anchors, size flags, responsive resize) | What looks right in code can overflow / clip at real viewport sizes |
 | New autoload or initialization-order-sensitive code | `_ready()` timing races (e.g. the cover-swap import race) only surface live |
 | Scene composition (SceneStage, layered overlays) | Z-order, blend modes, alpha cascades are visual-only checks |
+| Looping / ambient motion (drift, breathe, Ken Burns, parallax) | A still screenshot CANNOT show motion — needs a transform-probe over time (see below) |
 | Anything calling `get_portrait()`, `set_scene()`, or any renderer entry point | Cascading fallback chains need eyes-on |
 
 When verification is *not* mandatory:
@@ -101,6 +102,79 @@ These have bitten in past sessions:
   pick up the new code.
 - **The bridge times out at 30s by default**: pass `timeout: 60000` (60s)
   for scripts that build many nodes or wait for tween chains.
+
+## Verifying motion (a screenshot CANNOT prove it)
+
+Drift, breathe, Ken Burns, parallax — a still frame proves only that the scene
+can render, never that it moves. Prove motion with a **transform probe**: a
+headless `--script` SceneTree harness that instantiates the renderer, drives
+it, and samples node transforms at two times. A non-zero delta proves motion
+is live; re-sampling with the accessibility gate flipped proves it stops.
+
+```gdscript
+extends SceneTree
+func _initialize() -> void: _run()
+func _run() -> void:
+    var Stage = load("res://src/ui/screens/narrative/SceneStage.gd")
+    var stage = Stage.new()
+    stage.set_anchors_preset(Control.PRESET_FULL_RECT)
+    root.add_child(stage)
+    stage.size = Vector2(1920, 1080)
+    await process_frame
+    stage.set_scene("story_event_01")
+    await process_frame
+    var t0 = stage._actor_layer.position          # underscore vars are accessible cross-script
+    await create_timer(3.0).timeout               # advances tweens (main loop iterates even headless)
+    var delta = (stage._actor_layer.position - t0).length()
+    print("MOTION ", ("LIVE" if delta > 0.5 else "STATIC (FAIL)"), " delta=", delta)
+    # Gate check: flip Reduced Motion, re-run set_scene, assert scale==1 / pos==0.
+    quit()
+```
+
+Run it `--headless` (transforms advance without a framebuffer). This is the
+canonical proof for the SceneStage ambient-motion system; see
+[narrative-scene-authoring.md](./narrative-scene-authoring.md) §6.
+
+## Full-screen overlay capture harness (no editor, real framebuffer)
+
+For a publisher/one-pager screenshot of a full-screen `CanvasLayer` overlay
+(e.g. `NarrativeScreen`), the MCP injection pattern is overkill — you don't
+need a live game scene. Drive the overlay's entry point directly from a
+**non-headless** `--script` SceneTree run and capture the window:
+
+```gdscript
+extends SceneTree
+class CrewStub extends RefCounted:          # cheaper than building real Character resources
+    const SPR = preload("res://src/core/character/SpeciesPortraitRegistry.gd")
+    var character_id: String; var character_name: String
+    var species_id: String;  var is_captain: bool = false
+    func get_portrait() -> String:          # give stubs a real portrait so the shot matches gameplay
+        for p in SPR.get_portraits_for(species_id):
+            if ResourceLoader.exists(p): return p
+        return ""
+func _initialize() -> void: _run()
+func _run() -> void:
+    root.size = Vector2i(1920, 1080)
+    var NS = load("res://src/ui/screens/narrative/NarrativeScreen.gd")
+    var screen = NS.new(); root.add_child(screen)
+    await process_frame
+    screen.present(event_data, {"crew": [ ... ], "world_name": "..."})
+    for i in 16: await process_frame
+    await create_timer(0.5).timeout
+    await RenderingServer.frame_post_draw     # deterministic: capture AFTER the draw
+    root.get_texture().get_image().save_png("user://shot.png")
+    quit()
+```
+
+Conventions:
+
+- **Run WITHOUT `--headless`** — you need a real framebuffer. (The motion probe
+  above is the opposite: headless, because it reads transforms, not pixels.)
+- A `RefCounted` stub satisfies `AdvisorSystem` (which calls `has_method()` —
+  a plain `Dictionary` would error there) and the `_cs_*` duck-typed helpers.
+  Use real Core Rules text for the event body; only the crew/world are stand-ins.
+- Capture after `await RenderingServer.frame_post_draw` (same rule SceneViewer
+  uses) so you never grab a blank pre-draw frame.
 
 ## Screenshot evidence
 

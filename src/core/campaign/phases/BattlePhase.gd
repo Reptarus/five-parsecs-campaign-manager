@@ -20,6 +20,7 @@ const CompendiumStealthMissions = preload("res://src/data/compendium_stealth_mis
 const CompendiumStreetFights = preload("res://src/data/compendium_street_fights.gd")
 const CompendiumSalvageJobs = preload("res://src/data/compendium_salvage_jobs.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
+const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
@@ -1509,11 +1510,24 @@ func _simulate_battle_outcome() -> void:
 	var enemy_strength = enemies_deployed.size() * 4
 	_debug_log_combat_mode(false, max_rounds, initiative_roll, crew_first, crew_strength, enemy_strength)
 
-	# Use BattleResolver for rules-accurate combat simulation
-	var resolver_result: Dictionary = BattleResolverClass.resolve_battle(
-		crew_deployed, enemies_deployed, battlefield_data,
-		deployment_condition, dice_roller
-	)
+	# Select the resolution engine. When No-Minis Combat is enabled (Compendium
+	# pp.66-73), auto-resolve with the book's round structure via NoMinisResolver.
+	# Salvage missions fall back to the generic resolver — No-Minis "is not easily
+	# usable with the Salvage mission type" (Compendium p.116).
+	var use_no_minis: bool = battle_setup_data.get("no_minis_combat", false)
+	if use_no_minis and battle_setup_data.has("salvage_mission"):
+		use_no_minis = false
+	var resolver_result: Dictionary
+	if use_no_minis:
+		resolver_result = NoMinisResolverClass.resolve_battle(
+			crew_deployed, enemies_deployed, battlefield_data,
+			deployment_condition, dice_roller
+		)
+	else:
+		resolver_result = BattleResolverClass.resolve_battle(
+			crew_deployed, enemies_deployed, battlefield_data,
+			deployment_condition, dice_roller
+		)
 
 	var success: bool = resolver_result.get("success", false)
 	var crew_casualties_count: int = resolver_result.get("crew_casualties", 0)
@@ -1623,7 +1637,7 @@ func _simulate_battle_outcome() -> void:
 		"combat_mode": "auto_resolve"
 	}
 
-	# DLC: Append no-minis setup data if enabled (Compendium pp.68-75)
+	# DLC: Append no-minis setup data if enabled (Compendium pp.66-73)
 	if combat_results.get("no_minis_combat", false):
 		combat_results["combat_mode"] = "no_minis"
 		var crew_size: int = battle_setup_data.get("crew_size", 4)

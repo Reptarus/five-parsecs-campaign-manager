@@ -1,6 +1,6 @@
 # Partnership Term Positions
 
-**Last Updated**: 2026-05-22
+**Last Updated**: 2026-05-26
 **Owner**: Elijah (dev side)
 **Confidentiality**: **INTERNAL ONLY**. This is the dev-side preparation tracker for partnership term negotiation. Do NOT share with Modiphius. Specific positions surface to partner only when a specific MOU drafting moment arises. The point of this doc is to enter that conversation with anchored positions in hand, not to expose the working file.
 
@@ -50,7 +50,9 @@ The tier system means we do not need every term resolved today. Tier 1 (LOI) is 
 
 ## Tier 1 — LOI terms (target signed June 2026)
 
-The LOI is intentionally light. It commits both parties to good-faith negotiation, locks confidentiality, and sets a window for MOU work. It does NOT lock financial terms.
+The LOI is intentionally light. It commits both parties to good-faith negotiation, locks confidentiality, and sets a window for the binding contract. It does NOT lock financial terms.
+
+**Reframed 2026-05-25 (Entry #12):** Chris confirmed the LOI is INFORMAL, not a formal instrument: *"this is what my understanding of it is... it is a Google doc and then I can add to it and then we'll use some of our language."* Mechanism: Elijah drafts his understanding of the deal + terms as a shared Google Doc, Modiphius co-edits, then a long-form contract is built off Modiphius's standard customisable agreement (already used to license another IP for a video-game deal). In practice the Tier-2 "MOU" IS this shared-understanding Google Doc; the binding step is the customised standard contract. Tier-1 rows below stay valid as the content of that understanding doc; the legal-instrument framing softens.
 
 | Term | Current Position | Status | Source / Reasoning |
 |---|---|---|---|
@@ -87,15 +89,15 @@ This category determines whether the partnership is economically viable on both 
 
 | Term | Current Position | Status | Source / Reasoning |
 |---|---|---|---|
-| Recoupment mechanism | Reading B: dev keeps 100% of net receipts until cumulative receipts reach $X | LOCKED | Confirmed by Chris May 13 per [[may-13-session-deal-frame-clarification]] verbatim: *"you then get 100% of sales until you have reached $X to recoup the costs"* |
-| $X total dev budget amount | $30-40K honest dev-period figure with line items | DRAFT | Re-scoped May 13 from prior $45K maximalist anchor per [[may-13-session-deal-frame-clarification]] (Phase 1 / Phase 2 arc rule applied). Specific number within range still OPEN; needs line-item buildup. |
-| $X line-item justification | Time / equipment / tooling / software / hosting buildup needed to defend the number | OPEN | Required preparation work for whenever Modiphius asks "how did you arrive at $X." Should be defensible against Chris's Fallout app data (6,350 paying / 40K installed / 3 years per Apr 29 meeting) and forecast §5b-cal scenarios |
-| Post-recoupment revenue split | 50/50 of net (platform fees deducted first, then maintenance carve-out, then split) | LOCKED | Confirmed Apr 29 per [[apr-29-modiphius-meeting]]; mechanism reaffirmed May 13 |
-| Quarterly maintenance / support / development fee structure | Carve-out from net post-recoupment, applied BEFORE 50/50 split | LOCKED | Confirmed May 13. Verbatim Chris: *"Next say the following quarterly total is $5 and we have agreed a $1 per quarter maintenance / support / development fee you'd get the $1, then we'd get $2 each — splitting the remaining $4 50/50"* |
-| Quarterly maintenance fee amount | $2-3K/quarter range | DRAFT | Re-scoped May 13 per [[may-13-session-deal-frame-clarification]]. Specific number within range still OPEN; needs scope-of-fee definition first |
-| Quarterly maintenance fee scope | What the fee covers: ongoing dev, bug fixes, platform updates, hosting, infra, support | OPEN | Critical to define before signing. Vague scope = scope creep on dev side post-launch. Recommend explicit inclusion list |
+| Recoupment mechanism | Reading B: dev keeps 100% of net receipts until cumulative receipts reach $X | LOCKED | Confirmed Chris May 13; re-confirmed verbally May 25 (Entry #12): *"an amount that is the largest development costs that he'll recoup from the payments through the app, through early access, before we get anything"* |
+| Revenue model (subscription vs one-time price) | UNDECIDED pricing model. Does NOT gate the maintenance fee | OPEN / PARKED | NEW 2026-05-25 (Entry #12). PARKED to alpha per `docs/PRICING_RESEARCH_PLAN.md` + gate 4. Do NOT take a position now. The standalone-replaces-book pricing catch-22 is a known strategic tension. NOTE: a subscription MAY add an ongoing-content-recoup consideration ("adding in more of the products") on top of the base monthly fee; confirm in LOI |
+| $X total dev budget amount | **$35K opening anchor** (dev-blessed 2026-05-26; midpoint of the $30-40K band, $30K floor / $40K ceiling) | DRAFT (opening anchor SET; Modiphius not yet engaged) | Re-scoped May 13 from $45K; opening anchor fixed at $35K on 2026-05-26. Sized to recoup against forecast §6b (clears at the Moderate scenario), NOT to maximize labor value. Treated as the cheapest concession currency: generosity on $X buys relationship goodwill and recoups anyway, so trade $X down BEFORE the monthly fee. Data-anchored to alpha forecasts per Entry #12 |
+| $X line-item justification | Real out-of-pocket (tooling ~$3-4K + Mac/iOS hardware ~$1.4K) + a deliberately discounted time valuation (~1,400 hrs at a low self-set rate). Elaborate labor buildup declined by dev | SETTLED (posture, 2026-05-26) | Dev's frame: project is hobby-origin, self-taught, a proof of architecture skills, NOT a labor-maximization exercise. Pricing time low is what makes $35K both honest and relationship-safe. The artifact (900-file working platform) is the credential / Phase 2 audition, which is the real asset. Still defensible against Chris's Fallout app data + forecast §5b-cal if challenged |
+| Post-recoupment revenue split | 50/50 of net (platform fees first, then any subscription-only maintenance recoup, then split) | LOCKED | Confirmed Apr 29 per [[apr-29-modiphius-meeting]]; reaffirmed May 13 + May 25 (Entry #12) |
+| Monthly maintenance / support / development fee | Flat MONTHLY fee to dev off the top, AFTER recoup and BEFORE the 50/50 split. Applies REGARDLESS of revenue model. **$1,000/mo opening anchor** (dev-blessed 2026-05-26; band $750-1,000) | DRAFT (cadence monthly LOCKED 2026-05-26; amount anchor SET $1,000/mo) | Per Elijah's understanding + the May-13 email (unconditional post-recoup carve-out). $1,000/mo = top of the prior $2-3K/quarter band on a monthly basis (~$667-1,000/mo), so NOT a stealth hike. Covers ~$360/mo operating floor + ~$640/mo ongoing maintenance dev. THE lever to defend hardest: a perpetual annuity (~$60K over a 5-yr deal, rivals/exceeds $X) that compounds across a multi-IP partnership. Accrues monthly; MAY be paid quarterly to cut transaction overhead. Chris's call phrasing tied it to "if subscription" (~34:44); confirm as unconditional in the LOI |
+| Monthly maintenance fee amount + scope | $1,000/mo (see row above) + an explicit inclusion list (ongoing dev, bug fixes, platform updates, hosting, infra, support) | DRAFT (amount anchor SET; scope list OPEN) | LIVE number, NOT parked (only the pricing model is parked). Amount anchored 2026-05-26. Define the inclusion list before signing to prevent post-launch scope creep |
 | Pro-rata recoupment trigger | If Modiphius contributes budget mid-project, recoupment becomes pro-rata based on each side's contribution share | LOCKED | Confirmed May 13. Verbatim Chris: *"a pro-rata recoup based on our share of the budget we have been able to contribute"* |
-| Pro-rata calculation formula | Not yet specified | OPEN | Mechanism is locked; formula needs work. Should specify: how Modiphius cash is denominated (USD/GBP), how dev time is valued (if dev contributes ongoing time on top of cash), how mid-project contributions update the pro-rata |
+| Pro-rata calculation formula + what counts as a contribution | Trigger = NEW Modiphius CASH toward development only (e.g. funded hardware, contractor, content expansion); recoup pool grows by that cash, each side recoups in proportion. Carve-OUT (NOT contributions for this purpose): IP/trademarks, art/brand assets, in-kind marketing/channel amplification (newsletter/social/Discord/community). Those are compensated by the 50/50 split + physical-book margin | DRAFT (contribution definition added 2026-05-26; formula details still OPEN) | Avoids the double-dip: marketing already pays Modiphius via the split, so counting it again as recoupment dilution pays them twice. Cash is measurable; in-kind is a dispute generator. GRAY AREA for the MOU: cash marketing SPEND (paid ads/trailer). Dev opening position is still excluded (compensated via the split); if Modiphius wants it recouped, handle as a separate marketing-recoupment line, not the dev pro-rata. Formula still needs: USD/GBP denomination, dev-time valuation if dev adds ongoing time, how mid-project contributions update the ratio |
 | Make-good provision | Positive lean from Chris, not committed; tied to finance team review + audience-broadening pitch | OPEN | Verbatim Chris May 13: *"We maybe able to find a way to help cover the risk here but I don't have a handle on that"*. File for Stage 2 revisit per [[feedback-phase1-prove-phase2-lockin]] |
 | "Net" definition | Gross receipts minus platform fees (Steam 30%, Apple 30%, Google 15-30%, etc.) | DRAFT | Standard industry definition. Should be explicit in writing |
 | Platform fee floor | Should "net" account for Steam's Small Business <$10M tier (12% instead of 30%) when revenue is small? | OPEN | Affects early-stage math. Most likely answer is "use actual fee charged" but needs explicit language |
@@ -103,7 +105,7 @@ This category determines whether the partnership is economically viable on both 
 | Payment frequency | Quarterly | DRAFT | Matches maintenance fee cadence; lowers banking transaction overhead vs monthly |
 | Payment mechanism | Wire transfer / international ACH / Wise / Modiphius accounts-payable system | OPEN | Pragmatic question, not principle |
 | Audit rights | Mutual: each party can audit the other's relevant accounting once per year with reasonable notice | DRAFT | Standard; protects both parties without being adversarial |
-| Reporting cadence | Monthly summary, quarterly detailed statement | DRAFT | Aligns with payment frequency |
+| Reporting cadence | Monthly check-in call once rolling (metrics, show-and-tell, next steps); Modiphius otherwise out of the daily loop | LOCKED (2026-05-25, Entry #12) | Confirmed at the call. Supersedes the prior weekly-Gavin / bi-weekly-Chris cadence for the build phase |
 
 ### 2.2 IP & licensing
 
@@ -146,7 +148,9 @@ This category surfaces the "who is doing what" gap Elijah named in the May 22 se
 |---|---|---|---|
 | In-app dev + engineering | Dev (sole) | LOCKED | Obvious |
 | QA process during alpha | Dev primary, Modiphius reviews defects log | DRAFT | Per Entry #7a (QA package send May 6) and current QA suite in [docs/testing/](testing/) |
-| Alpha tester recruitment | Joint: Ivan's Discord cohort (10-20 testers) | LOCKED | Per Apr 29 meeting and current Draft #F |
+| Alpha tester recruitment | Google-Form signup funnel across official Discord / Ivan's community / 5PFH Facebook group, experience-filtered (XCOM 700-to-50). Elijah owns the email DB; Modiphius amplifies on demand | LOCKED (updated 2026-05-25, Entry #12) | Supersedes the Apr-29 "Ivan's Discord 10-20 closed" framing. Elijah self-hosts the signup + database and runs tester comms |
+| Tester email list / database ownership | Elijah owns it (self-hosted Google Form or own URL); Modiphius edit-access offer available but Elijah self-manages | LOCKED (2026-05-25, Entry #12) | Keeps Modiphius out of the daily workflow; Elijah controls tester comms directly |
+| Tester credit / compensation | Testers (incl. Ivan + his playtesters) credited in-app after completing the program; recognition not payment | LOCKED (2026-05-25, Entry #12) | Dissolves the Entry #11a Ivan-pay dependency |
 | Tester management during alpha | Dev primary; Ivan supports as community lead | DRAFT | Implicit but should be written |
 | In-app feedback pipeline ops | Dev (end-to-end: Talo telemetry + in-app reporting + Discord channel) | DRAFT | Per current Draft #F |
 | Art delivery from Modiphius | Modiphius (Richard) | LOCKED | Per May 2026 art delivery (737 files); referenced in [[project_modiphius_art_integration]] |
@@ -206,9 +210,9 @@ This category is the strategic leverage section. Most positions here are OPEN by
 
 | Term | Current Position | Status | Source / Reasoning |
 |---|---|---|---|
-| Phase 2 conceptual reference | LOI + MOU reference "Stage 2" by name even though scope undefined | DRAFT | Per Chris's "stage 2" framing in Entry #11; preserves the door per [[feedback-phase1-prove-phase2-lockin]] |
-| Phase 2 trigger condition | Open: what metric activates the Phase 2 conversation | OPEN | Critical leverage point. Candidates: revenue threshold (e.g., $X recouped + $Y additional), wishlist count (e.g., 25K wishlists), date (e.g., 12 months post-EA), or trigger basket (any of the above) |
-| Right-of-first-refusal (ROFR) for other Modiphius IPs | Open scope | OPEN | Strongest Phase 2 leverage. Possible scope: any digital companion app for any Modiphius-licensed IP (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune, etc.) |
+| Phase 2 conceptual reference | LOI references "Stage 2" by name, with **5 Leagues from the Borderlands as the named lead Phase 2 deliverable** | DRAFT (2026-05-26) | Per Chris's "stage 2" framing in Entry #11 + Elijah's 2026-05-26 decision to gate 5L on 5PFH Steam EA. Preserves the door per [[feedback-phase1-prove-phase2-lockin]] |
+| Phase 2 trigger condition | **5PFH officially launching on Steam Early Access** opens the Phase 2 (5 Leagues) conversation | DRAFT (defined 2026-05-26) | Elijah's decision: "let's start talking about Five Leagues once we officially reach Steam Early Access on Five Parsecs." Clean observable milestone (vs a revenue/wishlist threshold), fully in dev's control, aligns with the EA workback (~late Sep 2026), keeps Phase 1 scope clean |
+| Right-of-first-refusal (ROFR) for other Modiphius IPs | 5 Leagues from the Borderlands is the lead/first IP; broader ROFR (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune, etc.) negotiated in the Phase 2 deal | OPEN (5L lead set 2026-05-26) | Strongest Phase 2 leverage. 5L is the natural first extension: same designer, shared campaign-engine architecture, T3 platform thesis. Cheap-conversion-due-to-reuse is the dev's selling point in the 5L deal |
 | ROFR offer window | Open: 30 / 60 / 90 days for dev to accept | OPEN | Industry standard is 60-90 days |
 | ROFR decline mechanics | If dev declines, Modiphius can offer to third party at no-better-terms | DRAFT | Standard ROFR structure; protects dev from being undercut |
 | Phase 2 deal structure (career sweetener) | Multi-year commitment, multi-IP scope, possibly with retainer / equity-like upside | DEFERRED | Per [[feedback-phase1-prove-phase2-lockin]] — Phase 2 conversation arrives AFTER Phase 1 succeeds. Don't extract from Phase 1 in ways that close Phase 2 leverage |
@@ -250,8 +254,8 @@ DA-specific positions to develop as MOU lands:
 These are the OPEN-status terms where being unprepared costs the most. Working positions on these should be prioritized.
 
 1. **The $X dev budget recoupment number** ($30-40K range is DRAFT; needs specific number + line-item buildup). This is THE anchor for the entire deal. Without a specific number ready, Chris's finance team drafts the first MOU language and anchors the negotiation.
-2. **The quarterly maintenance fee amount + scope** ($2-3K/quarter range is DRAFT; scope is OPEN). Without scope definition, scope-creep risk on dev side post-launch is unbounded.
-3. **The Phase 2 trigger condition**. Without a defined trigger, "stage 2" is permanently deferrable. This is your strongest leverage in the Phase 1 → Phase 2 arc.
+2. **The monthly maintenance fee amount + scope** (a flat fee off the top after recoup, REGARDLESS of model, NOT parked) and, separately, **the revenue model** (subscription vs one-time, PARKED to alpha). Reframed 2026-05-25/26 (Entry #12). The maintenance fee is a LIVE number; without a scope-of-fee inclusion list, post-launch scope-creep risk on the dev side is unbounded.
+3. **Phase 2 / 5 Leagues deal scope + ROFR.** The Phase 2 *trigger* is now DEFINED (2026-05-26): 5PFH officially reaching Steam EA opens the 5 Leagues conversation. What remains OPEN is the 5L deal terms themselves (its own $X recoup + monthly fee + 50/50) and the broader-IP ROFR scope, both negotiated at EA. This is where the multi-IP leverage now lives.
 4. **Right-of-first-refusal language for other IPs**. Where the Phase 2 leverage lives operationally.
 5. **Termination for convenience notice period** (DRAFT at 12 months; verify defensible). Short notice = Modiphius can take the platform R&D and walk.
 6. **Wind-down provisions**. Closes the door cleanly if the partnership doesn't continue.
@@ -266,7 +270,7 @@ These are the OPEN-status terms where being unprepared costs the most. Working p
 
 | Window | Term-position work |
 |---|---|
-| **Mon May 25 call** | No new terms hard-coded in writing. Lock alpha approach + duration verbally. Surface partnership-paperwork progression as the next priority (per Draft #F closing addition). |
+| **Mon May 25 call (DONE, Entry #12)** | Alpha approach locked (Google-Form signup funnel, Elijah owns DB). Informal-LOI-on-shared-Google-Doc path confirmed. Recoup-cost negotiation opened. Revenue model (subscription vs one-time) parked to alpha. Operational locks: monthly cadence, Monday.com, tester credits-not-pay. Chris assigned Elijah 3 drafts (LOI / Announcement / Form). |
 | **Late May → early June** | Build line-item justification for $X (research-anchored against Fallout app data, forecast §5b-cal + §11.8). Draft initial maintenance-fee scope language. |
 | **June (during A1-A2 cycle)** | Draft LOI language using Tier 1 positions above. Send to Modiphius for review + signature. |
 | **June-July (during A3-A5)** | Build DRAFT-status positions for all currently-OPEN MOU rows. Refine LOCKED positions as alpha data informs them (especially pricing band, gates, gate criteria). |
@@ -287,6 +291,35 @@ Append-only entries documenting how positions evolved. Each entry should include
 - DRAFT positions: 41 terms representing current working positions with verified citation trails. Stable but refining.
 - OPEN positions: 23 terms representing known gaps requiring research, decision, or partner conversation.
 - DEFERRED positions: 2 terms intentionally held for later phases (DLC pricing pending alpha data, Phase 2 deal structure pending Phase 1 success).
+
+### 2026-05-25 — Entry #12 deal-frame call
+
+- **Tier 1 LOI reframed** from formal instrument to an informal shared-understanding Google Doc (Chris's framing). Mechanism: dev drafts understanding, Modiphius co-edits, then long-form contract off their standard agreement.
+- **Recoupment mechanism**: re-confirmed verbally (Reading B). Position unchanged; added Entry #12 citation.
+- **Maintenance fee corrected (2026-05-26).** It is a flat MONTHLY fee to dev, off the top, after recoup and before the 50/50 split, applying REGARDLESS of revenue model (per Elijah + the May-13 email). Cadence moved quarterly to monthly; amount TBD (old $2-3K/quarter does not carry). An earlier same-cycle note wrongly tied it to subscription-only based on Chris's verbal phrasing; corrected. Chris's "if subscription" wording is an LOI alignment item.
+- **NEW term: Revenue model (subscription vs one-time)** added as OPEN / PARKED, deferred to alpha. It does NOT gate the maintenance fee. No position taken this session.
+- **$X total dev budget**: negotiation opened (DRAFT to negotiation ACTIVE). Dev proposes, data-anchored to alpha forecasts. No figure named.
+- **Alpha tester recruitment (§2.4)**: updated from "Ivan's Discord 10-20 closed" to a Google-Form signup funnel, experience-filtered, Elijah owns the email DB, Modiphius amplifies. Added LOCKED rows: tester DB ownership = Elijah; tester credit not pay.
+- **Reporting cadence**: updated to monthly check-ins once rolling (LOCKED).
+- Citation: `docs/MODIPHIUS_CORRESPONDENCE_JOURNAL.md` Entry #12.
+
+### 2026-05-26 — Phase 2 trigger defined (Five Leagues from the Borderlands)
+
+- **Phase 2 trigger condition moved OPEN to DRAFT.** Elijah's decision: the Five Leagues (fantasy) conversation opens when 5PFH OFFICIALLY reaches Steam Early Access. Clean observable milestone, not a revenue/wishlist threshold.
+- **5 Leagues named as the lead Phase 2 / multi-IP deliverable** (T3 platform thesis). NOT Phase 1 scope; NOT folded into the maintenance fee.
+- Rationale: keeps Phase 1 clean (per Chris's "don't let it bloat / stage 2"), preserves the strongest Phase 2 leverage, and gets 5L a proper standalone deal where the cheap-conversion reuse is the dev's selling point. Per [[feedback-phase1-prove-phase2-lockin]].
+
+### 2026-05-26 — Comp anchors blessed + compounding-income posture
+
+- **Opening anchors fixed by dev**: $X recoup anchored at $35K; monthly maintenance/support/dev fee anchored at $1,000/mo. Both still DRAFT pending Modiphius engagement, but the dev-side opening positions are set; the elaborate $X labor buildup was explicitly declined.
+- **Governing posture (Elijah, verbatim)**: *"this technically started as a hobby project, i dont have any formal dev training so this is purely a proof of my architecture skills and if this is going to turn into a bigger and longer partnership with different levers, i would be building towards compounding income streams."* Phase 1 is priced for the relationship and as a proof-of-architecture audition, NOT for labor-value maximization. The banked value is the fee annuity + multi-IP optionality, not the Phase 1 cash.
+- **Defend-vs-concede order (the practical expression of the compounding posture)**: (1) defend the monthly fee hardest, since it is the compounding annuity; (2) protect the Phase 2 / 5 Leagues structure plus broader-IP ROFR next, since that is where the lock-in and multiple streams live; (3) be generous on $X, the cheapest concession currency (recoups against forecast anyway, and goodwill there is what unlocks Phase 2). If Chris wants to bargain a number down, steer him to $X, away from the fee.
+- **Reframe locked**: the proof-of-architecture / self-taught origin is NOT a weakness in this deal. The working 900-file platform is the credential and the audition for the T3 multi-IP platform role. Say it that way internally. Per [[feedback-phase1-prove-phase2-lockin]] + [[feedback-negotiation-grace-posture]].
+
+### 2026-05-26: Pro-rata contribution scope defined
+
+- **"Budget contribution" (triggering pro-rata) scoped to NEW Modiphius CASH toward development only.** Carve-out: IP/trademarks, art/brand assets, and in-kind marketing/channel amplification do NOT count (compensated by the 50/50 split + physical-book margin). Closes a hole Elijah spotted: a broad reading of "budget" would have let Modiphius's marketing and IP dilute his recoupment priority, which is a double-dip (marketing is already paid via the split).
+- Applied to `docs/LOI_DRAFT.md` (pro-rata clause rewritten) + the Pro-rata row above. GRAY AREA for the MOU: cash marketing SPEND (paid ads/trailer), dev opening position excluded.
 
 ---
 

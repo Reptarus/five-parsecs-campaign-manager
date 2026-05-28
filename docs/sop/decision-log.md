@@ -283,6 +283,27 @@ preferred when no `_ready()` work is needed.
 
 ---
 
+## 2026-05: New No-Minis auto-resolver alongside BattleResolver, not an in-place align
+
+**Decision**: Build a distinct No-Minis auto-resolution path (a new resolver that drives the faithful `no_minis_combat.json` round structure through the existing `BattleCalculations` math), routed by the existing `combat_results["combat_mode"] == "no_minis"` flag. Leave `BattleResolver.resolve_battle()` unchanged as the generic quick-resolve used by the three standard auto-resolve callers.
+
+**Alternatives considered**:
+1. Align `BattleResolver.resolve_battle()` in place to the No-Minis structure (one auto-resolve path, fully book-faithful)
+2. Keep `BattleResolver`'s abstraction + leave No-Minis as companion-text-only; document the divergence
+3. New No-Minis resolver alongside (chosen)
+
+**Reasoning**: The B0 fidelity spike (2026-05-27) found `BattleResolver.resolve_battle()` is NOT No-Minis — it is a separate attrition abstraction: real `BattleCalculations` math applied under *standard* conventions, inside an invented loop where each side's units all attack the first alive target. Separately, a faithful No-Minis *structure* already exists as `CompendiumNoMinisCombat` + `NoMinisCombatPanel`, but it only emits instruction text for the player to roll — it never resolves. The two faithful halves (structure vs automated math) live in different systems and never meet; the "play it out for me" standalone direction (B2) needs exactly that bridge.
+
+Option 1 was rejected because No-Minis is, per the book (Compendium p.66), "a mode you choose and can mix with tabletop battles as you see fit" — not the universal resolver. Aligning in place would change behavior for all three existing `resolve_battle()` callers (`CampaignTurnController.gd:909`, `BattlePhase.gd:1513`, `TacticalBattleUI.gd:3483` auto-resolve) — the largest possible blast radius — for a path that should be opt-in. Option 2 leaves the strategic "play it out for me" pitch resolving battles with a non-canonical structure, undercutting both the standalone direction and the data-integrity spirit. Option 3 reuses both existing halves, has the smallest blast radius (`BattleResolver` untouched), matches the book's framing, hooks a routing flag that already exists, and keeps the output shape narrative-wrappable for B2.
+
+**Scope boundary for the B1 first cut** (recorded so it is NOT a silent cut — see CLAUDE.md "No Deferring Rule"): the auto-resolver implements faithfully the parts of No-Minis that *determine outcomes* — round phases, one-die-less initiative count, the Firefight (select 3 enemies / 4 if 7+, random crew targeting, longer-range-fires-first + return fire, both-in-Cover, max range, max Shots, Take-Cover natural-6, melee/mixed Brawl via `resolve_brawl`, Area/Terrifying ignored), and end-of-round morale + retreat. The **8 Initiative Actions and the Locations/objectives layer are tactical *player decisions*** — they have no analog in an unattended auto-resolve and already exist for the player-driven path in the shipped companion engine. The auto-resolver abstracts that layer (it does not invent a tactical AI) and documents the gap. Auto-played tactical actions would be a separate future decision.
+
+**Live-path correction (2026-05-27, found during routing verification)**: `src/core/campaign/phases/BattlePhase.gd` is DEPRECATED (Session 48c/50) and is NOT executed in the production battle flow. The live auto-resolve runs through `CampaignTurnController._on_auto_resolve_completed()` (the campaign "play it out for me" choice) and `TacticalBattleUI._on_auto_resolve_battle()` (the in-battle button). The No-Minis routing was therefore added to BOTH, gated on the `NO_MINIS_COMBAT` DLC flag: the campaign path also applies the Salvage fallback (mission type contains "salvage"); the shared TacticalBattleUI path is additionally guarded on `_battle_mode_id == ""` so Bug Hunt / Planetfall / Tactics (non-empty `battle_mode`) keep the generic resolver. BattlePhase was also routed for consistency (harmless dead code).
+
+**Validation**: DONE (2026-05-27). `tests/unit/test_no_minis_resolver.gd` — 13/13 pass (book-rule parity on morale/melee/bail-range, BattleResolver-compatible result shape, index-stable arrays, termination, the panel's 8 actions, and a parse guard on both live routing files). Runtime MCP confirmation of the live routing pending.
+
+---
+
 ## How to add a decision entry
 
 Use this template:

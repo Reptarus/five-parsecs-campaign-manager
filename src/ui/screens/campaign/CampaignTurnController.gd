@@ -6,6 +6,7 @@ extends Control
 
 const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
+const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
 
 # Core Dependencies
 @onready var campaign_phase_manager: Node = get_node("/root/CampaignPhaseManager")
@@ -906,13 +907,30 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	var dice_roller := func() -> int:
 		return randi_range(1, 6)
 
-	var resolved = BattleResolver.resolve_battle(
-		crew_data,
-		enemies,
-		battle_results.get("battlefield_data", {}),
-		battle_results.get("deployment_condition", {}),
-		dice_roller
-	)
+	# No-Minis Combat (Compendium pp.66-73): when the DLC is enabled, auto-resolve
+	# with the book's round structure. Salvage missions fall back to the generic
+	# resolver — No-Minis "is not easily usable with the Salvage mission type" (p.116).
+	var dlc = get_node_or_null("/root/DLCManager")
+	var use_no_minis: bool = dlc != null and dlc.is_feature_enabled(dlc.ContentFlag.NO_MINIS_COMBAT)
+	var mission_type: String = str(mission_data.get("type", mission_data.get("objective", ""))).to_lower()
+	if use_no_minis and "salvage" in mission_type:
+		use_no_minis = false
+
+	var resolved: Dictionary
+	if use_no_minis:
+		resolved = NoMinisResolverClass.resolve_battle(
+			crew_data, enemies,
+			battle_results.get("battlefield_data", {}),
+			battle_results.get("deployment_condition", {}),
+			dice_roller
+		)
+	else:
+		resolved = BattleResolver.resolve_battle(
+			crew_data, enemies,
+			battle_results.get("battlefield_data", {}),
+			battle_results.get("deployment_condition", {}),
+			dice_roller
+		)
 	resolved["auto_resolved"] = true
 
 	_on_battle_completed(resolved)

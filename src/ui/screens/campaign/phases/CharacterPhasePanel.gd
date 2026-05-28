@@ -4,6 +4,7 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/CharacterPhasePanel.gd")
 const CharacterEvents = preload("res://src/data/character_events.gd")
+const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 
 signal character_event_resolved(crew_member_name: String, event_type: String)
 
@@ -13,6 +14,10 @@ signal character_event_resolved(crew_member_name: String, event_type: String)
 @onready var continue_button: Button = $VBoxContainer/ContinueButton
 
 var resolved_events: Array[Dictionary] = []
+
+# NarrativeScreen serial-chain queue (one beat per crew event when the
+# narrative toggle is on). Untyped so resolved_events.duplicate() assigns cleanly.
+var _narrative_queue: Array = []
 
 func _ready() -> void:
 	super._ready()
@@ -41,6 +46,12 @@ func setup_phase() -> void:
 	_generate_crew_events()
 	if continue_button:
 		continue_button.disabled = false
+	# Narrative-mode branch (default ON via SettingsManager). Presents each
+	# resolved crew event as a full-screen beat in series. The list UI built
+	# in _generate_crew_events() is the fallback shown when the toggle is off
+	# or the screen fails to load. Mirrors the StoryPhasePanel integration.
+	if _narrative_enabled() and not resolved_events.is_empty():
+		_present_character_events_via_narrative()
 
 func _clear_events_display() -> void:
 	if not events_list:
@@ -147,3 +158,94 @@ func get_phase_data() -> Dictionary:
 		"events": resolved_events,
 		"event_count": resolved_events.size()
 	}
+
+
+# ── NarrativeScreen integration (Phase 3 — Character events) ──────────
+# Toggle: SettingsManager.are_narrative_events_enabled() (default ON).
+# Each crew member's resolved event is shown as a full-screen NarrativeScreen
+# beat in series; the last beat completing advances the phase. The list UI in
+# _generate_crew_events() remains the fallback when the toggle is off or the
+# screen fails to load. State (rolls, journal, character_event_resolved) is
+# already applied in _generate_crew_events() — these methods are presentation
+# only, so behavior is identical whether the toggle is on or off.
+
+func _narrative_enabled() -> bool:
+	var settings = get_node_or_null("/root/SettingsManager")
+	return settings != null \
+		and settings.has_method("are_narrative_events_enabled") \
+		and settings.are_narrative_events_enabled()
+
+
+func _present_character_events_via_narrative() -> void:
+	_narrative_queue = resolved_events.duplicate()
+	_present_next_character_event()
+
+
+func _present_next_character_event() -> void:
+	if _narrative_queue.is_empty():
+		complete_phase()
+		return
+	var NarrativeScreenClass = load(NARRATIVE_SCREEN_PATH)
+	if not NarrativeScreenClass:
+		push_warning("CharacterPhasePanel: narrative screen load failed; " \
+			+ "falling back to list UI")
+		return  # list UI + continue button is the safety net
+	var event_data: Dictionary = _narrative_queue.pop_front()
+	var screen = NarrativeScreenClass.new()
+	get_tree().root.add_child(screen)
+	screen.narrative_completed.connect(_on_character_narrative_done)
+	screen.skip_requested.connect(_on_character_narrative_skipped)
+	screen.present(_character_event_to_narrative_dict(event_data),
+		_build_narrative_context())
+
+
+func _character_event_to_narrative_dict(event_data: Dictionary) -> Dictionary:
+	var ev_type: String = str(event_data.get("event_type", ""))
+	var member: String = str(event_data.get("crew_member", "Crew Member"))
+	var desc: String = str(event_data.get("description", ""))
+	return {
+		"id": "character_event_" + ev_type.to_lower(),
+		"title": "%s: %s" % [member, ev_type.capitalize()],
+		"art_tag": "character_event",
+		"core_text": desc,
+		"advisor_role": "",  # the beat is about the crew member, no advisor row
+		"choices": [{"id": 0, "label": "Continue", "hint": ""}],
+	}
+
+
+func _build_narrative_context() -> Dictionary:
+	# World data lives on /root/PlanetDataManager (an inner PlanetData with
+	# .name/.traits), NOT on the campaign Resource. Mirrors StoryPhasePanel.
+	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
+	var planet = null
+	if planet_mgr and planet_mgr.has_method("get_current_planet"):
+		planet = planet_mgr.get_current_planet()
+	var world_name: String = "Unknown"
+	var world_traits: Array = []
+	if planet:
+		if "name" in planet:
+			world_name = str(planet.get("name"))
+		if "traits" in planet and planet.get("traits") is Array:
+			world_traits = planet.get("traits")
+	var turn_number: int = 0
+	var campaign = game_state.campaign if game_state else null
+	if campaign and "progress_data" in campaign:
+		turn_number = int(campaign.progress_data.get("turns_played", 0))
+	return {
+		"world_name": world_name,
+		"world_traits": world_traits,
+		"crew": _get_crew_members(),
+		"turn_number": turn_number,
+	}
+
+
+func _on_character_narrative_done(_result: Dictionary) -> void:
+	# Chain to the next crew event; completes the phase when the queue empties.
+	# Deferred so the just-completed screen's dismiss() (queue_free) settles
+	# before the next overlay is added.
+	call_deferred("_present_next_character_event")
+
+
+func _on_character_narrative_skipped() -> void:
+	# Skip advances past the current beat; the chain continues.
+	call_deferred("_present_next_character_event")

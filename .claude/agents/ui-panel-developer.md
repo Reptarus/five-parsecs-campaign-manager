@@ -47,7 +47,7 @@ You have a detailed reference skill at `.claude/skills/ui-development/`. **Read 
 | `references/panel-patterns.md` | BaseCampaignPanel helpers, factory methods, signal-up/call-down pattern, responsive layout |
 | `references/tweenfx-guide.md` | 70 animations, pivot_offset requirement list, looping cleanup, accessibility checks |
 | `references/scene-router.md` | SceneRouter routes (70+), navigation methods, history, caching, transitions |
-| `references/narrative-screen.md` | KoDP-style narrative overlay system (NarrativeScreen at CanvasLayer L95, advisor system, text generator, integration pattern) |
+| `references/narrative-screen.md` | KoDP-style narrative overlay system (NarrativeScreen at CanvasLayer L95, advisor system, text generator, integration pattern) + SceneStage character slots (roster-aware crew figures) + ambient "living painting" motion. For scene AUTHORING (manifest schema, layer contract, verification) read `docs/sop/narrative-scene-authoring.md` |
 | `references/sheet-export.md` | Sheet/PDF export system — SheetRenderer + PdfExportRouter + GodotPDF/GodotHaru backends, field manifest schema, addon gotchas (PDF_DOC is RefCounted not Object, GodotPDF page size hardcoded 612×792, FORMAT_RGB8/RGBA8 requirement), Sprint 3 PDF-native text overlay design |
 | `references/ornament-panel.md` | OrnamentPanel rulebook-faithful callout chrome (rounded + colored stroke + procedural corner brackets via 9-slice atlas). Atlas variants, sci-fi-vs-fantasy tuning rules, decision matrix vs CalloutCard/BookFrame. ALSO covers why we can't repurpose Modiphius .ai border art at panel scale |
 
@@ -108,6 +108,9 @@ Always `if ResourceLoader.exists(path):` before `load(path)` for any registry-pr
 ### 8. Cleanup Uses `_exit_tree()`, Not `tree_exited`
 For overlay cleanup that needs autoload access (restoring chrome, hiding PersistentResourceBar), override `_exit_tree()`. The `tree_exited` signal fires AFTER detachment, breaking `get_node_or_null("/root/X")` lookups. `_exit_tree()` fires WHILE the node is still in the tree.
 
+### 9. Narrative Scenes (SceneStage) — Read the Authoring SOP First
+Before touching SceneStage, a `data/scenes/<id>.json` manifest, scene art layers, crew figures, or ambient motion, read **`docs/sop/narrative-scene-authoring.md`**. Non-negotiable rules from that SOP: scene-layer depth uses **tree order, NOT `z_index`** (a SlotLayer between bg and actor layers keeps crew behind baked foreground actors); ambient motion is applied to layer **CONTAINERS, never individual rects** (so it never fights `_layout_character_slots()`), with an overscan baseline (1.04) hiding the letterbox edge; all ambient/scene motion **gates on `ThemeManager.is_reduced_animation_enabled()`**; and **motion is verified with a headless transform-probe, never a screenshot** (a still frame can't show drift).
+
 ## Workflow
 
 1. **Check the theme**: Read deep-space-theme.md for current color palette and spacing
@@ -148,7 +151,12 @@ For overlay cleanup that needs autoload access (restoring chrome, hiding Persist
 - `src/ui/screens/campaign/panels/BaseCampaignPanel.gd` — Deep Space theme base
 - `src/ui/screens/SceneRouter.gd` — scene routing (70+ routes)
 - `addons/TweenFX/TweenFX.gd` — animation addon (70 animations)
-- `src/ui/screens/narrative/` — NarrativeScreen (CanvasLayer L95), NarrativeTextGenerator, AdvisorSystem, NarrativeChoiceButton, SceneStage
+- `src/ui/screens/narrative/` — NarrativeScreen (CanvasLayer L95), NarrativeTextGenerator, AdvisorSystem, NarrativeChoiceButton, SceneStage (layers + character slots + ambient motion)
+- `src/core/character/SpeciesFigureRegistry.gd` — `species_id → full-figure PNG(s)` for scene character slots (mirrors SpeciesPortraitRegistry)
+- `src/ui/screens/dev/SceneViewer.gd` + `.tscn` — dev harness to preview a scene manifest (`-- scene_id=X test_crew=... autoshot`)
+- `data/scenes/<id>.json` — SceneStage manifests (bg/actor/fx layers + `character_slots` + `ambient_motion`)
+- `assets/figures/species/<species_id>_NN.png` — full-figure crew art (feet at bottom edge, full canvas, uniform humanoid)
+- `scripts/scene_layers_to_manifest.py` — builds a manifest from hand-exported layers (gitignored local tool)
 - `data/narrative/` — atmosphere_openers.json, advisor_quotes.json, species_personality.json
 - `src/ui/screens/print/` — PrintSheetScreen (tab bar + right rail for sheet export)
 - `src/ui/components/sheet/SheetRenderer.gd` — manifest-driven sheet renderer + SubViewport PNG/PDF export

@@ -29,7 +29,7 @@
 | 10a | 2026-05-18 to 2026-05-22 | Meeting (Zoom) — SLIPPED | — | DEFERRED — Modiphius internal IT/Tax/Accounting sprint deferred Chris's bandwidth; superseded by Mon May 25 reschedule per Entry #11a | (no touchpoint occurred) |
 | 11 | 2026-05-22 (04:29 AM) | Email inbound | Chris → Elijah, Gavin | Reply to Entry #10 — CHRIS-prefixed inline responses confirm deal structure ("yes that would how we'd propose it"), propose broadening as "stage 2" ("Keen not to let the project bloat"), request prioritised support list, ask for next-week availability | This document, Entry #11 |
 | 11a | 2026-05-22 (06:04 AM) | Email inbound | Chris → Elijah, Gavin | Forward of QA-docs thread + skim review — flags Ivan compensation as new dependency ("Ivan is not paid beyond writing the books"); flags competitor web-based tool as differentiation concern; asks Elijah to articulate product differentiation (UI + content); proposes Mon May 25 at 4:30/5pm UK (≈ 12pm Eastern) | This document, Entry #11a |
-| 12 | (target) 2026-05-25 | Meeting (Zoom) + Milestone | Elijah, Chris, Gavin | Combined: deal-frame call (subsumes Entry #10a) + alpha A1 cohort decision (Ivan's Discord OR public-beta-via-Five-Parsecs-Discord-and-subreddit per Draft #E proposal) | TBD |
+| 12 | 2026-05-25 | Meeting (Zoom) | Elijah, Chris, Gavin (joined ~min 23) | Deal-frame call (HAPPENED). Reading B re-confirmed (recoup $X dev cost then 50/50). After recoup, a flat MONTHLY maintenance fee to dev off the top (regardless of model), then 50/50. Revenue MODEL (subscription vs one-time) is a separate open pricing question, PARKED to alpha. Standalone / all-content / "randomise it for me" product steer (extends T1). Alpha = Google-Form signup funnel (XCOM 700→50 precedent), Elijah owns the email DB, Modiphius amplifies via newsletter/social/Discord/Facebook. Informal LOI on a shared Google Doc → long-form contract off Modiphius's standard agreement. Monthly check-ins; Monday.com; testers credited post-program; new Modiphius cost code. Chris assigns Elijah 3 drafts: LOI, Announcement, Google Form questions | This document, Entry #12 |
 
 ---
 
@@ -843,34 +843,67 @@
 
 ---
 
-### Entry #12 (Target) — 2026-05-25 — Meeting (Zoom) + Milestone — Combined deal-frame call + alpha A1 kickoff
+### Entry #12 — 2026-05-25 — Meeting (Zoom) — Deal-frame call + post-call deliverable assignment (HAPPENED)
 
-- **Mode**: Scheduled call (target Mon May 25 12pm Eastern / 5pm UK per Entry #11a) + same-day or near-day alpha A1 build release
-- **Participants**: Elijah, Chris, Gavin (presumed)
+- **Mode**: Scheduled call, Mon May 25 (~12pm Eastern / 5pm UK). Recorded via OBS; Premiere Pro transcript captured. This entry is built from Elijah's personal notes plus cleaned verbatim transcript quotes.
+- **Participants**: Elijah, Chris (whole call), Gavin (joined ~minute 23).
+- **Status**: HAPPENED and captured. No documents signed on the call. The call's output is a set of dev-owned next-step drafts (below) plus several confirmed operating decisions.
 
-- **Pre-meeting deliverables Elijah needs ready**:
-  - Phase 1 terms talking points (carry forward from `MEETING_PREP_2026-05-18.md` with Stage 2 reframe per Entry #11)
-  - $X figure honest anchor with line items ($30-40K range)
-  - Maintenance fee honest anchor ($2-3K/quarter range)
-  - Y threshold clarifying question (does it still apply alongside maintenance fee?)
-  - **REVISED**: Broadening-scope one-pager pivots from "make the case" to "Stage 2 placeholder language for LOI"
-  - Phase-2-closing clauses checklist (engine ownership, exclusivity, IP-grab, non-compete, ROFR) — defensive items for boilerplate review
-  - **NEW**: Prioritised support list (per Entry #11 ask — need-to-have / nice-to-have)
-  - **NEW**: Public-beta-via-Discord-and-subreddit pitch with Ivan-credits workaround (per Draft #E)
-  - **NEW**: Feedback-pipeline architecture (in-app reporting + designated Discord channel + Talo telemetry, all opt-in)
-  - **NEW**: Competitive differentiation talking points (T1 + T2 + Steam-as-platform)
-  - **NEW**: Graphics-light A1 framing (mechanics + narrative spine first; art integration phased across A2-A6)
+- **Chris's post-call chat message (the operative deliverable list, all owned by Elijah)**:
+  1. **Letter of Intent** — Elijah send draft
+  2. **Announcement** — Elijah send draft
+  3. **Google Form signup** — Elijah draft questions for form
+  - Chris in the call: *"I've just put in chat... the three things... if you send us draft questions, draft announcement, draft [letter of intent], then I can get that sorted for you."*
 
-- **Pre-meeting deliverables Modiphius-side may bring**:
-  - Confirmation on public-beta route
-  - Decision on Ivan involvement (credits workaround OR pay-to-participate)
-  - Identification of the competitor web-based tool
-  - LOI template / sample partnership documents (per Elijah's Draft #C ask)
-  - Possibly: boilerplate licensing contract sample
-  - Possibly: their own number proposals for $X and quarterly maintenance fee
-  - Possibly: chris's input from the UK video-game-firm investment contact
-- **Status**: NOT YET HAPPENED. To be journalized within 24 hours of the call.
-- **Alpha A1 release**: Pending the call's outcome on public-beta-vs-closed-cohort decision. If public beta is greenlit, A1 ships to Five Parsecs Discord + subreddit. If closed-cohort wins, A1 ships to Ivan's Discord (assuming Ivan-comp workaround agreed).
+- **Commercial structure (re-confirmed verbally; numbers still dev-to-propose)**:
+  - Chris (~01:46): *"what's the number that we're agreeing to... for you to recoup, before we get a share? And then what is the monthly amount that we're happy that you recoup, for ongoing support [and] maintenance before we get a share?"*
+  - Chris with Gavin (~34:44): *"we're going to agree an amount that is the largest development costs that he'll recoup from the payments through the app, through early access, before we get anything. And then after that, then it's [evenly] split. And then... we have to look at the financial model. Then if it's a subscription model, then there'll be an amount for ongoing development and maintenance, adding in more of the products, which will be recouped first. And then we get an equal split."*
+  - **READ (corrected per Elijah 2026-05-26)**: Three-tier waterfall, REGARDLESS of revenue model: (1) 100% of net to dev until $X recouped; (2) then a flat MONTHLY maintenance/support/development fee to dev off the top; (3) then the remainder split 50/50. The monthly fee is NOT subscription-contingent: it applies under any model. This matches the May-13 email's unconditional carve-out; the only change is cadence (quarterly to monthly). The fee AMOUNT is TBD (the old $2-3K/quarter does NOT carry to a monthly cadence). Separately, the revenue MODEL (subscription vs one-time price) is the open pricing question, PARKED to alpha (`PRICING_RESEARCH_PLAN.md` + gate 4); it does NOT gate the maintenance fee. NOTE: Chris's verbal phrasing tied the ongoing-maintenance amount to "if it's a subscription model" (~34:44); Elijah's understanding (and the May-13 email) is that it is unconditional. Flag as an explicit alignment item for the LOI Google Doc.
+  - Gavin: *"we need to decide if we're putting this under a pre-existing cost code or not. I would suggest a new one. If we're thinking about possibly extending this out elsewhere, rather than using the 5X1."* Chris: *"it would need its own cost code."* (Internal T3 multi-IP signal: Modiphius is provisioning for reuse beyond 5PFH.)
+  - No specific dollar figures named. Dev proposes $X; negotiation starts now, data-anchored to alpha-testing forecasts.
+
+- **Product direction (significant T1 refinement)**:
+  - Chris (~05:11): *"if we're building a product that you can buy on Steam, that is a standalone product, you don't need the rule book... if people are going to pay for this, then I think they need to get access to all the content, not just for it to be a useful thing if you got the book, and that's how we expand the audience."*
+  - Chris (~05:33): *"being able to just, I can't be bothered to play a game tonight, but I kind of want to do my next campaign turn, I'll just see what... randomise the battle for me. It's a good way for people just to take through the game and see what happens."*
+  - **READ**: The app should be a **standalone, all-content, playable-without-the-rulebook** product on Steam, with a full-automation / "randomise it for me" simulation mode as the audience-expansion mechanism. This EXTENDS T1 (companion-for-owners AND standalone-playable-for-new-buyers); it does not overwrite "companion not port." Endorses one-pager Angle 1. (Code-scope sweep 2026-05-26 found the auto-resolve primitives already exist and are wired; see the plan file.)
+
+- **Alpha / playtest mechanics (cohort model resolved: signup funnel, not closed 10-20)**:
+  - Grassroots / hardcore-fans FIRST, then Steam Early Access. Chris (~11:33): *"I'd do that as your alpha first and then when it's looking good... that's when you go to steam with early access."* EA framed as *"a wider paid base test... the preamble to crowdfunding."*
+  - **Signup via Google Form** (Chris ~29:28): *"it can be a Google form. It doesn't need, you don't even need a web page."* The form doubles as the experience filter (Chris ~29:50): *"have you tested a game, a digital product before? Have you tested a tabletop product? Have you played any of the five parsecs games?"*
+  - **XCOM precedent** (Chris ~14:01): *"we had 700 people [who] wanted to test the Xcom game, so we whittled it down to 50 who'd actually tested games for other companies before and had played more games before... if you start with 500, you're going to end up with probably 50."*
+  - **Elijah owns the email list / database and runs tester comms.** Chris (~20:54): *"we can get a URL set up and then just give you edit access to it so that you can set up the page... you've got control of that list of people and can talk to them."* Chris would *"always vote for getting people's email addresses."* Elijah is fine self-hosting / working inside Modiphius's ecosystem; Chris prefers Elijah self-manage so Modiphius is not in the daily workflow.
+  - **Modiphius amplifies on demand**: official Discord, 5PFH Facebook community group, Ivan's community, and the 5PFH newsletter / mailing list. Chris (~17:15): *"we've got a big mailing list for the five parsec fans, so we can do an email out as well."*
+  - **Testers credited after completing the program** (generalizes the Ivan-credit workaround to all testers). Chris (~07:11): *"you've got to complete the program to be listed as a play tester. And then we'll give them some credit."* Ivan-pay dependency dissolved (recognition, not payment).
+  - **Private Discord room for signed-up testers**; Gavin assigns Elijah's roles. Gavin (~25:49): *"I can actually assign you roles on a discord page... drop me a line when you're signed up."* Needs Elijah's Discord username.
+  - **Modiphius dev team reviews the survey wording before it goes live** (bias-check). Chris (~28:22): *"the whole dev team can have a look because... the way you ask can lead people to a certain answer."*
+  - Google Form gotcha (Chris): allow submissions WITHOUT a Google account (permissions).
+  - Dom (Modiphius head playtest) NOT involved in the alpha; may review at marker points later.
+
+- **Paperwork (LOI is informal, on a shared Google Doc)**:
+  - Chris (~15:22): *"We don't [need] like a letter of intent with just... commercial terms. This is what we've agreed to do, and this is what you've agreed to do. If you want to just put it like, this is what my understanding of it is... it is a Google doc and then I can add to it and then we'll use some of our language."*
+  - Chris: *"Then we can do a more formal contract. We've got like a standard agreement that we can customise to use for it... we've had a [studio] licence another IP of ours."*
+  - Sequence: informal LOI (shared Google Doc, both parties edit) → once happy → long-form agreement off Modiphius's standard customisable contract. Announcement follows the same Google-Doc co-edit pattern; Elijah CAN state the project is officially supported by Modiphius.
+
+- **Operating model / cadence**:
+  - Modiphius stays OUT of the daily workflow; involved only when Elijah needs a push (more testers, promotion) or at marker points / EA planning. Chris (~22:23): *"you need to be able to just get on with the app... and then once a month... we just check in."*
+  - **Monthly check-in call** confirmed (updates, metrics, show-and-tell, next steps).
+  - **Monday.com** adopted for tracking (accepts the standing Entry #8 suggestion).
+  - **First big workback goal = Steam Early Access.** Elijah floated ~1 month to a viable EA candidate; Chris said it is down to Elijah's timeline and achievable, while flagging the in-between-roles job contingency could change it.
+  - At Steam EA (public-facing), Modiphius gets more involved (branding, platform decisions such as iPhone). Chris: *"that's a conversation to be had at the time."*
+
+- **Action items out of the call**:
+  - Elijah (Modiphius PRIMARY): draft LOI (Google Doc), draft Announcement (Google Doc), draft Google Form questions. Send all to Modiphius for review before going live.
+  - Elijah: finish the one-pager with graphics-integration + oracle-mode + events-processing screenshots; share his Discord username with Gavin for role assignment.
+  - Elijah: stand up the Google Form + email capture (self-hosted), own the database.
+  - Modiphius: amplify via newsletter / social / Discord / Facebook when asked; Gavin assigns Discord roles + private tester room; new internal cost code provisioned.
+  - Both: begin recoup-cost negotiation (dev proposes, data-anchored to alpha forecasts); resolve the revenue model (subscription vs one-time) downstream of alpha data.
+
+- **Cross-references**:
+  - Entry #11 / #11a (the two May 22 inbound emails this call follows up on)
+  - Entry #11b (Draft #F outbound that set the May 25 agenda)
+  - `docs/PARTNERSHIP_TERM_POSITIONS.md` (terms moved by this call: Tier 1 LOI reframe + negotiation-history entry 2026-05-25)
+  - `docs/PRICING_RESEARCH_PLAN.md` (revenue-model decision parked here, gated on alpha)
+  - Plan file `C:\Users\admin\.claude\plans\i-guess-i-need-hashed-chipmunk.md` (alpha-readiness code scope from the 2026-05-26 sweep)
 
 ---
 
@@ -889,7 +922,7 @@
 | Phase-2-closing clauses checklist for boilerplate review | OPEN (NEW 2026-05-13) | Elijah | Identify and watch for: engine ownership, exclusivity, IP-grab language, non-compete, ROFR. Block any of these in Phase 1 boilerplate that would lock out Phase 2 negotiation leverage |
 | Boilerplate licensing contract sample | OPEN (NEW 2026-05-13) | Modiphius | Request via Gavin (soft approach) before any LOI signing. Boilerplate is the contract basis — should not sign without reading |
 | Sample platform-store sublicensing language | OPEN (NEW 2026-05-13) | Elijah | Chris asked for samples in Entry #8 Item 5. Research Steam/Apple/Google distribution-agreement language we'd be sublicensing back |
-| Monday.com board for operational tracking | OPEN (NEW 2026-05-13) | Both | Accept Chris's suggestion in next operational reply. Confirm setup ownership (Modiphius admin or Elijah-as-guest) |
+| Monday.com board for operational tracking | RESOLVED 2026-05-25 (Entry #12) | Both | Adopted. Confirm setup ownership (Modiphius admin or Elijah-as-guest) at the first monthly check-in |
 | Open-testing preference for closed alpha | SUPERSEDED 2026-05-22 by public-beta-via-Discord-and-subreddit proposal | Elijah | Earlier "open testing" stance refined into community-channel-limited public beta (Five Parsecs Discord + subreddit). See new thread below + Draft #E in Section 6 |
 | First weekly Gavin sync (QA docs delivery) | AWAITING RESPONSE (Gavin) | Gavin | Sent in Entry #7a/#7c cluster. Expected response window: 2-5 business days |
 | Operational QA companion docs (Entry/Exit Criteria, Regression Checklist, Traceability Matrix, Defects Log) | ON STANDBY | Elijah | Send if Gavin requests after reviewing first batch |
@@ -913,15 +946,24 @@
 | Five Parsecs logo refresh timeline | OPEN (NEW 2026-05-13) | Chris / Modiphius | Chris noted in Entry #9b that logo "WILL CHANGE FOR NEXT YEAR." Confirm target date verbally at May 18 call so app's branded surfaces can stage rollover to coincide with the refresh |
 | Modiphius unified icon set existence check | OPEN (NEW 2026-05-13) | Richard / Modiphius | Chris uncertain in Entry #9b ("I don't think we have any?"). If none exist, Elijah continues current game-icons.net SOP as working art direction. If any are found, evaluate for inclusion |
 | Asset licensing-of-use under LOI/MOU | OPEN (NEW 2026-05-13) | Elijah | Ensure LOI/MOU explicitly covers app-use rights for Modiphius source art (covers, interior art, logos). Flag at Entry #12 (May 25) call. DO NOT raise on Richard's operational thread — would mix legal into art delivery |
-| Public-beta-via-Discord-and-subreddit proposal | OPEN (NEW 2026-05-22) | Modiphius | Proposed in Draft #E. Community-channel-limited beta (Five Parsecs Discord + subreddit, not fully public). Awaiting Chris's confirmation at Entry #12 (May 25) call |
-| Feedback pipeline architecture | OPEN (NEW 2026-05-22) | Elijah | Hard requirement before A1 public beta ships: in-app reporting widget + designated Discord channel(s) for bugs/feedback + Talo telemetry, all opt-in via LegalConsentManager. Wire and smoke-test before May 25 |
-| Ivan compensation workaround (credits, not pay) | OPEN (NEW 2026-05-22) | Modiphius | Per Entry #11a, Ivan isn't paid beyond writing books. Elijah's proposal in Draft #E: credit Ivan and any of his playtesters in app credits as contributors — recognition without budget exposure. Awaiting Chris's response |
+| Alpha cohort / signup model | RESOLVED 2026-05-25 (Entry #12) | Elijah | Grassroots Google-Form signup funnel across official Discord / Ivan's community / 5PFH Facebook group, experience-filtered (XCOM 700-to-50). Supersedes both the Discord+subreddit framing and the Apr-29 Ivan-10-20 closed cohort. Elijah owns the email DB; Modiphius amplifies on demand |
+| Feedback pipeline architecture | OPEN (narrowed 2026-05-26) | Elijah | Talo telemetry confirmed installed + adapter wired (verified May 6). Remaining missing piece is the in-app bug-report/feedback WIDGET (greenfield, build on Talo `feedback_api`) + the private tester Discord channel (Gavin assigns roles). HARD REQUIREMENT before A1 |
+| Ivan compensation workaround (credits, not pay) | RESOLVED 2026-05-25 (Entry #12) | — | Confirmed: testers (incl. Ivan and his playtesters) credited after completing the program. Recognition not payment. Ivan-pay dependency dissolved |
 | Competitor web-based tool identification | OPEN (NEW 2026-05-22) | Chris | Chris flagged unnamed competitor in Entry #11a ("another creator is doing a web based tool"). Asked in Draft #E for the specific tool URL/name. Affects differentiation positioning |
 | UI + content differentiation framing | OPEN (NEW 2026-05-22) | Elijah | Chris asked in Entry #11a: "be clear how this product is different, is offering more both from a UI perspective but also content." Articulate T1 (companion-app-on-Steam, not digital port) + T2 (establishing category) + Steam-as-platform structural differentiation. Draft #E names it, sharpen at Entry #12 call once competitor identified |
 | Prioritised support list | SENT IN DRAFT #E 2026-05-22 | Chris | Chris asked in Entry #11 "What would help is a prioritised support list. What do you most need help with, then nice to have's etc?" Draft #E delivers it: need-to-have (public-beta confirmation, Ivan workaround decision, competitor identification, LOI template) + nice-to-have (logo refresh date, asset folder delivery) |
-| Entry #12 (Mon May 25) call time confirmation | OPEN (NEW 2026-05-22) | Both | Chris proposed 4:30/5pm UK (≈ 12pm Eastern) in Entry #11a. Draft #E confirms 5pm UK / 12pm Eastern as the default with 4:30pm UK as fallback. Awaiting Chris's lock |
+| Entry #12 (Mon May 25) call | RESOLVED 2026-05-25 (Entry #12) | — | Call happened Mon May 25 (~12pm Eastern / 5pm UK); Gavin joined ~min 23. Journaled as Entry #12 |
 | Graphics-light A1 framing communication | SENT IN DRAFT #E 2026-05-22 | Chris | Chris's "UI perspective" concern (Entry #11a) needs context: A1 ships mechanics + narrative spine first, art integration phased across A2-A6 informed by playtest data. NOT UI-quality compromise, it's UI-investment targeting. Awaiting Chris's read |
 | Modiphius IT/Tax/Accounting capacity constraint | TRACKING (NEW 2026-05-22) | Chris | Chris flagged in Entry #11: "we also have a major IT/Tax/Accounting project kicked off internally that's going to take some time to manage." Affects pacing, not direction. Grace-acknowledge in Draft #E, don't push timeline |
+| Three dev-owned drafts (LOI / Announcement / Google Form) | IN PROGRESS (NEW 2026-05-25) | Elijah | Per Chris's chat message (Entry #12). Draft each, send to Modiphius for review before going live. Priority: LOI + one-pager first, then Announcement + Form |
+| One-pager finish (graphics + oracle mode + events) | OPEN (NEW 2026-05-25) | Elijah | Finish `BROADENING_SCOPE_SKETCH.md` with graphics-integration + oracle-mode + events-processing screenshots; Chris asked to see what it looks like (Entry #12) |
+| Tester email list / database ownership | LOCKED (NEW 2026-05-25) | Elijah | Elijah owns the signup DB and tester comms; self-hosted (Google Form or own URL). Modiphius edit-access offer available but Elijah self-manages to keep them out of daily workflow (Entry #12) |
+| Recoup-cost $X line-item buildup | ACTIVE (NEW 2026-05-25) | Elijah | Negotiation started (Entry #12). Build defensible $X "largest development costs" figure, data-anchored to alpha-testing forecasts. Numbers dev-to-propose; none named on the call |
+| In-app feedback / bug-report widget | OPEN (NEW 2026-05-26) | Elijah | Code-scope sweep found this is the one blocking missing piece before A1. Build on Talo `feedback_api` (Talo installed + adapter wired). See plan file alpha-readiness scope |
+| Revenue model: subscription vs one-time | OPEN / PARKED (NEW 2026-05-25) | Both | Pricing model parked to alpha per `PRICING_RESEARCH_PLAN.md` + gate 4; do not force a position now. Does NOT gate the maintenance fee |
+| Monthly maintenance fee amount | OPEN (NEW 2026-05-26) | Elijah | Flat monthly fee off the top after recoup, before the 50/50 split, regardless of model. LIVE number (not parked). Size to ongoing monthly dev/support cost; old $2-3K/quarter does not carry. Confirm unconditional framing in the LOI |
+| Elijah Discord username to Gavin | OPEN (NEW 2026-05-25) | Elijah | Gavin needs it to assign roles + create the private tester channel (Entry #12) |
+| Standalone / all-content / automation product direction | TRACKING (NEW 2026-05-25) | Elijah | Chris's steer: Steam product playable without the book, all content, "randomise it for me" mode. Code-scope sweep (2026-05-26) found auto-resolve primitives ~70% exist and are wired. See plan file |
 
 ---
 
@@ -959,6 +1001,19 @@
 - 2026-05-22: **Competitor web-based tool flagged** — Entry #11a: Modiphius has identified an unnamed competitor "doing a web based tool and integrating the various books." Modiphius reviewing for IP-information limits. Differentiation positioning becomes more important
 - 2026-05-22: **QA-docs package skim-reviewed** — Entry #11a confirms Chris saw the QA materials Elijah sent in Entry #7c. "Complex information" + "need to understand better what you will need us to do" — engagement signal but light depth
 - 2026-05-22: **Mon May 25 4:30/5pm UK (12pm Eastern) proposed for rescheduled call** (Entry #11a)
+- 2026-05-25: **Recoupment Reading B re-confirmed verbally** (Entry #12). Recoup agreed $X "largest development costs" from app + EA payments before any split, then 50/50.
+- 2026-05-25: **Deal waterfall confirmed** (Entry #12; corrected 2026-05-26): regardless of revenue model, (1) 100% of net to dev until $X recouped, (2) then a flat MONTHLY maintenance/support/development fee to dev off the top, (3) then 50/50 of the remainder. The monthly fee is UNCONDITIONAL (matches the May-13 email; cadence quarterly to monthly; amount TBD, the old $2-3K/quarter does not carry). The revenue MODEL (subscription vs one-time price) is a SEPARATE open pricing question, PARKED to alpha (`PRICING_RESEARCH_PLAN.md`, gate 4), and does NOT gate the maintenance fee. Chris's verbal "if subscription" phrasing (~34:44) is an LOI alignment item to confirm.
+- 2026-05-25: **Standalone / all-content / no-rulebook product direction** (Entry #12). The Steam product must work without the book and expose all content, with a "randomise it for me" simulation mode, to expand the audience. Extends T1 (companion-for-owners AND standalone-playable-for-new-buyers).
+- 2026-05-25: **Informal LOI on a shared Google Doc** (Entry #12). Not a formal instrument: Elijah drafts his understanding of the deal + terms, Modiphius co-edits, then a long-form contract off Modiphius's standard customisable agreement (already used to license another IP for a video-game deal).
+- 2026-05-25: **Alpha = grassroots signup funnel via Google Form** (Entry #12). Hardcore fans first across official Discord / Ivan's community / 5PFH Facebook group, filtered by experience questions (XCOM 700-to-50 precedent). THEN Steam EA as the wider paid test.
+- 2026-05-25: **Elijah owns the tester email list/database** (Entry #12). Modiphius can give edit access to a URL but stays out of the daily workflow; Elijah self-manages tester comms.
+- 2026-05-25: **Modiphius amplifies on demand** (Entry #12) via the 5PFH newsletter/mailing list, social, official Discord, and Facebook community group, when Elijah needs a push.
+- 2026-05-25: **Testers credited after completing the program** (Entry #12). Recognition not payment; dissolves the Ivan-pay dependency from Entry #11a.
+- 2026-05-25: **Monthly check-in cadence** (Entry #12) once rolling: an update call with metrics, show-and-tell, next steps. Modiphius otherwise out of the loop.
+- 2026-05-25: **Monday.com adopted** for tracking (Entry #12; accepts the standing Entry #8 suggestion).
+- 2026-05-25: **New internal cost code** (Entry #12, Gavin): not under 5X1, provisioned for possible reuse beyond 5PFH (internal T3 multi-IP signal).
+- 2026-05-25: **Dom (head playtest) not in the alpha** (Entry #12); Modiphius team hands-off, may review at marker points. The dev team WILL review the survey wording before it goes live.
+- 2026-05-25: **Chris assigns Elijah three drafts** (Entry #12): LOI, Announcement, Google Form questions; send to Modiphius for review before going live.
 
 ### Decisions made by Elijah-side
 
@@ -981,6 +1036,12 @@
 - 2026-05-22: **Feedback pipeline as HARD REQUIREMENT for public beta** — Elijah-side gate: A1 does NOT ship to public-beta cohort without a wired feedback pipeline. In-app reporting widget + designated Discord channel(s) for bugs/feedback + Talo telemetry (already scaffolded per Phase 0.6 work), all opt-in via LegalConsentManager. Build before May 25
 - 2026-05-22: **Graphics-light A1 build as deliberate framing** — Elijah-side commitment to ship mechanics + narrative-spine A1 first, art integration phased across A2-A6 informed by playtest data. Two reasons: (1) ships most-up-to-date build to player hands faster, (2) art investment targets screens that actually matter once usage data lands. Framed in Draft #E to Chris as UI-investment targeting (NOT UI-quality compromise) so it doesn't read as "we're not ready"
 - 2026-05-22: **Accept Chris's "stage 2" framing for broadening** — Elijah-side decision (Entry #11 alignment with `feedback_phase1_prove_phase2_lockin.md`). Broadening one-pager scope pivots from "pitch deck for the call" to "Stage 2 placeholder line for LOI." Saves the wider-scope material for Phase 2 conversation post-ship
+- 2026-05-25: **Cohort model updated to a Google-Form signup funnel** (Entry #12). Supersedes the 2026-04-29 "Ivan's Discord 10-20 closed" decision AND the 2026-05-22 Discord+subreddit framing: hardcore-fan signup across official channels, experience-filtered, then Steam EA as the wider paid test.
+- 2026-05-25: **Self-host the signup + email database** (Entry #12). Own the tester list; keep Modiphius out of the daily workflow.
+- 2026-05-25: **Own the three drafts** (LOI, Announcement, Google Form questions) + the one-pager finish; send to Modiphius for review before going live (Entry #12).
+- 2026-05-25: **Pricing model PARKED** (Entry #12). Do not take a subscription-vs-one-time position now; defer to alpha data per `PRICING_RESEARCH_PLAN.md` + gate 4. The standalone-replaces-book pricing catch-22 is a known personal strategic tension, not a decision to force this session.
+- 2026-05-25: **First workback goal = Steam EA** (Entry #12). Per the 2026-05-26 code-scope sweep, the in-app feedback widget is the one blocking missing code piece before A1.
+- 2026-05-26: **Five Leagues from the Borderlands gated to Phase 2** (Elijah). The 5L (fantasy) conversion is NOT Phase 1 scope and is NOT folded into the maintenance fee. Trigger to open the 5L conversation: 5PFH officially reaching Steam Early Access. 5L is the named lead Phase 2 / multi-IP deliverable (T3 platform thesis), to be negotiated as its own deal (own recoup + fee + 50/50). Per `feedback_phase1_prove_phase2_lockin.md` and Chris's own "stage 2" framing.
 
 ### Joint decisions (both parties)
 
@@ -988,6 +1049,8 @@
 - 2026-04-29: **Cadence**: weekly Gavin sync, bi-weekly strategic with Chris
 - 2026-04-29: **Modiphius keeps 100% of physical margin** — physical sales not subject to 50/50 (or any later) rev share
 - 2026-05-06: **Weekly Gavin cadence rhythm established** via Entry #7a QA docs delivery (originally target Mon May 4 / Tue May 5, landed Tue May 6 — slipped few days but rhythm preserved)
+- 2026-05-25: **Cadence simplified to monthly check-ins once rolling** (Entry #12), superseding the Apr-29 weekly-Gavin / bi-weekly-Chris cadence for the build phase. Modiphius is involved on-demand (amplification, marker points) and at EA planning.
+- 2026-05-25: **Paperwork path clarified** (Entry #12): informal LOI on a shared Google Doc, then a long-form contract off Modiphius's standard customisable agreement. Refines the Apr-29 LOI -> MOU -> Definitive progression: the shared-understanding Google Doc is the working "MOU", and the customised standard contract is the binding step.
 
 ---
 

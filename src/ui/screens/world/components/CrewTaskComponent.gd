@@ -9,6 +9,7 @@ const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
 const GrenadeCombinationPopupScript = preload("res://src/ui/components/dialogs/GrenadeCombinationPopup.gd")
 const CrewTaskEventDialogScript = preload("res://src/ui/components/dialogs/CrewTaskEventDialog.gd")
+const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -1794,6 +1795,17 @@ func _show_next_event_dialog() -> void:
 		_show_next_event_dialog()
 		return
 
+	# Narrative-mode branch (default ON): present outcome-independent
+	# "acknowledge" events as a full-screen NarrativeScreen beat. Interactive
+	# events (rolls/choices/pickers/trades) fall through to CrewTaskEventDialog,
+	# which is the engine that produces the outcome dict _on_event_completed
+	# needs. Routing those richer types through the narrative layer is the A3 sprint.
+	var ev_type: int = event_data.get(
+		"type", CrewTaskEventDialog.EventType.INFO_ONLY)
+	if _narrative_events_enabled() and _is_narrative_friendly_event(ev_type):
+		_present_crew_event_via_narrative(event_data)
+		return
+
 	var dialog: Window = CrewTaskEventDialogScript.new()
 	dialog.event_completed.connect(_on_event_completed.bind(event_data))
 	add_child(dialog)
@@ -1970,6 +1982,113 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 	_update_progress_display()
 	# Defer to next frame so queue_free() clears the old exclusive dialog first
 	call_deferred("_show_next_event_dialog")
+
+# ── NarrativeScreen integration (Phase 4 — Crew task events) ──────────
+# Toggle: SettingsManager.are_narrative_events_enabled() (default ON). Only
+# outcome-independent events are routed here (see _is_narrative_friendly_event);
+# their state is applied by _on_event_completed from event_data, so an empty
+# outcome is correct. Interactive events keep using CrewTaskEventDialog.
+
+func _narrative_events_enabled() -> bool:
+	var settings = get_node_or_null("/root/SettingsManager")
+	return settings != null \
+		and settings.has_method("are_narrative_events_enabled") \
+		and settings.are_narrative_events_enabled()
+
+
+func _is_narrative_friendly_event(event_type: int) -> bool:
+	# "Acknowledge" events whose state mutation reads from event_data (not the
+	# dialog's outcome dict). Verified against the _on_event_completed dispatch.
+	match event_type:
+		CrewTaskEventDialog.EventType.INFO_ONLY, \
+		CrewTaskEventDialog.EventType.GAIN_CREDITS, \
+		CrewTaskEventDialog.EventType.GAIN_XP, \
+		CrewTaskEventDialog.EventType.GAIN_STORY_POINT, \
+		CrewTaskEventDialog.EventType.ROLL_ON_TABLE, \
+		CrewTaskEventDialog.EventType.SICK_BAY, \
+		CrewTaskEventDialog.EventType.GAIN_RIVAL, \
+		CrewTaskEventDialog.EventType.GAIN_PATRON, \
+		CrewTaskEventDialog.EventType.IMMUNE, \
+		CrewTaskEventDialog.EventType.DEFERRED:
+			return true
+		_:
+			return false
+
+
+func _present_crew_event_via_narrative(event_data: Dictionary) -> void:
+	var NarrativeScreenClass = load(NARRATIVE_SCREEN_PATH)
+	if not NarrativeScreenClass:
+		push_warning("CrewTaskComponent: narrative screen load failed; " \
+			+ "applying event outcome directly")
+		_on_event_completed({}, event_data)  # state from event_data, chain continues
+		return
+	var screen = NarrativeScreenClass.new()
+	get_tree().root.add_child(screen)
+	screen.narrative_completed.connect(
+		_on_crew_event_narrative_done.bind(event_data))
+	screen.skip_requested.connect(
+		_on_crew_event_narrative_skipped.bind(event_data))
+	screen.present(_crew_event_to_narrative_dict(event_data),
+		_build_crew_narrative_context())
+
+
+func _crew_event_to_narrative_dict(event_data: Dictionary) -> Dictionary:
+	var event_name: String = str(event_data.get("event_name", "Crew Task"))
+	var effect_text: String = str(event_data.get("effect_text", ""))
+	var crew_name: String = str(event_data.get("crew_name", ""))
+	var task_type: String = str(event_data.get("task_type", ""))
+	var briefing: String = ""
+	if not crew_name.is_empty() and not task_type.is_empty():
+		briefing = "%s: %s" % [crew_name, task_type.capitalize()]
+	elif not crew_name.is_empty():
+		briefing = crew_name
+	elif not task_type.is_empty():
+		briefing = task_type.capitalize()
+	return {
+		"id": "crew_task_event",
+		"title": event_name,
+		"art_tag": "crew_task_event",
+		"core_text": effect_text,
+		"briefing_text": briefing,
+		"advisor_role": "",
+		"choices": [{"id": 0, "label": "Continue", "hint": ""}],
+	}
+
+
+func _build_crew_narrative_context() -> Dictionary:
+	# World data lives on /root/PlanetDataManager (inner PlanetData .name/.traits).
+	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
+	var planet = null
+	if planet_mgr and planet_mgr.has_method("get_current_planet"):
+		planet = planet_mgr.get_current_planet()
+	var world_name: String = "Unknown"
+	var world_traits: Array = []
+	if planet:
+		if "name" in planet:
+			world_name = str(planet.get("name"))
+		if "traits" in planet and planet.get("traits") is Array:
+			world_traits = planet.get("traits")
+	var crew: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_crew_members"):
+		crew = gs.get_crew_members()
+	return {
+		"world_name": world_name,
+		"world_traits": world_traits,
+		"crew": crew,
+		"turn_number": 0,
+	}
+
+
+func _on_crew_event_narrative_done(_result: Dictionary, event_data: Dictionary) -> void:
+	# Empty outcome is correct for narrative-friendly types (state comes from
+	# event_data). _on_event_completed continues the chain via call_deferred.
+	_on_event_completed({}, event_data)
+
+
+func _on_crew_event_narrative_skipped(event_data: Dictionary) -> void:
+	_on_event_completed({}, event_data)
+
 
 func _auto_resolve_event(event_data: Dictionary) -> void:
 	## Auto-resolve an event without showing dialog — sensible defaults

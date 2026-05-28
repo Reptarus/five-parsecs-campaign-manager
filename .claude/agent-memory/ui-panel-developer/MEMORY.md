@@ -51,6 +51,19 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## May 27, 2026: Narrative Scene Composition + Ambient Motion
+
+SceneStage gained roster-aware **character slots** + scene-wide **ambient motion**. Full authoring SOP: `docs/sop/narrative-scene-authoring.md`; UI wiring: `references/narrative-screen.md`. Hard rules (each is also an anti-regression):
+
+- **Depth = TREE ORDER, not `z_index`.** A `SlotLayer` inserted between bg and actor layers keeps crew figures behind baked foreground actors. `z_index` overrides tree order across parents and breaks this.
+- **Ambient motion on layer CONTAINERS, never individual rects.** `_layout_character_slots()` owns each figure's `rect.position`; drifting a rect fights the layout on resize. Drift/breathe the container — the transform composes on top.
+- **Overscan (1.04) baseline** hides the letterbox edge that scene-wide drift would expose; the breathe scale-swing floor stays AT overscan so headroom never collapses.
+- **Gate scene/ambient motion on `ThemeManager.is_reduced_animation_enabled()`** (raw `create_tween`, so the gate is manual — TweenFX's guard doesn't cover it). Off = scale 1, pos 0, static.
+- **Motion is verified by a headless transform-probe, NOT a screenshot** — a still frame can't show drift. Sample node `.position`/`.scale` at t0 vs t+3s.
+- Crew figures: `SpeciesFigureRegistry` (`species_id → PNG`, existence-aware variant pick). Feet-anchored (bottom-center), uniform humanoid shapes only (scales by HEIGHT). `assets/figures/species/<id>_NN.png`.
+- Full-canvas layer contract: every scene PNG must be canvas-sized (Photoshop per-layer export TRIMS — use Layers to Files, Trim UNCHECKED). Run `--headless --import` after new PNGs.
+- Dev harness: `src/ui/screens/dev/SceneViewer.tscn` (`-- scene_id=X test_crew=precursor,swift,k_erin autoshot`).
+
 ## Session 53: Compendium Setup Card + Colony Travel Buttons (Apr 9, 2026)
 
 ### ExpandedConfigPanel — New "COMPENDIUM SETUP OPTIONS" Card

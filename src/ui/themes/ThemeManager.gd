@@ -367,15 +367,20 @@ func _apply_colorblind_variant(variant: ThemeVariant) -> void:
 
 ## Apply current scale factor to fonts
 func _apply_scale_factor() -> void:
-	# Scale fonts
-	var font_list = _current_theme.get_type_list()
-	for type_name in font_list:
-		for font_type in ["font", "normal_font", "bold_font", "italic_font", "bold_italic_font"]:
-			if _current_theme.has_font(font_type, type_name):
-				var font = _current_theme.get_font(font_type, type_name)
-				if font:
-					var current_size = font.get_size()
-					font.set_size(current_size * _scale_factor)
+	# Godot 4: Font resources have NO get_size()/set_size() — font sizing is a theme
+	# font_size property applied at render. (The old Godot-3-style font.get_size() call
+	# threw "Nonexistent function 'get_size' in base 'FontFile'" on every boot.) Scale
+	# every font_size the BASE theme defines into the current theme. Reading sizes from
+	# _base_theme — not _current_theme — avoids compounding when set_scale_factor()
+	# re-applies without reloading the theme.
+	if _base_theme == null or _current_theme == null:
+		return
+	for type_name in _base_theme.get_type_list():
+		for size_name in _base_theme.get_font_size_list(type_name):
+			var base_size: int = _base_theme.get_font_size(size_name, type_name)
+			if base_size > 0:
+				_current_theme.set_font_size(
+					size_name, type_name, int(round(base_size * _scale_factor)))
 
 ## Apply high contrast mode if enabled
 func _apply_high_contrast() -> void:

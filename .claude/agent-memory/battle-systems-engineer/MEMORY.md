@@ -8,6 +8,18 @@ The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority 
 
 ---
 
+## NEXT SPRINT (queued May 27): No-Minis Combat foundation (B0 + B1)
+
+Lead sprint off the new roadmap (`docs/SPRINT_ROADMAP_NARRATIVE_COMBAT.md`). Standalone-direction combat ("advance the campaign without a tabletop"). **Read first**: `docs/COMBAT_SIMULATION_MODES_RESEARCH.md` + `data/RulesReference/Nominis.json` (the canonical No-Minis ruleset) + Compendium p.66.
+
+- **B0 = fidelity spike (do this BEFORE wiring)**: does `BattleResolver.resolve_battle()` already implement No-Minis, or a different abstraction? Trace it against `Nominis.json`, produce a parity table (book rule → code presence), decide align-to-book vs keep-and-document. This gates B1/B2.
+- **B1 = wire/align**: No-Minis round structure — battle-flow events → initiative (ONE die fewer than normal) → firefight (select 3 random enemies, 4 if 7+); 8 action choices; per-mission notes; **Salvage-mission fallback** (No-Minis "not easily usable" with Salvage, Compendium p.116).
+- **B2 (later) = the bridge**: wrap the resolution in `NarrativeScreen`/`SceneStage` ("play it out for me" as story) — the convergence with the shipped narrative layer.
+- Guardrail: every threshold/value from Compendium or `Nominis.json` — NO invented combat data. `qa-specialist` verifies.
+- Combat is a TWO-axis model (representation: full-minis/grid/no-minis/auto-resolve × Dramatic-Combat flavor toggle). Dramatic Combat (B3) is a PARTIAL scaffold today — see the research doc for the exact missing pieces (Adjusted Shooting, Duck Back, Lunge consumer, Dramatic Weapons table).
+
+---
+
 ## Critical Gotchas — Must Remember
 
 1. **BattleResolver is static** (RefCounted) — use `BattleResolver.resolve_battle()`, never instantiate as Node.

@@ -6,6 +6,7 @@ extends Control
 ## Travel comes BEFORE World Phase in the campaign turn sequence
 
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
+const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 
 signal phase_completed()
 signal travel_completed()
@@ -456,7 +457,65 @@ func _generate_travel_event() -> void:
 	_add_log_entry("Starship Travel Event roll: [color=#4FC3F7]%d[/color]" % travel_roll)
 	
 	var event_result := _process_travel_event_roll(travel_roll)
+	# Narrative-mode branch (default ON): present the travel event as a
+	# full-screen atmospheric beat. This is a presentation overlay only — the
+	# in-panel display below still drives the mechanics/choices/effects, so
+	# behavior is unchanged whether the toggle is on or off.
+	if _narrative_events_enabled():
+		_present_travel_event_via_narrative(event_result)
 	_display_travel_event(event_result)
+
+func _narrative_events_enabled() -> bool:
+	var settings = get_node_or_null("/root/SettingsManager")
+	return settings != null \
+		and settings.has_method("are_narrative_events_enabled") \
+		and settings.are_narrative_events_enabled()
+
+func _present_travel_event_via_narrative(event: Dictionary) -> void:
+	## Intro beat for a starship travel event. The TravelPhaseUI panel remains
+	## the mechanics surface (effects/choices resolve there after dismissal).
+	var NarrativeScreenClass = load(NARRATIVE_SCREEN_PATH)
+	if not NarrativeScreenClass:
+		return  # in-panel display is the fallback
+	var screen = NarrativeScreenClass.new()
+	get_tree().root.add_child(screen)
+	# No completion handler needed: the screen self-dismisses on Continue/skip,
+	# revealing the panel underneath where the player resolves the event.
+	screen.present(_travel_event_to_narrative_dict(event),
+		_build_travel_narrative_context())
+
+func _travel_event_to_narrative_dict(event: Dictionary) -> Dictionary:
+	return {
+		"id": "travel_event_" + str(event.get("type", "none")),
+		"title": str(event.get("title", "Starship Travel")),
+		"art_tag": "space_travel",
+		"core_text": str(event.get("description", "")),
+		"advisor_role": "",
+		"choices": [{"id": 0, "label": "Continue", "hint": ""}],
+	}
+
+func _build_travel_narrative_context() -> Dictionary:
+	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
+	var planet = null
+	if planet_mgr and planet_mgr.has_method("get_current_planet"):
+		planet = planet_mgr.get_current_planet()
+	var world_name: String = "Unknown"
+	var world_traits: Array = []
+	if planet:
+		if "name" in planet:
+			world_name = str(planet.get("name"))
+		if "traits" in planet and planet.get("traits") is Array:
+			world_traits = planet.get("traits")
+	var crew: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_crew_members"):
+		crew = gs.get_crew_members()
+	return {
+		"world_name": world_name,
+		"world_traits": world_traits,
+		"crew": crew,
+		"turn_number": 0,
+	}
 
 func _process_travel_event_roll(roll: int) -> Dictionary:
 	## Process travel event roll using Five Parsecs tables (p.70-71)

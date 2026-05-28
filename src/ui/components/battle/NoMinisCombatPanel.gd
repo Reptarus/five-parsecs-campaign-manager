@@ -23,7 +23,7 @@ var _title_label: Label
 var _round_label: Label
 var _instructions_text: RichTextLabel
 var _locations_container: VBoxContainer
-var _action_buttons_container: HBoxContainer
+var _action_buttons_container: HFlowContainer
 var _advance_button: Button
 var _end_button: Button
 var _flow_event_button: Button
@@ -79,17 +79,28 @@ func _build_ui() -> void:
 	action_header.add_theme_font_size_override("font_size", 16)
 	main_vbox.add_child(action_header)
 
-	_action_buttons_container = HBoxContainer.new()
-	_action_buttons_container.add_theme_constant_override("separation", 4)
+	_action_buttons_container = HFlowContainer.new()
+	_action_buttons_container.add_theme_constant_override("h_separation", 4)
+	_action_buttons_container.add_theme_constant_override("v_separation", 4)
 	main_vbox.add_child(_action_buttons_container)
 
-	# Create action buttons
-	var actions := ["Fire", "Engage", "Cover", "Sprint", "Search", "Aid"]
-	for action_name in actions:
+	# The 8 No-Minis Initiative Actions (Compendium p.68), each bound to its exact
+	# JSON id in data/compendium/no_minis_combat.json.
+	var actions := [
+		["Scout", "scout_for_locations"],
+		["Move Up", "move_up"],
+		["Carry Out Task", "carry_out_task"],
+		["Charge", "charge"],
+		["Optimal Shot", "optimal_shot"],
+		["Support", "support"],
+		["Take Cover", "take_cover"],
+		["Keep Distance", "keep_distance"],
+	]
+	for action_pair in actions:
 		var btn := Button.new()
-		btn.text = action_name
-		btn.custom_minimum_size = Vector2(60, 40)
-		btn.pressed.connect(_on_action_pressed.bind(action_name.to_lower()))
+		btn.text = action_pair[0]
+		btn.custom_minimum_size = Vector2(96, 40)
+		btn.pressed.connect(_on_action_pressed.bind(action_pair[1]))
 		_action_buttons_container.add_child(btn)
 
 	# Separator
@@ -239,25 +250,9 @@ func _on_action_pressed(action_id: String) -> void:
 	if not _is_active:
 		return
 
-	# Find matching action
+	# Button ids match the JSON initiative_actions ids exactly (Compendium p.68).
 	for action in CompendiumNoMinisRef.INITIATIVE_ACTIONS:
-		if action.id == action_id or action.id.begins_with(action_id):
-			_append_instruction(action.instruction)
-			action_resolved.emit(action.instruction)
-			return
-
-	# Fallback mapping
-	var action_map := {
-		"fire": "fire",
-		"engage": "engage",
-		"cover": "take_cover",
-		"sprint": "sprint",
-		"search": "search",
-		"aid": "first_aid",
-	}
-	var mapped_id: String = action_map.get(action_id, action_id)
-	for action in CompendiumNoMinisRef.INITIATIVE_ACTIONS:
-		if action.id == mapped_id:
+		if action.id == action_id:
 			_append_instruction(action.instruction)
 			action_resolved.emit(action.instruction)
 			return

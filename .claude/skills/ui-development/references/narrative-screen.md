@@ -1,16 +1,19 @@
 # Narrative Screen — KoDP-style Event Overlay (Phase 1 SHIPPED)
 
-Full-screen King-of-Dragon-Pass-style narrative event display, integrated into Story Track May 22, 2026. Phases 2-6 extend to other campaign phases.
+Full-screen King-of-Dragon-Pass-style narrative event display, integrated into Story Track May 22, 2026. Phases 2-6 extend to other campaign phases. **Scene composition (roster-aware character slots) + ambient "living painting" motion shipped May 27** — see the §§ below and **`docs/sop/narrative-scene-authoring.md`** (the authoring SOP: layer contract, manifest schema, verification).
 
 ## Files
 
 | Path | Lines | Role |
 |------|-------|------|
-| `src/ui/screens/narrative/NarrativeScreen.gd` | 609 | Full-screen overlay, extends CanvasLayer at L95 |
+| `src/ui/screens/narrative/NarrativeScreen.gd` | 701 | Full-screen overlay, extends CanvasLayer at L95; `_populate_character_slots()` maps crew → slots |
 | `src/ui/screens/narrative/NarrativeTextGenerator.gd` | 107 | SSOT composer: opener + trait modifier + verbatim core_text |
 | `src/ui/screens/narrative/AdvisorSystem.gd` | 215 | Crew→role match, quote generation |
 | `src/ui/screens/narrative/NarrativeChoiceButton.gd` | 111 | Button + hint, fires `choice_pressed(int)` |
-| `src/ui/screens/narrative/SceneStage.gd` | — | Layered scene composer (PSD pipeline output OR single-PNG) |
+| `src/ui/screens/narrative/SceneStage.gd` | — | Layered scene composer + character slots + ambient motion (bg/slot/actor/fx layers) |
+| `src/core/character/SpeciesFigureRegistry.gd` | — | `species_id → full-figure PNG(s)`, existence-aware variant pick (mirrors SpeciesPortraitRegistry) |
+| `src/ui/screens/dev/SceneViewer.gd` + `.tscn` | — | Dev harness to preview a manifest in isolation (`test_crew=`, `autoshot`) |
+| `data/scenes/<id>.json` | — | SceneStage manifest (bg/actors/fx + `character_slots` + `ambient_motion`) — see authoring SOP |
 | `data/narrative/atmosphere_openers.json` | — | 5 categories + 12 trait modifiers + art_tag map |
 | `data/narrative/advisor_quotes.json` | — | 6 roles × 3 moods × 1 quote scaffold |
 | `data/narrative/species_personality.json` | — | 10 species flavor entries |
@@ -123,11 +126,43 @@ var quote: String = AdvisorSystem.generate_quote(advisor, role, mood)
 - 18-quote scaffold (1 per role×mood). Expand during Phase 3 (CharacterPhasePanel integration)
 - Empty crew or no-match → returns `null`, AdvisorRow hidden
 
+## SceneStage — character slots (roster-aware composition, May 27)
+
+A scene manifest may declare `character_slots`; the player's ACTUAL crew is
+composited as full-figure art keyed by `species_id`. Authoring details +
+manifest schema live in **`docs/sop/narrative-scene-authoring.md`** — the
+NarrativeScreen-side wiring:
+
+```gdscript
+# NarrativeScreen._populate_character_slots() (called in present() after _populate_illustration())
+var slots: Array = _scene_stage.get_character_slots()      # manifest geometry
+# captain -> "hero" slot (Character.is_captain); other slots -> AdvisorSystem.select_advisor(slot.role, crew)
+# deduped, roster-order fallback. Assignment: {slot_id, species_id, character_id}
+_scene_stage.set_character_slots(assignments)
+```
+
+- Figure art: `src/core/character/SpeciesFigureRegistry.gd` — `species_id → [paths]`, deterministic per `character_id`, **existence-aware** (a not-yet-shipped variant never blanks a slot)
+- **Depth = TREE ORDER, not `z_index`**: a `SlotLayer` sits between bg and actor layers, so crew always render behind baked foreground actors. `z_index` would override tree order across parents
+- Feet-anchored (bottom-center) at the slot's normalized `anchor`; **uniform humanoid figures only** (placement scales by HEIGHT — a wide Hulker balloons sideways)
+- `SceneStage` stays decoupled from campaigns; the dev `SceneViewer` drives the same API with `test_crew=<species,...>`
+
+## SceneStage — ambient "living painting" motion (May 27)
+
+Every scene gets a TINY scene-wide motion so the static illustration feels
+alive. NOT pronounced depth parallax.
+
+- Two stacked motions per layer: **drift** (slow sine on `position`, foreground drifts more than backdrop) + **breathe** (slow sine on `scale` = Ken Burns)
+- **Applied to layer CONTAINERS, never individual rects** — so it never fights `_layout_character_slots()` (which owns each figure's `rect.position`). The container transform composes on top
+- **Overscan** baseline (1.04) hides the letterbox edge drift would expose; the breathe floor stays at overscan so headroom never collapses
+- **Gated by Reduced Motion**: `get_node_or_null("/root/ThemeManager").is_reduced_animation_enabled()` → off means perfectly static
+- Data-driven via the manifest `ambient_motion` block (absent/`{}` = on with defaults). Tune numbers, no code
+- **Verify motion with a transform-probe, NOT a screenshot** (a still frame can't show drift) — see `docs/sop/visual-runtime-verification.md`
+
 ## Critical gotchas
 
 - **Portrait load safety**: `_apply_advisor_portrait` MUST guard `if ResourceLoader.exists(pp)` before `load(pp)`. `SpeciesPortraitRegistry.DEFAULT_PORTRAIT` points at art that doesn't ship.
 - **Chrome restore**: Use `_exit_tree()`, NOT `tree_exited`. The latter fires after node detachment, breaking `/root/PersistentResourceBar` lookups.
-- **Art assets deferred**: SceneStage manifests for `story_event_NN` don't exist yet. Gradient `ColorRect` behind SceneStage renders as fallback.
+- **Art assets**: `story_event_01` has a real manifest (bg + baked enemies + character slots + ambient motion). `story_event_02..07` manifests don't exist yet — gradient `ColorRect` behind SceneStage renders as fallback for those.
 - **Path-loaded preload**: All narrative files use `preload("res://...")`, no `class_name`. Matches `docs/sop/component-patterns.md`.
 
 ## Public API
@@ -145,6 +180,6 @@ var quote: String = AdvisorSystem.generate_quote(advisor, role, mood)
 
 - Settings UI checkbox for the narrative-events toggle
 - Quote pool expansion beyond 1-per-cell scaffold
-- Real SceneStage manifests for `story_event_01..07`
+- SceneStage manifests for `story_event_02..07` (01 SHIPPED with art + slots + ambient motion)
 - CharacterPhasePanel, CrewTaskEventDialog, TravelPhase, PostBattle integrations
-- Polish: typewriter, Ken Burns, atmosphere overlay, audio
+- Polish: typewriter, atmosphere particle overlay, audio (Ken Burns slow-zoom SHIPPED as ambient breathe)

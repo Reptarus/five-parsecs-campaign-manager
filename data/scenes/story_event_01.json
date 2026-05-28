@@ -6,24 +6,97 @@
   "_tier1_bg_source": "5 Parsecs Core Rulebook/Art/png/General Art/Nov_16_Meeting.png OR composite of Meeting.png + Ambush.png",
   "_tier1_status": "STUB - bg_00.png pending fill from _tier1_bg_source",
   "_tier2_planned_actors": [
-    {"id": "actor_corp_contact_dead", "intent": "corporate contact's body, mid-foreground"},
-    {"id": "actor_hired_gun_L", "intent": "first hired gun behind left cover"},
-    {"id": "actor_big_gun_R", "intent": "heavy weapon (Rattle Gun) on right flank"},
-    {"id": "actor_leader", "intent": "enemy leader, center-back, visible silhouette"}
+    {
+      "id": "actor_corp_contact_dead",
+      "intent": "corporate contact's body, mid-foreground"
+    },
+    {
+      "id": "actor_hired_gun_L",
+      "intent": "first hired gun behind left cover"
+    },
+    {
+      "id": "actor_big_gun_R",
+      "intent": "heavy weapon (Rattle Gun) on right flank"
+    },
+    {
+      "id": "actor_leader",
+      "intent": "enemy leader, center-back, visible silhouette"
+    }
   ],
   "_tier2_planned_fx": [
-    {"id": "fx_smoke_thin", "blend": "MULTIPLY", "intent": "thin smoke drift across scene"},
-    {"id": "fx_muzzle_flash", "blend": "ADD", "intent": "brief flash overlay, modulate-pulsed"}
+    {
+      "id": "fx_smoke_thin",
+      "blend": "MULTIPLY",
+      "intent": "thin smoke drift across scene"
+    },
+    {
+      "id": "fx_muzzle_flash",
+      "blend": "ADD",
+      "intent": "brief flash overlay, modulate-pulsed"
+    }
   ],
   "_animation_hints": [
     "Atmosphere particles: thin urban smoke/dust (SceneAtmosphereLayer)",
     "FX modulate pulse on muzzle_flash for periodic firefight feel",
     "Optional: Ken Burns slow zoom toward leader silhouette"
   ],
-  "canvas_size": [6000, 3375],
+  "_ambient_motion_doc": "Subtle 'living painting' motion (SceneStage). Per-layer drift is screen-space px on a slow sine; foreground drifts more than the backdrop for a tiny parallax. breathe is a slow Ken Burns scale swing layered on overscan; overscan zooms every layer a hair so drift never exposes the letterbox edge. Periods are full-cycle seconds (long = calm). Gated by Reduced Motion (ThemeManager). enabled:false stops all motion. Tune the numbers here, no code.",
+  "ambient_motion": {
+    "enabled": true,
+    "overscan": 1.04,
+    "breathe": 0.012,
+    "breathe_period": 24.0,
+    "layers": {
+      "bg": { "drift": [2, 1.5], "period": 22.0 },
+      "slot": { "drift": [4, 2.0], "period": 18.0 },
+      "actor": { "drift": [7, 3.0], "period": 15.0 },
+      "fx": { "drift": [6, 3.0], "period": 17.0 }
+    }
+  },
+  "canvas_size": [
+    6000,
+    3375
+  ],
   "bg_layers": [
     "res://assets/scenes/story_event_01/bg/bg_00.png"
   ],
-  "actor_layers": [],
-  "fx_layers": []
+  "actor_layers": [
+    {
+      "id": "enemies_3",
+      "path": "res://assets/scenes/story_event_01/actors/enemies_3.png",
+      "default_visible": true,
+      "opacity": 255
+    },
+    {
+      "id": "enemies_4",
+      "path": "res://assets/scenes/story_event_01/actors/enemies_4.png",
+      "default_visible": true,
+      "opacity": 255
+    }
+  ],
+  "fx_layers": [],
+  "_character_slots_doc": "Crew composited at runtime. 'hero' <- captain; other slots <- AdvisorSystem role match. anchor = feet (bottom-center) normalized to the stage; scale = figure height as a fraction of stage height; z orders WITHIN the slot group (higher = drawn on top). The whole slot group renders behind the baked ambush enemies by tree order.",
+  "character_slots": [
+    {
+      "id": "hero",
+      "anchor": [0.5, 0.66],
+      "scale": 0.46,
+      "z": 2,
+      "role": ""
+    },
+    {
+      "id": "crew_left",
+      "anchor": [0.38, 0.58],
+      "scale": 0.36,
+      "z": 1,
+      "role": "fighter"
+    },
+    {
+      "id": "crew_right",
+      "anchor": [0.62, 0.58],
+      "scale": 0.36,
+      "z": 1,
+      "role": "medic"
+    }
+  ]
 }

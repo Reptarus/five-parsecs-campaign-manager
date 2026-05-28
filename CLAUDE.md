@@ -327,9 +327,9 @@ BattlefieldGenerator (RefCounted, Compendium 5-step)
 - **Scatter visible**: Tiny 16×10px dots, `show_scatter` toggle property
 - **Seeded RNG**: Optional `rng_seed` param on `generate_terrain_suggestions()`, `result["seed"]` for reproducibility
 
-### Narrative System (Phase 1, May 22 2026)
+### Narrative System (Phase 1, May 22 2026; scene composition + motion May 27)
 
-King-of-Dragon-Pass-style full-screen narrative window for campaign events. Phase 1 wired to Story Track; Phases 2-6 will extend to CharacterPhase, CrewTaskEvents, Travel, PostBattle, and polish.
+King-of-Dragon-Pass-style full-screen narrative window for campaign events. Phase 1 wired to Story Track; Phases 2-6 will extend to CharacterPhase, CrewTaskEvents, Travel, PostBattle, and polish. **Authoring a scene? Read `docs/sop/narrative-scene-authoring.md` first** (layer contract, manifest schema, character slots, ambient motion, verification).
 
 ```text
 NarrativeScreen.gd (CanvasLayer L95)
@@ -352,6 +352,9 @@ NarrativeScreen.gd (CanvasLayer L95)
 - **Integration pattern** (replicate for Phases 3-5): in the phase panel's render method, branch on `SettingsManager.are_narrative_events_enabled()`. If on, instantiate NarrativeScreen, add to `get_tree().root`, listen for `narrative_completed`, delegate completion back to existing flow trigger (e.g. `_on_action_pressed()`)
 - **Art tag fallback**: `StoryEvent` has no `get_art_tag()` accessor — `StoryPhasePanel._event_to_narrative_dict()` uses `"story_event_%02d" % event.event_number` fallback. All 7 Story Track event JSONs gained an `art_tag` field for Phase 3+ when the accessor lands
 - **Chrome restore**: `_exit_tree()` (NOT `tree_exited` — see Gotchas) restores PersistentResourceBar visibility
+- **Character slots (May 27)**: a scene manifest may declare `character_slots` geometry; the player's ACTUAL crew is composited as full-figure art keyed by `species_id` via `SpeciesFigureRegistry` (mirrors SpeciesPortraitRegistry, existence-aware variant pick). Captain → `hero` slot; other slots filled by `AdvisorSystem.select_advisor(role, crew)`. Depth uses **tree order** (a `SlotLayer` inserted between bg and actor layers), NOT `z_index` — crew always render behind baked foreground actors. Figures are feet-anchored (bottom-center) at the slot's normalized `anchor`; uniform humanoid shapes only (height-based scaling). `SceneStage.set_character_slots(assignments)`
+- **Ambient "living painting" motion (May 27)**: `SceneStage` gives every scene a TINY scene-wide motion — per-layer sine **drift** (foreground drifts more than backdrop = subtle parallax) + slow **breathe** (Ken Burns scale), applied to the layer CONTAINERS (never individual rects, so it never fights slot layout). An **overscan** baseline (1.04) hides the letterbox edge drift would expose. Data-driven via the manifest `ambient_motion` block (absent/`{}` = on with defaults). **Gated by Reduced Motion** (`ThemeManager.is_reduced_animation_enabled()`)
+- **Dev viewer**: `src/ui/screens/dev/SceneViewer.tscn` previews a manifest in isolation (`-- scene_id=X test_crew=precursor,swift,k_erin autoshot`). Motion is verified by a headless transform-probe, NOT a screenshot (see SOP §6)
 
 ### Key Patterns (Phase 5 Consolidation)
 - **CampaignDashboard** uses `FiveParsecsCampaignPhase` (14 values, aliased as `FPC`). The old `CampaignPhase` enum (10 values) is deprecated.
@@ -768,10 +771,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **Core Rules PDFs available in repo — USE THEM**: Both the Core Rulebook and Compendium PDFs are at `docs/rules/`:
   - `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf` — Core Rules 3e
   - `docs/rules/Five Parsecs From Home-Compendium.pdf` — Compendium
-  - `docs/rules/core_rulebook.txt` — Text extraction of Core Rules
-  - `docs/rules/compendium_source.txt` — Text extraction of Compendium
-  - `docs/rules/5PCompendium/` — Compendium source directory
-  - Text extractions may have OCR artifacts — verify against the PDF when precision matters
+  - `docs/rules/bug_hunt_compendium_extract.txt` — partial Compendium text extraction (Bug Hunt section)
+  - `docs/rules/planetfall_source.txt`, `docs/rules/tactics_source.txt` — expansion-book text extractions
+  - NOTE: there is NO committed full-text extraction of the Core Rulebook or main Compendium. Extract pages on demand via PyPDF2 (see Dev Environment). Text extractions may have OCR artifacts — verify against the PDF when precision matters
 - **NEVER "fix" data without the book**: Phase 30 changed ship hull from 20-35 to 6-14, documenting it as a "Core Rules correction." The Core Rules actually says 20-40. The "fix" made it WORSE. Never assume a value is wrong without checking the source material.
 - **`GAME_BALANCE_ESTIMATE` = fabricated = REMOVE**: Sessions 22-23 purged 20+ fabricated mechanics that were tagged `GAME_BALANCE_ESTIMATE` and treated as "resolved." Deleted systems include: MoraleSystem (no campaign morale in Core Rules), equipment upgrade/pricing formulas, per-enemy loot generators, fabricated XP sources, and named bot upgrades. If the book doesn't have it, the code shouldn't either.
 - **NEVER create duplicate data sources**: If a value already exists in a JSON file, load it from there. Do not create a parallel constant in GDScript. Single Source of Truth: JSON file is canonical for each data domain.
@@ -922,7 +924,8 @@ Institutional knowledge. **Read the relevant SOP before touching its subsystem; 
 |-----|-----------|
 | `docs/sop/README.md` | SOP index + anti-regressions log (specific traps + the rule that prevents each) |
 | `docs/sop/asset-pipeline.md` | Before touching `assets/`, `data/scenes/`, or running any extraction script |
-| `docs/sop/visual-runtime-verification.md` | Before merging any change that affects rendering (portraits, scenes, animations, UI textures) |
+| `docs/sop/narrative-scene-authoring.md` | Before authoring/editing a `data/scenes/<id>.json`, exporting scene art layers, wiring crew figures into a scene, or tuning ambient motion (SceneStage manifest schema, full-canvas layer contract, character slots, ambient "living painting" motion) |
+| `docs/sop/visual-runtime-verification.md` | Before merging any change that affects rendering (portraits, scenes, animations, motion, UI textures). Includes the motion transform-probe + full-overlay capture harness |
 | `docs/sop/component-patterns.md` | Before writing any new `.gd` component or data file (SSOT accessor, JSON+static loader, path-loaded preload, export-safe `load()`, deferred initial swap) |
 | `docs/sop/ornament-panel-pattern.md` | Before writing new rulebook-styled callout panels (rounded chrome + colored stroke + corner brackets via 9-slice atlas). Procedural bracket generator, compact/standard atlas variants, decision matrix vs CalloutCard/BookFrame |
 | `docs/sop/decision-log.md` | When tempted to second-guess a pattern, or before proposing to replace one. Append-only — supersede with new entries, never delete |

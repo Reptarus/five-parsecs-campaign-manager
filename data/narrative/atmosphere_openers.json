@@ -74,6 +74,8 @@
 		"story_event_04": "starport",
 		"story_event_05": "wilderness",
 		"story_event_06": "wilderness",
-		"story_event_07": "wilderness"
+		"story_event_07": "wilderness",
+		"character_event": "ship_interior",
+		"crew_task_event": "starport"
 	}
 }

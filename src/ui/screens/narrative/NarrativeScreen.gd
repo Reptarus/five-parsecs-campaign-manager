@@ -341,6 +341,7 @@ func present(event_data: Dictionary, context: Dictionary) -> void:
 	_last_outcome = {}
 	_hide_chrome()
 	_populate_illustration()
+	_populate_character_slots()
 	_populate_narrative_text()
 	_populate_advisor()
 	_populate_briefing()
@@ -371,6 +372,96 @@ func _populate_illustration() -> void:
 	# the gradient_fallback ColorRect underneath remains visible.
 	if _scene_stage and _scene_stage.has_method("set_scene"):
 		_scene_stage.set_scene(scene_id)
+
+
+## Composite the player's crew into the scene's character slots (if any). The
+## captain takes the "hero" slot; remaining slots are filled by event-relevant
+## crew via AdvisorSystem's role logic, deduped, with roster-order fallback.
+## No-op when the scene declares no slots or there is no crew in context.
+func _populate_character_slots() -> void:
+	if not _scene_stage or not _scene_stage.has_method("get_character_slots"):
+		return
+	var slots: Array = _scene_stage.get_character_slots()
+	if slots.is_empty():
+		return
+	var crew_value = _context.get("crew", [])
+	var crew: Array = crew_value if crew_value is Array else []
+	if crew.is_empty():
+		return
+
+	var used: Dictionary = {}
+	var assignments: Array = []
+	var hero_slot: String = _cs_hero_slot_id(slots)
+	var captain = _cs_find_captain(crew)
+	if captain != null and hero_slot != "":
+		assignments.append(_cs_assignment(hero_slot, captain))
+		used[_cs_id(captain)] = true
+
+	for slot in slots:
+		if not (slot is Dictionary):
+			continue
+		var sid: String = str(slot.get("id", ""))
+		if sid == "" or sid == hero_slot:
+			continue
+		var member = _cs_pick_crew(str(slot.get("role", "")), crew, used)
+		if member == null:
+			continue
+		assignments.append(_cs_assignment(sid, member))
+		used[_cs_id(member)] = true
+
+	if not assignments.is_empty():
+		_scene_stage.set_character_slots(assignments)
+
+
+func _cs_find_captain(crew: Array):
+	for m in crew:
+		if m != null and _cs_bool(m, "is_captain"):
+			return m
+	return crew[0] if not crew.is_empty() else null
+
+
+func _cs_hero_slot_id(slots: Array) -> String:
+	for slot in slots:
+		if slot is Dictionary and str(slot.get("id", "")) == "hero":
+			return "hero"
+	if not slots.is_empty() and slots[0] is Dictionary:
+		return str(slots[0].get("id", ""))
+	return ""
+
+
+func _cs_pick_crew(role: String, crew: Array, used: Dictionary):
+	if not role.is_empty():
+		var advisor = AdvisorSystem.select_advisor(role, crew, "")
+		if advisor != null and not used.has(_cs_id(advisor)):
+			return advisor
+	for m in crew:
+		if m != null and not used.has(_cs_id(m)):
+			return m
+	return null
+
+
+func _cs_assignment(slot_id: String, member) -> Dictionary:
+	return {
+		"slot_id": slot_id,
+		"species_id": _cs_str(member, "species_id"),
+		"character_id": _cs_id(member),
+	}
+
+
+func _cs_id(member) -> String:
+	return _cs_str(member, "character_id")
+
+
+func _cs_str(obj, prop: String) -> String:
+	if obj != null and prop in obj:
+		return str(obj.get(prop))
+	return ""
+
+
+func _cs_bool(obj, prop: String) -> bool:
+	if obj != null and prop in obj:
+		return bool(obj.get(prop))
+	return false
 
 
 func _populate_narrative_text() -> void:
