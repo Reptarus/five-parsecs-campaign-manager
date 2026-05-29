@@ -70,9 +70,17 @@ Contract (SOP §4): one figure per PNG, full body, **feet at bottom edge, horizo
 transparent bg, uniform humanoid → `assets/figures/species/<id>_NN.png` (ids are the lowercase
 `SpeciesPortraitRegistry`/`SpeciesFigureRegistry` keys).
 
-- **Have art (3)**: `precursor`, `swift`, `k_erin`
-- **Still needed (8)**: `engineer`, `feral`, `krag`, `skulker`, `soulless`, `de_converted`, `unity_agent`, `psionic` — plus optional `swift_02` variant.
-- **Skip**: `hulker` — non-uniform silhouette balloons sideways under height-scaling; the PoC deliberately avoided it.
+- **Have art (5 species, 9 PNGs)**: `precursor` (×1), `swift` (×2), `k_erin` (×2), `human` (×3), `soulless` (×1) — the Planetfall preset crew portraits filled `human`, `soulless`, plus `swift_02` and `k_erin_02` variants on May 28.
+- **Still needed (3 primary species)**: `engineer`, `krag`, `skulker`. (Note: `feral` registry path is shipped via the Planetfall "Engineer twins" PNG (5152×3192 wide) — better used as a Tier 2 scene fragment than a single feet-anchored slot.)
+- **Skip**: `hulker` — non-uniform silhouette balloons sideways under height-scaling; the PoC deliberately avoided it. The wide `HULKER 2.png` in the Planetfall source folder is also a Tier 2 scene-fragment candidate, not a figure-slot fit.
+- **Out of scope (Strange Character types)**: `de_converted`, `unity_agent`, `psionic`, and similar rule-driven variants are rendered through their underlying species figure (a De-converted Human still renders as a Human). No separate figure art needed. If a future sprint adds visual overlays (cybernetic seams for De-converted, etc.) it becomes its own asset list.
+
+### Tier 2 scene-fragment candidates (still in `C:\Users\admin\Documents\5PFH\5PFH Art\Other Books\Planetfall\PNG\Characters\`)
+
+Three wide compositions are NOT figure-slot material but would shine as per-scene foreground elements once the SOP gains an "image slot" generalization of `character_slots` (anchor + scale + `anchor_mode`, honors real PNG aspect):
+- `STALKER.png` (6000×3500) — near-canvas-size; drop-in bg/actor for a stalker/wilderness scene.
+- `The Engineer twins_Feral 84-1683-04.png` (5152×3192) — two figures interacting; scene moment.
+- `HULKER 2.png` (1920×1120) — small wide foreground moment.
 
 ---
 

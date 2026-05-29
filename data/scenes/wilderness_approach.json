@@ -1,0 +1,14 @@
+{
+  "id": "wilderness_approach",
+  "canvas_size": [
+    4500,
+    2522
+  ],
+  "bg_layers": [
+    "res://assets/scenes/wilderness_approach/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

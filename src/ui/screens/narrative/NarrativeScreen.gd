@@ -33,6 +33,8 @@ const NarrativeChoiceButtonClass = preload(
 	"res://src/ui/screens/narrative/NarrativeChoiceButton.gd")
 const SceneStageScript = preload(
 	"res://src/ui/screens/narrative/SceneStage.gd")
+const SceneAtmosphereLayerScript = preload(
+	"res://src/ui/screens/narrative/SceneAtmosphereLayer.gd")
 
 # Deep Space theme constants (mirroring BaseCampaignPanel — local copies so
 # this component has no inheritance dependency).
@@ -73,6 +75,7 @@ var _bg_dim: ColorRect = null
 var _illustration_frame: Control = null
 var _gradient_fallback: ColorRect = null
 var _scene_stage: Control = null
+var _atmosphere_layer: Control = null
 var _narrative_panel: PanelContainer = null
 var _event_title: Label = null
 var _narrative_text: RichTextLabel = null
@@ -136,6 +139,15 @@ func _build_ui() -> void:
 	_scene_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_scene_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_illustration_frame.add_child(_scene_stage)
+
+	# Atmosphere layer (sibling above SceneStage, below UI). Renders ambient
+	# particle effects driven by world traits or art_tag context. Sits inside
+	# the illustration frame so it inherits the 55% clip and never bleeds into
+	# the narrative panel. See docs/research/scene-stage-atmosphere.md.
+	_atmosphere_layer = SceneAtmosphereLayerScript.new()
+	_atmosphere_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_atmosphere_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_illustration_frame.add_child(_atmosphere_layer)
 
 	# Narrative panel (bottom 45%)
 	_narrative_panel = PanelContainer.new()
@@ -365,6 +377,10 @@ func dismiss() -> void:
 func _populate_illustration() -> void:
 	var art_tag: String = str(_event_data.get("art_tag", ""))
 	var scene_id: String = str(_event_data.get("scene_id", art_tag))
+	# Drive the atmosphere layer regardless of whether a scene manifest
+	# resolves — even a gradient-fallback scene gets weather (snow on
+	# frozen worlds, dust in interiors, smoke over the battle aftermath).
+	_apply_atmosphere(art_tag)
 	if scene_id.is_empty():
 		return
 	# Try SceneStage with the scene_id. If it doesn't resolve to a
@@ -372,6 +388,15 @@ func _populate_illustration() -> void:
 	# the gradient_fallback ColorRect underneath remains visible.
 	if _scene_stage and _scene_stage.has_method("set_scene"):
 		_scene_stage.set_scene(scene_id)
+
+
+func _apply_atmosphere(art_tag: String) -> void:
+	if _atmosphere_layer == null:
+		return
+	var traits_value = _context.get("world_traits", [])
+	var traits: Array = traits_value if traits_value is Array else []
+	if _atmosphere_layer.has_method("set_atmosphere_for_world_traits"):
+		_atmosphere_layer.set_atmosphere_for_world_traits(traits, art_tag)
 
 
 ## Composite the player's crew into the scene's character slots (if any). The

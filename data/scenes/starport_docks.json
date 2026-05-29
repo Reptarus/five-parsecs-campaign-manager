@@ -1,0 +1,14 @@
+{
+  "id": "starport_docks",
+  "canvas_size": [
+    6000,
+    3375
+  ],
+  "bg_layers": [
+    "res://assets/scenes/starport_docks/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

@@ -433,10 +433,20 @@ static func resolve_ranged_attack(
 		range_inches,
 		weapon_range
 	)
-	# Phase 11: Shrapnel overrides all hit modifiers (Compendium p.91)
+	# Phase 11: Shrapnel overrides all hit modifiers (Compendium p.89 trait notes)
 	if trait_effects.get("override_hit_threshold", 0) > 0:
 		hit_threshold = trait_effects["override_hit_threshold"]
 	else:
+		# Phase 11: Adjusted Shooting (Compendium p.87) — when Dramatic Combat
+		# is on, the base hit table is replaced with the flat 5+/6+ table
+		# BEFORE trait modifiers stack. Falls back to Core Rules table when
+		# DRAMATIC_COMBAT flag is off.
+		if attacker.get("dramatic_combat", false):
+			var adj = attacker.get("adjusted_shooting_thresholds", null)
+			if adj is Dictionary and adj.has("open") and adj.has("cover"):
+				hit_threshold = int(adj["cover"]) if target_in_cover else int(adj["open"])
+			else:
+				hit_threshold = 6 if target_in_cover else 5
 		# Apply weapon trait hit modifiers (Heavy -1 moved, Snap Shot +1 close)
 		hit_threshold -= trait_effects["hit_modifier"]
 		# Phase 6b: Stealth gear — enemies >9" are -1 to Hit (Core Rules p.55)
@@ -1716,7 +1726,7 @@ static func get_weapon_trait_effects(
 		var trait_str: String = trait_name if trait_name is String else str(trait_name)
 		_apply_weapon_trait(trait_str.to_lower(), effects, range_band, moved_this_turn, is_aimed_shot)
 
-	# Phase 11: Compendium Dramatic Combat trait modifications (p.91)
+	# Phase 11: Compendium Dramatic Combat trait modifications (p.87-89)
 	# DLC-gated — caller passes dramatic_combat flag in context
 	if attack_context.get("dramatic_combat", false):
 		# Pistol: Also +1 to hit within 6" (cumulative with Snap Shot)
@@ -1895,7 +1905,7 @@ static func _apply_weapon_trait(
 			# Roll for malfunction
 			effects["traits_applied"].append("unstable_malfunction")
 
-		# Phase 11: Compendium Dramatic Weapons traits (p.91)
+		# Phase 11: Compendium Dramatic Weapons traits (p.88-89)
 		"burn":
 			# Non-robot survivors move full move in random direction
 			effects["causes_burn"] = true

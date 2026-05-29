@@ -199,6 +199,51 @@ static func get_dramatic_effect(weapon_type: String) -> String:
 	return ""
 
 
+## Get Adjusted Shooting hit thresholds (Compendium p.87) when Dramatic Combat
+## is on. Returns {"open": int, "cover": int} or empty dict when disabled.
+static func get_adjusted_shooting_thresholds() -> Dictionary:
+	if not _is_flag_enabled("DRAMATIC_COMBAT"):
+		return {}
+	var rules: Dictionary = DRAMATIC_COMBAT_RULES.get("adjusted_shooting", {})
+	if rules.is_empty():
+		return {}
+	return {
+		"open": int(rules.get("in_open_threshold", 5)),
+		"cover": int(rules.get("in_cover_threshold", 6)),
+	}
+
+
+## Get the dramatic weapons stat override for a given weapon id (Compendium
+## pp.88-89). Returns empty dict when disabled or the weapon has no override
+## (callers fall back to the equipment_database baseline).
+static func get_dramatic_weapon_stats(weapon_id: String) -> Dictionary:
+	if not _is_flag_enabled("DRAMATIC_COMBAT"):
+		return {}
+	_ensure_loaded()
+	var table: Dictionary = _data.get("dramatic_weapons_stats", {})
+	var key := weapon_id.to_lower().strip_edges().replace(" ", "_").replace("-", "_")
+	var stats = table.get(key, {})
+	return stats if stats is Dictionary else {}
+
+
+## Aggregated rule-text instructions for the BattlePhase setup screen.
+## Returns the Adjusted Shooting / Duck Back / Lunge bullet strings so the
+## tabletop player has the actual rules in front of them, not just per-weapon
+## flavor strings. Returns [] when DRAMATIC_COMBAT is disabled.
+static func get_dramatic_combat_rule_instructions() -> Array[String]:
+	var out: Array[String] = []
+	if not _is_flag_enabled("DRAMATIC_COMBAT"):
+		return out
+	var rules: Dictionary = DRAMATIC_COMBAT_RULES
+	for key in ["adjusted_shooting", "duck_back", "lunging"]:
+		var block = rules.get(key, {})
+		if block is Dictionary:
+			var instr: String = str(block.get("instruction", ""))
+			if not instr.is_empty():
+				out.append(instr)
+	return out
+
+
 ## Get all toggle categories.
 static func get_categories() -> Array[String]:
 	return [

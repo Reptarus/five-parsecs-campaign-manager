@@ -19,8 +19,19 @@ extends RefCounted
 const FIGURES := {
 	"engineer": ["res://assets/figures/species/engineer_01.png"],
 	"feral": ["res://assets/figures/species/feral_01.png"],
-	"k_erin": ["res://assets/figures/species/k_erin_01.png"],
-	"kerin": ["res://assets/figures/species/k_erin_01.png"],
+	"human": [
+		"res://assets/figures/species/human_01.png",
+		"res://assets/figures/species/human_02.png",
+		"res://assets/figures/species/human_03.png",
+	],
+	"k_erin": [
+		"res://assets/figures/species/k_erin_01.png",
+		"res://assets/figures/species/k_erin_02.png",
+	],
+	"kerin": [
+		"res://assets/figures/species/k_erin_01.png",
+		"res://assets/figures/species/k_erin_02.png",
+	],
 	"krag": ["res://assets/figures/species/krag_01.png"],
 	"skulker": ["res://assets/figures/species/skulker_01.png"],
 	"soulless": ["res://assets/figures/species/soulless_01.png"],
@@ -31,7 +42,11 @@ const FIGURES := {
 	"precursor": ["res://assets/figures/species/precursor_01.png"],
 	"hulker": ["res://assets/figures/species/hulker_01.png"],
 	"de_converted": ["res://assets/figures/species/de_converted_01.png"],
-	"unity_agent": ["res://assets/figures/species/unity_agent_01.png"],
+	"unity_agent": [
+		"res://assets/figures/species/unity_agent_01.png",
+		"res://assets/figures/species/unity_agent_02.png",
+		"res://assets/figures/species/unity_agent_03.png",
+	],
 	"psionic": ["res://assets/figures/species/psionic_01.png"],
 }
 

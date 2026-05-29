@@ -146,6 +146,63 @@ wide/asymmetric figure (Hulker) balloons sideways and collides with neighbors
 
 ---
 
+## 4a. Tier 2 image slots (non-figure scene fragments)
+
+A slot can also host a **non-figure scene fragment** — a wide composition, a
+prop, a vehicle. The Planetfall delivery includes three such PNGs (Stalker
+6000×3500, Engineer Twins 5152×3192, Hulker 2 1920×1120) that don't fit the
+uniform-humanoid contract. Tier 2 slots opt in via two extra slot fields and
+one assignment field — everything else (geometry, tree-order depth, ambient
+motion) is reused as-is.
+
+**Manifest (slot definition)** — extends §4 with:
+
+```json
+{ "id": "stalker_drop",
+  "anchor": [0.5, 0.5], "scale": 1.0,
+  "z": 0,
+  "anchor_mode": "top_left",     // "feet" (default) | "center" | "top" | "top_left"
+  "scale_mode":  "width"         // "height" (default) | "width"
+}
+```
+
+- `anchor_mode` controls what part of the rect lands on the normalized `anchor`
+  point. `feet` keeps §4's bottom-center contract (uniform humanoids). `center`
+  is right for paired/scene-moment compositions (Engineer Twins). `top_left` is
+  right for full-canvas drop-ins (Stalker). `top` is hanging-prop placement.
+- `scale_mode` controls which dimension `scale` measures against. `height` is
+  §4's default. `width` is right when the asset is wider than tall and you want
+  it to fill a fraction of the canvas WIDTH instead of HEIGHT (Hulker 2 1920×1120).
+
+**Assignment (caller-provided)** — extends §4 with:
+
+```json
+{ "slot_id": "stalker_drop",
+  "source": "tier2:planetfall_stalker"   // or "res://assets/scenes/tier2/foo.png"
+}
+```
+
+- `source` bypasses `SpeciesFigureRegistry` and provides the asset directly.
+  - `tier2:<key>` looks up `Tier2AssetRegistry.NAMED_ASSETS[key]`.
+  - `res://...` is used verbatim.
+- `species_id`/`character_id` MAY still be present; `source` wins when set.
+- If `source` resolves to a path that doesn't exist on disk, the slot is empty
+  (no warning) — same graceful-fallback rule as figure slots.
+
+**Tier 2 asset registry** — `src/ui/screens/narrative/Tier2AssetRegistry.gd`
+is a path-loaded RefCounted whose `NAMED_ASSETS` const maps stable keys to
+`res://` paths. Update this when copying a new wide composition into
+`assets/scenes/tier2/`. Keys outlive PNG renames; consumers reference
+`tier2:<key>` and never touch raw paths.
+
+**When NOT to use a Tier 2 slot**
+- A full-canvas backdrop is a `bg_layers` entry, not a slot. Tier 2 is for
+  fragments that compose with other layers (foreground over a backdrop).
+- A baked actor in a specific PSD pose is `actor_layers`, not a slot. Slots
+  are for shareable assets that compose into MULTIPLE scenes.
+
+---
+
 ## 5. Ambient motion ("living painting")
 
 A TINY amount of scene-wide movement so a static illustration feels alive. NOT

@@ -7,6 +7,7 @@ extends Control
 const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
+const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 
 # Core Dependencies
 @onready var campaign_phase_manager: Node = get_node("/root/CampaignPhaseManager")
@@ -888,7 +889,15 @@ func _on_battle_completed(results: Dictionary) -> void:
 	# Store battle results in game state
 	game_state.set_battle_results(results)
 	battle_results = results
-	
+
+	# B2 narrative bridge: auto-resolved battles ("play it out for me") are
+	# wrapped in a NarrativeScreen outcome beat before the post-battle wizard.
+	# Played-out tactical battles skip this (the player already saw the action).
+	# Same gating pattern as StoryPhase / CharacterPhase / CrewTask integrations.
+	if results.get("auto_resolved", false) and _narrative_events_enabled():
+		_present_battle_outcome_via_narrative(results)
+		return
+
 	# Trigger post-battle phase
 	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
 
@@ -934,6 +943,106 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	resolved["auto_resolved"] = true
 
 	_on_battle_completed(resolved)
+
+
+# --- B2 narrative bridge -----------------------------------------------------
+# Auto-resolved battles ("play it out for me") are presented as an illustrated
+# outcome beat via NarrativeScreen before the post-battle wizard runs. This is
+# the convergence point of Workstream A (narrative) and Workstream B (combat
+# modes) — both standard and No-Minis resolvers funnel through the same wrap.
+
+func _narrative_events_enabled() -> bool:
+	var settings: Node = get_node_or_null("/root/SettingsManager")
+	if settings == null:
+		return false
+	if not settings.has_method("are_narrative_events_enabled"):
+		return false
+	return bool(settings.are_narrative_events_enabled())
+
+
+func _present_battle_outcome_via_narrative(result: Dictionary) -> void:
+	var screen_script: Script = load(NARRATIVE_SCREEN_PATH)
+	if screen_script == null:
+		# Fallback: proceed straight to post-battle if the screen fails to load.
+		campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
+		return
+	var screen: Node = screen_script.new()
+	if screen == null:
+		campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
+		return
+	get_tree().root.add_child(screen)
+	if screen.has_signal("narrative_completed"):
+		screen.narrative_completed.connect(_on_battle_outcome_narrative_done)
+	if screen.has_signal("skip_requested"):
+		screen.skip_requested.connect(_on_battle_outcome_narrative_skipped)
+	var event_dict: Dictionary = _battle_result_to_narrative_dict(result)
+	var context: Dictionary = _build_battle_outcome_narrative_context()
+	if screen.has_method("present"):
+		screen.present(event_dict, context)
+
+
+func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
+	var won: bool = result.get("victory", false) or result.get("won", false)
+	var held_field: bool = result.get("held_the_field", won)
+	var rounds: int = int(result.get("rounds_played", result.get("rounds", 0)))
+	var casualties: int = int(result.get("casualties", 0))
+	var combat_mode: String = "Auto-resolved"
+	if result.get("no_minis", false) or result.get("combat_mode", "") == "no_minis":
+		combat_mode = "No-Minis combat"
+	var art_tag: String = "battle_aftermath_victory" if won else "battle_aftermath_retreat"
+	var title: String = ""
+	var mood: String = "neutral"
+	if won:
+		title = "Aftermath: Victory"
+		mood = "positive"
+	elif held_field:
+		title = "Aftermath: Objective Held"
+		mood = "neutral"
+	else:
+		title = "Aftermath: Withdrawal"
+		mood = "warning"
+	var briefing_lines: Array = []
+	briefing_lines.append("Mode: %s." % combat_mode)
+	if rounds > 0:
+		briefing_lines.append("Rounds: %d." % rounds)
+	if casualties > 0:
+		briefing_lines.append("Casualties: %d." % casualties)
+	return {
+		"title": title,
+		"art_tag": art_tag,
+		"advisor_role": "fighter",
+		"advisor_mood": mood,
+		"core_text": "The shooting stops. The crew gathers what they can.",
+		"briefing": "\n".join(briefing_lines),
+		"choices": [
+			{"text": "Continue", "value": 0}
+		]
+	}
+
+
+func _build_battle_outcome_narrative_context() -> Dictionary:
+	var ctx: Dictionary = {}
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm and pdm.has_method("get_current_planet"):
+		var planet = pdm.get_current_planet()
+		if planet != null:
+			ctx["planet"] = planet
+	if game_state and game_state.has_method("get_active_crew"):
+		ctx["crew"] = game_state.get_active_crew()
+	if battle_results.has("battlefield_data"):
+		var bd: Dictionary = battle_results.get("battlefield_data", {})
+		if bd.has("world_traits"):
+			ctx["world_traits"] = bd["world_traits"]
+	return ctx
+
+
+func _on_battle_outcome_narrative_done(_result) -> void:
+	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
+
+
+func _on_battle_outcome_narrative_skipped() -> void:
+	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
+
 
 func _on_post_battle_completed(results: Dictionary) -> void:
 

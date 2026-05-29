@@ -23,6 +23,8 @@ A true standalone *narrative-resolution* ruleset (resolve a whole fight as prose
 
 Extends the shipped Phase 1 (Story Track) + the May 27 scene PoC. Mostly `ui-panel-developer` + `campaign-systems-engineer`. Runs largely parallel to combat (no hard dependency, except A5 atmosphere which B2 would showcase). Phase numbering follows the design doc.
 
+**Art production tracker**: [`docs/design/ART_PRODUCTION_LIST.md`](design/ART_PRODUCTION_LIST.md) — master list of every art asset across all sprints (Story Track 02-07 scenes, species figures, atmosphere particles, sub-category fallback scenes, optional UI icons). The detailed per-scene Story Track spec lives at [`docs/design/STORY_TRACK_SCENE_ASSETS.md`](design/STORY_TRACK_SCENE_ASSETS.md).
+
 | ID | Sprint | Scope | Key files |
 |----|--------|-------|-----------|
 | A1 | Narrative settings + scene fan-out | Real Settings checkbox (today the toggle is `.cfg`-only via `are_narrative_events_enabled()`); author `story_event_02..07` SceneStage manifests as art lands (gated on hand-export) | `SettingsScreen.gd`, `data/scenes/`, `docs/sop/narrative-scene-authoring.md` |

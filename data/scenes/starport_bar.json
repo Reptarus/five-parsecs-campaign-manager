@@ -1,0 +1,14 @@
+{
+  "id": "starport_bar",
+  "canvas_size": [
+    6000,
+    3888
+  ],
+  "bg_layers": [
+    "res://assets/scenes/starport_bar/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

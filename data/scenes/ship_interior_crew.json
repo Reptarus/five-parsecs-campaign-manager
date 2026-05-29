@@ -1,0 +1,14 @@
+{
+  "id": "ship_interior_crew",
+  "canvas_size": [
+    1280,
+    696
+  ],
+  "bg_layers": [
+    "res://assets/scenes/ship_interior_crew/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

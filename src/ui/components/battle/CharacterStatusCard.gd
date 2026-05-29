@@ -11,6 +11,18 @@ extends PanelContainer
 # (see CLAUDE.md "Preload Pattern for UI Class References").
 const KeywordLinker = preload("res://src/ui/components/tooltips/KeywordLinker.gd")
 
+# Modiphius official Planetfall token art (shared across all campaign modes).
+# These are the 5 universal character-status tokens — triangle-shape = status
+# effect per Modiphius's shape-encodes-rule-type convention.
+const STATUS_TOKEN_PATHS := {
+	"stunned":   "res://assets/tokens/token_stunned.png",
+	"sprawling": "res://assets/tokens/token_sprawling.png",
+	"aid":       "res://assets/tokens/token_aid.png",
+	"activated": "res://assets/tokens/token_activated.png",
+	"poison":    "res://assets/tokens/token_poison.png",
+}
+const STATUS_ICON_SIZE := 40
+
 # Signals for manual action confirmation
 signal action_used(character_name: String, action_type: String)
 signal damage_taken(character_name: String, amount: int)
@@ -28,6 +40,16 @@ var actions_remaining: int = 2
 var movement_remaining: int = 6
 var _display_tier: int = 0 # 0=LOG_ONLY, 1=ASSISTED, 2=FULL_ORACLE
 var _is_activated: bool = false
+
+# Per-battle status tokens (Modiphius shape-coded triangles).
+# stun_markers above already covers Stunned. _is_activated covers Activated.
+var aid_markers: int = 0
+var is_sprawling: bool = false
+var is_poisoned: bool = false
+
+# Status icon row built programmatically; nil until _ready() finishes.
+var _status_icons_container: HBoxContainer = null
+var _status_icon_nodes: Dictionary = {}
 
 # Battle state tracking (Phase 4 — Snap Fire, Aim, Panic Fire)
 var is_aiming: bool = false          # Didn't move, chose to aim (Core Rules p.46)
@@ -51,6 +73,7 @@ var _keyword_tooltip: KeywordTooltip = null
 func _ready() -> void:
 	## Initialize card UI
 	_connect_button_signals()
+	_build_status_icon_row()
 
 func _connect_button_signals() -> void:
 	## Connect interactive button signals
@@ -112,6 +135,12 @@ func set_character_data(character) -> void:
 	actions_remaining = character_data.get("actions_remaining", 2)
 	movement_remaining = character_data.get("movement_remaining", 6)
 	stun_markers = character_data.get("stun_markers", 0)
+
+	# Per-battle status tokens (round-trip with character_data dict)
+	aid_markers = character_data.get("aid_markers", 0)
+	is_sprawling = character_data.get("is_sprawling", false)
+	is_poisoned = character_data.get("is_poisoned", false)
+	_is_activated = character_data.get("is_activated", false)
 
 	# Update display
 	_update_display()
@@ -187,6 +216,8 @@ func _update_display() -> void:
 			status_label.modulate = UIColors.COLOR_AMBER
 		else:
 			status_label.modulate = UIColors.COLOR_TEXT_PRIMARY
+
+	_refresh_status_icons()
 
 # =====================================================
 # STATUS UPDATES
@@ -382,6 +413,8 @@ func _apply_tier_display() -> void:
 
 		status_label.text = " | ".join(status_parts) if status_parts.size() > 0 else "Ready"
 
+	_refresh_status_icons()
+
 ## Mark this character as activated (Tier 1+ feature).
 func set_activated(activated: bool) -> void:
 	_is_activated = activated
@@ -443,3 +476,77 @@ func _ensure_keyword_tooltip_attached() -> void:
 		_keyword_tooltip = KeywordTooltip.new()
 		add_child(_keyword_tooltip)
 	KeywordLinker.attach(stats_label, _keyword_tooltip)
+
+# =====================================================
+# STATUS TOKEN ICONS (Modiphius Planetfall art, universal status family)
+# =====================================================
+
+## Build the status-icon row once, attaching it as a sibling immediately
+## before status_label in the existing layout. Programmatic so no scene edit.
+## Icons default hidden; _refresh_status_icons() shows the active ones.
+func _build_status_icon_row() -> void:
+	if status_label == null:
+		return
+	var parent: Node = status_label.get_parent()
+	if parent == null:
+		return
+	_status_icons_container = HBoxContainer.new()
+	_status_icons_container.name = "StatusIconRow"
+	_status_icons_container.add_theme_constant_override("separation", 4)
+	for status_id in STATUS_TOKEN_PATHS:
+		var icon := TextureRect.new()
+		icon.name = "Icon_%s" % status_id
+		icon.custom_minimum_size = Vector2(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# Guard the load so a missing PNG falls back to invisible rather than
+		# crashing (see CLAUDE.md gotcha: optional asset paths must be
+		# ResourceLoader.exists()-guarded).
+		var path: String = STATUS_TOKEN_PATHS[status_id]
+		if ResourceLoader.exists(path):
+			icon.texture = load(path)
+		icon.tooltip_text = status_id.capitalize()
+		icon.visible = false
+		_status_icons_container.add_child(icon)
+		_status_icon_nodes[status_id] = icon
+	parent.add_child(_status_icons_container)
+	# Place the row immediately above status_label.
+	parent.move_child(_status_icons_container, status_label.get_index())
+
+## Show/hide each icon based on current per-battle state. Idempotent.
+func _refresh_status_icons() -> void:
+	if _status_icons_container == null:
+		return
+	if "stunned" in _status_icon_nodes:
+		_status_icon_nodes["stunned"].visible = stun_markers > 0
+	if "sprawling" in _status_icon_nodes:
+		_status_icon_nodes["sprawling"].visible = is_sprawling
+	if "aid" in _status_icon_nodes:
+		_status_icon_nodes["aid"].visible = aid_markers > 0
+	if "activated" in _status_icon_nodes:
+		_status_icon_nodes["activated"].visible = _is_activated
+	if "poison" in _status_icon_nodes:
+		_status_icon_nodes["poison"].visible = is_poisoned
+
+# Setters mirror the existing stun/action API: mutate state, write through
+# to character_data so save/load round-trips, then refresh display.
+
+func set_sprawling(value: bool) -> void:
+	is_sprawling = value
+	character_data["is_sprawling"] = value
+	_update_display()
+
+func set_poisoned(value: bool) -> void:
+	is_poisoned = value
+	character_data["is_poisoned"] = value
+	_update_display()
+
+func add_aid_marker() -> void:
+	aid_markers += 1
+	character_data["aid_markers"] = aid_markers
+	_update_display()
+
+func clear_aid() -> void:
+	aid_markers = 0
+	character_data["aid_markers"] = 0
+	_update_display()

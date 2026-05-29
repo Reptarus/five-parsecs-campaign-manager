@@ -1,0 +1,14 @@
+{
+  "id": "starport_market",
+  "canvas_size": [
+    6000,
+    3600
+  ],
+  "bg_layers": [
+    "res://assets/scenes/starport_market/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

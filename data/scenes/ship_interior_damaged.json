@@ -1,0 +1,14 @@
+{
+  "id": "ship_interior_damaged",
+  "canvas_size": [
+    6000,
+    3217
+  ],
+  "bg_layers": [
+    "res://assets/scenes/ship_interior_damaged/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

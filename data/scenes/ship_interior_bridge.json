@@ -1,0 +1,14 @@
+{
+  "id": "ship_interior_bridge",
+  "canvas_size": [
+    6000,
+    3500
+  ],
+  "bg_layers": [
+    "res://assets/scenes/ship_interior_bridge/bg/bg_00.png"
+  ],
+  "actor_layers": [],
+  "fx_layers": [],
+  "character_slots": [],
+  "ambient_motion": {}
+}

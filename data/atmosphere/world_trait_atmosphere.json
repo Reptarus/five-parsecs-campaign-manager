@@ -1,0 +1,95 @@
+{
+  "_source": "docs/research/scene-stage-atmosphere.md — world-trait → atmosphere mapping (parallel file by design: world_traits.json stays rules-canonical; this is a UI concern)",
+  "_format_version": 1,
+  "trait_to_effect": {
+    "frozen":          { "effect": "snow",          "intensity": 1.0 },
+    "arctic_storm":    { "effect": "snow",          "intensity": 1.4 },
+    "haze":            { "effect": "fog_haze",      "intensity": 0.5 },
+    "fog":             { "effect": "fog_haze",      "intensity": 1.0 },
+    "gloom":           { "effect": "fog_haze",      "intensity": 0.7 },
+    "reflective_dust": { "effect": "dust_motes",    "intensity": 1.5 },
+    "warzone":         { "effect": "smoke_columns", "intensity": 0.3 },
+    "null_zone":       { "effect": "none",          "intensity": 0.0 }
+  },
+  "art_tag_to_effect": {
+    "battle_aftermath_victory": { "effect": "smoke_columns", "intensity": 0.25 },
+    "battle_aftermath_retreat": { "effect": "smoke_columns", "intensity": 0.40 },
+    "ship_interior":            { "effect": "dust_motes",    "intensity": 0.6 },
+    "starport":                 { "effect": "dust_motes",    "intensity": 0.3 }
+  },
+  "default_interior_effect": { "effect": "dust_motes", "intensity": 0.4 },
+  "effects": {
+    "snow": {
+      "_intent": "white motes falling vertically, soft falloff",
+      "texture_path": "res://assets/atmosphere/snow.png",
+      "amount": 220,
+      "lifetime": 8.0,
+      "preprocess": 5.0,
+      "gravity_y": 80.0,
+      "spread_deg": 5.0,
+      "scale_min": 0.6,
+      "scale_max": 1.4,
+      "color_top":    [0.95, 0.97, 1.00, 0.85],
+      "color_bottom": [0.85, 0.90, 0.98, 0.30],
+      "emission_band": "top"
+    },
+    "dust_motes": {
+      "_intent": "near-static interior dust; almost invisible drift",
+      "texture_path": "res://assets/atmosphere/dust_mote.png",
+      "amount": 90,
+      "lifetime": 12.0,
+      "preprocess": 6.0,
+      "gravity_y": -4.0,
+      "spread_deg": 90.0,
+      "scale_min": 0.4,
+      "scale_max": 1.0,
+      "color_top":    [1.00, 1.00, 1.00, 0.18],
+      "color_bottom": [1.00, 1.00, 1.00, 0.04],
+      "emission_band": "full"
+    },
+    "fog_haze": {
+      "_intent": "low-lying gray fog drifting upward",
+      "texture_path": "res://assets/atmosphere/fog_blob.png",
+      "amount": 160,
+      "lifetime": 6.0,
+      "preprocess": 4.0,
+      "gravity_y": -12.0,
+      "spread_deg": 35.0,
+      "scale_min": 1.8,
+      "scale_max": 3.4,
+      "color_top":    [0.78, 0.82, 0.88, 0.00],
+      "color_bottom": [0.78, 0.82, 0.88, 0.55],
+      "emission_band": "bottom"
+    },
+    "embers": {
+      "_intent": "rising orange sparks — used by add_event_effect bursts",
+      "texture_path": "res://assets/atmosphere/ember.png",
+      "amount": 50,
+      "lifetime": 3.0,
+      "preprocess": 0.0,
+      "gravity_y": -40.0,
+      "spread_deg": 25.0,
+      "scale_min": 0.4,
+      "scale_max": 0.9,
+      "color_top":    [1.00, 0.55, 0.10, 0.00],
+      "color_bottom": [1.00, 0.85, 0.30, 0.95],
+      "emission_band": "point",
+      "additive": true,
+      "one_shot_default": true
+    },
+    "smoke_columns": {
+      "_intent": "wide, rising gray-brown billows — aftermath / wreckage",
+      "texture_path": "res://assets/atmosphere/smoke_puff.png",
+      "amount": 120,
+      "lifetime": 5.0,
+      "preprocess": 4.0,
+      "gravity_y": -22.0,
+      "spread_deg": 18.0,
+      "scale_min": 2.0,
+      "scale_max": 4.5,
+      "color_top":    [0.45, 0.40, 0.38, 0.00],
+      "color_bottom": [0.45, 0.40, 0.38, 0.40],
+      "emission_band": "bottom"
+    }
+  }
+}

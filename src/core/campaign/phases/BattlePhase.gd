@@ -1966,8 +1966,16 @@ func _apply_dlc_difficulty_modifiers(setup_data: Dictionary) -> void:
 		difficulty_instructions.append(ai.get("instruction", ""))
 		setup_data["dlc_ai_type"] = ai.get("id", "")
 
-	# Dramatic Combat: weapon-specific narrative instructions (Compendium p.92)
-	# Self-gated: get_dramatic_effect() returns "" when DRAMATIC_COMBAT flag disabled
+	# Dramatic Combat: rule instructions + weapon-specific narrative effects
+	# (Compendium pp.87-89). Self-gated: getters return [] / "" when the
+	# DRAMATIC_COMBAT flag is disabled.
+	#   Rules block (Adjusted Shooting p.87, Duck Back p.87, Lunge p.87)
+	#     → flat lines in dlc_difficulty_instructions
+	#   Per-weapon effects (Dramatic Weapons trait notes p.88-89)
+	#     → dramatic_combat_effects setup_data array (UI renders its own section)
+	var dc_rules: Array[String] = CompendiumDifficultyTogglesRef.get_dramatic_combat_rule_instructions()
+	for rule_text in dc_rules:
+		difficulty_instructions.append(rule_text)
 	var dramatic_effects: Array[String] = []
 	var weapon_types: Array[String] = ["blade", "pistol", "rifle", "heavy", "grenade", "melee"]
 	for wt in weapon_types:
@@ -1976,7 +1984,6 @@ func _apply_dlc_difficulty_modifiers(setup_data: Dictionary) -> void:
 			dramatic_effects.append(effect)
 	if not dramatic_effects.is_empty():
 		setup_data["dramatic_combat_effects"] = dramatic_effects
-		difficulty_instructions.append("DRAMATIC COMBAT ACTIVE: Describe weapon-specific effects per the Compendium.")
 
 	if not difficulty_instructions.is_empty():
 		setup_data["dlc_difficulty_instructions"] = difficulty_instructions

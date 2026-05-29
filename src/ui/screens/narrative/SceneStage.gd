@@ -30,6 +30,8 @@ extends Control
 
 const MANIFEST_DIR := "res://data/scenes/"
 const SpeciesFigureRegistry = preload("res://src/core/character/SpeciesFigureRegistry.gd")
+const Tier2AssetRegistry = preload(
+	"res://src/ui/screens/narrative/Tier2AssetRegistry.gd")
 
 # Ambient "living painting" motion defaults (overridable per scene via the
 # manifest's optional `ambient_motion` block). overscan zooms every layer a
@@ -282,9 +284,18 @@ func _place_slot_figure(assignment: Dictionary) -> void:
 	var slot_id: String = str(assignment.get("slot_id", ""))
 	if _slot_def(slot_id).is_empty():
 		return
-	var figure_path: String = SpeciesFigureRegistry.get_figure_for(
-		str(assignment.get("species_id", "")),
-		str(assignment.get("character_id", "")))
+	# Resolve the asset path. An explicit `source` (Tier 2 image-slot path)
+	# wins over the species-figure lookup, so a manifest slot can opt into a
+	# non-figure scene fragment (a wide painting, a vehicle) without ever
+	# touching SpeciesFigureRegistry.
+	var figure_path: String = ""
+	var source: String = str(assignment.get("source", ""))
+	if not source.is_empty():
+		figure_path = Tier2AssetRegistry.resolve(source)
+	if figure_path.is_empty():
+		figure_path = SpeciesFigureRegistry.get_figure_for(
+			str(assignment.get("species_id", "")),
+			str(assignment.get("character_id", "")))
 	if figure_path.is_empty() or not ResourceLoader.exists(figure_path):
 		return
 	var tex := load(figure_path) as Texture2D
@@ -303,10 +314,18 @@ func _place_slot_figure(assignment: Dictionary) -> void:
 		_apply_drift(rect, drift)
 
 
-## Position every slot rect for the current stage size. The slot `anchor` is the
-## FEET (bottom-center) landing point, normalized to the stage rect; `scale` is
-## the figure height as a fraction of stage height. Recomputed on resize so a
-## figure always stands on its intended ground point at any resolution.
+## Position every slot rect for the current stage size. The slot `anchor` is a
+## normalized 0..1 point in the stage rect; how the rect aligns to that point
+## is controlled by `anchor_mode`:
+##   "feet"     - bottom-center on anchor (default, uniform humanoids)
+##   "center"   - rect center on anchor (the Engineer Twins composition)
+##   "top"      - top-center on anchor (hanging banner / lamp prop)
+##   "top_left" - rect top-left on anchor (full-canvas drop-ins like Stalker)
+## And `scale_mode` controls what the `scale` fraction sizes against:
+##   "height" - fraction of stage height (default; figure sizing)
+##   "width"  - fraction of stage width  (wide compositions)
+## Recomputed on resize so a slot always lands on its intended point at any
+## resolution.
 func _layout_character_slots() -> void:
 	if not _slot_layer:
 		return
@@ -322,14 +341,34 @@ func _layout_character_slots() -> void:
 		var nx: float = float(anchor[0]) if anchor.size() > 0 else 0.5
 		var ny: float = float(anchor[1]) if anchor.size() > 1 else 1.0
 		var scl: float = float(sd.get("scale", 0.8))
+		var anchor_mode: String = str(sd.get("anchor_mode", "feet")).to_lower()
+		var scale_mode: String = str(sd.get("scale_mode", "height")).to_lower()
 		var tex_size: Vector2 = rect.texture.get_size()
 		var aspect: float = (tex_size.x / tex_size.y) if tex_size.y > 0.0 else 1.0
-		var target_h: float = scl * stage.y
-		var target_w: float = target_h * aspect
+		# Compute target size from the chosen dimension; the other follows aspect.
+		var target_w: float
+		var target_h: float
+		if scale_mode == "width":
+			target_w = scl * stage.x
+			target_h = target_w / aspect if aspect > 0.0 else target_w
+		else:
+			target_h = scl * stage.y
+			target_w = target_h * aspect
 		rect.size = Vector2(target_w, target_h)
-		# anchor = feet (bottom-center); shift to the rect's top-left.
-		var feet: Vector2 = Vector2(nx * stage.x, ny * stage.y)
-		rect.position = feet - Vector2(target_w * 0.5, target_h)
+		var anchor_px: Vector2 = Vector2(nx * stage.x, ny * stage.y)
+		# Convert the anchor point to the rect's top-left by subtracting the
+		# offset implied by anchor_mode.
+		var offset: Vector2
+		match anchor_mode:
+			"center":
+				offset = Vector2(target_w * 0.5, target_h * 0.5)
+			"top":
+				offset = Vector2(target_w * 0.5, 0.0)
+			"top_left":
+				offset = Vector2.ZERO
+			_:  # "feet" (and any unrecognized value)
+				offset = Vector2(target_w * 0.5, target_h)
+		rect.position = anchor_px - offset
 
 
 ## Looping sine drift for parallax-style movement. Shared hook for the future

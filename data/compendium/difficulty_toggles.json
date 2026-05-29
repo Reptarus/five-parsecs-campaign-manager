@@ -446,14 +446,77 @@
     }
   ],
   "dramatic_combat_rules": {
+    "adjusted_shooting": {
+      "page": "Compendium p.87",
+      "in_open_threshold": 5,
+      "in_cover_threshold": 6,
+      "instruction": "DRAMATIC COMBAT: Adjusted Shooting — target in open hits on 5+, target in cover hits on 6+ (replaces Combat Skill table; trait modifiers still apply)."
+    },
+    "duck_back": {
+      "page": "Compendium p.87",
+      "conditions": ["At least one firer was more than 6\" away", "Not hit by any shot this phase", "Not a robot"],
+      "in_open_threshold": 3,
+      "in_cover_threshold": 4,
+      "is_bonus_action": true,
+      "per_phase_limit": 1,
+      "instruction": "DRAMATIC COMBAT: Duck Back — at end of each phase, any non-robot figure shot at (but missed) from >6\" tests: 3+ in open, 4+ in cover. Success moves them to closest improved-cover position. Bonus action; once per phase."
+    },
     "lunging": {
+      "page": "Compendium p.87",
       "description": "A Lunging character is immediately moved a full move towards the shooter, attempting to enter Brawling combat.",
       "movement_reduction_ignore": 2,
       "per_round_limit": 1,
       "is_bonus_action": true,
-      "instruction": "DRAMATIC COMBAT: Lunging — character moves full move toward shooter to Brawl. Ignores up to 2\" movement reduction. Once per round. Does not affect normal activation."
+      "trigger_conditions": ["Ranged attack within 6\" AND all shots miss", "Target has no ranged weapon OR has a Melee-trait weapon", "Target does not carry a Heavy-trait weapon"],
+      "instruction": "DRAMATIC COMBAT: Lunge — when shot at within 6\" and all shots miss, eligible target may move a full move toward the shooter to Brawl. Ignores up to 2\" movement reduction. Once per round, bonus action."
     },
     "dramatic_weapons_note": "If using Dramatic Weapons (Compendium pp.88-89), many weapon stats change (e.g., Blade +1 Damage, Blast Pistol 6\" range, Boarding Saber +2 Damage, etc.). Use with Adjusted Shooting hit numbers from p.87."
   },
-  "dramatic_effects": []
+  "dramatic_weapons_stats": {
+    "_source": "Compendium pp.88-89 — replacement weapon table for Dramatic Combat. Entries here OVERRIDE the corresponding equipment_database.json weapon stats while DRAMATIC_COMBAT is enabled.",
+    "auto_rifle":           { "range": 24, "shots": 2, "damage": 0, "traits": [] },
+    "beam_pistol":          { "range": 8,  "shots": 1, "damage": 1, "traits": ["pistol", "critical"] },
+    "blade":                { "range": 0,  "shots": 0, "damage": 1, "traits": ["melee"] },
+    "blast_pistol":         { "range": 6,  "shots": 1, "damage": 1, "traits": ["pistol"] },
+    "blast_rifle":          { "range": 18, "shots": 1, "damage": 1, "traits": [] },
+    "boarding_saber":       { "range": 0,  "shots": 0, "damage": 2, "traits": ["melee", "elegant"] },
+    "brutal_melee_weapon":  { "range": 0,  "shots": 0, "damage": 2, "traits": ["melee", "clumsy"] },
+    "cling_fire_pistol":    { "range": 9,  "shots": 2, "damage": 1, "traits": ["focused", "burn"] },
+    "colony_rifle":         { "range": 18, "shots": 1, "damage": 0, "traits": [] },
+    "dazzle_grenade":       { "range": 6,  "shots": 0, "damage": 0, "traits": ["area", "stun", "single_use"] },
+    "duelling_pistol":      { "range": 6,  "shots": 1, "damage": 0, "traits": ["pistol", "critical"] },
+    "flak_gun":             { "range": 9,  "shots": 2, "damage": 1, "traits": ["focused", "shrapnel"] },
+    "frakk_grenade":        { "range": 6,  "shots": 0, "damage": 0, "traits": ["area", "single_use"] },
+    "fury_rifle":           { "range": 24, "shots": 1, "damage": 2, "traits": ["heavy", "piercing", "shockwave"] },
+    "glare_sword":          { "range": 0,  "shots": 0, "damage": 1, "traits": ["melee", "elegant", "piercing"] },
+    "hand_cannon":          { "range": 6,  "shots": 1, "damage": 2, "traits": ["pistol"] },
+    "hand_flamer":          { "range": 8,  "shots": 0, "damage": 1, "traits": ["area", "burn"] },
+    "hand_gun":             { "range": 9,  "shots": 1, "damage": 0, "traits": ["pistol"] },
+    "hand_laser":           { "range": 9,  "shots": 1, "damage": 0, "traits": ["pistol", "snap_shot"] },
+    "hold_out_pistol":      { "range": 4,  "shots": 1, "damage": 0, "traits": ["melee"] },
+    "hunting_rifle":        { "range": 30, "shots": 1, "damage": 1, "traits": ["heavy", "critical"] },
+    "hyper_blaster":        { "range": 24, "shots": 3, "damage": 1, "traits": ["overheat"] },
+    "infantry_laser":       { "range": 30, "shots": 1, "damage": 0, "traits": ["snap_shot"] },
+    "machine_pistol":       { "range": 6,  "shots": 2, "damage": 0, "traits": ["pistol", "focused"] },
+    "marksmans_rifle":      { "range": 36, "shots": 1, "damage": 0, "traits": ["critical"] },
+    "military_rifle":       { "range": 24, "shots": 1, "damage": 0, "traits": [] },
+    "needle_rifle":         { "range": 18, "shots": 1, "damage": 0, "traits": ["critical", "piercing"] },
+    "plasma_rifle":         { "range": 20, "shots": 2, "damage": 1, "traits": ["focused", "piercing", "overheat"] },
+    "power_claw":           { "range": 0,  "shots": 0, "damage": 3, "traits": ["melee", "clumsy", "piercing"] },
+    "rattle_gun":           { "range": 24, "shots": 3, "damage": 0, "traits": ["heavy"] },
+    "ripper_sword":         { "range": 0,  "shots": 0, "damage": 2, "traits": ["melee"] },
+    "scrap_pistol":         { "range": 7,  "shots": 1, "damage": 0, "traits": ["pistol"] },
+    "shatter_axe":          { "range": 0,  "shots": 0, "damage": 3, "traits": ["melee", "clumsy", "shockwave"] },
+    "shell_gun":            { "range": 18, "shots": 0, "damage": 0, "traits": ["area"] },
+    "shotgun":              { "range": 8,  "shots": 1, "damage": 1, "traits": ["critical"] },
+    "suppression_maul":     { "range": 0,  "shots": 0, "damage": 2, "traits": ["melee", "stun"] }
+  },
+  "dramatic_effects": [
+    { "weapon_type": "blade",   "instruction": "DRAMATIC: Blades and melee weapons score +1 Damage and grant +2 to Brawling." },
+    { "weapon_type": "pistol",  "instruction": "DRAMATIC: Pistols gain +1 to Brawling rolls AND +1 to hit within 6\" (cumulative with Snap Shot)." },
+    { "weapon_type": "rifle",   "instruction": "DRAMATIC: Rifles keep their feel; some gain Critical or Snap Shot. Heavy rifles cannot Lunge and take -1 to hit if firer moved." },
+    { "weapon_type": "heavy",   "instruction": "DRAMATIC: Heavy weapons CANNOT Lunge. -1 to hit if firer moved (does not affect Area weapons). Fury Rifle, Hunting Rifle, Rattle Gun." },
+    { "weapon_type": "grenade", "instruction": "DRAMATIC: Area weapons no longer have inherent Shots — every figure within 2\" of target point hit on unmodified 4+ (5+ if partially obscured)." },
+    { "weapon_type": "melee",   "instruction": "DRAMATIC: Boarding Saber +2 Damage Elegant, Power Claw 3 Damage Piercing, Shatter Axe 3 Damage Shockwave. Choose your blade." }
+  ]
 }

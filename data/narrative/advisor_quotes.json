@@ -1,71 +1,162 @@
 {
-	"_source": "Narrative system design §4. Phase 1 sprint scaffold: 1 quote per role-mood cell = 18 quotes total. Content expansion to ~10 per cell happens in Phase 3 during CharacterPhasePanel integration.",
+	"_source": "Narrative system design §4. Sprint 5 expansion: 6 quotes per role-mood cell = 108 total (was 18 in Phase 1 scaffold). AdvisorSystem.generate_quote() picks one by hash-seeded pseudo-random selection per event.",
 	"_note": "Species personality flavor is applied as an optional substitution by AdvisorSystem.generate_quote() based on the advisor's species. The base quote is the fallback.",
+	"_style": "First-person advisor voice, addressing the captain. Terse, characterful. NO em dashes in new lines (project style rule). Single quotes for nested speech.",
 	"roles": {
 		"broker": {
 			"positive": [
-				"I know someone who deals in these. Could be worth triple on the right world."
+				"I know someone who deals in these. Could be worth triple on the right world.",
+				"Margins on this are obscene. We move fast, we eat well for a month.",
+				"Black market wants these badly. Don't ask why.",
+				"Found a buyer before we even hit ground. The price comes pre-negotiated.",
+				"Patron's contact owes me a favor. I'm calling it in.",
+				"Tag it, crate it, sell it. Easy credits, no questions."
 			],
 			"warning": [
-				"Those markings are Unity military. Could be trouble."
+				"Those markings are Unity military. Could be trouble.",
+				"Whoever stamped this didn't want it traced. We hold or we burn it.",
+				"That broker is going to undercut us if we don't pivot now.",
+				"Stamps don't match. Either it's stolen or it's a frame.",
+				"Spotted a Crimson Collective tag on the manifest. They'll come asking.",
+				"Local buyers all dropped quotes within an hour. Cartel pressure."
 			],
 			"neutral": [
-				"Standard merchant fare. Nothing special."
+				"Standard merchant fare. Nothing special.",
+				"Spot price is what it is. Could go either way next cycle.",
+				"Off-world tariffs are dragging the margin. We break even at best.",
+				"Two buyers, one price. Take it or wait for the next port.",
+				"Catalogue value is honest. No upside, no downside.",
+				"Nothing flagged. Nothing flagged usually means nothing flagged."
 			]
 		},
 		"medic": {
 			"positive": [
-				"Patch jobs hold. They'll be back on their feet by morning."
+				"Patch jobs hold. They'll be back on their feet by morning.",
+				"Clean break. Set, splinted, healing well.",
+				"Vitals are textbook. Don't get used to it.",
+				"That dose worked. Pulse is strong, color is coming back.",
+				"Sutures held the trip. Good tissue response.",
+				"They walked out under their own power. That's the win."
 			],
 			"warning": [
-				"That wound is going to fester if we don't get supplies soon."
+				"That wound is going to fester if we don't get supplies soon.",
+				"Pulse is dropping. We need a medbay, not a field kit.",
+				"Internal bleeding. I'm buying time, not fixing this.",
+				"Antibiotics are out. The next infection kills someone.",
+				"Concussion symptoms. I cannot clear them for the next mission.",
+				"Toxin exposure. I need a lab to identify it before it spreads."
 			],
 			"neutral": [
-				"Vitals are stable. For now."
+				"Vitals are stable. For now.",
+				"Holding. No improvement, no decline.",
+				"Triage call. I move on, I come back when there's time.",
+				"Sleep cycle is broken across the crew. Performance will slip.",
+				"Stocks are adequate. We won't run out this rotation.",
+				"Standard physiology. The species charts are accurate enough."
 			]
 		},
 		"fighter": {
 			"positive": [
-				"Good fight. They won't be coming back."
+				"Good fight. They won't be coming back.",
+				"Clean kills. No survivors to talk.",
+				"That position is ours. Hold it.",
+				"Drop their leader and the rest fold. Confirmed.",
+				"Field belongs to us. Salvage what's useful.",
+				"They broke first. They always break first."
 			],
 			"warning": [
-				"We are outnumbered. But that has never stopped us before."
+				"We are outnumbered. But that has never stopped us before.",
+				"Heavy weapons on overwatch. We move, we die.",
+				"They've got the high ground. We need to flank or fall back.",
+				"Ammo is low. Make every shot count.",
+				"They're not retreating. They want us in close.",
+				"That's not local muscle. That's a contract."
 			],
 			"neutral": [
-				"Keep your weapon ready. Always."
+				"Keep your weapon ready. Always.",
+				"Standard patrol pattern. Predictable.",
+				"Numbers say nothing. Positioning says everything.",
+				"Cover here is thin. We move, we expose.",
+				"Quiet. Too quiet means it's coming.",
+				"Sentries are sloppy. Could go either way."
 			]
 		},
 		"tech": {
 			"positive": [
-				"Interface looks clean. We can work with this."
+				"Interface looks clean. We can work with this.",
+				"Bypassed the lock in under a minute. Old firmware.",
+				"Signal is strong. We can route through their array.",
+				"Hardware is salvageable. Bring a crate.",
+				"Found a backup partition. Their whole operation is documented.",
+				"Patch is holding. System is stable end to end."
 			],
 			"warning": [
-				"This system is failing. Cascade is going to take everything if we don't isolate it."
+				"This system is failing. Cascade is going to take everything if we don't isolate it.",
+				"Encryption is military grade. We're not getting in without the key.",
+				"Power draw spiked. Something is waking up.",
+				"Reactor coolant is venting. Minutes, not hours.",
+				"Network is monitored. We trip a sensor, they come running.",
+				"Firmware is sabotaged. Whoever was here didn't want us looking."
 			],
 			"neutral": [
-				"Specs are within tolerance. Nothing remarkable."
+				"Specs are within tolerance. Nothing remarkable.",
+				"Standard issue. No surprises in the schematic.",
+				"Baseline diagnostic clears. I'll deep-scan if there's time.",
+				"Power signature matches civilian. Nothing to flag.",
+				"Cooling cycle is fine. Filters need swapping next port.",
+				"Logs are clean. Whoever owned this kept it tidy."
 			]
 		},
 		"scout": {
 			"positive": [
-				"Tracks lead the way we want. Whoever was here, they're long gone."
+				"Tracks lead the way we want. Whoever was here, they're long gone.",
+				"Found a clean route. No sentries, no sensors.",
+				"Approach vector is open. We can be on top of them before they hear us.",
+				"Sign is old. We're alone out here.",
+				"Wind is with us. Sound and scent both.",
+				"High ground is ours for the taking."
 			],
 			"warning": [
-				"Something has been watching us for a while. I do not like it."
+				"Something has been watching us for a while. I do not like it.",
+				"Tracks loop back. Whoever made them knows we're following.",
+				"Predator sign all over this draw. Local fauna or worse.",
+				"Smoke on the ridge. Camp, or a signal.",
+				"Recent boot prints. Multiple. Heading our way.",
+				"That valley is a kill box. Don't take the easy path."
 			],
 			"neutral": [
-				"Terrain is what we expected. No surprises."
+				"Terrain is what we expected. No surprises.",
+				"Three approaches. Pick the one that suits your crew.",
+				"Visibility drops past the tree line. Plan accordingly.",
+				"Local wildlife scattered an hour ago. Whatever spooked them is gone too.",
+				"Weather will turn before nightfall. Move now or wait it out.",
+				"No human sign in any direction. Just dust."
 			]
 		},
 		"social": {
 			"positive": [
-				"They like us. That is rarer than it sounds."
+				"They like us. That is rarer than it sounds.",
+				"Reputation traveled ahead of us. Doors open before we knock.",
+				"They're talking like we're old friends. We are now.",
+				"Patron is pleased. Pleased patrons pay extra.",
+				"Won the room. We could ask for the moon and get it.",
+				"Story I told sells itself. They want the next chapter."
 			],
 			"warning": [
-				"He's playing a long game. Whatever this is, it's personal — and that makes him predictable."
+				"He's playing a long game. Whatever this is, it's personal — and that makes him predictable.",
+				"They're stalling. Either reinforcements, or a trap, or both.",
+				"Eye contact says one thing, hands say another. Don't trust this.",
+				"Reputation precedes us. The wrong reputation.",
+				"Patron just laughed at our price. We have a problem.",
+				"Word on the street tags us. Anonymity is gone."
 			],
 			"neutral": [
-				"Talk is cheap. Let's hear what they actually want."
+				"Talk is cheap. Let's hear what they actually want.",
+				"They want to negotiate. So we negotiate.",
+				"Polite, careful, noncommittal. Standard fare.",
+				"Bar is full of people pretending not to listen.",
+				"This is a relationship. Don't burn it for short money.",
+				"Quiet town. Means everyone here knows everyone here."
 			]
 		}
 	},
