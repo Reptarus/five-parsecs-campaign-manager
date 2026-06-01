@@ -18,9 +18,10 @@ const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 # Data-driven character creation tables
+# Note: _skills_data + character_skills.json removed Sprint B Phase B.1
+# (2026-05-24) — 5PFH has no skill system; loaded value had zero readers.
 static var _character_data: Dictionary = {}
 static var _backgrounds_data: Dictionary = {}
-static var _skills_data: Dictionary = {}
 static var _is_data_loaded: bool = false
 
 # JSON-loaded creation tables (lazy-loaded on first access)
@@ -558,8 +559,7 @@ static func _load_character_data() -> void:
 	# Fallback to direct loading if DataManager not available
 	_character_data = UniversalResourceLoader.load_json_safe("res://data/character_creation_data.json", "Character Creation Data")
 	_backgrounds_data = UniversalResourceLoader.load_json_safe("res://data/character_backgrounds.json", "Character Backgrounds")
-	_skills_data = UniversalResourceLoader.load_json_safe("res://data/character_skills.json", "Character Skills")
-	
+
 	_is_data_loaded = true
 
 ## Generate Five Parsecs attribute using official 2D6 / 3.0 formula

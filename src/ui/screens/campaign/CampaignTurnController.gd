@@ -890,11 +890,19 @@ func _on_battle_completed(results: Dictionary) -> void:
 	game_state.set_battle_results(results)
 	battle_results = results
 
-	# B2 narrative bridge: auto-resolved battles ("play it out for me") are
-	# wrapped in a NarrativeScreen outcome beat before the post-battle wizard.
-	# Played-out tactical battles skip this (the player already saw the action).
-	# Same gating pattern as StoryPhase / CharacterPhase / CrewTask integrations.
-	if results.get("auto_resolved", false) and _narrative_events_enabled():
+	# B2 narrative bridge: 3-tier gate (per-battle > per-campaign > global).
+	# Per-battle override force_narrative_wrap (true/false) is absolute when
+	# present (e.g. story finale = always wrap, training mission = never).
+	# Per-campaign narrative_wrap_override (true/false) on progress_data takes
+	# precedence over the global Settings checkbox when set (e.g. "this save
+	# is more cinematic / less cinematic" without changing the user preference).
+	# When all overrides are null/absent: auto-resolved + global setting (the
+	# original behavior, played-out tactical battles still skip the wrap).
+	if _should_present_narrative_wrap(
+			results,
+			_settings_narrative_enabled(),
+			_per_campaign_narrative_override(),
+			_per_battle_narrative_override(results)):
 		_present_battle_outcome_via_narrative(results)
 		return
 
@@ -951,13 +959,75 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 # the convergence point of Workstream A (narrative) and Workstream B (combat
 # modes) — both standard and No-Minis resolvers funnel through the same wrap.
 
+## Combined gate: global setting AND per-campaign override (when set).
+## Does NOT consider per-battle (only relevant when a result dict is in hand).
+## Kept as the public API for callers that just want "is the narrative
+## wrapper on for this campaign right now"; battle code goes through the
+## static `_should_present_narrative_wrap` for full 3-tier resolution.
 func _narrative_events_enabled() -> bool:
+	var settings_on: bool = _settings_narrative_enabled()
+	var campaign_override = _per_campaign_narrative_override()
+	if campaign_override != null:
+		return bool(campaign_override)
+	return settings_on
+
+
+## Just the .cfg-backed global setting. Null-safe.
+func _settings_narrative_enabled() -> bool:
 	var settings: Node = get_node_or_null("/root/SettingsManager")
 	if settings == null:
 		return false
 	if not settings.has_method("are_narrative_events_enabled"):
 		return false
 	return bool(settings.are_narrative_events_enabled())
+
+
+## Returns null (no override), true (force on for this campaign), or false
+## (force off for this campaign). Persists in `campaign.progress_data` so
+## save/load round-trips it.
+func _per_campaign_narrative_override():
+	if game_state == null or not game_state.has_method("get_campaign"):
+		return null
+	var campaign = game_state.get_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return null
+	var pd: Dictionary = campaign.progress_data
+	return pd.get("narrative_wrap_override", null)
+
+
+## Returns null (no override), true (force on for this battle), or false
+## (force off for this battle). Checked in two places — the result dict
+## itself (resolver-set or copied from mission_data on dispatch) and the
+## current mission dict (campaign world-phase set). Result dict wins.
+func _per_battle_narrative_override(result: Dictionary):
+	var rv = result.get("force_narrative_wrap", null)
+	if rv != null:
+		return rv
+	if game_state and game_state.has_method("get_current_mission"):
+		var mission = game_state.get_current_mission()
+		if mission is Dictionary:
+			return (mission as Dictionary).get("force_narrative_wrap", null)
+	return null
+
+
+## Pure-function gate. Static so tests can call it with synthetic inputs
+## without instantiating the Control. Priority (highest to lowest):
+##   1. battle_override truthy/falsy = absolute decision
+##   2. campaign_override truthy = enabled (still requires auto_resolved)
+##      campaign_override falsy = hard veto
+##   3. settings_enabled AND result.auto_resolved (default original behavior)
+static func _should_present_narrative_wrap(
+		result: Dictionary,
+		settings_enabled: bool,
+		campaign_override,
+		battle_override) -> bool:
+	if battle_override != null:
+		return bool(battle_override)
+	if campaign_override != null:
+		if not bool(campaign_override):
+			return false
+		return bool(result.get("auto_resolved", false))
+	return settings_enabled and bool(result.get("auto_resolved", false))
 
 
 func _present_battle_outcome_via_narrative(result: Dictionary) -> void:

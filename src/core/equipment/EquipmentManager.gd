@@ -369,59 +369,40 @@ func generate_battle_loot(difficulty: int, success: bool = true) -> Array:
 	
 	return loot_items
 
-## Roll on the Five Parsecs loot table and return an item
+## Roll on the Five Parsecs Main Loot Table (Core Rules p.131)
+## Sprint B Phase B.5 (2026-05-24): rewrote D100 boundaries to match book.
+## Pre-fix: D100 1-25 generated fabricated "Small Credit Pouch / Credit Stick /
+## Valuable Credit Chip" with 50-400cr — none of which appear in the book.
+## Post-fix: D100 1-25 yields WEAPON per Core Rules p.131 main_loot table.
+## Canonical data: data/loot_tables.json (main_loot block).
+##
+## Remaining technical debt: 26-35 (DAMAGED_WEAPONS x2) and 36-45 (DAMAGED_GEAR
+## x2) currently route to single-item generators because a damaged-item +
+## count=2 generator pattern doesn't exist in this file yet. ODDS_AND_ENDS
+## (66-80) and REWARDS (81-100) sub-tables need their own helpers. Tracked
+## as follow-up Sprint C work after this priority fabrication is removed.
 func _roll_on_loot_table() -> Dictionary:
-	# Roll D100 to determine the loot type as per rulebook
 	var roll = randi() % 100 + 1
-	
-	if roll <= 10:
-		# Credits (small amount)
-		return {
-			"id": "credits_" + str(randi() % 10000),
-			"name": "Small Credit Pouch",
-			"category": EquipmentCategory.CREDITS,
-			"credits": 50 + (randi() % 6) * 10, # 50-100 credits
-			"value": 0
-		}
-	elif roll <= 20:
-		# Credits (medium amount)
-		return {
-			"id": "credits_" + str(randi() % 10000),
-			"name": "Credit Stick",
-			"category": EquipmentCategory.CREDITS,
-			"credits": 100 + (randi() % 11) * 10, # 100-200 credits
-			"value": 0
-		}
-	elif roll <= 25:
-		# Credits (large amount, rare)
-		return {
-			"id": "credits_" + str(randi() % 10000),
-			"name": "Valuable Credit Chip",
-			"category": EquipmentCategory.CREDITS,
-			"credits": 200 + (randi() % 11) * 20, # 200-400 credits
-			"value": 0
-		}
-	elif roll <= 40:
-		# Standard Weapon (from JSON)
+
+	if roll <= 25:
+		# WEAPON — single weapon (Core Rules p.131 main_loot)
 		return _generate_random_db_weapon()
-	elif roll <= 55:
-		# Armor (from JSON)
-		return _generate_random_db_armor()
-	elif roll <= 65:
-		# Consumable (from JSON)
-		return _generate_consumable_item()
-	elif roll <= 75:
-		# Gear (from JSON)
+	elif roll <= 35:
+		# DAMAGED_WEAPONS — 2 damaged weapons (need repair). Stub: single weapon
+		# until a count=2 / damaged-marker generator is added (follow-up work).
+		return _generate_random_db_weapon()
+	elif roll <= 45:
+		# DAMAGED_GEAR — 2 damaged gear (need repair). Stub: single gear.
 		return _generate_random_db_gear()
-	elif roll <= 85:
-		# Utility Item
-		return _generate_utility_item()
-	elif roll <= 95:
-		# Rare Equipment
-		return _generate_rare_equipment()
+	elif roll <= 65:
+		# GEAR — single gear item
+		return _generate_random_db_gear()
+	elif roll <= 80:
+		# ODDS_AND_ENDS — needs subtable resolution (follow-up). Stub: consumable.
+		return _generate_consumable_item()
 	else:
-		# Unique Item (very rare, powerful)
-		return _generate_unique_item()
+		# REWARDS — needs subtable resolution (follow-up). Stub: armor.
+		return _generate_random_db_armor()
 
 ## Generate weapon from JSON database
 func _generate_weapon_by_rulebook() -> Dictionary:

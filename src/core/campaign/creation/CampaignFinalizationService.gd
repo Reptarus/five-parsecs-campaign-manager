@@ -258,6 +258,15 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if not prog_opts.is_empty():
 		campaign.progress_data["progressive_difficulty_options"] = prog_opts
 
+	# Per-campaign narrative wrap override (May 29 2026). null = use global,
+	# true/false = override. Only persisted when explicitly set in the config
+	# (otherwise the key stays absent and GameStateManager falls through to
+	# the global Settings checkbox).
+	if campaign_cfg.has("narrative_wrap_override"):
+		var nw_override = campaign_cfg.get("narrative_wrap_override", null)
+		if nw_override != null:
+			campaign.progress_data["narrative_wrap_override"] = bool(nw_override)
+
 	# RULES FIX: crew.members now includes captain (merged by coordinator)
 	var crew_data = data.get("crew", {})
 	var transformed_crew = _transform_crew_data_for_turn_system(crew_data)

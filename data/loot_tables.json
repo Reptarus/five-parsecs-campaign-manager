@@ -104,7 +104,7 @@
     "Boarding Saber": {"range": 0, "shots": 0, "damage": 1, "special": "MELEE ELEGANT", "category": "melee"},
     "Power Claw": {"range": 0, "shots": 0, "damage": 2, "special": "MELEE CLUMSY", "category": "melee"},
     "Shatter Axe": {"range": 0, "shots": 0, "damage": 2, "special": "MELEE", "category": "melee"},
-    "Glare Sword": {"range": 0, "shots": 0, "damage": 2, "special": "MELEE ELEGANT", "category": "melee"},
+    "Glare Sword": {"range": 0, "shots": 0, "damage": 0, "special": "MELEE ELEGANT PIERCING", "category": "melee"},
     "Flak Gun": {"range": 8, "shots": 2, "damage": 1, "special": "FOCUSED CRITICAL", "category": "slug"},
     "Frakk Grenade": {"range": 6, "shots": 0, "damage": 1, "special": "AREA SINGLE_USE", "category": "grenade"},
     "Dazzle Grenade": {"range": 6, "shots": 0, "damage": 0, "special": "STUN AREA SINGLE_USE", "category": "grenade"}

@@ -91,17 +91,14 @@ add_credits(amount: int) -> void
 remove_credits(amount: int) -> bool              # returns false if insufficient
 get_transaction_history() -> Array
 clear_history() -> void
-calculate_price_adjustment(location_type: String) -> float
 ```
 
-### Location Price Multipliers
-```
-trade_hub:            0.9  (10% discount)
-black_market:         1.2  (20% premium)
-frontier_outpost:     1.1  (10% premium)
-civilian_settlement:  1.0  (standard)
-military_base:        1.15 (15% premium)
-```
+### Location Price Multipliers — REMOVED Sprint B Phase B.3 (2026-05-24)
+
+The `calculate_price_adjustment(location_type)` function and the per-location
+multiplier table (trade_hub 0.9 / black_market 1.2 / etc.) were fabricated.
+Core Rules p.125 specifies flat 1cr per item sold; no per-location modifiers
+exist in 5PFH. Function deleted with zero callers (verified by grep).
 
 Starting balance: 1000 credits
 

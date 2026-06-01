@@ -1990,6 +1990,11 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 # outcome is correct. Interactive events keep using CrewTaskEventDialog.
 
 func _narrative_events_enabled() -> bool:
+	# Route through GameStateManager so per-campaign override is honored
+	# (May 29 2026). Falls back to SettingsManager directly if GSM is absent.
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("are_narrative_events_enabled"):
+		return bool(gsm.are_narrative_events_enabled())
 	var settings = get_node_or_null("/root/SettingsManager")
 	return settings != null \
 		and settings.has_method("are_narrative_events_enabled") \

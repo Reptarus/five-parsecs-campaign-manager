@@ -1,6 +1,6 @@
 {
   "name": "Character Advancement",
-  "source": "Core Rules pp.67-76 (Character Advancement rules)",
+  "source": "Core Rules p.123 (Character Advancement / XP Costs); ranges/maxes also referenced from pp.67-76 (Character Creation context)",
   "advancement_costs": {
     "reactions": 7,
     "combat_skill": 7,

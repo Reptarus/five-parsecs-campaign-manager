@@ -53,7 +53,7 @@ Core rulebook data extracted from Five Parsecs source material.
 | `SpeciesList.json` | All playable species | `CharacterCreationData.gd` |
 | `StealthAndStreet.json` | Stealth rules | `StealthSystem.gd` |
 | `TerrainTables.json` | Terrain generation | `TerrainGenerator.gd` |
-| `tutorial_character_creation_data.json` | Tutorial data | `TutorialManager.gd` |
+<!-- tutorial_character_creation_data.json — deleted Sprint B Phase B.1 (2026-05-24); zero consumers in src/. -->
 
 ---
 

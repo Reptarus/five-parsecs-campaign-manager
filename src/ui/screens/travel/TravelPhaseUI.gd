@@ -466,6 +466,12 @@ func _generate_travel_event() -> void:
 	_display_travel_event(event_result)
 
 func _narrative_events_enabled() -> bool:
+	# Route through GameStateManager so per-campaign override is honored
+	# (May 29 2026 — 3-tier gate centralization). Falls back to SettingsManager
+	# directly if GSM isn't available.
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("are_narrative_events_enabled"):
+		return bool(gsm.are_narrative_events_enabled())
 	var settings = get_node_or_null("/root/SettingsManager")
 	return settings != null \
 		and settings.has_method("are_narrative_events_enabled") \

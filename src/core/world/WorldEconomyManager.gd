@@ -57,15 +57,6 @@ func deserialize(data: Dictionary) -> void:
 	_transaction_history = data.get("transaction_history", [])
 
 # Market functions
-func calculate_price_adjustment(location_type: String) -> float:
-	var base_adjustment := 1.0
-	
-	match location_type:
-		"trade_hub": return base_adjustment * 0.9 # 10% discount
-		"black_market": return base_adjustment * 1.2 # 20% premium
-		"frontier_outpost": return base_adjustment * 1.1 # 10% premium
-		"civilian_settlement": return base_adjustment * 1.0 # Standard price
-		"military_base": return base_adjustment * 1.15 # 15% premium
-		_: return base_adjustment
-	
-	return base_adjustment
+# (calculate_price_adjustment deleted Sprint B Phase B.3 (2026-05-24) —
+# fabricated per-location price modifiers not in Core Rules. 5PFH trade is
+# flat 1cr per item sold per Core Rules p.125. Zero callers verified.)

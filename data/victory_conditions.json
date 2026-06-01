@@ -159,22 +159,7 @@
 			"For every 5 Elite Ranks, pick one Stars of the Story option that can be used twice (must pick at campaign start)"
 		]
 	},
-	"achievement_thresholds": {
-		"wealthy_captain": {"name": "Wealthy Captain", "description": "Accumulated 100+ credits", "threshold": 100, "check_type": "credits"},
-		"famous_crew": {"name": "Famous Crew", "description": "Built crew of 5+ members", "threshold": 5, "check_type": "crew_size"},
-		"veteran_captain": {"name": "Veteran Captain", "description": "Earned 50+ XP", "threshold": 50, "check_type": "captain_xp"},
-		"iron_will": {"name": "Iron Will", "description": "No crew deaths throughout campaign", "threshold": 0, "check_type": "casualties"},
-		"arsenal": {"name": "Well-Armed", "description": "Accumulated 10+ weapons", "threshold": 10, "check_type": "weapon_count"},
-		"survivor": {"name": "Survivor", "description": "Survived 20+ campaign turns", "threshold": 20, "check_type": "turns"},
-		"wealthy": {"name": "Filthy Rich", "description": "Accumulated 500+ credits", "threshold": 500, "check_type": "credits"},
-		"experienced": {"name": "Combat Veteran", "description": "Captain earned 100+ XP", "threshold": 100, "check_type": "captain_xp"}
-	},
-	"difficulty_multipliers": {
-		"EASY": {"turns": 0.75, "credits": 0.75, "story_points": 0.75},
-		"NORMAL": {"turns": 1.0, "credits": 1.0, "story_points": 1.0},
-		"HARD": {"turns": 1.25, "credits": 1.5, "story_points": 1.5},
-		"BRUTAL": {"turns": 1.5, "credits": 2.0, "story_points": 2.0}
-	},
+	"_removed_sections_note": "achievement_thresholds + difficulty_multipliers blocks removed Sprint B Phase B.4 (2026-05-24) — both fabricated. achievements (wealthy_captain, famous_crew, etc.) not in Core Rules p.64; difficulty_multipliers used HARD/BRUTAL which aren't even real Core Rules difficulty modes (should be CHALLENGING/HARDCORE/INSANITY) AND the multiplier system itself isn't in the book.",
 	"common_target_turns": [5, 10, 15, 20, 30, 50],
 	"allow_multiple_conditions": false,
 	"allow_custom_targets": true,

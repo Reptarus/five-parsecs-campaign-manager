@@ -148,11 +148,19 @@ func _show_event_view() -> void:
 		_show_clock_view()
 		return
 
-	# Narrative-mode branch (default ON via SettingsManager). Fallback is the
-	# existing card UI below — toggling the setting off restores prior behavior.
-	var settings = get_node_or_null("/root/SettingsManager")
-	if settings and settings.has_method("are_narrative_events_enabled") \
-			and settings.are_narrative_events_enabled():
+	# Narrative-mode branch (default ON, honors per-campaign override via
+	# GameStateManager — May 29 2026). Falls back to the SettingsManager
+	# global directly if GSM is absent. Toggle off restores card UI.
+	var gsm = get_node_or_null("/root/GameStateManager")
+	var narrative_on: bool = false
+	if gsm and gsm.has_method("are_narrative_events_enabled"):
+		narrative_on = bool(gsm.are_narrative_events_enabled())
+	else:
+		var settings = get_node_or_null("/root/SettingsManager")
+		narrative_on = settings != null \
+			and settings.has_method("are_narrative_events_enabled") \
+			and bool(settings.are_narrative_events_enabled())
+	if narrative_on:
 		_present_via_narrative_screen()
 		return
 

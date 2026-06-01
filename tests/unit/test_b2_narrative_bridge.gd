@@ -142,3 +142,56 @@ func test_missing_held_field_defaults_false_not_won() -> void:
 	# With held_field undefined and won=false, the path is "Withdrawal"
 	# (which is what we'd want for a result with no held_field signal).
 	assert_str(d.get("title", "")).is_equal("Aftermath: Withdrawal")
+
+
+# ── 9-16: 3-tier gate priority (per-battle > per-campaign > global) ───
+# These pin the new gate logic shipped May 29 — per-campaign + per-battle
+# overrides on top of the global Settings checkbox + auto_resolved flag.
+
+func test_gate_battle_override_true_forces_wrap() -> void:
+	# Per-battle TRUE wins even when nothing else is set / auto_resolved is false.
+	var auto_off := { "auto_resolved": false }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_off, false, null, true)).is_true()
+
+func test_gate_battle_override_false_vetoes_everything() -> void:
+	# Per-battle FALSE wins even when everything below would say yes.
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, true, false)).is_false()
+
+func test_gate_campaign_override_true_passes_when_auto_resolved() -> void:
+	# Per-campaign TRUE upgrades global to on, but still requires auto-resolve.
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, false, true, null)).is_true()
+
+func test_gate_campaign_override_true_skips_when_tactical() -> void:
+	# Per-campaign TRUE does NOT bypass the auto_resolved requirement.
+	# Tactical battles get their own resolution screen, no narrative wrap.
+	var tactical := { "auto_resolved": false }
+	assert_bool(CTC._should_present_narrative_wrap(
+		tactical, false, true, null)).is_false()
+
+func test_gate_campaign_override_false_hard_veto() -> void:
+	# Per-campaign FALSE wins over global=on + auto_resolved.
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, false, null)).is_false()
+
+func test_gate_no_overrides_global_on_auto_resolved_yes() -> void:
+	# Default behavior — original B2 gate preserved when nothing overrides.
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, null, null)).is_true()
+
+func test_gate_no_overrides_global_off_skips() -> void:
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, false, null, null)).is_false()
+
+func test_gate_no_overrides_tactical_skips_even_when_global_on() -> void:
+	# Default-path tactical battles still skip the wrap.
+	var tactical := { "auto_resolved": false }
+	assert_bool(CTC._should_present_narrative_wrap(
+		tactical, true, null, null)).is_false()

@@ -12,7 +12,8 @@ const ResourcePool = preload("res://tests/fixtures/helpers/resource_pool.gd")
 const PROBLEMATIC_PATHS = [
 	"res://src/core/mission/MissionManager.gd",
 	"res://src/core/enemy/managers/EnemyManager.gd",
-	"res://src/core/story/UnifiedStorySystem.gd",
+	# UnifiedStorySystem.gd deleted Sprint C Phase 2 (2026-05-24) — dead class,
+	# only loaded fabricated story_events.json. See project_sprint_b_c_consolidation memory.
 	"res://src/core/managers/GameStateManager.gd",
 	"res://src/core/terrain/TerrainManager.gd"
 ]

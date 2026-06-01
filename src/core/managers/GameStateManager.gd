@@ -245,6 +245,51 @@ func _get_campaign() -> Resource:
 		return gs.get_current_campaign()
 	return null
 
+# --- Narrative event gating ---
+#
+# Canonical helper for the 4 narrative integrations (StoryPhasePanel,
+# CharacterPhasePanel, CrewTaskComponent, TravelPhaseUI). Returns the
+# combined gate: per-campaign override (if set) wins, otherwise the
+# global Settings checkbox. The B2 battle bridge in CampaignTurnController
+# has its own 3-tier gate (this helper + per-battle override) but reads
+# the same `narrative_wrap_override` field so the override is consistent
+# across every narrative surface.
+#
+# Per-campaign override lives on `campaign.progress_data["narrative_wrap_override"]`:
+#   null  → use global setting (default)
+#   true  → always on for this campaign
+#   false → always off for this campaign
+
+func are_narrative_events_enabled() -> bool:
+	var campaign := _get_campaign()
+	if campaign and "progress_data" in campaign:
+		var pd: Dictionary = campaign.progress_data
+		var override = pd.get("narrative_wrap_override", null)
+		if override != null:
+			return bool(override)
+	var settings = get_node_or_null("/root/SettingsManager")
+	if settings == null or not settings.has_method("are_narrative_events_enabled"):
+		return false
+	return bool(settings.are_narrative_events_enabled())
+
+
+func set_narrative_wrap_override(value) -> void:
+	# Pass null to clear, true/false to set. Persists via progress_data.
+	var campaign := _get_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	if value == null:
+		campaign.progress_data.erase("narrative_wrap_override")
+	else:
+		campaign.progress_data["narrative_wrap_override"] = bool(value)
+
+
+func get_narrative_wrap_override():
+	var campaign := _get_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return null
+	return campaign.progress_data.get("narrative_wrap_override", null)
+
 # --- Credit arithmetic ---
 
 func add_credits(amount: int) -> void:

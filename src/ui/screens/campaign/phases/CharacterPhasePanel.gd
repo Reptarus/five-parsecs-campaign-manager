@@ -170,6 +170,11 @@ func get_phase_data() -> Dictionary:
 # only, so behavior is identical whether the toggle is on or off.
 
 func _narrative_enabled() -> bool:
+	# Route through GameStateManager so per-campaign override is honored
+	# (May 29 2026). Falls back to SettingsManager directly if GSM is absent.
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("are_narrative_events_enabled"):
+		return bool(gsm.are_narrative_events_enabled())
 	var settings = get_node_or_null("/root/SettingsManager")
 	return settings != null \
 		and settings.has_method("are_narrative_events_enabled") \

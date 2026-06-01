@@ -65,6 +65,11 @@ var victory_conditions_list: VBoxContainer
 var story_track_checkbox: CheckBox
 var intro_campaign_checkbox: CheckBox
 var narrative_combo_label: Label
+# Narrative wrap style — per-campaign override for the global Settings
+# "Narrative Events" checkbox. 0=use global, 1=always wrap, 2=never wrap.
+# May 29 2026 — 3-tier gate UI (campaign-level).
+var narrative_wrap_option: OptionButton
+var narrative_wrap_description: Label
 var summary_label: Label
 
 # Crew size selector (Core Rules p.63)
@@ -523,6 +528,44 @@ func _build_narrative_options_section(parent: Control) -> void:
 	narrative_combo_label.visible = false
 	content.add_child(narrative_combo_label)
 
+	# --- Narrative wrap style (per-campaign override for global setting) ---
+	var sep_wrap := HSeparator.new()
+	sep_wrap.modulate = COLOR_BORDER
+	content.add_child(sep_wrap)
+
+	var wrap_row := HBoxContainer.new()
+	wrap_row.add_theme_constant_override("separation", SPACING_MD)
+	content.add_child(wrap_row)
+
+	var wrap_label := Label.new()
+	wrap_label.text = "Narrative Wrap Style"
+	wrap_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	wrap_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap_row.add_child(wrap_label)
+
+	narrative_wrap_option = OptionButton.new()
+	narrative_wrap_option.custom_minimum_size = Vector2(260, TOUCH_TARGET_MIN)
+	narrative_wrap_option.add_item("Use Global Setting", 0)
+	narrative_wrap_option.add_item("Always Wrap (Cinematic)", 1)
+	narrative_wrap_option.add_item("Never Wrap (Classic)", 2)
+	narrative_wrap_option.selected = 0
+	narrative_wrap_option.item_selected.connect(_on_narrative_wrap_style_selected)
+	wrap_row.add_child(narrative_wrap_option)
+
+	narrative_wrap_description = Label.new()
+	narrative_wrap_description.text = (
+		"Per-campaign override for the global Narrative Events setting. "
+		+ "'Always Wrap' shows the illustrated outcome beat after every "
+		+ "auto-resolved battle and uses NarrativeScreen for story events. "
+		+ "'Never Wrap' forces the classic card UI even when the global "
+		+ "setting is on. Default 'Use Global' respects your Settings preference.")
+	narrative_wrap_description.add_theme_font_size_override(
+		"font_size", FONT_SIZE_SM)
+	narrative_wrap_description.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
+	narrative_wrap_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(narrative_wrap_description)
+
 	var card := _create_section_card(
 		"NARRATIVE OPTIONS",
 		content,
@@ -546,6 +589,29 @@ func _update_narrative_combo_label() -> void:
 	if narrative_combo_label:
 		narrative_combo_label.visible = (
 			_story_track_enabled and _intro_campaign_enabled)
+
+
+func _on_narrative_wrap_style_selected(index: int) -> void:
+	# Maps OptionButton index → progress_data field value.
+	#   0 (Use Global)   → null  (no override; remove key)
+	#   1 (Always Wrap)  → true
+	#   2 (Never Wrap)   → false
+	# Stored on local_campaign_config; CampaignFinalizationService writes it
+	# to campaign.progress_data["narrative_wrap_override"] at finalize.
+	# Also applied live to the current campaign via GameStateManager so a
+	# mid-creation toggle takes effect even before finalization.
+	match index:
+		0:
+			local_campaign_config.erase("narrative_wrap_override")
+		1:
+			local_campaign_config["narrative_wrap_override"] = true
+		2:
+			local_campaign_config["narrative_wrap_override"] = false
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("set_narrative_wrap_override"):
+		var value = local_campaign_config.get("narrative_wrap_override", null)
+		gsm.set_narrative_wrap_override(value)
+	campaign_config_data_changed.emit(local_campaign_config)
 
 
 func _build_compendium_setup_section(parent: Control) -> void:
