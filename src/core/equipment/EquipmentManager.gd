@@ -503,7 +503,7 @@ func create_weapon_item(name: String, weapon_type: int, damage: int, range_val: 
 		"range": range_val,
 		"condition": 100,
 		"traits": [],
-		"value": 100 + (damage * 50) + (range_val * 30)
+		"value": 3  # Core Rules p.125: a table roll costs 3 credits. No stat-based price formula exists in the rules.
 	}
 
 ## Create armor with the specified parameters (used by import/generation systems)
@@ -532,7 +532,7 @@ func create_armor_item(name: String, armor_type: int, protection: int) -> Dictio
 		"mobility_penalty": mobility_penalty,
 		"condition": 100,
 		"traits": [],
-		"value": 100 + (protection * 75)
+		"value": 3  # Core Rules p.125: a table roll costs 3 credits. No stat-based price formula exists in the rules.
 	}
 
 ## Create gear with the specified parameters (used by import/generation systems)

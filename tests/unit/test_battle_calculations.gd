@@ -285,27 +285,29 @@ func test_resolve_brawl_draw() -> void:
 #region Experience Calculation Tests
 
 func test_xp_for_participation() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, false, 0, false)
+	var xp := BattleCalculations.calculate_crew_xp(true, false, 0)
 	# Participation (1) + defeat bonus (1) = 2
 	assert_int(xp).is_equal(2)
 
 func test_xp_for_victory() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, true, 0, false)
+	var xp := BattleCalculations.calculate_crew_xp(true, true, 0)
 	# Participation (1) + victory bonus (2) = 3
 	assert_int(xp).is_equal(3)
 
 func test_xp_for_first_kill() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, true, 1, false)
-	# Participation (1) + victory (2) + kill (1) = 4
+	var xp := BattleCalculations.calculate_crew_xp(true, true, 1)
+	# Participation (1) + victory (2) + first casualty (1) = 4 (Core Rules p.123)
 	assert_int(xp).is_equal(4)
 
-func test_xp_for_survival() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, true, 0, true)
-	# Participation (1) + victory (2) + survival (1) = 4
-	assert_int(xp).is_equal(4)
+func test_xp_has_no_fabricated_survival_bonus() -> void:
+	# Core Rules p.123 has no "survived an injury" battle-XP source. "School of
+	# hard knocks" (+1 XP) is an Injury Table result, applied in InjuryProcessor.
+	var xp := BattleCalculations.calculate_crew_xp(true, true, 0)
+	# Participation (1) + victory (2) = 3, regardless of any injury
+	assert_int(xp).is_equal(3)
 
 func test_no_xp_without_participation() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(false, true, 5, true)
+	var xp := BattleCalculations.calculate_crew_xp(false, true, 5)
 	assert_int(xp).is_equal(0)
 
 func test_calculate_battle_xp_for_crew() -> void:
@@ -330,18 +332,17 @@ func test_loot_rolls_no_loot_on_defeat() -> void:
 	var rolls := BattleCalculations.calculate_loot_rolls(false, 3, false)
 	assert_int(rolls).is_equal(0)
 
-func test_loot_rolls_bonus_for_many_enemies() -> void:
+func test_loot_rolls_no_fabricated_enemy_count_bonus() -> void:
+	# Core Rules p.121: roll once on the Loot Table. There is no extra roll for
+	# defeating 6+ enemies. Only holding the field adds a (Battlefield Finds) roll.
 	var rolls := BattleCalculations.calculate_loot_rolls(true, 6, true)
-	# Base (1) + many enemies (1) + hold field (1) = 3
-	assert_int(rolls).is_equal(3)
+	# Base (1) + hold field (1) = 2 — the enemy count is ignored
+	assert_int(rolls).is_equal(2)
 
 func test_calculate_battle_credits() -> void:
-	var credits := BattleCalculations.calculate_battle_credits(10, 4, 1.0)
+	# Core Rules p.120: pay is base + danger pay, no percentage multiplier
+	var credits := BattleCalculations.calculate_battle_credits(10, 4)
 	assert_int(credits).is_equal(14)
-
-func test_calculate_battle_credits_with_bonus() -> void:
-	var credits := BattleCalculations.calculate_battle_credits(10, 4, 1.5)
-	assert_int(credits).is_equal(21)  # (10 + 4) * 1.5 = 21
 
 #endregion
 

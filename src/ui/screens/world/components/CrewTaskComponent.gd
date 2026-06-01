@@ -2362,14 +2362,32 @@ func _remove_crew_member(crew_member, crew_id: String) -> void:
 				break
 
 func _roll_on_military_weapons_table() -> String:
-	## Roll D100 on the Military Weapons table (gear_database.json)
+	## Roll D100 on the Military Weapons table (Core Rules p.28).
+	## Single source of truth: data/gear_database.json -> weapon_tables.military_weapon.
+	var table: Array = _get_military_weapon_table()
+	if table.is_empty():
+		push_warning("CrewTaskComponent: military_weapon table missing from gear_database.json")
+		return ""
 	var roll: int = randi() % 100 + 1
-	# Military weapons table from gear_database.json
-	if roll <= 25: return "Military Rifle"
-	if roll <= 45: return "Infantry Laser"
-	if roll <= 50: return "Marksman's Rifle"
-	if roll <= 60: return "Needle Rifle"
-	if roll <= 75: return "Auto Rifle"
-	if roll <= 80: return "Rattle Gun"
-	if roll <= 95: return "Boarding Saber"
-	return "Shatter Axe"
+	for entry in table:
+		var roll_range: Array = entry.get("roll_range", [0, 0])
+		if roll >= int(roll_range[0]) and roll <= int(roll_range[1]):
+			return str(entry.get("name", ""))
+	return str(table[table.size() - 1].get("name", ""))
+
+static var _military_weapon_table_cache: Array = []
+func _get_military_weapon_table() -> Array:
+	if not _military_weapon_table_cache.is_empty():
+		return _military_weapon_table_cache
+	var file := FileAccess.open("res://data/gear_database.json", FileAccess.READ)
+	if not file:
+		push_error("CrewTaskComponent: Failed to open gear_database.json")
+		return []
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_error("CrewTaskComponent: Failed to parse gear_database.json: %s" % json.get_error_message())
+		return []
+	var data: Dictionary = json.data if json.data is Dictionary else {}
+	var weapon_tables: Dictionary = data.get("weapon_tables", {})
+	_military_weapon_table_cache = weapon_tables.get("military_weapon", [])
+	return _military_weapon_table_cache

@@ -152,12 +152,16 @@ var char = TestCharacterFactory.create_character(
 ## Execution Commands
 
 ```powershell
-# Single test file
+# Single test file — ALWAYS include -c (continue on failure); without it the
+# runner stops after the first failure and leaves N-2 of N tests unrun.
+# NEVER include --headless for tests — causes signal-11 crash after 8-18 tests
+# in this project (per tests/unit/TEST_CHARACTER_CARD_NOTES.md). Bit Sprint A
+# 2026-05-24; see feedback_gdunit4_flags user-memory for details.
 & "C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe" `
   --path "c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager" `
   --script addons/gdUnit4/bin/GdUnitCmdTool.gd `
   -a tests/unit/test_file_name.gd `
-  --quit-after 60
+  -c
 
 # Headless mode (CI/CD)
 & "C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe" `

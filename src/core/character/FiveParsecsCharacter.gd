@@ -256,13 +256,15 @@ func _generate_character_stats(character: Character, generation_type: String) ->
 			character.speed = base_stat
 			character.luck = base_stat
 		"quick":
-			# Quick generation uses random values
-			character.combat = 1 + randi() % 6
-			character.toughness = 1 + randi() % 6
-			character.savvy = 1 + randi() % 6
-			character.tech = 1 + randi() % 6
-			character.speed = 1 + randi() % 6
-			character.luck = 1 + randi() % 6
+			# Core Rules p.14: Baseline Human starting profile. Stats are NOT rolled
+			# 1-6 in Five Parsecs; characters begin from a fixed species baseline and
+			# are then modified by the Background/Motivation/Class tables.
+			character.combat = 0
+			character.toughness = 3
+			character.savvy = 0
+			character.tech = 0
+			character.speed = 4
+			character.luck = 0
 
 func _roll_attribute() -> int:
 	## Roll 2d6, divide by 3, round up (Five Parsecs standard)

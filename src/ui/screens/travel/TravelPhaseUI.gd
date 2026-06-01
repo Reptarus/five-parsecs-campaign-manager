@@ -524,97 +524,10 @@ func _build_travel_narrative_context() -> Dictionary:
 	}
 
 func _process_travel_event_roll(roll: int) -> Dictionary:
-	## Process travel event roll using Five Parsecs tables (p.70-71)
-	var event := {
-		"type": "none",
-		"title": "Uneventful Trip",
-		"description": "A lot of time playing cards and cleaning guns. You can Repair one damaged item.",
-		"effects": []
-	}
-	
-	# Five Parsecs Starship Travel Events Table (D100)
-	if roll <= 7: # Asteroids
-		event.type = "danger"
-		event.title = "Asteroids"
-		event.description = "Rocky debris everywhere! Roll to navigate safely or take Hull damage."
-		event.effects = ["asteroids"]
-	elif roll <= 12: # Navigation trouble
-		event.type = "setback"
-		event.title = "Navigation Trouble"
-		event.description = "Is this place even on the star maps? Lose 1 story point."
-		event.effects = ["lose_story_point"]
-	elif roll <= 17: # Raided
-		event.type = "hostile"
-		event.title = "Raided"
-		event.description = "Pirates have spotted your vessel! Prepare for potential combat."
-		event.effects = ["combat_encounter"]
-	elif roll <= 25: # Deep space wreckage
-		event.type = "opportunity"
-		event.title = "Deep Space Wreckage"
-		event.description = "Found an old wreck drifting through space. Roll twice on the Gear Table."
-		event.effects = ["gear_rolls"]
-	elif roll <= 29: # Drive trouble
-		event.type = "setback"
-		event.title = "Drive Trouble"
-		event.description = "It's not supposed to make that sound. May be grounded next turn."
-		event.effects = ["drive_trouble"]
-	elif roll <= 38: # Down-time
-		event.type = "beneficial"
-		event.title = "Down-time"
-		event.description = "Select a crew member to earn +1 XP. Repair 1 damaged item for free."
-		event.effects = ["xp_bonus", "free_repair"]
-	elif roll <= 44: # Distress call
-		event.type = "choice"
-		event.title = "Distress Call"
-		event.description = "'This is Licensed Trader Cyberwolf.' Do you respond?"
-		event.effects = ["distress_call"]
-	elif roll <= 50: # Patrol ship
-		event.type = "neutral"
-		event.title = "Patrol Ship"
-		event.description = "A Unity patrol vessel hails you. They may confiscate contraband."
-		event.effects = ["patrol_inspection"]
-	elif roll <= 53: # Cosmic phenomenon
-		event.type = "rare"
-		event.title = "Cosmic Phenomenon"
-		event.description = "A crew member sees something strange... and gains +1 Luck!"
-		event.effects = ["luck_bonus"]
-	elif roll <= 60: # Escape pod
-		event.type = "choice"
-		event.title = "Escape Pod"
-		event.description = "You find an escape pod drifting through space. Rescue them?"
-		event.effects = ["rescue_choice"]
-	elif roll <= 66: # Accident
-		event.type = "setback"
-		event.title = "Accident"
-		event.description = "A crew member is injured during maintenance. One item is damaged."
-		event.effects = ["injury", "damaged_item"]
-	elif roll <= 75: # Travel-time
-		event.type = "neutral"
-		event.title = "Travel-time"
-		event.description = "Long journey under standard drives. Injured crew may rest."
-		event.effects = ["rest_time"]
-	elif roll <= 85: # Uneventful trip
-		event.type = "neutral"
-		event.title = "Uneventful Trip"
-		event.description = "A lot of time playing cards and cleaning guns. Repair 1 damaged item."
-		event.effects = ["free_repair"]
-	elif roll <= 91: # Time to reflect
-		event.type = "beneficial"
-		event.title = "Time to Reflect"
-		event.description = "How is the story unfolding? What did it all mean? +1 story point."
-		event.effects = ["story_point"]
-	elif roll <= 95: # Time to read
-		event.type = "beneficial"
-		event.title = "Time to Read a Book"
-		event.description = "Time for education. Random crew members earn XP."
-		event.effects = ["random_xp"]
-	else: # Library data
-		event.type = "beneficial"
-		event.title = "Locked in the Library Data"
-		event.description = "You've found information about multiple worlds. Choose your destination!"
-		event.effects = ["world_choice"]
-	
-	return event
+	## Starship Travel Events Table (Core Rules pp.70-71).
+	## Single source of truth lives in TravelEventTable so this never diverges
+	## from the UpkeepPhaseComponent travel roll.
+	return TravelEventTable.get_event(roll)
 
 func _display_travel_event(event: Dictionary) -> void:
 	## Display travel event details in the UI

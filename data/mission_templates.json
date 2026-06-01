@@ -52,8 +52,7 @@
 				"Local Wildlife"
 			],
 			"deployment_condition_chance": 0.3,
-			"notable_sight_chance": 0.2,
-			"economic_impact": 1.0
+			"notable_sight_chance": 0.2
 		},
 		{
 			"type": "PATRON",
@@ -108,8 +107,7 @@
 				"Automated Defenses"
 			],
 			"deployment_condition_chance": 0.4,
-			"notable_sight_chance": 0.3,
-			"economic_impact": 1.2
+			"notable_sight_chance": 0.3
 		},
 		{
 			"type": "QUEST",
@@ -165,8 +163,7 @@
 				"Interdimensional Entities"
 			],
 			"deployment_condition_chance": 0.5,
-			"notable_sight_chance": 0.4,
-			"economic_impact": 1.5
+			"notable_sight_chance": 0.4
 		},
 		{
 			"type": "RIVAL",
@@ -221,17 +218,29 @@
 				"Specialized Combat Droids"
 			],
 			"deployment_condition_chance": 0.6,
-			"notable_sight_chance": 0.3,
-			"economic_impact": 1.3
+			"notable_sight_chance": 0.3
 		}
 	],
 	"mission_locations": [
-		"Abandoned Factory", "Cargo Terminal", "Mining Settlement",
-		"Research Station", "Command Center", "Prison Block",
-		"Medical Facility", "Trade Port", "Civilian Zone",
-		"Industrial Complex", "Outer Perimeter", "Underground Tunnels",
-		"Reactor Core", "Communications Hub", "Landing Pad",
-		"Storage Depot", "Refinery", "Orbital Station",
-		"Frontier Outpost", "Starport District"
+		"Abandoned Factory",
+		"Cargo Terminal",
+		"Mining Settlement",
+		"Research Station",
+		"Command Center",
+		"Prison Block",
+		"Medical Facility",
+		"Trade Port",
+		"Civilian Zone",
+		"Industrial Complex",
+		"Outer Perimeter",
+		"Underground Tunnels",
+		"Reactor Core",
+		"Communications Hub",
+		"Landing Pad",
+		"Storage Depot",
+		"Refinery",
+		"Orbital Station",
+		"Frontier Outpost",
+		"Starport District"
 	]
 }

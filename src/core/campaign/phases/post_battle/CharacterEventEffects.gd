@@ -292,7 +292,11 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s reflected on adventures: +%d XP" % [char_name, xp_roll]
 
 		"Personal Breakthrough":
-			return "%s: Personal breakthrough. +1 to one non-increased ability" % char_name
+			# Core Rules p.129: +1 to one non-increased ability.
+			var raised: String = ctx.apply_random_ability_increase(character)
+			if raised.is_empty():
+				return "%s: Personal breakthrough, but all abilities are already at maximum" % char_name
+			return "%s: Personal breakthrough. +1 %s" % [char_name, raised.capitalize()]
 
 		"Hurt Working on Ship":
 			ctx.injure_specific_crew(character, 1)
@@ -327,7 +331,10 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s knows someone: +1 Patron" % char_name
 
 		"Charmed Existence":
-			return "%s: Charmed existence. +1 Luck" % char_name
+			# Core Rules p.129: +1 Luck (max 1, or 3 for Humans).
+			if ctx.apply_luck_increase(character, 1):
+				return "%s: Charmed existence. +1 Luck" % char_name
+			return "%s: Charmed existence, but Luck is already at maximum" % char_name
 
 		"Hard Work":
 			if origin_lower == "engineer":

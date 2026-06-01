@@ -138,52 +138,15 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 
 	return xp_awards
 
-func process_training(ctx: PostBattleContextClass) -> Array[Dictionary]:
-	## Step 10: Process training applications. Returns training_completed array.
-	var training_completed: Array[Dictionary] = []
-	var application_fee: int = 1
-	var max_trainees: int = 2
-	var trainees_this_turn: int = 0
-
-	var training_candidates: Array = []
-	for participant in ctx.crew_participants:
-		var crew_id: String = ""
-		if participant is Dictionary:
-			crew_id = participant.get("id", participant.get("character_id", ""))
-		elif participant is String:
-			crew_id = participant
-
-		if crew_id.is_empty():
-			continue
-
-		var is_injured: bool = false
-		for injury in ctx.injuries_sustained:
-			if injury.get("crew_id", "") == crew_id:
-				is_injured = true
-				break
-
-		if ctx.is_crew_member_bot(crew_id):
-			continue
-
-		if not is_injured:
-			training_candidates.append(crew_id)
-
-	var current_credits: int = 0
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("get_credits"):
-		current_credits = ctx.game_state_manager.get_credits()
-
-	for crew_id in training_candidates:
-		if trainees_this_turn >= max_trainees:
-			break
-		var result: Dictionary = attempt_training_enrollment(ctx, crew_id, "basic", current_credits)
-		if result.get("success", false):
-			training_completed.append(result)
-			trainees_this_turn += 1
-			current_credits = result.get("credits_remaining", current_credits)
-		elif result.get("reason", "") == "insufficient_credits":
-			break
-
-	return training_completed
+func process_training(_ctx: PostBattleContextClass) -> Array[Dictionary]:
+	## Step 10: Advanced Training (Core Rules p.123).
+	## Training is an explicit PLAYER choice, never automatic: "Select a crew member
+	## who wishes to attend, pay an application fee of 1 credit, and roll 2D6,
+	## requiring a 4+ to be approved. Only one attempt is permitted per campaign turn."
+	## The player drives this via TrainingSelectionDialog, which calls
+	## attempt_training_enrollment() directly. The orchestrator emits an empty result
+	## here; there is no auto-enrollment and no fabricated "basic" course.
+	return []
 
 func process_purchases(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	## Step 11: Process queued purchases. Returns purchases_made array.
@@ -324,7 +287,9 @@ func _apply_xp_multiplier(_ctx: PostBattleContextClass, base_xp: int) -> int:
 	# Easy mode +1 XP bonus is already applied via DifficultyModifiers.get_xp_bonus()
 	# at line 234. Hardcore/Insanity have NO XP changes per Core Rules p.65.
 	# Previous multipliers (0.75x/1.25x/1.5x) were fabricated — removed.
-	return maxi(1, base_xp)
+	# No minimum-XP floor: a character that flees in the first 2 rounds earns 0 XP
+	# (handled at the top of _calculate_crew_xp), and the book grants no participation floor.
+	return base_xp
 
 func _was_crew_casualty_in_battle(ctx: PostBattleContextClass, crew_id: String) -> bool:
 	if crew_id.is_empty():

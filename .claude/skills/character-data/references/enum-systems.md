@@ -1,25 +1,23 @@
-# Three Enum Systems Reference
+# Two Enum Systems Reference
 
-## CRITICAL: All Three Must Stay In Sync
+## CRITICAL: Both Must Stay In Sync
 
-Any enum modification MUST be applied to all three files simultaneously.
+Any enum modification MUST be applied to both files simultaneously.
 
 | File | Type | Access Pattern | Enum Count |
 |------|------|----------------|------------|
 | `src/core/systems/GlobalEnums.gd` | Node (autoloaded as `GlobalEnums`) | `GlobalEnums.EnumName.VALUE` | 70+ |
 | `src/core/enums/GameEnums.gd` | RefCounted (`class_name GameEnums`) | `GameEnums.EnumName.VALUE` | 80+ |
-| `src/game/campaign/crew/FiveParsecsGameEnums.gd` | Node (@tool) | `FiveParsecsGameEnums.EnumName.VALUE` | 4 |
 
-## FiveParsecsGameEnums (Smallest — 4 Enums)
-
-```gdscript
-# CharacterClass (37 values — Phase 38 sync)
-# Legacy 0-14 preserved for save compat, book classes appended 15-36
-enum CharacterClass { NONE, SOLDIER, MEDIC, ROGUE, PSIONICIST, TECH, BRUTE,
-  GUNSLINGER, ACADEMIC, PILOT, ENGINEER, MERCHANT, SECURITY, BROKER, BOT_TECH,
-  WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, MERCENARY, AGITATOR, PRIMITIVE,
-  ARTIST, NEGOTIATOR, TRADER, STARSHIP_CREW, PETTY_CRIMINAL, GANGER, SCOUNDREL,
-  ENFORCER, SPECIAL_AGENT, TROUBLESHOOTER, BOUNTY_HUNTER, NOMAD, EXPLORER, PUNK, SCAVENGER }
+**HISTORICAL NOTE (Sprint A Bug 3, 2026-05-24)**: A third enum file
+`src/game/campaign/crew/FiveParsecsGameEnums.gd` was deleted along with the
+entire legacy `FiveParsecsCampaign` / `FiveParsecsCrew*` class hierarchy
+(6 files + their consumers, plus mock_campaign.gd which shadowed the
+deleted class). The legacy enum had 14 fabricated class names at positions
+3-8 (ROGUE/PSIONICIST/TECH/BRUTE/GUNSLINGER/ACADEMIC + book classes shifted
+by 6) that were not in Core Rules. Project went from three-enum to two-enum
+sync rule. See [[project-sprint-a-consolidation-shipped]] memory for the
+full deletion manifest and consumer migration details.
 
 # CharacterStatus (11 values)
 enum CharacterStatus { NONE, HEALTHY, INJURED, SERIOUSLY_INJURED, CRITICALLY_INJURED,

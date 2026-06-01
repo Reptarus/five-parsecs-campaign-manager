@@ -22,12 +22,13 @@ The Core Rules PDF and Compendium PDF are the **canonical, final authority** for
 
 ## Critical Gotchas — Must Remember
 
-### 1. Three-Enum Sync Rule
+### 1. Two-Enum Sync Rule (updated Sprint A Bug 3, 2026-05-24)
 
-Any enum change MUST touch all three files simultaneously:
+Any enum change MUST touch BOTH files simultaneously:
 - `src/core/systems/GlobalEnums.gd` (autoload)
 - `src/core/enums/GameEnums.gd` (class_name)
-- `src/game/campaign/crew/FiveParsecsGameEnums.gd` (CharacterClass)
+
+**Historical**: The third file `src/game/campaign/crew/FiveParsecsGameEnums.gd` was deleted in Sprint A Bug 3 along with the entire legacy `FiveParsecsCampaign` / `FiveParsecsCrew*` class hierarchy (20 files total: 7 legacy classes + dead CampaignSystem + dead GameCampaignManager + mock_campaign + their .uid sidecars). Project went from 3-enum to 2-enum sync. The legacy enum had 14 fabricated class names (ROGUE, PSIONICIST, TECH, BRUTE, GUNSLINGER, ACADEMIC, BOT_TECH, etc.) at positions 3-14 — none in Core Rules. See `project_sprint_a_consolidation_shipped` memory.
 
 Values and ordering must match across all three. Misalignment causes wrong enum-to-int mapping and silent data corruption.
 

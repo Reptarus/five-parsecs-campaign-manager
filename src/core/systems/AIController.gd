@@ -12,7 +12,6 @@ signal ai_action_completed(action: Dictionary)
 
 var combat_manager: BaseCombatManager
 var game_state_manager: GameStateManager
-var enemy_deployment_manager: Node # Will be typed when EnemyDeploymentManager is available
 
 func _calculate_attack_score(character: Character, enemy: Character) -> float:
 	var score := 0.0

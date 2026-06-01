@@ -37,31 +37,6 @@ func test_get_targets_in_area_empty_when_no_units_in_range() -> void:
 
 	assert_int(targets_in_area.size()).is_equal(0)
 
-func test_get_targets_in_spread_finds_units_in_cone() -> void:
-	var attacker_pos := Vector2(0.0, 0.0)
-	var primary_target_pos := Vector2(10.0, 0.0)  # Directly right
-	var cone_width := 30.0  # 30 degree cone
-
-	var all_units := [
-		{"id": "target1", "position": Vector2(10.0, 0.0)},   # Dead center (0°)
-		{"id": "target2", "position": Vector2(10.0, 2.0)},   # ~11° off center
-		{"id": "target3", "position": Vector2(10.0, 5.0)},   # ~26° off center
-		{"id": "target4", "position": Vector2(10.0, 8.0)},   # ~38° off center (outside)
-		{"id": "target5", "position": Vector2(0.0, 10.0)}    # 90° off (outside)
-	]
-
-	var targets_in_spread = BattleCalculations.get_targets_in_spread(
-		attacker_pos, primary_target_pos, cone_width, all_units
-	)
-
-	# Should hit targets within 15° of center (30° cone / 2)
-	# target3 at ~26° is outside ±15° cone
-	assert_int(targets_in_spread.size()).is_greater_equal(2)
-	assert_bool(_has_target(targets_in_spread, "target1")).is_true()
-	assert_bool(_has_target(targets_in_spread, "target2")).is_true()
-	assert_bool(_has_target(targets_in_spread, "target3")).is_false()  # 26° > 15°
-	assert_bool(_has_target(targets_in_spread, "target5")).is_false()
-
 func test_resolve_area_attack_with_area_trait() -> void:
 	var attacker := {
 		"combat_skill": 1,
@@ -120,7 +95,9 @@ func test_resolve_area_attack_with_area_trait() -> void:
 	assert_bool(result["primary_result"]["hit"]).is_true()
 	assert_int(result["secondary_targets"].size()).is_greater_equal(1)
 
-func test_resolve_area_attack_with_spread_trait() -> void:
+func test_non_area_weapon_falls_through_to_regular_resolution() -> void:
+	# A weapon without the Area trait must NOT be treated as a template weapon.
+	# (Fabricated "spread"/"explosive"/"template" traits were removed per Core Rules p.50.)
 	var attacker := {
 		"combat_skill": 1,
 		"position": Vector2(0.0, 0.0),
@@ -136,24 +113,14 @@ func test_resolve_area_attack_with_spread_trait() -> void:
 		"armor": "none"
 	}
 
-	var secondary1 := {
-		"id": "secondary1",
-		"name": "Secondary 1",
-		"position": Vector2(10.0, 2.0),  # In cone
-		"toughness": 3,
-		"armor": "none"
-	}
-
-	var all_targets := [primary_target, secondary1]
+	var all_targets := [primary_target]
 
 	var weapon := {
 		"damage": 2,
 		"range": 6,
-		"traits": ["spread"],
-		"spread_width": 30.0
+		"traits": ["Focused"]
 	}
 
-	# NOTE: Using dictionary to hold count because GDScript closures capture integers by value
 	var dice_results := [5, 4, 5, 5]
 	var roll_state := {"count": 0}
 	var dice_roller := func() -> int:
@@ -165,9 +132,9 @@ func test_resolve_area_attack_with_spread_trait() -> void:
 		attacker, primary_target, all_targets, weapon, dice_roller
 	)
 
-	assert_str(result["template_type"]).is_equal("spread")
-	assert_float(result["spread_width"]).is_equal(30.0)
-	assert_bool(result["primary_result"]["hit"]).is_true()
+	# No template type assigned; regular single-target resolution was used
+	assert_str(result["template_type"]).is_equal("")
+	assert_int(result["secondary_targets"].size()).is_equal(0)
 
 func test_resolve_area_attack_shared_damage_roll() -> void:
 	var attacker := {
@@ -243,8 +210,7 @@ func test_resolve_area_attack_individual_armor_saves() -> void:
 	var weapon := {
 		"damage": 2,
 		"range": 24,
-		"traits": ["explosive"],
-		"explosion_radius": 3.0
+		"traits": ["Area"]  # Core Rules p.50: resolve all shots within 2"
 	}
 
 	# NOTE: Using dictionary to hold count because GDScript closures capture integers by value
@@ -361,11 +327,13 @@ func test_resolve_area_attack_elimination_check() -> void:
 	assert_bool(result["primary_result"].get("target_eliminated", false)).is_true()
 	assert_int(result.get("total_eliminations", 0)).is_greater_equal(1)
 
-func test_is_area_weapon_detects_all_area_traits() -> void:
+func test_is_area_weapon_detects_only_book_area_trait() -> void:
+	# Core Rules p.50: the only area trait is "Area". Fabricated explosive/spread/
+	# template traits were removed.
 	assert_bool(BattleCalculations.is_area_weapon(["area"])).is_true()
-	assert_bool(BattleCalculations.is_area_weapon(["template"])).is_true()
-	assert_bool(BattleCalculations.is_area_weapon(["explosive"])).is_true()
-	assert_bool(BattleCalculations.is_area_weapon(["spread"])).is_true()
+	assert_bool(BattleCalculations.is_area_weapon(["Area"])).is_true()
+	assert_bool(BattleCalculations.is_area_weapon(["explosive"])).is_false()
+	assert_bool(BattleCalculations.is_area_weapon(["spread"])).is_false()
 	assert_bool(BattleCalculations.is_area_weapon(["accurate"])).is_false()
 
 func test_resolve_area_attack_removes_primary_from_secondary_list() -> void:

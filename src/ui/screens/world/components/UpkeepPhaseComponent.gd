@@ -1288,49 +1288,13 @@ func _generate_travel_event() -> void:
 	_display_travel_event(event, roll)
 
 func _process_travel_event_roll(roll: int) -> Dictionary:
-	## Process D100 travel event roll (Core Rules pp.70-71)
-	if roll <= 7:
-		return {"type": "danger", "title": "Asteroids",
-			"desc": "Rocky debris everywhere! Roll to navigate safely or take Hull damage."}
-	elif roll <= 12:
-		return {"type": "setback", "title": "Navigation Trouble",
-			"desc": "Is this place even on the star maps? Lose 1 story point."}
-	elif roll <= 17:
-		return {"type": "hostile", "title": "Raided",
-			"desc": "Pirates have spotted your vessel! Prepare for potential combat."}
-	elif roll <= 25:
-		return {"type": "opportunity", "title": "Deep Space Wreckage",
-			"desc": "Found an old wreck drifting through space. Roll twice on the Gear Table."}
-	elif roll <= 29:
-		return {"type": "setback", "title": "Drive Trouble",
-			"desc": "It's not supposed to make that sound. May be grounded next turn."}
-	elif roll <= 38:
-		return {"type": "beneficial", "title": "Down-time",
-			"desc": "Select a crew member to earn +1 XP. Repair 1 damaged item for free."}
-	elif roll <= 44:
-		return {"type": "choice", "title": "Distress Call",
-			"desc": "'This is Licensed Trader Cyberwolf.' Do you respond?"}
-	elif roll <= 50:
-		return {"type": "neutral", "title": "Patrol Ship",
-			"desc": "A Unity patrol vessel hails you. They may confiscate contraband."}
-	elif roll <= 53:
-		return {"type": "rare", "title": "Cosmic Phenomenon",
-			"desc": "A crew member sees something strange... and gains +1 Luck!"}
-	elif roll <= 60:
-		return {"type": "choice", "title": "Escape Pod",
-			"desc": "You find an escape pod drifting through space. Rescue them?"}
-	elif roll <= 70:
-		return {"type": "beneficial", "title": "Uneventful Trip",
-			"desc": "A lot of time playing cards and cleaning guns. You can Repair one damaged item."}
-	elif roll <= 80:
-		return {"type": "beneficial", "title": "Cargo Run",
-			"desc": "A merchant vessel offers work hauling cargo. Earn 1D6 credits."}
-	elif roll <= 90:
-		return {"type": "neutral", "title": "Rumor Mill",
-			"desc": "Crew picks up spacer gossip. Add a Quest Rumor."}
-	else:
-		return {"type": "beneficial", "title": "Smooth Sailing",
-			"desc": "An easy trip with favorable conditions. All crew are well-rested."}
+	## Starship Travel Events Table (Core Rules pp.70-71).
+	## Single source of truth lives in TravelEventTable so this never diverges
+	## from the TravelPhaseUI travel roll. (Previously this site had a fabricated
+	## 61-100 tail: Cargo Run / Rumor Mill / Smooth Sailing — none of which are in
+	## the book. The book's 61-100 is Accident / Travel-time / Uneventful / Reflect
+	## / Read / Library.)
+	return TravelEventTable.get_event(roll)
 
 func _display_travel_event(
 		event: Dictionary, roll: int) -> void:

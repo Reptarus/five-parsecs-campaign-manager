@@ -399,11 +399,15 @@ func attack(target_node: Node2D) -> bool:
 	if _animator and _animator.has_animation("attack"):
 		_animator.play("attack")
 	
-	# Calculate damage using character's combat stat
-	var damage = 10 # Default damage
-	if _character and _character.get("combat") != null:
-		damage = 5 + (_character.combat * 2)
-	
+	# Damage comes from the equipped weapon (Core Rules p.46). There is no
+	# stat-derived damage formula in the rules — a character's Combat Skill
+	# affects the to-hit roll, not the damage dealt.
+	var damage = 1  # Default melee/unarmed damage
+	if _character and _character.get("weapons") != null and _character.weapons.size() > 0:
+		var equipped_weapon = _character.weapons[0]
+		if equipped_weapon and equipped_weapon.get("damage") != null:
+			damage = int(equipped_weapon.damage)
+
 	# Apply damage to target
 	if target_node.has_method("take_damage"):
 		target_node.take_damage(damage)

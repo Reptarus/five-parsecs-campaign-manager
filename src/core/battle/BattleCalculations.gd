@@ -913,51 +913,39 @@ static func get_suppression_penalty() -> int:
 
 #region Experience Calculations
 
-## Calculate XP for a crew member after battle
+## Calculate XP for a crew member after battle (Core Rules p.123, Step 9).
+## Book table: casualty +1 / survived-not-won +2 / survived-won +3, first
+## casualty +1. Killed-Unique-Individual, Easy-mode, and Quest-finale bonuses
+## are applied by ExperienceTrainingProcessor where that context is available.
+## A character that flees in the first 2 rounds earns no XP (participated=false).
 static func calculate_crew_xp(
 	participated: bool,
 	battle_won: bool,
-	enemies_killed: int = 0,
-	survived_injury: bool = false,
-	special_achievements: Array = []
+	enemies_killed: int = 0
 ) -> int:
 	var xp := 0
 
 	if not participated:
 		return 0
 
-	# Base participation XP
+	# Base XP for any participant (casualty +1 baseline)
 	xp += XP_PARTICIPATION
 
-	# Victory/defeat bonus
+	# Battle-result bonus: survived-and-won (+2 over base) or survived-not-won (+1)
 	if battle_won:
 		xp += XP_VICTORY_BONUS
 	else:
 		xp += XP_DEFEAT_BONUS
 
-	# Kill bonus (first kill only in standard rules)
+	# First character to inflict a casualty (+1)
 	if enemies_killed > 0:
 		xp += XP_FIRST_KILL
-
-	# Survival bonus
-	if survived_injury:
-		xp += XP_SURVIVAL_INJURY
-
-	# Special achievements
-	for achievement in special_achievements:
-		match achievement:
-			"held_objective":
-				xp += 1
-			"last_standing":
-				xp += 2
-			"leader_killed":
-				xp += 1
 
 	return xp
 
 ## Calculate total battle XP for all crew
 static func calculate_battle_xp(
-	crew_results: Array,  # [{id, participated, kills, injured}]
+	crew_results: Array,  # [{id, participated, kills}]
 	battle_won: bool
 ) -> Dictionary:
 	var xp_awards := {}
@@ -970,9 +958,7 @@ static func calculate_battle_xp(
 		var xp := calculate_crew_xp(
 			crew_data.get("participated", false),
 			battle_won,
-			crew_data.get("kills", 0),
-			crew_data.get("injured", false),
-			crew_data.get("achievements", [])
+			crew_data.get("kills", 0)
 		)
 
 		xp_awards[crew_id] = xp
@@ -986,32 +972,31 @@ static func calculate_battle_xp(
 ## Calculate number of loot rolls based on battle result
 static func calculate_loot_rolls(
 	battle_won: bool,
-	enemies_defeated: int,
+	_enemies_defeated: int,
 	hold_field: bool
 ) -> int:
+	# Core Rules p.121 (Step 7 "Gather the Loot"): roll once on the Loot Table.
+	# Quest-finale triple-roll is handled by the post-battle Quest path, not here.
 	if not battle_won:
 		return 0
 
 	var rolls := 1  # Base roll for victory
 
-	# Bonus for enemy count
-	if enemies_defeated >= 6:
-		rolls += 1
-
-	# Bonus for holding field
+	# Holding the field grants a Battlefield Finds search (Core Rules p.120, Step 5).
+	# Modeled here as an additional reward roll.
 	if hold_field:
 		rolls += 1
 
 	return rolls
 
 ## Calculate credits from battle
+## Core Rules p.120 (Step 4 "Get Paid"): pay is base 1D6 plus Patron danger pay.
+## There is no percentage bonus multiplier in the rules.
 static func calculate_battle_credits(
 	base_payment: int,
-	danger_pay: int,
-	bonus_multiplier: float = 1.0
+	danger_pay: int
 ) -> int:
-	var total := base_payment + danger_pay
-	return int(total * bonus_multiplier)
+	return base_payment + danger_pay
 
 #endregion
 
@@ -1055,9 +1040,10 @@ static func is_quick_action(reaction_die: int, reaction_stat: int = 1) -> bool:
 
 #region Area/Template Weapons - Multi-target resolution system
 
-## Check if weapon has area/template traits
+## Check if weapon has the Area trait (Core Rules p.50). There are no
+## explosive/spread/template traits in the rules — only "Area".
 static func is_area_weapon(weapon_traits: Array) -> bool:
-	return "area" in weapon_traits or "template" in weapon_traits or "explosive" in weapon_traits or "spread" in weapon_traits
+	return "area" in weapon_traits or "Area" in weapon_traits
 
 ## Get targets within area radius (for Area/Explosive weapons)
 ## Returns array of targets within radius from impact point
@@ -1078,34 +1064,8 @@ static func get_targets_in_area(
 
 	return targets_in_area
 
-## Get targets within spread cone (for Spread/Shotgun weapons)
-## Returns array of targets within cone angle from attacker to primary target
-static func get_targets_in_spread(
-	attacker_pos: Vector2,
-	primary_target_pos: Vector2,
-	cone_width_degrees: float,
-	all_units: Array
-) -> Array:
-	var targets_in_spread := []
-	var attack_dir := (primary_target_pos - attacker_pos).normalized()
-	var attack_distance := attacker_pos.distance_to(primary_target_pos)
-	var half_cone := deg_to_rad(cone_width_degrees / 2.0)
-
-	for unit: Variant in all_units:
-		if unit is Dictionary:
-			var unit_pos: Vector2 = unit.get("position", Vector2.ZERO)
-			var to_unit := (unit_pos - attacker_pos).normalized()
-			var unit_distance := attacker_pos.distance_to(unit_pos)
-
-			# Check if within cone angle
-			var angle := acos(attack_dir.dot(to_unit))
-			if angle <= half_cone and unit_distance <= attack_distance * 1.2:
-				targets_in_spread.append(unit)
-
-	return targets_in_spread
-
-## Resolve area/template weapon attack against multiple targets
-## Primary target hit roll determines if attack lands, then affects all in area
+## Resolve Area weapon attack against multiple targets (Core Rules p.50)
+## Primary target hit roll determines if attack lands, then affects all within 2"
 static func resolve_area_attack(
 	attacker: Dictionary,
 	primary_target: Dictionary,
@@ -1121,25 +1081,17 @@ static func resolve_area_attack(
 		"total_damage": 0,
 		"total_eliminations": 0,
 		"shared_damage_roll": 0,
-		"area_radius": 0.0,
-		"spread_width": 0.0
+		"area_radius": 0.0
 	}
 
 	var weapon_traits: Array = weapon.get("traits", [])
 
-	# Determine template type and parameters
-	if "area" in weapon_traits:
+	# Area trait (Core Rules p.50): "Resolve all shots against the initial figure
+	# within 2 inches." 2" is the only book-defined area radius; there are no
+	# explosive/spread/template traits in the rules.
+	if "area" in weapon_traits or "Area" in weapon_traits:
 		result["template_type"] = "area"
 		result["area_radius"] = weapon.get("area_radius", 2.0)
-	elif "explosive" in weapon_traits:
-		result["template_type"] = "area"
-		result["area_radius"] = weapon.get("explosion_radius", 3.0)
-	elif "spread" in weapon_traits:
-		result["template_type"] = "spread"
-		result["spread_width"] = weapon.get("spread_width", 30.0)
-	elif "template" in weapon_traits:
-		result["template_type"] = "template"
-		result["area_radius"] = weapon.get("template_length", 6.0)
 	else:
 		# Not an area weapon, use regular resolution
 		result["primary_result"] = resolve_ranged_attack(attacker, primary_target, weapon, dice_roller)
@@ -1189,8 +1141,7 @@ static func resolve_area_attack(
 	primary_result["hit"] = true
 	result["total_hits"] = 1
 
-	# Get attacker and target positions
-	var attacker_pos: Vector2 = attacker.get("position", Vector2.ZERO)
+	# Get target positions (impact point for the 2" Area radius)
 	var primary_pos: Vector2 = primary_target.get("position", Vector2.ZERO)
 	var primary_id: String = primary_target.get("id", "")
 
@@ -1226,12 +1177,10 @@ static func resolve_area_attack(
 			primary_result["target_eliminated"] = true
 			result["total_eliminations"] += 1
 
-	# Find secondary targets based on template type
+	# Find secondary targets within the 2" Area radius (Core Rules p.50)
 	var secondary_targets := []
 	if result["template_type"] == "area":
 		secondary_targets = get_targets_in_area(primary_pos, result["area_radius"], all_targets)
-	elif result["template_type"] == "spread":
-		secondary_targets = get_targets_in_spread(attacker_pos, primary_pos, result["spread_width"], all_targets)
 
 	# Remove primary target from secondary list
 	var filtered_secondary := []
@@ -1906,7 +1855,7 @@ static func _apply_weapon_trait(
 			effects["is_one_use"] = true
 			effects["traits_applied"].append("one_use_only")
 
-		"area", "explosive", "template", "spread":
+		"area", "Area":
 			effects["is_area_effect"] = true
 			effects["traits_applied"].append("area_effect")
 

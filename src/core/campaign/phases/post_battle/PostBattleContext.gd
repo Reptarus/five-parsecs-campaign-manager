@@ -386,6 +386,62 @@ func apply_character_status_effect(character: Variant, effect: Dictionary) -> vo
 			character["status_effects"] = []
 		character["status_effects"].append(effect)
 
+# Ability maximums (Core Rules p.123 Ability Increase Table). Luck handled separately.
+const ABILITY_MAX := {"reaction": 6, "combat": 5, "speed": 8, "savvy": 5, "toughness": 6}
+
+func _get_character_stat(character: Variant, stat: String) -> int:
+	if character is Dictionary:
+		return int(character.get(stat, 0))
+	if character and stat in character:
+		return int(character.get(stat))
+	return 0
+
+func _set_character_stat(character: Variant, stat: String, value: int) -> void:
+	if character is Dictionary:
+		character[stat] = value
+	elif character:
+		character.set(stat, value)
+
+func apply_luck_increase(character: Variant, amount: int = 1) -> bool:
+	## Core Rules p.123: Luck max is 1 (3 for Humans). Used by Charmed Existence (p.129).
+	if not character:
+		return false
+	var current: int = _get_character_stat(character, "luck")
+	var origin: String = ""
+	if character is Dictionary:
+		origin = str(character.get("origin", character.get("species", ""))).to_lower()
+	elif "origin" in character:
+		origin = str(character.origin).to_lower()
+	var max_luck: int = 3 if (origin == "human" or origin == "baseline human") else 1
+	if current >= max_luck:
+		return false
+	_set_character_stat(character, "luck", mini(current + amount, max_luck))
+	return true
+
+func apply_random_ability_increase(character: Variant) -> String:
+	## Core Rules p.129 Personal Breakthrough: +1 to one ability not yet at its max.
+	## Returns the ability raised (empty string if all abilities are maxed).
+	if not character:
+		return ""
+	var origin: String = ""
+	if character is Dictionary:
+		origin = str(character.get("origin", character.get("species", ""))).to_lower()
+	elif "origin" in character:
+		origin = str(character.origin).to_lower()
+	var candidates: Array = []
+	for ability in ABILITY_MAX:
+		var cap: int = ABILITY_MAX[ability]
+		# Core Rules p.123: Engineers cannot raise Toughness above 4.
+		if ability == "toughness" and origin == "engineer":
+			cap = 4
+		if _get_character_stat(character, ability) < cap:
+			candidates.append(ability)
+	if candidates.is_empty():
+		return ""
+	var chosen: String = candidates[randi() % candidates.size()]
+	_set_character_stat(character, chosen, _get_character_stat(character, chosen) + 1)
+	return chosen
+
 func reduce_character_recovery(character: Variant, turns: int) -> void:
 	if not character:
 		return

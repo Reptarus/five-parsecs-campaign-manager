@@ -162,7 +162,7 @@
   },
   "architecture_notes": {
     "game_modes": "Standard 5PFH (9-phase) + Bug Hunt (3-stage) — incompatible data models",
-    "enum_systems": "Three must stay in sync: GlobalEnums, GameEnums, FiveParsecsGameEnums",
+    "enum_systems": "Two must stay in sync: GlobalEnums, GameEnums. (FiveParsecsGameEnums deleted Sprint A Bug 3 2026-05-24 along with legacy FiveParsecsCampaign family — see project_sprint_a_consolidation_shipped memory.)",
     "store_pattern": "StoreManager → SteamStore/AndroidStore/iOSStore/OfflineStore",
     "battle_mode": "Tabletop companion — text instructions, not automated simulation",
     "dlc_gating": "compendium_*.gd classes check ContentFlags internally",

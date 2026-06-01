@@ -104,3 +104,46 @@ func test_training_has_process_method():
 func test_galactic_war_has_process_method():
 	var processor = GalacticWarProcessor.new()
 	assert_that(processor.has_method("process_galactic_war")).is_true()
+
+# --- Character Event stat mutation (Core Rules p.129) ---
+
+func test_charmed_existence_increases_luck():
+	# Charmed Existence: +1 Luck (Core Rules p.129)
+	var ctx = auto_free(PostBattleContextClass.new())
+	var character := {"origin": "k_erin", "luck": 0}
+	var applied: bool = ctx.apply_luck_increase(character, 1)
+	assert_bool(applied).is_true()
+	assert_int(character["luck"]).is_equal(1)
+
+func test_luck_capped_at_one_for_non_human():
+	# Core Rules p.123: Luck max is 1 for non-Humans
+	var ctx = auto_free(PostBattleContextClass.new())
+	var character := {"origin": "k_erin", "luck": 1}
+	var applied: bool = ctx.apply_luck_increase(character, 1)
+	assert_bool(applied).is_false()
+	assert_int(character["luck"]).is_equal(1)
+
+func test_human_luck_cap_is_three():
+	# Core Rules p.123: Humans may exceed 1 Luck (max 3)
+	var ctx = auto_free(PostBattleContextClass.new())
+	var character := {"origin": "human", "luck": 1}
+	assert_bool(ctx.apply_luck_increase(character, 1)).is_true()
+	assert_int(character["luck"]).is_equal(2)
+
+func test_personal_breakthrough_raises_a_non_maxed_ability():
+	# Personal Breakthrough: +1 to one non-increased ability (Core Rules p.129)
+	var ctx = auto_free(PostBattleContextClass.new())
+	var character := {"origin": "human", "combat": 0, "reaction": 1, "speed": 4, "savvy": 0, "toughness": 3}
+	var total_before: int = character["combat"] + character["reaction"] + character["speed"] + character["savvy"] + character["toughness"]
+	var raised: String = ctx.apply_random_ability_increase(character)
+	assert_str(raised).is_not_empty()
+	var total_after: int = character["combat"] + character["reaction"] + character["speed"] + character["savvy"] + character["toughness"]
+	# Exactly one ability went up by 1
+	assert_int(total_after).is_equal(total_before + 1)
+
+func test_personal_breakthrough_respects_maxed_abilities():
+	# When every ability is at its Core Rules p.123 cap, nothing is raised
+	var ctx = auto_free(PostBattleContextClass.new())
+	var character := {"origin": "human", "combat": 5, "reaction": 6, "speed": 8, "savvy": 5, "toughness": 6}
+	var raised: String = ctx.apply_random_ability_increase(character)
+	assert_str(raised).is_empty()
