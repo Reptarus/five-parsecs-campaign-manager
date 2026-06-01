@@ -360,6 +360,18 @@ func test_character_max_implants_de_converted_is_three():
 	character.species_id = "de_converted"
 	assert_that(character.get_max_implants()).is_equal(3)
 
+func test_character_max_implants_bio_upgrade_is_four():
+	# Core Rules p.23: Bio-upgrade may have up to 4 implants
+	var character := CharacterClass.new()
+	character.species_id = "bio_upgrade"
+	assert_that(character.get_max_implants()).is_equal(4)
+
+func test_character_max_implants_empath_is_zero():
+	# Core Rules p.23: Empath cannot be given implants without losing ability
+	var character := CharacterClass.new()
+	character.species_id = "empath"
+	assert_that(character.get_max_implants()).is_equal(0)
+
 func test_implant_types_has_eleven_entries():
 	# Core Rules p.55 lists exactly 11 implants
 	# Implants now loaded from JSON (data/implants.json), not a const array

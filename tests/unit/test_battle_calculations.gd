@@ -107,11 +107,16 @@ func test_base_weapon_damage() -> void:
 	var damage := BattleCalculations.calculate_weapon_damage(2, false)
 	assert_int(damage).is_equal(2)
 
-func test_critical_instant_kill_by_default() -> void:
-	# Per Five Parsecs rules: Critical = instant kill (999 damage)
-	# House rule "brutal_combat" would change this to double damage
+func test_critical_does_not_inflate_damage() -> void:
+	# Sprint A Bug 5 (2026-05-24): Core Rules p.51 — Critical trait inflicts
+	# a SECOND HIT on natural-6 to-hit, NOT inflated damage. Pre-fix code
+	# returned damage=999 ("instant kill") which conflated Critical trait
+	# (p.51: 2 hits) with damage-roll natural-6 auto-casualty (p.46).
+	# Default behavior (no brutal_combat house rule): damage is unchanged
+	# by the is_critical flag. The 2-hits behavior is verified by integration
+	# tests of resolve_ranged_attack via the critical_extra_hit consumer.
 	var damage := BattleCalculations.calculate_weapon_damage(2, true)
-	assert_int(damage).is_equal(999)  # Instant kill by default
+	assert_int(damage).is_equal(2)  # Critical does not modify damage by default
 
 func test_minimum_damage_is_one() -> void:
 	var damage := BattleCalculations.calculate_weapon_damage(0, false)
@@ -160,10 +165,18 @@ func test_armor_save_failure() -> void:
 	assert_bool(BattleCalculations.check_armor_save(5, "light")).is_false()
 	assert_bool(BattleCalculations.check_armor_save(4, "combat")).is_false()
 
-func test_high_damage_makes_saves_harder() -> void:
-	# High damage (3+) increases save threshold by 1
-	# Light armor normally saves on 6+, but with 3 damage needs 7+ (impossible)
-	assert_bool(BattleCalculations.check_armor_save(6, "light", 3)).is_false()
+func test_save_threshold_is_static_regardless_of_damage() -> void:
+	# Sprint A Bug 6 (2026-05-24): Core Rules p.46 — save thresholds are STATIC.
+	# Pre-fix code at BattleCalculations.gd:274-276 added +1 to threshold when
+	# damage >= 3 ("Harder to save against heavy damage") — fabricated, not in
+	# the book. Light armor must save on 6+ regardless of incoming damage.
+	# Piercing trait negates armor binary; damage value does NOT raise threshold.
+	assert_bool(BattleCalculations.check_armor_save(6, "light", 1)).is_true()
+	assert_bool(BattleCalculations.check_armor_save(6, "light", 3)).is_true()
+	assert_bool(BattleCalculations.check_armor_save(6, "light", 99)).is_true()
+	# A failing roll (5) on light armor still fails regardless of damage level.
+	assert_bool(BattleCalculations.check_armor_save(5, "light", 1)).is_false()
+	assert_bool(BattleCalculations.check_armor_save(5, "light", 3)).is_false()
 
 #endregion
 

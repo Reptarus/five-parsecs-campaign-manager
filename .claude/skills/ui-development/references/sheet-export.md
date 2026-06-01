@@ -94,6 +94,72 @@ Cached in a static var after first call. `reset_cache()` for tests.
 to grey out Save PDF when no backend is present (see
 `PrintSheetScreen` Save PDF button setup).
 
+## Sprint 2.5 SHIPPED (May 24 2026) — Automated calibration via CV
+
+The previous deferred-research recommendation ("user fills the PNG manually,
+assistant eyeball-extracts coords") was superseded by an even better
+approach realized via Opus 4.8: the sheets are designed with uniform
+cyan borders around every field rect (RGB ~190, 220, 231) which makes
+fully automated extraction trivially viable.
+
+**The pipeline**: `tools/extract_sheet_fields.py` (Pillow + NumPy + optional
+Pytesseract) reads the blank sheet PNG, builds a cyan border mask, dilates
+by 3px to bridge sub-pixel border gaps, flood-fills from the page exterior,
+labels connected interior regions, computes bounding boxes, filters by
+size + edge-margin, then optionally OCRs the top-left of each rect for a
+label hint. Output: `<sheet>_fields_extracted.json` with ~89 candidate
+rects for Crew Log (vs the previous 14-field starter).
+
+**Then per-sheet ID assignment** maps the detected rects to semantic
+field IDs + source dot-paths. For Crew Log this is automated via
+`tools/assign_crew_log_ids.py` which:
+- Drops title-letter noise (rects in the top region matching title-text
+  shape: small, low-y, roughly square)
+- Drops sub-pixel artifacts
+- Drops parent character-card outlines (1219×242 redundant with detected
+  sub-fields)
+- Algorithmically splits compound rects: the 401×62 stat row splits into
+  5 equal cells (Reactions/Speed/Combat/Toughness/Savvy); Luck is detected
+  separately as a 6th cell
+- Generates 16 fields per character card × 8 card slots (1 captain + 7
+  crew positions) using card-relative offsets
+- Plus 16 hand-mapped header fields = 144 total fields
+
+**Verification**: MCP runtime + debug overlay shows red rects align cleanly
+to the printed cyan field outlines across the entire sheet. gdUnit4
+schema tests (all field IDs unique, rects in bounds, sources non-empty)
+pass on the 144-field manifest.
+
+**Effort**: ~3 hours of script writing + tuning + ID-assignment vs the
+~10-12h manual measurement the previous SOP estimated. Reusable for
+Encounter Log + World Record Sheet + future expansion-book sheets.
+
+**Critical fix shipped alongside**: the SheetRenderer's debug overlay was
+invisible because `_draw()` runs on the parent Control which renders
+BEFORE child nodes. Fixed by setting `_background.show_behind_parent = true`
+on the TextureRect so the parent's `_draw()` (which paints debug rects)
+renders ON TOP. Without this, the cyan PNG completely covers the red
+debug rects.
+
+**Source attribute paths discovered during ID assignment** (not what they
+seem from data-context dot-notation):
+- Character: `character_name` (not `name`), `species_id` (not `species`),
+  `reaction` (not `reactions`), `experience` (not `xp`)
+- Weapons: `weapons[0].name`, `.range`, `.shots`, `.damage`, `.traits`
+- Captain accessor: `campaign.captain.<attr>` (special accessor on
+  FiveParsecsCampaignCore — works directly, doesn't go through crew_data)
+- Crew at index N: `campaign.crew[N].<attr>` (N = 0..N-1, where N is the
+  fixed campaign crew size 4/5/6)
+
+**Remaining work for follow-up sprint** (not Sprint 2.5):
+- Encounter Log + World Record Sheet ID assignment helpers (write
+  `tools/assign_encounter_log_ids.py` and `tools/assign_world_record_ids.py`
+  in same pattern as `assign_crew_log_ids.py`)
+- `.size()` or `count_of:` resolver extension if patron/rival count fields
+  need numeric rendering (currently the dot-path returns the array;
+  workaround is to derive `patrons_count` in `_build_data_context()`)
+- Sprint 3 (PDF-native text overlay) remains independently deferred
+
 ## Calibration reference availability (do NOT hunt for more)
 
 User confirmed May 23 2026: the **only filled sheet example in the

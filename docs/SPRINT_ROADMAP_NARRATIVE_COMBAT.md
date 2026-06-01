@@ -1,9 +1,33 @@
 # Sprint Roadmap — Narrative Systems + Combat Modes
 
 **Created**: 2026-05-27
+**Updated**: 2026-05-29 — Sprints 1-6 SHIPPED (B2/A5/Tier 2/B3/A2/A1) + retro-review fix pass.
 **Owner**: Elijah Rhyne
 **Basis**: `docs/COMBAT_SIMULATION_MODES_RESEARCH.md` (books-first combat-mode research, May 26) + the narrative system design ([[project-narrative-system-design]], `docs/design/narrative_system_design.md`).
-**Status**: Narrative scene composition + ambient motion shipped May 27 (PoC). Lead sprint chosen: **B0+B1 No-Minis foundation**.
+
+## Status snapshot (May 29 2026)
+
+**Sprints DONE** (in order shipped):
+
+- ✅ **B0 + B1** No-Minis fidelity spike + No-Minis Combat mode (May 27) — `NoMinisResolver.gd` book-faithful round/firefight/morale-bail, routed in BattlePhase, Salvage fallback, 12/12 tests
+- ✅ **B2** Auto-resolve narrative bridge (May 29) — `CampaignTurnController._on_battle_completed` wraps auto-resolved battles in `NarrativeScreen` as `Aftermath: Victory/Objective Held/Withdrawal` beat before POST_MISSION. 8 gdUnit4 tests pin producer/consumer dict contract
+- ✅ **A5** SceneAtmosphereLayer (May 29) — GPUParticles2D-driven, 5 effects, sibling of SceneStage, AtmosphereCatalog SSOT, `world_trait_atmosphere.json` mapping, Reduced Motion gated, procedural texture fallback (PNGs OPTIONAL)
+- ✅ **Tier 2 image slots** (May 29) — `SceneStage.gd` `anchor_mode`/`scale_mode`/`source`; `Tier2AssetRegistry.gd`; SOP §4a
+- ✅ **B3** Dramatic Combat completion (May 29) — Adjusted Shooting wired through both resolvers, 35-row `dramatic_weapons_stats` table, rule instructions emit, dramatic_effects populated, citation drift fixed
+- ✅ **A2** Advisor quote expansion (May 29) — 18 → 108 quotes (6/cell)
+- ✅ **A1** Settings checkbox (May 29) — discovered pre-existing in `SettingsScreen.gd`, round-trip verified
+- ✅ **Sub-cat scene PoC** (May 29) — 8 of 14 sub-category scenes shipped (ship_interior_*, starport_*, alien_ruins, wilderness_approach); 6 still NEEDED
+- ✅ **Species placeholders** (May 29) — engineer/krag/skulker/psionic/unity_agent (×3 variants); de_converted [OUT OF SCOPE]
+
+**Retro-review pass (May 29, post-commit 6892c7fe)**: code-reviewer agent caught 4 silent-failure bugs + 1 test gap. All fixed: producer/consumer key drift (briefing/held_field), DRAMATIC_COMBAT dead-code wiring, dead slot drift. 8 new gdUnit4 bug-pin tests in `tests/unit/test_b2_narrative_bridge.gd`.
+
+**Sprints NEXT**:
+
+- **A3 Crew Tasks** (interactive event types) — the ~16 outcome-driven types still go through `CrewTaskEventDialog`; routing those through NarrativeScreen needs an interactive-choice pattern
+- **A4 PostBattle wizard** — 14-step interactive flow producing irreversible economy state; dedicated sprint
+- **B4 Grid-Based Movement** — heaviest, most independent; 3×3/3×4/4×4 tactical view
+
+**Original Status (May 27)**: Narrative scene composition + ambient motion shipped May 27 (PoC). Lead sprint chosen: **B0+B1 No-Minis foundation**.
 
 ---
 

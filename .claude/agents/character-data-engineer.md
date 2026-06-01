@@ -57,6 +57,10 @@ You have a detailed reference skill at `.claude/skills/character-data/` with cha
 | `references/json-data-catalog.md` | JSON file inventory, schemas, which system consumes each file, validation rules |
 | `references/equipment-world.md` | EquipmentManager API, equipment_data key, PlanetDataManager, WorldEconomyManager APIs |
 
+### Galaxy Log surface (June 2026)
+
+You own `src/core/world/GalaxyHexLayout.gd` (deterministic axial-coord assignment, static math utility) and `src/core/world/PlanetDetailBuilder.gd` (shared planet-detail renderer used by CampaignDashboard + WorldDetailPopup). You also own the PlanetDataManager invariants Galaxy Log depends on: cross-mode `deserialize_all({})` clear in every campaign core's `apply_pending_qol_data()`, starting world seeded with `discovered_on_turn=0` during finalization, journal `location` field resolved from `pdm.get_current_planet().name`. See CLAUDE.md "Galaxy Log" architecture section + Jun 1 audit gotchas.
+
 ## Project Context
 
 You are working on **Five Parsecs Campaign Manager**, a campaign management tool for the Five Parsecs from Home tabletop game, built in Godot 4.6 (pure GDScript). Key details:

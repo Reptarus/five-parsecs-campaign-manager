@@ -981,15 +981,26 @@ func _present_battle_outcome_via_narrative(result: Dictionary) -> void:
 		screen.present(event_dict, context)
 
 
-func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
+# Pure function: testable in isolation (no instance state needed). Made
+# static so tests can call FPCM_CampaignTurnController._battle_result_to_narrative_dict
+# without instantiating the Control (which trips scene-dependency asserts).
+static func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
 	var won: bool = result.get("victory", false) or result.get("won", false)
-	var held_field: bool = result.get("held_the_field", won)
+	# Both resolvers emit "held_field" (NOT "held_the_field"). Accept either
+	# spelling for safety, then DEFAULT TO FALSE — "held the field" is a real
+	# distinct outcome from "won", so defaulting to won would mislabel partial
+	# successes (lost objective but held position) as withdrawals.
+	var held_field: bool = result.get("held_field", result.get("held_the_field", false))
 	var rounds: int = int(result.get("rounds_played", result.get("rounds", 0)))
 	var casualties: int = int(result.get("casualties", 0))
 	var combat_mode: String = "Auto-resolved"
 	if result.get("no_minis", false) or result.get("combat_mode", "") == "no_minis":
 		combat_mode = "No-Minis combat"
-	var art_tag: String = "battle_aftermath_victory" if won else "battle_aftermath_retreat"
+	# Held-field outcomes lean visually toward "victory" rather than "retreat"
+	# — the crew stood their ground even if they didn't hit the objective.
+	# Map the binary art_tag space (only victory/retreat openers exist) to the
+	# closer mood: won OR held_field → victory; otherwise retreat.
+	var art_tag: String = "battle_aftermath_victory" if (won or held_field) else "battle_aftermath_retreat"
 	var title: String = ""
 	var mood: String = "neutral"
 	if won:
@@ -1013,9 +1024,16 @@ func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
 		"advisor_role": "fighter",
 		"advisor_mood": mood,
 		"core_text": "The shooting stops. The crew gathers what they can.",
-		"briefing": "\n".join(briefing_lines),
+		# NarrativeScreen reads "briefing_text" (NOT "briefing"). The briefing
+		# section silently hid every auto-resolve summary until this was fixed.
+		"briefing_text": "\n".join(briefing_lines),
+		# NarrativeChoiceButton.setup() reads "label" and "id" — NOT "text"
+		# and "value". Producer/consumer key drift was the same trap that
+		# hid the briefing_text section and mislabeled held_field outcomes.
+		# Verified by visual MCP screenshot (the button rendered with the
+		# correct border but empty text until this fix).
 		"choices": [
-			{"text": "Continue", "value": 0}
+			{"id": 0, "label": "Continue"}
 		]
 	}
 

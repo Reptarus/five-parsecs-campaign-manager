@@ -352,6 +352,30 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		var location_name: String = world_data.get("name", "Unknown World")
 		GameStateManager.set_location(location_name)
 
+	# Seed the starting world into PlanetDataManager so it joins visited_planets
+	# with discovered_on_turn=0 and current_planet_id set. Without this, the
+	# starting world only lived in campaign.world_data (a phantom planet from
+	# the autoload's perspective), and any consumer that derives state from
+	# pdm.visited_planets — including the Galaxy Log anchor logic — would miss
+	# it (Opus 4.8 audit B2 — Galaxy Log plan, 2026-06-01).
+	var tree_for_pdm = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root_for_pdm = tree_for_pdm.root if tree_for_pdm else null
+	if root_for_pdm and not world_data.is_empty():
+		var pdm = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
+		if pdm and pdm.has_method("get_or_generate_planet"):
+			var seeded_id: String = world_data.get("id", "")
+			var starting_planet = pdm.get_or_generate_planet(seeded_id, 0)
+			if starting_planet:
+				if pdm.has_method("set_current_planet"):
+					pdm.set_current_planet(starting_planet.id)
+				# Sync back to campaign.world_data so future references stay in
+				# step with the autoload's canonical id (matters when world_data
+				# had no "id" and PDM generated a fresh one).
+				if "world_data" in campaign:
+					var wd: Dictionary = campaign.world_data if campaign.world_data is Dictionary else {}
+					wd["id"] = starting_planet.id
+					campaign.world_data = wd
+
 	# Transfer victory conditions from config
 	var victory_conditions = config.get("victory_conditions", {})
 	if not victory_conditions.is_empty():

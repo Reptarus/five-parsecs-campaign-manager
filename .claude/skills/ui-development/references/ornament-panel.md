@@ -38,7 +38,7 @@ add_child(panel)
 panel.setup("CREW MANIFEST", my_vbox, OrnamentPanelScript.COLOR_PRIMARY)
 ```
 
-5 semantic colors mirror BaseCampaignPanel:
+6 semantic colors mirror BaseCampaignPanel:
 `COLOR_NEUTRAL` / `COLOR_PRIMARY` (cyan default) / `COLOR_SUCCESS` (green) /
 `COLOR_WARNING` (gold/amber) / `COLOR_DANGER` (red) / `COLOR_PURPLE`.
 

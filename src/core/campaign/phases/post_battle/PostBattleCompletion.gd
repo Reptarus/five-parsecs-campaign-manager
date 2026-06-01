@@ -60,9 +60,25 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 		zone_type = "RED ZONE"
 		zone_tag = "red_zone"
 
+	# Audit B1 fix: ctx.battle_result has never actually carried a "location"
+	# field, so the old default "Unknown" was always written. Resolve from the
+	# PlanetDataManager autoload — that IS where the current planet name lives.
+	# (Opus 4.8 audit B1 — Galaxy Log plan, 2026-06-01.)
+	var resolved_location: String = ""
+	var tree_for_loc = Engine.get_main_loop() if Engine.get_main_loop() else null
+	var root_for_loc = tree_for_loc.root if tree_for_loc else null
+	if root_for_loc:
+		var pdm_for_loc = root_for_loc.get_node_or_null("/root/PlanetDataManager")
+		if pdm_for_loc and pdm_for_loc.has_method("get_current_planet"):
+			var current_planet = pdm_for_loc.get_current_planet()
+			if current_planet and "name" in current_planet:
+				resolved_location = String(current_planet.name)
+	if resolved_location.is_empty():
+		resolved_location = String(ctx.battle_result.get("location", "Unknown"))
+
 	var entry_data: Dictionary = {
 		"turn": ctx.battle_result.get("turn", 0),
-		"location": ctx.battle_result.get("location", "Unknown"),
+		"location": resolved_location,
 		"outcome": "victory" if ctx.mission_successful else "defeat",
 		"casualties": ctx.injuries_sustained.size(),
 		"loot": ctx.loot_earned.size(),
@@ -129,6 +145,13 @@ func record_planet_mission(ctx: PostBattleContextClass) -> void:
 	var world_id: String = ctx.battle_result.get(
 		"world_id", ctx.battle_result.get("location", "")
 	)
+	# Audit B1 fix: battle_result rarely carries world_id and never carries
+	# location (see entry_data resolve above). Fall back to PDM's current
+	# planet so complete_mission still records on the right world.
+	if world_id.is_empty() and pdm.has_method("get_current_planet"):
+		var current_for_mission = pdm.get_current_planet()
+		if current_for_mission and "id" in current_for_mission:
+			world_id = String(current_for_mission.id)
 	if not world_id.is_empty():
 		pdm.complete_mission(world_id, ctx.battle_result)
 

@@ -34,6 +34,13 @@ extends RefCounted
 
 const BattleResolverRef = preload("res://src/core/battle/BattleResolver.gd")
 
+# Dramatic Combat (Compendium p.87) overlay source — self-gating; returns
+# empty dict when the DRAMATIC_COMBAT DLC flag is off, so safe to call
+# from any test/runtime context. Mirrors BattleResolver's wiring so both
+# resolvers honor the Adjusted Shooting table identically.
+const CompendiumDifficultyTogglesRef = preload(
+	"res://src/data/compendium_difficulty_toggles.gd")
+
 # Safety cap — No-Minis battles end on elimination/bail; this only guards runaway loops.
 const SAFETY_MAX_ROUNDS := 50
 
@@ -78,6 +85,14 @@ static func resolve_battle(
 	_mark_captain(crew_units)
 	for enemy in enemy_units:
 		enemy["_is_enemy_unit"] = true  # so kill/morale bookkeeping can tell the sides apart
+
+	# Dramatic Combat (Compendium p.87): same overlay pattern BattleResolver
+	# uses. Stash on battlefield_data so _resolve_one_shot's per-shot
+	# resolution can pick it up without re-querying the DLC manager.
+	var _dc_thresholds: Dictionary = CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()
+	if not _dc_thresholds.is_empty():
+		battlefield_data["dramatic_combat"] = true
+		battlefield_data["adjusted_shooting_thresholds"] = _dc_thresholds
 
 	var consumed_items: Array = []
 	var total_crew_casualties := 0
@@ -319,6 +334,15 @@ static func _resolve_one_shot(
 	weapon = _strip_ignored_traits(weapon)
 	shooter["range_to_target"] = range_inches
 	target["in_cover"] = target_in_cover
+
+	# Dramatic Combat: stamp the per-battle overlay onto the shooter so
+	# BattleCalculations.resolve_ranged_attack swaps to the Adjusted Shooting
+	# table (Compendium p.87). The catalog query is cached + self-gating, so
+	# this is cheap and no-ops when the DRAMATIC_COMBAT flag is off.
+	var _dc_thresholds: Dictionary = CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()
+	if not _dc_thresholds.is_empty():
+		shooter["dramatic_combat"] = true
+		shooter["adjusted_shooting_thresholds"] = _dc_thresholds
 
 	var shots: int = clampi(int(weapon.get("shots", 1)), 1, MAX_SHOTS_CAP)
 	var shot := 0

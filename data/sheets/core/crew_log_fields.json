@@ -2,120 +2,1889 @@
   "sheet_id": "crew_log",
   "book": "core",
   "source_png": "res://assets/sheets/core/crew_log.png",
-  "source_size": [2764, 1843],
-  "_calibration_note": "Starter coordinates from initial MVP pass. Field rects are conservative guesses spread across the sheet. Use SheetRenderer.set_debug_overlay(true) to view red bounding rects, then adjust rect values in graphics-tool pixel coordinates relative to source_size. Per docs/sop/sheet-export.md.",
+  "source_size": [
+    2764,
+    1843
+  ],
+  "_calibration_meta": {
+    "source": "tools/assign_crew_log_ids.py (Sprint 2.5 May 24 2026)",
+    "header_fields": 16,
+    "character_slots": 8,
+    "fields_per_slot": 16,
+    "total_fields": 144
+  },
   "fields": [
     {
-      "id": "campaign_name",
+      "id": "stashed_equipment",
+      "type": "multiline_text",
+      "rect": [
+        1004,
+        159,
+        614,
+        441
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.stash_items_text"
+    },
+    {
+      "id": "credits",
+      "type": "number",
+      "rect": [
+        1650,
+        159,
+        110,
+        110
+      ],
+      "font_size": 36,
+      "align": "center",
+      "source": "campaign.credits"
+    },
+    {
+      "id": "ship_name",
       "type": "text",
-      "rect": [200, 80, 1200, 80],
-      "font_size": 48,
+      "rect": [
+        1875,
+        159,
+        471,
+        110
+      ],
+      "font_size": 36,
+      "align": "left",
+      "source": "campaign.ship.name"
+    },
+    {
+      "id": "hull_points",
+      "type": "number",
+      "rect": [
+        2379,
+        159,
+        109,
+        110
+      ],
+      "font_size": 36,
+      "align": "center",
+      "source": "campaign.ship.hull_current"
+    },
+    {
+      "id": "ship_debt",
+      "type": "number",
+      "rect": [
+        2520,
+        159,
+        110,
+        110
+      ],
+      "font_size": 36,
+      "align": "center",
+      "source": "campaign.ship.debt"
+    },
+    {
+      "id": "crew_name",
+      "type": "text",
+      "rect": [
+        134,
+        254,
+        614,
+        109
+      ],
+      "font_size": 42,
       "align": "left",
       "source": "campaign.campaign_name"
     },
     {
-      "id": "turn_number",
-      "type": "text",
-      "rect": [2100, 80, 480, 80],
+      "id": "story_points",
+      "type": "number",
+      "rect": [
+        780,
+        267,
+        109,
+        96
+      ],
       "font_size": 36,
-      "align": "right",
-      "source": "campaign.progress_data.turns_played"
+      "align": "center",
+      "source": "campaign.story_points"
+    },
+    {
+      "id": "patrons_count",
+      "type": "number",
+      "rect": [
+        1650,
+        301,
+        110,
+        109
+      ],
+      "font_size": 36,
+      "align": "center",
+      "source": "campaign.patrons_count"
+    },
+    {
+      "id": "ship_traits",
+      "type": "multiline_text",
+      "rect": [
+        1875,
+        301,
+        238,
+        101
+      ],
+      "font_size": 20,
+      "align": "left",
+      "source": "campaign.ship.traits_text"
+    },
+    {
+      "id": "ship_upgrades",
+      "type": "multiline_text",
+      "rect": [
+        2145,
+        301,
+        485,
+        101
+      ],
+      "font_size": 20,
+      "align": "left",
+      "source": "campaign.ship.upgrades_text"
+    },
+    {
+      "id": "campaign_notes",
+      "type": "multiline_text",
+      "rect": [
+        134,
+        396,
+        755,
+        204
+      ],
+      "font_size": 20,
+      "align": "left",
+      "source": "campaign.notes"
+    },
+    {
+      "id": "rivals_count",
+      "type": "number",
+      "rect": [
+        1650,
+        443,
+        110,
+        109
+      ],
+      "font_size": 36,
+      "align": "center",
+      "source": "campaign.rivals_count"
+    },
+    {
+      "id": "story_track",
+      "type": "text",
+      "rect": [
+        1875,
+        517,
+        343,
+        83
+      ],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.story_track_label"
+    },
+    {
+      "id": "ship_fuel",
+      "type": "number",
+      "rect": [
+        2244,
+        517,
+        109,
+        83
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.ship.fuel"
+    },
+    {
+      "id": "story_clock",
+      "type": "number",
+      "rect": [
+        2379,
+        517,
+        109,
+        83
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.story_clock"
+    },
+    {
+      "id": "spent_names",
+      "type": "multiline_text",
+      "rect": [
+        2520,
+        530,
+        110,
+        70
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.spent_names_text"
     },
     {
       "id": "captain_name",
       "type": "text",
-      "rect": [320, 240, 800, 60],
-      "font_size": 36,
+      "rect": [
+        171,
+        712,
+        460,
+        62
+      ],
+      "font_size": 28,
       "align": "left",
       "source": "campaign.captain.character_name"
     },
     {
       "id": "captain_species",
       "type": "text",
-      "rect": [1180, 240, 400, 60],
-      "font_size": 28,
+      "rect": [
+        631,
+        712,
+        233,
+        62
+      ],
+      "font_size": 24,
       "align": "left",
       "source": "campaign.captain.species_id"
     },
     {
-      "id": "captain_class",
-      "type": "text",
-      "rect": [1620, 240, 400, 60],
+      "id": "captain_reactions",
+      "type": "number",
+      "rect": [
+        884,
+        712,
+        80,
+        62
+      ],
       "font_size": 28,
-      "align": "left",
-      "source": "campaign.captain.character_class"
+      "align": "center",
+      "source": "campaign.captain.reaction"
     },
     {
-      "id": "ship_name",
-      "type": "text",
-      "rect": [320, 1620, 800, 60],
-      "font_size": 32,
-      "align": "left",
-      "source": "campaign.ship_data.name"
-    },
-    {
-      "id": "credits",
+      "id": "captain_speed",
       "type": "number",
-      "rect": [1620, 1620, 240, 60],
-      "font_size": 36,
-      "align": "right",
-      "source": "campaign.credits"
+      "rect": [
+        964,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.captain.speed"
     },
     {
-      "id": "story_points",
+      "id": "captain_combat",
       "type": "number",
-      "rect": [2000, 1620, 240, 60],
-      "font_size": 36,
-      "align": "right",
-      "source": "campaign.story_points"
+      "rect": [
+        1044,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.captain.combat"
     },
     {
-      "id": "crew_member_1_name",
+      "id": "captain_toughness",
+      "type": "number",
+      "rect": [
+        1124,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.captain.toughness"
+    },
+    {
+      "id": "captain_savvy",
+      "type": "number",
+      "rect": [
+        1204,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.captain.savvy"
+    },
+    {
+      "id": "captain_luck",
+      "type": "number",
+      "rect": [
+        1305,
+        712,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.captain.luck"
+    },
+    {
+      "id": "captain_weapon_name",
       "type": "text",
-      "rect": [320, 380, 800, 50],
+      "rect": [
+        171,
+        794,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.captain.weapons[0].name"
+    },
+    {
+      "id": "captain_weapon_range",
+      "type": "number",
+      "rect": [
+        371,
+        794,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.captain.weapons[0].range"
+    },
+    {
+      "id": "captain_weapon_shots",
+      "type": "number",
+      "rect": [
+        451,
+        794,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.captain.weapons[0].shots"
+    },
+    {
+      "id": "captain_weapon_damage",
+      "type": "number",
+      "rect": [
+        531,
+        794,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.captain.weapons[0].damage"
+    },
+    {
+      "id": "captain_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        171,
+        856,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.captain.weapons[0].traits"
+    },
+    {
+      "id": "captain_gear",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        794,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.captain.gear_text"
+    },
+    {
+      "id": "captain_xp",
+      "type": "number",
+      "rect": [
+        1305,
+        794,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.captain.experience"
+    },
+    {
+      "id": "captain_notes",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        877,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.captain.notes"
+    },
+    {
+      "id": "crew_0_name",
+      "type": "text",
+      "rect": [
+        1423,
+        712,
+        460,
+        62
+      ],
       "font_size": 28,
       "align": "left",
       "source": "campaign.crew[0].character_name"
     },
     {
-      "id": "crew_member_2_name",
+      "id": "crew_0_species",
       "type": "text",
-      "rect": [320, 480, 800, 50],
+      "rect": [
+        1883,
+        712,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[0].species_id"
+    },
+    {
+      "id": "crew_0_reactions",
+      "type": "number",
+      "rect": [
+        2136,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[0].reaction"
+    },
+    {
+      "id": "crew_0_speed",
+      "type": "number",
+      "rect": [
+        2216,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[0].speed"
+    },
+    {
+      "id": "crew_0_combat",
+      "type": "number",
+      "rect": [
+        2296,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[0].combat"
+    },
+    {
+      "id": "crew_0_toughness",
+      "type": "number",
+      "rect": [
+        2376,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[0].toughness"
+    },
+    {
+      "id": "crew_0_savvy",
+      "type": "number",
+      "rect": [
+        2456,
+        712,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[0].savvy"
+    },
+    {
+      "id": "crew_0_luck",
+      "type": "number",
+      "rect": [
+        2557,
+        712,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[0].luck"
+    },
+    {
+      "id": "crew_0_weapon_name",
+      "type": "text",
+      "rect": [
+        1423,
+        794,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[0].weapons[0].name"
+    },
+    {
+      "id": "crew_0_weapon_range",
+      "type": "number",
+      "rect": [
+        1623,
+        794,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[0].weapons[0].range"
+    },
+    {
+      "id": "crew_0_weapon_shots",
+      "type": "number",
+      "rect": [
+        1703,
+        794,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[0].weapons[0].shots"
+    },
+    {
+      "id": "crew_0_weapon_damage",
+      "type": "number",
+      "rect": [
+        1783,
+        794,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[0].weapons[0].damage"
+    },
+    {
+      "id": "crew_0_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        1423,
+        856,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[0].weapons[0].traits"
+    },
+    {
+      "id": "crew_0_gear",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        794,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[0].gear_text"
+    },
+    {
+      "id": "crew_0_xp",
+      "type": "number",
+      "rect": [
+        2557,
+        794,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[0].experience"
+    },
+    {
+      "id": "crew_0_notes",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        877,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[0].notes"
+    },
+    {
+      "id": "crew_1_name",
+      "type": "text",
+      "rect": [
+        171,
+        972,
+        460,
+        62
+      ],
       "font_size": 28,
       "align": "left",
       "source": "campaign.crew[1].character_name"
     },
     {
-      "id": "crew_member_3_name",
+      "id": "crew_1_species",
       "type": "text",
-      "rect": [320, 580, 800, 50],
+      "rect": [
+        631,
+        972,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[1].species_id"
+    },
+    {
+      "id": "crew_1_reactions",
+      "type": "number",
+      "rect": [
+        884,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[1].reaction"
+    },
+    {
+      "id": "crew_1_speed",
+      "type": "number",
+      "rect": [
+        964,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[1].speed"
+    },
+    {
+      "id": "crew_1_combat",
+      "type": "number",
+      "rect": [
+        1044,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[1].combat"
+    },
+    {
+      "id": "crew_1_toughness",
+      "type": "number",
+      "rect": [
+        1124,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[1].toughness"
+    },
+    {
+      "id": "crew_1_savvy",
+      "type": "number",
+      "rect": [
+        1204,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[1].savvy"
+    },
+    {
+      "id": "crew_1_luck",
+      "type": "number",
+      "rect": [
+        1305,
+        972,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[1].luck"
+    },
+    {
+      "id": "crew_1_weapon_name",
+      "type": "text",
+      "rect": [
+        171,
+        1054,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[1].weapons[0].name"
+    },
+    {
+      "id": "crew_1_weapon_range",
+      "type": "number",
+      "rect": [
+        371,
+        1054,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[1].weapons[0].range"
+    },
+    {
+      "id": "crew_1_weapon_shots",
+      "type": "number",
+      "rect": [
+        451,
+        1054,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[1].weapons[0].shots"
+    },
+    {
+      "id": "crew_1_weapon_damage",
+      "type": "number",
+      "rect": [
+        531,
+        1054,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[1].weapons[0].damage"
+    },
+    {
+      "id": "crew_1_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        171,
+        1116,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[1].weapons[0].traits"
+    },
+    {
+      "id": "crew_1_gear",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        1054,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[1].gear_text"
+    },
+    {
+      "id": "crew_1_xp",
+      "type": "number",
+      "rect": [
+        1305,
+        1054,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[1].experience"
+    },
+    {
+      "id": "crew_1_notes",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        1137,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[1].notes"
+    },
+    {
+      "id": "crew_2_name",
+      "type": "text",
+      "rect": [
+        1423,
+        972,
+        460,
+        62
+      ],
       "font_size": 28,
       "align": "left",
       "source": "campaign.crew[2].character_name"
     },
     {
-      "id": "crew_member_4_name",
+      "id": "crew_2_species",
       "type": "text",
-      "rect": [320, 680, 800, 50],
+      "rect": [
+        1883,
+        972,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[2].species_id"
+    },
+    {
+      "id": "crew_2_reactions",
+      "type": "number",
+      "rect": [
+        2136,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[2].reaction"
+    },
+    {
+      "id": "crew_2_speed",
+      "type": "number",
+      "rect": [
+        2216,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[2].speed"
+    },
+    {
+      "id": "crew_2_combat",
+      "type": "number",
+      "rect": [
+        2296,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[2].combat"
+    },
+    {
+      "id": "crew_2_toughness",
+      "type": "number",
+      "rect": [
+        2376,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[2].toughness"
+    },
+    {
+      "id": "crew_2_savvy",
+      "type": "number",
+      "rect": [
+        2456,
+        972,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[2].savvy"
+    },
+    {
+      "id": "crew_2_luck",
+      "type": "number",
+      "rect": [
+        2557,
+        972,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[2].luck"
+    },
+    {
+      "id": "crew_2_weapon_name",
+      "type": "text",
+      "rect": [
+        1423,
+        1054,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[2].weapons[0].name"
+    },
+    {
+      "id": "crew_2_weapon_range",
+      "type": "number",
+      "rect": [
+        1623,
+        1054,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[2].weapons[0].range"
+    },
+    {
+      "id": "crew_2_weapon_shots",
+      "type": "number",
+      "rect": [
+        1703,
+        1054,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[2].weapons[0].shots"
+    },
+    {
+      "id": "crew_2_weapon_damage",
+      "type": "number",
+      "rect": [
+        1783,
+        1054,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[2].weapons[0].damage"
+    },
+    {
+      "id": "crew_2_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        1423,
+        1116,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[2].weapons[0].traits"
+    },
+    {
+      "id": "crew_2_gear",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        1054,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[2].gear_text"
+    },
+    {
+      "id": "crew_2_xp",
+      "type": "number",
+      "rect": [
+        2557,
+        1054,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[2].experience"
+    },
+    {
+      "id": "crew_2_notes",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        1137,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[2].notes"
+    },
+    {
+      "id": "crew_3_name",
+      "type": "text",
+      "rect": [
+        171,
+        1232,
+        460,
+        62
+      ],
       "font_size": 28,
       "align": "left",
       "source": "campaign.crew[3].character_name"
     },
     {
-      "id": "crew_member_5_name",
+      "id": "crew_3_species",
       "type": "text",
-      "rect": [320, 780, 800, 50],
+      "rect": [
+        631,
+        1232,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[3].species_id"
+    },
+    {
+      "id": "crew_3_reactions",
+      "type": "number",
+      "rect": [
+        884,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[3].reaction"
+    },
+    {
+      "id": "crew_3_speed",
+      "type": "number",
+      "rect": [
+        964,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[3].speed"
+    },
+    {
+      "id": "crew_3_combat",
+      "type": "number",
+      "rect": [
+        1044,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[3].combat"
+    },
+    {
+      "id": "crew_3_toughness",
+      "type": "number",
+      "rect": [
+        1124,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[3].toughness"
+    },
+    {
+      "id": "crew_3_savvy",
+      "type": "number",
+      "rect": [
+        1204,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[3].savvy"
+    },
+    {
+      "id": "crew_3_luck",
+      "type": "number",
+      "rect": [
+        1305,
+        1232,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[3].luck"
+    },
+    {
+      "id": "crew_3_weapon_name",
+      "type": "text",
+      "rect": [
+        171,
+        1314,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[3].weapons[0].name"
+    },
+    {
+      "id": "crew_3_weapon_range",
+      "type": "number",
+      "rect": [
+        371,
+        1314,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[3].weapons[0].range"
+    },
+    {
+      "id": "crew_3_weapon_shots",
+      "type": "number",
+      "rect": [
+        451,
+        1314,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[3].weapons[0].shots"
+    },
+    {
+      "id": "crew_3_weapon_damage",
+      "type": "number",
+      "rect": [
+        531,
+        1314,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[3].weapons[0].damage"
+    },
+    {
+      "id": "crew_3_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        171,
+        1376,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[3].weapons[0].traits"
+    },
+    {
+      "id": "crew_3_gear",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        1314,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[3].gear_text"
+    },
+    {
+      "id": "crew_3_xp",
+      "type": "number",
+      "rect": [
+        1305,
+        1314,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[3].experience"
+    },
+    {
+      "id": "crew_3_notes",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        1397,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[3].notes"
+    },
+    {
+      "id": "crew_4_name",
+      "type": "text",
+      "rect": [
+        1423,
+        1232,
+        460,
+        62
+      ],
       "font_size": 28,
       "align": "left",
       "source": "campaign.crew[4].character_name"
     },
     {
-      "id": "crew_member_6_name",
+      "id": "crew_4_species",
       "type": "text",
-      "rect": [320, 880, 800, 50],
+      "rect": [
+        1883,
+        1232,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[4].species_id"
+    },
+    {
+      "id": "crew_4_reactions",
+      "type": "number",
+      "rect": [
+        2136,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[4].reaction"
+    },
+    {
+      "id": "crew_4_speed",
+      "type": "number",
+      "rect": [
+        2216,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[4].speed"
+    },
+    {
+      "id": "crew_4_combat",
+      "type": "number",
+      "rect": [
+        2296,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[4].combat"
+    },
+    {
+      "id": "crew_4_toughness",
+      "type": "number",
+      "rect": [
+        2376,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[4].toughness"
+    },
+    {
+      "id": "crew_4_savvy",
+      "type": "number",
+      "rect": [
+        2456,
+        1232,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[4].savvy"
+    },
+    {
+      "id": "crew_4_luck",
+      "type": "number",
+      "rect": [
+        2557,
+        1232,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[4].luck"
+    },
+    {
+      "id": "crew_4_weapon_name",
+      "type": "text",
+      "rect": [
+        1423,
+        1314,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[4].weapons[0].name"
+    },
+    {
+      "id": "crew_4_weapon_range",
+      "type": "number",
+      "rect": [
+        1623,
+        1314,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[4].weapons[0].range"
+    },
+    {
+      "id": "crew_4_weapon_shots",
+      "type": "number",
+      "rect": [
+        1703,
+        1314,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[4].weapons[0].shots"
+    },
+    {
+      "id": "crew_4_weapon_damage",
+      "type": "number",
+      "rect": [
+        1783,
+        1314,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[4].weapons[0].damage"
+    },
+    {
+      "id": "crew_4_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        1423,
+        1376,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[4].weapons[0].traits"
+    },
+    {
+      "id": "crew_4_gear",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        1314,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[4].gear_text"
+    },
+    {
+      "id": "crew_4_xp",
+      "type": "number",
+      "rect": [
+        2557,
+        1314,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[4].experience"
+    },
+    {
+      "id": "crew_4_notes",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        1397,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[4].notes"
+    },
+    {
+      "id": "crew_5_name",
+      "type": "text",
+      "rect": [
+        171,
+        1492,
+        460,
+        62
+      ],
       "font_size": 28,
       "align": "left",
       "source": "campaign.crew[5].character_name"
+    },
+    {
+      "id": "crew_5_species",
+      "type": "text",
+      "rect": [
+        631,
+        1492,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[5].species_id"
+    },
+    {
+      "id": "crew_5_reactions",
+      "type": "number",
+      "rect": [
+        884,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[5].reaction"
+    },
+    {
+      "id": "crew_5_speed",
+      "type": "number",
+      "rect": [
+        964,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[5].speed"
+    },
+    {
+      "id": "crew_5_combat",
+      "type": "number",
+      "rect": [
+        1044,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[5].combat"
+    },
+    {
+      "id": "crew_5_toughness",
+      "type": "number",
+      "rect": [
+        1124,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[5].toughness"
+    },
+    {
+      "id": "crew_5_savvy",
+      "type": "number",
+      "rect": [
+        1204,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[5].savvy"
+    },
+    {
+      "id": "crew_5_luck",
+      "type": "number",
+      "rect": [
+        1305,
+        1492,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[5].luck"
+    },
+    {
+      "id": "crew_5_weapon_name",
+      "type": "text",
+      "rect": [
+        171,
+        1574,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[5].weapons[0].name"
+    },
+    {
+      "id": "crew_5_weapon_range",
+      "type": "number",
+      "rect": [
+        371,
+        1574,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[5].weapons[0].range"
+    },
+    {
+      "id": "crew_5_weapon_shots",
+      "type": "number",
+      "rect": [
+        451,
+        1574,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[5].weapons[0].shots"
+    },
+    {
+      "id": "crew_5_weapon_damage",
+      "type": "number",
+      "rect": [
+        531,
+        1574,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[5].weapons[0].damage"
+    },
+    {
+      "id": "crew_5_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        171,
+        1636,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[5].weapons[0].traits"
+    },
+    {
+      "id": "crew_5_gear",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        1574,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[5].gear_text"
+    },
+    {
+      "id": "crew_5_xp",
+      "type": "number",
+      "rect": [
+        1305,
+        1574,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[5].experience"
+    },
+    {
+      "id": "crew_5_notes",
+      "type": "multiline_text",
+      "rect": [
+        732,
+        1657,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[5].notes"
+    },
+    {
+      "id": "crew_6_name",
+      "type": "text",
+      "rect": [
+        1423,
+        1492,
+        460,
+        62
+      ],
+      "font_size": 28,
+      "align": "left",
+      "source": "campaign.crew[6].character_name"
+    },
+    {
+      "id": "crew_6_species",
+      "type": "text",
+      "rect": [
+        1883,
+        1492,
+        233,
+        62
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.crew[6].species_id"
+    },
+    {
+      "id": "crew_6_reactions",
+      "type": "number",
+      "rect": [
+        2136,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[6].reaction"
+    },
+    {
+      "id": "crew_6_speed",
+      "type": "number",
+      "rect": [
+        2216,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[6].speed"
+    },
+    {
+      "id": "crew_6_combat",
+      "type": "number",
+      "rect": [
+        2296,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[6].combat"
+    },
+    {
+      "id": "crew_6_toughness",
+      "type": "number",
+      "rect": [
+        2376,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[6].toughness"
+    },
+    {
+      "id": "crew_6_savvy",
+      "type": "number",
+      "rect": [
+        2456,
+        1492,
+        80,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[6].savvy"
+    },
+    {
+      "id": "crew_6_luck",
+      "type": "number",
+      "rect": [
+        2557,
+        1492,
+        62,
+        62
+      ],
+      "font_size": 28,
+      "align": "center",
+      "source": "campaign.crew[6].luck"
+    },
+    {
+      "id": "crew_6_weapon_name",
+      "type": "text",
+      "rect": [
+        1423,
+        1574,
+        200,
+        62
+      ],
+      "font_size": 22,
+      "align": "left",
+      "source": "campaign.crew[6].weapons[0].name"
+    },
+    {
+      "id": "crew_6_weapon_range",
+      "type": "number",
+      "rect": [
+        1623,
+        1574,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[6].weapons[0].range"
+    },
+    {
+      "id": "crew_6_weapon_shots",
+      "type": "number",
+      "rect": [
+        1703,
+        1574,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[6].weapons[0].shots"
+    },
+    {
+      "id": "crew_6_weapon_damage",
+      "type": "number",
+      "rect": [
+        1783,
+        1574,
+        80,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[6].weapons[0].damage"
+    },
+    {
+      "id": "crew_6_weapon_traits",
+      "type": "multiline_text",
+      "rect": [
+        1423,
+        1636,
+        541,
+        74
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[6].weapons[0].traits"
+    },
+    {
+      "id": "crew_6_gear",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        1574,
+        553,
+        63
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[6].gear_text"
+    },
+    {
+      "id": "crew_6_xp",
+      "type": "number",
+      "rect": [
+        2557,
+        1574,
+        62,
+        62
+      ],
+      "font_size": 22,
+      "align": "center",
+      "source": "campaign.crew[6].experience"
+    },
+    {
+      "id": "crew_6_notes",
+      "type": "multiline_text",
+      "rect": [
+        1984,
+        1657,
+        629,
+        53
+      ],
+      "font_size": 18,
+      "align": "left",
+      "source": "campaign.crew[6].notes"
     }
   ]
 }

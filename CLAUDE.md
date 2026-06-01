@@ -190,6 +190,30 @@ MainMenu → "Tactics" button → TacticsCreationUI (army builder) → TacticsDa
 - **SceneRouter keys**: `tactics_creation`, `tactics_dashboard`, `tactics_turn_controller`
 - **59 GDScript files** across `src/`, **18 JSON data files** in `data/tactics/`
 
+### Galaxy Log (June 2026, 5PFH only)
+
+Hex-grid travel-history visualization. Full-screen sub-screen accessible from the Campaign Dashboard CAMPAIGN HISTORY block. Read-only history view — NOT a navigation interface (no movement mechanics, no spatial rules).
+
+```text
+MainMenu → CampaignDashboard "Galaxy Log" button
+  └─ SceneRouter.navigate_to("galaxy_log")
+       └─ GalaxyLogScreen (extends FiveParsecsCampaignPanel)
+            ├─ HexStarMap (pan/zoom Control)
+            │   ├─ HexCell × N (one per visited planet)
+            │   └─ _draw(): breadcrumb polyline over travel_history
+            └─ WorldDetailPopup (Window, opens on hex click)
+                 └─ PlanetDetailBuilder.build_into(vbox, planet)
+```
+
+- **GalaxyHexLayout** (`src/core/world/GalaxyHexLayout.gd`): deterministic `(campaign_id, planet_id)` → axial coord, flat-top hex math, salt-overflow fallback via `next_free_outward()`. Pure static, no persisted positions.
+- **PlanetDetailBuilder** (`src/core/world/PlanetDetailBuilder.gd`): shared planet-detail renderer. CampaignDashboard's PLANET INFO overlay AND the WorldDetailPopup both call `PlanetDetailBuilder.build_into(vbox, planet)` so they render identically.
+- **Starting world anchor**: `min(planet.discovered_on_turn)` across `pdm.visited_planets`. Post Phase 0 fix in CampaignFinalizationService, the starting world is seeded with `discovered_on_turn=0` so this min reliably finds it.
+- **Pan/zoom**: copied from BattlefieldMapView lines 1116-1231 (the canonical and only pan/zoom implementation in the codebase).
+- **Setter-driven `queue_redraw()`**: per Godot 4 custom-drawing docs, `_show_breadcrumb`/`_pan_offset`/`_zoom_level` invalidate via `set:` blocks. Never `_process()` → `queue_redraw()`.
+- **SceneRouter key**: `galaxy_log`
+- **NEW JSON / data files**: zero. Reads exclusively from existing PlanetDataManager state.
+- **Pre-Jun-1 journal entries** still have `location="Unknown"` (pre-Phase-0). No backfill migration in v1.
+
 ### Character Events System (Session 51, Core Rules pp.128-130)
 
 Post-battle D100 Character Events with persistent multi-turn status effects.
@@ -364,10 +388,12 @@ NarrativeScreen.gd (CanvasLayer L95)
 - **DeploymentManager** has static `infer_deployment_type()` and `infer_terrain_features()` methods.
 - **EquipmentManager** has `get_sell_value()` for condition-aware resale pricing.
 
-### Three Enum Systems (CRITICAL - Must Stay In Sync)
+### Two Enum Systems (CRITICAL - Must Stay In Sync)
+
 1. `src/core/systems/GlobalEnums.gd` — autoloaded as `GlobalEnums`
 2. `src/core/enums/GameEnums.gd` — class_name `GameEnums`
-3. `src/game/campaign/crew/FiveParsecsGameEnums.gd` — CharacterClass only
+
+Note: A third enum file (`src/game/campaign/crew/FiveParsecsGameEnums.gd`) was deleted in Sprint A Bug 3 (2026-05-24) along with the entire legacy `FiveParsecsCampaign` / `FiveParsecsCrew*` class family. The project went from 3-enum to 2-enum sync. See `project_sprint_a_bug3_modernization` memory for the rationale and dependency map.
 
 ### Character Data Model
 - Canonical: `src/core/character/Character.gd` (class_name `Character`, ~1,900 lines)
@@ -694,7 +720,7 @@ Nine specialized agents with three-tier model routing to minimize token usage on
 ### Routing Rules
 
 - Each agent owns specific files — route tasks by file ownership (see `.claude/skills/fpcm-project-management/references/agent-roster.md`)
-- `character-data-engineer` exclusively owns all 3 enum files (three-enum sync rule)
+- `character-data-engineer` exclusively owns the 2 enum files (two-enum sync rule; FiveParsecsGameEnums deleted Sprint A Bug 3 2026-05-24)
 - Multi-domain tasks → decompose via `fpcm-project-manager`
 - `bug-hunt-specialist` reviews any shared file changes (TacticalBattleUI, GameState, SceneRouter)
 - `planetfall-specialist` owns all `src/ui/screens/planetfall/`, `src/game/campaign/PlanetfallCampaignCore.gd`, `data/planetfall/`
@@ -793,7 +819,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 
 - **Stars of the Story has FIVE options, not four (Core Rules p.67)**: `StarsOfTheStorySystem.StarAbility` = `{ITS_TIME_TO_GO, LOOKED_WORSE, DID_YOU_EVER_MEET, LUCKY_SHOT, RAINY_DAY_FUND}`. Three are mid-battle (`StarsOfTheStorySystem.is_battle_only()` returns true). `DRAMATIC_ESCAPE` was a fabricated mechanic deleted May 2026 — do NOT re-add it. Elite Rank ×5 bonus is a campaign-setup pick via `apply_elite_rank_pick()`, NOT a runtime accrual (book p.65: "You must pick when setting up the campaign"). Persistence field on `FiveParsecsCampaignCore` is `stars_of_the_story` (NOT `stars_of_story_data` — that typo caused a silent failure). Insanity disables all stars. Bug Hunt/Planetfall correctly omit the field (Compendium p.214 forbids carry-over). All journal logging routes through static `StarsOfTheStorySystem.log_use_to_journal(ability, context, result, journal, turn, source)` with `source ∈ {"battle", "post_battle", "dashboard"}`.
 - **`.exe` directory name**: The Godot installation folder IS named `*.exe` — this is a directory, not an executable
-- **`replace_all` substring trap**: Short identifiers corrupt longer ones (e.g., replacing "HARD" also matches inside "HARDCORE"). Always check for substring collisions
+- **`replace_all` substring trap**: Short identifiers corrupt longer ones (e.g., replacing "HARD" also matches inside "HARDCORE"). Always check for substring collisions. **Also bites function names** — renaming `_next_free_outward` → `next_free_outward` mangled `test_next_free_outward_*` into `testnext_free_outward_*`, breaking gdUnit4 discovery silently (Galaxy Log Phase 0, Jun 1)
+- **PlanetDataManager state leaks across modes** unless every campaign core's `apply_pending_qol_data()` calls `pdm.deserialize_all({})` UNCONDITIONALLY. Pre-Jun-1, only 5PFH cleared it (and only when planet_data was non-empty). Bug Hunt / Planetfall / Tactics now also clear on load; 5PFH's empty-data guard was removed. The autoload's `visited_planets.clear()` ONLY executes inside `deserialize_all()` — there is no other clear path
+- **Journal `location` field write contract**: `CampaignJournal` battle/travel/milestone entries are all expected to set `location = current_planet.name` so `get_entries_by_location(name)` joins them. Pre-Jun-1, battle entries wrote `"Unknown"` (battle_result never carried a `location` key) and milestone entries omitted the field entirely. Post-Jun-1, all writers resolve from `pdm.get_current_planet().name`. Pre-Jun-1 entries still have `location="Unknown"` — no backfill migration yet
 - **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check
 - **`class_name` + autoload conflict**: If a script has `class_name Foo` AND is registered as autoload "Foo", Godot 4.6 errors "Class hides an autoload singleton." Fix: remove `class_name` from autoloaded scripts
 - **`Engine.has_singleton()` does NOT work for autoloads**: Autoloads are scene tree nodes at `/root/Name`, NOT engine singletons. For non-Node classes (Resource/RefCounted), use `Engine.get_main_loop().root.get_node_or_null("/root/AutoloadName")`

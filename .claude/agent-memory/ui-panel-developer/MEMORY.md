@@ -64,6 +64,24 @@ SceneStage gained roster-aware **character slots** + scene-wide **ambient motion
 - Full-canvas layer contract: every scene PNG must be canvas-sized (Photoshop per-layer export TRIMS — use Layers to Files, Trim UNCHECKED). Run `--headless --import` after new PNGs.
 - Dev harness: `src/ui/screens/dev/SceneViewer.tscn` (`-- scene_id=X test_crew=precursor,swift,k_erin autoshot`).
 
+## May 29, 2026: Sprints 1-6 narrative+combat ship + retro fixes
+
+Six narrative-system + combat-system sprints shipped in one session (B2/A5/Tier 2/B3/A2/A1). UI-domain pieces:
+
+- **B2 Auto-resolve narrative bridge** (`CampaignTurnController.gd`). Wraps auto-resolved battle outcomes in `NarrativeScreen` as `Aftermath: Victory/Objective Held/Withdrawal` before POST_MISSION. Same gating pattern as Story Track / Character Phase / Crew Task integrations: branch on `SettingsManager.are_narrative_events_enabled()` + DLC, present, listen for `narrative_completed`/`skip_requested`, route to next phase.
+- **A5 SceneAtmosphereLayer** — sibling of SceneStage inside IllustrationFrame, GPUParticles2D-driven, 5 effects (snow/dust_motes/fog_haze/embers/smoke_columns). Procedural radial-falloff white circle generated at runtime + color_ramp tinted per-effect → atmosphere PNG textures are [OPTIONAL] not [NEEDED]. `AtmosphereCatalog.gd` SSOT, `world_trait_atmosphere.json` mapping. Reduced Motion gated. `clip_contents = true` prevents particles bleeding into the narrative panel.
+- **Tier 2 image slots** — `SceneStage.gd` extended with slot `anchor_mode` (feet/center/top/top_left) + `scale_mode` (height/width) + assignment `source` field. `Tier2AssetRegistry.gd` maps `tier2:<key>` to res:// paths. SOP §4a documents the contract. Feet-anchored default = backward compat preserved.
+- **A2 advisor quotes** — `data/narrative/advisor_quotes.json` expanded 18 → 108 (6 quotes per role × mood cell). Voice-consistent per role. No em dashes in new lines (grandfathered seed kept).
+- **Sub-cat scene PoC** — 8 of 14 sub-category scenes shipped via `scripts/scene_layers_to_manifest.py` + headless import. Canvas sizes wildly varied (1280×696 to 6000×3888) but `STRETCH_KEEP_ASPECT_CENTERED` letterboxes correctly. Scene IDs MUST match the `art_tag` keys in `atmosphere_openers.json` (full `ship_interior_*` prefix, `battle_aftermath_*` prefix, etc.).
+- **Species placeholders** — engineer/krag/skulker/psionic/unity_agent (×3 variants); De-converted intentionally [OUT OF SCOPE] as Strange Character type rendered via underlying species.
+
+### Retro-review caught 2 silent-failure UI bugs (now fixed + tested)
+
+- `CampaignTurnController._battle_result_to_narrative_dict` returned key `"briefing"` but `NarrativeScreen._populate_briefing` reads `"briefing_text"`. Fix: producer key now matches consumer; 8 gdUnit4 bug-pin tests in `tests/unit/test_b2_narrative_bridge.gd` lock the contract.
+- Same file used `"held_the_field"` but both resolvers emit `"held_field"`. Held-field partial successes were silently mislabeled as Withdrawals. Fix accepts both spellings, defaults to FALSE.
+- **General rule**: when writing any dict destined for `NarrativeScreen.present()` (or `BattleCalculations.resolve_ranged_attack`, or any cross-file consumer), Grep the consumer's `_populate_*` / `_data.get(...)` sites for the EXACT key names. Key drift is silent — no error, no warning, just feature missing at runtime.
+- For unit-testability of pure-dict-transform helpers on Control-extending classes: refactor the helper `static`. Tests then call `ClassName._helper(args)` without instantiation (the Control's `@onready` % scene asserts would otherwise trip).
+
 ## Session 53: Compendium Setup Card + Colony Travel Buttons (Apr 9, 2026)
 
 ### ExpandedConfigPanel — New "COMPENDIUM SETUP OPTIONS" Card

@@ -52,12 +52,11 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 		credit_roll = 3
 
 	# Total payment = credit roll + Danger Pay for patron jobs (Core Rules p.120)
+	# Note: failed non-Invasion missions still pay (Core Rules p.120 unconditional;
+	# Invasion-only denial handled at line 31). Compendium p.151 confirms Black Zone
+	# failures still receive normal post-battle rewards.
 	var danger_pay: int = ctx.battle_result.get("danger_pay", 0)
 	var total_payment: int = credit_roll + danger_pay
-
-	# Failed missions get nothing (no post-battle rewards for losses)
-	if not ctx.mission_successful:
-		total_payment = 0
 
 	if total_payment > 0 and ctx.game_state and ctx.game_state.has_method("add_credits"):
 		ctx.game_state.add_credits(total_payment)

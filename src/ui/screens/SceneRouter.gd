@@ -108,6 +108,9 @@ const SCENE_PATHS = {
 	# Compendium / Library
 	"compendium": "res://src/ui/screens/compendium/CompendiumScreen.tscn",
 	"compendium_category": "res://src/ui/screens/compendium/CompendiumCategoryView.tscn",
+
+	# Galaxy Log — hex-grid visualization of visited worlds (5PFH only)
+	"galaxy_log": "res://src/ui/screens/galaxy_log/GalaxyLogScreen.tscn",
 }
 
 # Navigation history for back button functionality

@@ -24,13 +24,16 @@ Every content panel in the Modiphius rulebook uses the same recipe:
    in the upper-left inside the border (Elite Ranks p.65 style)
 5. **Body content** with comfortable padding
 
-5 chapter colors observed: cyan (default), red (Character Creation), gold/amber
-(Campaign Preparation), orange (Battles), green (Post-Battle), purple (Appendices).
-All chapters use the SAME bracket art, just `modulate`d to the chapter color.
+6 semantic colors mirror BaseCampaignPanel and cover the chapter accents
+observed in the rulebook: cyan (PRIMARY, default), red (DANGER — Character
+Creation), gold/amber (WARNING — Campaign Preparation / Battles), green
+(SUCCESS — Post-Battle), purple (PURPLE — Appendices / GM tools), neutral
+white (NEUTRAL — no semantic emphasis). All use the SAME bracket art, just
+`modulate`d to the chapter color.
 
 ## Architecture
 
-```
+```text
 OrnamentPanel (Control, PRESET_FULL_RECT)
   ├── BackgroundPanel (PanelContainer, StyleBoxFlat: rounded + colored stroke)
   │     └── VBoxContainer
@@ -64,6 +67,7 @@ composition pattern matches `BookFrame.gd` and `NarrativeScreen.gd`.
 only (chapter title brackets, vertical edge accents, page-corner ornaments at
 PAGE corners). It does NOT contain the small panel-corner brackets the rulebook
 uses on its content panels. Verified by:
+
 - Extracting at `merge_distance=15` (37 fragments) — all sub-pieces of
   page-chrome composites, none are panel-corner brackets
 - Searching the entire `5PFH Art\` delivery for callout/bracket/panel/corner
@@ -106,7 +110,7 @@ detail or align it better.
 ## Decision matrix — which component to use
 
 | Use case | Component | Why |
-|---|---|---|
+| --- | --- | --- |
 | Section card on a dashboard / dialog content panel / mission card | **OrnamentPanel** | Rounded chrome + corner brackets matches the rulebook callout-panel recipe |
 | Sharp-cornered emphasis box (Elite Ranks p.65 style — title inline in upper-left, sharp corners, narrow border) | **CalloutCard** | Existing component, matches that specific rulebook variant |
 | Full-screen chapter intro / narrative window with chapter-title bracket + page-corner ornaments | **BookFrame** (refine the existing) | PAGE-CHROME, uses the actual Modiphius .ai art at native size |
@@ -116,7 +120,7 @@ detail or align it better.
 ## Key files
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `src/ui/components/common/OrnamentPanel.gd` | The component itself |
 | `scripts/generate_corner_bracket_atlas.py` | Generator for the bracket PNGs (run after tuning) |
 | `scripts/build_ornament_9slice_atlas.py` | Edge-strip variant for future PageChrome use (NOT used by OrnamentPanel currently) |

@@ -8,15 +8,16 @@ The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority 
 
 ---
 
-## NEXT SPRINT (queued May 27): No-Minis Combat foundation (B0 + B1)
+## Narrative+Combat sprint roadmap status (May 29 2026)
 
-Lead sprint off the new roadmap (`docs/SPRINT_ROADMAP_NARRATIVE_COMBAT.md`). Standalone-direction combat ("advance the campaign without a tabletop"). **Read first**: `docs/COMBAT_SIMULATION_MODES_RESEARCH.md` + `data/RulesReference/Nominis.json` (the canonical No-Minis ruleset) + Compendium p.66.
+`docs/SPRINT_ROADMAP_NARRATIVE_COMBAT.md`. Status across both workstreams:
 
-- **B0 = fidelity spike (do this BEFORE wiring)**: does `BattleResolver.resolve_battle()` already implement No-Minis, or a different abstraction? Trace it against `Nominis.json`, produce a parity table (book rule → code presence), decide align-to-book vs keep-and-document. This gates B1/B2.
-- **B1 = wire/align**: No-Minis round structure — battle-flow events → initiative (ONE die fewer than normal) → firefight (select 3 random enemies, 4 if 7+); 8 action choices; per-mission notes; **Salvage-mission fallback** (No-Minis "not easily usable" with Salvage, Compendium p.116).
-- **B2 (later) = the bridge**: wrap the resolution in `NarrativeScreen`/`SceneStage` ("play it out for me" as story) — the convergence with the shipped narrative layer.
-- Guardrail: every threshold/value from Compendium or `Nominis.json` — NO invented combat data. `qa-specialist` verifies.
-- Combat is a TWO-axis model (representation: full-minis/grid/no-minis/auto-resolve × Dramatic-Combat flavor toggle). Dramatic Combat (B3) is a PARTIAL scaffold today — see the research doc for the exact missing pieces (Adjusted Shooting, Duck Back, Lunge consumer, Dramatic Weapons table).
+- **B0 + B1 (No-Minis foundation)**: SHIPPED May 27. `NoMinisResolver.gd` book-faithful round/firefight/morale-bail; routed in BattlePhase via `no_minis_combat` flag; Salvage fallback. 12/12 tests.
+- **B2 (Auto-resolve narrative bridge)**: SHIPPED May 29. `CampaignTurnController._on_battle_completed` branches on `results.auto_resolved + narrative-events flag` to wrap the outcome in `NarrativeScreen` before POST_MISSION. 8 gdUnit4 tests pin the producer/consumer dict contract. Two key bugs caught in retro and fixed: `briefing` → `briefing_text`, `held_the_field` → `held_field`.
+- **B3 (Dramatic Combat completion)**: SHIPPED May 29. `BattleCalculations.resolve_ranged_attack` Adjusted Shooting (5 open / 6 cover, Compendium p.87), 35-row `dramatic_weapons_stats` table (pp.88-89), rule instructions emit (Adjusted Shooting + Duck Back + Lunge). **CRITICAL**: the DLC flag is wired at the resolver level too — both `BattleResolver` and `NoMinisResolver` query `CompendiumDifficultyToggles.get_adjusted_shooting_thresholds()` once at the start of `resolve_battle`, stash on `battlefield_data`, inject into attacker dict before each `resolve_ranged_attack` call. Without this wiring (which was MISSING in the initial Sprint 4 ship), the math is dead code.
+- **B4 (Grid Movement)**: not started.
+
+Combat is a TWO-axis model (representation: full-minis/grid/no-minis/auto-resolve × Dramatic-Combat flavor toggle).
 
 ---
 
@@ -29,6 +30,7 @@ Lead sprint off the new roadmap (`docs/SPRINT_ROADMAP_NARRATIVE_COMBAT.md`). Sta
 5. **Crew "Mark Down" = Out of Action, NOT confirmed dead**: `_resolve_battle()` routes ALL downed crew (`health<=0`) to `crew_injuries_data` → standard post-battle Injury Table (Core Rules p.122) decides dead/injured/recovered. The table is the arbiter, not the in-battle button. Enemies still die outright (feed End-Phase Morale, don't roll injury). DO NOT re-split by `is_dead` at resolve time.
 6. **SlideOverDrawer wide-drawer contract**: opt-in `@export var min_panel_width: float = 0.0` (default 0 = unchanged tight column, keeper gdUnit 10/10 stays green). Wide drawers (Crew/Enemies/Dice/Tracking/Oracle/Results) request ~480px CONTENT-sized (`minf(min_panel_width, vp.x*0.5)`). NEVER size a content panel as a viewport fraction (`vp.x*0.42` balloons to 828px on wide monitors → half-screen takeover).
 7. **BattleRoundTracker `battle_event_triggered` requires UI to call `check_battle_event()` after overlay** (line ~186) to avoid modal double-fire. Bare `advance_phase()×5` does NOT auto-emit. A pre-existing test (`test_battle_event_triggers_on_round_2`) encodes the wrong expectation — kept out-of-scope.
+8. **DLC-gated MECHANICS must wire at BOTH the setup UI AND the runtime resolver.** May 29 caught: B3 Adjusted Shooting had a clean `if attacker.get("dramatic_combat", false)` branch in `BattleCalculations.resolve_ranged_attack` but NO resolver was setting the flag. Pure dead code despite "DRAMATIC COMBAT ACTIVE" appearing on the setup screen. Pattern: at the top of `resolve_battle`, call `CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()` (self-gating — returns `{}` when off), stash on `battlefield_data`, inject into attacker dict before each `BattleCalculations.resolve_ranged_attack` call. Both `BattleResolver` AND `NoMinisResolver` need this — they're separate code paths. Verify at runtime by MCP-flipping `DLCManager._enabled_flags[DRAMATIC_COMBAT] = true/false` and asserting the overlay is/isn't on `battlefield_data` after `resolve_battle`. Same pattern applies to any future DLC mechanic that affects per-shot/per-event math.
 
 ---
 

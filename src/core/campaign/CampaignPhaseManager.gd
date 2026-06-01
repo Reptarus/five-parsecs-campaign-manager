@@ -4,7 +4,6 @@ extends Node
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
-const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
 	"res://src/core/campaign/phases/PostBattlePhase.gd")

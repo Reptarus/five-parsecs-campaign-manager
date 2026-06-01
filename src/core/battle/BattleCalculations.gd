@@ -200,7 +200,13 @@ static func check_hit(roll: int, threshold: int) -> bool:
 
 #region Damage Calculations
 
-## Calculate base damage from weapon
+## Calculate base damage from weapon (Core Rules pp.46, 51)
+## Critical trait (p.51) inflicts a SECOND HIT on natural-6 to-hit, not
+## inflated damage. The second hit is resolved by the caller via the
+## critical_extra_hit consumer in resolve_ranged_attack (Sprint A Bug 5,
+## 2026-05-24 — replaced fabricated damage=999 with book-faithful 2-hits).
+## The brutal_combat house rule remains as an opt-in alternative (doubles
+## damage on crit instead of producing a second hit).
 static func calculate_weapon_damage(
 	weapon_damage: int,
 	is_critical: bool = false,
@@ -208,14 +214,9 @@ static func calculate_weapon_damage(
 ) -> int:
 	var damage := weapon_damage
 
-	# Critical hit handling
-	# Default (Five Parsecs rules): Critical = instant kill (very high damage)
-	# HOUSE RULE brutal_combat: Critical = double damage instead
-	if is_critical:
-		if HouseRulesHelper.is_enabled("brutal_combat"):
-			damage *= 2  # House rule: double damage on crit
-		else:
-			damage = 999  # Default: instant kill on crit
+	# HOUSE RULE brutal_combat: Critical = double damage instead of 2 hits
+	if is_critical and HouseRulesHelper.is_enabled("brutal_combat"):
+		damage *= 2
 
 	# Note: Weapon trait damage modifiers (devastating, powered) are now applied
 	# via get_weapon_trait_effects() in resolve_ranged_attack() — not duplicated here.
@@ -267,14 +268,13 @@ static func get_armor_save_threshold(armor_type: String, species: String = "") -
 		_:
 			return ARMOR_SAVE_NONE
 
-## Check if armor saves against damage
+## Check if armor saves against damage (Core Rules p.46)
+## Threshold is STATIC per armor type. Piercing trait negates armor binary,
+## not via threshold modifier. The damage parameter is kept for API
+## compatibility; callers may still pass it but it has no mechanical effect.
 static func check_armor_save(roll: int, armor_type: String, damage: int = 1) -> bool:
+	var _unused: int = damage  # silence unused-param warning; preserve API
 	var threshold := get_armor_save_threshold(armor_type)
-
-	# High damage can negate saves
-	if damage >= 3:
-		threshold += 1  # Harder to save against heavy damage
-
 	return roll >= threshold
 
 ## Get screen save threshold based on screen type
@@ -537,6 +537,36 @@ static func resolve_ranged_attack(
 	var saved: bool = result.get("armor_saved", false) or result.get("screen_saved", false)
 	var save_type: String = "Armor" if result.get("armor_saved", false) else ("Screen" if result.get("screen_saved", false) else "None")
 	_debug_log_ranged_attack(attacker_name, target_name, weapon_name, hit_roll, hit_threshold, result["hit"], result["damage"], saved, save_type)
+
+	# Critical trait second hit (Core Rules p.51): natural-6 to-hit + Critical
+	# trait inflicts 2 hits. The second hit goes through its own save + damage
+	# pipeline using the same target/weapon/raw_damage. Sprint A Bug 5
+	# (2026-05-24) replaced the fabricated damage=999 with this consumer of
+	# the critical_extra_hit effect flag set at the to-hit-resolution site
+	# above. House rule brutal_combat skips this in favor of double-damage
+	# (handled in calculate_weapon_damage).
+	if result.get("critical", false) and "critical" in weapon_traits \
+			and not HouseRulesHelper.is_enabled("brutal_combat"):
+		var extra_save_roll: int = dice_roller.call()
+		var extra_save_result := resolve_saves(
+			extra_save_roll, target, weapon_traits, raw_damage, trait_effects
+		)
+		var extra_damage: int = 0
+		if not extra_save_result.get("saved", false):
+			var extra_raw := raw_damage
+			if target_prot.get("flak_screen", false) \
+					and trait_effects.get("is_area_effect", false):
+				extra_raw = maxi(0, extra_raw - 1)
+			extra_damage = calculate_damage_after_armor(
+				extra_raw, effective_toughness, penetration
+			)
+		result["additional_hits"] = [{
+			"save_roll": extra_save_roll,
+			"saved": extra_save_result.get("saved", false),
+			"save_type_used": extra_save_result.get("save_type_used", SaveType.NONE),
+			"armor_pierced": extra_save_result.get("armor_pierced", false),
+			"damage": extra_damage,
+		}]
 
 	return result
 

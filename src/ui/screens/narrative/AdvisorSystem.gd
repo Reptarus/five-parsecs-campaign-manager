@@ -84,23 +84,27 @@ static func reset_cache() -> void:
 ## Priority (per design §4): training match → class match → species match.
 ## Tie-break: captain > random pick (Phase 1: first match wins, no tie-break).
 ## Returns null if no crew member matches.
+# Return type is Variant (not Object) because crew arrays in this codebase
+# carry BOTH Character-resource objects AND Dictionary-shape members
+# (NarrativeScreen contexts in particular use Dict crew). May 29 runtime
+# verification crashed `Object`-typed call sites when a Dict was passed.
 static func select_advisor(role: String, crew: Array,
-		_art_tag: String = "") -> Object:
+		_art_tag: String = ""):
 	if role.is_empty() or crew.is_empty():
 		return null
 
 	var role_lc: String = role.to_lower()
-	var by_training: Object = _scan_crew(crew, role_lc, "training")
-	if by_training:
+	var by_training = _scan_crew(crew, role_lc, "training")
+	if by_training != null:
 		return by_training
-	var by_class: Object = _scan_crew(crew, role_lc, "class")
-	if by_class:
+	var by_class = _scan_crew(crew, role_lc, "class")
+	if by_class != null:
 		return by_class
-	var by_species: Object = _scan_crew(crew, role_lc, "species")
+	var by_species = _scan_crew(crew, role_lc, "species")
 	return by_species
 
 
-static func _scan_crew(crew: Array, role_lc: String, tier: String) -> Object:
+static func _scan_crew(crew: Array, role_lc: String, tier: String):
 	var keywords: Array = []
 	match tier:
 		"training":
@@ -127,11 +131,13 @@ static func _scan_crew(crew: Array, role_lc: String, tier: String) -> Object:
 	return null
 
 
-static func _character_has_training(character: Object,
-		keywords: Array) -> bool:
-	# Defensive: training storage varies. Try has_training() method first,
-	# then property names. Silent failure → falls to next priority tier.
-	if character.has_method("has_training"):
+# Param type is Variant (not Object). See select_advisor comment — crew
+# members can be either Character resources or Dictionary shapes. The
+# `has_method()` calls below are guarded with `character is Object` because
+# only Objects have `has_method`; Dicts use `"key" in dict` + `dict.get(key)`
+# which work on both Object and Dictionary.
+static func _character_has_training(character, keywords: Array) -> bool:
+	if character is Object and character.has_method("has_training"):
 		for kw in keywords:
 			if character.has_training(kw):
 				return true
@@ -148,15 +154,17 @@ static func _character_has_training(character: Object,
 	return false
 
 
-static func _character_class_matches(character: Object,
-		keywords: Array) -> bool:
+static func _character_class_matches(character, keywords: Array) -> bool:
 	# Try get_class_name() helper first; fall back to character_class enum
-	# stringified, then to a direct class_name property.
+	# stringified, then to a direct class_name property. has_method guarded
+	# for Dict-shape members.
 	var class_str: String = ""
-	if character.has_method("get_class_name"):
+	if character is Object and character.has_method("get_class_name"):
 		class_str = str(character.get_class_name())
 	elif "character_class_name" in character:
 		class_str = str(character.get("character_class_name"))
+	elif "class_type" in character:
+		class_str = str(character.get("class_type"))
 	elif "class_name" in character:
 		class_str = str(character.get("class_name"))
 	if class_str.is_empty():
@@ -168,8 +176,7 @@ static func _character_class_matches(character: Object,
 	return false
 
 
-static func _character_species_matches(character: Object,
-		keywords: Array) -> bool:
+static func _character_species_matches(character, keywords: Array) -> bool:
 	var sid: String = ""
 	if "species_id" in character:
 		sid = str(character.get("species_id")).to_lower()
@@ -182,7 +189,7 @@ static func _character_species_matches(character: Object,
 ## Phase 1: ignores species flavor substitution — returns the base quote.
 ## Phase 3 will use species_personality.json to insert species-specific
 ## phrasing where natural.
-static func generate_quote(_advisor: Object, role: String,
+static func generate_quote(_advisor, role: String,
 		mood: String) -> String:
 	_ensure_loaded()
 	var roles: Dictionary = _quotes_cache.get("roles", {})

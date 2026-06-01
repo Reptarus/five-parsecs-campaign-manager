@@ -1502,113 +1502,11 @@ func _build_world_log_panel() -> PanelContainer:
 		vbox.add_child(no_data)
 		return panel
 
-	# Planet header
-	vbox.add_child(_create_section_header("PLANET INFO"))
-	vbox.add_child(_create_info_row("Name", planet.name))
-	vbox.add_child(_create_info_row(
-		"Type", planet.type_name if planet.type_name else planet.type
-	))
-	if not planet.traits.is_empty():
-		vbox.add_child(_create_info_row(
-			"Traits",
-			", ".join(
-				planet.traits.map(
-					func(t): return str(t).capitalize()
-				)
-			),
-			COLOR_PURPLE
-		))
-	vbox.add_child(_create_info_row(
-		"Danger Level", str(planet.danger_level)
-	))
-	vbox.add_child(_create_info_row(
-		"Discovered", "Turn %d" % planet.discovered_on_turn
-	))
-	vbox.add_child(_create_info_row(
-		"Last Visited", "Turn %d" % planet.last_visited_turn
-	))
-	vbox.add_child(_create_info_row(
-		"Total Visits", str(planet.visit_count)
-	))
-	vbox.add_child(_create_info_row(
-		"Missions Completed", str(planet.missions_completed),
-		COLOR_EMERALD
-	))
-	if planet.exploration_progress > 0.0:
-		vbox.add_child(_create_info_row(
-			"Exploration",
-			"%d%%" % int(planet.exploration_progress * 100),
-			COLOR_EMERALD
-		))
-
-	# Special features
-	if not planet.special_features.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_create_section_header("SPECIAL FEATURES"))
-		for feat in planet.special_features:
-			vbox.add_child(_create_info_row("•", str(feat), COLOR_PURPLE))
-
-	# Locations
-	if not planet.locations.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_create_section_header("LOCATIONS"))
-		for loc in planet.locations:
-			var loc_name: String = loc.get(
-				"name", "Unknown"
-			) if loc is Dictionary else str(loc)
-			var loc_type: String = loc.get(
-				"type", ""
-			) if loc is Dictionary else ""
-			vbox.add_child(_create_info_row(
-				loc_name, loc_type, COLOR_CYAN
-			))
-
-	# World events
-	if not planet.world_events.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_create_section_header("WORLD EVENTS"))
-		for evt in planet.world_events:
-			var evt_turn: int = evt.get("turn", 0)
-			var evt_desc: String = str(evt.get(
-				"description", evt.get("type", "Event")
-			))
-			vbox.add_child(_create_info_row(
-				"Turn %d" % evt_turn, evt_desc, COLOR_AMBER
-			))
-
-	# Journal entries for this world
-	var journal = get_node_or_null("/root/CampaignJournal")
-	if journal and not journal.entries.is_empty():
-		var world_entries: Array = []
-		for entry in journal.entries:
-			if entry.get("location", "") == planet.name:
-				world_entries.append(entry)
-		if not world_entries.is_empty():
-			vbox.add_child(HSeparator.new())
-			vbox.add_child(_create_section_header(
-				"JOURNAL (%d entries)" % world_entries.size()
-			))
-			for entry in world_entries:
-				var e_turn: int = entry.get("turn_number", 0)
-				var e_title: String = entry.get(
-					"title", "Untitled"
-				)
-				var e_type: String = entry.get("type", "")
-				var type_color: Color = COLOR_TEXT_SECONDARY
-				match e_type:
-					"battle":
-						type_color = COLOR_RED
-					"story":
-						type_color = COLOR_PURPLE
-					"purchase":
-						type_color = COLOR_EMERALD
-					"injury":
-						type_color = COLOR_AMBER
-				vbox.add_child(_create_info_row(
-					"T%d [%s]" % [e_turn, e_type],
-					e_title,
-					type_color
-				))
+	# Planet info + special features + locations + world events + journal entries
+	# all rendered via the shared PlanetDetailBuilder so the Galaxy Log's
+	# WorldDetailPopup gets the same layout as this dashboard overlay.
+	# (Galaxy Log Phase 1, June 2026.)
+	PlanetDetailBuilder.build_into(vbox, planet, self)
 
 	return panel
 
@@ -2390,6 +2288,23 @@ func _build_history_buttons() -> void:
 	hof_btn.pressed.connect(_on_hof_pressed)
 	right_vbox.add_child(hof_btn)
 	_style_button(hof_btn)
+	# Galaxy Log button — 5PFH-only via file location; Bug Hunt/Planetfall/
+	# Tactics dashboards never call _build_history_buttons() (Galaxy Log v1).
+	var galaxy_btn := Button.new()
+	galaxy_btn.text = "Galaxy Log"
+	galaxy_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	galaxy_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	galaxy_btn.pressed.connect(_on_galaxy_log_pressed)
+	right_vbox.add_child(galaxy_btn)
+	_style_button(galaxy_btn)
+
+func _on_galaxy_log_pressed() -> void:
+	## Route to the Galaxy Log full-screen hex map.
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("galaxy_log")
+	else:
+		_show_message("Cannot open Galaxy Log.")
 
 func _on_journal_pressed() -> void:
 	## Route to the canonical CampaignJournalScreen (multi-filter + sharing).

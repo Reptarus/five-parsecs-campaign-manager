@@ -14,6 +14,12 @@ extends RefCounted
 # battles end when one side is eliminated or crew withdraws)
 const _SAFETY_MAX_ROUNDS := 100
 
+# Dramatic Combat (Compendium p.87) overlay source — self-gating; returns
+# empty dict when the DRAMATIC_COMBAT DLC flag is off OR the autoload isn't
+# present, so this is safe to call from any test/runtime context.
+const CompendiumDifficultyTogglesRef = preload(
+	"res://src/data/compendium_difficulty_toggles.gd")
+
 # Victory conditions (Core Rules p.119)
 const HOLD_FIELD_ENEMY_THRESHOLD := 3  # Must eliminate 3+ enemies to hold field on retreat
 const VICTORY_LOSS_RATIO_MULTIPLIER := 1.2  # Enemy loss% must meet/exceed crew loss% * this
@@ -55,6 +61,14 @@ static func resolve_battle(
 ) -> Dictionary:
 	# Step 1: Initialize battle state
 	var battle_state := initialize_battle(crew_deployed, enemies_deployed, deployment_condition)
+
+	# Dramatic Combat (Compendium p.87): query once and stash in battlefield_data
+	# so per-shot resolution can pick it up without each call re-querying the
+	# DLC manager. Returns empty when the flag is off; injection is a no-op then.
+	var dc_thresholds: Dictionary = CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()
+	if not dc_thresholds.is_empty():
+		battlefield_data["dramatic_combat"] = true
+		battlefield_data["adjusted_shooting_thresholds"] = dc_thresholds
 	
 	# Step 2: Execute combat rounds (no round limit per Core Rules — ends on elimination)
 	var round_number := 1
@@ -392,6 +406,14 @@ static func _execute_unit_attacks(
 		if target_prot.get("deflector_field", false) and target.get("deflector_uses", 0) > 0:
 			# Will be consumed after hit resolution below
 			pass
+
+		# Dramatic Combat: propagate the per-battle overlay into the attacker
+		# context so BattleCalculations.resolve_ranged_attack swaps in the
+		# Adjusted Shooting thresholds (Compendium p.87). No-op when disabled.
+		if battlefield_data.get("dramatic_combat", false):
+			attacker["dramatic_combat"] = true
+			attacker["adjusted_shooting_thresholds"] = battlefield_data.get(
+				"adjusted_shooting_thresholds", {})
 
 		# Resolve attack using BattleCalculations
 		var attack_result := BattleCalculations.resolve_ranged_attack(

@@ -46,13 +46,18 @@ static func assign_coords(
 		var coord: Vector2i = _hash_to_coord(campaign_id, pid, 0)
 		var salt: int = 1
 		while taken.has(coord):
-			coord = _hash_to_coord(campaign_id, pid, salt)
-			salt += 1
-			if salt > 200:
+			if salt <= 200:
+				coord = _hash_to_coord(campaign_id, pid, salt)
+				salt += 1
+			else:
+				# Pathological collision (only triggers with hundreds of planets all
+				# hashing into the same neighborhood). Fall through to a guaranteed
+				# free coord via outward ring walk — collision-safe by construction,
+				# unlike the prior fallback which assigned without re-checking taken.
 				push_warning(
-					"GalaxyHexLayout: salt overflow placing %s; using fallback" % pid
+					"GalaxyHexLayout: salt overflow placing %s; falling back to outward walk" % pid
 				)
-				coord = _ring_slot_to_axial(5 + salt, salt % 30)
+				coord = next_free_outward(taken, 6)
 				break
 		taken[coord] = true
 		result[pid] = coord
@@ -77,7 +82,7 @@ static func hex_corners(centre: Vector2, size: float = HEX_SIZE) -> PackedVector
 ## Map (ring, slot) to an axial coord on that ring around origin.
 ## Ring 0 == origin. Ring N has 6*N slots, walked starting from the SW corner
 ## (start = dirs[4] * N) in the order dirs[0..5].
-static func _ring_slot_to_axial(ring: int, slot: int) -> Vector2i:
+static func ring_slot_to_axial(ring: int, slot: int) -> Vector2i:
 	if ring <= 0:
 		return Vector2i.ZERO
 	var slot_mod: int = posmod(slot, 6 * ring)
@@ -88,6 +93,24 @@ static func _ring_slot_to_axial(ring: int, slot: int) -> Vector2i:
 		coord += DIRS[i] * ring
 	coord += DIRS[segment] * step
 	return coord
+
+## Walk outward ring by ring, slot by slot, returning the first free coord.
+## Guaranteed to terminate (rings grow without bound) and never collide with an
+## already-taken coord. Used as the salt-overflow fallback in assign_coords();
+## practically unreachable for normal campaign sizes (~30 planets) but defended
+## here so the layout invariant "no two planets share a coord" cannot be
+## violated even in pathological hash-collision cases.
+static func next_free_outward(taken: Dictionary, start_ring: int) -> Vector2i:
+	var ring: int = max(1, start_ring)
+	while ring < 1000:
+		var slot_count: int = 6 * ring
+		for slot in range(slot_count):
+			var coord: Vector2i = ring_slot_to_axial(ring, slot)
+			if not taken.has(coord):
+				return coord
+		ring += 1
+	push_error("GalaxyHexLayout: next_free_outward exhausted at ring 1000")
+	return ring_slot_to_axial(1000, 0)
 
 ## Produce a candidate axial coord for (campaign_id, planet_id) with a salt
 ## counter. Salt 0 picks rings 1..4; higher salt bumps the ring outward.
@@ -102,4 +125,4 @@ static func _hash_to_coord(campaign_id: String, pid: String, salt: int) -> Vecto
 		ring = 1
 	var slot_count: int = 6 * ring
 	var slot: int = posmod(int(h / 256), slot_count)
-	return _ring_slot_to_axial(ring, slot)
+	return ring_slot_to_axial(ring, slot)

@@ -4,7 +4,6 @@ extends Node
 
 
 ## Dependencies - explicit loading to avoid circular references
-const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
@@ -215,32 +214,6 @@ func load_settings() -> bool:
 ## user://options.cfg and handles load + boot apply + live save. See its
 ## _load_with_migration() for the one-time migration of legacy [options]
 ## sections written by the deleted methods.
-
-## Create a new campaign from data
-## @param campaign_data The data to initialize the campaign with
-## @return The created campaign
-func new_campaign(campaign_data: Dictionary):
-	if campaign_data == null:
-		_log_error("Campaign data is null")
-		return null
-		
-	var campaign = FiveParsecsCampaign.new()
-	if not is_instance_valid(campaign):
-		_log_error("Failed to create FiveParsecsCampaign instance")
-		return null
-		
-	# Check if the method exists before calling
-	if campaign.has_method("initialize_from_data"):
-		campaign.initialize_from_data(campaign_data)
-	else:
-		_log_error("Campaign missing initialize_from_data method")
-		return null
-	
-	# Update the campaign counter
-	game_settings.created_campaigns_count += 1
-	save_settings()
-	
-	return campaign
 
 ## Set the current campaign
 ## @param campaign The campaign to set as current

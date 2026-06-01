@@ -307,17 +307,30 @@ func _build_ui() -> void:
 	_continue_button.pressed.connect(_on_continue_pressed)
 	_outcome_panel.add_child(_continue_button)
 
-	# Skip button (top-right corner overlay)
+	# Skip button (top-right corner overlay). Styled with a visible border so
+	# users see an exit affordance even when the Continue button below is the
+	# obvious primary action. Was previously `flat=true` with secondary-color
+	# text — invisible against the dim background at small sizes.
 	_skip_button = Button.new()
 	_skip_button.text = "Skip ✕"
-	_skip_button.flat = true
-	_skip_button.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	_skip_button.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_skip_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_skip_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	var sb_skip := StyleBoxFlat.new()
+	sb_skip.bg_color = COLOR_ELEVATED
+	sb_skip.set_border_width_all(1)
+	sb_skip.border_color = COLOR_BORDER
+	sb_skip.set_corner_radius_all(4)
+	sb_skip.set_content_margin_all(SPACING_SM)
+	_skip_button.add_theme_stylebox_override("normal", sb_skip)
+	var sb_skip_hover := sb_skip.duplicate()
+	sb_skip_hover.border_color = COLOR_FOCUS
+	sb_skip_hover.set_border_width_all(2)
+	_skip_button.add_theme_stylebox_override("hover", sb_skip_hover)
 	_skip_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_skip_button.offset_left = -120
 	_skip_button.offset_top = 12
 	_skip_button.offset_right = -12
-	_skip_button.offset_bottom = 44
+	_skip_button.offset_bottom = 52
 	_skip_button.pressed.connect(_on_skip_pressed)
 	_root.add_child(_skip_button)
 
@@ -508,7 +521,9 @@ func _populate_advisor() -> void:
 
 	var crew_value = _context.get("crew", [])
 	var crew: Array = crew_value if crew_value is Array else []
-	var advisor: Object = AdvisorSystem.select_advisor(
+	# AdvisorSystem.select_advisor returns Variant — crew members can be
+	# Character resources OR Dictionary shapes. Don't constrain to Object.
+	var advisor = AdvisorSystem.select_advisor(
 		role, crew, str(_event_data.get("art_tag", "")))
 	if advisor == null:
 		_advisor_row.visible = false
@@ -528,9 +543,10 @@ func _populate_advisor() -> void:
 	_advisor_row.visible = true
 
 
-func _apply_advisor_portrait(advisor: Object) -> void:
+func _apply_advisor_portrait(advisor) -> void:
 	var pp: String = ""
-	if advisor.has_method("get_portrait"):
+	# `has_method` only exists on Object; guard for Dict crew members.
+	if advisor is Object and advisor.has_method("get_portrait"):
 		pp = str(advisor.get_portrait())
 	elif "portrait_path" in advisor:
 		pp = str(advisor.get("portrait_path"))
@@ -572,8 +588,9 @@ func _apply_advisor_portrait(advisor: Object) -> void:
 		_advisor_portrait_fallback.visible = true
 
 
-func _advisor_display_name(advisor: Object) -> String:
-	if advisor.has_method("get_display_name"):
+func _advisor_display_name(advisor) -> String:
+	# `has_method` only exists on Object; guard for Dict crew members.
+	if advisor is Object and advisor.has_method("get_display_name"):
 		return str(advisor.get_display_name())
 	for prop in ["character_name", "name"]:
 		if prop in advisor:

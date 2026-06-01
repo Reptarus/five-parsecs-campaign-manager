@@ -1,42 +1,57 @@
 ## OrnamentPanel — rulebook-accurate panel chrome.
 ##
-## Visual recipe extracted from the Modiphius Core Rulebook (see plan
-## `modular-forging-narwhal.md`):
+## Visual recipe extracted from the Modiphius Core Rulebook (NORMS OF THE
+## GAME p.11, CHARACTER CREATION p.12, COVER EXAMPLES p.39, READYING FOR
+## BATTLE p.87 — all use this recipe):
 ##   1. Rounded rectangle background (StyleBoxFlat, corner_radius=12)
-##   2. Colored 2px stroke (semantic accent color)
-##   3. Optional title banner sub-panel at top (rounded, same accent color,
+##   2. Colored 2px stroke (semantic accent color — 6 supported)
+##   3. Optional title banner sub-panel at top (rounded, same accent stroke,
 ##      uppercase title text centered in accent color)
-##   4. Four corner-accent brackets at FIXED NATIVE SIZE at each corner
-##      (same `ornament_br.svg` texture, mirrored via TextureRect.flip_h
-##      and flip_v to produce the 4 symmetric corners)
+##   4. Small angular sci-fi brackets at all 4 corners, at FIXED PIXEL SIZE
+##      regardless of panel size (the central architectural claim — see
+##      "9-slice atlas" below for how this is achieved)
 ##
 ## Composition tree:
 ##   OrnamentPanel (Control, PRESET_FULL_RECT)
-##     ├── BackgroundPanel (PanelContainer, stylebox=rounded + stroke)
+##     ├── BackgroundPanel (PanelContainer, StyleBoxFlat: rounded + stroke + bg)
 ##     │     └── VBoxContainer
-##     │           ├── BannerRow (HBoxContainer, centers the banner)
-##     │           │     └── TitleBanner (PanelContainer, smaller stylebox)
+##     │           ├── BannerRow (HBoxContainer, centers the banner) —
+##     │           │     visible only when title_text is non-empty
+##     │           │     └── TitleBanner (PanelContainer, smaller StyleBoxFlat)
 ##     │           │           └── Label (uppercase, accent color)
 ##     │           └── ContentSlot (MarginContainer — where add_content_child
 ##     │                 places consumer-supplied children)
-##     └── OrnamentLayer (Control overlay; modulate sets all 4 accents at once)
-##           └── 4× TextureRect (tl/tr/bl/br via flip_h/flip_v on one source)
+##     └── OrnamentLayer (NinePatchRect — one of two 9-slice atlases, with
+##           modulate = accent_color so all 4 brackets recolor together)
 ##
-## Why extends Control (not PanelContainer): the corner accents need to render
-## OUTSIDE the panel's content rect (right at the rounded outline's corners).
-## If this were a PanelContainer, the corners would be laid out INSIDE the
-## stylebox's content_margin — far from the panel's actual corners. The
-## Control+composition pattern is the same one BookFrame.gd uses and matches
-## `docs/sop/component-patterns.md`.
+## 9-slice atlas (NOT 4× TextureRects):
+##   The atlas PNG has 4 bracket cells (one per corner) baked in, plus
+##   transparent edges and a transparent center. NinePatchRect's "corners
+##   stay native size on scale" semantics (Godot 4.6 docs) keep the brackets
+##   pixel-perfect no matter how the panel is resized — which is what the
+##   rulebook does. A previous iteration used 4 TextureRects with flip_h/
+##   flip_v from a single source asset; that worked but required 4 anchored
+##   children + per-corner positioning math. NinePatchRect is simpler.
+##
+## Why extends Control (not PanelContainer): the OrnamentLayer needs to render
+## OVER the panel at the panel's actual rendered corners, not inside the
+## panel's stylebox content_margin where a PanelContainer's children get
+## laid out. The Control+composition pattern matches BookFrame.gd and
+## NarrativeScreen.gd, and the rule in `docs/sop/component-patterns.md`.
 ##
 ## Path-loaded (no class_name) per `docs/sop/component-patterns.md`.
 ## Consumers: `preload("res://src/ui/components/common/OrnamentPanel.gd").new()`
+## Full pattern + decision matrix vs CalloutCard/BookFrame:
+##   `docs/sop/ornament-panel-pattern.md`
 extends Control
 
 ## Two 9-slice atlases — pick based on panel size. The 64px-corner standard
 ## variant looks great on panels >= ~256px, but its corners eat too much
 ## visual space on stat-card-sized panels (<~256px). The 32px-corner compact
-## variant is for those. Both produced by scripts/build_ornament_9slice_atlas.py.
+## variant is for those. Both produced by
+## `scripts/generate_corner_bracket_atlas.py` (procedurally — the Modiphius
+## .ai delivery does not contain panel-corner brackets at panel scale; see
+## the script docstring + the SOP for the rationale).
 const ATLAS_STANDARD := preload(
 		"res://assets/ui/borders/ornament_atlas_9slice.png")
 const ATLAS_STANDARD_CORNER := 64
@@ -62,8 +77,9 @@ const PADDING_BREATHING := 8
 ## anything except the small corner-fragment top/bottom tips).
 const PADDING_HORIZONTAL := 18
 
-## 5 semantic colors observed in the rulebook (cyan default, plus red, gold,
-## purple, green). Mirror BaseCampaignPanel palette for consistency.
+## 6 semantic colors mirror BaseCampaignPanel palette: NEUTRAL + 5 chapter
+## accents observed in the rulebook (cyan default + red + gold/amber +
+## green + purple). All applied uniformly via `accent_color` setter.
 const COLOR_NEUTRAL := Color("#E0E0E0")
 const COLOR_PRIMARY := Color("#4FC3F7")  ## cyan — rulebook default
 const COLOR_SUCCESS := Color("#10B981")  ## green

@@ -2,7 +2,6 @@
 extends Node
 
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
-const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
@@ -592,12 +591,12 @@ func repair_equipment(equipment_id: String, repair_amount: int = 100) -> bool:
 ## Check if a character can use a piece of equipment
 func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool:
 	var category = equipment_data.get("category", EquipmentCategory.GEAR)
-	
-	# For weapons, check class and psionic restrictions
-	if category == EquipmentCategory.WEAPON:
-		var weapon_type = equipment_data.get("weapon_type", GameEnums.WeaponType.NONE)
-		var char_class = character.get("character_class", FiveParsecsGameEnums.CharacterClass.NONE)
 
+	# For weapons, check psionic restrictions only
+	# (Core Rules pp.50-51 has NO class-based gates on weapons; Sprint A Bug 3 /
+	# Sprint C Item 7 deleted the fabricated SOLDIER/BRUTE/SECURITY Heavy
+	# restriction along with the legacy FiveParsecsGameEnums enum.)
+	if category == EquipmentCategory.WEAPON:
 		# Psionic weapon restriction (Compendium p.20): Pistol or Melee traits only
 		var char_psionic_powers: Array = character.get("psionic_powers", []) if character is Dictionary else []
 		if char_psionic_powers.is_empty() and character is Dictionary:
@@ -617,14 +616,6 @@ func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool
 			if not has_pistol_or_melee:
 				return false
 
-		# Some special weapons might be restricted
-		if weapon_type == GameEnums.WeaponType.HEAVY:
-			return char_class in [
-				FiveParsecsGameEnums.CharacterClass.SOLDIER,
-				FiveParsecsGameEnums.CharacterClass.BRUTE,
-				FiveParsecsGameEnums.CharacterClass.SECURITY
-			]
-	
 	# For armor, check armor type compatibility
 	if category == EquipmentCategory.ARMOR:
 		var armor_type = equipment_data.get("armor_type", GameEnums.ArmorType.NONE)

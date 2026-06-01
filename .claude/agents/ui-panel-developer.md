@@ -51,6 +51,10 @@ You have a detailed reference skill at `.claude/skills/ui-development/`. **Read 
 | `references/sheet-export.md` | Sheet/PDF export system — SheetRenderer + PdfExportRouter + GodotPDF/GodotHaru backends, field manifest schema, addon gotchas (PDF_DOC is RefCounted not Object, GodotPDF page size hardcoded 612×792, FORMAT_RGB8/RGBA8 requirement), Sprint 3 PDF-native text overlay design |
 | `references/ornament-panel.md` | OrnamentPanel rulebook-faithful callout chrome (rounded + colored stroke + procedural corner brackets via 9-slice atlas). Atlas variants, sci-fi-vs-fantasy tuning rules, decision matrix vs CalloutCard/BookFrame. ALSO covers why we can't repurpose Modiphius .ai border art at panel scale |
 
+### Galaxy Log surface (June 2026)
+
+You own the Galaxy Log UI: `src/ui/screens/galaxy_log/GalaxyLogScreen.gd` + `.tscn`, and `src/ui/components/galaxy_log/HexCell.gd`, `HexStarMap.gd`, `WorldDetailPopup.gd`. Pan/zoom logic is copy-pasted from BattlefieldMapView lines 1116-1231 (only pan/zoom impl in repo). Setter-driven `queue_redraw()` per Godot 4 docs. Any new "show planet details" surface MUST call the shared `PlanetDetailBuilder.build_into(vbox, planet)` (owned by character-data-engineer) — do not re-implement section rendering.
+
 ## Project Context
 
 - **Engine**: Godot 4.6-stable, pure GDScript

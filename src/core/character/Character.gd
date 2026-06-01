@@ -675,20 +675,6 @@ func get_effective_speed() -> int:
 	var modifiers := get_combat_modifiers()
 	return speed + modifiers.get("speed", 0)
 
-## Get natural armor save (for species with natural armor)
-func get_natural_armor_save() -> int:
-	match origin.to_lower():
-		"bot", "soulless", "insectoid", "assault bot", "assault_bot":
-			return 5  # 5+ save (Core Rules pp.15, 21)
-		"reptilian", "de-converted", "de_converted":
-			return 6  # 6+ save (Core Rules pp.15, 19)
-		_:
-			return 7  # No natural armor (7+ means impossible)
-
-## Check if character has natural armor
-func has_natural_armor() -> bool:
-	return get_natural_armor_save() < 7
-
 #endregion
 
 # Character Generation - Direct static methods replace CharacterManager
@@ -1113,11 +1099,15 @@ func process_status_effect_turn() -> Array[Dictionary]:
 
 # ========== IMPLANT MANAGEMENT (Five Parsecs Odds & Ends Loot) ==========
 
-## Get maximum implant capacity for this character's species (Core Rules pp.19, 55)
+## Get maximum implant capacity for this character's species (Core Rules pp.19, 23, 55)
 func get_max_implants() -> int:
 	match species_id.to_lower():
+		"bio_upgrade":
+			return 4  # Core Rules p.23: Bio-upgrade may have up to 4 implants
 		"de_converted":
 			return 3  # Core Rules p.19: De-converted can have up to 3 implants
+		"empath":
+			return 0  # Core Rules p.23: Empath loses ability if given any implant
 		_:
 			return 2  # Standard limit (Core Rules p.55)
 

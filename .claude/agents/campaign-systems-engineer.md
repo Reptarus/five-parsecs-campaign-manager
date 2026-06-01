@@ -57,6 +57,10 @@ You have a detailed reference skill at `.claude/skills/campaign-systems/` with c
 | `references/save-load-persistence.md` | GameState save/load, campaign serialization, FiveParsecsCampaignCore Resource gotchas |
 | `references/autoload-contracts.md` | CampaignPhaseManager, GameState, GameStateManager, CampaignJournal, TurnPhaseChecklist APIs |
 
+### Galaxy Log surface (June 2026)
+
+You own the Phase 0 audit fixes that the Galaxy Log relies on, all in your domain: (1) `FiveParsecsCampaignCore.apply_pending_qol_data()` calls `deserialize_all()` unconditionally now (no empty-data guard); (2) `BugHuntCampaignCore`/`PlanetfallCampaignCore`/`TacticsCampaignCore` `apply_pending_qol_data()` ALL call `pdm.deserialize_all({})` to clear stale 5PFH state; (3) `CampaignFinalizationService.finalize_campaign()` seeds the starting world into PlanetDataManager with `discovered_on_turn=0`; (4) `PostBattleCompletion.gd` lines 65/130 resolve location from `pdm.get_current_planet().name`; (5) `CampaignJournal.auto_create_milestone_entry()` promotes `data["planet_name"]` → entry `location` field. Tests at `tests/unit/test_cross_mode_planet_state_reset.gd` + `test_journal_location_join.gd`. See CLAUDE.md "Galaxy Log" + Jun 1 audit gotchas.
+
 ## Project Context
 
 You are working on **Five Parsecs Campaign Manager**, a campaign management tool for the Five Parsecs from Home tabletop game, built in Godot 4.6 (pure GDScript). Key details:

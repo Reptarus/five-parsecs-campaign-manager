@@ -83,3 +83,6 @@ test_full_run.txt
 *.msi
 *.exe
 
+# Sheet-calibration tool debug outputs (visualization only, not source of truth)
+tools/_debug/
+

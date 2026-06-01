@@ -1,21 +1,20 @@
 extends GdUnitTestSuite
-## Tests for Three-Enum Synchronization
-## Covers 3 NOT_TESTED mechanics from QA_CORE_RULES_TEST_PLAN.md §9
-## CRITICAL: GlobalEnums, GameEnums, and FiveParsecsGameEnums must stay in sync
+## Tests for Two-Enum Synchronization (post-Sprint A Bug 3, 2026-05-24)
+## Covers NOT_TESTED mechanics from QA_CORE_RULES_TEST_PLAN.md §9
+## CRITICAL: GlobalEnums and GameEnums must stay in sync.
+## Note: FiveParsecsGameEnums was deleted in the modernization-delete pass;
+## the project went from three-enum to two-enum sync.
 
 var GlobalEnumsRef
 var GameEnumsRef
-var FPGameEnumsRef
 
 func before():
 	GlobalEnumsRef = load("res://src/core/systems/GlobalEnums.gd")
 	GameEnumsRef = load("res://src/core/enums/GameEnums.gd")
-	FPGameEnumsRef = load("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 
 func after():
 	GlobalEnumsRef = null
 	GameEnumsRef = null
-	FPGameEnumsRef = null
 
 # ============================================================================
 # GlobalEnums Basic Validation
@@ -27,8 +26,7 @@ func test_global_enums_loads():
 func test_game_enums_loads():
 	assert_that(GameEnumsRef).is_not_null()
 
-func test_fp_game_enums_loads():
-	assert_that(FPGameEnumsRef).is_not_null()
+# (Removed test_fp_game_enums_loads — FiveParsecsGameEnums deleted Sprint A Bug 3.)
 
 # ============================================================================
 # FiveParsecsCampaignPhase Ordinals (14 values)
@@ -54,16 +52,11 @@ func test_global_enums_has_character_class():
 	var keys = GlobalEnumsRef.CharacterClass.keys()
 	assert_that(keys.size()).is_greater(0)
 
-func test_fp_game_enums_has_character_class():
-	var keys = FPGameEnumsRef.CharacterClass.keys()
-	assert_that(keys.size()).is_greater(0)
-
-func test_fp_character_class_is_superset_of_global():
-	"""FiveParsecsGameEnums.CharacterClass must contain all values from GlobalEnums.CharacterClass"""
-	var global_keys = GlobalEnumsRef.CharacterClass.keys()
-	var fp_keys = FPGameEnumsRef.CharacterClass.keys()
-	for key in global_keys:
-		assert_that(fp_keys.has(key)).is_true()
+# (Removed test_fp_game_enums_has_character_class +
+# test_fp_character_class_is_superset_of_global — FiveParsecsGameEnums
+# deleted Sprint A Bug 3 (2026-05-24). Project now uses 2-enum sync
+# (GlobalEnums + GameEnums); 2-way superset asserted by test_game_enums_loads
+# + downstream tests using GameEnums.CharacterClass as the canonical source.)
 
 # ============================================================================
 # DifficultyLevel Validation

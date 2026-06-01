@@ -223,6 +223,14 @@ func auto_create_milestone_entry(milestone_type: String, data: Dictionary) -> vo
 	var description: String = _get_milestone_description(
 		milestone_type, data)
 
+	# Audit B1 fix: planet_arrival / planet_departure callers pass a
+	# "planet_name" key in data. Promote it to the entry's `location` field so
+	# get_entries_by_location() can join milestones with travel/battle entries
+	# on the same planet (Opus 4.8 audit B1 — Galaxy Log plan, 2026-06-01).
+	var milestone_location: String = str(
+		data.get("location", data.get("planet_name", ""))
+	)
+
 	create_entry({
 		"turn_number": data.get("turn", 0),
 		"type": "milestone",
@@ -231,6 +239,7 @@ func auto_create_milestone_entry(milestone_type: String, data: Dictionary) -> vo
 		"description": description,
 		"mood": "triumph",
 		"tags": ["milestone", milestone_type],
+		"location": milestone_location,
 		"stats": data.get("stats", {})
 	})
 

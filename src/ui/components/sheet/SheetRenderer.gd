@@ -159,6 +159,11 @@ func _ensure_background() -> void:
 	_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_background.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# show_behind_parent so the SheetRenderer's own _draw() (debug overlay rects)
+	# renders ON TOP of the background PNG. Without this, the parent's _draw is
+	# called first and the child TextureRect paints over it. Discovered during
+	# Sprint 2.5 MCP runtime testing — debug overlay was invisible until this.
+	_background.show_behind_parent = true
 	add_child(_background)
 
 

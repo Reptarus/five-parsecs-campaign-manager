@@ -309,9 +309,12 @@ func _place_slot_figure(assignment: Dictionary) -> void:
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_slot_layer.add_child(rect)
 	_slot_rects[slot_id] = rect
-	var drift = assignment.get("drift", null)
-	if drift is Dictionary and not drift.is_empty():
-		_apply_drift(rect, drift)
+	# (Per-slot drift was started here but immediately overwritten by
+	# _layout_character_slots on the next resize — the layout owns position
+	# absolutely. If per-slot drift is wanted, it has to drive an OFFSET
+	# applied after _position_for_slot. Removed for honesty: a no-op tween
+	# is worse than no tween. The whole-scene ambient drift on layer
+	# containers still applies — figures parallax with their layer.)
 
 
 ## Position every slot rect for the current stage size. The slot `anchor` is a

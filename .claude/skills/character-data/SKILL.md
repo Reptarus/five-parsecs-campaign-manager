@@ -22,6 +22,9 @@ description: "Use this skill when working with character data models, the three-
 - **Equipment/world/economy changes** → Read `equipment-world.md`
 - **Character serialization bugs** → Read `character-model.md` (to_dictionary/from_dictionary section)
 - **Adding new data tables** → Read `json-data-catalog.md` + `equipment-world.md` for loading pattern
+- **PlanetDataManager cross-mode contamination** → Every campaign core's `apply_pending_qol_data()` MUST call `pdm.deserialize_all({})` unconditionally so 5PFH state can't bleed into Bug Hunt / Planetfall / Tactics. The autoload's `visited_planets.clear()` only executes inside `deserialize_all()`. Empty dict cleanly clears via the `clear()` at top of the function. See CLAUDE.md gotchas (Jun 2026 Galaxy Log audit B3/B4)
+- **Starting world seeding** → `CampaignFinalizationService.finalize_campaign()` registers the starting world with PlanetDataManager via `pdm.get_or_generate_planet()` so it joins `visited_planets` with `discovered_on_turn=0`. Without this, `travel_history` is empty on Turn 0 and downstream consumers (Galaxy Log anchor logic, future world-history features) would crash or miss the home world (Jun 2026 Galaxy Log audit B2)
+- **Journal `location` write contract** → All journal writers (TravelPhase, PostBattleCompletion, CampaignJournal.auto_create_milestone_entry) MUST set `location = current_planet.name` so `get_entries_by_location()` can join entries to a planet. Resolve via `pdm.get_current_planet().name` — do NOT read from `battle_result.location` (it's never populated). See CLAUDE.md gotchas (Jun 2026 Galaxy Log audit B1)
 
 ## Key Source Files
 

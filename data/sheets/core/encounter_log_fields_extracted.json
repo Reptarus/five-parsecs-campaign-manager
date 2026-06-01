@@ -1,0 +1,598 @@
+{
+  "sheet_id": "encounter_log",
+  "book": "core",
+  "source_png": "res://assets/sheets/core/encounter_log.png",
+  "source_size": [
+    2764,
+    1843
+  ],
+  "_extraction_meta": {
+    "tool": "tools/extract_sheet_fields.py",
+    "cyan_threshold": {
+      "r": [
+        80,
+        235
+      ],
+      "g": [
+        165,
+        245
+      ],
+      "b": [
+        190,
+        255
+      ]
+    },
+    "min_area_px": 400,
+    "max_area_px": 3000000,
+    "edge_margin_px": 15,
+    "field_count": 47,
+    "candidates_before_filter": 69
+  },
+  "_human_review_note": "This file is RAW EXTRACTION OUTPUT. To make it a real manifest, rename keys to {id, type, source, font_size, align} per the field schema in docs/sop/sheet-export.md, then save as encounter_log_fields.json (replacing the starter).",
+  "fields": [
+    {
+      "_index": 0,
+      "rect": [
+        345,
+        147,
+        74,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2962
+      }
+    },
+    {
+      "_index": 1,
+      "rect": [
+        436,
+        146,
+        90,
+        74
+      ],
+      "_detection_meta": {
+        "area_px": 3105
+      }
+    },
+    {
+      "_index": 2,
+      "rect": [
+        544,
+        147,
+        75,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2282
+      }
+    },
+    {
+      "_index": 3,
+      "rect": [
+        631,
+        147,
+        92,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3053
+      }
+    },
+    {
+      "_index": 4,
+      "rect": [
+        740,
+        147,
+        83,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2607
+      }
+    },
+    {
+      "_index": 5,
+      "rect": [
+        841,
+        146,
+        90,
+        74
+      ],
+      "_detection_meta": {
+        "area_px": 3105
+      }
+    },
+    {
+      "_index": 6,
+      "rect": [
+        947,
+        147,
+        82,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 1832
+      }
+    },
+    {
+      "_index": 7,
+      "rect": [
+        1045,
+        147,
+        74,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2962
+      }
+    },
+    {
+      "_index": 8,
+      "rect": [
+        1137,
+        147,
+        79,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3009
+      }
+    },
+    {
+      "_index": 9,
+      "rect": [
+        1280,
+        147,
+        75,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 1741
+      }
+    },
+    {
+      "_index": 10,
+      "rect": [
+        1366,
+        147,
+        92,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3053
+      }
+    },
+    {
+      "_index": 11,
+      "rect": [
+        1473,
+        147,
+        76,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2621
+      }
+    },
+    {
+      "_index": 12,
+      "rect": [
+        1875,
+        159,
+        755,
+        1550
+      ],
+      "_detection_meta": {
+        "area_px": 1169282
+      }
+    },
+    {
+      "_index": 13,
+      "rect": [
+        134,
+        254,
+        797,
+        109
+      ],
+      "_detection_meta": {
+        "area_px": 83718
+      }
+    },
+    {
+      "_index": 14,
+      "rect": [
+        963,
+        254,
+        796,
+        109
+      ],
+      "_detection_meta": {
+        "area_px": 82477
+      }
+    },
+    {
+      "_index": 15,
+      "rect": [
+        1012,
+        256,
+        87,
+        8
+      ],
+      "_detection_meta": {
+        "area_px": 388
+      }
+    },
+    {
+      "_index": 16,
+      "rect": [
+        134,
+        396,
+        797,
+        109
+      ],
+      "_detection_meta": {
+        "area_px": 84789
+      }
+    },
+    {
+      "_index": 17,
+      "rect": [
+        963,
+        396,
+        796,
+        109
+      ],
+      "_detection_meta": {
+        "area_px": 84286
+      }
+    },
+    {
+      "_index": 18,
+      "rect": [
+        159,
+        620,
+        1600,
+        487
+      ],
+      "_detection_meta": {
+        "area_px": 376483
+      }
+    },
+    {
+      "_index": 19,
+      "rect": [
+        545,
+        677,
+        167,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21710
+      }
+    },
+    {
+      "_index": 20,
+      "rect": [
+        719,
+        677,
+        167,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21710
+      }
+    },
+    {
+      "_index": 21,
+      "rect": [
+        894,
+        677,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 22,
+      "rect": [
+        1068,
+        677,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 23,
+      "rect": [
+        1242,
+        677,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 24,
+      "rect": [
+        545,
+        815,
+        167,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21710
+      }
+    },
+    {
+      "_index": 25,
+      "rect": [
+        719,
+        815,
+        167,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21710
+      }
+    },
+    {
+      "_index": 26,
+      "rect": [
+        894,
+        815,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 27,
+      "rect": [
+        1068,
+        815,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 28,
+      "rect": [
+        1242,
+        815,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 29,
+      "rect": [
+        545,
+        953,
+        167,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21710
+      }
+    },
+    {
+      "_index": 30,
+      "rect": [
+        719,
+        953,
+        167,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21710
+      }
+    },
+    {
+      "_index": 31,
+      "rect": [
+        894,
+        953,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 32,
+      "rect": [
+        1068,
+        953,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 33,
+      "rect": [
+        1242,
+        953,
+        166,
+        130
+      ],
+      "_detection_meta": {
+        "area_px": 21580
+      }
+    },
+    {
+      "_index": 34,
+      "rect": [
+        159,
+        1222,
+        1600,
+        487
+      ],
+      "_detection_meta": {
+        "area_px": 506704
+      }
+    },
+    {
+      "_index": 35,
+      "rect": [
+        719,
+        1279,
+        167,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 16032
+      }
+    },
+    {
+      "_index": 36,
+      "rect": [
+        894,
+        1279,
+        166,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 15936
+      }
+    },
+    {
+      "_index": 37,
+      "rect": [
+        1068,
+        1279,
+        166,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 15936
+      }
+    },
+    {
+      "_index": 38,
+      "rect": [
+        719,
+        1383,
+        167,
+        95
+      ],
+      "_detection_meta": {
+        "area_px": 15865
+      }
+    },
+    {
+      "_index": 39,
+      "rect": [
+        894,
+        1383,
+        166,
+        95
+      ],
+      "_detection_meta": {
+        "area_px": 15770
+      }
+    },
+    {
+      "_index": 40,
+      "rect": [
+        1068,
+        1383,
+        166,
+        95
+      ],
+      "_detection_meta": {
+        "area_px": 15770
+      }
+    },
+    {
+      "_index": 41,
+      "rect": [
+        719,
+        1486,
+        167,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 16032
+      }
+    },
+    {
+      "_index": 42,
+      "rect": [
+        894,
+        1486,
+        166,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 15936
+      }
+    },
+    {
+      "_index": 43,
+      "rect": [
+        1068,
+        1486,
+        166,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 15936
+      }
+    },
+    {
+      "_index": 44,
+      "rect": [
+        719,
+        1589,
+        167,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 16032
+      }
+    },
+    {
+      "_index": 45,
+      "rect": [
+        894,
+        1589,
+        166,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 15936
+      }
+    },
+    {
+      "_index": 46,
+      "rect": [
+        1068,
+        1589,
+        166,
+        96
+      ],
+      "_detection_meta": {
+        "area_px": 15936
+      }
+    }
+  ]
+}

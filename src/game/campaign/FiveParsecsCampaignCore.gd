@@ -485,12 +485,15 @@ func apply_pending_qol_data() -> void:
 		var econ_data: Dictionary = qol.get("world_economy", {})
 		if not econ_data.is_empty():
 			economy.deserialize(econ_data)
-	# PlanetDataManager: restore per-planet progression
+	# PlanetDataManager: restore per-planet progression.
+	# Call deserialize_all() UNCONDITIONALLY (empty dict cleanly clears via the
+	# clear() at top of deserialize_all). Without this, loading a save without
+	# planet_data left stale state from the previous session/mode in the
+	# autoload (Opus 4.8 audit B4 — Galaxy Log plan, 2026-06-01).
 	var planet_mgr = root.get_node_or_null("/root/PlanetDataManager")
 	if planet_mgr and planet_mgr.has_method("deserialize_all"):
 		var planet_data: Dictionary = qol.get("planet_data", {})
-		if not planet_data.is_empty():
-			planet_mgr.deserialize_all(planet_data)
+		planet_mgr.deserialize_all(planet_data)
 	# GalacticWarManager: restore war track progress
 	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
 	if war_mgr and war_mgr.has_method("load_save_data"):

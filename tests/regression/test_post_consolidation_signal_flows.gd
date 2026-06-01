@@ -152,7 +152,12 @@ func test_critical_class_names_registered():
 	assert_that(character).is_not_null()
 	character = null
 
-	var campaign = FiveParsecsCampaign.new()
+	# Sprint A Bug 3 (2026-05-24): legacy FiveParsecsCampaign class deleted as
+	# part of the modernization-delete pass. Canonical campaign class is now
+	# FiveParsecsCampaignCore (loaded by GameState.load_campaign).
+	var FiveParsecsCampaignCoreScript = load(
+		"res://src/game/campaign/FiveParsecsCampaignCore.gd")
+	var campaign = FiveParsecsCampaignCoreScript.new()
 	assert_that(campaign).is_not_null()
 	campaign = null
 

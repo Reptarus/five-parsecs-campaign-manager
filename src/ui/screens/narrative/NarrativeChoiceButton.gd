@@ -20,8 +20,16 @@ const FONT_SIZE_SM := 14
 const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
 const COLOR_TEXT_SECONDARY := Color("#808080")
 const COLOR_TEXT_DISABLED := Color("#404040")
+# Visible button styling — without these, the inherited theme background can
+# blend into the narrative panel and the button reads as empty space (May 29
+# runtime regression: user reported "no way to continue or exit").
+const COLOR_BUTTON_NORMAL := Color("#252542")    # elevated, matches CalloutCard
+const COLOR_BUTTON_HOVER := Color("#3A3A5C")     # +20% brightness on hover
+const COLOR_BUTTON_PRESSED := Color("#1A1A2E")   # darker on press
+const COLOR_BUTTON_BORDER := Color("#4FC3F7")    # cyan accent border
 const SPACING_XS := 4
 const SPACING_SM := 8
+const SPACING_MD := 16
 
 signal choice_pressed(choice_id: int)
 
@@ -34,18 +42,28 @@ func _ready() -> void:
 	custom_minimum_size.y = TOUCH_TARGET_MIN
 	clip_contents = true
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	# Wrap content in margin + vbox so we can stack two labels.
+	# Apply explicit stylebox overrides so the button is unambiguously visible
+	# regardless of inherited theme: elevated bg + cyan accent border + alpha
+	# changes on hover/press. Without this the button silently blended into
+	# the narrative panel and looked like empty space.
+	_apply_button_styles()
+	# Wrap content in margin + vbox so we can stack two labels. EXPAND_FILL
+	# size flags on both margin AND vbox so the labels actually claim the
+	# button's interior rect.
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_theme_constant_override("margin_left", SPACING_SM)
-	margin.add_theme_constant_override("margin_right", SPACING_SM)
-	margin.add_theme_constant_override("margin_top", SPACING_XS)
-	margin.add_theme_constant_override("margin_bottom", SPACING_XS)
+	margin.add_theme_constant_override("margin_left", SPACING_MD)
+	margin.add_theme_constant_override("margin_right", SPACING_MD)
+	margin.add_theme_constant_override("margin_top", SPACING_SM)
+	margin.add_theme_constant_override("margin_bottom", SPACING_SM)
 	add_child(margin)
 
 	var vbox := VBoxContainer.new()
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 0)
 	margin.add_child(vbox)
 
@@ -53,6 +71,8 @@ func _ready() -> void:
 	_label_main.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label_main.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	_label_main.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	_label_main.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_main.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label_main.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_label_main)
 
@@ -60,11 +80,40 @@ func _ready() -> void:
 	_label_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label_hint.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	_label_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_label_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label_hint.visible = false
 	vbox.add_child(_label_hint)
 
 	pressed.connect(_on_pressed)
+
+
+func _apply_button_styles() -> void:
+	var sb_normal := StyleBoxFlat.new()
+	sb_normal.bg_color = COLOR_BUTTON_NORMAL
+	sb_normal.set_border_width_all(1)
+	sb_normal.border_color = COLOR_BUTTON_BORDER
+	sb_normal.set_corner_radius_all(4)
+	add_theme_stylebox_override("normal", sb_normal)
+
+	var sb_hover := sb_normal.duplicate()
+	sb_hover.bg_color = COLOR_BUTTON_HOVER
+	sb_hover.set_border_width_all(2)
+	add_theme_stylebox_override("hover", sb_hover)
+
+	var sb_pressed := sb_normal.duplicate()
+	sb_pressed.bg_color = COLOR_BUTTON_PRESSED
+	add_theme_stylebox_override("pressed", sb_pressed)
+
+	var sb_focus := sb_normal.duplicate()
+	sb_focus.set_border_width_all(2)
+	add_theme_stylebox_override("focus", sb_focus)
+
+	var sb_disabled := sb_normal.duplicate()
+	sb_disabled.bg_color = COLOR_BUTTON_NORMAL
+	sb_disabled.border_color = COLOR_TEXT_DISABLED
+	add_theme_stylebox_override("disabled", sb_disabled)
 
 
 ## Populates the button from a choice dictionary.

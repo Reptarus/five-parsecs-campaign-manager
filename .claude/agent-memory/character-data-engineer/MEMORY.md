@@ -37,7 +37,7 @@ Values and ordering must match across all three. Misalignment causes wrong enum-
 
 ### 3. Strange Character Gameplay — All 16 Types Wired (Session 52)
 
-New Character.gd methods: `get_task_bonus(task_id)` (Empath +1), `get_max_implants()` (species-dependent). New export: `unity_agent_trait_lost: bool` (serialized). Armor saves: `get_natural_armor_save()` now handles De-converted (6+) and Assault Bot (5+). BattleCalculations has 5 new species cases. Feeler breakdown in CharacterEventEffects.
+New Character.gd methods: `get_task_bonus(task_id)` (Empath +1), `get_max_implants()` (species-dependent). New export: `unity_agent_trait_lost: bool` (serialized). Armor saves are handled exclusively in `BattleCalculations.get_species_combat_abilities()` (Bot/Soulless 6+, De-converted 6+, Assault Bot 5+ per Core Rules pp.15/17/19/21). Feeler breakdown in CharacterEventEffects.
 
 ### 4. Engine.has_singleton() vs Autoloads (Session 30)
 

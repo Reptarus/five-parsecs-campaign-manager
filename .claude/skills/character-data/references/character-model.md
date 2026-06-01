@@ -52,8 +52,8 @@ Helper methods on Character (all 16/16 Strange Character types wired as of Sessi
 - `get_bonus_xp() -> int` — 1 for hopeful_rookie
 - `can_perform_task(task_id: String) -> bool` — false for mutant on recruit/find_patron
 - `get_task_bonus(task_id: String) -> int` — +1 for empath on recruit/find_patron (lost with implants)
-- `get_max_implants() -> int` — 3 for de_converted, 2 default (replaces const MAX_IMPLANTS)
-- `get_natural_armor_save() -> int` — 5 for bot/soulless/assault_bot, 6 for reptilian/de_converted
+- `get_max_implants() -> int` — 4 for bio_upgrade, 3 for de_converted, 0 for empath, 2 default (replaces const MAX_IMPLANTS)
+- Natural armor saves live in `BattleCalculations.get_species_combat_abilities()` — Bot/Soulless/De-converted 6+, Assault Bot 5+ (Core Rules pp.15/17/19/21)
 
 Gameplay wiring (Session 52):
 - Unity Agent per-turn 2D6: `CampaignPhaseManager._process_unity_agent_favor()`
@@ -176,8 +176,6 @@ get_effective_combat_skill() -> int
 get_effective_toughness() -> int
 get_effective_reactions() -> int
 get_effective_stat(stat_name: String) -> int  # includes implant bonuses
-get_natural_armor_save() -> int
-has_natural_armor() -> bool
 get_max_reactions() -> int
 can_use_reaction() -> bool
 spend_reaction() -> bool

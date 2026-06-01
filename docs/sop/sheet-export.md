@@ -124,7 +124,28 @@ it there.
 
 ### 4. Calibrate via debug overlay
 
-Coordinates from a starter pass are always slightly off. Iterate:
+**Sprint 2.5 PREFERRED PATH (May 24 2026)**: use the automated extractor
+at `tools/extract_sheet_fields.py` instead of manual measurement. The
+sheets are designed with uniform cyan field borders that are trivially
+detectable via color thresholding + connected-component analysis.
+
+```powershell
+# Extract candidate rects + visualization overlay
+py tools/extract_sheet_fields.py assets/sheets/core/crew_log.png --debug-overlay
+# Inspect tools/_debug/crew_log_overlay.png — red rects should outline every cyan field
+# Then assign field IDs (per-sheet helper script, e.g. tools/assign_crew_log_ids.py)
+```
+
+The extractor produces `<sheet>_fields_extracted.json` (candidate
+rects + OCR labels + detection metadata). A per-sheet ID-assignment
+helper maps detected rects to semantic field IDs + source dot-paths.
+For Crew Log this produces 144 fields (16 header + 8 character slots ×
+16 fields each) in ~5 minutes vs ~3-4 hours of manual measurement. See
+`.claude/skills/ui-development/references/sheet-export.md` for the full
+Sprint 2.5 design + tuning guide.
+
+**FALLBACK (legacy path)**: if the extractor misbehaves on a new sheet
+or the cyan border color drifts, fall back to manual debug-overlay loop:
 
 1. Run the project, open Print Sheet, select the new sheet tab.
 2. Tick **Debug overlay** (top-right, dev builds only).

@@ -728,12 +728,20 @@ func _build_qol_data() -> Dictionary:
 func apply_pending_qol_data() -> void:
 	## Called after scene tree is ready (boot auto-load) OR after mid-session
 	## load (via GameState.load_campaign). Restores journal entries that the
-	## campaign accumulated before save.
-	if _pending_qol_data.is_empty():
-		return
+	## campaign accumulated before save, AND clears any leftover planet state
+	## from a previous 5PFH session (Planetfall uses its own colony state, not
+	## the shared PlanetDataManager autoload).
 	var tree = Engine.get_main_loop() if Engine.get_main_loop() else null
 	var root = tree.root if tree else null
 	if not root:
+		return
+	# Planetfall uses its own colony state; ALWAYS clear PlanetDataManager so
+	# stale 5PFH visited_planets / travel_history can't bleed into this mode
+	# via the shared autoload (Opus 4.8 audit B3 — Galaxy Log plan, 2026-06-01).
+	var planet_mgr = root.get_node_or_null("/root/PlanetDataManager")
+	if planet_mgr and planet_mgr.has_method("deserialize_all"):
+		planet_mgr.deserialize_all({})
+	if _pending_qol_data.is_empty():
 		return
 	var journal = root.get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("load_from_save"):

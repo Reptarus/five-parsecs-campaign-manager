@@ -1,0 +1,406 @@
+{
+  "sheet_id": "world_record_sheet",
+  "book": "core",
+  "source_png": "res://assets/sheets/core/world_record_sheet.png",
+  "source_size": [
+    2764,
+    1843
+  ],
+  "_extraction_meta": {
+    "tool": "tools/extract_sheet_fields.py",
+    "cyan_threshold": {
+      "r": [
+        80,
+        235
+      ],
+      "g": [
+        165,
+        245
+      ],
+      "b": [
+        190,
+        255
+      ]
+    },
+    "min_area_px": 400,
+    "max_area_px": 3000000,
+    "edge_margin_px": 15,
+    "field_count": 31,
+    "candidates_before_filter": 59
+  },
+  "_human_review_note": "This file is RAW EXTRACTION OUTPUT. To make it a real manifest, rename keys to {id, type, source, font_size, align} per the field schema in docs/sop/sheet-export.md, then save as world_record_sheet_fields.json (replacing the starter).",
+  "fields": [
+    {
+      "_index": 0,
+      "rect": [
+        147,
+        145,
+        131,
+        75
+      ],
+      "_detection_meta": {
+        "area_px": 4085
+      }
+    },
+    {
+      "_index": 1,
+      "rect": [
+        285,
+        147,
+        92,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3053
+      }
+    },
+    {
+      "_index": 2,
+      "rect": [
+        391,
+        147,
+        79,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3009
+      }
+    },
+    {
+      "_index": 3,
+      "rect": [
+        483,
+        147,
+        75,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 1741
+      }
+    },
+    {
+      "_index": 4,
+      "rect": [
+        570,
+        147,
+        81,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3042
+      }
+    },
+    {
+      "_index": 5,
+      "rect": [
+        707,
+        147,
+        79,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3009
+      }
+    },
+    {
+      "_index": 6,
+      "rect": [
+        801,
+        147,
+        74,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2962
+      }
+    },
+    {
+      "_index": 7,
+      "rect": [
+        886,
+        147,
+        75,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2282
+      }
+    },
+    {
+      "_index": 8,
+      "rect": [
+        970,
+        147,
+        92,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3053
+      }
+    },
+    {
+      "_index": 9,
+      "rect": [
+        1076,
+        147,
+        79,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3009
+      }
+    },
+    {
+      "_index": 10,
+      "rect": [
+        1169,
+        147,
+        81,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 3042
+      }
+    },
+    {
+      "_index": 11,
+      "rect": [
+        1304,
+        147,
+        81,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2925
+      }
+    },
+    {
+      "_index": 12,
+      "rect": [
+        1397,
+        147,
+        81,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2530
+      }
+    },
+    {
+      "_index": 13,
+      "rect": [
+        1493,
+        147,
+        74,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2962
+      }
+    },
+    {
+      "_index": 14,
+      "rect": [
+        1581,
+        147,
+        74,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 2962
+      }
+    },
+    {
+      "_index": 15,
+      "rect": [
+        1665,
+        147,
+        82,
+        71
+      ],
+      "_detection_meta": {
+        "area_px": 1832
+      }
+    },
+    {
+      "_index": 16,
+      "rect": [
+        1875,
+        159,
+        755,
+        156
+      ],
+      "_detection_meta": {
+        "area_px": 114775
+      }
+    },
+    {
+      "_index": 17,
+      "rect": [
+        134,
+        254,
+        797,
+        109
+      ],
+      "_detection_meta": {
+        "area_px": 84111
+      }
+    },
+    {
+      "_index": 18,
+      "rect": [
+        963,
+        254,
+        796,
+        251
+      ],
+      "_detection_meta": {
+        "area_px": 196968
+      }
+    },
+    {
+      "_index": 19,
+      "rect": [
+        1875,
+        348,
+        755,
+        157
+      ],
+      "_detection_meta": {
+        "area_px": 115558
+      }
+    },
+    {
+      "_index": 20,
+      "rect": [
+        436,
+        396,
+        495,
+        109
+      ],
+      "_detection_meta": {
+        "area_px": 34600
+      }
+    },
+    {
+      "_index": 21,
+      "rect": [
+        635,
+        419,
+        61,
+        62
+      ],
+      "_detection_meta": {
+        "area_px": 2896
+      }
+    },
+    {
+      "_index": 22,
+      "rect": [
+        846,
+        419,
+        61,
+        62
+      ],
+      "_detection_meta": {
+        "area_px": 3002
+      }
+    },
+    {
+      "_index": 23,
+      "rect": [
+        728,
+        443,
+        62,
+        38
+      ],
+      "_detection_meta": {
+        "area_px": 1959
+      }
+    },
+    {
+      "_index": 24,
+      "rect": [
+        134,
+        645,
+        755,
+        333
+      ],
+      "_detection_meta": {
+        "area_px": 243267
+      }
+    },
+    {
+      "_index": 25,
+      "rect": [
+        1004,
+        645,
+        756,
+        333
+      ],
+      "_detection_meta": {
+        "area_px": 243217
+      }
+    },
+    {
+      "_index": 26,
+      "rect": [
+        1875,
+        645,
+        755,
+        1064
+      ],
+      "_detection_meta": {
+        "area_px": 802374
+      }
+    },
+    {
+      "_index": 27,
+      "rect": [
+        134,
+        1010,
+        755,
+        333
+      ],
+      "_detection_meta": {
+        "area_px": 242550
+      }
+    },
+    {
+      "_index": 28,
+      "rect": [
+        1004,
+        1010,
+        756,
+        333
+      ],
+      "_detection_meta": {
+        "area_px": 242548
+      }
+    },
+    {
+      "_index": 29,
+      "rect": [
+        134,
+        1376,
+        755,
+        333
+      ],
+      "_detection_meta": {
+        "area_px": 242546
+      }
+    },
+    {
+      "_index": 30,
+      "rect": [
+        1004,
+        1376,
+        756,
+        333
+      ],
+      "_detection_meta": {
+        "area_px": 242548
+      }
+    }
+  ]
+}
