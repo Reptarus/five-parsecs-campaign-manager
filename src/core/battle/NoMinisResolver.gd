@@ -86,13 +86,20 @@ static func resolve_battle(
 	for enemy in enemy_units:
 		enemy["_is_enemy_unit"] = true  # so kill/morale bookkeeping can tell the sides apart
 
-	# Dramatic Combat (Compendium p.87): same overlay pattern BattleResolver
-	# uses. Stash on battlefield_data so _resolve_one_shot's per-shot
-	# resolution can pick it up without re-querying the DLC manager.
-	var _dc_thresholds: Dictionary = CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()
-	if not _dc_thresholds.is_empty():
+	# Dramatic Combat (Compendium p.87): query the DLC catalog ONCE here, then
+	# stamp the overlay onto every unit so per-shot resolution reads it straight
+	# off the unit dict (mirrors BattleResolver) — never re-querying per shot.
+	# Returns empty when the DRAMATIC_COMBAT flag is off; stamping is skipped then.
+	var dc_thresholds: Dictionary = CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()
+	if not dc_thresholds.is_empty():
 		battlefield_data["dramatic_combat"] = true
-		battlefield_data["adjusted_shooting_thresholds"] = _dc_thresholds
+		battlefield_data["adjusted_shooting_thresholds"] = dc_thresholds
+		for unit: Dictionary in crew_units:
+			unit["dramatic_combat"] = true
+			unit["adjusted_shooting_thresholds"] = dc_thresholds
+		for unit: Dictionary in enemy_units:
+			unit["dramatic_combat"] = true
+			unit["adjusted_shooting_thresholds"] = dc_thresholds
 
 	var consumed_items: Array = []
 	var total_crew_casualties := 0
@@ -335,14 +342,10 @@ static func _resolve_one_shot(
 	shooter["range_to_target"] = range_inches
 	target["in_cover"] = target_in_cover
 
-	# Dramatic Combat: stamp the per-battle overlay onto the shooter so
-	# BattleCalculations.resolve_ranged_attack swaps to the Adjusted Shooting
-	# table (Compendium p.87). The catalog query is cached + self-gating, so
-	# this is cheap and no-ops when the DRAMATIC_COMBAT flag is off.
-	var _dc_thresholds: Dictionary = CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()
-	if not _dc_thresholds.is_empty():
-		shooter["dramatic_combat"] = true
-		shooter["adjusted_shooting_thresholds"] = _dc_thresholds
+	# Dramatic Combat overlay (Compendium p.87) is stamped onto every unit once
+	# in resolve_battle(), so the shooter already carries dramatic_combat +
+	# adjusted_shooting_thresholds here — BattleCalculations.resolve_ranged_attack
+	# reads them off the shooter dict. No per-shot DLC catalog query.
 
 	var shots: int = clampi(int(weapon.get("shots", 1)), 1, MAX_SHOTS_CAP)
 	var shot := 0

@@ -9,7 +9,10 @@ extends Node
 ## Unified system combining:
 	## - PatronManager: Patron generation, quest management, reputation tracking
 ## - PatronJobManager: Job acceptance, completion, rewards, hazards/benefits
-## - ExtendedConnectionsManager: Faction connections and effects
+##
+## (The ExtendedConnectionsManager / faction-connections subsystem was removed in the
+## 2026-06-01 rules-accuracy consolidation: it was dead — zero external callers, never
+## persisted, and loaded the deleted expanded_connections.json.)
 ##
 ## Implements IGameSystem interface for standardized integration
 
@@ -35,11 +38,6 @@ signal job_completed(job: Dictionary, success: bool)
 signal job_failed(job: Dictionary, reason: String)
 signal job_rewards_applied(job: Dictionary, rewards: Dictionary)
 
-# Connection Management Signals
-signal connection_established(connection: Dictionary)
-signal connection_broken(connection: Dictionary)
-signal connection_applied(connection: Dictionary)
-
 # System state
 var _initialized: bool = false
 var _game_state: Node = null # Type-safe managed by system
@@ -49,7 +47,6 @@ var _last_update: int = 0
 # JSON data loaded from files
 var patron_types_data: Dictionary = {}
 var mission_data: Dictionary = {}
-var connections_data: Dictionary = {}
 
 # Patron Management Data
 var active_patrons: Array[Dictionary] = []
@@ -61,9 +58,6 @@ var completed_quests: Array[Dictionary] = []
 var current_job: Dictionary = {}
 var job_history: Array[Dictionary] = []
 var job_benefits_hazards: Dictionary = {}
-
-# Connection Management Data
-var active_connections: Dictionary = {} # faction_id -> connection
 
 
 # Configuration
@@ -109,14 +103,6 @@ func _load_dependencies() -> void:
 	else:
 		push_warning("Mission types data not found in DataManager, using fallback")
 		_load_fallback_mission_data()
-	
-	# Load expanded connections data using static DataManager API  
-	var connections_data_file = DataManager._load_json_safe("res://data/expanded_connections.json", "expanded_connections")
-	if not connections_data_file.is_empty():
-		connections_data = connections_data_file
-	else:
-		push_warning("Connections data not found in DataManager, using fallback")
-		_load_fallback_connections_data()
 
 func _load_fallback_patron_data() -> void:
 	## Load fallback patron data if JSON fails
@@ -147,18 +133,6 @@ func _load_fallback_mission_data() -> void:
 		]
 	}
 
-func _load_fallback_connections_data() -> void:
-	## Load fallback connections data if JSON fails
-	connections_data = {
-		"connections": [
-			{
-				"id": "trade_alliance",
-				"name": "Trade Alliance",
-				"effects": [{"type": "CREDITS", "value": 100}]
-			}
-		]
-	}
-	
 # =====================================================
 # IGameSystem Interface Implementation
 # =====================================================
@@ -188,9 +162,6 @@ func initialize() -> bool:
 		# Don't add to errors since PatronSystem can work without GameState
 		pass
 
-	# Load connections data
-	_load_connections_data()
-
 	# Initialize default data
 	_initialize_default_data()
 
@@ -214,7 +185,6 @@ func get_data() -> Dictionary:
 		"current_job": current_job.duplicate(),
 		"job_history": job_history.duplicate(),
 		"job_benefits_hazards": job_benefits_hazards.duplicate(),
-		"active_connections": active_connections.duplicate(),
 		"last_update": _last_update
 	}
 
@@ -253,15 +223,11 @@ func update_data(data: Dictionary) -> bool:
 	if data.has("job_benefits_hazards"):
 		job_benefits_hazards = data.job_benefits_hazards.duplicate()
 
-	# Update connection data
-	if data.has("active_connections"):
-		active_connections = data.active_connections.duplicate()
-
 	_last_update = Time.get_unix_time_from_system()
 	return true
 
 func cleanup() -> void:
-	## Clean up system resources and connections
+	## Clean up system resources
 	active_patrons.clear()
 	patron_reputations.clear()
 	active_quests.clear()
@@ -269,8 +235,6 @@ func cleanup() -> void:
 	current_job.clear()
 	job_history.clear()
 	job_benefits_hazards.clear()
-	active_connections.clear()
-	connections_data.clear()
 	_errors.clear()
 	_initialized = false
 
@@ -283,7 +247,6 @@ func get_status() -> Dictionary:
 		"last_update": _last_update,
 		"patron_count": active_patrons.size(),
 		"active_quest_count": active_quests.size(),
-		"connection_count": active_connections.size(),
 		"has_current_job": not current_job.is_empty()
 	}
 
@@ -464,74 +427,8 @@ func generate_benefits_hazards_conditions(patron: Dictionary) -> Dictionary:
 	return result
 
 # =====================================================
-# CONNECTION MANAGEMENT (formerly ExtendedConnectionsManager)
-# =====================================================
-
-func establish_connection(faction_id: String, connection_type: String) -> bool:
-	## Establish a faction connection
-	if not _validate_connection_request(faction_id, connection_type):
-		return false
-
-	var connection = _create_connection(faction_id, connection_type)
-	if connection.is_empty():
-		return false
-
-	active_connections[faction_id] = connection
-	connection_established.emit(connection)
-	return true
-
-func break_connection(faction_id: String) -> void:
-	## Break existing faction connection
-	if active_connections.has(faction_id):
-		var connection = active_connections[faction_id]
-		active_connections.erase(faction_id)
-		connection_broken.emit(connection)
-
-func apply_connection_effects(connection: Dictionary) -> void:
-	## Apply the effects of a faction connection
-	if not connection.has("effects"):
-		return
-
-	for effect in connection.effects:
-		_apply_connection_effect(effect)
-
-	connection_applied.emit(connection)
-
-# =====================================================
 # PRIVATE HELPER METHODS
 # =====================================================
-
-func _load_connections_data() -> void:
-	## Load faction connections data from file
-	var file_path = "res://data/faction_connections.json"
-	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
-	if file:
-		var json = JSON.new()
-		var error: int = json.parse(file.get_as_text())
-		if error == OK:
-			connections_data = json.get_data()
-		else:
-			_errors.append("Failed to parse connections data")
-		if file: file.close()
-	else:
-		_initialize_default_connections_data()
-
-func _initialize_default_connections_data() -> void:
-	## Initialize default connections data
-	connections_data = {
-		"trade_alliance": {
-			"base_strength": 50,
-			"effects": [ {"type": "CREDITS", "value": 100}],
-			"requirements": ["reputation_50"],
-			"duration": - 1
-		},
-		"military_support": {
-			"base_strength": 75,
-			"effects": [ {"type": "MILITARY", "value": 25}],
-			"requirements": ["missions_completed_5"],
-			"duration": 10
-		}
-	}
 
 func _initialize_default_data() -> void:
 	## Initialize system with default empty state
@@ -549,7 +446,7 @@ func _validate_data_structure(data: Dictionary) -> Dictionary:
 			result.errors.append("Field '" + field + "' must be Array")
 			result.valid = false
 
-	var required_dicts = ["patron_reputations", "active_quests", "current_job", "active_connections"]
+	var required_dicts = ["patron_reputations", "active_quests", "current_job"]
 	for field in required_dicts:
 		if data.has(field) and not data[field] is Dictionary:
 			result.errors.append("Field '" + field + "' must be Dictionary")
@@ -850,56 +747,6 @@ func _generate_condition() -> String:
 	var conditions = ["Vengeful", "Demanding", "Small Squad", "Full Squad", "Clean", "Busy", "One-time Contract", "Reputation Required"]
 	return conditions.pick_random()
 
-func _validate_connection_request(faction_id: String, connection_type: String) -> bool:
-	## Validate faction connection request
-	if not connections_data.has(connection_type):
-		_errors.append("Invalid connection type: " + connection_type)
-		return false
-
-	if active_connections.has(faction_id):
-		_errors.append("Connection already exists for faction: " + faction_id)
-		return false
-
-	return true
-
-func _create_connection(faction_id: String, connection_type: String) -> Dictionary:
-	## Create new faction connection
-	var connection_template = SafeDataAccess.safe_get(connections_data, connection_type, {}, "connection template lookup")
-	var template_dict = SafeDataAccess.safe_dict_access(connection_template, "connection template validation")
-	if template_dict.is_empty():
-		return {}
-
-	return {
-		"id": faction_id + "_" + connection_type,
-		"faction_id": faction_id,
-		"type": connection_type,
-		"strength": SafeDataAccess.safe_get(template_dict, "base_strength", 50, "connection strength lookup"),
-		"effects": SafeDataAccess.safe_get(template_dict, "effects", [], "connection effects lookup").duplicate(),
-		"requirements": SafeDataAccess.safe_get(template_dict, "requirements", [], "connection requirements lookup").duplicate(),
-		"duration": SafeDataAccess.safe_get(template_dict, "duration", -1, "connection duration lookup"),
-		"created_at": Time.get_unix_time_from_system()
-	}
-
-func _apply_connection_effect(effect: Dictionary) -> void:
-	## Apply individual connection effect
-	if not effect.has("type"):
-		return
-
-	var effect_dict = SafeDataAccess.safe_dict_access(effect, "connection effect validation")
-	var effect_type = SafeDataAccess.safe_get(effect_dict, "type", "", "effect type lookup")
-	match effect_type:
-		"CREDITS":
-			if _game_state and _game_state and _game_state.has_method("add_credits"):
-				_game_state.add_credits(SafeDataAccess.safe_get(effect_dict, "value", 0, "credit effect value lookup"))
-		"REPUTATION":
-			if _game_state and _game_state and _game_state.has_method("add_reputation"):
-				_game_state.add_reputation(SafeDataAccess.safe_get(effect_dict, "value", 0, "reputation effect value lookup"))
-		"MILITARY":
-			if _game_state and _game_state and _game_state.has_method("apply_military_bonus"):
-				_game_state.apply_military_bonus(SafeDataAccess.safe_get(effect_dict, "value", 0, "military effect value lookup"))
-		_:
-			pass
-
 # Public API methods for backward compatibility
 func get_active_patrons() -> Array[Dictionary]:
 	## Get all active patrons
@@ -920,7 +767,3 @@ func get_current_job() -> Dictionary:
 func has_active_job() -> bool:
 	## Check if there's an active job
 	return not current_job.is_empty()
-
-func get_active_connections() -> Dictionary:
-	## Get all active faction connections
-	return active_connections.duplicate()

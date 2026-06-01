@@ -545,21 +545,12 @@ static func _create_starting_rival(index: int, source_character: String = "") ->
 		"source_character": source_character,
 	}
 
-## Load all necessary JSON data for character creation
+## Legacy no-op. The fabricated character_creation_data.json / character_backgrounds.json
+## parallel creation data was removed in the 2026-06-01 rules-accuracy consolidation.
+## Canonical creation data now lives in data/character_creation_tables/ (D100 tables, loaded
+## by _ensure_creation_tables_loaded) and data/character_species.json (species baselines and
+## modifiers, applied by set_character_flags()).
 static func _load_character_data() -> void:
-	if _is_data_loaded:
-		return
-
-	# Use DataManager for consistent data loading
-	if DataManager.is_system_ready():
-		_character_data = DataManager.export_character_data()
-		_is_data_loaded = true
-		return
-
-	# Fallback to direct loading if DataManager not available
-	_character_data = UniversalResourceLoader.load_json_safe("res://data/character_creation_data.json", "Character Creation Data")
-	_backgrounds_data = UniversalResourceLoader.load_json_safe("res://data/character_backgrounds.json", "Character Backgrounds")
-
 	_is_data_loaded = true
 
 ## Generate Five Parsecs attribute using official 2D6 / 3.0 formula
@@ -654,163 +645,65 @@ static func create_character(config: Dictionary = {}) -> Character:
 	else:
 		character.origin = "HUMAN"
 
-	# Generate attributes
+	# Five Parsecs base profile + species modifiers (Core Rules pp.15-22, p.27)
 	generate_character_attributes(character)
+	set_character_flags(character)
 
-	# Set health
+	# Background / Class / Motivation: roll on the canonical D100 creation tables
+	# (data/character_creation_tables/) and apply their stat bonuses + traits.
+	# Replaces the fabricated character_backgrounds.json bonus path (removed 2026-06-01).
+	var table_results := roll_character_tables()
+	apply_table_results_to_character(character, table_results)
+
+	# Health (Core Rules: Toughness + 2)
 	character.max_health = character.toughness + 2
 	character.health = character.max_health
 
-	# Apply bonuses from data
-	apply_background_bonuses(character)
-	apply_class_bonuses(character)
-
-	# Generate starting equipment
-	generate_starting_equipment(character)
-
-	# Set character flags based on origin
-	set_character_flags(character)
+	# Starting equipment -> canonical Character.equipment (Array[String]).
+	# Core Rules p.77: recruits are armed with a Handgun; class-table starting_rolls
+	# (from the D100 tables above) add extra weapons/gear via the enhanced generator.
+	var roll_resources: Dictionary = table_results.get("resources", {})
+	if "starting_rolls" in character:
+		character.starting_rolls = roll_resources.get("starting_rolls", [])
+	var equip_dict: Dictionary = _generate_starting_equipment_enhanced(character)
+	var equip_list: Array[String] = []
+	for cat in ["weapons", "armor", "gear"]:
+		for item in equip_dict.get(cat, []):
+			if item is String:
+				equip_list.append(item)
+			elif item is Dictionary and item.has("name"):
+				equip_list.append(str(item["name"]))
+	if equip_list.is_empty():
+		equip_list.append("Handgun")
+	character.equipment = equip_list
 
 	return character
 
-## Generate all character attributes using Five Parsecs rules
+## Set the Five Parsecs base profile (Core Rules p.27).
+## Species modifiers are applied separately by set_character_flags(); Background /
+## Class / Motivation bonuses come from the canonical D100 creation tables via
+## roll_character_tables() + apply_table_results_to_character(). The old "2D6 / 3
+## rounded up" attribute roll was a fabrication (not in the rulebook) and was
+## removed in the 2026-06-01 rules-accuracy consolidation.
 static func generate_character_attributes(character: Character) -> void:
-	# Core Five Parsecs attributes (2D6 / 3.0 rounded up)
-	character.reactions = generate_attribute() # Base 1, Max 6
-	character.speed = generate_attribute() + 2 # Base 4", Max 8"
-	character.combat = generate_attribute() - 1 # Base +0, Max +3
-	character.toughness = generate_attribute() # Base 3, Max 6
-	character.savvy = generate_attribute() - 1 # Base +0, Max +3
+	character.reactions = 1   # Reactions 1
+	character.speed = 4       # Speed 4"
+	character.combat = 0      # Combat +0
+	character.toughness = 3   # Toughness 3
+	character.savvy = 0       # Savvy +0
+	character.luck = 0        # Luck 0 (Humans may exceed via set_character_flags)
 
-	# Clamp values to Five Parsecs ranges
-	character.reactions = clampi(character.reactions, 1, 6)
-	character.speed = clampi(character.speed, 4, 8)
-	character.combat = clampi(character.combat, 0, 3)
-	character.toughness = clampi(character.toughness, 3, 6)
-	character.savvy = clampi(character.savvy, 0, 3)
-
-	# Luck starts at 0 (humans can have up to 3)
-	character.luck = 0
-	
-	# Set health according to Five Parsecs rules (toughness + 2)
+	# Health (Core Rules: Toughness + 2)
 	character.max_health = character.toughness + 2
 	character.health = character.max_health
 
-	pass # Character attributes generated
-
-## Apply background-specific bonuses from loaded data with safe enum access
-static func apply_background_bonuses(character: Character) -> void:
-	# Validate background string value before using it
-	if not character.background in GlobalEnums.Background:
-		push_error("CharacterGeneration: Invalid background string value: %s. Using MILITARY as fallback." % character.background)
-		character.background = "MILITARY"
-	
-	# Try to get background data from DataManager first
-	var background_data = _get_background_data_for_character(character)
-	if not background_data.is_empty():
-		_apply_background_data_bonuses(character, background_data)
-	else:
-		# Fallback to enum-based bonuses
-		_apply_enum_background_bonuses(character)
-
-## Enhanced background data application using rich JSON
-static func _apply_background_data_bonuses(character: Character, background_data: Dictionary) -> void:
-	# Apply stat bonuses from JSON
-	var background_dict = SafeDataAccess.safe_dict_access(background_data, "background data validation")
-	var stat_bonuses = SafeDataAccess.safe_get(background_dict, "stat_bonuses", {}, "background stat bonuses lookup")
-	if stat_bonuses is Dictionary:
-		for stat_name in stat_bonuses.keys():
-			var bonus = stat_bonuses[stat_name]
-			_apply_stat_bonus(character, stat_name, bonus)
-	
-	# Apply stat penalties
-	var stat_penalties = SafeDataAccess.safe_get(background_dict, "stat_penalties", {}, "background stat penalties lookup")
-	if stat_penalties is Dictionary:
-		for stat_name in stat_penalties.keys():
-			var penalty = stat_penalties[stat_name]
-			_apply_stat_bonus(character, stat_name, penalty) # Penalty is negative bonus
-	
-	# Add starting skills as traits
-	var starting_skills = SafeDataAccess.safe_get(background_dict, "starting_skills", [], "background starting skills lookup")
-	if starting_skills is Array:
-		for skill in starting_skills:
-			character.add_trait("Skill: " + skill)
-	
-	# Add special abilities as traits
-	var special_abilities = SafeDataAccess.safe_get(background_dict, "special_abilities", [], "background special abilities lookup")
-	if special_abilities is Array:
-		for ability in special_abilities:
-			if ability is Dictionary:
-				var ability_dict = SafeDataAccess.safe_dict_access(ability, "special ability validation")
-				var ability_name = SafeDataAccess.safe_get(ability_dict, "name", "Unknown Ability", "ability name lookup")
-				var ability_desc = ability.get("description", "")
-				character.add_trait("Ability: %s - %s" % [ability_name, ability_desc])
-	
-	pass # Background bonuses applied
-
-## Safe stat bonus application
-static func _apply_stat_bonus(character: Character, stat_name: String, bonus: int) -> void:
-	match stat_name.to_lower():
-		"combat", "combat_skill":
-			character.combat = clampi(character.combat + bonus, 0, 5)
-		"reactions", "reaction":
-			character.reactions = clampi(character.reactions + bonus, 1, 6)
-		"toughness":
-			character.toughness = clampi(character.toughness + bonus, 1, 6)
-		"speed":
-			character.speed = clampi(character.speed + bonus, 4, 8)
-		"savvy":
-			character.savvy = clampi(character.savvy + bonus, 0, 5)
-		_:
-			push_warning("CharacterGeneration: Unknown stat '%s' for bonus application" % stat_name)
-
-## Get background data for character using hybrid approach
-static func _get_background_data_for_character(character: Character) -> Dictionary:
-	# Try DataManager first
-	if DataManager.is_system_ready():
-		var background_id = _get_background_id_from_string(character.background)
-		return DataManager.get_background_data(background_id)
-	
-	# Fallback to local data
-	var background_name = character.background
-	if _backgrounds_data.has(background_name):
-		return _backgrounds_data[background_name]
-	
-	return {}
-
-## Convert background string to JSON background ID
-static func _get_background_id_from_string(background_string: String) -> String:
-	match background_string:
-		"MILITARY": return "military"
-		"CRIMINAL": return "criminal"
-		"ACADEMIC": return "scientist"
-		"MERCENARY": return "mercenary"
-		"COLONIST": return "colonist"
-		"EXPLORER": return "pilot"
-		"TRADER": return "corporate"
-		"OUTCAST": return "drifter"
-		_: return "drifter" # Safe default
-
-## Fallback enum-based background bonuses
-static func _apply_enum_background_bonuses(character: Character) -> void:
-	var background_name = character.background
-	if _backgrounds_data.has(background_name):
-		var bg_data = _backgrounds_data[background_name]
-		
-		# Ensure bg_data is a Dictionary before calling .get()
-		if not bg_data is Dictionary:
-			push_warning("CharacterGeneration: Expected Dictionary for background data, got %s" % typeof(bg_data))
-			return
-		
-		var stat_bonuses = bg_data.get("stat_bonuses", {})
-		if stat_bonuses is Dictionary:
-			for key in stat_bonuses:
-				character.set(key, character.get(key) + stat_bonuses[key])
-		
-		var features = bg_data.get("traits", [])
-		if features is Array:
-			for feature in features:
-				character.add_trait(feature)
+# NOTE (2026-06-01 rules-accuracy consolidation): the fabricated background-bonus
+# chain (apply_background_bonuses / _apply_background_data_bonuses / _apply_stat_bonus /
+# _get_background_data_for_character / _get_background_id_from_string /
+# _apply_enum_background_bonuses) was REMOVED. It read the deleted character_backgrounds.json
+# (and the dead, commented-out DataManager.get_background_data) and double-applied stat
+# bonuses on top of the canonical D100 CLASS/BACKGROUND/MOTIVATION tables. Background stat
+# bonuses now come solely from apply_table_results_to_character().
 
 ## Apply class-specific bonuses
 static func apply_class_bonuses(character: Character) -> void:
@@ -878,169 +771,14 @@ static func apply_class_bonuses(character: Character) -> void:
 		"BROKER":
 			character.add_trait("Broker Training")
 
-## Generate starting equipment using hybrid approach
-static func generate_starting_equipment(character: Character) -> void:
-	# Get equipment from both origin and background
-	var origin_equipment = _get_starting_equipment_data(character)
-	var background_equipment = _get_background_equipment_data(character)
-	
-	# Merge equipment from both sources
-	var combined_equipment = _merge_equipment_data(origin_equipment, background_equipment)
-	
-	if not combined_equipment.is_empty():
-		_apply_equipment_data(character, combined_equipment)
-	else:
-		# Fallback to basic equipment
-		_apply_basic_equipment(character)
-
-## Get starting equipment data using hybrid approach
-static func _get_starting_equipment_data(character: Character) -> Dictionary:
-	# Try DataManager first
-	if DataManager.is_system_ready():
-		# Origin is now a string, use directly
-		var origin_name = character.origin
-		var origin_data = DataManager.get_origin_data(origin_name)
-		
-		# Validate origin_data is a Dictionary before calling .get()
-		if not origin_data is Dictionary:
-			push_warning("CharacterGeneration: Expected Dictionary for origin data, got %s" % typeof(origin_data))
-			return {}
-		
-		var starting_gear_array = origin_data.get("starting_gear", [])
-		return _convert_gear_array_to_dict(starting_gear_array)
-	
-	# Fallback to local data
-	# Origin is now a string, use directly
-	var origin_name = character.origin
-	if _character_data.has("origins") and _character_data["origins"].has(origin_name):
-		var origin_local_data = _character_data["origins"][origin_name]
-		
-		# Validate origin_local_data is a Dictionary before calling .get()
-		if not origin_local_data is Dictionary:
-			push_warning("CharacterGeneration: Expected Dictionary for local origin data, got %s" % typeof(origin_local_data))
-			return {}
-		
-		var starting_gear_array = origin_local_data.get("starting_gear", [])
-		return _convert_gear_array_to_dict(starting_gear_array)
-	
-	return {}
-
-## Get background equipment data using hybrid approach
-static func _get_background_equipment_data(character: Character) -> Dictionary:
-	# Try DataManager first
-	if DataManager.is_system_ready():
-		var background_id = _get_background_id_from_string(character.background)
-		var background_data = DataManager.get_background_data(background_id)
-		
-		# Validate background_data is a Dictionary before calling .get()
-		if not background_data is Dictionary:
-			push_warning("CharacterGeneration: Expected Dictionary for background data, got %s" % typeof(background_data))
-			return {}
-		
-		var starting_gear_array = background_data.get("starting_gear", [])
-		return _convert_gear_array_to_dict(starting_gear_array)
-	
-	# Fallback to local data
-	var background_name = character.background
-	if _backgrounds_data.has(background_name):
-		var background_local_data = _backgrounds_data[background_name]
-		
-		# Validate background_local_data is a Dictionary before calling .get()
-		if not background_local_data is Dictionary:
-			push_warning("CharacterGeneration: Expected Dictionary for local background data, got %s" % typeof(background_local_data))
-			return {}
-		
-		var starting_gear_array = background_local_data.get("starting_gear", [])
-		return _convert_gear_array_to_dict(starting_gear_array)
-	
-	return {}
-
-## Merge equipment data from multiple sources
-static func _merge_equipment_data(equipment1: Dictionary, equipment2: Dictionary) -> Dictionary:
-	var merged = {
-		"weapons": [],
-		"armor": [],
-		"gear": [],
-		"credits": 0
-	}
-	
-	# Merge weapons
-	merged.weapons.append_array(equipment1.get("weapons", []))
-	merged.weapons.append_array(equipment2.get("weapons", []))
-	
-	# Merge armor
-	merged.armor.append_array(equipment1.get("armor", []))
-	merged.armor.append_array(equipment2.get("armor", []))
-	
-	# Merge gear
-	merged.gear.append_array(equipment1.get("gear", []))
-	merged.gear.append_array(equipment2.get("gear", []))
-	
-	# Add credits (take the higher value)
-	merged.credits = max(equipment1.get("credits", 0), equipment2.get("credits", 0))
-	
-	return merged
-
-## Convert gear array to equipment dictionary structure
-static func _convert_gear_array_to_dict(gear_array: Array) -> Dictionary:
-	var equipment_dict = {
-		"weapons": [],
-		"armor": [],
-		"gear": [],
-		"credits": 1000
-	}
-	
-	# Handle both simple string arrays and complex object arrays
-	for item in gear_array:
-		if item is String:
-			# Simple string format (from origin data)
-			var item_str = str(item).to_lower()
-			if "pistol" in item_str or "rifle" in item_str or "knife" in item_str or "weapon" in item_str or "cannon" in item_str or "shot" in item_str:
-				equipment_dict.weapons.append(item)
-			elif "armor" in item_str or "suit" in item_str or "chassis" in item_str:
-				equipment_dict.armor.append(item)
-			else:
-				equipment_dict.gear.append(item)
-		elif item is Dictionary:
-			# Complex object format (from background data)
-			var item_type = item.get("type", "").to_lower()
-			var options = item.get("options", [])
-			
-			# Validate options is an Array before iterating
-			if not options is Array:
-				push_warning("CharacterGeneration: Expected Array for options, got %s" % typeof(options))
-				continue
-			
-			# Add all options to the appropriate category
-			for option in options:
-				match item_type:
-					"weapon":
-						equipment_dict.weapons.append(option)
-					"armor":
-						equipment_dict.armor.append(option)
-					"gear":
-						equipment_dict.gear.append(option)
-					_:
-						# Default to gear if type is unknown
-						equipment_dict.gear.append(option)
-	
-	return equipment_dict
-
-## Apply equipment data to character
-static func _apply_equipment_data(character: Character, equipment_data: Dictionary) -> void:
-	# Store equipment data (would integrate with equipment system)
-	character.personal_equipment = equipment_data
-	character.credits_earned = equipment_data.get("credits", 0)
-
-## Apply basic equipment fallback
-static func _apply_basic_equipment(character: Character) -> void:
-	character.personal_equipment = {
-		"weapons": ["Basic Pistol"],
-		"armor": ["Light Armor"],
-		"gear": ["Comm Unit"],
-		"credits": 0
-	}
-	character.credits_earned = 0
+# NOTE (2026-06-01 rules-accuracy consolidation): the fabricated origin/background
+# equipment chain (generate_starting_equipment / _get_starting_equipment_data /
+# _get_background_equipment_data / _merge_equipment_data / _convert_gear_array_to_dict /
+# _apply_equipment_data / _apply_basic_equipment) was REMOVED. It read the deleted
+# character_creation_data.json + character_backgrounds.json (and dead, commented-out
+# DataManager.get_origin_data / get_background_data) and fabricated a flat 1000-credit
+# loadout. Starting equipment now comes from _generate_starting_equipment_enhanced()
+# (StartingEquipmentGenerator + gear_database.json) per Core Rules p.77.
 
 ## Set character flags based on origin (Five Parsecs p.18-20)
 ## Note: Origin-based properties like is_bot(), is_human() are derived from origin string
@@ -1169,15 +907,9 @@ static func generate_complete_character(config: Dictionary = {}) -> Character:
 		push_error("CharacterGeneration: Failed to create character in generate_complete_character")
 		return null
 
-
-	# Roll on D100 tables for Background, Motivation, and Class
-	var table_results = roll_character_tables()
-
-	# Apply table results (stat bonuses, traits, resources)
-	apply_table_results_to_character(character, table_results)
-
-	# Generate starting equipment (includes table-based equipment rolls)
-	character.personal_equipment = _generate_starting_equipment_enhanced(character)
+	# Base profile, species modifiers, D100 table rolls/bonuses, and starting
+	# equipment are all produced by create_character() (2026-06-01 consolidation).
+	# This wrapper only adds relationship + narrative-effect extras on top.
 
 	# Legacy relationship generation (now supplemented by table resources)
 	# These are kept for backward compatibility but resource counting comes from tables

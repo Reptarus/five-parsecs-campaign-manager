@@ -141,7 +141,9 @@ static func check_victory_condition(campaign_data: Dictionary, condition_type: i
 
 	## Args:
 	## 	campaign_data: Campaign state dictionary
-	## 	condition_type: CampaignVictoryConstants.VictoryConditionType enum
+	## 	condition_type: int code — 0=survive turns, 1=story points, 2=wealth/credits,
+	## 		3=reputation, 4=crew size (matches the legacy victory_condition.type values
+	## 		persisted in campaign data)
 	## 	target_value: Target value for victory
 	##
 	## Returns:
@@ -151,17 +153,17 @@ static func check_victory_condition(campaign_data: Dictionary, condition_type: i
 
 	var current_value := 0
 
-	# Get current value based on condition type
+	# Get current value based on condition type (see arg docs for the integer mapping).
 	match condition_type:
-		CampaignVictoryConstants.VictoryConditionType.SURVIVE_TURNS:
+		0:
 			current_value = campaign_data.get("current_turn", 0)
-		CampaignVictoryConstants.VictoryConditionType.STORY_POINTS:
+		1:
 			current_value = campaign_data.get("story_points", 0)
-		CampaignVictoryConstants.VictoryConditionType.WEALTH:
+		2:
 			current_value = campaign_data.get("credits", 0)
-		CampaignVictoryConstants.VictoryConditionType.REPUTATION:
+		3:
 			current_value = campaign_data.get("reputation", 0)
-		CampaignVictoryConstants.VictoryConditionType.CREW_SIZE:
+		4:
 			var crew: Array = campaign_data.get("crew", [])
 			current_value = crew.size()
 		_:
@@ -315,69 +317,8 @@ static func _validate_victory_progress(campaign_data: Dictionary, result: Campai
 	for warning in victory_check.warnings:
 		result.add_warning(warning)
 
-## ==========================================
-## PUBLIC API - ACHIEVEMENT VALIDATION
-## ==========================================
-
-## Check all achievements for campaign
-static func check_achievements(campaign_data: Dictionary) -> Array[String]:
-	## Get list of unlocked achievement IDs
-	##
-	## Args:
-	## campaign_data: Campaign state dictionary
-	##
-	## Returns:
-	## Array of achievement ID strings
-	return CampaignVictoryConstants.get_unlocked_achievements(campaign_data)
-
-## Validate achievement unlock
-static func validate_achievement(achievement_id: String, campaign_data: Dictionary) -> CampaignValidationResult:
-
-	## Args:
-	## 	achievement_id: Achievement identifier
-	## 	campaign_data: Campaign state dictionary
-	##
-	## Returns:
-	## 	CampaignValidationResult
-	##
-	var result := CampaignValidationResult.new()
-
-	if not CampaignVictoryConstants.ACHIEVEMENT_THRESHOLDS.has(achievement_id):
-		result.add_error("Unknown achievement ID: %s" % achievement_id)
-		return result
-
-	var achievement: Dictionary = CampaignVictoryConstants.ACHIEVEMENT_THRESHOLDS[achievement_id]
-	var check_type: String = achievement.get("check_type", "")
-	var threshold: int = achievement.get("threshold", 0)
-	var current_value := 0
-
-	# Get current value based on check type
-	match check_type:
-		"credits":
-			current_value = campaign_data.get("credits", 0)
-		"crew_size":
-			var crew: Array = campaign_data.get("crew", [])
-			current_value = crew.size()
-		"captain_xp":
-			var captain: Dictionary = campaign_data.get("captain", {})
-			current_value = captain.get("experience", 0)
-		"casualties":
-			current_value = campaign_data.get("total_casualties", 0)
-		"weapon_count":
-			var equipment: Array = campaign_data.get("equipment", [])
-			current_value = equipment.size()
-		"turns":
-			current_value = campaign_data.get("current_turn", 0)
-		_:
-			result.add_warning("Unknown achievement check type: %s" % check_type)
-			return result
-
-	# Check if unlocked
-	var is_unlocked := CampaignVictoryConstants.check_achievement(achievement_id, current_value)
-
-	if is_unlocked:
-		result.add_info("Achievement UNLOCKED: %s (%d >= %d)" % [achievement.name, current_value, threshold])
-	else:
-		result.add_info("Achievement locked: %s (%d / %d)" % [achievement.name, current_value, threshold])
-
-	return result
+# NOTE (2026-06-01 rules-accuracy consolidation): the achievement-validation API
+# (check_achievements / validate_achievement) was REMOVED. Both were dead (no callers —
+# DeveloperQuickStart only invokes validate_campaign_state) and depended on the fabricated
+# CampaignVictoryConstants.ACHIEVEMENT_THRESHOLDS / check_achievement / get_unlocked_achievements,
+# which read victory_conditions.json's "achievement_thresholds" section (deleted in Sprint B).

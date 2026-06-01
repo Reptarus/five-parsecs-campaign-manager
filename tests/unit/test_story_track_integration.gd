@@ -1,12 +1,13 @@
 extends GdUnitTestSuite
 
 ## Integration Tests for Story Track Phase Integration
-## Tests WorldPhase, BattlePhase, and PostBattlePhase story track integration
+## Tests WorldPhase and PostBattlePhase story track integration
+## (BattlePhase story-battle tests removed when the deprecated phases/BattlePhase.gd
+##  was retired — Session 50 / Wave 1.6; story-battle config now lives in the live path)
 ## Tests signal flows, data passing, and state updates
 ## Max 13 tests per file (runner stability constraint)
 
 var world_phase: Variant
-var battle_phase: Variant
 var post_battle_phase: Variant
 var mock_story_track_system: RefCounted
 
@@ -16,7 +17,6 @@ func before_test() -> void:
 
 	# Create phase instances
 	world_phase = preload("res://src/core/campaign/phases/WorldPhase.gd").new()
-	battle_phase = preload("res://src/core/campaign/phases/BattlePhase.gd").new()
 	post_battle_phase = preload("res://src/core/campaign/phases/PostBattlePhase.gd").new()
 
 	# Create mock story track system
@@ -26,8 +26,6 @@ func after_test() -> void:
 	# RefCounted objects are auto-managed, don't call free()
 	if world_phase:
 		world_phase = null
-	if battle_phase:
-		battle_phase = null
 	if post_battle_phase:
 		post_battle_phase = null
 	if mock_story_track_system:
@@ -85,66 +83,6 @@ func test_world_phase_inject_story_mission() -> void:
 			var first_offer = offers[0]
 			assert_str(first_offer.get("story_event_id", "")).is_equal("conspiracy_revealed")
 			assert_bool(first_offer.get("is_priority", false)).is_true()
-
-## Test 5: BattlePhase detects story track mission source
-func test_battle_phase_detects_story_mission_source() -> void:
-	# Setup battle with story mission metadata
-	battle_phase.battle_setup_data = {
-		"mission_source": "story_track",
-		"is_story_mission": true,
-		"story_event_id": "hunt_begins",
-		"mission_number": 5
-	}
-
-	# Validate detection
-	assert_bool(battle_phase.battle_setup_data.get("is_story_mission", false)).is_true()
-	assert_str(battle_phase.battle_setup_data.get("mission_source", "")).is_equal("story_track")
-
-## Test 6: BattlePhase uses curated enemy composition
-func test_battle_phase_story_battle_uses_curated_enemies() -> void:
-	if not battle_phase.has_method("_generate_story_enemies"):
-		return
-
-	# Mock enemy composition from JSON
-	var composition = [
-		{"type": "ganger_grunt", "count": 3, "stats": {"combat": 0, "toughness": 4, "speed": 5}, "equipment": ["Basic Pistol"]},
-		{"type": "ganger_leader", "count": 1, "stats": {"combat": 1, "toughness": 4, "speed": 5}, "equipment": ["Military Rifle"], "is_boss": true}
-	]
-
-	var enemies = battle_phase.call("_generate_story_enemies", composition, 4)
-
-	# Should generate exactly 4 enemies (3 grunts + 1 leader)
-	assert_int(enemies.size()).is_equal(4)
-
-	# All enemies should be marked as curated
-	for enemy in enemies:
-		assert_bool(enemy.get("is_curated", false)).is_true()
-
-	# Boss should be present
-	var boss_found = false
-	for enemy in enemies:
-		if enemy.get("is_boss", false):
-			boss_found = true
-			break
-	assert_bool(boss_found).is_true()
-
-## Test 7: BattlePhase maps enemy type names to enums
-func test_battle_phase_maps_enemy_type_names() -> void:
-	if not battle_phase.has_method("_map_enemy_type_name"):
-		return
-
-	# Test specific mappings (requires GlobalEnums)
-	if not GlobalEnums:
-		return
-
-	var ganger_type = battle_phase.call("_map_enemy_type_name", "ganger_grunt")
-	assert_int(ganger_type).is_equal(GlobalEnums.EnemyType.GANGERS)
-
-	var enforcer_type = battle_phase.call("_map_enemy_type_name", "corporate_security")
-	assert_int(enforcer_type).is_equal(GlobalEnums.EnemyType.ENFORCERS)
-
-	var boss_type = battle_phase.call("_map_enemy_type_name", "director_chen")
-	assert_int(boss_type).is_equal(GlobalEnums.EnemyType.BOSS)
 
 ## Test 8: PostBattlePhase calculates evidence correctly for victory
 func test_post_battle_victory_awards_two_evidence() -> void:
@@ -235,24 +173,6 @@ func test_post_battle_final_mission_triggers_completion() -> void:
 		post_battle_phase.call("_process_story_mission_outcome")
 
 	# Test passes if no errors thrown (completion logic executes)
-
-## Test 13: BattlePhase maps terrain themes to environment types
-func test_battle_phase_maps_terrain_themes() -> void:
-	if not battle_phase.has_method("_map_terrain_theme_to_type"):
-		return
-
-	if not GlobalEnums:
-		return
-
-	# Test specific terrain mappings
-	var urban = battle_phase.call("_map_terrain_theme_to_type", "industrial_ruins")
-	assert_int(urban).is_equal(GlobalEnums.PlanetEnvironment.URBAN)
-
-	var artificial = battle_phase.call("_map_terrain_theme_to_type", "abandoned_station")
-	assert_int(artificial).is_equal(GlobalEnums.PlanetEnvironment.URBAN)
-
-	var volcanic = battle_phase.call("_map_terrain_theme_to_type", "volcanic")
-	assert_int(volcanic).is_equal(GlobalEnums.PlanetEnvironment.VOLCANIC)
 
 ## Helper: Create mock story track system
 func _create_mock_story_track_system() -> RefCounted:

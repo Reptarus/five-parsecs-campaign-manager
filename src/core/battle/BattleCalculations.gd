@@ -1002,8 +1002,14 @@ static func calculate_battle_credits(
 
 #region Initiative Calculations
 
-## Roll to seize initiative (2d6 + highest savvy + difficulty modifier >= 10)
-## Core Rules p.95; difficulty modifier from Core Rules p.65:
+## Target number for Seizing the Initiative: 2D6 + highest Savvy + modifiers
+## must meet or exceed this (Core Rules p.117). Single source of truth shared by
+## the auto-resolve path (check_seize_initiative, below) AND the interactive UI
+## (SeizeInitiativeSystem) so the threshold can never drift between the two.
+const SEIZE_INITIATIVE_TARGET := 10
+
+## Roll to seize initiative (2d6 + highest savvy + difficulty modifier >= target)
+## Core Rules p.117; difficulty modifier from Core Rules p.65:
 ##   Hardcore: -2, Insanity: -3
 static func check_seize_initiative(
 	die1: int,
@@ -1012,7 +1018,7 @@ static func check_seize_initiative(
 	difficulty_modifier: int = 0
 ) -> Dictionary:
 	var total := die1 + die2 + highest_savvy + difficulty_modifier
-	var seized := total >= 10
+	var seized := total >= SEIZE_INITIATIVE_TARGET
 
 	return {
 		"seized": seized,
@@ -1020,7 +1026,8 @@ static func check_seize_initiative(
 		"die1": die1,
 		"die2": die2,
 		"savvy_bonus": highest_savvy,
-		"difficulty_modifier": difficulty_modifier
+		"difficulty_modifier": difficulty_modifier,
+		"target_number": SEIZE_INITIATIVE_TARGET
 	}
 
 #endregion

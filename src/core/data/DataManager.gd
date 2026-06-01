@@ -189,8 +189,11 @@ func _load_json_databases() -> void:
 	# Default database initialization removed - unused schemas deleted in Phase 2B
 
 func _load_character_creation_data() -> void:
-	## Load character creation data from JSON
-	_character_creation_data = _load_json_safe(CHARACTER_CREATION_PATH, "character creation")
+	## Legacy no-op (2026-06-01 rules-accuracy consolidation). character_creation_data.json
+	## was a fabricated parallel creation source with no live consumers (get_origin_data /
+	## get_background_data / export_character_data, which read it, are commented out).
+	## Canonical creation data lives in data/character_creation_tables/ + character_species.json.
+	_character_creation_data = {}
 
 func _load_equipment_data() -> void:
 	## Load equipment data from JSON
@@ -327,20 +330,12 @@ func _validate_data_paths() -> void:
 
 ## Character System Data Loading
 func _load_character_system() -> bool:
-	## Load all character-related data with validation
-	# Load character creation data (your rich JSON)
-	_character_data = _load_json_safe("res://data/character_creation_data.json", "Character Creation")
-	if _character_data.is_empty():
-		push_error("DataManager: Failed to load character creation data")
-		return false
-	
-	# Load background data (more detailed definitions)  
-	_background_data = _load_json_safe("res://data/character_backgrounds.json", "Character Backgrounds")
-	if _background_data.is_empty():
-		push_error("DataManager: Failed to load background data")
-		return false
-	
-	# Validate data consistency
+	## Legacy no-op (2026-06-01 rules-accuracy consolidation). Formerly loaded the fabricated
+	## character_creation_data.json + character_backgrounds.json into _character_data /
+	## _background_data, which have no live consumers (every DataManager accessor reading them
+	## is commented out). Canonical creation data lives in data/character_creation_tables/ +
+	## character_species.json (species via SpeciesDataService). The prior hard-fail here
+	## would have spammed errors once those JSONs were deleted.
 	return _validate_character_data()
 
 func _validate_character_data() -> bool:

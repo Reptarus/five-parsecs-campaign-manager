@@ -8,6 +8,14 @@ const MissionTableManagerClass = preload("res://src/core/mission/MissionTableMan
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
+## Version of the battle-result → NarrativeScreen event_data contract produced by
+## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
+## removed (e.g. Wave 4 mission-resolver fields, Wave 5 round-event feed), and update
+## NarrativeScreen consumers + the bug-pin tests in test_b2_narrative_bridge.gd in the
+## same change. This is the single SSOT for that contract (post Session-50 / Wave 1.6:
+## the deprecated BattlePhase consumer is gone and TacticalBattleUI has no narrative
+## translation, so there is no duplicate to drift against — only forward drift to guard).
+const NARRATIVE_CONTRACT_VERSION := 1
 
 # Core Dependencies
 @onready var campaign_phase_manager: Node = get_node("/root/CampaignPhaseManager")
@@ -902,7 +910,8 @@ func _on_battle_completed(results: Dictionary) -> void:
 			results,
 			_settings_narrative_enabled(),
 			_per_campaign_narrative_override(),
-			_per_battle_narrative_override(results)):
+			_per_battle_narrative_override(results),
+			_active_battle_mode(results)):
 		_present_battle_outcome_via_narrative(results)
 		return
 
@@ -1010,17 +1019,38 @@ func _per_battle_narrative_override(result: Dictionary):
 	return null
 
 
+## Resolve the battle mode for the just-completed battle: the result dict
+## first (if a resolver ever tags it), then the active mission's `battle_mode`
+## (set by TacticalBattleUI for bug_hunt/planetfall/tactics). "" = standard 5PFH.
+func _active_battle_mode(result: Dictionary) -> String:
+	var mode := str(result.get("battle_mode", ""))
+	if mode == "" and game_state and game_state.has_method("get_current_mission"):
+		var mission = game_state.get_current_mission()
+		if mission is Dictionary:
+			mode = str((mission as Dictionary).get("battle_mode", ""))
+	return mode
+
+
 ## Pure-function gate. Static so tests can call it with synthetic inputs
 ## without instantiating the Control. Priority (highest to lowest):
+##   0. battle_mode cross-mode veto = hard skip (this wrap is STANDARD 5PFH only)
 ##   1. battle_override truthy/falsy = absolute decision
 ##   2. campaign_override truthy = enabled (still requires auto_resolved)
 ##      campaign_override falsy = hard veto
 ##   3. settings_enabled AND result.auto_resolved (default original behavior)
+## `battle_mode` defaults "" (standard); a non-empty, non-"standard" mode
+## (bug_hunt/planetfall/tactics) is vetoed BEFORE any override because the
+## composed outcome text is Standard-specific. Mirrors TacticalBattleUI's
+## `_battle_mode_id == ""` routing guard. Defaulted so existing 4-arg callers
+## (and tests) are unaffected.
 static func _should_present_narrative_wrap(
 		result: Dictionary,
 		settings_enabled: bool,
 		campaign_override,
-		battle_override) -> bool:
+		battle_override,
+		battle_mode: String = "") -> bool:
+	if battle_mode != "" and battle_mode != "standard":
+		return false
 	if battle_override != null:
 		return bool(battle_override)
 	if campaign_override != null:
@@ -1089,6 +1119,10 @@ static func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
 	if casualties > 0:
 		briefing_lines.append("Casualties: %d." % casualties)
 	return {
+		# Contract version (see NARRATIVE_CONTRACT_VERSION). A NarrativeScreen that
+		# wants to branch on shape can read this; tests pin it so any field change
+		# that forgets to bump the version is caught.
+		"contract_version": NARRATIVE_CONTRACT_VERSION,
 		"title": title,
 		"art_tag": art_tag,
 		"advisor_role": "fighter",

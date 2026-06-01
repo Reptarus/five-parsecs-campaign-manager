@@ -73,7 +73,7 @@ func _ready() -> void:
 func _load_character_data() -> void:
 	## Load character creation data from JSON files
 	species_data = UniversalResourceLoader.load_json_safe("res://data/character_species.json", "Character Species")
-	backgrounds_data = UniversalResourceLoader.load_json_safe("res://data/character_backgrounds.json", "Character Backgrounds")
+	backgrounds_data = UniversalResourceLoader.load_json_safe("res://data/character_creation_tables/background_table.json", "Character Backgrounds")
 	motivations_data = UniversalResourceLoader.load_json_safe("res://data/character_creation_tables/motivation_table.json", "Character Motivations")
 	
 	pass # Character data loaded
@@ -237,8 +237,12 @@ func _populate_options() -> void:
 	if background_options:
 		background_options.clear()
 		background_options.add_item("Select Background...", -1)
-		for background in backgrounds_data.get("backgrounds", []):
-			background_options.add_item(background.get("name", "Unknown"), background_options.get_item_count())
+		# Background table uses the D100 "entries" format (Core Rules pp.24-25)
+		var bg_entries: Dictionary = backgrounds_data.get("entries", {})
+		for key in bg_entries.keys():
+			var background = bg_entries[key]
+			if background is Dictionary:
+				background_options.add_item(background.get("name", "Unknown"), background_options.get_item_count())
 	
 	# Populate Motivation options
 	if motivation_options:
@@ -529,9 +533,11 @@ func _get_species_data(species_name: String) -> Dictionary:
 	return {}
 
 func _get_background_data(background_name: String) -> Dictionary:
-	## Get background data by name
-	for background in backgrounds_data.get("backgrounds", []):
-		if background.get("name", "") == background_name:
+	## Get background data by name from the D100 background table entries
+	var bg_entries: Dictionary = backgrounds_data.get("entries", {})
+	for key in bg_entries.keys():
+		var background = bg_entries[key]
+		if background is Dictionary and background.get("name", "") == background_name:
 			return background
 	return {}
 

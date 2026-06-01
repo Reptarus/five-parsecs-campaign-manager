@@ -144,6 +144,18 @@ func test_missing_held_field_defaults_false_not_won() -> void:
 	assert_str(d.get("title", "")).is_equal("Aftermath: Withdrawal")
 
 
+# ── 8b: contract version is pinned ────────────────────────────────────
+func test_contract_version_is_pinned() -> void:
+	# Bug-pin: NARRATIVE_CONTRACT_VERSION must be bumped (and consumers + these
+	# tests updated) whenever the event_data shape changes. If this fails because
+	# a field was added/renamed, bump the version — don't just edit this number.
+	var d := CTC._battle_result_to_narrative_dict({
+		"victory": true,
+		"held_field": true,
+	})
+	assert_int(int(d.get("contract_version", -1))).is_equal(1)
+
+
 # ── 9-16: 3-tier gate priority (per-battle > per-campaign > global) ───
 # These pin the new gate logic shipped May 29 — per-campaign + per-battle
 # overrides on top of the global Settings checkbox + auto_resolved flag.
@@ -195,3 +207,29 @@ func test_gate_no_overrides_tactical_skips_even_when_global_on() -> void:
 	var tactical := { "auto_resolved": false }
 	assert_bool(CTC._should_present_narrative_wrap(
 		tactical, true, null, null)).is_false()
+
+
+# ── 17-19: cross-mode veto (battle_mode arg) ──────────────────────────
+# The battle-outcome wrap composes STANDARD 5PFH outcome text. A non-empty,
+# non-"standard" battle_mode must be vetoed BEFORE any override, because
+# bug_hunt/planetfall/tactics own their outcome vocabulary + controllers.
+
+func test_gate_cross_mode_veto_beats_battle_override() -> void:
+	# Even a per-battle force-on cannot wrap a non-standard mode with Standard text.
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, true, true, "bug_hunt")).is_false()
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, true, true, "planetfall")).is_false()
+
+func test_gate_empty_battle_mode_preserves_standard_behavior() -> void:
+	# "" (the default + standard-campaign case) is unchanged from the 4-arg path.
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, null, null, "")).is_true()
+
+func test_gate_standard_literal_battle_mode_allows_wrap() -> void:
+	# Explicit "standard" is treated identically to "".
+	var auto_on := { "auto_resolved": true }
+	assert_bool(CTC._should_present_narrative_wrap(
+		auto_on, true, null, null, "standard")).is_true()

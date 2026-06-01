@@ -166,10 +166,15 @@ func roll_initiative() -> InitiativeResult:
 	result.total_modifiers = _calculate_total_modifiers()
 	result.modifiers_breakdown = _get_modifiers_breakdown()
 
-	# Calculate total
-	result.roll_total = result.base_roll + result.savvy_bonus + result.total_modifiers
-	result.target_number = 10
-	result.success = result.roll_total >= result.target_number
+	# Threshold + pass/fail route through BattleCalculations.check_seize_initiative
+	# — the SSOT for the seize formula. The UI's summed modifiers map onto the
+	# static's difficulty_modifier arg; the richer per-modifier tracking (Feral,
+	# breakdown) stays here. This keeps the target number from drifting.
+	var check: Dictionary = BattleCalculations.check_seize_initiative(
+		die1, die2, result.savvy_bonus, result.total_modifiers)
+	result.roll_total = check["roll_total"]
+	result.target_number = check["target_number"]
+	result.success = check["seized"]
 
 	# Sprint 26.5: Debug log the initiative roll
 	_debug_log_initiative_roll(result)
@@ -180,8 +185,8 @@ func roll_initiative() -> InitiativeResult:
 ## Calculate what total we need to roll
 func calculate_required_roll() -> int:
 	var modifiers := _calculate_total_modifiers()
-	# Target is 10, so we need: 2D6 >= 10 - savvy - modifiers
-	return 10 - highest_savvy - modifiers
+	# Need: 2D6 >= TARGET - savvy - modifiers (TARGET is the shared SSOT)
+	return BattleCalculations.SEIZE_INITIATIVE_TARGET - highest_savvy - modifiers
 
 ## Get current modifiers breakdown for UI display
 func get_current_modifiers() -> Array[Dictionary]:

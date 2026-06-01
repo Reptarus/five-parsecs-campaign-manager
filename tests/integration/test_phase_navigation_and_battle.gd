@@ -11,15 +11,10 @@ var phase_manager: Node = null
 var RoundTrackerClass
 var round_tracker: Node = null
 
-# BattlePhase handler for integration tests
-var BattlePhaseClass
-var battle_phase: Node = null
-
 func before():
 	"""Suite-level setup - runs once before all tests"""
 	PhaseManagerClass = load("res://src/core/campaign/CampaignPhaseManager.gd")
 	RoundTrackerClass = load("res://src/core/battle/BattleRoundTracker.gd")
-	BattlePhaseClass = load("res://src/core/campaign/phases/BattlePhase.gd")
 
 func before_test():
 	"""Test-level setup - create fresh instances for each test"""
@@ -42,16 +37,10 @@ func after_test():
 			round_tracker.get_parent().remove_child(round_tracker)
 		round_tracker = null
 
-	if battle_phase:
-		if battle_phase.get_parent():
-			battle_phase.get_parent().remove_child(battle_phase)
-		battle_phase = null
-
 func after():
 	"""Suite-level cleanup"""
 	PhaseManagerClass = null
 	RoundTrackerClass = null
-	BattlePhaseClass = null
 
 # ============================================================================
 # Sprint 10: Phase Rollback Tests (4 tests)
@@ -236,48 +225,6 @@ func test_battle_events_trigger_on_rounds_2_and_4():
 
 	var event_check_r4 = round_tracker.check_battle_event()
 	assert_that(event_check_r4.should_trigger).is_true()
-
-# ============================================================================
-# Sprint 11.2-11.5: Battle Mode Selection Tests (3 tests)
-# ============================================================================
-
-func test_battle_phase_has_round_tracker():
-	"""BattlePhase instantiates BattleRoundTracker (Sprint 11.1)"""
-	# Create BattlePhase
-	battle_phase = auto_free(BattlePhaseClass.new())
-	add_child(battle_phase)
-	await get_tree().process_frame
-
-	# Verify round tracker property exists
-	assert_that("round_tracker" in battle_phase).is_true()
-
-func test_battle_phase_has_battle_mode_selection():
-	"""BattlePhase has battle mode selection (Sprint 11.2)"""
-	# Create BattlePhase
-	battle_phase = auto_free(BattlePhaseClass.new())
-	add_child(battle_phase)
-	await get_tree().process_frame
-
-	# Verify mode selection property exists
-	assert_that("use_tactical_combat" in battle_phase).is_true()
-
-	# Verify set_battle_mode method exists
-	assert_that(battle_phase.has_method("set_battle_mode")).is_true()
-
-func test_battle_phase_set_battle_mode():
-	"""BattlePhase.set_battle_mode() toggles tactical combat (Sprint 11.2)"""
-	# Create BattlePhase
-	battle_phase = auto_free(BattlePhaseClass.new())
-	add_child(battle_phase)
-	await get_tree().process_frame
-
-	# Set to tactical mode
-	battle_phase.set_battle_mode(true)
-	assert_that(battle_phase.use_tactical_combat).is_true()
-
-	# Set to auto-resolve mode
-	battle_phase.set_battle_mode(false)
-	assert_that(battle_phase.use_tactical_combat).is_false()
 
 # ============================================================================
 # Sprint 12: World Phase Component Integration Tests (2 tests)

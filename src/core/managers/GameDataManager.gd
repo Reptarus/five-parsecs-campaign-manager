@@ -412,31 +412,11 @@ func load_mission_templates() -> bool:
 	return true
 
 func load_character_creation_data() -> bool:
-	var file = FileAccess.open(CHARACTER_CREATION_PATH, FileAccess.READ)
-	if file == null:
-		var error = FileAccess.get_open_error()
-		push_error("Failed to open character creation data file: " + str(error))
-		emit_signal("data_load_failed", "character_creation_data", error)
-		return false
-	
-	var json_text = file.get_as_text()
-	file.close()
-	
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("Failed to parse character creation data JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		emit_signal("data_load_failed", "character_creation_data", error)
-		return false
-	
-	var data = json.get_data()
-	if typeof(data) == TYPE_DICTIONARY:
-		character_creation_data = data
-	else:
-		push_error("Invalid character creation data format: expected a dictionary")
-		emit_signal("data_load_failed", "character_creation_data", ERR_INVALID_DATA)
-		return false
-		
+	## Legacy no-op (2026-06-01 rules-accuracy consolidation). character_creation_data.json was a
+	## fabricated parallel creation source; its only reader (get_character_creation_option) has no
+	## callers. Canonical creation data lives in data/character_creation_tables/ +
+	## character_species.json. Returns true so startup aggregation stays clean.
+	character_creation_data = {}
 	emit_signal("data_loaded", "character_creation_data")
 	return true
 

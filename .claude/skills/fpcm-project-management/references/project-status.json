@@ -1,5 +1,40 @@
 {
   "last_updated": "2026-05-27",
+  "sheet_export_sprint_2_5": {
+    "date": "2026-05-24",
+    "status": "SHIPPED",
+    "summary": "CV-based field-rect calibration for printable sheets. tools/extract_sheet_fields.py uses Pillow + NumPy color-mask + connected-component flood-fill to detect every cyan-bordered field on a blank sheet PNG. tools/assign_crew_log_ids.py is the per-sheet layout-aware ID-assignment helper that maps detected rects to semantic IDs + source dot-paths. Crew Log went from 14 starter fields to 144 calibrated fields (16 header + 8 character slots * 16 fields). MCP debug overlay confirms red rects align cleanly to printed cyan field outlines. 28/28 gdUnit4 tests pass.",
+    "files_created": [
+      "tools/extract_sheet_fields.py (~280 lines, gitignored under /tools/)",
+      "tools/assign_crew_log_ids.py (~150 lines)",
+      "tools/README.md"
+    ],
+    "files_modified": [
+      "src/ui/components/sheet/SheetRenderer.gd (_background.show_behind_parent = true z-order fix so _draw() debug overlay renders on top of PNG)",
+      "data/sheets/core/crew_log_fields.json (14 -> 144 fields)",
+      "data/sheets/core/crew_log_fields_extracted.json (raw CV output)",
+      "data/sheets/core/encounter_log_fields_extracted.json (raw, ID assignment deferred)",
+      "data/sheets/core/world_record_sheet_fields_extracted.json (raw, ID assignment deferred)",
+      "docs/sop/sheet-export.md (Sprint 2.5 preferred path + manual fallback)",
+      ".claude/skills/ui-development/references/sheet-export.md (full design + lessons learned)",
+      ".gitignore (tools/_debug/ entry; note: /tools/ itself is also gitignored)"
+    ],
+    "runtime_bugs_fixed": [
+      "Debug overlay invisible: SheetRenderer._draw() runs on parent Control which renders BEFORE children. Fixed by setting _background.show_behind_parent = true on the TextureRect so the PNG sits behind the parent's draw output. Anti-pattern: any Control with _draw() output + visual children must explicitly mark those children show_behind_parent."
+    ],
+    "deferred_to_followup_sprint": [
+      "tools/assign_encounter_log_ids.py (~20 fields, smaller scope)",
+      "tools/assign_world_record_ids.py (~20 fields including octagonal Yes/Obtained/No checkboxes)",
+      "Data-population verification: run a real campaign through Save PDF and visually confirm each of 144 fields renders correctly",
+      "Resolver .size / count_of: extension for patron/rival numeric counts"
+    ],
+    "test_status": "28/28 PASS (test_sheet_field_mapping.gd + test_sheet_renderer.gd + test_pdf_export_router.gd)",
+    "related_memories": [
+      "project_session_may24_sheet_calibration_cv.md",
+      "project_session_may23_sheet_export_mvp.md (Sprint 1+2 backend)",
+      "project_sheet_export_pdf_text_overlay_design.md (Sprint 3 deferred)"
+    ]
+  },
   "narrative_system_phase1": {
     "date": "2026-05-22",
     "status": "SHIPPED",

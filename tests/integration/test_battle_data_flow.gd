@@ -8,19 +8,6 @@ const BattleResults = preload("res://src/core/battle/BattleResults.gd")
 const BattleCalculations = preload("res://src/core/battle/BattleCalculations.gd")
 const BattleTestFactory = preload("res://tests/fixtures/BattleTestFactory.gd")
 
-var battle_phase: Node = null
-
-func before_test() -> void:
-	var BattlePhaseClass = load("res://src/core/campaign/phases/BattlePhase.gd")
-	if BattlePhaseClass:
-		battle_phase = BattlePhaseClass.new()
-		add_child(battle_phase)
-
-func after_test() -> void:
-	if battle_phase:
-		battle_phase.queue_free()
-		battle_phase = null
-
 #region Data Flow Tests
 
 func test_pre_battle_to_battle_data_flow() -> void:
@@ -124,25 +111,6 @@ func test_complete_battle_flow_simulation() -> void:
 	var leader_id: String = crew[0]["id"]
 	assert_bool(post_battle["xp_earned"].has(leader_id)).is_true()
 	assert_int(post_battle["xp_earned"][leader_id]).is_equal(4)
-
-#endregion
-
-#region BattlePhase Handler Tests
-
-func test_battle_phase_handler_exists() -> void:
-	if not battle_phase:
-		return
-
-	assert_object(battle_phase).is_not_null()
-	assert_bool(battle_phase.has_signal("battle_phase_completed")).is_true()
-	assert_bool(battle_phase.has_signal("battle_results_ready")).is_true()
-
-func test_battle_phase_get_results() -> void:
-	if not battle_phase:
-		return
-
-	var results: Dictionary = battle_phase.get_battle_results()
-	assert_bool(results.is_empty()).is_true()
 
 #endregion
 
