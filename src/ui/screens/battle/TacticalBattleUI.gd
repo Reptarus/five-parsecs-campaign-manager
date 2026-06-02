@@ -19,6 +19,7 @@ const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingB
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
+const BattleResolverRouterClass = preload("res://src/core/battle/BattleResolverRouter.gd")
 const BattleObjectiveTrackerClass = preload("res://src/core/battle/BattleObjectiveTracker.gd")
 
 # Design system spacing (UIColors canonical source)
@@ -3483,23 +3484,16 @@ func _on_auto_resolve_battle() -> void:
 	var deployment_condition: Dictionary = {}
 	var dice_roller: Callable = func(): return randi_range(1, 6)
 
-	# No-Minis Combat (Compendium pp.66-73): book-faithful resolver when the DLC is on,
-	# but ONLY for standard 5PFH battles. This UI is shared across modes, so Bug Hunt /
-	# Planetfall / Tactics (any non-empty battle_mode) keep the generic resolver.
+	# Resolver selection routed through BattleResolverRouter so No-Minis / Standard /
+	# Salvage-fallback (Compendium p.116) matches the campaign auto-resolve path.
+	# Previously this site lacked the Salvage fallback. _battle_mode_id keeps the
+	# shared UI's Bug Hunt / Planetfall / Tactics battles on the generic resolver.
 	var dlc_mgr = get_node_or_null("/root/DLCManager")
-	var dlc_on: bool = dlc_mgr != null and dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.NO_MINIS_COMBAT)
-	var use_no_minis: bool = dlc_on and _battle_mode_id == ""
-	var resolver_result: Dictionary
-	if use_no_minis:
-		resolver_result = NoMinisResolverClass.resolve_battle(
-			crew_deployed, enemies_deployed, battlefield_data,
-			deployment_condition, dice_roller
-		)
-	else:
-		resolver_result = BattleResolverClass.resolve_battle(
-			crew_deployed, enemies_deployed, battlefield_data,
-			deployment_condition, dice_roller
-		)
+	var _md_auto: Dictionary = _stored_mission_data if _stored_mission_data is Dictionary else {}
+	var _mission_type_auto: String = str(_md_auto.get("type", ""))
+	var resolver_result: Dictionary = BattleResolverRouterClass.resolve(
+		crew_deployed, enemies_deployed, battlefield_data,
+		deployment_condition, dice_roller, dlc_mgr, _battle_mode_id, _mission_type_auto)
 
 	# Map resolver results to BattleResult
 	var result := BattleResult.new()

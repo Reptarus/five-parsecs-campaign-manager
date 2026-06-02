@@ -9,8 +9,8 @@ const BattleTestFactory = preload("res://tests/fixtures/BattleTestFactory.gd")
 
 #region Hit Calculation Tests
 
-func test_base_hit_threshold_is_4() -> void:
-	# With no modifiers, base hit threshold should be 4
+func test_base_hit_threshold_open_range_is_5() -> void:
+	# Open target within weapon range (beyond 6"): 5+ (Core Rules p.44 "To Hit").
 	var threshold := BattleCalculations.calculate_hit_threshold(
 		0,  # combat_skill
 		false,  # target_in_cover
@@ -19,7 +19,7 @@ func test_base_hit_threshold_is_4() -> void:
 		12.0,  # range_inches
 		24  # weapon_range
 	)
-	assert_int(threshold).is_equal(4)
+	assert_int(threshold).is_equal(5)
 
 func test_combat_skill_reduces_hit_threshold() -> void:
 	# Combat skill 3 should reduce threshold by 3
@@ -28,17 +28,30 @@ func test_combat_skill_reduces_hit_threshold() -> void:
 		false, false, false,
 		12.0, 24
 	)
-	assert_int(threshold).is_equal(1)  # 4 - 3 = 1
+	assert_int(threshold).is_equal(2)  # open-range 5+ (p.44), skill 3 added to roll -> 2+
 
 func test_cover_increases_hit_threshold() -> void:
-	# Cover should add +1 to threshold (harder to hit)
+	# Target in Cover within weapon range (beyond 6"): 6+ (Core Rules p.44 "To Hit").
 	var threshold := BattleCalculations.calculate_hit_threshold(
 		0,  # combat_skill
 		true,  # target_in_cover
 		false, false,
 		12.0, 24
 	)
-	assert_int(threshold).is_equal(5)  # 4 + 1 = 5
+	assert_int(threshold).is_equal(6)
+
+func test_cover_close_is_6_not_5() -> void:
+	# Core Rules p.44: cover is a SINGLE row ("within weapon range and in Cover
+	# 6+") — the close bonus is open-only. A target in Cover within 6" is 6+,
+	# NOT 5+. Pins the HIT_COVER_CLOSE correction.
+	var threshold := BattleCalculations.calculate_hit_threshold(
+		0,  # combat_skill
+		true,  # target_in_cover
+		false, false,
+		3.0,  # within 6" (close band)
+		24
+	)
+	assert_int(threshold).is_equal(6)
 
 func test_elevation_bonus_helps_attacker() -> void:
 	# Elevated attacker shooting down gets -1 to threshold
@@ -49,7 +62,7 @@ func test_elevation_bonus_helps_attacker() -> void:
 		false,  # target_not_elevated
 		12.0, 24
 	)
-	assert_int(threshold).is_equal(3)  # 4 - 1 = 3
+	assert_int(threshold).is_equal(4)  # open-range 5+ (p.44), elevation -1 -> 4+
 
 func test_point_blank_bonus() -> void:
 	# Within 2" gets point blank bonus
@@ -67,7 +80,7 @@ func test_long_range_penalty() -> void:
 		30.0,  # beyond 24" range
 		24
 	)
-	assert_int(threshold).is_equal(5)  # 4 + 1 = 5
+	assert_int(threshold).is_equal(6)  # open-range 5+ (p.44), beyond-range +1 -> 6+
 
 func test_threshold_clamped_to_valid_range() -> void:
 	# Very high skill shouldn't go below 1

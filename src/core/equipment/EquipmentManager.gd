@@ -340,69 +340,13 @@ func sell_equipment(equipment_id: String) -> int:
 
 	return 0
 
-## Generate loot from battles according to Five Parsecs rulebook tables
-func generate_battle_loot(difficulty: int, success: bool = true) -> Array:
-	var loot_items = []
-	
-	# Only generate loot if the battle was a success and crew held the field
-	if not success:
-		return loot_items
-	
-	# In Five Parsecs, you get to roll once on the Loot Table after winning a battle
-	# Additional rolls might be granted for special conditions
-	
-	# Roll on the main loot table
-	loot_items.append(_roll_on_loot_table())
-	
-	# Get current battle data from the battle results manager, if available
-	var current_battle = {}
-	if battle_results_manager != null:
-		current_battle = battle_results_manager.get_current_battle() if battle_results_manager.has_method("get_current_battle") else {}
-	
-	# Check for Black Zone mission bonus roll (rulebook rule)
-	if current_battle and current_battle.get("mission_type") == GameEnums.MissionType.BLACK_ZONE:
-		loot_items.append(_roll_on_loot_table())
-	
-	# Check for high-danger mission bonus roll
-	if difficulty >= 4:
-		loot_items.append(_roll_on_loot_table())
-	
-	return loot_items
-
-## Roll on the Five Parsecs Main Loot Table (Core Rules p.131)
-## Sprint B Phase B.5 (2026-05-24): rewrote D100 boundaries to match book.
-## Pre-fix: D100 1-25 generated fabricated "Small Credit Pouch / Credit Stick /
-## Valuable Credit Chip" with 50-400cr — none of which appear in the book.
-## Post-fix: D100 1-25 yields WEAPON per Core Rules p.131 main_loot table.
-## Canonical data: data/loot_tables.json (main_loot block).
-##
-## Remaining technical debt: 26-35 (DAMAGED_WEAPONS x2) and 36-45 (DAMAGED_GEAR
-## x2) currently route to single-item generators because a damaged-item +
-## count=2 generator pattern doesn't exist in this file yet. ODDS_AND_ENDS
-## (66-80) and REWARDS (81-100) sub-tables need their own helpers. Tracked
-## as follow-up Sprint C work after this priority fabrication is removed.
-func _roll_on_loot_table() -> Dictionary:
-	var roll = randi() % 100 + 1
-
-	if roll <= 25:
-		# WEAPON — single weapon (Core Rules p.131 main_loot)
-		return _generate_random_db_weapon()
-	elif roll <= 35:
-		# DAMAGED_WEAPONS — 2 damaged weapons (need repair). Stub: single weapon
-		# until a count=2 / damaged-marker generator is added (follow-up work).
-		return _generate_random_db_weapon()
-	elif roll <= 45:
-		# DAMAGED_GEAR — 2 damaged gear (need repair). Stub: single gear.
-		return _generate_random_db_gear()
-	elif roll <= 65:
-		# GEAR — single gear item
-		return _generate_random_db_gear()
-	elif roll <= 80:
-		# ODDS_AND_ENDS — needs subtable resolution (follow-up). Stub: consumable.
-		return _generate_consumable_item()
-	else:
-		# REWARDS — needs subtable resolution (follow-up). Stub: armor.
-		return _generate_random_db_armor()
+# NOTE (2026-06-01 rules-accuracy consolidation): the battle-loot generator
+# (generate_battle_loot + _roll_on_loot_table + its subtable helpers) was REMOVED.
+# It was dead — its only caller, GameSystemManager.process_battle_loot(), had no callers.
+# The live post-battle loot path is PostBattlePhase -> LootProcessor, which now resolves
+# loot through the single canonical LootTableResolver (src/core/equipment/LootTableResolver.gd,
+# Core Rules p.130-133). It also carried a fabricated "difficulty >= 4" bonus roll with no
+# rulebook basis (the book grants one roll per battle; 3 for a Quest final stage; 0 for Invasion).
 
 ## Generate weapon from JSON database
 func _generate_weapon_by_rulebook() -> Dictionary:

@@ -190,6 +190,59 @@ func test_brawl_pistol_weapon_bonus() -> void:
 	assert_that(result.get("attacker_total")).is_equal(4)
 	assert_that(result.get("winner")).is_equal("attacker")
 
+func test_brawl_armored_defender_can_save() -> void:
+	# Core Rules p.44-45: brawl Hits are resolved like any Hit, so an armored
+	# loser rolls a Saving Throw and a success NEGATES the Hit. (Brawl damage
+	# previously bypassed saves entirely — the bug this pins.)
+	var attacker := {
+		"combat_skill": 2, "speed": 4, "species": "human",
+		"weapon_traits": ["melee"], "toughness": 3
+	}
+	var defender := {
+		"combat_skill": 0, "speed": 4, "species": "human",
+		"weapon_traits": [], "toughness": 3,
+		"armor": "combat", "has_screen": false  # 5+ armor save, no piercing on attacker
+	}
+	# attacker 5 (+2 skill +2 melee = 9) beats defender 2; then defender saves on 6 (5+).
+	var roll_state := {"count": 0}
+	var fixed_rolls := [5, 2, 6]  # attacker roll, defender roll, defender SAVE roll
+	var dice_roller := func():
+		var r = fixed_rolls[roll_state.count % fixed_rolls.size()]
+		roll_state.count += 1
+		return r
+
+	var result = BattleCalculations.resolve_brawl(attacker, defender, dice_roller)
+
+	assert_that(result.get("winner")).is_equal("attacker")
+	assert_int(result.get("defender_brawl_saves", 0)).is_equal(1)
+	assert_int(result.get("damage_to_defender", 99)).is_equal(0)  # Hit saved -> negated
+	assert_that(result.get("effects", [])).contains("defender_brawl_save")
+
+func test_brawl_piercing_negates_armor_save() -> void:
+	# Core Rules p.44-45 + Piercing (p.45): a Piercing melee weapon negates the
+	# armor Saving Throw, so the brawl Hit lands despite a save-making roll.
+	var attacker := {
+		"combat_skill": 2, "speed": 4, "species": "human",
+		"weapon_traits": ["melee", "piercing"], "toughness": 3
+	}
+	var defender := {
+		"combat_skill": 0, "speed": 4, "species": "human",
+		"weapon_traits": [], "toughness": 3,
+		"armor": "combat", "has_screen": false  # 5+ armor, but pierced
+	}
+	var roll_state := {"count": 0}
+	var fixed_rolls := [5, 2, 6]  # save roll 6 would pass, but armor is pierced
+	var dice_roller := func():
+		var r = fixed_rolls[roll_state.count % fixed_rolls.size()]
+		roll_state.count += 1
+		return r
+
+	var result = BattleCalculations.resolve_brawl(attacker, defender, dice_roller)
+
+	assert_that(result.get("winner")).is_equal("attacker")
+	assert_int(result.get("defender_brawl_saves", 0)).is_equal(0)  # armor pierced -> no save
+	assert_int(result.get("damage_to_defender", 0)).is_greater_equal(1)  # Hit lands
+
 #endregion
 
 #region K'Erin Brawl Reroll Tests

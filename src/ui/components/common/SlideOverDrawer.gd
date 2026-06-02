@@ -215,7 +215,7 @@ func open() -> void:
 	visible = true
 	_scrim.modulate.a = 0.0
 	_kill_tween()
-	if animate:
+	if _should_animate():
 		_tween = create_tween()
 		_tween.set_parallel(true)
 		_tween.tween_property(_panel, "position", g["docked"], ANIM_DURATION) \
@@ -263,7 +263,7 @@ func close() -> void:
 	_is_open = false
 	var g := _panel_geometry()
 	_kill_tween()
-	if animate and visible:
+	if _should_animate() and visible:
 		_tween = create_tween()
 		_tween.set_parallel(true)
 		_tween.tween_property(_panel, "position", g["hidden"], ANIM_DURATION) \
@@ -280,6 +280,20 @@ func _kill_tween() -> void:
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	_tween = null
+
+
+## Drawer slide + scrim fade is gated on the per-instance `animate` flag AND the
+## global Reduced Motion accessibility setting — parity with SceneStage /
+## SceneAtmosphereLayer, which already honor ThemeManager.is_reduced_animation_enabled().
+## When reduced motion is on, open()/close() fall through to their instant-snap
+## else-branch (no tween): the drawer still works, just without the slide.
+func _should_animate() -> bool:
+	if not animate:
+		return false
+	var tm := get_node_or_null("/root/ThemeManager")
+	if tm and tm.has_method("is_reduced_animation_enabled") and tm.is_reduced_animation_enabled():
+		return false
+	return true
 
 
 func _unhandled_input(event: InputEvent) -> void:

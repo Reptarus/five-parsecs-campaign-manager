@@ -268,19 +268,9 @@ func process_battle_experience() -> Dictionary:
 	battle_results_manager.apply_experience(experience_data)
 	return experience_data
 
-## Generate and process loot from a battle
-func process_battle_loot() -> Array:
-	var battle_data = battle_results_manager._current_battle
-	var difficulty = battle_data.get("difficulty", 2)
-	var success = battle_data.get("outcome", "") == BattleResultsManager.OUTCOME_VICTORY
-	
-	var loot_items = equipment_manager.generate_battle_loot(difficulty, success)
-	
-	# Add loot items to equipment storage
-	for item in loot_items:
-		equipment_manager.add_equipment(item)
-	
-	return loot_items
+# NOTE (2026-06-01 rules-accuracy consolidation): process_battle_loot() was REMOVED.
+# It was dead (no callers) and depended on the now-removed EquipmentManager.generate_battle_loot.
+# Live post-battle loot runs through PostBattlePhase -> LootProcessor -> LootTableResolver.
 
 ## Signal handlers
 

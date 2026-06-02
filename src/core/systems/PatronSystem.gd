@@ -369,14 +369,6 @@ func accept_job(job_data: Dictionary) -> bool:
 	current_job["accepted_at"] = Time.get_unix_time_from_system()
 	current_job["status"] = "active"
 
-	# Generate benefits, hazards, conditions
-	if job_data.has("patron_id"):
-		var job_patron_id = SafeDataAccess.safe_get(job_data, "patron_id", "", "job patron ID lookup")
-		var patron = _get_patron_by_id(job_patron_id)
-		if patron:
-			var current_job_id = SafeDataAccess.safe_get(current_job, "id", "", "current job ID lookup")
-			job_benefits_hazards[current_job_id] = generate_benefits_hazards_conditions(patron)
-
 	job_accepted.emit(current_job)
 	return true
 
@@ -407,24 +399,14 @@ func complete_job(success: bool, results: Dictionary = {}) -> void:
 	job_history.append(current_job.duplicate())
 	current_job.clear()
 
-func generate_benefits_hazards_conditions(patron: Dictionary) -> Dictionary:
-	## Generate job modifiers based on patron type
-	var result: Variant = {
-		"benefits": [],
-		"hazards": [],
-		"conditions": []
-	}
-
-	if _should_generate_benefit(patron):
-		result.benefits.append(_generate_benefit())
-
-	if _should_generate_hazard(patron):
-		result.hazards.append(_generate_hazard())
-
-	if _should_generate_condition(patron):
-		result.conditions.append(_generate_condition())
-
-	return result
+# NOTE (2026-06-01 rules-accuracy consolidation): generate_benefits_hazards_conditions +
+# _should_generate_benefit/hazard/condition + _generate_benefit/hazard/condition were REMOVED.
+# They were dead (reached only via the uncalled accept_job) and used a fabricated patron-type
+# probability (0.8/0.5) that was ALSO bugged (`var chance: int = 0.8` truncated to 0, so it
+# never fired). The live benefit/hazard application path (complete_job ->
+# _apply_failure_consequences -> _apply_hazard_consequence) is unaffected. The benefit/hazard/
+# condition LISTS were book-faithful (Core Rules p.84); if this feature is ever wired up, roll
+# them per the book's actual procedure rather than fabricated per-patron-type odds.
 
 # =====================================================
 # PRIVATE HELPER METHODS
@@ -710,42 +692,6 @@ func _apply_hazard_consequence(hazard: String) -> void:
 			pass
 		_:
 			pass
-
-func _should_generate_benefit(patron: Dictionary) -> bool:
-	## Check if patron should provide job benefits
-	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron benefit check")
-	var patron_type = SafeDataAccess.safe_get(patron_dict, "type", "CORPORATE", "patron type lookup")
-	var chance: int = 0.8 if patron_type in ["CORPORATE", "UNITY"] else 0.5
-	return randf() < chance
-
-func _should_generate_hazard(patron: Dictionary) -> bool:
-	## Check if patron should impose job hazards
-	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron hazard check")
-	var patron_type = SafeDataAccess.safe_get(patron_dict, "type", "CORPORATE", "patron type lookup")
-	var chance: int = 0.5 if patron_type == "FRINGE" else 0.8
-	return randf() < chance
-
-func _should_generate_condition(patron: Dictionary) -> bool:
-	## Check if patron should impose job conditions
-	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron condition check")
-	var patron_type = SafeDataAccess.safe_get(patron_dict, "type", "CORPORATE", "patron type lookup")
-	var chance: int = 0.5 if patron_type == "CORPORATE" else 0.8
-	return randf() < chance
-
-func _generate_benefit() -> String:
-	## Generate random job benefit
-	var benefits = ["Fringe Benefit", "Connections", "Company Store", "Health Insurance", "Security Team", "Persistent", "Negotiable"]
-	return benefits.pick_random()
-
-func _generate_hazard() -> String:
-	## Generate random job hazard
-	var hazards = ["Dangerous Job", "Hot Job", "VIP", "Veteran Opposition", "Low Priority", "Private Transport"]
-	return hazards.pick_random()
-
-func _generate_condition() -> String:
-	## Generate random job condition
-	var conditions = ["Vengeful", "Demanding", "Small Squad", "Full Squad", "Clean", "Busy", "One-time Contract", "Reputation Required"]
-	return conditions.pick_random()
 
 # Public API methods for backward compatibility
 func get_active_patrons() -> Array[Dictionary]:

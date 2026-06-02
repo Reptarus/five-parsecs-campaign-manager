@@ -101,8 +101,8 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 	var world_data = {
 		"id": "world_" + str(Time.get_unix_time_from_system()),
 		"name": planet_name,
-		"type": planet_type.get("type", "Unknown"),
-		"type_name": planet_type.get("name", "Unknown Planet"),
+		"type": planet_type.get("id", "standard"),
+		"type_name": planet_type.get("name", "Standard World"),
 		"danger_level": danger_level,
 		"tech_level": tech_level,
 		"tech_name": tech_name,
@@ -140,35 +140,26 @@ func _get_government_type(roll: int) -> String:
 		10: return "Unity Oversight"
 		_: return "Unknown"
 
-## Generate a planet type according to rulebook tables (p.80)
+## Select a world "type" for cosmetic flavor (display + save).
+## NOTE (2026-06-01 rules-accuracy consolidation): Five Parsecs world generation is
+## TRAIT-BASED (Core Rules "World Traits Table"); there is NO biome "planet type" D100
+## table in the Core Rulebook OR Compendium (verified via PDF). The world type here is
+## purely cosmetic flavor shown in the UI and stored on PlanetData. The previous code was
+## fabricated AND broken: it D100-matched on range_min/range_max fields that don't exist in
+## planet_types.json, so it ALWAYS returned the first entry ("Desert World"). It now picks
+## uniformly at random from the existing flavor entries, reading the JSON's real id/name
+## schema. (The planet_types resource_modifiers are unused dead flavor data.)
 func _generate_planet_type() -> Dictionary:
 	if _use_specific_planet_type and _specific_planet_type != "":
-		# Use the specified planet type if set
 		for planet in _planet_types:
-			if planet.get("type", "") == _specific_planet_type:
+			if planet.get("id", "") == _specific_planet_type:
 				return planet
-	
-	# Otherwise, roll on the table
-	var roll = randi() % 100 + 1
-	
-	for planet in _planet_types:
-		var range_min = planet.get("range_min", 0)
-		var range_max = planet.get("range_max", 0)
-		
-		if roll >= range_min and roll <= range_max:
-			return planet
-	
-	# Fallback to first planet type if something went wrong
+
 	if _planet_types.size() > 0:
-		return _planet_types[0]
-	
-	# Ultimate fallback if no data loaded
-	return {
-		"type": "FRONTIER_WORLD",
-		"name": "Frontier World",
-		"description": "A rugged frontier settlement.",
-		"base_danger": 2
-	}
+		return _planet_types[randi() % _planet_types.size()]
+
+	# Fallback if data unavailable
+	return {"id": "standard", "name": "Standard World"}
 
 ## Generate a planet name
 func _generate_planet_name(planet_type: Dictionary) -> String:
@@ -235,7 +226,7 @@ func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:
 		var compatible_locations = []
 		for location in _location_types:
 			var compatible_planets = location.get("compatible_planets", [])
-			if compatible_planets.size() == 0 or planet_type.get("type", "") in compatible_planets:
+			if compatible_planets.size() == 0 or planet_type.get("id", "") in compatible_planets:
 				compatible_locations.append(location)
 		
 		if compatible_locations.size() == 0:

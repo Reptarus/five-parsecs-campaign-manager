@@ -24,10 +24,14 @@ enum SaveType {
 # Open within 6": 3+
 # Open in range OR Cover within 6": 5+
 # Cover in range: 6+
-const HIT_OPEN_CLOSE := 3       # Open target within 6"
-const HIT_OPEN_RANGE := 5       # Open target in range
-const HIT_COVER_CLOSE := 5      # Cover target within 6"
-const HIT_COVER_RANGE := 6      # Cover target in range
+const HIT_OPEN_CLOSE := 3       # Open target within 6" (Core Rules p.44)
+const HIT_OPEN_RANGE := 5       # Open target in range (Core Rules p.44)
+# Core Rules p.44 ("To Hit") lists a close bonus ONLY for OPEN targets. Cover is a
+# single row — "within weapon range and in Cover 6+" — spanning ALL ranges, so a
+# cover target within 6" is ALSO 6+. Was 5 (an unflagged deviation, no
+# GAME_BALANCE_ESTIMATE tag) — corrected per the Data Integrity rule (book wins).
+const HIT_COVER_CLOSE := 6      # Cover target within 6" (Core Rules p.44 — cover is 6+ at all ranges)
+const HIT_COVER_RANGE := 6      # Cover target in range (Core Rules p.44)
 const ELEVATION_BONUS := 1
 const LONG_RANGE_PENALTY := 1   # Added to threshold beyond weapon range
 
@@ -733,6 +737,25 @@ static func resolve_brawl(
 		result["damage_to_attacker"] += 1
 		result["effects"].append("kerin_melee_bonus_defense")
 
+	# Saving Throws (Core Rules p.44-45): brawl Hits are resolved like any Hit, so
+	# the loser may roll their Armor/Screen save. resolve_saves is melee-aware
+	# (screens are gunfire-only vs melee; a Piercing melee weapon negates armor).
+	# Unarmored targets short-circuit (no roll, no behavior change), so this only
+	# affects armored combatants. Each saved Hit is negated. The traits passed are
+	# the OPPONENT's weapon traits (the side dealing the Hit) for the Piercing check.
+	if result["damage_to_defender"] > 0:
+		var saved_def: int = _count_brawl_saves(defender, attacker_traits, result["damage_to_defender"], dice_roller)
+		if saved_def > 0:
+			result["damage_to_defender"] -= saved_def
+			result["defender_brawl_saves"] = saved_def
+			result["effects"].append("defender_brawl_save")
+	if result["damage_to_attacker"] > 0:
+		var saved_atk: int = _count_brawl_saves(attacker, defender_traits, result["damage_to_attacker"], dice_roller)
+		if saved_atk > 0:
+			result["damage_to_attacker"] -= saved_atk
+			result["attacker_brawl_saves"] = saved_atk
+			result["effects"].append("attacker_brawl_save")
+
 	# Sprint 26.5: Debug log brawl resolution
 	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
 	var defender_name: String = defender.get("character_name", defender.get("name", "Unknown"))
@@ -743,6 +766,22 @@ static func resolve_brawl(
 	_debug_log_brawl(attacker_name, defender_name, attacker_natural, defender_natural, attacker_bonus, defender_bonus, winner_name, damage)
 
 	return result
+
+## Roll a Saving Throw per incoming brawl Hit (Core Rules p.44-45 — brawl Hits are
+## resolved like any Hit, so armor/screen saves apply). Returns how many of `hits`
+## were saved. `opponent_weapon_traits` are the dealing side's (for the Piercing
+## check). Short-circuits to 0 (no dice rolled) when the target has no save, so
+## unarmored brawls are unchanged.
+static func _count_brawl_saves(target: Dictionary, opponent_weapon_traits: Array, hits: int, dice_roller: Callable) -> int:
+	if get_save_type(target) == SaveType.NONE:
+		return 0
+	var melee_ctx := {"is_melee": true}
+	var saved := 0
+	for _i in range(hits):
+		var save: Dictionary = resolve_saves(int(dice_roller.call()), target, opponent_weapon_traits, 1, melee_ctx)
+		if save.get("saved", false):
+			saved += 1
+	return saved
 
 ## Get brawl weapon bonus from character's weapon
 static func _get_brawl_weapon_bonus(character: Dictionary) -> int:
