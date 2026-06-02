@@ -185,7 +185,7 @@ static func initialize_battle(
 		else:
 			# Fallback for objects without to_dictionary
 			unit = {"character_name": crew.character_name if "character_name" in crew else "", "toughness": crew.toughness if "toughness" in crew else DEFAULT_TOUGHNESS, "combat_skill": crew.combat if "combat" in crew else 0}
-		unit["hp_current"] = unit.get("toughness", DEFAULT_TOUGHNESS)
+		unit["hp_current"] = 1  # Binary alive/casualty — Core Rules p.46 has no HP pool
 		unit["is_stunned"] = false
 		unit["is_suppressed"] = false
 		unit["is_alive"] = true
@@ -207,7 +207,7 @@ static func initialize_battle(
 	# Copy enemy units and apply deployment effects
 	for enemy in enemies_deployed:
 		var unit: Dictionary = enemy.duplicate(true) if enemy is Dictionary else {}
-		unit["hp_current"] = unit.get("toughness", DEFAULT_TOUGHNESS)
+		unit["hp_current"] = 1  # Binary alive/casualty — Core Rules p.46 has no HP pool
 		unit["is_stunned"] = false
 		unit["is_suppressed"] = false
 		unit["is_alive"] = true
@@ -449,65 +449,49 @@ static func _execute_unit_attacks(
 				"weapon_id": str(weapon.get("id", ""))
 			})
 
-		# Apply damage if hit and not saved (check BOTH armor and screen saves)
-		var was_saved: bool = attack_result.get("armor_saved", false) or attack_result.get("screen_saved", false)
-		if attack_result["hit"] and not was_saved:
-			# Core Rules: an unsaved hit always causes at least 1 wound.
-			# calculate_damage_after_armor can return 0 when weapon damage <= toughness,
-			# but in Five Parsecs a failed save = casualty, so minimum 1 wound per hit.
-			var damage: int = maxi(1, int(attack_result.get("wounds_inflicted", 1)))
-			if not target.has("hp_current"):
-				target["hp_current"] = target.get("toughness", DEFAULT_TOUGHNESS)
-			target["hp_current"] -= damage
-
-			if target["hp_current"] <= 0:
-				# Phase 7: Stim-pack — prevent elimination (Core Rules p.54)
-				if target.get("has_stim_pack", false):
+		# Resolving Hits (Core Rules p.46): resolve_ranged_attack already rolled the
+		# 1D6+Damage-vs-Toughness casualty/Stun outcome (a deflected/saved Hit still
+		# Stuns). No HP pool — a casualty Hit removes the figure (Stim-pack p.54 saves
+		# once). becomes_casualty already folds in the critical second hit + saves.
+		if attack_result["hit"]:
+			if attack_result.get("becomes_casualty", false):
+				if int(target.get("luck", 0)) > 0:
+					# Luck (Core Rules p.46): lose 1 Luck instead of becoming a
+					# casualty; otherwise unharmed (displacement is position-less here).
+					target["luck"] = int(target["luck"]) - 1
+					result["events"].append({
+						"type": "luck_used",
+						"target": target.get("name", target.get("character_name", "Unknown"))
+					})
+				elif target.get("has_stim_pack", false):
 					target["has_stim_pack"] = false
-					target["hp_current"] = 1
 					target["is_stunned"] = true
 					result["events"].append({
 						"type": "stim_pack_used",
-						"target": target.get("name",
-							target.get("character_name", "Unknown"))
+						"target": target.get("name", target.get("character_name", "Unknown"))
 					})
 					result["consumed_items"].append({
-						"character_name": target.get(
-							"character_name", target.get("name", "")),
-						"character_id": str(target.get(
-							"character_id", target.get("id", ""))),
+						"character_name": target.get("character_name", target.get("name", "")),
+						"character_id": str(target.get("character_id", target.get("id", ""))),
 						"weapon_name": "Stim-pack",
 						"weapon_id": "stim_pack"
 					})
 				else:
+					target["hp_current"] = 0
 					target["is_alive"] = false
 					result["casualties"] += 1
 					attacker["kills"] = attacker.get("kills", 0) + 1
-
 					result["events"].append({
 						"type": "elimination",
 						"attacker": attacker.get("name", "Unknown"),
-						"target": target.get("name", "Enemy"),
-						"damage": damage
+						"target": target.get("name", "Enemy")
 					})
-			elif "stun" in attack_result.get("effects", []):
+			elif attack_result.get("stunned", false):
 				target["is_stunned"] = true
 				result["events"].append({
 					"type": "stunned",
 					"target": target.get("name", "Unknown")
 				})
-		elif attack_result["hit"] and was_saved:
-			# Stun still applies even when saved — Core Rules p.51
-			if "stun" in attack_result.get("effects", []):
-				target["is_stunned"] = true
-				result["events"].append({
-					"type": "stunned",
-					"target": target.get("name", "Unknown")
-				})
-			result["events"].append({
-				"type": "armor_save",
-				"target": target.get("name", "Unknown")
-			})
 
 		# Phase 4: Track hot weapon firing for overheat next round
 		if BattleCalculations._has_trait(weapon_traits, "hot") or BattleCalculations._has_trait(weapon_traits, "overheat"):

@@ -421,37 +421,12 @@ func _calculate_rewards() -> void:
 			reward_data["credits"] += int(rc.get("credits", 50))
 			reward_data["reputation"] += int(rc.get("reputation", 3))
 
-	# Calculate loot drops
-	reward_data["loot"] = _generate_battle_loot()
-
 	_current_battle.rewards = reward_data
 	rewards_calculated.emit(reward_data)
-	
-## Generate loot items based on battle outcome
-func _generate_battle_loot() -> Array:
-	var loot_items = []
-	
-	# Only generate loot for victories or draws
-	if _current_battle.outcome == OUTCOME_DEFEAT or _current_battle.outcome == OUTCOME_RETREAT:
-		return loot_items
-		
-	# Chance of finding loot depends on outcome
-	var loot_chance = 0.7 if _current_battle.outcome == OUTCOME_VICTORY else 0.3
-	
-	# Number of loot items depends on enemy casualties
-	var enemy_count = _current_battle.enemy_casualties.size()
-	var max_items = min(enemy_count / 2, 5) # Cap at 5 items
-	
-	# Generate random loot
-	for i in range(max_items):
-		if randf() <= loot_chance:
-			# Simplified loot generation - would be more complex in real implementation
-			var loot_item = {
-				"id": "loot_" + str(randi()),
-				"type": ["weapon", "armor", "item"].pick_random(),
-				"quality": randi() % 3, # 0=common, 1=uncommon, 2=rare
-				"value": 50 + randi() % 200
-			}
-			loot_items.append(loot_item)
-			
-	return loot_items
+
+# NOTE (2026-06-01 rules-accuracy consolidation): _generate_battle_loot() was REMOVED.
+# It was a fabricated loot generator (0.7/0.3 chance, per-enemy max_items, random
+# weapon/armor/item with value 50-250 — none in the rulebook) and dead: its only path
+# (_calculate_rewards <- complete_battle <- GameSystemManager.process_battle_results) has
+# no live caller. Canonical post-battle loot is PostBattlePhase -> LootProcessor ->
+# LootTableResolver (Core Rules p.130-133, one roll per battle).

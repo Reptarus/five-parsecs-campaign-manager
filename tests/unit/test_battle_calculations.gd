@@ -114,6 +114,27 @@ func test_check_hit_failure() -> void:
 
 #endregion
 
+#region Resolving Hits (Core Rules p.46 — canonical casualty/Stun model)
+
+func test_resolve_hit_outcome_meets_toughness_is_casualty() -> void:
+	# 1D6 + Damage >= Toughness -> casualty. roll 3 + Damage 1 = 4 >= Toughness 4.
+	var out := BattleCalculations.resolve_hit_outcome(1, 4, func(): return 3)
+	assert_bool(out.get("casualty")).is_true()
+	assert_bool(out.get("stunned")).is_false()
+
+func test_resolve_hit_outcome_below_toughness_is_stun() -> void:
+	# roll 2 + Damage 0 = 2 < Toughness 4 -> Stunned (not a casualty), no HP pool.
+	var out := BattleCalculations.resolve_hit_outcome(0, 4, func(): return 2)
+	assert_bool(out.get("casualty")).is_false()
+	assert_bool(out.get("stunned")).is_true()
+
+func test_resolve_hit_outcome_natural_6_always_casualty() -> void:
+	# Natural 6 is an automatic casualty even vs very high Toughness (Core Rules p.46).
+	var out := BattleCalculations.resolve_hit_outcome(0, 8, func(): return 6)
+	assert_bool(out.get("casualty")).is_true()
+
+#endregion
+
 #region Damage Calculation Tests
 
 func test_base_weapon_damage() -> void:
@@ -268,11 +289,15 @@ func test_resolve_brawl_attacker_wins() -> void:
 	assert_int(result["damage_to_defender"]).is_equal(1)
 
 func test_resolve_brawl_defender_wins() -> void:
-	var attacker := {"combat_skill": 1}
+	# Toughness 1 on the losing attacker makes the Resolving-Hits roll (Core Rules
+	# p.46) a guaranteed casualty (1D6 + Damage 0 >= 1 always), so the result is
+	# deterministic regardless of the casualty die. damage_to_attacker is the
+	# CASUALTY COUNT under the canonical model (no HP pool).
+	var attacker := {"combat_skill": 1, "toughness": 1}
 	var defender := {"combat_skill": 3}
 
-	# Attacker rolls 2+1=3, defender rolls 4+3=7
-	var roller := BattleTestFactory.create_fixed_roller([2, 4])
+	# Brawl roll: attacker 2+1=3 vs defender 4+3=7 -> defender wins (1 Hit).
+	var roller := BattleTestFactory.create_fixed_roller([2, 4, 6])
 
 	var result := BattleCalculations.resolve_brawl(attacker, defender, roller)
 

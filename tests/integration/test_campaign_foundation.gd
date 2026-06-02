@@ -34,10 +34,10 @@ func test_all_panels_exist():
 		assert_that(script).is_not_null()
 
 func test_all_controllers_exist():
+	# CaptainPanelController.gd + CrewPanelController.gd removed 2026-06-01 (dead — uninstantiated,
+	# called a non-existent SimpleCharacterCreator.create_character; panels use CharacterCreator directly).
 	var controllers = [
 		"BaseController.gd",
-		"CaptainPanelController.gd",
-		"CrewPanelController.gd",
 		"ShipPanelController.gd",
 		"ConfigPanelController.gd"
 	]

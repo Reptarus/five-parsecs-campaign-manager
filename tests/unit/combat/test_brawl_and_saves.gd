@@ -523,10 +523,11 @@ func test_hulker_melee_damage_bonus() -> void:
 
 	var result = BattleCalculations.resolve_brawl(attacker, defender, dice_roller)
 
-	# Hulker should have +2 damage bonus
+	# Hulker's +2 is a DAMAGE-RATING bonus to the Resolving-Hits roll (Core Rules
+	# p.46), not extra wounds. The bonus is recorded, and the high damage roll
+	# (1D6 + 2) easily meets Toughness 3 -> the Hit is a casualty.
 	assert_that(result.get("attacker_damage_bonus")).is_equal(2)
-	# Base damage + 2 Hulker bonus
-	assert_that(result.get("damage_to_defender")).is_greater_equal(3)
+	assert_int(result.get("damage_to_defender")).is_equal(1)  # casualty count, not a wound total
 
 #endregion
 

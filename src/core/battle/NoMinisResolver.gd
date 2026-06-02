@@ -374,10 +374,16 @@ static func _resolve_brawl_engagement(
 	if a.get("is_stunned", false) or b.get("is_stunned", false):
 		return
 	var brawl: Dictionary = BattleCalculations.resolve_brawl(a, b, dice_roller)
+	# damage_to_X is now the CASUALTY COUNT (Core Rules p.46 — no HP pool); a
+	# non-casualty Hit Stuns the loser (Stun clears at round end, Compendium p.70).
 	if brawl.get("damage_to_defender", 0) > 0:
 		_apply_wounds(a, b, int(brawl["damage_to_defender"]), result)
+	elif brawl.get("defender_stunned", false) and b.get("is_alive", false):
+		b["is_stunned"] = true
 	if brawl.get("damage_to_attacker", 0) > 0:
 		_apply_wounds(b, a, int(brawl["damage_to_attacker"]), result)
+	elif brawl.get("attacker_stunned", false) and a.get("is_alive", false):
+		a["is_stunned"] = true
 
 
 ## ── Damage application (mirrors BattleResolver's unsaved-hit handling) ───────
@@ -389,16 +395,13 @@ static func _apply_damage(
 ) -> void:
 	if not attack.get("hit", false):
 		return
-	var saved: bool = attack.get("armor_saved", false) or attack.get("screen_saved", false)
-	if saved:
-		# Stun still applies on a saved hit (Core Rules p.51).
-		if "stun" in attack.get("effects", []):
-			target["is_stunned"] = true
-		return
-	# An unsaved hit always causes at least 1 wound (Five Parsecs: failed save = casualty).
-	var wounds: int = maxi(1, int(attack.get("wounds_inflicted", 1)))
-	_apply_wounds(attacker, target, wounds, result)
-	if target.get("is_alive", false) and "stun" in attack.get("effects", []):
+	# Core Rules p.46: resolve_ranged_attack already rolled casualty-or-Stun (a
+	# saved Hit still Stuns; the critical second hit + saves are folded into
+	# becomes_casualty). No HP pool — a casualty Hit removes the figure (Stim-pack
+	# p.54 saves once, handled in _apply_wounds).
+	if attack.get("becomes_casualty", false):
+		_apply_wounds(attacker, target, 1, result)
+	elif attack.get("stunned", false):
 		target["is_stunned"] = true
 
 
@@ -409,10 +412,17 @@ static func _apply_wounds(
 	wounds: int,
 	result: Dictionary
 ) -> void:
-	if not target.get("hp_current"):
-		target["hp_current"] = target.get("toughness", BattleResolverRef.DEFAULT_TOUGHNESS)
+	if not target.has("hp_current"):
+		target["hp_current"] = 1  # Binary alive/casualty — Core Rules p.46 has no HP pool
 	target["hp_current"] -= wounds
 	if target["hp_current"] > 0:
+		return
+	# Luck (Core Rules p.46): a casualty with Luck loses 1 Luck instead and is
+	# otherwise unharmed (the 1D6" displacement is position-less in auto-resolve).
+	# Checked before the Stim-pack so the innate save is spent before the consumable.
+	if int(target.get("luck", 0)) > 0:
+		target["luck"] = int(target["luck"]) - 1
+		target["hp_current"] = 1
 		return
 	# Stim-pack prevents elimination once (Core Rules p.54).
 	if target.get("has_stim_pack", false):

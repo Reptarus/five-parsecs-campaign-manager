@@ -11,6 +11,29 @@ extends GdUnitTestSuite
 const NoMinisResolver := preload("res://src/core/battle/NoMinisResolver.gd")
 
 # ============================================================================
+# Luck save (Core Rules p.46) — casualty chokepoint
+# ============================================================================
+
+func test_luck_prevents_casualty_and_spends_one_luck() -> void:
+	# Core Rules p.46: a figure with Luck that would be a casualty loses 1 Luck
+	# instead and is otherwise unharmed (no HP pool — hp_current is binary).
+	var attacker := {"kills": 0}
+	var target := {"is_alive": true, "hp_current": 1, "luck": 1, "_is_enemy_unit": true}
+	var result := {"enemy_killed": 0, "crew_killed": 0, "consumed_items": []}
+	NoMinisResolver._apply_wounds(attacker, target, 1, result)
+	assert_bool(target["is_alive"]).is_true()        # survived
+	assert_int(int(target["luck"])).is_equal(0)      # spent 1 Luck
+	assert_int(result["enemy_killed"]).is_equal(0)   # not counted as a casualty
+
+func test_no_luck_becomes_casualty() -> void:
+	var attacker := {"kills": 0}
+	var target := {"is_alive": true, "hp_current": 1, "luck": 0, "_is_enemy_unit": true}
+	var result := {"enemy_killed": 0, "crew_killed": 0, "consumed_items": []}
+	NoMinisResolver._apply_wounds(attacker, target, 1, result)
+	assert_bool(target["is_alive"]).is_false()       # casualty (no Luck to spend)
+	assert_int(result["enemy_killed"]).is_equal(1)
+
+# ============================================================================
 # Helpers
 # ============================================================================
 

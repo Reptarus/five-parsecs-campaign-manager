@@ -238,6 +238,26 @@ static func calculate_damage_after_armor(
 	var final_damage := raw_damage - effective_toughness
 	return maxi(0, final_damage)
 
+## Resolving Hits (Core Rules p.46): given a Hit has landed and was NOT saved,
+## roll 1D6 and add the attack's Damage rating. If the total EQUALS OR EXCEEDS the
+## target's Toughness, OR the die is a natural 6, the figure becomes a casualty
+## (removed from play). A lower roll leaves it Stunned (and pushed back 1").
+## There is NO HP pool — Toughness is the casualty target number, not a wound
+## reserve. This is the canonical replacement for the old Damage-minus-Toughness
+## "wounds" subtraction (calculate_damage_after_armor), which was non-canonical.
+static func resolve_hit_outcome(damage_rating: int, target_toughness: int, dice_roller: Callable) -> Dictionary:
+	var roll: int = int(dice_roller.call())
+	var natural_6: bool = roll == 6
+	var total: int = roll + damage_rating
+	var casualty: bool = natural_6 or total >= target_toughness
+	return {
+		"casualty": casualty,
+		"stunned": not casualty,
+		"roll": roll,
+		"total": total,
+		"natural_6": natural_6,
+	}
+
 ## Calculate armor save threshold
 static func get_armor_save_threshold(armor_type: String, species: String = "") -> int:
 	# Soulless have innate 6+ armor save (Five Parsecs p.19)
@@ -398,6 +418,8 @@ static func resolve_ranged_attack(
 		"armor_saved": false,
 		"screen_saved": false,
 		"wounds_inflicted": 0,
+		"becomes_casualty": false,
+		"stunned": false,
 		"effects": []
 	}
 
@@ -407,7 +429,6 @@ static func resolve_ranged_attack(
 	var weapon_range: int = weapon.get("range", RIFLE_RANGE)
 	var weapon_damage: int = weapon.get("damage", 1)
 	var weapon_traits: Array = weapon.get("traits", [])
-	var penetration: int = weapon.get("penetration", 0)
 
 	var target_in_cover: bool = target.get("in_cover", false)
 	var target_toughness: int = target.get("toughness", 3)
@@ -506,8 +527,9 @@ static func resolve_ranged_attack(
 			result["armor_saved"] = true
 		else:
 			result["armor_saved"] = true  # Default for backwards compatibility
-		# Core Rules p.51: Stun applies even if saved by armor
-		if trait_effects["causes_stun"]:
+		# Core Rules p.46: a deflected (saved) Hit still leaves the figure Stunned.
+		result["stunned"] = true
+		if "stun" not in result["effects"]:
 			result["effects"].append("stun")
 		return result
 
@@ -516,15 +538,25 @@ static func resolve_ranged_attack(
 	if target_prot.get("flak_screen", false) and trait_effects.get("is_area_effect", false):
 		raw_damage = maxi(0, raw_damage - 1)
 
-	# Apply damage — Core Rules p.51: Stun ignores Toughness
-	var effective_toughness: int = target_toughness
+	# Resolving Hits (Core Rules p.46): an unsaved Hit is NOT an automatic wound.
+	# A Stun-trait weapon ignores Toughness and simply Stuns. Otherwise roll
+	# 1D6 + Damage rating: >= Toughness OR natural 6 removes the figure as a
+	# casualty; a lower roll leaves it Stunned. No HP pool (Toughness = target #).
 	if trait_effects.get("ignore_toughness", false):
-		effective_toughness = 0  # Stun: Toughness bypassed
-	var final_damage := calculate_damage_after_armor(
-		raw_damage, effective_toughness, penetration
-	)
-	result["damage"] = final_damage
-	result["wounds_inflicted"] = final_damage
+		# Stun weapon (Core Rules p.51): Stuns, never a Toughness casualty.
+		result["stunned"] = true
+		if "stun" not in result["effects"]:
+			result["effects"].append("stun")
+	else:
+		var hit_outcome: Dictionary = resolve_hit_outcome(raw_damage, target_toughness, dice_roller)
+		result["damage_roll"] = hit_outcome["roll"]
+		if hit_outcome["casualty"]:
+			result["becomes_casualty"] = true
+		else:
+			result["stunned"] = true
+	# Back-compat numeric field for display consumers: 1 = casualty, 0 = stun/none.
+	result["wounds_inflicted"] = 1 if result["becomes_casualty"] else 0
+	result["damage"] = result["wounds_inflicted"]
 
 	# Apply status effects from trait system
 	if trait_effects["causes_stun"]:
@@ -555,22 +587,35 @@ static func resolve_ranged_attack(
 		var extra_save_result := resolve_saves(
 			extra_save_roll, target, weapon_traits, raw_damage, trait_effects
 		)
-		var extra_damage: int = 0
-		if not extra_save_result.get("saved", false):
+		var extra_casualty: bool = false
+		var extra_stunned: bool = false
+		if extra_save_result.get("saved", false):
+			extra_stunned = true  # deflected Hit still Stuns (Core Rules p.46)
+		elif trait_effects.get("ignore_toughness", false):
+			extra_stunned = true  # Stun weapon
+		else:
 			var extra_raw := raw_damage
 			if target_prot.get("flak_screen", false) \
 					and trait_effects.get("is_area_effect", false):
 				extra_raw = maxi(0, extra_raw - 1)
-			extra_damage = calculate_damage_after_armor(
-				extra_raw, effective_toughness, penetration
-			)
+			var extra_outcome := resolve_hit_outcome(extra_raw, target_toughness, dice_roller)
+			extra_casualty = extra_outcome["casualty"]
+			extra_stunned = not extra_casualty
 		result["additional_hits"] = [{
 			"save_roll": extra_save_roll,
 			"saved": extra_save_result.get("saved", false),
 			"save_type_used": extra_save_result.get("save_type_used", SaveType.NONE),
 			"armor_pierced": extra_save_result.get("armor_pierced", false),
-			"damage": extra_damage,
+			"becomes_casualty": extra_casualty,
+			"stunned": extra_stunned,
+			"damage": 1 if extra_casualty else 0,
 		}]
+		# If the extra hit kills, propagate to the headline outcome so single-hit
+		# consumers (that don't iterate additional_hits) still register the casualty.
+		if extra_casualty:
+			result["becomes_casualty"] = true
+			result["wounds_inflicted"] = 1
+			result["damage"] = 1
 
 	return result
 
@@ -717,44 +762,45 @@ static func resolve_brawl(
 		result["damage_to_defender"] = 1
 		result["effects"].append("draw_both_hit")
 
-	# Apply Hulker bonus damage (+2 melee damage)
-	if result["damage_to_defender"] > 0 and _is_hulker(attacker_species):
+	# At this point damage_to_X is the HIT COUNT (win + natural-6/natural-1 extra
+	# Hits + draw). Species melee bonuses are DAMAGE-RATING bonuses for the
+	# Resolving-Hits roll (Hulker +2, K'Erin +1, Five Parsecs p.18) — NOT extra Hits.
+	var attacker_dmg_rating: int = _get_brawl_weapon_damage(attacker)
+	var defender_dmg_rating: int = _get_brawl_weapon_damage(defender)
+	if _is_hulker(attacker_species):
+		attacker_dmg_rating += 2
 		result["attacker_damage_bonus"] = 2
-		result["damage_to_defender"] += 2
 		result["effects"].append("hulker_melee_bonus")
-
-	if result["damage_to_attacker"] > 0 and _is_hulker(defender_species):
+	if _is_hulker(defender_species):
+		defender_dmg_rating += 2
 		result["defender_damage_bonus"] = 2
-		result["damage_to_attacker"] += 2
 		result["effects"].append("hulker_melee_bonus_defense")
-	
-	# Apply K'Erin bonus damage (+1 melee damage, Five Parsecs p.18)
-	if result["damage_to_defender"] > 0 and _is_kerin(attacker_species):
-		result["damage_to_defender"] += 1
+	if _is_kerin(attacker_species):
+		attacker_dmg_rating += 1
 		result["effects"].append("kerin_melee_bonus")
-	
-	if result["damage_to_attacker"] > 0 and _is_kerin(defender_species):
-		result["damage_to_attacker"] += 1
+	if _is_kerin(defender_species):
+		defender_dmg_rating += 1
 		result["effects"].append("kerin_melee_bonus_defense")
 
-	# Saving Throws (Core Rules p.44-45): brawl Hits are resolved like any Hit, so
-	# the loser may roll their Armor/Screen save. resolve_saves is melee-aware
-	# (screens are gunfire-only vs melee; a Piercing melee weapon negates armor).
-	# Unarmored targets short-circuit (no roll, no behavior change), so this only
-	# affects armored combatants. Each saved Hit is negated. The traits passed are
-	# the OPPONENT's weapon traits (the side dealing the Hit) for the Piercing check.
-	if result["damage_to_defender"] > 0:
-		var saved_def: int = _count_brawl_saves(defender, attacker_traits, result["damage_to_defender"], dice_roller)
-		if saved_def > 0:
-			result["damage_to_defender"] -= saved_def
-			result["defender_brawl_saves"] = saved_def
-			result["effects"].append("defender_brawl_save")
-	if result["damage_to_attacker"] > 0:
-		var saved_atk: int = _count_brawl_saves(attacker, defender_traits, result["damage_to_attacker"], dice_roller)
-		if saved_atk > 0:
-			result["damage_to_attacker"] -= saved_atk
-			result["attacker_brawl_saves"] = saved_atk
-			result["effects"].append("attacker_brawl_save")
+	# Resolve each incoming Hit (Core Rules p.44-46): save first (a deflected Hit
+	# still Stuns, no casualty), then unsaved Hits roll 1D6 + Damage vs Toughness
+	# (or a natural 6) for a casualty, else Stun. damage_to_X becomes the CASUALTY
+	# COUNT; opponent weapon traits drive the Piercing-vs-armor check.
+	var def_out := _resolve_brawl_hits(
+		defender, attacker_traits, attacker_dmg_rating, int(result["damage_to_defender"]), dice_roller)
+	result["damage_to_defender"] = def_out["casualties"]
+	result["defender_brawl_saves"] = def_out["saved"]
+	result["defender_stunned"] = def_out["stunned"]
+	if def_out["saved"] > 0:
+		result["effects"].append("defender_brawl_save")
+
+	var atk_out := _resolve_brawl_hits(
+		attacker, defender_traits, defender_dmg_rating, int(result["damage_to_attacker"]), dice_roller)
+	result["damage_to_attacker"] = atk_out["casualties"]
+	result["attacker_brawl_saves"] = atk_out["saved"]
+	result["attacker_stunned"] = atk_out["stunned"]
+	if atk_out["saved"] > 0:
+		result["effects"].append("attacker_brawl_save")
 
 	# Sprint 26.5: Debug log brawl resolution
 	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
@@ -767,21 +813,47 @@ static func resolve_brawl(
 
 	return result
 
-## Roll a Saving Throw per incoming brawl Hit (Core Rules p.44-45 — brawl Hits are
-## resolved like any Hit, so armor/screen saves apply). Returns how many of `hits`
-## were saved. `opponent_weapon_traits` are the dealing side's (for the Piercing
-## check). Short-circuits to 0 (no dice rolled) when the target has no save, so
-## unarmored brawls are unchanged.
-static func _count_brawl_saves(target: Dictionary, opponent_weapon_traits: Array, hits: int, dice_roller: Callable) -> int:
-	if get_save_type(target) == SaveType.NONE:
-		return 0
+## Resolve incoming brawl Hits the canonical way (Core Rules p.44-46): each Hit
+## first rolls a Saving Throw (a deflected Hit still Stuns, no casualty); then the
+## unsaved Hits roll 1D6 + the attacker's Damage rating vs the target's Toughness
+## (or a natural 6) for a casualty, else a Stun. Returns {casualties, saved,
+## stunned}. Unarmored targets skip the save roll (only the casualty roll runs),
+## so behavior there is the canonical 1D6+Damage-vs-Toughness — no HP pool.
+static func _resolve_brawl_hits(target: Dictionary, opponent_weapon_traits: Array, damage_rating: int, hits: int, dice_roller: Callable) -> Dictionary:
+	var out := {"casualties": 0, "saved": 0, "stunned": false}
+	if hits <= 0:
+		return out
+	var has_save: bool = get_save_type(target) != SaveType.NONE
 	var melee_ctx := {"is_melee": true}
-	var saved := 0
+	var toughness: int = int(target.get("toughness", 3))
 	for _i in range(hits):
-		var save: Dictionary = resolve_saves(int(dice_roller.call()), target, opponent_weapon_traits, 1, melee_ctx)
-		if save.get("saved", false):
-			saved += 1
-	return saved
+		if has_save:
+			var save: Dictionary = resolve_saves(int(dice_roller.call()), target, opponent_weapon_traits, 1, melee_ctx)
+			if save.get("saved", false):
+				out["saved"] += 1
+				out["stunned"] = true  # deflected Hit still Stuns (Core Rules p.46)
+				continue
+		var hit_outcome: Dictionary = resolve_hit_outcome(damage_rating, toughness, dice_roller)
+		if hit_outcome["casualty"]:
+			out["casualties"] += 1
+		else:
+			out["stunned"] = true
+	return out
+
+## Best Melee/Pistol weapon Damage rating carried, for the brawl Resolving-Hits
+## roll. Defaults to 0 (most melee weapons are Damage +0).
+static func _get_brawl_weapon_damage(character: Dictionary) -> int:
+	var w: Variant = character.get("weapon", null)
+	if w is Dictionary and (w as Dictionary).has("damage"):
+		return int((w as Dictionary).get("damage", 0))
+	var ws: Variant = character.get("weapons", null)
+	if ws is Array:
+		var best := 0
+		for it: Variant in ws:
+			if it is Dictionary and (it as Dictionary).has("damage"):
+				best = maxi(best, int((it as Dictionary).get("damage", 0)))
+		return best
+	return 0
 
 ## Get brawl weapon bonus from character's weapon
 static func _get_brawl_weapon_bonus(character: Dictionary) -> int:

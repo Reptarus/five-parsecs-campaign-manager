@@ -57,7 +57,6 @@ var completed_quests: Array[Dictionary] = []
 # Job Management Data
 var current_job: Dictionary = {}
 var job_history: Array[Dictionary] = []
-var job_benefits_hazards: Dictionary = {}
 
 
 # Configuration
@@ -184,7 +183,6 @@ func get_data() -> Dictionary:
 		"completed_quests": completed_quests.duplicate(),
 		"current_job": current_job.duplicate(),
 		"job_history": job_history.duplicate(),
-		"job_benefits_hazards": job_benefits_hazards.duplicate(),
 		"last_update": _last_update
 	}
 
@@ -220,9 +218,6 @@ func update_data(data: Dictionary) -> bool:
 	if data.has("job_history"):
 		job_history = data.job_history.duplicate()
 
-	if data.has("job_benefits_hazards"):
-		job_benefits_hazards = data.job_benefits_hazards.duplicate()
-
 	_last_update = Time.get_unix_time_from_system()
 	return true
 
@@ -234,7 +229,6 @@ func cleanup() -> void:
 	completed_quests.clear()
 	current_job.clear()
 	job_history.clear()
-	job_benefits_hazards.clear()
 	_errors.clear()
 	_initialized = false
 

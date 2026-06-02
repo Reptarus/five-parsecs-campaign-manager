@@ -76,10 +76,10 @@ func _test_phase_1_architecture():
 		, panel_name)
 
 	# Test 1.3: Controllers exist
+	# CaptainPanelController.gd + CrewPanelController.gd removed 2026-06-01 (dead — uninstantiated,
+	# called a non-existent SimpleCharacterCreator.create_character; panels use CharacterCreator directly).
 	var controllers = [
 		"BaseController.gd",
-		"CaptainPanelController.gd",
-		"CrewPanelController.gd",
 		"ShipPanelController.gd",
 		"ConfigPanelController.gd"
 	]
