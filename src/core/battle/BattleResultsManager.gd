@@ -3,9 +3,6 @@ extends Node
 const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
-signal battle_results_recorded(results: Dictionary)
-signal casualties_processed(casualties: Array)
-signal rewards_calculated(rewards: Dictionary)
 signal battle_log_updated(log_entry: Dictionary)
 
 var character_manager
@@ -121,156 +118,13 @@ func record_special_event(event_type: String, event_data: Dictionary) -> void:
 		"description": event_data.get("description", "")
 	})
 
-## Complete the battle with a specific outcome
-func complete_battle(outcome: String) -> Dictionary:
-	_current_battle.outcome = outcome
-	_current_battle.completed = true
-	
-	# Process outcome-based data
-	match outcome:
-		OUTCOME_VICTORY:
-			_process_victory()
-		OUTCOME_DEFEAT:
-			_process_defeat()
-		OUTCOME_DRAW:
-			_process_draw()
-		OUTCOME_RETREAT:
-			_process_retreat()
-	
-	# Calculate rewards
-	_calculate_rewards()
-	
-	# Add to battle history
-	_battle_history.append(_current_battle.duplicate())
-	
-	# Emit signal
-	battle_results_recorded.emit(_current_battle)
-	
-	log_battle_event({
-		"type": "battle_completed",
-		"outcome": outcome,
-		"total_enemy_casualties": _current_battle.enemy_casualties.size(),
-		"total_player_casualties": _current_battle.player_casualties.size()
-	})
-	
-	return _current_battle
-
-## Process casualties after battle
-func process_casualties() -> Array:
-	var casualties = []
-	
-	for casualty in _current_battle.player_casualties:
-		var character_id = casualty.get("character_id", "")
-		if character_id.is_empty():
-			continue
-			
-		var character = character_manager.get_character(character_id)
-		if not character:
-			continue
-		
-		# Determine the detailed injury result based on the Five Parsecs rulebook's tables
-		var injury_result = _determine_injury_by_rulebook()
-		
-		# Apply the result to the character
-		match injury_result.get("result", ""):
-			"dead":
-				# Character died
-				character_manager.set_character_status(character, "dead")
-				casualties.append({
-					"character": character,
-					"status": "dead",
-					"description": injury_result.get("description", "Killed in battle")
-				})
-			"critical":
-				# Critical injury
-				character_manager.set_character_status(character, "critical")
-				casualties.append({
-					"character": character,
-					"status": "critical",
-					"description": injury_result.get("description", "Critically injured")
-				})
-			"injured":
-				# Regular injury
-				character_manager.set_character_status(character, "injured")
-				casualties.append({
-					"character": character,
-					"status": "injured",
-					"description": injury_result.get("description", "Injured in battle"),
-					"recovery_time": injury_result.get("recovery_time", 1)
-				})
-			"recovered":
-				# Character recovered without serious injury
-				casualties.append({
-					"character": character,
-					"status": "recovered",
-					"description": injury_result.get("description", "Recovered from injuries")
-				})
-			"miraculous":
-				# Miraculous escape (special case in rulebook)
-				casualties.append({
-					"character": character,
-					"status": "miraculous_escape",
-					"description": "Miraculous escape from certain death",
-					"luck_bonus": injury_result.get("luck_bonus", 1)
-				})
-	
-	casualties_processed.emit(casualties)
-	return casualties
-
-## Determine injury details according to the Five Parsecs rulebook tables
-func _determine_injury_by_rulebook() -> Dictionary:
-	# Roll D100 as per the rulebook
-	var roll = randi() % 100 + 1
-	
-	if roll <= 5:
-		# Gruesome Fate / "Dead and gone" result
-		return {
-			"result": "dead",
-			"description": "Gruesome fate - character is dead",
-			"recover_chance": 0
-		}
-	elif roll <= 15:
-		# Death or permanent injury (option for cybernetics or special treatment)
-		return {
-			"result": "dead",
-			"description": "Fatal injuries",
-			"recover_chance": 10 # Small chance to recover with advanced medical care
-		}
-	elif roll == 16:
-		# Miraculous escape (rulebook special case)
-		return {
-			"result": "miraculous",
-			"description": "Miraculous escape from certain death",
-			"luck_bonus": 1
-		}
-	elif roll <= 30:
-		# Critical injury (long recovery time, permanent effect)
-		return {
-			"result": "critical",
-			"description": "Critical injury with lasting effects",
-			"recovery_time": 3, # Battles/campaign turns
-			"permanent_effect": true
-		}
-	elif roll <= 60:
-		# Serious injury (medium recovery time)
-		return {
-			"result": "injured",
-			"description": "Serious injury requiring recovery",
-			"recovery_time": 2 # Battles/campaign turns
-		}
-	elif roll <= 90:
-		# Light injury (short recovery time)
-		return {
-			"result": "injured",
-			"description": "Light injury requiring brief recovery",
-			"recovery_time": 1 # Battles/campaign turns
-		}
-	else:
-		# Just a scratch / quick recovery
-		return {
-			"result": "recovered",
-			"description": "Minor scratch, quickly recovered"
-		}
+# NOTE (2026-06-02 dead-code cleanup): complete_battle(), process_casualties(),
+# _determine_injury_by_rulebook() and the battle_results_recorded / casualties_processed /
+# rewards_calculated signals were REMOVED. The whole chain was dead: its only entry point,
+# GameSystemManager.process_battle_results(), had zero callers (GameSystemManager is itself
+# uninstantiated). Live post-battle resolution runs through PostBattlePhase and its processors
+# (LootProcessor / InjuryProcessor / ExperienceTrainingProcessor). The state-recording API
+# (start_battle / record_casualty / log_battle_event / get_*) is retained.
 
 ## Calculate experience for characters based on battle outcome according to the Five Parsecs rulebook
 func calculate_experience() -> Dictionary:
@@ -360,73 +214,7 @@ func get_battle(battle_id: String) -> Dictionary:
 func get_current_battle() -> Dictionary:
 	return _current_battle.duplicate()
 
-## Private implementation methods
-
-func _process_victory() -> void:
-	# Additional processing for victory conditions
-	pass
-
-func _process_defeat() -> void:
-	# Additional processing for defeat conditions
-	pass
-
-func _process_draw() -> void:
-	# Additional processing for draw conditions
-	pass
-
-func _process_retreat() -> void:
-	# Additional processing for retreat conditions
-	pass
-
-## Battle reward data loaded from res://data/battle_rewards.json
-static var _br_data: Dictionary = {}
-static var _br_loaded: bool = false
-
-static func _ensure_br_loaded() -> void:
-	if _br_loaded:
-		return
-	_br_loaded = true
-	var file := FileAccess.open("res://data/battle_rewards.json", FileAccess.READ)
-	if not file:
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
-		_br_data = json.data
-	file.close()
-
-func _calculate_rewards() -> void:
-	_ensure_br_loaded()
-	var reward_data = {}
-	var outcomes: Dictionary = _br_data.get("outcome_rewards", {})
-
-	# Base rewards based on outcome
-	var outcome_key: String = _current_battle.outcome
-	var outcome_data: Dictionary = outcomes.get(outcome_key, {})
-	var credits_min: int = int(outcome_data.get("credits_min", 0))
-	var credits_range: int = int(outcome_data.get("credits_range", 0))
-	reward_data["credits"] = credits_min + (randi() % (credits_range + 1) if credits_range > 0 else 0)
-	reward_data["reputation"] = int(outcome_data.get("reputation", 0))
-
-	# Additional rewards based on mission type
-	var type_bonuses: Dictionary = _br_data.get("mission_type_bonuses", {})
-	match _current_battle.mission_type:
-		GlobalEnums.MissionType.BLACK_ZONE:
-			var bz: Dictionary = type_bonuses.get("BLACK_ZONE", {})
-			reward_data["credits"] += int(bz.get("credits", 100))
-			var tp_min: int = int(bz.get("tech_parts_min", 1))
-			var tp_range: int = int(bz.get("tech_parts_range", 3))
-			reward_data["tech_parts"] = tp_min + randi() % tp_range
-		GlobalEnums.MissionType.RESCUE:
-			var rc: Dictionary = type_bonuses.get("RESCUE", {})
-			reward_data["credits"] += int(rc.get("credits", 50))
-			reward_data["reputation"] += int(rc.get("reputation", 3))
-
-	_current_battle.rewards = reward_data
-	rewards_calculated.emit(reward_data)
-
-# NOTE (2026-06-01 rules-accuracy consolidation): _generate_battle_loot() was REMOVED.
-# It was a fabricated loot generator (0.7/0.3 chance, per-enemy max_items, random
-# weapon/armor/item with value 50-250 — none in the rulebook) and dead: its only path
-# (_calculate_rewards <- complete_battle <- GameSystemManager.process_battle_results) has
-# no live caller. Canonical post-battle loot is PostBattlePhase -> LootProcessor ->
-# LootTableResolver (Core Rules p.130-133, one roll per battle).
+# NOTE (2026-06-02 dead-code cleanup): _process_victory/_process_defeat/_process_draw/
+# _process_retreat() stubs and _calculate_rewards() + its res://data/battle_rewards.json
+# loader (_ensure_br_loaded / _br_data) were REMOVED with complete_battle() (their only
+# caller). battle_rewards.json had no other consumer and was deleted.

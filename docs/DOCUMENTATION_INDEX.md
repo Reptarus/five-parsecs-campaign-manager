@@ -153,7 +153,7 @@
 
 ## Agent Architecture
 
-- **[Agent Roster](../.claude/skills/fpcm-project-management/references/agent-roster.md)** - 7 agents with Haiku/Sonnet/Opus tiers
+- **[Agent Roster](../.claude/skills/fpcm-project-management/references/agent-roster.md)** - 9 agents with Opus/Sonnet tiers
 - **[Task Decomposition](../.claude/skills/fpcm-project-management/references/task-decomposition.md)** - Dependency order
 
 ## Archived (`archive/`)

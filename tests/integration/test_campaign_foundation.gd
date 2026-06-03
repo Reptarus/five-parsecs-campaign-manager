@@ -33,19 +33,10 @@ func test_all_panels_exist():
 		var script = load(path)
 		assert_that(script).is_not_null()
 
-func test_all_controllers_exist():
-	# CaptainPanelController.gd + CrewPanelController.gd removed 2026-06-01 (dead — uninstantiated,
-	# called a non-existent SimpleCharacterCreator.create_character; panels use CharacterCreator directly).
-	var controllers = [
-		"BaseController.gd",
-		"ShipPanelController.gd",
-		"ConfigPanelController.gd"
-	]
-	
-	for controller_name in controllers:
-		var path = "res://src/ui/screens/campaign/controllers/" + controller_name
-		var script = load(path)
-		assert_that(script).is_not_null()
+# test_all_controllers_exist() REMOVED 2026-06-02: the entire campaign-creation "controllers"
+# layer (Base/Ship/Config/Equipment PanelController) was deleted as dead code. The live creation
+# panels embed CharacterCreator.tscn directly and never instantiated the controllers (no .new(),
+# no preload, no .tscn ext_resource). Captain/CrewPanelController were already removed 2026-06-01.
 
 ## Phase 2: State Management System Tests
 ## Note: CampaignCreationStateManager extends RefCounted - no .free() needed (auto-managed)

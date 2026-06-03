@@ -58,7 +58,7 @@
 | Bug Hunt Gamemode | **Complete** — 38 files (15 JSON + 23 GDScript/TSCN), 3-stage turn, character transfer, battle wiring, cross-mode safety audit |
 | TweenFX Integration (Phase 26) | **Complete** — 8 sprints, 23 files modified, bug fixes + raw tween migration + new UX animations |
 | LSP Parse Error Cleanup | **Complete** — 3 automated passes: 1,859 orphan pass removed, 5,915 space→tab fixes, 31 deep-indent orphans, enum/type fixes |
-| Agent & Skill Architecture | **Complete** — 7 agents with Haiku/Sonnet/Opus model tiers, 7 skills, 22 code-sourced reference files, per-agent persistent memory |
+| Agent & Skill Architecture | **Complete** — 9 agents with Opus/Sonnet model tiers, 7 skills, 22 code-sourced reference files, per-agent persistent memory |
 | MCP UI/UX Testing (Sessions T-0 to S8) | **Complete** — 71 bugs found, 71 fixed across 12 sessions, automated runtime testing via Godot MCP bridge |
 | MCP Bug Fix Sprint | **Complete** — 15 bugs fixed in 1 session: auto-generate UX redesign, stat/enum display fixes, world phase checkpoint restore |
 | Demo QA Runtime Testing (10 sessions) | **Complete** — Full re-run PASS: CC-1→CC-11, Turn 1 all phases, Turn 2 all phases, SR-1→SR-6. 18/18 bugs confirmed fixed. Zero regressions. Save file integrity verified (credits, crew stats, ship, world, patrons, equipment). |

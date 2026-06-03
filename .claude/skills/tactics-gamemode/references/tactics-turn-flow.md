@@ -84,7 +84,7 @@ When playing solo, the AI system controls enemy forces:
 - **Reinforcement Timing**: D6-based with escalation
 - **Vehicle AI**: Separate behavior table for vehicles
 
-## Dashboard Flow (Future)
+## Dashboard Flow
 
 ```
 TacticsDashboard

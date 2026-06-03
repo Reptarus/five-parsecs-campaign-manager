@@ -355,7 +355,7 @@ The project uses a **three-tier model routing** system via Claude Code agents an
 ### Routing Protocol
 
 1. Each agent owns specific files — tasks route by file ownership
-2. `character-data-engineer` exclusively owns all 3 enum files (three-enum sync rule)
+2. `character-data-engineer` exclusively owns both enum files (two-enum sync rule: GlobalEnums + GameEnums; FiveParsecsGameEnums.gd deleted Sprint A Bug 3, 2026-05-24)
 3. Multi-domain tasks decompose via `fpcm-project-manager` following dependency order:
    `data → campaign → battle → bug-hunt → UI → QA`
 4. `bug-hunt-specialist` reviews any shared file changes for cross-mode safety

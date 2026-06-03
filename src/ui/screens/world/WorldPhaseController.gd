@@ -498,6 +498,17 @@ func _show_current_step() -> void:
 		_refresh_assign_equipment()
 	if current_step == WorldPhaseStep.MISSION_PREP:
 		_refresh_mission_prep()
+	# Early steps also refresh on (re-)entry so a crew change in a later step (e.g. a
+	# recruit) isn't shown stale — but NEVER re-initialize a COMPLETED step: re-running
+	# initialize_upkeep_phase() resets the paid flag and would re-charge upkeep on
+	# back-navigation (Core Rules p.76: upkeep is paid once per turn). The same guard
+	# protects completed crew-task assignments and rumor resolution. See the helpers.
+	if current_step == WorldPhaseStep.UPKEEP:
+		_refresh_upkeep()
+	if current_step == WorldPhaseStep.CREW_TASKS:
+		_refresh_crew_tasks()
+	if current_step == WorldPhaseStep.RESOLVE_RUMORS:
+		_refresh_resolve_rumors()
 
 	# Update UI
 	_update_ui_display()
@@ -1063,6 +1074,47 @@ func _complete_world_phase() -> void:
 	# do NOT also navigate via SceneRouter (dual-navigation causes scene reload
 	# which resets to UPKEEP).
 	phase_completed.emit(world_phase_results)
+
+func _refresh_upkeep() -> void:
+	## Re-pull crew on (re-)entry so an outdated crew (e.g. a recruit added in a later
+	## step) doesn't show a stale Upkeep cost. GUARDED: never re-initialize a COMPLETED
+	## upkeep — initialize_upkeep_phase() resets upkeep_completed and recalculates, which
+	## would RE-CHARGE the player on back-navigation (Core Rules p.76: upkeep is paid once
+	## per turn). A completed upkeep is left exactly as the player paid it.
+	if not upkeep_component:
+		return
+	if upkeep_component.has_method("is_upkeep_completed") and upkeep_component.is_upkeep_completed():
+		return
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_active_crew"):
+		crew_data = gs.get_active_crew()
+	if upkeep_component.has_method("initialize_upkeep_phase"):
+		upkeep_component.initialize_upkeep_phase(ship_data, crew_data)
+
+func _refresh_crew_tasks() -> void:
+	## Re-pull crew on (re-)entry. GUARDED: don't re-initialize completed tasks — that
+	## would wipe the player's task assignments on back-navigation.
+	if not crew_task_component:
+		return
+	if crew_task_component.has_method("is_tasks_completed") and crew_task_component.is_tasks_completed():
+		return
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_active_crew"):
+		crew_data = gs.get_active_crew()
+	if crew_task_component.has_method("initialize_crew_tasks"):
+		crew_task_component.initialize_crew_tasks(crew_data)
+
+func _refresh_resolve_rumors() -> void:
+	## Re-pull rumors/quest on (re-)entry. GUARDED: don't re-initialize resolved rumors —
+	## that would wipe the player's rumor resolution on back-navigation.
+	if not resolve_rumors_component:
+		return
+	if resolve_rumors_component.has_method("is_rumors_resolved") and resolve_rumors_component.is_rumors_resolved():
+		return
+	if resolve_rumors_component.has_method("initialize_rumors_phase"):
+		var rumors = world_phase_data.get("rumors", [])
+		var quest = world_phase_data.get("quest", {})
+		resolve_rumors_component.initialize_rumors_phase(rumors, quest)
 
 func _refresh_job_offers() -> void:
 	## Re-fetch patron data from campaign and re-initialize job offer component

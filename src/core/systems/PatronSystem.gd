@@ -8,7 +8,9 @@ extends Node
 ##
 ## Unified system combining:
 	## - PatronManager: Patron generation, quest management, reputation tracking
-## - PatronJobManager: Job acceptance, completion, rewards, hazards/benefits
+## (PatronJobManager job sub-system - accept_job/complete_job/rewards/hazards - REMOVED 2026-06-02
+## as inert dead code; see the JOB MANAGEMENT tombstone below. Live patron jobs run through the
+## separate src/core/campaign/PatronJobManager + JobOfferComponent + campaign.patrons.)
 ##
 ## (The ExtendedConnectionsManager / faction-connections subsystem was removed in the
 ## 2026-06-01 rules-accuracy consolidation: it was dead — zero external callers, never
@@ -32,11 +34,8 @@ signal patron_quest_offered(patron: Dictionary, quest: Dictionary)
 signal patron_quest_completed(patron: Dictionary, quest: Dictionary)
 signal patron_quest_failed(patron: Dictionary, quest: Dictionary)
 
-# Job Management Signals
-signal job_accepted(job: Dictionary)
-signal job_completed(job: Dictionary, success: bool)
-signal job_failed(job: Dictionary, reason: String)
-signal job_rewards_applied(job: Dictionary, rewards: Dictionary)
+# Job Management signals (job_accepted / job_completed / job_failed / job_rewards_applied)
+# REMOVED 2026-06-02 with the dead job sub-system. See JOB MANAGEMENT tombstone below.
 
 # System state
 var _initialized: bool = false
@@ -54,9 +53,7 @@ var patron_reputations: Dictionary = {} # patron_id -> reputation
 var active_quests: Dictionary = {} # quest_id -> quest
 var completed_quests: Array[Dictionary] = []
 
-# Job Management Data
-var current_job: Dictionary = {}
-var job_history: Array[Dictionary] = []
+# Job Management data (current_job / job_history) REMOVED 2026-06-02 - dead job sub-system.
 
 
 # Configuration
@@ -181,8 +178,6 @@ func get_data() -> Dictionary:
 		"patron_reputations": patron_reputations.duplicate(),
 		"active_quests": active_quests.duplicate(),
 		"completed_quests": completed_quests.duplicate(),
-		"current_job": current_job.duplicate(),
-		"job_history": job_history.duplicate(),
 		"last_update": _last_update
 	}
 
@@ -211,13 +206,6 @@ func update_data(data: Dictionary) -> bool:
 	if data.has("completed_quests"):
 		completed_quests = data.completed_quests.duplicate()
 
-	# Update job data
-	if data.has("current_job"):
-		current_job = data.current_job.duplicate()
-
-	if data.has("job_history"):
-		job_history = data.job_history.duplicate()
-
 	_last_update = Time.get_unix_time_from_system()
 	return true
 
@@ -227,8 +215,6 @@ func cleanup() -> void:
 	patron_reputations.clear()
 	active_quests.clear()
 	completed_quests.clear()
-	current_job.clear()
-	job_history.clear()
 	_errors.clear()
 	_initialized = false
 
@@ -241,7 +227,6 @@ func get_status() -> Dictionary:
 		"last_update": _last_update,
 		"patron_count": active_patrons.size(),
 		"active_quest_count": active_quests.size(),
-		"has_current_job": not current_job.is_empty()
 	}
 
 func validate_state() -> Dictionary:
@@ -269,12 +254,6 @@ func validate_state() -> Dictionary:
 			result.valid = false
 		elif not _get_patron_by_id(SafeDataAccess.safe_get(quest, "patron_id", "", "quest patron ID lookup")):
 			result.warnings.append("Quest '" + quest_id + "' references non-existent patron")
-
-	# Validate current job
-	if not current_job.is_empty():
-		if not current_job.has("id"):
-			result.errors.append("Current job missing required 'id' field")
-			result.valid = false
 
 	return result
 
@@ -345,62 +324,17 @@ func get_available_quests(patron_id: String) -> Array[Dictionary]:
 	return quests
 
 # =====================================================
-# JOB MANAGEMENT (formerly PatronJobManager) 
+# JOB MANAGEMENT (formerly PatronJobManager)
 # =====================================================
-
-func accept_job(job_data: Dictionary) -> bool:
-	## Accept a patron job with validation
-	if not current_job.is_empty():
-		_errors.append("Cannot accept job - already have active job")
-		return false
-
-	var validation_result = _validate_job_acceptance(job_data)
-	if not validation_result.valid:
-		_errors.append("Job validation failed: " + str(validation_result.errors))
-		return false
-
-	current_job = job_data.duplicate()
-	current_job["accepted_at"] = Time.get_unix_time_from_system()
-	current_job["status"] = "active"
-
-	job_accepted.emit(current_job)
-	return true
-
-func complete_job(success: bool, results: Dictionary = {}) -> void:
-	## Complete current job with success/failure handling
-	if current_job.is_empty():
-		_errors.append("No active job to complete")
-		return
-
-	current_job["completed_at"] = Time.get_unix_time_from_system()
-	current_job["success"] = success
-	current_job["results"] = results.duplicate()
-
-	if success:
-		_apply_job_rewards(current_job)
-		if current_job.has("patron_id"):
-			var current_job_patron_id = SafeDataAccess.safe_get(current_job, "patron_id", "", "current job patron ID lookup")
-			update_patron_reputation(current_job_patron_id, 10)
-		job_completed.emit(current_job, true)
-	else:
-		_apply_failure_consequences(current_job)
-		if current_job.has("patron_id"):
-			var current_job_patron_id = SafeDataAccess.safe_get(current_job, "patron_id", "", "current job patron ID lookup")
-			update_patron_reputation(current_job_patron_id, -5)
-		job_failed.emit(current_job, "Mission failed")
-
-	# Move to history
-	job_history.append(current_job.duplicate())
-	current_job.clear()
-
-# NOTE (2026-06-01 rules-accuracy consolidation): generate_benefits_hazards_conditions +
-# _should_generate_benefit/hazard/condition + _generate_benefit/hazard/condition were REMOVED.
-# They were dead (reached only via the uncalled accept_job) and used a fabricated patron-type
-# probability (0.8/0.5) that was ALSO bugged (`var chance: int = 0.8` truncated to 0, so it
-# never fired). The live benefit/hazard application path (complete_job ->
-# _apply_failure_consequences -> _apply_hazard_consequence) is unaffected. The benefit/hazard/
-# condition LISTS were book-faithful (Core Rules p.84); if this feature is ever wired up, roll
-# them per the book's actual procedure rather than fabricated per-patron-type odds.
+# REMOVED 2026-06-02 (dead-code cleanup): accept_job(), complete_job(), _validate_job_acceptance(),
+# _apply_job_rewards(), _apply_failure_consequences(), _apply_hazard_consequence(), get_current_job(),
+# has_active_job(), the current_job/job_history state, and the job_accepted/job_completed/job_failed/
+# job_rewards_applied signals. The whole sub-system was inert: accept_job() (the ONLY setter of
+# current_job) had zero callers, so current_job was always empty and complete_job() - though called
+# live by RivalPatronResolver post-battle - always early-returned. The live patron-job flow runs
+# through PatronJobManager (src/core/campaign) + JobOfferComponent + campaign.patrons, NOT this.
+# (The earlier 2026-06-01 benefits-generation removal note is superseded by this.)
+# If patron jobs are ever wired here, re-add a completion hook + roll rewards/hazards per Core Rules p.84.
 
 # =====================================================
 # PRIVATE HELPER METHODS
@@ -416,31 +350,17 @@ func _validate_data_structure(data: Dictionary) -> Dictionary:
 	var result: Variant = {"valid": true, "errors": []}
 
 	# Check required fields exist and are correct types
-	var required_arrays = ["active_patrons", "completed_quests", "job_history"]
+	var required_arrays = ["active_patrons", "completed_quests"]
 	for field in required_arrays:
 		if data.has(field) and not data[field] is Array:
 			result.errors.append("Field '" + field + "' must be Array")
 			result.valid = false
 
-	var required_dicts = ["patron_reputations", "active_quests", "current_job"]
+	var required_dicts = ["patron_reputations", "active_quests"]
 	for field in required_dicts:
 		if data.has(field) and not data[field] is Dictionary:
 			result.errors.append("Field '" + field + "' must be Dictionary")
 			result.valid = false
-
-	return result
-
-func _validate_job_acceptance(job_data: Dictionary) -> Dictionary:
-	## Validate job can be accepted
-	var result: Variant = {"valid": true, "errors": []}
-
-	if not job_data.has("id"):
-		result.errors.append("Job missing required 'id' field")
-		result.valid = false
-
-	if not job_data.has("type"):
-		result.errors.append("Job missing required 'type' field")
-		result.valid = false
 
 	return result
 
@@ -634,59 +554,6 @@ func _calculate_risk_level(patron: Dictionary) -> String:
 	var risk_index = clamp(influence - 1, 0, 3)
 	return risk_levels[risk_index]
 
-func _apply_job_rewards(job: Dictionary) -> void:
-	## Apply rewards from completed job
-	if not job.has("rewards"):
-		return
-
-	var job_dict = SafeDataAccess.safe_dict_access(job, "job rewards application")
-	var rewards = SafeDataAccess.safe_get(job_dict, "rewards", {}, "job rewards lookup")
-	var rewards_dict = SafeDataAccess.safe_dict_access(rewards, "rewards validation")
-
-	# Apply credit rewards
-	if rewards_dict.has("credits") and _game_state:
-		if _game_state and _game_state.has_method("add_credits"):
-			var credits = SafeDataAccess.safe_get(rewards_dict, "credits", 0, "rewards credits lookup")
-			_game_state.add_credits(credits)
-
-	# Apply reputation rewards
-	if rewards_dict.has("reputation") and _game_state:
-		if _game_state and _game_state.has_method("add_reputation"):
-			var reputation = SafeDataAccess.safe_get(rewards_dict, "reputation", 0, "rewards reputation lookup")
-			_game_state.add_reputation(reputation)
-
-	# Apply equipment rewards
-	if rewards_dict.has("equipment"):
-		var equipment = SafeDataAccess.safe_get(rewards_dict, "equipment", [], "rewards equipment lookup")
-		for item in equipment:
-			if _game_state and _game_state and _game_state.has_method("add_equipment"):
-				_game_state.add_equipment(item)
-
-	job_rewards_applied.emit(job, rewards_dict)
-
-func _apply_failure_consequences(job: Dictionary) -> void:
-	## Apply consequences of job failure
-	var job_dict = SafeDataAccess.safe_dict_access(job, "job failure consequences")
-	if job_dict.has("hazards"):
-		# Apply any hazard-based consequences
-		var hazards = SafeDataAccess.safe_get(job_dict, "hazards", [], "job hazards lookup")
-		for hazard in hazards:
-			_apply_hazard_consequence(hazard)
-
-	# Apply reputation loss
-	if _game_state and _game_state and _game_state.has_method("decrease_reputation"):
-		_game_state.decrease_reputation(5)
-
-func _apply_hazard_consequence(hazard: String) -> void:
-	## Apply specific hazard consequence
-	match hazard:
-		"Dangerous Job":
-			pass
-		"Hot Job":
-			pass
-		_:
-			pass
-
 # Public API methods for backward compatibility
 func get_active_patrons() -> Array[Dictionary]:
 	## Get all active patrons
@@ -700,10 +567,3 @@ func can_accept_more_quests() -> bool:
 	## Check if more quests can be accepted
 	return get_active_quest_count() < max_active_quests
 
-func get_current_job() -> Dictionary:
-	## Get current active job
-	return current_job.duplicate()
-
-func has_active_job() -> bool:
-	## Check if there's an active job
-	return not current_job.is_empty()

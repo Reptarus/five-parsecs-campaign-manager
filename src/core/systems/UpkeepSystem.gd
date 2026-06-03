@@ -322,42 +322,6 @@ func _apply_upkeep_effects(campaign_data: Resource, upkeep_costs: Dictionary) ->
 		_reduce_injury_recovery_time(campaign_data)
 
 
-func _apply_crew_morale_penalty(campaign_data: Resource) -> void:
-	## Apply morale penalty for poor upkeep
-	var crew_members = _get_crew_members(campaign_data)
-	for crew_member in crew_members:
-		var typed_crew_member: Variant = crew_member
-		if crew_member and crew_member.has_method("set_meta"):
-			crew_member.set_meta("morale_penalty", true)
-
-func _apply_ship_degradation(campaign_data: Resource) -> void:
-	## Apply ship degradation for poor maintenance
-	var ship_data = _get_ship_data(campaign_data)
-	if ship_data and ship_data.has_method("get_meta") and ship_data and ship_data.has_method("set_meta"):
-		var current_damage = ship_data.get_meta("hull_damage")
-		ship_data.set_meta("hull_damage", current_damage + 1)
-
-func _check_crew_departure(campaign_data: Resource) -> void:
-	## Check if crew member leaves due to poor treatment
-	var crew_members = _get_crew_members(campaign_data)
-	if crew_members.size() > 1: # Don't let the last crew member leave
-		var departure_chance = randi_range(1, 6)
-		if departure_chance <= 2: # 33% chance
-			var leaving_member = crew_members.pick_random()
-			if leaving_member != null:
-				crew_members.erase(leaving_member)
-				campaign_data.set_meta("crew_members", crew_members)
-
-func _apply_medical_complications(campaign_data: Resource) -> void:
-	## Apply medical complications to injured crew
-	var crew_members = _get_crew_members(campaign_data)
-	for crew_member in crew_members:
-		var typed_crew_member: Variant = crew_member
-		var is_injured = crew_member.get_meta("injured") if crew_member and crew_member.has_method("get_meta") else false
-		if is_injured:
-			var recovery_time = crew_member.get_meta("recovery_time") if crew_member and crew_member.has_method("get_meta") else 1
-			crew_member.set_meta("recovery_time", recovery_time + 1)
-
 func _reduce_injury_recovery_time(campaign_data: Resource) -> void:
 	## Reduce injury recovery time with medical care
 	var crew_members = _get_crew_members(campaign_data)

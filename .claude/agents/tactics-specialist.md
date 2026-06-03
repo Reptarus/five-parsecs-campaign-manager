@@ -66,7 +66,7 @@ You have a detailed reference skill at `.claude/skills/tactics-gamemode/`. **Rea
 ### 1. Incompatible Data Model
 | Aspect | Tactics | Standard 5PFH | Bug Hunt | Planetfall |
 |--------|---------|---------------|----------|-----------|
-| Core class | `TacticsCampaignCore` (to be created) | `FiveParsecsCampaignCore` | `BugHuntCampaignCore` | `PlanetfallCampaignCore` |
+| Core class | `TacticsCampaignCore` (shipped) | `FiveParsecsCampaignCore` | `BugHuntCampaignCore` | `PlanetfallCampaignCore` |
 | Units | Army lists (squads, points-based) | Individual characters | Individual + grunts | Roster + grunts |
 | Vehicles | Yes (bikes to heavy tanks) | No | No | No |
 | Points system | 500/750/1000 pts | No | No | No |
@@ -91,7 +91,7 @@ You have a detailed reference skill at `.claude/skills/tactics-gamemode/`. **Rea
 Each species has 5 profile tiers (Civilian → Military → Sergeant → Major → Epic) with unique special rules and point costs.
 
 ### 4. Campaign Type Detection
-- **File-level**: `GameState._detect_campaign_type()` does NOT handle `"tactics"` yet — must add `elif campaign_type == "tactics":` routing block
+- **File-level**: `GameState._detect_campaign_type()` handles `"tactics"` (routing block shipped; the loader is selected for `campaign_type == "tactics"`)
 - **Runtime duck-typing**: Check for Tactics-specific properties (e.g., `"army_lists" in campaign`) before Tactics code
 
 ### 5. Temp Data Namespacing
@@ -143,13 +143,13 @@ When creating `TacticsCreationUI`, it must extend `Control` directly (thin shell
 - Never skip army composition validation (hero limits, duplicate limits, point caps)
 - **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked
 
-## Search & Verification Protocol
+## Verify What Matters
 
-1. **Be specific**: Search for exact function/class names with file path hints from your reference files.
-2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it.
-3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`.
-4. **Use reference anchors**: Start from known paths, not broad sweeps.
-5. **Multiple strategies**: If Grep misses, try Glob. If both miss, try `ls`.
+Trust your search and your reading — the model running you is reliable at finding and understanding code. Concentrate verification where being wrong is expensive, not on routine lookups:
+
+- **Game data values — ALWAYS verify against source-of-truth.** Before adding or changing any stat, cost, range, probability, table boundary, weapon property, or species trait, confirm it against your domain's source-of-truth: `data/RulesReference/*.json`, the Core Rules / Compendium PDFs (`docs/rules/`), or the Tactics rulebook extract (`docs/rules/tactics_source.txt`). Never invent a game value — this rule is non-negotiable and independent of model capability (see CLAUDE.md "Data Integrity Rules").
+- **"Stub / empty / missing" claims — read once before asserting.** A single Read confirms it; you don't need redundant passes.
+- **Report concretely.** Cite findings as `path:line` so they're actionable.
 
 ### Search Anchors
 

@@ -506,11 +506,18 @@ func apply_pending_qol_data() -> void:
 		var dlc_data: Dictionary = qol.get("dlc_flags", {})
 		if not dlc_data.is_empty():
 			dlc_mgr.deserialize_campaign_flags(dlc_data)
-	# FactionSystem: restore faction standings + rival reputations
+	# FactionSystem: restore faction standings + rival reputations.
+	# ALWAYS clear first so stale faction/rival state from a PRIOR campaign can't
+	# bleed in via the shared autoload. update_data() early-returns on empty data
+	# and only conditionally replaces present fields, so without this an empty or
+	# partial save would inherit the previously-loaded campaign's factions
+	# (mirrors the PlanetDataManager unconditional-clear fix, Jun 1).
 	var faction_sys = root.get_node_or_null("/root/FactionSystem")
-	if faction_sys and faction_sys.has_method("update_data"):
+	if faction_sys:
+		if faction_sys.has_method("cleanup"):
+			faction_sys.cleanup()
 		var fs_data: Dictionary = qol.get("faction_system", {})
-		if not fs_data.is_empty():
+		if faction_sys.has_method("update_data") and not fs_data.is_empty():
 			faction_sys.update_data(fs_data)
 	_pending_qol_data = {}
 

@@ -335,17 +335,17 @@ Each scenario has:
 
 ---
 
-## Scenario 9: Three-Enum Sync Validation (P0, ~15 min)
+## Scenario 9: Two-Enum Sync Validation (P0, ~15 min)
 
-**Goal**: Verify the three enum systems are aligned.
+**Goal**: Verify the two enum systems (GlobalEnums, GameEnums) are aligned. (FiveParsecsGameEnums.gd was deleted Sprint A Bug 3, 2026-05-24 — the project is now two-enum.)
 
 ### Steps (via run_script)
 
 1. **FiveParsecsCampaignPhase alignment**
    - `[CHECK-9.1]` All phase names in GlobalEnums.FiveParsecsCampaignPhase exist in GameEnums with same ordinal values
 
-2. **CharacterClass superset check**
-   - `[CHECK-9.2]` FiveParsecsGameEnums.CharacterClass contains all values from GlobalEnums character classes
+2. **CharacterClass alignment check**
+   - `[CHECK-9.2]` GlobalEnums.CharacterClass and GameEnums.CharacterClass align member-by-member
 
 3. **ContentFlag count**
    - `[CHECK-9.3]` DLCManager.ContentFlag.size() == 37 (35 DLC + 2 Bug Hunt)

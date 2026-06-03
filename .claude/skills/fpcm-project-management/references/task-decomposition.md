@@ -17,7 +17,7 @@ When a task spans multiple agents, execute in this order:
 
 ## Decomposition Steps
 
-0. **Verify assumptions** — Before routing, confirm that claimed files, APIs, and code locations actually exist by reading them. Never route work based on unverified agent search results. If an Explore agent says "X.gd is a stub", read X.gd yourself before deciding.
+0. **Verify routing targets** — Before routing, confirm the target files/APIs exist (read them or confirm the path). A bad route cascades across the whole multi-agent flow, so this is the one place worth double-checking. Trust agents' routine search/read findings elsewhere — current models are reliable.
 1. **Identify all affected systems** — which files need changing?
 2. **Map files to agents** — check agent-roster.md for ownership
 3. **Determine dependencies** — which changes must complete before others can start?
@@ -77,7 +77,7 @@ Order:
 ```
 Agents: character-data-engineer, battle-systems-engineer, campaign-systems-engineer, bug-hunt-specialist, ui-panel-developer, qa-specialist
 Order:
-  1. character-data-engineer: Rename in Character.gd, BaseCharacterResource, all 3 enum files, update to_dictionary/from_dictionary
+  1. character-data-engineer: Rename in Character.gd, BaseCharacterResource, both enum files (GlobalEnums + GameEnums), update to_dictionary/from_dictionary
   2. battle-systems-engineer: Update BattleResolver references
   3. campaign-systems-engineer: Update any phase panel stat displays
   4. bug-hunt-specialist: Update CharacterTransferService stat mapping

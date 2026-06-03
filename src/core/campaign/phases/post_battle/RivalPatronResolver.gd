@@ -77,10 +77,6 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 			ctx.game_state.add_patron_contact(patron_id)
 			patrons_added.append(patron_id)
 
-		var patron_sys = Engine.get_main_loop().root.get_node_or_null("/root/PatronSystem") if Engine.get_main_loop() else null
-		if patron_sys and patron_sys.has_method("complete_job"):
-			patron_sys.complete_job(true, ctx.battle_result)
-
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
 			npc_tracker.track_patron_interaction(patron_id, "job_completed", {"turn": ctx.battle_result.get("turn", 0)})
@@ -89,10 +85,6 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 			ctx.add_quest_rumor()
 
 	elif not ctx.mission_successful and ctx.battle_result.has("patron_id"):
-		var patron_sys = Engine.get_main_loop().root.get_node_or_null("/root/PatronSystem") if Engine.get_main_loop() else null
-		if patron_sys and patron_sys.has_method("complete_job"):
-			patron_sys.complete_job(false, ctx.battle_result)
-
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
 			npc_tracker.track_patron_interaction(ctx.battle_result.patron_id, "job_failed", {"turn": ctx.battle_result.get("turn", 0)})

@@ -101,7 +101,7 @@ When adding/modifying an enum value:
 
 ## Common Sync Pitfalls
 
-- GlobalEnums.CharacterClass has **30 values**; FiveParsecsGameEnums.CharacterClass has **15**. They overlap but are not identical
+- GlobalEnums.CharacterClass has **30 values**. (FiveParsecsGameEnums.CharacterClass, formerly 15 values, was deleted Sprint A Bug 3, 2026-05-24 — CharacterClass now lives in GlobalEnums + GameEnums; verify GameEnums parity member-by-member)
 - GameEnums.Background has **12 values** (streamlined); GlobalEnums.Background has **32**
 - Adding a value to one file without updating others causes silent enum mismatches
 - String-based enum lookups (Character.gd uses String properties) can diverge from int-based lookups (BaseCharacterResource uses int properties)

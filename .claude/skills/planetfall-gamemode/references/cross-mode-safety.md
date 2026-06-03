@@ -23,7 +23,7 @@ static func _detect_campaign_type(path: String) -> String:
 | Standard 5PFH | Default (no check needed, or `"crew_data" in campaign`) |
 | Bug Hunt | `"main_characters" in campaign` |
 | Planetfall | `"roster" in campaign` |
-| Tactics | `"army_lists" in campaign` (future) |
+| Tactics | `"army_lists" in campaign` |
 
 ## Temp Data Namespacing
 
@@ -91,4 +91,4 @@ Any screen using `get_node_or_null("/root/...")` in `_ready()` MUST use `call_de
 | Standard 5PFH | `campaign_creation`, `campaign_dashboard`, ... |
 | Bug Hunt | `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller` |
 | Planetfall | `planetfall_creation`, `planetfall_dashboard`, `planetfall_turn_controller` |
-| Tactics | `tactics_creation`, `tactics_dashboard`, `tactics_army_builder`, `tactics_turn_controller` (future) |
+| Tactics | `tactics_creation`, `tactics_dashboard`, `tactics_turn_controller` |

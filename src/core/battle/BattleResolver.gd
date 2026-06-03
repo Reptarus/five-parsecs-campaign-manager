@@ -591,12 +591,21 @@ static func _find_alive_target(defenders: Array) -> Dictionary:
 
 ## Estimate range between attacker and target (simplified)
 static func _estimate_range(attacker: Dictionary, target: Dictionary, battlefield_data: Dictionary) -> float:
-	# Simplified: return weapon's optimal range
+	# Simplified: return a range within the weapon's effective range.
 	var weapon: Dictionary = attacker.get("weapon", {})
 	var weapon_range: int = weapon.get("range", 12)
-	
-	# Randomize actual range within weapon's effective range
-	return randf_range(MIN_ENGAGEMENT_RANGE, float(weapon_range))
+	var upper := float(weapon_range)
+
+	# Mission visibility ceiling (e.g. Street Fights' 9" limit, Compendium
+	# pp.125-138 — "cannot be increased"): when set (> 0), no engagement may
+	# exceed it, so every shot resolves at close quarters. 0/absent = no ceiling.
+	var max_visibility: float = battlefield_data.get("max_visibility_inches", 0.0)
+	if max_visibility > 0.0:
+		upper = minf(upper, max_visibility)
+
+	# Randomize actual range; keep the lower bound valid even if the ceiling is
+	# below MIN_ENGAGEMENT_RANGE (clamp avoids randf_range(min > max)).
+	return randf_range(minf(MIN_ENGAGEMENT_RANGE, upper), upper)
 
 ## Check if unit has cover based on battlefield data
 static func _has_cover(

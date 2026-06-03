@@ -314,18 +314,19 @@ Before adding or modifying any game data value:
 
 ## Enum Consistency Validation
 
-Three enum systems must stay in sync:
+Two enum systems must stay in sync:
 
 | System | File | Autoloaded As |
 |--------|------|---------------|
 | GlobalEnums | `src/core/systems/GlobalEnums.gd` | `GlobalEnums` |
 | GameEnums | `src/core/enums/GameEnums.gd` | class_name `GameEnums` |
-| FiveParsecsGameEnums | `src/game/campaign/crew/FiveParsecsGameEnums.gd` | CharacterClass only |
+
+(FiveParsecsGameEnums.gd was deleted Sprint A Bug 3, 2026-05-24 — the project is now two-enum.)
 
 ### Validation Steps
 
 1. **FiveParsecsCampaignPhase**: Compare ordinals between GlobalEnums and GameEnums — must have identical values
-2. **CharacterClass**: FiveParsecsGameEnums must be superset of GlobalEnums character classes
+2. **CharacterClass**: align values between GlobalEnums and GameEnums (member-by-member)
 3. **ContentFlag count**: DLCManager should have 37 flags (35 DLC + 2 Bug Hunt)
 4. **Difficulty levels**: GlobalEnums.DifficultyMode must have 9 values
 5. **Victory conditions**: VictoryChecker must handle all GlobalEnums.VictoryConditionType values (18+ types)

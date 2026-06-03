@@ -75,21 +75,10 @@ func _test_phase_1_architecture():
 			return script != null
 		, panel_name)
 
-	# Test 1.3: Controllers exist
-	# CaptainPanelController.gd + CrewPanelController.gd removed 2026-06-01 (dead — uninstantiated,
-	# called a non-existent SimpleCharacterCreator.create_character; panels use CharacterCreator directly).
-	var controllers = [
-		"BaseController.gd",
-		"ShipPanelController.gd",
-		"ConfigPanelController.gd"
-	]
-
-	for controller_name in controllers:
-		_run_test("Controller: " + controller_name, func():
-			var path = "res://src/ui/screens/campaign/controllers/" + controller_name
-			var script = load(path)
-			return script != null
-		, controller_name)
+	# Test 1.3 (Controllers exist) REMOVED 2026-06-02: the entire campaign-creation "controllers"
+	# layer (Base/Ship/Config/Equipment PanelController) was deleted as dead code. The live creation
+	# panels embed CharacterCreator.tscn directly and never instantiated the controllers.
+	# Captain/CrewPanelController were already removed 2026-06-01 for the same reason.
 
 	print("")
 

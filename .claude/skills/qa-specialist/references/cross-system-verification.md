@@ -176,20 +176,21 @@ else:
 
 ---
 
-## F. Three-Enum Sync Verification
+## F. Two-Enum Sync Verification
 
-### Three Files That Must Align
+### Two Files That Must Align
 
 | System | File | Access Pattern |
 |--------|------|---------------|
 | GlobalEnums | `src/core/systems/GlobalEnums.gd` | Autoload: `GlobalEnums.EnumName.VALUE` |
 | GameEnums | `src/core/enums/GameEnums.gd` | class_name: `GameEnums.EnumName.VALUE` |
-| FiveParsecsGameEnums | `src/game/campaign/crew/FiveParsecsGameEnums.gd` | CharacterClass enums |
+
+(FiveParsecsGameEnums.gd was deleted Sprint A Bug 3, 2026-05-24 — the project is now two-enum.)
 
 ### Verification Steps
 
 1. Compare `FiveParsecsCampaignPhase` ordinals between GlobalEnums and GameEnums — must be identical
-2. Verify `CharacterClass` in FiveParsecsGameEnums is superset of GlobalEnums character classes
+2. Verify `CharacterClass` values align between GlobalEnums and GameEnums (member-by-member — they overlap but historically differed in count)
 3. Check `ContentFlag` count in DLCManager — expect 37 (35 DLC + 2 Bug Hunt)
 4. Verify `DifficultyMode` has 9 values in GlobalEnums
 5. Verify `VictoryChecker` handles all `VictoryConditionType` values (18+ types)

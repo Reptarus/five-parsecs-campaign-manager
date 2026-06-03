@@ -3,10 +3,10 @@
 ## 9 Agents
 
 ### 1. character-data-engineer (sonnet, blue)
-**Domain**: Character model, 3 enum systems, JSON data, equipment, world/economy
+**Domain**: Character model, 2 enum systems, JSON data, equipment, world/economy
 **Files Owned**:
 - `src/core/character/`, `src/game/character/`
-- `src/core/enums/GameEnums.gd`, `src/core/systems/GlobalEnums.gd`, `src/game/campaign/crew/FiveParsecsGameEnums.gd`
+- `src/core/enums/GameEnums.gd`, `src/core/systems/GlobalEnums.gd` (FiveParsecsGameEnums.gd deleted Sprint A Bug 3, 2026-05-24 — project is now two-enum)
 - `src/core/equipment/`, `src/core/data/`, `src/core/managers/GameDataManager.gd`
 - `src/core/world/`, `data/` (132 JSON files)
 **Skill**: `character-data` (4 references)
@@ -26,7 +26,7 @@
 - `src/ui/screens/battle/`, `src/core/victory/`, `src/core/terrain/`
 **Skill**: `battle-systems` (4 references)
 
-### 4. ui-panel-developer (haiku, yellow)
+### 4. ui-panel-developer (sonnet, yellow)
 **Domain**: UI components, Deep Space theme, TweenFX, scene routing, narrative event overlay system, sheet/PDF export
 **Files Owned**:
 - `src/ui/components/` (125+ files, incl. `src/ui/components/sheet/SheetRenderer.gd`)
@@ -69,7 +69,7 @@
 **Skill**: `tactics-gamemode` (4 references)
 **Prototype Reference**: `c:\Users\admin\Desktop\tacticaprototype1\` (structure only, NOT data)
 
-### 8. qa-specialist (sonnet, magenta)
+### 8. qa-specialist (opus, magenta)
 **Domain**: Testing, QA, bug reporting, gdUnit4
 **Files Owned**: `tests/` (all test directories)
 **Skill**: `qa-specialist` (6 references)
@@ -82,26 +82,26 @@
 ## Ownership Rules
 
 1. Each agent owns specific files — don't route tasks to agents outside their domain
-2. `character-data-engineer` exclusively owns all enum files (three-enum sync)
+2. `character-data-engineer` exclusively owns both enum files (two-enum sync: GlobalEnums + GameEnums; FiveParsecsGameEnums deleted Sprint A Bug 3)
 3. When a task touches files in multiple domains → decompose into sub-tasks
 4. All gamemode specialists (`bug-hunt-specialist`, `planetfall-specialist`, `tactics-specialist`) review shared file changes for their own mode's safety
 5. `qa-specialist` is always the final step for verification
 6. Never route Planetfall or Tactics tasks to `campaign-systems-engineer` (incompatible data models)
 
-## Search Accuracy by Model Tier
+## Model Tiers Reflect Cost/Latency, Not Trust
 
-| Tier | Agents | Search Guidance |
-| ---- | ------ | --------------- |
-| Opus | project-manager, battle-systems | Highest accuracy. Use for cross-system searches, complex pattern matching. Can handle broad queries. |
-| Sonnet | campaign, character, bug-hunt, qa | Good accuracy with specific prompts. Always provide file path hints and exact names. |
-| Haiku | ui-panel-developer | Lowest search accuracy. Provide exact file paths, limit search scope to known dirs, always verify claims. Do not delegate search-heavy exploration to Haiku agents. |
+Current-generation models (Opus 4.8, Sonnet 4.6, Haiku 4.5) are all reliable at searching and reading code. Tier assignment matches cost/latency to task difficulty — it is NOT a statement about how much you can trust an agent's findings.
 
-### Search Delegation Rules
+| Tier | Agents | Use for |
+| ---- | ------ | ------- |
+| Opus | project-manager, battle-systems, qa-specialist | Cross-system reasoning, multi-file pattern matching, cross-system verification |
+| Sonnet | character-data, campaign, bug-hunt, planetfall, tactics, ui-panel | Well-scoped single-domain work (the bulk of tasks) |
 
-- When routing tasks, verify that claimed files/APIs actually exist before downstream agents start work
-- Include structural anchors in every agent prompt: key directories, known file paths, class names
-- If an agent returns results that seem wrong or incomplete, re-search with a higher-tier model
-- Never trust a single Explore result for routing decisions — spot-check by reading actual files
+### Verification Rules
+
+- **Game-data values** (always): confirm any stat/cost/range/table value against `data/RulesReference/` + the Core Rules / Compendium PDFs before acting. A source-of-truth rule, independent of model capability — see CLAUDE.md "Data Integrity Rules."
+- **Routing targets** (project-manager): confirm a file/API exists before routing downstream work; a bad route cascades across the multi-agent flow.
+- Include structural anchors in agent prompts (key directories, known file paths, class names) — good practice for fast, on-target results.
 
 ## Tools & Environment
 
@@ -160,7 +160,7 @@ Rulebook PDFs and Python tools are available for data extraction and verificatio
 
 ### Adding a new campaign phase
 ```
-1. character-data-engineer → Add enum value to all 3 enum files
+1. character-data-engineer → Add enum value to both enum files (GlobalEnums + GameEnums)
 2. campaign-systems-engineer → Add phase to CampaignPhaseManager, create panel
 3. ui-panel-developer → Style the panel with Deep Space theme
 4. qa-specialist → Test phase transitions, save/load, checklist

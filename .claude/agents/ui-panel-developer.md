@@ -30,7 +30,7 @@ assistant: \"I'll use the ui-panel-developer agent to add TweenFX.breathe() with
 Since TweenFX integration is in this agent's domain, route here. Remember pivot_offset requirement.
 </commentary>
 </example>"
-model: haiku
+model: sonnet
 color: yellow
 memory: project
 ---
@@ -140,13 +140,13 @@ Before touching SceneStage, a `data/scenes/<id>.json` manifest, scene art layers
 - Never bypass SceneRouter for navigation
 - **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
-## Search & Verification Protocol
+## Verify What Matters
 
-1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
-2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
-3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
-4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
-5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+Trust your search and your reading — the model running you is reliable at finding and understanding code. Concentrate verification where being wrong is expensive, not on routine lookups:
+
+- **Game data values — ALWAYS verify against source-of-truth.** Before adding or changing any stat, cost, range, probability, table boundary, weapon property, or species trait, confirm it against your domain's source-of-truth: `data/RulesReference/*.json`, the Core Rules / Compendium PDFs (`docs/rules/`), or your gamemode's rulebook extract. Never invent a game value — this rule is non-negotiable and independent of model capability (see CLAUDE.md "Data Integrity Rules").
+- **"Stub / empty / missing" claims — read once before asserting.** A single Read confirms it; you don't need redundant passes.
+- **Report concretely.** Cite findings as `path:line` so they're actionable.
 
 ### Search Anchors
 

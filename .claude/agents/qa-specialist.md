@@ -39,7 +39,7 @@ assistant: \"I'll use the qa-specialist agent to check edge cases for character 
 Since edge case analysis is documented in the QA skill's edge-cases.md reference, route here.
 </commentary>
 </example>"
-model: sonnet
+model: opus
 color: magenta
 memory: project
 ---
@@ -104,17 +104,17 @@ After code changes: compile check → affected system tests → integration test
 
 - Never skip the headless compile check
 - Never assume `--headless --quit` validates everything (only startup scripts)
-- Never trust explore agent claims without reading actual files
+- Never assert a test expectation you haven't traced to source-of-truth (hallucinated expected values are the #1 cause of false passes)
 - Never test with `"pool"` key for equipment data
 - **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
-## Search & Verification Protocol
+## Verify What Matters
 
-1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
-2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
-3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
-4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
-5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+Trust your search and your reading — the model running you is reliable at finding and understanding code. Concentrate verification where being wrong is expensive, not on routine lookups:
+
+- **Test expectations — ALWAYS verify against source-of-truth.** Hallucinated expected values are the #1 cause of false passes. Before asserting an expected stat, cost, range, or table boundary, confirm it against `data/RulesReference/*.json`, then the Core Rules / Compendium PDFs (`docs/rules/`). Never invent a game value — see CLAUDE.md "Data Integrity Rules."
+- **"Stub / empty / missing" claims — read once before asserting.** A single Read confirms it; you don't need redundant passes.
+- **Report concretely.** Cite findings as `path:line` so they're actionable.
 
 ### Search Anchors
 

@@ -29,7 +29,7 @@ description: "Use this skill when working with the Planetfall gamemode — colon
 
 | File | Class/Role | Purpose |
 |------|-----------|---------|
-| `src/game/campaign/PlanetfallCampaignCore.gd` | Resource | Planetfall campaign data (538 lines, Section 1 complete) |
+| `src/game/campaign/PlanetfallCampaignCore.gd` | Resource | Planetfall campaign data (shipped — full 18-step turn flow, runtime-verified) |
 | `src/ui/screens/planetfall/PlanetfallScreenBase.gd` | Control base | Base class for Planetfall screens (extends CampaignScreenBase) |
 | `src/ui/screens/planetfall/PlanetfallDashboard.gd` | Control | Colony overview dashboard |
 | `src/ui/screens/planetfall/PlanetfallCreationUI.gd` | Control | 6-step creation wizard (extends Control, NOT ScreenBase) |

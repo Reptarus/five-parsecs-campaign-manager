@@ -33,6 +33,13 @@ signal campaign_turn_completed(turn_number: int)
 var game_state: FiveParsecsGameState
 var current_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
 var previous_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
+
+# Phase rollback (backward-navigation safety) — a player stepping back through turn
+# phases must not desync or corrupt gamestate. transition_in_progress blocks rollback
+# mid-transition; _phase_checkpoints maps a phase -> a full campaign snapshot
+# (campaign.to_dictionary()) taken on entry, restored on rollback. See rollback_to_phase().
+var transition_in_progress: bool = false
+var _phase_checkpoints: Dictionary = {}
 var current_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
 var previous_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
 
@@ -740,7 +747,10 @@ func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	
 	previous_phase = current_phase
 	current_phase = new_phase
-	
+
+	# Snapshot campaign state on entry so a later rollback_to_phase() can restore it.
+	_store_phase_checkpoint(new_phase)
+
 	# Reset sub-phase when changing main phases
 	previous_sub_phase = CampaignSubPhase.NONE
 	current_sub_phase = CampaignSubPhase.NONE
@@ -754,8 +764,50 @@ func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	
 	# Start phase execution
 	_execute_phase_start()
-	
+
 	return true
+
+
+## Snapshot the full campaign state for `phase` (SSOT-safe — campaign.to_dictionary()
+## captures every canonical owner: credits, crew, equipment, turn in one consistent
+## shot). Keyed by phase so rollback_to_phase() can restore an earlier phase's entry
+## state. No-op when there is no campaign or it lacks serialization.
+func _store_phase_checkpoint(phase: int) -> void:
+	var campaign: Resource = game_state.current_campaign if game_state else null
+	if campaign and campaign.has_method("to_dictionary"):
+		_phase_checkpoints[phase] = campaign.to_dictionary()
+
+
+## Roll the campaign turn back to an EARLIER phase (the player stepped back). Returns
+## false (no state change) when a transition is mid-flight OR mission results are
+## already committed (POST_MISSION onward) — un-committing those would corrupt state.
+## On success: restores the target phase's campaign snapshot (when one exists),
+## updates current_phase, and emits phase_changed. Accepts GlobalEnums/GameEnums
+## phase values interchangeably (the two enums are ordinal-synced).
+func rollback_to_phase(target_phase: int) -> bool:
+	if transition_in_progress:
+		return false
+	# Results-committed lock. Explicit set, NOT an ordinal >= : the enum orders
+	# POST_MISSION (8) before UPKEEP (9), but UPKEEP precedes MISSION in turn flow.
+	var locked: Array = [
+		FiveParcsecsCampaignPhase.POST_MISSION,
+		FiveParcsecsCampaignPhase.ADVANCEMENT,
+		FiveParcsecsCampaignPhase.TRADING,
+		FiveParcsecsCampaignPhase.CHARACTER,
+		FiveParcsecsCampaignPhase.RETIREMENT,
+	]
+	if current_phase in locked:
+		return false
+	# Restore the campaign snapshot taken when target_phase was entered, if present.
+	var campaign: Resource = game_state.current_campaign if game_state else null
+	if campaign and _phase_checkpoints.has(target_phase) and campaign.has_method("from_dictionary"):
+		campaign.from_dictionary(_phase_checkpoints[target_phase])
+	var old_phase: int = current_phase
+	previous_phase = current_phase
+	current_phase = target_phase
+	phase_changed.emit(old_phase, target_phase)
+	return true
+
 
 func start_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
 	if not _can_transition_to_sub_phase(new_sub_phase):

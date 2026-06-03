@@ -696,7 +696,7 @@ panel.captain_updated.connect(func(captain): coordinator.update_captain_state({"
 
 ## Agent & Skill Architecture (Token Optimization)
 
-Nine specialized agents with three-tier model routing to minimize token usage on routine tasks:
+Nine specialized agents with model routing matched to task difficulty — Opus for cross-system and verification-critical work, Sonnet for well-scoped single-domain work (model tiers reflect cost/latency, not how much you can trust an agent's findings):
 
 | Agent | Model | Domain |
 | ----- | ----- | ------ |
@@ -707,15 +707,15 @@ Nine specialized agents with three-tier model routing to minimize token usage on
 | `bug-hunt-specialist` | **sonnet** | Bug Hunt gamemode, cross-mode safety |
 | `planetfall-specialist` | **sonnet** | Planetfall gamemode, colony systems, 18-step turn flow |
 | `tactics-specialist` | **sonnet** | Tactics gamemode, army building, operational campaign |
-| `qa-specialist` | **sonnet** | Testing, QA, gdUnit4 |
-| `ui-panel-developer` | **haiku** | UI components, Deep Space theme, TweenFX |
+| `qa-specialist` | **opus** | Testing, QA, gdUnit4, cross-system verification |
+| `ui-panel-developer` | **sonnet** | UI components, Deep Space theme, TweenFX |
 
 ### Agent Files
 
 - **Agent definitions**: `.claude/agents/*.md` (9 files)
 - **Agent memory**: `.claude/agent-memory/{agent-name}/MEMORY.md` (9 files, persistent across sessions)
 - **Skills**: `.claude/skills/{skill-name}/SKILL.md` + `references/*.md` (9 skills, ~26 reference files)
-- **Token settings**: `MAX_THINKING_TOKENS=10000`, `AUTOCOMPACT_PCT=50` in `.claude/settings.local.json`
+- **Token settings**: `MAX_THINKING_TOKENS=16000`, `AUTOCOMPACT_PCT=50` in `.claude/settings.local.json`
 
 ### Routing Rules
 
@@ -828,7 +828,7 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **Character.creation_bonuses is single source of truth**: All creation resource data (bonus credits, patrons, rivals, story points, rumors, starting rolls) is in `Character.creation_bonuses`, set once by `CharacterCreator._roll_and_store_creation_bonuses()`. Never re-derive from gear_database.json or `CharacterGeneration.roll_character_tables()`
 - **Godot 4.6 type inference**: `var x := untyped_array[i]` fails. Use explicit typing: `var x: Type = array[i]`
 - **Two VictoryDescriptions files**: `src/core/victory/` (basic) and `src/game/victory/` (full, used by UI)
-- **Explore agents can be wrong**: ALWAYS verify explore agent claims by reading actual files. Agents have claimed files were stubs when they were fully implemented
+- **Verify high-stakes agent claims, not routine ones**: trust current models for search and reading. Re-verify only where being wrong is expensive — game-data values (against `data/RulesReference/` + the PDFs) and the project-manager's routing targets (confirm the file/API exists before delegating). Routine "where is X handled" findings don't need re-verification
 - **PowerShell for batch ops**: Bash `sed -i` doesn't work on Windows. Use PowerShell `-replace` with proper regex
 - **Character stats are FLAT**: `BaseCharacterResource` has `combat`, `reaction`, `toughness`, `speed`, `savvy`, `luck` as direct properties. There is NO `stats` sub-object. `CharacterStats.gd` is a separate Resource class.
 - **CharacterCreator.start_creation()**: Accepts `CreatorMode` enum (not bool). Has legacy bool compatibility.
@@ -906,34 +906,23 @@ An equipment item is like a physical card — it exists in exactly one location 
 
 ---
 
-## Agent Search Accuracy Protocol
+## Agent Verification Protocol
 
-Agents frequently return inaccurate search results — claiming files are stubs, missing code, or returning wrong locations. Follow these rules to mitigate:
+Current-generation models (Opus 4.8, Sonnet 4.6, Haiku 4.5) are reliable at searching and reading code — treat their findings as trustworthy by default. Concentrate verification on the two places where being wrong is expensive.
 
-### Prompt Specificity
+### Always verify (high-stakes)
 
-- Use exact function/class names, not vague descriptions: `EquipmentManager.get_sell_value()` not "equipment pricing"
-- Include file path hints: "search in `src/core/character/`" not "search for character code"
-- Request structured output: `[file_path]:[line_number]: [exact code line]`
+- **Game-data values**: before acting on any stat, cost, range, probability, table boundary, weapon property, or species trait, confirm it against source-of-truth — `data/RulesReference/*.json`, then the Core Rules / Compendium PDFs (`docs/rules/`), or the relevant gamemode rulebook extract. This is a source-of-truth rule, not a model-trust one (see "Data Integrity Rules"). Never invent a game value.
+- **Routing targets** (project-manager only): before delegating downstream work, confirm the target file/API exists (read it or confirm the path). A bad route cascades across the multi-agent flow.
 
-### Explore Agent Prompts
+### Good practice (still worth doing)
 
-- Always specify `"very thorough"` thoroughness level unless doing a trivial single-file lookup
-- Front-load structural context: key directories, known file paths, class names
-- Tell the agent what NOT to do: "Do not assume a file is a stub without reading it fully"
+- **Prompt specifically**: exact function/class names over vague descriptions (`EquipmentManager.get_sell_value()`, not "equipment pricing"); include directory hints; request structured `path:line` output.
+- **"Stub / empty / missing" claims**: a single Read confirms it before you assert — no redundant passes.
 
-### Verification (MANDATORY)
+### Model tiers reflect cost/latency, not trust
 
-- After any agent search/explore, READ at least 1-2 claimed files to spot-check accuracy
-- Never act on unverified search results — especially for routing decisions or code changes
-- If verification fails, re-search with more specific prompts rather than trusting the original result
-
-### Model Selection for Search Tasks
-
-- Opus: best for cross-system searches, complex pattern matching
-- Sonnet: good accuracy with specific, well-anchored prompts
-- Haiku: lowest search accuracy — provide extra file path hints, limit search scope, always verify claims
-- Do NOT use Haiku-model agents for search-heavy exploration tasks
+Route by task difficulty — Opus for cross-system or verification-critical work (project-manager, battle-systems, qa-specialist), Sonnet for well-scoped single-domain work. Do not pick a tier based on "which model can I rely on"; all current tiers are reliable for search and reading.
 
 ---
 

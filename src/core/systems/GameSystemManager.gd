@@ -97,11 +97,6 @@ func _connect_signals() -> void:
 	game_state.connect("campaign_created", _on_campaign_created)
 	game_state.connect("campaign_loaded", _on_campaign_loaded)
 	
-	# Connect battle results manager signals
-	battle_results_manager.connect("battle_results_recorded", _on_battle_results_recorded)
-	battle_results_manager.connect("casualties_processed", _on_casualties_processed)
-	battle_results_manager.connect("rewards_calculated", _on_rewards_calculated)
-	
 	# Connect mission integrator signals
 	mission_integrator.connect("mission_selected", _on_mission_selected)
 	mission_integrator.connect("mission_preparation_complete", _on_mission_preparation_complete)
@@ -248,19 +243,12 @@ func create_character(character_data: Dictionary) -> Dictionary:
 	
 	return new_character
 
-## Process battle results and apply outcomes
-func process_battle_results(battle_outcome: String) -> Dictionary:
-	# Complete the battle with the specified outcome
-	var battle_results = battle_results_manager.complete_battle(battle_outcome)
-	
-	# Process casualties
-	var casualties = battle_results_manager.process_casualties()
-	
-	# Check for potential rival generation
-	if battle_outcome == BattleResultsManager.OUTCOME_VICTORY:
-		_check_for_rival_generation(battle_results)
-	
-	return battle_results
+# NOTE (2026-06-02 dead-code cleanup): process_battle_results() + its exclusive helpers
+# _check_for_rival_generation()/_generate_new_rival() (fabricated hardcoded rival tables) and
+# the _on_battle_results_recorded/_on_casualties_processed/_on_rewards_calculated handlers +
+# their signal connections were REMOVED. process_battle_results had zero callers and was the
+# only caller of BattleResultsManager.complete_battle()/process_casualties(). This entire
+# GameSystemManager is itself uninstantiated; live battle resolution runs via PostBattlePhase.
 
 ## Calculate and apply experience from a battle
 func process_battle_experience() -> Dictionary:
@@ -298,21 +286,6 @@ func _on_campaign_created(_campaign_data: Dictionary) -> void:
 func _on_campaign_loaded(_campaign_data: Dictionary) -> void:
 	game_state_changed.emit()
 
-func _on_battle_results_recorded(results: Dictionary) -> void:
-	game_state_changed.emit()
-	
-	# If current phase is battle resolution, complete the "battle_completed" action
-	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-		campaign_phase_manager.complete_phase_action("battle_completed")
-
-func _on_casualties_processed(_casualties: Array) -> void:
-	# If current phase is battle resolution, complete the "casualties_resolved" action
-	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-		campaign_phase_manager.complete_phase_action("casualties_resolved")
-
-func _on_rewards_calculated(_rewards: Dictionary) -> void:
-	game_state_changed.emit()
-
 func _on_mission_selected(_mission: Dictionary) -> void:
 	game_state_changed.emit()
 
@@ -347,76 +320,6 @@ func get_equipment_manager() -> EquipmentManager:
 # Get the campaign phase manager
 func get_campaign_phase_manager() -> CampaignPhaseManager:
 	return campaign_phase_manager
-
-## Handle Rival generation according to the Five Parsecs rulebook
-func _check_for_rival_generation(battle_results: Dictionary) -> void:
-	# In Five Parsecs, a rival is generated when:
-	# 1. An enemy leader survives the battle (roll < 50%)
-	# 2. Specific mission types (roll < 25%) 
-	# 3. After specific story events
-	# Check for surviving enemy leader
-	if battle_results.get("enemy_leader_escaped", false):
-		# 50% chance to become rival according to rulebook
-		if randi() % 100 < 50:
-			_generate_new_rival("leader", battle_results)
-	
-	# Check mission type for additional rival generation chance
-	var mission_type = battle_results.get("mission_type", -1)
-	if mission_type == GlobalEnums.MissionType.BLACK_ZONE or mission_type == GlobalEnums.MissionType.RESCUE:
-		# 25% chance to generate rival for these mission types according to rulebook
-		if randi() % 100 < 25:
-			_generate_new_rival("mission", battle_results)
-
-## Generate a new rival based on the rulebook
-func _generate_new_rival(source_type: String, battle_data: Dictionary) -> void:
-	# Determine rival type based on source
-	var rival_type = ""
-	match source_type:
-		"leader":
-			var leader_types = ["Enemy Commander", "Crime Boss", "Bounty Hunter", "Warlord"]
-			rival_type = leader_types[randi() % leader_types.size()]
-		"mission":
-			var mission_types = ["Mercenary", "Criminal", "Alien Threat", "Military Officer"]
-			rival_type = mission_types[randi() % mission_types.size()]
-		_:
-			rival_type = "Unknown Rival"
-	
-	# Generate rival data
-	var name_suffixes = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]
-	var rival_name = rival_type + " " + name_suffixes[randi() % name_suffixes.size()]
-	
-	# Generate rival stats according to rulebook's Rival table
-	var rival_data = {
-		"id": "rival_" + str(randi() % 10000),
-		"name": rival_name,
-		"type": rival_type,
-		"threat_level": 1 + (randi() % 3),
-		"grudge_level": 1,
-		"last_encounter": game_state.current_turn,
-		"origin": {
-			"battle_id": battle_data.get("id", ""),
-			"source": source_type,
-			"turn": game_state.current_turn
-		},
-		"attributes": {
-			"combat": 1 + (randi() % 3),
-			"resources": 1 + (randi() % 3)
-		}
-	}
-	
-	# Add rival to game state - handle type safety
-	if not game_state.get("rivals"):
-		game_state.rivals = []
-	
-	# Check if rivals is actually an Array before using Array methods
-	if game_state.rivals is Array:
-		var rivals_array = game_state.rivals as Array
-		rivals_array.push_back(rival_data)
-	else:
-		# Create a new array if rivals isn't one
-		game_state.rivals = [rival_data]
-	
-	# Notify of rival generation
 
 ## Handle Patron relationships according to the rulebook
 func process_patron_relationship(patron_id: String, mission_success: bool) -> void:

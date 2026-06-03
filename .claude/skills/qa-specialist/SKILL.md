@@ -103,7 +103,7 @@ Quick lookup for every testable system. Use this to find source files, existing 
 | **Bug Hunt** | `src/ui/screens/bug_hunt/*.gd`, `src/game/bug_hunt/*.gd` | — | P1 |
 | **DLC/Compendium** | `src/core/systems/DLCManager.gd` | — | P1 |
 | **Store/Paywall** | `src/core/store/StoreManager.gd`, `src/core/store/*Adapter.gd` | — | P2 |
-| **Enum Systems** | `src/core/systems/GlobalEnums.gd`, `src/core/enums/GameEnums.gd`, `src/game/campaign/crew/FiveParsecsGameEnums.gd` | — (GAP) | P0 |
+| **Enum Systems** | `src/core/systems/GlobalEnums.gd`, `src/core/enums/GameEnums.gd` (FiveParsecsGameEnums.gd deleted Sprint A Bug 3) | — (GAP) | P0 |
 | **Victory Checker** | `src/core/victory/VictoryChecker.gd` | — (GAP) | P0 |
 | **Dashboard** | `src/ui/screens/campaign/CampaignDashboard.gd` | `tests/integration/test_dashboard_*.gd` | P1 |
 | **UI/UX Theme** | `src/ui/screens/campaign/panels/BaseCampaignPanel.gd` | `tests/unit/test_theme_manager.gd` | P1 |
@@ -306,7 +306,7 @@ These are the most common sources of false failures and real bugs. Internalize t
 
 6. **MCP `run_script` — no await**: The `execute()` function must be synchronous. Using `await` causes a 30-second timeout.
 
-7. **Three enum systems must sync**: GlobalEnums (autoload), GameEnums (class_name), FiveParsecsGameEnums (CharacterClass). Check alignment when enum values are tested.
+7. **Both enum systems must sync**: GlobalEnums (autoload), GameEnums (class_name). Check alignment when enum values are tested. (FiveParsecsGameEnums.gd deleted Sprint A Bug 3, 2026-05-24.)
 
 8. **`--headless --quit` not comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check.
 
