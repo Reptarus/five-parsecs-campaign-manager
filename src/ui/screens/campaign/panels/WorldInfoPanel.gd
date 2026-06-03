@@ -38,8 +38,8 @@ var fallback_world_templates: Array = []
 const WORLD_TEMPLATES = {
 	"starter_friendly": {
 		"name": "Haven Station",
-		"type": "temperate",
-		"type_name": "Temperate World",
+		"type": "trade_center",
+		"type_name": "Trade Center",
 		"danger_level": 1,
 		"traits": ["trade_center", "free_port"],
 		"tech_level": 4,
@@ -52,8 +52,8 @@ const WORLD_TEMPLATES = {
 	},
 	"balanced": {
 		"name": "Frontier Outpost",
-		"type": "desert",
-		"type_name": "Desert World",
+		"type": "frontier_world",
+		"type_name": "Frontier World",
 		"danger_level": 2,
 		"traits": ["frontier_world", "mining_world"],
 		"tech_level": 3,
@@ -66,8 +66,8 @@ const WORLD_TEMPLATES = {
 	},
 	"challenging": {
 		"name": "Contested Zone",
-		"type": "volcanic",
-		"type_name": "Volcanic World",
+		"type": "pirate_haven",
+		"type_name": "Pirate Haven",
 		"danger_level": 4,
 		"traits": ["pirate_haven", "military_base"],
 		"tech_level": 2,
@@ -1481,16 +1481,20 @@ func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
 	var danger_level = _calculate_danger_level(crew_size, captain_background)
 	var tech_level = _determine_tech_level_from_campaign(campaign_data)
 	
+	# Trait-based world (Core Rules); world_type is an internal creation-flavor seed only.
+	var generated_traits := _generate_world_traits(world_type, danger_level)
+	var type_label := _derive_world_type_label(generated_traits)
+
 	# Create world data
 	var world_data = {
 		"name": world_name,
 		"planet_name": world_name,
-		"type": world_type,
-		"type_name": _get_world_type_display_name(world_type),
+		"type": type_label.get("id", "standard"),
+		"type_name": type_label.get("name", "Standard World"),
 		"danger_level": danger_level,
 		"tech_level": tech_level,
 		"government_type": _determine_government_type_from_campaign(world_type, danger_level),
-		"traits": _generate_world_traits(world_type, danger_level),
+		"traits": generated_traits,
 		"locations": _generate_starting_locations(world_type, tech_level),
 		"special_features": _generate_special_features(captain_background, crew_size),
 		"known_patrons": _generate_starting_patrons(world_type, tech_level),
@@ -1583,23 +1587,18 @@ func _determine_tech_level_from_campaign(campaign_data: Dictionary) -> int:
 	
 	return clamp(base_tech, 1, 6)
 
-func _get_world_type_display_name(world_type: String) -> String:
-	## Get display name for world type
-	match world_type:
-		"temperate":
-			return "Temperate World"
-		"desert":
-			return "Desert World"
-		"industrial":
-			return "Industrial World"
-		"frontier":
-			return "Frontier World"
-		"urban":
-			return "Urban World"
-		"volcanic":
-			return "Volcanic World"
-		_:
-			return "Unknown World Type"
+## Derive a cosmetic world-type label from the world's traits (no biome concept). Uses the
+## first trait, formatted for display: e.g. "frontier_world" -> "Frontier World". Mirrors
+## WorldGenerator._derive_world_type_label (kept inline to avoid a cross-screen dependency).
+func _derive_world_type_label(traits: Array) -> Dictionary:
+	if traits.is_empty():
+		return {"id": "standard", "name": "Standard World"}
+	var first: String = str(traits[0])
+	var parts: Array[String] = []
+	for w in first.split("_"):
+		if w.length() > 0:
+			parts.append(w.substr(0, 1).to_upper() + w.substr(1))
+	return {"id": first, "name": " ".join(parts)}
 
 func _determine_government_type_from_campaign(world_type: String, danger_level: int) -> String:
 	## Determine government type based on world characteristics

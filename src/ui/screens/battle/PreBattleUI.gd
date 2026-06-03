@@ -11,6 +11,8 @@ const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSyste
 # stale until editor reopens (CLAUDE.md "Preload Pattern for UI Class
 # References").
 const KeywordLinker = preload("res://src/ui/components/tooltips/KeywordLinker.gd")
+## DLCUpsellBanner preloaded by path (same stale-class_name-cache reason as above).
+const DLCUpsellBanner = preload("res://src/ui/components/dlc/DLCUpsellBanner.gd")
 
 ## Optional dependencies that may not exist
 var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
@@ -25,6 +27,17 @@ signal back_pressed
 ## Tracking tier selection (moved here from TacticalBattleUI overlay)
 ## 0 = LOG_ONLY, 1 = ASSISTED, 2 = FULL_ORACLE
 var selected_tier: int = 0
+
+## Combat representation mode (Wave 3 per-battle picker) — orthogonal to the
+## tracking tier. Sprint Roadmap "representation axis": HOW the battle is fought.
+##   "play_on_table" = interactive full-minis companion (default)
+##   "no_minis"      = interactive No-Minis abstract panel (Freelancer's Handbook DLC)
+##   "auto_resolve"  = "play it out for me" — resolver + NarrativeScreen, no tabletop
+var selected_representation_mode: String = "play_on_table"
+
+## Tier radios, tracked so picking auto-resolve can grey them out (tracking level
+## is moot when the app resolves the whole battle for you).
+var _tier_radios: Array[CheckBox] = []
 
 ## AI letter codes → human-readable names (Core Rules p.99, EnemyAI.json).
 ## Used to decode the AI cell in the enemy stat table so testers don't need
@@ -183,6 +196,12 @@ func _setup_mission_info(data: Dictionary) -> void:
 		init_info.add_theme_color_override("font_color", Color("#4FC3F7"))
 		init_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mission_info_panel.add_child(init_info)
+
+	# Combat representation mode (Wave 3) — chosen BEFORE the tracking level since
+	# it decides whether the app tracks at all (auto-resolve needs no tracking).
+	var rep_sep := HSeparator.new()
+	mission_info_panel.add_child(rep_sep)
+	_build_representation_selector()
 
 	# Tier selector — player picks tracking level before combat starts
 	var tier_sep := HSeparator.new()
@@ -589,6 +608,7 @@ func _build_tier_selector() -> void:
 		"Full Oracle — AI runs enemy turns",
 	]
 	var button_group := ButtonGroup.new()
+	_tier_radios.clear()
 	for i in range(tier_names.size()):
 		var radio := CheckBox.new()
 		radio.text = tier_names[i]
@@ -598,10 +618,80 @@ func _build_tier_selector() -> void:
 		if i == 0:
 			radio.button_pressed = true  # Default to LOG_ONLY
 		radio.pressed.connect(_on_tier_radio_pressed.bind(i))
+		_tier_radios.append(radio)
 		mission_info_panel.add_child(radio)
 
 func _on_tier_radio_pressed(tier: int) -> void:
 	selected_tier = tier
+
+## Build the per-battle combat representation picker (Wave 3, Sprint Roadmap
+## "representation axis"). Three options; No-Minis is gated on Freelancer's
+## Handbook DLC OWNERSHIP (not the global toggle — this picker IS the per-battle
+## toggle). Auto-resolve is a base feature (the "digital version" value prop) and
+## is never gated. Writes selected_representation_mode, read by
+## CampaignTurnController._on_deployment_confirmed().
+func _build_representation_selector() -> void:
+	if not mission_info_panel:
+		return
+
+	var header := Label.new()
+	header.text = "Combat Mode"
+	header.add_theme_font_size_override("font_size", _scaled_font(16))
+	mission_info_panel.add_child(header)
+
+	var desc := Label.new()
+	desc.text = "How do you want to fight this battle?"
+	desc.add_theme_font_size_override("font_size", _scaled_font(12))
+	desc.add_theme_color_override("font_color", Color("#808080"))
+	mission_info_panel.add_child(desc)
+
+	# DLC OWNERSHIP gate (is_feature_available ignores the global toggle — the
+	# picker itself is the per-battle toggle). Null-safe for editor/headless.
+	var dlc := get_node_or_null("/root/DLCManager")
+	var no_minis_owned: bool = false
+	if dlc and dlc.has_method("is_feature_available"):
+		no_minis_owned = dlc.is_feature_available(dlc.ContentFlag.NO_MINIS_COMBAT)
+
+	# Each row: [mode_id, label, enabled, locked_flag_name_for_upsell]
+	var options: Array = [
+		["play_on_table",
+			"Play on my table — track my physical game", true, ""],
+		["no_minis",
+			"No-minis abstract — resolve by zones, no miniatures",
+			no_minis_owned, "NO_MINIS_COMBAT"],
+		["auto_resolve",
+			"Play it out for me — auto-resolve as a story", true, ""],
+	]
+
+	var group := ButtonGroup.new()
+	for opt in options:
+		var mode_id: String = opt[0]
+		var enabled: bool = opt[2]
+		var locked_flag: String = opt[3]
+
+		var radio := CheckBox.new()
+		radio.text = opt[1]
+		radio.button_group = group
+		radio.add_theme_font_size_override("font_size", _scaled_font(14))
+		radio.custom_minimum_size.y = 40  # Touch-friendly
+		radio.disabled = not enabled
+		if mode_id == selected_representation_mode and enabled:
+			radio.button_pressed = true
+		radio.pressed.connect(_on_representation_radio_pressed.bind(mode_id))
+		mission_info_panel.add_child(radio)
+
+		# Locked option → subtle, non-aggressive contextual upsell beneath it.
+		if not enabled and not locked_flag.is_empty():
+			var banner := DLCUpsellBanner.create_for_flag(locked_flag)
+			mission_info_panel.add_child(banner)
+
+func _on_representation_radio_pressed(mode: String) -> void:
+	selected_representation_mode = mode
+	# Tracking level is meaningless when the app resolves the whole battle.
+	var is_auto: bool = (mode == "auto_resolve")
+	for r in _tier_radios:
+		if is_instance_valid(r):
+			r.disabled = is_auto
 
 ## Get selected crew
 func get_selected_crew() -> Array:

@@ -245,15 +245,9 @@ func _initialize_planet_economy(planet: PlanetData) -> void:
 func _calculate_demand(planet: PlanetData, good_type: String) -> int:
 	var base_demand = 3
 	
-	# Modify based on planet type
-	match planet.type:
-		"FRONTIER_WORLD":
-			if good_type == "weapons": base_demand += 2
-			if good_type == "equipment": base_demand += 1
-		"INDUSTRIAL_WORLD":
-			if good_type == "raw_materials": base_demand += 2
-		"TRADE_HUB":
-			base_demand += 1 # All goods in higher demand
+	# NOTE (2026-06-02): a dead `match planet.type:` (FRONTIER_WORLD/INDUSTRIAL_WORLD/TRADE_HUB)
+	# was removed here. Those keys never matched the biome ids world-gen produced, so the branch
+	# never fired. Demand is trait-driven (below). The biome "planet type" concept was removed.
 	
 	# Modify based on planet characteristics
 	for characteristic in planet.traits:
@@ -410,20 +404,9 @@ func _roll_world_event(roll: int, planet_type: String) -> Dictionary:
 	var event: Dictionary = events_by_roll.get(roll, {}).duplicate()
 	if event.is_empty():
 		return {}
-	# Planet type flavor adjustments
-	match planet_type:
-		"industrial", "INDUSTRIAL":
-			if roll == 1:
-				event["name"] = "Factory Output Surge"
-				event["description"] = "Factories ramp up production — gear prices drop 20%"
-		"frontier", "FRONTIER":
-			if roll == 3:
-				event["modifier"] = 2
-				event["description"] = "Heavy raider incursions on the frontier (+2 danger)"
-		"trade", "TRADE":
-			if roll == 4:
-				event["modifier"] = 3
-				event["description"] = "Major trade caravan arrives — +3 credits on trade tasks"
+	# NOTE (2026-06-02): a dead `match planet_type:` (industrial/frontier/trade flavor) was removed
+	# here. Those keys never matched the biome ids world-gen produced, so the branch never fired.
+	# World events are roll-driven (events_by_roll). The biome "planet type" concept was removed.
 	event["planet_type"] = planet_type
 	event["roll"] = roll
 	return event

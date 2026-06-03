@@ -65,6 +65,14 @@ func _setup_screen() -> void:
 	_setup_story_systems()
 	_add_help_button()
 	_check_dashboard_tutorial.call_deferred()
+	# Offer to muster in any Bug Hunt veterans (or other cross-mode transfers)
+	# waiting in user://transfers/. Deferred so the dashboard finishes building first.
+	_check_pending_transfers.call_deferred()
+
+
+## Refresh the dashboard after veterans muster in (CampaignScreenBase hook).
+func _on_transfers_applied() -> void:
+	_update_all()
 
 
 func _exit_tree() -> void:

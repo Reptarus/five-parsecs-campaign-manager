@@ -79,10 +79,13 @@ func _connect_button_signals() -> void:
 	## Connect interactive button signals
 	if stun_button:
 		stun_button.pressed.connect(_on_stun_button_pressed)
+		stun_button.tooltip_text = "Record a Stun marker (tap ? for the rule)"
 	if damage_button:
 		damage_button.pressed.connect(_on_damage_button_pressed)
+		damage_button.tooltip_text = "Record one hit on this figure (tap ? for the rule)"
 	if use_action_button:
 		use_action_button.pressed.connect(_on_use_action_button_pressed)
+		use_action_button.tooltip_text = "Spend one action this round"
 
 	# Add Aim and Snap Fire toggle buttons to action container
 	if action_container:
@@ -101,6 +104,15 @@ func _connect_button_signals() -> void:
 		snap_btn.tooltip_text = "Hold for Snap Fire during Enemy Actions (-1 hit, p.113)"
 		snap_btn.toggled.connect(_on_snap_toggled)
 		action_container.add_child(snap_btn)
+
+		# Wave 3: compact "?" opens a contextual combat-rules popover. Rule text
+		# is pulled from KeywordDB via KeywordTooltip — never hand-written here.
+		var rules_btn := Button.new()
+		rules_btn.text = "?"
+		rules_btn.custom_minimum_size = Vector2(44, 44)
+		rules_btn.tooltip_text = "Combat rules: Damage, Stun, Casualty"
+		rules_btn.pressed.connect(_on_rules_button_pressed)
+		action_container.add_child(rules_btn)
 
 # =====================================================
 # CHARACTER DATA SETUP
@@ -320,6 +332,20 @@ func _on_damage_button_pressed() -> void:
 func _on_use_action_button_pressed() -> void:
 	## Handle Use Action button press
 	use_action()
+
+func _on_rules_button_pressed() -> void:
+	## Wave 3: contextual combat-rules popover. Text comes from KeywordDB via
+	## KeywordTooltip (vetted definitions + page refs — never hand-written rules).
+	## "Damage" is the combat hub (Damage vs Toughness -> Casualty / Stun); its
+	## related-term links reach Stun / Casualty / Toughness from the same popover.
+	if _keyword_tooltip == null:
+		_keyword_tooltip = KeywordTooltip.new()
+		add_child(_keyword_tooltip)
+	var pos := Vector2.ZERO
+	var vp := get_viewport()
+	if vp:
+		pos = vp.get_mouse_position()
+	_keyword_tooltip.show_for_keyword("Damage", pos)
 
 func _on_aim_toggled(pressed: bool) -> void:
 	## Toggle Aim state (Core Rules p.46: reroll 1s if didn't move)

@@ -280,10 +280,15 @@ func _apply_muster_out(char_data: Dictionary) -> void:
 		DirAccess.make_dir_recursive_absolute(transfer_dir)
 	var timestamp := str(Time.get_unix_time_from_system())
 	var filename := "transfer_%s_%s.json" % [char_id, timestamp]
+	# safe_copy is already the canonical 5PFH-standard form (the panel ran
+	# muster_out → _convert_to_standard), so it doubles as the lossless snapshot.
 	var transfer_data := {
-		"schema_version": 1,
-		"direction": "muster_out",
+		"schema_version": 2,
+		"direction": "bug_hunt_to_five_parsecs",
+		"source_mode": "bug_hunt",
+		"target_mode": "five_parsecs",
 		"character": safe_copy,
+		"snapshot": safe_copy.duplicate(true),
 		"mustering_credits": safe_copy.get("mustering_credits", 0),
 		"bonus_story_points": safe_copy.get("bonus_story_points", 1),
 		"add_sector_government_patron": true,

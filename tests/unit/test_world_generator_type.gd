@@ -1,8 +1,10 @@
 extends GdUnitTestSuite
-## Pins the 2026-06-01 WorldGenerator fix: the fabricated/broken biome D100-range table
-## (which always returned the first entry, "Desert World") was replaced with an honest
-## uniform pick on the JSON's real id/name schema. World generation remains trait-based
-## (Core Rules), with the world "type"/"type_name" kept only as cosmetic display flavor.
+## Pins the 2026-06-02 STRICT biome removal: planet_types.json was deleted and WorldGenerator no
+## longer has a biome "planet type". The world "type"/"type_name" is now a cosmetic label DERIVED
+## from the trait-based world (Core Rules "World Traits Table") via _derive_world_type_label().
+## (Supersedes the 2026-06-01 fix that replaced the fabricated biome D100 table with a uniform
+## pick; the biome concept is now gone entirely. The biome never drove mechanics: trade-demand /
+## world-event matches keyed on it were dead, and name/danger/locations used only fallbacks.)
 
 const WorldGenerator = preload("res://src/core/campaign/WorldGenerator.gd")
 
@@ -10,23 +12,40 @@ var wg
 
 
 func before_test() -> void:
-	wg = WorldGenerator.new()  # _init() loads planet_types/location_types/world_traits
+	wg = WorldGenerator.new()  # _init() loads location_types + world_traits (no planet_types)
 
 
 func after_test() -> void:
 	wg.free()
 
 
-func test_world_type_varies_not_always_desert() -> void:
-	# Regression: the broken D100 match always returned "_planet_types[0]" (Desert World).
+func test_world_type_label_is_trait_derived() -> void:
+	# type/type_name are derived from the world's first trait (no fabricated biome). When the
+	# world has traits, the type id must equal the first trait id.
+	for i in range(40):
+		var wd: Dictionary = wg.generate_world(1)
+		var traits: Array = wd.get("traits", [])
+		var type_id := str(wd.get("type", ""))
+		var type_name := str(wd.get("type_name", ""))
+		assert_str(type_name).is_not_empty()
+		if traits.is_empty():
+			assert_str(type_id).is_equal("standard")
+		else:
+			assert_str(type_id).is_equal(str(traits[0]))
+
+
+func test_world_type_varies() -> void:
+	# Trait-derived label varies across worlds (regression vs the old always-"Desert World" bug).
 	var seen := {}
 	for i in range(80):
-		var wd: Dictionary = wg.generate_world(1)
-		var tn := str(wd.get("type_name", ""))
-		assert_str(tn).is_not_empty()
-		seen[tn] = true
-	# Uniform pick across the flavor entries must yield more than one distinct type.
+		seen[str(wg.generate_world(1).get("type_name", ""))] = true
 	assert_int(seen.size()).is_greater(1)
+
+
+func test_no_dead_biome_accessors() -> void:
+	# planet_types.json + the dead biome accessors were removed 2026-06-02.
+	assert_bool(wg.has_method("get_planet_types")).is_false()
+	assert_bool(wg.has_method("set_specific_planet_type")).is_false()
 
 
 func test_world_has_book_faithful_fields() -> void:

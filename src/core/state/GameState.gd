@@ -16,6 +16,9 @@ signal save_started
 signal save_completed(success: bool, message: String)
 signal load_started
 signal load_completed(success: bool, message: String)
+## Emitted after a 5PFH campaign loads when characters are waiting in
+## user://transfers/ to muster in. Observers may toast; the dashboard drives the UI.
+signal pending_character_transfers(count: int)
 
 # Campaign state
 var current_campaign = null
@@ -535,6 +538,13 @@ func load_campaign(path: String) -> Dictionary:
 		return {"success": false, "message": error_msg}
 
 	set_current_campaign(loaded)
+
+	# Notify listeners of any characters transferred toward a 5PFH campaign that
+	# are waiting to muster in (the dashboard surfaces the muster-in dialog).
+	if campaign_type == "five_parsecs":
+		var pend: Array = CharacterTransferService.load_pending_transfers("five_parsecs")
+		if not pend.is_empty():
+			pending_character_transfers.emit(pend.size())
 
 	# BUG-035 FIX: Restore EquipmentManager state from campaign data
 	_restore_equipment_from_campaign(loaded)

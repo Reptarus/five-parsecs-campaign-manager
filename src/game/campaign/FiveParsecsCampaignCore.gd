@@ -105,6 +105,19 @@ func initialize_crew(data: Dictionary) -> void:
 	_rebuild_crew_id_index()
 	_update_modified_time()
 
+func add_crew_member(member_dict: Dictionary) -> void:
+	## Append an imported/transferred character to the crew roster (NOT the captain).
+	## The single mutation chokepoint for crew additions made after creation — e.g.
+	## a Bug Hunt veteran mustering in (CharacterTransferService). Keeps the
+	## _crew_id_index in sync so get_crew_member_by_id() resolves the new member.
+	if not crew_data.has("members") or not (crew_data["members"] is Array):
+		crew_data["members"] = []
+	var safe: Dictionary = member_dict.duplicate(true)
+	safe["is_captain"] = false  # only the captain carries is_captain; imports never do
+	crew_data["members"].append(safe)
+	_rebuild_crew_id_index()
+	_update_modified_time()
+
 func set_captain(data: Dictionary) -> void:
 	## Set captain data
 	captain_data = data.duplicate(true)

@@ -35,6 +35,13 @@ extends RefCounted
 
 const ENLISTMENT_TARGET := 7  # 2D6 + Combat Skill >= 7+ (Compendium p.212)
 
+## Canonical mode identifiers (match each campaign core's campaign_type field;
+## FiveParsecsCampaignCore has no such field and is detected as "five_parsecs").
+const MODE_5PFH := "five_parsecs"
+const MODE_BUG_HUNT := "bug_hunt"
+const MODE_PLANETFALL := "planetfall"
+const MODE_TACTICS := "tactics"
+
 ## Stashed equipment storage: character_id -> Array of equipment dicts
 var _stashed_equipment: Dictionary = {}
 
@@ -55,7 +62,7 @@ func validate_enlistment(character_data: Dictionary) -> Dictionary:
 
 
 func attempt_enlistment(character_data: Dictionary) -> Dictionary:
-	## Roll 2D6 + Combat Skill. On 8+, character enlists as Bug Hunter.
+	## Roll 2D6 + Combat Skill. On 7+, character enlists as Bug Hunter (Compendium p.212).
 	## Returns {success: bool, roll: int, target: int, transferred_character: Dictionary}
 	var validation := validate_enlistment(character_data)
 	if not validation.eligible:
@@ -232,11 +239,112 @@ func _convert_to_standard(char_data: Dictionary) -> Dictionary:
 
 
 ## ============================================================================
+## CANONICAL-HUB ROUTER (any-to-any character transfer)
+## ============================================================================
+##
+## Every mode converts TO and FROM one canonical representation: the full
+## 5PFH-standard character dict. This mirrors the rulebooks' own model — each
+## expansion documents how a character "returns to 5PFH play" and how a standard
+## character enters that mode. Any-to-any is then the COMPOSITION of two
+## book-defined legs (export-to-canonical + import-from-canonical), so the three
+## routes no book defines directly (Planetfall->Bug Hunt, Tactics->Bug Hunt,
+## Tactics->Planetfall) are offered WITHOUT inventing any values.
+##
+## Reward-suppression rule: 5PFH-specific exit rewards (Bug Hunt mustering
+## credits / Story Point / Sector Government patron; Planetfall ending bonuses)
+## attach ONLY when the final destination is 5PFH.
+
+func export_to_canonical(char_data: Dictionary, source_mode: String) -> Dictionary:
+	## Produce the canonical 5PFH-standard form of a character leaving source_mode.
+	## Prefers an embedded lossless snapshot when present (the character was itself
+	## imported) so a round-trip restores the original verbatim.
+	var snap := _restore_from_snapshot(char_data)
+	if not snap.is_empty():
+		return snap
+	match source_mode:
+		MODE_BUG_HUNT:
+			return _convert_to_standard(char_data)
+		MODE_PLANETFALL:
+			return convert_from_planetfall(
+				char_data, str(char_data.get("planetfall_ending", "")))
+		MODE_TACTICS:
+			return convert_from_tactics(char_data)
+		_:  # MODE_5PFH or unknown — already canonical
+			return char_data.duplicate(true)
+
+
+func import_from_canonical(canonical: Dictionary, target_mode: String) -> Dictionary:
+	## Down-convert a canonical character into target_mode's shape using that mode's
+	## documented entry rules, then embed the lossless snapshot for later export-back.
+	var result: Dictionary
+	match target_mode:
+		MODE_BUG_HUNT:
+			result = _convert_to_bug_hunt(canonical)
+		MODE_PLANETFALL:
+			result = convert_to_planetfall(canonical, "5pfh")
+		MODE_TACTICS:
+			result = convert_to_tactics(canonical, "5pfh")
+		_:  # MODE_5PFH or unknown — canonical IS the 5PFH form
+			result = canonical.duplicate(true)
+	_attach_snapshot(result, canonical)
+	return result
+
+
+func transfer_character(
+		char_data: Dictionary, source_mode: String, target_mode: String) -> Dictionary:
+	## Build a transfer envelope routing a character from source_mode to target_mode by
+	## composing export-to-canonical + import-from-canonical (both book-defined legs).
+	var canonical := export_to_canonical(char_data, source_mode)
+	var down := import_from_canonical(canonical, target_mode)
+	var cid := str(char_data.get("id", char_data.get("character_id", "")))
+
+	var envelope := {
+		"schema_version": 2,
+		"direction": "%s_to_%s" % [source_mode, target_mode],
+		"source_mode": source_mode,
+		"target_mode": target_mode,
+		"character": down,
+		"snapshot": canonical.duplicate(true),
+		"stashed_equipment": _stashed_equipment.get(cid, []),
+		"mustering_credits": 0,
+		"bonus_story_points": 0,
+		"add_sector_government_patron": false,
+		"transferred_at": Time.get_datetime_string_from_system()
+	}
+
+	# Reward-suppression rule: exit rewards apply ONLY when returning to 5PFH.
+	if target_mode == MODE_5PFH:
+		envelope["mustering_credits"] = int(canonical.get("mustering_credits", 0))
+		envelope["bonus_story_points"] = int(canonical.get("bonus_story_points", 0))
+		envelope["add_sector_government_patron"] = bool(
+			canonical.get("add_sector_government_patron", false))
+
+	return envelope
+
+
+func _attach_snapshot(down_converted: Dictionary, canonical: Dictionary) -> void:
+	## Embed the canonical form as a lossless "return ticket". Strips any nested
+	## snapshot first so snapshots never recurse.
+	var clean := canonical.duplicate(true)
+	clean.erase("snapshot")
+	down_converted["snapshot"] = clean
+
+
+func _restore_from_snapshot(char_data: Dictionary) -> Dictionary:
+	## Return the embedded canonical snapshot if present, else an empty dict.
+	var snap = char_data.get("snapshot", {})
+	if snap is Dictionary and not (snap as Dictionary).is_empty():
+		return (snap as Dictionary).duplicate(true)
+	return {}
+
+
+## ============================================================================
 ## PENDING TRANSFER PERSISTENCE (user://transfers/)
 ## ============================================================================
 
-static func load_pending_transfers() -> Array:
-	## Load all pending transfer files from user://transfers/.
+static func load_pending_transfers(target_mode: String = "") -> Array:
+	## Load pending transfer files from user://transfers/. When target_mode is set,
+	## only transfers destined for that mode are returned (one loader serves all modes).
 	## Returns Array of validated transfer Dictionaries.
 	var transfers: Array = []
 	var dir := DirAccess.open("user://transfers/")
@@ -253,11 +361,20 @@ static func load_pending_transfers() -> Array:
 				var data = JSON.parse_string(file.get_as_text())
 				file.close()
 				if _validate_transfer_data(data):
-					data["_file_path"] = path
-					transfers.append(data)
+					if target_mode.is_empty() or _transfer_targets_mode(data, target_mode):
+						data["_file_path"] = path
+						transfers.append(data)
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	return transfers
+
+
+static func _transfer_targets_mode(data: Dictionary, target_mode: String) -> bool:
+	## v2 files carry an explicit target_mode. v1 muster-out files predate it and
+	## always targeted 5PFH (the only route that existed).
+	if data.has("target_mode"):
+		return str(data["target_mode"]) == target_mode
+	return target_mode == MODE_5PFH
 
 
 static func _validate_transfer_data(data) -> bool:
@@ -300,23 +417,32 @@ static func apply_transfer_rewards(
 	var safe_char: Dictionary = char_data.duplicate(true)
 
 	var summary_parts: Array = []
+	var gsm = Engine.get_main_loop().root.get_node_or_null(
+		"/root/GameStateManager") if Engine.get_main_loop() else null
 
 	# Apply credits (Compendium p.213: 1 credit per 2 completed missions)
 	var credits: int = int(transfer_data.get("mustering_credits", 0))
 	if credits > 0:
-		var gsm = Engine.get_main_loop().root.get_node_or_null(
-			"/root/GameStateManager") if Engine.get_main_loop() else null
 		if gsm and gsm.has_method("add_credits"):
 			gsm.add_credits(credits)
 		summary_parts.append("+%d credits" % credits)
 
-	# Apply Story Points
+	# Apply Story Points (Compendium p.213). add_story_points respects Insanity
+	# mode (story points disabled), so the grant is rules-safe.
 	var sp: int = int(transfer_data.get("bonus_story_points", 0))
 	if sp > 0:
+		if gsm and gsm.has_method("add_story_points"):
+			gsm.add_story_points(sp)
 		summary_parts.append("+%d Story Point(s)" % sp)
 
-	# Sector Government Patron
+	# Sector Government Patron — append to the campaign's patron contacts (owner).
 	if transfer_data.get("add_sector_government_patron", false):
+		if "patrons" in campaign and campaign.patrons is Array:
+			campaign.patrons.append({
+				"name": "Sector Government",
+				"type": "sector_government",
+				"source": "bug_hunt_muster_out"
+			})
 		summary_parts.append("+Sector Government Patron")
 
 	# Delete the transfer file to prevent double-import
@@ -543,6 +669,8 @@ func convert_to_tactics(
 	var training: int = 1
 	var background: String = char_data.get(
 		"background", char_data.get("prior_experience", ""))
+	# GAME_BALANCE_ESTIMATE — UNVERIFIED list, replace with the book's exact
+	# military-background table (Tactics p.184) before the Tactics route ships.
 	var military_backgrounds := [
 		"Military Brat", "War-Torn Hell Hole", "Soldier",
 		"Mercenary", "Enforcer", "Army", "Freelancer", "Bug Hunter"]

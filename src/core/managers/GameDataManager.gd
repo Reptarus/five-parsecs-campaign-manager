@@ -11,7 +11,6 @@ static var _instance: Node = null
 const INJURY_TABLE_PATH = "res://data/injury_table.json"
 const ENEMY_TYPES_PATH = "res://data/enemy_types.json"
 const WORLD_TRAITS_PATH = "res://data/world_traits.json"
-const PLANET_TYPES_PATH = "res://data/planet_types.json"
 const LOCATION_TYPES_PATH = "res://data/location_types.json"
 const GEAR_DATABASE_PATH = "res://data/gear_database.json"
 const EQUIPMENT_DATABASE_PATH = "res://data/equipment_database.json"
@@ -26,7 +25,6 @@ const STATUS_EFFECTS_PATH = "res://data/status_effects.json"
 var injury_tables: Dictionary = {}
 var enemy_types: Dictionary = {}
 var world_traits: Dictionary = {}
-var planet_types: Dictionary = {}
 var location_types: Dictionary = {}
 var gear_database: Dictionary = {}
 var equipment_database: Dictionary = {}
@@ -85,7 +83,6 @@ func load_all_data() -> bool:
 	loaded_successfully["injury_tables"] = load_injury_tables()
 	loaded_successfully["enemy_types"] = load_enemy_types()
 	loaded_successfully["world_traits"] = load_world_traits()
-	loaded_successfully["planet_types"] = load_planet_types()
 	loaded_successfully["location_types"] = load_location_types()
 	loaded_successfully["gear_database"] = load_gear_database()
 	loaded_successfully["equipment_database"] = load_equipment_database()
@@ -235,35 +232,6 @@ func load_world_traits() -> bool:
 		return false
 		
 	emit_signal("data_loaded", "world_traits")
-	return true
-
-func load_planet_types() -> bool:
-	var file = FileAccess.open(PLANET_TYPES_PATH, FileAccess.READ)
-	if file == null:
-		var error = FileAccess.get_open_error()
-		push_error("Failed to open planet types file: " + str(error))
-		emit_signal("data_load_failed", "planet_types", error)
-		return false
-	
-	var json_text = file.get_as_text()
-	file.close()
-	
-	var json = JSON.new()
-	var error = json.parse(json_text)
-	if error != OK:
-		push_error("Failed to parse planet types JSON: " + json.get_error_message() + " at line " + str(json.get_error_line()))
-		emit_signal("data_load_failed", "planet_types", error)
-		return false
-	
-	var data = json.get_data()
-	if typeof(data) == TYPE_DICTIONARY:
-		planet_types = data
-	else:
-		push_error("Invalid planet types format: expected a dictionary")
-		emit_signal("data_load_failed", "planet_types", ERR_INVALID_DATA)
-		return false
-		
-	emit_signal("data_loaded", "planet_types")
 	return true
 
 func load_location_types() -> bool:
@@ -618,17 +586,6 @@ func get_world_trait(trait_id: String) -> Dictionary:
 	push_error("World trait not found: " + trait_id)
 	return {}
 
-func get_planet_type(planet_id: String) -> Dictionary:
-	if not _is_initialized:
-		push_error("GameDataManager not initialized. Call load_all_data() first.")
-		return {}
-	
-	if planet_types.has(planet_id):
-		return planet_types[planet_id]
-	
-	push_error("Planet type not found: " + planet_id)
-	return {}
-
 func get_location_type(location_id: String) -> Dictionary:
 	if not _is_initialized:
 		push_error("GameDataManager not initialized. Call load_all_data() first.")
@@ -722,8 +679,6 @@ func is_data_loaded(data_type: String) -> bool:
 			return enemy_types.size() > 0
 		"world_traits":
 			return not world_traits.is_empty()
-		"planet_types":
-			return not planet_types.is_empty()
 		"location_types":
 			return not location_types.is_empty()
 		"gear_database":

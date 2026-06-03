@@ -10,12 +10,10 @@ signal world_generated(world_data: Dictionary)
 signal location_discovered(location_data: Dictionary)
 
 # Data files
-const PLANET_TYPES_PATH = "res://data/planet_types.json"
 const LOCATION_TYPES_PATH = "res://data/location_types.json"
 const WORLD_TRAITS_PATH = "res://data/world_traits.json"
 
 # Loaded data
-var _planet_types: Array = []
 var _location_types: Array = []
 var _world_traits: Array = []
 var _world_data: Dictionary = {}
@@ -24,8 +22,6 @@ var _data_manager: Object
 
 # Generator settings
 var _danger_level_modifier: int = 0
-var _use_specific_planet_type: bool = false
-var _specific_planet_type: String = ""
 
 func _init() -> void:
 	_data_manager = GameDataManager.get_instance()
@@ -37,13 +33,6 @@ func _ready() -> void:
 
 ## Load all required data from JSON files
 func _load_data() -> void:
-	# Load planet types
-	var planet_data = _data_manager.load_json_file(PLANET_TYPES_PATH)
-	if planet_data and not planet_data.is_empty():
-		_planet_types = planet_data.values()
-	else:
-		push_error("Failed to load planet types data")
-
 	# Load location types
 	var location_data = _data_manager.load_json_file(LOCATION_TYPES_PATH)
 	if location_data and not location_data.is_empty():
@@ -71,7 +60,10 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 	
 	# Step 4: Generate planetary traits (rulebook p.81-82)
 	var traits = _generate_planetary_traits(planet_type)
-	
+
+	# Cosmetic world-type label, derived from the trait-based world (NOT a biome).
+	var type_label = _derive_world_type_label(traits)
+
 	# Step 5: Generate locations (rulebook p.82-84)
 	var locations = _generate_locations(planet_type, danger_level)
 	
@@ -101,8 +93,8 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 	var world_data = {
 		"id": "world_" + str(Time.get_unix_time_from_system()),
 		"name": planet_name,
-		"type": planet_type.get("id", "standard"),
-		"type_name": planet_type.get("name", "Standard World"),
+		"type": type_label.get("id", "standard"),
+		"type_name": type_label.get("name", "Standard World"),
 		"danger_level": danger_level,
 		"tech_level": tech_level,
 		"tech_name": tech_name,
@@ -140,26 +132,26 @@ func _get_government_type(roll: int) -> String:
 		10: return "Unity Oversight"
 		_: return "Unknown"
 
-## Select a world "type" for cosmetic flavor (display + save).
-## NOTE (2026-06-01 rules-accuracy consolidation): Five Parsecs world generation is
-## TRAIT-BASED (Core Rules "World Traits Table"); there is NO biome "planet type" D100
-## table in the Core Rulebook OR Compendium (verified via PDF). The world type here is
-## purely cosmetic flavor shown in the UI and stored on PlanetData. The previous code was
-## fabricated AND broken: it D100-matched on range_min/range_max fields that don't exist in
-## planet_types.json, so it ALWAYS returned the first entry ("Desert World"). It now picks
-## uniformly at random from the existing flavor entries, reading the JSON's real id/name
-## schema. (The planet_types resource_modifiers are unused dead flavor data.)
+## NOTE (2026-06-02 strict biome removal): returns a neutral stub. Five Parsecs world
+## generation is TRAIT-BASED (Core Rules "World Traits Table"); there is NO biome "planet
+## type" table in the Core Rulebook or Compendium (verified via PDF). planet_types.json was
+## deleted. The cosmetic world-type LABEL is now derived from the generated traits in
+## generate_world() via _derive_world_type_label(). This stub exists only so the downstream
+## name/danger/location generators keep their existing fallback behavior.
 func _generate_planet_type() -> Dictionary:
-	if _use_specific_planet_type and _specific_planet_type != "":
-		for planet in _planet_types:
-			if planet.get("id", "") == _specific_planet_type:
-				return planet
-
-	if _planet_types.size() > 0:
-		return _planet_types[randi() % _planet_types.size()]
-
-	# Fallback if data unavailable
 	return {"id": "standard", "name": "Standard World"}
+
+## Derive a cosmetic world-type label from the world's traits (no biome concept). Uses the
+## first trait, formatted for display: e.g. "frontier_world" -> "Frontier World".
+func _derive_world_type_label(traits: Array) -> Dictionary:
+	if traits.is_empty():
+		return {"id": "standard", "name": "Standard World"}
+	var first: String = str(traits[0])
+	var parts: Array[String] = []
+	for w in first.split("_"):
+		if w.length() > 0:
+			parts.append(w.substr(0, 1).to_upper() + w.substr(1))
+	return {"id": first, "name": " ".join(parts)}
 
 ## Generate a planet name
 func _generate_planet_name(planet_type: Dictionary) -> String:
@@ -322,15 +314,6 @@ func discover_location(world_data: Dictionary, location_index: int) -> Dictionar
 ## Set the danger level modifier for world generation
 func set_danger_level_modifier(modifier: int) -> void:
 	_danger_level_modifier = modifier
-
-## Set a specific planet type for the next generation
-func set_specific_planet_type(planet_type: String, use_specific: bool = true) -> void:
-	_specific_planet_type = planet_type
-	_use_specific_planet_type = use_specific
-
-## Get a list of all available planet types
-func get_planet_types() -> Array:
-	return _planet_types.duplicate()
 
 ## Get a list of all available location types
 func get_location_types() -> Array:

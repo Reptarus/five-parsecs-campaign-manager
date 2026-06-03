@@ -395,13 +395,6 @@ func convert_special_feature_to_trait_id(feature: int) -> String:
 		_:
 			return "none"
 
-## Load planet type data from JSON file
-func load_planet_type_data(planet_id: String) -> Dictionary:
-	var planet_types = _data_manager.load_json_file("res://data/planet_types.json")
-	if planet_types.has(planet_id):
-		return planet_types[planet_id]
-	return {}
-
 ## Load location type data from JSON file
 func load_location_type_data(location_id: String) -> Dictionary:
 	var location_types = _data_manager.load_json_file("res://data/location_types.json")
@@ -415,10 +408,6 @@ func load_world_trait_data(trait_id: String) -> Dictionary:
 	if world_traits.has(trait_id):
 		return world_traits[trait_id]
 	return {}
-
-## Get all planet types from JSON file
-func get_all_planet_types() -> Dictionary:
-	return _data_manager.load_json_file("res://data/planet_types.json")
 
 ## Get all location types from JSON file
 func get_all_location_types() -> Dictionary:

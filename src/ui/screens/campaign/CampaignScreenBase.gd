@@ -98,6 +98,119 @@ func _get_campaign():
 		return _game_state.get_current_campaign()
 	return null
 
+# ── Cross-mode character transfer pickup ──────────────────────────────────────
+# Mode-generic: a dashboard calls _check_pending_transfers() once from its
+# _setup_screen(). The same code surfaces "veterans awaiting orders" in every
+# mode because the loader filters by THIS campaign's mode and the add dispatch
+# routes to that mode's roster mutator. See CharacterTransferService.
+
+## Detect characters transferred toward THIS campaign's mode and offer to muster
+## them in. Safe to call from any dashboard's _setup_screen() (no-op if none).
+func _check_pending_transfers() -> void:
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+	var mode := _campaign_mode(campaign)
+	var pending: Array = CharacterTransferService.load_pending_transfers(mode)
+	if pending.is_empty():
+		return
+	_show_pending_transfers_dialog(pending, campaign, mode)
+
+## Resolve a campaign's mode string. FiveParsecsCampaignCore has no campaign_type
+## field and is the canonical "five_parsecs" mode; the others declare it.
+func _campaign_mode(campaign) -> String:
+	if campaign and "campaign_type" in campaign:
+		return str(campaign.campaign_type)
+	return "five_parsecs"
+
+func _show_pending_transfers_dialog(pending: Array, campaign, mode: String) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Veterans Awaiting Orders"
+	dialog.ok_button_text = "Muster In"
+	dialog.cancel_button_text = "Later"
+	var lines: Array[String] = []
+	lines.append("%d character(s) have transferred to this campaign:" % pending.size())
+	lines.append("")
+	for t in pending:
+		var ch: Dictionary = t.get("character", {})
+		var nm: String = str(ch.get("name", ch.get("character_name", "Unknown")))
+		var src: String = str(t.get("source_campaign_name", t.get("source_mode", "another campaign")))
+		var bits: Array[String] = []
+		var cr := int(t.get("mustering_credits", 0))
+		if cr > 0:
+			bits.append("+%d cr" % cr)
+		var sp := int(t.get("bonus_story_points", 0))
+		if sp > 0:
+			bits.append("+%d SP" % sp)
+		if bool(t.get("add_sector_government_patron", false)):
+			bits.append("+Patron")
+		var suffix := (" (" + ", ".join(bits) + ")") if not bits.is_empty() else ""
+		lines.append("• %s — from %s%s" % [nm, src, suffix])
+	dialog.dialog_text = "\n".join(lines)
+	add_child(dialog)
+	dialog.confirmed.connect(func() -> void:
+		_apply_pending_transfers(pending, campaign, mode)
+		dialog.queue_free())
+	dialog.canceled.connect(func() -> void: dialog.queue_free())
+	dialog.popup_centered()
+
+func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
+	var applied := 0
+	var skipped := 0
+	for t in pending:
+		# Crew-size guard (5PFH only — fixed cap chosen at creation, Core Rules p.63).
+		# Skipped transfers keep their file (apply deletes only on success).
+		if mode == "five_parsecs" \
+				and campaign.has_method("get_crew_size") \
+				and campaign.has_method("get_campaign_crew_size"):
+			if campaign.get_crew_size() >= campaign.get_campaign_crew_size():
+				skipped += 1
+				continue
+		var res: Dictionary = CharacterTransferService.apply_transfer_rewards(campaign, t)
+		if not res.get("success", false):
+			continue
+		var ch: Dictionary = res.get("character", {})
+		if _add_character_to_mode(campaign, mode, ch):
+			applied += 1
+	if applied > 0 and _game_state and _game_state.has_method("save_campaign"):
+		_game_state.save_campaign(campaign)
+		_on_transfers_applied()
+	_notify_transfer_result(applied, skipped)
+
+## Dispatch an imported character to the right roster mutator for its mode.
+func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
+	match mode:
+		"five_parsecs":
+			if campaign.has_method("add_crew_member"):
+				campaign.add_crew_member(ch)
+				return true
+		"bug_hunt":
+			if campaign.has_method("add_main_character"):
+				campaign.add_main_character(ch)
+				return true
+		"planetfall":
+			if campaign.has_method("add_roster_character"):
+				campaign.add_roster_character(ch)
+				return true
+		"tactics":
+			# Tactics veteran model (veteran_characters[]) lands in Phase 2.
+			push_warning("Tactics veteran import not yet wired (Phase 2)")
+			return false
+	return false
+
+func _notify_transfer_result(applied: int, skipped: int) -> void:
+	var nm = get_node_or_null("/root/NotificationManager")
+	if not nm:
+		return
+	if applied > 0 and nm.has_method("show_success"):
+		nm.show_success("%d veteran(s) mustered in." % applied)
+	if skipped > 0 and nm.has_method("show_warning"):
+		nm.show_warning("%d veteran(s) left pending — crew at capacity." % skipped)
+
+## Override in a dashboard to refresh its roster view after veterans muster in.
+func _on_transfers_applied() -> void:
+	pass
+
 # ── Responsive layout system ──────────────────────────────────────────────────
 
 func _connect_responsive_signals() -> void:

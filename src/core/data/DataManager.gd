@@ -30,7 +30,6 @@ const CREW_TASK_MODIFIERS_PATH: String = "res://data/resources/world/crew_task_m
 const GEAR_DATA_PATH: String = "res://data/gear_database.json"
 const WORLD_TRAITS_PATH: String = "res://data/world_traits.json"
 const INJURY_TABLES_PATH: String = "res://data/injury_table.json"
-const PLANET_TYPES_PATH: String = "res://data/planet_types.json"
 const LOCATION_TYPES_PATH: String = "res://data/location_types.json"
 const MISSION_TEMPLATES_PATH: String = "res://data/mission_templates.json"
 const LOOT_TABLES_PATH: String = "res://data/loot_tables.json"
@@ -63,7 +62,6 @@ var _injury_tables: Dictionary = {}
 var _psionic_powers_database: Dictionary = {}
 var _elite_enemy_types: Dictionary = {}
 var _enemy_types: Dictionary = {}
-var _planet_types: Dictionary = {}
 var _location_types: Dictionary = {}
 var _mission_templates: Dictionary = {}
 var _loot_tables: Dictionary = {}
@@ -115,7 +113,6 @@ func _exit_tree() -> void:
 	_psionic_powers_database.clear()
 	_elite_enemy_types.clear()
 	_enemy_types.clear()
-	_planet_types.clear()
 	_location_types.clear()
 	_mission_templates.clear()
 	_loot_tables.clear()
@@ -251,7 +248,6 @@ func load_all_data() -> void:
 	_world_traits_database = {}
 	_injury_tables = {}
 	_enemy_types = {}
-	_planet_types = {}
 	_location_types = {}
 	_mission_templates = {}
 	_loot_tables = {}

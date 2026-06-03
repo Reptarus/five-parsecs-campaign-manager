@@ -1394,6 +1394,18 @@ func _on_deployment_confirmed() -> void:
 	## Transition from PreBattle to TacticalBattle for combat
 
 	_hide_all_phase_uis()
+
+	# Wave 3: honor the per-battle combat-representation pick. "auto_resolve"
+	# ("play it out for me") skips the interactive tactical UI entirely and routes
+	# through the auto-resolve + narrative bridge (BattleResolverRouter then
+	# NarrativeScreen via _on_auto_resolve_completed -> _on_battle_completed).
+	var rep_mode: String = "play_on_table"
+	if pre_battle_ui and "selected_representation_mode" in pre_battle_ui:
+		rep_mode = str(pre_battle_ui.selected_representation_mode)
+	if rep_mode == "auto_resolve":
+		_on_auto_resolve_completed({})
+		return
+
 	if tactical_battle_ui:
 		# QA-FIX: Initialize BEFORE show() so _battle_initialized = true prevents
 		# _check_standalone_mode from firing the tier selection overlay
@@ -1406,6 +1418,9 @@ func _on_deployment_confirmed() -> void:
 		var md: Dictionary = mission_data if mission_data is Dictionary else {}
 		if pre_battle_ui and "selected_tier" in pre_battle_ui:
 			md["selected_tier"] = pre_battle_ui.selected_tier
+		# Per-battle representation ("play_on_table" / "no_minis") flows to
+		# TacticalBattleUI so it can show the No-Minis abstract panel when chosen.
+		md["representation_mode"] = rep_mode
 
 		if tactical_battle_ui.has_method("initialize_battle"):
 			tactical_battle_ui.initialize_battle(crew_data, enemy_data, md)

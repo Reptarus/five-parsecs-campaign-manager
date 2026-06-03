@@ -137,6 +137,11 @@ var confirm_assignments_button: Button = null
 
 # Stars of the Story battle HUD (Core Rules p.67 — 3 mid-battle abilities)
 var _stars_battle_button: Button = null
+
+# Wave 3 battle-UX: single-level undo of the last player-recorded unit mutation,
+# plus its ActionBar button (set up like _stars_battle_button).
+var _undo_button: Button = null
+var _undo_snapshot: Dictionary = {}
 var _stars_battle_popup: PopupPanel = null
 const _StarsSysClassRef = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
@@ -333,6 +338,8 @@ func _connect_signals() -> void:
 
 	# Stars of the Story HUD — deferred so campaign data is loaded
 	call_deferred("_setup_stars_battle_ui")
+	# Wave 3: Undo button on the ActionBar (deferred so the bar exists).
+	call_deferred("_setup_undo_button")
 
 func _setup_ui() -> void:
 	## Setup the tactical UI — Map-Primary + Drawers frame (redesign port).
@@ -3034,7 +3041,7 @@ func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
 		down_btn.add_theme_stylebox_override("normal", down_style)
 		down_btn.add_theme_stylebox_override("hover", down_style)
 		down_btn.add_theme_stylebox_override("pressed", down_style)
-		down_btn.pressed.connect(_mark_casualty.bind(unit, is_crew))
+		down_btn.pressed.connect(_confirm_mark_casualty.bind(unit, is_crew))
 		body.add_child(down_btn)
 
 		character_cards.append(card)
@@ -3044,6 +3051,7 @@ func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
 func _on_card_damage(char_name: String, amount: int, unit, is_crew: bool) -> void:
 	## CharacterStatusCard "Damage" -> model. Health 0 = casualty (the card
 	## already updated its own display; we only sync model/log/trackers/rail).
+	_capture_undo_snapshot(unit, "Damage", is_crew)
 	unit.health = max(0, unit.health - amount)
 	if unified_log:
 		unified_log.log_action(char_name, "took %d damage" % amount)
@@ -3056,6 +3064,7 @@ func _on_card_damage(char_name: String, amount: int, unit, is_crew: bool) -> voi
 func _on_card_stun(char_name: String, unit) -> void:
 	## CharacterStatusCard "Stun" -> model. Stackable; persists across rounds
 	## (Core Rules: removed only after the stunned figure acts).
+	_capture_undo_snapshot(unit, "Stun")
 	unit.stun_markers += 1
 	if unified_log:
 		unified_log.log_action(char_name, "Stunned (x%d)" % unit.stun_markers)
@@ -3066,6 +3075,7 @@ func _on_card_action(char_name: String, action_type: String, unit) -> void:
 	## Only the generic Use-Action consumes the once-per-round activation
 	## (Core Rules p.114). Aim/Snap toggles are tactical state, not activation.
 	if action_type == "generic_action":
+		_capture_undo_snapshot(unit, "Action")
 		unit.is_activated = true
 		if activation_tracker and is_instance_valid(activation_tracker) \
 				and activation_tracker.has_method("set_unit_activated"):
@@ -3099,6 +3109,109 @@ func _mark_casualty(unit, is_crew: bool, feed_morale: bool = true) -> void:
 			morale_tracker.casualties_this_round += 1
 	_refresh_unit_rails()
 	_queue_drawer_repopulate()
+
+
+## ── Wave 3 battle-UX: casualty confirm + single-level undo ───────────────
+
+func _confirm_mark_casualty(unit, is_crew: bool) -> void:
+	## Guard the irreversible EXPLICIT elimination ("Mark Down" button) with a
+	## confirmation. Damage-driven casualties (_on_card_damage) and automatic
+	## Bail removals stay un-prompted — those already follow a recorded action.
+	if unit == null or unit.is_dead:
+		return
+	_capture_undo_snapshot(unit, "Mark Down", is_crew)
+	var dlg := ConfirmationDialog.new()
+	dlg.title = "Confirm Casualty"
+	dlg.dialog_text = "Mark %s as DOWN?\n\nThis removes the figure from the battle." % unit.node_name
+	dlg.ok_button_text = "Mark Down"
+	add_child(dlg)
+	dlg.confirmed.connect(func() -> void: _mark_casualty(unit, is_crew))
+	dlg.confirmed.connect(dlg.queue_free)
+	dlg.canceled.connect(dlg.queue_free)
+	dlg.popup_centered()
+
+
+## Snapshot one unit's mutable battle state so the NEXT action can be undone.
+## Single-level: a new capture overwrites the previous. is_crew lets undo also
+## reverse the End-Phase-Morale casualty count when an enemy kill is undone.
+func _capture_undo_snapshot(unit, label: String, is_crew: bool = false) -> void:
+	if unit == null:
+		return
+	_undo_snapshot = {
+		"unit": unit,
+		"is_crew": is_crew,
+		"health": unit.health,
+		"stun_markers": unit.stun_markers,
+		"is_activated": unit.is_activated,
+		"is_dead": unit.is_dead,
+		"actions_remaining": unit.actions_remaining,
+		"label": label,
+	}
+	_refresh_undo_button()
+
+
+func _undo_last_mutation() -> void:
+	if _undo_snapshot.is_empty():
+		return
+	var unit = _undo_snapshot.get("unit")
+	if unit == null:
+		_undo_snapshot = {}
+		_refresh_undo_button()
+		return
+	var was_dead: bool = bool(_undo_snapshot.get("is_dead", unit.is_dead))
+	unit.health = int(_undo_snapshot.get("health", unit.health))
+	unit.stun_markers = int(_undo_snapshot.get("stun_markers", unit.stun_markers))
+	unit.is_activated = bool(_undo_snapshot.get("is_activated", unit.is_activated))
+	unit.actions_remaining = int(_undo_snapshot.get("actions_remaining", unit.actions_remaining))
+	# Reviving from a just-applied casualty: un-count it for End Phase Morale.
+	# (unit.is_dead here is still the POST-mutation value; restored just below.)
+	if unit.is_dead and not was_dead and not bool(_undo_snapshot.get("is_crew", false)) \
+			and morale_tracker and is_instance_valid(morale_tracker) \
+			and "casualties_this_round" in morale_tracker:
+		morale_tracker.casualties_this_round = max(0, morale_tracker.casualties_this_round - 1)
+	unit.is_dead = was_dead
+	if activation_tracker and is_instance_valid(activation_tracker):
+		if activation_tracker.has_method("set_unit_defeated"):
+			activation_tracker.set_unit_defeated(_unit_id(unit), unit.is_dead)
+		if activation_tracker.has_method("set_unit_activated"):
+			activation_tracker.set_unit_activated(_unit_id(unit), unit.is_activated)
+	if unified_log:
+		unified_log.log_action(unit.node_name,
+			"Undo: %s" % str(_undo_snapshot.get("label", "last action")))
+	_undo_snapshot = {}
+	_refresh_unit_rails()
+	_queue_drawer_repopulate()
+	_refresh_undo_button()
+
+
+func _setup_undo_button() -> void:
+	## Add the Undo button to the ActionBar (sibling of EndTurnButton), mirroring
+	## the Stars button. Disabled until a mutation is captured.
+	if not is_inside_tree() or _undo_button != null:
+		return
+	var action_bar: HBoxContainer = end_turn_button.get_parent() if end_turn_button else null
+	if not action_bar:
+		return
+	_undo_button = Button.new()
+	_undo_button.text = "↶ Undo"
+	_undo_button.tooltip_text = "Undo the last damage / stun / action / casualty you recorded"
+	_undo_button.custom_minimum_size = Vector2(96, 0)
+	_undo_button.disabled = true
+	_undo_button.pressed.connect(_on_undo_button_pressed)
+	action_bar.add_child(_undo_button)
+	action_bar.move_child(_undo_button, 0)  # Leftmost in the bar
+
+
+func _on_undo_button_pressed() -> void:
+	_undo_last_mutation()
+
+
+func _refresh_undo_button() -> void:
+	if _undo_button == null:
+		return
+	var has_snap: bool = not _undo_snapshot.is_empty()
+	_undo_button.disabled = not has_snap
+	_undo_button.text = "↶ Undo %s" % str(_undo_snapshot.get("label", "")) if has_snap else "↶ Undo"
 
 
 func _assign_crew_reaction_slots() -> void:
@@ -4532,11 +4645,22 @@ func _roll_compendium_injury() -> Dictionary:
 ## ── DLC: No-Minis Combat Panel (Compendium pp.66-73) ────────────
 
 func _setup_no_minis_panel(crew_size: int, enemy_count: int) -> void:
-	## Create and wire No-Minis Combat panel when DLC enabled
+	## Create and wire the No-Minis Combat panel. Wave 3: the per-battle
+	## representation picker is authoritative when present in mission_data
+	## (representation_mode == "no_minis" shows it; anything else hides it);
+	## absent (standalone sim / non-picker paths) we fall back to the global
+	## feature toggle. Ownership of the Freelancer's Handbook DLC is required
+	## either way (No-Minis is Compendium content).
 	var dlc_mgr = get_node_or_null("/root/DLCManager")
 	if not dlc_mgr:
 		return
-	if not dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.NO_MINIS_COMBAT):
+	if not dlc_mgr.is_feature_available(dlc_mgr.ContentFlag.NO_MINIS_COMBAT):
+		return
+	var md: Dictionary = _stored_mission_data if _stored_mission_data is Dictionary else {}
+	var rep_mode: String = str(md.get("representation_mode", ""))
+	var want_no_minis: bool = (rep_mode == "no_minis") if rep_mode != "" \
+		else dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.NO_MINIS_COMBAT)
+	if not want_no_minis:
 		return
 
 	no_minis_combat_panel = _get_res("no_minis_combat").new()
