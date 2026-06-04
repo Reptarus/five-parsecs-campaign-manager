@@ -95,7 +95,11 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 	## Step 3: Determine Quest Progress (Core Rules p.86). Returns 0/1/2.
 	var quest_progress: int = 0
 
-	if not ctx.game_state or not ctx.game_state.has_active_quest():
+	# Guard has_active_quest with has_method (matching the get_quest_rumors guards
+	# below). GameState exposes no quest API today, so Step 3 safely no-ops instead
+	# of crashing post-battle. Pre-existing unguarded call since f4346c39.
+	if not ctx.game_state or not ctx.game_state.has_method("has_active_quest") \
+			or not ctx.game_state.has_active_quest():
 		return 0
 
 	var base_roll: int = ctx.roll_d6("Quest progress roll")

@@ -61,9 +61,11 @@ func initialize(stars_system: StarsOfTheStorySystem) -> void:
 	_stars_system = stars_system
 	
 	if _stars_system:
-		# Connect to system signals
+		# Connect to system signals. NOTE: star_ability_recharged was removed from
+		# StarsOfTheStorySystem in 70cf5b6c (May-19) — abilities are once-per-campaign,
+		# no recharge. The dangling connect crashed FinalPanel on every non-Insanity
+		# creation; removed here (its _on_ability_recharged handler is now dead).
 		_stars_system.star_ability_used.connect(_on_ability_used)
-		_stars_system.star_ability_recharged.connect(_on_ability_recharged)
 		
 		# Initial update
 		refresh_display()
@@ -344,8 +346,3 @@ func _on_ability_used(ability: int, details: Dictionary) -> void:
 	## Handle ability used event from system
 	_update_ability_card(ability)
 	ability_used.emit(ability, details)
-
-
-func _on_ability_recharged(ability: int, new_uses: int) -> void:
-	## Handle ability recharged event (from Elite Ranks bonus)
-	_update_ability_card(ability)

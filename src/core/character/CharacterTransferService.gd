@@ -225,6 +225,9 @@ func _convert_to_standard(char_data: Dictionary) -> Dictionary:
 		"combat": char_data.get("combat_skill", 0),
 		"toughness": char_data.get("toughness", 3),
 		"savvy": char_data.get("savvy", 0),
+		# Preserve tech in the canonical so a downstream Planetfall import can apply
+		# its Tech->Savvy rule (Planetfall p.26). Bug Hunt itself doesn't use it.
+		"tech": char_data.get("tech", char_data.get("savvy", 0)),
 		"luck": 1,  # Restore base Luck for standard campaigns
 		"xp": char_data.get("xp", 0),
 		"equipment": restored_equipment,
@@ -259,18 +262,37 @@ func export_to_canonical(char_data: Dictionary, source_mode: String) -> Dictiona
 	## Prefers an embedded lossless snapshot when present (the character was itself
 	## imported) so a round-trip restores the original verbatim.
 	var snap := _restore_from_snapshot(char_data)
-	if not snap.is_empty():
-		return snap
 	match source_mode:
 		MODE_BUG_HUNT:
-			return _convert_to_standard(char_data)
+			return snap if not snap.is_empty() else _convert_to_standard(char_data)
 		MODE_PLANETFALL:
-			return convert_from_planetfall(
-				char_data, str(char_data.get("planetfall_ending", "")))
+			# Planetfall end-of-campaign bonuses depend on the ending, not stats, so
+			# they apply even to a snapshot-restored imported veteran (Planetfall
+			# pp.165-166). Born-in colonists get stats + bonuses from convert_from_*.
+			var ending := str(char_data.get("planetfall_ending", ""))
+			if snap.is_empty():
+				return convert_from_planetfall(char_data, ending)
+			return _layer_planetfall_ending(snap, char_data, ending)
 		MODE_TACTICS:
-			return convert_from_tactics(char_data)
+			return snap if not snap.is_empty() else convert_from_tactics(char_data)
 		_:  # MODE_5PFH or unknown — already canonical
-			return char_data.duplicate(true)
+			return snap if not snap.is_empty() else char_data.duplicate(true)
+
+
+func _layer_planetfall_ending(
+		base: Dictionary, char_data: Dictionary, ending: String) -> Dictionary:
+	## Layer Planetfall ending bonuses onto a snapshot-restored character. Stats come
+	## from `base` (the lossless snapshot); the bonuses depend only on the ending.
+	if ending.is_empty():
+		return base
+	var bonused := convert_from_planetfall(char_data, ending)
+	for k in ["bonus_ship", "ship_debt", "ship_debt_prepaid", "add_rival",
+			"bonus_story_points", "gains_psionic", "isolation_single_char"]:
+		if bonused.has(k):
+			base[k] = bonused[k]
+	if ending == "isolation":
+		base["luck"] = int(base.get("luck", 0)) + 1  # +1 on top of restored Luck
+	return base
 
 
 func import_from_canonical(canonical: Dictionary, target_mode: String) -> Dictionary:
@@ -445,6 +467,30 @@ static func apply_transfer_rewards(
 			})
 		summary_parts.append("+Sector Government Patron")
 
+	# Planetfall end-of-campaign bonuses (Planetfall pp.165-166). These ride on the
+	# character dict (set by convert_from_planetfall / _layer_planetfall_ending) and
+	# are applied to the campaign here. bonus_story_points already flowed via the
+	# Story Point path above.
+	if safe_char.get("bonus_ship", false):
+		if "has_ship" in campaign:
+			campaign.has_ship = true
+		summary_parts.append("+Ship")
+	if safe_char.has("ship_debt") and "ship_debt" in campaign:
+		campaign.ship_debt = int(safe_char["ship_debt"])
+		summary_parts.append("debt cleared")
+	var prepaid: int = int(safe_char.get("ship_debt_prepaid", 0))
+	if prepaid > 0 and "ship_debt" in campaign:
+		campaign.ship_debt = maxi(0, int(campaign.ship_debt) - prepaid)
+		summary_parts.append("%d cr prepaid on debt" % prepaid)
+	var rival_name: String = str(safe_char.get("add_rival", ""))
+	if not rival_name.is_empty() and "rivals" in campaign and campaign.rivals is Array:
+		campaign.rivals.append({
+			"name": rival_name, "type": "rival", "source": "planetfall_independence_lost"
+		})
+		summary_parts.append("+Rival (%s)" % rival_name)
+	if safe_char.get("gains_psionic", false):
+		summary_parts.append("+Psionic")  # rides on the character into the roster
+
 	# Delete the transfer file to prevent double-import
 	var file_path: String = transfer_data.get("_file_path", "")
 	if not file_path.is_empty() and FileAccess.file_exists(file_path):
@@ -555,8 +601,13 @@ func attempt_class_training(char_data: Dictionary, desired_class: String = "") -
 
 
 func convert_from_planetfall(char_data: Dictionary, ending: String = "") -> Dictionary:
-	## Convert a Planetfall character for export to 5PFH (Planetfall p.164).
+	## Convert a Planetfall character for export to 5PFH (Planetfall pp.165-166).
 	## Export rules vary by campaign ending.
+	## NOTE: Luck is NOT derived from KP on export. The book is silent on a
+	## KP->Luck export conversion (the "prefer the Luck system" note on p.27 is an
+	## IMPORT-side option only), so inventing one would violate data integrity.
+	## Imported characters restore their real Luck losslessly via the snapshot;
+	## a character born in Planetfall returns with base Luck (1).
 	var char_id: String = char_data.get("id", "")
 
 	var result := {
@@ -578,18 +629,27 @@ func convert_from_planetfall(char_data: Dictionary, ending: String = "") -> Dict
 		"planetfall_ending": ending
 	}
 
-	# Ending-specific bonuses (Planetfall p.164)
+	# Ending-specific bonuses (Planetfall pp.165-166)
 	match ending:
 		"independence_won":
+			# "begin with a ship. Pay off the debt normally, but you begin with
+			# 2D6 Credits of it already paid off." (NOT full debt forgiveness.)
+			result["bonus_ship"] = true
+			result["ship_debt_prepaid"] = ((randi() % 6) + 1) + ((randi() % 6) + 1)
+			result["bonus_story_points"] = 2  # "In addition (win or lose), +2 Story Points"
+		"independence_lost":
+			# "1 Rival (even chance Enforcers or Bounty Hunters)."
+			result["add_rival"] = "Enforcers" if (randi() % 2) == 0 else "Bounty Hunters"
+			result["bonus_story_points"] = 2  # win OR lose
+		"loyalty":
+			# "begin the campaign with a random ship and no debt."
 			result["bonus_ship"] = true
 			result["ship_debt"] = 0
-		"independence_lost":
-			result["add_rival"] = "Enforcers"  # or Bounty Hunters
-		"loyalty":
-			result["bonus_ship"] = true
-			result["bonus_credits"] = 0  # 2D6 pre-paid (rolled at transfer time)
 		"isolation":
-			result.luck += 1  # 1 character gains +1 Luck
+			# "select one character: +1 Luck. You may only bring ONE character
+			# from an Isolation victory into each new campaign."
+			result.luck += 1
+			result["isolation_single_char"] = true
 		"ascension":
 			result["gains_psionic"] = true  # 1 character gains psionic abilities
 

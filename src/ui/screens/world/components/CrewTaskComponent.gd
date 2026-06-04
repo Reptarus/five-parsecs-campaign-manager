@@ -259,8 +259,10 @@ func _on_assign_task_pressed() -> void:
 		return
 
 	# Mutant: cannot Recruit or Find a Patron (Core Rules p.21)
-	var crew_species: String = crew_member.get(
-		"species_id", crew_member.get("origin", "")).to_lower()
+	# str() guard: legacy saves store crew "origin" as a numeric enum (e.g. 7.0) and
+	# carry no "species_id", so the raw value can be a float — .to_lower() crashed.
+	var crew_species: String = str(crew_member.get(
+		"species_id", crew_member.get("origin", ""))).to_lower()
 	if crew_species == "mutant" and task_id in [
 		"recruit", "find_patron"]:
 		var task_name: String = task.get("name", task_id)

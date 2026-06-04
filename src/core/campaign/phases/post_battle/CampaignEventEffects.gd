@@ -88,7 +88,11 @@ func _has_precursor_crew(ctx: PostBattleContextClass) -> bool:
 	for member in crew:
 		if not member:
 			continue
-		var origin: String = member.origin.to_lower() if "origin" in member else ""
+		# str() guard: legacy saves store crew origin as a numeric enum (float), so
+		# member.origin can be a float and .to_lower() would crash. Same class as the
+		# CrewTaskComponent fix. str(7.0)="7.0" simply won't match "precursor" (correct
+		# graceful degradation for legacy crew with no string origin).
+		var origin: String = str(member.origin).to_lower() if "origin" in member else ""
 		if origin == "precursor":
 			return true
 	return false
