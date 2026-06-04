@@ -8,6 +8,8 @@ extends Control
 signal roster_updated(characters: Array)
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
+const ImportPanelClass = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd")
 const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
 const COLOR_TEXT_SECONDARY := Color("#808080")
 
@@ -54,12 +56,11 @@ func _build_placeholder() -> void:
 	gen_btn.pressed.connect(_on_auto_generate)
 	content.add_child(gen_btn)
 
-	# Import button placeholder
+	# Import veterans from a 5PFH / Bug Hunt save (Planetfall pp.26-29)
 	var import_btn := Button.new()
 	import_btn.text = "Import Characters from 5PFH / Bug Hunt"
 	import_btn.custom_minimum_size = Vector2(300, 48)
-	import_btn.disabled = true
-	import_btn.tooltip_text = "Character import coming in a future sprint"
+	import_btn.pressed.connect(_on_import_pressed)
 	content.add_child(import_btn)
 
 
@@ -94,6 +95,18 @@ func _on_auto_generate() -> void:
 		}
 		_roster.append(char_dict)
 	roster_updated.emit(_roster)
+
+
+func _on_import_pressed() -> void:
+	## Open the import flow to add a 5PFH/Bug Hunt veteran to the founding roster.
+	var panel = ImportPanelClass.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	get_tree().root.add_child(panel)
+	panel.set_existing_roster(_roster)
+	panel.character_imported.connect(func(pf_char: Dictionary) -> void:
+		_roster.append(pf_char)
+		roster_updated.emit(_roster))
+	panel.load_all_sources()
 
 
 func _load_json(path: String) -> Dictionary:

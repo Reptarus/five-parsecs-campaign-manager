@@ -20,6 +20,8 @@ const CalamityPanelScript = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallCalamityPanel.gd")
 const EndGamePanelScript = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallEndGamePanel.gd")
+const ImportPanelClass = preload(
+	"res://src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd")
 
 var _campaign: Resource
 var _content: VBoxContainer
@@ -29,6 +31,145 @@ var _overlay_container: Control
 func _setup_screen() -> void:
 	_campaign = _get_planetfall_campaign()
 	_build_dashboard()
+	# Surface any veterans transferred toward this colony (CampaignScreenBase).
+	_check_pending_transfers.call_deferred()
+
+
+## CampaignScreenBase hook — rebuild after veterans muster in.
+func _on_transfers_applied() -> void:
+	_campaign = _get_planetfall_campaign()
+	for child in get_children():
+		child.queue_free()
+	_build_dashboard()
+
+
+## ── Character transfer ──────────────────────────────────────────────────
+
+func _on_import_pressed() -> void:
+	if not _campaign or not "roster" in _campaign:
+		return
+	var panel = ImportPanelClass.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	get_tree().root.add_child(panel)
+	panel.set_existing_roster(_campaign.roster)
+	panel.character_imported.connect(func(pf_char: Dictionary) -> void:
+		_apply_import(pf_char))
+	panel.load_all_sources()
+
+
+func _apply_import(pf_char: Dictionary) -> void:
+	if not _campaign or not _campaign.has_method("add_roster_character"):
+		return
+	_campaign.add_roster_character(pf_char)
+	_on_save()
+	for child in get_children():
+		child.queue_free()
+	_build_dashboard()
+
+
+func _on_muster_out_pressed() -> void:
+	if not _campaign or not "roster" in _campaign:
+		return
+	var roster: Array = _campaign.roster
+	if roster.is_empty():
+		return
+	# Lightweight full-screen picker: each colonist row offers two destinations.
+	var overlay := _build_muster_out_overlay(roster)
+	get_tree().root.add_child(overlay)
+
+
+func _do_muster_out(char_data: Dictionary, target_mode: String, overlay: Node) -> void:
+	# Stamp the campaign ending so end-of-campaign bonuses apply (empty mid-campaign).
+	var c: Dictionary = char_data.duplicate(true)
+	c["planetfall_ending"] = str(_campaign.endgame_path) if "endgame_path" in _campaign else ""
+
+	var svc = CharacterTransferService.new()
+	var envelope: Dictionary = svc.transfer_character(c, "planetfall", target_mode)
+	envelope["source_campaign_id"] = _campaign.campaign_id if "campaign_id" in _campaign else ""
+	envelope["source_campaign_name"] = _campaign.campaign_name \
+		if "campaign_name" in _campaign else ""
+	_write_transfer_file(envelope, c)
+
+	var cid: String = str(c.get("id", c.get("character_id", "")))
+	if _campaign.has_method("remove_roster_character"):
+		_campaign.remove_roster_character(cid)
+	_on_save()
+
+	if is_instance_valid(overlay):
+		overlay.queue_free()
+	for child in get_children():
+		child.queue_free()
+	_build_dashboard()
+
+
+func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> void:
+	var transfer_dir := "user://transfers/"
+	if not DirAccess.dir_exists_absolute(transfer_dir):
+		DirAccess.make_dir_recursive_absolute(transfer_dir)
+	var cid: String = str(char_data.get("id", char_data.get("character_id", "")))
+	var filename := "transfer_%s_%s.json" % [cid, str(Time.get_unix_time_from_system())]
+	var temp_path := transfer_dir + filename + ".tmp"
+	var final_path := transfer_dir + filename
+	var file := FileAccess.open(temp_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(envelope, "\t"))
+		file.close()
+		DirAccess.rename_absolute(temp_path, final_path)
+
+
+func _build_muster_out_overlay(roster: Array) -> Control:
+	var overlay := Control.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(COLOR_BASE, 0.95)
+	overlay.add_child(bg)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.add_theme_constant_override("margin_left", 24)
+	scroll.add_theme_constant_override("margin_right", 24)
+	overlay.add_child(scroll)
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 12)
+	scroll.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "MUSTER COLONISTS OUT"
+	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL))
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	for member in roster:
+		if member is not Dictionary:
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", SPACING_SM)
+		var name_lbl := Label.new()
+		name_lbl.text = str(member.get("name", "Colonist"))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		row.add_child(name_lbl)
+		var captured: Dictionary = (member as Dictionary).duplicate(true)
+		var to_5pfh := Button.new()
+		to_5pfh.text = "→ 5PFH"
+		to_5pfh.pressed.connect(func() -> void:
+			_do_muster_out(captured, "five_parsecs", overlay))
+		row.add_child(to_5pfh)
+		var to_bh := Button.new()
+		to_bh.text = "→ Bug Hunt"
+		to_bh.pressed.connect(func() -> void:
+			_do_muster_out(captured, "bug_hunt", overlay))
+		row.add_child(to_bh)
+		vbox.add_child(row)
+
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.custom_minimum_size = Vector2(200, 44)
+	cancel.pressed.connect(func() -> void: overlay.queue_free())
+	vbox.add_child(cancel)
+	return overlay
 
 
 func _build_dashboard() -> void:
@@ -123,6 +264,23 @@ func _build_dashboard() -> void:
 	menu_card.setup("", "Main Menu", "Return to the main menu")
 	menu_card.card_pressed.connect(func(): _navigate("main_menu"))
 	hub_box.add_child(menu_card)
+
+	# Character transfer (Planetfall pp.26-29 import, pp.165-166 export)
+	var transfer_box := VBoxContainer.new()
+	transfer_box.add_theme_constant_override("separation", SPACING_SM)
+	_content.add_child(transfer_box)
+
+	var import_card := HubFeatureCardClass.new()
+	import_card.setup("", "Import Veterans",
+		"Bring a 5PFH or Bug Hunt veteran into the colony")
+	import_card.card_pressed.connect(_on_import_pressed)
+	transfer_box.add_child(import_card)
+
+	var muster_card := HubFeatureCardClass.new()
+	muster_card.setup("", "Muster Colonists Out",
+		"Send a colonist to a 5PFH or Bug Hunt campaign")
+	muster_card.card_pressed.connect(_on_muster_out_pressed)
+	transfer_box.add_child(muster_card)
 
 	# Detail hub cards (Sprint 4)
 	var detail_box := VBoxContainer.new()

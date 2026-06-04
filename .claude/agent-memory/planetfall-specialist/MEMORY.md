@@ -52,8 +52,21 @@ Unlike all other modes, Planetfall characters do NOT own equipment individually.
 ### Temp Data Keys
 All use `"planetfall_*"` prefix. No collisions with standard, Bug Hunt, or Tactics keys.
 
-### Character Transfer
-`CharacterTransferService.convert_to_planetfall()` exists. Class training roll required. Stat mapping: `combat` → `combat_skill`, `reaction` → `reactions`. Imported characters tracked in `stashed_equipment` and `original_character_snapshots` for lossless export.
+### Character Transfer — Framework SHIPPED (Planetfall P1)
+
+Cross-Mode Character Transfer Framework: a canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted). Every mode exports-to / imports-from the full 5PFH-standard Character dict (the canonical interchange form); any-to-any = compose export+import legs. Transfer mechanism is direct file-drop via `user://transfers/<id>.json` (schema_version 2 envelope), NOT a persistent barracks. Mode-generic pickup lives in `src/ui/screens/campaign/CampaignScreenBase.gd` (`_check_pending_transfers`/`_apply_pending_transfers`/`_add_character_to_mode` — planetfall dispatches to `add_roster_character` — `_on_transfers_applied` virtual hook). PlanetfallDashboard calls `_check_pending_transfers.call_deferred()` in `_setup_screen` and overrides `_on_transfers_applied()` to rebuild.
+
+**Planetfall P1 SHIPPED**:
+
+- Import UI: `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` — select source char from 5PFH/Bug Hunt saves → preview → Class Training D6 aptitude (1-2 fail, 3 random class, 4-6 player choice; max 3 trained, one per class) → embed lossless snapshot → `add_roster_character`. Stat maps: 5PFH Luck → 1 Kill Point each; Bug Hunt Tech → Savvy. Imported chars begin Loyal (Planetfall pp.26-27).
+- Creation-wizard entry: import button in `src/ui/screens/planetfall/panels/PlanetfallRosterPanel.gd` (was disabled "future sprint", now wired).
+- Dashboard cards on PlanetfallDashboard: "Import Veterans" + "Muster Colonists Out".
+- Lossless snapshot: each imported char embeds its canonical form under a `snapshot` key; `export_to_canonical` short-circuits on it so muster-out restores the original verbatim. `_layer_planetfall_ending` applies ending bonuses on top of the snapshot-restored veteran (bonuses depend on ending, not stats).
+- Reward suppression: Planetfall ending bonuses attach ONLY when `target_mode == "five_parsecs"`.
+
+**DATA-INTEGRITY FIX — convert_from_planetfall ending matrix (Planetfall pp.165-166, verified planetfall_source.txt L12088-12113)**: matrix was WRONG, now corrected — loyalty = bonus_ship, ship_debt 0; independence_won = bonus_ship + ship_debt_prepaid (2D6 PARTIAL prepayment) + bonus_story_points 2 (the OLD BUG zeroed the whole debt); independence_lost = add_rival (Enforcers/Bounty Hunters) + bonus_story_points 2; isolation = +1 Luck + isolation_single_char flag; ascension = gains_psionic. KP→Luck is deliberately NOT converted on Planetfall export (book silent; snapshot restores imported veterans' Luck; born-in-Planetfall keep base Luck).
+
+Methods: `convert_to_planetfall` / `convert_from_planetfall` / `attempt_class_training` / `_layer_planetfall_ending` / `_attach_snapshot` / `_restore_from_snapshot`. 15/15 gdUnit4 tests pass (`tests/unit/test_character_transfer_hub.gd`, `tests/unit/test_planetfall_transfer.gd`). NOTE: of 12 directed routes among the 4 modes, Planetfall→Bug Hunt has NO direct book rule — it is offered ONLY by composing two book-defined legs through the 5PFH canonical (zero invented values).
 
 ---
 

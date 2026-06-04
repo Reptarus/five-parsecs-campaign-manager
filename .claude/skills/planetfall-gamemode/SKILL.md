@@ -23,7 +23,7 @@ description: "Use this skill when working with the Planetfall gamemode — colon
 - **Map/grid system** → Read `planetfall-data-model.md` (map section)
 - **Lifeform generation/evolution** → Read `planetfall-data-model.md` (lifeform section)
 - **Cross-mode safety review** → Read `cross-mode-safety.md`
-- **Character transfer (5PFH ↔ Planetfall)** → Read `cross-mode-safety.md`
+- **Character transfer (5PFH/Bug Hunt ↔ Planetfall — SHIPPED P1)** → Read `cross-mode-safety.md` (Character Transfer Framework section). Import UI: `PlanetfallCharacterImportPanel.gd`; import buttons in `PlanetfallRosterPanel.gd` (creation wizard) + PlanetfallDashboard "Import Veterans" / "Muster Colonists Out" cards
 
 ## Key Source Files
 
@@ -36,6 +36,9 @@ description: "Use this skill when working with the Planetfall gamemode — colon
 | `src/ui/screens/planetfall/PlanetfallCreationCoordinator.gd` | Node | Creation wizard orchestration |
 | `src/ui/screens/planetfall/PlanetfallTurnController.gd` | Control | 18-step turn (placeholder, expanding) |
 | `src/ui/screens/planetfall/panels/` | 6 panel files | Creation wizard step panels |
+| `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` | Control | Veteran import UI (SHIPPED P1) — source select → preview → Class Training D6 → `add_roster_character` |
+| `src/core/character/CharacterTransferService.gd` | `CharacterTransferService` | Canonical-hub transfer; `convert_to_planetfall` / `convert_from_planetfall` / `attempt_class_training` / `_layer_planetfall_ending` |
+| `src/ui/screens/campaign/CampaignScreenBase.gd` | base | Generic pending-transfer pickup (`_add_character_to_mode` → `add_roster_character` for Planetfall) |
 | `data/planetfall/` | 8 JSON files | Planetfall-specific data |
 
 ## Rules Data Authority

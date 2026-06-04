@@ -174,6 +174,23 @@ else:
 - TacticalBattleUI changes break one mode while fixing the other
 - temp_data key collision between namespaces
 
+### Cross-Mode Character Transfer Framework (canonical hub)
+
+`CharacterTransferService` (`src/core/character/CharacterTransferService.gd`) routes all 4 modes through a 5PFH-standard canonical form: `export_to_canonical` / `import_from_canonical` / `transfer_character`. Transfers move as `user://transfers/<id>.json` files; `CampaignScreenBase` provides the generic pickup; `GameState.load_campaign` emits `pending_character_transfers(count)` on a 5PFH load.
+
+Coverage lives in two suites:
+
+- `tests/unit/test_character_transfer_hub.gd` (6 tests) — round-trip lossless via embedded `snapshot`, reward suppression when composing to a non-5PFH target, reward retention when composing to 5PFH, `load_pending_transfers(target_mode)` destination filtering, `apply_transfer_rewards` adds patron + deletes file (no double-import), `add_crew_member` lands the character as non-captain.
+- `tests/unit/test_planetfall_transfer.gd` (9 tests) — 5PFH Luck → Kill Points, Bug Hunt Tech → Savvy, the corrected ending matrix (loyalty / independence_won partial-prepay-not-zero / independence_lost rival + SP / isolation +Luck / ascension psionic), import-then-muster-out restores the original, and Planetfall→Bug Hunt suppresses 5PFH ending rewards.
+
+Verification checklist:
+
+- [ ] Round-trip (export → import → muster-out) restores the original character verbatim (snapshot short-circuit)
+- [ ] 5PFH exit rewards (mustering credits / +1 SP / +Sector Gov patron; Planetfall ending bonuses) attach ONLY when `target_mode == "five_parsecs"`
+- [ ] `apply_transfer_rewards` deletes the transfer file (re-running does not double-apply)
+- [ ] The 3 non-book routes (Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall) only ever compose two book-defined legs through 5PFH — no invented values
+- [ ] Planetfall `independence_won` PARTIALLY prepays ship debt (2D6), it does NOT zero the whole debt (the old bug)
+
 ---
 
 ## F. Two-Enum Sync Verification

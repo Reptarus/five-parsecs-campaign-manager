@@ -82,6 +82,14 @@ Six narrative-system + combat-system sprints shipped in one session (B2/A5/Tier 
 - **General rule**: when writing any dict destined for `NarrativeScreen.present()` (or `BattleCalculations.resolve_ranged_attack`, or any cross-file consumer), Grep the consumer's `_populate_*` / `_data.get(...)` sites for the EXACT key names. Key drift is silent — no error, no warning, just feature missing at runtime.
 - For unit-testability of pure-dict-transform helpers on Control-extending classes: refactor the helper `static`. Tests then call `ClassName._helper(args)` without instantiation (the Control's `@onready` % scene asserts would otherwise trip).
 
+## Cross-Mode Character Transfer Framework — UI pieces (SHIPPED Foundation + Planetfall P1)
+
+Characters move between the 4 persistent modes via a canonical-hub service (`src/core/character/CharacterTransferService.gd`); transfers are direct file-drops at `user://transfers/<id>.json`, NOT a barracks. UI-domain wiring:
+
+- **Mode-generic pickup is in `src/ui/screens/campaign/CampaignScreenBase.gd`** (the shared base): `_check_pending_transfers()`, `_apply_pending_transfers()`, `_add_character_to_mode()` (dispatches per `_campaign_mode()`: five_parsecs→`add_crew_member`, bug_hunt→`add_main_character`, planetfall→`add_roster_character`, tactics→Phase 2 placeholder), `_notify_transfer_result()`, and the `_on_transfers_applied()` virtual hook. Each dashboard (CampaignDashboard / BugHuntDashboard / PlanetfallDashboard) calls `_check_pending_transfers.call_deferred()` in `_setup_screen` and OVERRIDES `_on_transfers_applied()` to rebuild its crew display. Replicate this override pattern for any new mode dashboard.
+- **Planetfall import UI**: `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` (NEW) — select source char from 5PFH/Bug Hunt saves → preview → Class Training D6 picker → add to roster. The creation-wizard entry is the import button in `PlanetfallRosterPanel.gd` (was a disabled "future sprint" stub, now wired). Dashboard cards on PlanetfallDashboard: "Import Veterans" + "Muster Colonists Out". BugHuntDashboard already had Enlist / Muster Out cards (Foundation).
+- Imported chars are added through the NEW mutator `FiveParsecsCampaignCore.add_crew_member()` (5PFH) etc. — never append to crew arrays directly from a panel.
+
 ## Session 53: Compendium Setup Card + Colony Travel Buttons (Apr 9, 2026)
 
 ### ExpandedConfigPanel — New "COMPENDIUM SETUP OPTIONS" Card

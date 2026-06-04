@@ -29,6 +29,7 @@
 - **[Data File Reference](technical/DATA_FILE_REFERENCE.md)** - Game data files catalog
 - **[Data Contracts](technical/DATA_CONTRACTS.md)** - Data structure contracts
 - **[Screen Map](technical/SCREEN_MAP.md)** - Scene/screen inventory
+- **[Cross-Mode Character Transfer SOP](sop/cross-mode-transfer.md)** - Canonical-hub transfer between gamemodes (5PFH/Bug Hunt/Planetfall/Tactics): route matrix, reward-suppression, lossless snapshot, `user://transfers/` file-drop, mode-generic pickup, corrected Planetfall ending matrix
 - **[Codebase Optimization Audit](technical/CODEBASE_OPTIMIZATION_AUDIT.md)** - Optimization opportunities
 - **[Connection Validation Template](technical/UNIVERSAL_CONNECTION_VALIDATION_TEMPLATE.md)** - Signal validation patterns
 

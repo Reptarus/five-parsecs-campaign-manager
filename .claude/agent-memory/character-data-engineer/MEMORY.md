@@ -32,6 +32,10 @@ Any enum change MUST touch BOTH files simultaneously:
 
 Values and ordering must match across all three. Misalignment causes wrong enum-to-int mapping and silent data corruption.
 
+### 1b. Legacy save `origin` is a float enum; new saves are String (Jun 3, 2026)
+
+`Character.origin` is `@export var origin: String` (validated to enum strings, Character.gd:42) and serializes as `"origin": "precursor"` (Character.gd:1245). But save files written BEFORE that String migration persist `origin` as a numeric enum (**float**, e.g. `7.0`) with no `species_id`. Any string op on a legacy crew member's origin (`.to_lower()`, `.capitalize()`, `==` against a String) hard-errors `Invalid call ... 'to_lower' in base 'float'`. Two band-aid `str()`-wraps shipped Jun 3 (CrewTaskComponent.gd:262, CampaignEventEffects.gd:91, commit `524c0f74`) but the OWNER-level fix belongs to THIS domain: add a load-time normalization (WorldDataMigration-style) that coerces a float `origin` → its `GlobalEnums`/`GameEnums` string at deserialize, so downstream code never sees a float. Prefer `species_id` (always String) as the lookup key where available.
+
 ### 2. Implant Capacity is Species-Dependent (Session 52)
 
 `const MAX_IMPLANTS` was replaced by `get_max_implants() -> int`. De-converted returns 3 (Core Rules p.19), default returns 2 (Core Rules p.55). All callers use the method now. Test updated in `test_equipment_classes.gd`.
@@ -175,3 +179,13 @@ THREE creators (verified via .tscn wiring, NOT docs): `Generation/CharacterCreat
 **FiveParsecsCharacter dead-chain DELETED (Jun 1):** removed `FiveParsecsCharacter.gd` (fabricated factory, `tech` stat, 2d6/3) + `CharacterFactory.gd` + `NodeCharacterHelper.gd` + `src/battle/character/Character.gd` (closed dead cluster; global class_name was shadowed by local-alias preloads everywhere). Kept the separate `FiveParsecsCharacterData`/`FiveParsecsCharacterGeneration`/`FiveParsecsCharacterStats`/`FiveParsecsCharacterTableRoller`/`TestCharacterFactory`.
 
 **Still dead (separate cleanup, NOT yet done):** `CharacterCustomizationScreen` + `CaptainPanelController`/`CrewPanelController` (call non-existent `SimpleCharacterCreator.create_character()`; referenced by tests/integration/test_campaign_foundation.gd + test_campaign_e2e_foundation.gd, so deletion needs those test entries updated); `CharacterGeneration.create_enhanced_character`/`_generate_enhanced_equipment` still touch the non-existent `personal_equipment` (dead).
+
+### 15. Cross-Mode Character Transfer Framework — canonical-hub design (SHIPPED)
+
+`src/core/character/CharacterTransferService.gd` (class_name `CharacterTransferService`, extends RefCounted) moves characters between the 4 persistent modes (5PFH / Bug Hunt / Planetfall / Tactics). The **canonical interchange form is the full 5PFH-standard Character dict** — every mode `export_to_canonical(char, source_mode)` / `import_from_canonical(canonical, target_mode)`; any-to-any = compose the two legs. Stat-key remaps are mode-specific (e.g. 5PFH `combat`↔Bug Hunt `combat_skill`, `reaction`↔`reactions`; 5PFH Luck → Planetfall Kill Points; Bug Hunt Tech → Planetfall Savvy) — ALWAYS go through the service, never hand-remap.
+
+**Lossless snapshot**: each imported character embeds its original canonical form under a `snapshot` envelope key; `export_to_canonical` short-circuits on the snapshot so a later muster-out restores the original character verbatim (stats not re-derived). This is the data-integrity guarantee for round-trips.
+
+**New 5PFH mutation chokepoint**: `FiveParsecsCampaignCore.add_crew_member(member_dict)` appends to `crew_data["members"]`, forces `is_captain=false`, rebuilds `_crew_id_index`, updates modified time. It is the canonical mutator for crew added AFTER creation (transfers, recruit). Don't append to `crew_data["members"]` directly from outside.
+
+Status: Foundation (Bug Hunt ↔ 5PFH) + Planetfall P1 SHIPPED, 15/15 gdUnit4 tests (`tests/unit/test_character_transfer_hub.gd`, `tests/unit/test_planetfall_transfer.gd`). Tactics is P2/NOT built. Reward attachments are 5PFH-only (`target_mode == "five_parsecs"`).

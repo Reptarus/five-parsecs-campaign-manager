@@ -20,6 +20,7 @@ description: "Use this skill for task decomposition, agent routing, cross-system
 - **What's the project status?** → Read `project-status.md`
 - **Cross-system coordination needed?** → Read `agent-roster.md` (cross-domain flows section)
 - **Enum change needed?** → Always route to `character-data-engineer` (two-enum sync rule: GlobalEnums + GameEnums)
+- **Cross-mode character transfer change?** → Spans 3 owners: `CharacterTransferService.gd` (character-data-engineer, canonical-hub legs + any book-sourced conversion values), `CampaignScreenBase` pickup + `add_crew_member` + `pending_character_transfers` signal (campaign-systems-engineer), the receiving mode's import UI + mutator (the relevant gamemode specialist; Tactics is P2/NOT BUILT), then qa-specialist. See `agent-roster.md` "Extending cross-mode character transfer"
 
 ## Agent Quick Reference
 

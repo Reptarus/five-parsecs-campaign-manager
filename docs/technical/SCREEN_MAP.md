@@ -616,10 +616,22 @@ else:
 
 ### 8.5 Character Transfer Between Modes
 
-**CharacterTransferService.gd**:
-- Bidirectional transfer between Bug Hunt ↔ Standard 5PFH
-- Enlistment rolls determine success
-- Experience & advancement carry over
+**CharacterTransferService.gd** (`src/core/character/`) — canonical-hub transfer
+across the 4 persistent gamemodes (5PFH / Bug Hunt / Planetfall / Tactics):
+
+- Every mode exports-to / imports-from one canonical 5PFH-standard Character dict;
+  any-to-any = composing two book-defined legs (9 book-defined + 3 composed routes).
+- Enlistment / Class-Training rolls determine entry; experience & profile carry over.
+- 5PFH-only exit rewards are reward-suppressed unless the destination is 5PFH.
+- Transport is a direct file-drop to `user://transfers/<id>.json` (no barracks UI).
+- **Pickup is mode-generic** in `CampaignScreenBase._check_pending_transfers()` —
+  each dashboard (CampaignDashboard / BugHuntDashboard / PlanetfallDashboard) calls
+  it in `_setup_screen()` and dispatches via `_add_character_to_mode()`.
+- **Planetfall screens**: `PlanetfallCharacterImportPanel` (import + Class Training),
+  the import button on `PlanetfallRosterPanel` (creation wizard), and the "Import
+  Veterans" / "Muster Colonists Out" cards on PlanetfallDashboard.
+- Status: Foundation (Bug Hunt ↔ 5PFH) + Planetfall P1 SHIPPED; Tactics is P2 (not
+  built). See `docs/sop/cross-mode-transfer.md`.
 
 ---
 

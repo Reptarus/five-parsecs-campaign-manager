@@ -85,6 +85,24 @@ Order:
   6. qa-specialist: Full sweep — rename could break everything
 ```
 
+### Example 7: "Wire character transfer for a new mode pair"
+```
+Agents: character-data-engineer, campaign-systems-engineer, <gamemode>-specialist, qa-specialist
+Order:
+  1. character-data-engineer: Add/confirm the source + target legs in CharacterTransferService.gd
+     (export_to_canonical / import_from_canonical / convert_to_<mode>). Any-to-any composes two
+     book-defined legs through the 5PFH canonical — invent zero values. GAME-DATA GATE: book-source
+     every per-mode conversion value first (e.g. the Tactics P2 military_backgrounds table is
+     UNVERIFIED and must be replaced from Tactics p.184 before Tactics transfer is built).
+  2. campaign-systems-engineer: Confirm CampaignScreenBase pickup dispatch + the receiving core's
+     mutator chokepoint (add_crew_member / add_main_character / add_roster_character); GameState
+     pending_character_transfers signal if 5PFH is a target.
+  3. <gamemode>-specialist: Build/confirm the receiving mode's import UI + dashboard cards
+     (e.g. planetfall: PlanetfallCharacterImportPanel + Class Training). Tactics is P2 / NOT BUILT.
+  4. qa-specialist: Extend tests/unit/test_character_transfer_hub.gd + test_planetfall_transfer.gd
+     (round-trip lossless, reward-suppression, ending matrix, no double-import).
+```
+
 ## Parallel Execution Rules
 
 - Steps at the same dependency level CAN run in parallel

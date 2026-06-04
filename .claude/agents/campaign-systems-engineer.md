@@ -61,6 +61,16 @@ You have a detailed reference skill at `.claude/skills/campaign-systems/` with c
 
 You own the Phase 0 audit fixes that the Galaxy Log relies on, all in your domain: (1) `FiveParsecsCampaignCore.apply_pending_qol_data()` calls `deserialize_all()` unconditionally now (no empty-data guard); (2) `BugHuntCampaignCore`/`PlanetfallCampaignCore`/`TacticsCampaignCore` `apply_pending_qol_data()` ALL call `pdm.deserialize_all({})` to clear stale 5PFH state; (3) `CampaignFinalizationService.finalize_campaign()` seeds the starting world into PlanetDataManager with `discovered_on_turn=0`; (4) `PostBattleCompletion.gd` lines 65/130 resolve location from `pdm.get_current_planet().name`; (5) `CampaignJournal.auto_create_milestone_entry()` promotes `data["planet_name"]` → entry `location` field. Tests at `tests/unit/test_cross_mode_planet_state_reset.gd` + `test_journal_location_join.gd`. See CLAUDE.md "Galaxy Log" + Jun 1 audit gotchas.
 
+### Cross-Mode Character Transfer — mode-side pickup (SHIPPED: Foundation + Planetfall P1)
+
+You own the mode-generic pickup/dispatch and the 5PFH ingest mutator. The canonical-hub transfer service itself (`src/core/character/CharacterTransferService.gd`) is owned by character-data-engineer; your surface is everything that receives a transferred character into a running campaign:
+
+- **`src/ui/screens/campaign/CampaignScreenBase.gd`** — the shared pickup base: `_check_pending_transfers()` (line 109), `_apply_pending_transfers()` (157), `_add_character_to_mode()` dispatch (181: `five_parsecs` → `add_crew_member`, `bug_hunt` → `add_main_character`, `planetfall` → `add_roster_character`, `tactics` → Phase 2 placeholder/push_warning), `_notify_transfer_result()` (201), the `_on_transfers_applied()` virtual hook (211, dashboards override to rebuild), and `_campaign_mode()` (121). Each dashboard calls `_check_pending_transfers.call_deferred()` in `_setup_screen`.
+- **`src/core/state/GameState.gd`** — `load_campaign()` emits `signal pending_character_transfers(count)` (line 21) on a 5PFH load so the dashboard can surface pending transfers.
+- **`src/game/campaign/FiveParsecsCampaignCore.gd`** — `add_crew_member(member_dict)` (line 108): appends to `crew_data["members"]`, forces `is_captain = false`, rebuilds `_crew_id_index`, updates modified time. This is the mutation chokepoint for crew additions made AFTER creation (the canonical owner per the Data Ownership table).
+
+Files: pickup wired in `CampaignDashboard` (5PFH), and overridden in `BugHuntDashboard` + `PlanetfallDashboard` (their specialists own those overrides). Transfer pickup files arrive at `user://transfers/<id>.json`; `CharacterTransferService.load_pending_transfers(mode)` + `apply_transfer_rewards()` (which deletes the file) are the read/consume side. Reward attachment is suppressed unless the receiving mode is 5PFH. STATUS: Tactics P2 dispatch is a placeholder/`push_warning` — NOT built.
+
 ## Project Context
 
 You are working on **Five Parsecs Campaign Manager**, a campaign management tool for the Five Parsecs from Home tabletop game, built in Godot 4.6 (pure GDScript). Key details:
@@ -157,7 +167,9 @@ Trust your search and your reading — the model running you is reliable at find
 - `src/core/campaign/` — CampaignPhaseManager, CampaignJournal, phases
 - `src/core/state/` — GameState
 - `src/ui/screens/campaign/` — CampaignDashboard, CampaignCreationUI, panels
-- `src/game/campaign/` — FiveParsecsCampaignCore, crew data
+- `src/game/campaign/` — FiveParsecsCampaignCore (incl. `add_crew_member()` post-creation crew ingest chokepoint), crew data
+- `src/ui/screens/campaign/CampaignScreenBase.gd` — shared cross-mode transfer pickup base (`_check_pending_transfers`/`_apply_pending_transfers`/`_add_character_to_mode`/`_on_transfers_applied`)
+- `src/core/state/GameState.gd` — `load_campaign()`, `pending_character_transfers(count)` signal
 - `src/core/managers/GameStateManager.gd` — state mutation helper
 - `src/qol/TurnPhaseChecklist.gd` — phase completion tracking
 

@@ -260,6 +260,18 @@ else:
 - [ ] CharacterTransferService correctly maps between schemas
 - [ ] temp_data keys don't leak between modes
 
+### Cross-Mode Character Transfer Framework
+
+`CharacterTransferService` (`src/core/character/CharacterTransferService.gd`) is a canonical hub: every mode exports to / imports from the full 5PFH-standard Character dict, so any-to-any transfer composes two legs through 5PFH. Transfers persist as `user://transfers/<id>.json` (envelope `schema_version 2`, keys include `direction, source_mode, target_mode, character, snapshot, mustering_credits, bonus_story_points, add_sector_government_patron`). `CampaignScreenBase` drains them; `GameState.load_campaign` emits `pending_character_transfers(count)` on a 5PFH load; static `apply_transfer_rewards()` applies rewards and deletes the file.
+
+Coverage: `tests/unit/test_character_transfer_hub.gd` (6 tests — round-trip lossless via snapshot, reward suppress/retain, target-mode filter, reward-apply+delete, `add_crew_member` non-captain) and `tests/unit/test_planetfall_transfer.gd` (9 tests — KP/Savvy import mapping, corrected ending matrix, muster-out restore, cross-leg suppression). 15/15 pass.
+
+Validation checklist:
+- [ ] Round-trip export → import → muster-out restores the original verbatim (snapshot short-circuit)
+- [ ] 5PFH exit rewards attach ONLY when `target_mode == "five_parsecs"`
+- [ ] `apply_transfer_rewards` deletes the transfer file (no double-import on re-run)
+- [ ] Planetfall `independence_won` PARTIALLY prepays ship debt (2D6) — does NOT zero the whole debt (the old bug)
+
 ---
 
 ## Rules Accuracy Validation

@@ -11,14 +11,15 @@ The Tactics rulebook PDF at `docs/rules/Five Parsecs From Home - Tactics.pdf` an
 
 ---
 
-## Implementation Status (Apr 2026)
+## Implementation Status
 
-### ZERO FPCM Code Exists
-- No `src/ui/screens/tactics/` directory yet
-- No `src/game/campaign/TacticsCampaignCore.gd` yet
-- No `data/tactics/` directory yet
-- No SceneRouter routes for Tactics yet
-- GameState._detect_campaign_type() does NOT handle "tactics" yet
+### Tactics gamemode IMPLEMENTED (Sessions 55-57) — 59 files
+- `src/ui/screens/tactics/` exists (creation UI, dashboard, turn controller, panels)
+- `src/game/campaign/TacticsCampaignCore.gd` exists (Resource; army lists, units, points)
+- `data/tactics/` exists (~18-24 JSON data files; 108 costs verified)
+- SceneRouter keys `tactics_creation` / `tactics_dashboard` / `tactics_turn_controller` exist
+- `GameState._detect_campaign_type()` routes `campaign_type == "tactics"`
+- **NOT built**: per-character cross-mode transfer to/from Tactics (that is P2 — see the cross-mode gotcha below). The gamemode is shipped; only individual-character transfer is pending.
 
 ### Source Materials Available
 - Rulebook text: `docs/rules/tactics_source.txt` (503KB, 212 pages)
@@ -104,3 +105,16 @@ Meeting 2026-04-23. Code proceeds, shipping blocked.
 ### 5. PDF Extraction (PyPDF2 ONLY)
 - Python: `py` launcher (NOT `python`). **PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz.**
 - All Tactics rules come from the PDF via PyPDF2. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Parsecs From Home - Tactics.pdf'); print(r.pages[PAGE].extract_text())"`
+
+### 6. Cross-Mode Character Transfer — Tactics leg is P2, NOT BUILT YET
+
+The Cross-Mode Character Transfer Framework (`src/core/character/CharacterTransferService.gd`, canonical-hub design) is SHIPPED for Bug Hunt ↔ 5PFH (Foundation) and Planetfall P1. **Tactics is P2 and does NOT exist yet** — do NOT claim Tactics character transfer is built. Stub methods `convert_to_tactics` / `convert_from_tactics` exist in the service but are not wired or correct.
+
+When P2 is built (planned):
+
+- A transferred character becomes a **NAMED VETERAN** stored in a NEW `veteran_characters[]` array on TacticsCampaignCore — NOT a squad unit in `campaign_units[]`. Squad injection would break points validation. Army lists stay species-profile-based; the veteran is a named attachment, not a profile entry.
+- **HARD PREREQUISITE**: the invented `military_backgrounds` list inside `convert_to_tactics` (currently tagged `GAME_BALANCE_ESTIMATE` / UNVERIFIED) MUST be replaced with the real **Tactics p.184** table FIRST. No values may be invented — extract p.184 via PyPDF2 before building the leg.
+- Of the 12 directed routes among the 4 modes, Tactics→Bug Hunt and Tactics→Planetfall have NO direct book rule — they would be offered ONLY by composing two book-defined legs through the 5PFH canonical (zero invented values). Tactics→5PFH and 5PFH→Tactics are the direct legs to build.
+- Pickup dispatch for tactics is already a placeholder/push_warning in `CampaignScreenBase._add_character_to_mode()` ("Phase 2").
+
+Correction to earlier framing: it is NOT accurate to say "Tactics uses army lists, not individual character transfer." Correct statement: army lists remain species-profile-based, AND a future P2 imports a character as a named veteran attachment once the `military_backgrounds` list is corrected.

@@ -61,6 +61,20 @@ You have a detailed reference skill at `.claude/skills/character-data/` with cha
 
 You own `src/core/world/GalaxyHexLayout.gd` (deterministic axial-coord assignment, static math utility) and `src/core/world/PlanetDetailBuilder.gd` (shared planet-detail renderer used by CampaignDashboard + WorldDetailPopup). You also own the PlanetDataManager invariants Galaxy Log depends on: cross-mode `deserialize_all({})` clear in every campaign core's `apply_pending_qol_data()`, starting world seeded with `discovered_on_turn=0` during finalization, journal `location` field resolved from `pdm.get_current_planet().name`. See CLAUDE.md "Galaxy Log" architecture section + Jun 1 audit gotchas.
 
+### Cross-Mode Character Transfer — canonical hub (SHIPPED: Foundation + Planetfall P1)
+
+You own `src/core/character/CharacterTransferService.gd` (class_name `CharacterTransferService`, extends RefCounted) — the canonical-hub chokepoint for moving a character between the 4 persistent modes (Standard 5PFH `"five_parsecs"`, Bug Hunt `"bug_hunt"`, Planetfall `"planetfall"`, Tactics `"tactics"`; Battle Simulator is standalone, out of scope). Mode constants `MODE_5PFH`/`MODE_BUG_HUNT`/`MODE_PLANETFALL`/`MODE_TACTICS`.
+
+- **Canonical interchange form** is the full 5PFH-standard `Character` dict. Every mode exports-to / imports-from canonical: `export_to_canonical(char, source_mode)` (source leg) + `import_from_canonical(canonical, target_mode)` (target leg). `transfer_character(char, source_mode, target_mode)` composes both legs. Any-to-any transfer = compose two book-defined legs through 5PFH canonical (of 12 directed routes among 4 modes, 9 are book-defined; the 3 with no direct book rule — Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall — are offered ONLY by composition, inventing zero values).
+- **Lossless snapshot**: each imported character embeds a `snapshot` key (its canonical form); `export_to_canonical` short-circuits on the snapshot so a later muster-out restores the original verbatim. `_layer_planetfall_ending` applies ending bonuses on top of a snapshot-restored veteran (bonuses depend on the ending, not on stats).
+- **Reward suppression**: 5PFH-specific exit rewards (Bug Hunt mustering credits / +1 Story Point / +Sector Government patron; Planetfall ending bonuses) attach ONLY when `target_mode == "five_parsecs"`.
+- **Mode conversions**: `convert_to_planetfall` / `convert_from_planetfall` (with the corrected Planetfall pp.165-166 ending matrix — see below), `convert_to_tactics` / `convert_from_tactics`, `attempt_class_training`.
+- **Transfer mechanism**: direct file-drop via `user://transfers/<id>.json` (schema_version 2 envelope: direction, source_mode, target_mode, character, snapshot, stashed_equipment, mustering_credits, bonus_story_points, add_sector_government_patron, source_campaign_id/name, transferred_at). Static `load_pending_transfers(target_mode="")` filters by destination (v1 files predate `target_mode` and always target 5PFH). Static `apply_transfer_rewards(campaign, transfer_data)` applies rewards to the receiving campaign and deletes the file (prevents double-import). Static helpers `_validate_transfer_data`, `_transfer_targets_mode`.
+- **Data-integrity fix you own** (`convert_from_planetfall`, Planetfall pp.165-166, verified `docs/rules/planetfall_source.txt` L12088-12113): the ending matrix was WRONG and is corrected. `loyalty` = bonus_ship + ship_debt 0; `independence_won` = bonus_ship + ship_debt_prepaid (2D6 partial prepayment) + bonus_story_points 2 (OLD BUG zeroed the whole debt); `independence_lost` = add_rival (Enforcers or Bounty Hunters) + bonus_story_points 2; `isolation` = +1 Luck + isolation_single_char flag; `ascension` = gains_psionic. KP→Luck is deliberately NOT converted on Planetfall export (book is silent; the snapshot restores imported veterans' Luck; born-in-Planetfall keep base Luck).
+- **Tactics caveat (P2, NOT BUILT)**: `convert_to_tactics`'s invented `military_backgrounds` list is tagged `GAME_BALANCE_ESTIMATE`/UNVERIFIED. It is a HARD PREREQUISITE to replace it with the real Tactics p.184 table before any Tactics character transfer ships. Do NOT treat that list as canonical data.
+
+The mode-side pickup/dispatch (CampaignScreenBase, GameState signal, FiveParsecsCampaignCore.add_crew_member) is owned by campaign-systems-engineer; the Planetfall import UI by planetfall-specialist / ui-panel-developer. See CLAUDE.md and the agent-roster.md routing for the new files.
+
 ## Project Context
 
 You are working on **Five Parsecs Campaign Manager**, a campaign management tool for the Five Parsecs from Home tabletop game, built in Godot 4.6 (pure GDScript). Key details:
@@ -133,6 +147,8 @@ All game data MUST be verified against `data/RulesReference/` files — these ar
 - Never nest stats under a sub-object on Character
 - Never use `preload()` in autoloaded scripts
 - Never create character dictionaries without both key alias sets
+- **Never attach 5PFH exit rewards (mustering credits / Story Points / Sector Government patron / Planetfall ending bonuses) unless `target_mode == "five_parsecs"`** — reward suppression is per-route in CharacterTransferService
+- **Never treat the `military_backgrounds` list in `convert_to_tactics` as canonical** — it is `GAME_BALANCE_ESTIMATE` and must be replaced with the real Tactics p.184 table before any Tactics transfer ships
 - **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status
 
 ## Output Format
@@ -157,6 +173,7 @@ Trust your search and your reading — the model running you is reliable at find
 ### Search Anchors
 
 - `src/core/character/` — Character.gd (~1,900 lines), BaseCharacterResource
+- `src/core/character/CharacterTransferService.gd` — cross-mode canonical-hub transfer service (class_name `CharacterTransferService`)
 - `src/core/enums/GameEnums.gd` — GameEnums class
 - `src/core/systems/GlobalEnums.gd` — autoloaded enums (incl. CharacterClass; FiveParsecsGameEnums.gd was deleted Sprint A Bug 3)
 - `src/core/equipment/` — EquipmentManager

@@ -101,6 +101,7 @@ Quick lookup for every testable system. Use this to find source files, existing 
 | **SceneRouter** | `src/ui/screens/SceneRouter.gd` | — (GAP) | P0 |
 | **GameStateManager** | `src/core/managers/GameStateManager.gd` | — (GAP) | P0 |
 | **Bug Hunt** | `src/ui/screens/bug_hunt/*.gd`, `src/game/bug_hunt/*.gd` | — | P1 |
+| **Cross-Mode Character Transfer** | `src/core/character/CharacterTransferService.gd`, `src/ui/screens/campaign/CampaignScreenBase.gd`, `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` | `tests/unit/test_character_transfer_hub.gd` (6 tests: round-trip lossless, reward suppress/retain, target-mode filter, reward-apply+delete, non-captain add), `tests/unit/test_planetfall_transfer.gd` (9 tests: import KP/Savvy mapping, ending matrix, muster-out restore, cross-leg suppression) | P0 |
 | **DLC/Compendium** | `src/core/systems/DLCManager.gd` | — | P1 |
 | **Store/Paywall** | `src/core/store/StoreManager.gd`, `src/core/store/*Adapter.gd` | — | P2 |
 | **Enum Systems** | `src/core/systems/GlobalEnums.gd`, `src/core/enums/GameEnums.gd` (FiveParsecsGameEnums.gd deleted Sprint A Bug 3) | — (GAP) | P0 |
@@ -313,3 +314,7 @@ These are the most common sources of false failures and real bugs. Internalize t
 9. **Bug Hunt data model differs**: `main_characters[]` + `grunts[]` (flat) vs `crew_data["members"]` (nested). Detect via `"main_characters" in campaign`.
 
 10. **Godot 4.6 type inference**: `var x := untyped_array[i]` fails. Use explicit typing: `var x: Type = array[i]`.
+
+11. **Legacy save `origin` is a float, not a String**: New campaigns store crew `origin` as a String (`"precursor"`); pre-migration saves store it as a numeric enum float (`7.0`). Any `.to_lower()`/string op on a legacy crew member's `origin` hard-errors (`'to_lower' in base 'float'`). When testing on a legacy save, `str()`-wrap origin reads or expect crashes in CrewTaskComponent / CampaignEventEffects / dashboard. Prefer `species_id` (always String).
+
+12. **`run_project` debug-mode "break" ≠ always a crash, ≠ always noise**: Class (a) Dictionary missing-key → Godot continues *in-function* (often log-spam, don't over-claim). Class (b) nonexistent method/property or `.to_lower()`-on-float → function ABORTS but process survives (a REAL bug if the function did essential work — don't under-claim). Walking the happy path on a legacy save catches class (b); unit tests + `--headless` pass right through it.

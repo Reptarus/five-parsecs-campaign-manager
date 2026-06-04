@@ -237,6 +237,21 @@ This is the root cause of "Cannot infer the type" errors project-wide. Always us
 
 ---
 
+## Cross-Mode Character Transfer Framework — routing map (SHIPPED Foundation + Planetfall P1)
+
+A canonical-hub design: characters move between the 4 persistent modes (5PFH / Bug Hunt / Planetfall / Tactics) through the full 5PFH Character dict as the interchange form; any-to-any = compose an export leg + an import leg. Transfer mechanism is direct file-drop at `user://transfers/<id>.json` (v2 envelope), NOT a persistent barracks (P3, deferred). 15/15 gdUnit4 tests green; editor parse clean.
+
+**File ownership for routing**:
+
+- Core service `src/core/character/CharacterTransferService.gd` (`export_to_canonical`/`import_from_canonical`/`transfer_character`/convert_*/snapshot helpers; static `load_pending_transfers`/`apply_transfer_rewards`) → **character-data-engineer** (it's character-model + serialization).
+- `FiveParsecsCampaignCore.add_crew_member()` (NEW post-creation crew mutator) + `GameState.load_campaign()` emitting `pending_character_transfers(count)` → **campaign-systems-engineer**.
+- Mode-generic pickup in `src/ui/screens/campaign/CampaignScreenBase.gd` (`_check_pending_transfers`/`_apply_pending_transfers`/`_add_character_to_mode`/`_on_transfers_applied`) + `PlanetfallCharacterImportPanel.gd` + dashboard import/muster cards → **ui-panel-developer**, with **planetfall-specialist** owning Planetfall-specific panels and **bug-hunt-specialist** reviewing BugHuntDashboard + the shared `CampaignScreenBase`/`GameState` changes (cross-mode rule).
+- Tests (`test_character_transfer_hub.gd`, `test_planetfall_transfer.gd`) → **qa-specialist** (final verification).
+
+**Status & next**: Foundation (Bug Hunt ↔ 5PFH; also fixed a previously-broken muster-out where files were written but never read) and Planetfall P1 are SHIPPED. **P2 = Tactics, NOT built** — a transferred char becomes a NAMED VETERAN in a new `veteran_characters[]` array on TacticsCampaignCore (NOT a squad unit; would break points validation). HARD PREREQUISITE before P2: replace the invented `military_backgrounds` list in `convert_to_tactics` (tagged `GAME_BALANCE_ESTIMATE`) with the real Tactics p.184 table — route that data extraction to tactics-specialist first. Of 12 routes, 3 (Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall) have NO direct book rule and exist only by composing two book legs through the 5PFH canonical (zero invented values).
+
+---
+
 ## Session 33: DLC Store UI + Save Protection (Apr 6, 2026)
 
 Complete commercial DLC system:

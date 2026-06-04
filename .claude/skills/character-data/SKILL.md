@@ -32,6 +32,7 @@ description: "Use this skill when working with character data models, the two-en
 |------|-----------|---------|
 | `src/core/character/Character.gd` | `Character` | Canonical character model (~1,900 lines) |
 | `src/core/character/SpeciesDataService.gd` | `SpeciesDataService` | Static species lookup from character_species.json (16 Strange Characters + primary + compendium) |
+| `src/core/character/CharacterTransferService.gd` | `CharacterTransferService` | Cross-mode character transfer — **canonical hub** (5PFH-standard Character dict is the interchange form). `export_to_canonical` / `import_from_canonical` / `transfer_character` compose any-to-any routes through 5PFH. Lossless `snapshot` embed; reward-suppression unless `target_mode == "five_parsecs"`. File-drop via `user://transfers/<id>.json`. See gamemode skills' `cross-mode-safety.md` for full route matrix |
 | `src/core/character/Base/Character.gd` | `BaseCharacterResource` | Base Resource with flat stats |
 | `src/core/systems/GlobalEnums.gd` | Autoload `GlobalEnums` | Primary enum definitions (70+) |
 | `src/core/enums/GameEnums.gd` | `GameEnums` | Secondary enum definitions (80+); CharacterClass/CharacterStatus/ShipType/CampaignType (FiveParsecsGameEnums.gd deleted Sprint A Bug 3, 2026-05-24) |

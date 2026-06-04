@@ -465,6 +465,24 @@ Squads, sergeants, individuals, and vehicles each have separate skill lists.
 - Injury rolls and XP awarded normally to crew in Tactics battles
 - Can integrate a 5PFH campaign with Tactics grand battles
 
+### Implementation status — P2 (NOT BUILT YET)
+
+The cross-mode Character Transfer Framework (canonical-hub `CharacterTransferService`)
+has SHIPPED Foundation (Bug Hunt ↔ 5PFH) and Planetfall P1. **Tactics is P2 and is
+NOT built.** Design intent when it lands:
+
+- Army lists remain species-profile-based. A transferred character is imported as a
+  **NAMED VETERAN** stored in a NEW `veteran_characters[]` array on
+  `TacticsCampaignCore` — NOT injected as a squad unit in `campaign_units[]` (squad
+  injection would break points validation).
+- **HARD PREREQUISITE**: the invented `military_backgrounds` list in
+  `CharacterTransferService.convert_to_tactics()` (currently tagged
+  `GAME_BALANCE_ESTIMATE` / UNVERIFIED) must be REPLACED with the real Tactics p.184
+  military-background table before this route ships.
+- `CampaignScreenBase._add_character_to_mode()` currently `push_warning`s for the
+  `tactics` mode as a Phase 2 placeholder.
+- See `docs/sop/cross-mode-transfer.md`.
+
 ---
 
 ## 13. Architecture: Tabletop Companion on Musica Tactica Scaffold
@@ -490,7 +508,7 @@ The Tactics companion is a **tabletop manager** — same philosophy as FPCM (com
 | **Campaign Tracker** | Operational map with regions/zones, Cohesion/Army Strength tracking, story event generation, CP spending |
 | **Roster Manager** | Persistent army roster across campaign, veteran skill tracking, unit losses between battles |
 | **Scenario Generator** | Random scenario type, deployment method, objectives, battlefield conditions, secondary objectives |
-| **Character Transfer** | Convert 5PFH characters ↔ Tactics profiles per appendix rules (p.184) — bridges FPCM and Tactics companion |
+| **Character Transfer** | Convert 5PFH characters ↔ Tactics profiles per appendix rules (p.184) — bridges FPCM and Tactics companion. **P2, not built** — imports a character as a NAMED VETERAN (`veteran_characters[]`), not a squad unit; blocked on replacing the invented `military_backgrounds` list with the real p.184 table. See `docs/sop/cross-mode-transfer.md` |
 
 ### What the Tactica Scaffold Provides vs What Changes
 

@@ -11,7 +11,7 @@ description: "Use this skill when working with the Bug Hunt gamemode — creatio
 |-----------|----------|
 | `references/bug-hunt-data-model.md` | BugHuntCampaignCore vs FiveParsecsCampaignCore diff, main_characters/grunts, movie_magic, serialization |
 | `references/bug-hunt-turn-flow.md` | 3-stage turn, BugHuntPhaseManager signals/methods, BugHuntDashboard, BugHuntCreationUI 4-step wizard |
-| `references/cross-mode-safety.md` | Isolation protocols, temp_data namespacing, signal guards, CharacterTransferService, stat key mapping |
+| `references/cross-mode-safety.md` | Isolation protocols, temp_data namespacing, signal guards, CharacterTransferService canonical-hub framework + generic pickup, stat key mapping |
 
 ## Quick Decision Tree
 
@@ -30,7 +30,8 @@ description: "Use this skill when working with the Bug Hunt gamemode — creatio
 | `src/core/campaign/BugHuntPhaseManager.gd` | `BugHuntPhaseManager` | 3-stage turn orchestration |
 | `src/ui/screens/bug_hunt/BugHuntDashboard.gd` | Control | Bug Hunt main UI |
 | `src/ui/screens/bug_hunt/BugHuntCreationUI.gd` | Control | 4-step creation wizard |
-| `CharacterTransferService.gd` | `CharacterTransferService` | Bidirectional 5PFH ↔ Bug Hunt transfer |
+| `src/core/character/CharacterTransferService.gd` | `CharacterTransferService` | Canonical-hub transfer for all 4 modes (any-to-any via 5PFH canonical); Bug Hunt ↔ 5PFH legs shipped |
+| `src/ui/screens/campaign/CampaignScreenBase.gd` | `CampaignScreenBase` | Generic pending-transfer pickup (`_check_pending_transfers`, `_add_character_to_mode` → `add_main_character` for Bug Hunt) |
 | `data/bug_hunt/` | 15 JSON files | Bug Hunt-specific data |
 
 ## Rules Data Authority

@@ -55,6 +55,15 @@ You have a detailed reference skill at `.claude/skills/ui-development/`. **Read 
 
 You own the Galaxy Log UI: `src/ui/screens/galaxy_log/GalaxyLogScreen.gd` + `.tscn`, and `src/ui/components/galaxy_log/HexCell.gd`, `HexStarMap.gd`, `WorldDetailPopup.gd`. Pan/zoom logic is copy-pasted from BattlefieldMapView lines 1116-1231 (only pan/zoom impl in repo). Setter-driven `queue_redraw()` per Godot 4 docs. Any new "show planet details" surface MUST call the shared `PlanetDetailBuilder.build_into(vbox, planet)` (owned by character-data-engineer) — do not re-implement section rendering.
 
+### Cross-Mode Character Transfer UI (SHIPPED: Planetfall P1)
+
+You own the presentation layer for the cross-mode character transfer framework (the canonical-hub service `CharacterTransferService.gd` is owned by character-data-engineer; the mode-generic pickup base `CampaignScreenBase.gd` by campaign-systems-engineer). UI surfaces:
+
+- **`src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd`** — veteran import flow: select a source character from 5PFH/Bug Hunt saves → preview → Class Training D6 aptitude roll → confirm. Visual layer only; the conversion math lives in the transfer service (planetfall-specialist owns the rules).
+- **Dashboard transfer cards** — `PlanetfallDashboard` shows "Import Veterans" + "Muster Colonists Out" cards (planetfall-specialist owns the wiring); follow the same card style if adding equivalent surfaces to other dashboards. The import button in `PlanetfallRosterPanel.gd` (creation wizard) launches the same import panel.
+
+Build any new transfer UI with the Deep Space theme factory methods and respect the signal-up/call-down contract; the panel is presentational and must not mutate campaign state directly (the service + `_add_character_to_mode` dispatch do that).
+
 ## Project Context
 
 - **Engine**: Godot 4.6-stable, pure GDScript

@@ -114,6 +114,14 @@ The Tactica prototype at `tacticaprototype1\` uses Age of Fantasy IP (17 fantasy
 ### 7. Creation UI Pattern
 When creating `TacticsCreationUI`, it must extend `Control` directly (thin shell pattern), NOT `TacticsScreenBase`. This matches the established Bug Hunt + Planetfall creation UI pattern. Use `preload()` for panel scripts and `const` for UIColors references.
 
+### 8. Cross-Mode Character Transfer (P2 — PLANNED, NOT BUILT)
+Tactics IS in the cross-mode character transfer framework, but only at the army-list / species-profile level today. Per-character transfer to/from Tactics is **P2, planned, and does NOT exist yet**. Do NOT describe Tactics as "no character transfer" — describe it correctly:
+
+- Army lists remain species-profile-based (squads, points). A future P2 imports a transferred character as a **named veteran attachment** stored in a NEW `veteran_characters[]` array on `TacticsCampaignCore`, **NOT** a squad unit in `campaign_units[]` (squad injection would break points validation).
+- The conversion functions `convert_to_tactics` / `convert_from_tactics` already exist in `src/core/character/CharacterTransferService.gd` (owned by character-data-engineer), but they are NOT wired into a running Tactics campaign yet. `CampaignScreenBase._add_character_to_mode()` dispatches the `tactics` case to a Phase-2 placeholder / `push_warning`.
+- **HARD PREREQUISITE before any Tactics transfer ships**: the invented `military_backgrounds` list in `convert_to_tactics` (tagged `GAME_BALANCE_ESTIMATE` / UNVERIFIED, lines ~732-736) MUST be replaced with the real Tactics p.184 military-background table. Until then, the Training-bonus path is non-canonical and must not be relied on.
+- 5PFH-specific exit rewards never attach to a Tactics destination (reward suppression: rewards attach only when `target_mode == "five_parsecs"`).
+
 ## Workflow
 
 1. **Read the code**: Tactics is fully implemented (59 files). Read existing files before modifying
@@ -156,7 +164,9 @@ Trust your search and your reading — the model running you is reliable at find
 - `src/ui/screens/tactics/` — Tactics UI screens (7 files + panels/)
 - `src/ui/screens/tactics/panels/` — 7 panel scripts (Config, Species, Roster, Review, BattleSetup, PostBattle, OperationalMap)
 - `src/data/tactics/` — 14 Resource classes (data model)
-- `src/game/campaign/TacticsCampaignCore.gd` — campaign persistence
+- `src/game/campaign/TacticsCampaignCore.gd` — campaign persistence (P2 will add a `veteran_characters[]` array for imported named veterans — NOT squad units)
+- `src/core/character/CharacterTransferService.gd` — `convert_to_tactics`/`convert_from_tactics` (owned by character-data-engineer; the `military_backgrounds` list is GAME_BALANCE_ESTIMATE — replace with Tactics p.184 before P2 ships)
+- `src/ui/screens/campaign/CampaignScreenBase.gd` — `_add_character_to_mode()` `tactics` case is a P2 placeholder/`push_warning`
 - `src/core/campaign/TacticsPhaseManager.gd` — 8-phase turn state machine
 - `src/core/systems/TacticsInitiativeManager.gd` — D6 alternating activations
 - `data/tactics/` — 24 JSON data files (species/, weapons, vehicles, traits, skills, events, config)

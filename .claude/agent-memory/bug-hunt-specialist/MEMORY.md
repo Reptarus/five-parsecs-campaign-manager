@@ -116,3 +116,13 @@ Full Bug Hunt rules extracted to `docs/rules/bug_hunt_compendium_extract.txt` (p
 **MainMenu Bug Hunt dialog navigation** — `AcceptDialog` modal blocks `SceneRouter.navigate_to()`. Fix: `dialog.queue_free()` + `create_timer(0.05).timeout` for scene change. Also `bug_hunt_dashboard` was missing from MainMenu `scene_map`.
 
 **Bug Hunt flow verified**: MainMenu → dialog → Dashboard → Turn 1 → Assignments → Mission → Launch → Tactical Battle (all working).
+
+### 15. Cross-Mode Transfer Framework — Foundation SHIPPED (Bug Hunt ↔ 5PFH)
+
+The transfer system is now a canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted). Every mode exports-to / imports-from the full 5PFH-standard Character dict (the canonical interchange form); any-to-any transfer composes an export leg + an import leg. The chokepoint methods are `export_to_canonical(char, source_mode)` and `import_from_canonical(canonical, target_mode)`; mode constants `MODE_5PFH`/`MODE_BUG_HUNT`/`MODE_PLANETFALL`/`MODE_TACTICS`.
+
+**Transfer mechanism**: direct file-drop via `user://transfers/<id>.json` — NOT a persistent barracks. **v2 envelope** keys: `schema_version` 2, `direction`, `source_mode`, `target_mode`, `character`, `snapshot`, `stashed_equipment`, `mustering_credits`, `bonus_story_points`, `add_sector_government_patron`, `source_campaign_id`, `source_campaign_name`, `transferred_at`. `load_pending_transfers(target_mode)` filters by destination (v1 files predate `target_mode` and always target 5PFH). `apply_transfer_rewards(campaign, transfer_data)` applies rewards to the receiving campaign and DELETES the file (prevents double-import).
+
+**Foundation fixed the previously-broken muster-out**: muster-out files were being WRITTEN to `user://transfers/` but NEVER READ. Pickup is now mode-generic in `src/ui/screens/campaign/CampaignScreenBase.gd` (`_check_pending_transfers`/`_apply_pending_transfers`/`_add_character_to_mode` — bug_hunt dispatches to `add_main_character` — `_notify_transfer_result`, `_on_transfers_applied` virtual hook, `_campaign_mode`). **BugHuntDashboard** calls `_check_pending_transfers.call_deferred()` in `_setup_screen` and overrides `_on_transfers_applied()` to rebuild. Reciprocal pickup is wired into BugHuntDashboard AND PlanetfallDashboard.
+
+**Reward suppression**: 5PFH-specific exit rewards (Bug Hunt mustering credits / +1 Story Point / +Sector Government patron) attach ONLY when `target_mode == "five_parsecs"`. **Lossless snapshot**: each imported char embeds its canonical form under a `snapshot` key so a later muster-out restores the original verbatim (`export_to_canonical` short-circuits on the snapshot). 15/15 gdUnit4 tests pass. P2 (Tactics) is NEXT, not built; P3 persistent barracks is DEFERRED.

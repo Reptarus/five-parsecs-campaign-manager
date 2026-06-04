@@ -94,6 +94,7 @@ save_started
 save_completed(success: bool, message: String)
 load_started
 load_completed(success: bool, message: String)
+pending_character_transfers(count: int)   # emitted on a 5PFH load when user://transfers/ has files targeting 5PFH
 ```
 
 ### Campaign Management

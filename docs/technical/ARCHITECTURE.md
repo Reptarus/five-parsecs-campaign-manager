@@ -198,6 +198,45 @@ func set_phase_data(phase: Phase, data: Dictionary) -> void:
     state_updated.emit(phase, campaign_data[phase])
 ```
 
+## 🔀 Cross-Mode Character Transfer Architecture
+
+Moving a single character between the 4 persistent gamemodes (Standard 5PFH, Bug
+Hunt, Planetfall, Tactics) uses a **canonical-hub** pattern with a single
+chokepoint, `src/core/character/CharacterTransferService.gd`.
+
+```text
+source character ──export_to_canonical(char, source_mode)──▶ canonical 5PFH dict
+                                                                    │
+canonical 5PFH dict ──import_from_canonical(canonical, target)──▶ target-mode shape
+                                                                  (+ lossless snapshot)
+                                                                    │
+                                          user://transfers/<id>.json (direct file-drop)
+                                                                    │
+   CampaignScreenBase._check_pending_transfers() ◀── mode-generic dashboard pickup
+        └─ apply_transfer_rewards() → _add_character_to_mode() roster dispatch
+```
+
+- **Canonical hub**: the interchange form is the full 5PFH-standard Character
+  dict. Every mode exports-to / imports-from it; any-to-any transfer is the
+  COMPOSITION of two book-defined legs. Of the 12 directed routes, 9 are
+  book-defined and 3 (Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall)
+  are composed through the canonical without inventing any values.
+- **Reward-suppression**: 5PFH-only exit rewards (Bug Hunt mustering credits /
+  Story Point / Sector Government patron; Planetfall ending bonuses) attach ONLY
+  when the destination is 5PFH.
+- **Lossless snapshot**: each imported character embeds its canonical form so a
+  later muster-out restores the original verbatim; `export_to_canonical()`
+  short-circuits on the snapshot.
+- **Transport**: direct file-drop to `user://transfers/` (NOT a persistent
+  barracks — deferred). `apply_transfer_rewards()` deletes the file to prevent
+  double-import.
+- **Pickup** is mode-generic in `CampaignScreenBase` and dispatches to each
+  mode's roster mutator (`add_crew_member` / `add_main_character` /
+  `add_roster_character`; Tactics is a Phase-2 placeholder).
+
+Full procedure, route matrix, envelope schema, and the corrected Planetfall
+ending matrix: `docs/sop/cross-mode-transfer.md`.
+
 ## 🔌 Integration Architecture
 
 ### Analytics Integration

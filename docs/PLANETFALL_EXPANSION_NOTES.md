@@ -112,6 +112,7 @@ Can import aliens from 5PFH Core Rules or Compendium (K'Erin, Precursor, etc.)
 - Characters can transfer between 5PFH, Bug Hunt, Tactics, and Planetfall
 - Imported characters count against roster limit
 - Export rules vary by ending (Independence/Ascension/Loyalty/Isolation)
+- **SHIPPED (Planetfall P1, Jun 2026)**: import wired at the creation wizard (`PlanetfallRosterPanel`) AND the dashboard ("Import Veterans"), via `PlanetfallCharacterImportPanel` (Class Training D6 aptitude). Muster-out to 5PFH or Bug Hunt + reciprocal dashboard pickup. Routed through the canonical-hub `CharacterTransferService`. See `docs/sop/cross-mode-transfer.md`.
 
 ---
 
@@ -503,7 +504,7 @@ Start with 5. Gain from character deaths, events, buildings.
 - **Injury table**: Similar D100 table
 - **SceneRouter**: Add `planetfall_creation`, `planetfall_dashboard`, `planetfall_turn_controller`
 - **GameState.load_campaign()**: Extend `_detect_campaign_type()` for PlanetfallCampaignCore
-- **CharacterTransferService**: Already handles 5PFH ↔ Bug Hunt, extend for Planetfall
+- **CharacterTransferService**: DONE — canonical hub now handles 5PFH ↔ Bug Hunt ↔ Planetfall (Planetfall P1 shipped Jun 2026). See `docs/sop/cross-mode-transfer.md`
 
 ### Data Files Needed (JSON)
 ```
@@ -572,16 +573,17 @@ Tech Tree Visualization (from Colony Sheet PDF)
 
 ## 16. Cross-Game Compatibility Notes
 
-### Character Transfer Rules (p.164)
+### Character Transfer Rules (pp.165-166)
 - **Into Planetfall**: Imported chars count against 8-slot roster, bring all stats/items
-- **Out of Planetfall → 5PFH**:
-  - Loyalty ending: Free ship, no debt
-  - Independence (won): Ship with 2D6 credits pre-paid
-  - Independence (lost): 1 Rival (Enforcers/Bounty Hunters)
-  - Isolation: 1 character gains +1 Luck
+- **Out of Planetfall → 5PFH** (corrected against the book — the ship-debt result was previously implemented wrong):
+  - Loyalty ending: Free ship, **no debt** (`bonus_ship` + `ship_debt 0`)
+  - Independence (won): Ship + **2D6 of the debt PRE-PAID** (`ship_debt_prepaid`, NOT full forgiveness) + 2 Story Points
+  - Independence (lost): 1 Rival (Enforcers/Bounty Hunters) + 2 Story Points
+  - Isolation: 1 character gains +1 Luck (`isolation_single_char` — only one per new campaign)
   - Ascension: 1 character gains psionic abilities
 - **Artifact limit**: Each character can export only 1 artifact item
 - **Profile increases**: All earned increases carry over
+- **IMPLEMENTED** in `CharacterTransferService.convert_from_planetfall()`; imported veterans restore their original profile losslessly via the embedded snapshot. KP→Luck is NOT converted on export (book is silent — see `docs/sop/cross-mode-transfer.md`).
 
 ### Slyn Cross-Game Use
 "The Slyn can be used in games of Five Parsecs from Home. Substitute any one entry on one of the encounter tables for the Slyn." (p.154)

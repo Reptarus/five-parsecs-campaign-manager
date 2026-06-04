@@ -21,6 +21,7 @@ same commit as the code change. Stale SOPs are worse than no SOPs.
 | [component-patterns.md](./component-patterns.md) | Single-source-of-truth JSON + loader, path-loaded preload, export-safe `load()` rule, deferred initial swap | Before writing any new `.gd` component or data file |
 | [sheet-export.md](./sheet-export.md) | Field-coordinate JSON manifest, SubViewport PNG export, PDF router (GodotHaru/GodotPDF), debug-overlay calibration | Before adding a new printable sheet, swapping the PDF backend, or modifying SheetRenderer / PdfExportRouter |
 | [ornament-panel-pattern.md](./ornament-panel-pattern.md) | OrnamentPanel architecture (rounded chrome + colored stroke + corner brackets via 9-slice atlas), procedural bracket generator, decision matrix vs CalloutCard/BookFrame | Before writing new section cards / dialog panels that should match the Modiphius rulebook aesthetic, or before tuning bracket art |
+| [cross-mode-transfer.md](./cross-mode-transfer.md) | Canonical-hub character transfer between gamemodes (5PFH/Bug Hunt/Planetfall/Tactics): 9 book-defined + 3 composed routes, reward-suppression, lossless snapshot, `user://transfers/` file-drop envelope, mode-generic dashboard pickup, Planetfall ending matrix | Before adding/editing a transfer leg, the file-drop envelope, the snapshot, or the dashboard pickup |
 | [decision-log.md](./decision-log.md) | Material "we picked X over Y because Z" records | When you're tempted to second-guess a pattern, or before proposing to replace one |
 
 ## Anti-regressions log
@@ -42,6 +43,9 @@ Specific traps we've fallen into and the rule that prevents them.
 | Scene-wide drift exposed the letterbox edge of a full-canvas backdrop | Overscan every layer (~1.04) so drift stays within headroom; keep the breathe floor at the overscan value | [narrative-scene-authoring.md](./narrative-scene-authoring.md) |
 | Photoshop per-layer export trimmed actor PNGs to content bounds, breaking SceneStage alignment | Export via Layers to Files with "Trim Layers" UNCHECKED; every layer must be full canvas size | [narrative-scene-authoring.md](./narrative-scene-authoring.md) |
 | New ambient/looping motion ignored the Reduced Motion accessibility setting | Gate on `ThemeManager.is_reduced_animation_enabled()` — off must mean perfectly static | [narrative-scene-authoring.md](./narrative-scene-authoring.md) |
+| Bug Hunt muster-out wrote a `user://transfers/` file that NOTHING ever read — veterans silently vanished | A transfer SOURCE leg is dead code without a DESTINATION pickup; wire `_check_pending_transfers.call_deferred()` into the target dashboard's `_setup_screen()` | [cross-mode-transfer.md](./cross-mode-transfer.md) |
+| `convert_from_planetfall` zeroed the WHOLE ship debt on `independence_won` — the book only prepays 2D6 of it | Verify ending-bonus values against Planetfall pp.165-166; use `ship_debt_prepaid` (partial), never full forgiveness | [cross-mode-transfer.md](./cross-mode-transfer.md) |
+| Tempted to write a direct converter for a route with no book rule (Planetfall→Bug Hunt etc.) | Compose two book-defined legs through the 5PFH canonical — invent zero values | [cross-mode-transfer.md](./cross-mode-transfer.md) |
 
 ## When SOPs disagree with code
 

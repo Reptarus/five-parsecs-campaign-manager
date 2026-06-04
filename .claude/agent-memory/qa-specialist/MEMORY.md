@@ -14,8 +14,35 @@ The Core Rules PDF and Compendium PDF are the **canonical, final authority** for
 2. **Three-Enum Sync Rule**: GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned. When testing enum-dependent code, verify all three.
 3. **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check.
 4. **GDScript does NOT hot-reload in a running Godot instance**: after editing a `.gd`, you MUST `stop_project` + `run_project` (or reboot the editor) before re-probing via MCP `run_script` — otherwise you verify against stale launch-time bytecode. Symptom: empirical probe reports values inconsistent with the on-disk source.
-5. **MCP `run_script` runs in DEBUG mode (break-on-error)**: a "debugger break" from `run_script` may be log-spam in normal play. Godot continues past Dictionary missing-key access (returns null + `SCRIPT ERROR` in console); the shipped game / gdUnit do not halt. Inspect carefully before claiming "crash" — distinguish hard-halt from logged-error-continues.
+5. **MCP `run_project`/`run_script` run in DEBUG mode (break-on-error) — and this cuts BOTH ways**: a "debugger break" is NOT automatically a real crash, and also NOT automatically dismissible noise. Decide the error CLASS first. **Class (a) Dictionary missing-key access**: Godot returns null + logs `SCRIPT ERROR` and continues *within the same function* — often harmless log-spam (the InjurySystemService:63 case below; don't OVER-claim a crash). **Class (b) nonexistent method/property or type-method mismatch** (e.g. `.to_lower()` on a float, `has_active_quest()` on a node lacking it): Godot ABORTS the current function (unwinds it) then continues the process — so the app doesn't close, but if that function was doing essential work the feature SILENTLY does nothing. That is a REAL bug; do NOT under-claim it as "debug-only." The shipped game / gdUnit don't *halt* on either class, but class (b) still breaks the feature. (Jun 3: 4 class-(b) bugs found this way — see crash-sweep section below.)
 6. **Green unit tests ≠ exercised runtime path**: `test_injury_determination` 13/13 passed both BEFORE and AFTER fixing a real crash-spam bug in the very function it tests — because the test data path didn't trip the offending line. Empirical d100 sweeps / MCP runtime exercises catch what unit tests miss. The MCP runtime is the real gate (per CLAUDE.md).
+
+---
+
+## Campaign-flow crash sweep (Jun 3, 2026) — walk the happy path on a LEGACY save under MCP
+
+Verifying the post-consolidation cleanup branch, I walked create → turn → battle → post-battle under MCP `run_project` (debug mode hard-halts each error). This surfaced **4 pre-existing latent crashes** that `--headless` AND green unit tests both passed through — all class-(b) "function aborts, process survives, feature silently broken" bugs (see gotcha #5). None were from the cleanup; all blocked the campaign happy-path. Fixed + runtime-verified, committed `524c0f74`:
+
+1. `StarsOfTheStoryPanel.gd:66` — `.connect()` to `star_ability_recharged`, a signal DELETED in `70cf5b6c` (May 19). Dangling connect crashed EVERY non-Insanity creation (FinalPanel elite-bonuses card). Fix: delete the dead connect + handler (root fix, not a `has_signal` band-aid).
+2. `CrewTaskComponent.gd:262` — `.to_lower()` on legacy-float crew `origin`. Fix: `str()`-wrap.
+3. `RivalPatronResolver.gd:98` — unguarded `ctx.game_state.has_active_quest()`; GameState has no quest API (dangling since `f4346c39`). Post-battle Step 3 crashed. Fix: `has_method` guard (matches siblings lines 103/105) → safe no-op.
+4. `CampaignEventEffects.gd:91` — `member.origin.to_lower()` on legacy-float origin (same class as #2; was the last unguarded origin read in post-battle). Fix: `str()`-wrap.
+
+**Method**: walk the FULL happy path on a *legacy* save (NOT a fresh campaign — fresh saves store `origin` as String and never trip #2/#4) under `run_project`; root-cause each break with `git show` on the introducing commit rather than attributing/dismissing it; re-walk to confirm the next step proceeds. #2/#4 are the legacy-float-`origin` data-model trap — root fix is a load-time `origin` normalization migration (band-aided for now). Full writeup: `project_session_jun03_wave3_crashfixes` (user memory).
+
+---
+
+## Cross-Mode Character Transfer Framework — Test Surface (SHIPPED Foundation + Planetfall P1)
+
+Canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted): every mode exports-to / imports-from the full 5PFH Character dict; any-to-any = compose two legs. File-drop at `user://transfers/<id>.json` (v2 envelope), NOT a barracks. 15/15 gdUnit4 tests currently green — KEEP GREEN.
+
+- **Test files**: `tests/unit/test_character_transfer_hub.gd`, `tests/unit/test_planetfall_transfer.gd`.
+- **Round-trip invariant to verify**: import a char into Bug Hunt/Planetfall, then muster out to 5PFH → the restored character must equal the original VERBATIM (the embedded `snapshot` envelope key drives this; `export_to_canonical` short-circuits on it). Stat re-derivation on the way out = bug.
+- **Reward-suppression invariant**: 5PFH-only exit rewards (Bug Hunt mustering credits / +1 Story Point / +Sector Government patron; Planetfall ending bonuses) attach ONLY when `target_mode == "five_parsecs"`. Verify NO rewards leak when target is another mode.
+- **Double-import guard**: `apply_transfer_rewards()` deletes the `user://transfers/` file after applying — verify a transfer cannot be picked up twice.
+- **Pickup wiring**: each dashboard (CampaignDashboard/BugHuntDashboard/PlanetfallDashboard) calls `_check_pending_transfers.call_deferred()` in `_setup_screen`; `GameState.load_campaign()` emits `pending_character_transfers(count)` on 5PFH load. New 5PFH mutator `FiveParsecsCampaignCore.add_crew_member()` forces `is_captain=false` + rebuilds `_crew_id_index` — verify added crew never overwrite the captain.
+- **Data-integrity regression (Planetfall pp.165-166)**: `convert_from_planetfall` ending matrix was corrected — independence_won uses ship_debt_prepaid (2D6 PARTIAL prepayment), NOT a full debt wipe (the old bug). Verify against `docs/rules/planetfall_source.txt` L12088-12113.
+- **Tactics is P2/NOT built** — do NOT write tests asserting Tactics transfer works; `convert_to_tactics` carries a `GAME_BALANCE_ESTIMATE` `military_backgrounds` list that must be replaced with the real Tactics p.184 table before that leg ships.
 
 ---
 

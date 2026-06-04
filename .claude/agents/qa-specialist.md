@@ -80,6 +80,14 @@ Focus on specific systems with appropriate test matrices from references.
 ### 3. Regression Protocol
 After code changes: compile check → affected system tests → integration tests → related edge cases.
 
+### Cross-Mode Character Transfer coverage (SHIPPED: Foundation + Planetfall P1)
+The canonical-hub character transfer framework (`src/core/character/CharacterTransferService.gd`) has two dedicated test files you own as the regression gate:
+
+- `tests/unit/test_character_transfer_hub.gd` — canonical export/import round-trip, any-to-any composition through the 5PFH canonical, lossless snapshot restore, reward suppression (rewards attach only when `target_mode == "five_parsecs"`).
+- `tests/unit/test_planetfall_transfer.gd` — Planetfall import (Class Training aptitude, KP/Savvy conversions, Loyal start) + `convert_from_planetfall` ending matrix (the pp.165-166 data-integrity fix: `independence_won` prepays a 2D6 PARTIAL ship debt, NOT the whole debt — assert this does not regress).
+
+15/15 gdUnit4 pass at ship. When verifying any transfer change, run BOTH files; the file-drop mechanism is `user://transfers/<id>.json` and `apply_transfer_rewards()` deletes the file after applying (guard against double-import).
+
 ### 4. Bug Report Format
 ```
 **Bug ID**: BUG-XXX
@@ -119,6 +127,8 @@ Trust your search and your reading — the model running you is reliable at find
 ### Search Anchors
 
 - `tests/unit/` — ~178 unit test files
+- `tests/unit/test_character_transfer_hub.gd` — canonical-hub cross-mode transfer (round-trip, composition, snapshot, reward suppression)
+- `tests/unit/test_planetfall_transfer.gd` — Planetfall import + `convert_from_planetfall` ending matrix
 - `tests/integration/` — ~54 integration test files
 - `tests/battle/` — battle-specific tests
 - `tests/fixtures/` — test helpers and factories

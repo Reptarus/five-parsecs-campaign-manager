@@ -19,6 +19,8 @@ The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority 
 
 Combat is a TWO-axis model (representation: full-minis/grid/no-minis/auto-resolve × Dramatic-Combat flavor toggle).
 
+- **Per-battle representation picker (the B-axis UI) SHIPPED Jun 3** (commit `9f2a7712`). `PreBattleUI` renders a 3-radio representation selector → `selected_representation_mode` ∈ {`play_on_table`, `no_minis`, `auto_resolve`}. `no_minis` gated on `dlc.is_feature_available(NO_MINIS_COMBAT)` + DLCUpsellBanner; `auto_resolve` ungated and greys the LOG/ASSISTED/FULL_ORACLE tracking radios (orthogonal axes). `CampaignTurnController._on_deployment_confirmed()` routes `auto_resolve` → `_on_auto_resolve_completed({})`, else injects `md["representation_mode"]` before `initialize_battle`; `TacticalBattleUI._setup_no_minis_panel` honors per-battle `no_minis` over the global toggle. Same commit: single-level Undo (snapshot/restore last Damage/Stun/Action/casualty) + casualty ConfirmationDialog + `?` rule popovers in TacticalBattleUI/CharacterStatusCard.
+
 ---
 
 ## Critical Gotchas — Must Remember

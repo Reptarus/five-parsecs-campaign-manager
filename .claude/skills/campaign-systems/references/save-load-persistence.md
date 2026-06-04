@@ -12,6 +12,7 @@ load_started
 load_completed(success: bool, message: String)
 campaign_loaded(campaign)
 campaign_saved
+pending_character_transfers(count: int)   # emitted on a 5PFH load when user://transfers/ has files targeting 5PFH
 ```
 
 ### Save Flow
@@ -129,6 +130,11 @@ persist_game_state() → void
 2. **Use `"key" in campaign`** instead of `.has("key")` for property existence checks
 3. **Crew data is nested**: `campaign.crew_data["members"]` (Array of character Dicts)
 4. **Equipment data key**: `campaign.equipment_data["equipment"]` — NOT `"pool"`
+5. **Post-creation crew additions go through `add_crew_member(member_dict)`**: the mutation chokepoint for crew added after creation (e.g., cross-mode character-transfer pickup). Appends to `crew_data["members"]`, forces `is_captain = false`, rebuilds `_crew_id_index`, updates modified time. Do not append to `crew_data["members"]` directly from outside
+
+## Cross-Mode Character Transfer Pickup
+
+`CampaignScreenBase` provides the mode-generic pickup that drains `user://transfers/` into the loaded campaign: `_check_pending_transfers()` → `_apply_pending_transfers()` → `_add_character_to_mode()` (dispatch: `five_parsecs` → `add_crew_member`, `bug_hunt` → `add_main_character`, `planetfall` → `add_roster_character`, `tactics` → P2 placeholder) → `_notify_transfer_result()`, then the `_on_transfers_applied()` virtual hook (each dashboard overrides it to rebuild). CampaignDashboard calls `_check_pending_transfers.call_deferred()` in `_setup_screen`. `GameState.load_campaign` emits `pending_character_transfers(count)` on a 5PFH load. Reward application + file deletion is handled by static `CharacterTransferService.apply_transfer_rewards(campaign, transfer_data)`. See gamemode skills' `cross-mode-safety.md` for the canonical-hub framework.
 
 ## Difficulty Field (Phase 30 Fix — CRITICAL)
 

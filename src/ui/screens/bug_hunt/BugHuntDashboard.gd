@@ -16,6 +16,16 @@ var _play_btn: Control  # HubFeatureCard (extends Control, not Button)
 func _setup_screen() -> void:
 	_campaign = _get_bug_hunt_campaign()
 	_build_dashboard()
+	# Surface veterans mustered in from 5PFH or Planetfall (CampaignScreenBase).
+	_check_pending_transfers.call_deferred()
+
+
+## CampaignScreenBase hook — rebuild after veterans muster in.
+func _on_transfers_applied() -> void:
+	_campaign = _get_bug_hunt_campaign()
+	for child in get_children():
+		child.queue_free()
+	_build_dashboard()
 
 
 func _build_dashboard() -> void:

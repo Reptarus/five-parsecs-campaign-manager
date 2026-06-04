@@ -98,7 +98,13 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 3. **Enum changes** → Always route to `character-data-engineer` (owns both enum files: GlobalEnums + GameEnums)
 4. **Shared file changes** → Route to primary agent + ALL affected gamemode specialists for cross-mode review
 4a. Changes to `TacticalBattleUI`, `BattleResolver`, `BattleCalculations`, `GameState`, `SceneRouter`, `GameStateManager` → review by ALL gamemode specialists (bug-hunt, planetfall, tactics)
-4b. Changes to `CharacterTransferService` → review by `bug-hunt-specialist` and `planetfall-specialist` only (Tactics does not use character transfer)
+4b. **Cross-mode character transfer framework** (SHIPPED: Foundation + Planetfall P1). Owner map for the new/modified files:
+    - `src/core/character/CharacterTransferService.gd` (canonical hub: export/import-to-canonical, mode conversions, file-drop, reward suppression, snapshot) → **character-data-engineer** owns it; review by `bug-hunt-specialist` and `planetfall-specialist` (their mode legs) and, for any `convert_*_tactics` / `military_backgrounds` change, `tactics-specialist`.
+    - `src/ui/screens/campaign/CampaignScreenBase.gd` (mode-generic pickup `_check_pending_transfers`/`_apply_pending_transfers`/`_add_character_to_mode` dispatch), `src/core/state/GameState.gd` (`pending_character_transfers` signal), `src/game/campaign/FiveParsecsCampaignCore.gd` (`add_crew_member` post-creation crew ingest) → **campaign-systems-engineer**.
+    - `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` + `PlanetfallRosterPanel.gd` import button + `PlanetfallDashboard` transfer cards + `convert_from_planetfall` ending-matrix fix → **planetfall-specialist** (UI build collaborates with `ui-panel-developer`).
+    - `BugHuntDashboard` transfer pickup → **bug-hunt-specialist**.
+    - Tests `tests/unit/test_character_transfer_hub.gd` + `tests/unit/test_planetfall_transfer.gd` → **qa-specialist** (always final).
+    - **Tactics P2 is NOT built** — per-character Tactics transfer (named-veteran `veteran_characters[]` attachment, NOT a squad unit) is planned; HARD PREREQUISITE is replacing the `GAME_BALANCE_ESTIMATE` `military_backgrounds` list with the real Tactics p.184 table. Route Tactics-transfer work to `tactics-specialist` + `character-data-engineer`.
 5. **Data changes** → Verify agent checked `data/RulesReference/` before approving. NEVER route data tasks without RulesReference validation
 6. **Testing** → Always route to `qa-specialist` as final step
 7. **Ambiguous tasks** → Clarify with user before routing

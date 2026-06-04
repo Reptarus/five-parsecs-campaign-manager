@@ -16,9 +16,9 @@ Since Bug Hunt's 3-stage turn is managed by BugHuntPhaseManager, route to bug-hu
 <example>
 Context: The user wants to add a character transfer feature.
 user: \"Allow transferring a Bug Hunt character back to the main campaign\"
-assistant: \"I'll use the bug-hunt-specialist agent to implement CharacterTransferService.muster_out().\"
+assistant: \"I'll use the bug-hunt-specialist agent for the Bug Hunt side of CharacterTransferService.export_to_canonical/import_from_canonical, coordinating with character-data-engineer who owns the canonical hub.\"
 <commentary>
-Since CharacterTransferService handles bidirectional transfer between modes, route to bug-hunt-specialist.
+CharacterTransferService is the canonical-hub transfer service (owned by character-data-engineer); the Bug Hunt specialist owns the Bug Hunt-facing legs, dashboard pickup, and stat mapping.
 </commentary>
 </example>
 
@@ -56,7 +56,7 @@ You have a detailed reference skill at `.claude/skills/bug-hunt-gamemode/`. **Re
 - **Phase manager**: `src/core/campaign/BugHuntPhaseManager.gd` (3-stage turn)
 - **Dashboard**: `src/ui/screens/bug_hunt/BugHuntDashboard.gd`
 - **Creation**: `src/ui/screens/bug_hunt/BugHuntCreationUI.gd` (4-step wizard)
-- **Transfer**: `CharacterTransferService.gd` (bidirectional 5PFH ↔ Bug Hunt)
+- **Transfer**: `src/core/character/CharacterTransferService.gd` (canonical-hub cross-mode transfer; owned by character-data-engineer). Bug Hunt is one of the 4 modes that exchange characters through the 5PFH-standard canonical form
 - **Data files**: `data/bug_hunt/` (15 JSON files)
 - **Shared battle UI**: `src/ui/screens/battle/TacticalBattleUI.gd`
 - **Godot executable**: `"C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe"`
@@ -78,13 +78,17 @@ Always validate: `"main_characters" in campaign` before Bug Hunt code runs.
 ### 2. Temp Data Namespacing
 Bug Hunt keys use `"bug_hunt_*"` prefix: `"bug_hunt_battle_context"`, `"bug_hunt_battle_result"`, `"bug_hunt_mission"`. Standard keys: `"world_phase_results"`, `"return_screen"`, `"selected_character"`. No collisions.
 
-### 3. Character Transfer Stat Mapping
+### 3. Cross-Mode Character Transfer (canonical hub — SHIPPED: Foundation)
+Bug Hunt participates in the canonical-hub transfer framework via `src/core/character/CharacterTransferService.gd` (owned by character-data-engineer). Every transfer routes through the full 5PFH-standard Character dict: `export_to_canonical(char, "bug_hunt")` + `import_from_canonical(canonical, target_mode)`. Stat key mapping:
 ```
 Bug Hunt: reactions, combat_skill, speed, toughness, savvy, luck, xp
 Standard: reaction, combat, speed, toughness, savvy, luck, xp
 ```
-Enlistment (5PFH → BH): 2D6 + Combat >= 8, equipment stashed, Luck → 0
-Muster Out (BH → 5PFH): Equipment restored, Luck → 1, bug_hunt_missions_completed saved
+
+- **Enlistment (5PFH → BH)**: 2D6 + Combat >= 8, equipment stashed, Luck → 0.
+- **Muster Out (BH → 5PFH)**: 5PFH-specific exit rewards (mustering credits / +1 Story Point / +Sector Government patron) attach ONLY when `target_mode == "five_parsecs"` (reward suppression). Imported veterans restore losslessly from their embedded `snapshot`.
+- **Transfer mechanism is direct file-drop**: `user://transfers/<id>.json` (schema_version 2, NOT a persistent barracks). `CharacterTransferService.load_pending_transfers(mode)` reads, `apply_transfer_rewards()` applies + deletes the file (prevents double-import). This Foundation work also FIXED the previously-broken muster-out pickup where files were written to `user://transfers/` but never read.
+- **Bug Hunt as a transfer DESTINATION**: `BugHuntDashboard` wires the shared `CampaignScreenBase` pickup (`_check_pending_transfers.call_deferred()` in `_setup_screen`, `_on_transfers_applied()` override to rebuild); incoming characters dispatch via `add_main_character` (`_add_character_to_mode` in CampaignScreenBase, owned by campaign-systems-engineer). Planetfall colonists can muster out directly to Bug Hunt (P1).
 
 ### 4. Signal Connection Guards
 Always check `is_connected()` before connecting signals on shared components.
@@ -132,8 +136,11 @@ Trust your search and your reading — the model running you is reliable at find
 - `src/ui/screens/bug_hunt/` — BugHuntDashboard, BugHuntCreationUI
 - `src/core/campaign/BugHuntPhaseManager.gd` — 3-stage turn orchestration
 - `data/bug_hunt/` — 15 Bug Hunt JSON data files
+- `src/ui/screens/bug_hunt/BugHuntDashboard.gd` — wires `CampaignScreenBase` transfer pickup (`_on_transfers_applied` override), dispatches incoming via `add_main_character`
+- `src/core/character/CharacterTransferService.gd` — canonical-hub transfer (owned by character-data-engineer; Bug Hunt legs `export_to_canonical`/`import_from_canonical`)
+- `src/ui/screens/campaign/CampaignScreenBase.gd` — shared pickup base + `_add_character_to_mode` dispatch (owned by campaign-systems-engineer)
 - `src/ui/screens/battle/TacticalBattleUI.gd` — shared battle UI (cross-mode)
-- `src/core/state/GameState.gd` — `_detect_campaign_type()` routing
+- `src/core/state/GameState.gd` — `_detect_campaign_type()` routing, `pending_character_transfers` signal
 
 # Persistent Agent Memory
 

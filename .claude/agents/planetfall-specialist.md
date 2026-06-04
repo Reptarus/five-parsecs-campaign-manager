@@ -65,6 +65,19 @@ You have a detailed reference skill at `.claude/skills/planetfall-gamemode/`. **
 - **Rulebook**: `docs/rules/planetfall_source.txt` (full text extraction), PDF in `docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/`
 - **Design notes**: `docs/PLANETFALL_EXPANSION_NOTES.md`
 
+### Cross-Mode Character Transfer — Planetfall surface (SHIPPED: P1)
+
+Planetfall participates in the cross-mode character transfer framework. The canonical-hub service `src/core/character/CharacterTransferService.gd` (owned by character-data-engineer) routes every transfer through the full 5PFH-standard Character dict; you own the Planetfall-facing pieces:
+
+- **Import UI**: `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` — select a source character from 5PFH/Bug Hunt saves → preview → Class Training D6 aptitude (1-2 fail, 3 random class, 4-6 player choice; max 3 trained, one per class) → embed snapshot → `add_roster_character`. Import conversions: 5PFH Luck → 1 Kill Point each; Bug Hunt Tech → Savvy; imported characters begin **Loyal** (Planetfall pp.26-27).
+- **Creation-wizard entry**: the import button in `src/ui/screens/planetfall/panels/PlanetfallRosterPanel.gd` (was disabled "future sprint", now wired to launch the import panel during colony creation).
+- **Dashboard cards**: `PlanetfallDashboard` shows "Import Veterans" and "Muster Colonists Out"; it overrides `_on_transfers_applied()` from `CampaignScreenBase` to rebuild after pickup, and dispatches incoming transfers via `add_roster_character`. (Pickup base + `_add_character_to_mode` dispatch are owned by campaign-systems-engineer.)
+- **Muster out**: a colonist can muster out to 5PFH OR Bug Hunt via `convert_from_planetfall`. Imported veterans restore losslessly from their embedded `snapshot`; `_layer_planetfall_ending` applies ending bonuses on top of a snapshot-restored veteran (bonuses depend on the ending, not stats).
+- **Data-integrity fix you must preserve** (`convert_from_planetfall`, Planetfall pp.165-166, verified `docs/rules/planetfall_source.txt` L12088-12113): `loyalty` = bonus_ship + ship_debt 0 (no debt); `independence_won` = bonus_ship + ship_debt_prepaid (2D6 PARTIAL prepayment) + bonus_story_points 2 (the OLD BUG zeroed the WHOLE debt — do not regress); `independence_lost` = add_rival (Enforcers or Bounty Hunters) + bonus_story_points 2; `isolation` = +1 Luck + isolation_single_char flag; `ascension` = gains_psionic. KP→Luck is deliberately NOT converted on Planetfall export (book silent; snapshot restores imported veterans' Luck, born-in-Planetfall keep base Luck 1).
+- **Reward suppression**: Planetfall ending bonuses attach only when `target_mode == "five_parsecs"`.
+
+New file: `PlanetfallCharacterImportPanel.gd`. Tests: `tests/unit/test_planetfall_transfer.gd` (+ shared hub `tests/unit/test_character_transfer_hub.gd`). 15/15 gdUnit4 pass; full editor parse clean.
+
 ## Core Principles
 
 ### 1. Incompatible Data Models
@@ -144,7 +157,10 @@ Trust your search and your reading — the model running you is reliable at find
 
 ### Search Anchors
 
-- `src/ui/screens/planetfall/` — PlanetfallDashboard, PlanetfallCreationUI, panels
+- `src/ui/screens/planetfall/` — PlanetfallDashboard (transfer cards + `_on_transfers_applied` override), PlanetfallCreationUI, panels
+- `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` — veteran import UI (Class Training aptitude, snapshot embed, `add_roster_character`)
+- `src/ui/screens/planetfall/panels/PlanetfallRosterPanel.gd` — creation-wizard import button (now wired)
+- `src/core/character/CharacterTransferService.gd` — `convert_to_planetfall`/`convert_from_planetfall` (owned by character-data-engineer; you preserve the pp.165-166 ending-matrix fix)
 - `src/game/campaign/PlanetfallCampaignCore.gd` — campaign data model (538 lines)
 - `data/planetfall/` — 8 JSON data files
 - `src/ui/screens/battle/TacticalBattleUI.gd` — shared battle UI (cross-mode)

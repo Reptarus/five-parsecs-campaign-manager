@@ -5,7 +5,7 @@
 ### 1. character-data-engineer (sonnet, blue)
 **Domain**: Character model, 2 enum systems, JSON data, equipment, world/economy
 **Files Owned**:
-- `src/core/character/`, `src/game/character/`
+- `src/core/character/` (incl. `CharacterTransferService.gd` — the cross-mode canonical-hub transfer service; export/import to/from the 5PFH-standard Character dict), `src/game/character/`
 - `src/core/enums/GameEnums.gd`, `src/core/systems/GlobalEnums.gd` (FiveParsecsGameEnums.gd deleted Sprint A Bug 3, 2026-05-24 — project is now two-enum)
 - `src/core/equipment/`, `src/core/data/`, `src/core/managers/GameDataManager.gd`
 - `src/core/world/`, `data/` (132 JSON files)
@@ -15,7 +15,7 @@
 **Domain**: Campaign creation (7 phases), turns (9 phases), save/load, state
 **Files Owned**:
 - `src/core/campaign/` (excl. BugHuntPhaseManager), `src/core/state/`
-- `src/ui/screens/campaign/`, `src/game/campaign/`
+- `src/ui/screens/campaign/` (incl. `CampaignScreenBase.gd` — the mode-generic cross-mode transfer pickup: `_check_pending_transfers` / `_add_character_to_mode` dispatch), `src/game/campaign/` (incl. `FiveParsecsCampaignCore.add_crew_member` — the post-creation crew-add chokepoint)
 - `src/core/managers/GameStateManager.gd`, `src/qol/TurnPhaseChecklist.gd`
 **Skill**: `campaign-systems` (4 references)
 
@@ -51,8 +51,8 @@
 ### 6. planetfall-specialist (sonnet, orange)
 **Domain**: Planetfall gamemode, colony management, 18-step turns, cross-mode safety for Planetfall
 **Files Owned**:
-- `src/ui/screens/planetfall/` (15 GDScript + 3 TSCN)
-- `src/game/campaign/PlanetfallCampaignCore.gd`
+- `src/ui/screens/planetfall/` (15 GDScript + 3 TSCN; incl. `panels/PlanetfallCharacterImportPanel.gd` — the shipped veteran-import UI)
+- `src/game/campaign/PlanetfallCampaignCore.gd` (incl. `add_roster_character` — the Planetfall transfer-pickup target)
 - `data/planetfall/` (8 JSON files)
 - Future: `src/core/campaign/PlanetfallPhaseManager.gd`
 - Any file with `planetfall` in name
@@ -164,4 +164,21 @@ Rulebook PDFs and Python tools are available for data extraction and verificatio
 2. campaign-systems-engineer → Add phase to CampaignPhaseManager, create panel
 3. ui-panel-developer → Style the panel with Deep Space theme
 4. qa-specialist → Test phase transitions, save/load, checklist
+```
+
+### Extending cross-mode character transfer (canonical hub)
+```
+Transfer logic spans 3 owners — route by file:
+1. character-data-engineer → CharacterTransferService.gd (export_to_canonical / import_from_canonical /
+   convert_to_<mode> legs, snapshot, reward-suppression). The canonical interchange form is the
+   5PFH-standard Character dict; any-to-any route composes two book-defined legs through 5PFH.
+   GAME-DATA GATE: any per-mode conversion value (e.g. the Tactics P2 military_backgrounds table,
+   currently UNVERIFIED) must be book-sourced before wiring — never invent.
+2. campaign-systems-engineer → CampaignScreenBase pickup (_check_pending_transfers / _add_character_to_mode),
+   FiveParsecsCampaignCore.add_crew_member, GameState.pending_character_transfers signal
+3. <gamemode>-specialist → the receiving mode's import UI + mutator
+   (bug-hunt: add_main_character; planetfall: PlanetfallCharacterImportPanel + add_roster_character;
+   tactics: P2, NOT BUILT — named-veteran attachment, not a squad unit)
+4. qa-specialist → tests/unit/test_character_transfer_hub.gd + test_planetfall_transfer.gd
+   (round-trip lossless, reward-suppression, ending matrix)
 ```

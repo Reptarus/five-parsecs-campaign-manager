@@ -55,25 +55,40 @@ Always check `is_connected()` before connecting on shared components.
 | `GameStateManager.gd` | Y | Y | Y | Y | Key namespacing (mode prefix) |
 | `HubFeatureCard.gd` | Y | Y | Y | Y | Pending data pattern |
 | `MainMenu.gd` | Y | Y | Y | Y | Mode-specific dialogs + routes |
-| `CharacterTransferService.gd` | Y | Y | Y | N* | Deep copy, atomic writes |
+| `CharacterTransferService.gd` | Y | Y | Y | P2* | Canonical-hub export/import, lossless snapshot |
+| `CampaignScreenBase.gd` | Y | Y | Y | Y | Generic pending-transfer pickup (mode dispatch) |
 
-*Tactics uses army lists, not individual character transfer.
+*Tactics individual-character transfer is **planned for P2, not yet built**. Army lists remain species-profile-based; a future P2 will import a character as a **named veteran attachment** (a new `veteran_characters[]` array on TacticsCampaignCore), NOT a squad unit in `campaign_units[]` (squad injection would break points validation). Hard prerequisite: the invented `military_backgrounds` list in `convert_to_tactics` (currently tagged GAME_BALANCE_ESTIMATE / UNVERIFIED) must be replaced with the real Tactics p.184 table first.
 
-## Character Transfer Rules
+## Character Transfer Framework (canonical hub)
 
-### 5PFH ↔ Bug Hunt (Compendium pp.212-213)
+`CharacterTransferService` (`src/core/character/CharacterTransferService.gd`, `class_name CharacterTransferService`, extends RefCounted) is a single chokepoint built around a **canonical interchange form** — the full 5PFH-standard Character dict. Every mode `export_to_canonical(char, source_mode)` and `import_from_canonical(canonical, target_mode)`; `transfer_character(char, source_mode, target_mode)` composes the source-leg export with the target-leg import. Mode constants: `MODE_5PFH = "five_parsecs"`, `MODE_BUG_HUNT = "bug_hunt"`, `MODE_PLANETFALL = "planetfall"`, `MODE_TACTICS = "tactics"`.
+
+**Route matrix**: of 12 directed routes among the 4 modes, 9 are book-defined. The 3 with no direct book rule (Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall) are offered ONLY by composing two book-defined legs through the 5PFH canonical — inventing zero values.
+
+**Lossless snapshot**: each imported character embeds a `snapshot` key (its canonical form). A later muster-out restores the original verbatim (`export_to_canonical` short-circuits on the snapshot). `_layer_planetfall_ending` applies ending bonuses on top of a snapshot-restored veteran because bonuses depend on the ending, not on stats.
+
+**Reward-suppression rule**: 5PFH-specific exit rewards (Bug Hunt mustering credits / +1 Story Point / +Sector Government patron; Planetfall ending bonuses) attach ONLY when `target_mode == "five_parsecs"`.
+
+**Transfer mechanism**: direct file-drop via `user://transfers/<id>.json` (NOT a persistent barracks). Envelope keys: `schema_version 2`, `direction`, `source_mode`, `target_mode`, `character`, `snapshot`, `stashed_equipment`, `mustering_credits`, `bonus_story_points`, `add_sector_government_patron`, `transferred_at` (the dashboard muster-out handler also stamps `source_campaign_id` / `source_campaign_name` before writing; `transfer_character()` itself emits only the preceding keys). Static `load_pending_transfers(target_mode)` filters by destination (v1 files predate `target_mode` and always target 5PFH). Static `apply_transfer_rewards(campaign, transfer_data)` applies rewards to the receiving campaign and deletes the file (prevents double-import).
+
+**Generic pickup** lives in `CampaignScreenBase.gd`: `_check_pending_transfers()`, `_apply_pending_transfers()`, `_add_character_to_mode()` dispatch (`five_parsecs` → `add_crew_member`, `bug_hunt` → `add_main_character`, `planetfall` → `add_roster_character`, `tactics` → Phase 2 placeholder / `push_warning`), `_notify_transfer_result()`, the `_on_transfers_applied()` virtual hook, and `_campaign_mode()`. Each dashboard calls `_check_pending_transfers.call_deferred()` in `_setup_screen` and overrides `_on_transfers_applied()` to rebuild. Wired in CampaignDashboard (5PFH), BugHuntDashboard, and PlanetfallDashboard.
+
+### 5PFH ↔ Bug Hunt (Compendium pp.212-213) — SHIPPED
+
 - Enlistment: 2D6 + Combat >= 7+, equipment stashed, Luck → 0
 - Muster Out: Equipment restored, Luck → 1, rewards per missions completed
 - Stat mapping: `reaction` ↔ `reactions`, `combat` ↔ `combat_skill`
 
-### 5PFH ↔ Planetfall
-- `CharacterTransferService.convert_to_planetfall()`: Class training roll required
-- Stat mapping: `combat` → `combat_skill`, `reaction` → `reactions`
-- Imported characters tracked in `stashed_equipment` and `original_character_snapshots`
-- Export back via `convert_from_planetfall()` for lossless return
+### 5PFH ↔ Planetfall (Planetfall pp.26-27, 165-166) — SHIPPED (P1)
 
-### Tactics
-Tactics does NOT use individual character transfer. Army lists are built from species profiles. Characters from other modes cannot be imported into Tactics armies.
+- Import UI: `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` — select a 5PFH/Bug Hunt source character → preview → **Class Training** D6 aptitude (1-2 fail, 3 random class, 4-6 player choice; max 3 trained, one per class via `attempt_class_training`) → embed snapshot → `add_roster_character`. 5PFH Luck → 1 Kill Point each; Bug Hunt Tech → Savvy; imported characters begin **Loyal**.
+- Creation-wizard entry: import button in `PlanetfallRosterPanel.gd` (was disabled "future sprint", now wired). PlanetfallDashboard cards: "Import Veterans" and "Muster Colonists Out".
+- Export back via `convert_from_planetfall()` for lossless return. **Ending matrix (corrected, Planetfall pp.165-166)**: loyalty = bonus ship + ship debt 0; independence_won = bonus ship + ship debt prepaid (2D6 *partial* prepayment) + 2 Story Points (the old bug wrongly zeroed the whole debt); independence_lost = add rival (Enforcers or Bounty Hunters) + 2 Story Points; isolation = +1 Luck + `isolation_single_char` flag; ascension = gains psionic. KP→Luck is deliberately NOT converted on Planetfall export.
+
+### Tactics (P2 — PLANNED, NOT BUILT)
+
+Tactics individual-character transfer is planned for P2 but does NOT exist yet. Army lists remain species-profile-based. A future P2 will import a character as a **named veteran attachment** stored in a NEW `veteran_characters[]` array on TacticsCampaignCore, NOT a squad unit in `campaign_units[]` (squad injection would break points validation). Hard prerequisite: replace the invented `military_backgrounds` list in `convert_to_tactics` (currently GAME_BALANCE_ESTIMATE / UNVERIFIED) with the real Tactics p.184 table first.
 
 ## Data Safety Rules
 - **Deep copy**: Every cross-campaign transfer uses `.duplicate(true)` — NEVER shared references
