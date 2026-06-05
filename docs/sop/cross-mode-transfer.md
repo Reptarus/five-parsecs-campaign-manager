@@ -5,8 +5,9 @@ persistent gamemodes, touching the `user://transfers/` file-drop envelope, the
 lossless snapshot, the reward-suppression rule, or the mode-generic dashboard
 pickup.
 
-The canonical-hub + file-drop + snapshot pattern has now been used twice
-(Foundation: Bug Hunt ↔ 5PFH; Planetfall P1), so it is a documented pattern.
+The canonical-hub + file-drop + snapshot pattern has now been used across all
+four modes (Foundation: Bug Hunt ↔ 5PFH; Planetfall P1; Tactics named veteran),
+so it is a documented pattern.
 
 ---
 
@@ -19,7 +20,7 @@ Moving a SINGLE character between the 4 persistent gamemodes:
 | Standard 5PFH | `"five_parsecs"` | `FiveParsecsCampaignCore` | `add_crew_member()` |
 | Bug Hunt | `"bug_hunt"` | `BugHuntCampaignCore` | `add_main_character()` |
 | Planetfall | `"planetfall"` | `PlanetfallCampaignCore` | `add_roster_character()` |
-| Tactics | `"tactics"` | `TacticsCampaignCore` | P2, not built (see below) |
+| Tactics | `"tactics"` | `TacticsCampaignCore` | `add_veteran_character()` (named veteran, NOT a squad unit — see below) |
 
 Battle Simulator is standalone (no persistence) and is OUT of scope.
 
@@ -128,15 +129,15 @@ The destination side lives in `src/ui/screens/campaign/CampaignScreenBase.gd`:
 - `_apply_pending_transfers()` — applies rewards + dispatches the character
 - `_add_character_to_mode()` — dispatch: `five_parsecs`→`add_crew_member`,
   `bug_hunt`→`add_main_character`, `planetfall`→`add_roster_character`,
-  `tactics`→`push_warning` (Phase 2 placeholder)
+  `tactics`→`add_veteran_character`
 - `_notify_transfer_result()`, `_campaign_mode()`, and the
   `_on_transfers_applied()` virtual hook
 
 Each dashboard calls `_check_pending_transfers.call_deferred()` in
 `_setup_screen()` and overrides `_on_transfers_applied()` to rebuild its roster
-view. Wired in CampaignDashboard (5PFH), BugHuntDashboard, PlanetfallDashboard.
-`GameState.load_campaign()` emits `pending_character_transfers(count)` on a 5PFH
-load.
+view. Wired in CampaignDashboard (5PFH), BugHuntDashboard, PlanetfallDashboard,
+TacticsDashboard. `GameState.load_campaign()` emits
+`pending_character_transfers(count)` on a 5PFH load.
 
 > **A SOURCE leg with no DESTINATION pickup is dead code.** The original Bug Hunt
 > muster-out bug was exactly this — files were written to `user://transfers/`
@@ -164,6 +165,22 @@ Bug Hunt Tech → Savvy; imported characters begin Loyal (Planetfall pp.26-27).
 
 ---
 
+## Tactics import UI
+
+`src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd`: select a source
+character from 5PFH / Bug Hunt / Planetfall saves → preview the Tactics
+conversion → embed snapshot → `add_veteran_character`. TacticsDashboard exposes:
+
+- A **"Commission Veteran"** card (opens the import panel).
+- A **"Retire Veteran Out"** card (a 3-target overlay → 5PFH / Bug Hunt /
+  Planetfall).
+
+TacticsDashboard calls `_check_pending_transfers.call_deferred()` and overrides
+`_on_transfers_applied()`. The named veteran is stored in `veteran_characters[]`,
+never in `campaign_units[]`, so it never affects army points.
+
+---
+
 ## convert_from_planetfall ending matrix (data-integrity, verify against the book)
 
 Planetfall pp.165-166 (verified in `docs/rules/planetfall_source.txt`
@@ -182,18 +199,33 @@ The OLD BUG zeroed the WHOLE debt on `independence_won`. The book only prepays
 
 ---
 
-## Tactics (P2, NOT BUILT)
+## Tactics named veteran (SHIPPED Jun 4)
 
-Individual character transfer to/from Tactics is PLANNED for P2 but does not
-exist yet. When built:
+Individual character transfer to/from Tactics is BUILT and tested.
 
-- A transferred character becomes a **NAMED VETERAN** stored in a new
-  `veteran_characters[]` array on `TacticsCampaignCore` — NOT a squad unit in
-  `campaign_units[]` (squad injection would break points validation). Army lists
-  remain species-profile-based.
-- **HARD PREREQUISITE**: the invented `military_backgrounds` list in
-  `convert_to_tactics()` (currently tagged `GAME_BALANCE_ESTIMATE` / UNVERIFIED)
-  must be replaced with the real Tactics p.184 table FIRST.
+- A transferred character becomes a **NAMED VETERAN** (an "officer or hero"
+  figure, Tactics p.185) stored in `TacticsCampaignCore.veteran_characters[]` (a
+  serialized array) — NEVER a squad unit in `campaign_units[]` (the book uses
+  "no points cost formula", p.184, so veterans stay OUT of points validation).
+  Army lists remain species-profile-based; the army-list / points system is
+  unchanged.
+- Core mutators: `add_veteran_character()` (applies a tagged playability floor of
+  ≥1 Kill Point), `remove_veteran_character()`, `get_veteran_characters()`.
+- **The data-integrity prerequisite is DONE.** `convert_to_tactics()` /
+  `convert_from_tactics()` were verified against Tactics p.184 ("Converting
+  Characters") and three fabrications were removed:
+  1. The invented `military_backgrounds` list → replaced with a
+     `"military"` / `"war-torn"` substring check grounded in the real
+     `gear_database.json` backgrounds. The book says only "+2 with a
+     military-type background", with NO enumerated list, so the
+     `GAME_BALANCE_ESTIMATE` tag is GONE.
+  2. The `max(luck, 1)` KP floor → the book is exactly "1 Kill Point per Luck
+     point", so the floor moved to the veteran layer (`add_veteran_character()`,
+     tagged playability) and the conversion stays book-exact.
+  3. The "military property, equipment not transferred" strip → the book says
+     "carry weapons over as they are", so equipment carries over unchanged.
+  Combat cap +2, Toughness cap 5, and "each Kill Point after the first becomes
+  1 Luck" on export were confirmed CORRECT.
 
 ---
 
@@ -207,11 +239,15 @@ exist yet. When built:
 | `src/core/state/GameState.gd` | Emits `pending_character_transfers(count)` on 5PFH load |
 | `src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd` | Planetfall import UI (Class Training) |
 | `src/ui/screens/planetfall/panels/PlanetfallRosterPanel.gd` | Creation-wizard import button |
+| `src/game/campaign/TacticsCampaignCore.gd` | `veteran_characters[]` array + `add_/remove_/get_veteran_character(s)()` |
+| `src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd` | Tactics named-veteran import UI (Commission Veteran) |
+| `src/ui/screens/tactics/TacticsDashboard.gd` | "Commission Veteran" + "Retire Veteran Out" cards; `_on_transfers_applied()` override |
 | `tests/unit/test_character_transfer_hub.gd` | Hub / route-matrix / reward-suppression / snapshot tests |
 | `tests/unit/test_planetfall_transfer.gd` | Planetfall import/export + ending-matrix tests |
+| `tests/unit/test_tactics_transfer.gd` | Tactics conversion + named-veteran tests (9 tests) |
 
-15/15 gdUnit4 tests pass across the two test files. Run them (not `--headless`,
-not `--script`) with the `-c` flag per `feedback_gdunit4_flags`.
+24/24 gdUnit4 transfer tests pass across the three test files. Run them (not
+`--headless`, not `--script`) with the `-c` flag per `feedback_gdunit4_flags`.
 
 ---
 
@@ -220,6 +256,7 @@ not `--script`) with the `-c` flag per `feedback_gdunit4_flags`.
 - Foundation (Bug Hunt ↔ 5PFH; fixed the broken muster-out pickup): **SHIPPED**
 - Planetfall P1 (import at creation wizard + dashboard; muster out to 5PFH or Bug
   Hunt; reciprocal pickup on Planetfall + Bug Hunt dashboards): **SHIPPED**
-- P2 Tactics named-veteran import: **NEXT, not built** (blocked on the p.184
-  military-backgrounds table)
-- P3 persistent barracks: **deferred**
+- Tactics named-veteran import/export (Commission Veteran + Retire Veteran Out;
+  book-faithful conversion per p.184; `veteran_characters[]` array): **SHIPPED**
+  (Jun 4). All 4 persistent modes now interconnect any-to-any.
+- P3 persistent "veteran barracks": **deferred**

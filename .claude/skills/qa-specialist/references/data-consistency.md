@@ -264,7 +264,7 @@ else:
 
 `CharacterTransferService` (`src/core/character/CharacterTransferService.gd`) is a canonical hub: every mode exports to / imports from the full 5PFH-standard Character dict, so any-to-any transfer composes two legs through 5PFH. Transfers persist as `user://transfers/<id>.json` (envelope `schema_version 2`, keys include `direction, source_mode, target_mode, character, snapshot, mustering_credits, bonus_story_points, add_sector_government_patron`). `CampaignScreenBase` drains them; `GameState.load_campaign` emits `pending_character_transfers(count)` on a 5PFH load; static `apply_transfer_rewards()` applies rewards and deletes the file.
 
-Coverage: `tests/unit/test_character_transfer_hub.gd` (6 tests — round-trip lossless via snapshot, reward suppress/retain, target-mode filter, reward-apply+delete, `add_crew_member` non-captain) and `tests/unit/test_planetfall_transfer.gd` (9 tests — KP/Savvy import mapping, corrected ending matrix, muster-out restore, cross-leg suppression). 15/15 pass.
+Coverage: `tests/unit/test_character_transfer_hub.gd` (6 tests — round-trip lossless via snapshot, reward suppress/retain, target-mode filter, reward-apply+delete, `add_crew_member` non-captain), `tests/unit/test_planetfall_transfer.gd` (9 tests — KP/Savvy import mapping, corrected ending matrix, muster-out restore, cross-leg suppression), and `tests/unit/test_tactics_transfer.gd` (9 tests — named-veteran import via `add_veteran_character`, `convert_to_tactics` Combat/Toughness caps + KP-per-Luck + Training, veteran kept OUT of `campaign_units[]` points validation). 24/24 transfer tests pass.
 
 Validation checklist:
 - [ ] Round-trip export → import → muster-out restores the original verbatim (snapshot short-circuit)

@@ -1,7 +1,7 @@
 # Modiphius Partnership Correspondence Journal
 
 **Owner**: Elijah Rhyne
-**Last Updated**: 2026-05-22 (MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.)
+**Last Updated**: 2026-06-04 (Entries #13-14: #13 = Chris's June 4 master-design request; #14 = Elijah's sent reply (one-pager + high-level scope in the body). Parked: Android-first-and-only for the app + alpha, and beta slipping from decision churn. Original #13 note follows: Chris's June 4 email requests a master design one-pager [who/problem/how/why-better], flags the DIY/AI-web-app threat, raises the Steam+laptop accessibility concern, and refocuses on companion-first for the FiveX audience. Triggered: companion-first rewrite of `docs/BROADENING_SCOPE_SKETCH.md`, the mobile-forward re-sequencing in `PARTNERSHIP_TERM_POSITIONS.md`, and Draft #G cover reply. Prior header context: 2026-05-22 MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.)
 **Purpose**: Chronological log of all Modiphius partnership touchpoints — meetings, emails, deliverables sent, decisions made by either side. Acts as a written timeline that's independent of the email archive (in case emails are lost, replaced, or contested).
 
 > **Maintenance protocol**: Add a new entry within 24 hours of any touchpoint. Include verbatim excerpts of key passages when they contain commitments or numbers. Cross-reference to source documents, meeting notes, and email subjects so the journal remains an index, not the only record. Verbatim quotes use blockquotes and are clearly marked as such.
@@ -30,6 +30,8 @@
 | 11 | 2026-05-22 (04:29 AM) | Email inbound | Chris → Elijah, Gavin | Reply to Entry #10 — CHRIS-prefixed inline responses confirm deal structure ("yes that would how we'd propose it"), propose broadening as "stage 2" ("Keen not to let the project bloat"), request prioritised support list, ask for next-week availability | This document, Entry #11 |
 | 11a | 2026-05-22 (06:04 AM) | Email inbound | Chris → Elijah, Gavin | Forward of QA-docs thread + skim review — flags Ivan compensation as new dependency ("Ivan is not paid beyond writing the books"); flags competitor web-based tool as differentiation concern; asks Elijah to articulate product differentiation (UI + content); proposes Mon May 25 at 4:30/5pm UK (≈ 12pm Eastern) | This document, Entry #11a |
 | 12 | 2026-05-25 | Meeting (Zoom) | Elijah, Chris, Gavin (joined ~min 23) | Deal-frame call (HAPPENED). Reading B re-confirmed (recoup $X dev cost then 50/50). After recoup, a flat MONTHLY maintenance fee to dev off the top (regardless of model), then 50/50. Revenue MODEL (subscription vs one-time) is a separate open pricing question, PARKED to alpha. Standalone / all-content / "randomise it for me" product steer (extends T1). Alpha = Google-Form signup funnel (XCOM 700→50 precedent), Elijah owns the email DB, Modiphius amplifies via newsletter/social/Discord/Facebook. Informal LOI on a shared Google Doc → long-form contract off Modiphius's standard agreement. Monthly check-ins; Monday.com; testers credited post-program; new Modiphius cost code. Chris assigns Elijah 3 drafts: LOI, Announcement, Google Form questions | This document, Entry #12 |
+| 13 | 2026-06-04 (1:26 PM) | Email inbound | Chris → Elijah, Gavin | Asks for a master design one-pager (who/problem/how/why-better); flags DIY/AI web-app threat + wants the "why better than free comparisons" ideas folded in; raises Steam+laptop accessibility concern; refocuses on companion-first for the FiveX audience (standalone because it carries the book content) | This document, Entry #13 |
+| 14 | 2026-06-04 (3:21 PM) | Email outbound | Elijah → Chris, Gavin | Reply to #13: one-pager updated + shared as Google Doc; high-level product scope in the email body (6 points); platform line (original app was Google Play + iOS, pivot needs only re-aligning the alpha to Android); 30-min call offer. Funding/LOI kept out. Parked: Android-first-and-only (app + alpha), beta slipping from decision churn | This document, Entry #14 |
 
 ---
 
@@ -907,10 +909,120 @@
 
 ---
 
+### Entry #13 — 2026-06-04 (1:26 PM) — Email inbound — Chris asks for a master design one-pager + companion-first refocus + accessibility / DIY-app concerns
+
+- **Mode**: Email inbound
+- **From**: Chris Birch
+- **To**: Elijah Rhyne
+- **CC**: Gavin Dady
+- **Subject**: (master-design-doc ask; recover exact subject from inbox)
+- **Time**: 1:26 PM (Elijah-local)
+
+- **Summary**: Chris asks whether Elijah has a master design document, specifically a one-pager covering who the product is for, what problems it solves, how, and why it is better than what is available. He frames a competitive concern (people building their own simple web apps, increasingly with AI coding) and wants a clear starting point and goal. He relays input from a video-game-experienced team member: (1) as a companion the product is not user-friendly if it is only on Steam and reached via a bulky laptop, and he asks to fold the earlier "why this is better than the free comparisons" ideas into the one-pager; (2) the product may suffer as a standalone because effort spent making it a good standalone takes away from making it a great companion, so the steer is to focus on the really amazing companion and roll it out to the FiveX audience (growing with next-year plans + crowdfunding) as a defined audience, where including the book content makes it a standalone tabletop product that does not require the book.
+
+- **Verbatim email body**:
+
+  > Hi Elijah, do you have a master design document that you're working too? I think it may have been covered in various emails but something that is say a one pager that explains who this is for, what problems it solves, how, and why it's better than what is available.
+  >
+  > People are using their own skills to make simpls web apps already for games, and with AI coding, that will be more and more common so giving us a clear starting point and goal would be useful I think
+  >
+  > We have someone in the team who has some experience of videos games and they have pointed out a few things we should consider:
+  >
+  > - as a companion it is not so user friendly if it's only on steam and accessible via a bulky laptop. I know you gave me some ideas in an email of why this is better than the other free comparisons but perhaps we could pull those ideas together in to the one pager that would help crystallise the goals.
+  >
+  > - he made a good point that this might suffer as a stand alone product because we focus effort on making it good for that and miss making it better as the companion. Your art ideas may help with this but perhaps we should focus on just making the really amazing companion and focusing on rolling it out to the FiveX audience (which will be growing with plans next year and the crowdfunding). It gives us a defined audience, and if it includes the book content then it is a standalone tabletop product it doesn't require the book so maybe that's enough
+  >
+  > Chris
+
+- **Key items raised**:
+  - **Master-design one-pager request (the explicit deliverable)**: a single doc answering who it's for / what problems it solves / how / why better than what's available. This is the artifact already in progress as `docs/BROADENING_SCOPE_SKETCH.md`, but its prior spine (broadening / standalone Steam product) did NOT answer Chris's four questions in that order. Rewritten companion-first on 2026-06-04 to do so.
+  - **DIY / AI-coded web-app threat**: Chris sees self-built tools (increasingly AI-assisted) as growing competitive pressure and wants a defensible starting point and goal. The answer the rewrite leans on: only the OFFICIAL product can legally carry all the content (the all-content / licensing differentiation from Entry #11a + #12); a self-built tool cannot.
+  - **Accessibility / form-factor concern (from the team member)**: Steam + bulky laptop is not companion-friendly. Resolved by the rewrite presenting mobile/tablet as the native companion form factor (the founding charter per `docs/archive/application_purpose.md`), with Steam as the debut storefront. Internally this triggered the mobile re-sequencing in `PARTNERSHIP_TERM_POSITIONS.md` (mobile moved from Phase 2 to Phase 1 / near-launch).
+  - **"Why better than the free comparisons" ideas to fold in**: Chris is referring to the player-experience thesis from Entry #11b (Draft #F): "their tool records what happened; ours clears the way for more to happen." Folded into the one-pager's "why it's better" section.
+  - **Companion-first refocus**: do not let standalone-product effort dilute the companion. Restates the Entry #12 steer and aligns with the founding charter. Doc rewritten companion-first; broadening demoted to a Stage 2 coda.
+  - **FiveX audience as the defined audience**: growing with next-year plans + crowdfunding. The doc's "who it's for" section.
+  - **Standalone-because-it-carries-the-content**: "if it includes the book content then it is a standalone tabletop product... so maybe that's enough." Matches the Entry #12 all-content steer; framed in the doc as a consequence of doing the companion well, not a separate product to chase.
+
+- **Elijah's read (notes for record)**:
+  - Chris over-extended on scope/potential earlier and is now refocusing on the companion, restating points Elijah already made in prior threads (the player-experience thesis, the companion framing).
+  - Personal note: Chris as COO is less connected to the daily build state; he is relaying a team member's input and asking "do you have a design doc?" about an artifact that partly exists. Consequence for the doc: it must be self-contained and assume no memory of prior threads.
+  - The team member's accessibility point rediscovers the project's ORIGINAL plan, which was mobile-first. The archive proves it: `docs/archive/application_purpose.md` ("Mobile-First Design") and `docs/archive/current_project_status.md` Deployment ("Mobile Build: Android build configured, iOS in progress"). Steam appears NOWHERE in the archive; it was a later partnership-era pivot (Apr 30 forecast "Steam-first refocus") that Chris drove. So the team member is landing back on Elijah's original mobile-first intent. Platform model (do not garble): the mobile/tablet build is the home and ships on Google Play + the App Store (where Modiphius already publishes); the DESKTOP build is what debuts on Steam (a PC storefront, Chris's call). A mobile app does NOT go on Steam, so keep desktop-on-Steam and mobile-on-mobile-stores distinct. Lead mobile-first; do not relitigate the pivot with Chris.
+  - **Companion, NOT a book replacement (Elijah's product line, 2026-06-04).** Chris's "standalone... doesn't require the book... maybe that's enough" steer is a real divergence from Elijah's conviction that this is a companion which complements the book and must not replace it (founding charter: "Support, Don't Replace"). The one-pager holds the companion line: the app is the best way to PLAY and the on-ramp to the books (which drives physical sales, T4), and the all-content / licensing point is framed as official-completeness, not book replacement. Handle the divergence gracefully with Chris (the Draft #G reply asserts companion-first without bluntly contradicting "maybe that's enough").
+
+- **Action items resulting**:
+  - Elijah-side:
+    - Rewrite `docs/BROADENING_SCOPE_SKETCH.md` companion-first, answering the four questions in order (DONE 2026-06-04).
+    - Reply to Chris with the one-pager as a shared Google Doc (Draft #G below).
+    - Re-sequence mobile forward in `docs/PARTNERSHIP_TERM_POSITIONS.md` (DONE 2026-06-04).
+  - Filing decisions (coordinated follow-up still owed):
+    - Recompute `MODIPHIUS_DIGITAL_FORECAST.md` platform assumptions (§6 / §11) for mobile-near-launch.
+    - Update `CLAUDE.md` partnership block + the "mobile pocket edition Phase 2" gotcha.
+    - Reopen `UPFRONT_INVESTMENT_TRANSPARENCY.md` hardware ask as live-now (Mac Mini + Apple Dev needed for the mobile build).
+
+- **References**:
+  - Entry #11b (Draft #F player-experience thesis, folded into the rewrite)
+  - Entry #11a (all-content / licensing differentiation; competitor web-tool concern)
+  - Entry #12 (standalone all-content + "randomise it for me" steer)
+  - `docs/BROADENING_SCOPE_SKETCH.md` (the rewritten one-pager)
+  - `docs/archive/application_purpose.md` (founding charter: mobile-first, companion-not-a-video-game)
+  - Draft #G in Section 6 (the cover reply)
+  - Memory: `feedback_strategic_theses_t1_t4.md`, `feedback_no_em_dashes.md`, `feedback_competitor_framing_difference_not_violation.md`
+
+---
+
+### Entry #14 — 2026-06-04 (3:21 PM) — Email outbound — Reply to Chris's master-design request: one-pager delivered + high-level scope in the body (Draft #G promoted, sent with Elijah's edits)
+
+- **Mode**: Email outbound, reply-all on the existing thread
+- **From**: Elijah Rhyne
+- **To**: Chris Birch
+- **CC**: Gavin Dady
+- **Time**: 3:21 PM (Elijah-local)
+- **Summary**: Elijah replies to Entry #13. Confirms the master design one-pager is updated and shared as a Google Doc, and puts the high-level product scope directly in the email body as six scannable points. Adds a platform line: the original app was focused on Google Play + iOS, so pivoting back to mobile needs no extra time beyond re-aligning the alpha test toward Android users. Offers a 30-minute call. Funding / LOI terms deliberately kept OUT (handled in the separate LOI thread, still in discussion).
+
+- **Verbatim sent body**:
+
+  > Hi Chris -
+  >
+  > I appreciate the feedback and have updated the one pager at the following link: one-pager
+  >
+  > High-level scope, so it's all in one place:
+  >
+  > - What it is: a mobile-first companion app for Five Parsecs From Home, for the phone or tablet you have at the table.
+  > - Who it's for: the Five Parsecs family, solo and small-group players, both people who own the game and newcomers the app guides in.
+  > - What it does: it runs the campaign bookkeeping and the table rolls, presents events as illustrated narrative scenes, and has a "play it out for me" mode that resolves a battle and hands back the result for nights you want your turn without the setup.
+  >   - It complements the books and points players toward them. Using the official content is also the moat, because a self-built or AI-made tool cannot legally use the rules, tables, and art.
+  > - Why it beats the free tools: they record the game that is it. This runs the game and turns it into a story, so the player spends the evening playing instead of logging.
+  > - Scope discipline: this release is the focused companion. Extending to Five Leagues and other titles is Stage 2, after this one is excellent, so we do not bloat what ships first.
+  >
+  > On platforms, since it came up: the original version of this app was focused on google play and iOS so pivoting back to those platforms will require no extra time outside of re-aligning our alpha test towards mobile android users
+  >
+  > If we need to organize a quick 30 minute call to touch base let me know,
+  >
+  > Elijah
+
+- **Deltas from Draft #G (Elijah's edits)**: tightened to a scannable scope list; dropped the desktop-build / Steam detail from the body; the platform line frames the mobile pivot as "no extra time beyond re-aligning the alpha to Android users"; added the 30-minute-call offer; left funding / LOI out.
+
+- **Parked items (Elijah noted, NOT in the email; do not act until the basics are settled)**:
+  1. **Android-first and only**: the app AND the alpha re-align to Android first and only (iOS later). This drops the Apple / Mac hardware dependency for now (Godot Android export needs no Mac).
+  2. **Beta keeps slipping**: the beta date keeps getting pushed while both sides go back and forth on basic decisions. Process risk to name and reduce; the churn on fundamentals IS the schedule cost.
+
+- **Analysis-gap noted (Claude, flagged by Elijah)**: across the 2026-06-04 platform re-sequencing work, the alpha test plan was never once brought into the analysis, even though Android-first directly reshapes the alpha (cohort recruitment must target Android users; A1 needs an Android build; the Google-Form experience filter should screen for Android/mobile testers). Recorded so platform / scope changes are connected to the alpha plan going forward. See `feedback_consider_alpha_in_platform_scope_decisions` memory + `docs/CLOSED_ALPHA_PLAN.md`.
+
+- **Action items**:
+  - Mark Draft #G PROMOTED → Entry #14 (done).
+  - When the basics are settled: re-align `docs/CLOSED_ALPHA_PLAN.md` to Android-first (cohort = Android users, A1 Android build) and the Google-Form funnel filter accordingly.
+  - Reduce the decision churn that keeps moving the beta date.
+
+- **References**: Entry #13 (the inbound this answers); Draft #G (source, now promoted); `docs/BROADENING_SCOPE_SKETCH.md` (the shared one-pager); `docs/PARTNERSHIP_TERM_POSITIONS.md` (mobile rows updated to Android-first 2026-06-04); `docs/CLOSED_ALPHA_PLAN.md` (alpha re-align target).
+
+---
+
 ## 3. Open Threads
 
 | Thread | Status | Owner | Next Step |
 |---|---|---|---|
+| Android-first re-alignment (app + alpha) | PARKED (do after the basics settle) — NEW 2026-06-04 | Elijah | Re-align the app AND the alpha to Android first and only (iOS later). Update `CLOSED_ALPHA_PLAN.md` cohort to Android users + A1 Android build; tune the Google-Form filter to Android testers. No Apple hardware needed for Android |
+| Beta schedule slipping from decision churn | OPEN (risk) — NEW 2026-06-04 | Both | Beta keeps getting pushed while both sides relitigate basics. Reduce churn on fundamentals: lock decisions and stop reopening them |
 | Counter on `$X` / quarterly maintenance fee | OPEN (re-scoped 2026-05-13) | Elijah | Phase 1 framing per `feedback_phase1_prove_phase2_lockin.md`: $30-40K honest anchor with line items, $2-3K/quarter maintenance fee. NOT the prior $45K maximalist anchor. Verbal at May 18 call |
 | Recoupment mechanics clarification (Reading A vs B) | RESOLVED 2026-05-13 (Reading B confirmed) | — | Chris confirmed in Entry #9: no upfront, dev keeps 100% until $X recouped, then 50/50 |
 | Threshold mechanics clarification (cliff vs floor) | PARTIALLY OPEN | Elijah | Chris introduced maintenance fee carve-out in Entry #9 but did NOT clarify whether Y threshold from May 5 proposal still applies. Ask at May 18 |
@@ -1562,3 +1674,73 @@ When sent, append `### Entry #11b — 2026-05-22 — Email outbound — Reply to
 - [ ] Final grep for em dashes before sending (one slipped into Draft #C v1 historically)
 - [ ] Decide on the tone-shape question for the Monday-priority paragraph (current = directive)
 - [ ] Decide on cohort-size / alpha-duration disclosure level for written record vs. verbal Monday
+
+---
+
+### Draft #G — Reply to Chris's June 4 master-design-doc request (cover email for the companion-first one-pager) — **PROMOTED → Entry #14 (SENT 2026-06-04 3:21 PM, with Elijah's edits)**
+
+**Status**: PROMOTED → Entry #14 (sent 2026-06-04; Entry #14 holds the verbatim sent text, which Elijah tightened from this draft). Replies to Entry #13. Cover email that delivers the rewritten companion-first one-pager (`docs/BROADENING_SCOPE_SKETCH.md`) as a shared Google Doc, and answers the specific points Chris raised (DIY/AI-app threat, why-better-than-free-comparisons, companion focus, accessibility / form-factor).
+
+**Mode**: Email outbound, Elijah → Chris (Gavin CC'd per standard cadence). Reply-all on the existing thread.
+
+**What this draft DOES contain**:
+
+- Confirmation the master design one-pager exists, delivered as a Google Doc with scene images embedded (per the Entry #12 co-edit workflow)
+- The all-content / licensing answer to the DIY/AI-web-app threat (only the official product can legally use the rules, tables, and art)
+- The player-experience "records vs clears the way" answer to "why better than the free comparisons" (folded from Draft #F)
+- Agreement with the companion focus, framed so the app grows the audience by bringing players INTO Five Parsecs and pointing them at the books (companion-not-replacement, held gracefully)
+- The form-factor answer: touch-native phone/tablet is the companion's home (founding intent), Steam is the debut storefront; mobile moved up to a priority now
+- Broadening kept as a Stage 2 line
+
+**What this draft deliberately DOES NOT contain**:
+
+- No "standalone / replaces the book / play without the book" framing (companion-not-replacement, per the founding charter). Note: this is the ONE point where the draft gently holds Elijah's line against Chris's "doesn't need the book / maybe that's enough" steer. It does so by reframing (companion that drives book sales) rather than contradicting head-on. If Elijah wants to accommodate Chris's standalone steer more, soften the companion paragraph
+- No blame framing on the Steam push (the team member's point is accepted gracefully; the "mobile was always right" leverage stays private)
+- No deal numbers ($X / monthly fee)
+- No hard dates beyond "near-term roadmap"
+- No em dashes (per `feedback_no_em_dashes.md`)
+
+**Subject line**: reply-all on the existing Chris thread (preserve history)
+
+**Body (verbatim draft)**:
+
+> Hi Chris,
+>
+> Yes. I've pulled it together into a single one-pager and I'm sharing it as a Google Doc so you and Gavin can mark it up directly. It answers the four questions head on: who it's for, the problem it solves, how it works, and why it's better than what's out there. The scene images are embedded so the art direction sits alongside the words.
+>
+> A few notes on the points you raised, since they shaped the rewrite:
+>
+> On "people can build their own with AI": that's exactly where being the official product is the moat. A self-built tool can't legally use the rules, the tables, or the art. Ours can, so it's the complete and trustworthy companion rather than an unofficial approximation. They can copy the idea of a tracker. They can't copy the license. The doc makes that the centerpiece of the "why it's better" section.
+>
+> On why it beats the free comparisons: I folded in the framing from my earlier email. The short version is that the free tools record the game while you still do the playing and the data entry. Ours runs the game and turns it into a story, so the player spends the evening playing instead of logging. That's the whole product in one line.
+>
+> On the companion focus: I'm fully with you and your team member. The way I'm framing it is that the app's job is to make playing Five Parsecs easy and great, and to bring new players in. It uses the official content so a newcomer can learn and play with it guiding them, and that same on-ramp points them at the books and the wider hobby. Building it as the best companion, rather than chasing a separate standalone product, is what keeps the focus where you and your team member want it, and it means the app feeds your physical line rather than competing with it.
+>
+> On the bulky-laptop point: completely agree, and it is where the app started. It was built mobile-first, for the phone or tablet you actually have in hand at the table, and it lives on Google Play and the App Store, the stores you already publish on. The desktop build is the version that debuts on Steam, which stays our launch shop window like we discussed. So Steam carries the desktop build for the debut, and the phone and tablet, where the companion really gets used, run on their own stores. Nothing extra to set up on your side either way.
+>
+> Broadening to other titles I've kept as a Stage 2 line, so it marks the door without bloating what we ship first.
+>
+> Take a look when you get a chance and add whatever Modiphius language you'd like.
+>
+> Elijah
+
+**Posture check**:
+
+- ✅ Grace posture: accepts the team member's input without defensiveness; companion focus framed as agreement, not capitulation
+- ✅ Competitor framing is category-difference, not violation (records vs clears the way)
+- ✅ All-content / licensing differentiation answers the AI-app threat without disparaging self-built tools
+- ✅ Form-factor answer is blame-free (Steam = debut storefront, mobile = home); no "you derailed this toward Steam"
+- ✅ Companion-not-replacement held by reframing (app feeds the physical line), not by contradicting "maybe that's enough" head-on
+- ✅ Broadening held to a Stage 2 line (honors Chris's "don't let it bloat")
+- ✅ No em dashes (verify via grep before send)
+- ✅ No deal numbers; no personal bootstrap / hardware details
+
+**Pre-send checklist**:
+
+- [ ] Final grep for em dashes
+- [ ] Reply-all on existing thread; CC Gavin
+- [ ] Share the Google Doc version of the one-pager with scene images embedded (SHAREABLE section only; internal metadata + appendix excluded)
+- [ ] Decide whether to soften the companion paragraph if accommodating Chris's standalone steer
+- [ ] Decide directness of the form-factor / mobile-now line (current: "a priority now, not a later phase")
+
+**On promotion to numbered Entry**: when sent, append `### Entry #14 — 2026-06-04 — Email outbound — Reply to Chris's master-design request (companion-first one-pager delivered)` under Entry #13 in Section 2, and mark Draft #G `[PROMOTED → Entry #14]`.

@@ -625,13 +625,19 @@ across the 4 persistent gamemodes (5PFH / Bug Hunt / Planetfall / Tactics):
 - 5PFH-only exit rewards are reward-suppressed unless the destination is 5PFH.
 - Transport is a direct file-drop to `user://transfers/<id>.json` (no barracks UI).
 - **Pickup is mode-generic** in `CampaignScreenBase._check_pending_transfers()` —
-  each dashboard (CampaignDashboard / BugHuntDashboard / PlanetfallDashboard) calls
-  it in `_setup_screen()` and dispatches via `_add_character_to_mode()`.
+  each dashboard (CampaignDashboard / BugHuntDashboard / PlanetfallDashboard /
+  TacticsDashboard) calls it in `_setup_screen()` and dispatches via
+  `_add_character_to_mode()` (`tactics`→`add_veteran_character`).
 - **Planetfall screens**: `PlanetfallCharacterImportPanel` (import + Class Training),
   the import button on `PlanetfallRosterPanel` (creation wizard), and the "Import
   Veterans" / "Muster Colonists Out" cards on PlanetfallDashboard.
-- Status: Foundation (Bug Hunt ↔ 5PFH) + Planetfall P1 SHIPPED; Tactics is P2 (not
-  built). See `docs/sop/cross-mode-transfer.md`.
+- **Tactics screens**: `TacticsVeteranImportPanel` (import + Tactics conversion
+  preview) and the "Commission Veteran" / "Retire Veteran Out" cards on
+  TacticsDashboard. An imported character is a NAMED VETERAN in
+  `TacticsCampaignCore.veteran_characters[]` (Tactics p.185), never a squad unit.
+- Status: Foundation (Bug Hunt ↔ 5PFH) + Planetfall P1 + Tactics SHIPPED (Jun 4) —
+  all 4 modes interconnect any-to-any; P3 barracks deferred. 24/24 gdUnit4 transfer
+  tests pass. See `docs/sop/cross-mode-transfer.md`.
 
 ---
 

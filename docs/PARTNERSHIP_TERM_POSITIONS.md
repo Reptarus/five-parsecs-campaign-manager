@@ -1,6 +1,6 @@
 # Partnership Term Positions
 
-**Last Updated**: 2026-05-26
+**Last Updated**: 2026-06-04 (Android-first-and-only for the initial app + alpha [Entry #14], iOS later, Apple hardware ask deferred again; alpha must re-align to Android. Earlier same-day: mobile re-sequenced FORWARD: §2.3 iOS/Android timing moved from Phase 2 to Phase 1 / near-launch; Tier 1 scope statement rewritten companion-first + touch-native; Steam reframed from "primary platform" to "debut storefront". Trigger: Chris's June 4 email + the founding mobile-first/companion charter. Hardware ask reopened as live-now. See the 2026-06-04 history-log entry. Prior: 2026-05-26.)
 **Owner**: Elijah (dev side)
 **Confidentiality**: **INTERNAL ONLY**. This is the dev-side preparation tracker for partnership term negotiation. Do NOT share with Modiphius. Specific positions surface to partner only when a specific MOU drafting moment arises. The point of this doc is to enter that conversation with anchored positions in hand, not to expose the working file.
 
@@ -58,7 +58,7 @@ The LOI is intentionally light. It commits both parties to good-faith negotiatio
 |---|---|---|---|
 | Dev-side legal entity | Position needed: confirm whether to sign as sole proprietor (Elijah Rhyne personally) or form an LLC/business entity first | OPEN | Influences tax treatment, IP ownership, liability isolation. Worth a one-conversation legal check before LOI signing. |
 | Modiphius-side legal entity | Modiphius Entertainment Ltd. (UK) | DRAFT | Standard partner-side entity; verify exact legal name at signing |
-| Project scope statement | "Digital companion app for Five Parsecs from Home, Steam-first, with phased iOS/mobile as Phase 2" | DRAFT | Aligned with [docs/MODIPHIUS_DIGITAL_FORECAST.md](MODIPHIUS_DIGITAL_FORECAST.md) Steam-first refocus (Apr 30) |
+| Project scope statement | "A mobile-first companion app for Five Parsecs from Home that complements physical play. Android first and only for the initial app + alpha; iOS later. A desktop build debuts on Steam." | DRAFT (2026-06-04) | Restores the founding mobile-first + companion charter (`docs/archive/application_purpose.md`). Android-first-and-only per Elijah 2026-06-04 (Journal Entry #14). Steam = desktop debut storefront; mobile = Google Play + App Store |
 | LOI term length | 6 months from signing | DRAFT | Long enough to draft + sign MOU during alpha refinement window; short enough to maintain forward motion |
 | Confidentiality scope | Mutual NDA covering: deal terms, alpha tester list, unreleased Modiphius IP shared with dev, dev-side roadmap not yet public | DRAFT | Standard mutual NDA structure |
 | Exclusivity scope | Exclusive to dev for 5PFH digital companion app; non-exclusive for other Modiphius IPs (preserves Phase 2 negotiation leverage) | DRAFT | Important — locking exclusivity for ALL Modiphius IPs now would forfeit Phase 2 leverage per [[feedback-phase1-prove-phase2-lockin]] |
@@ -127,11 +127,11 @@ This category determines whether the partnership is economically viable on both 
 
 | Term | Current Position | Status | Source / Reasoning |
 |---|---|---|---|
-| Primary platform | Steam | LOCKED | Steam-first refocus confirmed Apr 30 per [[apr30-forecast-deepdive]]; platform-cut multiplier 0.70 (Steam 30%) in forecast |
+| Debut storefront (launch platform) | Steam (desktop) | LOCKED | Steam is the DEBUT/launch storefront for discovery + wishlists + crowdfunding preamble, NOT the product's native home. Native form factor is touch (phone/tablet) per the founding charter. Platform-cut multiplier 0.70 (Steam 30%) still applies to the Steam launch window. Re-labeled from "Primary platform" 2026-06-04 |
 | Steam EA launch target | Late September 2026 (~Sep 23-30) | DRAFT | Per [docs/CLOSED_ALPHA_PLAN.md](CLOSED_ALPHA_PLAN.md) §8 workback |
 | Steam 1.0 launch target | 6-12 months post-EA (early-to-mid 2027) | DRAFT | Per CLOSED_ALPHA_PLAN.md §8; specific quarter still OPEN |
-| Mobile / iOS launch timing | Phase 2 only, post-1.0 | LOCKED | Per Apr 30 forecast §6 reframe — Phase 2 "pocket edition" port, separate revenue stream not modeled in EA forecast |
-| Mobile / Android launch timing | Same as iOS — Phase 2 only, post-1.0 | DRAFT | No specific commitment yet |
+| Mobile / Android launch timing | FIRST and ONLY for the initial app + alpha; near-launch | DRAFT (2026-06-04) | Elijah 2026-06-04 (Entry #14): re-align the app AND the alpha to Android-first and only. Godot Android export needs NO Apple hardware, so no hardware dependency. The alpha cohort + A1 build must be Android (see the 2026-06-04 (later) history entry) |
+| Mobile / iOS launch timing | LATER (after the Android-first launch); hardware-gated (Mac Mini + Apple Dev) | DRAFT (2026-06-04) | iOS follows the Android-first launch. The Apple hardware ask reverts to DEFERRED (Android needs no Mac); reopen `UPFRONT_INVESTMENT_TRANSPARENCY.md` only when iOS work begins. Forecast §6/§11 platform assumptions need a recompute (follow-up) |
 | Mac support | Via Steam (macOS Steam 2.01% market share per [[apple-ecosystem-research]]) | DRAFT | Low-incremental-cost target. Verify Godot mac export pipeline before committing |
 | DLC roadmap commitment | 3 DLC packs (Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook) | DRAFT | Per CLAUDE.md DLC system status — Tri-platform StoreManager already implemented |
 | DLC pricing | Open; closed alpha pricing-band gate (#4) will inform | DEFERRED | Per [docs/CLOSED_ALPHA_PLAN.md](CLOSED_ALPHA_PLAN.md) §7 graduation gate 4: pricing band converges to ±$3, expected $14.99-$24.99 for base |
@@ -320,6 +320,25 @@ Append-only entries documenting how positions evolved. Each entry should include
 
 - **"Budget contribution" (triggering pro-rata) scoped to NEW Modiphius CASH toward development only.** Carve-out: IP/trademarks, art/brand assets, and in-kind marketing/channel amplification do NOT count (compensated by the 50/50 split + physical-book margin). Closes a hole Elijah spotted: a broad reading of "budget" would have let Modiphius's marketing and IP dilute his recoupment priority, which is a double-dip (marketing is already paid via the split).
 - Applied to `docs/LOI_DRAFT.md` (pro-rata clause rewritten) + the Pro-rata row above. GRAY AREA for the MOU: cash marketing SPEND (paid ads/trailer), dev opening position excluded.
+
+### 2026-06-04 — Mobile re-sequenced forward; companion charter restored
+
+- **Trigger**: Chris's June 4 email (Journal Entry #13) relayed a team-member point that Steam + a bulky laptop is not companion-friendly. The founding charter (`docs/archive/application_purpose.md`) documents the project as mobile-first + companion from the start. Steam DEBUT is Chris's agreed plan (not contested); the only change here is bringing the mobile/tablet edition forward from Phase 2 to near-launch. Mobile distributes via Google Play + the Apple App Store, which Modiphius ALREADY publishes on (e.g. the Fallout app), so this is not a new platform relationship.
+- **§2.3 Mobile/iOS + Android timing**: moved from "Phase 2 only, post-1.0 — LOCKED" to "Phase 1 / near-launch (at or shortly after Steam EA), hardware-gated — DRAFT". Native form factor is touch; Steam (desktop) is the debut storefront, not the home.
+- **§2.3 Primary platform → Debut storefront**: Steam remains the LOCKED launch platform, but is no longer described as the product's native home.
+- **Tier 1 scope statement**: rewritten companion-first + touch-native, Steam as debut storefront.
+- **Hardware ask reopened**: `UPFRONT_INVESTMENT_TRANSPARENCY.md` (Mac Mini + Apple Dev, ~$1,400 + $99/yr) becomes live-now rather than post-EA, since the mobile build needs the Apple dev environment.
+- **Companion-not-replacement re-affirmed**: the one-pager and reply (Journal Entry #13, Draft #G) hold the line that the app complements the book and does not replace it, against Chris's "doesn't need the book / maybe that's enough" steer. Logged as a live divergence to handle gracefully with Chris (do not contradict head-on; reframe as the app feeding the physical line).
+- **Coordinated follow-up still owed (NOT done this pass)**: recompute `MODIPHIUS_DIGITAL_FORECAST.md` §6/§11 platform assumptions for mobile-near-launch; update `CLAUDE.md` partnership block + the "mobile pocket edition Phase 2" gotcha; add a mobile-build line to `CLOSED_ALPHA_PLAN.md` workback if needed.
+- Citation: Journal Entry #13; `docs/archive/application_purpose.md`; `docs/BROADENING_SCOPE_SKETCH.md` (2026-06-04 rewrite).
+
+### 2026-06-04 (later) — Android-first-and-only; alpha brought into the platform decision
+
+- **Android-first and only** (Elijah, Entry #14): the app AND the alpha re-align to Android first and only. iOS is LATER, after the Android launch. Per the original mobile docs the app already targeted Google Play + iOS, so this is a pivot back, not new work.
+- **Hardware-ask correction**: the earlier "reopen the Apple/Mac hardware ask as live-now" (first 2026-06-04 entry) is SUPERSEDED. Android export from Godot needs no Mac, so the Apple hardware ask reverts to DEFERRED until iOS work begins.
+- **Alpha consequence (the gap this corrects)**: the 2026-06-04 mobile re-sequencing was done WITHOUT referencing the alpha plan. Android-first directly reshapes the alpha: cohort recruitment must target Android users, A1 needs an Android build, and the Google-Form experience filter should screen for Android/mobile testers. `docs/CLOSED_ALPHA_PLAN.md` to be re-aligned to Android-first once the basics settle.
+- **Process risk logged**: the beta date keeps slipping while basic decisions are relitigated. Reduce the churn; lock fundamentals and stop reopening them.
+- Citation: Journal Entry #14; `docs/CLOSED_ALPHA_PLAN.md`.
 
 ---
 

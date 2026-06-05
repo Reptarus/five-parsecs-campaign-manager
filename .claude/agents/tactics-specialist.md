@@ -114,13 +114,15 @@ The Tactica prototype at `tacticaprototype1\` uses Age of Fantasy IP (17 fantasy
 ### 7. Creation UI Pattern
 When creating `TacticsCreationUI`, it must extend `Control` directly (thin shell pattern), NOT `TacticsScreenBase`. This matches the established Bug Hunt + Planetfall creation UI pattern. Use `preload()` for panel scripts and `const` for UIColors references.
 
-### 8. Cross-Mode Character Transfer (P2 — PLANNED, NOT BUILT)
-Tactics IS in the cross-mode character transfer framework, but only at the army-list / species-profile level today. Per-character transfer to/from Tactics is **P2, planned, and does NOT exist yet**. Do NOT describe Tactics as "no character transfer" — describe it correctly:
+### 8. Cross-Mode Character Transfer (SHIPPED Jun 4)
+Tactics is fully in the cross-mode character transfer framework. Per-character transfer to/from Tactics is **BUILT and tested** (`tests/unit/test_tactics_transfer.gd`, 9 tests; 24/24 total transfer tests pass; editor parse clean). All 4 persistent modes now interconnect any-to-any (5PFH, Bug Hunt, Planetfall, Tactics) through the canonical hub. Describe it correctly:
 
-- Army lists remain species-profile-based (squads, points). A future P2 imports a transferred character as a **named veteran attachment** stored in a NEW `veteran_characters[]` array on `TacticsCampaignCore`, **NOT** a squad unit in `campaign_units[]` (squad injection would break points validation).
-- The conversion functions `convert_to_tactics` / `convert_from_tactics` already exist in `src/core/character/CharacterTransferService.gd` (owned by character-data-engineer), but they are NOT wired into a running Tactics campaign yet. `CampaignScreenBase._add_character_to_mode()` dispatches the `tactics` case to a Phase-2 placeholder / `push_warning`.
-- **HARD PREREQUISITE before any Tactics transfer ships**: the invented `military_backgrounds` list in `convert_to_tactics` (tagged `GAME_BALANCE_ESTIMATE` / UNVERIFIED, lines ~732-736) MUST be replaced with the real Tactics p.184 military-background table. Until then, the Training-bonus path is non-canonical and must not be relied on.
+- Army lists remain species-profile-based (squads, points). A transferred character is imported as a **named veteran** (an "officer or hero" figure, Tactics p.185) stored in the serialized `veteran_characters[]` array on `TacticsCampaignCore`, **NEVER** a squad unit in `campaign_units[]` (the book uses "no points cost formula" for these figures, p.184, so veterans stay OUT of points validation). Core methods: `add_veteran_character()` (applies a tagged playability floor of >=1 Kill Point), `remove_veteran_character()`, `get_veteran_characters()`.
+- The conversion functions `convert_to_tactics` / `convert_from_tactics` in `src/core/character/CharacterTransferService.gd` (owned by character-data-engineer) are wired into the running Tactics campaign. `CampaignScreenBase._add_character_to_mode()` `tactics` case now dispatches to `add_veteran_character()` (it was previously a `push_warning` placeholder).
+- **Data-integrity prerequisite is DONE.** `convert_to_tactics` / `convert_from_tactics` were verified against Tactics PDF p.184 ("Converting Characters") and three fabrications were removed: (1) the invented `military_backgrounds` list → replaced with a "military"/"war-torn" substring check grounded in the real `gear_database.json` backgrounds (the book says only "+2 with a military-type background" with NO enumerated list); (2) a `max(luck,1)` KP floor → the book is exactly "1 Kill Point per Luck point", so the floor moved to the veteran layer (tagged playability) and the conversion stays book-exact; (3) a "military property, equipment not transferred" strip → the book says "carry weapons over as they are". The `military_backgrounds` `GAME_BALANCE_ESTIMATE` tag is GONE — no longer a blocker. Combat cap +2, Toughness cap 5, and "each Kill Point after the first becomes 1 Luck" on export are confirmed CORRECT.
+- **UI**: TacticsDashboard has a "Commission Veteran" card (`src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd` — select a source character from 5PFH/Bug Hunt/Planetfall saves → preview the Tactics conversion → embed snapshot → `add_veteran_character`) and a "Retire Veteran Out" card (3-target overlay → 5PFH / Bug Hunt / Planetfall). TacticsDashboard calls `_check_pending_transfers.call_deferred()` and overrides `_on_transfers_applied()`.
 - 5PFH-specific exit rewards never attach to a Tactics destination (reward suppression: rewards attach only when `target_mode == "five_parsecs"`).
+- P3 persistent "veteran barracks" remains DEFERRED.
 
 ## Workflow
 
@@ -164,9 +166,10 @@ Trust your search and your reading — the model running you is reliable at find
 - `src/ui/screens/tactics/` — Tactics UI screens (7 files + panels/)
 - `src/ui/screens/tactics/panels/` — 7 panel scripts (Config, Species, Roster, Review, BattleSetup, PostBattle, OperationalMap)
 - `src/data/tactics/` — 14 Resource classes (data model)
-- `src/game/campaign/TacticsCampaignCore.gd` — campaign persistence (P2 will add a `veteran_characters[]` array for imported named veterans — NOT squad units)
-- `src/core/character/CharacterTransferService.gd` — `convert_to_tactics`/`convert_from_tactics` (owned by character-data-engineer; the `military_backgrounds` list is GAME_BALANCE_ESTIMATE — replace with Tactics p.184 before P2 ships)
-- `src/ui/screens/campaign/CampaignScreenBase.gd` — `_add_character_to_mode()` `tactics` case is a P2 placeholder/`push_warning`
+- `src/game/campaign/TacticsCampaignCore.gd` — campaign persistence; serialized `veteran_characters[]` array holds imported named veterans (NOT squad units) via `add_veteran_character()`/`remove_veteran_character()`/`get_veteran_characters()`
+- `src/core/character/CharacterTransferService.gd` — `convert_to_tactics`/`convert_from_tactics` (owned by character-data-engineer; verified book-faithful against Tactics p.184 — the `military_backgrounds` GAME_BALANCE_ESTIMATE list was removed and replaced with a "military"/"war-torn" substring check)
+- `src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd` — "Commission Veteran" import UI (select source character → preview conversion → embed snapshot → `add_veteran_character`)
+- `src/ui/screens/campaign/CampaignScreenBase.gd` — `_add_character_to_mode()` `tactics` case dispatches to `add_veteran_character()`
 - `src/core/campaign/TacticsPhaseManager.gd` — 8-phase turn state machine
 - `src/core/systems/TacticsInitiativeManager.gd` — D6 alternating activations
 - `data/tactics/` — 24 JSON data files (species/, weapons, vehicles, traits, skills, events, config)

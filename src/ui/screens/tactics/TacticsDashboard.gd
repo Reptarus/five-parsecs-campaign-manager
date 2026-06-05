@@ -5,6 +5,8 @@ extends "res://src/ui/screens/tactics/TacticsScreenBase.gd"
 
 const EmptyStateWidgetClass = preload("res://src/ui/components/common/EmptyStateWidget.gd")
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
+const VeteranImportPanelClass = preload(
+	"res://src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd")
 
 var _campaign: Resource  # TacticsCampaignCore
 var _content: VBoxContainer
@@ -30,6 +32,8 @@ func _setup_screen() -> void:
 		func(): _apply_content_max_width(layout.scroll))
 
 	_build_dashboard()
+	# Surface veterans commissioned into this force (CampaignScreenBase pickup).
+	_check_pending_transfers.call_deferred()
 
 
 func _build_dashboard() -> void:
@@ -127,6 +131,23 @@ func _build_dashboard() -> void:
 		func(): _navigate("main_menu"))
 	hub_box.add_child(menu_card)
 
+	# ── Veteran Transfer (Tactics pp.184-185) ───────────────────────
+	var transfer_box := VBoxContainer.new()
+	transfer_box.add_theme_constant_override("separation", SPACING_SM)
+	_content.add_child(transfer_box)
+
+	var commission_card := HubFeatureCardClass.new()
+	commission_card.setup("", "Commission Veteran",
+		"Bring a veteran from another campaign in as a named officer/hero")
+	commission_card.card_pressed.connect(_on_commission_pressed)
+	transfer_box.add_child(commission_card)
+
+	var retire_card := HubFeatureCardClass.new()
+	retire_card.setup("", "Retire Veteran Out",
+		"Send a named veteran to a 5PFH, Bug Hunt, or Planetfall campaign")
+	retire_card.card_pressed.connect(_on_retire_pressed)
+	transfer_box.add_child(retire_card)
+
 	# ── Operational Map Summary ─────────────────────────────────────
 	if "operational_map" in _campaign \
 			and not _campaign.operational_map.is_empty():
@@ -139,6 +160,140 @@ func _build_dashboard() -> void:
 	if "battle_history" in _campaign \
 			and not _campaign.battle_history.is_empty():
 		_build_battle_history()
+
+
+## ── Cross-mode veteran transfer (Tactics pp.184-185) ────────────────────
+
+func _on_commission_pressed() -> void:
+	var panel = VeteranImportPanelClass.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	get_tree().root.add_child(panel)
+	panel.veteran_commissioned.connect(func(vet: Dictionary) -> void:
+		_apply_commission(vet))
+	panel.load_all_sources()
+
+
+func _apply_commission(vet: Dictionary) -> void:
+	if not _campaign or not _campaign.has_method("add_veteran_character"):
+		return
+	_campaign.add_veteran_character(vet)
+	_on_save()
+	_rebuild()
+
+
+func _on_retire_pressed() -> void:
+	if not _campaign or not "veteran_characters" in _campaign:
+		return
+	var vets: Array = _campaign.veteran_characters
+	if vets.is_empty():
+		return
+	get_tree().root.add_child(_build_retire_overlay(vets))
+
+
+func _do_retire(vet: Dictionary, target_mode: String, overlay: Node) -> void:
+	# Tactics has no end-of-campaign export bonuses; the snapshot restores the
+	# original veteran losslessly (or convert_from_tactics for a born-in figure).
+	var svc = CharacterTransferService.new()
+	var envelope: Dictionary = svc.transfer_character(vet, "tactics", target_mode)
+	envelope["source_campaign_id"] = _campaign.campaign_id if "campaign_id" in _campaign else ""
+	envelope["source_campaign_name"] = _campaign.campaign_name \
+		if "campaign_name" in _campaign else ""
+	_write_transfer_file(envelope, vet)
+
+	var vid: String = str(vet.get("id", vet.get("character_id", "")))
+	if _campaign.has_method("remove_veteran_character"):
+		_campaign.remove_veteran_character(vid)
+	_on_save()
+	if is_instance_valid(overlay):
+		overlay.queue_free()
+	_rebuild()
+
+
+func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> void:
+	var transfer_dir := "user://transfers/"
+	if not DirAccess.dir_exists_absolute(transfer_dir):
+		DirAccess.make_dir_recursive_absolute(transfer_dir)
+	var cid: String = str(char_data.get("id", char_data.get("character_id", "")))
+	var filename := "transfer_%s_%s.json" % [cid, str(Time.get_unix_time_from_system())]
+	var temp_path := transfer_dir + filename + ".tmp"
+	var final_path := transfer_dir + filename
+	var file := FileAccess.open(temp_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(envelope, "\t"))
+		file.close()
+		DirAccess.rename_absolute(temp_path, final_path)
+
+
+func _build_retire_overlay(vets: Array) -> Control:
+	var overlay := Control.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(COLOR_BASE, 0.95)
+	overlay.add_child(bg)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.add_theme_constant_override("margin_left", 24)
+	scroll.add_theme_constant_override("margin_right", 24)
+	overlay.add_child(scroll)
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 12)
+	scroll.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "RETIRE VETERAN"
+	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL))
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	for v in vets:
+		if v is not Dictionary:
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", SPACING_SM)
+		var name_lbl := Label.new()
+		name_lbl.text = str(v.get("name", "Veteran"))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		row.add_child(name_lbl)
+		var captured: Dictionary = (v as Dictionary).duplicate(true)
+		for dest in [["five_parsecs", "→ 5PFH"], ["bug_hunt", "→ Bug Hunt"], ["planetfall", "→ Planetfall"]]:
+			var btn := Button.new()
+			btn.text = dest[1]
+			var target: String = dest[0]
+			btn.pressed.connect(func() -> void:
+				_do_retire(captured, target, overlay))
+			row.add_child(btn)
+		vbox.add_child(row)
+
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.custom_minimum_size = Vector2(200, 44)
+	cancel.pressed.connect(func() -> void: overlay.queue_free())
+	vbox.add_child(cancel)
+	return overlay
+
+
+func _rebuild() -> void:
+	_campaign = _get_tactics_campaign()
+	for child in get_children():
+		child.queue_free()
+	var bg := ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = COLOR_PRIMARY
+	bg.show_behind_parent = true
+	add_child(bg)
+	var layout: Dictionary = _create_scroll_layout()
+	_content = layout.content
+	_apply_content_max_width(layout.scroll)
+	_build_dashboard()
+
+
+## CampaignScreenBase hook — rebuild after veterans muster in via the generic pickup.
+func _on_transfers_applied() -> void:
+	_rebuild()
 
 
 func _build_map_summary() -> void:

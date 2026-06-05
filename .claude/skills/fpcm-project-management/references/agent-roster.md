@@ -172,13 +172,19 @@ Transfer logic spans 3 owners — route by file:
 1. character-data-engineer → CharacterTransferService.gd (export_to_canonical / import_from_canonical /
    convert_to_<mode> legs, snapshot, reward-suppression). The canonical interchange form is the
    5PFH-standard Character dict; any-to-any route composes two book-defined legs through 5PFH.
-   GAME-DATA GATE: any per-mode conversion value (e.g. the Tactics P2 military_backgrounds table,
-   currently UNVERIFIED) must be book-sourced before wiring — never invent.
+   GAME-DATA GATE: any per-mode conversion value must be book-sourced before wiring — never invent.
+   (Tactics example, RESOLVED Jun 4: the fabricated military_backgrounds list was removed and
+   convert_to_tactics verified against Tactics p.184 — "+2 with a military-type background" is a
+   "military"/"war-torn" substring check on the real gear_database.json backgrounds, no enumerated
+   list. GAME_BALANCE_ESTIMATE tag gone.)
 2. campaign-systems-engineer → CampaignScreenBase pickup (_check_pending_transfers / _add_character_to_mode),
-   FiveParsecsCampaignCore.add_crew_member, GameState.pending_character_transfers signal
+   the receiving core's mutator (add_crew_member / add_main_character / add_roster_character /
+   add_veteran_character), GameState.pending_character_transfers signal
 3. <gamemode>-specialist → the receiving mode's import UI + mutator
    (bug-hunt: add_main_character; planetfall: PlanetfallCharacterImportPanel + add_roster_character;
-   tactics: P2, NOT BUILT — named-veteran attachment, not a squad unit)
-4. qa-specialist → tests/unit/test_character_transfer_hub.gd + test_planetfall_transfer.gd
-   (round-trip lossless, reward-suppression, ending matrix)
+   tactics, SHIPPED: TacticsVeteranImportPanel + add_veteran_character — a named veteran in
+   veteran_characters[], NOT a squad unit in campaign_units[], so it never affects army points)
+4. qa-specialist → tests/unit/test_character_transfer_hub.gd + test_planetfall_transfer.gd +
+   test_tactics_transfer.gd (round-trip lossless, reward-suppression, ending matrix,
+   veteran-out-of-points-validation; 24/24 transfer tests pass)
 ```

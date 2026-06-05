@@ -19,7 +19,7 @@ The Tactics rulebook PDF at `docs/rules/Five Parsecs From Home - Tactics.pdf` an
 - `data/tactics/` exists (~18-24 JSON data files; 108 costs verified)
 - SceneRouter keys `tactics_creation` / `tactics_dashboard` / `tactics_turn_controller` exist
 - `GameState._detect_campaign_type()` routes `campaign_type == "tactics"`
-- **NOT built**: per-character cross-mode transfer to/from Tactics (that is P2 — see the cross-mode gotcha below). The gamemode is shipped; only individual-character transfer is pending.
+- **SHIPPED (Jun 4)**: per-character cross-mode transfer to/from Tactics. A transferred character becomes a NAMED VETERAN in `TacticsCampaignCore.veteran_characters[]` (see the cross-mode section below). Tactics now interconnects any-to-any with the other 3 modes.
 
 ### Source Materials Available
 - Rulebook text: `docs/rules/tactics_source.txt` (503KB, 212 pages)
@@ -106,15 +106,15 @@ Meeting 2026-04-23. Code proceeds, shipping blocked.
 - Python: `py` launcher (NOT `python`). **PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz.**
 - All Tactics rules come from the PDF via PyPDF2. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Parsecs From Home - Tactics.pdf'); print(r.pages[PAGE].extract_text())"`
 
-### 6. Cross-Mode Character Transfer — Tactics leg is P2, NOT BUILT YET
+### 6. Cross-Mode Character Transfer — Tactics leg SHIPPED (Jun 4)
 
-The Cross-Mode Character Transfer Framework (`src/core/character/CharacterTransferService.gd`, canonical-hub design) is SHIPPED for Bug Hunt ↔ 5PFH (Foundation) and Planetfall P1. **Tactics is P2 and does NOT exist yet** — do NOT claim Tactics character transfer is built. Stub methods `convert_to_tactics` / `convert_from_tactics` exist in the service but are not wired or correct.
+The Cross-Mode Character Transfer Framework (`src/core/character/CharacterTransferService.gd`, canonical-hub design) is SHIPPED for all 4 persistent modes: Bug Hunt ↔ 5PFH (Foundation), Planetfall (P1), and **Tactics (P2, Jun 4)**. `convert_to_tactics` / `convert_from_tactics` are wired and book-faithful. Tests: `tests/unit/test_tactics_transfer.gd` (9 tests; 24/24 total transfer tests pass; editor parse clean).
 
-When P2 is built (planned):
+How it works:
 
-- A transferred character becomes a **NAMED VETERAN** stored in a NEW `veteran_characters[]` array on TacticsCampaignCore — NOT a squad unit in `campaign_units[]`. Squad injection would break points validation. Army lists stay species-profile-based; the veteran is a named attachment, not a profile entry.
-- **HARD PREREQUISITE**: the invented `military_backgrounds` list inside `convert_to_tactics` (currently tagged `GAME_BALANCE_ESTIMATE` / UNVERIFIED) MUST be replaced with the real **Tactics p.184** table FIRST. No values may be invented — extract p.184 via PyPDF2 before building the leg.
-- Of the 12 directed routes among the 4 modes, Tactics→Bug Hunt and Tactics→Planetfall have NO direct book rule — they would be offered ONLY by composing two book-defined legs through the 5PFH canonical (zero invented values). Tactics→5PFH and 5PFH→Tactics are the direct legs to build.
-- Pickup dispatch for tactics is already a placeholder/push_warning in `CampaignScreenBase._add_character_to_mode()` ("Phase 2").
+- A transferred character becomes a **NAMED VETERAN** (an "officer or hero" figure, Tactics p.185) stored in the serialized `veteran_characters[]` array on TacticsCampaignCore — NEVER a squad unit in `campaign_units[]`. The book uses "no points cost formula" (p.184), so veterans stay OUT of points validation. Army lists stay species-profile-based; the veteran is a named attachment, not a profile entry. New core methods: `add_veteran_character()` (applies a tagged playability floor of >=1 Kill Point), `remove_veteran_character()`, `get_veteran_characters()`.
+- The data-integrity prerequisite is DONE — `convert_to_tactics` / `convert_from_tactics` were verified against Tactics PDF p.184 ("Converting Characters") and THREE fabrications were removed: (1) the invented `military_backgrounds` list → replaced with a "military"/"war-torn" substring check grounded in the real `gear_database.json` backgrounds (the book says only "+2 with a military-type background" with NO enumerated list); (2) a `max(luck,1)` KP floor → the book is exactly "1 Kill Point per Luck point", so the floor moved to the veteran layer (tagged playability) and the conversion stays book-exact; (3) a "military property, equipment not transferred" strip → the book says "carry weapons over as they are". Combat cap +2, Toughness cap 5, and "each Kill Point after the first becomes 1 Luck" on export were confirmed CORRECT. The `military_backgrounds` GAME_BALANCE_ESTIMATE tag is GONE; it is no longer a blocker or prerequisite.
+- Of the 12 directed routes among the 4 modes, Tactics→Bug Hunt and Tactics→Planetfall have NO direct book rule — they are offered ONLY by composing two book-defined legs through the 5PFH canonical (zero invented values). Tactics→5PFH and 5PFH→Tactics are the direct legs.
+- Pickup dispatch for tactics is wired: `CampaignScreenBase._add_character_to_mode()` "tactics" case now dispatches to `add_veteran_character()` (it was previously a push_warning Phase-2 placeholder). UI: TacticsDashboard has "Commission Veteran" (opens `src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd`) and "Retire Veteran Out" cards.
 
-Correction to earlier framing: it is NOT accurate to say "Tactics uses army lists, not individual character transfer." Correct statement: army lists remain species-profile-based, AND a future P2 imports a character as a named veteran attachment once the `military_backgrounds` list is corrected.
+Architectural truth (unchanged): a veteran is a named figure, NOT a squad unit, and never affects army points (`campaign_units[]`); the army-list / points system itself is unchanged. P3 persistent "veteran barracks" remains DEFERRED.

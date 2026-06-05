@@ -182,6 +182,7 @@ Coverage lives in two suites:
 
 - `tests/unit/test_character_transfer_hub.gd` (6 tests) — round-trip lossless via embedded `snapshot`, reward suppression when composing to a non-5PFH target, reward retention when composing to 5PFH, `load_pending_transfers(target_mode)` destination filtering, `apply_transfer_rewards` adds patron + deletes file (no double-import), `add_crew_member` lands the character as non-captain.
 - `tests/unit/test_planetfall_transfer.gd` (9 tests) — 5PFH Luck → Kill Points, Bug Hunt Tech → Savvy, the corrected ending matrix (loyalty / independence_won partial-prepay-not-zero / independence_lost rival + SP / isolation +Luck / ascension psionic), import-then-muster-out restores the original, and Planetfall→Bug Hunt suppresses 5PFH ending rewards.
+- `tests/unit/test_tactics_transfer.gd` (9 tests) — named-veteran import via `add_veteran_character` (an "officer or hero" figure, Tactics p.185), `convert_to_tactics` Combat cap +2 / Toughness cap 5 / 1 Kill Point per Luck / Training +1 (+2 military-type background), weapons carried over, and the veteran stored in `veteran_characters[]` so it stays OUT of `campaign_units[]` points validation. 24/24 total transfer tests pass.
 
 Verification checklist:
 

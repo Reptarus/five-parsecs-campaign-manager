@@ -465,22 +465,35 @@ Squads, sergeants, individuals, and vehicles each have separate skill lists.
 - Injury rolls and XP awarded normally to crew in Tactics battles
 - Can integrate a 5PFH campaign with Tactics grand battles
 
-### Implementation status — P2 (NOT BUILT YET)
+### Implementation status — SHIPPED (Jun 4)
 
 The cross-mode Character Transfer Framework (canonical-hub `CharacterTransferService`)
-has SHIPPED Foundation (Bug Hunt ↔ 5PFH) and Planetfall P1. **Tactics is P2 and is
-NOT built.** Design intent when it lands:
+has SHIPPED Foundation (Bug Hunt ↔ 5PFH), Planetfall P1, and **Tactics named-veteran
+import/export**. All 4 persistent modes now interconnect any-to-any. Shipped behaviour:
 
-- Army lists remain species-profile-based. A transferred character is imported as a
-  **NAMED VETERAN** stored in a NEW `veteran_characters[]` array on
-  `TacticsCampaignCore` — NOT injected as a squad unit in `campaign_units[]` (squad
-  injection would break points validation).
-- **HARD PREREQUISITE**: the invented `military_backgrounds` list in
-  `CharacterTransferService.convert_to_tactics()` (currently tagged
-  `GAME_BALANCE_ESTIMATE` / UNVERIFIED) must be REPLACED with the real Tactics p.184
-  military-background table before this route ships.
-- `CampaignScreenBase._add_character_to_mode()` currently `push_warning`s for the
-  `tactics` mode as a Phase 2 placeholder.
+- Army lists remain species-profile-based; the army-list / points system is unchanged.
+  A transferred character is imported as a **NAMED VETERAN** (an "officer or hero"
+  figure, Tactics p.185) stored in the serialized `veteran_characters[]` array on
+  `TacticsCampaignCore` — NEVER injected as a squad unit in `campaign_units[]` (the
+  book uses "no points cost formula", p.184, so veterans stay out of points
+  validation). Mutators: `add_veteran_character()` / `remove_veteran_character()` /
+  `get_veteran_characters()`.
+- **The data-integrity prerequisite is DONE.**
+  `CharacterTransferService.convert_to_tactics()` / `convert_from_tactics()` were
+  verified against Tactics p.184 and three fabrications removed: (1) the invented
+  `military_backgrounds` list → replaced with a `"military"` / `"war-torn"` substring
+  check grounded in the real `gear_database.json` backgrounds (the book says only "+2
+  with a military-type background", no enumerated list, so the `GAME_BALANCE_ESTIMATE`
+  tag is GONE); (2) a `max(luck, 1)` KP floor → moved to the veteran layer as a tagged
+  playability floor so the conversion stays book-exact ("1 Kill Point per Luck
+  point"); (3) an equipment-strip → the book says "carry weapons over as they are".
+  Combat cap +2, Toughness cap 5, and "each Kill Point after the first → 1 Luck" on
+  export were confirmed CORRECT.
+- `CampaignScreenBase._add_character_to_mode()` "tactics" case dispatches to
+  `add_veteran_character()`. UI: TacticsDashboard "Commission Veteran" card
+  (`TacticsVeteranImportPanel`) + "Retire Veteran Out" 3-target overlay.
+- 24/24 gdUnit4 transfer tests pass (incl. `tests/unit/test_tactics_transfer.gd`,
+  9 tests); editor parse clean.
 - See `docs/sop/cross-mode-transfer.md`.
 
 ---
@@ -508,7 +521,7 @@ The Tactics companion is a **tabletop manager** — same philosophy as FPCM (com
 | **Campaign Tracker** | Operational map with regions/zones, Cohesion/Army Strength tracking, story event generation, CP spending |
 | **Roster Manager** | Persistent army roster across campaign, veteran skill tracking, unit losses between battles |
 | **Scenario Generator** | Random scenario type, deployment method, objectives, battlefield conditions, secondary objectives |
-| **Character Transfer** | Convert 5PFH characters ↔ Tactics profiles per appendix rules (p.184) — bridges FPCM and Tactics companion. **P2, not built** — imports a character as a NAMED VETERAN (`veteran_characters[]`), not a squad unit; blocked on replacing the invented `military_backgrounds` list with the real p.184 table. See `docs/sop/cross-mode-transfer.md` |
+| **Character Transfer** | Convert 5PFH characters ↔ Tactics profiles per appendix rules (p.184) — bridges FPCM and Tactics companion. **SHIPPED (Jun 4)** — imports a character as a NAMED VETERAN (`veteran_characters[]` via `add_veteran_character()`), not a squad unit; book-faithful conversion (the invented `military_backgrounds` list was replaced with a grounded military/war-torn substring check). UI: TacticsDashboard "Commission Veteran" + "Retire Veteran Out". See `docs/sop/cross-mode-transfer.md` |
 
 ### What the Tactica Scaffold Provides vs What Changes
 

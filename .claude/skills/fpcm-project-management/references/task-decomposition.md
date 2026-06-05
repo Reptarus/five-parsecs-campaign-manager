@@ -85,22 +85,29 @@ Order:
   6. qa-specialist: Full sweep — rename could break everything
 ```
 
-### Example 7: "Wire character transfer for a new mode pair"
+### Example 7: "Wire character transfer for a new mode pair" (SHIPPED worked example: Tactics, Jun 4 — all 4 modes now interconnect any-to-any)
 ```
 Agents: character-data-engineer, campaign-systems-engineer, <gamemode>-specialist, qa-specialist
 Order:
   1. character-data-engineer: Add/confirm the source + target legs in CharacterTransferService.gd
      (export_to_canonical / import_from_canonical / convert_to_<mode>). Any-to-any composes two
      book-defined legs through the 5PFH canonical — invent zero values. GAME-DATA GATE: book-source
-     every per-mode conversion value first (e.g. the Tactics P2 military_backgrounds table is
-     UNVERIFIED and must be replaced from Tactics p.184 before Tactics transfer is built).
+     every per-mode conversion value first. (Tactics example, RESOLVED: convert_to_tactics was
+     verified against Tactics p.184 and the fabricated military_backgrounds list was removed —
+     replaced with a "military"/"war-torn" substring check grounded in the real gear_database.json
+     backgrounds, since the book gives no enumerated list, only "+2 with a military-type background";
+     the GAME_BALANCE_ESTIMATE tag is gone. This gate is no longer a blocker for Tactics transfer.)
   2. campaign-systems-engineer: Confirm CampaignScreenBase pickup dispatch + the receiving core's
-     mutator chokepoint (add_crew_member / add_main_character / add_roster_character); GameState
-     pending_character_transfers signal if 5PFH is a target.
+     mutator chokepoint (add_crew_member / add_main_character / add_roster_character /
+     add_veteran_character); GameState pending_character_transfers signal if 5PFH is a target.
   3. <gamemode>-specialist: Build/confirm the receiving mode's import UI + dashboard cards
-     (e.g. planetfall: PlanetfallCharacterImportPanel + Class Training). Tactics is P2 / NOT BUILT.
-  4. qa-specialist: Extend tests/unit/test_character_transfer_hub.gd + test_planetfall_transfer.gd
-     (round-trip lossless, reward-suppression, ending matrix, no double-import).
+     (e.g. planetfall: PlanetfallCharacterImportPanel + Class Training; tactics, SHIPPED:
+     TacticsVeteranImportPanel "Commission Veteran" + "Retire Veteran Out" overlay — the imported
+     character lands as a named veteran in veteran_characters[], NEVER a squad unit in
+     campaign_units[], so it never affects army points).
+  4. qa-specialist: Extend the transfer suites (tests/unit/test_character_transfer_hub.gd +
+     test_planetfall_transfer.gd + test_tactics_transfer.gd) — round-trip lossless,
+     reward-suppression, ending matrix, no double-import, veteran-out-of-points-validation.
 ```
 
 ## Parallel Execution Rules

@@ -193,9 +193,11 @@ func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
 				campaign.add_roster_character(ch)
 				return true
 		"tactics":
-			# Tactics veteran model (veteran_characters[]) lands in Phase 2.
-			push_warning("Tactics veteran import not yet wired (Phase 2)")
-			return false
+			# A transferred character becomes a named veteran (an "officer or hero"
+			# attachment, Tactics p.185), NOT a squad unit in campaign_units[].
+			if campaign.has_method("add_veteran_character"):
+				campaign.add_veteran_character(ch)
+				return true
 	return false
 
 func _notify_transfer_result(applied: int, skipped: int) -> void:

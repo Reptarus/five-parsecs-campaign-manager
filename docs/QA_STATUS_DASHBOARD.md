@@ -11,7 +11,7 @@
 | **Planetfall** | 63 files | 15 JSON | Full 18-step turn cycle PASS, save/load PASS, multi-turn PASS | MainMenu button wired |
 | **Tactics** | 59 files | 108 costs verified | 5/7 scenarios PASS, 9 bugs fixed | MainMenu button wired |
 | **Bug Hunt** | 38 files | 15 JSON verified | End-to-end flow verified (Session 45) | MainMenu button wired |
-| **Cross-Mode Transfer** | `CharacterTransferService` + 2 panels + pickup | Planetfall pp.26-27/165-166 verified | 15/15 gdUnit4 (`test_character_transfer_hub`, `test_planetfall_transfer`); editor parse clean | Foundation + Planetfall P1 SHIPPED; P2 Tactics next |
+| **Cross-Mode Transfer** | `CharacterTransferService` + 3 panels + pickup | Planetfall pp.26-27/165-166 + Tactics p.184/185 verified | 24/24 gdUnit4 (`test_character_transfer_hub`, `test_planetfall_transfer`, `test_tactics_transfer`); editor parse clean | Foundation + Planetfall P1 + Tactics SHIPPED; all 4 modes interconnect any-to-any; P3 barracks deferred |
 
 ---
 
@@ -63,7 +63,7 @@
 | Planetfall gamemode (63 files) | Out | alpha-2 or beta |
 | Tactics gamemode (59 files) | Out | alpha-2 or beta |
 | Cross-Mode Isolation (Scenario 4) | Out | alpha-2 |
-| Character Transfer Service | Out of alpha-1 scope, but **Foundation + Planetfall P1 SHIPPED** (Jun 2026, 15/15 gdUnit4) | alpha-2 runtime QA; see `docs/sop/cross-mode-transfer.md` |
+| Character Transfer Service | Out of alpha-1 scope, but **Foundation + Planetfall P1 + Tactics SHIPPED** (Jun 2026, 24/24 gdUnit4; all 4 modes interconnect any-to-any) | alpha-2 runtime QA; see `docs/sop/cross-mode-transfer.md` |
 | Store/Paywall commerce flows (Scenario 8) | Out | beta / Steam Playtest (alpha runs offline mode) |
 | Localization | Out | Phase D |
 | Code-signing cert | Out | Phase D |

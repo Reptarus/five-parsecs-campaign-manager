@@ -51,7 +51,7 @@ Must be cleared after navigation completes.
 - **Lossless snapshot**: each imported character embeds a `snapshot` key (its canonical form); `export_to_canonical` short-circuits on it so a later muster-out restores the original verbatim.
 - **Reward-suppression**: 5PFH-specific exit rewards (Bug Hunt mustering credits / +1 Story Point / +Sector Government patron) attach ONLY when `target_mode == "five_parsecs"`.
 - **File-drop transfer**: `user://transfers/<id>.json` (NOT a persistent barracks). Envelope `schema_version 2` keys include `direction, source_mode, target_mode, character, snapshot, stashed_equipment, mustering_credits, bonus_story_points, add_sector_government_patron`. Static `load_pending_transfers(target_mode)` filters by destination (v1 files always target 5PFH). Static `apply_transfer_rewards(campaign, transfer_data)` applies rewards and deletes the file (prevents double-import).
-- **Generic pickup** lives in `CampaignScreenBase.gd`: `_check_pending_transfers()`, `_apply_pending_transfers()`, `_add_character_to_mode()` dispatch (`five_parsecs` → `add_crew_member`, `bug_hunt` → `add_main_character`, `planetfall` → `add_roster_character`, `tactics` → P2 placeholder), `_notify_transfer_result()`, the `_on_transfers_applied()` hook. BugHuntDashboard calls `_check_pending_transfers.call_deferred()` in `_setup_screen` and overrides `_on_transfers_applied()` to rebuild. `GameState.load_campaign` emits `pending_character_transfers(count)` on a 5PFH load.
+- **Generic pickup** lives in `CampaignScreenBase.gd`: `_check_pending_transfers()`, `_apply_pending_transfers()`, `_add_character_to_mode()` dispatch (`five_parsecs` → `add_crew_member`, `bug_hunt` → `add_main_character`, `planetfall` → `add_roster_character`, `tactics` → `add_veteran_character`), `_notify_transfer_result()`, the `_on_transfers_applied()` hook. BugHuntDashboard calls `_check_pending_transfers.call_deferred()` in `_setup_screen` and overrides `_on_transfers_applied()` to rebuild. `GameState.load_campaign` emits `pending_character_transfers(count)` on a 5PFH load.
 - **Foundation shipped**: this Bug Hunt ↔ 5PFH path also fixed the previously-broken muster-out pickup (files were written to `user://transfers/` but never read). 15/15 gdUnit4 tests pass.
 
 ### Enlistment (5PFH → Bug Hunt) — Compendium p.212
@@ -115,10 +115,10 @@ Must be cleared after navigation completes.
 | `GameStateManager.gd` | Y | Y | Y | Y | Key namespacing (mode prefix) |
 | `HubFeatureCard.gd` | Y | Y | Y | Y | Pending data pattern (Session 45) |
 | `MainMenu.gd` | Y | Y | Y | Y | Mode-specific dialogs + routes |
-| `CharacterTransferService.gd` | Y | Y | Y | P2* | Canonical-hub export/import, lossless snapshot |
+| `CharacterTransferService.gd` | Y | Y | Y | Y* | Canonical-hub export/import, lossless snapshot |
 | `CampaignScreenBase.gd` | Y | Y | Y | Y | Generic pending-transfer pickup (mode dispatch) |
 
-*Tactics individual-character transfer is **planned for P2, not yet built**. Army lists remain species-profile-based; a future P2 imports a character as a **named veteran attachment** (a new `veteran_characters[]` array on TacticsCampaignCore), NOT a squad unit (squad injection would break points validation). Prerequisite: replace the invented `military_backgrounds` list in `convert_to_tactics` (GAME_BALANCE_ESTIMATE / UNVERIFIED) with the real Tactics p.184 table first.
+*Tactics individual-character transfer is **SHIPPED (Jun 4)** — all 4 modes now interconnect any-to-any (including Bug Hunt ↔ Tactics, composed through the 5PFH canonical). An imported character lands as a **named veteran** (an "officer or hero" figure, Tactics p.185) in a serialized `veteran_characters[]` array on TacticsCampaignCore via `add_veteran_character()`, NOT a squad unit in `campaign_units[]` — so veterans never affect points validation (the book uses "no points cost formula", p.184). The data-integrity prerequisite is DONE: the invented `military_backgrounds` list in `convert_to_tactics` was removed and the conversion verified book-faithful against Tactics p.184; the GAME_BALANCE_ESTIMATE tag is gone. Tests: `tests/unit/test_tactics_transfer.gd` (9 tests; 24/24 total transfer tests pass).
 
 ### Temp Data Namespacing (4 Modes)
 

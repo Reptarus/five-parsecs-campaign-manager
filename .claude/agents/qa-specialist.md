@@ -80,13 +80,14 @@ Focus on specific systems with appropriate test matrices from references.
 ### 3. Regression Protocol
 After code changes: compile check → affected system tests → integration tests → related edge cases.
 
-### Cross-Mode Character Transfer coverage (SHIPPED: Foundation + Planetfall P1)
-The canonical-hub character transfer framework (`src/core/character/CharacterTransferService.gd`) has two dedicated test files you own as the regression gate:
+### Cross-Mode Character Transfer coverage (SHIPPED: Foundation + Planetfall + Tactics — all 4 persistent modes interconnect any-to-any)
+The canonical-hub character transfer framework (`src/core/character/CharacterTransferService.gd`) has three dedicated test files you own as the regression gate:
 
 - `tests/unit/test_character_transfer_hub.gd` — canonical export/import round-trip, any-to-any composition through the 5PFH canonical, lossless snapshot restore, reward suppression (rewards attach only when `target_mode == "five_parsecs"`).
 - `tests/unit/test_planetfall_transfer.gd` — Planetfall import (Class Training aptitude, KP/Savvy conversions, Loyal start) + `convert_from_planetfall` ending matrix (the pp.165-166 data-integrity fix: `independence_won` prepays a 2D6 PARTIAL ship debt, NOT the whole debt — assert this does not regress).
+- `tests/unit/test_tactics_transfer.gd` (9 tests, SHIPPED Jun 4) — `convert_to_tactics`/`convert_from_tactics` book-faithfulness (Tactics p.184): "1 Kill Point per Luck point" exactly (no `max(luck,1)` floor in the conversion — that >=1 KP playability floor lives at the veteran layer in `add_veteran_character()`), Combat cap +2, Toughness cap 5, weapons carry over as-is (not stripped), Training +1 / +2 with a "military"/"war-torn" background, and "each Kill Point after the first becomes 1 Luck" on export. A transferred character lands in `TacticsCampaignCore.veteran_characters[]` (NOT `campaign_units[]`, so it never affects army points). Assert the removed `military_backgrounds` `GAME_BALANCE_ESTIMATE` list is not reintroduced.
 
-15/15 gdUnit4 pass at ship. When verifying any transfer change, run BOTH files; the file-drop mechanism is `user://transfers/<id>.json` and `apply_transfer_rewards()` deletes the file after applying (guard against double-import).
+24/24 transfer tests pass at ship. When verifying any transfer change, run ALL THREE files; the file-drop mechanism is `user://transfers/<id>.json` and `apply_transfer_rewards()` deletes the file after applying (guard against double-import).
 
 ### 4. Bug Report Format
 ```
@@ -129,6 +130,7 @@ Trust your search and your reading — the model running you is reliable at find
 - `tests/unit/` — ~178 unit test files
 - `tests/unit/test_character_transfer_hub.gd` — canonical-hub cross-mode transfer (round-trip, composition, snapshot, reward suppression)
 - `tests/unit/test_planetfall_transfer.gd` — Planetfall import + `convert_from_planetfall` ending matrix
+- `tests/unit/test_tactics_transfer.gd` — Tactics import (`convert_to_tactics`/`convert_from_tactics` book-faithfulness, named veteran → `veteran_characters[]`)
 - `tests/integration/` — ~54 integration test files
 - `tests/battle/` — battle-specific tests
 - `tests/fixtures/` — test helpers and factories

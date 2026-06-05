@@ -32,17 +32,17 @@ Verifying the post-consolidation cleanup branch, I walked create → turn → ba
 
 ---
 
-## Cross-Mode Character Transfer Framework — Test Surface (SHIPPED Foundation + Planetfall P1)
+## Cross-Mode Character Transfer Framework — Test Surface (SHIPPED — all 4 modes)
 
-Canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted): every mode exports-to / imports-from the full 5PFH Character dict; any-to-any = compose two legs. File-drop at `user://transfers/<id>.json` (v2 envelope), NOT a barracks. 15/15 gdUnit4 tests currently green — KEEP GREEN.
+Canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted): every mode exports-to / imports-from the full 5PFH Character dict; any-to-any = compose two legs. File-drop at `user://transfers/<id>.json` (v2 envelope), NOT a barracks. 24/24 gdUnit4 transfer tests currently green — KEEP GREEN.
 
-- **Test files**: `tests/unit/test_character_transfer_hub.gd`, `tests/unit/test_planetfall_transfer.gd`.
+- **Test files**: `tests/unit/test_character_transfer_hub.gd`, `tests/unit/test_planetfall_transfer.gd`, `tests/unit/test_tactics_transfer.gd` (9 Tactics tests).
 - **Round-trip invariant to verify**: import a char into Bug Hunt/Planetfall, then muster out to 5PFH → the restored character must equal the original VERBATIM (the embedded `snapshot` envelope key drives this; `export_to_canonical` short-circuits on it). Stat re-derivation on the way out = bug.
 - **Reward-suppression invariant**: 5PFH-only exit rewards (Bug Hunt mustering credits / +1 Story Point / +Sector Government patron; Planetfall ending bonuses) attach ONLY when `target_mode == "five_parsecs"`. Verify NO rewards leak when target is another mode.
 - **Double-import guard**: `apply_transfer_rewards()` deletes the `user://transfers/` file after applying — verify a transfer cannot be picked up twice.
 - **Pickup wiring**: each dashboard (CampaignDashboard/BugHuntDashboard/PlanetfallDashboard) calls `_check_pending_transfers.call_deferred()` in `_setup_screen`; `GameState.load_campaign()` emits `pending_character_transfers(count)` on 5PFH load. New 5PFH mutator `FiveParsecsCampaignCore.add_crew_member()` forces `is_captain=false` + rebuilds `_crew_id_index` — verify added crew never overwrite the captain.
 - **Data-integrity regression (Planetfall pp.165-166)**: `convert_from_planetfall` ending matrix was corrected — independence_won uses ship_debt_prepaid (2D6 PARTIAL prepayment), NOT a full debt wipe (the old bug). Verify against `docs/rules/planetfall_source.txt` L12088-12113.
-- **Tactics is P2/NOT built** — do NOT write tests asserting Tactics transfer works; `convert_to_tactics` carries a `GAME_BALANCE_ESTIMATE` `military_backgrounds` list that must be replaced with the real Tactics p.184 table before that leg ships.
+- **Tactics transfer SHIPPED (Jun 4)** — `tests/unit/test_tactics_transfer.gd` (9 tests) pins it; assert it works. A transferred char becomes a NAMED VETERAN in `TacticsCampaignCore.veteran_characters[]` (new serialized array, NEVER `campaign_units[]` — veterans stay out of points validation, p.184). Invariants to keep green: `convert_to_tactics` is book-faithful (the invented `military_backgrounds` GAME_BALANCE_ESTIMATE list is GONE — now a "military"/"war-torn" substring check per Tactics p.184 "+2 with a military-type background", no enumerated list; weapons carry over; KP floor moved to the tagged veteran-playability layer, not the conversion); `add_veteran_character()` applies a >=1 Kill Point playability floor; round-trip via embedded `snapshot` restores verbatim. Pickup dispatch wired in `CampaignScreenBase._add_character_to_mode()` "tactics" case → `add_veteran_character()`.
 
 ---
 

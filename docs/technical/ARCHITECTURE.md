@@ -232,7 +232,7 @@ canonical 5PFH dict ──import_from_canonical(canonical, target)──▶ targ
   double-import.
 - **Pickup** is mode-generic in `CampaignScreenBase` and dispatches to each
   mode's roster mutator (`add_crew_member` / `add_main_character` /
-  `add_roster_character`; Tactics is a Phase-2 placeholder).
+  `add_roster_character` / `add_veteran_character` for Tactics).
 
 Full procedure, route matrix, envelope schema, and the corrected Planetfall
 ending matrix: `docs/sop/cross-mode-transfer.md`.

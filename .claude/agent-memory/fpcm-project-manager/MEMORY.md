@@ -237,18 +237,18 @@ This is the root cause of "Cannot infer the type" errors project-wide. Always us
 
 ---
 
-## Cross-Mode Character Transfer Framework — routing map (SHIPPED Foundation + Planetfall P1)
+## Cross-Mode Character Transfer Framework — routing map (SHIPPED — all 4 modes)
 
-A canonical-hub design: characters move between the 4 persistent modes (5PFH / Bug Hunt / Planetfall / Tactics) through the full 5PFH Character dict as the interchange form; any-to-any = compose an export leg + an import leg. Transfer mechanism is direct file-drop at `user://transfers/<id>.json` (v2 envelope), NOT a persistent barracks (P3, deferred). 15/15 gdUnit4 tests green; editor parse clean.
+A canonical-hub design: characters move between the 4 persistent modes (5PFH / Bug Hunt / Planetfall / Tactics) through the full 5PFH Character dict as the interchange form; any-to-any = compose an export leg + an import leg. Transfer mechanism is direct file-drop at `user://transfers/<id>.json` (v2 envelope), NOT a persistent barracks (P3, deferred). 24/24 gdUnit4 transfer tests green; editor parse clean.
 
 **File ownership for routing**:
 
 - Core service `src/core/character/CharacterTransferService.gd` (`export_to_canonical`/`import_from_canonical`/`transfer_character`/convert_*/snapshot helpers; static `load_pending_transfers`/`apply_transfer_rewards`) → **character-data-engineer** (it's character-model + serialization).
 - `FiveParsecsCampaignCore.add_crew_member()` (NEW post-creation crew mutator) + `GameState.load_campaign()` emitting `pending_character_transfers(count)` → **campaign-systems-engineer**.
 - Mode-generic pickup in `src/ui/screens/campaign/CampaignScreenBase.gd` (`_check_pending_transfers`/`_apply_pending_transfers`/`_add_character_to_mode`/`_on_transfers_applied`) + `PlanetfallCharacterImportPanel.gd` + dashboard import/muster cards → **ui-panel-developer**, with **planetfall-specialist** owning Planetfall-specific panels and **bug-hunt-specialist** reviewing BugHuntDashboard + the shared `CampaignScreenBase`/`GameState` changes (cross-mode rule).
-- Tests (`test_character_transfer_hub.gd`, `test_planetfall_transfer.gd`) → **qa-specialist** (final verification).
+- Tests (`test_character_transfer_hub.gd`, `test_planetfall_transfer.gd`, `test_tactics_transfer.gd`) → **qa-specialist** (final verification).
 
-**Status & next**: Foundation (Bug Hunt ↔ 5PFH; also fixed a previously-broken muster-out where files were written but never read) and Planetfall P1 are SHIPPED. **P2 = Tactics, NOT built** — a transferred char becomes a NAMED VETERAN in a new `veteran_characters[]` array on TacticsCampaignCore (NOT a squad unit; would break points validation). HARD PREREQUISITE before P2: replace the invented `military_backgrounds` list in `convert_to_tactics` (tagged `GAME_BALANCE_ESTIMATE`) with the real Tactics p.184 table — route that data extraction to tactics-specialist first. Of 12 routes, 3 (Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall) have NO direct book rule and exist only by composing two book legs through the 5PFH canonical (zero invented values).
+**Status**: ALL 4 persistent modes now interconnect any-to-any — Foundation (Bug Hunt ↔ 5PFH; also fixed a previously-broken muster-out where files were written but never read), Planetfall P1, and **Tactics P2 SHIPPED Jun 4**. A transferred char becomes a NAMED VETERAN in the serialized `veteran_characters[]` array on TacticsCampaignCore (NEVER a squad unit in `campaign_units[]`; veterans stay out of points validation per p.184). The data-integrity prerequisite is DONE: `convert_to_tactics` is book-faithful — the invented `military_backgrounds` GAME_BALANCE_ESTIMATE list is GONE (replaced with a "military"/"war-torn" substring check per Tactics p.184), so it is NO LONGER a blocker or routing prerequisite. Tactics pickup dispatch is wired (`CampaignScreenBase._add_character_to_mode()` "tactics" case → `add_veteran_character()`); UI is `TacticsVeteranImportPanel.gd` + dashboard Commission/Retire cards → **ui-panel-developer** / **tactics-specialist**. Of 12 routes, 3 (Planetfall→Bug Hunt, Tactics→Bug Hunt, Tactics→Planetfall) have NO direct book rule and exist only by composing two book legs through the 5PFH canonical (zero invented values). P3 persistent "veteran barracks" remains DEFERRED.
 
 ---
 

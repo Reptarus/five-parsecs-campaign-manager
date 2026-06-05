@@ -55,6 +55,13 @@ var roster_entries: Array = []
 ## Persists between battles — tracks CP, veteran skills, casualties
 var campaign_units: Array = []
 
+## Named veteran characters imported from other modes (Tactics pp.184-185:
+## "an old and well-known character show up on the battlefield as an officer or
+## hero"). These are INDIVIDUAL figures attached to the force, NOT squad units —
+## deliberately kept OUT of campaign_units[] so they never enter the points-cost /
+## org-slot validation (the book uses "no points cost formula" for transfers, p.184).
+var veteran_characters: Array = []
+
 ## Operational map state (Dictionary from TacticsOperationalMap.to_dict())
 var operational_map: Dictionary = {}
 
@@ -201,6 +208,38 @@ func get_active_campaign_units() -> Array:
 
 
 ## ============================================================================
+## VETERAN CHARACTERS (cross-mode imports — Tactics pp.184-185)
+## ============================================================================
+
+func add_veteran_character(veteran: Dictionary) -> void:
+	## Attach an imported named veteran (a hero / officer figure), NOT a squad unit.
+	## Kept out of campaign_units[] so it never affects points validation.
+	var v: Dictionary = veteran.duplicate(true)
+	# Playability floor (NOT a book value): the book's "1 Kill Point per Luck point"
+	# (p.184) yields 0 KP for a 0-Luck character, but a battlefield figure needs at
+	# least 1 wound. Kept here, at the veteran layer, so convert_to_tactics() stays
+	# book-exact. GAME_BALANCE_ESTIMATE.
+	if int(v.get("kill_points", 0)) < 1:
+		v["kill_points"] = 1
+	veteran_characters.append(v)
+	_update_modified_time()
+
+
+func remove_veteran_character(veteran_id: String) -> bool:
+	for i in range(veteran_characters.size()):
+		var v = veteran_characters[i]
+		if v is Dictionary and str(v.get("id", v.get("character_id", ""))) == veteran_id:
+			veteran_characters.remove_at(i)
+			_update_modified_time()
+			return true
+	return false
+
+
+func get_veteran_characters() -> Array:
+	return veteran_characters
+
+
+## ============================================================================
 ## VALIDATION
 ## ============================================================================
 
@@ -296,6 +335,7 @@ func to_dictionary() -> Dictionary:
 			"entries": roster_entries.duplicate(true),
 		},
 		"campaign_units": campaign_units.duplicate(true),
+		"veteran_characters": veteran_characters.duplicate(true),
 		"state": {
 			"campaign_turn": campaign_turn,
 			"operational_turn": operational_turn,
@@ -347,6 +387,7 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Campaign units
 	campaign_units = data.get("campaign_units", []).duplicate(true)
+	veteran_characters = data.get("veteran_characters", []).duplicate(true)
 
 	# State
 	if data.has("state"):

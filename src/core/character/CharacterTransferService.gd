@@ -697,14 +697,12 @@ func validate_tactics_enlistment(character_data: Dictionary) -> Dictionary:
 
 func convert_to_tactics(
 		char_data: Dictionary, source: String = "5pfh") -> Dictionary:
-	## Convert a 5PFH or Bug Hunt character for Tactics.
-	## Source: "5pfh", "bug_hunt", or "planetfall"
-	## Tactics rulebook p.184:
-	##   - Stats map directly
-	##   - Combat Skill capped at +2
-	##   - Each Luck → 1 KP (5PFH)
-	##   - Training assigned: +1 (or +2 if military background)
-	##   - Equipment is personal property for 5PFH, military for BH
+	## Convert a canonical (5PFH-standard) character INTO Tactics (Tactics p.184,
+	## "Converting Characters"). Reactions/Speed/Savvy unchanged; Combat capped at
+	## +2; Toughness capped at 5; 1 Kill Point per Luck point; Training +1 (+2 with a
+	## military-type background); weapons carry over as-is. No points cost — the book
+	## says "eyeball the closest equivalent figure". `source` is retained only for
+	## provenance flags; the canonical hub always routes the 5PFH-standard form here.
 	var char_id: String = char_data.get(
 		"id", char_data.get("character_id", ""))
 
@@ -715,29 +713,19 @@ func convert_to_tactics(
 	var toughness: int = char_data.get("toughness", 3)
 	toughness = mini(toughness, 5)  # Capped at 5
 
-	# Kill Points: Luck → KP (5PFH), keep KP (others)
-	var kp: int = 1
-	if source == "5pfh":
-		var luck: int = char_data.get("luck", 0)
-		kp = maxi(luck, 1)
-	elif source == "bug_hunt":
-		kp = char_data.get("kp", char_data.get("kill_points", 1))
-	elif source == "planetfall":
-		kp = maxi(char_data.get("kp", 1) - 1, 1)  # KP -1 (p.184)
+	# Kill Points: "Crew transferred to Tactics receive 1 Kill Point for each point
+	# of Luck" (Tactics p.184). The canonical interchange form carries Luck.
+	var kp: int = char_data.get("luck", 0)
 
-	# Training: +1 default, +2 if military background
+	# Training: "+1, or +2 with a military-type background" (Tactics p.184). The book
+	# gives NO enumerated list — "military-type" is its sanctioned judgment call — so
+	# we classify against the real 5PFH backgrounds (gear_database.json): the two
+	# "Military …" backgrounds and "War-Torn Hell-Hole" (a wartime upbringing).
 	var training: int = 1
 	var background: String = char_data.get(
-		"background", char_data.get("prior_experience", ""))
-	# GAME_BALANCE_ESTIMATE — UNVERIFIED list, replace with the book's exact
-	# military-background table (Tactics p.184) before the Tactics route ships.
-	var military_backgrounds := [
-		"Military Brat", "War-Torn Hell Hole", "Soldier",
-		"Mercenary", "Enforcer", "Army", "Freelancer", "Bug Hunter"]
-	for mb in military_backgrounds:
-		if mb.to_lower() in background.to_lower():
-			training = 2
-			break
+		"background", char_data.get("prior_experience", "")).to_lower()
+	if "military" in background or "war-torn" in background:
+		training = 2
 
 	var result := {
 		"id": char_id,
@@ -760,30 +748,26 @@ func convert_to_tactics(
 		"transferred_from_planetfall": source == "planetfall",
 	}
 
-	# Equipment transfer rules
-	if source == "5pfh":
-		# Personal equipment carries over
-		result["imported_equipment"] = char_data.get(
-			"equipment", []).duplicate(true)
-	else:
-		# Bug Hunt / Planetfall: military property, not transferred
-		result["imported_equipment"] = []
+	# "Carry weapons over as they are" (Tactics p.184) — Tactics does NOT strip
+	# equipment as military property (that is a Planetfall / Bug Hunt rule).
+	result["imported_equipment"] = char_data.get("equipment", []).duplicate(true)
 
 	return result
 
 
 func convert_from_tactics(char_data: Dictionary) -> Dictionary:
-	## Convert a Tactics character for export to 5PFH.
-	## Tactics rulebook p.184:
-	##   - Stats keep (except Training — not used in 5PFH)
-	##   - Each KP after 1st → 1 Luck
-	##   - Veteran Skills retained when applicable
-	##   - Equipment is military property — not transferred
+	## Convert a Tactics character for export to 5PFH (Tactics p.184).
+	##   - Reactions / Speed / Combat / Toughness / Savvy: no change
+	##   - Each Kill Point after the first becomes 1 point of Luck
+	##   - Training is not used in 5PFH (dropped)
+	##   - Weapons carry over as they are
 	var char_id: String = char_data.get("id", "")
 
 	var kp: int = char_data.get(
 		"kill_points", char_data.get("kp", 1))
-	var luck: int = maxi(kp - 1, 0)  # Each KP after 1st → 1 Luck
+	# "When transferring from Tactics, each Kill Point after the first becomes
+	# 1 point of Luck" (Tactics p.184).
+	var luck: int = maxi(kp - 1, 0)
 
 	return {
 		"id": char_id,
@@ -798,7 +782,8 @@ func convert_from_tactics(char_data: Dictionary) -> Dictionary:
 		"savvy": char_data.get("savvy", 0),
 		"luck": luck,
 		"xp": 0,
-		"equipment": [],  # Military property — not transferred
+		# "Carry weapons over as they are" (Tactics p.184).
+		"equipment": char_data.get("imported_equipment", char_data.get("equipment", [])),
 		"status": "active",
 		"transferred_from_tactics": true,
 	}
