@@ -118,6 +118,12 @@ var _drawers: Dictionary = {}            # id -> SlideOverDrawer
 var _drawer_bodies: Dictionary = {}      # id -> VBoxContainer (content host)
 var _toolbar_built: bool = false
 
+# Portrait rail mask: the per-stage match decides the rails' INTENT; the actual
+# visibility is intent AND (not collapsed). Captured after each stage change and
+# re-applied on every rotation so landscape restores the stage-correct rails.
+var _rail_intent_crew: bool = false
+var _rail_intent_info: bool = false
+
 # Bottom bar (two rows: PhaseHUD + ActionBar) — UNCHANGED nodes
 @onready var bottom_bar: PanelContainer = $EdgeMargin/MainContainer/BottomBar
 @onready var phase_hud: HBoxContainer = %PhaseHUD
@@ -417,6 +423,10 @@ func _build_redesign_frame() -> void:
 	# scrolls inside it by the Phase-1 keeper contract).
 	_make_drawer("crew", "Crew", DrawerClass.Edge.LEFT, true)
 	_make_drawer("enemies", "Enemy Tracker", DrawerClass.Edge.RIGHT, true)
+	# Portrait twin of the info rail's battlefield-intel block (objective +
+	# visibility + terrain key). Mirrored in _rebuild_info_rail so this content
+	# survives when the rail is suppressed on a narrow screen.
+	_make_drawer("intel", "Battlefield Intel", DrawerClass.Edge.RIGHT, true)
 	_make_drawer("dice", "Dice Roller", DrawerClass.Edge.RIGHT, true)
 	_make_drawer("reference", "Battle Round Reference (Core Rules p.119)",
 		DrawerClass.Edge.RIGHT)
@@ -536,40 +546,11 @@ func _rebuild_info_rail() -> void:
 	for c in info_rail.get_children():
 		c.queue_free()
 
-	# OBJECTIVE (mission objective is also marked on the map via the real
-	# BattlefieldGenerator.compute_objective_positions → set_objective_positions).
-	var md: Dictionary = (_stored_mission_data
-		if _stored_mission_data is Dictionary else {})
-	var obj_txt: String = str(md.get("objective", md.get("type", "")))
-	if obj_txt != "":
-		_rail_header(info_rail, "OBJECTIVE")
-		var ol := Label.new()
-		ol.text = "◆ %s (marked on map)" % obj_txt.capitalize()
-		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		ol.add_theme_font_size_override("font_size", 12)
-		ol.add_theme_color_override("font_color", UIColors.COLOR_SUCCESS)
-		info_rail.add_child(ol)
-
-	# BATTLEFIELD — real modifiers from the generator result (visibility +
-	# world-trait combat_notes). No invented data: only what it returned.
-	var notes: Array = _battlefield_data.get("combat_notes", [])
-	var vis: String = str(_battlefield_data.get("visibility_limit", ""))
-	if vis != "" or not notes.is_empty():
-		info_rail.add_child(HSeparator.new())
-		_rail_header(info_rail, "BATTLEFIELD")
-		if vis != "":
-			_info_modifier_line(info_rail, "👁 Visibility: " + vis,
-				UIColors.COLOR_WARNING)
-		for note in notes:
-			_info_modifier_line(info_rail, "• " + str(note),
-				UIColors.COLOR_TEXT_PRIMARY)
-		# TERRAIN KEY — decodes hazardous vs difficult (Core Rules p.117/p.119).
-		_info_modifier_line(info_rail,
-			"■ Hazardous: Dmg +1, ignores Armor (p.117)",
-			UIColors.COLOR_DANGER)
-		_info_modifier_line(info_rail,
-			"■ Difficult: Move +1\" per 2\" (p.119)",
-			UIColors.COLOR_WARNING)
+	# Objective + battlefield modifiers (the rail-exclusive content with no other
+	# drawer twin). Mirrored into the "intel" drawer below so it survives when the
+	# rail is hidden in portrait. The enemy summary that follows is rail-only —
+	# it is fully covered by the "enemies" drawer when the rail collapses.
+	_build_battlefield_intel(info_rail)
 	info_rail.add_child(HSeparator.new())
 
 	var n_active: int = 0
@@ -593,6 +574,52 @@ func _rebuild_info_rail() -> void:
 			e.node_name, e.health, e.max_health, e.is_dead,
 			"C%d T%d R%d" % [e.combat_skill, e.toughness, e.reactions],
 			"", func() -> void: _open_drawer("enemies"), e))
+
+	# Mirror the battlefield intel into the portrait "intel" drawer so the
+	# objective / visibility / terrain notes survive when the rail is hidden.
+	var intel_body = _drawer_bodies.get("intel")
+	if intel_body:
+		for c in intel_body.get_children():
+			c.queue_free()
+		_build_battlefield_intel(intel_body)
+
+
+func _build_battlefield_intel(target: Node) -> void:
+	## Objective + battlefield modifiers, built into `target` (the info rail in
+	## landscape, the "intel" drawer in portrait). No invented data — only the
+	## mission objective and the generator's real visibility / combat_notes.
+	var md: Dictionary = (_stored_mission_data
+		if _stored_mission_data is Dictionary else {})
+	var obj_txt: String = str(md.get("objective", md.get("type", "")))
+	if obj_txt != "":
+		_rail_header(target, "OBJECTIVE")
+		var ol := Label.new()
+		ol.text = "◆ %s (marked on map)" % obj_txt.capitalize()
+		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ol.add_theme_font_size_override("font_size", 12)
+		ol.add_theme_color_override("font_color", UIColors.COLOR_SUCCESS)
+		target.add_child(ol)
+
+	# BATTLEFIELD — real modifiers from the generator result (visibility +
+	# world-trait combat_notes). No invented data: only what it returned.
+	var notes: Array = _battlefield_data.get("combat_notes", [])
+	var vis: String = str(_battlefield_data.get("visibility_limit", ""))
+	if vis != "" or not notes.is_empty():
+		target.add_child(HSeparator.new())
+		_rail_header(target, "BATTLEFIELD")
+		if vis != "":
+			_info_modifier_line(target, "👁 Visibility: " + vis,
+				UIColors.COLOR_WARNING)
+		for note in notes:
+			_info_modifier_line(target, "• " + str(note),
+				UIColors.COLOR_TEXT_PRIMARY)
+		# TERRAIN KEY — decodes hazardous vs difficult (Core Rules p.117/p.119).
+		_info_modifier_line(target,
+			"■ Hazardous: Dmg +1, ignores Armor (p.117)",
+			UIColors.COLOR_DANGER)
+		_info_modifier_line(target,
+			"■ Difficult: Move +1\" per 2\" (p.119)",
+			UIColors.COLOR_WARNING)
 
 
 func _rail_header(parent: Node, txt: String) -> void:
@@ -867,6 +894,10 @@ func _apply_responsive_layout() -> void:
 			phase_content_panel.custom_minimum_size.y = new_h
 
 	_responsive_layout_in_progress = false
+	# Re-apply the portrait rail mask on resize/rotation (viewport_resized →
+	# debounce → here). This is what makes a constant-stage rotation collapse or
+	# restore the rails without a stage change.
+	_reconcile_portrait_layout()
 
 func _apply_stage_visibility(stage: int) -> void:
 	## Control which panels are visible based on current battle stage
@@ -981,6 +1012,35 @@ func _apply_stage_visibility(stage: int) -> void:
 			if action_buttons: action_buttons.visible = false
 			if turn_indicator:
 				turn_indicator.text = "Battle Complete"
+
+	# Capture the stage's rail INTENT (after the match has had the final say),
+	# then apply the portrait mask. Capturing here lets a later rotation restore
+	# the stage-correct rails without re-deriving the match.
+	_rail_intent_crew = crew_rail_panel.visible if crew_rail_panel else false
+	_rail_intent_info = info_rail_panel.visible if info_rail_panel else false
+	_reconcile_portrait_layout()
+
+
+## Portrait/phone → collapse the battle rails so the map fills the row. Crew +
+## enemies stay reachable via the persistent drawer toolbar; the battlefield
+## intel is mirrored into the "intel" drawer.
+func _should_collapse_battle_rails() -> bool:
+	if _responsive_manager and _responsive_manager.has_method(
+			"should_collapse_to_single_column"):
+		return _responsive_manager.should_collapse_to_single_column()
+	var vp := get_viewport().get_visible_rect().size if get_viewport() else Vector2.ZERO
+	return vp.x > 0 and vp.y > vp.x
+
+
+## Apply the portrait mask: each rail is visible only when its stage wants it AND
+## we are not collapsed to a single column. Idempotent — safe to call after a
+## stage change AND on every viewport resize/rotation.
+func _reconcile_portrait_layout() -> void:
+	var collapse := _should_collapse_battle_rails()
+	if crew_rail_panel:
+		crew_rail_panel.visible = _rail_intent_crew and not collapse
+	if info_rail_panel:
+		info_rail_panel.visible = _rail_intent_info and not collapse
 
 func _build_phase_breadcrumb() -> void:
 	## Build the stage breadcrumb in TopBar
@@ -1856,7 +1916,7 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 		action_buttons.move_child(bar, 0)
 	for c in bar.get_children():
 		c.queue_free()
-	var ids: Array = ["crew", "enemies", "dice", "reference"]
+	var ids: Array = ["crew", "enemies", "intel", "dice", "reference"]
 	if tier >= 1:
 		ids.append("tracking")
 	if tier >= 2:

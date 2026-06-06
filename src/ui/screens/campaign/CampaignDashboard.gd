@@ -19,6 +19,7 @@ const StarsSystemClass = preload(
 @onready var story_points_label: Button = %StoryPointsLabel
 
 # Three columns
+@onready var main_scroll: ScrollContainer = %MainScroll
 @onready var left_column: PanelContainer = %LeftColumn
 @onready var crew_vbox: VBoxContainer = %CrewVBox
 @onready var center_column: PanelContainer = %CenterColumn
@@ -2621,3 +2622,32 @@ func _set_column_layout(columns: int) -> void:
 	var main_content = left_column.get_parent() if left_column else null
 	if main_content and main_content is GridContainer:
 		main_content.columns = columns
+	_apply_outer_scroll_for_columns(columns)
+
+## Single-column (portrait/phone): the three panels stack and the WHOLE column
+## scrolls as one (outer scroll on), with each panel's inner scroll neutralized
+## so it grows to its content height instead of eating 1/3 of the viewport.
+## Multi-column (tablet/desktop landscape): outer scroll off, each column scrolls
+## independently — byte-for-byte the original desktop behavior.
+func _apply_outer_scroll_for_columns(columns: int) -> void:
+	var single := columns <= 1
+	if main_scroll:
+		main_scroll.vertical_scroll_mode = (
+			ScrollContainer.SCROLL_MODE_AUTO if single
+			else ScrollContainer.SCROLL_MODE_DISABLED
+		)
+	var inner_mode := (
+		ScrollContainer.SCROLL_MODE_DISABLED if single
+		else ScrollContainer.SCROLL_MODE_AUTO
+	)
+	for pair in [
+		[left_column, "LeftScroll"],
+		[center_column, "CenterScroll"],
+		[right_column, "RightScroll"],
+	]:
+		var col = pair[0]
+		if not col:
+			continue
+		var inner = col.get_node_or_null(pair[1])
+		if inner is ScrollContainer:
+			inner.vertical_scroll_mode = inner_mode

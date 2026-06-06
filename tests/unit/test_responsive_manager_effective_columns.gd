@@ -168,3 +168,24 @@ func test_get_proportional_size_tracks_design_base() -> void:
 	assert_float(_rm.get_proportional_size(100.0, 0.0, 10000.0)).is_equal_approx(100.0, 0.01)  # scale 1.0
 	_rm.current_viewport_size = Vector2(base_w / 2.0, base_w)
 	assert_float(_rm.get_proportional_size(100.0, 0.0, 10000.0)).is_equal_approx(50.0, 0.01)   # scale 0.5
+
+
+# ── _classify_breakpoint: density-independent width -> Breakpoint ──────────────
+# DPI-aware: ResponsiveManager classifies by window_get_size()/screen_get_scale()
+# (dp-like units), NOT the stretched content rect — so a phone and a tablet land
+# in different buckets in portrait, where the content rect would always read WIDE.
+
+func test_classify_breakpoint_device_examples() -> void:
+	assert_int(_rm._classify_breakpoint(393)).is_equal(MOBILE)    # 1080px phone @ 2.75x density
+	assert_int(_rm._classify_breakpoint(768)).is_equal(DESKTOP)   # 1536px tablet @ 2x density
+	assert_int(_rm._classify_breakpoint(1280)).is_equal(WIDE)     # desktop window @ 1x
+
+
+func test_classify_breakpoint_boundaries() -> void:
+	assert_int(_rm._classify_breakpoint(479)).is_equal(MOBILE)
+	assert_int(_rm._classify_breakpoint(480)).is_equal(TABLET)
+	assert_int(_rm._classify_breakpoint(767)).is_equal(TABLET)
+	assert_int(_rm._classify_breakpoint(1023)).is_equal(DESKTOP)
+	assert_int(_rm._classify_breakpoint(1024)).is_equal(WIDE)
+	assert_int(_rm._classify_breakpoint(2559)).is_equal(WIDE)
+	assert_int(_rm._classify_breakpoint(2560)).is_equal(ULTRAWIDE)

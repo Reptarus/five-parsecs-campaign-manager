@@ -46,6 +46,7 @@ size_flags_vertical = 3
 theme_override_constants/separation = 20
 
 [node name="EquipmentList" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -70,6 +71,7 @@ size_flags_vertical = 3
 columns = 2
 
 [node name="CrewAssignment" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -93,6 +95,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="EquipmentDetails" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 

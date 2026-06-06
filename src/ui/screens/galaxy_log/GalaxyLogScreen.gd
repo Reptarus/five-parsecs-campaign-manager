@@ -68,7 +68,10 @@ func _build_ui() -> void:
 	_count_label.text = "0 worlds"
 	_count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-	_count_label.custom_minimum_size.x = 220  # Fits "25 worlds · turn 100".
+	# No fixed min width — the title (expand-fill) absorbs slack. Forcing 220px
+	# here pushed the count under the gear on a 375px portrait header; let it
+	# size to its content ("25 worlds · turn 100") instead.
+	_count_label.custom_minimum_size.x = 0
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(_count_label)
 	# Reserve space for the global SettingsOverlay gear (top-right, ~56px wide
@@ -85,18 +88,27 @@ func _build_ui() -> void:
 	_hex_map.hex_selected.connect(_on_hex_selected)
 	outer.add_child(_hex_map)
 
-	# Legend / footer row with breadcrumb toggle.
-	var legend := HBoxContainer.new()
-	legend.add_theme_constant_override("separation", UIColors.SPACING_LG)
+	# Legend / footer row with recenter + breadcrumb toggle. HFlowContainer (not
+	# HBox) so the chips and controls WRAP onto a second line on a narrow portrait
+	# header instead of clipping off the right edge. FlowContainer uses separate
+	# h/v separation constants and ignores main-axis expand (so no right-spacer).
+	var legend := HFlowContainer.new()
+	legend.add_theme_constant_override("h_separation", UIColors.SPACING_LG)
+	legend.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
 	outer.add_child(legend)
 
 	legend.add_child(_make_legend_chip("Current", Color(0.18, 0.38, 0.58, 0.96)))
 	legend.add_child(_make_legend_chip("Starting", Color(0.28, 0.18, 0.45, 0.94)))
 	legend.add_child(_make_legend_chip("Danger 4+", Color(0.85, 0.35, 0.35, 0.95)))
 
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = SIZE_EXPAND_FILL
-	legend.add_child(spacer)
+	# Touch-friendly parity for the double-click / HOME "reset view" gesture —
+	# neither is reachable on a phone or tablet.
+	var recenter_btn := Button.new()
+	recenter_btn.text = "Recenter"
+	recenter_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	DialogStyles.style_secondary_button(recenter_btn)
+	recenter_btn.pressed.connect(_on_recenter_pressed)
+	legend.add_child(recenter_btn)
 
 	_breadcrumb_toggle = CheckButton.new()
 	_breadcrumb_toggle.text = "Show travel path"
@@ -226,6 +238,11 @@ func _on_breadcrumb_toggled(pressed: bool) -> void:
 	if _hex_map and _hex_map.has_method("set_breadcrumb_visible"):
 		_hex_map.set_breadcrumb_visible(pressed)
 	_save_user_preferences()
+
+
+func _on_recenter_pressed() -> void:
+	if _hex_map and _hex_map.has_method("recenter"):
+		_hex_map.recenter()
 
 
 # ----------------------------------------------------------------------------

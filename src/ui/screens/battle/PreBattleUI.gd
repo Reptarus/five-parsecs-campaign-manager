@@ -13,6 +13,9 @@ const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSyste
 const KeywordLinker = preload("res://src/ui/components/tooltips/KeywordLinker.gd")
 ## DLCUpsellBanner preloaded by path (same stale-class_name-cache reason as above).
 const DLCUpsellBanner = preload("res://src/ui/components/dlc/DLCUpsellBanner.gd")
+## AdaptivePanelGroup preloaded by path — the 3 content panels collapse to a tab
+## strip in portrait via this (master-detail). Same stale-class_name avoidance.
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 
 ## Optional dependencies that may not exist
 var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
@@ -53,12 +56,14 @@ const AI_TYPE_NAMES: Dictionary = {
 }
 
 ## Node references
-@onready var mission_info_panel = $MarginContainer/VBoxContainer/MainContent/LeftPanel/MissionInfo/VBoxContainer/Content
-@onready var enemy_info_panel = $MarginContainer/VBoxContainer/MainContent/LeftPanel/EnemyInfo/VBoxContainer/Content
-@onready var battlefield_preview = $MarginContainer/VBoxContainer/MainContent/CenterPanel/BattlefieldPreview/VBoxContainer/PreviewContent
-@onready var crew_selection_panel = $MarginContainer/VBoxContainer/MainContent/RightPanel/CrewSelection/VBoxContainer/ScrollContainer/Content
-@onready var confirm_button = $MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/ConfirmButton
-@onready var back_button = $MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/BackButton
+# %-relative so they survive the LeftPanel/CenterPanel/RightPanel reparent into
+# AdaptivePanelGroup (panel-internal structure is intact; only the parent moves).
+@onready var mission_info_panel = %LeftPanel/MissionInfo/VBoxContainer/Content
+@onready var enemy_info_panel = %LeftPanel/EnemyInfo/VBoxContainer/Content
+@onready var battlefield_preview = %PreviewContent
+@onready var crew_selection_panel = %RightPanel/CrewSelection/VBoxContainer/ScrollContainer/Content
+@onready var confirm_button = %ConfirmButton
+@onready var back_button = %BackButton
 
 ## State
 var current_mission: StoryQuestData
@@ -79,6 +84,38 @@ func _ready() -> void:
 	_initialize_systems()
 	_connect_signals()
 	confirm_button.disabled = true
+	_setup_adaptive_panels()
+
+
+## Reparent the 3 content panels (Mission / Battlefield / Crew) into an
+## AdaptivePanelGroup so they sit side-by-side in landscape and collapse to a tab
+## strip in portrait (master-detail). The FooterPanel (Confirm/Back) is a sibling
+## of MainContent, so it stays put — always visible below the group. @onready vars
+## above already cached their (now %-relative, reparent-proof) node references.
+func _setup_adaptive_panels() -> void:
+	var left: Control = get_node_or_null("%LeftPanel")
+	var center: Control = get_node_or_null("%CenterPanel")
+	var right: Control = get_node_or_null("%RightPanel")
+	if not (left and center and right):
+		return
+	var main_content: Node = left.get_parent()          # the MainContent HBox
+	var vbox: Node = main_content.get_parent() if main_content else null
+	if not vbox:
+		return
+	var idx: int = main_content.get_index()
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+	# add_pane reparents each panel out of MainContent into the group's grid.
+	group.add_pane(left, "Mission")
+	group.add_pane(center, "Battlefield")
+	group.add_pane(right, "Crew")
+	main_content.queue_free()  # now empty; footer untouched
 
 ## Apply the Deep Space COLOR_BASE background behind this panel
 func _apply_base_background() -> void:

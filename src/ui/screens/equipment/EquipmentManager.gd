@@ -4,9 +4,16 @@ extends Control
 signal equipment_assigned(equipment_item: Dictionary, crew_member: Dictionary)
 signal equipment_unassigned(equipment_item: Dictionary, crew_member: Dictionary)
 
+## AdaptivePanelGroup preloaded by path (responsive 3-pane → tab strip in
+## portrait; master-detail). Path preload avoids the stale class_name cache.
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+
 @onready var equipment_grid: GridContainer = %EquipmentGrid
 @onready var crew_list: VBoxContainer = %CrewList
 @onready var details_container: VBoxContainer = %DetailsContainer
+
+# The three content panels reparented into this group (set in _setup_adaptive_panels).
+var _panel_group: Control = null
 
 var selected_equipment: Dictionary = {}
 var selected_crew_member: Dictionary = {}
@@ -60,31 +67,64 @@ func _find_nodes_with_fallbacks():
 	if equipment_grid == null:
 		equipment_grid = find_child("EquipmentGrid", true, false)
 		if equipment_grid == null:
-			# Strategy 3: Find by path
-			equipment_grid = get_node_or_null("MarginContainer/VBoxContainer/MainContent/EquipmentList/VBoxContainer/ScrollContainer/EquipmentGrid")
+			# Strategy 3: unique name (reparent-proof — the panels move into the
+			# AdaptivePanelGroup, so an absolute path would be stale).
+			equipment_grid = get_node_or_null("%EquipmentGrid")
 		pass # equipment_grid lookup complete
-	
+
 	if crew_list == null:
 		crew_list = find_child("CrewList", true, false)
 		if crew_list == null:
-			# Strategy 3: Find by path
-			crew_list = get_node_or_null("MarginContainer/VBoxContainer/MainContent/CrewAssignment/VBoxContainer/ScrollContainer/CrewList")
+			crew_list = get_node_or_null("%CrewList")
 		pass # crew_list lookup complete
-	
+
 	if details_container == null:
 		details_container = find_child("DetailsContainer", true, false)
 		if details_container == null:
-			# Strategy 3: Find by path
-			details_container = get_node_or_null("MarginContainer/VBoxContainer/MainContent/EquipmentDetails/VBoxContainer/DetailsContainer")
+			details_container = get_node_or_null("%DetailsContainer")
 		pass # details_container lookup complete
 
 func _initialize_systems():
 	## Initialize all systems once nodes are confirmed available
 	is_initialized = true
+	_setup_adaptive_panels()
 	_load_equipment_database()
 	_load_crew_roster()
 	_refresh_equipment_display()
 	_refresh_crew_display()
+
+
+## Reparent the 3 content panels (Equipment / Crew / Details) into an
+## AdaptivePanelGroup: side-by-side in landscape, a tab strip in portrait
+## (master-detail — selecting an item focuses the Details tab). Header + Controls
+## are siblings of MainContent, so they stay put. The %-unique node refs above
+## survive the reparent (they point at descendants that move with their panel).
+func _setup_adaptive_panels() -> void:
+	if _panel_group:
+		return  # _initialize_systems may run once, but guard re-entry anyway.
+	var eq_list: Control = get_node_or_null("%EquipmentList")
+	var crew_panel: Control = get_node_or_null("%CrewAssignment")
+	var details_panel: Control = get_node_or_null("%EquipmentDetails")
+	if not (eq_list and crew_panel and details_panel):
+		return
+	var main_content: Node = eq_list.get_parent()       # the MainContent HBox
+	var vbox: Node = main_content.get_parent() if main_content else null
+	if not vbox:
+		return
+	var idx: int = main_content.get_index()
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+	group.add_pane(eq_list, "Equipment")
+	group.add_pane(crew_panel, "Crew")
+	group.add_pane(details_panel, "Details")
+	main_content.queue_free()  # now empty; Header + Controls untouched
+	_panel_group = group
 
 func _load_equipment_database() -> void:
 	## Load equipment from data systems
@@ -280,7 +320,10 @@ func _on_equipment_selected(equipment: Dictionary) -> void:
 	## Handle equipment selection
 	selected_equipment = equipment
 	_update_equipment_details(equipment)
-	pass # Equipment selected
+	# Portrait master-detail: bring the Details pane (index 2) forward. No-op in
+	# landscape grid mode where all three panes are already side-by-side.
+	if _panel_group and _panel_group.has_method("focus_pane"):
+		_panel_group.focus_pane(2)
 
 func _on_crew_selected(crew_member: Dictionary) -> void:
 	## Handle crew _member selection for equipment assignment

@@ -81,6 +81,28 @@ func test_tabs_show_pane_switches_visible_pane() -> void:
 	assert_int(_group._tab_bar.current_tab).is_equal(1)
 
 
+# ── focus_pane: switches in TABS, no-op in GRID/STACK ─────────────────────────
+
+func test_focus_pane_switches_in_tabs_mode() -> void:
+	_group._show_tabs()
+	_group.focus_pane(2)
+	assert_bool(_group._panes[0].visible).is_false()
+	assert_bool(_group._panes[1].visible).is_false()
+	assert_bool(_group._panes[2].visible).is_true()
+	assert_int(_group._tab_bar.current_tab).is_equal(2)
+
+
+func test_focus_pane_is_noop_in_grid_mode() -> void:
+	# The landscape guard: focusing a pane in GRID must NOT hide the others —
+	# all three panes stay side-by-side. This is what lets EquipmentManager call
+	# focus_pane(2) on every selection without breaking the desktop layout.
+	_group._show_grid(3)
+	_group.focus_pane(2)
+	for p in _group._panes:
+		assert_bool(p.visible).is_true()
+	assert_bool(_group._tab_bar.visible).is_false()
+
+
 # ── portrait-mode resolution ──────────────────────────────────────────────────
 
 func test_resolve_portrait_mode_auto_is_stack() -> void:

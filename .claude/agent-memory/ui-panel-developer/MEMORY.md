@@ -51,6 +51,19 @@ Always use explicit type annotation: `var x: Type = dict["key"]`.
 
 ---
 
+## Responsive / Adaptive UI (Jun 2026 mobile/tablet re-pivot) — FOUNDATIONAL
+
+The app is dual-platform adaptive: 375px phone → 1920px desktop, both orientations. **`ResponsiveManager` (autoload) is the single source of truth.** Full SOP: `docs/sop/responsive-adaptive-ui.md`. Hard rules:
+
+- **Breakpoints are DPI-aware.** `ResponsiveManager` classifies by `window_get_size()/screen_get_scale()` (density-independent), NOT `get_visible_rect()`. Reason: with `canvas_items`+`expand`+square 1080 base, portrait content is ALWAYS ~1080 wide, so the content rect can't distinguish a phone from a tablet. Call `get_effective_columns()` / `get_effective_crew_columns()` / `should_collapse_to_single_column()` (orientation-aware) — never the legacy `get_optimal_columns()`.
+- **Rotation re-layout rides `layout_class_changed`** (fires on width-bucket change OR rotation), NOT `breakpoint_changed` (misses constant-width rotation). `CampaignScreenBase` + `BaseCampaignPanel` already wire it + dedupe via `_last_effective_columns` + `_last_is_portrait`.
+- **Orientation-dependent `_apply_*_layout` overrides MUST branch on `should_use_single_column()`**, not the width bucket — a bucket-keyed override re-fires on rotation but changes nothing (the bug behind HelpScreen sidebar + EquipmentPanel split).
+- **A `_ready()` override MUST call `super._ready()`** or it loses ALL responsive wiring (TacticsDashboard regressed on this). Code-built responsive nodes get their initial layout from the post-`_setup_screen()` re-apply in `CampaignScreenBase._ready`.
+- **Multi-pane screens (N side-by-side panels) → `AdaptivePanelGroup`** (`add_pane(control, title)`, `portrait_mode = STACK|TABS`). Panes reparent in ONCE; mode changes only toggle columns/visibility/TabBar (no per-rotation reparent churn). A 3-col→1-col screen also needs an OUTER scroll + content-sized columns (don't nest inner+outer scrolls).
+- **`project.godot [display]`**: square `1080×1080` base, `stretch canvas_items/expand`, `handheld/orientation=6` (SENSOR), `viewport_min_width=320`.
+- **Touch targets stay device-keyed** (COMFORT on mobile bucket, MIN otherwise), NOT orientation-keyed.
+- Tests: `tests/unit/test_responsive_manager_effective_columns.gd` (16), `tests/unit/test_adaptive_panel_group.gd` (8). Live MCP verify via `DisplayServer.window_set_size()` + read `ResponsiveManager` (async — read next call).
+
 ## May 27, 2026: Narrative Scene Composition + Ambient Motion
 
 SceneStage gained roster-aware **character slots** + scene-wide **ambient motion**. Full authoring SOP: `docs/sop/narrative-scene-authoring.md`; UI wiring: `references/narrative-screen.md`. Hard rules (each is also an anti-regression):

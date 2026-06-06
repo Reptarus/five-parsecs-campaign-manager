@@ -118,6 +118,15 @@ func show_pane(index: int) -> void:
 	_apply_tab_visibility()
 
 
+## Bring a pane to the front IF we're in TABS mode (master-detail). No-op in
+## GRID / STACK where every pane is already visible — so a caller can fire this
+## on selection (e.g. "show the details pane") without hiding the side-by-side
+## panes in landscape.
+func focus_pane(index: int) -> void:
+	if _tab_bar and _tab_bar.visible:
+		show_pane(index)
+
+
 func get_pane_count() -> int:
 	return _panes.size()
 

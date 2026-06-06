@@ -72,18 +72,31 @@ func _evaluate_layout_change(prev_breakpoint: int, prev_landscape: bool) -> int:
 func _update_breakpoint() -> void:
 	if not _viewport:
 		return
-	current_viewport_size = _viewport.get_visible_rect().size
-	var width := int(current_viewport_size.x)
-	if width < BREAKPOINTS[Breakpoint.MOBILE]:
-		current_breakpoint = Breakpoint.MOBILE
-	elif width < BREAKPOINTS[Breakpoint.TABLET]:
-		current_breakpoint = Breakpoint.TABLET
-	elif width < BREAKPOINTS[Breakpoint.DESKTOP]:
-		current_breakpoint = Breakpoint.DESKTOP
-	elif width < BREAKPOINTS[Breakpoint.ULTRAWIDE]:
-		current_breakpoint = Breakpoint.WIDE
-	else:
-		current_breakpoint = Breakpoint.ULTRAWIDE
+	# Classify by DENSITY-INDEPENDENT window size, NOT the stretched content rect.
+	# With canvas_items+expand, _viewport.get_visible_rect() is the logical design
+	# space (always ~1080 wide in portrait), so it cannot tell a phone from a
+	# tablet. window_get_size() is the physical window; dividing by the OS display
+	# scale (screen_get_scale) yields dp-like units: a 1080px phone @ 2.75x density
+	# -> ~393 (MOBILE), a 1536px tablet @ 2x -> 768 (DESKTOP), a 1280px desktop
+	# window @ 1x -> 1280 (WIDE). screen_get_scale reports a real value on
+	# Android/iOS/macOS/Wayland/Web and falls back to 1.0 elsewhere (desktop px).
+	screen_scale_factor = _resolve_screen_scale()
+	current_viewport_size = Vector2(DisplayServer.window_get_size()) / screen_scale_factor
+	current_breakpoint = _classify_breakpoint(int(current_viewport_size.x))
+
+## Pure classification of a density-independent width into a Breakpoint. Factored
+## out of _update_breakpoint so the threshold ladder is unit-testable without a
+## real window. The BREAKPOINTS thresholds are interpreted as dp (logical px).
+func _classify_breakpoint(dip_width: int) -> int:
+	if dip_width < BREAKPOINTS[Breakpoint.MOBILE]:
+		return Breakpoint.MOBILE
+	elif dip_width < BREAKPOINTS[Breakpoint.TABLET]:
+		return Breakpoint.TABLET
+	elif dip_width < BREAKPOINTS[Breakpoint.DESKTOP]:
+		return Breakpoint.DESKTOP
+	elif dip_width < BREAKPOINTS[Breakpoint.ULTRAWIDE]:
+		return Breakpoint.WIDE
+	return Breakpoint.ULTRAWIDE
 
 func is_mobile() -> bool:
 	return current_breakpoint == Breakpoint.MOBILE
@@ -225,9 +238,15 @@ func _update_orientation() -> void:
 		orientation_changed.emit(is_landscape)
 
 func _detect_screen_scale() -> void:
-	screen_scale_factor = DisplayServer.screen_get_scale()
-	if screen_scale_factor <= 0.0:
-		screen_scale_factor = 1.0
+	screen_scale_factor = _resolve_screen_scale()
+
+## OS display scale for the main window's screen (e.g. 2.0 on a retina/hiDPI
+## display, ~2.75 on an xxhdpi phone). Reported on Android/iOS/macOS/Wayland/Web;
+## falls back to 1.0 on platforms that don't report it (Windows desktop), where
+## physical px already equal logical px for breakpoint purposes.
+func _resolve_screen_scale() -> float:
+	var s := DisplayServer.screen_get_scale()
+	return s if s > 0.0 else 1.0
 
 func debug_print_state() -> void:
 	pass

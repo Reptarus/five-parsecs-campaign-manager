@@ -77,77 +77,86 @@ text = "SP: 0"
 flat = true
 mouse_default_cursor_shape = 2
 
-[node name="MainContent" type="GridContainer" parent="MarginContainer/VBoxContainer"]
+[node name="MainScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 0
+
+[node name="MainContent" type="GridContainer" parent="MarginContainer/VBoxContainer/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 columns = 3
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
 
-[node name="LeftColumn" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+[node name="LeftColumn" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 size_flags_stretch_ratio = 1.0
 
-[node name="LeftScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftColumn"]
+[node name="LeftScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/LeftColumn"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="LeftScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftColumn/LeftScroll"]
+[node name="LeftScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/LeftColumn/LeftScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_right = 16
 
-[node name="CrewVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftColumn/LeftScroll/LeftScrollMargin"]
+[node name="CrewVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/LeftColumn/LeftScroll/LeftScrollMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="CenterColumn" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+[node name="CenterColumn" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 size_flags_stretch_ratio = 1.0
 
-[node name="CenterScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterColumn"]
+[node name="CenterScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/CenterColumn"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="CenterScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterColumn/CenterScroll"]
+[node name="CenterScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/CenterColumn/CenterScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_right = 16
 
-[node name="CenterVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterColumn/CenterScroll/CenterScrollMargin"]
+[node name="CenterVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/CenterColumn/CenterScroll/CenterScrollMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="RightColumn" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+[node name="RightColumn" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 size_flags_stretch_ratio = 1.0
 
-[node name="RightScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/RightColumn"]
+[node name="RightScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/RightColumn"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="RightScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainContent/RightColumn/RightScroll"]
+[node name="RightScrollMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/RightColumn/RightScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_right = 16
 
-[node name="RightVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightColumn/RightScroll/RightScrollMargin"]
+[node name="RightVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainScroll/MainContent/RightColumn/RightScroll/RightScrollMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

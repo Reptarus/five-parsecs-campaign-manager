@@ -210,8 +210,7 @@ func _gui_input(event: InputEvent) -> void:
 					accept_event()
 			MOUSE_BUTTON_LEFT:
 				if mb.double_click and mb.pressed:
-					_pan_offset = Vector2.ZERO
-					_zoom_level = 1.0
+					recenter()
 					accept_event()
 	elif event is InputEventMouseMotion and _is_panning:
 		var mm := event as InputEventMouseMotion
@@ -222,8 +221,7 @@ func _gui_input(event: InputEvent) -> void:
 		var step: float = 32.0
 		match ke.keycode:
 			KEY_HOME:
-				_pan_offset = Vector2.ZERO
-				_zoom_level = 1.0
+				recenter()
 				accept_event()
 			KEY_LEFT:
 				_pan_offset.x += step
@@ -237,6 +235,14 @@ func _gui_input(event: InputEvent) -> void:
 			KEY_DOWN:
 				_pan_offset.y -= step
 				accept_event()
+
+
+## Reset pan + zoom to frame the whole map at 1:1. Shared by the double-click
+## gesture, the HOME key, and the screen's "Recenter" button. Both assignments
+## route through setters that call _apply_transform() + queue_redraw().
+func recenter() -> void:
+	_zoom_level = 1.0
+	_pan_offset = Vector2.ZERO
 
 
 ## Anchor-preserving zoom around the mouse cursor. Adapted from
