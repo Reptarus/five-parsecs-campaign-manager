@@ -74,11 +74,40 @@ A `@tool` container for **local** two-pane horizontal↔vertical switching of on
 
 ## Phase status (Jun 2026)
 
-- **Done + verified (unit + live MCP):** Phase 0 (ResponsiveManager API/signal/seams + DPI breakpoints), Phase 1 (base-class convergence + CrewManagement/TacticsDashboard/EquipmentPanel fixes + `project.godot` config), Phase 2 (HelpScreen/CompendiumScreen orientation fixes), Phase 3 (`AdaptivePanelGroup` + `ResponsiveContainer` reconcile).
-- **Pending (Phase 4 — the hard screens):** Dashboard outer-scroll (1-col stack); GalaxyLog legend HFlow + recenter; TacticalBattleUI rails→drawers in portrait; PreBattle/EquipmentManager → `AdaptivePanelGroup(TABS)` (PreBattle needs `$`-path→`%`-name migration first — its deep absolute `@onready` paths shatter on reparent). Then Phase 5 device-QA matrix.
+- **Phases 0-5 DONE + verified.** P0 (ResponsiveManager API/signal/seams + DPI breakpoints), P1 (base-class convergence + CrewManagement/TacticsDashboard/EquipmentPanel + `project.godot`), P2 (HelpScreen/CompendiumScreen), P3 (`AdaptivePanelGroup` + `ResponsiveContainer`).
+- **Phase 4 (5 hard screens, COMMITTED, live-verified both orientations):** CampaignDashboard outer-scroll wrap (1-col → outer AUTO + inner DISABLED); GalaxyLog legend HFlow + Recenter; TacticalBattleUI rails suppress in portrait (`_reconcile_portrait_layout` = `intent AND not collapse`, intent captured after the stage match) + "intel" drawer mirror; PreBattle + EquipmentManager → `AdaptivePanelGroup(TABS)` (PreBattle `$`→`%` migration first). Added `AdaptivePanelGroup.focus_pane(i)` (no-op outside TABS).
+- **Phase 5 (device-QA + fast-follow, UNCOMMITTED):** static audit swept 70 screens → 18 issues, all remediated — 7 more `AdaptivePanelGroup` migrations (PatronRivalManager/CampaignEventsManager/AdvancementManager TABS; ShipManager/PurchaseItemsComponent/EquipmentGenerationScene/CharacterCreator STACK), 4 fixed-width caps (CampaignJournalScreen/EquipmentPanel/TravelPhase/BattleTransitionUI — restore exact desktop widths when not collapsed), 3 turn-controller portrait top-bars (BugHunt/Planetfall/Tactics — landscape byte-identical), touch-target bumps. `AdaptivePanelGroup` now on **9 screens**.
+
+### AdaptivePanelGroup migration recipe (the 9-screen pattern)
+
+`unique_name_in_owner=true` on each pane node; `_setup_adaptive_panels()` called AFTER `@onready` resolves: grab panes via `%`, `main_content = pane.get_parent()`, `vbox = main_content.get_parent()`, create the group at `main_content.get_index()`, `add_pane()` each (reparents once), `main_content.queue_free()`, store `_panel_group`. Header/footer/controls are SIBLINGS of MainContent → stay outside. `@onready` caches object refs that SURVIVE reparent; only RE-RESOLVED `$`-paths break (migrate to `%`). `add_pane` forces `EXPAND_FILL` but NOT `custom_minimum_size` — clear clip-causing min-widths separately. `focus_pane(index)` index = `add_pane` order; STACK for browse, TABS for master-detail (wire selection → `focus_pane`).
+
+### Verifying a migration when full-instantiation is blocked
+
+Manager screens with pre-existing `_ready` crashes (e.g. `var x: Panel = _create_*_panel()` where the factory returns `PanelContainer`, or missing data JSONs) **halt the `--debug` MCP run**, so a full-instantiation probe can't reach the group. Verify those via: parse-check (`load()` every touched script + scene headless), git-diff review against this recipe (confirm unique-names added, footer outside, focus index, landscape restore), and ONE clean live probe of a screen whose `_setup_adaptive_panels()` runs FIRST in `_ready` (ShipManager) — the pattern is identical across screens.
+
+### Text scaling across orientations (the square-base trap)
+
+The square 1080×1080 stretch base + `canvas_items`/`expand` scales 2D content by `min(window.x, window.y) / 1080`. In LANDSCAPE the short axis is the height (~0.97× on a 1080p window — fine). In PORTRAIT the short axis is the small WIDTH → ~0.4× → **text renders tiny** (16px → ~6px). `SettingsManager._apply_ui_scale()` counteracts this (recomputed on `root.size_changed`):
+
+```
+content_scale_factor = TARGET_EFFECTIVE(1.12) × ui_scale × dpi_scale × (1080.0 / min(window.x, window.y))
+```
+
+The `1080/min(window)` term CANCELS the square-base stretch and holds a CONSTANT effective scale (~1.12) in both orientations — text is the same physical size portrait and landscape, and resizing changes how much content fits, not the text size. `dpi_scale` (`screen_get_scale()`) is real on Android/iOS/macOS/Wayland/Web, **1.0 on Windows** (use `screen_get_dpi()` for Windows-hiDPI). `content_scale_factor` does NOT affect ResponsiveManager's dp breakpoint classification — column/collapse is unchanged.
+
+### Narrow-width fit (portrait rows must fit ~384px)
+
+CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 1080 design space (then scales to 0.4×), so "portrait verified at content_scale 1.0" only tests COLUMN COLLAPSE — individual rows are never forced to fit a real phone width. After the scaling fix above, the portrait design space is the real ~384px, and rows authored for 1080 overflow. Patterns to make rows fit ~384px (applied across ~19 screens):
+- Header / badge / button rows: `HBoxContainer` → `HFlowContainer` (wraps in portrait, single-line on desktop). FlowContainer uses `h_separation`/`v_separation` (NOT `separation`), ignores main-axis expand (so DROP the title's `SIZE_EXPAND_FILL`), and aligns via `FlowContainer.ALIGNMENT_*`.
+- Long labels (names, ship/world descriptions): `autowrap_mode = AUTOWRAP_WORD_SMART` + `SIZE_EXPAND_FILL`. Shared `CampaignScreenBase._create_info_row()` does this on the value label.
+- A 1-col GridContainer makes ALL stacked columns share the WIDEST column's min-width — so ONE long label in one column clips the whole screen. Wrap it.
+- Fixed-size card grids (`_create_stats_grid`, cards are fixed 64px and can't shrink, inside scroll-disabled layouts): drop column count in portrait via `should_use_single_column()`.
+- Verify by measuring `get_combined_minimum_size().x` of every Control against the portrait viewport width (a live MCP `run_script` tree-walk) — find the widest intrinsic-min driver, not just visible clipping.
+
 - Plan file: `C:\Users\admin\.claude\plans\so-we-need-to-playful-hearth.md`.
 
 ## Verification
 
-- **Unit:** `tests/unit/test_responsive_manager_effective_columns.gd` (16) + `tests/unit/test_adaptive_panel_group.gd` (8). gdUnit4 with `-c`, NEVER `--headless` (signal-11).
+- **Unit:** `tests/unit/test_responsive_manager_effective_columns.gd` (16) + `tests/unit/test_adaptive_panel_group.gd` (10, incl. `focus_pane` TABS-switch + GRID-noop guard). gdUnit4 with `-c`, NEVER `--headless` (signal-11).
 - **Live (MCP):** `run_project` → `run_script` to `DisplayServer.window_set_size()` and read `ResponsiveManager.current_viewport_size` / `get_effective_columns()` / a screen's actual columns. `window_set_size` is async — read on the NEXT `run_script` call. Disable the TransitionManager overlay ColorRect (`visible=false`) so screenshots aren't blocked. Test the matrix: 540×960 (phone→1 col), 768×1024 (tablet→2), 1280×720 (desktop→3), plus a constant-width rotation to confirm `layout_class_changed` re-lays-out exactly once.

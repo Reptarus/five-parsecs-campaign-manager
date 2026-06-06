@@ -231,12 +231,46 @@ func _apply_display_window_only() -> void:
 
 
 func _apply_ui_scale() -> void:
-	# Godot 4.6 canonical runtime knob (tutorials/rendering/multiple_resolutions):
-	# "Runtime configuration of stretch scale is done via the
-	#  get_tree().root.content_scale_factor property."
+	# Godot 4.6 runtime stretch knob: get_tree().root.content_scale_factor.
 	var tree := get_tree()
-	if tree and tree.root:
-		tree.root.content_scale_factor = get_ui_scale()
+	if not (tree and tree.root):
+		return
+	# The project uses canvas_items stretch on a SQUARE 1080x1080 base (chosen for
+	# dual orientation). With `expand`, the on-screen scale = min(window.x,
+	# window.y) / 1080 — so in PORTRAIT the small window WIDTH constrains it to
+	# ~0.4x and text renders tiny (a 16px font -> ~6px). We CANCEL that square-base
+	# stretch (x 1080/short_axis) and apply ONE consistent EFFECTIVE scale instead,
+	# so text is the same comfortable PHYSICAL size in portrait AND landscape, and
+	# resizing changes how much content fits (not the text size).
+	#  - TARGET_EFFECTIVE 1.12 = verified layout-safe (in landscape it yields
+	#    content_scale ~1.15, which the tightest screen/MainMenu tolerates; ~1.2+
+	#    starts to collide).
+	#  - ui_scale = the user's Settings slider, relative to that baseline.
+	#  - dpi_scale = hiDPI mobile density (1.0 on desktop) for consistent physical
+	#    size across screen densities.
+	const TARGET_EFFECTIVE := 1.12
+	const STRETCH_BASE := 1080.0  # project.godot viewport_width/height (square)
+	var win := Vector2(DisplayServer.window_get_size())
+	var short_axis: float = minf(win.x, win.y)
+	if short_axis <= 0.0:
+		short_axis = STRETCH_BASE
+	var stretch_cancel: float = STRETCH_BASE / short_axis
+	tree.root.content_scale_factor = TARGET_EFFECTIVE * get_ui_scale() * _dpi_scale() * stretch_cancel
+	# Recompute on every resize/rotation so the effective scale stays constant as
+	# the short axis (and thus the square-base stretch) changes. Idempotent connect.
+	if not tree.root.size_changed.is_connected(_apply_ui_scale):
+		tree.root.size_changed.connect(_apply_ui_scale)
+
+
+## OS display scale for the main window's screen (single source: ResponsiveManager
+## when present, else DisplayServer directly so this is robust at boot before RM).
+## 1.0 on platforms that don't report it (Windows desktop).
+func _dpi_scale() -> float:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	var s: float = DisplayServer.screen_get_scale()
+	if rm and rm.has_method("get_screen_scale"):
+		s = rm.get_screen_scale()
+	return s if s > 0.0 else 1.0
 
 
 # ============ FPS COUNTER OVERLAY ============

@@ -47,9 +47,10 @@ size_flags_vertical = 3
 allow_reselect = true
 auto_height = true
 
-[node name="Controls" type="HBoxContainer" parent="Content"]
+[node name="Controls" type="HFlowContainer" parent="Content"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="AddButton" type="Button" parent="Content/Controls"]

@@ -3,10 +3,17 @@ extends Control
 
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 
+## AdaptivePanelGroup preloaded by path (responsive 3-pane → vertical stack in
+## portrait; browse/overview). Path preload avoids the stale class_name cache.
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+
 signal ship_repaired(hull_points: int)
 signal debt_paid(amount: int)
 signal upgrade_purchased(upgrade: Dictionary)
 signal travel_initiated()
+
+# The three content panels reparented into this group (set in _setup_adaptive_panels).
+var _panel_group: Control = null
 
 @onready var ship_name: Label = %ShipName
 @onready var ship_type: Label = %ShipType
@@ -23,9 +30,44 @@ var _components_db: Array = []
 var _components_rules: Dictionary = {}
 
 func _ready() -> void:
+	_setup_adaptive_panels()
 	_load_components_database()
 	_load_ship_data()
 	_refresh_display()
+
+## Reparent the 3 content panels (Ship Status / Upgrades / Travel) into an
+## AdaptivePanelGroup: side-by-side in landscape, stacked vertically in portrait
+## (STACK / browse-overview — no master-detail selection). Header + Controls are
+## siblings of MainContent, so they stay put. The %-unique node refs survive the
+## reparent (they point at descendants that move with their panel).
+func _setup_adaptive_panels() -> void:
+	if _panel_group:
+		return  # guard re-entry
+	var ship_status: Control = get_node_or_null("%ShipStatus")
+	var ship_upgrades: Control = get_node_or_null("%ShipUpgrades")
+	var travel: Control = get_node_or_null("%Travel")
+	if not (ship_status and ship_upgrades and travel):
+		return
+	var main_content: Node = ship_status.get_parent()       # the MainContent HBox
+	var vbox: Node = main_content.get_parent() if main_content else null
+	if not vbox:
+		return
+	var idx: int = main_content.get_index()
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	# TABS in portrait: Ship Status / Upgrades / Travel are 3 distinct sections,
+	# so a tab strip is more phone-friendly than one long scroll.
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+	group.add_pane(ship_status, "Ship Status")
+	group.add_pane(ship_upgrades, "Upgrades")
+	group.add_pane(travel, "Travel")
+	main_content.queue_free()  # now empty; Header + Controls untouched
+	_panel_group = group
 
 func _load_components_database() -> void:
 	## Load Core Rules components from JSON (pp.60-62)

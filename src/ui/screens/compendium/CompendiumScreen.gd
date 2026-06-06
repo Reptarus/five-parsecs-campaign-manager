@@ -35,9 +35,13 @@ func _build_ui() -> void:
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
 
-	# Header
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	# Header — HFlow so Back / title / item-count wrap onto a second line on a
+	# narrow (~384px) portrait header instead of clipping. FlowContainer ignores
+	# main-axis expand, so the title is NOT expand-filled here (an expanding
+	# child would force the count to wrap even on desktop).
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
+	header.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
 	outer.add_child(header)
 
 	var back_btn := Button.new()
@@ -51,7 +55,7 @@ func _build_ui() -> void:
 	title.text = "Library"
 	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	title.size_flags_horizontal = SIZE_EXPAND_FILL
+	title.size_flags_vertical = SIZE_SHRINK_CENTER
 	header.add_child(title)
 
 	var count_label := Label.new()
@@ -118,6 +122,9 @@ func _build_ui() -> void:
 	footer.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
 	footer.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Wrap the long source line on a ~384px portrait column instead of clipping.
+	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	footer.size_flags_horizontal = SIZE_EXPAND_FILL
 	outer.add_child(footer)
 
 	# Debounce timer

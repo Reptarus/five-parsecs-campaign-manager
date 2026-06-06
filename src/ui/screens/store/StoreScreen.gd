@@ -122,8 +122,12 @@ func _build_ui() -> void:
 	_build_footer(root_vbox)
 
 func _build_header(parent: VBoxContainer) -> void:
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow so Back / title / Help wrap onto a second line on a narrow (~384px)
+	# portrait header instead of clipping. FlowContainer ignores main-axis
+	# expand, so the title is NOT expand-filled (it would force a wrap on desktop).
+	var hbox := HFlowContainer.new()
+	hbox.add_theme_constant_override("h_separation", SPACING_MD)
+	hbox.add_theme_constant_override("v_separation", SPACING_XS)
 	parent.add_child(hbox)
 
 	var back_btn := Button.new()
@@ -137,7 +141,7 @@ func _build_header(parent: VBoxContainer) -> void:
 	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
 	title.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hbox.add_child(title)
 
 	# Help link (Library was relocated here)
@@ -153,8 +157,12 @@ func _build_header(parent: VBoxContainer) -> void:
 func _build_footer(parent: VBoxContainer) -> void:
 	parent.add_child(HSeparator.new())
 
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow so Restore / Rate / platform-status wrap onto a second line on a
+	# narrow (~384px) portrait footer instead of clipping. The desktop expand
+	# spacer is dropped — FlowContainer ignores main-axis expand.
+	var hbox := HFlowContainer.new()
+	hbox.add_theme_constant_override("h_separation", SPACING_MD)
+	hbox.add_theme_constant_override("v_separation", SPACING_XS)
 	parent.add_child(hbox)
 
 	_restore_button = Button.new()
@@ -177,10 +185,6 @@ func _build_footer(parent: VBoxContainer) -> void:
 				and not _review_mgr.can_request_review():
 			rate_btn.disabled = true
 		hbox.add_child(rate_btn)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(spacer)
 
 	_status_label = RichTextLabel.new()
 	_status_label.bbcode_enabled = true

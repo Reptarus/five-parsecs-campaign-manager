@@ -111,9 +111,10 @@ text = "0"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 18
 
-[node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="Controls" type="HFlowContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="GenerateButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]

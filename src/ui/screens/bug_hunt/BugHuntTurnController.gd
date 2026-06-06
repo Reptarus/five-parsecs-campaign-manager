@@ -31,6 +31,10 @@ var _save_button: Button
 var _panel_container: Control
 var _phase_indicators: Array[Label] = []
 
+# Responsive top-bar wiring (portrait-collapse support)
+var _phase_strip_scroll: ScrollContainer
+var _phase_box: HBoxContainer
+
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -53,6 +57,7 @@ func _initialize() -> void:
 	_create_phase_manager()
 	_create_panels()
 	_connect_signals()
+	_setup_responsive_topbar()
 
 	# Check if returning from battle
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
@@ -125,11 +130,20 @@ func _build_layout() -> void:
 	_turn_label.add_theme_color_override("font_color", COLOR_TEXT)
 	top_bar.add_child(_turn_label)
 
-	# Phase progress indicators
+	# Phase progress indicators — wrapped in a ScrollContainer so the strip can
+	# shrink and scroll horizontally on narrow (portrait) viewports instead of
+	# forcing the top bar wider than the screen.
+	_phase_strip_scroll = ScrollContainer.new()
+	_phase_strip_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_phase_strip_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_phase_strip_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	top_bar.add_child(_phase_strip_scroll)
+
 	var phase_box := HBoxContainer.new()
 	phase_box.add_theme_constant_override("separation", 8)
 	phase_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_bar.add_child(phase_box)
+	_phase_box = phase_box
+	_phase_strip_scroll.add_child(phase_box)
 
 	var phase_names := ["Special Assignments", "Mission", "Post-Battle"]
 	for i in range(3):
@@ -176,6 +190,44 @@ func _build_layout() -> void:
 	_advance_button.custom_minimum_size = Vector2(200, 48)
 	_advance_button.pressed.connect(_on_advance_pressed)
 	nav.add_child(_advance_button)
+
+
+## Connect to the ResponsiveManager so the top bar collapses on portrait phones,
+## then apply the current layout once for a correct baseline (the signal is not
+## emitted at autoload boot). Landscape/desktop behavior is unchanged.
+func _setup_responsive_topbar() -> void:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
+			rm.layout_class_changed.connect(_on_layout_class_changed)
+	_apply_topbar_responsive()
+
+
+func _on_layout_class_changed(_effective_columns: int) -> void:
+	_apply_topbar_responsive()
+
+
+## Portrait phones: hide the wide centered phase label (the scrollable phase strip
+## already shows the current stage) and bump the Save button to a full 48px touch
+## target. Landscape/tablet/desktop: restore the exact original layout.
+func _apply_topbar_responsive() -> void:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	var portrait := false
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		portrait = rm.should_collapse_to_single_column()
+
+	if is_instance_valid(_phase_label):
+		# Keep the big centered phase label only when there's room for it.
+		_phase_label.visible = not portrait
+
+	if is_instance_valid(_save_button):
+		# Save is the only top-bar button; keep it tappable at >=48px in portrait,
+		# original 36px height in landscape.
+		var save_h := 48 if portrait else 36
+		_save_button.custom_minimum_size = Vector2(80, save_h)
+
+	# The phase strip stays visible in both modes; its ScrollContainer already
+	# allows it to shrink/scroll horizontally when the bar is too narrow.
 
 
 func _create_phase_manager() -> void:

@@ -5,6 +5,9 @@ signal character_advanced(character: Dictionary, advancement: Dictionary)
 signal injury_healed(character: Dictionary, injury: Dictionary)
 signal training_purchased(character: Dictionary, training: Dictionary)
 
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+var _panel_group: Control = null
+
 @onready var crew_container: VBoxContainer = %CrewContainer
 @onready var character_name: Label = %CharacterName
 @onready var stats: GridContainer = %Stats
@@ -27,6 +30,40 @@ func _ready() -> void:
 	_load_crew_roster()
 	_refresh_crew_list()
 	_setup_advancement_icons()
+	_setup_adaptive_panels()
+
+func _setup_adaptive_panels() -> void:
+	## Migrate the side-by-side MainContent HBox into an AdaptivePanelGroup so the
+	## three panes (crew list / details / advancement options) collapse to a tabbed
+	## master-detail layout on narrow/portrait screens, and stay a 3-up grid on wide.
+	if _panel_group:
+		return
+
+	var crew_list: Control = get_node_or_null("%CrewList")
+	var character_details: Control = get_node_or_null("%CharacterDetails")
+	var advancement_options: Control = get_node_or_null("%AdvancementOptions")
+	if not crew_list or not character_details or not advancement_options:
+		return
+
+	var main_content: Node = crew_list.get_parent()
+	var vbox: Node = main_content.get_parent()
+	var idx: int = main_content.get_index()
+
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+
+	group.add_pane(crew_list, "Crew")
+	group.add_pane(character_details, "Details")
+	group.add_pane(advancement_options, "Advancement")
+
+	main_content.queue_free()
+	_panel_group = group
 
 func _load_crew_roster() -> void:
 	## Load crew roster from campaign data
@@ -78,7 +115,7 @@ func _refresh_crew_list() -> void:
 
 	# Add crew members
 	for character in crew_roster:
-		var character_panel: Panel = _create_character_panel(character)
+		var character_panel: Control = _create_character_panel(character)
 		crew_container.add_child(character_panel)
 
 func _create_character_panel(character: Dictionary) -> Control:
@@ -192,7 +229,7 @@ func _refresh_injuries_display(character: Dictionary) -> void:
 		injuries_container.add_child(no_injuries_label)
 	else:
 		for injury in injuries:
-			var injury_panel: Panel = _create_injury_panel(injury)
+			var injury_panel: Control = _create_injury_panel(injury)
 			injuries_container.add_child(injury_panel)
 
 func _create_injury_panel(injury: String) -> Control:
@@ -241,7 +278,7 @@ func _refresh_advancement_options(character: Dictionary) -> void:
 	# Add advancement options
 	var advancement_options = _get_advancement_options(character)
 	for option in advancement_options:
-		var option_panel: Panel = _create_advancement_option_panel(option)
+		var option_panel: Control = _create_advancement_option_panel(option)
 		options_container.add_child(option_panel)
 
 func _get_advancement_options(character: Dictionary) -> Array[Dictionary]:
@@ -311,6 +348,9 @@ func _on_character_selected(character: Dictionary) -> void:
 	selected_advancement = {}
 	_update_character_details(character)
 	apply_advancement_button.disabled = true
+	# In portrait/TABS mode, bring the Details pane forward on selection (no-op in grid).
+	if _panel_group:
+		_panel_group.focus_pane(1)
 
 func _on_advancement_selected(advancement: Dictionary) -> void:
 	## Handle advancement selection

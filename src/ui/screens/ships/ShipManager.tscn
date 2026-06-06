@@ -27,12 +27,13 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Header" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 text = "Ship Management"
 
@@ -46,6 +47,7 @@ size_flags_vertical = 3
 theme_override_constants/separation = 20
 
 [node name="ShipStatus" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -112,6 +114,7 @@ layout_mode = 2
 text = "Ship Traits:"
 
 [node name="ShipUpgrades" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -136,6 +139,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="Travel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -181,9 +185,10 @@ text = "Initiate Travel"
 layout_mode = 2
 text = "Refuel Ship"
 
-[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Controls" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="RepairButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]

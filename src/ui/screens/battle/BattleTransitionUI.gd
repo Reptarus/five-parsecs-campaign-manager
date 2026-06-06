@@ -4,8 +4,9 @@ extends Control
 ## Handles the transition from World Phase to Battle Phase with proper context
 
 # UI Components
+@onready var battle_panel: PanelContainer = $BattleTransitionPanel
 @onready var battle_title: Label = $BattleTransitionPanel/BattleTransitionContent/BattleTitle
-@onready var battle_status: Label = $BattleTransitionPanel/BattleTransitionContent/BattleStatus  
+@onready var battle_status: Label = $BattleTransitionPanel/BattleTransitionContent/BattleStatus
 @onready var battle_progress: ProgressBar = $BattleTransitionPanel/BattleTransitionContent/BattleProgress
 
 # Mission Context
@@ -20,6 +21,42 @@ func _ready() -> void:
 	## Initialize battle transition UI
 	_setup_ui_components()
 	_connect_signals()
+	_apply_responsive_layout()
+	var rm = get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		rm.layout_class_changed.connect(_on_layout_class_changed)
+
+func _on_layout_class_changed(_effective_columns: int) -> void:
+	_apply_responsive_layout()
+
+func _apply_responsive_layout() -> void:
+	## Relax the fixed 600px panel width to near-full-width when the screen
+	## collapses to a single column (e.g. 375px phone), so the Cancel/Launch
+	## buttons stay reachable. Keeps the 600px centered card on desktop/landscape.
+	if not battle_panel:
+		return
+	var rm = get_node_or_null("/root/ResponsiveManager")
+	var collapse: bool = rm.should_collapse_to_single_column() if rm and rm.has_method("should_collapse_to_single_column") else false
+	if collapse:
+		# Anchor to full rect with small margins; clear the centered-card offsets.
+		battle_panel.anchor_left = 0.0
+		battle_panel.anchor_top = 0.5
+		battle_panel.anchor_right = 1.0
+		battle_panel.anchor_bottom = 0.5
+		battle_panel.offset_left = 16.0
+		battle_panel.offset_top = -150.0
+		battle_panel.offset_right = -16.0
+		battle_panel.offset_bottom = 150.0
+	else:
+		# Restore the .tscn defaults: 600px centered card.
+		battle_panel.anchor_left = 0.5
+		battle_panel.anchor_top = 0.5
+		battle_panel.anchor_right = 0.5
+		battle_panel.anchor_bottom = 0.5
+		battle_panel.offset_left = -300.0
+		battle_panel.offset_top = -150.0
+		battle_panel.offset_right = 300.0
+		battle_panel.offset_bottom = 150.0
 
 func _setup_ui_components() -> void:
 	## Configure UI components for battle transition

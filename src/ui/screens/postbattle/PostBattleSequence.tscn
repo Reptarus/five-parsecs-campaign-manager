@@ -28,12 +28,13 @@ theme_override_constants/margin_bottom = 24
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Header" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 4
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 text = "Post-Battle Sequence"
 
@@ -124,9 +125,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Controls" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="PreviousButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]

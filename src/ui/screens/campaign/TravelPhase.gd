@@ -18,6 +18,12 @@ enum TravelStep {
 @export var patrons_list: Control
 @export var mission_details: Control
 
+## Desktop/landscape width of the central PanelContainer (matches the .tscn
+## custom_minimum_size.x). Relaxed to 0 only when collapsed to a single column
+## so the 600px floor never clips a narrow (e.g. 375px) phone viewport.
+const PANEL_MAX_WIDTH := 600.0
+const PANEL_EDGE_MARGIN := 48.0
+
 var current_step: TravelStep = TravelStep.UPKEEP
 var game_state: FiveParsecsGameState
 var game_state_manager: GameStateManager
@@ -41,6 +47,41 @@ func _ready() -> void:
 	# Leave patron_job_manager null — patron features are not yet wired.
 
 	_setup_current_step()
+
+	# Responsive width: connect to layout_class_changed (rotation/resize) and apply
+	# once now. Desktop/landscape behavior is unchanged (keeps the 600px floor);
+	# only single-column collapse relaxes min_x so 375px viewports don't clip.
+	var rm = get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
+			rm.layout_class_changed.connect(_on_layout_class_changed)
+	_apply_responsive_panel_width()
+
+## Recompute the central PanelContainer min width for the current layout class.
+## Single-column (phone/portrait) -> 0 so the panel can shrink to the viewport.
+## Otherwise keep the desktop floor, capped at viewport - margin so it never
+## exceeds an unusually narrow landscape window.
+func _apply_responsive_panel_width() -> void:
+	var panel := get_node_or_null("CenterContainer/PanelContainer") as Control
+	if not panel:
+		return
+
+	var min_x := PANEL_MAX_WIDTH
+	var rm = get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column") \
+			and rm.should_collapse_to_single_column():
+		min_x = 0.0
+	else:
+		# Cap to the available viewport width so a narrow landscape window
+		# still fits the panel without clipping.
+		var avail := get_viewport_rect().size.x - PANEL_EDGE_MARGIN
+		if avail > 0.0:
+			min_x = minf(PANEL_MAX_WIDTH, avail)
+
+	panel.custom_minimum_size.x = min_x
+
+func _on_layout_class_changed(_effective_columns: int) -> void:
+	_apply_responsive_panel_width()
 
 func _setup_current_step() -> void:
 	match current_step:

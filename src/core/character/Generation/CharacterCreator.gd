@@ -9,6 +9,7 @@ const FiveParsecsCharacter = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
 const FiveParsecsCharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
 const StartingEquipmentGen = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 enum CreatorMode {
 	CHARACTER,
 	CAPTAIN,
@@ -147,6 +148,8 @@ var _class_d100: Dictionary = {}
 var _motivation_d100: Dictionary = {}
 ## Maps origin OptionButton item index → species_id string (Core Rules pp.15-22)
 var _origin_species_ids: Array[String] = []
+## Responsive panel group wrapping CreationPanel + PreviewPanel (STACK in portrait)
+var _panel_group: Control = null
 
 func _init() -> void:
 	current_character = Character.new()
@@ -169,6 +172,42 @@ func _ready() -> void:
 	preview_info.meta_clicked.connect(_on_preview_meta_clicked)
 	_setup_psionic_checkbox()
 	_update_preview()
+	_setup_adaptive_panels()
+
+## Wrap the side-by-side CreationPanel + PreviewPanel in an AdaptivePanelGroup so
+## they stack to a single column in portrait / narrow layouts (STACK mode — this
+## is a browse/overview screen, not master-detail). The panes are reparented into
+## the group's internal grid ONCE; @onready leaf vars use %unique-names and survive
+## the reparent. Landscape (>=2 effective columns) keeps the side-by-side grid.
+func _setup_adaptive_panels() -> void:
+	if _panel_group:
+		return
+	var creation_pane := get_node_or_null("%CreationPanel") as Control
+	var preview_pane := get_node_or_null("%PreviewPanel") as Control
+	if not creation_pane or not preview_pane:
+		return
+	var main_content := creation_pane.get_parent()  # the HBoxContainer
+	if not main_content:
+		return
+	var container := main_content.get_parent()  # MarginContainer
+	if not container:
+		return
+	var idx := main_content.get_index()
+
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.STACK
+	group.max_columns = 2
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	container.add_child(group)
+	container.move_child(group, idx)
+
+	group.add_pane(creation_pane, "Create")
+	group.add_pane(preview_pane, "Preview")
+
+	main_content.queue_free()
+	_panel_group = group
 
 func _populate_dropdowns() -> void:
 	# Build origin list with DLC species if enabled

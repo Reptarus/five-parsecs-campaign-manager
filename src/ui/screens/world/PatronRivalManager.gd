@@ -5,9 +5,16 @@ signal patron_selected(patron: Dictionary)
 signal rival_selected(rival: Dictionary)
 signal job_assigned(patron: Dictionary, job: Dictionary)
 
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+
+# Index of the Details pane within the adaptive group (Patrons=0, Rivals=1, Details=2).
+const DETAILS_PANE_INDEX := 2
+
 @onready var patrons_list: VBoxContainer = %PatronsList
 @onready var rivals_list: VBoxContainer = %RivalsList
 @onready var details_container: VBoxContainer = %DetailsContainer
+
+var _panel_group: Control = null
 
 # DataManager accessed via autoload singleton
 
@@ -31,29 +38,67 @@ func _ready() -> void:
 	_load_json_templates()
 	_load_patrons_and_rivals()
 	_refresh_displays()
+	_setup_adaptive_panels()
+
+func _setup_adaptive_panels() -> void:
+	## Reparent the three side-by-side panes (Patrons / Rivals / Details) into an
+	## AdaptivePanelGroup so they collapse to a master-detail tab strip in portrait
+	## while staying side-by-side in landscape. Header + Controls rows stay outside.
+	if _panel_group:
+		return
+
+	var patrons_pane: Control = get_node_or_null("%Patrons")
+	var rivals_pane: Control = get_node_or_null("%Rivals")
+	var details_pane: Control = get_node_or_null("%Details")
+	if not patrons_pane or not rivals_pane or not details_pane:
+		return
+
+	var main_content: Node = patrons_pane.get_parent()
+	var vbox: Node = main_content.get_parent()
+	var idx: int = main_content.get_index()
+
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+
+	group.add_pane(patrons_pane, "Patrons")
+	group.add_pane(rivals_pane, "Rivals")
+	group.add_pane(details_pane, "Details")
+
+	main_content.queue_free()
+	_panel_group = group
 
 func _load_json_templates() -> void:
-	## Load JSON template data for enhanced patron/rival generation
-	# Load patron templates
-	patron_templates = DataManager.load_json_file("res://data/patrons/patron_templates.json")
+	## Load OPTIONAL JSON template data for patron/rival generation. These files
+	## are not shipped (the canonical patron data lives in patron_generation.json /
+	## patron_types.json); the in-code `_create_*_templates_fallback()` methods
+	## provide scaffolding. We existence-guard the load so a missing file falls
+	## back silently instead of spamming "Cannot open data file" via DataManager.
+	patron_templates = _load_optional_template("res://data/patrons/patron_templates.json")
 	if patron_templates.is_empty():
 		_create_patron_templates_fallback()
-	else:
-		pass # Patron categories loaded
-	
-	# Load rival templates
-	rival_templates = DataManager.load_json_file("res://data/rivals/rival_templates.json")
+
+	rival_templates = _load_optional_template("res://data/rivals/rival_templates.json")
 	if rival_templates.is_empty():
 		_create_rival_templates_fallback()
-	else:
-		pass # Rival categories loaded
-	
-	# Load job templates
-	job_templates = DataManager.load_json_file("res://data/jobs/job_templates.json")
+
+	job_templates = _load_optional_template("res://data/jobs/job_templates.json")
 	if job_templates.is_empty():
 		_create_job_templates_fallback()
-	else:
-		pass # Job types loaded
+
+
+func _load_optional_template(path: String) -> Dictionary:
+	## Quiet load of an optional template file. FileAccess.file_exists is reliable
+	## for the never-present case here (it only false-negatives on files actually
+	## packed into an export, which these are not).
+	if not FileAccess.file_exists(path):
+		return {}
+	return DataManager.load_json_file(path)
 
 func _create_patron_templates_fallback() -> void:
 	## Create fallback patron templates when JSON is not available
@@ -308,7 +353,7 @@ func _refresh_patrons_list() -> void:
 
 	# Add patron items
 	for patron in patrons:
-		var patron_panel: Panel = _create_patron_panel(patron)
+		var patron_panel: Control = _create_patron_panel(patron)
 		patrons_list.add_child(patron_panel)
 
 func _refresh_rivals_list() -> void:
@@ -319,7 +364,7 @@ func _refresh_rivals_list() -> void:
 
 	# Add rival items
 	for rival in rivals:
-		var rival_panel: Panel = _create_rival_panel(rival)
+		var rival_panel: Control = _create_rival_panel(rival)
 		rivals_list.add_child(rival_panel)
 
 func _create_patron_panel(patron: Dictionary) -> Control:
@@ -468,6 +513,8 @@ func _on_patron_selected(patron: Dictionary) -> void:
 	selected_patron = patron
 	selected_rival = {}
 	_update_details(patron, true)
+	if _panel_group:
+		_panel_group.focus_pane(DETAILS_PANE_INDEX)
 	patron_selected.emit(patron)
 
 func _on_rival_selected(rival: Dictionary) -> void:
@@ -475,6 +522,8 @@ func _on_rival_selected(rival: Dictionary) -> void:
 	selected_rival = rival
 	selected_patron = {}
 	_update_details(rival, false)
+	if _panel_group:
+		_panel_group.focus_pane(DETAILS_PANE_INDEX)
 	rival_selected.emit(rival)
 
 func _on_request_job(patron: Dictionary) -> void:

@@ -63,10 +63,22 @@ var _phase_label: Label
 var _stat_strip: HBoxContainer
 var _advance_button: Button
 var _save_button: Button
+var _dashboard_button: Button
+var _top_row: HBoxContainer
 var _panel_container: Control
 var _phase_scroll: ScrollContainer
 var _phase_indicator_box: HBoxContainer
 var _phase_indicators: Array[Label] = []
+
+## Lower-priority stat keys collapsed away in portrait so the high-priority
+## colony stats (MORALE/INTEGRITY/SP) keep room and are not crushed.
+const _TOPBAR_PORTRAIT_HIDDEN_STATS: Array[String] = ["RM", "GRUNTS", "MILESTONES"]
+## Tracks whether _apply_topbar_responsive() last applied the portrait shape, so a
+## layout_class_changed that does not flip orientation is a cheap no-op.
+var _topbar_is_portrait_applied: bool = false
+## False until the first _apply_topbar_responsive() runs, so the initial pass is
+## never skipped by the orientation-unchanged dedupe (default-false could match).
+var _last_topbar_state_initialized: bool = false
 
 ## Stat labels for the colony stat bar
 var _stat_labels: Dictionary = {}
@@ -81,6 +93,17 @@ func _setup_screen() -> void:
 	# Defer initialization — scene may not be fully in tree when
 	# instantiated via TransitionManager.fade_to_scene()
 	call_deferred("_initialize")
+
+
+## Disconnect the dedicated top-bar responsive signal. CampaignScreenBase._exit_tree()
+## handles its own breakpoint_changed / layout_class_changed disconnects; this adds
+## the top-bar-specific connection on top of that.
+func _exit_tree() -> void:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed") \
+			and rm.layout_class_changed.is_connected(_on_topbar_layout_class_changed):
+		rm.layout_class_changed.disconnect(_on_topbar_layout_class_changed)
+	super._exit_tree()
 
 
 func _initialize() -> void:
@@ -165,29 +188,30 @@ func _build_layout() -> void:
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 	margin.add_child(vbox)
 
-	# Top row: Turn label + Save button
-	var top_row := HBoxContainer.new()
-	top_row.add_theme_constant_override("separation", SPACING_MD)
-	vbox.add_child(top_row)
+	# Top row: Turn label + Save button (BoxContainer so portrait can stack it
+	# vertically — see _apply_topbar_responsive()).
+	_top_row = HBoxContainer.new()
+	_top_row.add_theme_constant_override("separation", SPACING_MD)
+	vbox.add_child(_top_row)
 
 	_turn_label = Label.new()
 	_turn_label.text = "TURN 1"
 	_turn_label.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL))
 	_turn_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_turn_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_row.add_child(_turn_label)
+	_top_row.add_child(_turn_label)
 
 	_save_button = Button.new()
 	_save_button.text = "Save"
 	_save_button.custom_minimum_size = Vector2(80, 36)
 	_save_button.pressed.connect(_on_save_pressed)
-	top_row.add_child(_save_button)
+	_top_row.add_child(_save_button)
 
-	var back_btn := Button.new()
-	back_btn.text = "Dashboard"
-	back_btn.custom_minimum_size = Vector2(100, 36)
-	back_btn.pressed.connect(func(): _navigate("planetfall_dashboard"))
-	top_row.add_child(back_btn)
+	_dashboard_button = Button.new()
+	_dashboard_button.text = "Dashboard"
+	_dashboard_button.custom_minimum_size = Vector2(100, 36)
+	_dashboard_button.pressed.connect(func(): _navigate("planetfall_dashboard"))
+	_top_row.add_child(_dashboard_button)
 
 	# Colony stat strip
 	_stat_strip = HBoxContainer.new()
@@ -232,6 +256,98 @@ func _build_layout() -> void:
 	_advance_button.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
 	_advance_button.pressed.connect(_on_advance_pressed)
 	nav.add_child(_advance_button)
+
+	# Apply the initial portrait/landscape shape to the top bar now that it exists,
+	# and listen for orientation/breakpoint changes. The base CampaignScreenBase
+	# already connects layout_class_changed -> _on_layout_class_changed for its own
+	# column relayout; this is a SEPARATE, dedicated connection so the top-bar
+	# reshape fires on every rotation regardless of column-count dedupe.
+	_connect_topbar_responsive()
+	_apply_topbar_responsive()
+
+
+## ============================================================================
+## TOP-BAR RESPONSIVE LAYOUT (portrait phones)
+## ============================================================================
+
+## Wire the dedicated top-bar reshape to ResponsiveManager.layout_class_changed.
+## Guarded so a re-entrant _build_layout() can never double-connect.
+func _connect_topbar_responsive() -> void:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed") \
+			and not rm.layout_class_changed.is_connected(_on_topbar_layout_class_changed):
+		rm.layout_class_changed.connect(_on_topbar_layout_class_changed)
+
+
+func _on_topbar_layout_class_changed(_effective_columns: int) -> void:
+	_apply_topbar_responsive()
+
+
+## Reshape ONLY the top bar (top row + 6-label stat strip) for the current
+## orientation. Landscape is left byte-for-byte identical to the original layout;
+## portrait stacks the top row vertically (so Turn/Save/Dashboard are not crushed),
+## hides the three lower-priority colony stats so MORALE/INTEGRITY/SP keep room,
+## and bumps both buttons to >= TOUCH_TARGET_MIN (48) high.
+func _apply_topbar_responsive() -> void:
+	if not is_instance_valid(_top_row):
+		return
+
+	var portrait: bool = _topbar_is_portrait()
+	if portrait == _topbar_is_portrait_applied and _last_topbar_state_initialized:
+		return
+	_topbar_is_portrait_applied = portrait
+	_last_topbar_state_initialized = true
+
+	if portrait:
+		# Stack the top row so the expanding Turn label does not crush the two
+		# buttons onto one cramped line.
+		_top_row.vertical = true
+		_top_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+		if is_instance_valid(_turn_label):
+			_turn_label.size_flags_horizontal = Control.SIZE_FILL
+		# Touch-friendly buttons, full-width so they are easy to hit on a phone.
+		if is_instance_valid(_save_button):
+			_save_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+			_save_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if is_instance_valid(_dashboard_button):
+			_dashboard_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+			_dashboard_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Drop the low-priority stats so the kept three are not squeezed.
+		for key in _TOPBAR_PORTRAIT_HIDDEN_STATS:
+			if _stat_labels.has(key) and is_instance_valid(_stat_labels[key]):
+				_stat_labels[key].visible = false
+	else:
+		# Restore the original landscape shape exactly.
+		_top_row.vertical = false
+		_top_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+		if is_instance_valid(_turn_label):
+			_turn_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if is_instance_valid(_save_button):
+			_save_button.custom_minimum_size = Vector2(80, 36)
+			_save_button.size_flags_horizontal = Control.SIZE_FILL
+		if is_instance_valid(_dashboard_button):
+			_dashboard_button.custom_minimum_size = Vector2(100, 36)
+			_dashboard_button.size_flags_horizontal = Control.SIZE_FILL
+		for key in _TOPBAR_PORTRAIT_HIDDEN_STATS:
+			if _stat_labels.has(key) and is_instance_valid(_stat_labels[key]):
+				_stat_labels[key].visible = true
+
+
+## True when the current layout should collapse the top bar to its portrait shape.
+## Prefers ResponsiveManager (DPI-aware, single source of truth); falls back to a
+## raw viewport aspect check so it still works if the autoload is absent.
+func _topbar_is_portrait() -> bool:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm:
+		var portrait: bool = rm.is_portrait() if rm.has_method("is_portrait") else false
+		var collapse: bool = rm.should_collapse_to_single_column() \
+			if rm.has_method("should_collapse_to_single_column") else false
+		return portrait and collapse
+	var vp := get_viewport()
+	if not vp:
+		return false
+	var sz := vp.get_visible_rect().size
+	return sz.y > sz.x
 
 
 func _build_stat_strip() -> void:

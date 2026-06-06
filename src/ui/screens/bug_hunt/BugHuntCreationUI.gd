@@ -70,7 +70,11 @@ func _build_layout() -> void:
 	header.add_theme_constant_override("separation", 4)
 	vbox.add_child(header)
 
-	var header_row := HBoxContainer.new()
+	# HFlowContainer so the title wraps below the Cancel button on narrow
+	# (portrait phone) widths instead of clipping; stays single-line on desktop.
+	var header_row := HFlowContainer.new()
+	header_row.add_theme_constant_override("h_separation", 8)
+	header_row.add_theme_constant_override("v_separation", 4)
 	header.add_child(header_row)
 
 	var cancel_button := Button.new()
@@ -83,7 +87,7 @@ func _build_layout() -> void:
 	title.text = "BUG HUNT — NEW CAMPAIGN"
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header_row.add_child(title)
 
 	_step_label = Label.new()

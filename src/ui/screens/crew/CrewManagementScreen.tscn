@@ -127,10 +127,10 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 columns = 1
 
-[node name="ButtonPanel" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="ButtonPanel" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 48)
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 
 [node name="AddButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonPanel"]
 unique_name_in_owner = true
@@ -155,10 +155,6 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_Button")
 text = "Save"
-
-[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/ButtonPanel"]
-layout_mode = 2
-size_flags_horizontal = 3
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonPanel"]
 unique_name_in_owner = true

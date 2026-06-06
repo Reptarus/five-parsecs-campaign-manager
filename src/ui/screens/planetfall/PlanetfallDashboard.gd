@@ -202,6 +202,9 @@ func _build_dashboard() -> void:
 	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL + 4))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Long campaign/colony names must wrap, not clip, in narrow portrait (~384px).
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_box.add_child(title)
 
 	if not colony.is_empty() and colony != name_str:
@@ -210,6 +213,8 @@ func _build_dashboard() -> void:
 		colony_lbl.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_LG))
 		colony_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		colony_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		colony_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		colony_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header_box.add_child(colony_lbl)
 
 	_content.add_child(header_box)

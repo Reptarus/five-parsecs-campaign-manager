@@ -8,10 +8,14 @@ class_name PurchaseItemsComponent
 ## - Buy basic items (Handgun, Blade, Colony Rifle, Shotgun for 1 credit)
 
 const TradingSystem = preload("res://src/core/systems/TradingSystem.gd")
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 
 # Market system integration
 var trading_system: TradingSystem = null
 var equipment_manager: Node = null
+
+# The three purchase panes reparented into this group (set in _setup_adaptive_panels).
+var _panel_group: Control = null
 
 # UI Components
 @onready var credits_display: Label = %CreditsDisplay
@@ -83,6 +87,36 @@ func _setup_initial_state() -> void:
 	purchase_completed = false
 	_populate_basic_items()
 	_update_ui_display()
+	_setup_adaptive_panels()
+
+func _setup_adaptive_panels() -> void:
+	if _panel_group:
+		return  # _setup_initial_state may re-run; guard re-entry.
+	var left_panel: Control = get_node_or_null("%LeftPanel")
+	var center_panel: Control = get_node_or_null("%CenterPanel")
+	var right_panel: Control = get_node_or_null("%RightPanel")
+	if not (left_panel and center_panel and right_panel):
+		return
+	var main_content: Node = left_panel.get_parent()       # the PurchaseContainer HBox
+	var vbox: Node = main_content.get_parent() if main_content else null
+	if not vbox:
+		return
+	var idx: int = main_content.get_index()
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	# TABS in portrait: Buy / Cart / Sell are 3 distinct surfaces, so a tab strip
+	# reads better on a phone than a long stacked scroll.
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+	group.add_pane(left_panel, "Buy")
+	group.add_pane(center_panel, "Cart")
+	group.add_pane(right_panel, "Sell")
+	main_content.queue_free()  # now empty; Header + separator untouched
+	_panel_group = group
 
 ## Public API
 func initialize_purchase_phase(credits: int, stash: Array) -> void:

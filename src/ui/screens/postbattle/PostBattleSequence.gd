@@ -18,6 +18,7 @@ const StarsSystemClass = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
 
 # Design system (UIColors canonical source)
+const SPACING_XS := UIColors.SPACING_XS
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const SPACING_LG := UIColors.SPACING_LG
@@ -694,8 +695,12 @@ func _add_rival_status_content() -> void:
 
 func _create_rival_status_panel(rival: Dictionary) -> Control:
 	## Create a panel for rival status checking
-	var panel = HBoxContainer.new()
-	
+	# HFlow so name + roll button + result wrap to a second line on a narrow
+	# (~384px) portrait column instead of clipping the roll-outcome text.
+	var panel = HFlowContainer.new()
+	panel.add_theme_constant_override("h_separation", SPACING_SM)
+	panel.add_theme_constant_override("v_separation", SPACING_XS)
+
 	var name_label = Label.new()
 	name_label.text = rival.get("name", "Unknown Rival")
 	name_label.custom_minimum_size.x = 150
@@ -826,8 +831,12 @@ func _add_battlefield_finds_content() -> void:
 
 func _create_battlefield_find_panel(enemy_num: int) -> Control:
 	## Create a panel for battlefield finds
-	var panel = HBoxContainer.new()
-	
+	# HFlow so label + search button + result wrap on a narrow (~384px) portrait
+	# column instead of clipping the find text.
+	var panel = HFlowContainer.new()
+	panel.add_theme_constant_override("h_separation", SPACING_SM)
+	panel.add_theme_constant_override("v_separation", SPACING_XS)
+
 	var label = Label.new()
 	label.text = "Enemy %d:" % enemy_num
 	label.custom_minimum_size.x = 80
@@ -922,7 +931,11 @@ func _add_injury_content() -> void:
 
 func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	## Create a panel for injury resolution
-	var panel = HBoxContainer.new()
+	# HFlow so label + roll button + result wrap on a narrow (~384px) portrait
+	# column instead of clipping the injury-outcome text.
+	var panel = HFlowContainer.new()
+	panel.add_theme_constant_override("h_separation", SPACING_SM)
+	panel.add_theme_constant_override("v_separation", SPACING_XS)
 
 	var label = Label.new()
 	label.text = "%s %d:" % [type, num]
@@ -1010,13 +1023,17 @@ func _add_experience_content() -> void:
 
 func _create_experience_panel(crew_member: Dictionary) -> Control:
 	## Create experience gain panel for crew member
-	var panel = HBoxContainer.new()
-	
+	# HFlow so name + roll button + result wrap on a narrow (~384px) portrait
+	# column instead of clipping the advancement text.
+	var panel = HFlowContainer.new()
+	panel.add_theme_constant_override("h_separation", SPACING_SM)
+	panel.add_theme_constant_override("v_separation", SPACING_XS)
+
 	var name_label = Label.new()
 	name_label.text = crew_member.get("name", "Unknown")
 	name_label.custom_minimum_size.x = 120
 	panel.add_child(name_label)
-	
+
 	var roll_button = Button.new()
 	roll_button.text = "Roll Advancement"
 	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
@@ -1047,8 +1064,11 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 	var panel = VBoxContainer.new()
 	panel.add_theme_constant_override("separation", 8)
 
-	# Bot name header
-	var header = HBoxContainer.new()
+	# Bot name header — HFlow so name + credits wrap on a narrow (~384px) portrait
+	# column instead of clipping a long bot name.
+	var header = HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_SM)
+	header.add_theme_constant_override("v_separation", SPACING_XS)
 	var name_label = Label.new()
 	name_label.text = "🤖 %s" % crew_member.get("name", "Unknown Bot")
 	name_label.custom_minimum_size.x = 150
@@ -1071,9 +1091,11 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 		var installed_upgrades: Array = crew_member.get("bot_upgrades", [])
 		var available_upgrades = _advancement_system.get_available_bot_upgrades(null)
 
-		# Create upgrade options
-		var upgrade_container = HBoxContainer.new()
-		upgrade_container.add_theme_constant_override("separation", 12)
+		# Create upgrade options — HFlow so multiple upgrade buttons wrap onto
+		# additional rows on a narrow (~384px) portrait column instead of clipping.
+		var upgrade_container = HFlowContainer.new()
+		upgrade_container.add_theme_constant_override("h_separation", 12)
+		upgrade_container.add_theme_constant_override("v_separation", SPACING_SM)
 
 		for upgrade_data in available_upgrades:
 			var upgrade_id: String = upgrade_data.get("id", "")
@@ -1234,8 +1256,12 @@ func _add_campaign_events_content() -> void:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
 	
-	var roll_panel = HBoxContainer.new()
-	
+	# HFlow so the roll button + result wrap on a narrow (~384px) portrait column
+	# instead of clipping the campaign-event text.
+	var roll_panel = HFlowContainer.new()
+	roll_panel.add_theme_constant_override("h_separation", SPACING_SM)
+	roll_panel.add_theme_constant_override("v_separation", SPACING_XS)
+
 	var roll_btn = Button.new()
 	roll_btn.text = "Roll Campaign Event"
 	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
@@ -1316,13 +1342,17 @@ func _add_character_events_content() -> void:
 
 func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	## Create character event panel for crew member
-	var panel = HBoxContainer.new()
-	
+	# HFlow so name + roll button + result wrap on a narrow (~384px) portrait
+	# column instead of clipping the event-outcome text.
+	var panel = HFlowContainer.new()
+	panel.add_theme_constant_override("h_separation", SPACING_SM)
+	panel.add_theme_constant_override("v_separation", SPACING_XS)
+
 	var name_label = Label.new()
 	name_label.text = crew_member.get("name", "Unknown")
 	name_label.custom_minimum_size.x = 120
 	panel.add_child(name_label)
-	
+
 	var roll_btn = Button.new()
 	roll_btn.text = "Roll Event"
 	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN

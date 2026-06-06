@@ -1,6 +1,6 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-05-17 (BUG-101 RE-FIXED: 05-16 verify was premature — user re-reported residual 3-10px terrain bleed; true root cause empirically isolated (SVS draws body on rotated `offset`, not `position`), back-solved position + stroke envelope, MCP-verified 0/316 offenders across 10 distinct seeds. CLR-101: objective "dead center" confirmed verbatim rules-correct vs Core Rules PDF p.90 — kept position, added rule-cite label (user-chosen). objective-tracker 14/14 PASS. Prev 2026-05-16: Battle-UI Sweep BUG-100..106 filed; BUG-100/102/103/104/105 fixed+verified, BUG-106 umbrella)
+**Last Updated**: 2026-06-06 (Mobile/tablet responsive re-pivot — Phase 4 (5 hard screens) + Phase 5 (device-QA matrix + 14-screen remediation) SHIPPED & verified. See "§ Responsive / Device QA" below. Prior 2026-05-17: BUG-101 RE-FIXED: 05-16 verify was premature — user re-reported residual 3-10px terrain bleed; true root cause empirically isolated (SVS draws body on rotated `offset`, not `position`), back-solved position + stroke envelope, MCP-verified 0/316 offenders across 10 distinct seeds. CLR-101: objective "dead center" confirmed verbatim rules-correct vs Core Rules PDF p.90 — kept position, added rule-cite label (user-chosen). objective-tracker 14/14 PASS. Prev 2026-05-16: Battle-UI Sweep BUG-100..106 filed; BUG-100/102/103/104/105 fixed+verified, BUG-106 umbrella)
 **Engine**: Godot 4.6-stable
 **Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete**, **30/30 UI issues fixed**. KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json (24 events data-driven). See QA_RULES_ACCURACY_AUDIT.md for details.
 **Alpha context**: Closed alpha kickoff target Mon May 25, 2026. See §11 below for alpha-1 scope (Core + Compendium DLC only) and `docs/testing/ALPHA_1_QA_PLAN.md` for execution detail.
@@ -12,6 +12,47 @@
 | **Tactics** | 59 files | 108 costs verified | 5/7 scenarios PASS, 9 bugs fixed | MainMenu button wired |
 | **Bug Hunt** | 38 files | 15 JSON verified | End-to-end flow verified (Session 45) | MainMenu button wired |
 | **Cross-Mode Transfer** | `CharacterTransferService` + 3 panels + pickup | Planetfall pp.26-27/165-166 + Tactics p.184/185 verified | 24/24 gdUnit4 (`test_character_transfer_hub`, `test_planetfall_transfer`, `test_tactics_transfer`); editor parse clean | Foundation + Planetfall P1 + Tactics SHIPPED; all 4 modes interconnect any-to-any; P3 barracks deferred |
+
+---
+
+## § Responsive / Device QA (June 2026 mobile/tablet re-pivot)
+
+The build was re-pivoted to dual-platform (desktop landscape + mobile/tablet portrait, both orientations, 375px→1920px). `ResponsiveManager` (DPI-aware breakpoints + `layout_class_changed` rotation signal) is the SSOT; multi-pane screens use `AdaptivePanelGroup` (grid in landscape, tabs/stack in portrait). SOP: `docs/sop/responsive-adaptive-ui.md`.
+
+### Phase 4 — the 5 hard screens (SHIPPED, verified live both orientations)
+| Screen | Adaptation | Verified |
+|---|---|---|
+| CampaignDashboard | Outer-scroll wrap; 1-col turns outer scroll on + inner scrolls off (no "1/3-cramp") | MCP live: 1920=3col, 768=2col, 430=1col stack |
+| GalaxyLog | Legend → HFlowContainer, count min-width relaxed, Recenter button | MCP live portrait |
+| TacticalBattleUI | Rails suppress in portrait (map fills); intel-drawer mirror; rotation reconcile | live reconcile probe + adversarial review |
+| PreBattle / EquipmentManager | 3 panes → `AdaptivePanelGroup(TABS)` | live instantiation probes |
+
+### Phase 5 — device matrix QA + fast-follow remediation (SHIPPED)
+- **Static audit**: 70 screens swept (workflow), 18 portrait-readiness issues confirmed.
+- **Remediation (14 screens)**: 7 `AdaptivePanelGroup` migrations (PatronRivalManager, ShipManager, CampaignEventsManager, AdvancementManager, PurchaseItemsComponent, EquipmentGenerationScene, CharacterCreator); 4 fixed-width caps (CampaignJournalScreen, EquipmentPanel, TravelPhase, BattleTransitionUI); 3 turn-controller portrait top-bars (BugHunt/Planetfall/Tactics); touch-target bumps (dashboard `?`/`SP`, PurchaseItems roll buttons → 48px).
+- **Verification**: parse-check clean on all 15 scripts + 8 scenes; all 14 diffs reviewed (landscape byte-identical, reparent-safe, focus indices correct); `AdaptivePanelGroup` 10/10 unit tests; live-confirmed both modes (TABS via Equipment/PreBattle, STACK via ShipManager). Tests: `test_responsive_manager_effective_columns` (16), `test_adaptive_panel_group` (10).
+
+### Pre-existing bugs surfaced during device QA (NOT responsive; out of scope — flagged for follow-up)
+| Bug | Location | Severity | Status |
+|---|---|---|---|
+| Duplicate `_notify_success` func (parse error) | `CampaignJournalScreen.gd` (was lines 985/1217) | HIGH (screen failed to instantiate) | **FIXED** (removed the duplicate; was latent in HEAD, `--headless --quit` never caught it — screen not on boot path) |
+| `var x: Panel = _create_*_panel()` where factory returns `PanelContainer` (6 sites) | PatronRivalManager (×2), AdvancementManager (×3), CampaignEventsManager (×1) | MED (aborted the refresh fn — halts `--debug`) | **FIXED** (`Panel`→`Control` at all 6 sites; matches the factories' declared `-> Control`) |
+| Missing template JSONs spamming `DataManager` errors | `data/{patrons,rivals,jobs}/*_templates.json` (never shipped; in-code fallbacks supply scaffolding) | LOW (error-log spam; fallback works) | **FIXED** (existence-guarded load → silent fallback; did NOT fabricate the JSONs) |
+| `Invalid access to key 'threat_level'` (missing-key on rival dict) | `PatronRivalManager.gd:414` (`_create_rival_panel`) + likely more keys in that screen's panel-builders | MED (halts `--debug`; PatronRivalManager is a half-finished screen with a data-contract mismatch) | OPEN — deferred (a dedicated PatronRivalManager data-contract pass; out of scope for this work) |
+
+> **QA tooling note**: full-instantiation MCP probes of PatronRivalManager are still blocked by the remaining `threat_level` data-contract crash (debugger halts in `--debug`). AdvancementManager/CampaignEventsManager had only the Panel crash (now fixed). Migrations are verified via parse-check + diff review + the proven `AdaptivePanelGroup` pattern (live-confirmed on Equipment/PreBattle/ShipManager).
+
+### Text scaling + portrait narrow-width pass (Jun 2026)
+
+**Tiny-text root cause:** the square 1080×1080 stretch base (chosen for dual orientation) scales content by `min(window.x, window.y)/1080` — in PORTRAIT the small window WIDTH constrains it to ~0.4× → text ~6px. (Desktop landscape is height-constrained ~0.97×, so desktop text was merely "small", not tiny.)
+
+**Fix** in `SettingsManager._apply_ui_scale()` (recomputed on every resize/rotation):
+`content_scale_factor = TARGET_EFFECTIVE(1.12) × ui_scale × dpi_scale × (1080 / min(window.x, window.y))`
+The `1080/min(window)` term CANCELS the square-base stretch and holds a constant **effective ~1.12 scale** in both orientations — so portrait text jumps ~2.8× to match landscape (verified: landscape content_scale ~1.15, portrait ~2.81, both effective 1.12). `dpi_scale` = `screen_get_scale()` (real on Android/iOS/macOS/Wayland/Web, **1.0 on Windows**; for Windows-hiDPI later use `screen_get_dpi()`). content_scale does NOT affect ResponsiveManager's dp breakpoint logic, so column/collapse is unchanged.
+
+**Narrow-width pass (the consequence):** normalizing the scale shrank the portrait design space to a real ~384px phone width, exposing that Phase-4 portrait was **column-collapse only** — individual rows (headers, stat strips) were authored for the fake-wide 1080 space and overflowed. Fixed across ~19 screens: non-wrapping header/badge/button rows `HBoxContainer`→`HFlowContainer` (wrap in portrait, single-line on desktop); long labels → `AUTOWRAP_WORD_SMART`; shared `CampaignScreenBase._create_info_row()` value label → `EXPAND_FILL`+autowrap; gamemode-dashboard 5-col stat grids → 3-col in portrait via `should_use_single_column()`. Verified: CampaignDashboard + ShipManager fit 384px portrait with zero overflow; parse-clean across all 38 touched files.
+
+**Mobile-optimized (tabbed sections, not just "fits"):** "fits + readable" still read as a stacked desktop layout (one long scroll). Converted the 3-pane *glance* screens to a genuine mobile pattern — a 3-column GRID on desktop/landscape, a **tab strip in portrait** (one focused, self-scrolling section), all from one codebase via `AdaptivePanelGroup`. **CampaignDashboard** migrated for real (Crew/Ship/World tabs; replaced the Phase-4.1 `MainScroll` outer-scroll wrapper; `_set_column_layout` early-returns once the group owns layout). **ShipManager** + **PurchaseItemsComponent** switched STACK→TABS; PatronRival/Advancement/CampaignEvents (Phase 5) + PreBattle/Equipment (Phase 4) already TABS. Gamemode dashboards are code-built card-hubs (no glance-grid) — left as scrolling card lists. Tab strip is 56px (touch-friendly). Verified live: dashboard desktop 3-col grid unchanged + portrait Crew/Ship/World tabs; ShipManager/PurchaseItems 3 tabs in portrait. **Deferred polish:** a dedicated fixed bottom action bar (current action buttons wrap into rows — functional but not a native bottom-nav).
 
 ---
 

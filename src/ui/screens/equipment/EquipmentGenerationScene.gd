@@ -8,10 +8,12 @@ extends Control
 # Safe imports with error boundaries
 # GlobalEnums available as autoload singleton
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 
-# UI Components
-@onready var crew_list: ItemList = get_node_or_null("MarginContainer/VBoxContainer/CrewSection/CrewList")
-@onready var equipment_display: RichTextLabel = get_node_or_null("MarginContainer/VBoxContainer/EquipmentSection/EquipmentDisplay")
+# UI Components — crew_list/equipment_display live inside panes reparented by the
+# AdaptivePanelGroup, so they resolve from %-unique names (survives reparenting).
+@onready var crew_list: ItemList = get_node_or_null("%CrewList")
+@onready var equipment_display: RichTextLabel = get_node_or_null("%EquipmentDisplay")
 @onready var generate_button: Button = get_node_or_null("MarginContainer/VBoxContainer/ButtonSection/GenerateButton")
 @onready var regenerate_button: Button = get_node_or_null("MarginContainer/VBoxContainer/ButtonSection/RegenerateButton")
 @onready var finish_button: Button = get_node_or_null("MarginContainer/VBoxContainer/ButtonSection/FinishButton")
@@ -30,19 +32,59 @@ var equipment_generator: Node = null
 var dice_manager: Node = null
 var state_bridge: Node = null
 
+# Responsive layout
+var _panel_group: Control = null
+
 # Signals for campaign integration
 signal equipment_generated(equipment_data: Dictionary)
 signal equipment_generation_completed(equipment_data: Dictionary)
 signal generation_cancelled()
 
 func _ready() -> void:
-	
+
 	_setup_ui_components()
 	_connect_signals()
 	_initialize_dependencies()
-	
+	_setup_adaptive_panels()
+
 	# Setup campaign integration
 	call_deferred("setup_for_campaign_creation")
+
+func _setup_adaptive_panels() -> void:
+	## Move the side-by-side CrewSection/EquipmentSection into an AdaptivePanelGroup
+	## so the layout collapses to a single scrolling column on phones (STACK mode)
+	## and stays side-by-side on tablet/desktop (>=2 effective columns).
+	if _panel_group:
+		return
+
+	var crew_section: Control = get_node_or_null("%CrewSection")
+	var equipment_section: Control = get_node_or_null("%EquipmentSection")
+	if not crew_section or not equipment_section:
+		return
+
+	var main_content: Node = crew_section.get_parent()  # the ContentContainer HBox
+	if not main_content:
+		return
+	var vbox: Node = main_content.get_parent()
+	if not vbox:
+		return
+	var idx: int = main_content.get_index()
+
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.STACK
+	group.max_columns = 2
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+
+	group.add_pane(crew_section, "Crew")
+	group.add_pane(equipment_section, "Equipment")
+
+	main_content.queue_free()  # leftover HBox shell (and its VSeparator)
+	_panel_group = group
 
 func _setup_ui_components() -> void:
 	## Setup UI components with safe defaults

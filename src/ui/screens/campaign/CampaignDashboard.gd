@@ -10,6 +10,10 @@ const StoryPointSystemClass = preload(
 	"res://src/core/systems/StoryPointSystem.gd")
 const StarsSystemClass = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
+## Mobile: the 3 columns (Crew/Ship/World) collapse to a TAB strip in portrait
+## via this, while staying a 3-column glance grid on desktop/landscape.
+const AdaptivePanelGroupClass = preload(
+	"res://src/ui/components/base/AdaptivePanelGroup.gd")
 
 # ── Node References (unique names from .tscn) ─────────────────────
 # Header
@@ -43,6 +47,7 @@ const StarsSystemClass = preload(
 @onready var header_panel: PanelContainer = %HeaderPanel
 
 var phase_manager: Node
+var _panel_group: Control = null  # AdaptivePanelGroup wrapping the 3 columns
 var _active_dialogs: Array[Node] = []
 var _history_overlay: Control = null
 var _active_history_panel: Control = null
@@ -69,6 +74,44 @@ func _setup_screen() -> void:
 	# Offer to muster in any Bug Hunt veterans (or other cross-mode transfers)
 	# waiting in user://transfers/. Deferred so the dashboard finishes building first.
 	_check_pending_transfers.call_deferred()
+	_setup_adaptive_panels()
+
+
+## Reparent the 3 info columns into an AdaptivePanelGroup: a 3-column glance GRID
+## on desktop/landscape, a Crew/Ship/World TAB strip in portrait (one focused,
+## self-scrolling section instead of one long stacked scroll). Replaces the
+## Phase-4.1 outer-scroll wrapper (MainScroll); the group now owns the column/tab
+## layout, so _set_column_layout early-returns once this runs. Header + stat strip
+## + action buttons are siblings, so they stay put.
+func _setup_adaptive_panels() -> void:
+	if _panel_group:
+		return
+	if not (left_column and center_column and right_column):
+		return
+	var main_scroll_node := get_node_or_null("%MainScroll")
+	if main_scroll_node == null:
+		return
+	var vbox: Node = main_scroll_node.get_parent()
+	var idx: int = main_scroll_node.get_index()
+	# Each tab/column scrolls itself (the Phase-4.1 1-col neutralization is moot now).
+	for pair in [["LeftColumn", "LeftScroll"], ["CenterColumn", "CenterScroll"], ["RightColumn", "RightScroll"]]:
+		var col: Node = get_node_or_null("%" + pair[0])
+		var inner: Node = col.get_node_or_null(pair[1]) if col else null
+		if inner is ScrollContainer:
+			(inner as ScrollContainer).vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var group = AdaptivePanelGroupClass.new()
+	group.name = "DashboardPanes"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+	group.add_pane(left_column, "Crew")
+	group.add_pane(center_column, "Ship")
+	group.add_pane(right_column, "World")
+	main_scroll_node.queue_free()  # frees the now-empty outer scroll + MainContent
+	_panel_group = group
 
 
 ## Refresh the dashboard after veterans muster in (CampaignScreenBase hook).
@@ -154,7 +197,7 @@ func _add_help_button() -> void:
 		return
 	var help_btn := Button.new()
 	help_btn.text = "?"
-	help_btn.custom_minimum_size = Vector2(40, 40)
+	help_btn.custom_minimum_size = Vector2(48, 48)  # TOUCH_TARGET_MIN (touch parity)
 	help_btn.flat = true
 	help_btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	help_btn.add_theme_color_override("font_color", COLOR_CYAN)
@@ -326,10 +369,13 @@ func _update_stat_strip(campaign) -> void:
 	var turn: int = pd.get("turns_played", 0) + 1
 	var crew_count: int = _get_crew_members(campaign).size()
 
-	var strip := HBoxContainer.new()
+	# HFlowContainer (not HBox) so the 4 badges wrap to 2x2 on a narrow portrait
+	# phone instead of overflowing; stays a single centered row on desktop.
+	var strip := HFlowContainer.new()
 	strip.name = "__stat_strip"
-	strip.add_theme_constant_override("separation", SPACING_SM)
-	strip.alignment = BoxContainer.ALIGNMENT_CENTER
+	strip.add_theme_constant_override("h_separation", SPACING_SM)
+	strip.add_theme_constant_override("v_separation", SPACING_XS)
+	strip.alignment = FlowContainer.ALIGNMENT_CENTER
 	parent_vbox.add_child(strip)
 	parent_vbox.move_child(strip, header_panel.get_index() + 1)
 
@@ -2619,6 +2665,11 @@ func _apply_desktop_layout() -> void:
 	_set_column_layout(3 if not should_use_single_column() else 2)
 
 func _set_column_layout(columns: int) -> void:
+	# Once the AdaptivePanelGroup owns the layout (GRID vs TABS by orientation),
+	# this legacy path must not touch the panes' parent (which is now the group's
+	# internal grid) or it would fight the group.
+	if _panel_group:
+		return
 	var main_content = left_column.get_parent() if left_column else null
 	if main_content and main_content is GridContainer:
 		main_content.columns = columns

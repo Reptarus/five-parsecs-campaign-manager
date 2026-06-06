@@ -44,14 +44,14 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/margin_right = 60
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HeaderPanel/HeaderMargin"]
+[node name="HeaderHBox" type="HFlowContainer" parent="MarginContainer/VBoxContainer/HeaderPanel/HeaderMargin"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 6
 
 [node name="CampaignNameLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HeaderMargin/HeaderHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Campaign Name"
 text_overrun_behavior = 3
@@ -71,6 +71,7 @@ text = "Credits: 0"
 
 [node name="StoryPointsLabel" type="Button" parent="MarginContainer/VBoxContainer/HeaderPanel/HeaderMargin/HeaderHBox"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "SP: 0"

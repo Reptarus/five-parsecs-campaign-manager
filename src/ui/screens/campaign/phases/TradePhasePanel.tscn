@@ -68,8 +68,10 @@ fit_content = true
 [node name="HSeparator5" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="VBoxContainer"]
 layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
 alignment = 1
 
 [node name="BuyButton" type="Button" parent="VBoxContainer/ButtonContainer"]

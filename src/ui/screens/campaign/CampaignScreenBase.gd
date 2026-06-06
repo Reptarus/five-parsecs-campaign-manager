@@ -615,7 +615,7 @@ func _create_info_row(
 	lbl.text = label
 	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	hbox.add_child(lbl)
 
 	var val_lbl := Label.new()
@@ -623,6 +623,11 @@ func _create_info_row(
 	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	val_lbl.add_theme_color_override("font_color", value_color)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# Fill the remaining row width and WRAP long values (e.g. a ship name) so a
+	# single long value can't force the row wider than a ~384px portrait column.
+	# Desktop is visually unchanged (value still right-aligned at the row edge).
+	val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	val_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hbox.add_child(val_lbl)
 
 	return hbox

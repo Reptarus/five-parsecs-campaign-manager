@@ -70,6 +70,9 @@ func _build_dashboard() -> void:
 		"font_size", get_responsive_font_size(FONT_SIZE_XL + 4))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Long campaign names must wrap, not clip, in narrow portrait (~384px).
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_box.add_child(title)
 
 	if not army_str.is_empty() or not species_str.is_empty():
@@ -82,6 +85,8 @@ func _build_dashboard() -> void:
 			"font_size", get_responsive_font_size(FONT_SIZE_LG))
 		sub.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header_box.add_child(sub)
 
 	# ── Stat Strip ──────────────────────────────────────────────────
@@ -108,7 +113,10 @@ func _build_dashboard() -> void:
 		"UNITS": str(active_units),
 		"WINS": str(battles_won),
 	}
-	_content.add_child(_create_stats_grid(stats, 5))
+	# Portrait phones (~384px) can't fit five 64px stat cards in one row (352px floor,
+	# no horizontal scroll). Cap at 3 columns so they wrap to 3+2; stay 5-wide on desktop.
+	var stat_cols: int = 3 if should_use_single_column() else 5
+	_content.add_child(_create_stats_grid(stats, stat_cols))
 
 	# ── Navigation Hub Cards ────────────────────────────────────────
 	var hub_box := VBoxContainer.new()

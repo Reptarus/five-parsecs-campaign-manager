@@ -38,8 +38,13 @@ var _battle_indicator: Control  # Shown during BATTLE phase
 ## UI refs
 var _turn_label: Label
 var _phase_label: Label
+var _dash_btn: Button
 var _panel_container: Control
 var _phase_strip: HBoxContainer
+
+## Cached full phase text (landscape baseline) for the phase label,
+## so portrait shortening never permanently loses the original string.
+var _phase_label_full_text: String = "Phase: --"
 
 
 func _scaled_font(base: int) -> int:
@@ -152,6 +157,7 @@ func _build_layout() -> void:
 		if router and router.has_method("navigate_to"):
 			router.navigate_to("tactics_dashboard"))
 	top_bar.add_child(dash_btn)
+	_dash_btn = dash_btn
 
 	# Phase strip (8 dots)
 	_phase_strip = HBoxContainer.new()
@@ -170,6 +176,43 @@ func _build_layout() -> void:
 	_panel_container = Control.new()
 	_panel_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(_panel_container)
+
+	# Responsive top bar (portrait phones) — connect once, apply now
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
+			rm.layout_class_changed.connect(_on_layout_class_changed)
+	_apply_topbar_responsive()
+
+
+## Portrait-phone top bar adaptation. Landscape/tablet/desktop are left
+## visually identical to the original layout; only the narrow single-column
+## (portrait) class shortens/hides the phase label and grows the Dashboard
+## button to a comfortable touch target.
+func _apply_topbar_responsive() -> void:
+	if not is_instance_valid(_dash_btn) or not is_instance_valid(_phase_label):
+		return
+
+	var collapse := false
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		collapse = rm.should_collapse_to_single_column()
+
+	if collapse:
+		# Narrow portrait: reclaim horizontal space.
+		# Hide the phase text (the 8-dot strip still shows progress),
+		# and bump the Dashboard button to >= TOUCH_TARGET_MIN.
+		_phase_label.visible = false
+		_dash_btn.custom_minimum_size.y = 48
+	else:
+		# Landscape / wider: original behavior.
+		_phase_label.visible = true
+		_phase_label.text = _phase_label_full_text
+		_dash_btn.custom_minimum_size.y = 40
+
+
+func _on_layout_class_changed(_effective_columns: int) -> void:
+	_apply_topbar_responsive()
 
 
 func _create_phase_manager() -> void:
@@ -226,8 +269,11 @@ func _on_turn_started(turn: int) -> void:
 
 
 func _on_phase_changed(_old: int, new_phase: int) -> void:
-	_phase_label.text = "Phase: %s" % phase_manager.get_phase_name(
+	# Cache the full label text so portrait shortening never loses it,
+	# but only push it to the (possibly-hidden) label.
+	_phase_label_full_text = "Phase: %s" % phase_manager.get_phase_name(
 		new_phase)
+	_phase_label.text = _phase_label_full_text
 
 	# Update phase strip
 	for i in range(_phase_strip.get_child_count()):

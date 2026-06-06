@@ -2605,6 +2605,22 @@ func _apply_split_orientation() -> void:
 	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
 	if main_split and main_split is HSplitContainer:
 		main_split.set_deferred("vertical", should_use_single_column())
+	_apply_split_section_widths()
+
+func _apply_split_section_widths() -> void:
+	## Relax the EquipmentSection (400) / CrewSection (350) horizontal minimums
+	## when collapsed to a single column. The .tscn min widths exist to keep the
+	## two panes legible side-by-side on desktop/landscape, but they CLIP at 375
+	## (e.g. a 375dp phone) even after the split flips vertical, because a
+	## stacked child still honors custom_minimum_size.x. Zero them when single-
+	## column so each pane can shrink to the viewport width; restore otherwise.
+	var single_col: bool = should_use_single_column()
+	var equipment_section := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection")
+	if equipment_section and equipment_section is Control:
+		equipment_section.custom_minimum_size.x = 0 if single_col else 400
+	var crew_section := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection")
+	if crew_section and crew_section is Control:
+		crew_section.custom_minimum_size.x = 0 if single_col else 350
 
 func _apply_mobile_layout() -> void:
 	## Mobile: Single column, 56dp targets, compact equipment list

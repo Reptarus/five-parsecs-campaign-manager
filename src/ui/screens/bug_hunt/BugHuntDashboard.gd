@@ -54,6 +54,9 @@ func _build_dashboard() -> void:
 	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL + 4))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Long campaign names must wrap, not clip, in narrow portrait (~384px).
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_box.add_child(title)
 
 	if not regiment.is_empty():
@@ -76,7 +79,10 @@ func _build_dashboard() -> void:
 		movie_remaining = _campaign.get_available_movie_magic().size()
 
 	var stats := {"TURN": turn, "REP": rep, "MCs": chars.size(), "GRUNTS": grunts.size(), "MAGIC": movie_remaining}
-	var stat_grid := _create_stats_grid(stats, mini(stats.size(), 5))
+	# Portrait phones (~384px) can't fit five 64px stat cards in one row (352px floor,
+	# no horizontal scroll). Cap at 3 columns so they wrap to 3+2; stay 5-wide on desktop.
+	var stat_cols: int = 3 if should_use_single_column() else mini(stats.size(), 5)
+	var stat_grid := _create_stats_grid(stats, stat_cols)
 	_content.add_child(stat_grid)
 
 	# ── Navigation Hub Cards ────────────────────────────────────────

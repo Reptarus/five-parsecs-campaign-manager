@@ -61,6 +61,7 @@ var _location_dropdown: OptionButton
 var _mood_dropdown: OptionButton
 var _turn_min_spin: SpinBox
 var _turn_max_spin: SpinBox
+var _sidebar_panel: PanelContainer       ## Entry-list sidebar (320px desktop, 0 on collapse)
 var _sort_toggle: Button
 var _reset_button: Button
 var _results_label: Label
@@ -120,10 +121,20 @@ func _build_ui() -> void:
 	_outer.add_child(_build_results_label())
 	_outer.add_child(_build_content_split())
 
+	# Apply width caps once now (covers fixed-orientation devices that never fire
+	# layout_class_changed). Re-applied on layout class changes via the overridden
+	# _apply_*_layout virtuals below.
+	_apply_responsive_widths()
+
 
 func _build_header() -> Control:
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow so Back / title / Sort / Share wrap onto a second line on a narrow
+	# (~384px) portrait header instead of clipping (Sort 160 + Share 140 + Back
+	# leave no room for the title on a phone in a non-wrapping HBox). FlowContainer
+	# ignores main-axis expand, so the title is NOT expand-filled here.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_MD)
+	header.add_theme_constant_override("v_separation", SPACING_XS)
 
 	_back_button = Button.new()
 	_back_button.text = "< Back"
@@ -136,7 +147,7 @@ func _build_header() -> Control:
 	_title_label.text = "Campaign Journal"
 	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(_title_label)
 
 	_sort_toggle = Button.new()
@@ -290,6 +301,10 @@ func _build_content_split() -> Control:
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	var sidebar := PanelContainer.new()
+	_sidebar_panel = sidebar
+	# Width is set responsively in _apply_responsive_widths() — fixed 320 on
+	# desktop (>=2 cols), relaxed to 0 min when collapsed to a single column so a
+	# 375px phone is not clipped by a fixed 320px sidebar + detail pane.
 	sidebar.custom_minimum_size.x = SIDEBAR_WIDTH
 	var sidebar_style := StyleBoxFlat.new()
 	sidebar_style.bg_color = COLOR_ELEVATED
@@ -367,6 +382,62 @@ func _build_content_split() -> Control:
 	split.add_child(detail_panel)
 
 	return split
+
+
+# ── Responsive Width Adaptation ─────────────────────────────────────────────
+# The two-pane split + the fixed-width advanced-filter controls were sized for
+# desktop (320px sidebar; 200/200/140 dropdowns; 70/70 turn spinners). On a
+# 375px phone those fixed widths overflow and clip. ResponsiveManager is the
+# single source of truth for "should I collapse to one column"; when it says
+# yes we relax every fixed width. Desktop/landscape (>=2 cols) is untouched.
+
+## True when ResponsiveManager wants a single-column layout. Guarded so a
+## missing/disabled autoload falls back to "don't collapse" (desktop behavior).
+func _should_collapse() -> bool:
+	var rm: Node = get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		return rm.should_collapse_to_single_column()
+	return false
+
+
+func _apply_responsive_widths() -> void:
+	var collapsed: bool = _should_collapse()
+
+	# Sidebar: fixed 320 on desktop; 0 min when collapsed so the entry list
+	# shrinks to share the row width with the detail pane instead of clipping.
+	if _sidebar_panel:
+		_sidebar_panel.custom_minimum_size.x = 0 if collapsed else SIDEBAR_WIDTH
+
+	# Advanced filter controls (in an HFlowContainer that already wraps): drop
+	# the fixed minimum widths when collapsed so each control sizes to content /
+	# the wrapped row width. Restore the desktop widths otherwise.
+	if _character_dropdown:
+		_character_dropdown.custom_minimum_size.x = 0 if collapsed else 200
+	if _location_dropdown:
+		_location_dropdown.custom_minimum_size.x = 0 if collapsed else 200
+	if _mood_dropdown:
+		_mood_dropdown.custom_minimum_size.x = 0 if collapsed else 140
+	# Turn spinners: 70 is small already; cap to 56 on collapse to gain a little.
+	if _turn_min_spin:
+		_turn_min_spin.custom_minimum_size.x = 56 if collapsed else 70
+	if _turn_max_spin:
+		_turn_max_spin.custom_minimum_size.x = 56 if collapsed else 70
+
+
+# ResponsiveManager-driven re-apply. BaseCampaignPanel dispatches these on the
+# initial sync AND on breakpoint/rotation changes (layout_class_changed), so
+# overriding them keeps the width caps in lock-step with the layout class.
+func _apply_mobile_layout() -> void:
+	_apply_responsive_widths()
+
+func _apply_tablet_layout() -> void:
+	_apply_responsive_widths()
+
+func _apply_desktop_layout() -> void:
+	_apply_responsive_widths()
+
+func _apply_wide_layout() -> void:
+	_apply_responsive_widths()
 
 
 # ── Filter Option Population ────────────────────────────────────────────────
@@ -1212,14 +1283,6 @@ func _populate_photos_grid(photos: Array) -> void:
 		caption_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cell.add_child(caption_label)
-
-
-func _notify_success(msg: String) -> void:
-	var nm: Node = get_node_or_null("/root/NotificationManager")
-	if nm and nm.has_method("show_success"):
-		nm.show_success(msg)
-	else:
-		print("[Journal] ", msg)
 
 
 func _consume_scene_router_context() -> void:

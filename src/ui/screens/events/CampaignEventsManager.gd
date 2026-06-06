@@ -4,6 +4,13 @@ extends Control
 signal event_resolved(event: Dictionary, choice: String)
 signal event_skipped(event: Dictionary)
 
+## AdaptivePanelGroup preloaded by path — the 3 content panels (EventRoller /
+## CurrentEvent / EventHistory) sit side-by-side in landscape and collapse to a
+## tab strip in portrait (master-detail: roller -> current-event detail). Path
+## preload avoids the stale class_name cache (CLAUDE.md preload pattern).
+const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+var _panel_group: Control = null
+
 @onready var event_type_selector: OptionButton = %EventTypeSelector
 @onready var last_roll: Label = %LastRoll
 @onready var event_content: VBoxContainer = %EventContent
@@ -49,6 +56,41 @@ var travel_events: Array[Dictionary] = [
 
 func _ready() -> void:
 	_refresh_display()
+	_setup_adaptive_panels()
+
+## Reparent the 3 content panels (EventRoller / CurrentEvent / EventHistory) into
+## an AdaptivePanelGroup so they sit side-by-side in landscape and collapse to a
+## tab strip in portrait (master-detail). The Header and Controls rows are
+## siblings of MainContent, so they stay put — always visible above/below the
+## group. @onready vars resolve to leaf nodes inside the panes via their own
+## %-unique names; those cached object refs survive the reparent.
+func _setup_adaptive_panels() -> void:
+	if _panel_group:
+		return
+	var roller: Control = get_node_or_null("%EventRoller")
+	var current: Control = get_node_or_null("%CurrentEvent")
+	var history: Control = get_node_or_null("%EventHistory")
+	if not (roller and current and history):
+		return
+	var main_content: Node = roller.get_parent()          # the MainContent HBox
+	var vbox: Node = main_content.get_parent() if main_content else null
+	if not vbox:
+		return
+	var idx: int = main_content.get_index()
+	var group := AdaptivePanelGroupClass.new()
+	group.name = "AdaptiveContent"
+	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	group.max_columns = 3
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(group)
+	vbox.move_child(group, idx)
+	# add_pane reparents each panel out of MainContent into the group's grid.
+	group.add_pane(roller, "Roll")
+	group.add_pane(current, "Current")
+	group.add_pane(history, "History")
+	main_content.queue_free()  # now empty; Header + Controls untouched
+	_panel_group = group
 
 func _refresh_display() -> void:
 	## Refresh the event display
@@ -106,7 +148,7 @@ func _refresh_history_display() -> void:
 	# Add recent events (last 10)
 	var recent_events = event_history.slice(-10)
 	for event in recent_events:
-		var event_panel: Panel = _create_history_panel(event)
+		var event_panel: Control = _create_history_panel(event)
 		history_container.add_child(event_panel)
 
 func _create_history_panel(event: Dictionary) -> Control:
@@ -185,6 +227,11 @@ func _on_roll_event_pressed() -> void:
 	# Update display
 	last_roll.text = "Rolled: " + str(rolled_event.roll_result) + " (" + event_type.capitalize() + ")"
 	_update_current_event_display()
+
+	# In portrait/TABS mode, bring the Current Event detail pane forward after a
+	# roll (no-op in landscape grid where all panes are already visible).
+	if _panel_group:
+		_panel_group.focus_pane(1)
 
 
 

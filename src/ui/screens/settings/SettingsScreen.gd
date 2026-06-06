@@ -450,10 +450,13 @@ func _build_expansions_section(
 		"font_color", COLOR_TEXT_SECONDARY)
 	card_vbox.add_child(summary)
 
-	# Buttons
-	var btn_row := HBoxContainer.new()
+	# Buttons — HFlow so "Browse Expansions" + "Manage Features" wrap to a
+	# second line on a narrow (~384px) portrait column instead of clipping.
+	var btn_row := HFlowContainer.new()
 	btn_row.add_theme_constant_override(
-		"separation", _spacing_sm)
+		"h_separation", _spacing_sm)
+	btn_row.add_theme_constant_override(
+		"v_separation", _spacing_sm)
 	card_vbox.add_child(btn_row)
 
 	var browse_btn := Button.new()
@@ -586,6 +589,9 @@ func _build_about_section(parent: VBoxContainer) -> void:
 		value.add_theme_font_size_override("font_size", _font_md)
 		value.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Long values (e.g. the multi-word "Build" string) wrap instead of
+		# overflowing the ~384px portrait column.
+		value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_child(value)
 
 		card_vbox.add_child(row)
