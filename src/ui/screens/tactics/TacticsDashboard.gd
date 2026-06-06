@@ -13,7 +13,11 @@ var _content: VBoxContainer
 
 
 func _ready() -> void:
-	_setup_screen()
+	# super._ready() restores the CampaignScreenBase responsive wiring
+	# (breakpoint_changed + layout_class_changed + initial layout) AND calls
+	# _setup_screen() exactly once — do NOT also call _setup_screen() here, or the
+	# dashboard double-builds and _check_pending_transfers fires twice.
+	super._ready()
 
 
 func _setup_screen() -> void:

@@ -211,8 +211,18 @@ func _should_use_compact_layout() -> bool:
 		ResponsiveLayoutMode.VERTICAL:
 			return true
 		_: # AUTO
+			# Compact when EITHER this subtree is locally too narrow OR the global
+			# ResponsiveManager says the whole viewport should collapse (portrait).
+			# Consulting RM keeps this container consistent with the app-wide layout
+			# class; min_width_for_horizontal stays as a local override for subtrees
+			# narrower than the screen. Additive: only ever adds compact cases.
 			var scaled_min_width := min_width_for_horizontal * _scale_factor
-			return size.x < scaled_min_width
+			var local_narrow := size.x < scaled_min_width
+			var rm: Node = Engine.get_main_loop().root.get_node_or_null("/root/ResponsiveManager") \
+					if Engine.get_main_loop() else null
+			var global_collapse: bool = rm.should_collapse_to_single_column() \
+					if rm and rm.has_method("should_collapse_to_single_column") else false
+			return local_narrow or global_collapse
 
 func _check_orientation() -> void:
 	if size.y <= 0:

@@ -2596,14 +2596,22 @@ func _on_equipment_dialog_closed(popup: AcceptDialog) -> void:
 
 ## Responsive Layout Overrides
 
+## The equipment/crew split stacks vertically whenever the effective layout is
+## single-column (mobile OR any portrait), side-by-side otherwise. Keyed to the
+## orientation-aware should_use_single_column() — NOT the width bucket — so a
+## portrait tablet (wide by width, tall by shape) stacks correctly, and it
+## re-orients on rotation via the layout_class_changed wiring.
+func _apply_split_orientation() -> void:
+	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
+	if main_split and main_split is HSplitContainer:
+		main_split.set_deferred("vertical", should_use_single_column())
+
 func _apply_mobile_layout() -> void:
 	## Mobile: Single column, 56dp targets, compact equipment list
 	super._apply_mobile_layout()
 
-	# Get main split container and convert to vertical layout for mobile
-	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
-	if main_split and main_split is HSplitContainer:
-		main_split.set_deferred("vertical", true)  # Stack equipment and crew sections vertically
+	# Equipment/crew split orientation tracks the effective layout class.
+	_apply_split_orientation()
 
 	# Increase touch targets for mobile
 	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
@@ -2627,10 +2635,8 @@ func _apply_tablet_layout() -> void:
 	## Tablet: Two columns, 48dp targets, detailed equipment list
 	super._apply_tablet_layout()
 
-	# Restore horizontal split for tablet
-	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
-	if main_split and main_split is HSplitContainer:
-		main_split.set_deferred("vertical", false)  # Side-by-side layout
+	# Equipment/crew split orientation tracks the effective layout class.
+	_apply_split_orientation()
 
 	# Standard touch targets for tablet
 	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
@@ -2653,10 +2659,8 @@ func _apply_desktop_layout() -> void:
 	## Desktop: Multi-column, 48dp targets, full equipment details
 	super._apply_desktop_layout()
 
-	# Full horizontal layout for desktop
-	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
-	if main_split and main_split is HSplitContainer:
-		main_split.set_deferred("vertical", false)  # Side-by-side layout
+	# Equipment/crew split orientation tracks the effective layout class.
+	_apply_split_orientation()
 
 	# Standard touch targets for desktop (mouse precision)
 	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")

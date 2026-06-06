@@ -815,9 +815,9 @@ func _on_delegated_battle_completed(result: Dictionary) -> void:
 # ============================================================================
 
 func _get_ui_scale() -> float:
-	## Scale factor relative to design base (1920px width)
+	## Scale factor relative to ResponsiveManager's shared design base.
 	var vp_width := get_viewport().get_visible_rect().size.x
-	return clampf(vp_width / 1920.0, 0.75, 2.0)
+	return clampf(vp_width / ResponsiveManager.DESIGN_BASE_WIDTH, 0.75, 2.0)
 
 func _scaled_font(base: int) -> int:
 	## Scale font size using ResponsiveManager or viewport-based fallback

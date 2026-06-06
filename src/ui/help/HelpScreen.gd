@@ -342,30 +342,31 @@ func _on_mobile_toc_pressed() -> void:
 # ── Responsive layout overrides ──────────────────────────────────────────────
 
 func _apply_mobile_layout() -> void:
-	# Hide sidebar, show mobile TOC button
-	if _body_split and _body_split.get_child_count() > 0:
-		_body_split.get_child(0).visible = false  # sidebar
-	if _mobile_toc_button:
-		_mobile_toc_button.visible = true
-	if _search_input:
-		_search_input.custom_minimum_size.x = 120
+	_apply_sidebar_state(false, 0, 120)
 
 func _apply_tablet_layout() -> void:
-	# Show sidebar but narrower
-	if _body_split and _body_split.get_child_count() > 0:
-		_body_split.get_child(0).visible = true
-		_body_split.get_child(0).custom_minimum_size.x = 200
-	if _mobile_toc_button:
-		_mobile_toc_button.visible = false
-	if _search_input:
-		_search_input.custom_minimum_size.x = 160
+	# Collapse the sidebar in portrait even at tablet+ width: a tall, narrow
+	# screen needs the full width for content, not a side TOC.
+	if should_use_single_column():
+		_apply_sidebar_state(false, 0, 120)
+	else:
+		_apply_sidebar_state(true, 200, 160)
 
 func _apply_desktop_layout() -> void:
-	# Full sidebar
+	if should_use_single_column():
+		_apply_sidebar_state(false, 0, 120)
+	else:
+		_apply_sidebar_state(true, 260, 200)
+
+## Sidebar visibility keyed off orientation (via should_use_single_column),
+## width off the bucket. Re-fires on rotation through the base layout_class_changed
+## wiring, so a portrait tablet collapses the sidebar to the mobile TOC button.
+func _apply_sidebar_state(show_sidebar: bool, sidebar_width: int, search_width: int) -> void:
 	if _body_split and _body_split.get_child_count() > 0:
-		_body_split.get_child(0).visible = true
-		_body_split.get_child(0).custom_minimum_size.x = 260
+		_body_split.get_child(0).visible = show_sidebar
+		if show_sidebar:
+			_body_split.get_child(0).custom_minimum_size.x = sidebar_width
 	if _mobile_toc_button:
-		_mobile_toc_button.visible = false
+		_mobile_toc_button.visible = not show_sidebar
 	if _search_input:
-		_search_input.custom_minimum_size.x = 200
+		_search_input.custom_minimum_size.x = search_width

@@ -63,6 +63,11 @@ func _ensure_base_background() -> void:
 	# Connect to ResponsiveManager for centralized breakpoint management (if enabled)
 	if _responsive_manager:
 		_responsive_manager.breakpoint_changed.connect(_on_responsive_breakpoint_changed)
+		# layout_class_changed ALSO fires on a portrait<->landscape rotation at
+		# constant width (which breakpoint_changed misses) — re-fires _apply_*_layout.
+		if _responsive_manager.has_signal("layout_class_changed") \
+				and not _responsive_manager.layout_class_changed.is_connected(_on_layout_class_changed):
+			_responsive_manager.layout_class_changed.connect(_on_layout_class_changed)
 		# Initialize with current breakpoint
 		_sync_with_responsive_manager()
 	else:
@@ -82,6 +87,9 @@ func _exit_tree() -> void:
 	# Disconnect from ResponsiveManager
 	if _responsive_manager and _responsive_manager.breakpoint_changed.is_connected(_on_responsive_breakpoint_changed):
 		_responsive_manager.breakpoint_changed.disconnect(_on_responsive_breakpoint_changed)
+	if _responsive_manager and _responsive_manager.has_signal("layout_class_changed") \
+			and _responsive_manager.layout_class_changed.is_connected(_on_layout_class_changed):
+		_responsive_manager.layout_class_changed.disconnect(_on_layout_class_changed)
 
 
 func _ensure_panel_structure() -> void:
@@ -231,10 +239,14 @@ func _apply_content_max_width() -> void:
 	if not viewport:
 		return
 	var vp_width := viewport.get_visible_rect().size.x
+	# Form cap keyed off actual viewport WIDTH (not the converged LayoutMode): the
+	# bucket source converged to ResponsiveManager's 1024 DESKTOP/WIDE boundary,
+	# but the content cap keeps the original 1440 boundary so a 1024-1439px desktop
+	# window stays at the 1200 cap (preserves desktop-landscape behavior exactly).
 	var effective_max: int = MAX_FORM_WIDTH
-	if current_layout_mode == LayoutMode.WIDE:
+	if vp_width >= 1440:
 		effective_max = 1400
-	elif current_layout_mode == LayoutMode.DESKTOP:
+	elif vp_width >= BREAKPOINT_TABLET:
 		effective_max = 1200
 	if vp_width > effective_max + SPACING_XL * 2:
 		var side := int((vp_width - effective_max) / 2.0)
@@ -253,18 +265,7 @@ func _apply_responsive_layout() -> void:
 		call_deferred("_apply_responsive_layout")
 		return
 
-	var viewport_width = viewport.get_visible_rect().size.x
-	var new_mode: LayoutMode
-
-	# Determine layout mode from viewport width
-	if viewport_width < BREAKPOINT_MOBILE:
-		new_mode = LayoutMode.MOBILE
-	elif viewport_width < BREAKPOINT_TABLET:
-		new_mode = LayoutMode.TABLET
-	elif viewport_width < 1440:
-		new_mode = LayoutMode.DESKTOP
-	else:
-		new_mode = LayoutMode.WIDE
+	var new_mode: LayoutMode = _resolve_layout_mode()
 
 	# Apply layout if mode changed
 	if new_mode != current_layout_mode:
@@ -273,6 +274,60 @@ func _apply_responsive_layout() -> void:
 
 	# Always update content max-width (viewport may resize without mode change)
 	_apply_content_max_width()
+
+## Single source of truth for the width bucket: derive it from ResponsiveManager
+## when available so the size_changed path and the breakpoint_changed path can
+## never disagree (previously 1440 local vs 1024 RM, which made current_layout_mode
+## flap on a resize). Local viewport-width buckets are the fallback when the
+## autoload is disabled.
+func _resolve_layout_mode() -> LayoutMode:
+	if _responsive_manager:
+		match _responsive_manager.current_breakpoint:
+			RM_MOBILE: return LayoutMode.MOBILE
+			RM_TABLET: return LayoutMode.TABLET
+			RM_DESKTOP: return LayoutMode.DESKTOP
+			_: return LayoutMode.WIDE
+	var vp := get_viewport()
+	if not vp:
+		return current_layout_mode
+	var w := vp.get_visible_rect().size.x
+	if w < BREAKPOINT_MOBILE:
+		return LayoutMode.MOBILE
+	elif w < BREAKPOINT_TABLET:
+		return LayoutMode.TABLET
+	elif w < 1440:
+		return LayoutMode.DESKTOP
+	return LayoutMode.WIDE
+
+## The current effective column count — ResponsiveManager's orientation-aware
+## value when present, else the local orientation-aware fallback.
+func _effective_columns_now() -> int:
+	if _responsive_manager and _responsive_manager.has_method("get_effective_columns"):
+		return _responsive_manager.get_effective_columns()
+	return get_optimal_column_count()
+
+## Orientation source for the dedupe — ResponsiveManager when present (single
+## source of truth), else the local viewport check.
+func _is_portrait_now() -> bool:
+	if _responsive_manager and _responsive_manager.has_method("is_portrait"):
+		return _responsive_manager.is_portrait()
+	var vp := get_viewport()
+	if not vp:
+		return false
+	var sz := vp.get_visible_rect().size
+	return sz.y > sz.x
+
+## Rotation handler. Re-dispatches the current layout ONLY when the effective
+## column count actually changed — deduped against the breakpoint_changed path
+## via _last_effective_columns. _apply_content_max_width already refreshes on the
+## size_changed path, so margins are covered without re-running it here.
+func _on_layout_class_changed(_effective_columns: int) -> void:
+	_relayout_if_class_changed()
+
+func _relayout_if_class_changed() -> void:
+	if _effective_columns_now() != _last_effective_columns \
+			or _is_portrait_now() != _last_is_portrait:
+		_update_layout_for_mode()
 
 func _update_layout_for_mode() -> void:
 	## Update UI layout based on current mode - override in derived panels
@@ -285,6 +340,10 @@ func _update_layout_for_mode() -> void:
 			_apply_desktop_layout()
 		LayoutMode.WIDE:
 			_apply_wide_layout()
+	# Record what we just applied so the layout_class_changed (rotation) path can
+	# dedupe and not relayout a second time for the same (columns, orientation).
+	_last_effective_columns = _effective_columns_now()
+	_last_is_portrait = _is_portrait_now()
 
 # Virtual methods for panels to override
 func _apply_mobile_layout() -> void:
@@ -350,6 +409,12 @@ func _sync_with_responsive_manager() -> void:
 	if current_layout_mode != new_mode:
 		current_layout_mode = new_mode
 		_update_layout_for_mode()
+	else:
+		# Mode unchanged at boot (common: default DESKTOP == RM DESKTOP) — still
+		# seed the dedupe cache, otherwise the first rotation compares against the
+		# -1 initializer and relayouts by accident rather than by construction.
+		_last_effective_columns = _effective_columns_now()
+		_last_is_portrait = _is_portrait_now()
 
 func _on_responsive_breakpoint_changed(new_breakpoint: int) -> void:
 	## Handle ResponsiveManager breakpoint changes
@@ -642,6 +707,14 @@ const MAX_FORM_WIDTH := 800
 # Responsive layout state
 enum LayoutMode { MOBILE, TABLET, DESKTOP, WIDE }
 var current_layout_mode: LayoutMode = LayoutMode.DESKTOP
+
+## Dedupe gate for relayout (see CampaignScreenBase): effective columns last
+## applied by _update_layout_for_mode(). Prevents the breakpoint_changed path and
+## the layout_class_changed rotation path from both relaying out on one resize.
+var _last_effective_columns: int = -1
+## See CampaignScreenBase: orientation last applied. The dedupe relayouts when
+## EITHER columns OR orientation changed (correct-by-construction).
+var _last_is_portrait: bool = false
 
 ## Color Palette - Deep Space Theme (from UIColors)
 const COLOR_PRIMARY := UIColors.COLOR_PRIMARY

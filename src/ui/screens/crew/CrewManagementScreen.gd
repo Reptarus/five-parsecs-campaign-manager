@@ -21,9 +21,12 @@ var current_columns: int = 1
 func _setup_screen() -> void:
 	# Setup responsive grid
 	if crew_grid:
-		crew_grid.columns = 1
 		crew_grid.add_theme_constant_override("h_separation", SPACING_MD)
 		crew_grid.add_theme_constant_override("v_separation", SPACING_MD)
+		# Pull the correct column count synchronously for the initial paint:
+		# layout_class_changed has no boot emit, so don't wait for a resize.
+		current_columns = -1  # force the first _update to apply the real count
+		_update_grid_columns_for_mode()
 
 	# Connect signals
 	if add_button:
@@ -74,8 +77,11 @@ func _update_grid_columns_for_mode() -> void:
 	if not crew_grid:
 		return
 	var new_columns := get_optimal_column_count()
-	if _responsive_manager and _responsive_manager.has_method("get_crew_grid_columns"):
-		new_columns = _responsive_manager.get_crew_grid_columns()
+	if _responsive_manager and _responsive_manager.has_method("get_effective_crew_columns"):
+		# Orientation-aware: drops columns in portrait. The legacy
+		# get_crew_grid_columns() was width-only, so a portrait tablet kept its
+		# wide column count.
+		new_columns = _responsive_manager.get_effective_crew_columns()
 	var spacing := get_responsive_spacing(SPACING_MD)
 	crew_grid.add_theme_constant_override("h_separation", spacing)
 	crew_grid.add_theme_constant_override("v_separation", spacing)

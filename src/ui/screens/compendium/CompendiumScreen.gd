@@ -192,13 +192,18 @@ func _update_card_sizes() -> void:
 	if not _category_container:
 		return
 	var card_min_width: float = 0.0
-	match current_layout_mode:
-		LayoutMode.MOBILE:
-			card_min_width = 0  # Full width
-		LayoutMode.TABLET:
-			card_min_width = 340
-		LayoutMode.DESKTOP, LayoutMode.WIDE:
-			card_min_width = 400
+	if should_use_single_column():
+		# Portrait (or mobile): full-width cards. Keyed off orientation so a
+		# WIDE-by-width portrait tablet doesn't render oversized 400px cards.
+		card_min_width = 0
+	else:
+		match current_layout_mode:
+			LayoutMode.TABLET:
+				card_min_width = 340
+			LayoutMode.DESKTOP, LayoutMode.WIDE:
+				card_min_width = 400
+			_:
+				card_min_width = 0
 	for child: Node in _category_container.get_children():
 		if child is Control:
 			(child as Control).custom_minimum_size.x = card_min_width
