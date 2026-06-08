@@ -727,10 +727,11 @@ func _build_travel_section() -> void:
 			inv_banner.add_child(inv_lbl)
 			vbox.add_child(inv_banner)
 
-	# Button row
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", 16)
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Button row — HFlow so Stay + Travel (2x220px) wrap to two rows in portrait.
+	var btn_row := HFlowContainer.new()
+	btn_row.add_theme_constant_override("h_separation", 16)
+	btn_row.add_theme_constant_override("v_separation", 8)
+	btn_row.alignment = FlowContainer.ALIGNMENT_CENTER
 
 	# Stay button
 	_stay_button = Button.new()

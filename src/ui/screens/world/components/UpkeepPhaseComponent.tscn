@@ -150,6 +150,7 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 [node name="CrewHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
 text = "1 credit for 4-6 crew, +1 per crew member past 6 (Core Rules p.76)"
+autowrap_mode = 3
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
 
@@ -173,6 +174,7 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 [node name="ShipHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
 text = "1 Hull Point repairs free each turn. Pay 1 credit per additional HP (Core Rules p.76)"
+autowrap_mode = 3
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
 
@@ -205,10 +207,11 @@ layout_mode = 2
 max_value = 100.0
 show_percentage = false
 
-[node name="ButtonContainer" type="HBoxContainer" parent="UpkeepContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="UpkeepContainer"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 
 [node name="ManualCalculateButton" type="Button" parent="UpkeepContainer/ButtonContainer"]
 unique_name_in_owner = true

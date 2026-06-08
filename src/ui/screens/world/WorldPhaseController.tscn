@@ -152,6 +152,7 @@ horizontal_scroll_mode = 0
 [node name="UpkeepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="UpkeepPhaseComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/UpkeepContainer" instance=ExtResource("2_upkeep")]
 
@@ -159,6 +160,7 @@ layout_mode = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="CrewTaskComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/CrewTaskContainer" instance=ExtResource("3_crew_task")]
 
@@ -166,6 +168,7 @@ layout_mode = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="JobOfferComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/JobOfferContainer" instance=ExtResource("4_job_offer")]
 
@@ -173,6 +176,7 @@ layout_mode = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="MissionPrepComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/MissionPrepContainer" instance=ExtResource("5_mission_prep")]
 
@@ -180,6 +184,7 @@ layout_mode = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="AssignEquipmentComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/AssignEquipmentContainer" instance=ExtResource("6_assign_equipment")]
 
@@ -187,6 +192,7 @@ layout_mode = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="ResolveRumorsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/ResolveRumorsContainer" instance=ExtResource("7_resolve_rumors")]
 
@@ -206,10 +212,12 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Enable Auto-Processing"
 
-[node name="StepNavigation" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Controls"]
+[node name="StepNavigation" type="HFlowContainer" parent="MarginContainer/VBoxContainer/Controls"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
 unique_name_in_owner = true

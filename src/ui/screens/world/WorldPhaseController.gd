@@ -33,7 +33,7 @@ const PsionicLegalityBadgeClass = preload("res://src/ui/components/world/Psionic
 
 # UI Components (replaced monolith references)
 @onready var phase_container: Control = %PhaseContainer
-@onready var step_navigation: HBoxContainer = %StepNavigation
+@onready var step_navigation: Container = %StepNavigation  # HFlowContainer (wraps in portrait)
 @onready var current_step_label: Label = %CurrentStepLabel
 @onready var progress_bar: ProgressBar = %PhaseProgressBar
 @onready var back_button: Button = %BackButton
