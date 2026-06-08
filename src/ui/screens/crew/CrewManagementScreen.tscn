@@ -27,7 +27,7 @@ corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Button"]
-bg_color = Color(0.231, 0.51, 0.965, 1)
+bg_color = Color(0.176, 0.353, 0.482, 1)
 border_width_left = 0
 border_width_top = 0
 border_width_right = 0
@@ -38,7 +38,7 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ButtonHover"]
-bg_color = Color(0.376, 0.647, 0.98, 1)
+bg_color = Color(0.227, 0.443, 0.6, 1)
 border_width_left = 0
 border_width_top = 0
 border_width_right = 0

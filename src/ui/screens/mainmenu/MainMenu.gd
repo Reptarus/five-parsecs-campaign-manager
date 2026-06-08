@@ -1302,10 +1302,14 @@ func _on_viewport_resized() -> void:
 		menu_buttons.anchor_bottom = 0.5
 		menu_buttons.offset_left = -400
 		menu_buttons.offset_right = -50
-		menu_buttons.offset_top = -250
-		menu_buttons.offset_bottom = 250
+		# Taller bounds so the full ~10-item menu column (Continue…Library) fits
+		# without clipping top/bottom at 720p.
+		menu_buttons.offset_top = -320
+		menu_buttons.offset_bottom = 320
+		# 48, not 75: at 75 (×responsive scale ≈ 86) the title overflowed its
+		# 800px box and rendered clipped ("…Manag"). 48 fits the full title.
 		title.add_theme_font_size_override(
-			"font_size", _scaled_font(75))
+			"font_size", _scaled_font(48))
 		title.offset_left = -400
 		title.offset_right = 400
 
