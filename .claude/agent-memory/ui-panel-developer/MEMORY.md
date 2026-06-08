@@ -11,6 +11,14 @@ The Core Rules and Compendium PDFs at `docs/rules/` define all game terminology,
 
 ## Critical Gotchas — Must Remember
 
+### 0. Portrait de-clip + mobile components (Jun 2026 slider-first hybrid sprint, committed `7ed81541`)
+
+- **Strategy**: data-dense UIs DON'T uniformly scale down (44/48dp touch + ~16-17pt text floors; Paradox/Civ got panned). ADAPT the layout + the UI-scale slider (`SettingsScreen`, 0.75-2.0) is the BACKSTOP. Bar = "no screen CLIPS at the DEFAULT (100%) on the **360dp** floor (~321 design px)". SOP: `docs/sop/responsive-adaptive-ui.md` → "Slider-first" section.
+- **NEW reusable components**: `src/ui/components/common/MobileAppBar.gd` (portrait-only self-hiding top bar: back + title + key-stat subtitle + actions slot; it REPARENTS interactive header controls in/out — never duplicates them). `src/ui/components/base/PortraitChrome.gd` (self-wiring Node: `var pc = load(".../PortraitChrome.gd").new(); add_child(pc); pc.setup($MarginContainer)` — trims root margins in portrait, CAPTURES the scene's original margin for the landscape restore). Wired into Ship/Equipment/CampaignEvents/Advancement/PatronRival managers.
+- **De-clip recipe**: MEASURE the real driver FIRST via an MCP tree-walk of `get_combined_minimum_size().x` (the plan's assumed driver was wrong — it was a non-wrapping `HBoxContainer`/`ProgressHBox` + `glass` panel padding, not the header). Levers: glass `content_margin` `SPACING_LG`(24)→`SPACING_SM`(8); scroll margins 16→4; root margins 24→`SPACING_XS`(4); HIDE non-wrapping secondary strips in portrait; true multi-button `HBoxContainer`→`HFlowContainer` (`.tscn` type change) + long Labels `autowrap_mode=2`. RESTORE every value in landscape (verify 1280 = 0 offenders + pixel-identical).
+- **GOTCHA — `%UniqueName` breaks after reparenting a node under a runtime `.new()` node**: `get_node("%X")` returns null though the node renders + signals fire; the cached `@onready` ref SURVIVES. Drive reparented nodes via cached refs, NOT `%`.
+- **GOTCHA — a freshly-created `class_name` script isn't in the global class cache until an editor rescan**: the running game throws "Identifier not declared". Use `load("res://...")` (NOT the bare class_name) for new helper scripts.
+
 ### 1. TweenFX pivot_offset
 
 MUST set `node.pivot_offset = node.size / 2` before any scale or rotation animation. Without this, animations pivot from the top-left corner instead of center.

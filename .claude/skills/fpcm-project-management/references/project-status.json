@@ -1,5 +1,19 @@
 {
-  "last_updated": "2026-05-27",
+  "last_updated": "2026-06-07",
+  "portrait_density_slider_hybrid": {
+    "date": "2026-06-07",
+    "status": "SHIPPED + committed 7ed81541",
+    "summary": "Portrait mobile de-clip via a slider-first hybrid strategy (research-backed: uniform scale-down fails for data-dense UIs due to 44/48dp touch + ~16-17pt text floors; the UI-scale slider is the COMPLEMENT, not a substitute; 360dp design floor ~321px). Dashboard de-clip 110px->0 offenders @360, pixel-identical @1280. NEW MobileAppBar.gd (portrait top bar that REPARENTS the Story Points + help buttons in/out) + PortraitChrome.gd (self-wiring margin-trim helper, wired into Ship/Equipment/CampaignEvents/Advancement/PatronRival). EquipmentManager Controls HBox->HFlowContainer (the 571px clip). CampaignDashboard._apply_portrait_chrome(); CampaignScreenBase.get_safe_area_insets() (no-op desktop, device-ready). 3 gotchas banked: %UniqueName breaks after reparent-under-runtime-node; new class_name needs load() not bare id; MEASURE the real overflow driver first.",
+    "review": "Adversarial workflow (3 agents, 0 blockers, 3 high): 2 real improvements applied+verified (capture-original-margin, type _app_bar as MobileAppBarClass), 1 rejected with reasoning (orphan case can't occur; suggested fix was buggier).",
+    "test_status": "26/26 PASS (test_responsive_manager_effective_columns + test_adaptive_panel_group)",
+    "deferred_to_followup": [
+      "PreBattle 8-col enemy stat table (needs horizontal-scroll wrapper; radios already autowrap-fixed)",
+      "PatronRivalManager threat_level runtime bug (PRE-EXISTING, halts --debug; blocked its MCP verification)",
+      "W6 equipment-row -> ItemPreviewPopup (optional polish)",
+      "On-device safe-area/touch/DPI validation (all testing was Windows desktop, screen_get_scale=1.0)"
+    ],
+    "related_memories": ["project_portrait_density_slider_hybrid.md", "project_mobile_repivot_responsive.md"]
+  },
   "sheet_export_sprint_2_5": {
     "date": "2026-05-24",
     "status": "SHIPPED",
