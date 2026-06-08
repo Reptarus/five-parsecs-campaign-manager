@@ -128,7 +128,7 @@ var _rail_intent_info: bool = false
 @onready var bottom_bar: PanelContainer = $EdgeMargin/MainContainer/BottomBar
 @onready var phase_hud: HBoxContainer = %PhaseHUD
 @onready var turn_indicator: Label = %TurnIndicator
-@onready var action_buttons: HBoxContainer = %PhaseButtonsContainer
+@onready var action_buttons: Container = %PhaseButtonsContainer  # HFlowContainer (wraps in portrait)
 @onready var end_turn_button: Button = %EndTurnButton
 
 # Overlay nodes (for tier selection, checklists, popups)
@@ -149,6 +149,14 @@ var _stars_battle_button: Button = null
 var _undo_button: Button = null
 var _undo_snapshot: Dictionary = {}
 var _stars_battle_popup: PopupPanel = null
+
+# Phase-instruction banner — the companion "what do I do now THIS phase" surface.
+# A persistent panel above the action row stating the PHYSICAL action to perform,
+# with intra-round 5-phase progress. Reuses the existing per-phase copy verbatim
+# (no invented game data); the feed keeps the scrolling history.
+var _phase_banner: PanelContainer = null
+var _phase_banner_chip: Label = null
+var _phase_banner_label: Label = null
 const _StarsSysClassRef = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
 
@@ -448,6 +456,9 @@ func _build_redesign_frame() -> void:
 		unified_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		unified_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		feed_host.add_child(unified_log)
+
+	# Persistent "what do I do now THIS phase" companion banner.
+	_build_phase_instruction_banner()
 
 
 func _make_drawer(id: String, title: String, edge: int,
@@ -893,11 +904,20 @@ func _apply_responsive_layout() -> void:
 		if absf(phase_content_panel.custom_minimum_size.y - new_h) > 1.0:
 			phase_content_panel.custom_minimum_size.y = new_h
 
+	# Feed strip height: shorter on a short portrait viewport (the map + the new
+	# phase-instruction banner are the priority; the feed is glance/history),
+	# taller on desktop for readability. Same proportional-clamp idiom as the rails.
+	if feed_strip:
+		var feed_h := clampf(vp.y * 0.18, 96, 200)
+		if absf(feed_strip.custom_minimum_size.y - feed_h) > 1.0:
+			feed_strip.custom_minimum_size.y = feed_h
+
 	_responsive_layout_in_progress = false
 	# Re-apply the portrait rail mask on resize/rotation (viewport_resized →
 	# debounce → here). This is what makes a constant-stage rotation collapse or
 	# restore the rails without a stage change.
 	_reconcile_portrait_layout()
+	_reconcile_bars_portrait()
 
 func _apply_stage_visibility(stage: int) -> void:
 	## Control which panels are visible based on current battle stage
@@ -1019,6 +1039,7 @@ func _apply_stage_visibility(stage: int) -> void:
 	_rail_intent_crew = crew_rail_panel.visible if crew_rail_panel else false
 	_rail_intent_info = info_rail_panel.visible if info_rail_panel else false
 	_reconcile_portrait_layout()
+	_reconcile_bars_portrait()
 
 
 ## Portrait/phone → collapse the battle rails so the map fills the row. Crew +
@@ -1041,6 +1062,75 @@ func _reconcile_portrait_layout() -> void:
 		crew_rail_panel.visible = _rail_intent_crew and not collapse
 	if info_rail_panel:
 		info_rail_panel.visible = _rail_intent_info and not collapse
+
+
+## Portrait reflow of the bottom action row + top bar. In portrait: drop the
+## PhaseButtonsContainer's main-axis expand so the ActionBar HFlow can WRAP its
+## buttons (an expanding child suppresses FlowContainer wrapping); ellipsize the
+## TopBar title (its full text is the widest TopBar item and would clip the badge
+## at 360dp). Landscape restores every value → desktop stays pixel-stable.
+## Idempotent — safe to call from the stage match AND every resize/rotation.
+func _reconcile_bars_portrait() -> void:
+	var portrait := _should_collapse_battle_rails()
+	if action_buttons:
+		action_buttons.size_flags_horizontal = \
+			Control.SIZE_SHRINK_CENTER if portrait else Control.SIZE_EXPAND_FILL
+	if title_label:
+		title_label.clip_text = portrait
+		title_label.text_overrun_behavior = \
+			TextServer.OVERRUN_TRIM_ELLIPSIS if portrait else TextServer.OVERRUN_NO_TRIMMING
+
+
+## Build the persistent phase-instruction banner at the TOP of BottomContent
+## (adjacent to the phase buttons that advance it), so the player always sees the
+## PHYSICAL action to perform this phase. Hidden until the first instruction is set.
+func _build_phase_instruction_banner() -> void:
+	if _phase_banner != null or phase_hud == null:
+		return
+	var bottom_content: Node = phase_hud.get_parent()  # BottomContent VBox
+	if bottom_content == null:
+		return
+	_phase_banner = PanelContainer.new()
+	_phase_banner.name = "PhaseInstructionBanner"
+	var style := StyleBoxFlat.new()
+	style.bg_color = UIColors.COLOR_SECONDARY
+	style.border_color = UIColors.COLOR_CYAN
+	style.border_width_left = 4  # accent stripe
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(UIColors.SPACING_SM)
+	_phase_banner.add_theme_stylebox_override("panel", style)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	_phase_banner.add_child(vb)
+	_phase_banner_chip = Label.new()
+	_phase_banner_chip.add_theme_font_size_override("font_size", _scaled_font(12))
+	_phase_banner_chip.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
+	vb.add_child(_phase_banner_chip)
+	_phase_banner_label = Label.new()
+	_phase_banner_label.add_theme_font_size_override("font_size", _scaled_font(16))
+	_phase_banner_label.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
+	_phase_banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(_phase_banner_label)
+	bottom_content.add_child(_phase_banner)
+	bottom_content.move_child(_phase_banner, 0)
+	_phase_banner.visible = false
+
+
+## Set the persistent companion instruction: the PHYSICAL action to perform this
+## phase + intra-round 5-phase progress. `instruction` reuses the existing
+## per-phase copy verbatim (no invented game data). Empty text hides the banner.
+func _set_phase_instruction(phase_idx: int, phase_name: String, instruction: String) -> void:
+	if _phase_banner == null:
+		return
+	if instruction.is_empty():
+		_phase_banner.visible = false
+		return
+	if _phase_banner_chip:
+		_phase_banner_chip.text = "PHASE %d/5 · %s" % [phase_idx + 1, phase_name.to_upper()]
+	if _phase_banner_label:
+		_phase_banner_label.text = instruction
+	_phase_banner.visible = true
 
 func _build_phase_breadcrumb() -> void:
 	## Build the stage breadcrumb in TopBar
@@ -1126,7 +1216,7 @@ func _instance_log_only_components() -> void:
 			phase_hud.remove_child(turn_indicator)
 			turn_indicator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			turn_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			var action_bar: HBoxContainer = end_turn_button.get_parent() if end_turn_button else null
+			var action_bar: Container = end_turn_button.get_parent() if end_turn_button else null
 			if action_bar:
 				action_bar.add_child(turn_indicator)
 				action_bar.move_child(turn_indicator, 0)
@@ -1657,6 +1747,19 @@ func _connect_component_signals() -> void:
 
 ## Overlay Management
 
+## Responsive max width for a modal overlay: fills a phone (minus scrim gutters)
+## up to a comfortable desktop cap. Prevents the fixed 500/560px OverlayContent
+## from overflowing the ~321px portrait floor.
+func _overlay_width(desktop_cap: float = 560.0) -> float:
+	var vp_x: float = float(get_viewport().get_visible_rect().size.x)
+	return clampf(vp_x - 32.0, 280.0, desktop_cap)
+
+## Device-keyed touch-target height (56 mobile / 48 else). Fallback 48.
+func _touch_h() -> int:
+	if _responsive_manager and _responsive_manager.has_method("get_touch_target_size"):
+		return _responsive_manager.get_touch_target_size()
+	return 48
+
 func _show_overlay(content_node: Control) -> void:
 	## Show a modal overlay with the given content.
 	## Uses remove_child() for reusable nodes and queue_free() for disposable ones.
@@ -1667,6 +1770,8 @@ func _show_overlay(content_node: Control) -> void:
 		else:
 			child.queue_free()
 	overlay_content.add_child(content_node)
+	# Drive the overlay width responsively so portrait phones don't overflow.
+	overlay_content.custom_minimum_size.x = _overlay_width()
 	overlay_bg.visible = true
 	overlay_center.visible = true
 
@@ -1688,8 +1793,9 @@ func show_enemy_generation_overlay() -> void:
 	## Show the enemy generation wizard as a modal overlay (FULL_ORACLE tier)
 	if not enemy_generation_wizard:
 		return
-	var vp_width := get_viewport().get_visible_rect().size.x
-	enemy_generation_wizard.custom_minimum_size.x = clampf(vp_width * 0.5, 400, 700)
+	# Responsive width (clamp to viewport, up to a 700px desktop cap) so the
+	# wizard never overflows the ~321px portrait floor.
+	enemy_generation_wizard.custom_minimum_size.x = _overlay_width(700.0)
 	_show_overlay(enemy_generation_wizard)
 
 var _battle_event_fired_this_round: int = 0  # Track which round we already fired event for
@@ -1761,7 +1867,8 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	# (verified at runtime). A fixed footer keeps the primary action
 	# always reachable regardless of scroll position.
 	var modal_root := VBoxContainer.new()
-	modal_root.custom_minimum_size = Vector2(560, 0)
+	# Responsive width: 560 on desktop, shrinks to fit the portrait floor.
+	modal_root.custom_minimum_size = Vector2(_overlay_width(), 0)
 	modal_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	modal_root.add_theme_constant_override("separation", UIColors.SPACING_MD)
 
@@ -1907,11 +2014,15 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 	## row so it never clobbers phase buttons added by other code.
 	if not action_buttons:
 		return
-	var bar: HBoxContainer = action_buttons.get_node_or_null("DrawerBar")
+	# HFlowContainer (not HBox) so the 5-7 drawer buttons WRAP across rows in a
+	# narrow portrait bar instead of one ~700px row that overflows the 360dp floor.
+	# Single-line on desktop (it fits). FlowContainer uses h_separation/v_separation.
+	var bar: Container = action_buttons.get_node_or_null("DrawerBar")
 	if bar == null:
-		bar = HBoxContainer.new()
+		bar = HFlowContainer.new()
 		bar.name = "DrawerBar"
-		bar.add_theme_constant_override("separation", UIColors.SPACING_SM)
+		bar.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+		bar.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
 		action_buttons.add_child(bar)
 		action_buttons.move_child(bar, 0)
 	for c in bar.get_children():
@@ -1924,7 +2035,7 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 	for id: String in ids:
 		var b := Button.new()
 		b.text = id.capitalize()
-		b.custom_minimum_size = Vector2(92, 44)
+		b.custom_minimum_size = Vector2(92, _touch_h())
 		b.focus_mode = Control.FOCUS_NONE
 		var cap_id: String = id
 		b.pressed.connect(func() -> void: _open_drawer(cap_id))
@@ -2299,6 +2410,8 @@ func _update_action_buttons_for_phase(phase: int) -> void:
 func _show_reaction_roll_ui() -> void:
 	## REACTION ROLL — surface ReactionDicePanel if available
 	_clear_action_buttons()
+	_set_phase_instruction(0, "Reaction Roll",
+		"Roll 1D6 for each crew figure. A figure that rolls ≤ its Reactions acts in Quick Actions; the rest act in Slow Actions.")
 	_surface_phase_component(reaction_dice_panel)
 	if right_tabs: right_tabs.current_tab = 1 # Tools tab — dice needed
 	var roll_button := Button.new()
@@ -2309,6 +2422,8 @@ func _show_reaction_roll_ui() -> void:
 func _show_quick_actions_ui() -> void:
 	## QUICK ACTIONS — surface ActivationTrackerPanel for crew checklist
 	_clear_action_buttons()
+	_set_phase_instruction(1, "Quick Actions",
+		"Crew who passed their reaction roll act now. Move and act each on the table, then mark them done.")
 	_surface_phase_component(activation_tracker)
 	_log_message(
 		"Quick Actions — crew who passed reactions act now.",
@@ -2336,6 +2451,8 @@ func _show_enemy_actions_ui() -> void:
 		if right_tabs: right_tabs.current_tab = 1
 	var ef: Dictionary = _battle_context.get("enemy_force", {})
 	var enemy_name: String = ef.get("type", "enemies")
+	_set_phase_instruction(2, "Enemy Actions",
+		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range." % enemy_name)
 	_log_message(
 		"Enemy Actions — resolve %s actions on the table." % enemy_name,
 		UIColors.COLOR_RED)
@@ -2348,6 +2465,8 @@ func _show_enemy_actions_ui() -> void:
 func _show_slow_actions_ui() -> void:
 	## SLOW ACTIONS — surface ActivationTrackerPanel for remaining crew
 	_clear_action_buttons()
+	_set_phase_instruction(3, "Slow Actions",
+		"Your remaining crew act now. Move and act each on the table, then mark them done.")
 	_surface_phase_component(activation_tracker)
 	_log_message(
 		"Slow Actions — remaining crew act now.",
@@ -2521,6 +2640,8 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 func _show_end_phase_ui() -> void:
 	## END PHASE — show end-of-round checklist with condition-specific steps
 	_clear_action_buttons()
+	_set_phase_instruction(4, "End Phase",
+		"Run the end-of-round checklist on the table: morale, any battle event, then the victory check.")
 	if not _battle_context.is_empty() and not _is_bug_hunt_mode:
 		# ASSISTED+: structured end-of-round checklist
 		var checklist: Control = _build_end_phase_checklist()
@@ -3249,13 +3370,13 @@ func _setup_undo_button() -> void:
 	## the Stars button. Disabled until a mutation is captured.
 	if not is_inside_tree() or _undo_button != null:
 		return
-	var action_bar: HBoxContainer = end_turn_button.get_parent() if end_turn_button else null
+	var action_bar: Container = end_turn_button.get_parent() if end_turn_button else null
 	if not action_bar:
 		return
 	_undo_button = Button.new()
 	_undo_button.text = "↶ Undo"
 	_undo_button.tooltip_text = "Undo the last damage / stun / action / casualty you recorded"
-	_undo_button.custom_minimum_size = Vector2(96, 0)
+	_undo_button.custom_minimum_size = Vector2(96, _touch_h())
 	_undo_button.disabled = true
 	_undo_button.pressed.connect(_on_undo_button_pressed)
 	action_bar.add_child(_undo_button)
@@ -5058,13 +5179,13 @@ func _setup_stars_battle_ui() -> void:
 		return
 
 	# Add Stars button to ActionBar (sibling of EndTurnButton)
-	var action_bar: HBoxContainer = end_turn_button.get_parent() if end_turn_button else null
+	var action_bar: Container = end_turn_button.get_parent() if end_turn_button else null
 	if not action_bar:
 		return
 	_stars_battle_button = Button.new()
 	_stars_battle_button.text = "⭐ Stars"
 	_stars_battle_button.tooltip_text = "Use a Stars of the Story emergency ability (Core Rules p.67)"
-	_stars_battle_button.custom_minimum_size = Vector2(96, 0)
+	_stars_battle_button.custom_minimum_size = Vector2(96, _touch_h())
 	_stars_battle_button.pressed.connect(_on_stars_battle_button_pressed)
 	# Insert before EndTurnButton so it's left of "End Turn"
 	action_bar.add_child(_stars_battle_button)

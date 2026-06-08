@@ -232,16 +232,18 @@ theme_override_font_sizes/font_size = 16
 text = "Setting Up"
 horizontal_alignment = 1
 
-[node name="ActionBar" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent" unique_id=828223857]
+[node name="ActionBar" type="HFlowContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent" unique_id=828223857]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 alignment = 1
 
-[node name="PhaseButtonsContainer" type="HBoxContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=943699151]
+[node name="PhaseButtonsContainer" type="HFlowContainer" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=943699151]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="EndTurnButton" type="Button" parent="EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar" unique_id=1793506733]
@@ -279,5 +281,5 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="OverlayContent" type="VBoxContainer" parent="OverlayLayer/OverlayCenter" unique_id=1245618321]
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2

@@ -191,11 +191,27 @@ func _panel_geometry() -> Dictionary:
 	return {"size": size, "docked": docked, "hidden": hidden}
 
 
+## True on a portrait phone / single-column layout. Consults ResponsiveManager
+## (the app-wide SSOT, DPI-aware) so the square-base stretch can't fool us;
+## falls back to a raw viewport check in editor/headless where RM is absent.
+func _is_narrow_viewport() -> bool:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		return rm.should_collapse_to_single_column()
+	return get_viewport_rect().size.x < 600.0
+
+
 ## LEFT/RIGHT panel width. Default = tight reading column. When a host opts
 ## into a wider drawer (min_panel_width > 0), the panel grows to fit that
 ## content but is still clamped to half the viewport so it never takes over
 ## the screen (the drawer stays non-blocking with a readable map behind it).
 func _lr_width(vp_x: float) -> float:
+	# Portrait / phone: a side drawer becomes a near-full-width SHEET so wide
+	# content (unit-tracker cards, weapon tables) scrolls VERTICALLY only — not
+	# a cramped ~160px column that force-scrolls horizontally and is unusable on
+	# a phone. The ~24px gutter keeps the scrim's tap-to-close target visible.
+	if _is_narrow_viewport():
+		return maxf(vp_x - 24.0, 280.0)
 	if min_panel_width <= 0.0:
 		return clampf(vp_x * 0.26, 300.0, 380.0)
 	# Wide drawers are CONTENT-sized, not a viewport fraction: a unit card
