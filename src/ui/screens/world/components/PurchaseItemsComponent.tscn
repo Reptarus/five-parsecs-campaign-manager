@@ -103,9 +103,11 @@ theme_override_font_sizes/font_size = 14
 [node name="CreditsDisplay" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Available Credits: 0"
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
+autowrap_mode = 2
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
 modulate = Color(0.216, 0.255, 0.318, 1)

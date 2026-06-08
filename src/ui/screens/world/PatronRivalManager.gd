@@ -39,6 +39,12 @@ func _ready() -> void:
 	_load_patrons_and_rivals()
 	_refresh_displays()
 	_setup_adaptive_panels()
+	# Portrait de-clip: trim root margins in portrait (restored landscape).
+	var pc_mc := get_node_or_null("MarginContainer")
+	if pc_mc is MarginContainer:
+		var pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(pc)
+		pc.setup(pc_mc as MarginContainer)
 
 func _setup_adaptive_panels() -> void:
 	## Reparent the three side-by-side panes (Patrons / Rivals / Details) into an

@@ -14,7 +14,7 @@ The app targets **the full range 375px portrait phone → 1920px desktop landsca
 | API | Purpose |
 |---|---|
 | `current_breakpoint` (`Breakpoint` enum MOBILE/TABLET/DESKTOP/WIDE/ULTRAWIDE) | Device-size class, **DPI-aware** (see below) |
-| `get_effective_columns()` / `get_effective_crew_columns()` | Max comfortable side-by-side panes for the viewport **AND orientation** (portrait downgrades). Use THESE, not the legacy `get_optimal_columns()` |
+| `get_effective_columns()` / `get_effective_crew_columns()` | Max comfortable side-by-side panes for the viewport **AND orientation**. **Portrait is ALWAYS 1 (single-column), every width bucket** — even a wide portrait tablet shows one focused column / tab strip (360dp, the most common phone, is only ~321 design px at our effective ~1.12 scale, far too tight for 2 cols). Only LANDSCAPE uses the multi-column width ladder. Use THESE, not the legacy `get_optimal_columns()` |
 | `should_collapse_to_single_column()` | `get_effective_columns() <= 1` |
 | `is_portrait()` / `is_landscape` | orientation |
 | `signal layout_class_changed(effective_columns)` | **Fires on a width-bucket change OR a rotation.** The keystone — connect to THIS for re-layout, not only `breakpoint_changed` |
@@ -104,6 +104,23 @@ CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 
 - A 1-col GridContainer makes ALL stacked columns share the WIDEST column's min-width — so ONE long label in one column clips the whole screen. Wrap it.
 - Fixed-size card grids (`_create_stats_grid`, cards are fixed 64px and can't shrink, inside scroll-disabled layouts): drop column count in portrait via `should_use_single_column()`.
 - Verify by measuring `get_combined_minimum_size().x` of every Control against the portrait viewport width (a live MCP `run_script` tree-walk) — find the widest intrinsic-min driver, not just visible clipping.
+
+### Slider-first hybrid + portrait de-clip (Jun 2026)
+
+**Strategy (researched, see plan):** pure uniform scale-down FAILS for data-dense UIs (touch-target 44/48dp + ~16-17pt text floors; Paradox/Civ got panned for it). The answer is ADAPT + a user UI-scale slider as the COMPLEMENT (not substitute). Godot's dynamic/MSDF fonts re-rasterize crisp at any `content_scale_factor`, so it does NOT blur like Paradox. **The bar is "no screen CLIPS at the DEFAULT (100%) on the 360dp floor"** — NOT pixel-perfect; the slider (`SettingsScreen` 0.75-2.0) backstops the rest. **Design floor = 360dp → ~321 design px at 100%** (supersedes the older "~384px").
+
+**De-clip = trim the WRAPPER CHROME, measured-driven** (CampaignDashboard went 110px→0 overflow at 360 this way). ALWAYS tree-walk `get_combined_minimum_size().x` to find the REAL driver FIRST — the original plan assumed the header/buttons; the real drivers were the non-wrapping ProgressHBox + glass-panel padding (the plan was wrong until measured). Levers, applied in a `_apply_portrait_chrome()` gated on `should_use_single_column()` and called from ALL of `_apply_mobile/tablet/desktop_layout` (portrait can be any width bucket):
+- Column `"glass"` PanelContainer padding (`SPACING_LG` 24/side = 48): re-style with `set_content_margin_all(SPACING_SM)` in portrait, restore `_apply_panel_style(col,"glass")` in landscape.
+- Inner scroll `MarginContainer` margin_right 16 → `SPACING_XS` (4) in portrait.
+- Root `MarginContainer` margins 24 → `SPACING_XS` (4) in portrait (max with safe-area insets, below).
+- Non-wrapping secondary HBox strips (e.g. Turns/Battles/Difficulty, 3 fixed labels ~303px that CAN'T fit) — **hide in portrait** (`.visible = not portrait`); the key value is already in the stat strip. Robust vs long values.
+- Header → `MobileAppBar` (below). Each change restores its original value in landscape → desktop stays pixel-identical (verify: 0 offenders + screenshot at 1280).
+
+**`MobileAppBar`** (`src/ui/components/common/MobileAppBar.gd`, pure-`.gd`): portrait-only self-hiding (reads `/root/ResponsiveManager`, toggles on `layout_class_changed`). Back ← + title + key-stat subtitle + an **actions slot**. Mount as child 0 of the content VBox. In portrait the screen hides `HeaderPanel` and **REPARENTS the interactive header controls** (e.g. the Story Points button whose popover anchors to its live `get_global_rect()`, + the help button) INTO the app-bar actions slot; reparents them BACK to the header in landscape. Never `free()` them.
+
+**⚠️ GOTCHA — `%UniqueName` lookup breaks after reparenting under a runtime node:** once a unique-named scene node is reparented under a node created at runtime via `.new()` (the app bar isn't in the scene's unique-name registry), `get_node("%StoryPointsLabel")` / `%StoryPointsLabel` returns **null** — even though the node renders fine and its signals fire. The cached `@onready var` (a direct object ref) SURVIVES reparenting and keeps working. So: drive reparented nodes via cached refs, NOT `%` lookups; and don't trust `%` in runtime DIAGNOSTICS of reparented nodes (it reports a false "orphan").
+
+**Safe-area** (`CampaignScreenBase.get_safe_area_insets()`): returns design-px notch/status-bar/nav insets (`DisplayServer.get_display_safe_area()` ÷ content scale). **Zeros on desktop/Web (no-op)**; real on Android/iOS. Wire as `maxi(base_margin, inset)` on the root MarginContainer. Real notch behavior validates ON-DEVICE only.
 
 - Plan file: `C:\Users\admin\.claude\plans\so-we-need-to-playful-hearth.md`.
 

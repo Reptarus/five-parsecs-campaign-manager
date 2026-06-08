@@ -57,6 +57,12 @@ var travel_events: Array[Dictionary] = [
 func _ready() -> void:
 	_refresh_display()
 	_setup_adaptive_panels()
+	# Portrait de-clip: trim root margins in portrait (restored landscape).
+	var pc_mc := get_node_or_null("MarginContainer")
+	if pc_mc is MarginContainer:
+		var pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(pc)
+		pc.setup(pc_mc as MarginContainer)
 
 ## Reparent the 3 content panels (EventRoller / CurrentEvent / EventHistory) into
 ## an AdaptivePanelGroup so they sit side-by-side in landscape and collapse to a

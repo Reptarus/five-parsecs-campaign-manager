@@ -1,9 +1,9 @@
 extends GdUnitTestSuite
 ## Phase 0 contract test for ResponsiveManager's orientation-aware effective
 ## column API (mobile/tablet re-pivot). Verifies the collapse-rule matrix:
-## portrait downgrades the column count so a wide-by-width portrait tablet stops
-## claiming a 3/4-column desktop grid, while LANDSCAPE stays identical to the
-## legacy width-only getters (so desktop callers are unaffected).
+## portrait is ALWAYS single-column (1) so even a wide-by-width portrait tablet
+## stops claiming a multi-column desktop grid, while LANDSCAPE stays identical to
+## the legacy width-only getters (so desktop callers are unaffected).
 
 const ResponsiveManagerScript := preload("res://src/autoload/ResponsiveManager.gd")
 
@@ -49,14 +49,16 @@ func test_breakpoint_ordinals() -> void:
 # ── get_effective_columns ─────────────────────────────────────────────────────
 
 func test_effective_columns_portrait_collapses() -> void:
-	# Portrait: <=TABLET -> 1, larger -> 2. Never the 3/4 desktop grid.
-	# The WIDE case is the keystone fix: a wide-by-width portrait tablet used to
-	# claim 4 columns; it must now report 2.
+	# Portrait is ALWAYS single-column (1), every bucket. Phone-first rule: even a
+	# wide-by-width portrait tablet (DESKTOP/WIDE/ULTRAWIDE by width) shows one
+	# focused column / tab strip, never a multi-column grid. (360dp -- the most
+	# common phone -- is ~321 design px at our effective ~1.12 scale, too tight
+	# for 2 columns.)
 	_set_state(MOBILE, false);    assert_int(_rm.get_effective_columns()).is_equal(1)
 	_set_state(TABLET, false);    assert_int(_rm.get_effective_columns()).is_equal(1)
-	_set_state(DESKTOP, false);   assert_int(_rm.get_effective_columns()).is_equal(2)
-	_set_state(WIDE, false);      assert_int(_rm.get_effective_columns()).is_equal(2)
-	_set_state(ULTRAWIDE, false); assert_int(_rm.get_effective_columns()).is_equal(2)
+	_set_state(DESKTOP, false);   assert_int(_rm.get_effective_columns()).is_equal(1)
+	_set_state(WIDE, false);      assert_int(_rm.get_effective_columns()).is_equal(1)
+	_set_state(ULTRAWIDE, false); assert_int(_rm.get_effective_columns()).is_equal(1)
 
 
 func test_effective_columns_landscape_matches_legacy() -> void:
@@ -77,11 +79,12 @@ func test_effective_columns_landscape_values() -> void:
 # ── get_effective_crew_columns ────────────────────────────────────────────────
 
 func test_effective_crew_columns_portrait_collapses() -> void:
+	# Portrait crew grid is ALSO always single-column (phone-first), every bucket.
 	_set_state(MOBILE, false);    assert_int(_rm.get_effective_crew_columns()).is_equal(1)
 	_set_state(TABLET, false);    assert_int(_rm.get_effective_crew_columns()).is_equal(1)
-	_set_state(DESKTOP, false);   assert_int(_rm.get_effective_crew_columns()).is_equal(2)
-	_set_state(WIDE, false);      assert_int(_rm.get_effective_crew_columns()).is_equal(2)
-	_set_state(ULTRAWIDE, false); assert_int(_rm.get_effective_crew_columns()).is_equal(2)
+	_set_state(DESKTOP, false);   assert_int(_rm.get_effective_crew_columns()).is_equal(1)
+	_set_state(WIDE, false);      assert_int(_rm.get_effective_crew_columns()).is_equal(1)
+	_set_state(ULTRAWIDE, false); assert_int(_rm.get_effective_crew_columns()).is_equal(1)
 
 
 func test_effective_crew_columns_landscape_matches_legacy() -> void:
@@ -93,14 +96,15 @@ func test_effective_crew_columns_landscape_matches_legacy() -> void:
 # ── should_collapse_to_single_column ──────────────────────────────────────────
 
 func test_should_collapse_to_single_column() -> void:
-	# True exactly when effective columns == 1: any portrait <= TABLET, plus
-	# MOBILE landscape (still 1 col). TABLET landscape and DESKTOP portrait are
-	# 2 cols, so they do NOT collapse.
+	# True exactly when effective columns == 1: ANY portrait (now always 1 col),
+	# plus MOBILE landscape (still 1 col). Landscape TABLET+ stays multi-column,
+	# so those do NOT collapse.
 	_set_state(MOBILE, false);  assert_bool(_rm.should_collapse_to_single_column()).is_true()
 	_set_state(TABLET, false);  assert_bool(_rm.should_collapse_to_single_column()).is_true()
+	_set_state(DESKTOP, false); assert_bool(_rm.should_collapse_to_single_column()).is_true()   # portrait now collapses
+	_set_state(WIDE, false);    assert_bool(_rm.should_collapse_to_single_column()).is_true()   # portrait now collapses
 	_set_state(MOBILE, true);   assert_bool(_rm.should_collapse_to_single_column()).is_true()
 	_set_state(TABLET, true);   assert_bool(_rm.should_collapse_to_single_column()).is_false()
-	_set_state(DESKTOP, false); assert_bool(_rm.should_collapse_to_single_column()).is_false()
 	_set_state(WIDE, true);     assert_bool(_rm.should_collapse_to_single_column()).is_false()
 
 

@@ -57,6 +57,11 @@ var _sp_system: StoryPointSystemClass
 var _stars_system: StarsSystemClass
 var _sp_popover: StoryPointPopover
 
+# Mobile portrait chrome (slider-first hybrid de-clip)
+const MobileAppBarClass = preload("res://src/ui/components/common/MobileAppBar.gd")
+var _app_bar: MobileAppBarClass = null
+var _help_button: Button = null
+
 # ── Lifecycle ──────────────────────────────────────────────────────
 
 func _setup_screen() -> void:
@@ -204,6 +209,7 @@ func _add_help_button() -> void:
 	help_btn.tooltip_text = "Show dashboard tutorial"
 	help_btn.pressed.connect(_on_help_pressed)
 	header_hbox.add_child(help_btn)
+	_help_button = help_btn
 
 func _on_help_pressed() -> void:
 	var TutorialUIScript: GDScript = load(
@@ -391,6 +397,8 @@ func _update_stat_strip(campaign) -> void:
 	# players resuming a saved campaign can orient quickly. Skipped on Turn 1
 	# (nothing has happened yet) and on no-activity turns (would be noise).
 	_render_last_turn_recap(parent_vbox, strip, turn)
+	if _app_bar and is_instance_valid(_app_bar) and _app_bar.visible:
+		_sync_app_bar_text()
 
 ## Append a "Last turn: X battles, Y events" recap label under the stat strip.
 ## Reads from the CampaignJournal autoload; safe if the journal is empty.
@@ -2657,12 +2665,118 @@ func _build_hof_panel() -> PanelContainer:
 
 func _apply_mobile_layout() -> void:
 	_set_column_layout(1)
+	_apply_portrait_chrome()
 
 func _apply_tablet_layout() -> void:
 	_set_column_layout(2 if not should_use_single_column() else 1)
+	_apply_portrait_chrome()
 
 func _apply_desktop_layout() -> void:
 	_set_column_layout(3 if not should_use_single_column() else 2)
+	_apply_portrait_chrome()
+
+## Portrait de-clip (slider-first hybrid): trim the wrapper CHROME so the dense
+## dashboard fits the 360dp design floor at 100% UI scale WITHOUT shrinking text.
+## Data-driven from the Jun 360px overflow diagnosis: the crew CONTENT (286px) fits,
+## but glass-panel padding (24/side), inner scroll margins (16), the non-wrapping
+## ProgressHBox (24 separation), and the root container margins (24/side) inflated
+## the column to 431. Landscape restores every original value (desktop unchanged).
+func _apply_portrait_chrome() -> void:
+	var portrait := should_use_single_column()
+	var root_mc := get_node_or_null("MarginContainer")
+	if root_mc:
+		var m: int = SPACING_XS if portrait else SPACING_LG
+		var v: int = SPACING_MD  # top/bottom base (matches the .tscn default 16)
+		var ins := get_safe_area_insets()  # zeros on desktop; notch/bar insets on device
+		root_mc.add_theme_constant_override("margin_left", maxi(m, int(ins["left"])))
+		root_mc.add_theme_constant_override("margin_right", maxi(m, int(ins["right"])))
+		root_mc.add_theme_constant_override("margin_top", maxi(v, int(ins["top"])))
+		root_mc.add_theme_constant_override("margin_bottom", maxi(v, int(ins["bottom"])))
+	for col in [left_column, center_column, right_column]:
+		if col:
+			if portrait:
+				var s := _create_glass_card_style()
+				s.set_content_margin_all(SPACING_SM)
+				col.add_theme_stylebox_override("panel", s)
+			else:
+				_apply_panel_style(col, "glass")
+	for pair in [
+		[left_column, "LeftScroll/LeftScrollMargin"],
+		[center_column, "CenterScroll/CenterScrollMargin"],
+		[right_column, "RightScroll/RightScrollMargin"],
+	]:
+		var c = pair[0]
+		if c:
+			var mc = c.get_node_or_null(pair[1])
+			if mc:
+				mc.add_theme_constant_override(
+					"margin_right", SPACING_XS if portrait else SPACING_MD)
+	if progress_hbox:
+		progress_hbox.add_theme_constant_override(
+			"separation", SPACING_XS if portrait else SPACING_LG)
+	if progress_panel:
+		# The Turns/Battles/Difficulty strip is 3 NON-wrapping labels (~303px) that
+		# cannot fit the 360dp floor regardless of trimming; TURN is already in the
+		# stat strip, so hide this secondary line in portrait (shown in landscape).
+		# Robust vs long campaign values (e.g. "Battles: 12W / 8L Difficulty: Hardcore").
+		progress_panel.visible = not portrait
+		if not portrait:
+			_apply_panel_style(progress_panel, "compact")
+	# Header -> mobile app bar. In portrait, hide the (wide) HeaderPanel and surface
+	# campaign name + phase/credits in a compact bar, RELOCATING the interactive
+	# Story Points + help (?) buttons into it (their popovers anchor to the live
+	# nodes, so they keep working wherever the buttons live). Never freed.
+	_ensure_app_bar()
+	if _app_bar:
+		_app_bar.visible = portrait
+	if header_panel:
+		header_panel.visible = not portrait
+	_relocate_header_actions(portrait)
+	if portrait:
+		_sync_app_bar_text()
+
+func _ensure_app_bar() -> void:
+	if _app_bar and is_instance_valid(_app_bar):
+		return
+	if header_panel == null:
+		return
+	var vbox := header_panel.get_parent()
+	if vbox == null:
+		return
+	_app_bar = MobileAppBarClass.new()
+	_app_bar.name = "MobileAppBar"
+	vbox.add_child(_app_bar)
+	vbox.move_child(_app_bar, 0)
+
+func _sync_app_bar_text() -> void:
+	if _app_bar == null or not is_instance_valid(_app_bar):
+		return
+	var title_text: String = campaign_name_label.text if campaign_name_label else "Campaign"
+	var sub: String = ""
+	if phase_label:
+		sub = phase_label.text
+	if credits_label:
+		sub = (sub + "   " + credits_label.text) if sub != "" else credits_label.text
+	_app_bar.setup(title_text, sub)
+
+func _relocate_header_actions(portrait: bool) -> void:
+	# Move the Story Points button + help (?) between HeaderHBox and the app bar's
+	# actions slot. NEVER freed; their popovers anchor to the live node's global rect.
+	if _app_bar == null or not is_instance_valid(_app_bar):
+		return
+	var header_hbox: Node = null
+	if header_panel:
+		header_hbox = header_panel.get_node_or_null("HeaderMargin/HeaderHBox")
+	for ctrl in [story_points_label, _help_button]:
+		if ctrl == null or not is_instance_valid(ctrl):
+			continue
+		if portrait:
+			_app_bar.add_action(ctrl)
+		elif header_hbox and ctrl.get_parent() != header_hbox:
+			var p: Node = ctrl.get_parent()
+			if p:
+				p.remove_child(ctrl)
+			header_hbox.add_child(ctrl)
 
 func _set_column_layout(columns: int) -> void:
 	# Once the AdaptivePanelGroup owns the layout (GRID vs TABS by orientation),

@@ -34,6 +34,13 @@ func _ready() -> void:
 	
 	# Node structure initialized
 	
+	# Portrait de-clip: trim root margins in portrait (restored landscape).
+	var pc_mc := get_node_or_null("MarginContainer")
+	if pc_mc is MarginContainer:
+		var pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(pc)
+		pc.setup(pc_mc as MarginContainer)
+
 	# Wait for scene to be fully ready if nodes are null
 	if equipment_grid == null or crew_list == null or details_container == null:
 		call_deferred("_deferred_initialization")

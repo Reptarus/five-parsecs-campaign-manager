@@ -31,6 +31,12 @@ func _ready() -> void:
 	_refresh_crew_list()
 	_setup_advancement_icons()
 	_setup_adaptive_panels()
+	# Portrait de-clip: trim root margins in portrait (restored landscape).
+	var pc_mc := get_node_or_null("MarginContainer")
+	if pc_mc is MarginContainer:
+		var pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(pc)
+		pc.setup(pc_mc as MarginContainer)
 
 func _setup_adaptive_panels() -> void:
 	## Migrate the side-by-side MainContent HBox into an AdaptivePanelGroup so the

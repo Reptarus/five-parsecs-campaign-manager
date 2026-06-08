@@ -381,6 +381,16 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	_ui_scale_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	scale_row.add_child(_ui_scale_label)
 
+	# Density hint: the UI Scale slider IS the user's density control (slider-first
+	# mobile strategy). On a phone, lowering it fits more content per screen (text
+	# stays crisp via dynamic-font re-rasterization); raising it enlarges text.
+	var scale_hint := Label.new()
+	scale_hint.text = "Lower = more fits on screen; higher = larger text"
+	scale_hint.add_theme_font_size_override("font_size", _font_sm)
+	scale_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	scale_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(scale_hint)
+
 
 # ============ GAMEPLAY ============
 func _build_gameplay_section(parent: VBoxContainer) -> void:

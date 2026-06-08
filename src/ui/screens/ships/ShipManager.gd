@@ -34,6 +34,12 @@ func _ready() -> void:
 	_load_components_database()
 	_load_ship_data()
 	_refresh_display()
+	# Portrait de-clip: trim root margins in portrait (restored landscape).
+	var pc_mc := get_node_or_null("MarginContainer")
+	if pc_mc is MarginContainer:
+		var pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(pc)
+		pc.setup(pc_mc as MarginContainer)
 
 ## Reparent the 3 content panels (Ship Status / Upgrades / Travel) into an
 ## AdaptivePanelGroup: side-by-side in landscape, stacked vertically in portrait

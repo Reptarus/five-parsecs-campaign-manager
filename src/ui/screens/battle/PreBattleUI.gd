@@ -652,6 +652,8 @@ func _build_tier_selector() -> void:
 		radio.button_group = button_group
 		radio.add_theme_font_size_override("font_size", _scaled_font(14))
 		radio.custom_minimum_size.y = 40  # Touch-friendly
+		radio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # long labels wrap at 360dp
+		radio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if i == 0:
 			radio.button_pressed = true  # Default to LOG_ONLY
 		radio.pressed.connect(_on_tier_radio_pressed.bind(i))
@@ -711,6 +713,8 @@ func _build_representation_selector() -> void:
 		radio.button_group = group
 		radio.add_theme_font_size_override("font_size", _scaled_font(14))
 		radio.custom_minimum_size.y = 40  # Touch-friendly
+		radio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		radio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		radio.disabled = not enabled
 		if mode_id == selected_representation_mode and enabled:
 			radio.button_pressed = true

@@ -942,7 +942,20 @@ An equipment item is like a physical card — it exists in exactly one location 
 
 ## Agent Verification Protocol
 
-Current-generation models (Opus 4.8, Sonnet 4.6, Haiku 4.5) are reliable at searching and reading code — treat their findings as trustworthy by default. Concentrate verification on the two places where being wrong is expensive.
+### 🛑 RULE 0 — Before ANY plan, design, routing decision, or structural claim: READ THE ACTUAL CODE **AND SCENES** (MANDATORY, NON-NEGOTIABLE)
+
+**This applies to EVERY agent, EVERY skill, and EVERY session. No exceptions. It overrides any "models are reliable, trust by default" posture below.**
+
+You may NOT propose a plan, design, edit, routing decision, or factual claim about how something works until you have opened and read the ACTUAL files involved: the `.gd` scripts **AND** the `.tscn`/`.tres` scene/resource files. A plan built on assumption, memory, a docblock, or another agent's relayed summary is **INVALID** — no matter how confident the source seemed.
+
+- **Memory, CLAUDE.md docblocks, SOPs, and sub-agent summaries are LEADS TO VERIFY, never facts.** They go stale. Open the file and confirm before relying on it. "The memory said so / the agent said so / the docblock said so" is NOT verification.
+- **Every reference to a node, signal, property, scene tree, `@onready` var, container, or function MUST be confirmed by reading the source** — the `.tscn` (node tree, node types, `unique_name_in_owner`, anchors/containers) for layout/UI, AND the `.gd` (the real `@onready`/`func`/`signal`). Cite `file:line`. If your plan names a node you have not seen in the actual `.tscn`, you have not done the work.
+- **UI / layout / responsive work: reading the `.gd` is NOT enough — OPEN THE `.tscn`.** Layout, container types, anchors, and node hierarchy live in the scene file. A UI plan that never opened the scene is incomplete and must be rejected.
+- **The `.tscn`/`.tres` wiring is the authority on what is actually INSTANTIATED and LIVE** — `[ext_resource]` scripts, instanced/embedded sub-scenes, `unique_name_in_owner`, autoload registration. A `.gd` can look dead but be wired into a scene (live), or look live but be orphaned (dead). Never judge liveness or structure from the script alone — confirm it in the scene.
+- A sub-agent that returns structural claims must have read the files; the calling agent must spot-check the load-bearing ones against the real files before turning them into a plan.
+- If you cannot open a file, SAY SO and stop — do not guess.
+
+A plan/design is acceptable ONLY if every structural claim in it traces to a file you actually read. This rule exists because plans were repeatedly built on unverified, relayed, or stale assumptions about scene + code structure, wasting the user's time. **Full code-and-scene due diligence is the floor, not extra effort.**
 
 ### Always verify (high-stakes)
 

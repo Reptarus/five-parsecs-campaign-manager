@@ -386,6 +386,30 @@ func should_use_single_column() -> bool:
 	var sz := get_viewport().get_visible_rect().size
 	return sz.y > sz.x
 
+## Safe-area insets in DESIGN pixels (notch / status bar / nav bar / cutouts) so
+## content can be padded clear of system UI on mobile. DESKTOP/Web: returns zeros
+## (no-op — safe area == window). MOBILE: real insets from DisplayServer, converted
+## physical->design px via the root content scale. Real values validate ON-DEVICE.
+func get_safe_area_insets() -> Dictionary:
+	var zero := {"left": 0, "top": 0, "right": 0, "bottom": 0}
+	var os_name := OS.get_name()
+	if os_name != "Android" and os_name != "iOS":
+		return zero
+	var win := DisplayServer.window_get_size()
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	var scale := 1.0
+	var tree := get_tree()
+	if tree and tree.root and tree.root.content_scale_factor > 0.0:
+		scale = tree.root.content_scale_factor
+	var left := maxi(0, safe.position.x)
+	var top := maxi(0, safe.position.y)
+	var right := maxi(0, win.x - (safe.position.x + safe.size.x))
+	var bottom := maxi(0, win.y - (safe.position.y + safe.size.y))
+	return {
+		"left": int(left / scale), "top": int(top / scale),
+		"right": int(right / scale), "bottom": int(bottom / scale),
+	}
+
 func is_wide_layout() -> bool:
 	return current_layout_mode == LayoutMode.WIDE
 

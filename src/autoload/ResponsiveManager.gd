@@ -144,22 +144,23 @@ func get_mission_grid_columns() -> int:
 	return get_optimal_columns()
 
 ## Max comfortable side-by-side panes for the current viewport AND orientation.
-## Portrait downgrades the count so a tall tablet stops rendering a wide desktop
-## grid (a 1536-wide portrait tablet is WIDE by width alone -> would claim 4).
-## Landscape returns the legacy width-only value UNCHANGED, so desktop callers
-## are unaffected.
+## Portrait is ALWAYS single-column (1) regardless of width bucket -- a phone-first
+## rule: even a wide portrait tablet (1536-wide -> WIDE by width alone) shows one
+## focused column / tab strip, never a cramped multi-column grid. Only LANDSCAPE
+## uses the multi-column width ladder, so desktop callers are unaffected.
+## (360dp is the most common phone width; at our effective ~1.12 scale that is
+## ~321 design px -- far too tight for 2 columns. See plan: device baseline.)
 func get_effective_columns() -> int:
 	if is_portrait():
-		return 1 if current_breakpoint <= Breakpoint.TABLET else 2
+		return 1
 	return get_optimal_columns()
 
 ## Orientation-aware crew-grid columns. Mirrors get_effective_columns() but
-## falls back to the crew-specific landscape value. NOTE: the portrait branch is
-## intentionally identical-by-VALUE to get_effective_columns() (not delegated),
-## so the generic and crew portrait caps can diverge later without coupling.
+## falls back to the crew-specific landscape value. Portrait is ALWAYS 1
+## (phone-first single-column); only landscape uses the crew width ladder.
 func get_effective_crew_columns() -> int:
 	if is_portrait():
-		return 1 if current_breakpoint <= Breakpoint.TABLET else 2
+		return 1
 	return get_crew_grid_columns()
 
 ## True when the viewport+orientation can only comfortably show a single pane.

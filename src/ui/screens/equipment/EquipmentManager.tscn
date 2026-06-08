@@ -35,6 +35,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 text = "Equipment Manager"
+autowrap_mode = 2
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
@@ -113,9 +114,10 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Controls" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="GenerateEquipmentButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
