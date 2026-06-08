@@ -75,21 +75,24 @@ class PlanetData:
 		type = data.get("type", "")
 		type_name = data.get("type_name", "")
 		danger_level = data.get("danger_level", 1)
-		traits = data.get("traits", [])
-		locations = data.get("locations", [])
-		special_features = data.get("special_features", [])
+		# Typed arrays use .assign(): JSON-parsed arrays are UNTYPED, so a plain `=` into
+		# these Array[String]/Array[Dictionary] props aborts load (Godot 4.6). Scalars and
+		# Dictionary fields below assign directly.
+		traits.assign(data.get("traits", []))
+		locations.assign(data.get("locations", []))
+		special_features.assign(data.get("special_features", []))
 		discovered_on_turn = data.get("discovered_on_turn", 0)
 		last_visited_turn = data.get("last_visited_turn", 0)
 		visit_count = data.get("visit_count", 0)
 		missions_completed = data.get("missions_completed", 0)
 		resources_extracted = data.get("resources_extracted", 0)
 		exploration_progress = data.get("exploration_progress", 0.0)
-		active_modifiers = data.get("active_modifiers", [])
-		temporary_effects = data.get("temporary_effects", [])
-		world_events = data.get("world_events", [])
-		contact_ids = data.get("contact_ids", [])
+		active_modifiers.assign(data.get("active_modifiers", []))
+		temporary_effects.assign(data.get("temporary_effects", []))
+		world_events.assign(data.get("world_events", []))
+		contact_ids.assign(data.get("contact_ids", []))
 		market_conditions = data.get("market_conditions", {})
-		trade_opportunities = data.get("trade_opportunities", [])
+		trade_opportunities.assign(data.get("trade_opportunities", []))
 		price_modifiers = data.get("price_modifiers", {})
 		faction_data = data.get("faction_data", {})
 
@@ -133,9 +136,13 @@ func _generate_new_planet(campaign_turn: int, forced_id: String = "") -> PlanetD
 	planet.type = world_data.type
 	planet.type_name = world_data.type_name
 	planet.danger_level = world_data.danger_level
-	planet.traits = world_data.traits
-	planet.locations = world_data.locations
-	planet.special_features = world_data.special_features
+	# .assign() copies into PlanetData's TYPED Array[String]/Array[Dictionary] props.
+	# WorldGenerator.generate_world() returns a Dictionary whose traits/locations/
+	# special_features are UNTYPED arrays; a plain `=` aborts this function in Godot 4.6
+	# ("Invalid assignment ... value of type 'Array'").
+	planet.traits.assign(world_data.traits)
+	planet.locations.assign(world_data.locations)
+	planet.special_features.assign(world_data.special_features)
 	planet.discovered_on_turn = campaign_turn
 	planet.last_visited_turn = campaign_turn
 	planet.visit_count = 1
