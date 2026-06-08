@@ -111,9 +111,10 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="ButtonSection" type="HBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
+[node name="ButtonSection" type="HFlowContainer" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
 
 [node name="RandomizeButton" type="Button" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ButtonSection"]
 unique_name_in_owner = true

@@ -38,9 +38,10 @@ text = "No captain created yet. Click 'Create Captain' to begin."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Controls" type="HBoxContainer" parent="Content"]
+[node name="Controls" type="HFlowContainer" parent="Content"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="CreateButton" type="Button" parent="Content/Controls"]

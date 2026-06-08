@@ -90,9 +90,10 @@ layout_mode = 1
 visible = false
 layout_mode = 1
 
-[node name="Navigation" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Navigation" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
