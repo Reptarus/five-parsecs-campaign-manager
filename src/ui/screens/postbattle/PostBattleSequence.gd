@@ -54,12 +54,50 @@ var battle_results: Dictionary = {}
 var step_results: Array[Dictionary] = []
 var _step_log_entries: Array = []  # Per-step log text for inline display
 var _inline_rolls_completed: Dictionary = {}  # step_index -> {total: int, done: int}
+var _rm: Node = null  # ResponsiveManager (rotation handler)
+var _portrait_chrome: Node = null  # PortraitChrome margin-trim helper
+var _steps_panel: PanelContainer = null  # StepsList nav panel (hidden in portrait)
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
 	return base
+
+## True on a portrait phone / single-column layout (ResponsiveManager SSOT).
+func _portrait_active() -> bool:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		return rm.should_collapse_to_single_column()
+	return false
+
+## Device-keyed touch height (56 mobile / 48 else); fallback TOUCH_TARGET_MIN.
+func _touch_target() -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_touch_target_size"):
+		return rm.get_touch_target_size()
+	return TOUCH_TARGET_MIN
+
+## Per-row name label that fits the 360dp floor: wraps long names, ellipsizes
+## when wrap can't help, and DROPS its fixed min-width in portrait (the fixed
+## 100-150px min is what forces the HFlow row to overflow ~321px). Landscape
+## keeps the alignment min-width for desktop column tidiness.
+func _make_name_label(text_value: String, landscape_min_w: int) -> Label:
+	var lbl := Label.new()
+	lbl.text = text_value
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	lbl.clip_text = true
+	lbl.custom_minimum_size.x = 0 if _portrait_active() else landscape_min_w
+	return lbl
+
+## Pre-roll result label that wraps/expands so the row's intrinsic min width
+## stays small before a roll (the non-wrapping "Not rolled" + a fixed name min
+## is what drove the overflow). Post-roll handlers already wrap their output.
+func _style_pending_result(result_label: Label) -> void:
+	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 ## Helper to work around static function linter issues with InjurySystemService
 func _is_narrative_injuries_mode() -> bool:
@@ -93,6 +131,50 @@ func _ready() -> void:
 	_setup_postbattle_icons()
 	_style_step_content_panel()
 	_style_side_panels()
+	_setup_portrait_chrome()
+
+
+## First PanelContainer ancestor of `node` (robust to scene-tree depth changes).
+func _find_panel_ancestor(node: Node) -> PanelContainer:
+	var n: Node = node
+	while n:
+		if n is PanelContainer:
+			return n as PanelContainer
+		n = n.get_parent()
+	return null
+
+
+## Portrait de-clip wiring: trim root margins (PortraitChrome), and react to
+## rotation so per-row name widths rebuild and the StepsList nav (redundant with
+## the "Step N of 14" header) is hidden in portrait to reclaim vertical space.
+func _setup_portrait_chrome() -> void:
+	_steps_panel = _find_panel_ancestor(steps_container)
+	var mc := get_node_or_null("MarginContainer")
+	if mc:
+		_portrait_chrome = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(_portrait_chrome)
+		_portrait_chrome.setup(mc)
+	_rm = get_node_or_null("/root/ResponsiveManager")
+	if _rm and _rm.has_signal("layout_class_changed") \
+			and not _rm.layout_class_changed.is_connected(_on_layout_class_changed):
+		_rm.layout_class_changed.connect(_on_layout_class_changed)
+	_apply_portrait_ia()
+
+
+func _on_layout_class_changed(_cols: int) -> void:
+	## Rotation/resize: re-lay-out the active step (re-applies portrait row widths)
+	## and re-evaluate the StepsList visibility. Idempotent.
+	_apply_portrait_ia()
+	_show_current_step()
+
+
+## In portrait, hide the StepsList nav panel (its function is covered by the
+## "Step N of 14" header counter); restore it in landscape. Pure visibility —
+## the ResponsiveContainer already stacks the columns, so this just reclaims the
+## vertical block the nav would otherwise eat above the active step.
+func _apply_portrait_ia() -> void:
+	if _steps_panel:
+		_steps_panel.visible = not _portrait_active()
 
 
 func _initialize_advancement_system() -> void:
@@ -216,6 +298,10 @@ func _connect_backend_signals() -> void:
 		post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
 
 func _exit_tree() -> void:
+	# Disconnect the ResponsiveManager rotation signal (autoload persists across scenes).
+	if _rm and _rm.has_signal("layout_class_changed") \
+			and _rm.layout_class_changed.is_connected(_on_layout_class_changed):
+		_rm.layout_class_changed.disconnect(_on_layout_class_changed)
 	# Disconnect PostBattlePhase signals to prevent memory leaks
 	# (PostBattlePhase is a child of CampaignPhaseManager autoload — persists across scenes)
 	if _post_battle_phase and is_instance_valid(_post_battle_phase):
@@ -600,6 +686,9 @@ func _show_current_step() -> void:
 	# Show inline results for completed steps (Fix B)
 	_add_inline_results_if_available(current_step)
 
+	# Clarity: if this step is gated on rolls, tell the player up front.
+	_maybe_add_roll_hint()
+
 	# Update button states
 	previous_button.disabled = (current_step == 0)
 	roll_button.visible = step.get("requires_roll", false)
@@ -612,6 +701,28 @@ func _show_current_step() -> void:
 
 	# Refresh steps list
 	_refresh_steps_list()
+
+## If the current step is gated on rolls that aren't done yet, surface a one-line
+## amber hint just under the description so the disabled Next button isn't a
+## mystery. Computed after _add_step_specific_content registered the roll count.
+func _maybe_add_roll_hint() -> void:
+	var step = post_battle_steps[current_step]
+	var needs: bool = false
+	if step.get("has_inline_rolls", false):
+		var t: Dictionary = _inline_rolls_completed.get(
+			current_step, {"total": 0, "done": 0})
+		needs = t.get("total", 0) > 0 and t.get("done", 0) < t.get("total", 0)
+	elif step.get("requires_roll", false):
+		needs = not _inline_rolls_completed.has(current_step)
+	if not needs:
+		return
+	var hint := Label.new()
+	hint.text = "⤬ Roll all items below to continue."
+	hint.modulate = UIColors.COLOR_AMBER
+	hint.add_theme_font_size_override("font_size", _scaled_font(12))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	step_content.add_child(hint)
+	step_content.move_child(hint, 1)  # directly under the description
 
 ## Inline roll tracking and Next button gating
 func _register_inline_rolls(step_index: int, total: int) -> void:
@@ -701,9 +812,7 @@ func _create_rival_status_panel(rival: Dictionary) -> Control:
 	panel.add_theme_constant_override("h_separation", SPACING_SM)
 	panel.add_theme_constant_override("v_separation", SPACING_XS)
 
-	var name_label = Label.new()
-	name_label.text = rival.get("name", "Unknown Rival")
-	name_label.custom_minimum_size.x = 150
+	var name_label = _make_name_label(rival.get("name", "Unknown Rival"), 150)
 	panel.add_child(name_label)
 	
 	var roll_btn = Button.new()
@@ -716,6 +825,7 @@ func _create_rival_status_panel(rival: Dictionary) -> Control:
 	var result_label = Label.new()
 	result_label.name = "result_" + str(rival.get("id", 0))
 	result_label.text = "Not rolled"
+	_style_pending_result(result_label)
 	panel.add_child(result_label)
 
 	return panel
@@ -937,9 +1047,7 @@ func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	panel.add_theme_constant_override("h_separation", SPACING_SM)
 	panel.add_theme_constant_override("v_separation", SPACING_XS)
 
-	var label = Label.new()
-	label.text = "%s %d:" % [type, num]
-	label.custom_minimum_size.x = 100
+	var label = _make_name_label("%s %d:" % [type, num], 100)
 	panel.add_child(label)
 
 	var roll_button = Button.new()
@@ -957,6 +1065,7 @@ func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	var result_label = Label.new()
 	result_label.name = "injury_result_%s_%d" % [type.to_lower(), num]
 	result_label.text = "Not rolled" if not _is_narrative_injuries_mode() else "Not selected"
+	_style_pending_result(result_label)
 	panel.add_child(result_label)
 
 	return panel
@@ -1029,9 +1138,7 @@ func _create_experience_panel(crew_member: Dictionary) -> Control:
 	panel.add_theme_constant_override("h_separation", SPACING_SM)
 	panel.add_theme_constant_override("v_separation", SPACING_XS)
 
-	var name_label = Label.new()
-	name_label.text = crew_member.get("name", "Unknown")
-	name_label.custom_minimum_size.x = 120
+	var name_label = _make_name_label(crew_member.get("name", "Unknown"), 120)
 	panel.add_child(name_label)
 
 	var roll_button = Button.new()
@@ -1043,6 +1150,7 @@ func _create_experience_panel(crew_member: Dictionary) -> Control:
 	var result_label = Label.new()
 	result_label.name = "exp_result_" + str(crew_member.get("id", 0))
 	result_label.text = "Not rolled"
+	_style_pending_result(result_label)
 	panel.add_child(result_label)
 	
 	return panel
@@ -1069,9 +1177,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 	var header = HFlowContainer.new()
 	header.add_theme_constant_override("h_separation", SPACING_SM)
 	header.add_theme_constant_override("v_separation", SPACING_XS)
-	var name_label = Label.new()
-	name_label.text = "🤖 %s" % crew_member.get("name", "Unknown Bot")
-	name_label.custom_minimum_size.x = 150
+	var name_label = _make_name_label("🤖 %s" % crew_member.get("name", "Unknown Bot"), 150)
 	header.add_child(name_label)
 
 	# Current credits display
@@ -1110,7 +1216,7 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 
 			upgrade_button.text = "%s (%d cr)" % [upgrade_data.get("name", upgrade_id), cost]
 			upgrade_button.tooltip_text = upgrade_data.get("description", "")
-			upgrade_button.custom_minimum_size = Vector2(0, 40)
+			upgrade_button.custom_minimum_size = Vector2(0, _touch_target())
 			upgrade_button.disabled = not can_afford
 
 			if can_afford:
@@ -1348,9 +1454,7 @@ func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	panel.add_theme_constant_override("h_separation", SPACING_SM)
 	panel.add_theme_constant_override("v_separation", SPACING_XS)
 
-	var name_label = Label.new()
-	name_label.text = crew_member.get("name", "Unknown")
-	name_label.custom_minimum_size.x = 120
+	var name_label = _make_name_label(crew_member.get("name", "Unknown"), 120)
 	panel.add_child(name_label)
 
 	var roll_btn = Button.new()
@@ -1363,6 +1467,7 @@ func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	var result_label = Label.new()
 	result_label.name = "char_event_" + str(crew_member.get("id", 0))
 	result_label.text = "Not rolled"
+	_style_pending_result(result_label)
 	panel.add_child(result_label)
 	
 	return panel

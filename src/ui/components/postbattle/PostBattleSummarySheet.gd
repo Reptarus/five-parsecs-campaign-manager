@@ -83,6 +83,8 @@ const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY # Gray secondary tex
 var _summary_data: Dictionary = {}
 var _invasion_timer: Timer = null
 var _battlefield_recap_section: VBoxContainer = null
+var _rm: Node = null  # ResponsiveManager (rotation handler)
+var _panel_style: StyleBoxFlat = null  # cached panel stylebox (portrait padding trim)
 
 # ============================================================================
 # LIFECYCLE METHODS
@@ -96,11 +98,45 @@ func _ready() -> void:
 	# Apply design system styling
 	_apply_design_system_styling()
 
+	# React to rotation: collapse the 2-col stats/loot grids + trim padding in portrait.
+	_rm = get_node_or_null("/root/ResponsiveManager")
+	if _rm and _rm.has_signal("layout_class_changed") \
+			and not _rm.layout_class_changed.is_connected(_on_layout_class_changed):
+		_rm.layout_class_changed.connect(_on_layout_class_changed)
+
 
 func _exit_tree() -> void:
 	# Clean up invasion warning timer if exists
 	if _invasion_timer and is_instance_valid(_invasion_timer):
 		_invasion_timer.queue_free()
+	if _rm and _rm.has_signal("layout_class_changed") \
+			and _rm.layout_class_changed.is_connected(_on_layout_class_changed):
+		_rm.layout_class_changed.disconnect(_on_layout_class_changed)
+
+
+## True on a portrait phone / single-column layout (ResponsiveManager SSOT).
+func _portrait_active() -> bool:
+	if _rm and _rm.has_method("should_collapse_to_single_column"):
+		return _rm.should_collapse_to_single_column()
+	return false
+
+
+## Collapse the 2-column stats grid to 1 column and trim the panel padding on the
+## 360dp portrait floor; restore both in landscape (desktop byte-identical).
+func _apply_responsive_columns() -> void:
+	var portrait := _portrait_active()
+	if stats_section:
+		stats_section.columns = 1 if portrait else 2
+	if _panel_style:
+		_panel_style.set_content_margin_all(
+			float(SPACING_SM) if portrait else float(SPACING_XL))
+
+
+func _on_layout_class_changed(_cols: int) -> void:
+	_apply_responsive_columns()
+	# Loot grid is rebuilt to pick up the new column count.
+	if not _summary_data.is_empty():
+		_setup_loot()
 
 # ============================================================================
 # PUBLIC INTERFACE
@@ -148,6 +184,10 @@ func setup(summary_data: Dictionary) -> void:
 
 	# Populate campaign changes
 	_setup_campaign_changes()
+
+	# Portrait-correct the stats columns + panel padding for the initial paint
+	# (loot already built portrait-aware above).
+	_apply_responsive_columns()
 
 
 # ============================================================================
@@ -315,9 +355,10 @@ func _setup_loot() -> void:
 		loot_container.add_child(no_loot)
 		return
 
-	# Create grid for loot items (2 columns: item, value)
+	# Create grid for loot items (item, value). 1 column in portrait so a long
+	# item name + value don't overflow the ~321px floor; 2 on desktop.
 	var loot_grid := GridContainer.new()
-	loot_grid.columns = 2
+	loot_grid.columns = 1 if _portrait_active() else 2
 	loot_grid.add_theme_constant_override("h_separation", SPACING_MD)
 	loot_grid.add_theme_constant_override("v_separation", SPACING_SM)
 
@@ -330,6 +371,8 @@ func _setup_loot() -> void:
 		item_label.text = "%s %s" % [icon, item_name]
 		item_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		loot_grid.add_child(item_label)
 
 		# Item value
@@ -438,6 +481,7 @@ func _apply_design_system_styling() -> void:
 	panel_style.set_corner_radius_all(16)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
+	_panel_style = panel_style  # cached so portrait padding-trim can mutate it
 
 	# Mission title
 	if mission_title:
