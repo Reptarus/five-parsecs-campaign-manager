@@ -721,6 +721,10 @@ func _build_crew_card(member) -> PanelContainer:
 	stat_lbl.text = "  ".join(stat_parts)
 	stat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
 	stat_lbl.add_theme_color_override("font_color", COLOR_CYAN)
+	# Deferred "tooltips": the C/R/T/S/Sv/L abbreviations are undiscoverable —
+	# hovering the stat line now explains them (Core Rules character profile).
+	stat_lbl.tooltip_text = "C = Combat   R = Reaction   T = Toughness   S = Speed   Sv = Savvy   L = Luck"
+	stat_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 	vbox.add_child(stat_lbl)
 
 	hbox.add_child(vbox)

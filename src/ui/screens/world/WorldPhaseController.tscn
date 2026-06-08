@@ -143,46 +143,51 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_content_panel")
 
-[node name="UpkeepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+[node name="PhaseScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="UpkeepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="UpkeepPhaseComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/UpkeepContainer" instance=ExtResource("2_upkeep")]
+[node name="UpkeepPhaseComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/UpkeepContainer" instance=ExtResource("2_upkeep")]
 
-[node name="CrewTaskContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="CrewTaskComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CrewTaskContainer" instance=ExtResource("3_crew_task")]
-
-[node name="JobOfferContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+[node name="CrewTaskContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="JobOfferComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/JobOfferContainer" instance=ExtResource("4_job_offer")]
+[node name="CrewTaskComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/CrewTaskContainer" instance=ExtResource("3_crew_task")]
 
-[node name="MissionPrepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+[node name="JobOfferContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="MissionPrepComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/MissionPrepContainer" instance=ExtResource("5_mission_prep")]
+[node name="JobOfferComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/JobOfferContainer" instance=ExtResource("4_job_offer")]
 
-[node name="AssignEquipmentContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+[node name="MissionPrepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="AssignEquipmentComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/AssignEquipmentContainer" instance=ExtResource("6_assign_equipment")]
+[node name="MissionPrepComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/MissionPrepContainer" instance=ExtResource("5_mission_prep")]
 
-[node name="ResolveRumorsContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+[node name="AssignEquipmentContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="ResolveRumorsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/ResolveRumorsContainer" instance=ExtResource("7_resolve_rumors")]
+[node name="AssignEquipmentComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/AssignEquipmentContainer" instance=ExtResource("6_assign_equipment")]
+
+[node name="ResolveRumorsContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="ResolveRumorsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PhaseScroll/ResolveRumorsContainer" instance=ExtResource("7_resolve_rumors")]
 
 [node name="Controls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

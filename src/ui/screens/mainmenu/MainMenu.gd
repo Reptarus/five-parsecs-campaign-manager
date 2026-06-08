@@ -1152,7 +1152,9 @@ func _build_social_footer() -> void:
 	footer.anchor_bottom = 1.0
 	footer.offset_left = 20
 	footer.offset_top = -56
-	footer.offset_right = 500
+	# Wider so the Community + 4 social links + Credits/Privacy don't overflow the
+	# 480px box and collide (the bar is hidden on narrow widths anyway).
+	footer.offset_right = 760
 	footer.offset_bottom = -12
 	footer.grow_horizontal = Control.GROW_DIRECTION_END
 	footer.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -1288,8 +1290,9 @@ func _on_viewport_resized() -> void:
 		menu_buttons.anchor_bottom = 0.5
 		menu_buttons.offset_left = -160
 		menu_buttons.offset_right = 160
-		menu_buttons.offset_top = -200
-		menu_buttons.offset_bottom = 200
+		# Tall enough for the full ~10-item menu in portrait (was 400px = severe clip).
+		menu_buttons.offset_top = -320
+		menu_buttons.offset_bottom = 320
 		title.add_theme_font_size_override(
 			"font_size", _scaled_font(36))
 		title.offset_left = -180
@@ -1304,8 +1307,8 @@ func _on_viewport_resized() -> void:
 		menu_buttons.offset_right = -50
 		# Taller bounds so the full ~10-item menu column (Continue…Library) fits
 		# without clipping top/bottom at 720p.
-		menu_buttons.offset_top = -320
-		menu_buttons.offset_bottom = 320
+		menu_buttons.offset_top = -340
+		menu_buttons.offset_bottom = 340
 		# 48, not 75: at 75 (×responsive scale ≈ 86) the title overflowed its
 		# 800px box and rendered clipped ("…Manag"). 48 fits the full title.
 		title.add_theme_font_size_override(
