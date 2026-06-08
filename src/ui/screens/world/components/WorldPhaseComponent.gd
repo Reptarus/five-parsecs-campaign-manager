@@ -11,6 +11,10 @@ class_name WorldPhaseComponent
 # Signals for parent integration
 signal component_ready(component_name: String)
 signal component_error(component_name: String, error_message: String)
+## Emitted whenever a sub-step's completion/gating state changes, so the
+## WorldPhaseController can re-evaluate the "Next Step" button enablement
+## (the upkeep step lacked a completion notification — see B1 soft-lock fix).
+signal step_state_changed
 
 # Design system constants shared by all world phase components
 const TOUCH_TARGET_MIN := 48  # Minimum interactive element height (8px grid, Sprint 26.4)

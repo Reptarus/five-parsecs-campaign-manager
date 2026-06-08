@@ -1275,22 +1275,21 @@ func _on_travel_phase_completed() -> void:
 
 ## Sprint 10.3: Bidirectional Navigation Handler
 func _on_return_to_travel() -> void:
-	## Handle return to travel phase from world phase (rollback navigation)
+	## Handle return-to-travel rollback. Travel is now folded into the World Phase
+	## upkeep step (Core Rules p.69 — "Stay / Travel" lives in UpkeepPhaseComponent),
+	## so this re-shows the UNIFIED World Phase rather than the legacy TravelPhaseUI
+	## (which only persists for save-compat / auto-skip and carries a duplicate
+	## "Perform Upkeep" UI). B2: keeps the player on one consistent travel/upkeep
+	## screen and never surfaces the legacy duplicate.
 
 	_hide_all_phase_uis()
 
-	if travel_phase_ui:
-		travel_phase_ui.show()
-		current_ui_phase = travel_phase_ui
-
-		# Restore Travel Phase UI from checkpoint if available
-		if travel_phase_ui.has_method("restore_from_checkpoint"):
-			travel_phase_ui.restore_from_checkpoint()
-		else:
-			pass
+	if world_phase_controller:
+		world_phase_controller.show()
+		current_ui_phase = world_phase_controller
 
 	# Update phase display
-	_update_phase_display("Travel")
+	_update_phase_display("World Phase")
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	## Handle world phase completion - skip directly to MISSION phase.

@@ -10,7 +10,7 @@ script = ExtResource("2_equipment")
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="MainSplit" type="HSplitContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="MainSplit" type="SplitContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 300)
 size_flags_vertical = 3

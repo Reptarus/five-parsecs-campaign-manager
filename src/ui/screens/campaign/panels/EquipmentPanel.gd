@@ -2603,7 +2603,11 @@ func _on_equipment_dialog_closed(popup: AcceptDialog) -> void:
 ## re-orients on rotation via the layout_class_changed wiring.
 func _apply_split_orientation() -> void:
 	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
-	if main_split and main_split is HSplitContainer:
+	# B4: MainSplit is a base SplitContainer (NOT HSplitContainer) — only the base
+	# class exposes a settable `vertical`. HSplitContainer/VSplitContainer are
+	# fixed-orientation subclasses and erroring "Can't change orientation". Toggle
+	# horizontal (desktop) ↔ vertical-stacked (mobile) on the real layout class.
+	if main_split and main_split is SplitContainer:
 		main_split.set_deferred("vertical", should_use_single_column())
 	_apply_split_section_widths()
 

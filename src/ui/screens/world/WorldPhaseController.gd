@@ -165,6 +165,12 @@ func _connect_ui_signals() -> void:
 		back_to_dashboard_button.pressed.connect(_on_back_to_dashboard_pressed)
 	if proceed_to_battle_button:
 		proceed_to_battle_button.pressed.connect(_on_proceed_to_battle_pressed)
+	# B1: the upkeep step (unlike crew-task/job/mission-prep) has no event-bus
+	# completion notification, so "Next Step" never re-evaluated after upkeep was
+	# paid → turn soft-lock. Refresh the nav on every upkeep state change.
+	if upkeep_component and upkeep_component.has_signal("step_state_changed"):
+		if not upkeep_component.step_state_changed.is_connected(_update_ui_display):
+			upkeep_component.step_state_changed.connect(_update_ui_display)
 
 func _setup_initial_state() -> void:
 	## Setup initial UI state and fetch campaign data from GameStateManager

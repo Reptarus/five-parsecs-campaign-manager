@@ -1001,6 +1001,12 @@ func _on_campaign_name_changed(new_text: String) -> void:
 	## Handle campaign name change
 	local_campaign_config.campaign_name = new_text
 	_update_display()
+	# B3: the coordinator's nav-enablement listens to campaign_config_data_changed
+	# (CampaignCreationUI wires it → coordinator.update_campaign_config_state). The
+	# name handler was the only field that DIDN'T emit it (it only fired
+	# _validate_and_complete → campaign_config_data_complete), so the "Next" button
+	# never enabled after typing a name. Mirror the other field handlers.
+	campaign_config_data_changed.emit(local_campaign_config)
 	_validate_and_complete()
 
 func _on_campaign_type_changed(index: int) -> void:

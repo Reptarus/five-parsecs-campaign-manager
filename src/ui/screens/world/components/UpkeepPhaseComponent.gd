@@ -621,6 +621,12 @@ func _update_gating_state() -> void:
 	var btn_container = get_node_or_null("UpkeepContainer/ButtonContainer")
 	if btn_container:
 		btn_container.modulate.a = 1.0 if travel_decision_made else 0.4
+	# Notify WorldPhaseController to re-evaluate "Next Step". This hook runs after
+	# EVERY upkeep state change (stay/travel/calculate/pay), so it's the single
+	# point that unblocks the turn once travel is decided AND upkeep is paid.
+	# (B1 soft-lock fix — the upkeep step had no completion notification, unlike
+	# crew-task/job/mission-prep which notify via the event bus.)
+	step_state_changed.emit()
 
 ## Event Bus Handlers
 func _on_phase_started(data: Dictionary) -> void:
