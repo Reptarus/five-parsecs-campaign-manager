@@ -119,11 +119,14 @@ func _create_character_card_entry(character) -> void:
 			"character_name", character.get("name", "Unknown"))
 		var is_captain: bool = character.get("is_captain", false)
 
-		# Resolve background/class from enum ints or traits
-		var bg_val = character.get("background", -1)
+		# M2: show species/origin (matching the Dashboard crew cards) — the save
+		# dicts carry origin/species (e.g. "assault_bot"), NOT a `background` enum
+		# int, so the old `background` read defaulted every crew to "COLONIST".
+		var origin_val = character.get("origin",
+			character.get("species", character.get("species_id", "")))
 		var cls_val = character.get("character_class",
 			character.get("class", -1))
-		var bg_name: String = _resolve_background_name(bg_val)
+		var bg_name: String = _format_origin_display(origin_val)
 		var cls_name: String = _resolve_class_name(cls_val)
 
 		# Captain entries lack flat stats — parse traits
@@ -178,11 +181,32 @@ func _update_crew_count() -> void:
 	# Also count any dictionary-based cards added directly
 	if crew_grid:
 		crew_size = max(crew_size, crew_grid.get_child_count())
-	crew_count_label.text = "Crew: %d/%d" % [crew_size, MAX_CREW_SIZE]
-	if crew_size >= MAX_CREW_SIZE:
+	var max_crew := _get_max_crew_size()
+	crew_count_label.text = "Crew: %d/%d" % [crew_size, max_crew]
+	if crew_size >= max_crew:
 		crew_count_label.add_theme_color_override("font_color", COLOR_WARNING)
 	else:
 		crew_count_label.remove_theme_color_override("font_color")
+
+## M6: the campaign's fixed crew-size setting (Core Rules p.63 — 4/5/6) via the
+## GameState chain, NOT the hardcoded roster ceiling. Falls back to the const.
+func _get_max_crew_size() -> int:
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_campaign_crew_size"):
+		var n: int = gs.get_campaign_crew_size()
+		if n > 0:
+			return n
+	return MAX_CREW_SIZE
+
+## Prettify an origin/species value for display: a String enum ("assault_bot" →
+## "Assault Bot"), a legacy numeric enum via the existing resolver, else "Unknown".
+func _format_origin_display(val) -> String:
+	if val is String and not (val as String).strip_edges().is_empty():
+		var s := (val as String).strip_edges()
+		return s.capitalize() if "_" in s else s
+	if val is int or val is float:
+		return _resolve_background_name(int(val))
+	return "Unknown"
 
 # ============ CHARACTER CARD SIGNAL HANDLERS ============
 

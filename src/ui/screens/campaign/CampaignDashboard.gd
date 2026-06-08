@@ -330,12 +330,19 @@ func _update_header(campaign) -> void:
 			else "Unnamed Campaign"
 	if phase_label:
 		var phase_text: String = campaign.game_phase \
-			if "game_phase" in campaign else "—"
+			if "game_phase" in campaign else ""
 		var pd: Dictionary = campaign.progress_data \
 			if "progress_data" in campaign else {}
 		var turn: int = pd.get("turns_played", 0) + 1
-		phase_label.text = "Turn %d — %s" \
-			% [turn, phase_text.capitalize()]
+		# M3b: drop the system-state placeholder ("Ready For Turn System") — the
+		# dashboard is the between-turns hub, so show a clean "Turn N"; the upcoming
+		# phase is conveyed by the "Begin Turn" button + the turn flow itself.
+		var pl := str(phase_text).strip_edges().to_lower()
+		if pl.is_empty() or pl in ["ready_for_turn_system",
+				"ready for turn system", "none", "—"]:
+			phase_label.text = "Turn %d" % turn
+		else:
+			phase_label.text = "Turn %d — %s" % [turn, phase_text.capitalize()]
 		phase_label.add_theme_color_override(
 			"font_color", COLOR_CYAN
 		)
@@ -824,12 +831,11 @@ func _build_ship_section(campaign) -> void:
 		hull_row.add_child(bar)
 		center_vbox.add_child(hull_row)
 
-	# Fuel / Cargo
-	center_vbox.add_child(
-		_create_info_row(
-			"Fuel", str(sd.get("fuel_units", sd.get("fuel", "—")))
-		)
-	)
+	# Fuel / Cargo — 5PFH has no ship-fuel stat, so only show the row when a value
+	# is actually tracked (avoids a confusing "Fuel: —" that reads like missing data).
+	var fuel_val = sd.get("fuel_units", sd.get("fuel", null))
+	if fuel_val != null and str(fuel_val).strip_edges() != "" and str(fuel_val) != "—":
+		center_vbox.add_child(_create_info_row("Fuel", str(fuel_val)))
 	var cargo_cap: int = sd.get("cargo_capacity", 0)
 	if cargo_cap > 0:
 		center_vbox.add_child(
@@ -1584,10 +1590,11 @@ func _update_progress_strip(campaign) -> void:
 	var pd: Dictionary = campaign.progress_data \
 		if "progress_data" in campaign else {}
 
-	# Turns played
+	# Turns played. M1: label it "Turns Done" — this is COMPLETED turns
+	# (turns_played), distinct from the top bar's CURRENT turn (turns_played + 1).
 	var turns: int = pd.get("turns_played", 0)
 	progress_hbox.add_child(
-		_create_progress_stat("Turns", str(turns))
+		_create_progress_stat("Turns Done", str(turns))
 	)
 
 	# Battles
@@ -1669,18 +1676,20 @@ func _update_phase_ui(phase) -> void:
 	var FPC = GameEnums.FiveParcsecsCampaignPhase
 	var phase_names = GameEnums.PHASE_NAMES
 	var phase_name: String = phase_names.get(phase, "Unknown")
+	var campaign = _get_campaign()
+	var turn: int = 1
+	if campaign:
+		var pd: Dictionary = campaign.progress_data \
+			if "progress_data" in campaign else {}
+		turn = pd.get("turns_played", 0) + 1
 	if phase_label:
-		var campaign = _get_campaign()
-		var turn: int = 1
-		if campaign:
-			var pd: Dictionary = campaign.progress_data \
-				if "progress_data" in campaign else {}
-			turn = pd.get("turns_played", 0) + 1
 		phase_label.text = "Turn %d — %s" % [turn, phase_name]
 	if action_button:
-		var nxt = _get_next_phase(phase)
-		var next_name: String = phase_names.get(nxt, "Unknown")
-		action_button.text = "Next: " + next_name
+		# M3: pressing this from the dashboard ENTERS the campaign turn (the World
+		# Phase is the first interactive step). The old "Next: <phase>" used the
+		# dashboard's own phase enum (next = Story), which is decoupled from the
+		# turn controller's flow → it promised "Story" but landed on Travel/Upkeep.
+		action_button.text = "Begin Turn %d" % turn
 
 func _get_next_phase(current) -> int:
 	var FPC = GameEnums.FiveParcsecsCampaignPhase

@@ -1100,10 +1100,9 @@ func _reconcile_bars_portrait() -> void:
 		(drawer_bar as CanvasItem).visible = not portrait
 	if _mobile_app_bar and _mobile_app_bar.has_method("set_subtitle") and tier_badge:
 		_mobile_app_bar.set_subtitle(tier_badge.text)
-	# The floating Battle Notes widget is anchored top-right at offset -260; on a
-	# 360dp screen it overlaps. Hide it in portrait (optional convenience); restore.
-	if _battle_note_layer:
-		_battle_note_layer.visible = not portrait
+	# Battle-notes visibility is owned by _sync_battle_notes_visibility (M4) — it
+	# combines on-screen state with the portrait gate.
+	_sync_battle_notes_visibility()
 
 
 ## Build the persistent phase-instruction banner at the TOP of BottomContent
@@ -2219,6 +2218,12 @@ func _disconnect_round_tracker_signals() -> void:
 	_round_tracker_connected = false
 
 func _exit_tree() -> void:
+	# M4: the battle-notes CanvasLayer is a child of this node but renders on its
+	# own layer — free it explicitly so it never lingers/floats after the scene
+	# leaves the tree.
+	if _battle_note_layer and is_instance_valid(_battle_note_layer):
+		_battle_note_layer.queue_free()
+		_battle_note_layer = null
 	# Clean up BattleEventsSystem (RefCounted Resource — nulling frees it)
 	_battle_events_system = null
 	# Objective tracker is RefCounted held by one var — null frees it. The
@@ -5547,6 +5552,13 @@ func _log_battle_star_use(ability: int, context: Dictionary,
 ## GameStateManager.set_temp_data("battle_player_notes", ...) on every change
 ## and consumed by CampaignJournal.auto_create_battle_entry() when the
 ## post-battle entry is constructed.
+## M4: single authority for the battle-notes layer visibility — shown only when
+## the battle screen is actually on-screen (is_visible_in_tree) AND not in a
+## portrait phone layout (where the -260px-anchored box overlaps the top bar).
+func _sync_battle_notes_visibility() -> void:
+	if _battle_note_layer and is_instance_valid(_battle_note_layer):
+		_battle_note_layer.visible = is_visible_in_tree() and not _should_collapse_battle_rails()
+
 func _setup_battle_notes_widget() -> void:
 	if _battle_note_layer != null:
 		return
@@ -5554,6 +5566,12 @@ func _setup_battle_notes_widget() -> void:
 	_battle_note_layer.layer = 30  # Above main UI, below modals
 	_battle_note_layer.name = "__battle_notes_layer"
 	add_child(_battle_note_layer)
+	# M4: a CanvasLayer renders independent of its parent Control's visibility, so
+	# hiding TacticalBattleUI does NOT hide this widget — it would float over the
+	# world phase / dashboard. Gate it on the screen's actual visibility-in-tree.
+	if not visibility_changed.is_connected(_sync_battle_notes_visibility):
+		visibility_changed.connect(_sync_battle_notes_visibility)
+	_sync_battle_notes_visibility()
 
 	var anchor := Control.new()
 	anchor.set_anchors_preset(Control.PRESET_TOP_RIGHT)
