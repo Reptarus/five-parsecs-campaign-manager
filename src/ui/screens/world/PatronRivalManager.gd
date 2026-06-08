@@ -411,18 +411,22 @@ func _create_rival_panel(rival: Dictionary) -> Control:
 
 	# Name and type
 	var name_label: Label = Label.new()
-	name_label.text = rival.name + " (" + rival.type + ")"
+	# str()-wrap all interpolated dict values: threat_level (and sometimes
+	# type/status/relationship) can be numeric enums in save data, and
+	# String + int hard-errors at runtime (aborting this panel build and, under
+	# the --debug MCP bridge, halting the run). Display-only; no game data changed.
+	name_label.text = str(rival.name) + " (" + str(rival.type) + ")"
 	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
 	# Threat level and relationship
 	var threat_label: Label = Label.new()
-	threat_label.text = "Threat: " + rival.threat_level + " | " + rival.relationship
+	threat_label.text = "Threat: " + str(rival.threat_level) + " | " + str(rival.relationship)
 	vbox.add_child(threat_label)
 
 	# Status
 	var status_label: Label = Label.new()
-	status_label.text = "Status: " + rival.status
+	status_label.text = "Status: " + str(rival.status)
 	vbox.add_child(status_label)
 
 	# Select button

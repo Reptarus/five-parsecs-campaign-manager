@@ -16,6 +16,9 @@ const DLCUpsellBanner = preload("res://src/ui/components/dlc/DLCUpsellBanner.gd"
 ## AdaptivePanelGroup preloaded by path — the 3 content panels collapse to a tab
 ## strip in portrait via this (master-detail). Same stale-class_name avoidance.
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+## PortraitChrome preloaded by path (stale-class_name avoidance) — trims the root
+## MarginContainer L/R margins in portrait to reclaim width on the 360dp floor.
+const PortraitChromeClass = preload("res://src/ui/components/base/PortraitChrome.gd")
 
 ## Optional dependencies that may not exist
 var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
@@ -72,6 +75,9 @@ var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
 var _max_deploy: int = 6  # Campaign crew size deployment limit (Core Rules p.63/85)
 var _deploy_label: Label  # "Deploying X / Y max" display
 var _keyword_tooltip: KeywordTooltip = null  # Lazy-instantiated for inline rules popovers
+var _portrait_chrome: Node = null  # PortraitChrome margin-trim helper
+var _panel_group: Control = null  # AdaptivePanelGroup holding the 4 panes
+var _summary_label: Label = null  # Live "Mode · Tracking" choice summary
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -79,12 +85,21 @@ func _scaled_font(base: int) -> int:
 		return rm.get_responsive_font_size(base)
 	return base
 
+## Device-keyed touch-target height: 56 on the mobile bucket, 48 otherwise
+## (ResponsiveManager.get_touch_target_size). Fallback 48 in editor/headless.
+func _touch_target() -> int:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("get_touch_target_size"):
+		return rm.get_touch_target_size()
+	return 48
+
 func _ready() -> void:
 	_apply_base_background()
 	_initialize_systems()
 	_connect_signals()
 	confirm_button.disabled = true
 	_setup_adaptive_panels()
+	_setup_portrait_chrome()
 
 
 ## Reparent the 3 content panels (Mission / Battlefield / Crew) into an
@@ -98,6 +113,14 @@ func _setup_adaptive_panels() -> void:
 	var right: Control = get_node_or_null("%RightPanel")
 	if not (left and center and right):
 		return
+	# Promote EnemyInfo (currently stacked under MissionInfo inside LeftPanel) to
+	# its OWN "Forces" pane: the Mission pane becomes "what's happening + my two
+	# choices", Forces becomes "who I'm fighting" — clearer read order on desktop,
+	# and in portrait the enemy table gets its own tab instead of burying the
+	# decisions. add_pane reparents it out of LeftPanel automatically; the
+	# enemy_info_panel @onready ref already cached the inner Content node, so it
+	# stays valid after the move.
+	var enemy: Control = get_node_or_null("%LeftPanel/EnemyInfo")
 	var main_content: Node = left.get_parent()          # the MainContent HBox
 	var vbox: Node = main_content.get_parent() if main_content else null
 	if not vbox:
@@ -106,16 +129,33 @@ func _setup_adaptive_panels() -> void:
 	var group := AdaptivePanelGroupClass.new()
 	group.name = "AdaptiveContent"
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
+	# 4 panes but max 3 columns: on desktop the wide 8-col Forces table wraps to
+	# its own full-width row 2 rather than cramming into a quarter-width column.
 	group.max_columns = 3
 	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(group)
 	vbox.move_child(group, idx)
 	# add_pane reparents each panel out of MainContent into the group's grid.
+	# Order = tab/focus index: Mission / Forces / Battlefield / Crew.
 	group.add_pane(left, "Mission")
+	if enemy:
+		group.add_pane(enemy, "Forces")
 	group.add_pane(center, "Battlefield")
 	group.add_pane(right, "Crew")
+	_panel_group = group
 	main_content.queue_free()  # now empty; footer untouched
+
+## Trim the root MarginContainer's L/R margins in portrait (reclaims ~32px on the
+## 360dp floor) and restore them in landscape. PortraitChrome self-wires to
+## ResponsiveManager.layout_class_changed; zero desktop/landscape impact.
+func _setup_portrait_chrome() -> void:
+	var mc := get_node_or_null("MarginContainer")
+	if mc == null:
+		return
+	_portrait_chrome = PortraitChromeClass.new()
+	add_child(_portrait_chrome)
+	_portrait_chrome.setup(mc)
 
 ## Apply the Deep Space COLOR_BASE background behind this panel
 func _apply_base_background() -> void:
@@ -234,16 +274,25 @@ func _setup_mission_info(data: Dictionary) -> void:
 		init_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mission_info_panel.add_child(init_info)
 
-	# Combat representation mode (Wave 3) — chosen BEFORE the tracking level since
+	# ── Battle Setup ── the two coupled decisions (how to fight / how much to
+	# track), grouped into distinct cards under one header so they read as choices
+	# and don't get buried under the mission text. Combat Mode comes first because
 	# it decides whether the app tracks at all (auto-resolve needs no tracking).
-	var rep_sep := HSeparator.new()
-	mission_info_panel.add_child(rep_sep)
+	var setup_sep := HSeparator.new()
+	mission_info_panel.add_child(setup_sep)
+	var setup_header := Label.new()
+	setup_header.text = "Battle Setup"
+	setup_header.add_theme_font_size_override("font_size", _scaled_font(18))
+	mission_info_panel.add_child(setup_header)
+	# Live glanceable summary of the current two choices (updated on each pick).
+	_summary_label = Label.new()
+	_summary_label.add_theme_font_size_override("font_size", _scaled_font(12))
+	_summary_label.add_theme_color_override("font_color", Color("#4FC3F7"))
+	_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mission_info_panel.add_child(_summary_label)
 	_build_representation_selector()
-
-	# Tier selector — player picks tracking level before combat starts
-	var tier_sep := HSeparator.new()
-	mission_info_panel.add_child(tier_sep)
 	_build_tier_selector()
+	_update_choice_summary()
 
 ## Setup enemy information — Core Rules table format (pp.91-94)
 func _setup_enemy_info(data: Dictionary) -> void:
@@ -349,7 +398,18 @@ func _setup_enemy_info(data: Dictionary) -> void:
 				"font_color", Color("#4FC3F7"))
 		grid.add_child(lbl)
 
-	table_panel.add_child(grid)
+	# Horizontal-scroll wrapper (Godot 4.6 ScrollContainer): the 8-col table
+	# exceeds a ~321px portrait pane. h=AUTO / v=DISABLED means the grid keeps
+	# its full min width on the scroll axis and SWIPES in portrait; in landscape
+	# the grid min < pane width so — because the grid still has SIZE_EXPAND_FILL —
+	# the ScrollContainer stretches it to fill and shows NO scrollbar
+	# (pixel-identical to before). Pattern mirrors CompendiumCategoryView.
+	var table_scroll := ScrollContainer.new()
+	table_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	table_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	table_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_scroll.add_child(grid)
+	table_panel.add_child(table_scroll)
 	container.add_child(table_panel)
 
 	# ── Count ──
@@ -556,6 +616,11 @@ func setup_crew_selection(
 		else:
 			char_button.text = str(item)
 		char_button.toggle_mode = true
+		# Touch target + long-name wrap: wrap within the (expanding) button so a
+		# long crew name never widens the column / clips in the narrow Crew tab.
+		char_button.custom_minimum_size.y = _touch_target()
+		char_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		char_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Style the pressed/selected state
 		var pressed_style := StyleBoxFlat.new()
 		pressed_style.bg_color = Color("#2D5A7B")
@@ -599,9 +664,17 @@ func _on_character_selected(character, button: Button = null) -> void:
 	_update_confirm_button()
 
 func _update_deploy_label() -> void:
-	if _deploy_label:
-		_deploy_label.text = "Deploying %d / %d max" % [
-			selected_crew.size(), _max_deploy]
+	if not _deploy_label:
+		return
+	_deploy_label.text = "Deploying %d / %d max" % [
+		selected_crew.size(), _max_deploy]
+	# Red at empty (can't confirm), amber at the cap (no room left), cyan between.
+	var col := Color("#4FC3F7")
+	if selected_crew.is_empty():
+		col = Color("#DC2626")
+	elif selected_crew.size() >= _max_deploy:
+		col = Color("#D97706")
+	_deploy_label.add_theme_color_override("font_color", col)
 
 ## Handle terrain generation completion
 func _on_terrain_generated(_terrain_data: Dictionary) -> void:
@@ -622,22 +695,45 @@ func _update_confirm_button() -> void:
 	if terrain_system and terrain_system.has_method("is_terrain_ready"):
 		terrain_ok = terrain_system.is_terrain_ready()
 	confirm_button.disabled = selected_crew.is_empty() or not terrain_ok
+	# Tell the player WHY Confirm is disabled (the common case is no crew picked).
+	confirm_button.tooltip_text = "Select at least one crew member to deploy" \
+		if selected_crew.is_empty() else ""
+
+## Build a styled "decision card" (PanelContainer + inner VBox) appended to the
+## Mission pane, returning the inner VBox for the caller to fill. Bounds each
+## battle-setup choice so it reads as a distinct, self-contained decision.
+func _make_decision_card(title_text: String) -> VBoxContainer:
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#1E1E36")      # COLOR_INPUT
+	style.border_color = Color("#3A3A5C")  # COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(8)
+	card.add_theme_stylebox_override("panel", style)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	card.add_child(vb)
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", _scaled_font(16))
+	vb.add_child(title)
+	mission_info_panel.add_child(card)
+	return vb
 
 ## Build the tracking tier radio buttons (LOG_ONLY / ASSISTED / FULL_ORACLE)
 func _build_tier_selector() -> void:
 	if not mission_info_panel:
 		return
 
-	var header := Label.new()
-	header.text = "Tracking Level"
-	header.add_theme_font_size_override("font_size", _scaled_font(16))
-	mission_info_panel.add_child(header)
+	var card := _make_decision_card("Tracking Level")
 
 	var desc := Label.new()
 	desc.text = "How much should the app track for you?"
 	desc.add_theme_font_size_override("font_size", _scaled_font(12))
 	desc.add_theme_color_override("font_color", Color("#808080"))
-	mission_info_panel.add_child(desc)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(desc)
 
 	var tier_names: Array[String] = [
 		"Log Only — manual play, dice journal",
@@ -651,17 +747,38 @@ func _build_tier_selector() -> void:
 		radio.text = tier_names[i]
 		radio.button_group = button_group
 		radio.add_theme_font_size_override("font_size", _scaled_font(14))
-		radio.custom_minimum_size.y = 40  # Touch-friendly
+		radio.custom_minimum_size.y = _touch_target()  # Touch-friendly
 		radio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # long labels wrap at 360dp
 		radio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if i == 0:
 			radio.button_pressed = true  # Default to LOG_ONLY
 		radio.pressed.connect(_on_tier_radio_pressed.bind(i))
 		_tier_radios.append(radio)
-		mission_info_panel.add_child(radio)
+		card.add_child(radio)
 
 func _on_tier_radio_pressed(tier: int) -> void:
 	selected_tier = tier
+	_update_choice_summary()
+
+## Live "Mode · Tracking" summary so the current two choices are glanceable
+## without scrolling the cards. Auto-resolve reads differently (no tracking).
+func _update_choice_summary() -> void:
+	if not _summary_label:
+		return
+	var mode_names := {
+		"play_on_table": "Play on table",
+		"no_minis": "No-minis",
+		"auto_resolve": "Auto-resolve",
+	}
+	var tier_names := ["Log Only", "Assisted", "Full Oracle"]
+	var mode_txt: String = mode_names.get(
+		selected_representation_mode, selected_representation_mode)
+	if selected_representation_mode == "auto_resolve":
+		_summary_label.text = "Mode: %s — the app resolves the whole battle" % mode_txt
+	else:
+		var tier_txt: String = tier_names[selected_tier] \
+			if selected_tier >= 0 and selected_tier < tier_names.size() else "?"
+		_summary_label.text = "Mode: %s · Tracking: %s" % [mode_txt, tier_txt]
 
 ## Build the per-battle combat representation picker (Wave 3, Sprint Roadmap
 ## "representation axis"). Three options; No-Minis is gated on Freelancer's
@@ -673,16 +790,14 @@ func _build_representation_selector() -> void:
 	if not mission_info_panel:
 		return
 
-	var header := Label.new()
-	header.text = "Combat Mode"
-	header.add_theme_font_size_override("font_size", _scaled_font(16))
-	mission_info_panel.add_child(header)
+	var card := _make_decision_card("Combat Mode")
 
 	var desc := Label.new()
 	desc.text = "How do you want to fight this battle?"
 	desc.add_theme_font_size_override("font_size", _scaled_font(12))
 	desc.add_theme_color_override("font_color", Color("#808080"))
-	mission_info_panel.add_child(desc)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(desc)
 
 	# DLC OWNERSHIP gate (is_feature_available ignores the global toggle — the
 	# picker itself is the per-battle toggle). Null-safe for editor/headless.
@@ -712,19 +827,19 @@ func _build_representation_selector() -> void:
 		radio.text = opt[1]
 		radio.button_group = group
 		radio.add_theme_font_size_override("font_size", _scaled_font(14))
-		radio.custom_minimum_size.y = 40  # Touch-friendly
+		radio.custom_minimum_size.y = _touch_target()  # Touch-friendly
 		radio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		radio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		radio.disabled = not enabled
 		if mode_id == selected_representation_mode and enabled:
 			radio.button_pressed = true
 		radio.pressed.connect(_on_representation_radio_pressed.bind(mode_id))
-		mission_info_panel.add_child(radio)
+		card.add_child(radio)
 
 		# Locked option → subtle, non-aggressive contextual upsell beneath it.
 		if not enabled and not locked_flag.is_empty():
 			var banner := DLCUpsellBanner.create_for_flag(locked_flag)
-			mission_info_panel.add_child(banner)
+			card.add_child(banner)
 
 func _on_representation_radio_pressed(mode: String) -> void:
 	selected_representation_mode = mode
@@ -733,6 +848,7 @@ func _on_representation_radio_pressed(mode: String) -> void:
 	for r in _tier_radios:
 		if is_instance_valid(r):
 			r.disabled = is_auto
+	_update_choice_summary()
 
 ## Get selected crew
 func get_selected_crew() -> Array:
