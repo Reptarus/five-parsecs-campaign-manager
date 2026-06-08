@@ -36,6 +36,20 @@ func test_steps_panel_resolved() -> void:
 	assert_bool(ui._steps_panel is PanelContainer).is_true()
 
 
+func test_app_bar_and_results_drawer() -> void:
+	# Portrait app bar (step indicator + Log button) + the Results bottom drawer.
+	var ui: Control = auto_free(PostBattleScene.instantiate())
+	add_child(ui)
+	await get_tree().process_frame
+	assert_object(ui._app_bar).override_failure_message(
+		"post-battle MobileAppBar not built").is_not_null()
+	assert_object(ui._results_panel).override_failure_message(
+		"Results side panel ref not resolved").is_not_null()
+	ui._on_open_results_drawer()
+	assert_bool(ui._results_drawer.is_open()).override_failure_message(
+		"Results bottom drawer did not open").is_true()
+
+
 func test_summary_sheet_setup_and_columns() -> void:
 	var sheet: Control = auto_free(SummarySheetScene.instantiate())
 	add_child(sheet)

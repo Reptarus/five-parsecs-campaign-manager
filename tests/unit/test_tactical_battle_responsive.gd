@@ -48,6 +48,15 @@ func test_phase_instruction_banner_built_and_toggles() -> void:
 	assert_bool(ui._phase_banner.visible).is_false()
 
 
+func test_mobile_app_bar_and_panels_menu_built() -> void:
+	# Portrait app bar (hosts the ≡ Panels drawer menu) + the menu both exist.
+	var ui := await _make_ui()
+	assert_object(ui._mobile_app_bar).override_failure_message(
+		"battle MobileAppBar not built").is_not_null()
+	assert_object(ui._panels_menu).override_failure_message(
+		"≡ Panels drawer menu not built").is_not_null()
+
+
 func test_overlay_width_clamped() -> void:
 	var ui := await _make_ui()
 	var w: float = ui._overlay_width()

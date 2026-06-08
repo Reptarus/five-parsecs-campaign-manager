@@ -114,6 +114,8 @@ var battle_log: RichTextLabel = null             # → detached sink; real feed 
 
 # Keeper drawer instances (SlideOverDrawer), one per toolbar surface.
 const DrawerClass = preload("res://src/ui/components/common/SlideOverDrawer.gd")
+## Portrait top app bar (hosts the ≡ Panels drawer menu); path-preloaded.
+const MobileAppBarClass = preload("res://src/ui/components/common/MobileAppBar.gd")
 var _drawers: Dictionary = {}            # id -> SlideOverDrawer
 var _drawer_bodies: Dictionary = {}      # id -> VBoxContainer (content host)
 var _toolbar_built: bool = false
@@ -157,6 +159,16 @@ var _stars_battle_popup: PopupPanel = null
 var _phase_banner: PanelContainer = null
 var _phase_banner_chip: Label = null
 var _phase_banner_label: Label = null
+
+# Portrait top app bar: replaces the cramped TopBar on phones and hosts the
+# "≡ Panels" drawer MenuButton + Auto-Resolve, so the bottom action row carries
+# only phase buttons. Self-hides in landscape (zero desktop impact). The 7-button
+# DrawerBar and this menu COEXIST (visibility-toggled by orientation), never
+# reparented. _drawer_tier is remembered so a rotation can rebuild the menu.
+var _mobile_app_bar: PanelContainer = null
+var _panels_menu: MenuButton = null
+var _drawer_tier: int = 0
+var _top_bar: HBoxContainer = null  # cached TopBar (hidden in portrait)
 const _StarsSysClassRef = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
 
@@ -459,6 +471,9 @@ func _build_redesign_frame() -> void:
 
 	# Persistent "what do I do now THIS phase" companion banner.
 	_build_phase_instruction_banner()
+
+	# Portrait top app bar (self-hides in landscape).
+	_build_mobile_app_bar()
 
 
 func _make_drawer(id: String, title: String, edge: int,
@@ -1075,13 +1090,18 @@ func _reconcile_bars_portrait() -> void:
 	if action_buttons:
 		action_buttons.size_flags_horizontal = \
 			Control.SIZE_SHRINK_CENTER if portrait else Control.SIZE_EXPAND_FILL
-	if title_label:
-		title_label.clip_text = portrait
-		title_label.text_overrun_behavior = \
-			TextServer.OVERRUN_TRIM_ELLIPSIS if portrait else TextServer.OVERRUN_NO_TRIMMING
+	# In portrait the MobileAppBar replaces the cramped TopBar and hosts the
+	# ≡ Panels drawer menu; hide the TopBar + the bottom 7-button DrawerBar (the
+	# app-bar menu covers it). Restore both in landscape (the app bar self-hides).
+	if _top_bar:
+		_top_bar.visible = not portrait
+	var drawer_bar := action_buttons.get_node_or_null("DrawerBar") if action_buttons else null
+	if drawer_bar:
+		(drawer_bar as CanvasItem).visible = not portrait
+	if _mobile_app_bar and _mobile_app_bar.has_method("set_subtitle") and tier_badge:
+		_mobile_app_bar.set_subtitle(tier_badge.text)
 	# The floating Battle Notes widget is anchored top-right at offset -260; on a
-	# 360dp screen it overlaps the title/overlay. Hide it in portrait (it's an
-	# optional convenience, not a primary surface); restore in landscape.
+	# 360dp screen it overlaps. Hide it in portrait (optional convenience); restore.
 	if _battle_note_layer:
 		_battle_note_layer.visible = not portrait
 
@@ -1120,6 +1140,47 @@ func _build_phase_instruction_banner() -> void:
 	bottom_content.add_child(_phase_banner)
 	bottom_content.move_child(_phase_banner, 0)
 	_phase_banner.visible = false
+
+
+## Build the portrait top app bar as the first child of MainContainer. It hosts
+## the ≡ Panels drawer menu and shows the tier as subtitle; self-hides in
+## landscape (so desktop keeps the full TopBar untouched).
+func _build_mobile_app_bar() -> void:
+	if _mobile_app_bar != null:
+		return
+	_top_bar = title_label.get_parent() if title_label else null
+	var main_container := get_node_or_null("EdgeMargin/MainContainer")
+	if main_container == null:
+		return
+	_mobile_app_bar = MobileAppBarClass.new()
+	main_container.add_child(_mobile_app_bar)
+	main_container.move_child(_mobile_app_bar, 0)
+	_mobile_app_bar.setup("Tactical Companion",
+		tier_badge.text if tier_badge else "", true)
+	if _mobile_app_bar.has_method("set_back_handler"):
+		_mobile_app_bar.set_back_handler(_on_return_to_battle_resolution)
+
+
+## (Re)build the portrait "≡ Panels" drawer menu in the app-bar actions slot.
+## Mirrors the landscape 7-button DrawerBar's ids; both coexist (orientation
+## toggles which is visible). Frees the previous menu to avoid a leak.
+func _rebuild_panels_menu(ids: Array) -> void:
+	if _mobile_app_bar == null:
+		return
+	if _panels_menu and is_instance_valid(_panels_menu):
+		_panels_menu.queue_free()
+	_panels_menu = MenuButton.new()
+	_panels_menu.text = "≡ Panels"
+	_panels_menu.custom_minimum_size = Vector2(0, _touch_h())
+	_panels_menu.flat = false
+	var pm := _panels_menu.get_popup()
+	for i in range(ids.size()):
+		pm.add_item(str(ids[i]).capitalize(), i)
+	pm.id_pressed.connect(func(idx: int) -> void:
+		if idx >= 0 and idx < ids.size():
+			_open_drawer(str(ids[idx])))
+	if _mobile_app_bar.has_method("add_action"):
+		_mobile_app_bar.add_action(_panels_menu)
 
 
 ## Set the persistent companion instruction: the PHYSICAL action to perform this
@@ -2045,6 +2106,9 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 		var cap_id: String = id
 		b.pressed.connect(func() -> void: _open_drawer(cap_id))
 		bar.add_child(b)
+	# Portrait twin: a single ≡ Panels menu in the app bar (same drawer ids).
+	_drawer_tier = tier
+	_rebuild_panels_menu(ids)
 	_toolbar_built = true
 
 func _on_right_tabs_tab_changed(_idx: int) -> void:

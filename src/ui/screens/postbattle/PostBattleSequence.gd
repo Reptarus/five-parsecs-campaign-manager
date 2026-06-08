@@ -58,6 +58,14 @@ var _rm: Node = null  # ResponsiveManager (rotation handler)
 var _portrait_chrome: Node = null  # PortraitChrome margin-trim helper
 var _steps_panel: PanelContainer = null  # StepsList nav panel (hidden in portrait)
 var _title_label: Label = null  # "Post-Battle Sequence" header (font shrinks in portrait)
+# Portrait IA: a MobileAppBar replaces the Header (title + "Step N/14" subtitle)
+# and hosts a "Log" button that opens the Results log as a BOTTOM drawer, so the
+# active step gets the full column. All self-hide/restore by orientation.
+var _app_bar: PanelContainer = null
+var _results_drawer: Control = null
+var _results_panel: PanelContainer = null  # Results side panel (hidden in portrait)
+var _header: Control = null  # the Title+StepCounter Header (hidden in portrait)
+var _log_button: Button = null
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -149,17 +157,91 @@ func _find_panel_ancestor(node: Node) -> PanelContainer:
 ## the "Step N of 14" header) is hidden in portrait to reclaim vertical space.
 func _setup_portrait_chrome() -> void:
 	_steps_panel = _find_panel_ancestor(steps_container)
+	_results_panel = _find_panel_ancestor(results_container)
 	_title_label = get_node_or_null("MarginContainer/VBoxContainer/Header/Title")
+	_header = get_node_or_null("MarginContainer/VBoxContainer/Header")
 	var mc := get_node_or_null("MarginContainer")
 	if mc:
 		_portrait_chrome = load("res://src/ui/components/base/PortraitChrome.gd").new()
 		add_child(_portrait_chrome)
 		_portrait_chrome.setup(mc)
+	_build_postbattle_app_bar()
 	_rm = get_node_or_null("/root/ResponsiveManager")
 	if _rm and _rm.has_signal("layout_class_changed") \
 			and not _rm.layout_class_changed.is_connected(_on_layout_class_changed):
 		_rm.layout_class_changed.connect(_on_layout_class_changed)
 	_apply_portrait_ia()
+
+
+## Build the portrait top app bar (title + "Step N/14" subtitle + a "Log" button
+## that opens the Results log as a BOTTOM drawer). Self-hides in landscape.
+func _build_postbattle_app_bar() -> void:
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if vbox == null:
+		return
+	_app_bar = load("res://src/ui/components/common/MobileAppBar.gd").new()
+	vbox.add_child(_app_bar)
+	vbox.move_child(_app_bar, 0)
+	_app_bar.setup("Post-Battle", "Step %d of %d" % [current_step + 1, max_steps], false)
+	_log_button = Button.new()
+	_log_button.text = "Log"
+	_log_button.custom_minimum_size = Vector2(0, _touch_target())
+	_log_button.pressed.connect(_on_open_results_drawer)
+	if _app_bar.has_method("add_action"):
+		_app_bar.add_action(_log_button)
+
+
+## Lazily create the bottom Results drawer (a SlideOverDrawer mirror of the
+## Results side panel, rebuilt from _step_log_entries — never reparents the scene
+## Results node, avoiding the %-after-reparent trap).
+func _ensure_results_drawer() -> Control:
+	if _results_drawer and is_instance_valid(_results_drawer):
+		return _results_drawer
+	var drawer_class = load("res://src/ui/components/common/SlideOverDrawer.gd")
+	_results_drawer = drawer_class.new()
+	_results_drawer.edge = drawer_class.Edge.BOTTOM
+	_results_drawer.drawer_title = "Battle Results"
+	add_child(_results_drawer)
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", SPACING_SM)
+	_results_drawer.set_content(body)
+	_results_drawer.set_meta("body", body)
+	return _results_drawer
+
+
+func _on_open_results_drawer() -> void:
+	var drawer := _ensure_results_drawer()
+	_populate_results_drawer()
+	if drawer.has_method("open"):
+		drawer.open()
+
+
+## Rebuild the drawer body from the per-step result log.
+func _populate_results_drawer() -> void:
+	if _results_drawer == null or not _results_drawer.has_meta("body"):
+		return
+	var body: Node = _results_drawer.get_meta("body")
+	if body == null or not is_instance_valid(body):
+		return
+	for c in body.get_children():
+		c.queue_free()
+	var any := false
+	for step_i in range(_step_log_entries.size()):
+		for entry in _step_log_entries[step_i]:
+			var lbl := Label.new()
+			lbl.text = "Step %d: %s" % [step_i + 1, str(entry)]
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			lbl.add_theme_font_size_override("font_size", _scaled_font(14))
+			lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			body.add_child(lbl)
+			any = true
+	if not any:
+		var empty := Label.new()
+		empty.text = "No results logged yet."
+		empty.modulate = UIColors.COLOR_TEXT_MUTED
+		body.add_child(empty)
 
 
 func _on_layout_class_changed(_cols: int) -> void:
@@ -177,9 +259,20 @@ func _apply_portrait_ia() -> void:
 	var portrait := _portrait_active()
 	if _steps_panel:
 		_steps_panel.visible = not portrait
-	# The 32px title ("Post-Battle Sequence") is ~349px wide — too wide for the
-	# ~321px floor. Shrink it in portrait (a single Label can't wrap inside the
-	# HFlow header without collapsing to one char per line). Restore on landscape.
+	# In portrait the MobileAppBar replaces the Header and the Results log moves to
+	# a bottom drawer; hide both side panels + the Header so the active step gets
+	# the full column. Restore all in landscape (the app bar self-hides).
+	if _results_panel:
+		_results_panel.visible = not portrait
+	if _header:
+		_header.visible = not portrait
+	if _app_bar and _app_bar.has_method("set_subtitle"):
+		_app_bar.set_subtitle("Step %d of %d" % [current_step + 1, max_steps])
+	if not portrait and _results_drawer and _results_drawer.has_method("is_open") \
+			and _results_drawer.is_open():
+		_results_drawer.close()
+	# Title font-scale is moot when the Header is hidden in portrait, but harmless
+	# (restores the 32px header for landscape).
 	if _title_label:
 		_title_label.add_theme_font_size_override("font_size", 20 if portrait else 32)
 
@@ -672,6 +765,8 @@ func _show_current_step() -> void:
 	# Update UI
 	step_counter.text = "Step " + str(current_step + 1) + " of " + str(max_steps)
 	step_title.text = step.name
+	if _app_bar and _app_bar.has_method("set_subtitle"):
+		_app_bar.set_subtitle("Step %d of %d" % [current_step + 1, max_steps])
 
 	# Clear step content (immediate free, not deferred)
 	for child in step_content.get_children():
@@ -1565,6 +1660,9 @@ func _add_result_to_log(result: String) -> void:
 	if current_step >= 0 \
 			and current_step < _step_log_entries.size():
 		_step_log_entries[current_step].append(result)
+	# Keep the portrait Results drawer live if it's open.
+	if _results_drawer and _results_drawer.has_method("is_open") and _results_drawer.is_open():
+		_populate_results_drawer()
 
 func _add_inline_results_if_available(step_idx: int) -> void:
 	## Show inline result card for completed steps when revisiting
