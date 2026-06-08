@@ -1079,6 +1079,11 @@ func _reconcile_bars_portrait() -> void:
 		title_label.clip_text = portrait
 		title_label.text_overrun_behavior = \
 			TextServer.OVERRUN_TRIM_ELLIPSIS if portrait else TextServer.OVERRUN_NO_TRIMMING
+	# The floating Battle Notes widget is anchored top-right at offset -260; on a
+	# 360dp screen it overlaps the title/overlay. Hide it in portrait (it's an
+	# optional convenience, not a primary surface); restore in landscape.
+	if _battle_note_layer:
+		_battle_note_layer.visible = not portrait
 
 
 ## Build the persistent phase-instruction banner at the TOP of BottomContent

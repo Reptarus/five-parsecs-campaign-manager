@@ -57,6 +57,7 @@ var _inline_rolls_completed: Dictionary = {}  # step_index -> {total: int, done:
 var _rm: Node = null  # ResponsiveManager (rotation handler)
 var _portrait_chrome: Node = null  # PortraitChrome margin-trim helper
 var _steps_panel: PanelContainer = null  # StepsList nav panel (hidden in portrait)
+var _title_label: Label = null  # "Post-Battle Sequence" header (font shrinks in portrait)
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -78,26 +79,25 @@ func _touch_target() -> int:
 		return rm.get_touch_target_size()
 	return TOUCH_TARGET_MIN
 
-## Per-row name label that fits the 360dp floor: wraps long names, ellipsizes
-## when wrap can't help, and DROPS its fixed min-width in portrait (the fixed
-## 100-150px min is what forces the HFlow row to overflow ~321px). Landscape
-## keeps the alignment min-width for desktop column tidiness.
+## Per-row name label for the HFlow step rows. ATOMIC (no autowrap) + ellipsis so
+## a long name truncates instead of forcing the row wide — and crucially so the
+## HFlowContainer wraps the WHOLE label to its own line when it doesn't fit beside
+## the wide roll button. (Autowrap here is a trap: an autowrap label reports a ~0
+## min, so the HFlow squeezes it into leftover space and it char-wraps vertically.)
 func _make_name_label(text_value: String, landscape_min_w: int) -> Label:
 	var lbl := Label.new()
 	lbl.text = text_value
-	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	lbl.clip_text = true
-	lbl.custom_minimum_size.x = 0 if _portrait_active() else landscape_min_w
+	lbl.custom_minimum_size.x = landscape_min_w
 	return lbl
 
-## Pre-roll result label that wraps/expands so the row's intrinsic min width
-## stays small before a roll (the non-wrapping "Not rolled" + a fixed name min
-## is what drove the overflow). Post-roll handlers already wrap their output.
-func _style_pending_result(result_label: Label) -> void:
-	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+## Pre-roll result label ("Not rolled") — kept ATOMIC for the same reason as
+## _make_name_label: autowrap inside the HFlow row collapses its min to ~0 and the
+## label char-wraps vertically in leftover space. Atomic keeps "Not rolled" whole
+## so the HFlow wraps it cleanly to its own line. (No-op now; calls left for clarity.)
+func _style_pending_result(_result_label: Label) -> void:
+	pass
 
 ## Helper to work around static function linter issues with InjurySystemService
 func _is_narrative_injuries_mode() -> bool:
@@ -149,6 +149,7 @@ func _find_panel_ancestor(node: Node) -> PanelContainer:
 ## the "Step N of 14" header) is hidden in portrait to reclaim vertical space.
 func _setup_portrait_chrome() -> void:
 	_steps_panel = _find_panel_ancestor(steps_container)
+	_title_label = get_node_or_null("MarginContainer/VBoxContainer/Header/Title")
 	var mc := get_node_or_null("MarginContainer")
 	if mc:
 		_portrait_chrome = load("res://src/ui/components/base/PortraitChrome.gd").new()
@@ -173,8 +174,14 @@ func _on_layout_class_changed(_cols: int) -> void:
 ## the ResponsiveContainer already stacks the columns, so this just reclaims the
 ## vertical block the nav would otherwise eat above the active step.
 func _apply_portrait_ia() -> void:
+	var portrait := _portrait_active()
 	if _steps_panel:
-		_steps_panel.visible = not _portrait_active()
+		_steps_panel.visible = not portrait
+	# The 32px title ("Post-Battle Sequence") is ~349px wide — too wide for the
+	# ~321px floor. Shrink it in portrait (a single Label can't wrap inside the
+	# HFlow header without collapsing to one char per line). Restore on landscape.
+	if _title_label:
+		_title_label.add_theme_font_size_override("font_size", 20 if portrait else 32)
 
 
 func _initialize_advancement_system() -> void:

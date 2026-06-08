@@ -13,15 +13,18 @@ const PostBattleScene := preload("res://src/ui/screens/postbattle/PostBattleSequ
 const SummarySheetScene := preload("res://src/ui/components/postbattle/PostBattleSummarySheet.tscn")
 
 
-func test_make_name_label_wraps_and_ellipsizes() -> void:
+func test_make_name_label_is_atomic_with_ellipsis() -> void:
+	# ATOMIC (no autowrap) + ellipsis + fixed min: so the HFlow wraps the WHOLE
+	# label to its own row instead of squeezing/char-wrapping it next to the wide
+	# roll button (autowrap inside an HFlow row collapses the min to ~0 — a trap).
 	var ui: Control = auto_free(PostBattleScene.instantiate())
 	add_child(ui)
 	await get_tree().process_frame
 	var lbl: Label = ui._make_name_label("A Very Long Crew Member Name Indeed", 120)
-	assert_bool(lbl.autowrap_mode != TextServer.AUTOWRAP_OFF).is_true()
+	assert_int(lbl.autowrap_mode).is_equal(TextServer.AUTOWRAP_OFF)
 	assert_bool(lbl.clip_text).is_true()
 	assert_int(lbl.text_overrun_behavior).is_equal(TextServer.OVERRUN_TRIM_ELLIPSIS)
-	assert_int(lbl.size_flags_horizontal).is_equal(Control.SIZE_EXPAND_FILL)
+	assert_int(int(lbl.custom_minimum_size.x)).is_equal(120)
 
 
 func test_steps_panel_resolved() -> void:
