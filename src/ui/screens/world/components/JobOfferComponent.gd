@@ -30,6 +30,8 @@ func _ready() -> void:
 	name = "JobOfferComponent"
 	_enemy_generator = EnemyGenerator.new()
 	super._ready()
+	# Portrait: stack the job-list + details panes vertically (r15).
+	_register_responsive_box($JobOfferContainer/ContentContainer)
 
 func _subscribe_to_events() -> void:
 	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)

@@ -118,7 +118,7 @@ theme_override_colors/font_color = Color(0.545, 0.361, 0.965, 1)
 modulate = Color(0.216, 0.255, 0.318, 1)
 layout_mode = 2
 
-[node name="MainContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="MainContainer" type="BoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 16

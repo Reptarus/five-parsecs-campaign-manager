@@ -61,6 +61,10 @@ func _exit_tree() -> void:
 		for sub in _event_subscriptions:
 			event_bus.unsubscribe_from_event(sub.event, sub.handler)
 	_event_subscriptions.clear()
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed") \
+			and rm.layout_class_changed.is_connected(_apply_responsive_boxes):
+		rm.layout_class_changed.disconnect(_apply_responsive_boxes)
 
 func _connect_ui_signals() -> void:
 	## Override: connect component-specific UI signals.
@@ -69,6 +73,33 @@ func _connect_ui_signals() -> void:
 func _setup_initial_state() -> void:
 	## Override: initialize component state for first use.
 	pass
+
+# --- Responsive pane helper (portrait stacking) ---
+## A registered BoxContainer flips horizontal (landscape) <-> vertical (portrait)
+## on ResponsiveManager.layout_class_changed. The .tscn node MUST be
+## type="BoxContainer" (the base class exposes a settable `vertical`);
+## HBoxContainer/VBoxContainer are fixed-orientation subclasses that can't flip.
+var _responsive_boxes: Array[BoxContainer] = []
+
+func _register_responsive_box(box: BoxContainer) -> void:
+	if box == null:
+		return
+	if not _responsive_boxes.has(box):
+		_responsive_boxes.append(box)
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed") \
+			and not rm.layout_class_changed.is_connected(_apply_responsive_boxes):
+		rm.layout_class_changed.connect(_apply_responsive_boxes)
+	_apply_responsive_boxes(0)
+
+func _apply_responsive_boxes(_cols: int = 0) -> void:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	var portrait := false
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		portrait = rm.should_collapse_to_single_column()
+	for b in _responsive_boxes:
+		if is_instance_valid(b):
+			b.vertical = portrait
 
 # --- Public API (override in subclasses) ---
 

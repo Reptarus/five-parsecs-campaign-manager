@@ -36,6 +36,8 @@ var _zone_info_container: VBoxContainer
 func _ready() -> void:
 	name = "MissionPrepComponent"
 	super._ready()
+	# Portrait: stack the crew + equipment panes vertically (r17).
+	_register_responsive_box($MissionPrepContainer/AssignmentContainer)
 
 func _subscribe_to_events() -> void:
 	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)

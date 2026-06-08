@@ -57,6 +57,8 @@ func _ready() -> void:
 	_apply_touch_target_sizing()
 	_load_equipment_database()
 	_build_detail_strip()
+	# Portrait: stack the 3 panes (crew / equipment / stash) vertically (r7).
+	_register_responsive_box($VBoxContainer/MainContainer)
 
 func _subscribe_to_events() -> void:
 	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)

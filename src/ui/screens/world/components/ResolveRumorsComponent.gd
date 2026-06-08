@@ -25,6 +25,8 @@ func _ready() -> void:
 	name = "ResolveRumorsComponent"
 	super._ready()
 	_apply_touch_target_sizing()
+	# Portrait: stack the rumor-list + roll panes vertically (r16).
+	_register_responsive_box($VBoxContainer/MainContainer)
 
 func _subscribe_to_events() -> void:
 	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)

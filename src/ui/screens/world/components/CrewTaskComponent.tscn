@@ -107,7 +107,7 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 modulate = Color(0.216, 0.255, 0.318, 1)
 layout_mode = 2
 
-[node name="AssignmentContainer" type="HBoxContainer" parent="CrewTaskContainer"]
+[node name="AssignmentContainer" type="BoxContainer" parent="CrewTaskContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 16
@@ -152,10 +152,11 @@ theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hovered_color = Color(0.376, 0.647, 0.98, 1)
 
-[node name="ButtonContainer" type="HBoxContainer" parent="CrewTaskContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="CrewTaskContainer"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 
 [node name="AssignTaskButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
 unique_name_in_owner = true

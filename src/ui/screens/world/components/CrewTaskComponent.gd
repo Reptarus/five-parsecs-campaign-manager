@@ -82,6 +82,8 @@ func _ready() -> void:
 	name = "CrewTaskComponent"
 	_load_crew_tasks()
 	super._ready()
+	# Portrait: stack the crew + task panes vertically (r14).
+	_register_responsive_box($CrewTaskContainer/AssignmentContainer)
 
 func _subscribe_to_events() -> void:
 	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)

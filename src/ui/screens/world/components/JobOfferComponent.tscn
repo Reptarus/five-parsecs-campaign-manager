@@ -85,6 +85,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Job Offers"
+autowrap_mode = 3
 theme_override_font_sizes/font_size = 22
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
@@ -107,7 +108,7 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 modulate = Color(0.216, 0.255, 0.318, 1)
 layout_mode = 2
 
-[node name="ContentContainer" type="HBoxContainer" parent="JobOfferContainer"]
+[node name="ContentContainer" type="BoxContainer" parent="JobOfferContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 16
@@ -162,10 +163,11 @@ theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 modulate = Color(0.216, 0.255, 0.318, 1)
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="JobOfferContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="JobOfferContainer"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 
 [node name="RerollJobsButton" type="Button" parent="JobOfferContainer/ButtonContainer"]
 unique_name_in_owner = true
