@@ -315,16 +315,21 @@ func _update_display() -> void:
 		summary_cards_container.add_child(extras_card)
 
 	# Elite Bonuses card (shows Stars of the Story abilities and Elite Rank bonuses)
+	# Portrait: cards must shrink to a single full-width column instead of forcing
+	# 500/1000px and overflowing the ~321px floor (r12/r13).
+	var single_col := should_use_single_column()
 	var elite_card = _create_elite_bonuses_card()
 	if elite_card:
 		summary_cards_container.add_child(elite_card)
-		# Force full-width (Stars of the Story grid is wide)
-		elite_card.custom_minimum_size.x = 1000
+		# Full-width Stars-of-the-Story grid on desktop; shrink to fit in portrait.
+		elite_card.custom_minimum_size.x = 0 if single_col else 1000
 
-	# Set min widths for responsive 2-column HFlowContainer layout
+	# Set min widths for the responsive 2-column HFlow (single column in portrait).
 	for child in summary_cards_container.get_children():
 		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if child.custom_minimum_size.x < 500:
+		if single_col:
+			child.custom_minimum_size.x = 0
+		elif child.custom_minimum_size.x < 500:
 			child.custom_minimum_size.x = 500
 
 	# Update crew preview

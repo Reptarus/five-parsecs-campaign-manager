@@ -206,10 +206,12 @@ func _setup_control_buttons() -> void:
 	content_container.add_child(separator)
 
 	# Create button container
-	var button_container = HBoxContainer.new()
+	# HFlow so Reroll + Confirm wrap to a second row in portrait (2x150 + gap > 321). r26
+	var button_container = HFlowContainer.new()
 	button_container.name = "WorldControlButtons"
-	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	button_container.add_theme_constant_override("separation", SPACING_LG)
+	button_container.alignment = FlowContainer.ALIGNMENT_CENTER
+	button_container.add_theme_constant_override("h_separation", SPACING_LG)
+	button_container.add_theme_constant_override("v_separation", SPACING_SM)
 	
 	# Single Reroll button — auto-generation handles initial world creation,
 	# so only a re-roll action is needed (removes redundant "Re-generate World" button)
@@ -652,7 +654,9 @@ func _ensure_flow_layout() -> void:
 	# Reparent cards into flow
 	for card in cards_to_move:
 		content.remove_child(card)
-		card.custom_minimum_size.x = 450
+		# Portrait: shrink cards to a single full-width column instead of forcing
+		# 450px (a card wider than the container suppresses HFlow wrapping). (r11)
+		card.custom_minimum_size.x = 0 if should_use_single_column() else 450
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		flow.add_child(card)
 	content.add_child(flow)
