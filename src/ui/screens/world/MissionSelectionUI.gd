@@ -11,7 +11,7 @@ signal mission_selection_cancelled()
 
 # UI nodes - Updated to match actual scene structure
 @onready var popup_panel: PopupPanel = $PopupPanel
-@onready var mission_container: HBoxContainer = $PopupPanel/MarginContainer/VBoxContainer/HBoxContainer
+@onready var mission_container: BoxContainer = $PopupPanel/MarginContainer/VBoxContainer/HBoxContainer
 @onready var mission_title: Label = $PopupPanel/MarginContainer/VBoxContainer/Label
 @onready var close_button: Button = $PopupPanel/MarginContainer/VBoxContainer/CloseButton
 
@@ -88,7 +88,17 @@ func popup_missions(missions: Array, type: String = "standard") -> void:
 	
 	_update_mission_display()
 	if popup_panel:
-		popup_panel.popup_centered()
+		# Responsive size so the popup fits a portrait phone instead of the baked
+		# 800x600 extending off-screen (r9), and stack the 3 missions vertically in
+		# portrait instead of ~114px columns (r19).
+		var vp := get_viewport().get_visible_rect().size
+		var target := Vector2i(mini(800, int(vp.x * 0.94)), mini(620, int(vp.y * 0.9)))
+		var rm := get_node_or_null("/root/ResponsiveManager")
+		var portrait: bool = rm != null and rm.has_method("should_collapse_to_single_column") \
+			and rm.should_collapse_to_single_column()
+		if mission_container:
+			mission_container.vertical = portrait
+		popup_panel.popup_centered(target)
 
 
 func _convert_mission_to_resource(mission_data: Variant) -> Resource:

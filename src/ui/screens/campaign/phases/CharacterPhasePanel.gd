@@ -98,7 +98,12 @@ func _generate_crew_events() -> void:
 
 			var name_label = Label.new()
 			name_label.text = member_name
-			name_label.custom_minimum_size = Vector2(150, 0)
+			# Drop the fixed 150px name column in portrait so the event description
+			# gets the full width instead of a cramped ~171px column (r20).
+			var _rm = get_node_or_null("/root/ResponsiveManager")
+			var _portrait: bool = _rm != null and _rm.has_method("should_collapse_to_single_column") \
+				and _rm.should_collapse_to_single_column()
+			name_label.custom_minimum_size = Vector2(0 if _portrait else 150, 0)
 			name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
 			name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 			hbox.add_child(name_label)
