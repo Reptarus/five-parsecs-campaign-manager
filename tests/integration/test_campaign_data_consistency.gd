@@ -303,7 +303,9 @@ func test_campaign_validation_fails_without_name() -> void:
 	assert_that(test_campaign.validate()).is_false()
 
 	var errors = test_campaign.get_validation_errors()
-	assert_that(errors).contains("Campaign name is required")
+	# Message text updated to the alpha-UX friendly copy (2026-07-02)
+	assert_that(errors).contains(
+		"Pick a name for your campaign. Anything memorable works.")
 
 func test_campaign_validation_fails_without_crew() -> void:
 	# Given: A campaign without crew
@@ -314,7 +316,8 @@ func test_campaign_validation_fails_without_crew() -> void:
 	assert_that(test_campaign.validate()).is_false()
 
 	var errors = test_campaign.get_validation_errors()
-	assert_that(errors).contains("Crew data is missing")
+	assert_that(errors).contains(
+		"Crew setup is empty. Head to the crew step to add members.")
 
 func test_campaign_validation_fails_without_captain() -> void:
 	# Given: A campaign without captain
@@ -325,4 +328,5 @@ func test_campaign_validation_fails_without_captain() -> void:
 	assert_that(test_campaign.validate()).is_false()
 
 	var errors = test_campaign.get_validation_errors()
-	assert_that(errors).contains("Captain data is missing")
+	assert_that(errors).contains(
+		"Captain hasn't been set up yet. Head to the Captain step.")

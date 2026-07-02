@@ -149,14 +149,24 @@ func test_mock_battle_data_complete():
 # Phase State Machine Tests (3 tests)
 # ============================================================================
 
-func test_cannot_skip_world_phase():
-	"""Cannot transition directly from TRAVEL to BATTLE"""
+func test_invalid_phase_transitions_rejected():
+	"""Genuinely invalid jumps are rejected. (Updated 2026-07-02: the old
+	TRAVEL -> MISSION block is GONE by design — _can_transition_to_phase
+	allows MISSION from any world-phase state because the world-phase UI
+	covers UPKEEP/STORY/TRAVEL/PRE_MISSION.)"""
 	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
 	phase_manager.transition_in_progress = false
 
-	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.MISSION)
+	# Battle resolution requires battle setup first
+	var to_resolution = phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.BATTLE_RESOLUTION)
+	assert_that(to_resolution).is_false()
 
-	assert_that(result).is_false()
+	# Trading requires advancement first
+	var to_trading = phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.TRADING)
+	assert_that(to_trading).is_false()
+
 	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
 
 func test_battle_to_post_battle_valid():
@@ -170,25 +180,35 @@ func test_battle_to_post_battle_valid():
 	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
 
 func test_full_turn_cycle():
-	"""Complete turn cycle: TRAVEL → WORLD → BATTLE → POST_BATTLE → TRAVEL"""
-	# Start at TRAVEL
+	"""Complete UI-path cycle (updated 2026-07-02 to the real transition
+	map): TRAVEL -> MISSION (world-phase UI covers travel state) ->
+	POST_MISSION -> ADVANCEMENT ... RETIREMENT -> UPKEEP (new turn entry).
+	The old TRAVEL->UPKEEP and POST_MISSION->TRAVEL jumps were never valid
+	in the current map (UPKEEP only follows SETUP/RETIREMENT/NONE; TRAVEL
+	only follows STORY)."""
 	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
 	phase_manager.transition_in_progress = false
 
-	# TRAVEL → WORLD
-	var result1 = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
+	# TRAVEL -> MISSION (the battle flow the world-phase UI drives)
+	var result1 = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.MISSION)
 	assert_that(result1).is_true()
 
-	# WORLD → BATTLE
-	var result2 = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.MISSION)
+	# MISSION -> POST_MISSION (battle UI covers setup/resolution visually)
+	var result2 = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
 	assert_that(result2).is_true()
 
-	# BATTLE → POST_BATTLE
-	var result3 = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
-	assert_that(result3).is_true()
+	# POST_MISSION -> ADVANCEMENT -> TRADING -> CHARACTER -> RETIREMENT
+	assert_that(phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.ADVANCEMENT)).is_true()
+	assert_that(phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.TRADING)).is_true()
+	assert_that(phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.CHARACTER)).is_true()
+	assert_that(phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.RETIREMENT)).is_true()
 
-	# POST_BATTLE → TRAVEL (new turn)
-	var result4 = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
-	assert_that(result4).is_true()
-
-	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
+	# RETIREMENT -> UPKEEP: the next turn's entry transition
+	var result_new_turn = phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
+	assert_that(result_new_turn).is_true()
+	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)

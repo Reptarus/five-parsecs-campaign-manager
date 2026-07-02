@@ -585,6 +585,10 @@ func update_captain_state(captain_data: Dictionary) -> void:
 		unified_campaign_state.captain.reactions = _get_stat.call("reactions", 1)
 		unified_campaign_state.captain.savvy = _get_stat.call("savvy", 1)
 		unified_campaign_state.captain.tech = _get_stat.call("tech", 3)
+		# Luck was omitted from this hand-maintained copy list, so the captain dict
+		# reached Final Review without a luck key and FinalPanel's .get("luck", 0)
+		# showed 0 even though the creator computed +1 captain luck (Core Rules).
+		unified_campaign_state.captain.luck = _get_stat.call("luck", 0)
 		# Speed with "move" fallback for backwards compatibility
 		var speed_val = _get_stat.call("speed", -1)
 		if speed_val < 0:
@@ -813,6 +817,13 @@ func _character_to_dict(character) -> Dictionary:
 				# Normalize reaction → reactions
 				if character.has("reaction") and not character.has("reactions"):
 					character["reactions"] = character["reaction"]
+		# Alt-stat-name normalization for battle-context dict shapes
+		# (combat_skill -> combat, reaction -> reactions) so downstream
+		# consumers can rely on the canonical flat stat names
+		if character.has("combat_skill") and not character.has("combat"):
+			character["combat"] = character["combat_skill"]
+		if character.has("reaction") and not character.has("reactions"):
+			character["reactions"] = character["reaction"]
 		return character
 
 	# Extract from Character object or Dictionary
@@ -919,6 +930,12 @@ func get_unified_campaign_state() -> Dictionary:
 	# Convert captain Character → Dictionary if needed
 	if state.crew.has("captain") and state.crew.captain != null:
 		state.crew.captain = _character_to_dict(state.crew.captain)
+
+	# The TOP-LEVEL captain (where update_captain_state stores it) needs the
+	# same conversion — consumers read state.captain.name, and without this
+	# the name/character_name alias normalization never ran on it
+	if state.has("captain") and state.captain != null:
+		state.captain = _character_to_dict(state.captain)
 
 	return state
 

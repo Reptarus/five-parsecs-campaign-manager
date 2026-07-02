@@ -1413,6 +1413,21 @@ func _validate_campaign_data() -> Array[String]:
 			found_name = "Campaign_%s" % Time.get_datetime_string_from_system().replace(":", "-")
 		config_data["campaign_name"] = found_name
 
+	# BLOCKING (user decision): require at least one victory condition so no campaign
+	# launches with "no win condition". Gated here at Start Campaign (not in Step-1
+	# _validate_campaign_config, which intentionally defers it to avoid breaking
+	# campaign-name propagation). Handles both the dict format from ExpandedConfigPanel
+	# ({"wealth": {name:...}}) and the legacy bool format ({"wealth": true}).
+	var victory_conditions: Dictionary = config_data.get("victory_conditions", {})
+	var has_victory := false
+	for vkey in victory_conditions.keys():
+		var vval = victory_conditions[vkey]
+		if (vval is Dictionary) or (vval == true):
+			has_victory = true
+			break
+	if not has_victory:
+		errors.append("Select at least one victory condition (Step 1 - Victory Conditions) so your campaign has a win condition.")
+
 	# BLOCKING ERROR: Must have crew members
 	var crew_data: Dictionary = campaign_data.get("crew", {})
 	var crew_members: Array = crew_data.get("members", [])
@@ -1420,17 +1435,11 @@ func _validate_campaign_data() -> Array[String]:
 		errors.append("Campaign must have crew members.")
 
 	# Validate captain phase - check multiple ways captain data can be stored
-	# (Not blocking - first crew member can be promoted to captain)
-	var captain_data: Dictionary = campaign_data.get("captain", {})
-	var has_captain: bool = false
-	if captain_data.get("captain"):
-		has_captain = true
-	elif captain_data.get("name", "") != "":
-		has_captain = true
-	elif captain_data.get("character_name", "") != "":
-		has_captain = true
-	elif captain_data.size() > 0:
-		has_captain = true
+	# (Not blocking - first crew member can be promoted to captain).
+	# Captain can arrive as a Dictionary OR a Character Object (the creation
+	# flow passes Resources through, and the promotion below assigns one) —
+	# assigning it into a Dictionary-typed var aborted this whole validation.
+	var has_captain: bool = _captain_value_present(campaign_data.get("captain"))
 
 	if not has_captain and crew_members.size() > 0:
 		# Promote first crew member to captain instead of blocking
@@ -1453,19 +1462,35 @@ func _validate_campaign_data() -> Array[String]:
 
 	if config_data.get("campaign_name", "").strip_edges() != "":
 		completed_phases += 1
-	captain_data = campaign_data.get("captain", {})
-	has_captain = captain_data.size() > 0
-	if has_captain:
+	if _captain_value_present(campaign_data.get("captain")):
 		completed_phases += 1
 	if crew_members.size() > 0:
 		completed_phases += 1
 	if ship_data.get("name", "") != "":
 		completed_phases += 1
-	var equipment_data: Dictionary = campaign_data.get("equipment", {})
-	if equipment_data.size() > 0:
+	# Equipment can be a Dictionary OR an Array (generation step output) —
+	# the old Dictionary-typed assignment aborted here
+	var equipment_value = campaign_data.get("equipment", {})
+	var equipment_count: int = 0
+	if equipment_value is Dictionary or equipment_value is Array:
+		equipment_count = equipment_value.size()
+	if equipment_count > 0:
 		completed_phases += 1
 
 	return errors
+
+## Captain data may be a Dictionary (loaded/creation dict) or a Character
+## Object (Resource passed through the creation flow) — treat both as present.
+func _captain_value_present(value) -> bool:
+	if value is Dictionary:
+		if value.get("captain"):
+			return true
+		if str(value.get("name", "")) != "":
+			return true
+		if str(value.get("character_name", "")) != "":
+			return true
+		return value.size() > 0
+	return value is Object and value != null
 
 func get_data() -> Dictionary:
 	push_warning("FinalPanel.get_data() is deprecated - use get_panel_data() instead")

@@ -1097,8 +1097,10 @@ func _execute_end_phase_start() -> void:
 	})
 	phase_event_triggered.emit(phase_events[-1])
 	
-	# Advance campaign turn
-	game_state.advance_turn()
+	# Advance campaign turn (null-guarded: game_state is Nil on bare
+	# instances, and the unguarded call aborted RETIREMENT phase start)
+	if game_state and game_state.has_method("advance_turn"):
+		game_state.advance_turn()
 
 func _complete_current_sub_phase() -> void:
 	if current_phase != FiveParcsecsCampaignPhase.PRE_MISSION:

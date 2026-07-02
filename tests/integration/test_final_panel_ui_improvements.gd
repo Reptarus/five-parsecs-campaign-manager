@@ -224,8 +224,10 @@ func test_valid_campaign_shows_no_errors():
 	# Note: is_campaign_complete depends on _validate_and_complete() being called
 	assert_that(errors.size()).is_less_equal(1)  # May have completion % message
 
-func test_missing_campaign_name_shows_error():
-	"""Test missing campaign_name triggers validation error"""
+func test_missing_campaign_name_auto_recovers():
+	"""Missing campaign_name no longer BLOCKS (updated 2026-07-02): the
+	panel auto-generates a fallback name instead of erroring — the old
+	blocking-validation expectation predated that alpha-UX decision."""
 	# Nil guards
 	if not is_instance_valid(panel):
 		push_warning("panel not available, skipping test")
@@ -243,24 +245,23 @@ func test_missing_campaign_name_shows_error():
 	# Act: Validate campaign
 	var errors = panel._validate_campaign_data()
 
-	# Assert: Error message present
-	assert_that(errors.size()).is_greater(0)
-	# Check any error mentions campaign name
+	# Assert: no name-related BLOCKING error (a fallback name is applied)
 	var has_name_error = false
 	for error in errors:
-		if "campaign name" in error.to_lower() or "campaign setup" in error.to_lower():
+		if "campaign name" in str(error).to_lower():
 			has_name_error = true
 			break
-	assert_that(has_name_error).is_true()
+	assert_that(has_name_error).is_false()
 
-func test_missing_captain_shows_error():
-	"""Test missing captain triggers validation error"""
+func test_missing_captain_auto_promotes_crew():
+	"""Missing captain no longer BLOCKS (updated 2026-07-02): the panel
+	promotes the first crew member to captain instead of erroring."""
 	# Nil guards
 	if not is_instance_valid(panel):
 		push_warning("panel not available, skipping test")
 		return
 
-	# Arrange: Create campaign data with no captain
+	# Arrange: Create campaign data with no captain (crew present in mock)
 	var invalid_data = mock_campaign_data.duplicate(true)
 	invalid_data["captain"] = {}
 	panel.call("set_campaign_data",invalid_data)
@@ -270,14 +271,13 @@ func test_missing_captain_shows_error():
 	# Act: Validate campaign
 	var errors = panel._validate_campaign_data()
 
-	# Assert: Error message present (captain or completion error)
-	assert_that(errors.size()).is_greater(0)
+	# Assert: no captain-related BLOCKING error (first crew was promoted)
 	var has_captain_error = false
 	for error in errors:
-		if "captain" in error.to_lower() or "complete" in error.to_lower():
+		if "captain" in str(error).to_lower():
 			has_captain_error = true
 			break
-	assert_that(has_captain_error).is_true()
+	assert_that(has_captain_error).is_false()
 
 func test_empty_crew_shows_error():
 	"""Test empty crew array triggers validation error"""

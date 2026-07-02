@@ -238,7 +238,10 @@ func test_complete_campaign_creation_flow() -> void:
 	var members = crew.get("members", [])
 	assert_str(config.get("campaign_name", "")).is_equal("Integration Test Campaign")
 	assert_str(captain.get("name", "")).is_equal("Captain Integration")
-	assert_int(members.size()).is_equal(2)
+	# 2 crew + the captain: the canonical rule is that the captain MUST be
+	# in the members array too (Data Ownership — crew_data["members"] owns
+	# ALL crew including the captain), so the unified state carries 3
+	assert_int(members.size()).is_equal(3)
 
 	# All crew members should be Dictionaries (not Character objects)
 	for member in members:

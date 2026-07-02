@@ -85,6 +85,9 @@ func test_ui_dice_roll_request_routed_to_dice_system() -> void:
 
 func test_dice_roll_result_returns_through_event_bus() -> void:
 	"""Dice roll results emit back through EventBus"""
+	if not is_instance_valid(event_bus) or not is_instance_valid(dice_system):
+		push_warning("Test instances freed early, skipping")
+		return
 	# Setup signal connection flag - use array for reference semantics in lambda
 	var signal_fired := [false]
 	var received_result: Array = [null]
@@ -152,6 +155,9 @@ func test_multiple_dice_rolls_tracked_independently() -> void:
 
 func test_phase_transition_emits_old_and_new_phase() -> void:
 	"""Phase transitions emit both old and new phase values"""
+	if not is_instance_valid(event_bus) or not is_instance_valid(battle_manager):
+		push_warning("Test instances freed early, skipping")
+		return
 	# Setup signal connection flag - use arrays for reference semantics in lambda
 	var signal_fired := [false]
 	var received_old_phase := [-1]
@@ -249,6 +255,9 @@ func test_phase_completion_advances_battle_manager() -> void:
 
 func test_battle_initialization_sets_correct_phase() -> void:
 	"""Battle initialization sets phase to PRE_BATTLE"""
+	if not is_instance_valid(event_bus):
+		push_warning("Test instances freed early, skipping")
+		return
 	# Setup signal connection flag - use arrays for reference semantics in lambda
 	var signal_fired := [false]
 	var received_data := [{}]

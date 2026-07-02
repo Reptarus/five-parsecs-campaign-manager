@@ -24,111 +24,69 @@ func after_test() -> void:
 	# Cleanup between tests
 	pass
 
-## Test: PostBattleSequence completion triggers phase manager
-func test_post_battle_completion_triggers_new_turn() -> void:
+## Test (updated 2026-07-02 to the real design): the post-battle backend
+## handler only LOGS its event — turn rollover is EXPLICIT via
+## start_new_turn(), driven by CampaignTurnController, and a new turn
+## always begins at UPKEEP (the old auto-rollover-to-TRAVEL model is gone).
+func test_post_battle_completion_logs_event_and_rollover_is_explicit() -> void:
 	if not is_instance_valid(phase_manager):
 		push_warning("phase_manager not valid - skipping test")
 		return
 
-	# Setup: Get initial turn number
-	var initial_turn = phase_manager.turn_number
+	# Backend completion records the event, nothing more
+	var events_before: int = phase_manager.phase_events.size()
+	phase_manager._on_post_battle_phase_completed()
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
+	assert_int(phase_manager.phase_events.size()).is_equal(events_before + 1)
+	var last_event: Dictionary = phase_manager.phase_events[-1]
+	assert_str(str(last_event.get("type", ""))) \
+		.is_equal("post_battle_backend_completed")
 
-	# Connect to signal to verify it fires - use arrays for reference semantics in lambda
-	var turn_completed_fired = [false]
-	var new_turn_started_fired = [false]
+	# Explicit rollover: turn increments, campaign_turn_started fires,
+	# and the new turn enters UPKEEP
+	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
+	var initial_turn: int = phase_manager.turn_number
+	var started_fired := [false]
+	phase_manager.campaign_turn_started.connect(
+		func(_turn: int): started_fired[0] = true)
+	phase_manager.start_new_campaign_turn()
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
+	assert_int(phase_manager.turn_number).is_equal(initial_turn + 1)
+	assert_bool(started_fired[0]).is_true()
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
-	if phase_manager.has_signal("campaign_turn_completed"):
-		phase_manager.campaign_turn_completed.connect(func(_turn): turn_completed_fired[0] = true)
-	if phase_manager.has_signal("campaign_turn_started"):
-		phase_manager.campaign_turn_started.connect(func(_turn): new_turn_started_fired[0] = true)
-
-	# Act: Simulate PostBattleSequence calling the completion handler
-	if phase_manager.has_method("_on_post_battle_phase_completed"):
-		phase_manager._on_post_battle_phase_completed()
-
-		# Wait for signals to propagate (synchronous emission)
-		await get_tree().process_frame
-
-		# Guard against freed instance after await
-		if not is_instance_valid(phase_manager):
-			push_warning("phase_manager freed during test - skipping assertions")
-			return
-
-		# Assert: Verify signals fired
-		assert_bool(turn_completed_fired[0]).is_true()
-		assert_bool(new_turn_started_fired[0]).is_true()
-
-		# Assert: Turn number incremented
-		assert_int(phase_manager.turn_number).is_equal(initial_turn + 1)
-	else:
-		push_warning("_on_post_battle_phase_completed method not found - skipping test")
-
-## Test: Phase transitions follow correct order
+## Test (updated 2026-07-02): phase transitions follow the CANONICAL order
+## UPKEEP -> STORY -> TRAVEL -> PRE_MISSION (complete_current_phase walks
+## _get_next_phase; a new turn always begins at UPKEEP)
 func test_phase_transition_order() -> void:
 	if not is_instance_valid(phase_manager):
 		push_warning("phase_manager not valid - skipping test")
 		return
 
-	# Start a new turn (begins at TRAVEL)
-	if phase_manager.has_method("start_new_campaign_turn"):
-		phase_manager.start_new_campaign_turn()
-	else:
-		push_warning("start_new_campaign_turn method not found - skipping test")
+	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
+	phase_manager.start_new_campaign_turn()
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
 		return
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
-	# Verify we're in TRAVEL phase
-	assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
+	phase_manager.complete_current_phase()
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.STORY)
 
-	# Complete travel -> should go to WORLD
-	if phase_manager.has_method("_on_travel_phase_completed"):
-		phase_manager._on_travel_phase_completed()
-		await get_tree().process_frame
-		if not is_instance_valid(phase_manager):
-			push_warning("phase_manager freed - skipping")
-			return
-		assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
-	else:
-		push_warning("_on_travel_phase_completed not found")
-		return
+	phase_manager.complete_current_phase()
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
 
-	# Complete world -> should go to BATTLE
-	if phase_manager.has_method("_on_world_phase_completed"):
-		phase_manager._on_world_phase_completed()
-		await get_tree().process_frame
-		if not is_instance_valid(phase_manager):
-			push_warning("phase_manager freed - skipping")
-			return
-		assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.MISSION)
-	else:
-		push_warning("_on_world_phase_completed not found")
-		return
-
-	# Complete battle -> should go to POST_BATTLE
-	if phase_manager.has_method("_on_battle_phase_completed"):
-		phase_manager._on_battle_phase_completed()
-		await get_tree().process_frame
-		if not is_instance_valid(phase_manager):
-			push_warning("phase_manager freed - skipping")
-			return
-		assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
-	else:
-		push_warning("_on_battle_phase_completed not found")
-		return
-
-	# Store turn before post-battle completion
-	var turn_before = phase_manager.turn_number
-
-	# Complete post-battle -> should start new turn (back to TRAVEL)
-	if phase_manager.has_method("_on_post_battle_phase_completed"):
-		phase_manager._on_post_battle_phase_completed()
-		await get_tree().process_frame
-		if not is_instance_valid(phase_manager):
-			push_warning("phase_manager freed - skipping")
-			return
-		assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
-		assert_int(phase_manager.turn_number).is_equal(turn_before + 1)
-	else:
-		push_warning("_on_post_battle_phase_completed not found")
+	phase_manager.complete_current_phase()
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.PRE_MISSION)
 
 ## Test: Battle results are stored and accessible
 func test_battle_results_storage() -> void:
@@ -227,30 +185,32 @@ func test_phase_signals_emit_correctly() -> void:
 
 	var signals_received: Array[String] = []
 
-	# Connect to all phase signals if they exist
-	if phase_manager.has_signal("phase_started"):
-		phase_manager.phase_started.connect(func(_p): signals_received.append("started"))
-	if phase_manager.has_signal("phase_completed"):
-		phase_manager.phase_completed.connect(func(_p): signals_received.append("completed"))
-	if phase_manager.has_signal("phase_changed"):
-		phase_manager.phase_changed.connect(func(_p): signals_received.append("changed"))
+	# Real signal arities: phase_started(phase), phase_completed(),
+	# phase_changed(old, new). The old test connected 1-arg lambdas to all
+	# three AND started TRAVEL from NONE, which _can_transition_to_phase
+	# rejects (TRAVEL requires STORY) — so nothing ever fired.
+	phase_manager.phase_started.connect(
+		func(_p): signals_received.append("started"))
+	phase_manager.phase_completed.connect(
+		func(): signals_received.append("completed"))
+	phase_manager.phase_changed.connect(
+		func(_o, _n): signals_received.append("changed"))
 
-	# Start a phase
-	if phase_manager.has_method("start_phase"):
-		phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
-		await get_tree().process_frame
+	# NONE -> UPKEEP is the valid turn-entry transition
+	var started_ok: bool = phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
+	assert_bool(started_ok).is_true()
+	assert_bool("started" in signals_received).is_true()
+	assert_bool("changed" in signals_received).is_true()
 
-		# Verify signals were emitted
-		assert_bool("started" in signals_received).is_true()
-		assert_bool("changed" in signals_received).is_true()
-
-		# Complete the phase
-		if phase_manager.has_method("_on_travel_phase_completed"):
-			phase_manager._on_travel_phase_completed()
-			await get_tree().process_frame
-			assert_bool("completed" in signals_received).is_true()
-	else:
-		push_warning("start_phase method not found - skipping signal tests")
+	phase_manager.complete_current_phase()
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
+	assert_bool("completed" in signals_received).is_true()
 
 ## Test: Campaign loop continues without interruption
 func test_campaign_loop_continuity() -> void:
@@ -258,51 +218,39 @@ func test_campaign_loop_continuity() -> void:
 		push_warning("phase_manager not valid - skipping test")
 		return
 
-	# Start fresh
+	# Start fresh (updated 2026-07-02: the loop is driven by
+	# complete_current_phase() through the canonical 12-phase sequence;
+	# RETIREMENT completion emits campaign_turn_completed, and the next
+	# turn is started EXPLICITLY via start_new_campaign_turn -> UPKEEP)
 	phase_manager.turn_number = 0
 	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
 
-	# Begin campaign
-	if not phase_manager.has_method("start_new_campaign_turn"):
-		push_warning("start_new_campaign_turn method not found - skipping test")
-		return
+	var turn_completed_count := [0]
+	phase_manager.campaign_turn_completed.connect(
+		func(_turn: int): turn_completed_count[0] += 1)
 
 	phase_manager.start_new_campaign_turn()
 	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
 	assert_int(phase_manager.turn_number).is_equal(1)
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
-	# Run through complete loop
-	if phase_manager.has_method("_on_travel_phase_completed"):
-		phase_manager._on_travel_phase_completed()
-		await get_tree().process_frame
-	if phase_manager.has_method("_on_world_phase_completed"):
-		phase_manager._on_world_phase_completed()
-		await get_tree().process_frame
-	if phase_manager.has_method("_on_battle_phase_completed"):
-		phase_manager._on_battle_phase_completed()
-		await get_tree().process_frame
-	if phase_manager.has_method("_on_post_battle_phase_completed"):
-		phase_manager._on_post_battle_phase_completed()
-		await get_tree().process_frame
+	# Walk the full canonical sequence: UPKEEP..RETIREMENT is 12 completes;
+	# the 12th (RETIREMENT) ends the turn
+	for i in range(12):
+		phase_manager.complete_current_phase()
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
+	assert_int(turn_completed_count[0]).is_equal(1)
 
-	# Should now be on turn 2, back to TRAVEL
+	# Next turn begins at UPKEEP with the counter advanced
+	phase_manager.start_new_campaign_turn()
+	await get_tree().process_frame
+	if not is_instance_valid(phase_manager):
+		return
 	assert_int(phase_manager.turn_number).is_equal(2)
-	assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
-
-	# Run another complete loop
-	if phase_manager.has_method("_on_travel_phase_completed"):
-		phase_manager._on_travel_phase_completed()
-		await get_tree().process_frame
-	if phase_manager.has_method("_on_world_phase_completed"):
-		phase_manager._on_world_phase_completed()
-		await get_tree().process_frame
-	if phase_manager.has_method("_on_battle_phase_completed"):
-		phase_manager._on_battle_phase_completed()
-		await get_tree().process_frame
-	if phase_manager.has_method("_on_post_battle_phase_completed"):
-		phase_manager._on_post_battle_phase_completed()
-		await get_tree().process_frame
-
-	# Should now be on turn 3
-	assert_int(phase_manager.turn_number).is_equal(3)
-	assert_int(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
+	assert_int(phase_manager.current_phase) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)

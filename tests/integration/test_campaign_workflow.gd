@@ -203,9 +203,17 @@ func test_advance_to_ship_assignment_phase():
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
-	
-	var success = state_manager.advance_to_next_phase()
-	assert_that(success).is_true()
+
+	# Creation order (Core Rules): CREW -> EQUIPMENT_GENERATION ->
+	# SHIP_ASSIGNMENT (equipment comes before ship; the old expectation of
+	# SHIP directly after CREW predated that ordering)
+	var to_equipment = state_manager.advance_to_next_phase()
+	assert_that(to_equipment).is_true()
+	assert_that(state_manager.current_phase).is_equal(state_manager.Phase.EQUIPMENT_GENERATION)
+
+	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"is_complete": true})
+	var to_ship = state_manager.advance_to_next_phase()
+	assert_that(to_ship).is_true()
 	assert_that(state_manager.current_phase).is_equal(state_manager.Phase.SHIP_ASSIGNMENT)
 
 ## Phase 4: Ship Assignment Tests
@@ -365,10 +373,13 @@ func test_all_phases_populated_with_data():
 	assert_that(data["world"].has("current_world")).is_true()
 
 func test_complete_campaign_creation():
-	# Setup all phases completely (including required victory_conditions)
+	# Setup all phases completely. NOTE: _validate_config_phase requires the
+	# DICT victory-condition format ({"story_points": {name: ...}}) — the
+	# legacy bool format never satisfies it, which silently failed the
+	# whole final validation.
 	state_manager.set_phase_data(state_manager.Phase.CONFIG, {
 		"campaign_name": "Test",
-		"victory_conditions": {"story_points": true},  # At least one victory condition required
+		"victory_conditions": {"story_points": {"name": "Story Points", "target": 10}},
 		"is_complete": true
 	})
 	state_manager.advance_to_next_phase()
@@ -376,13 +387,16 @@ func test_complete_campaign_creation():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"has_captain": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "type": "Corvette", "hull_points": 6, "is_configured": true, "is_complete": true})
-	state_manager.advance_to_next_phase()
+	# Real order: EQUIPMENT_GENERATION before SHIP_ASSIGNMENT — advancing
+	# with the phases swapped left the CURRENT phase incomplete and stalled
+	# the walk, so complete_campaign_creation() validated an empty state
 	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [{"name": "Starter Kit", "type": "gear"}], "credits": 1000, "is_complete": true})
+	state_manager.advance_to_next_phase()
+	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "type": "Corvette", "hull_points": 6, "is_configured": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.WORLD_GENERATION, {"current_world": "World", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	
+
 	var result = state_manager.complete_campaign_creation()
 	
 	assert_that(result.is_empty()).is_false()
