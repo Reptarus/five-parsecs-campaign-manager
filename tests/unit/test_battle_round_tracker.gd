@@ -156,91 +156,74 @@ func test_round_changed_signal_emitted() -> void:
 # BATTLE EVENT TESTS (Five Parsecs p.118)
 # =====================================================
 
+# NOTE (2026-07-02): battle events are PULL-based now. The tracker no longer
+# auto-emits battle_event_triggered from _start_next_round() — firing it in
+# the same signal burst as the initiative overlay froze the UI (two colliding
+# overlays), so TacticalBattleUI calls check_battle_event() after the overlay
+# is dismissed. These tests assert the pull API.
+
 func test_battle_event_triggers_on_round_2() -> void:
-	"""Battle event should trigger when entering round 2"""
+	"""Battle event should be flagged when entering round 2 (p.118)"""
 	if not is_instance_valid(tracker):
 		push_warning("tracker not available, skipping")
 		return
-
-	# Setup signal connection flag - use array for reference semantics in lambda
-	var signal_fired := [false]
-	tracker.battle_event_triggered.connect(func(_round: int, _event: String): signal_fired[0] = true)
 
 	# Complete round 1 (5 advances to wrap to round 2)
 	for i in range(5):
 		tracker.advance_phase()
-	await get_tree().process_frame
 
-	# Guard against freed instance after await
-	if not is_instance_valid(tracker):
-		return
-	assert_that(signal_fired[0]).is_true()
+	assert_int(tracker.get_current_round()).is_equal(2)
+	var event: Dictionary = tracker.check_battle_event()
+	assert_bool(event.get("should_trigger", false)).is_true()
+	assert_int(int(event.get("round", 0))).is_equal(2)
 
 func test_battle_event_triggers_on_round_4() -> void:
-	"""Battle event should trigger when entering round 4"""
+	"""Battle event should be flagged when entering round 4 (p.118)"""
 	if not is_instance_valid(tracker):
 		push_warning("tracker not available, skipping")
 		return
 
-	# Setup signal connection flag - use array for reference semantics in lambda
-	var signal_fired := [false]
-	tracker.battle_event_triggered.connect(func(_round: int, _event: String): signal_fired[0] = true)
-
-	# Complete rounds 1-3 to reach round 4 (3 complete rounds × 5 advances each = 15)
+	# Complete rounds 1-3 to reach round 4 (3 complete rounds x 5 advances)
 	for i in range(3 * 5):
 		tracker.advance_phase()
-	await get_tree().process_frame
 
-	# Guard against freed instance after await
-	if not is_instance_valid(tracker):
-		return
-	# Should have emitted for round 2 and round 4
-	assert_that(signal_fired[0]).is_true()
+	assert_int(tracker.get_current_round()).is_equal(4)
+	var event: Dictionary = tracker.check_battle_event()
+	assert_bool(event.get("should_trigger", false)).is_true()
 
 func test_no_battle_event_on_other_rounds() -> void:
-	"""Battle events should NOT trigger on rounds 1, 3, 5, etc."""
+	"""Battle events flag only on rounds 2 and 4, not 1/3/5"""
 	if not is_instance_valid(tracker):
 		push_warning("tracker not available, skipping")
 		return
 
-	# Note: This test has been simplified to check signal emission pattern
-	# The complex emit counting is not reliable in GdUnit4's signal monitoring
-	# Setup signal connection flag (counts emissions) - use array for reference semantics
-	var signal_count := [0]
-	tracker.battle_event_triggered.connect(func(_round: int, _event: String): signal_count[0] += 1)
+	# Round 1: no event
+	assert_bool(tracker.check_battle_event().get("should_trigger", true)) \
+		.is_false()
 
-	# Round 1 -> Round 2 (1 complete cycle = 5 advances)
+	# Round 1 -> Round 2: event
 	for i in range(5):
 		tracker.advance_phase()
-	await get_tree().process_frame
+	assert_bool(tracker.check_battle_event().get("should_trigger", false)) \
+		.is_true()
 
-	# Guard against freed instance after await
-	if not is_instance_valid(tracker):
-		return
-	# One event emitted (round 2)
-	assert_that(signal_count[0]).is_equal(1)
-
-	# Round 2 -> Round 3 (5 advances, no event expected for round 3)
+	# Round 2 -> Round 3: no event
 	for i in range(5):
 		tracker.advance_phase()
-	await get_tree().process_frame
+	assert_bool(tracker.check_battle_event().get("should_trigger", true)) \
+		.is_false()
 
-	# Guard after advancing
-	if not is_instance_valid(tracker):
-		return
-	# Still only 1 event (no event on round 3)
-	assert_that(signal_count[0]).is_equal(1)
-
-	# Round 3 -> Round 4 (5 advances, event expected for round 4)
+	# Round 3 -> Round 4: event
 	for i in range(5):
 		tracker.advance_phase()
-	await get_tree().process_frame
+	assert_bool(tracker.check_battle_event().get("should_trigger", false)) \
+		.is_true()
 
-	# Guard against freed instance after await
-	if not is_instance_valid(tracker):
-		return
-	# Should have emitted again for round 4 (now 2 total)
-	assert_that(signal_count[0]).is_equal(2)
+	# Round 4 -> Round 5: no event
+	for i in range(5):
+		tracker.advance_phase()
+	assert_bool(tracker.check_battle_event().get("should_trigger", true)) \
+		.is_false()
 
 # =====================================================
 # EDGE CASE TESTS

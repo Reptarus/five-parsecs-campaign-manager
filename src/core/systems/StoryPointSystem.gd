@@ -128,20 +128,24 @@ func initialize_starting_points(difficulty: int) -> int:
 
 	return starting_points
 
-## Check if story points system is disabled (Nightmare mode only)
+## Check if the story point system is disabled for the campaign's difficulty.
 func _is_story_points_disabled() -> bool:
 	if _campaign == null:
 		return false
 
-	# Nightmare mode disables story points entirely
-	# Hardcore mode reduces starting points but does NOT disable the system
+	# Insanity disables story points entirely; Hardcore only reduces the
+	# starting roll. Routed through DifficultyModifiers so the DEPRECATED
+	# save-compat aliases (NIGHTMARE=5, ELITE=7 → Insanity behavior) disable
+	# it too — a strict == INSANITY check silently missed legacy saves.
 	if _campaign is Object and "config" in _campaign:
 		var config = _campaign.config
 		# Handle both Object and Dictionary config types
 		if config is Dictionary and "difficulty" in config:
-			return config["difficulty"] == GlobalEnums.DifficultyLevel.INSANITY
+			return DifficultyModifiers.are_story_points_disabled(
+				int(config["difficulty"]))
 		elif config is Object and "difficulty" in config:
-			return config.difficulty == GlobalEnums.DifficultyLevel.INSANITY
+			return DifficultyModifiers.are_story_points_disabled(
+				int(config.difficulty))
 	return false
 
 ## Get current story point balance

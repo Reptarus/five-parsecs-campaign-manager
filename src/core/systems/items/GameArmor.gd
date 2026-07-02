@@ -53,27 +53,28 @@ func initialize_from_data(data: Dictionary) -> bool:
 	armor_save = data.get("armor_save", 0)
 	armor_encumbrance = data.get("encumbrance", 0)
 	
-	# Handle coverage
+	# Handle coverage (untyped JSON Arrays / PackedStringArray into typed
+	# arrays need assign() — direct assignment aborts at runtime)
 	if data.has("coverage") and data.coverage is Array:
-		armor_coverage = data.coverage
+		armor_coverage.assign(data.coverage)
 	else:
 		armor_coverage = []
-		
+
 		# If there's a single coverage area, convert it to our format
 		if data.has("covers"):
 			var covers = data.get("covers", "")
 			if covers is String and not covers.is_empty():
-				armor_coverage = covers.split(",")
-	
+				armor_coverage.assign(covers.split(","))
+
 	# Handle traits
 	if data.has("traits") and data.traits is Array:
-		armor_traits = data.traits
+		armor_traits.assign(data.traits)
 	else:
 		armor_traits = []
-	
+
 	# Handle special rules
 	if data.has("special_rules") and data.special_rules is Array:
-		armor_special_rules = data.special_rules
+		armor_special_rules.assign(data.special_rules)
 	else:
 		armor_special_rules = []
 		
@@ -91,8 +92,8 @@ func initialize_from_data(data: Dictionary) -> bool:
 	else:
 		armor_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 	
-	armor_tags = data.get("tags", [])
-	
+	armor_tags.assign(data.get("tags", []))
+
 	return true
 
 func get_id() -> String:
@@ -177,13 +178,13 @@ static func create_from_data(data: Dictionary) -> Resource:
 	armor.armor_description = data.get("description", "")
 	armor.armor_save = data.get("armor_save", 0)
 	armor.armor_encumbrance = data.get("encumbrance", 0)
-	armor.armor_coverage = data.get("coverage", [])
+	armor.armor_coverage.assign(data.get("coverage", []))
 	armor.weight = data.get("weight", 1.0)
 	armor.armor_cost = data.get("cost", {"credits": 0, "rarity": "Common"})
 	armor.armor_rarity = data.get("rarity", "Common")
-	armor.armor_traits = data.get("traits", [])
-	armor.armor_special_rules = data.get("special_rules", [])
-	armor.armor_tags = data.get("tags", [])
+	armor.armor_traits.assign(data.get("traits", []))
+	armor.armor_special_rules.assign(data.get("special_rules", []))
+	armor.armor_tags.assign(data.get("tags", []))
 	armor.durability = 100
 	
 	return armor

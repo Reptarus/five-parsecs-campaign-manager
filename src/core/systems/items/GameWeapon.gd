@@ -72,15 +72,16 @@ func initialize_from_data(data: Dictionary) -> bool:
 			"long": data.get("range_long", 0)
 		}
 	
-	# Handle traits
+	# Handle traits (untyped JSON Arrays into typed arrays need assign() —
+	# direct assignment aborts at runtime)
 	if data.has("traits") and data.traits is Array:
-		weapon_traits = data.traits
+		weapon_traits.assign(data.traits)
 	else:
 		weapon_traits = []
-	
+
 	# Handle special rules
 	if data.has("special_rules") and data.special_rules is Array:
-		weapon_special_rules = data.special_rules
+		weapon_special_rules.assign(data.special_rules)
 	else:
 		weapon_special_rules = []
 		
@@ -98,7 +99,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 	else:
 		weapon_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 	
-	weapon_tags = data.get("tags", [])
+	weapon_tags.assign(data.get("tags", []))
 	
 	# Handle ammo data
 	if data.has("ammo") and data.ammo is Dictionary:

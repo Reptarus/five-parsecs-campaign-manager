@@ -173,7 +173,9 @@ func test_crew_4_maximum_is_6():
 
 func test_challenging_rerolls_low_dice():
 	"""Challenging mode should reroll 1s and 2s before picking result"""
-	var challenging_difficulty = 3  # Challenging mode
+	# GlobalEnums.DifficultyLevel.CHALLENGING == 4 (3 is the DEPRECATED HARD
+	# alias — the old literal 3 here silently tested the wrong mode)
+	var challenging_difficulty = 4
 
 	# Run multiple tests to check distribution
 	# With rerolls, should see fewer 1s and 2s than standard
@@ -192,7 +194,7 @@ func test_challenging_rerolls_low_dice():
 
 func test_challenging_applies_to_crew_6():
 	"""Challenging reroll should work with crew size 6 (max of two dice)"""
-	var challenging_difficulty = 3
+	var challenging_difficulty = 4  # DifficultyLevel.CHALLENGING
 
 	# Should still produce valid 1-6 results
 	var all_results_valid := true
@@ -206,7 +208,7 @@ func test_challenging_applies_to_crew_6():
 
 func test_challenging_applies_to_crew_5():
 	"""Challenging reroll should work with crew size 5 (single die)"""
-	var challenging_difficulty = 3
+	var challenging_difficulty = 4  # DifficultyLevel.CHALLENGING
 
 	var all_results_valid := true
 	for i in range(20):
@@ -223,7 +225,9 @@ func test_challenging_applies_to_crew_5():
 
 func test_hardcore_adds_1_to_count():
 	"""Hardcore difficulty should add +1 to final enemy count"""
-	var hardcore_difficulty = 4
+	# GlobalEnums.DifficultyLevel.HARDCORE == 6 (the old literal 4 is
+	# CHALLENGING in the current enum — no +1 there, hence the old failure)
+	var hardcore_difficulty = 6
 
 	# All results should be 2-7 (base 1-6 + 1)
 	var all_results_valid := true
@@ -237,7 +241,7 @@ func test_hardcore_adds_1_to_count():
 
 func test_hardcore_applies_to_all_crew_sizes():
 	"""Hardcore +1 modifier should apply regardless of crew size"""
-	var hardcore_difficulty = 4
+	var hardcore_difficulty = 6  # DifficultyLevel.HARDCORE
 
 	# Test crew size 4
 	var count_4 = enemy_generator._calculate_enemy_count(hardcore_difficulty, 4)

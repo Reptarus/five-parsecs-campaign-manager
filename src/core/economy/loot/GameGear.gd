@@ -50,9 +50,10 @@ func initialize_from_data(data: Dictionary) -> bool:
 	gear_category = data.get("category", "")
 	gear_description = data.get("description", "")
 	
-	# Handle effects data
+	# Handle effects data (untyped JSON Array into Array[Dictionary] needs
+	# assign() — direct assignment aborts at runtime)
 	if data.has("effects") and data.effects is Array:
-		gear_effects = data.effects
+		gear_effects.assign(data.effects)
 	else:
 		gear_effects = []
 		
@@ -66,7 +67,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 	
 	# Handle traits
 	if data.has("traits") and data.traits is Array:
-		gear_traits = data.traits
+		gear_traits.assign(data.traits)
 	else:
 		gear_traits = []
 	
@@ -76,7 +77,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 	else:
 		gear_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 	
-	gear_tags = data.get("tags", [])
+	gear_tags.assign(data.get("tags", []))
 	
 	# Handle requirements
 	if data.has("requirements") and data.requirements is Dictionary:

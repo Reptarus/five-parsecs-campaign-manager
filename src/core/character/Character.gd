@@ -1177,6 +1177,14 @@ static func _ensure_implants_loaded() -> void:
 	if json.data is Dictionary:
 		_implants_data = json.data.get("Implants", {}).get("types", [])
 
+## JSON numbers parse as floats — normalize implant stat bonuses to int so
+## they never leak floats into int stat arithmetic.
+static func _int_stat_bonus(raw: Dictionary) -> Dictionary:
+	var bonus: Dictionary = {}
+	for stat_key in raw:
+		bonus[stat_key] = int(raw[stat_key])
+	return bonus
+
 static func create_implant_from_type(implant_type_key: String) -> Dictionary:
 	## Create an implant dictionary from a type key (loads from JSON)
 	_ensure_implants_loaded()
@@ -1186,7 +1194,7 @@ static func create_implant_from_type(implant_type_key: String) -> Dictionary:
 			return {
 				"type": implant_type_key,
 				"name": entry.get("name", implant_type_key),
-				"stat_bonus": entry.get("stat_bonus", {}).duplicate(),
+				"stat_bonus": _int_stat_bonus(entry.get("stat_bonus", {})),
 				"description": entry.get("description", "")
 			}
 	return {}
@@ -1199,7 +1207,7 @@ static func create_implant_from_loot(loot_name: String) -> Dictionary:
 			return {
 				"type": entry.get("id", "").to_upper(),
 				"name": entry.get("name", loot_name),
-				"stat_bonus": entry.get("stat_bonus", {}).duplicate(),
+				"stat_bonus": _int_stat_bonus(entry.get("stat_bonus", {})),
 				"description": entry.get("description", "")
 			}
 	return {}

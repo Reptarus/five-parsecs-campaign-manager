@@ -21,8 +21,10 @@ static var _tables_loaded: bool = false
 static func roll_background_event(background: GlobalEnums.Background) -> Dictionary:
 	_ensure_tables_loaded()
 
-	# Get DiceManager safely through autoload
-	var dice_manager: Node = Engine.get_singleton("DiceManager")
+	# DiceManager is an AUTOLOAD (scene tree node), never an engine
+	# singleton — Engine.get_singleton() always failed here, so this
+	# function returned the fallback default on EVERY call.
+	var dice_manager: Node = _get_dice_manager()
 	if not dice_manager or not dice_manager.has_method("roll_d66"):
 		push_error("CharacterCreationTables: DiceManager not available")
 		return {"event": "Default background", "effect": "None"}
@@ -48,7 +50,7 @@ static func roll_motivation() -> Dictionary:
 static func roll_character_quirk() -> Dictionary:
 	_ensure_tables_loaded()
 
-	var dice_manager: Node = Engine.get_singleton("DiceManager")
+	var dice_manager: Node = _get_dice_manager()
 	if not dice_manager or not dice_manager.has_method("roll_d6"):
 		push_error("CharacterCreationTables: DiceManager not available")
 		return {"name": "Reliable", "effect": "No special effect"}
@@ -164,10 +166,22 @@ static func reload_tables() -> void:
 	_quirks_table.clear()
 	_ensure_tables_loaded()
 
+## Resolve the DiceManager autoload (scene tree node at /root — NOT an
+## engine singleton; Engine.get_singleton() always fails for autoloads).
+static func _get_dice_manager() -> Node:
+	var main_loop := Engine.get_main_loop()
+	if main_loop is SceneTree:
+		return (main_loop as SceneTree).root.get_node_or_null("/root/DiceManager")
+	return null
+
 ## Get all available backgrounds
 static func get_available_backgrounds() -> Array[String]:
 	_ensure_tables_loaded()
-	return _background_events.keys()
+	# Dictionary.keys() is an untyped Array — returning it against the
+	# Array[String] signature aborts at runtime; assign() converts.
+	var backgrounds: Array[String] = []
+	backgrounds.assign(_background_events.keys())
+	return backgrounds
 
 ## Get table statistics for debugging
 static func get_table_statistics() -> Dictionary:

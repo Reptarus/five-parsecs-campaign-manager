@@ -46,11 +46,14 @@ func test_get_background_event_by_roll():
 		GlobalEnumsRef.Background.MILITARY, 11)
 	assert_that(result).is_not_null()
 
-func test_background_event_has_description():
+func test_background_event_has_event_and_effect():
+	# Schema check: background_events.json entries carry "event" + "effect"
+	# (only the motivation table has a "description" field)
 	var result: Dictionary = CharacterCreationTables.roll_background_event(
 		GlobalEnumsRef.Background.MILITARY)
 	if not result.is_empty():
-		assert_that(result.has("description")).is_true()
+		assert_that(result.has("event")).is_true()
+		assert_that(result.has("effect")).is_true()
 
 func test_background_event_various_backgrounds():
 	"""Test multiple backgrounds return valid results"""
@@ -91,10 +94,12 @@ func test_get_quirk_by_roll_valid_range():
 		var result: Dictionary = CharacterCreationTables.get_character_quirk(roll)
 		assert_that(result).is_not_null()
 
-func test_quirk_has_description():
+func test_quirk_has_name_and_effect():
+	# Schema check: quirks_table.json entries carry "name" + "effect"
 	var result: Dictionary = CharacterCreationTables.roll_character_quirk()
 	if not result.is_empty():
-		assert_that(result.has("description")).is_true()
+		assert_that(result.has("name")).is_true()
+		assert_that(result.has("effect")).is_true()
 
 # ============================================================================
 # Table Reload
@@ -121,7 +126,9 @@ func test_connection_statistics_not_empty():
 func test_generate_starting_connections():
 	var character := CharacterClass.new()
 	character.character_name = "Test Captain"
-	character.background = GlobalEnumsRef.Background.MILITARY
+	# background is a validated STRING property — assigning the int enum id
+	# hard-errors (Jun 24 gotcha: convert at the caller)
+	character.background = "MILITARY"
 	var connections: Array = CharacterConnections.generate_starting_connections(character)
 	assert_that(connections).is_not_null()
 
@@ -134,21 +141,21 @@ func test_generate_starting_rivals():
 func test_generate_patron_connections_noble():
 	var character := CharacterClass.new()
 	character.character_name = "Noble Captain"
-	character.background = GlobalEnumsRef.Background.NOBLE
+	character.background = "NOBLE"
 	var patrons: Array = CharacterConnections.generate_patron_connections(character)
 	assert_that(patrons).is_not_null()
 
 func test_generate_patron_connections_military():
 	var character := CharacterClass.new()
 	character.character_name = "Military Captain"
-	character.background = GlobalEnumsRef.Background.MILITARY
+	character.background = "MILITARY"
 	var patrons: Array = CharacterConnections.generate_patron_connections(character)
 	assert_that(patrons).is_not_null()
 
 func test_generate_patron_connections_academic():
 	var character := CharacterClass.new()
 	character.character_name = "Academic Captain"
-	character.background = GlobalEnumsRef.Background.ACADEMIC
+	character.background = "ACADEMIC"
 	var patrons: Array = CharacterConnections.generate_patron_connections(character)
 	assert_that(patrons).is_not_null()
 

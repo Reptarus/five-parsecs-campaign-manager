@@ -43,7 +43,9 @@ var filter_types := {
 
 ## Called when the node enters the scene tree
 func _ready() -> void:
-	if not Engine.is_editor_hint():
+	# log_list null = script instantiated without its scene (code-built /
+	# tests): entry bookkeeping still works, UI wiring is skipped.
+	if not Engine.is_editor_hint() and log_list:
 		clear_button.pressed.connect(_on_clear_pressed)
 		filter_options.item_selected.connect(_on_filter_changed)
 		auto_scroll_check.toggled.connect(_on_auto_scroll_toggled)
@@ -61,7 +63,10 @@ func _setup_filter_options() -> void:
 
 ## Adds a new entry to the combat log
 func add_log_entry(entry_type: String, message: String, details: Dictionary = {}) -> void:
-	var timestamp := Time.get_datetime_string_from_system()
+	# use_space=true: the default ISO form has NO space ("...T..."), which
+	# made _add_entry_to_list's split(" ")[1] abort on EVERY entry — the
+	# visible log list never populated in live battles.
+	var timestamp := Time.get_datetime_string_from_system(false, true)
 	var entry := {
 		"type": entry_type,
 		"message": message,
@@ -76,14 +81,19 @@ func add_log_entry(entry_type: String, message: String, details: Dictionary = {}
 	if _should_show_entry(entry):
 		_add_entry_to_list(entry)
 	
-	if auto_scroll:
+	if auto_scroll and log_list:
 		log_list.ensure_current_is_visible()
 
 ## Adds an entry to the visible list if it matches the current filter
 func _add_entry_to_list(entry: Dictionary) -> void:
+	if not log_list:
+		return  # scene-less instantiation: log_entries still records it
 	var icon := _get_entry_icon(entry.type)
-	var text := "[%s] %s" % [entry.timestamp.split(" ")[1], entry.message]
-	
+	var stamp: String = str(entry.timestamp)
+	# Robust to both "date time" and time-only / ISO timestamps
+	var time_part: String = stamp.split(" ")[1] if " " in stamp else stamp
+	var text := "[%s] %s" % [time_part, entry.message]
+
 	log_list.add_item(text, icon)
 	log_list.set_item_metadata(log_list.item_count - 1, entry)
 
@@ -101,7 +111,8 @@ func _should_show_entry(entry: Dictionary) -> bool:
 ## Clears the combat log
 func clear_log() -> void:
 	log_entries.clear()
-	log_list.clear()
+	if log_list:
+		log_list.clear()
 	log_cleared.emit()
 
 ## Called when the clear button is pressed
@@ -124,6 +135,8 @@ func _on_entry_selected(index: int) -> void:
 
 ## Refreshes the log display with current filter
 func _refresh_log_display() -> void:
+	if not log_list:
+		return
 	log_list.clear()
 	for entry in log_entries:
 		if _should_show_entry(entry):

@@ -71,9 +71,10 @@ func initialize_from_data(data: Dictionary) -> bool:
 		_:
 			item_type = GameEnums.ItemType.MISC
 	
-	# Handle effects data
+	# Handle effects data (untyped JSON Array into Array[Dictionary] needs
+	# assign() — direct assignment aborts at runtime)
 	if data.has("effects") and data.effects is Array:
-		item_effects = data.effects
+		item_effects.assign(data.effects)
 	else:
 		item_effects = []
 		
@@ -94,8 +95,8 @@ func initialize_from_data(data: Dictionary) -> bool:
 	else:
 		item_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 	
-	item_tags = data.get("tags", [])
-	
+	item_tags.assign(data.get("tags", []))
+
 	return true
 
 func get_id() -> String:

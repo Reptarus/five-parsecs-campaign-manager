@@ -100,10 +100,11 @@ func test_content_flag_count():
 # Motivation Enum Completeness
 # ============================================================================
 
-func test_motivation_enum_has_twenty_one_values():
-	"""21 motivations (including NONE)"""
+func test_motivation_enum_has_twenty_two_values():
+	"""21 motivations + NONE = 22 (the old size-21 assertion contradicted
+	this suite's own 22-name required list below)"""
 	var keys = GlobalEnumsRef.Motivation.keys()
-	assert_that(keys.size()).is_equal(21)
+	assert_that(keys.size()).is_equal(22)
 
 func test_motivation_enum_required_values():
 	var keys = GlobalEnumsRef.Motivation.keys()

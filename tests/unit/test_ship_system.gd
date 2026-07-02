@@ -15,7 +15,11 @@ func test_ship_data_default_construction():
 	var ship := ShipDataClass.new()
 	assert_that(ship).is_not_null()
 	assert_that(ship.ship_name).is_equal("")
-	assert_that(ship.hull_points).is_equal(0)
+	# _initialize_ship_defaults(): BASIC_SHIP hull 20 — Core Rules p.31
+	# Upgraded Shuttle (the old zero-expectation predated the book-aligned
+	# defaults; canonical rolled ships live in data/ships.json)
+	assert_that(ship.hull_points).is_equal(20)
+	assert_that(ship.max_hull_points).is_equal(20)
 
 func test_ship_data_hull_properties():
 	var ship := ShipDataClass.new()
@@ -94,9 +98,10 @@ func test_ship_data_get_repair_cost():
 # ============================================================================
 
 func test_fuel_default_values():
+	# BASIC_SHIP fallback defaults: 6 fuel (see _initialize_ship_defaults)
 	var ship := ShipDataClass.new()
-	assert_that(ship.fuel_units).is_equal(0)
-	assert_that(ship.max_fuel_units).is_equal(0)
+	assert_that(ship.fuel_units).is_equal(6)
+	assert_that(ship.max_fuel_units).is_equal(6)
 
 func test_fuel_can_be_set():
 	var ship := ShipDataClass.new()
@@ -248,7 +253,8 @@ func test_ship_serialization_roundtrip():
 func test_component_construction():
 	var comp := ShipComponentClass.new()
 	assert_that(comp).is_not_null()
-	assert_that(comp.is_active).is_false()
+	# Components default ACTIVE (is_active = true in ShipComponent.gd)
+	assert_that(comp.is_active).is_true()
 
 func test_component_activate_deactivate():
 	var comp := ShipComponentClass.new()

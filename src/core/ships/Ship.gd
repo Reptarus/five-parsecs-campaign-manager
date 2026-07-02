@@ -105,7 +105,11 @@ func get_component_by_id(id: String):
 			return component
 		elif "id" in component and component.id == id:
 			return component
-	
+		# ShipComponent exposes component_id (no get_id()/id) — without this
+		# check the lookup could never find one
+		elif "component_id" in component and component.component_id == id:
+			return component
+
 	return null
 	
 func get_component_by_type(type):
