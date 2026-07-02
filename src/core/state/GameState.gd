@@ -130,6 +130,11 @@ func _ready() -> void:
 	# (e.g. _try_auto_load_last_campaign called set_current_campaign before
 	# this autoload was attached to the scene tree).
 	_flush_pending_journal_propagation()
+	# Flush the equipment restore queued during pre-tree init (same boot path).
+	if _pending_equipment_restore != null:
+		var pending_campaign = _pending_equipment_restore
+		_pending_equipment_restore = null
+		_restore_equipment_from_campaign(pending_campaign)
 	# Listen for DLC pack requirements to stamp active campaign
 	var dlc_mgr := get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_signal("dlc_pack_required"):
@@ -720,6 +725,11 @@ func verify_consistency() -> Array[String]:
 		push_warning("GameState.verify_consistency: " + v)
 	return violations
 
+## Campaign queued when the restore is requested before this autoload enters
+## the tree (boot path — same situation as _pending_journal_propagation).
+var _pending_equipment_restore = null
+
+
 ## Public entry point for tests and external callers that need to trigger
 ## the equipment-restore pipeline on demand (e.g. after directly mutating a
 ## campaign in test setup). Internal GameState code still calls the
@@ -742,9 +752,13 @@ func restore_equipment_from_campaign(campaign) -> void:
 func _restore_equipment_from_campaign(campaign) -> void:
 	if not campaign:
 		return
-	# During _init(), we're not in the tree yet — defer to _ready()
+	# Boot path: autoload _init runs before the node is parented — queue for
+	# _ready() (same pattern as _pending_journal_propagation). NEVER
+	# self-call_deferred here: deferred calls drain until none remain within
+	# one idle cycle, so a permanently detached node (unit tests) requeues
+	# forever and crashes (Godot docs, Object.call_deferred).
 	if not is_inside_tree():
-		call_deferred("_restore_equipment_from_campaign", campaign)
+		_pending_equipment_restore = campaign
 		return
 	var eq_mgr = get_node_or_null("/root/EquipmentManager")
 	if not eq_mgr:
