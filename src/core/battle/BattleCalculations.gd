@@ -654,10 +654,9 @@ static func resolve_brawl(
 	# Get weapon bonuses
 	var attacker_weapon_bonus := _get_brawl_weapon_bonus(attacker)
 	var defender_weapon_bonus := _get_brawl_weapon_bonus(defender)
-
-	# Species combat bonuses
-	var attacker_species_bonus := _get_species_brawl_bonus(attacker_species)
-	var defender_species_bonus := _get_species_brawl_bonus(defender_species)
+	# (A fabricated K'Erin +1 "species brawl bonus" was removed 2026-07-02 —
+	# Core Rules p.45 brawling is 1D6 + Combat Skill + weapon bonus only; the
+	# K'Erin species rule is the roll-twice-pick-better below, p.16.)
 
 	# Get weapon traits for Elegant trait check
 	var attacker_traits: Array = attacker.get("weapon_traits", [])
@@ -708,16 +707,18 @@ static func resolve_brawl(
 		defender_clumsy_penalty = -1
 		result["effects"].append("clumsy_penalty_defender")
 
-	# Calculate totals
-	var attacker_total: int = attacker_natural + attacker_skill + attacker_weapon_bonus + attacker_species_bonus + attacker_clumsy_penalty
-	var defender_total: int = defender_natural + defender_skill + defender_weapon_bonus + defender_species_bonus + defender_clumsy_penalty
+	# Calculate totals (Core Rules p.45: 1D6 + Combat Skill + weapon bonus)
+	var attacker_total: int = attacker_natural + attacker_skill + attacker_weapon_bonus + attacker_clumsy_penalty
+	var defender_total: int = defender_natural + defender_skill + defender_weapon_bonus + defender_clumsy_penalty
 
 	result["attacker_total"] = attacker_total
 	result["defender_total"] = defender_total
 	result["attacker_weapon_bonus"] = attacker_weapon_bonus
 	result["defender_weapon_bonus"] = defender_weapon_bonus
-	result["attacker_species_bonus"] = attacker_species_bonus
-	result["defender_species_bonus"] = defender_species_bonus
+	# Kept at 0 for display compat (panels render the Species row only when
+	# non-zero); the Core Rules have no species bonus to the brawl roll.
+	result["attacker_species_bonus"] = 0
+	result["defender_species_bonus"] = 0
 
 	# Determine winner
 	if attacker_total > defender_total:
@@ -763,24 +764,12 @@ static func resolve_brawl(
 		result["effects"].append("draw_both_hit")
 
 	# At this point damage_to_X is the HIT COUNT (win + natural-6/natural-1 extra
-	# Hits + draw). Species melee bonuses are DAMAGE-RATING bonuses for the
-	# Resolving-Hits roll (Hulker +2, K'Erin +1, Five Parsecs p.18) — NOT extra Hits.
+	# Hits + draw). (Fabricated "Hulker +2 / K'Erin +1" melee DAMAGE-RATING
+	# bonuses removed 2026-07-02 — the old comment cited "p.18" but the book has
+	# no species damage bonuses: Hulker p.21 grants shooting limits + Clumsy/
+	# Heavy immunity only; K'Erin p.16 grants the brawl reroll only.)
 	var attacker_dmg_rating: int = _get_brawl_weapon_damage(attacker)
 	var defender_dmg_rating: int = _get_brawl_weapon_damage(defender)
-	if _is_hulker(attacker_species):
-		attacker_dmg_rating += 2
-		result["attacker_damage_bonus"] = 2
-		result["effects"].append("hulker_melee_bonus")
-	if _is_hulker(defender_species):
-		defender_dmg_rating += 2
-		result["defender_damage_bonus"] = 2
-		result["effects"].append("hulker_melee_bonus_defense")
-	if _is_kerin(attacker_species):
-		attacker_dmg_rating += 1
-		result["effects"].append("kerin_melee_bonus")
-	if _is_kerin(defender_species):
-		defender_dmg_rating += 1
-		result["effects"].append("kerin_melee_bonus_defense")
 
 	# Resolve each incoming Hit (Core Rules p.44-46): save first (a deflected Hit
 	# still Stuns, no casualty), then unsaved Hits roll 1D6 + Damage vs Toughness
@@ -805,8 +794,8 @@ static func resolve_brawl(
 	# Sprint 26.5: Debug log brawl resolution
 	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
 	var defender_name: String = defender.get("character_name", defender.get("name", "Unknown"))
-	var attacker_bonus: int = attacker_skill + attacker_weapon_bonus + attacker_species_bonus
-	var defender_bonus: int = defender_skill + defender_weapon_bonus + defender_species_bonus
+	var attacker_bonus: int = attacker_skill + attacker_weapon_bonus
+	var defender_bonus: int = defender_skill + defender_weapon_bonus
 	var winner_name: String = attacker_name if result["winner"] == "attacker" else (defender_name if result["winner"] == "defender" else "DRAW")
 	var damage: int = result["damage_to_defender"] if result["winner"] == "attacker" else result["damage_to_attacker"]
 	_debug_log_brawl(attacker_name, defender_name, attacker_natural, defender_natural, attacker_bonus, defender_bonus, winner_name, damage)
@@ -867,21 +856,9 @@ static func _get_brawl_weapon_bonus(character: Dictionary) -> int:
 		return 1
 	return 0
 
-## Get species brawl bonus
-static func _get_species_brawl_bonus(species: String) -> int:
-	match species.to_lower():
-		"kerin", "k'erin":
-			return 1  # K'Erin get +1 in brawl
-		_:
-			return 0
-
-## Check if species is K'Erin (rolls twice in brawl)
+## Check if species is K'Erin (rolls twice in brawl, Core Rules p.16)
 static func _is_kerin(species: String) -> bool:
 	return species.to_lower() in ["kerin", "k'erin", "k_erin"]
-
-## Check if species is Hulker (+2 melee damage)
-static func _is_hulker(species: String) -> bool:
-	return species.to_lower() in ["hulker", "hulkers"]
 
 #endregion
 
@@ -1509,236 +1486,12 @@ static func get_crew_reaction_bonus(crew: Array) -> int:
 
 #endregion
 
-#region Species Combat Abilities
-
-## Get all species combat abilities for a character
-## Returns Dictionary with all active species effects
-static func get_species_combat_abilities(character: Dictionary) -> Dictionary:
-	var species: String = character.get("species", "human").to_lower()
-
-	var result := {
-		"natural_armor_save": 7,  # No natural armor by default
-		"speed_modifier": 0,
-		"combat_modifier": 0,
-		"toughness_modifier": 0,
-		"savvy_modifier": 0,
-		"can_reroll_check": false,
-		"xp_bonus": 0,
-		"night_vision": false,
-		"lightning_reflexes": false,
-		"wall_climbing": false,
-		"can_glide": false,
-		"keen_senses_bonus": 0,
-		"regeneration": false,
-		"immune_to_poison": false,
-		"immune_to_disease": false,
-		"tech_bonus": 0,
-		"psychic_powers": false,
-		"mental_shield": false,
-		"abilities": []
-	}
-
-	match species:
-		"human":
-			result["can_reroll_check"] = true  # Adaptable
-			result["xp_bonus"] = 1  # Quick Learner
-			result["abilities"].append("adaptable")
-			result["abilities"].append("quick_learner")
-
-		"synthoid":
-			result["toughness_modifier"] = 1
-			result["immune_to_poison"] = true
-			result["immune_to_disease"] = true
-			result["tech_bonus"] = 1  # Machine Logic
-			result["regeneration"] = true  # Faster recovery
-			result["abilities"].append("artificial_body")
-			result["abilities"].append("machine_logic")
-
-		"altered_human":
-			result["speed_modifier"] = 1
-			result["abilities"].append("enhanced_physiology")
-			result["abilities"].append("specialized_adaptation")
-
-		"avian":
-			result["toughness_modifier"] = -1
-			result["speed_modifier"] = 2
-			result["keen_senses_bonus"] = 2  # +2 awareness
-			result["can_glide"] = true
-			result["abilities"].append("keen_senses")
-			result["abilities"].append("gliding")
-
-		"reptilian":
-			result["toughness_modifier"] = 2
-			result["speed_modifier"] = -1
-			result["natural_armor_save"] = 6  # 6+ natural armor
-			result["regeneration"] = true
-			result["abilities"].append("natural_armor_6+")
-			result["abilities"].append("regeneration")
-
-		"insectoid":
-			result["combat_modifier"] = 1
-			result["speed_modifier"] = 1
-			result["savvy_modifier"] = -1
-			result["natural_armor_save"] = 5  # 5+ exoskeleton
-			result["wall_climbing"] = true
-			result["abilities"].append("exoskeleton_5+")
-			result["abilities"].append("wall_climbing")
-
-		"psyker":
-			result["toughness_modifier"] = -1
-			result["savvy_modifier"] = 2
-			result["psychic_powers"] = true
-			result["mental_shield"] = true  # +2 resist psychic
-			result["abilities"].append("psychic_powers")
-			result["abilities"].append("mental_shield")
-
-		"felinoid":
-			result["combat_modifier"] = 1
-			result["speed_modifier"] = 1
-			result["savvy_modifier"] = -1
-			result["night_vision"] = true
-			result["lightning_reflexes"] = true
-			result["abilities"].append("night_vision")
-			result["abilities"].append("lightning_reflexes")
-
-		"soulless", "bot":
-			result["natural_armor_save"] = 6  # 6+ innate
-			result["abilities"].append("soulless_armor_6+")
-
-		"kerin", "k'erin", "k_erin":
-			result["abilities"].append("brawl_reroll")
-			result["abilities"].append("brawl_bonus_+1")
-			result["abilities"].append("melee_damage_+1")
-
-		"hulker", "hulkers":
-			result["abilities"].append("melee_damage_+2")
-			result["abilities"].append("shooting_skill_zero")    # Core Rules p.21: Combat Skill always +0 when shooting
-			result["abilities"].append("no_shooting_bonuses")     # No weapon/sight/mod bonuses for shooting
-			result["abilities"].append("ignore_clumsy_heavy")     # Ignores Clumsy and Heavy weapon traits
-
-		"de_converted", "de-converted":
-			result["natural_armor_save"] = 6  # 6+ built-in plating (Core Rules p.19)
-			result["abilities"].append("natural_armor_6+")
-			result["abilities"].append("savvy_frozen")  # Savvy can never be improved
-
-		"assault_bot":
-			result["natural_armor_save"] = 5  # 5+ heavy metallic construction (Core Rules p.21)
-			result["abilities"].append("natural_armor_5+")
-			result["abilities"].append("ignore_clumsy_heavy")  # Ignores Clumsy and Heavy weapon traits
-			result["abilities"].append("savvy_frozen")  # Savvy +0 and cannot upgrade
-
-		"primitive", "primitive_character":
-			result["abilities"].append("no_gun_sights")   # Core Rules p.22: Cannot benefit from gun sights
-			result["abilities"].append("max_range_8")      # Cannot fire above 8" range
-			result["abilities"].append("melee_elegant")    # All melee weapons count as Elegant
-
-		"traveler", "traveller":
-			result["abilities"].append("speed_+2_retreating")  # Core Rules p.20: +2" speed when moving away from visible enemy
-
-		"swift":
-			result["speed_modifier"] = 2
-			result["abilities"].append("swift_movement")
-			result["abilities"].append("hard_to_hit_ranged")
-
-		"stalker":
-			result["abilities"].append("ambush_+2_hit")
-
-		"feral":
-			result["abilities"].append("ignore_suppression")
-
-		"krag":
-			var _dlc_krag = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-			if _dlc_krag and _dlc_krag.is_feature_enabled(_dlc_krag.ContentFlag.SPECIES_KRAG):
-				result["speed_modifier"] = -2  # Speed 4" (vs standard 6")
-				result["abilities"].append("no_dash")
-				result["abilities"].append("reroll_natural_1_vs_rivals")
-				result["abilities"].append("always_selected_for_fights")
-
-		"skulker":
-			var _dlc_skulker = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-			if _dlc_skulker and _dlc_skulker.is_feature_enabled(_dlc_skulker.ContentFlag.SPECIES_SKULKER):
-				result["abilities"].append("ignore_difficult_ground")
-				result["abilities"].append("ignore_obstacles_1in")
-				result["abilities"].append("climb_discount_1in")
-				result["abilities"].append("biological_resistance_3plus")
-				result["abilities"].append("universal_armor_fit")
-
-	return result
-
-## Check if character has natural armor (from species)
-static func get_natural_armor_save(character: Dictionary) -> int:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("natural_armor_save", 7)
-
-## Get effective armor save (best of worn or natural)
-static func get_effective_armor_save(character: Dictionary) -> int:
-	var worn_armor: String = character.get("armor", "none")
-	var worn_save := get_armor_save_threshold(worn_armor)
-	var natural_save := get_natural_armor_save(character)
-	# Return better (lower) save
-	return mini(worn_save, natural_save)
-
-## Check if character ignores darkness penalties
-static func has_night_vision(character: Dictionary) -> bool:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("night_vision", false)
-
-## Check if character acts first in battle (lightning reflexes)
-static func has_lightning_reflexes(character: Dictionary) -> bool:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("lightning_reflexes", false)
-
-## Check if character can climb walls
-static func can_wall_climb(character: Dictionary) -> bool:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("wall_climbing", false)
-
-## Check if character can glide safely
-static func can_glide(character: Dictionary) -> bool:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("can_glide", false)
-
-## Get keen senses bonus for awareness checks
-static func get_keen_senses_bonus(character: Dictionary) -> int:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("keen_senses_bonus", 0)
-
-## Check if character has regeneration
-static func has_regeneration(character: Dictionary) -> bool:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("regeneration", false)
-
-## Check if character can use Adaptable reroll (human)
-static func can_use_adaptable_reroll(character: Dictionary) -> bool:
-	var abilities := get_species_combat_abilities(character)
-	var already_used: bool = character.get("_used_adaptable_this_battle", false)
-	return abilities.get("can_reroll_check", false) and not already_used
-
-## Mark adaptable reroll as used
-static func mark_adaptable_used(character: Dictionary) -> void:
-	character["_used_adaptable_this_battle"] = true
-
-## Check if character ignores suppression (Feral)
-static func ignores_suppression(character: Dictionary) -> bool:
-	var species: String = character.get("species", "human").to_lower()
-	return species == "feral"
-
-## Get XP bonus from species (human Quick Learner)
-static func get_species_xp_bonus(character: Dictionary) -> int:
-	var abilities := get_species_combat_abilities(character)
-	return abilities.get("xp_bonus", 0)
-
-## Get all stat modifiers from species
-static func get_species_stat_modifiers(character: Dictionary) -> Dictionary:
-	var abilities := get_species_combat_abilities(character)
-	return {
-		"combat": abilities.get("combat_modifier", 0),
-		"toughness": abilities.get("toughness_modifier", 0),
-		"speed": abilities.get("speed_modifier", 0),
-		"savvy": abilities.get("savvy_modifier", 0)
-	}
-
-#endregion
+# (The fabricated 'Species Combat Abilities' region was deleted 2026-07-02:
+# zero callers anywhere; it contained invented species (synthoid, avian,
+# reptilian, insectoid, psyker, felinoid, altered_human) and invented Human
+# 'Adaptable/Quick Learner' abilities. Real species rules live in
+# data/character_species.json special_rules + Character._apply_species_bonuses
+# + the book-cited gates in resolve_brawl / CharacterAdvancementService.)
 
 #region Utility Functions
 

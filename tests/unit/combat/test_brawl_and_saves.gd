@@ -320,8 +320,10 @@ func test_kerin_vs_kerin_both_reroll() -> void:
 	assert_that(result.get("attacker_kerin_rerolled")).is_true()
 	assert_that(result.get("defender_kerin_rerolled")).is_true()
 
-func test_kerin_brawl_bonus_applied() -> void:
-	# Test K'Erin +1 brawl bonus is applied
+func test_kerin_no_flat_brawl_bonus() -> void:
+	# Core Rules p.16/p.45: K'Erin's ONLY brawl advantage is roll-twice-pick-
+	# better — there is NO flat +1 species bonus (a fabricated +1 was removed
+	# 2026-07-02). Equal rolls must therefore produce a draw.
 	var attacker := {
 		"combat_skill": 0,
 		"speed": 4,
@@ -341,7 +343,6 @@ func test_kerin_brawl_bonus_applied() -> void:
 		"toughness": 3
 	}
 
-	# Same roll, but K'Erin has +1 bonus
 	var roll_state := {"count": 0}
 	var fixed_rolls := [3, 3, 3]  # First roll, K'Erin reroll, defender
 	var dice_roller := func():
@@ -351,10 +352,11 @@ func test_kerin_brawl_bonus_applied() -> void:
 
 	var result = BattleCalculations.resolve_brawl(attacker, defender, dice_roller)
 
-	# K'Erin: 3 + 1 species bonus = 4
-	# Human: 3 + 0 = 3
-	assert_that(result.get("attacker_species_bonus")).is_equal(1)
-	assert_that(result.get("winner")).is_equal("attacker")
+	# K'Erin: max(3, 3) + 0 = 3; Human: 3 + 0 = 3 -> draw. The reroll
+	# happened, but no flat bonus exists.
+	assert_that(result.get("attacker_kerin_rerolled")).is_true()
+	assert_that(result.get("attacker_species_bonus")).is_equal(0)
+	assert_that(result.get("winner")).is_equal("draw")
 
 #endregion
 
@@ -492,8 +494,10 @@ func test_screen_checked_before_armor() -> void:
 
 #region Hulker Damage Bonus Tests
 
-func test_hulker_melee_damage_bonus() -> void:
-	# Test Hulker +2 melee damage
+func test_hulker_no_melee_damage_bonus() -> void:
+	# Core Rules p.21: Hulker rules are shooting Combat Skill +0 (no weapon/
+	# sight/mod bonuses) and Clumsy/Heavy immunity — there is NO melee damage
+	# bonus (a fabricated +2 with a false "p.18" cite was removed 2026-07-02).
 	var attacker := {
 		"combat_skill": 1,
 		"speed": 4,
@@ -513,7 +517,7 @@ func test_hulker_melee_damage_bonus() -> void:
 		"toughness": 3
 	}
 
-	# Attacker wins
+	# Attacker wins (5 + 1 skill + 2 melee weapon = 8 vs 2)
 	var roll_state := {"count": 0}
 	var fixed_rolls := [5, 2]
 	var dice_roller := func():
@@ -523,11 +527,9 @@ func test_hulker_melee_damage_bonus() -> void:
 
 	var result = BattleCalculations.resolve_brawl(attacker, defender, dice_roller)
 
-	# Hulker's +2 is a DAMAGE-RATING bonus to the Resolving-Hits roll (Core Rules
-	# p.46), not extra wounds. The bonus is recorded, and the high damage roll
-	# (1D6 + 2) easily meets Toughness 3 -> the Hit is a casualty.
-	assert_that(result.get("attacker_damage_bonus")).is_equal(2)
-	assert_int(result.get("damage_to_defender")).is_equal(1)  # casualty count, not a wound total
+	assert_that(result.get("winner")).is_equal("attacker")
+	assert_that(result.get("attacker_damage_bonus")).is_equal(0)
+	assert_int(result.get("damage_to_defender")).is_equal(1)  # casualty count
 
 #endregion
 

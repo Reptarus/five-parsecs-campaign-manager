@@ -52,6 +52,15 @@ static func can_advance_stat(character: Dictionary, stat_name: String) -> Dictio
 		result.reason = "Invalid stat name: " + stat_name
 		return result
 
+	# De-converted (Core Rules p.19) and Assault Bots (p.21): Savvy can
+	# never be improved. str()-wrap origin — legacy saves store it as float.
+	if stat_lower == "savvy":
+		var sid := str(character.get(
+			"species_id", character.get("origin", ""))).to_lower()
+		if sid in ["de_converted", "de-converted", "assault_bot", "assault bot"]:
+			result.reason = "Savvy can never be improved (species rule)"
+			return result
+
 	# Get current XP
 	var current_xp: int = character.get("experience", 0)
 	if current_xp < cost:

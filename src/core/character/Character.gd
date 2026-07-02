@@ -292,6 +292,11 @@ func spend_xp_on_stat(stat_name: String) -> bool:
 	if is_bot:
 		push_warning("Bots cannot use XP - use credits for bot upgrades instead")
 		return false
+	if stat_name.to_lower() == "savvy" and not can_improve_savvy():
+		push_warning(
+			"%s: Savvy can never be improved (Core Rules p.19/p.21)"
+			% character_name)
+		return false
 
 	var old_stat_value = get(stat_name.to_lower())
 	experience -= 1
@@ -424,69 +429,65 @@ func _get_bot_upgrade_bonus(upgrade_id: String) -> Dictionary:
 func _apply_species_bonuses(modifiers: Dictionary) -> void:
 	match origin.to_lower():
 		"swift":
-			# Swift: -1 to ranged attacks against them (enemy hit penalty)
+			# Swift: multi-shot weapons must direct all shots at the same
+			# target (Core Rules p.18). Glide/leap movement is trait text.
+			# (A fabricated "defense_vs_ranged" bonus was removed 2026-07-02.)
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Swift",
-				"stat": "defense_vs_ranged",
+				"stat": "multishot_same_target",
 				"value": 1
 			})
 		"stalker":
-			# Stalker: +2 hit from ambush positions
+			# Stalker: may teleport 1D6" as Alternative Movement (Core Rules
+			# p.20; upgradeable twice at 4 XP for +1" each).
+			# (A fabricated "+2 hit from ambush" was removed 2026-07-02.)
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Stalker",
-				"stat": "ambush_hit_bonus",
-				"value": 2
+				"stat": "teleport_1d6",
+				"value": 1
 			})
 		"kerin", "k'erin":
-			# K'Erin: +1 brawl, handled in BattleCalculations
+			# K'Erin: roll twice in Brawling, pick better (Core Rules p.16),
+			# enforced in BattleCalculations.resolve_brawl.
+			# (A fabricated "+1 brawl bonus" was removed 2026-07-02.)
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "K'Erin",
-				"stat": "brawl_bonus",
+				"stat": "brawl_reroll",
 				"value": 1
 			})
 		"hulker":
-			# Hulker: +2 melee damage, handled in BattleCalculations
+			# Hulker (Core Rules p.21): shooting Combat Skill always +0 with
+			# no weapon/sight/mod bonuses; ignores Clumsy and Heavy traits.
+			# (A fabricated "+2 melee damage" was removed 2026-07-02.)
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Hulker",
-				"stat": "melee_damage_bonus",
-				"value": 2
+				"stat": "shooting_skill_zero",
+				"value": 1
 			})
-		"felinoid":
-			# Felinoid: Lightning reflexes
-			modifiers["reactions"] += 1
 			modifiers["sources"].append({
 				"type": "species",
-				"name": "Felinoid",
-				"stat": "reactions",
+				"name": "Hulker",
+				"stat": "no_shooting_bonuses",
+				"value": 1
+			})
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Hulker",
+				"stat": "ignore_clumsy_heavy",
 				"value": 1
 			})
 		"bot", "soulless":
-			# Bot/Soulless: 5+ natural armor
+			# Bot/Soulless: 6+ Armor Saving Throw (Core Rules p.15 / p.17;
+			# was wrongly 5 before 2026-07-02)
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Bot/Soulless",
 				"stat": "natural_armor",
-				"value": 5
-			})
-		"reptilian":
-			# Reptilian: 6+ natural armor
-			modifiers["sources"].append({
-				"type": "species",
-				"name": "Reptilian",
-				"stat": "natural_armor",
 				"value": 6
-			})
-		"insectoid":
-			# Insectoid: 5+ natural armor
-			modifiers["sources"].append({
-				"type": "species",
-				"name": "Insectoid",
-				"stat": "natural_armor",
-				"value": 5
 			})
 		"krag":
 			# Krag (Compendium DLC): Cannot Dash, reroll natural 1 vs Rivals
@@ -542,15 +543,23 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 					% character_name)
 		# Strange Characters (Core Rules pp.19-22)
 		"de_converted", "de-converted":
-			# De-converted: 6+ Armor Saving Throw, up to 3 implants (Core Rules p.19)
+			# De-converted: 6+ Armor Saving Throw, up to 3 implants, Savvy can
+			# never be improved (Core Rules p.19; gate in can_improve_savvy())
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "De-converted",
 				"stat": "natural_armor",
 				"value": 6
 			})
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "De-converted",
+				"stat": "savvy_frozen",
+				"value": 1
+			})
 		"assault_bot", "assault bot":
-			# Assault Bot: 5+ Armor Saving Throw, ignore Clumsy/Heavy (Core Rules p.21)
+			# Assault Bot: 5+ Armor Saving Throw, ignore Clumsy/Heavy, Savvy
+			# +0 and cannot be upgraded (Core Rules p.21)
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Assault Bot",
@@ -563,6 +572,12 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 				"stat": "ignore_clumsy_heavy",
 				"value": 1
 			})
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Assault Bot",
+				"stat": "savvy_frozen",
+				"value": 1
+			})
 		"manipulator":
 			# Manipulator: Cannot enter Brawl voluntarily, dual pistols (Core Rules p.22)
 			modifiers["sources"].append({
@@ -572,7 +587,14 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 				"value": 1
 			})
 		"primitive", "primitive_character":
-			# Primitive: Cannot use gun sights, max 8" range, melee elegant (Core Rules p.22)
+			# Primitive: Cannot benefit from gun sights, max 8" range, melee
+			# weapons count as Elegant (Core Rules p.22)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Primitive",
+				"stat": "no_gun_sights",
+				"value": 1
+			})
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Primitive",
@@ -585,8 +607,25 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 				"stat": "melee_elegant",
 				"value": 1
 			})
+		"traveler", "traveller":
+			# Traveler: Speed +2" when moving directly away from a visible
+			# enemy (Core Rules p.22)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Traveler",
+				"stat": "retreat_speed_bonus",
+				"value": 2
+			})
 
 ## Strange Character helper methods (Core Rules pp.19-22)
+
+func can_improve_savvy() -> bool:
+	## De-converted (Core Rules p.19) and Assault Bots (p.21) can never
+	## improve Savvy. Uses species_id when set (always String), else origin.
+	var sid := species_id.to_lower() if not species_id.is_empty() \
+		else origin.to_lower()
+	return sid not in [
+		"de_converted", "de-converted", "assault_bot", "assault bot"]
 
 func can_receive_luck() -> bool:
 	## Bots, Soulless, and Emo-suppressed cannot receive Luck (Core Rules p.15)
