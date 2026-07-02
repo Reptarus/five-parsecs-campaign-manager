@@ -335,26 +335,26 @@ Each scenario has:
 
 ---
 
-## Scenario 9: Two-Enum Sync Validation (P0, ~15 min)
+## Scenario 9: Two-Enum Sync Validation (P0, ~5 min)
 
 **Goal**: Verify the two enum systems (GlobalEnums, GameEnums) are aligned. (FiveParsecsGameEnums.gd was deleted Sprint A Bug 3, 2026-05-24 — the project is now two-enum.)
 
-### Steps (via run_script)
+**2026-07-02**: the old spot-check list (FiveParsecsCampaignPhase / CharacterClass only) missed 39 ordinal mismatches across 9 other shared enums — two of them LIVE bugs (TerrainRules fire-spread/extinguish dead vs GlobalEnums terrain state; TerrainEffectType COVER/HAZARD key swap). The check is now exhaustive and automated:
 
-1. **FiveParsecsCampaignPhase alignment**
-   - `[CHECK-9.1]` All phase names in GlobalEnums.FiveParsecsCampaignPhase exist in GameEnums with same ordinal values
+### Steps
 
-2. **CharacterClass alignment check**
-   - `[CHECK-9.2]` GlobalEnums.CharacterClass and GameEnums.CharacterClass align member-by-member
+1. **Exhaustive shared-constant comparison (replaces old CHECK-9.1/9.2)**
+   - `[CHECK-9.1]` Run `tests/unit/test_enum_ordinal_sync.gd` — compares EVERY shared Dictionary constant (all enums + const tables like PHASE_DESCRIPTIONS) between GlobalEnums and GameEnums via `get_script_constant_map()`; asserts zero mismatches and pins the deleted dead Skill/Ability enums
+   - `[CHECK-9.2]` Run `tests/unit/test_terrain_enum_agreement.gd` — exercises the live TerrainRules path with GlobalEnums-valued state (fire_spread + extinguish_fire rules)
 
-3. **ContentFlag count**
+2. **ContentFlag count**
    - `[CHECK-9.3]` DLCManager.ContentFlag.size() == 37 (35 DLC + 2 Bug Hunt)
 
-4. **DifficultyLevel values**
+3. **DifficultyLevel values**
    - `[CHECK-9.4]` GlobalEnums.DifficultyLevel values are {EASY:1, NORMAL:2, CHALLENGING:4, HARDCORE:6, INSANITY:8}
 
-5. **No shadowing conflicts**
-   - `[CHECK-9.5]` No enum name collisions between the three files
+4. **No shadowing conflicts**
+   - `[CHECK-9.5]` No enum name collisions between the two files
 
 ---
 

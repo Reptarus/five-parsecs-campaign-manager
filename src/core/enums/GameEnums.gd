@@ -102,17 +102,18 @@ enum MissionType {
 }
 
 ## Enumeration for mission objectives
+## Synced with GlobalEnums.MissionObjective — ordinals MUST match for shared members
 enum MissionObjective {
-	NONE, # No objective
-	WIN_BATTLE, # Win the battle
-	PATROL, # Patrol an area
-	RESCUE, # Rescue someone
-	SABOTAGE, # Sabotage an object
-	RECON, # Gather information
-	CAPTURE_POINT, # Capture a location
-	DEFEND, # Defend a location
-	SEEK_AND_DESTROY, # Find and eliminate target
-	TUTORIAL # Tutorial objective
+	NONE = 0, # No objective
+	WIN_BATTLE = 1, # Win the battle
+	SABOTAGE = 2, # Sabotage an object
+	RECON = 3, # Gather information
+	RESCUE = 4, # Rescue someone
+	PATROL = 5, # Patrol an area
+	SEEK_AND_DESTROY = 6, # Find and eliminate target
+	DEFEND = 7, # Defend a location
+	CAPTURE_POINT = 8, # Capture a location
+	TUTORIAL = 9 # Tutorial objective
 }
 
 ## Enumeration for UI screen types
@@ -126,19 +127,21 @@ enum ScreenType {
 }
 
 ## Enumeration for resource types
+## Synced with GlobalEnums.ResourceType — ordinals MUST match for shared members
+## (7 is reserved: GlobalEnums-only WEAPONS)
 enum ResourceType {
-	NONE, # No resource
-	CREDITS, # In-game currency
-	SUPPLIES, # Basic supplies
-	TECH_PARTS, # Technology parts
-	SCRAP, # Crafting materials
-	MEDICINE, # Medical supplies
-	MEDICAL_SUPPLIES, # Medical kits and gear
-	FUEL, # Ship fuel
-	DATA, # Information/intelligence
-	PATRON, # Patron contacts
-	STORY_POINT, # Story progression points
-	REPUTATION # Reputation with factions
+	NONE = 0, # No resource
+	CREDITS = 1, # In-game currency
+	SUPPLIES = 2, # Basic supplies
+	TECH_PARTS = 3, # Technology parts
+	PATRON = 4, # Patron contacts
+	FUEL = 5, # Ship fuel
+	MEDICAL_SUPPLIES = 6, # Medical kits and gear
+	STORY_POINT = 8, # Story progression points
+	REPUTATION = 9, # Reputation with factions
+	SCRAP = 10, # GameEnums-only: Crafting materials
+	MEDICINE = 11, # GameEnums-only: Medical supplies
+	DATA = 12 # GameEnums-only: Information/intelligence
 }
 
 ## Enumeration for weapon types
@@ -300,26 +303,27 @@ enum Training {
 }
 
 ## World/Location Traits
+## Synced with GlobalEnums.WorldTrait — ordinals MUST match for shared members
 enum WorldTrait {
-	NONE, # No special traits
-	TRADE_CENTER, # Centers of commerce
-	TECH_CENTER, # Centers of technology
-	INDUSTRIAL_HUB, # Manufacturing hubs
-	PIRATE_HAVEN, # Lawless territories
-	FRONTIER_WORLD, # Remote worlds
-	FREE_PORT, # Unrestricted trading
-	CORPORATE_CONTROLLED, # Corporate governance
-	MINING_COLONY, # Resource extraction
-	AGRICULTURAL_WORLD, # Food production
-	FRONTIER, # Frontier territory (travel table)
-	TRADE_HUB, # Trade hub (travel table)
-	INDUSTRIAL, # Industrial world (travel table)
-	RESEARCH, # Research world (travel table)
-	CRIMINAL, # Criminal world (travel table)
-	AFFLUENT, # Affluent world (travel table)
-	DANGEROUS, # Dangerous world (travel table)
-	CORPORATE, # Corporate world (travel table)
-	MILITARY # Military world (travel table)
+	NONE = 0, # No special traits
+	INDUSTRIAL_HUB = 1, # Manufacturing hubs
+	FRONTIER_WORLD = 2, # Remote worlds
+	TRADE_CENTER = 3, # Centers of commerce
+	PIRATE_HAVEN = 4, # Lawless territories
+	FREE_PORT = 5, # Unrestricted trading
+	CORPORATE_CONTROLLED = 6, # Corporate governance
+	TECH_CENTER = 7, # Centers of technology
+	MINING_COLONY = 8, # Resource extraction
+	AGRICULTURAL_WORLD = 9, # Food production
+	FRONTIER = 10, # Frontier territory (travel table)
+	TRADE_HUB = 11, # Trade hub (travel table)
+	INDUSTRIAL = 12, # Industrial world (travel table)
+	RESEARCH = 13, # Research world (travel table)
+	CRIMINAL = 14, # Criminal world (travel table)
+	AFFLUENT = 15, # Affluent world (travel table)
+	DANGEROUS = 16, # Dangerous world (travel table)
+	CORPORATE = 17, # Corporate world (travel table)
+	MILITARY = 18 # Military world (travel table)
 }
 
 ## Item Rarities
@@ -597,29 +601,9 @@ enum CrewSize {
 	SIX # Six members
 }
 
-## Character Skills
-enum Skill {
-	NONE, # No skill
-	COMBAT, # Combat proficiency
-	TECHNICAL, # Technical expertise
-	SCIENCE, # Scientific knowledge
-	SOCIAL, # Social interactions
-	SURVIVAL, # Survival skills
-	PILOTING, # Piloting ability
-	MEDICAL, # Medical knowledge
-	LEADERSHIP # Leadership ability
-}
-
-## Character Abilities
-enum Ability {
-	NONE, # No ability
-	QUICK_SHOT, # Faster shooting
-	STEADY_AIM, # Better accuracy
-	BATTLE_HARDENED, # Improved combat resilience
-	TECH_SAVVY, # Technology bonus
-	MEDIC, # Medical expertise
-	LEADER # Leadership bonus
-}
+## (Dead Skill + Ability enums deleted 2026-07-02: zero consumers anywhere,
+## and they were semantically divergent taxonomies from the GlobalEnums pair —
+## both sides removed. Character skills are stored as strings.)
 
 ## Character Traits
 enum Trait {
@@ -650,49 +634,58 @@ enum FactionType {
 }
 
 ## Terrain Feature Types
+## Synced with GlobalEnums.TerrainFeatureType — ordinals MUST match for shared
+## members (9-12 reserved: GlobalEnums-only SPAWN_POINT/EXIT_POINT/OBJECTIVE/
+## SPECIAL). The desync here silently disabled TerrainRules' fire-spread and
+## water-extinguish checks against GlobalEnums-written terrain state.
 enum TerrainFeatureType {
-	NONE, # No terrain feature
-	FOREST, # Forest terrain
-	MOUNTAIN, # Mountain terrain
-	WATER, # Water terrain
-	STRUCTURE, # Structure/building
-	DEBRIS, # Debris/wreckage
-	ROADS, # Roads/paths
-	URBAN, # Urban terrain
-	RIDGE, # Ridges/hills
-	CRATER, # Craters/depressions
-	WALL, # Walls/barriers
-	COVER, # Cover objects
-	OBSTACLE, # Movement obstacles
-	HAZARD, # General hazards
-	RADIATION, # Radiation areas
-	FIRE, # Fire areas
-	ACID, # Acid pools
-	SMOKE # Smoke clouds
+	NONE = 0, # No terrain feature
+	WALL = 1, # Walls/barriers
+	COVER = 2, # Cover objects
+	OBSTACLE = 3, # Movement obstacles
+	HAZARD = 4, # General hazards
+	RADIATION = 5, # Radiation areas
+	FIRE = 6, # Fire areas
+	ACID = 7, # Acid pools
+	SMOKE = 8, # Smoke clouds
+	FOREST = 20, # GameEnums-only: Forest terrain
+	MOUNTAIN = 21, # GameEnums-only: Mountain terrain
+	WATER = 22, # GameEnums-only: Water terrain
+	STRUCTURE = 23, # GameEnums-only: Structure/building
+	DEBRIS = 24, # GameEnums-only: Debris/wreckage
+	ROADS = 25, # GameEnums-only: Roads/paths
+	URBAN = 26, # GameEnums-only: Urban terrain
+	RIDGE = 27, # GameEnums-only: Ridges/hills
+	CRATER = 28 # GameEnums-only: Craters/depressions
 }
 
 ## Terrain Effect Types
+## Synced with GlobalEnums.TerrainEffectType — ordinals MUST match (the old
+## COVER/HAZARD swap made TerrainRules and TerrainEffectSystem write the same
+## effect under different keys)
 enum TerrainEffectType {
-	NONE, # No effect
-	HAZARD, # General hazard
-	ELEVATED, # Elevation advantage
-	COVER, # Provides cover
-	RADIATION, # Radiation damage
-	BURNING, # Fire damage
-	ACID, # Acid damage
-	OBSCURED # Visibility reduction
+	NONE = 0, # No effect
+	COVER = 1, # Provides cover
+	ELEVATED = 2, # Elevation advantage
+	HAZARD = 3, # General hazard
+	RADIATION = 4, # Radiation damage
+	BURNING = 5, # Fire damage
+	ACID = 6, # Acid damage
+	OBSCURED = 7 # Visibility reduction
 }
 
 ## Unit Actions
+## Synced with GlobalEnums.UnitAction — ordinals MUST match for shared members
+## (5 is reserved: GlobalEnums-only RELOAD)
 enum UnitAction {
-	NONE, # No action
-	MOVE, # Move action
-	ATTACK, # Attack action
-	DEFEND, # Defend action
-	USE_ITEM, # Use item action
-	SPECIAL, # Special action
-	WAIT, # Wait/pass action
-	OVERWATCH # Overwatch action
+	NONE = 0, # No action
+	MOVE = 1, # Move action
+	ATTACK = 2, # Attack action
+	DEFEND = 3, # Defend action
+	OVERWATCH = 4, # Overwatch action
+	USE_ITEM = 6, # Use item action
+	SPECIAL = 7, # Special action
+	WAIT = 20 # GameEnums-only: Wait/pass action
 }
 
 ## Constants for phase names
@@ -714,21 +707,23 @@ const PHASE_NAMES = {
 }
 
 ## Constants for phase descriptions
+## Text synced with GlobalEnums.PHASE_DESCRIPTIONS (the user-facing copy —
+## CampaignPhaseUI reads the GlobalEnums one)
 const PHASE_DESCRIPTIONS = {
 	FiveParcsecsCampaignPhase.NONE: "No active phase",
 	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
 	FiveParcsecsCampaignPhase.UPKEEP: "Maintain your crew and resources",
 	FiveParcsecsCampaignPhase.STORY: "Progress through story events",
-	FiveParcsecsCampaignPhase.TRAVEL: "Travel to new locations",
-	FiveParcsecsCampaignPhase.PRE_MISSION: "Prepare for your next mission",
-	FiveParcsecsCampaignPhase.MISSION: "Complete mission objectives",
+	FiveParcsecsCampaignPhase.TRAVEL: "Travel between worlds",
+	FiveParcsecsCampaignPhase.PRE_MISSION: "Prepare for your upcoming mission",
+	FiveParcsecsCampaignPhase.MISSION: "Complete your mission",
 	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for combat",
 	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Handle battle aftermath",
-	FiveParcsecsCampaignPhase.POST_MISSION: "Resolve mission outcomes",
+	FiveParcsecsCampaignPhase.POST_MISSION: "Handle post-mission activities",
 	FiveParcsecsCampaignPhase.ADVANCEMENT: "Improve your crew",
 	FiveParcsecsCampaignPhase.TRADING: "Buy and sell equipment",
-	FiveParcsecsCampaignPhase.CHARACTER: "Develop your characters",
-	FiveParcsecsCampaignPhase.RETIREMENT: "End your campaign"
+	FiveParcsecsCampaignPhase.CHARACTER: "Resolve character events",
+	FiveParcsecsCampaignPhase.RETIREMENT: "Campaign phase complete"
 }
 
 ## Constants for training names
@@ -787,18 +782,6 @@ static func get_training_name(training: int) -> String:
 static func get_character_class_name(class_type: int) -> String:
 	if class_type >= 0 and class_type < CharacterClass.size():
 		return CharacterClass.keys()[class_type]
-	return "UNKNOWN"
-
-## Get skill name from enum value
-static func get_skill_name(skill_type: int) -> String:
-	if skill_type >= 0 and skill_type < Skill.size():
-		return Skill.keys()[skill_type]
-	return "UNKNOWN"
-
-## Get ability name from enum value
-static func get_ability_name(ability_type: int) -> String:
-	if ability_type >= 0 and ability_type < Ability.size():
-		return Ability.keys()[ability_type]
 	return "UNKNOWN"
 
 ## Get trait name from enum value
@@ -1431,20 +1414,22 @@ enum ShipComponentType {
 }
 
 ## Armor Characteristics
+## Synced with GlobalEnums.ArmorCharacteristic — ordinals MUST match for
+## shared members (STEALTH/SHIELD were swapped pre-2026-07-02)
 enum ArmorCharacteristic {
-	NONE, # No special characteristics
-	LIGHT, # Light armor classification
-	MEDIUM, # Medium armor classification
-	HEAVY, # Heavy armor classification
-	POWERED, # Power-assisted armor
-	SHIELD, # Energy shield component
-	HAZARD, # Environmental protection
-	STEALTH, # Stealth enhancement
-	REACTIVE, # Reactive plating
-	INSULATED, # Energy insulation
-	REINFORCED, # Reinforced structure
-	ADVANCED, # Advanced technology
-	SPECIALIZED # Specialized purpose
+	NONE = 0, # No special characteristics
+	LIGHT = 1, # Light armor classification
+	MEDIUM = 2, # Medium armor classification
+	HEAVY = 3, # Heavy armor classification
+	POWERED = 4, # Power-assisted armor
+	STEALTH = 5, # Stealth enhancement
+	HAZARD = 6, # Environmental protection
+	SHIELD = 7, # Energy shield component
+	REACTIVE = 8, # GameEnums-only: Reactive plating
+	INSULATED = 9, # GameEnums-only: Energy insulation
+	REINFORCED = 10, # GameEnums-only: Reinforced structure
+	ADVANCED = 11, # GameEnums-only: Advanced technology
+	SPECIALIZED = 12 # GameEnums-only: Specialized purpose
 }
 
 ## Verification Status

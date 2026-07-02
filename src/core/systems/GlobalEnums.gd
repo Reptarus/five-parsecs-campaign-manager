@@ -1092,39 +1092,12 @@ enum GameState {
 static func get_character_class_name(class_type: CharacterClass) -> String:
 	return CharacterClass.keys()[class_type]
 
-static func get_skill_name(skill_type: int) -> String:
-	return Skill.keys()[skill_type]
-
-static func get_ability_name(ability_type: int) -> String:
-	return Ability.keys()[ability_type]
-
 static func get_trait_name(trait_type: int) -> String:
 	return Trait.keys()[trait_type]
 
-## Skills
-enum Skill {
-	NONE,
-	COMBAT_TRAINING,
-	HEAVY_WEAPONS,
-	FIELD_MEDICINE,
-	COMBAT_MEDIC,
-	STEALTH,
-	SURVIVAL,
-	TECH_REPAIR,
-	HACKING,
-	PSYCHIC_FOCUS,
-	MIND_CONTROL
-}
-
-## Abilities
-enum Ability {
-	NONE,
-	BATTLE_HARDENED,
-	MIRACLE_WORKER,
-	GHOST,
-	TECH_MASTER,
-	PSYCHIC_MASTER
-}
+## (Dead Skill + Ability enums deleted 2026-07-02: zero consumers anywhere,
+## and they were semantically divergent taxonomies from the GameEnums pair —
+## both sides removed. Character skills are stored as strings.)
 
 ## Traits
 enum Trait {
