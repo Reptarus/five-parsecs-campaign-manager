@@ -2009,6 +2009,20 @@ func _toggle_sp_popover() -> void:
 	))
 
 
+func _sync_campaign_story_points(campaign) -> void:
+	## Push the StoryPointSystem balance to the canonical owner via
+	## GameStateManager.set_story_progress() (data-ownership rule:
+	## campaign.story_points is written only through the GSM setter).
+	if not _sp_system or not campaign:
+		return
+	var points: int = _sp_system.get_current_points()
+	var gsm_sp = get_node_or_null("/root/GameStateManager")
+	if gsm_sp and gsm_sp.has_method("set_story_progress"):
+		gsm_sp.set_story_progress(points)
+	elif "story_points" in campaign:
+		campaign.story_points = points # lint:ignore — GSM unavailable fallback
+
+
 func _on_sp_popover_spent(
 	spend_type: int, _details: Dictionary
 ) -> void:
@@ -2047,11 +2061,8 @@ func _on_sp_popover_spent(
 			spend_desc = (
 				"Spent 1 SP to roll twice and pick one")
 
-	# Sync story_points balance
-	campaign.story_points = (
-		_sp_system.get_current_points())
-	if gsm and gsm.has_method("set_story_points"):
-		gsm.set_story_points(campaign.story_points)
+	# Sync story_points balance through the canonical setter
+	_sync_campaign_story_points(campaign)
 
 	# Log to CampaignJournal
 	_log_story_event(campaign, spend_desc, "story",
@@ -2144,7 +2155,7 @@ func _show_xp_character_picker(campaign) -> void:
 		# No valid targets — refund
 		if _sp_system:
 			_sp_system.add_points(1, "No active crew for XP")
-			campaign.story_points = _sp_system.get_current_points()
+			_sync_campaign_story_points(campaign)
 		_persist_story_state()
 		_update_header(campaign)
 		return
@@ -2189,11 +2200,8 @@ func _show_xp_character_picker(campaign) -> void:
 			selected.xp += 3
 			sel_name = str(selected.character_name) \
 				if "character_name" in selected else "Unknown"
-		# Sync balance and persist
-		campaign.story_points = _sp_system.get_current_points()
-		var gsm2 = get_node_or_null("/root/GameStateManager")
-		if gsm2 and gsm2.has_method("set_story_points"):
-			gsm2.set_story_points(campaign.story_points)
+		# Sync balance and persist through the canonical setter
+		_sync_campaign_story_points(campaign)
 		_log_story_event(campaign,
 			"Spent 1 SP to grant +3 XP to %s" % sel_name,
 			"story", ["story_points", "xp_grant"], "neutral")
@@ -2206,7 +2214,7 @@ func _show_xp_character_picker(campaign) -> void:
 	dialog.canceled.connect(func():
 		if _sp_system:
 			_sp_system.add_points(1, "XP spend cancelled")
-			campaign.story_points = _sp_system.get_current_points()
+			_sync_campaign_story_points(campaign)
 		_persist_story_state()
 		_update_header(campaign)
 		_sync_sp_system()

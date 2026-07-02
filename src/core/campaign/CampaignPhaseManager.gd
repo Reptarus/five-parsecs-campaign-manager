@@ -182,9 +182,14 @@ func _process_turn_rollover() -> void:
 		sp_sys.reset_turn_limits()
 		# "+1 story point every 3rd campaign turn"
 		sp_sys.check_turn_earning(turn_number)
-		# Persist back to campaign
+		# Persist back to campaign (balance goes through the canonical
+		# GameStateManager setter per the data-ownership rule)
 		campaign.story_point_turn_state = sp_sys.to_dict()
-		campaign.story_points = sp_sys.get_current_points()
+		var gsm_sp = get_node_or_null("/root/GameStateManager")
+		if gsm_sp and gsm_sp.has_method("set_story_progress"):
+			gsm_sp.set_story_progress(sp_sys.get_current_points())
+		else:
+			campaign.story_points = sp_sys.get_current_points() # lint:ignore — no GSM fallback
 
 	# --- Planet Temporary Effects Expiry ---
 	# Decrement temporary planet effects each turn

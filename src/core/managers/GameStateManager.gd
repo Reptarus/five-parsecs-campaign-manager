@@ -140,11 +140,16 @@ func set_reputation(new_amount: int) -> void:
 		reputation_changed.emit(reputation)
 
 func set_story_progress(new_amount: int) -> void:
+	# Write through to the canonical owner UNCONDITIONALLY: the local mirror
+	# can already equal new_amount while the campaign Resource is stale
+	# (e.g. right after a campaign switch), and skipping the write inside the
+	# change-guard would leave the owner out of sync. Mirror update + signal
+	# stay change-guarded.
+	var camp = game_state.current_campaign if game_state else null
+	if camp and "story_points" in camp:
+		camp.story_points = new_amount
 	if story_progress != new_amount:
 		story_progress = new_amount
-		var camp = game_state.current_campaign if game_state else null
-		if camp and "story_points" in camp:
-			camp.story_points = new_amount
 		story_progress_changed.emit(story_progress)
 
 # Getters
