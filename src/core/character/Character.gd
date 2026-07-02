@@ -293,6 +293,7 @@ func spend_xp_on_stat(stat_name: String) -> bool:
 		push_warning("Bots cannot use XP - use credits for bot upgrades instead")
 		return false
 
+	var old_stat_value = get(stat_name.to_lower())
 	experience -= 1
 	match stat_name.to_lower():
 		"reactions":
@@ -314,15 +315,21 @@ func spend_xp_on_stat(stat_name: String) -> bool:
 			push_error("Invalid stat name for advancement: %s" % stat_name)
 			return false
 
-	# Track advancement history
+	# Track advancement history. Autoloads are scene tree nodes, not engine
+	# singletons (Engine.has_singleton is always false for them) — resolve
+	# via the main loop as _get_global_enums() does. The campaign turn lives
+	# at progress_data["turns_played"].
 	var current_turn: int = 0
-	if Engine.has_singleton("GameStateManager"):
-		var gsm = Engine.get_singleton("GameStateManager")
-		if gsm and gsm.has_method("get_current_turn"):
-			current_turn = gsm.get_current_turn()
+	var main_loop = Engine.get_main_loop()
+	if main_loop is SceneTree:
+		var gs = main_loop.root.get_node_or_null("/root/GameState")
+		if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+			current_turn = int(
+				gs.current_campaign.progress_data.get("turns_played", 0))
 	advancement_history.append({
 		"turn": current_turn,
 		"stat": stat_name,
+		"old_value": old_stat_value,
 		"new_value": get(stat_name.to_lower())
 	})
 

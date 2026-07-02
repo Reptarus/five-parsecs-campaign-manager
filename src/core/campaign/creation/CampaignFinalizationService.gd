@@ -673,11 +673,9 @@ func _get_fallback_save_path(original_name: String) -> String:
 
 func _perform_post_save_operations(campaign: Resource, save_path: String) -> void:
 	## Perform post-save operations
-	# Register with GameStateManager
-	if Engine.has_singleton("GameStateManager"):
-		var game_state = Engine.get_singleton("GameStateManager")
-		if game_state and game_state.has_method("register_campaign"):
-			game_state.register_campaign(campaign, save_path)
+	# (A dead Engine.has_singleton("GameStateManager") registration branch was
+	# removed here — autoloads are never engine singletons, and GSM has no
+	# register_campaign(). The autoload-global block below is the live path.)
 
 	# Transfer resources to GameStateManager for dashboard display
 	if GameStateManager:
@@ -745,11 +743,23 @@ func _transform_crew_data_for_turn_system(crew_data: Dictionary) -> Dictionary:
 
 		for member in members:
 			if "experience" in member and not member is Dictionary:
-				# Sprint 26.3: Resource objects pass through directly
-				# Ensure required turn system fields exist
+				# Crew members must be stored as Dictionaries — the canonical
+				# crew_data["members"] form per the data-ownership table, and the
+				# shape every save/load round-trip and dict-style consumer expects.
+				# A freshly-created campaign's members arrive here as Character
+				# Resources; passing them through raw made crew_data["members"] hold
+				# Resources, which silently aborted CrewTaskComponent's 2-arg
+				# .get(key, default) calls (Object.get takes 1 arg) and blanked the
+				# World Phase "Crew Tasks" step on new campaigns only. to_dictionary()
+				# is the canonical converter (it even lists CrewTaskComponent as a
+				# consumer). Loaded saves already arrive as dicts and work end-to-end,
+				# so normalizing fresh members to dicts matches existing behavior.
 				if member.experience == 0 and not member.has_meta("xp_initialized"):
 					member.set_meta("xp_initialized", true)
-				transformed_members.append(member)
+				if member.has_method("to_dictionary"):
+					transformed_members.append(member.to_dictionary())
+				else:
+					transformed_members.append(member)
 			elif member is Dictionary:
 				# Legacy: Convert Dictionary to Character if needed
 				var character_data = member.duplicate(true)

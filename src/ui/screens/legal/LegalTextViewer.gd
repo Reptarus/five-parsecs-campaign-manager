@@ -167,5 +167,7 @@ func _apply_max_width() -> void:
 		return
 	var vp_width := vp.get_visible_rect().size.x
 	var target_width := mini(int(vp_width - UIColors.SPACING_XL * 4), MAX_FORM_WIDTH)
+	# CenterContainer sizes children to their minimum size, so the min width
+	# alone both caps and centers. Control has NO custom_maximum_size in
+	# Godot 4.6 — writing it aborts at runtime (mirrors EULAScreen pattern).
 	_rtl.custom_minimum_size.x = target_width
-	_rtl.custom_maximum_size.x = target_width
