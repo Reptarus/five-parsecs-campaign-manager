@@ -32,6 +32,10 @@ Any enum change MUST touch BOTH files simultaneously:
 
 Values and ordering must match across all three. Misalignment causes wrong enum-to-int mapping and silent data corruption.
 
+### 1a-bis. Validated-string enum props: set the STRING, not the int (Jun 24 2026)
+
+`Character.background` / `character_class` / `origin` / `motivation` are `@export var ...: String` with validating setters (`_get_validated_enum_string`, defaults COLONIST / BASELINE / HUMAN / SURVIVAL). Setting one to an **int** enum id makes the setter convert via `GlobalEnums.to_string_value()` resolved from the autoload NODE — but a DETACHED `Character` Resource (`.new()`, not in the tree) FAILS that runtime lookup and falls back to the `default`. So `character.character_class = 9` silently becomes `"BASELINE"`. Origin/motivation often LOOK fine because their defaults coincidentally match dropdown index 0, masking the bug. **FIX**: convert int→string at the CALLER (GlobalEnums is reliably reachable from a Node) and pass the string: `var k := GlobalEnums.to_string_value("character_class", v); _set_character_property(c, "character_class", k if k != "UNKNOWN" else v)`. Jun 24 fixed in `CharacterCreator` BOTH `_on_background_changed`/`_on_class_changed` (dropdown) AND `_on_randomize_pressed` (background/class/motivation) — the randomize path was a SEPARATE copy of the same bug, hit by "Random Captain" AND all crew (CrewPanel "Randomize All" → `character_creator._on_randomize_pressed()`) → everyone was BASELINE/COLONIST. Note: `to_string_value()` is index-based (`keys[value]`), correct only because these enums are contiguous (verified Jun 24). On-device verify PENDING.
+
 ### 1b. Legacy save `origin` is a float enum; new saves are String (Jun 3, 2026)
 
 `Character.origin` is `@export var origin: String` (validated to enum strings, Character.gd:42) and serializes as `"origin": "precursor"` (Character.gd:1245). But save files written BEFORE that String migration persist `origin` as a numeric enum (**float**, e.g. `7.0`) with no `species_id`. Any string op on a legacy crew member's origin (`.to_lower()`, `.capitalize()`, `==` against a String) hard-errors `Invalid call ... 'to_lower' in base 'float'`. Two band-aid `str()`-wraps shipped Jun 3 (CrewTaskComponent.gd:262, CampaignEventEffects.gd:91, commit `524c0f74`) but the OWNER-level fix belongs to THIS domain: add a load-time normalization (WorldDataMigration-style) that coerces a float `origin` → its `GlobalEnums`/`GameEnums` string at deserialize, so downstream code never sees a float. Prefer `species_id` (always String) as the lookup key where available.
@@ -42,7 +46,7 @@ Values and ordering must match across all three. Misalignment causes wrong enum-
 
 ### 3. Strange Character Gameplay — All 16 Types Wired (Session 52)
 
-New Character.gd methods: `get_task_bonus(task_id)` (Empath +1), `get_max_implants()` (species-dependent). New export: `unity_agent_trait_lost: bool` (serialized). Armor saves are handled exclusively in `BattleCalculations.get_species_combat_abilities()` (Bot/Soulless 6+, De-converted 6+, Assault Bot 5+ per Core Rules pp.15/17/19/21). Feeler breakdown in CharacterEventEffects.
+New Character.gd methods: `get_task_bonus(task_id)` (Empath +1), `get_max_implants()` (species-dependent), `can_improve_savvy()` (2026-07-02: false for de_converted/assault_bot, gates spend_xp_on_stat + CharacterAdvancementService.can_advance_stat). New export: `unity_agent_trait_lost: bool` (serialized). Armor saves live in `Character._apply_species_bonuses()` sources (Bot/Soulless 6+, De-converted 6+, Assault Bot 5+ per Core Rules pp.15/17/19/21) — `BattleCalculations.get_species_combat_abilities()` was a fabricated dead block, DELETED 2026-07-02; do not re-add. Feeler breakdown in CharacterEventEffects.
 
 ### 4. Engine.has_singleton() vs Autoloads (Session 30)
 

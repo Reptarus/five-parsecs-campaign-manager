@@ -53,12 +53,13 @@ Helper methods on Character (all 16/16 Strange Character types wired as of Sessi
 - `can_perform_task(task_id: String) -> bool` — false for mutant on recruit/find_patron
 - `get_task_bonus(task_id: String) -> int` — +1 for empath on recruit/find_patron (lost with implants)
 - `get_max_implants() -> int` — 4 for bio_upgrade, 3 for de_converted, 0 for empath, 2 default (replaces const MAX_IMPLANTS)
-- Natural armor saves live in `BattleCalculations.get_species_combat_abilities()` — Bot/Soulless/De-converted 6+, Assault Bot 5+ (Core Rules pp.15/17/19/21)
+- `can_improve_savvy() -> bool` — false for de_converted (p.19) and assault_bot (p.21); gates `spend_xp_on_stat("savvy")`
+- Natural armor saves live in `Character._apply_species_bonuses()` sources — Bot/Soulless 6+ (p.15/17), De-converted 6+ (p.19), Assault Bot 5+ (p.21). (`BattleCalculations.get_species_combat_abilities()` was a fabricated dead block, DELETED 2026-07-02 — do not re-add.)
 
-Gameplay wiring (Session 52):
+Gameplay wiring (Session 52; corrected 2026-07-02):
 - Unity Agent per-turn 2D6: `CampaignPhaseManager._process_unity_agent_favor()`
 - Feeler mental breakdown: `CharacterEventEffects` on "Scrap with Crewmate"
-- Battle ability flags: `BattleCalculations.get_species_combat_abilities()` — hulker (shooting_skill_zero), primitive (no_gun_sights/max_range_8/melee_elegant), traveler (speed_+2_retreating), de_converted/assault_bot (armor saves + savvy_frozen)
+- Battle ability flags: `Character._apply_species_bonuses()` modifier sources — hulker (shooting_skill_zero/no_shooting_bonuses/ignore_clumsy_heavy p.21), primitive (no_gun_sights/max_range_8/melee_elegant p.22), traveler (retreat_speed_bonus +2 p.22), swift (multishot_same_target p.18), stalker (teleport_1d6 p.20), de_converted/assault_bot (armor saves + savvy_frozen). Savvy-frozen is mechanically gated in `Character.spend_xp_on_stat()` and `CharacterAdvancementService.can_advance_stat()`. K'Erin brawl = reroll only (p.16/p.45) — the old +1 flat bonus and Hulker +2 melee damage were fabricated and removed
 
 Central lookup: `SpeciesDataService.gd` (static RefCounted, lazy-loads `character_species.json`). Used by CharacterCreator, gameplay systems, and UI. Character.gd does NOT import SpeciesDataService directly (load order issue) — helper methods use inline string checks instead.
 
@@ -295,3 +296,7 @@ health_changed(old_value, new_value)
 status_changed(status)
 training_changed(old_value, new_value)
 ```
+
+## Enum props are validated STRINGS — set the string, not the int (Jun 24 2026)
+
+`background` / `character_class` / `origin` / `motivation` are `@export var ...: String` with validating setters (defaults COLONIST / BASELINE / HUMAN / SURVIVAL). Setting an INT enum id makes the setter convert via `GlobalEnums.to_string_value()` resolved from the autoload NODE — which FAILS on a detached `Character` Resource (`.new()`, not in the tree) and silently falls to the default. So `char.character_class = 9` becomes `"BASELINE"`. Convert int→string at the CALLER (Node context) and pass the string: `var k := GlobalEnums.to_string_value("character_class", v); _set_character_property(c, "character_class", k if k != "UNKNOWN" else v)`. The bug existed in BOTH `CharacterCreator._on_*_changed` (dropdown) AND `_on_randomize_pressed` (the path CrewPanel "Randomize All" uses) → captain + all crew were BASELINE/COLONIST. `to_string_value()` is index-based — OK only because these enums are contiguous. Full: CLAUDE.md Gotchas.
