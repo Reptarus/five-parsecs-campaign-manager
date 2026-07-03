@@ -63,3 +63,26 @@ func test_terrain_passthrough_default_when_unset() -> void:
 	# Reads using the agreed shape on the empty default should still work.
 	assert_int(bf_terrain.get("sectors", []).size()).is_equal(0)
 	assert_str(str(bf_terrain.get("theme_name", ""))).is_equal("")
+
+
+func test_passthrough_carries_real_generator_sectors() -> void:
+	# Since the 2026-07 single-generation flow, the stash carries the
+	# generator/contract sector shape: an ARRAY of {label, features}
+	# for all 16 sectors. Pin that shape end to end.
+	var gen = preload("res://src/core/battle/BattlefieldGenerator.gd").new()
+	var result: Dictionary = gen.generate_terrain_suggestions(
+		"industrial_zone", [], {}, 2026)
+	GameStateManager.set_temp_data(KEY, {
+		"sectors": result.get("sectors", []),
+		"theme_name": result.get("theme_name", ""),
+	})
+	var bf_terrain: Dictionary = GameStateManager.get_temp_data(KEY, {})
+	var sectors: Variant = bf_terrain.get("sectors", [])
+	assert_bool(sectors is Array).is_true()
+	assert_int(sectors.size()).is_equal(16)
+	for s in sectors:
+		assert_bool(s is Dictionary).is_true()
+		assert_bool(str(s.get("label", "")).length() == 2).is_true()
+		assert_bool(s.get("features", null) is Array).is_true()
+	assert_str(str(bf_terrain.get("theme_name", ""))) \
+		.is_equal("Industrial Zone")
