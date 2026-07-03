@@ -13,12 +13,14 @@
 		}
 	},
 	"standard_terrain_set": {
-		"_source": "Core Rules p.109 — Standard Terrain Set for 3x3 table",
-		"large": 3,
-		"small": 6,
-		"linear": 3,
-		"total": 12,
+		"_source": "Core Rules pp.108-109 — table sizes + Standard Terrain Set counts per size (PDF-verified 2026-07-02)",
+		"by_table_size": {
+			"2x2": {"large": 2, "small": 4, "linear": 2},
+			"2.5x2.5": {"large": 2, "small": 5, "linear": 4},
+			"3x3": {"large": 3, "small": 6, "linear": 3}
+		},
 		"minimums": {
+			"_source": "Core Rules p.109 guidelines — applied as suggestions, not table rolls",
 			"climbable": 2,
 			"elevated": 1,
 			"enterable": 1
@@ -203,144 +205,6 @@
 			"scatter_terrain": [
 				"Metal fragment", "Wire bundle", "Broken panel",
 				"Personal effects", "Insulation chunk", "Cracked viewport glass"
-			]
-		},
-		"urban_settlement": {
-			"name": "Urban Settlement",
-			"_note": "Not in Compendium D6 tables — synthesized from Core Rules terrain categories",
-			"description": "City blocks, hab-units, and street barricades.",
-			"notable_features_d6": [
-				"LARGE: Multi-story hab-block (full cover, roof access)",
-				"LARGE: Market stall plaza (partial cover from stalls, open center)",
-				"LARGE: Elevated walkway bridge (connects buildings)",
-				"LARGE: Collapsed building ruin (full cover, unstable upper floor)",
-				"LARGE: Communications tower (climbable, elevated position)",
-				"LARGE: Large building with multiple rooms"
-			],
-			"regular_features_d6": [
-				"SMALL: Parked ground vehicle (full cover, low profile)",
-				"SMALL: Shopfront with shattered windows (partial cover, can enter)",
-				"LINEAR: Concrete jersey barrier row, 6\" (partial cover)",
-				"Scatter: Street debris, trash piles, abandoned crates",
-				"SMALL: Sandbag emplacement (partial cover, firing position)",
-				"Open ground with street lamp post"
-			],
-			"large_features": [
-				"Multi-story hab-block (full cover, 3 levels, roof access)",
-				"Market stall plaza (partial cover from stalls, open center)",
-				"Elevated walkway bridge (partial cover, connects buildings)",
-				"Collapsed building ruin (full cover, unstable upper floor)",
-				"Communications tower (full cover at base, climbable)"
-			],
-			"small_features": [
-				"Parked ground vehicle (full cover, low profile)",
-				"Dumpster unit (partial cover)",
-				"Shopfront with shattered windows (partial cover, can enter)",
-				"Sandbag emplacement (partial cover, firing position)",
-				"Street lamp post",
-				"Concrete planter (partial cover, waist height)"
-			],
-			"linear_features": [
-				"Concrete jersey barrier row, 6\" (partial cover, waist height)",
-				"Chain-link fence, 8\" (partial cover, blocks movement)",
-				"Street barricade line, 5\" (full cover, firing slits)",
-				"Low wall section, 6\" (partial cover, can vault)"
-			],
-			"scatter_terrain": [
-				"Trash pile", "Broken signage", "Street debris",
-				"Abandoned crate", "Fire hydrant", "Manhole cover"
-			]
-		},
-		"wasteland": {
-			"name": "Wasteland",
-			"_note": "Not in Compendium D6 tables — synthesized from Core Rules terrain categories",
-			"description": "Blasted terrain with craters, wreckage, and toxic pools. Sparse cover.",
-			"notable_features_d6": [
-				"LARGE: Deep blast crater (below ground, full cover inside)",
-				"LARGE: Wrecked vehicle hulk (full cover)",
-				"LARGE: Collapsed overpass section (full cover, elevated platform)",
-				"LARGE: Rusted storage silo (full cover, tall, single entry)",
-				"LARGE: Rubble mound (partial cover, elevated)",
-				"LARGE: Large crater with wreckage"
-			],
-			"regular_features_d6": [
-				"SMALL: Shallow crater (partial cover when prone)",
-				"SMALL: Twisted metal wreckage (partial cover)",
-				"SMALL: Concrete slab fragment (partial cover)",
-				"Open ground with dead tree stumps",
-				"LINEAR: Rubble wall, 6\" (partial cover, uneven height)",
-				"Scatter: Scrap metal, charred debris, dust mounds"
-			],
-			"large_features": [
-				"Deep blast crater (below ground, full cover inside, open from above)",
-				"Wrecked vehicle hulk (full cover)",
-				"Collapsed overpass section (full cover, elevated platform)",
-				"Rusted storage silo (full cover, tall, single entry, climbable)",
-				"Rubble mound (partial cover, elevated)"
-			],
-			"small_features": [
-				"Shallow crater (partial cover when prone)",
-				"Twisted metal wreckage (partial cover)",
-				"Concrete slab fragment (partial cover, stable footing)",
-				"Dead tree stump",
-				"Ash drift (concealment only)",
-				"Exposed pipe cluster (partial cover)"
-			],
-			"linear_features": [
-				"Rubble wall, 6\" (partial cover, uneven height)",
-				"Corroded pipe run, 5\" (partial cover, low obstacle)",
-				"Blast barrier, 4\" (full cover, reinforced)",
-				"Chain-link fence remnant, 8\" (blocks movement)"
-			],
-			"scatter_terrain": [
-				"Scrap metal", "Broken brick", "Charred debris",
-				"Spent shell casing pile", "Corroded barrel", "Dust mound"
-			]
-		},
-		"ship_interior": {
-			"name": "Ship Interior",
-			"_note": "Not in Compendium D6 tables — synthesized from Core Rules terrain categories",
-			"description": "Corridors, bulkheads, and cargo bays inside a starship.",
-			"notable_features_d6": [
-				"LARGE: Bulkhead doorway (full cover when closed, chokepoint when open)",
-				"LARGE: Cargo bay with stacked crates (full cover, 2 levels)",
-				"LARGE: Airlock chamber (full cover)",
-				"LARGE: Turbolift shaft (full cover, vertical movement)",
-				"LARGE: Medbay with equipment (full cover)",
-				"LARGE: Engineering section with machinery"
-			],
-			"regular_features_d6": [
-				"SMALL: Engineering console bank (partial cover)",
-				"SMALL: Corridor junction (partial cover at corners)",
-				"LINEAR: Bulkhead wall section, 6\" (full cover, blast doors)",
-				"SMALL: Crew locker bank (partial cover, narrow space)",
-				"Open ventilation grate area",
-				"Scatter: Floor grating, loose cables, tool cases"
-			],
-			"large_features": [
-				"Bulkhead doorway (full cover when closed, chokepoint when open)",
-				"Cargo bay with stacked crates (full cover, multiple firing positions, 2 levels)",
-				"Airlock chamber (full cover)",
-				"Turbolift shaft (full cover, vertical movement between decks)",
-				"Medbay with equipment (full cover)"
-			],
-			"small_features": [
-				"Engineering console bank (partial cover, low wall)",
-				"Corridor junction (partial cover at corners)",
-				"Maintenance panel (partial cover, wall-mounted)",
-				"Crew locker bank (partial cover, narrow space)",
-				"Ventilation grate",
-				"Emergency supply locker (partial cover)"
-			],
-			"linear_features": [
-				"Bulkhead wall section, 6\" (full cover, blast doors at intervals)",
-				"Corridor railing, 5\" (blocks movement, can vault)",
-				"Pipe run, 4\" (partial cover, low obstacle)",
-				"Emergency barrier, 6\" (partial cover, blocks corridor)"
-			],
-			"scatter_terrain": [
-				"Floor grating", "Loose cable bundle", "Fire extinguisher",
-				"Tool case", "Deck plate", "Warning sign"
 			]
 		}
 	}

@@ -285,7 +285,7 @@ func navigate_to_campaign_phase(phase: String) -> void:
 		"pre_battle": "pre_battle",
 		"battle": "battlefield_main",
 		"post_battle": "post_battle_sequence"
-		# Note: Battle phase handled by BattlefieldCompanion system
+		# Note: Battle flow runs CampaignTurnController → PreBattleUI → TacticalBattleUI
 		# Note: Deprecated phases removed (upkeep, story) - functionality integrated into official phases
 	}
 

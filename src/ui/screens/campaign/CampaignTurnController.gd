@@ -99,11 +99,6 @@ func _connect_core_signals() -> void:
 	campaign_phase_manager.campaign_turn_started.connect(_on_campaign_turn_started)
 	campaign_phase_manager.campaign_turn_completed.connect(_on_campaign_turn_completed)
 	
-	# Connect battle system signals
-	var battle_manager = get_node_or_null("/root/BattlefieldCompanionManager")
-	if battle_manager:
-		battle_manager.battle_completed.connect(_on_battle_completed)
-	
 	# Connect PostBattleSequence completion signal
 	if post_battle_ui and post_battle_ui.has_signal("post_battle_completed"):
 		post_battle_ui.post_battle_completed.connect(_on_post_battle_completed)
@@ -195,12 +190,6 @@ func _exit_tree() -> void:
 			campaign_phase_manager.campaign_turn_started.disconnect(_on_campaign_turn_started)
 		if campaign_phase_manager.campaign_turn_completed.is_connected(_on_campaign_turn_completed):
 			campaign_phase_manager.campaign_turn_completed.disconnect(_on_campaign_turn_completed)
-
-	# Disconnect BattleManager signals
-	var battle_manager = get_node_or_null("/root/BattlefieldCompanionManager")
-	if battle_manager and battle_manager.has_signal("battle_completed"):
-		if battle_manager.battle_completed.is_connected(_on_battle_completed):
-			battle_manager.battle_completed.disconnect(_on_battle_completed)
 
 	# Disconnect PostBattlePhase handler signals
 	if campaign_phase_manager:

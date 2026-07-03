@@ -4635,12 +4635,14 @@ func _build_sector_labels(sector_data: Dictionary) -> void:
 
 ## Map GlobalEnums.PlanetType ordinal → BattlefieldGenerator theme key.
 ## Based on thematic fit — no Core Rules mapping exists, these are UX choices.
+## Only the 4 Compendium themes (pp.96-98) are valid targets; the 3 synthesized
+## themes (urban_settlement/wasteland/ship_interior) were removed 2026-07-02.
 func _planet_type_to_theme(planet_type: int) -> String:
 	# GlobalEnums.PlanetType: NONE=0, DESERT=1, ICE=2, JUNGLE=3,
 	# OCEAN=4, ROCKY=5, TEMPERATE=6, VOLCANIC=7
 	match planet_type:
 		1:  # DESERT
-			return "wasteland"
+			return "wilderness"
 		2:  # ICE
 			return "wilderness"
 		3:  # JUNGLE
@@ -4650,29 +4652,24 @@ func _planet_type_to_theme(planet_type: int) -> String:
 		5:  # ROCKY
 			return "alien_ruin"
 		6:  # TEMPERATE
-			return "urban_settlement"
+			return "industrial_zone"
 		7:  # VOLCANIC
-			return "wasteland"
+			return "alien_ruin"
 		_:
 			return "wilderness"
 
 func _map_theme_name_to_key(theme_name: String) -> String:
-	## Map display name → BattlefieldGenerator theme key
+	## Map display name → BattlefieldGenerator theme key (4 Compendium themes only)
 	var lower: String = theme_name.to_lower()
-	if "industrial" in lower:
+	if "industrial" in lower or "urban" in lower or "settlement" in lower or "city" in lower:
 		return "industrial_zone"
 	elif "wilderness" in lower or "wild" in lower:
 		return "wilderness"
 	elif "alien" in lower or "ruin" in lower:
 		return "alien_ruin"
-	elif "crash" in lower:
+	elif "crash" in lower or "waste" in lower or "blasted" in lower \
+			or "ship" in lower or "interior" in lower or "corridor" in lower:
 		return "crash_site"
-	elif "urban" in lower or "settlement" in lower or "city" in lower:
-		return "urban_settlement"
-	elif "waste" in lower or "blasted" in lower:
-		return "wasteland"
-	elif "ship" in lower or "interior" in lower or "corridor" in lower:
-		return "ship_interior"
 	# Fallback
 	return "wilderness"
 
