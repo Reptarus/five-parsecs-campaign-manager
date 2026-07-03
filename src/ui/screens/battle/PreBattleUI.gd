@@ -617,10 +617,13 @@ func _on_table_size_override(new_ft: float) -> void:
 	var base_seed: int = int(contract.get("seed", 0))
 	var obj_rng := RandomNumberGenerator.new()
 	obj_rng.seed = hash("%d|objectives" % base_seed)
+	var runtime_obj: Array = gen.compute_objective_positions(
+		str(contract.get("mission_objective", "")),
+		contract.get("sectors", []), obj_rng, dims)
+	runtime_obj = GenClass.append_notable_sight_marker(
+		runtime_obj, contract.get("notable_sight", {}), dims)
 	var obj_json: Array = []
-	for obj in gen.compute_objective_positions(
-			str(contract.get("mission_objective", "")),
-			contract.get("sectors", []), obj_rng, dims):
+	for obj in runtime_obj:
 		var oj: Dictionary = obj.duplicate()
 		oj["grid_pos"] = BattlefieldGridClass.grid_pos_to_json(
 			oj.get("grid_pos", Vector2.ZERO))

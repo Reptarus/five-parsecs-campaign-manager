@@ -857,10 +857,38 @@ func _initiate_battle_sequence() -> void:
 	var bf_gen := FPCM_BattlefieldGenerator.new()
 	var obj_rng := RandomNumberGenerator.new()
 	obj_rng.seed = hash("%d|objectives" % int(battlefield_data.get("seed", bf_seed)))
+	var runtime_objectives: Array = bf_gen.compute_objective_positions(
+		str(mission_data.get("mission_objective", "")),
+		battlefield_data.get("sectors", []), obj_rng, bf_dims)
+
+	# Notable Sight (Core Rules p.89): rolled earlier into mission_data;
+	# place it 2D6+2" from the center at a seeded random angle and render
+	# it through the objective-marker overlay. Skipped for "Nothing special".
+	var sight_entry: Dictionary = {}
+	var rolled_sight: Variant = mission_data.get("notable_sight", {})
+	if rolled_sight is Dictionary and not rolled_sight.is_empty() \
+			and str(rolled_sight.get("type", "NOTHING")).to_upper() != "NOTHING":
+		var sight_rng := RandomNumberGenerator.new()
+		sight_rng.seed = hash("%d|notable_sight"
+			% int(battlefield_data.get("seed", bf_seed)))
+		var dist_in: int = sight_rng.randi_range(1, 6) \
+			+ sight_rng.randi_range(1, 6) + 2
+		sight_entry = {
+			"type": str(rolled_sight.get("type", "")),
+			"name": str(rolled_sight.get("type", "Notable Sight"))
+				.capitalize().replace("_", " "),
+			"effect": str(rolled_sight.get("effect", "")),
+			"distance_inches": float(dist_in),
+			"angle": sight_rng.randf_range(0.0, TAU),
+			"rule": ("Placed %d\" from the center — move into contact and "
+				+ "forego other actions that round to claim (Core Rules p.89)")
+				% dist_in,
+		}
+		runtime_objectives = FPCM_BattlefieldGenerator \
+			.append_notable_sight_marker(runtime_objectives, sight_entry, bf_dims)
+
 	var objective_positions: Array = []
-	for obj in bf_gen.compute_objective_positions(
-			str(mission_data.get("mission_objective", "")),
-			battlefield_data.get("sectors", []), obj_rng, bf_dims):
+	for obj in runtime_objectives:
 		var obj_json: Dictionary = obj.duplicate()
 		obj_json["grid_pos"] = BattlefieldGridClass.grid_pos_to_json(
 			obj.get("grid_pos", Vector2.ZERO))
@@ -891,6 +919,7 @@ func _initiate_battle_sequence() -> void:
 		"summary": str(battlefield_data.get("summary", "")),
 		"objective_positions": objective_positions,
 		"enemy_markers": enemy_markers,
+		"notable_sight": sight_entry,
 		# Inputs kept so Regenerate can recompute markers self-contained
 		"mission_objective": str(mission_data.get("mission_objective", "")),
 		"enemy_ai": str(enemy_force_info.get("ai", "")),

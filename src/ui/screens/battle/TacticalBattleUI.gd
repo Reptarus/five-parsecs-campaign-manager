@@ -18,6 +18,10 @@ const BattleTierControllerClass = preload("res://src/core/battle/BattleTierContr
 # Path preload: BattlefieldGrid is new (2026-07-02); global class
 # cache is stale until the editor reopens (project gotcha).
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
+# Battle-journey guidance text source (deployment steps, round-end
+# prompts, objective win text — Core Rules pp.88-90, 110). Path preload:
+# new class, same stale-cache gotcha.
+const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
@@ -2036,6 +2040,13 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	col.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	scroller.add_child(col)
 
+	# Battle Card (journey Moment 0): the brief the book spreads across
+	# pp.88-90 — objective + win condition, deployment condition, notable
+	# sight, enemy summary, theme + table — consolidated ABOVE the checklist.
+	var battle_card: Control = _build_battle_card()
+	if battle_card:
+		col.add_child(battle_card)
+
 	# Create checklist and add to the scrolled column
 	var checklist: Control = _get_res("pre_battle_checklist").new()
 	checklist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2071,6 +2082,118 @@ func _on_checklist_completed() -> void:
 	_log_message(
 		"Pre-battle checklist complete!", UIColors.COLOR_EMERALD
 	)
+
+## Read the active deployment condition id from the persisted contract
+## (both key spellings — see the C-phase id-mismatch fix).
+func _active_condition_id() -> String:
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_battlefield_data"):
+		var dc: Dictionary = gs.get_battlefield_data().get(
+			"deployment_condition", {})
+		return str(dc.get("condition_id", dc.get("id", "")))
+	return ""
+
+## Battle Card (journey Moment 0). Only real rolled data — every line that
+## has no data is simply omitted. Returns null when nothing is known.
+func _build_battle_card() -> Control:
+	var gs = get_node_or_null("/root/GameState")
+	var contract: Dictionary = gs.get_battlefield_data() \
+		if gs and gs.has_method("get_battlefield_data") else {}
+	var md: Dictionary = (_stored_mission_data
+		if _stored_mission_data is Dictionary else {})
+	var ef: Dictionary = _battle_context.get("enemy_force",
+		md.get("enemy_force", {}))
+
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#252542")
+	style.border_color = Color("#3A3A5C")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(12)
+	card.add_theme_stylebox_override("panel", style)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	card.add_child(vbox)
+	var rows: int = 0
+
+	var title := Label.new()
+	title.text = "BATTLE CARD"
+	title.add_theme_font_size_override("font_size", _scaled_font(12))
+	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(title)
+
+	# Objective + win condition (p.89-90)
+	var obj_txt: String = str(md.get("objective", md.get("type", "")))
+	if obj_txt != "":
+		var win: String = BattleFlowGuideClass.objective_win_text(obj_txt)
+		rows += 1
+		_battle_card_row(vbox, "◆ Objective: %s" % obj_txt.capitalize(),
+			win + (" (Core Rules p.90)" if win != "" else ""),
+			UIColors.COLOR_SUCCESS)
+
+	# Deployment condition (p.88)
+	var dc: Dictionary = contract.get("deployment_condition", {})
+	var dc_title: String = str(dc.get("title", ""))
+	if dc_title != "" and dc_title.to_lower() != "no condition":
+		rows += 1
+		_battle_card_row(vbox, "⚠ Condition: %s" % dc_title,
+			str(dc.get("description", "")) + " (Core Rules p.88)",
+			UIColors.COLOR_WARNING)
+
+	# Notable Sight (p.89)
+	var sight: Dictionary = contract.get("notable_sight", {})
+	if not sight.is_empty() \
+			and str(sight.get("type", "")).to_upper() != "NOTHING":
+		rows += 1
+		_battle_card_row(vbox, "★ Notable Sight: %s"
+			% str(sight.get("name", "")),
+			"%s %s" % [str(sight.get("effect", "")),
+				str(sight.get("rule", ""))],
+			UIColors.COLOR_AMBER)
+
+	# Enemy summary
+	var e_count: int = int(ef.get("count", contract.get("enemy_count", 0)))
+	var e_type: String = str(ef.get("type", ""))
+	if e_count > 0:
+		rows += 1
+		var ai_code: String = str(ef.get("ai", contract.get("enemy_ai", "")))
+		var ai_line: String = str(AI_DESCRIPTIONS.get(ai_code.to_upper(), ""))
+		_battle_card_row(vbox, "☠ Enemy: %d x %s" % [e_count,
+			e_type if e_type != "" else "opponents"], ai_line,
+			UIColors.COLOR_RED)
+
+	# Theme + table size (pp.94-98 / p.108)
+	var theme_line: String = str(contract.get("theme_name", ""))
+	if theme_line != "":
+		rows += 1
+		_battle_card_row(vbox, "▦ Battlefield: %s — %s" % [theme_line,
+			BattlefieldGridClass.table_size_label(
+				float(contract.get("table_size_ft", 3.0)))],
+			"Build it from the map (tap any sector for details).",
+			UIColors.COLOR_TEXT_PRIMARY)
+
+	if rows == 0:
+		card.queue_free()
+		return null
+	return card
+
+func _battle_card_row(parent: Node, head: String, detail: String,
+		color: Color) -> void:
+	var head_lbl := Label.new()
+	head_lbl.text = head
+	head_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	head_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
+	head_lbl.add_theme_color_override("font_color", color)
+	parent.add_child(head_lbl)
+	if detail.strip_edges() != "":
+		var detail_lbl := Label.new()
+		detail_lbl.text = detail.strip_edges()
+		detail_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		detail_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+		detail_lbl.add_theme_color_override("font_color",
+			UIColors.COLOR_TEXT_SECONDARY)
+		parent.add_child(detail_lbl)
 
 func _on_checklist_dismissed() -> void:
 	## Player clicked Begin Battle — close the modal, transition by tier
@@ -2812,6 +2935,25 @@ func _show_end_phase_ui() -> void:
 	else:
 		_surface_phase_component(
 			victory_progress if is_instance_valid(victory_progress) else null)
+	# Deployment-condition end-of-round prompts (Core Rules p.88) — the
+	# rolls players forget most (Brief Engagement / Delayed / Poor
+	# Visibility). Shown at every interactive tier.
+	for prompt in BattleFlowGuideClass.build_round_end_prompts(
+			_active_condition_id()):
+		var prompt_lbl := Label.new()
+		prompt_lbl.text = "⚠ %s" % str(prompt.get("text", ""))
+		prompt_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		prompt_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+		prompt_lbl.add_theme_color_override("font_color",
+			UIColors.COLOR_WARNING)
+		action_buttons.add_child(prompt_lbl)
+		var roll_chip := Button.new()
+		roll_chip.text = "Roll %s (Dice drawer)" % str(prompt.get("roll", ""))
+		roll_chip.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		roll_chip.add_theme_font_size_override("font_size", _scaled_font(12))
+		roll_chip.pressed.connect(func() -> void: _open_drawer("dice"))
+		action_buttons.add_child(roll_chip)
+
 	var advance_button := Button.new()
 	advance_button.text = "Next Round"
 	advance_button.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
@@ -3650,6 +3792,10 @@ func _update_action_buttons_for_deployment() -> void:
 		return
 	_clear_action_buttons()
 
+	# Journey Moment 2: the p.110 deployment procedure as three steps,
+	# surfaced through the EXISTING phase-content panel (no new chrome).
+	_surface_custom_phase_content(_build_deployment_steps_card())
+
 	# Add deployment-specific buttons
 	var place_unit_button := Button.new()
 	place_unit_button.text = "Place Unit"
@@ -3660,6 +3806,35 @@ func _update_action_buttons_for_deployment() -> void:
 	auto_deploy_button.text = "Auto Deploy"
 	auto_deploy_button.pressed.connect(_on_auto_deploy_clicked)
 	action_buttons.add_child(auto_deploy_button)
+
+func _build_deployment_steps_card() -> Control:
+	## The Core Rules p.110 setup procedure, with the active deployment
+	## condition's crew modifiers folded in (BattleFlowGuide, PDF-verified).
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	var header := Label.new()
+	header.text = "DEPLOYMENT — Core Rules p.110"
+	header.add_theme_font_size_override("font_size", _scaled_font(12))
+	header.add_theme_color_override("font_color",
+		UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(header)
+	var gs = get_node_or_null("/root/GameState")
+	var contract: Dictionary = gs.get_battlefield_data() \
+		if gs and gs.has_method("get_battlefield_data") else {}
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	var enemy_ai: String = str(ef.get("ai", contract.get("enemy_ai", "")))
+	var steps: Array = BattleFlowGuideClass.deployment_steps(
+		_active_condition_id(), enemy_ai)
+	for i in range(steps.size()):
+		var step: Dictionary = steps[i]
+		var lbl := Label.new()
+		lbl.text = "%d. %s" % [i + 1, str(step.get("text", ""))]
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+		lbl.add_theme_color_override("font_color",
+			UIColors.COLOR_TEXT_PRIMARY)
+		vbox.add_child(lbl)
+	return vbox
 
 ## Legacy _update_action_buttons_for_combat() removed — phase-specific buttons
 ## are now created by _show_reaction_roll_ui(), _show_quick_actions_ui(), etc.
@@ -4744,12 +4919,19 @@ func _on_regenerate_terrain_pressed() -> void:
 				new_sector_data.get("theme_name", _current_terrain_theme),
 				regen_world_traits)
 
-	# Recompute objectives + markers deterministically from the new seed
+	# Recompute objectives + markers deterministically from the new seed.
+	# The Notable Sight is mission-level (p.89), not terrain — it survives
+	# a terrain regenerate.
 	var regen_obj_rng := RandomNumberGenerator.new()
 	regen_obj_rng.seed = hash("%d|objectives" % regen_seed)
 	var regen_obj: Array = _battlefield_generator.compute_objective_positions(
 		regen_objective, new_sector_data.get("sectors", []),
 		regen_obj_rng, regen_dims)
+	var regen_prev: Dictionary = regen_game_state.get_battlefield_data() \
+		if regen_game_state \
+		and regen_game_state.has_method("get_battlefield_data") else {}
+	regen_obj = FPCM_BattlefieldGenerator.append_notable_sight_marker(
+		regen_obj, regen_prev.get("notable_sight", {}), regen_dims)
 	if battlefield_grid_panel and battlefield_grid_panel.has_method(
 			"set_objective_positions"):
 		battlefield_grid_panel.set_objective_positions(regen_obj)
@@ -4930,6 +5112,7 @@ func _persist_battlefield_contract(sector_data: Dictionary,
 		"sector_rerolls": sector_rerolls,
 		"generated_at_turn": int(prev.get("generated_at_turn", 0)),
 		"terrain_guide": prev.get("terrain_guide", {}),
+		"notable_sight": prev.get("notable_sight", {}),
 	})
 
 ## Tap a sector → SectorRulesPopover (the one on-map interaction).
@@ -4994,6 +5177,8 @@ func _on_sector_reroll_requested(sector_label: String) -> void:
 	obj_rng.seed = hash("%d|objectives" % base_seed)
 	var obj_positions: Array = _battlefield_generator.compute_objective_positions(
 		str(contract.get("mission_objective", "")), sectors, obj_rng, dims)
+	obj_positions = FPCM_BattlefieldGenerator.append_notable_sight_marker(
+		obj_positions, contract.get("notable_sight", {}), dims)
 	if battlefield_grid_panel \
 			and battlefield_grid_panel.has_method("set_objective_positions"):
 		battlefield_grid_panel.set_objective_positions(obj_positions)

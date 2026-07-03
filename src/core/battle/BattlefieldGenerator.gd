@@ -546,6 +546,43 @@ static func _deploy_marker(x: int, y: int, max_x: int) -> Dictionary:
 		"team": "enemy", "status": "alive"}
 
 # ============================================================================
+# NOTABLE SIGHT MARKER (Core Rules p.89)
+# ============================================================================
+
+## Derive the Notable Sight's grid position from its stored polar placement
+## (2D6+2" from the table center at a random angle). Position is derived
+## per current dims so a table-size change repositions it correctly.
+static func notable_sight_grid_pos(sight: Dictionary,
+		dims: Dictionary = {}) -> Vector2:
+	var d: Dictionary = dims if not dims.is_empty() else BattlefieldGrid.dims_for_table()
+	var center: Vector2 = BattlefieldGrid.center_cell(d)
+	var dist_cells: float = BattlefieldGrid.inches_to_cells(
+		float(sight.get("distance_inches", 9.0)))
+	var angle: float = float(sight.get("angle", 0.0))
+	var pos: Vector2 = center + Vector2(cos(angle), sin(angle)) * dist_cells
+	pos.x = clampf(pos.x, 0.0, float(d.get("cols", 24)) - 1.0)
+	pos.y = clampf(pos.y, 0.0, float(d.get("rows", 24)) - 1.0)
+	return pos
+
+## Append the Notable Sight as an objective-style marker so it renders
+## through the existing objective overlay. No-op for empty / "Nothing
+## special" results. grid_pos is the runtime Vector2 form — persisting
+## callers convert via BattlefieldGrid.grid_pos_to_json like any marker.
+static func append_notable_sight_marker(positions: Array, sight: Dictionary,
+		dims: Dictionary = {}) -> Array:
+	if sight.is_empty() or str(sight.get("type", "")).to_upper() == "NOTHING":
+		return positions
+	positions.append({
+		"type": "notable_sight",
+		"grid_pos": notable_sight_grid_pos(sight, dims),
+		"label": "Sight: %s" % str(sight.get("name",
+			sight.get("type", "Notable Sight"))),
+		"rule": str(sight.get("rule",
+			"Move into contact and forego other actions to claim (Core Rules p.89)")),
+	})
+	return positions
+
+# ============================================================================
 # TERRAIN VALIDATION & MODIFICATION
 # ============================================================================
 
