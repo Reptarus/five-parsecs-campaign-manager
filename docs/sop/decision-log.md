@@ -331,3 +331,50 @@ re-parsed the 1.4MB JSON" is.>
 If you find yourself wanting to delete or edit an existing entry: don't.
 Add a new entry marking the old one SUPERSEDED, referencing it by date
 and title. The history is the value.
+
+## 2026-07: Battlefield = one seeded generation, persisted as full sectors, free for everyone, 4 book themes, square book tables, drawer-not-toolbar chrome
+
+**Decision**: The battlefield is generated ONCE per battle (seeded, at
+CampaignTurnController's MISSION step, AFTER the deployment-condition
+roll), persisted as the full `active_battlefield` contract in
+`campaign.progress_data` via the `GameState.set_battlefield_data()`
+chokepoint, and consumed verbatim by PreBattleUI / TacticalBattleUI /
+the recap. The theme set is the 4 Compendium tables only; the grid
+models the three square book table sizes (p.108) at 1.5"/cell; and all
+terrain chrome lives in the battlefield intel drawer with tap-a-sector
+as the map's only interaction.
+
+**Alternatives considered**:
+1. Seed-only persistence (regenerate on load from the stored seed)
+2. Keep the TERRAIN_THEMES DLC gate and the 3 synthesized themes
+3. Dock a map toolbar (scatter/regenerate/legend) on the map surface
+4. Full-sector persistence + free 4-theme terrain + drawer chrome (chosen)
+
+**Reasoning**: This is a tabletop companion — the sectors describe a
+physical table the player already built. Seed-only persistence breaks
+the moment generator code changes between save and load (the re-derived
+map silently diverges from the physical table), so the sectors
+themselves are the SSOT and the seed is provenance + the base for
+hash-derived per-sector re-roll seeds (the engine RNG has no avalanche
+effect; Godot 4.6 docs). The DLC gate was checking a ContentFlag that
+was never defined — it returned {} for everyone, so the campaign path
+never generated a battlefield at all; two masking defects (the gate +
+PreBattleUI's inability to parse the generator's Array sectors) hid a
+completely dead preview. The 3 synthesized themes violated the
+book-themes-only decision and the planet heuristics remap cleanly onto
+the 4 real tables. Drawer-not-toolbar keeps the approved map-primary
+redesign intact — the sprint's UX mandate was explicitly "less on
+screen at once".
+
+**Tradeoff accepted**: save files carry ~2-4KB of sector text per
+in-progress battle; the preview/battle/recap can no longer diverge
+(previously three independent generations — which was the bug, but it
+did mean "free" variety on re-entry).
+
+**Validation**: 50 gdUnit cases (8 suites) green, incl. a full
+to_dictionary→JSON→from_dictionary round trip with byte-matched
+sectors; 143-case battle regression suite green; editor-mode headless
+scan zero script errors. Rules audit vs the extracted PDFs recorded in
+QA_RULES_ACCURACY_AUDIT (F1-F8 fixes: industrial-only hill rule p.97,
+toxic = note not terrain p.88, Beast/Defensive deployment p.110, haze
+cadence p.72, labeled p.109 suggestions, Guardian = attach cluster).

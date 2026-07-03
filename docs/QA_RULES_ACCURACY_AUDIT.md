@@ -1514,3 +1514,57 @@ func execute(scene_tree: SceneTree) -> Variant:
         return {"status": "ALL CONSISTENT", "checks": 1}
     return {"status": "INCONSISTENCIES FOUND", "details": checks}
 ```
+
+---
+
+## Battlefield Generation Rules Audit (2026-07-02/03 sprint — PDF-verified)
+
+Method: Core Rules pp.37-39, 73-75, 87-91, 107-110 and Compendium
+pp.93-98 extracted via PyPDF2 and compared value-by-value against the
+generator, theme JSON, popover rules text, and enemy deploy markers.
+Pinned by `tests/unit/test_battlefield_*`, `test_enemy_deploy_markers`,
+`test_battle_flow_guide`, `test_terrain_theme_data_pinning` (50 cases).
+
+### Verified correct (no change)
+
+| Value | Source | Status |
+|-------|--------|--------|
+| 5-step process: 16 sectors, D6 center notable, 4D6/quarter, 1D6 scatter/quarter | Compendium pp.94-95 | VERIFIED |
+| 4 theme D6 tables (industrial/wilderness/alien_ruin/crash_site), entry-by-entry | Compendium pp.96-98 | VERIFIED (token-pinned vs RulesReference/TerrainTables.json) |
+| Standard Terrain Set: L2/S4/Li2 (2x2), L2/S5/Li4 (2.5), L3/S6/Li3 (3x3) + minimums 2/1/1 | Core Rules pp.108-109 | VERIFIED (extracted; now in compendium_terrain.json by_table_size) |
+| 11 world-trait dice: overgrown 1D6+2, warzone 1D3, crystals 2D6, haze 1D6+8", gloom 1D6+6", fog 8", barren, flat, frozen 1D6", reflective 9", null zone | Core Rules pp.73-75 | VERIFIED |
+| Poor visibility 1D6+8" reroll/round; Gloomy 9" + fire-reveals | Core Rules p.88 | VERIFIED |
+| Objective placements: access/acquire/deliver/secure/protect at exact center; patrol = 3 random large; search = token per medium/large | Core Rules p.90 | VERIFIED (center placement intentional) |
+| Cautious = 2 groups 6"; Aggressive/Rampaging = one cluster 1" | Core Rules p.110 | VERIFIED |
+| Terrain category rules text (popover) vs 6 categories | Core Rules pp.37-39 | VERIFIED (+ Individual "cannot be climbed" added) |
+
+### Rules bugs found and FIXED (F1-F8)
+
+| # | Defect | Book | Fix |
+|---|--------|------|-----|
+| F1 | "2nd open ground -> hill" fired for ALL themes | Industrial table entry 3 ONLY (Compendium p.97) | Gated on theme == industrial_zone |
+| F2 | toxic_environment injected a fabricated HAZARD terrain feature | p.88: Stun -> 1D6+Savvy roll, NO terrain | Removed; emits the rule as a combat note |
+| F3 | Beast markers clustered center with A/R | p.110: pairs, one per table third, 2" apart, odd figure alone | Dedicated Beast branch |
+| F4 | Defensive grouped with Cautious (2 groups) | p.110: Tactical AND Defensive = 3 teams 8" apart | Moved to the T branch |
+| F5 | Haze note said "reroll each round" | p.72: world-trait visibility rolls per CAMPAIGN TURN | Note text fixed |
+| F6 | Marker spacing ad-hoc cells; markers in the crew-painted half | p.110 inches | Spacing derives from book inches at 1.5"/cell; markers in the enemy edge band |
+| F7 | p.109 minimum injections unlabeled (read as rolls) | p.109 = guidelines | Labeled "(suggested — Core Rules p.109 guideline)"; enterable suggestion = rubble (barren-proof) |
+| F8 | "G" marker layout unsourced | Guardian = attach AI (EnemyAI.json / enemy_types.json guardian_attachment) | Tight attach-cluster + cite |
+
+### Also corrected in the same audit
+
+- TERRAIN_THEMES DLC gate checked a ContentFlag that was never defined —
+  `generate_battlefield()` returned `{}` for everyone (campaign path
+  never generated a battlefield). Gate deleted; map free for all.
+- Deployment-condition id mismatch (`condition_id: "TOXIC_ENVIRONMENT"`
+  vs generator `id == "toxic_environment"`) silently disabled ALL
+  condition terrain effects. Both keys now accepted case-insensitively.
+- 3 synthesized themes (urban_settlement/wasteland/ship_interior)
+  removed per the book-themes-only decision; planet-type heuristic
+  remapped onto the 4 Compendium themes (app-level mapping, not book data).
+- Grid represented a fictional 30"x20" table; now the three square book
+  sizes (p.108) at 1.5"/cell.
+- Notable Sight (p.89) was rolled but never placed; now placed 2D6+2"
+  from center (seeded polar) and rendered on the map.
+- Stale row note: `data/battlefield/companion_config.json` (row 77) was
+  deleted 2026-07-02 with the dead BattlefieldCompanion subsystem.

@@ -288,6 +288,13 @@ Our map shows inch axis labels on the borders but no per-piece position callouts
 
 **Files**: `src/core/battle/BattlefieldGenerator.gd:66-100`
 
+> **SUPERSEDED (2026-07-02)**: the `regular_feature_per_sector_chance`
+> mechanism this bug describes no longer exists. The generator was
+> rewritten to the Compendium 5-step process (pp.94-95): 4D6 regular
+> features per quarter + 1D6 scatter per quarter + a center notable —
+> density is now the book's own dice, not a tunable chance. Verified by
+> `tests/unit/test_battlefield_generator_compendium.gd`.
+
 ---
 
 ## BUG-B13: Turn indicator text never updates — stuck on "Deploy Your Crew"

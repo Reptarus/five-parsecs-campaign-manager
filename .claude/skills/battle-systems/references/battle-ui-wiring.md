@@ -72,13 +72,16 @@ func _apply_tier_visibility(tier: int) -> void
 ```
 Shows/hides components based on selected tier. Components are lazily instantiated.
 
-### Terrain Map Enhancements (QA Sprint Mar 15, 2026)
+### Terrain Pipeline (rules-verified sprint 2026-07-02/03 — SUPERSEDES the Mar 15 density notes)
 
-- **BattlefieldShapeLibrary**: New static `get_rotation_range(shape_type) -> float` method returns per-shape rotation angles
-- **BattlefieldMapView**: Terrain rotation applied per piece; `_objective_position` property with `set_objective_position()` API; `_draw_terrain_labels_on()` labels ALL terrain with inch-position callouts; gold diamond + "OBJ" objective marker
-- **BattlefieldGridPanel**: Terrain legend with colored swatches added
-- **BattlefieldGenerator**: `generate_terrain_suggestions()` now creates 0-2 cross-sector spanning features; density boosted (0.6 -> 0.75 + 30% cluster chance)
-- **compendium_terrain.json**: `regular_feature_per_sector_chance` updated 0.6 -> 0.75
+- **Single generation point**: `CampaignTurnController._initiate_battle_sequence` rolls the deployment condition FIRST, then calls `CampaignPhaseManager.generate_battlefield(theme, world_traits, condition, seed, table_size_ft)` ONCE with an explicit seed. The result + objective/enemy markers + Notable Sight are assembled into the `active_battlefield` contract and stored via `GameState.set_battlefield_data()` (write-through to `campaign.progress_data["active_battlefield"]` — survives save/reload; cleared post-battle).
+- **Consume-first**: `TacticalBattleUI._populate_setup_tab` renders the stored contract verbatim (preview == battle == recap). Standalone entry points (Battle Sim / Bug Hunt / Planetfall) generate locally with a fresh seed and write back via `_persist_battlefield_contract()`.
+- **Generation math is the book 5-step** (Compendium pp.94-95): 4D6 regular features per quarter + 1D6 scatter per quarter + one D6 center notable. There is NO `regular_feature_per_sector_chance` and NO density multiplier — the pre-Compendium 0.6-chance model described in older notes no longer exists.
+- **4 book themes only** (pp.96-98); planet/name→theme heuristics are statics on `FPCM_BattlefieldGenerator`.
+- **Grid geometry**: `FPCM_BattlefieldGrid` (p.108 square tables at 1.5″/cell → 16/20/24). `BattlefieldMapView.configure_grid(dims)` BEFORE `populate_from_sectors`; `cell_size` remains the immutable BUG-102 base.
+- **Enemy deploy markers**: `FPCM_BattlefieldGenerator.compute_enemy_deploy_markers(ai, count, rng, dims)` — book-exact p.110 groupings (Beast pairs across thirds; Tactical AND Defensive 3 teams 8″ apart; Cautious 2 groups 6″), landing in the enemy edge band, JSON-safe `[x, y]` positions.
+- **Chrome (map-primary)**: the only on-map interaction is tap-a-sector → `SectorRulesPopover` (features + pp.37-39 rules + SETUP-only per-sector re-roll with `hash(base_seed|label|count)` seeds). Legend/scatter/Regenerate/table-size live in the battlefield intel DRAWER (`_build_battlefield_intel(target, include_terrain_controls)`). `BattlefieldGridPanel` was deleted.
+- **Journey guidance**: `FPCM_BattleFlowGuide` statics feed the Battle Card (pre-battle checklist modal), the 3-step deployment card (p.110), and END_PHASE condition prompts (p.88).
 
 ### Initiative Calculator Wiring (Phase 31 Fix, Mar 16 2026)
 
@@ -97,9 +100,9 @@ if initiative_calculator:
 
 `InitiativeCalculator.auto_detect_equipment()` scans crew member equipment for initiative-relevant modifiers (e.g., scanner, tactical visor). Must be called after `set_crew()` to detect bonuses correctly.
 
-### Terrain Theme Propagation (Phase 31 Fix)
+### Terrain Data Shape (2026-07 contract — supersedes the BUG-038 merge note)
 
-Battle context terrain data must be structured with terrain_guide inside the `terrain` sub-dict, not at the top level. CampaignTurnController merges `terrain_guide` into the `terrain` dictionary before passing to TacticalBattleUI (BUG-038 fix).
+`GameState.get_battlefield_data()` returns the FLAT `active_battlefield` contract (sectors/seed/theme/table_size_ft/markers at top level; the Core Rules text guide rides along under `terrain_guide`). `mission_data["terrain"]` carries the same dict. PreBattleUI's `bf_data.get("terrain", bf_data)` read resolves to the contract itself. Positions persist as JSON-safe `[x, y]` Arrays — rehydrate with `FPCM_BattlefieldGrid.json_to_grid_pos()` before handing to the MapView.
 
 ### Scatter Item Rendering (Phase 31 Fix)
 

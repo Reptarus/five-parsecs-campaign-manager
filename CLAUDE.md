@@ -357,25 +357,39 @@ StoryTrackSystem (Resource, cached on CampaignPhaseManager.story_track)
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
 
-### Battlefield Terrain Generator (Session 50)
+### Battlefield Terrain Generator (Session 50; rules-verified sprint 2026-07-02/03)
 
 ```text
-BattlefieldGenerator (RefCounted, Compendium 5-step)
-  ├─ data/battlefield/themes/compendium_terrain.json (7 themes)
-  ├─ 10 world trait modifications (Core Rules pp.72-75)
-  ├─ Returns: {sectors, combat_notes, seed, ...}
-  └─ BattlefieldMapView (graph-paper canvas)
-       ├─ BattlefieldShapeLibrary (keyword → shape/color)
-       ├─ Adaptive placement (density-scaled shapes)
-       └─ BattlefieldGridPanel (header, legend 12 entries, popover)
+CampaignTurnController._initiate_battle_sequence  ← SINGLE generation point (seeded)
+  └─ CampaignPhaseManager.generate_battlefield(theme, traits, condition, seed, table_ft)
+       └─ FPCM_BattlefieldGenerator (RefCounted, Compendium 5-step pp.94-95)
+            ├─ data/battlefield/themes/compendium_terrain.json (4 BOOK themes)
+            ├─ 11 world trait modifications (Core Rules pp.73-75)
+            └─ Returns: {sectors, combat_notes, seed, table_size_ft, ...}
+  └─ active_battlefield contract → GameState.set_battlefield_data()
+       (writes through to campaign.progress_data["active_battlefield"] —
+        survives save/reload; cleared post-battle)
+  └─ Consumers render the SAME persisted map:
+       PreBattleUI preview (+ per-battle table-size override)
+       TacticalBattleUI (consume-first; standalone modes generate + write back)
+       PostBattleSummarySheet recap
+  └─ BattlefieldMapView (graph-paper canvas, square book tables via configure_grid)
+       ├─ FPCM_BattlefieldGrid (geometry SSOT: p.108 sizes at 1.5"/cell)
+       ├─ BattlefieldShapeLibrary (keyword → shape/color + rules categories)
+       ├─ SectorRulesPopover (tap-a-sector: features + pp.37-39 rules + re-roll)
+       └─ TerrainLegendStrip + scatter/regenerate controls (intel DRAWER only)
 ```
 
-- **7 themes**: industrial_zone, wilderness, alien_ruin, crash_site, urban_settlement, wasteland, ship_interior
-- **World traits**: barren (strips vegetation), flat (strips hills + suppresses elevated minimum), crystals (adds 2D6), haze/gloom/fog (visibility notes), frozen/reflective_dust/null_zone (combat notes)
-- **Shape placement**: Adaptive `local_scale` (0.6x-1.0x by density), proportional rotation margins, grid-distributed fallback, hard sector clamping
-- **Map labels**: Show `[L]`/`[I]`/`[B]`/`[F]`/`[A]` terrain rules category badges
-- **Scatter visible**: Tiny 16×10px dots, `show_scatter` toggle property
-- **Seeded RNG**: Optional `rng_seed` param on `generate_terrain_suggestions()`, `result["seed"]` for reproducibility
+- **4 themes (book only)**: industrial_zone, wilderness, alien_ruin, crash_site (Compendium pp.96-98). The 3 synthesized themes (urban_settlement/wasteland/ship_interior) were REMOVED 2026-07-02 — do not re-add; planet-type/name heuristics remap onto the 4 (statics on the generator).
+- **Table sizes**: 2×2 / 2.5×2.5 / 3×3 ft (Core Rules p.108) — SettingsManager `gameplay/table_size_ft` + PreBattleUI per-battle override. Grid is SQUARE (16/20/24 cells at 1.5″/cell); the old fictional 30″×20″ table is gone. Standard Terrain Set counts per size are PDF-verified in the JSON (p.109).
+- **11 world traits**: overgrown (1D6+2 plants), warzone (1D3 ruins/craters), crystals (2D6), barren (strips vegetation), flat (strips hills + suppresses elevated minimum), haze/gloom/fog (visibility notes), frozen/reflective_dust/null_zone (combat notes) — pp.73-75.
+- **Rules-audit fixes (do not regress)**: hill conversion is INDUSTRIAL-ONLY (p.97); toxic_environment is a combat note, NEVER terrain (p.88); deployment-condition ids accepted as `id` OR `condition_id`, case-insensitive; enemy deploy markers are book-exact (p.110: Beast = pairs across thirds, Defensive = 3 teams with Tactical); p.109 minimums injections are labeled "(suggested — Core Rules p.109 guideline)".
+- **Seeded + persisted**: every generation uses an explicit seed; per-sector re-rolls use `hash(base_seed|label|count)` (engine RNG has no avalanche effect). Full sectors persist — a generator code change never rewrites an in-progress physical table.
+- **Notable Sight (p.89)**: rolled in CTC, placed 2D6+2″ from center (polar, seeded), rendered via the objective-marker overlay, persisted in the contract.
+- **Battle journey guidance**: `FPCM_BattleFlowGuide` (static, tested) feeds the EXISTING surfaces — Battle Card atop the pre-battle checklist (objective win text p.90 + condition + sight + enemy + table), 3-step deployment card (p.110), end-of-round condition prompts (p.88). No new docked chrome; the map's only interaction is tap-a-sector.
+- **Badges**: `[L]/[In]/[B]/[F]/[A]/[I]` — Interior=[In] vs Individual=[I] (collision fixed via `get_category_badge`).
+- **BattlefieldGridPanel DELETED** (was dead since the map-primary redesign); its legend/popover live on as TerrainLegendStrip + SectorRulesPopover.
+- **Tests**: 50 cases across 8 suites (`test_battlefield_*`, `test_enemy_deploy_markers`, `test_battle_flow_guide`, `test_terrain_theme_data_pinning`) pin the audit fixes, seed determinism, geometry, and persistence.
 
 ### Narrative System (Phase 1, May 22 2026; scene composition + motion May 27)
 
