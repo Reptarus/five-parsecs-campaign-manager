@@ -6,7 +6,10 @@ extends RefCounted
 ## Generates text-based terrain suggestions following the Compendium 5-step process
 ## (pp.94-98: steps pp.94-95, terrain tables pp.96-98) for the player to set
 ## up their physical tabletop. (pp.99-100 are the Casualty Tables, not terrain.)
-## Also supports world trait terrain modifications (Core Rules pp.72-75).
+## Also supports world trait terrain modifications (Core Rules pp.72-75) and
+## book table sizes 2x2 / 2.5x2.5 / 3x3 ft (Core Rules p.108).
+
+const BattlefieldGrid = preload("res://src/core/battle/BattlefieldGrid.gd")
 
 # Signals for integration with the battle workflow
 signal generation_started(theme_name: String)
@@ -26,12 +29,16 @@ func _init() -> void:
 ## Generate text-based terrain suggestions following the Compendium 5-step process.
 ## Returns readable text descriptions per sector telling the player what to place.
 ##
-## theme: "industrial_zone", "wilderness", "alien_ruin", "crash_site", etc.
+## theme: "industrial_zone", "wilderness", "alien_ruin", "crash_site" (Compendium pp.96-98)
 ## world_traits: Array of trait ID strings from world_traits.json (e.g., ["overgrown", "haze"])
 ## deployment_condition: Dictionary with deployment condition data (e.g., {"id": "toxic_environment"})
+## rng_seed: 0 = random; non-zero = reproducible output (persist result["seed"])
+## table_size_ft: 2.0 / 2.5 / 3.0 (Core Rules p.108). Does NOT change the dice —
+##   the 5-step process is table-size-independent (Compendium p.94); size only
+##   affects the summary guidance and downstream grid math.
 func generate_terrain_suggestions(theme: String = "wilderness",
 		world_traits: Array = [], deployment_condition: Dictionary = {},
-		rng_seed: int = 0) -> Dictionary:
+		rng_seed: int = 0, table_size_ft: float = 3.0) -> Dictionary:
 	_ensure_compendium_loaded()
 
 	var themes: Dictionary = _compendium_data.get("themes", {})
@@ -47,7 +54,10 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 	if rng_seed != 0:
 		local_rng.seed = rng_seed
 	else:
-		local_rng.seed = Time.get_unix_time_from_system()
+		# hash() the time: Godot's RNG has no avalanche effect, so raw
+		# sequential unix-second seeds would produce correlated streams
+		# (and the float truncates to whole seconds — same-second collisions).
+		local_rng.seed = hash(Time.get_unix_time_from_system())
 
 	generation_started.emit(theme_data.get("name", theme))
 
@@ -110,10 +120,15 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 				# Fallback: pick from small/linear pools
 				feature_text = _pick_fallback_feature(theme_data, local_rng)
 
-			# Handle "Open ground" results — second open in a quarter becomes a hill
+			# "If more than one area of open ground exist in a quarter, one of
+			# them should be a hill" — this rule is part of the INDUSTRIAL
+			# Regular Features table entry 3 ONLY (Compendium p.97). The other
+			# themes' "Open..." entries carry no hill rule, so it must not
+			# fire for them (fixed 2026-07-02; was applied to all themes).
 			if feature_text.to_lower().begins_with("open"):
 				open_ground_count_per_quarter[q_name] += 1
-				if open_ground_count_per_quarter[q_name] >= 2:
+				if theme == "industrial_zone" \
+						and open_ground_count_per_quarter[q_name] >= 2:
 					feature_text = "SMALL: Hill or elevated ground"
 			# Normalize: unprefixed non-open features default to SMALL
 			elif not _has_known_prefix(feature_text):
@@ -143,7 +158,7 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 				_append_scatter_to_sector(sector_features, target_label, scatter_pick)
 
 	# ---- Compendium Step 5: Final Evaluation ----
-	# Check if "flat" trait is active — suppresses elevated minimum (Core Rules p.80)
+	# Check if "flat" trait is active — suppresses elevated minimum (Core Rules p.75)
 	var has_flat_trait: bool = false
 	for trait_id in world_traits:
 		var tid_check: String = str(trait_id).to_lower() if trait_id is String else str(trait_id.get("id", "")).to_lower()
@@ -157,13 +172,16 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 	var combat_notes: Array[String] = _apply_world_trait_modifications(
 		sector_features, sector_labels, world_traits, local_rng)
 
-	# ---- Deployment Condition Terrain Effects (Core Rules p.88) ----
+	# ---- Deployment Condition Effects (Core Rules p.88) ----
 	var visibility_limit: String = ""
 	var condition_id: String = deployment_condition.get("id", "")
 	if condition_id == "toxic_environment":
-		# Add a hazard marker to a random sector
-		var hazard_sector: String = sector_labels[local_rng.randi_range(0, sector_labels.size() - 1)]
-		sector_features[hazard_sector].append("HAZARD: Toxic environment zone")
+		# Book rule is a Stun->casualty roll, NOT terrain — the old HAZARD
+		# feature injection was fabricated and removed 2026-07-02 (p.88).
+		combat_notes.append(
+			"Toxic environment: whenever a combatant is Stunned, roll "
+			+ "1D6+Savvy (0 for enemies) — failing a 4+ becomes a casualty "
+			+ "(Core Rules p.88)")
 	elif condition_id == "poor_visibility":
 		visibility_limit = "1D6+8 inches (reroll each round)"
 	elif condition_id == "gloomy":
@@ -192,6 +210,14 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 	summary_lines.append("Theme: %s" % theme_data.get("name", theme))
 	summary_lines.append(theme_data.get("description", ""))
 	summary_lines.append("Compendium terrain generation (pp.94-98): Notable center + 4D6 per quarter + scatter")
+	summary_lines.append("Table size: %s (Core Rules p.108)"
+		% BattlefieldGrid.table_size_label(table_size_ft))
+	var set_counts: Dictionary = _standard_set_for_size(table_size_ft)
+	if not set_counts.is_empty():
+		summary_lines.append(
+			"Standard set guideline: %d large / %d small / %d linear (Core Rules p.109)" % [
+				int(set_counts.get("large", 0)), int(set_counts.get("small", 0)),
+				int(set_counts.get("linear", 0))])
 	summary_lines.append("Placed features: %d" % feature_count)
 	if not visibility_limit.is_empty():
 		summary_lines.append("Visibility limit: %s" % visibility_limit)
@@ -212,6 +238,7 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 		"notable_count": 1,  # Always 1 center notable per Compendium
 		"feature_count": feature_count,
 		"terrain_set": {"notable": 1, "regular_per_quarter": 4, "scatter_per_quarter": "1D6"},
+		"table_size_ft": BattlefieldGrid.sanitize_table_size(table_size_ft),
 	}
 	if not visibility_limit.is_empty():
 		result["visibility_limit"] = visibility_limit
@@ -224,9 +251,11 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 
 ## Compute objective marker positions based on mission type (Core Rules pp.89-91).
 ## Returns array of {type, grid_pos, label} dictionaries.
+## dims: grid dimensions from BattlefieldGrid.dims_for_table() (default 3x3).
 func compute_objective_positions(mission_objective: String, sectors: Array,
-		local_rng: RandomNumberGenerator) -> Array[Dictionary]:
+		local_rng: RandomNumberGenerator, dims: Dictionary = {}) -> Array[Dictionary]:
 	var obj_lower: String = mission_objective.to_lower().strip_edges()
+	var d: Dictionary = dims if not dims.is_empty() else BattlefieldGrid.dims_for_table()
 
 	match obj_lower:
 		"access", "acquire", "deliver", "secure", "protect":
@@ -234,7 +263,7 @@ func compute_objective_positions(mission_objective: String, sectors: Array,
 			# verbatim tabletop rule ("exact center of the battlefield/table"),
 			# so the marker carries a rule cite to read as intentional, not a bug.
 			return [{
-				"type": "center", "grid_pos": Vector2(12, 8),
+				"type": "center", "grid_pos": BattlefieldGrid.center_cell(d),
 				"label": mission_objective.capitalize(),
 				"rule": _center_objective_rule(obj_lower)}]
 		"move_through":
@@ -245,10 +274,10 @@ func compute_objective_positions(mission_objective: String, sectors: Array,
 			return []
 		"patrol":
 			# 3 random large terrain features (Core Rules p.90)
-			return _pick_patrol_objectives(sectors, local_rng)
+			return _pick_patrol_objectives(sectors, local_rng, d)
 		"search":
 			# Token on each medium/large feature (Core Rules p.91)
-			return _pick_search_objectives(sectors)
+			return _pick_search_objectives(sectors, d)
 		"eliminate":
 			# Target is a random enemy figure, not a map position
 			return []
@@ -256,7 +285,7 @@ func compute_objective_positions(mission_objective: String, sectors: Array,
 			# Unknown objective — default to center
 			if not obj_lower.is_empty():
 				return [{
-					"type": "center", "grid_pos": Vector2(12, 8),
+					"type": "center", "grid_pos": BattlefieldGrid.center_cell(d),
 					"label": mission_objective.capitalize(),
 					"rule": _center_objective_rule(obj_lower)}]
 			return []
@@ -280,8 +309,11 @@ func _center_objective_rule(obj_lower: String) -> String:
 		_:
 			return "Center of table (Core Rules p.90)"
 
-## Regenerate a single sector's features.
-func regenerate_sector(theme: String, sector_label: String) -> Dictionary:
+## Regenerate a single sector's features (Compendium Step 5 sanctions swapping
+## pieces for playability, p.95). seed_override != 0 makes the re-roll
+## deterministic — callers derive it as hash(base_seed | label | reroll_count).
+func regenerate_sector(theme: String, sector_label: String,
+		seed_override: int = 0) -> Dictionary:
 	_ensure_compendium_loaded()
 
 	var themes: Dictionary = _compendium_data.get("themes", {})
@@ -292,17 +324,25 @@ func regenerate_sector(theme: String, sector_label: String) -> Dictionary:
 	var regular_d6: Array = theme_data.get("regular_features_d6", [])
 	var scatter_items: Array = theme_data.get("scatter_terrain", [])
 	var local_rng := RandomNumberGenerator.new()
-	local_rng.seed = Time.get_unix_time_from_system()
+	if seed_override != 0:
+		local_rng.seed = seed_override
+	else:
+		local_rng.seed = hash(Time.get_unix_time_from_system())
 
 	var features: Array[String] = []
 
-	# Re-roll: one D6 regular feature
+	# Re-roll: one D6 regular feature (normalized like Step 3 output)
+	var feature_text: String = ""
 	if regular_d6.size() >= 6:
-		features.append(regular_d6[local_rng.randi_range(0, 5)])
+		feature_text = regular_d6[local_rng.randi_range(0, 5)]
 	elif not regular_d6.is_empty():
-		features.append(regular_d6[local_rng.randi_range(0, regular_d6.size() - 1)])
+		feature_text = regular_d6[local_rng.randi_range(0, regular_d6.size() - 1)]
 	else:
-		features.append(_pick_fallback_feature(theme_data, local_rng))
+		feature_text = _pick_fallback_feature(theme_data, local_rng)
+	if not feature_text.to_lower().begins_with("open") \
+			and not _has_known_prefix(feature_text):
+		feature_text = "SMALL: %s" % feature_text
+	features.append(feature_text)
 
 	# Scatter
 	if not scatter_items.is_empty():
@@ -333,14 +373,15 @@ func get_theme_display_name(theme_key: String) -> String:
 # OBJECTIVE HELPERS (Phase 3)
 # ============================================================================
 
-func _pick_patrol_objectives(sectors: Array, local_rng: RandomNumberGenerator) -> Array[Dictionary]:
+func _pick_patrol_objectives(sectors: Array, local_rng: RandomNumberGenerator,
+		dims: Dictionary) -> Array[Dictionary]:
 	## Patrol: "Select 3 large terrain features at random" (Core Rules p.90)
 	var large_sectors: Array[Dictionary] = []
 	for sector: Dictionary in sectors:
 		for feat: String in sector.get("features", []):
 			if feat.begins_with("LARGE:"):
 				var label: String = sector.get("label", "")
-				var grid_pos: Vector2 = _sector_label_to_grid_center(label)
+				var grid_pos: Vector2 = BattlefieldGrid.sector_label_to_grid_center(label, dims)
 				large_sectors.append({"type": "patrol", "grid_pos": grid_pos,
 					"label": "Patrol #%d" % (large_sectors.size() + 1)})
 				break  # one per sector
@@ -353,7 +394,7 @@ func _pick_patrol_objectives(sectors: Array, local_rng: RandomNumberGenerator) -
 		result.append(obj)
 	return result
 
-func _pick_search_objectives(sectors: Array) -> Array[Dictionary]:
+func _pick_search_objectives(sectors: Array, dims: Dictionary) -> Array[Dictionary]:
 	## Search: "Put a token on each medium or large terrain feature" (Core Rules p.91)
 	var result: Array[Dictionary] = []
 	var idx: int = 1
@@ -361,23 +402,12 @@ func _pick_search_objectives(sectors: Array) -> Array[Dictionary]:
 		for feat: String in sector.get("features", []):
 			if feat.begins_with("LARGE:") or feat.begins_with("SMALL:"):
 				var label: String = sector.get("label", "")
-				var grid_pos: Vector2 = _sector_label_to_grid_center(label)
+				var grid_pos: Vector2 = BattlefieldGrid.sector_label_to_grid_center(label, dims)
 				result.append({"type": "search", "grid_pos": grid_pos,
 					"label": "Search #%d" % idx})
 				idx += 1
 				break  # one per sector
 	return result
-
-func _sector_label_to_grid_center(label: String) -> Vector2:
-	## Convert sector label (e.g. "B3") to grid center coordinates.
-	## Grid is 24 cols x 16 rows, sectors are 6x4 each.
-	if label.length() < 2:
-		return Vector2(12, 8)
-	var row_idx: int = ["A", "B", "C", "D"].find(label[0])
-	var col_idx: int = ["1", "2", "3", "4"].find(label[1])
-	if row_idx < 0 or col_idx < 0:
-		return Vector2(12, 8)
-	return Vector2(col_idx * 6.0 + 3.0, row_idx * 4.0 + 2.0)
 
 # ============================================================================
 # TERRAIN VALIDATION & MODIFICATION
@@ -402,17 +432,24 @@ func _validate_terrain_minimums_in_sectors(sector_features: Dictionary,
 			if _text_has_keyword(lower, ["building", "structure", "outcrop", "climb", "tower", "hab-block"]):
 				climbable_count += 1
 
-	# If missing, inject the needed feature type into a random sector
+	# If missing, inject the needed feature type into a random sector.
+	# These are APP SUGGESTIONS from the p.109 terrain-set guidelines, not
+	# table rolls — label them so the player can tell rolls from assistance.
+	# Enterable suggestion uses rubble (a p.109 example) rather than plants
+	# so the Barren world trait's vegetation strip can't erase it.
 	var all_labels: Array = sector_features.keys()
 	if not has_elevated and not all_labels.is_empty():
 		var target: String = str(all_labels[local_rng.randi_range(0, all_labels.size() - 1)])
-		sector_features[target].append("SMALL: Hill or elevated ground")
+		sector_features[target].append(
+			"SMALL: Hill or elevated ground (suggested — Core Rules p.109 guideline)")
 	if not has_enterable and not all_labels.is_empty():
 		var target: String = str(all_labels[local_rng.randi_range(0, all_labels.size() - 1)])
-		sector_features[target].append("SMALL: Dense vegetation cluster (enterable)")
+		sector_features[target].append(
+			"SMALL: Enterable rubble cluster (suggested — Core Rules p.109 guideline)")
 	while climbable_count < 2 and not all_labels.is_empty():
 		var target: String = str(all_labels[local_rng.randi_range(0, all_labels.size() - 1)])
-		sector_features[target].append("SMALL: Climbable structure or rocky outcrop")
+		sector_features[target].append(
+			"SMALL: Climbable structure or rocky outcrop (suggested — Core Rules p.109 guideline)")
 		climbable_count += 1
 
 func _apply_world_trait_modifications(sector_features: Dictionary,
@@ -451,16 +488,21 @@ func _apply_world_trait_modifications(sector_features: Dictionary,
 						sector_features[target].append(
 							"SMALL: Crater (world trait: Warzone)")
 			"haze":
-				# "Visibility reduced to 1D6+8\"" (Core Rules p.72)
-				notes.append("Haze: Visibility reduced to 1D6+8\" (reroll each round)")
+				# "Visibility reduced to 1D6+8\"" (Core Rules p.73). World-trait
+				# visibility is rolled at the START OF EACH CAMPAIGN TURN
+				# (p.72 preamble) — NOT per round; that cadence belongs to the
+				# Poor Visibility deployment condition (fixed 2026-07-02).
+				notes.append(
+					"Haze: Visibility reduced to 1D6+8\" "
+					+ "(roll at the start of each campaign turn)")
 			"gloom":
-				# "Maximum visibility restricted to 1D6+6\"" (Core Rules p.75)
+				# "Maximum visibility restricted to 1D6+6\"" (Core Rules p.74)
 				notes.append("Gloom: Max visibility 1D6+6\"")
 			"fog":
-				# "All shots beyond 8\" are -1 to Hit" (Core Rules p.76)
+				# "All shots beyond 8\" are -1 to Hit" (Core Rules p.75)
 				notes.append("Fog: All shots beyond 8\" are -1 to Hit")
 			"barren":
-				# "No plant features can be used" (Core Rules p.75)
+				# "No plant features can be used" (Core Rules p.74)
 				for label: String in sector_labels:
 					var feats: Array = sector_features.get(label, [])
 					var filtered: Array = []
@@ -475,7 +517,7 @@ func _apply_world_trait_modifications(sector_features: Dictionary,
 					sector_features[label] = filtered
 				notes.append("Barren: No plant features on battlefield")
 			"flat":
-				# "Do not place any hills or raised ground" (Core Rules p.76)
+				# "Do not place any hills or raised ground" (Core Rules p.75)
 				for label: String in sector_labels:
 					var feats: Array = sector_features.get(label, [])
 					var filtered: Array = []
@@ -490,7 +532,7 @@ func _apply_world_trait_modifications(sector_features: Dictionary,
 					sector_features[label] = filtered
 				notes.append("Flat: No hills or raised ground on battlefield")
 			"crystals":
-				# "Place 2D6 crystals on the battlefield" (Core Rules p.76)
+				# "Place 2D6 crystals on the battlefield" (Core Rules p.75)
 				var crystal_count: int = local_rng.randi_range(1, 6) \
 					+ local_rng.randi_range(1, 6)
 				for ci: int in range(crystal_count):
@@ -499,17 +541,17 @@ func _apply_world_trait_modifications(sector_features: Dictionary,
 					sector_features[target].append(
 						"SMALL: Crystal formation (world trait: Crystals)")
 			"frozen":
-				# Movement modifier, not terrain (Core Rules p.76)
+				# Movement modifier, not terrain (Core Rules p.75)
 				notes.append(
 					"Frozen: Dash slide — move 1D6\" straight, " \
 					+ "collision = both Stunned + knocked 1\"")
 			"reflective_dust":
-				# Combat modifier (Core Rules p.76)
+				# Combat modifier (Core Rules p.75)
 				notes.append(
 					"Reflective Dust: Laser/Beam/Blast weapons " \
 					+ "-1 to Hit beyond 9\"")
 			"null_zone":
-				# Equipment restriction (Core Rules p.76)
+				# Equipment restriction (Core Rules p.75)
 				notes.append(
 					"Null Zone: No teleportation devices work")
 	return notes
@@ -559,6 +601,12 @@ func _shuffle_array(arr: Array, local_rng: RandomNumberGenerator) -> void:
 		var temp: Variant = arr[i]
 		arr[i] = arr[j]
 		arr[j] = temp
+
+## Standard Terrain Set counts for a table size (Core Rules p.109).
+func _standard_set_for_size(table_size_ft: float) -> Dictionary:
+	var by_size: Dictionary = _compendium_data.get(
+		"standard_terrain_set", {}).get("by_table_size", {})
+	return by_size.get(BattlefieldGrid.table_size_json_key(table_size_ft), {})
 
 func _ensure_compendium_loaded() -> void:
 	if _compendium_data.is_empty():

@@ -869,11 +869,13 @@ func _draw_terrain_labels_on(canvas: Control, offset: Vector2, cs: float) -> voi
 				# BUG-041 FIX: Prepend size category prefix
 				var cat: String = shape.get("size_category", "")
 				var prefix: String = "%s: " % cat if not cat.is_empty() else ""
-				# Phase 5: Append terrain rules category badge
+				# Phase 5: Append terrain rules category badge.
+				# Interior=[In] vs Individual=[I] — first-letter collision
+				# fixed via get_category_badge (2026-07-02).
 				var full_label: String = shape.get("label", "")
 				var rules_cat: String = BattlefieldShapeLibrary \
 					.classify_terrain_rules_category(full_label)
-				var badge: String = rules_cat.substr(0, 1) \
+				var badge: String = BattlefieldShapeLibrary.get_category_badge(rules_cat) \
 					if not rules_cat.is_empty() else ""
 				var callout: String = "%s%s %d\",%d\" [%s]" % [
 					prefix, short_label, inch_x, inch_y, badge]

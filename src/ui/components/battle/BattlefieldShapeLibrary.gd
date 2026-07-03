@@ -214,13 +214,32 @@ static func classify_terrain_rules_category(feature_name: String) -> String:
 	# Default to Block (most defensive assumption)
 	return "Block"
 
+## Short map-badge for a terrain rules category. Interior and Individual both
+## start with "I", so badges are NOT first letters: Interior=In, Individual=I.
+static func get_category_badge(category: String) -> String:
+	match category:
+		"Linear":
+			return "L"
+		"Interior":
+			return "In"
+		"Block":
+			return "B"
+		"Field":
+			return "F"
+		"Area":
+			return "A"
+		"Individual":
+			return "I"
+		_:
+			return category.substr(0, 1)
+
 ## Get Core Rules interaction text for a terrain category (p.37-39)
 static func get_terrain_rules_text(category: String) -> String:
 	match category:
 		"Linear":
 			return "Cover when adjacent. Cannot be placed on top of. Can be climbed. LOS exists across but target gets Cover unless shooter within 1\"."
 		"Individual":
-			return "Partial cover from one side. Does not block LOS if target is partially visible."
+			return "Cannot be climbed. Partial cover from one side. Does not block LOS if target is partially visible."
 		"Area":
 			return "Blocks LOS at nearest edge. Figures inside can see out from edges only. May be Difficult terrain (+1\" per 2\" moved)."
 		"Field":
