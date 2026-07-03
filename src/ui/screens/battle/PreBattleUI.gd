@@ -491,13 +491,21 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 	# Try to extract sector data for the visual map view
 	var sector_array: Array = _extract_sector_array(terrain_data)
 	if not sector_array.is_empty():
+		# Stack: table-size override row above the map (PreviewContent is a
+		# bare anchoring Control, so stacking needs a VBox)
+		var preview_vbox := VBoxContainer.new()
+		preview_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		preview_vbox.add_theme_constant_override("separation", 4)
+		battlefield_preview.add_child(preview_vbox)
+
+		var table_ft: float = float(terrain_data.get("table_size_ft", 3.0))
+		preview_vbox.add_child(_build_table_size_override(table_ft))
+
 		# Use BattlefieldMapView for visual overhead grid
 		var map_view := BattlefieldMapView.new()
-		map_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 		map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		# Size the grid to the persisted table size (Core Rules p.108)
-		var table_ft: float = float(terrain_data.get("table_size_ft", 3.0))
 		if map_view.has_method("configure_grid"):
 			map_view.configure_grid(BattlefieldGridClass.dims_for_table(table_ft))
 		var world_traits: Array = terrain_data.get("world_traits", [])
@@ -514,7 +522,7 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 						o.get("grid_pos"))
 					rehydrated.append(o)
 			map_view.set_objective_positions(rehydrated)
-		battlefield_preview.add_child(map_view)
+		preview_vbox.add_child(map_view)
 
 		# Store terrain data for passthrough to post-battle
 		_store_terrain_for_passthrough(sector_array, theme_name)
@@ -556,6 +564,79 @@ func _extract_sector_array(terrain_data: Dictionary) -> Array:
 		return result
 
 	return []
+
+## Per-battle table-size override row (Core Rules p.108). Changing it does
+## NOT re-roll terrain dice (the 5-step process is size-independent,
+## Compendium p.94) — it re-derives grid geometry + marker positions from
+## the SAME seeds and persists the choice.
+func _build_table_size_override(current_ft: float) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var lbl := Label.new()
+	lbl.text = "Table:"
+	lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+	lbl.add_theme_color_override("font_color", Color("#E0E0E0"))
+	row.add_child(lbl)
+	var opt := OptionButton.new()
+	opt.add_item("2x2 ft", 20)
+	opt.add_item("2.5x2.5 ft", 25)
+	opt.add_item("3x3 ft", 30)
+	var cur_id: int = int(roundf(current_ft * 10.0))
+	for i in range(opt.item_count):
+		if opt.get_item_id(i) == cur_id:
+			opt.select(i)
+			break
+	opt.custom_minimum_size = Vector2(140, _touch_target())
+	opt.accessibility_name = "Battle table size override"
+	opt.item_selected.connect(func(idx: int) -> void:
+		_on_table_size_override(opt.get_item_id(idx) / 10.0))
+	row.add_child(opt)
+	var hint := Label.new()
+	hint.text = "(p.108 — dice unchanged)"
+	hint.add_theme_font_size_override("font_size", _scaled_font(11))
+	hint.add_theme_color_override("font_color", Color("#808080"))
+	row.add_child(hint)
+	return row
+
+## Re-derive grid geometry + marker positions for the new size and persist.
+func _on_table_size_override(new_ft: float) -> void:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("get_battlefield_data"):
+		return
+	var contract: Dictionary = gs.get_battlefield_data()
+	if contract.get("sectors", []) is Array \
+			and contract.get("sectors", []).is_empty():
+		return
+	contract["table_size_ft"] = new_ft
+	var dims: Dictionary = BattlefieldGridClass.dims_for_table(new_ft)
+
+	# Objective + enemy markers derive from grid dims — recompute
+	# deterministically from the SAME seeds (terrain dice untouched).
+	var GenClass = load("res://src/core/battle/BattlefieldGenerator.gd")
+	var gen = GenClass.new()
+	var base_seed: int = int(contract.get("seed", 0))
+	var obj_rng := RandomNumberGenerator.new()
+	obj_rng.seed = hash("%d|objectives" % base_seed)
+	var obj_json: Array = []
+	for obj in gen.compute_objective_positions(
+			str(contract.get("mission_objective", "")),
+			contract.get("sectors", []), obj_rng, dims):
+		var oj: Dictionary = obj.duplicate()
+		oj["grid_pos"] = BattlefieldGridClass.grid_pos_to_json(
+			oj.get("grid_pos", Vector2.ZERO))
+		obj_json.append(oj)
+	contract["objective_positions"] = obj_json
+	var marker_rng := RandomNumberGenerator.new()
+	marker_rng.seed = hash("%d|enemy_markers" % base_seed)
+	contract["enemy_markers"] = GenClass.compute_enemy_deploy_markers(
+		str(contract.get("enemy_ai", "")),
+		int(contract.get("enemy_count", 0)), marker_rng, dims)
+	gs.set_battlefield_data(contract)
+
+	# Rebuild the preview with the new geometry (re-reads from GameState)
+	for child in battlefield_preview.get_children():
+		child.queue_free()
+	_setup_battlefield_preview({})
 
 ## Store terrain data in GameStateManager temp-data for post-battle passthrough.
 ## Consumed by PostBattleSummarySheet._setup_battlefield_recap on the next screen.

@@ -242,6 +242,15 @@ func _setup_battlefield_recap() -> void:
 	map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map_view.set_compact_mode(true)
 	map_view.show_unit_markers = true
+	# Recap renders the SAME persisted battlefield at the same table size
+	# (Core Rules p.108) so it matches what the player actually built.
+	var gs_bf: Node = get_node_or_null("/root/GameState")
+	if gs_bf and gs_bf.has_method("get_battlefield_data") \
+			and map_view.has_method("configure_grid"):
+		var bf: Dictionary = gs_bf.get_battlefield_data()
+		var grid_cls := preload("res://src/core/battle/BattlefieldGrid.gd")
+		map_view.configure_grid(grid_cls.dims_for_table(
+			float(bf.get("table_size_ft", 3.0))))
 	map_view.populate_from_sectors(terrain_sectors, terrain_theme)
 
 	# Add unit positions with casualty markers if available

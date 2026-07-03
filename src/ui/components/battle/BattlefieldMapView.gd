@@ -14,13 +14,19 @@ signal unit_right_clicked(unit_index: int, screen_pos: Vector2)
 signal unit_position_changed(unit_index: int, new_grid_pos: Vector2i)
 
 # ============================================================================
-# GRID CONSTANTS
+# GRID DIMENSIONS — square book tables (Core Rules p.108), 1.5"/cell
 # ============================================================================
 
-const GRID_COLUMNS := 24    # 4 sectors * 6 cells each
-const GRID_ROWS := 16       # 4 sectors * 4 cells each
-const SECTOR_COLS := 6      # cells per sector horizontally
-const SECTOR_ROWS := 4      # cells per sector vertically
+# Defaults = 3x3 ft (24x24 cells, 4x4 sectors of 6x6). Reconfigured via
+# configure_grid(FPCM_BattlefieldGrid.dims_for_table(ft)) BEFORE populate.
+# Uppercase to preserve the ~40 existing read sites — treat as read-only
+# outside configure_grid(). (The old 24x16 grid mapped to a 30"x20" table,
+# a size that exists nowhere in the book — fixed 2026-07-03.)
+var GRID_COLUMNS := 24      # 4 sectors * 6 cells each
+var GRID_ROWS := 24         # 4 sectors * 6 cells each
+var SECTOR_COLS := 6        # cells per sector horizontally
+var SECTOR_ROWS := 6        # cells per sector vertically
+var table_inches := 36.0    # physical table side length
 const ROW_LABELS := ["A", "B", "C", "D"]
 const COL_LABELS := ["1", "2", "3", "4"]
 
@@ -66,7 +72,7 @@ const ZOOM_STEP := 0.15
 
 # STABLE placement-base unit. Terrain is baked in this space; the transform,
 # my BUG-101 grid-rect clamp, and label/inch conversions all divide by it.
-# Do NOT mutate after construction (BattlefieldGridPanel used to, which
+# Do NOT mutate after construction (a resize handler used to, which
 # collapsed terrain top-left — see BUG-102). On-screen size = _get_effective_cell_size().
 var cell_size: float = 24.0
 var zoom_level: float = 1.0
@@ -174,6 +180,39 @@ func _build_tooltip() -> void:
 # ============================================================================
 # PUBLIC API
 # ============================================================================
+
+## Configure the grid for a book table size (Core Rules p.108). Call BEFORE
+## populate_from_sectors; if terrain is already baked, it re-bakes in the
+## new geometry. dims from FPCM_BattlefieldGrid.dims_for_table().
+## cell_size (the stable placement base) is NEVER touched — BUG-102.
+func configure_grid(dims: Dictionary) -> void:
+	if dims.is_empty():
+		return
+	var new_cols: int = int(dims.get("cols", GRID_COLUMNS))
+	var new_rows: int = int(dims.get("rows", GRID_ROWS))
+	var new_sc: int = int(dims.get("sector_cols", SECTOR_COLS))
+	var new_sr: int = int(dims.get("sector_rows", SECTOR_ROWS))
+	var new_inches: float = float(dims.get("table_inches", table_inches))
+	if new_cols == GRID_COLUMNS and new_rows == GRID_ROWS \
+			and new_sc == SECTOR_COLS and new_sr == SECTOR_ROWS \
+			and is_equal_approx(new_inches, table_inches):
+		return
+	GRID_COLUMNS = new_cols
+	GRID_ROWS = new_rows
+	SECTOR_COLS = new_sc
+	SECTOR_ROWS = new_sr
+	table_inches = new_inches
+	# Pre-_ready() safe (recap builds the view before add_child): just
+	# record the geometry — _ready + populate consume it.
+	if _terrain_container == null:
+		return
+	# Re-bake terrain placement in the new geometry if already populated
+	if not _sector_features.is_empty():
+		_rebuild_terrain_shapes()
+	_update_terrain_transform()
+	queue_redraw()
+	if _overlay_control:
+		_overlay_control.queue_redraw()
 
 func populate_from_sectors(sectors: Array, p_theme_name: String = "",
 		world_traits: Array = []) -> void:
@@ -677,31 +716,46 @@ func _draw_deployment_zones(offset: Vector2, cs: float, grid_w: float) -> void:
 			Color(0.70, 0.20, 0.20, 0.6))
 
 func _draw_grid_lines(offset: Vector2, cs: float, grid_w: float, grid_h: float) -> void:
-	# Vertical lines
+	# Batched: 2 draw_multiline calls instead of ~50 draw_line calls.
+	# This redraws every drag frame during pan/zoom — the docs recommend
+	# multiline for many uniform segments (Godot 4.6 CanvasItem).
+	var minor_pts := PackedVector2Array()
+	var major_pts := PackedVector2Array()
 	for col: int in range(GRID_COLUMNS + 1):
 		var x: float = offset.x + col * cs
-		var is_major: bool = col % 4 == 0
-		var color: Color = COLOR_GRID_LINE_MAJOR if is_major else COLOR_GRID_LINE
-		var width: float = 1.5 if is_major else 1.0
-		draw_line(Vector2(x, offset.y), Vector2(x, offset.y + grid_h), color, width)
-
-	# Horizontal lines
+		if col % 4 == 0:
+			major_pts.push_back(Vector2(x, offset.y))
+			major_pts.push_back(Vector2(x, offset.y + grid_h))
+		else:
+			minor_pts.push_back(Vector2(x, offset.y))
+			minor_pts.push_back(Vector2(x, offset.y + grid_h))
 	for row: int in range(GRID_ROWS + 1):
 		var y: float = offset.y + row * cs
-		var is_major: bool = row % 4 == 0
-		var color: Color = COLOR_GRID_LINE_MAJOR if is_major else COLOR_GRID_LINE
-		var width: float = 1.5 if is_major else 1.0
-		draw_line(Vector2(offset.x, y), Vector2(offset.x + grid_w, y), color, width)
+		if row % 4 == 0:
+			major_pts.push_back(Vector2(offset.x, y))
+			major_pts.push_back(Vector2(offset.x + grid_w, y))
+		else:
+			minor_pts.push_back(Vector2(offset.x, y))
+			minor_pts.push_back(Vector2(offset.x + grid_w, y))
+	if minor_pts.size() >= 2:
+		draw_multiline(minor_pts, COLOR_GRID_LINE, 1.0)
+	if major_pts.size() >= 2:
+		draw_multiline(major_pts, COLOR_GRID_LINE_MAJOR, 1.5)
 
 func _draw_center_line(offset: Vector2, cs: float, grid_w: float) -> void:
+	# Batched dashes: one draw_multiline call
 	var mid_y: float = offset.y + GRID_ROWS / 2.0 * cs
 	var dash_len: float = 8.0
 	var gap_len: float = 6.0
+	var dash_pts := PackedVector2Array()
 	var x: float = offset.x
 	while x < offset.x + grid_w:
 		var end_x: float = minf(x + dash_len, offset.x + grid_w)
-		draw_line(Vector2(x, mid_y), Vector2(end_x, mid_y), COLOR_CENTER_LINE, 1.5)
+		dash_pts.push_back(Vector2(x, mid_y))
+		dash_pts.push_back(Vector2(end_x, mid_y))
 		x += dash_len + gap_len
+	if dash_pts.size() >= 2:
+		draw_multiline(dash_pts, COLOR_CENTER_LINE, 1.5)
 
 func _draw_sector_dividers(offset: Vector2, cs: float, grid_w: float, grid_h: float) -> void:
 	var sector_w: float = SECTOR_COLS * cs
@@ -738,10 +792,9 @@ func _draw_axes(offset: Vector2, cs: float, grid_w: float, grid_h: float) -> voi
 	var font: Font = ThemeDB.fallback_font
 	var font_size: int = clampi(int(cs * 0.45), 8, 14)
 
-	# Five Parsecs table: map 24 columns to ~30", 16 rows to ~20"
-	# Each cell ≈ 1.25" horizontal, 1.25" vertical
-	var inches_per_col: float = 30.0 / GRID_COLUMNS
-	var inches_per_row: float = 20.0 / GRID_ROWS
+	# Square book table (Core Rules p.108): table_inches per side, 1.5"/cell
+	var inches_per_col: float = table_inches / GRID_COLUMNS
+	var inches_per_row: float = table_inches / GRID_ROWS
 
 	# Bottom axis (X — inches from left)
 	for col: int in range(GRID_COLUMNS + 1):
@@ -837,8 +890,8 @@ func _draw_terrain_labels_on(canvas: Control, offset: Vector2, cs: float) -> voi
 	var font_size: int = clampi(int(cs * 0.4), 8, 12)
 	var scale: float = cs / cell_size
 
-	var inches_per_col: float = 30.0 / GRID_COLUMNS
-	var inches_per_row: float = 20.0 / GRID_ROWS
+	var inches_per_col: float = table_inches / GRID_COLUMNS
+	var inches_per_row: float = table_inches / GRID_ROWS
 
 	for sr: int in range(4):
 		for sc: int in range(4):
@@ -1061,7 +1114,8 @@ func _draw_battle_event_overlay(canvas: Control,
 		offset: Vector2, cs: float, overlay: Dictionary) -> void:
 	## Draw a battle event overlay (fog cloud, hazard zone, markers)
 	var o_type: String = overlay.get("type", "")
-	var o_center: Vector2 = overlay.get("center", Vector2(12, 8))
+	var o_center: Vector2 = overlay.get("center",
+		Vector2(GRID_COLUMNS / 2.0, GRID_ROWS / 2.0))
 	var o_radius: float = overlay.get("radius", 6.0)
 	var px_center := Vector2(
 		offset.x + o_center.x * cs,
@@ -1156,8 +1210,10 @@ func _gui_input(event: InputEvent) -> void:
 				if new_cell != Vector2i(-1, -1):
 					var unit: Dictionary = _unit_positions[_dragging_unit_idx]
 					var is_crew: bool = str(unit.get("team", "crew")) == "crew"
-					var in_zone: bool = (is_crew and new_cell.y < 8) or \
-						(not is_crew and new_cell.y >= 8)
+					@warning_ignore("integer_division")
+					var half_row: int = GRID_ROWS / 2
+					var in_zone: bool = (is_crew and new_cell.y < half_row) or \
+						(not is_crew and new_cell.y >= half_row)
 					if in_zone:
 						_unit_positions[_dragging_unit_idx]["position"] = new_cell
 						unit_position_changed.emit(_dragging_unit_idx, new_cell)

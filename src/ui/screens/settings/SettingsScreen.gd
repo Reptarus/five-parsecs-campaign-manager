@@ -422,6 +422,42 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		"Show full-screen story moments with art and advisor reactions. When off, events use the classic card layout.")
 	_bind_toggle(_narrative_events_check, "gameplay", "use_narrative_events")
 
+	# My Table Size — the player's physical battle table (Core Rules p.108).
+	# Drives the battlefield map grid + Standard Terrain Set guidance (p.109).
+	# Item ids are ft x10 (OptionButton ids must be ints).
+	var table_row := HBoxContainer.new()
+	card.add_child(table_row)
+	var table_label := Label.new()
+	table_label.text = "My Table Size"
+	table_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table_label.add_theme_font_size_override("font_size", _font_md)
+	table_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	table_row.add_child(table_label)
+	var table_option := OptionButton.new()
+	table_option.add_item("2x2 ft", 20)
+	table_option.add_item("2.5x2.5 ft", 25)
+	table_option.add_item("3x3 ft", 30)
+	var saved_ft: float = _sm.get_table_size_ft() if _sm \
+		and _sm.has_method("get_table_size_ft") else 3.0
+	var saved_id: int = int(roundf(saved_ft * 10.0))
+	for i in range(table_option.item_count):
+		if table_option.get_item_id(i) == saved_id:
+			table_option.select(i)
+			break
+	table_option.custom_minimum_size = Vector2(200, _touch_target)
+	table_option.accessibility_name = "Physical table size selection"
+	if _sm:
+		table_option.item_selected.connect(func(idx: int):
+			_sm.set_setting("gameplay", "table_size_ft",
+				table_option.get_item_id(idx) / 10.0))
+	table_row.add_child(table_option)
+	var table_hint := Label.new()
+	table_hint.text = "Battle maps match your physical table (Core Rules p.108)"
+	table_hint.add_theme_font_size_override("font_size", _font_sm)
+	table_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	table_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(table_hint)
+
 
 # ============ MOBILE-ONLY ============
 func _build_mobile_section(parent: VBoxContainer) -> void:

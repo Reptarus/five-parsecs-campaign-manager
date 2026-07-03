@@ -311,7 +311,7 @@ func draw_empty_cell(canvas: Control, area: Vector2) -> void:
 		SHAPE_COLOR_OPEN, 1.5)
 
 ## Draw all classified shapes in a flow layout within a bounded area.
-## Used by BattlefieldGridPanel sector cells for packed shape rendering.
+## Packed shape rendering for compact sector-cell displays.
 func draw_shapes_packed(canvas: Control, shapes: Array, area: Vector2) -> void:
 	if shapes.is_empty():
 		draw_empty_cell(canvas, area)
