@@ -151,26 +151,16 @@ func test_injured_unit_receives_injury_type():
 
 	assert_that(has_injury).is_true()
 
-func test_injury_types_match_rulebook():
-	"""🐛 BUG DISCOVERY: Injury types should match Five Parsecs rules (p.94-95)"""
-	# Per rulebook: LIGHT_WOUND, SERIOUS_INJURY, KNOCKED_OUT, EQUIPMENT_DAMAGE,
-	#                PERMANENT_INJURY, CRITICAL_CONDITION
-
-	var valid_injury_types = [
-		"LIGHT_WOUND",
-		"SERIOUS_INJURY",
-		"KNOCKED_OUT",
-		"EQUIPMENT_DAMAGE",
-		"PERMANENT_INJURY",
-		"CRITICAL_CONDITION"
-	]
-
-	# Processor should define these injury types
-	# Check if InjuryType enum exists via script constants
-	var script_constants = PostBattleProcessorClass.get_script_constant_map()
-	var has_injury_enum = script_constants.has("InjuryType")
-
-	assert_that(has_injury_enum).is_true()
+func test_injury_table_is_json_driven():
+	"""Injuries come from the D100 Injury Table in data/injury_results.json
+	(Core Rules p.122-123) — updated 2026-07-02: the old assertion demanded
+	an 'InjuryType' enum with six invented names ('LIGHT_WOUND'...
+	'CRITICAL_CONDITION', citing 'p.94-95') that match neither the book's
+	injury table nor any shipped code. The JSON is the single source of
+	truth for injury results."""
+	PostBattleProcessorClass._load_injury_json()
+	var injury_json: Dictionary = PostBattleProcessorClass._injury_json
+	assert_bool(injury_json.is_empty()).is_false()
 
 func test_injury_recovery_time_assigned():
 	"""🐛 BUG DISCOVERY: Injuries should have recovery time per rulebook"""

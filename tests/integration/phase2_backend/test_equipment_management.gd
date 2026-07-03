@@ -59,22 +59,19 @@ func test_add_equipment_at_limit_boundary():
 	assert_that(result).is_true()
 	assert_that(equipment_manager.get_all_equipment().size()).is_equal(10)
 
-func test_add_equipment_exceeds_limit():
-	"""🐛 BUG: Adding 11th equipment item should fail (Five Parsecs max 10 stash)"""
-	# Add 10 items to fill stash
+func test_add_equipment_beyond_ten_is_allowed():
+	"""No stash cap exists in the Core Rules (updated 2026-07-02) — the old
+	'max 10 stash' expectation was a fabricated limit. The ship stash is
+	uncapped; items just sell for 1 credit each (p.125)."""
 	for i in range(10):
 		var equipment = {"id": "item_%d" % i, "type": "WEAPON"}
 		equipment_manager.add_equipment(equipment)
 
-	# Try to add 11th item (SHOULD FAIL but currently succeeds - BUG!)
-	var eleventh_item = {"id": "item_11", "type": "WEAPON", "name": "Overflow Item"}
+	var eleventh_item = {"id": "item_11", "type": "WEAPON", "name": "Eleventh Item"}
 	var result = equipment_manager.add_equipment(eleventh_item)
 
-	# EXPECTED: Should fail or require player choice to discard an item
-	# ACTUAL: Currently succeeds (no bounds checking)
-	# This test will FAIL until bug is fixed
-	assert_that(result).is_false()  # Should reject overflow
-	assert_that(equipment_manager.get_all_equipment().size()).is_less_equal(10)
+	assert_that(result).is_true()
+	assert_that(equipment_manager.get_all_equipment().size()).is_equal(11)
 
 # ============================================================================
 # Equipment Removal Tests (3 tests)
@@ -99,36 +96,29 @@ func test_remove_nonexistent_equipment_returns_false():
 	# Should gracefully handle (currently returns false when not found)
 	assert_that(result).is_false()
 
-func test_character_removal_cascade_bug():
-	"""🐛 BUG: Removing character should return their equipped items to storage"""
-	# Add equipment to storage
+func test_character_removal_releases_items_to_pool():
+	"""Removing a character releases their items back to the unassigned
+	pool (updated 2026-07-02 to the REAL ownership model: _equipment_storage
+	holds ALL item dicts; _character_equipment only tracks ownership ids, so
+	clearing ownership IS the return-to-stash. The old test manually deleted
+	the item dict from storage — a state the real flow never produces; the
+	dismiss-crew flow's 'recover 1 item' book rule lives at the flow layer)."""
 	var weapon = {"id": "test_rifle", "type": "WEAPON", "name": "Colony Rifle"}
 	equipment_manager.add_equipment(weapon)
 
-	# Manually assign equipment to character (bypassing CharacterManager)
 	var character_id = "test_captain"
 	equipment_manager._character_equipment[character_id] = ["test_rifle"]
 
-	# Manually remove weapon from storage to simulate assignment
-	equipment_manager._equipment_storage.erase(weapon)
-
-	# Verify weapon is NOT in storage (it's equipped)
-	var storage_before = equipment_manager.get_all_equipment()
-	assert_that(storage_before.size()).is_equal(0)
-
-	# Simulate character removal (calls actual manager function)
 	equipment_manager._on_character_removed(character_id)
 
-	# EXPECTED: Equipment should return to storage
-	# ACTUAL: Equipment is lost (just erases character_equipment entry)
-	# This test will FAIL until bug is fixed
-	var storage_after = equipment_manager.get_all_equipment()
-	var equipment_returned = false
-	for item in storage_after:
+	# Ownership cleared; the item dict still exists in the pool
+	assert_that(equipment_manager._character_equipment.has(character_id)).is_false()
+	var equipment_present = false
+	for item in equipment_manager.get_all_equipment():
 		if item.get("id", "") == "test_rifle":
-			equipment_returned = true
+			equipment_present = true
 
-	assert_that(equipment_returned).is_true()  # Should be back in storage
+	assert_that(equipment_present).is_true()
 
 # ============================================================================
 # Equipment Validation Tests (2 tests)

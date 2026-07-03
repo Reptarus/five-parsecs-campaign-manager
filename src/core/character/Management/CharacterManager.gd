@@ -41,15 +41,22 @@ func add_character(character) -> bool:
 	# Ensure character has required fields
 	if not ("status" in character):
 		character.status = {}
-		
-	# Add to collections
+
+	# Add to collections. Replacing an existing id must evict the old entry
+	# from the active/inactive lists, and re-adding the same character must
+	# not append a duplicate active-list entry.
 	var char_id = character.id
+	if char_id in _characters and _characters[char_id] != character:
+		var old_entry = _characters[char_id]
+		_active_characters.erase(old_entry)
+		_inactive_characters.erase(old_entry)
 	_characters[char_id] = character
-	_active_characters.append(character)
-	
+	if not (character in _active_characters):
+		_active_characters.append(character)
+
 	# Emit signal
 	character_added.emit(character)
-	
+
 	return true
 
 # Remove a character

@@ -61,10 +61,11 @@ func test_upkeep_payment_with_sufficient_credits():
 
 func test_upkeep_fails_with_insufficient_credits():
 	"""Upkeep payment fails when credits insufficient"""
-	# Set insufficient credits
-	mock_campaign.credits = 1
+	# Set insufficient credits. Core Rules p.76: 4-6 crew cost exactly
+	# 1 credit (the old "4 crew = 4 credits" comment was wrong), so 1
+	# credit can be SUFFICIENT — zero is genuinely insufficient.
+	mock_campaign.credits = 0
 
-	# Calculate upkeep (4 crew = 4 credits minimum)
 	var upkeep_costs = upkeep_system.calculate_upkeep_costs(mock_campaign)
 
 	# Try to pay upkeep
@@ -124,16 +125,18 @@ func test_upkeep_failure_consequences():
 	var success = upkeep_system.pay_upkeep(mock_campaign, upkeep_costs)
 	assert_bool(success).is_false()
 
-	# Get consequences
+	# Get consequences — the REAL Core Rules p.76 consequence is crew
+	# lockout (1 crew refuses tasks per credit short). The old expected
+	# keys (crew_morale_penalty / ship_degradation / crew_departure /
+	# medical_complications) were the FABRICATED morale-era design that
+	# was purged — do not re-assert them.
 	var consequences = upkeep_system.handle_upkeep_failure(mock_campaign)
 
-	# Verify consequences structure
 	assert_dict(consequences).contains_keys([
-		"crew_morale_penalty",
-		"ship_degradation",
-		"crew_departure",
-		"medical_complications"
+		"crew_locked_out",
+		"locked_out_members"
 	])
+	assert_int(int(consequences.get("crew_locked_out", 0))).is_greater_equal(1)
 
 func test_injured_crew_increase_upkeep_costs():
 	"""Injured crew members increase upkeep costs"""

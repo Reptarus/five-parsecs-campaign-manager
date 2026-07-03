@@ -409,9 +409,12 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		else:
 			var info: Dictionary = _roll_patron_type(dice_manager)
 			patron_type = info.type
-		# Generate a proper name based on patron type tier
-		var name_tier: String = _patron_type_to_name_tier(patron_type)
-		patron_name = _generate_patron_name(name_tier)
+		# Generate a proper name ONLY when the caller didn't provide one —
+		# overwriting a provided name made jobs from the crew's OWN patrons
+		# display a random generated stranger instead
+		if patron_name.is_empty() or patron_name == "Open Market":
+			var name_tier: String = _patron_type_to_name_tier(patron_type)
+			patron_name = _generate_patron_name(name_tier)
 
 	# Apply patron type bonuses (Core Rules p.83)
 	if patron_type == "Corporation":
@@ -846,6 +849,18 @@ func accept_selected_job() -> bool:
 			"job_data": job
 		})
 
+	_update_ui_display()
+	return true
+
+func decline_selected_job() -> bool:
+	## Decline (pass on) the currently selected job — removes it from the
+	## offer list and clears the selection. Completes the "acceptance/
+	## rejection" contract this section documents (accept existed alone).
+	if selected_job_index < 0 or selected_job_index >= available_jobs.size():
+		return false
+
+	available_jobs.remove_at(selected_job_index)
+	selected_job_index = -1
 	_update_ui_display()
 	return true
 

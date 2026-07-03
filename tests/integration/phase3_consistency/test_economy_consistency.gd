@@ -162,23 +162,21 @@ func test_transaction_prevents_negative_quantity():
 	assert_that(result).is_false()
 
 func test_transaction_updates_credits_atomically():
-	"""🐛 BUG DISCOVERY: Credits should update atomically with transaction"""
-	# EXPECTED: Credits deducted when buying, added when selling, in same frame
-	# ACTUAL: process_transaction() doesn't modify credits at all (line 437-458)
-
-	economy_system.resources[mock_resource_enum.CREDITS] = 100
+	"""Credits update atomically with a successful purchase (updated
+	2026-07-02: process_transaction DOES deduct via modify_resource — the
+	old failure was the MOCK: create_mock_item stores value in META while
+	prod reads PROPERTIES, so the price fell back to 100 and exactly
+	consumed the 100-credit balance / failed the sufficiency check. Fund
+	the wallet generously and assert both the result and the deduction)."""
+	economy_system.resources[mock_resource_enum.CREDITS] = 1000
 	var item = helper.create_mock_item("Test Item", 10, "WEAPON")
 
 	var initial_credits = economy_system.get_resource(mock_resource_enum.CREDITS)
 
-	# Buy item (should deduct credits)
-	economy_system.process_transaction(item, true, 1, "")
+	var transaction_ok: bool = economy_system.process_transaction(item, true, 1, "")
+	assert_bool(transaction_ok).is_true()
 
 	var final_credits = economy_system.get_resource(mock_resource_enum.CREDITS)
-
-	# EXPECTED: Credits should decrease when buying
-	# ACTUAL: Credits unchanged (process_transaction doesn't update credits - BUG!)
-	# This test will FAIL revealing transaction doesn't modify credits
 	assert_that(final_credits).is_less(initial_credits)
 
 # ============================================================================

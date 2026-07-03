@@ -50,18 +50,17 @@ func after():
 # Valid Phase Transitions (4 tests)
 # ============================================================================
 
-func test_valid_transition_travel_to_world():
-	"""TRAVEL → WORLD transition succeeds"""
-	# Setup: Start in TRAVEL phase
+func test_valid_transition_travel_to_pre_mission():
+	"""TRAVEL → PRE_MISSION succeeds (updated 2026-07-02: the canonical
+	sequence is UPKEEP→STORY→TRAVEL→PRE_MISSION; UPKEEP is only reachable
+	from SETUP/RETIREMENT/NONE as the turn-entry phase)"""
 	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
 	phase_manager.transition_in_progress = false
 
-	# Execute: Transition to WORLD
-	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
+	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.PRE_MISSION)
 
-	# Verify: Transition succeeded
 	assert_that(result).is_true()
-	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
+	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.PRE_MISSION)
 
 func test_valid_transition_world_to_battle():
 	"""WORLD → BATTLE transition succeeds"""
@@ -89,34 +88,31 @@ func test_valid_transition_battle_to_post_battle():
 	assert_that(result).is_true()
 	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
 
-func test_valid_transition_post_battle_to_travel():
-	"""POST_BATTLE → TRAVEL transition succeeds (new turn)"""
-	# Setup: Start in POST_BATTLE phase
+func test_valid_transition_post_battle_to_advancement():
+	"""POST_MISSION → ADVANCEMENT succeeds (updated 2026-07-02: the turn
+	continues through the late phases; TRAVEL only follows STORY and new
+	turns start at UPKEEP via start_new_turn)"""
 	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION
 	phase_manager.transition_in_progress = false
-	var initial_turn = phase_manager.turn_number
 
-	# Execute: Transition to TRAVEL (starts new turn)
-	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
+	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.ADVANCEMENT)
 
-	# Verify: Transition succeeded
 	assert_that(result).is_true()
-	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
+	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.ADVANCEMENT)
 
 # ============================================================================
 # Invalid Phase Transitions (3 tests)
 # ============================================================================
 
-func test_invalid_transition_travel_to_battle():
-	"""TRAVEL → BATTLE transition fails (must go through WORLD)"""
-	# Setup: Start in TRAVEL phase
+func test_invalid_transition_travel_to_battle_resolution():
+	"""TRAVEL → BATTLE_RESOLUTION fails (updated 2026-07-02: TRAVEL →
+	MISSION is now ALLOWED by design since the world-phase UI covers all
+	world-phase states; battle RESOLUTION still requires BATTLE_SETUP)"""
 	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
 	phase_manager.transition_in_progress = false
 
-	# Execute: Attempt invalid transition to BATTLE
-	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.MISSION)
+	var result = phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE_RESOLUTION)
 
-	# Verify: Transition blocked, still in TRAVEL
 	assert_that(result).is_false()
 	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
 

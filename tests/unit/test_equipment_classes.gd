@@ -52,6 +52,8 @@ func test_weapon_is_melee():
 func test_weapon_is_ranged():
 	var weapon := GameWeaponClass.new()
 	weapon.weapon_category = "Pistol"
+	# is_melee()/is_ranged() key on RANGE, not category (melee = zero range)
+	weapon.weapon_range = {"short": 6, "medium": 12, "long": 18}
 	assert_that(weapon.is_ranged()).is_true()
 
 func test_weapon_has_trait():

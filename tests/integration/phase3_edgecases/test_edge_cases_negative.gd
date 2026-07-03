@@ -71,8 +71,9 @@ func test_null_character_reference_handling():
 	# EXPECTED: Should validate character exists before operations
 	# ACTUAL: May crash with null reference error
 
-	# Try to remove empty string character - should fail gracefully
-	var result = character_manager.remove_character_from_roster("")
+	# Real API is remove_character() (the old remove_character_from_roster
+	# never existed on the current CharacterManager)
+	var result = character_manager.remove_character("")
 
 	# Should return false (not crash)
 	assert_that(result).is_false()
@@ -80,7 +81,7 @@ func test_null_character_reference_handling():
 	# Try with completely invalid ID (non-existent)
 	# Note: GDScript typed functions don't accept null for String parameters,
 	# so we test with an obviously invalid ID instead
-	result = character_manager.remove_character_from_roster("__invalid_nonexistent_id__")
+	result = character_manager.remove_character("__invalid_nonexistent_id__")
 
 	# Should handle missing character gracefully (return false, not crash)
 	assert_that(result).is_false()
@@ -94,12 +95,13 @@ func test_null_equipment_item_rejection():
 	# Actual implementation may vary based on EconomySystem design
 
 func test_empty_array_handling():
-	"""Empty arrays should be handled without errors"""
-	# Test with zero crew members
-	assert_that(character_manager.get_crew_size()).is_equal(0)
+	"""Empty arrays should be handled without errors (real registry API:
+	get_all_characters/get_active_characters — get_crew_size/get_active_crew
+	never existed on the current CharacterManager)"""
+	assert_that(character_manager.get_all_characters().size()).is_equal(0)
 
 	# Empty crew should still return valid (empty) array
-	var crew = character_manager.get_active_crew()
+	var crew = character_manager.get_active_characters()
 	assert_that(crew).is_not_null()
 	assert_that(crew.size()).is_equal(0)
 
