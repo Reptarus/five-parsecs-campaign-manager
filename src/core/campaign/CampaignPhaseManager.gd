@@ -1613,20 +1613,13 @@ func _get_crew_ids() -> Array:
 			ids.append(mid)
 	return ids
 
-func generate_battlefield() -> Dictionary:
-	# Compendium themed terrain (pp.96-100) is DLC-gated.
-	# Core Rules terrain (p.109) has NO theme system — just standard
-	# feature counts. Return empty so the Core Rules terrain guide
-	# from CampaignTurnController._generate_terrain_setup_guide() is used.
-	var dlc = Engine.get_main_loop().root.get_node_or_null(
-		"/root/DLCManager") if Engine.get_main_loop() else null
-	if not dlc or not dlc.has_method("is_feature_enabled"):
-		return {}
-	# Only use Compendium terrain themes if Compendium DLC is active
-	if not dlc.is_feature_enabled(dlc.ContentFlag.TERRAIN_THEMES \
-			if "TERRAIN_THEMES" in dlc.ContentFlag else -1):
-		return {}
-
+func generate_battlefield(theme: String = "", world_traits: Array = [],
+		deployment_condition: Dictionary = {}, rng_seed: int = 0,
+		table_size_ft: float = 3.0) -> Dictionary:
+	# Compendium 5-step terrain generation (pp.94-98) — free for everyone.
+	# The old TERRAIN_THEMES DLC gate was removed 2026-07-02: the flag was
+	# never defined in DLCManager, so this returned {} for ALL players and
+	# the campaign path never generated a visual battlefield.
 	var BattlefieldGeneratorClass = load(
 		"res://src/core/battle/BattlefieldGenerator.gd")
 	if not BattlefieldGeneratorClass:
@@ -1634,21 +1627,23 @@ func generate_battlefield() -> Dictionary:
 
 	var gen = BattlefieldGeneratorClass.new()
 
-	# Pick theme from mission/world context
-	var theme := "wilderness"
-	var gs = get_node_or_null("/root/GameState")
-	if gs:
-		var mission = gs.get_current_mission() if gs.has_method(
-			"get_current_mission") else {}
-		var env = mission.get("environment", "")
-		if env != "":
-			theme = env
+	# Pick theme from mission/world context when the caller didn't supply one
+	if theme.is_empty():
+		theme = "wilderness"
+		var gs = get_node_or_null("/root/GameState")
+		if gs:
+			var mission = gs.get_current_mission() if gs.has_method(
+				"get_current_mission") else {}
+			var env = mission.get("environment", "")
+			if env != "":
+				theme = env
 
 	var available: Array[String] = gen.get_terrain_themes()
 	if available.size() > 0 and theme not in available:
 		theme = available[0]
 
-	return gen.generate_terrain_suggestions(theme)
+	return gen.generate_terrain_suggestions(
+		theme, world_traits, deployment_condition, rng_seed, table_size_ft)
 
 func _generate_enemy_forces() -> Array:
 	# Stub: Generate enemy forces

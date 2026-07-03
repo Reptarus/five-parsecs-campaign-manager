@@ -6,7 +6,9 @@ extends Control
 
 ## Dependencies
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+## Grid geometry SSOT (table sizes p.108) — preloaded per this file's
+## stale-class_name-cache convention.
+const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # KeywordLinker preload — bypasses the global class_name cache which can be
 # stale until editor reopens (CLAUDE.md "Preload Pattern for UI Class
 # References").
@@ -20,13 +22,9 @@ const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePa
 ## MarginContainer L/R margins in portrait to reclaim width on the 360dp floor.
 const PortraitChromeClass = preload("res://src/ui/components/base/PortraitChrome.gd")
 
-## Optional dependencies that may not exist
-var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
-
 ## Signals
 signal crew_selected(crew: Array)
 signal deployment_confirmed
-signal terrain_ready
 signal preview_updated
 signal back_pressed
 
@@ -71,7 +69,6 @@ const AI_TYPE_NAMES: Dictionary = {
 ## State
 var current_mission: StoryQuestData
 var selected_crew: Array = []
-var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
 var _max_deploy: int = 6  # Campaign crew size deployment limit (Core Rules p.63/85)
 var _deploy_label: Label  # "Deploying X / Y max" display
 var _keyword_tooltip: KeywordTooltip = null  # Lazy-instantiated for inline rules popovers
@@ -95,7 +92,6 @@ func _touch_target() -> int:
 
 func _ready() -> void:
 	_apply_base_background()
-	_initialize_systems()
 	_connect_signals()
 	confirm_button.disabled = true
 	_setup_adaptive_panels()
@@ -167,15 +163,6 @@ func _apply_base_background() -> void:
 	bg.show_behind_parent = true
 	add_child(bg)
 	move_child(bg, 0)
-
-## Initialize required systems
-func _initialize_systems() -> void:
-	if _terrain_system_script:
-		terrain_system = _terrain_system_script.new()
-		if battlefield_preview:
-			battlefield_preview.add_child(terrain_system)
-			if terrain_system.has_signal("terrain_generated"):
-				terrain_system.terrain_generated.connect(_on_terrain_generated)
 
 ## Lazy-instantiate the shared keyword tooltip used by inline rules popovers.
 ## Called only when a clickable keyword surface is built, so PreBattleUI without
@@ -478,12 +465,9 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 	if not battlefield_preview:
 		return
 
-	# If terrain system is available, use it
-	if terrain_system and terrain_system.has_method("generate_battlefield"):
-		terrain_system.generate_battlefield(data)
-		return
-
-	# Gather terrain data from preview data or GameState
+	# Gather terrain data from preview data or GameState. The stored
+	# active_battlefield contract is FLAT (sectors at top level), so
+	# bf_data.get("terrain", bf_data) resolves to the contract itself.
 	var terrain_data: Dictionary = data.get("terrain", {})
 	if terrain_data.is_empty():
 		var game_state = get_node_or_null("/root/GameState")
@@ -500,7 +484,9 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		battlefield_preview.add_child(placeholder)
 		return
 
-	var theme_name: String = terrain_data.get("theme", terrain_data.get("theme_name", ""))
+	# Prefer the display name; fall back to the theme key
+	var theme_name: String = terrain_data.get("theme_name",
+		terrain_data.get("theme", ""))
 
 	# Try to extract sector data for the visual map view
 	var sector_array: Array = _extract_sector_array(terrain_data)
@@ -510,8 +496,24 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		map_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 		map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		# Size the grid to the persisted table size (Core Rules p.108)
+		var table_ft: float = float(terrain_data.get("table_size_ft", 3.0))
+		if map_view.has_method("configure_grid"):
+			map_view.configure_grid(BattlefieldGridClass.dims_for_table(table_ft))
 		var world_traits: Array = terrain_data.get("world_traits", [])
 		map_view.populate_from_sectors(sector_array, theme_name, world_traits)
+		# Show the persisted objective markers on the preview too
+		var stored_obj: Variant = terrain_data.get("objective_positions", [])
+		if stored_obj is Array and not stored_obj.is_empty() \
+				and map_view.has_method("set_objective_positions"):
+			var rehydrated: Array = []
+			for obj in stored_obj:
+				if obj is Dictionary:
+					var o: Dictionary = obj.duplicate()
+					o["grid_pos"] = BattlefieldGridClass.json_to_grid_pos(
+						o.get("grid_pos"))
+					rehydrated.append(o)
+			map_view.set_objective_positions(rehydrated)
 		battlefield_preview.add_child(map_view)
 
 		# Store terrain data for passthrough to post-battle
@@ -522,16 +524,19 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 	_setup_text_terrain_fallback(terrain_data, theme_name)
 
 ## Extract sector data into the Array format BattlefieldMapView expects.
-## Handles both dict-keyed sectors and pre-formatted sector arrays.
+## Handles the generator/contract Array format, dict-keyed sectors, and
+## pre-formatted sector arrays.
 func _extract_sector_array(terrain_data: Dictionary) -> Array:
-	# Format A: sectors as Array of {label, features}
-	if terrain_data.has("sector_list"):
-		var sector_list = terrain_data.get("sector_list", [])
-		if sector_list is Array and not sector_list.is_empty():
-			return sector_list
+	# Format A: sectors as Array of {label, features} — the shape both the
+	# generator and the persisted active_battlefield contract emit.
+	# (Pre-2026-07-02 this format was NOT handled, so the visual preview
+	# could never render generator output.)
+	var sectors: Variant = terrain_data.get("sectors",
+		terrain_data.get("sector_list", []))
+	if sectors is Array and not sectors.is_empty():
+		return sectors
 
 	# Format B: sectors as Dictionary {label: features_or_description}
-	var sectors = terrain_data.get("sectors", {})
 	if sectors is Dictionary and not sectors.is_empty():
 		var result: Array = []
 		for sector_key: String in sectors:
@@ -676,11 +681,6 @@ func _update_deploy_label() -> void:
 		col = Color("#D97706")
 	_deploy_label.add_theme_color_override("font_color", col)
 
-## Handle terrain generation completion
-func _on_terrain_generated(_terrain_data: Dictionary) -> void:
-	terrain_ready.emit()
-	_update_confirm_button()
-
 ## Handle confirm button press
 func _on_confirm_pressed() -> void:
 	deployment_confirmed.emit()
@@ -690,11 +690,8 @@ func _update_confirm_button() -> void:
 	if not confirm_button:
 		return
 
-	# Require crew selection; terrain system is optional (text fallback exists)
-	var terrain_ok: bool = true
-	if terrain_system and terrain_system.has_method("is_terrain_ready"):
-		terrain_ok = terrain_system.is_terrain_ready()
-	confirm_button.disabled = selected_crew.is_empty() or not terrain_ok
+	# Require crew selection (terrain always renders — map or text fallback)
+	confirm_button.disabled = selected_crew.is_empty()
 	# Tell the player WHY Confirm is disabled (the common case is no crew picked).
 	confirm_button.tooltip_text = "Select at least one crew member to deploy" \
 		if selected_crew.is_empty() else ""
@@ -859,16 +856,12 @@ func cleanup() -> void:
 	selected_crew.clear()
 	current_mission = null
 
-	if terrain_system and terrain_system.has_method("cleanup"):
-		terrain_system.cleanup()
-
 	# Clear UI panels
 	for child in mission_info_panel.get_children():
 		child.queue_free()
 	for child in enemy_info_panel.get_children():
 		child.queue_free()
 	for child in battlefield_preview.get_children():
-		if not child == terrain_system:
-			child.queue_free()
+		child.queue_free()
 	for child in crew_selection_panel.get_children():
 		child.queue_free()

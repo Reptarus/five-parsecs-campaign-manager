@@ -45,6 +45,7 @@ const DEFAULTS := {
 		"show_fps": false,
 		"screen_shake": true,
 		"use_narrative_events": true,
+		"table_size_ft": 3.0,  # physical table: 2.0 / 2.5 / 3.0 (Core Rules p.108)
 	},
 	"mobile": {
 		"haptic_feedback": true,
@@ -360,6 +361,10 @@ func is_screen_shake_enabled() -> bool:
 
 func are_narrative_events_enabled() -> bool:
 	return get_setting("gameplay", "use_narrative_events")
+
+func get_table_size_ft() -> float:
+	## Player's physical table size: 2.0 / 2.5 / 3.0 ft (Core Rules p.108)
+	return float(get_setting("gameplay", "table_size_ft"))
 
 func is_haptic_enabled() -> bool:
 	return get_setting("mobile", "haptic_feedback")

@@ -15,6 +15,9 @@ signal return_to_battle_resolution()
 
 ## Keep-as-preload: used externally for enum/static access, always needed
 const BattleTierControllerClass = preload("res://src/core/battle/BattleTierController.gd")
+# Path preload: BattlefieldGrid is new (2026-07-02); global class
+# cache is stale until the editor reopens (project gotcha).
+const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
@@ -4138,13 +4141,15 @@ func _populate_setup_tab(mission_data) -> void:
 	if not _battlefield_generator:
 		_battlefield_generator = _get_res("battlefield_generator").new()
 
-	# Read battlefield data from GameState
+	# Read the persisted active battlefield (single-generation contract,
+	# stored by CampaignTurnController at the MISSION phase). If it holds
+	# sectors, CONSUME it verbatim — the map the player saw in the preview
+	# IS the battle map, and it survives save/quit/reload.
 	var game_state = get_node_or_null("/root/GameState")
 	var bf_data: Dictionary = {}
 	if game_state and game_state.has_method("get_battlefield_data"):
 		bf_data = game_state.get_battlefield_data()
 
-	var terrain_data: Dictionary = bf_data.get("terrain", {})
 	var deployment_condition: Dictionary = bf_data.get("deployment_condition", {})
 
 	# Read world traits and planet type for terrain modification
@@ -4159,22 +4164,53 @@ func _populate_setup_tab(mission_data) -> void:
 				planet_type_id = planet.get("type",
 					planet.get("planet_type", 0))
 
-	# Determine terrain theme key for BattlefieldGenerator
-	# Priority: explicit theme in terrain data → planet type → fallback
-	var theme_name: String = terrain_data.get("theme",
-		bf_data.get("terrain_type", ""))
-	if not theme_name.is_empty():
-		_current_terrain_theme = _map_theme_name_to_key(theme_name)
-	elif planet_type_id > 0:
-		_current_terrain_theme = _planet_type_to_theme(planet_type_id)
-	else:
-		_current_terrain_theme = "wilderness"
+	# Table size: stored contract wins, else the player's setting (p.108)
+	var table_size_ft: float = float(bf_data.get("table_size_ft", 0.0))
+	if table_size_ft <= 0.0:
+		var settings_mgr = get_node_or_null("/root/SettingsManager")
+		table_size_ft = settings_mgr.get_table_size_ft() \
+			if settings_mgr and settings_mgr.has_method("get_table_size_ft") \
+			else 3.0
+	var bf_dims: Dictionary = BattlefieldGridClass.dims_for_table(table_size_ft)
 
-	# Generate Compendium-compliant terrain (5-step process)
-	var sector_data: Dictionary = (
-		_battlefield_generator.generate_terrain_suggestions(
+	var stored_sectors: Array = []
+	if bf_data.get("sectors", []) is Array:
+		stored_sectors = bf_data.get("sectors", [])
+	var sector_data: Dictionary
+	if not stored_sectors.is_empty():
+		# CONSUME-FIRST: the persisted contract is the SSOT.
+		sector_data = bf_data
+		_current_terrain_theme = str(bf_data.get("theme", "wilderness"))
+		var stored_traits: Variant = bf_data.get("world_traits", [])
+		if stored_traits is Array and not stored_traits.is_empty():
+			world_traits = stored_traits
+	else:
+		# FALLBACK (Battle Simulator / Bug Hunt / Planetfall / standalone):
+		# no campaign-side generation ran. Generate locally with a fresh
+		# seed and WRITE BACK below so recap/reload/preview agree.
+		var mission_dict_hint: Dictionary = (
+			mission_data if mission_data is Dictionary else {})
+		if deployment_condition.is_empty():
+			var md_condition: Variant = mission_dict_hint.get(
+				"deployment_condition", mission_dict_hint.get("deployment", {}))
+			if md_condition is Dictionary:
+				deployment_condition = md_condition
+		# Theme priority: explicit theme in terrain data → planet type → fallback
+		var terrain_data: Dictionary = bf_data.get("terrain", {})
+		var theme_name: String = terrain_data.get("theme",
+			bf_data.get("terrain_type", ""))
+		if not theme_name.is_empty():
+			_current_terrain_theme = _map_theme_name_to_key(theme_name)
+		elif planet_type_id > 0:
+			_current_terrain_theme = _planet_type_to_theme(planet_type_id)
+		else:
+			_current_terrain_theme = "wilderness"
+
+		var seed_rng := RandomNumberGenerator.new()
+		seed_rng.randomize()
+		sector_data = _battlefield_generator.generate_terrain_suggestions(
 			_current_terrain_theme, world_traits,
-			deployment_condition))
+			deployment_condition, seed_rng.randi(), table_size_ft)
 
 	# Store the generator result so the info-rail BATTLEFIELD card +
 	# TERRAIN KEY (redesign) can read real combat_notes/objective data.
@@ -4182,55 +4218,77 @@ func _populate_setup_tab(mission_data) -> void:
 
 	# Populate the visual battlefield. The redesign swapped the chromed
 	# BattlefieldGridPanel for the bare BattlefieldMapView (requirement
-	# iter-2) — prefer its populate_from_sectors API, fall back to the
-	# legacy populate() if a GridPanel is ever wired again.
+	# iter-2) — prefer its populate_from_sectors API.
 	if battlefield_grid_panel:
+		# Square-grid sizing per the chosen table size (Core Rules p.108)
+		if battlefield_grid_panel.has_method("configure_grid"):
+			battlefield_grid_panel.configure_grid(bf_dims)
 		var sectors_arr: Array = sector_data.get("sectors", [])
 		var theme_display_name: String = sector_data.get(
-			"theme_name", theme_name)
+			"theme_name", _current_terrain_theme)
 		if battlefield_grid_panel.has_method("populate_from_sectors"):
 			battlefield_grid_panel.populate_from_sectors(
 				sectors_arr, theme_display_name, world_traits)
-		elif battlefield_grid_panel.has_method("populate"):
-			battlefield_grid_panel.populate(
-				sectors_arr, theme_display_name, world_traits)
-		# regenerate_requested is GridPanel chrome only — guard has_signal
-		# (the bare MapView does not expose it).
-		if battlefield_grid_panel.has_signal("regenerate_requested") \
-				and not battlefield_grid_panel.regenerate_requested.is_connected(
-					_on_regenerate_terrain_pressed):
-			battlefield_grid_panel.regenerate_requested.connect(
-				_on_regenerate_terrain_pressed)
 		# EDIT 13: right-click unit → mark casualty PopupMenu
 		if battlefield_grid_panel.has_signal("unit_right_clicked") \
 				and not battlefield_grid_panel.unit_right_clicked.is_connected(_on_unit_right_clicked):
 			battlefield_grid_panel.unit_right_clicked.connect(_on_unit_right_clicked)
 
-	# Compute mission-aware objective positions (Core Rules pp.89-91)
+	# Objective positions (Core Rules pp.89-91): consume the stored ones —
+	# they were computed once at generation — else compute deterministically
+	# from the battlefield seed and write back below.
 	var mission_dict_obj: Dictionary = (
 		mission_data if mission_data is Dictionary else {})
 	var objective_str: String = mission_dict_obj.get(
 		"objective", mission_dict_obj.get("type", ""))
-	var obj_rng := RandomNumberGenerator.new()
-	obj_rng.seed = Time.get_unix_time_from_system()
-	var obj_positions: Array = (
-		_battlefield_generator.compute_objective_positions(
-			objective_str, sector_data.get("sectors", []), obj_rng))
+	var base_seed: int = int(sector_data.get("seed", 0))
+	var obj_positions: Array = []
+	var stored_obj: Variant = bf_data.get("objective_positions", [])
+	if not stored_sectors.is_empty() and stored_obj is Array \
+			and not stored_obj.is_empty():
+		for obj in stored_obj:
+			if obj is Dictionary:
+				var o: Dictionary = obj.duplicate()
+				o["grid_pos"] = BattlefieldGridClass.json_to_grid_pos(
+					o.get("grid_pos"))
+				obj_positions.append(o)
+	else:
+		var obj_rng := RandomNumberGenerator.new()
+		obj_rng.seed = hash("%d|objectives" % base_seed)
+		obj_positions = _battlefield_generator.compute_objective_positions(
+			objective_str, sector_data.get("sectors", []), obj_rng, bf_dims)
 	if battlefield_grid_panel and battlefield_grid_panel.has_method(
 			"set_objective_positions"):
 		battlefield_grid_panel.set_objective_positions(obj_positions)
 
-	# Compute enemy deployment positions by AI type (Core Rules p.110)
-	var ai_type: String = ""
+	# Enemy deployment markers by AI type (Core Rules p.110): consume
+	# stored, else compute deterministically from the battlefield seed.
 	var ef_for_deploy: Dictionary = (
 		mission_dict_obj.get("enemy_force", {}))
-	ai_type = ef_for_deploy.get("ai", "")
+	var ai_type: String = ef_for_deploy.get("ai", "")
 	var enemy_count: int = ef_for_deploy.get("count", 0)
-	if enemy_count > 0 and battlefield_grid_panel \
+	var unit_markers: Array = []
+	var stored_markers: Variant = bf_data.get("enemy_markers", [])
+	if not stored_sectors.is_empty() and stored_markers is Array \
+			and not stored_markers.is_empty():
+		unit_markers = _rehydrate_markers(stored_markers)
+	elif enemy_count > 0:
+		var marker_rng := RandomNumberGenerator.new()
+		marker_rng.seed = hash("%d|enemy_markers" % base_seed)
+		unit_markers = _rehydrate_markers(
+			FPCM_BattlefieldGenerator.compute_enemy_deploy_markers(
+				ai_type, enemy_count, marker_rng, bf_dims))
+	if not unit_markers.is_empty() and battlefield_grid_panel \
 			and battlefield_grid_panel.has_method("set_unit_positions"):
-		var unit_markers: Array = _compute_enemy_deploy_markers(
-			ai_type, enemy_count, obj_rng)
 		battlefield_grid_panel.set_unit_positions(unit_markers)
+
+	# WRITE-BACK (fallback path only): persist the locally-generated
+	# battlefield in the contract shape (JSON-safe positions) so the
+	# recap, a reload, and any re-entry render this exact map.
+	if stored_sectors.is_empty():
+		_persist_battlefield_contract(sector_data, obj_positions,
+			unit_markers, deployment_condition, world_traits,
+			table_size_ft, objective_str, ai_type, enemy_count)
 
 	# Set battle context header line on grid panel
 	if battlefield_grid_panel and battlefield_grid_panel.has_method(
@@ -4370,15 +4428,15 @@ func _populate_setup_tab(mission_data) -> void:
 
 	# Section 1: Terrain Theme
 	_add_setup_section_header("TERRAIN SETUP")
-	var theme_display: String = sector_data.get("theme_name", theme_name)
+	var theme_display: String = sector_data.get(
+		"theme_name", _current_terrain_theme)
 	_add_setup_text(theme_display, Color("#f59e0b"), 16)
-	var description: String = terrain_data.get("description", "")
-	if description.is_empty():
-		# Fallback to compendium description from sector_data summary
-		var summary: String = sector_data.get("summary", "")
-		var lines: PackedStringArray = summary.split("\n")
-		if lines.size() >= 2:
-			description = lines[1]
+	# Compendium theme description = line 2 of the generator summary
+	var description: String = ""
+	var summary: String = sector_data.get("summary", "")
+	var lines: PackedStringArray = summary.split("\n")
+	if lines.size() >= 2:
+		description = lines[1]
 	if not description.is_empty():
 		_add_setup_text(description, Color("#9ca3af"))
 
@@ -4557,24 +4615,85 @@ func _on_regenerate_terrain_pressed() -> void:
 	# Wait one frame for nodes to be freed
 	await get_tree().process_frame
 
-	# Generate new sector data (with world traits + deployment condition)
+	# Regenerate = roll a whole NEW battlefield (fresh explicit seed) with
+	# the SAME world traits + deployment condition as the original, then
+	# persist the new contract so preview/recap/reload agree.
 	var regen_world_traits: Array = []
+	var regen_condition: Dictionary = {}
+	var regen_table_ft: float = 0.0
+	var regen_objective: String = ""
+	var regen_ai: String = ""
+	var regen_count: int = 0
 	var regen_game_state = get_node_or_null("/root/GameState")
-	if regen_game_state and regen_game_state.current_campaign:
+	if regen_game_state and regen_game_state.has_method("get_battlefield_data"):
+		var prev_contract: Dictionary = regen_game_state.get_battlefield_data()
+		regen_condition = prev_contract.get("deployment_condition", {})
+		regen_table_ft = float(prev_contract.get("table_size_ft", 0.0))
+		regen_objective = str(prev_contract.get("mission_objective", ""))
+		regen_ai = str(prev_contract.get("enemy_ai", ""))
+		regen_count = int(prev_contract.get("enemy_count", 0))
+		var prev_traits: Variant = prev_contract.get("world_traits", [])
+		if prev_traits is Array:
+			regen_world_traits = prev_traits
+	if regen_world_traits.is_empty() and regen_game_state \
+			and regen_game_state.current_campaign:
 		var regen_campaign = regen_game_state.current_campaign
 		if "current_planet" in regen_campaign:
 			var regen_planet = regen_campaign.current_planet
 			if regen_planet is Dictionary:
 				regen_world_traits = regen_planet.get("world_traits", [])
+	if regen_table_ft <= 0.0:
+		var regen_settings = get_node_or_null("/root/SettingsManager")
+		regen_table_ft = regen_settings.get_table_size_ft() \
+			if regen_settings and regen_settings.has_method("get_table_size_ft") \
+			else 3.0
+
+	var regen_seed_rng := RandomNumberGenerator.new()
+	regen_seed_rng.randomize()
 	var new_sector_data: Dictionary = (
 		_battlefield_generator.generate_terrain_suggestions(
-			_current_terrain_theme, regen_world_traits))
+			_current_terrain_theme, regen_world_traits, regen_condition,
+			regen_seed_rng.randi(), regen_table_ft))
+	_battlefield_data = new_sector_data
 
-	# Also refresh the visual battlefield grid
-	if battlefield_grid_panel and battlefield_grid_panel.has_method("populate"):
-		var new_sectors: Array = new_sector_data.get("sectors", [])
-		var theme_display: String = new_sector_data.get("theme_name", _current_terrain_theme)
-		battlefield_grid_panel.populate(new_sectors, theme_display, regen_world_traits)
+	# Refresh the visual battlefield. (Pre-2026-07-02 this guarded on
+	# has_method("populate") — the bare MapView only has
+	# populate_from_sectors, so Regenerate silently skipped the visual.)
+	var regen_dims: Dictionary = BattlefieldGridClass.dims_for_table(regen_table_ft)
+	var regen_seed: int = int(new_sector_data.get("seed", 0))
+	if battlefield_grid_panel:
+		if battlefield_grid_panel.has_method("configure_grid"):
+			battlefield_grid_panel.configure_grid(regen_dims)
+		if battlefield_grid_panel.has_method("populate_from_sectors"):
+			battlefield_grid_panel.populate_from_sectors(
+				new_sector_data.get("sectors", []),
+				new_sector_data.get("theme_name", _current_terrain_theme),
+				regen_world_traits)
+
+	# Recompute objectives + markers deterministically from the new seed
+	var regen_obj_rng := RandomNumberGenerator.new()
+	regen_obj_rng.seed = hash("%d|objectives" % regen_seed)
+	var regen_obj: Array = _battlefield_generator.compute_objective_positions(
+		regen_objective, new_sector_data.get("sectors", []),
+		regen_obj_rng, regen_dims)
+	if battlefield_grid_panel and battlefield_grid_panel.has_method(
+			"set_objective_positions"):
+		battlefield_grid_panel.set_objective_positions(regen_obj)
+	var regen_markers: Array = []
+	if regen_count > 0:
+		var regen_marker_rng := RandomNumberGenerator.new()
+		regen_marker_rng.seed = hash("%d|enemy_markers" % regen_seed)
+		regen_markers = _rehydrate_markers(
+			FPCM_BattlefieldGenerator.compute_enemy_deploy_markers(
+				regen_ai, regen_count, regen_marker_rng, regen_dims))
+		if battlefield_grid_panel and battlefield_grid_panel.has_method(
+				"set_unit_positions"):
+			battlefield_grid_panel.set_unit_positions(regen_markers)
+
+	# Persist the new battlefield (fresh sector_rerolls — new table)
+	_persist_battlefield_contract(new_sector_data, regen_obj,
+		regen_markers, regen_condition, regen_world_traits,
+		regen_table_ft, regen_objective, regen_ai, regen_count)
 
 	# Re-insert terrain section — clamp index to actual child count
 	# (queue_free'd nodes are now gone after await, child count is lower)
@@ -4673,71 +4792,71 @@ func _map_theme_name_to_key(theme_name: String) -> String:
 	# Fallback
 	return "wilderness"
 
-## Compute enemy deployment marker positions by AI type (Core Rules p.110).
-## Returns Array of {position: Vector2i, team: "enemy", status: "alive"}.
-## Grid is 24x16 cells (4x4 sectors of 6x4 each). Enemies deploy on opposite
-## edge (rows 0-3) with grouping determined by AI behavior.
-func _compute_enemy_deploy_markers(
-		ai_type: String, count: int,
-		rng: RandomNumberGenerator) -> Array:
-	var markers: Array = []
-	# Enemy deployment zone: top 4 rows (rows 0-3), columns 0-23
-	match ai_type.to_upper():
-		"A", "R", "B":
-			# Aggressive/Rampage/Beast — clustered center (Core Rules p.110)
-			var center_x: int = 12
-			for i in range(count):
-				var x: int = clampi(
-					center_x + rng.randi_range(-3, 3), 0, 23)
-				var y: int = rng.randi_range(0, 3)
-				markers.append({
-					"position": Vector2i(x, y),
-					"team": "enemy", "status": "alive"})
-		"T":
-			# Tactical — 3 fire teams spread across width
-			var team_size: int = maxi(count / 3, 1)
-			var team_centers: Array[int] = [4, 12, 20]
-			var team_idx: int = 0
-			for i in range(count):
-				var cx: int = team_centers[team_idx % 3]
-				var x: int = clampi(
-					cx + rng.randi_range(-2, 2), 0, 23)
-				var y: int = rng.randi_range(0, 3)
-				markers.append({
-					"position": Vector2i(x, y),
-					"team": "enemy", "status": "alive"})
-				if (i + 1) % team_size == 0:
-					team_idx += 1
-		"C", "D":
-			# Cautious/Defensive — 2 groups in cover positions
-			var left_x: int = 6
-			var right_x: int = 18
-			for i in range(count):
-				var cx: int = left_x if i % 2 == 0 else right_x
-				var x: int = clampi(
-					cx + rng.randi_range(-2, 2), 0, 23)
-				var y: int = rng.randi_range(0, 2)
-				markers.append({
-					"position": Vector2i(x, y),
-					"team": "enemy", "status": "alive"})
-		"G":
-			# Guardian — clustered around a central VIP
-			for i in range(count):
-				var x: int = clampi(
-					12 + rng.randi_range(-2, 2), 0, 23)
-				var y: int = rng.randi_range(0, 2)
-				markers.append({
-					"position": Vector2i(x, y),
-					"team": "enemy", "status": "alive"})
-		_:
-			# Default: spread across top edge
-			for i in range(count):
-				var x: int = rng.randi_range(0, 23)
-				var y: int = rng.randi_range(0, 3)
-				markers.append({
-					"position": Vector2i(x, y),
-					"team": "enemy", "status": "alive"})
-	return markers
+## Rehydrate contract markers for the MapView: positions persist as
+## JSON-safe [x, y] Arrays; the MapView consumes Vector2i.
+## (Enemy layout math lives in FPCM_BattlefieldGenerator
+## .compute_enemy_deploy_markers — Core Rules p.110, moved 2026-07-02.)
+func _rehydrate_markers(markers: Array) -> Array:
+	var out: Array = []
+	for m in markers:
+		if m is Dictionary:
+			var mm: Dictionary = m.duplicate()
+			var p: Vector2 = BattlefieldGridClass.json_to_grid_pos(
+				mm.get("position"))
+			mm["position"] = Vector2i(p)
+			out.append(mm)
+	return out
+
+## Persist the current battlefield in the active_battlefield contract shape
+## (JSON-safe positions) via GameState.set_battlefield_data — the single
+## chokepoint that also writes through to campaign.progress_data.
+func _persist_battlefield_contract(sector_data: Dictionary,
+		obj_positions: Array, unit_markers: Array,
+		deployment_condition: Dictionary, world_traits: Array,
+		table_size_ft: float, mission_objective: String,
+		enemy_ai: String, enemy_count: int,
+		sector_rerolls: Dictionary = {}) -> void:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("set_battlefield_data"):
+		return
+	# Carry over campaign-path context a re-persist shouldn't lose
+	var prev: Dictionary = gs.get_battlefield_data() \
+		if gs.has_method("get_battlefield_data") else {}
+	var obj_json: Array = []
+	for obj in obj_positions:
+		if obj is Dictionary:
+			var oj: Dictionary = obj.duplicate()
+			oj["grid_pos"] = BattlefieldGridClass.grid_pos_to_json(
+				BattlefieldGridClass.json_to_grid_pos(oj.get("grid_pos")))
+			obj_json.append(oj)
+	var marker_json: Array = []
+	for m in unit_markers:
+		if m is Dictionary:
+			var mj: Dictionary = m.duplicate()
+			mj["position"] = BattlefieldGridClass.grid_pos_to_json(
+				BattlefieldGridClass.json_to_grid_pos(mj.get("position")))
+			marker_json.append(mj)
+	gs.set_battlefield_data({
+		"schema_version": 1,
+		"seed": int(sector_data.get("seed", 0)),
+		"theme": _current_terrain_theme,
+		"theme_name": str(sector_data.get("theme_name", "")),
+		"table_size_ft": table_size_ft,
+		"world_traits": world_traits,
+		"deployment_condition": deployment_condition,
+		"sectors": sector_data.get("sectors", []),
+		"combat_notes": sector_data.get("combat_notes", []),
+		"visibility_limit": str(sector_data.get("visibility_limit", "")),
+		"summary": str(sector_data.get("summary", "")),
+		"objective_positions": obj_json,
+		"enemy_markers": marker_json,
+		"mission_objective": mission_objective,
+		"enemy_ai": enemy_ai,
+		"enemy_count": enemy_count,
+		"sector_rerolls": sector_rerolls,
+		"generated_at_turn": int(prev.get("generated_at_turn", 0)),
+		"terrain_guide": prev.get("terrain_guide", {}),
+	})
 
 func _add_setup_section_header(text: String) -> void:
 	## Add a section header label to the Setup tab

@@ -561,6 +561,15 @@ func load_campaign(path: String) -> Dictionary:
 		if not faction_state.is_empty():
 			faction_sys.update_data(faction_state)
 
+	# Restore the active battlefield (mid-mission table layout) so a reload
+	# renders the exact map the player physically built. Positions persist
+	# as [x, y] Arrays; consumers rehydrate via BattlefieldGrid.json_to_grid_pos.
+	_battlefield_data = {}
+	if "progress_data" in loaded:
+		var saved_bf: Dictionary = loaded.progress_data.get("active_battlefield", {})
+		if not saved_bf.is_empty():
+			_battlefield_data = saved_bf.duplicate(true)
+
 	# Restore QoL autoload state (journal, NPCTracker, etc.) for ALL modes.
 	# Without this, mid-session loads (via MainMenu → Load) silently drop
 	# the saved journal/NPCTracker/economy data. The boot-time auto-load
@@ -1379,14 +1388,24 @@ func clear_battle_results() -> void:
 
 ## Battlefield Data Management
 
-## Store generated battlefield data (terrain + deployment conditions)
+## Store the active battlefield (seed, theme, table size, sectors, markers —
+## see the "active_battlefield" contract). Single mutation chokepoint: keeps
+## the runtime cache AND writes through to campaign.progress_data so the
+## layout the player physically built survives save/quit/reload. Callers must
+## store JSON-safe values (grid positions as [x, y] Arrays, never Vector2).
 func set_battlefield_data(data: Dictionary) -> void:
 	_battlefield_data = data.duplicate(true)
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["active_battlefield"] = data.duplicate(true)
+	state_changed.emit()
 
 ## Retrieve stored battlefield data
 func get_battlefield_data() -> Dictionary:
 	return _battlefield_data
 
-## Clear battlefield data
+## Clear battlefield data (post-battle: the table has been torn down)
 func clear_battlefield_data() -> void:
 	_battlefield_data = {}
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data.erase("active_battlefield")
+	state_changed.emit()

@@ -173,8 +173,13 @@ func generate_terrain_suggestions(theme: String = "wilderness",
 		sector_features, sector_labels, world_traits, local_rng)
 
 	# ---- Deployment Condition Effects (Core Rules p.88) ----
+	# The campaign flow emits {condition_id: "SMALL_ENCOUNTER", ...} (uppercase)
+	# while older callers pass {id: "toxic_environment"} — accept both,
+	# case-insensitively (this mismatch silently disabled ALL condition
+	# effects until 2026-07-02).
 	var visibility_limit: String = ""
-	var condition_id: String = deployment_condition.get("id", "")
+	var condition_id: String = str(deployment_condition.get("id",
+		deployment_condition.get("condition_id", ""))).to_lower()
 	if condition_id == "toxic_environment":
 		# Book rule is a Stun->casualty roll, NOT terrain — the old HAZARD
 		# feature injection was fabricated and removed 2026-07-02 (p.88).
@@ -408,6 +413,137 @@ func _pick_search_objectives(sectors: Array, dims: Dictionary) -> Array[Dictiona
 				idx += 1
 				break  # one per sector
 	return result
+
+# ============================================================================
+# THEME HEURISTICS (app-level UX mapping — no Core Rules mapping exists)
+# ============================================================================
+
+## Map GlobalEnums.PlanetType ordinal → theme key. Thematic fit only; the
+## 4 Compendium themes (pp.96-98) are the only valid targets.
+static func planet_type_to_theme(planet_type: int) -> String:
+	# GlobalEnums.PlanetType: NONE=0, DESERT=1, ICE=2, JUNGLE=3,
+	# OCEAN=4, ROCKY=5, TEMPERATE=6, VOLCANIC=7
+	match planet_type:
+		1, 2, 3:  # DESERT, ICE, JUNGLE
+			return "wilderness"
+		4:  # OCEAN
+			return "crash_site"
+		5, 7:  # ROCKY, VOLCANIC
+			return "alien_ruin"
+		6:  # TEMPERATE
+			return "industrial_zone"
+		_:
+			return "wilderness"
+
+## Map a display/environment name → theme key (4 Compendium themes only).
+static func map_theme_name_to_key(theme_name: String) -> String:
+	var lower: String = theme_name.to_lower()
+	if "industrial" in lower or "urban" in lower or "settlement" in lower \
+			or "city" in lower:
+		return "industrial_zone"
+	elif "wilderness" in lower or "wild" in lower:
+		return "wilderness"
+	elif "alien" in lower or "ruin" in lower:
+		return "alien_ruin"
+	elif "crash" in lower or "waste" in lower or "blasted" in lower \
+			or "ship" in lower or "interior" in lower or "corridor" in lower:
+		return "crash_site"
+	return "wilderness"
+
+# ============================================================================
+# ENEMY DEPLOYMENT MARKERS (Core Rules p.110)
+# ============================================================================
+
+## Compute enemy deployment marker positions by AI type (Core Rules p.110):
+##   Aggressive/Rampaging — one cluster, 1" between figures
+##   Tactical/Defensive   — 3 teams, 8" apart, members 1-2" apart
+##   Cautious             — 2 groups, 6" apart, members 1.5-2" apart
+##   Beast                — pairs, one per table third, 2" between figures;
+##                          any odd figure is set up on its own
+##   Guardian             — attaches to a protected figure (enemy_types.json
+##                          guardian_attachment), no own p.110 layout —
+##                          suggested as a tight cluster near the band center
+## Spacing derives from the book inches through the 1.5"/cell grid. Positions
+## are JSON-safe [col, row] Arrays inside the enemy edge band (map convention:
+## enemy = bottom half; the enemy sets up on the opposite edge, p.110).
+static func compute_enemy_deploy_markers(ai_type: String, count: int,
+		rng: RandomNumberGenerator, dims: Dictionary = {}) -> Array:
+	var d: Dictionary = dims if not dims.is_empty() else BattlefieldGrid.dims_for_table()
+	var cols: int = int(d.get("cols", 24))
+	var band: Dictionary = BattlefieldGrid.enemy_edge_band(d)
+	var row_lo: int = int(band.get("start", 20))
+	var row_hi: int = int(band.get("end", 23))
+	var max_x: int = cols - 1
+	var markers: Array = []
+
+	var one_inch: int = maxi(int(roundf(BattlefieldGrid.inches_to_cells(1.0))), 1)
+	var two_inch: int = maxi(int(roundf(BattlefieldGrid.inches_to_cells(2.0))), 1)
+	var team_gap: int = maxi(int(roundf(BattlefieldGrid.inches_to_cells(8.0))), 1)
+	var group_gap: int = maxi(int(roundf(BattlefieldGrid.inches_to_cells(6.0))), 1)
+	var mid_x: int = int(cols / 2.0)
+
+	match ai_type.to_upper():
+		"A", "R":
+			# One cluster, 1" between figures
+			for i in range(count):
+				markers.append(_deploy_marker(
+					mid_x + rng.randi_range(-two_inch, two_inch),
+					rng.randi_range(row_lo, row_hi), max_x))
+		"T", "D":
+			# 3 teams, 8" apart (Defensive was wrongly grouped with
+			# Cautious as 2 groups pre-2026-07-02 — p.110 puts it here)
+			var team_centers: Array[int] = [
+				clampi(mid_x - team_gap, 0, max_x), mid_x,
+				clampi(mid_x + team_gap, 0, max_x)]
+			var team_size: int = maxi(int(ceilf(count / 3.0)), 1)
+			for i in range(count):
+				var cx: int = team_centers[mini(int(i / float(team_size)), 2)]
+				markers.append(_deploy_marker(
+					cx + rng.randi_range(-one_inch, one_inch),
+					rng.randi_range(row_lo, row_hi), max_x))
+		"C":
+			# 2 groups, 6" apart
+			var half_gap: int = maxi(int(group_gap / 2.0), 1)
+			for i in range(count):
+				var cx: int = mid_x - half_gap if i % 2 == 0 else mid_x + half_gap
+				markers.append(_deploy_marker(
+					cx + rng.randi_range(-one_inch, one_inch),
+					rng.randi_range(row_lo, row_hi), max_x))
+		"B":
+			# Pairs across table thirds, 2" between pair figures (was
+			# wrongly clustered center with A/R pre-2026-07-02 — p.110)
+			var third: float = cols / 3.0
+			var part_centers: Array[int] = [
+				int(third * 0.5), int(third * 1.5), int(third * 2.5)]
+			var pair_count: int = int(count / 2.0)
+			for p in range(pair_count):
+				var cx: int = part_centers[p % 3]
+				var y: int = rng.randi_range(row_lo, row_hi)
+				markers.append(_deploy_marker(cx, y, max_x))
+				markers.append(_deploy_marker(cx + two_inch, y, max_x))
+			if count % 2 == 1:
+				# "Any odd figure left over is set up on its own" (p.110)
+				markers.append(_deploy_marker(
+					part_centers[pair_count % 3]
+						+ rng.randi_range(-one_inch, one_inch),
+					rng.randi_range(row_lo, row_hi), max_x))
+		"G":
+			# Guardian: tight cluster (attaches to its ward)
+			for i in range(count):
+				markers.append(_deploy_marker(
+					mid_x + rng.randi_range(-one_inch, one_inch),
+					rng.randi_range(row_lo, row_hi), max_x))
+		_:
+			# Unknown AI: spread across the enemy edge
+			for i in range(count):
+				markers.append(_deploy_marker(
+					rng.randi_range(0, max_x),
+					rng.randi_range(row_lo, row_hi), max_x))
+	return markers
+
+static func _deploy_marker(x: int, y: int, max_x: int) -> Dictionary:
+	return {"position": [clampi(x, 0, max_x), y],
+		"team": "enemy", "status": "alive"}
 
 # ============================================================================
 # TERRAIN VALIDATION & MODIFICATION

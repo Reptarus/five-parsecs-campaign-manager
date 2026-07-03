@@ -7,6 +7,9 @@ extends Control
 const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const BattleResolverRouter = preload("res://src/core/battle/BattleResolverRouter.gd")
+# Path preload: BattlefieldGrid is new (2026-07-02) and the global
+# class cache is stale until the editor reopens (project gotcha).
+const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 ## Version of the battle-result → NarrativeScreen event_data contract produced by
 ## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
@@ -730,12 +733,9 @@ func _initiate_battle_sequence() -> void:
 		var attack_type: String = rival_enc.get("attack_type", "SHOWDOWN")
 		mission_data["rival_attack_type"] = attack_type
 
-	# Generate battlefield terrain suggestions
-	var battlefield_data: Dictionary = {}
-	if campaign_phase_manager and campaign_phase_manager.has_method(
-			"generate_battlefield"):
-		battlefield_data = campaign_phase_manager.generate_battlefield()
-	battle_results["battlefield_data"] = battlefield_data
+	# NOTE: battlefield generation happens BELOW (after the deployment
+	# condition roll + objective normalization) — the condition can affect
+	# the terrain output, so book order is condition first (2026-07-02).
 
 	# Roll deployment condition (Core Rules p.94)
 	var deployment_condition: Dictionary = {}
@@ -815,24 +815,99 @@ func _initiate_battle_sequence() -> void:
 		"objective_details", {}).get("name",
 		mission_data.get("objective", ""))
 
-	# Persist battlefield data in GameState
-	# Theme matching from location keywords (Core Rules p.108)
+	# ---- Single battlefield generation point (2026-07-02) ----
+	# Generate ONCE with an explicit seed, then persist the full contract
+	# (campaign.progress_data["active_battlefield"] via GameState) so the
+	# exact layout the player physically builds survives save/quit/reload,
+	# and PreBattleUI / TacticalBattleUI / the recap all render the SAME map.
+	var table_size_ft: float = 3.0
+	var settings_mgr = get_node_or_null("/root/SettingsManager")
+	if settings_mgr and settings_mgr.has_method("get_table_size_ft"):
+		table_size_ft = settings_mgr.get_table_size_ft()
+
+	# Theme + world traits from the current planet (app-level heuristic —
+	# no Core Rules planet->theme mapping exists)
+	var planet_world_traits: Array = []
+	var terrain_theme: String = ""
+	if game_state.current_campaign \
+			and "current_planet" in game_state.current_campaign:
+		var cur_planet = game_state.current_campaign.current_planet
+		if cur_planet is Dictionary:
+			planet_world_traits = cur_planet.get("world_traits", [])
+			var planet_type_id: int = cur_planet.get("type",
+				cur_planet.get("planet_type", 0))
+			if planet_type_id > 0:
+				terrain_theme = FPCM_BattlefieldGenerator \
+					.planet_type_to_theme(planet_type_id)
+
+	var seed_rng := RandomNumberGenerator.new()
+	seed_rng.randomize()
+	var bf_seed: int = seed_rng.randi()
+	var battlefield_data: Dictionary = {}
+	if campaign_phase_manager and campaign_phase_manager.has_method(
+			"generate_battlefield"):
+		battlefield_data = campaign_phase_manager.generate_battlefield(
+			terrain_theme, planet_world_traits, deployment_condition,
+			bf_seed, table_size_ft)
+
+	# Objective + enemy deployment markers, computed ONCE with seeds
+	# derived from the battlefield seed (deterministic re-render).
+	# Positions are stored JSON-safe ([x, y] Arrays, never Vector2).
+	var bf_dims: Dictionary = BattlefieldGridClass.dims_for_table(table_size_ft)
+	var bf_gen := FPCM_BattlefieldGenerator.new()
+	var obj_rng := RandomNumberGenerator.new()
+	obj_rng.seed = hash("%d|objectives" % int(battlefield_data.get("seed", bf_seed)))
+	var objective_positions: Array = []
+	for obj in bf_gen.compute_objective_positions(
+			str(mission_data.get("mission_objective", "")),
+			battlefield_data.get("sectors", []), obj_rng, bf_dims):
+		var obj_json: Dictionary = obj.duplicate()
+		obj_json["grid_pos"] = BattlefieldGridClass.grid_pos_to_json(
+			obj.get("grid_pos", Vector2.ZERO))
+		objective_positions.append(obj_json)
+
+	var marker_rng := RandomNumberGenerator.new()
+	marker_rng.seed = hash("%d|enemy_markers" % int(battlefield_data.get("seed", bf_seed)))
+	var enemy_force_info: Dictionary = mission_data.get("enemy_force", {})
+	var enemy_markers: Array = FPCM_BattlefieldGenerator.compute_enemy_deploy_markers(
+		str(enemy_force_info.get("ai", "")),
+		int(enemy_force_info.get("count", 0)), marker_rng, bf_dims)
+
+	# Core Rules text setup guide kept for reference display
 	var terrain_guide: Dictionary = _generate_terrain_setup_guide(
 		mission_data)
-	# BUG-038 FIX: Merge terrain_guide INTO battlefield_data so theme propagates
-	var merged_terrain: Dictionary = battlefield_data.duplicate()
-	merged_terrain.merge(terrain_guide)  # terrain_guide has "theme", "terrain_type", etc.
-	var full_bf_data: Dictionary = {
-		"terrain": merged_terrain,
+
+	var active_battlefield: Dictionary = {
+		"schema_version": 1,
+		"seed": int(battlefield_data.get("seed", bf_seed)),
+		"theme": str(battlefield_data.get("theme", terrain_theme)),
+		"theme_name": str(battlefield_data.get("theme_name", "")),
+		"table_size_ft": table_size_ft,
+		"world_traits": planet_world_traits,
 		"deployment_condition": deployment_condition,
+		"sectors": battlefield_data.get("sectors", []),
+		"combat_notes": battlefield_data.get("combat_notes", []),
+		"visibility_limit": str(battlefield_data.get("visibility_limit", "")),
+		"summary": str(battlefield_data.get("summary", "")),
+		"objective_positions": objective_positions,
+		"enemy_markers": enemy_markers,
+		# Inputs kept so Regenerate can recompute markers self-contained
+		"mission_objective": str(mission_data.get("mission_objective", "")),
+		"enemy_ai": str(enemy_force_info.get("ai", "")),
+		"enemy_count": int(enemy_force_info.get("count", 0)),
+		"sector_rerolls": {},
+		"generated_at_turn": campaign_phase_manager.get_turn_number() \
+			if campaign_phase_manager else 0,
+		"terrain_guide": terrain_guide,
 	}
+	battle_results["battlefield_data"] = active_battlefield
 	if game_state.has_method("set_battlefield_data"):
-		game_state.set_battlefield_data(full_bf_data)
+		game_state.set_battlefield_data(active_battlefield)
 
 	# QA-FIX BUG-06: Enrich mission_data with terrain + deployment for PreBattleUI.
 	# Previously terrain was only stored in game_state.set_battlefield_data() but
 	# never added to mission_data, causing "Unknown Mission" / "Battle Type: NONE".
-	mission_data["terrain"] = merged_terrain
+	mission_data["terrain"] = active_battlefield
 	mission_data["deployment_condition"] = deployment_condition
 	if not mission_data.has("title") or mission_data["title"] == "":
 		mission_data["title"] = mission_data.get("objective",
