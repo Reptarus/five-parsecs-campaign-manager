@@ -712,8 +712,9 @@ func _build_terrain_controls(target: Node) -> void:
 				legend.rebuild(battlefield_grid_panel.get_rendered_legend_keys()))
 	target.add_child(scatter_toggle)
 
-	# Regenerate — SETUP only (journey staging)
-	if current_stage == BattleStage.SETUP:
+	# Regenerate — until COMBAT (SETUP sits behind the checklist modal,
+	# so the table is really built during DEPLOYMENT; Confirm locks it)
+	if current_stage in [BattleStage.SETUP, BattleStage.DEPLOYMENT]:
 		var regen_btn := Button.new()
 		regen_btn.text = "🎲 Regenerate Terrain"
 		regen_btn.tooltip_text = \
@@ -2297,6 +2298,11 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 		bar.name = "DrawerBar"
 		bar.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
 		bar.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
+		# EXPAND on the flow line: without it a nested HFlow only ever gets
+		# its MINIMUM width (one 92px button) and wraps the 6-7 drawer
+		# buttons into a ~330px COLUMN, inflating the whole bottom bar and
+		# starving the map row (found in the 2026-07-03 map-primary audit).
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		action_buttons.add_child(bar)
 		action_buttons.move_child(bar, 0)
 	for c in bar.get_children():
@@ -3792,9 +3798,10 @@ func _update_action_buttons_for_deployment() -> void:
 		return
 	_clear_action_buttons()
 
-	# Journey Moment 2: the p.110 deployment procedure as three steps,
-	# surfaced through the EXISTING phase-content panel (no new chrome).
-	_surface_custom_phase_content(_build_deployment_steps_card())
+	# Journey Moment 2: the p.110 deployment procedure as three steps on
+	# the EXISTING phase-instruction banner (always visible above the
+	# action row — phase_content is not shown during DEPLOYMENT).
+	_set_deployment_banner()
 
 	# Add deployment-specific buttons
 	var place_unit_button := Button.new()
@@ -3807,17 +3814,15 @@ func _update_action_buttons_for_deployment() -> void:
 	auto_deploy_button.pressed.connect(_on_auto_deploy_clicked)
 	action_buttons.add_child(auto_deploy_button)
 
-func _build_deployment_steps_card() -> Control:
+func _set_deployment_banner() -> void:
 	## The Core Rules p.110 setup procedure, with the active deployment
-	## condition's crew modifiers folded in (BattleFlowGuide, PDF-verified).
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	var header := Label.new()
-	header.text = "DEPLOYMENT — Core Rules p.110"
-	header.add_theme_font_size_override("font_size", _scaled_font(12))
-	header.add_theme_color_override("font_color",
-		UIColors.COLOR_TEXT_SECONDARY)
-	vbox.add_child(header)
+	## condition's crew modifiers folded in (BattleFlowGuide, PDF-verified),
+	## written onto the phase-instruction banner (the per-stage guidance
+	## line the player already reads).
+	if _phase_banner == null:
+		_build_phase_instruction_banner()
+	if _phase_banner == null:
+		return
 	var gs = get_node_or_null("/root/GameState")
 	var contract: Dictionary = gs.get_battlefield_data() \
 		if gs and gs.has_method("get_battlefield_data") else {}
@@ -3825,16 +3830,14 @@ func _build_deployment_steps_card() -> Control:
 	var enemy_ai: String = str(ef.get("ai", contract.get("enemy_ai", "")))
 	var steps: Array = BattleFlowGuideClass.deployment_steps(
 		_active_condition_id(), enemy_ai)
+	var lines: Array[String] = []
 	for i in range(steps.size()):
-		var step: Dictionary = steps[i]
-		var lbl := Label.new()
-		lbl.text = "%d. %s" % [i + 1, str(step.get("text", ""))]
-		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
-		lbl.add_theme_color_override("font_color",
-			UIColors.COLOR_TEXT_PRIMARY)
-		vbox.add_child(lbl)
-	return vbox
+		lines.append("%d. %s" % [i + 1, str(steps[i].get("text", ""))])
+	if _phase_banner_chip:
+		_phase_banner_chip.text = "DEPLOYMENT · Core Rules p.110"
+	if _phase_banner_label:
+		_phase_banner_label.text = "\n".join(lines)
+	_phase_banner.visible = true
 
 ## Legacy _update_action_buttons_for_combat() removed — phase-specific buttons
 ## are now created by _show_reaction_roll_ui(), _show_quick_actions_ui(), etc.
@@ -5119,20 +5122,35 @@ func _persist_battlefield_contract(sector_data: Dictionary,
 ## Re-roll offered only during SETUP — once the physical table is built,
 ## editing the map would desync it.
 func _on_map_sector_clicked(sector_label: String, features: Array) -> void:
+	# The MapView emits rendered DISPLAY labels (prefix-stripped, includes
+	# visible scatter pieces); the popover needs the RAW generator features
+	# — the LARGE:/SMALL:/Scatter: prefixes drive its Scatter-skip and
+	# terrain-rules classification. Resolve from our stored battlefield
+	# data (the SSOT); fall back to the display list.
+	var raw_features: Array = features
+	for sector in _battlefield_data.get("sectors", []):
+		if sector is Dictionary \
+				and str(sector.get("label", "")) == sector_label:
+			raw_features = sector.get("features", features)
+			break
 	if _sector_popover == null or not is_instance_valid(_sector_popover):
 		var PopoverClass = load(
 			"res://src/ui/components/battle/SectorRulesPopover.gd")
 		_sector_popover = PopoverClass.new()
 		_sector_popover.re_roll_requested.connect(_on_sector_reroll_requested)
-		if map_host:
-			map_host.add_child(_sector_popover)
-			# Top-center of the map host, clear of the sector being inspected
-			_sector_popover.set_anchors_preset(Control.PRESET_CENTER_TOP)
-			_sector_popover.position.y = 12.0
-		else:
-			add_child(_sector_popover)
-	_sector_popover.show_sector(sector_label, features,
-		current_stage == BattleStage.SETUP)
+		# Parent to the MapView (plain Control) — a PanelContainer parent
+		# (map_host) force-fills its children, which stretched the popover
+		# across the whole host (found in the 2026-07-03 runtime pass).
+		var popover_parent: Control = battlefield_grid_panel \
+			if battlefield_grid_panel is Control else self
+		popover_parent.add_child(_sector_popover)
+		_sector_popover.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		_sector_popover.position.y = 12.0
+	# Re-roll allowed until COMBAT: SETUP is covered by the checklist
+	# modal, so the player actually builds the physical table during
+	# DEPLOYMENT — the hard edit-lock is Confirm Deployment -> COMBAT.
+	_sector_popover.show_sector(sector_label, raw_features,
+		current_stage in [BattleStage.SETUP, BattleStage.DEPLOYMENT])
 
 ## Per-sector re-roll (Compendium Step 5, p.95): deterministic derived seed
 ## hash(base_seed | label | count) — the engine RNG has no avalanche effect,
