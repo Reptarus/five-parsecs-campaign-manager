@@ -316,14 +316,23 @@ func _build_battle_reference_text(data: Dictionary) -> String:
 		if not desc.is_empty():
 			lines.append("  %s" % desc)
 
-	# Objective
-	var obj: Dictionary = data.get("mission_objective", {})
-	if not obj.is_empty() and obj.get("name", "") != "":
+	# Objective — tolerate both a Dict {name, victory_condition} and a bare
+	# String objective id. The campaign battle context stores a String
+	# (mission_data["mission_objective"]), which crashed the old Dict-typed
+	# assignment when combat started (found 2026-07-03 campaign-path walk).
+	var obj_raw: Variant = data.get("mission_objective", {})
+	var obj_name: String = ""
+	var obj_vc: String = ""
+	if obj_raw is Dictionary:
+		obj_name = str(obj_raw.get("name", ""))
+		obj_vc = str(obj_raw.get("victory_condition", ""))
+	elif obj_raw is String:
+		obj_name = obj_raw
+	if obj_name != "":
 		lines.append("")
-		lines.append("[b]Objective:[/b] %s" % obj.get("name", ""))
-		var vc: String = obj.get("victory_condition", "")
-		if not vc.is_empty():
-			lines.append("  %s" % vc)
+		lines.append("[b]Objective:[/b] %s" % obj_name)
+		if obj_vc != "":
+			lines.append("  %s" % obj_vc)
 
 	return "\n".join(lines)
 

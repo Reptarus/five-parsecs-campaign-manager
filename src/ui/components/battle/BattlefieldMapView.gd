@@ -143,6 +143,16 @@ func _ready() -> void:
 
 	_build_tooltip()
 
+	# Callers that construct-then-add (PreBattleUI preview, PostBattle recap)
+	# may call populate_from_sectors() BEFORE this node is in the tree, when
+	# _terrain_container is still null. In that case populate stored the
+	# sector data but _rebuild_terrain_shapes bailed — render it now that
+	# the container exists (2026-07-03; campaign-path preview crash).
+	if not _sector_shapes.is_empty():
+		_rebuild_terrain_shapes()
+		queue_redraw()
+		_overlay_control.queue_redraw()
+
 func _build_tooltip() -> void:
 	_tooltip_panel = PanelContainer.new()
 	_tooltip_panel.visible = false
@@ -250,10 +260,13 @@ func populate_from_sectors(sectors: Array, p_theme_name: String = "",
 	# Objective positions are set externally via set_objective_positions()
 	# No hardcoded center default — mission type determines placement
 
-	# Compute organic placements and build SVS terrain nodes
+	# Compute organic placements and build SVS terrain nodes. All three are
+	# no-ops / deferred when called before this node enters the tree (the
+	# construct-then-add callers); _ready() re-runs them.
 	_rebuild_terrain_shapes()
 	queue_redraw()
-	_overlay_control.queue_redraw()
+	if _overlay_control:
+		_overlay_control.queue_redraw()
 
 func set_unit_positions(units: Array) -> void:
 	_unit_positions = units
@@ -287,7 +300,9 @@ func set_deployment_highlight(enabled: bool) -> void:
 func set_objective_position(grid_pos: Vector2) -> void:
 	## Legacy single-position API — wraps into array format
 	_objective_positions = [{"type": "center", "grid_pos": grid_pos, "label": "Objective"}]
-	_overlay_control.queue_redraw()
+	# Null-safe: the preview sets objectives before add_child; _ready redraws.
+	if _overlay_control:
+		_overlay_control.queue_redraw()
 
 func set_objective_positions(positions: Array) -> void:
 	## Set multiple objective markers from BattlefieldGenerator.compute_objective_positions()
@@ -295,7 +310,9 @@ func set_objective_positions(positions: Array) -> void:
 	for pos in positions:
 		if pos is Dictionary:
 			_objective_positions.append(pos)
-	_overlay_control.queue_redraw()
+	# Null-safe: the preview sets objectives before add_child; _ready redraws.
+	if _overlay_control:
+		_overlay_control.queue_redraw()
 
 func add_terrain_overlay(overlay: Dictionary) -> void:
 	## Add a dynamic overlay from battle events (fog, hazard, markers)
@@ -368,10 +385,17 @@ func clear() -> void:
 # ============================================================================
 
 func _clear_terrain_nodes() -> void:
+	if _terrain_container == null:
+		return
 	for child in _terrain_container.get_children():
 		child.queue_free()
 
 func _rebuild_terrain_shapes() -> void:
+	# Pre-_ready() safe: if populate_from_sectors() was called before this
+	# node entered the tree, the container does not exist yet. The sector
+	# data is already stored; _ready() re-runs this once the container is up.
+	if _terrain_container == null:
+		return
 	_clear_terrain_nodes()
 
 	if _sector_shapes.is_empty():

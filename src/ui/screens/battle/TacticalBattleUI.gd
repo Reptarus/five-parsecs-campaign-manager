@@ -2607,7 +2607,20 @@ func _on_tracker_battle_started() -> void:
 func _init_objective_tracker() -> void:
 	var mission_obj: Dictionary = {}
 	if _battle_context is Dictionary:
-		mission_obj = _battle_context.get("mission_objective", {})
+		# mission_objective may be a rich Dict {name, victory_condition, type}
+		# OR a bare String objective id (the campaign context stores a
+		# String). Prefer the richer objective_details Dict when present;
+		# otherwise wrap the String so the tracker degrades gracefully
+		# instead of crashing on a String→Dict assignment (2026-07-03 walk).
+		var raw: Variant = _battle_context.get("mission_objective", {})
+		if raw is Dictionary and not raw.is_empty():
+			mission_obj = raw
+		else:
+			var details: Variant = _battle_context.get("objective_details", {})
+			if details is Dictionary and not details.is_empty():
+				mission_obj = details
+			elif raw is String and raw != "":
+				mission_obj = {"name": raw, "type": raw}
 	if mission_obj == null or mission_obj.is_empty():
 		_objective_tracker = null
 		return
@@ -2929,8 +2942,6 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 func _show_end_phase_ui() -> void:
 	## END PHASE — show end-of-round checklist with condition-specific steps
 	_clear_action_buttons()
-	_set_phase_instruction(4, "End Phase",
-		"Run the end-of-round checklist on the table: morale, any battle event, then the victory check.")
 	if not _battle_context.is_empty() and not _is_bug_hunt_mode:
 		# ASSISTED+: structured end-of-round checklist
 		var checklist: Control = _build_end_phase_checklist()
@@ -2943,16 +2954,19 @@ func _show_end_phase_ui() -> void:
 			victory_progress if is_instance_valid(victory_progress) else null)
 	# Deployment-condition end-of-round prompts (Core Rules p.88) — the
 	# rolls players forget most (Brief Engagement / Delayed / Poor
-	# Visibility). Shown at every interactive tier.
-	for prompt in BattleFlowGuideClass.build_round_end_prompts(
-			_active_condition_id()):
-		var prompt_lbl := Label.new()
-		prompt_lbl.text = "⚠ %s" % str(prompt.get("text", ""))
-		prompt_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		prompt_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
-		prompt_lbl.add_theme_color_override("font_color",
-			UIColors.COLOR_WARNING)
-		action_buttons.add_child(prompt_lbl)
+	# Visibility). Their DESCRIPTION goes on the full-width phase banner,
+	# NOT the action row: a wrapping Label in the HFlowContainer button row
+	# collapses to ~1px and char-wraps vertically (the autowrap-in-HFlow
+	# trap, caught in the 2026-07-03 portrait pass). Only the Roll chip
+	# (a Button, which sizes fine in the HFlow) goes in the action row.
+	var round_prompts: Array = BattleFlowGuideClass.build_round_end_prompts(
+		_active_condition_id())
+	var banner_lines: Array[String] = [
+		"Run the end-of-round checklist on the table: morale, any battle event, then the victory check."]
+	for prompt in round_prompts:
+		banner_lines.append("⚠ %s" % str(prompt.get("text", "")))
+	_set_phase_instruction(4, "End Phase", "\n".join(banner_lines))
+	for prompt in round_prompts:
 		var roll_chip := Button.new()
 		roll_chip.text = "Roll %s (Dice drawer)" % str(prompt.get("roll", ""))
 		roll_chip.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
@@ -3000,21 +3014,31 @@ func _build_battle_briefing_content() -> Control:
 
 	var lines: Array[String] = []
 
-	# Objective
-	var obj: Dictionary = _battle_context.get("mission_objective", {})
-	if not obj.is_empty() and obj.get("name", "") != "":
-		var vc: String = obj.get("victory_condition", "")
-		lines.append("[b]OBJECTIVE:[/b] %s" % obj.get("name", ""))
-		if not vc.is_empty():
-			lines.append("  %s" % vc)
+	# Objective — tolerate both a Dict {name, victory_condition} and a bare
+	# String objective id (the campaign context stores a String; assigning
+	# it to a Dict-typed var crashed combat start — 2026-07-03 walk).
+	var obj_raw: Variant = _battle_context.get("mission_objective", {})
+	var obj_name: String = ""
+	var obj_vc: String = ""
+	if obj_raw is Dictionary:
+		obj_name = str(obj_raw.get("name", ""))
+		obj_vc = str(obj_raw.get("victory_condition", ""))
+	elif obj_raw is String:
+		obj_name = obj_raw
+	if obj_name != "":
+		lines.append("[b]OBJECTIVE:[/b] %s" % obj_name)
+		if obj_vc != "":
+			lines.append("  %s" % obj_vc)
 
-	# Rival attack type (instead of objective for rival battles)
-	var rival: Dictionary = _battle_context.get("rival_attack_type", {})
-	if not rival.is_empty() and rival.get("type", "") != "":
+	# Rival attack type (instead of objective for rival battles) — same
+	# String-or-Dict tolerance (mission_data["rival_attack_type"] is a String).
+	var rival_raw: Variant = _battle_context.get("rival_attack_type", {})
+	if rival_raw is Dictionary and rival_raw.get("type", "") != "":
 		lines.append(
 			"[b]RIVAL ATTACK:[/b] %s — %s" % [
-				rival.get("type", ""),
-				rival.get("description", "")])
+				rival_raw.get("type", ""), rival_raw.get("description", "")])
+	elif rival_raw is String and rival_raw != "":
+		lines.append("[b]RIVAL ATTACK:[/b] %s" % rival_raw)
 
 	# Deployment condition
 	var deploy: Dictionary = _battle_context.get("deployment", {})

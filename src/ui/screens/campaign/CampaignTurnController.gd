@@ -897,9 +897,17 @@ func _initiate_battle_sequence() -> void:
 	var marker_rng := RandomNumberGenerator.new()
 	marker_rng.seed = hash("%d|enemy_markers" % int(battlefield_data.get("seed", bf_seed)))
 	var enemy_force_info: Dictionary = mission_data.get("enemy_force", {})
-	var enemy_markers: Array = FPCM_BattlefieldGenerator.compute_enemy_deploy_markers(
-		str(enemy_force_info.get("ai", "")),
-		int(enemy_force_info.get("count", 0)), marker_rng, bf_dims)
+	var enemy_markers: Array = []
+	for m in FPCM_BattlefieldGenerator.compute_enemy_deploy_markers(
+			str(enemy_force_info.get("ai", "")),
+			int(enemy_force_info.get("count", 0)), marker_rng, bf_dims):
+		# Normalize the [int,int] position to the same [float,float] JSON form
+		# every other contract position uses (grid_pos_to_json), so a
+		# save/reload round-trip is byte-identical, not just value-equal.
+		var mm: Dictionary = m.duplicate()
+		mm["position"] = BattlefieldGridClass.grid_pos_to_json(
+			BattlefieldGridClass.json_to_grid_pos(mm.get("position")))
+		enemy_markers.append(mm)
 
 	# Core Rules text setup guide kept for reference display
 	var terrain_guide: Dictionary = _generate_terrain_setup_guide(
