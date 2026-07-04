@@ -695,6 +695,21 @@ func _build_terrain_controls(target: Node) -> void:
 		legend.rebuild(battlefield_grid_panel.get_rendered_legend_keys())
 	target.add_child(legend)
 
+	# Terrain EDITING controls (scatter visibility, whole-map Regenerate,
+	# per-sector re-roll) are available ONLY before the battle starts —
+	# SETUP/DEPLOYMENT. Once COMBAT begins the map is locked to what the
+	# player physically built; the drawer then shows info only (table size
+	# + legend above), and the map itself still supports tap-for-rules /
+	# zoom / pan. Changing the map mid-battle would desync the table.
+	if current_stage not in [BattleStage.SETUP, BattleStage.DEPLOYMENT]:
+		var locked := Label.new()
+		locked.text = "Terrain locked for battle — tap a sector for its rules; pinch/scroll to zoom, drag to pan."
+		locked.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		locked.add_theme_font_size_override("font_size", 11)
+		locked.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		target.add_child(locked)
+		return
+
 	# Scatter toggle — off while placing main features, on for dressing
 	var scatter_toggle := CheckButton.new()
 	scatter_toggle.text = "Show scatter terrain"
@@ -712,23 +727,21 @@ func _build_terrain_controls(target: Node) -> void:
 				legend.rebuild(battlefield_grid_panel.get_rendered_legend_keys()))
 	target.add_child(scatter_toggle)
 
-	# Regenerate — until COMBAT (SETUP sits behind the checklist modal,
-	# so the table is really built during DEPLOYMENT; Confirm locks it)
-	if current_stage in [BattleStage.SETUP, BattleStage.DEPLOYMENT]:
-		var regen_btn := Button.new()
-		regen_btn.text = "🎲 Regenerate Terrain"
-		regen_btn.tooltip_text = \
-			"Roll a whole new battlefield (Compendium 5-step, pp.94-95)"
-		regen_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
-		regen_btn.add_theme_font_size_override("font_size", 12)
-		regen_btn.pressed.connect(_on_regenerate_terrain_pressed)
-		target.add_child(regen_btn)
-		var hint := Label.new()
-		hint.text = "Tap any map sector for its rules — or to re-roll just that sector."
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		hint.add_theme_font_size_override("font_size", 11)
-		hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-		target.add_child(hint)
+	# Whole-map Regenerate
+	var regen_btn := Button.new()
+	regen_btn.text = "🎲 Regenerate Terrain"
+	regen_btn.tooltip_text = \
+		"Roll a whole new battlefield (Compendium 5-step, pp.94-95)"
+	regen_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	regen_btn.add_theme_font_size_override("font_size", 12)
+	regen_btn.pressed.connect(_on_regenerate_terrain_pressed)
+	target.add_child(regen_btn)
+	var hint := Label.new()
+	hint.text = "Tap any map sector for its rules — or to re-roll just that sector."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	target.add_child(hint)
 
 
 func _rail_header(parent: Node, txt: String) -> void:
@@ -3327,11 +3340,21 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	_battle_initialized = true
 	_log_message("Initializing tactical battle...", UIColors.COLOR_CYAN)
 
-	# Update title header with mission name
+	# Update title header with mission name. The objective fallback tolerates
+	# both a String id and a Dict {name,...} (Bug Hunt stores a Dict, and
+	# has no title, so the old String-typed fallback crashed here — same
+	# String-or-Dict family as the combat-start fixes, 2026-07-03).
 	var md: Dictionary = mission_data if mission_data is Dictionary else {}
 	if title_label:
-		var mission_title: String = md.get("title",
-			md.get("objective", "Tactical Companion"))
+		var mission_title: String = str(md.get("title", ""))
+		if mission_title == "":
+			var obj_val: Variant = md.get("objective", "")
+			if obj_val is Dictionary:
+				mission_title = str(obj_val.get("name", "Tactical Companion"))
+			elif obj_val is String and obj_val != "":
+				mission_title = obj_val
+			else:
+				mission_title = "Tactical Companion"
 		title_label.text = mission_title
 
 	# Show tier selection now that battle is actually starting
@@ -4524,8 +4547,16 @@ func _populate_setup_tab(mission_data) -> void:
 	# from the battlefield seed and write back below.
 	var mission_dict_obj: Dictionary = (
 		mission_data if mission_data is Dictionary else {})
-	var objective_str: String = mission_dict_obj.get(
+	# objective may be a String id/type (campaign / battle-sim) OR a Dict
+	# {name, type, ...} (Bug Hunt). Reduce to the type string the generator
+	# matches on (Core Rules pp.89-91). String-or-Dict, 2026-07-03.
+	var obj_raw: Variant = mission_dict_obj.get(
 		"objective", mission_dict_obj.get("type", ""))
+	var objective_str: String = ""
+	if obj_raw is String:
+		objective_str = obj_raw
+	elif obj_raw is Dictionary:
+		objective_str = str(obj_raw.get("type", obj_raw.get("name", "")))
 	var base_seed: int = int(sector_data.get("seed", 0))
 	var obj_positions: Array = []
 	var stored_obj: Variant = bf_data.get("objective_positions", [])
@@ -4753,9 +4784,16 @@ func _populate_setup_tab(mission_data) -> void:
 			_add_setup_text("Effects: %s" % effects_summary, Color("#DC2626"))
 		_add_setup_separator()
 
-	# Section 4: Mission Objective (mission_dict declared in Section 0a)
-	var objective_name: String = mission_dict.get(
+	# Section 4: Mission Objective (mission_dict declared in Section 0a).
+	# objective is String (campaign / battle-sim) or Dict (Bug Hunt) — take
+	# the display name from either. (2026-07-03, String-or-Dict family.)
+	var obj_field: Variant = mission_dict.get(
 		"objective", mission_dict.get("type", ""))
+	var objective_name: String = ""
+	if obj_field is String:
+		objective_name = obj_field
+	elif obj_field is Dictionary:
+		objective_name = str(obj_field.get("name", obj_field.get("type", "")))
 	if not objective_name.is_empty():
 		_add_setup_section_header("MISSION OBJECTIVE")
 		_add_setup_text(objective_name, Color("#10B981"), 16)

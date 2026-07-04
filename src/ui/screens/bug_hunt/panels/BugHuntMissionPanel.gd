@@ -458,10 +458,33 @@ func _launch_mission() -> void:
 	var battle_context: Dictionary = battle_setup.generate_battle_context(
 		_mission_context, _campaign)
 
+	# TacticalBattleUI._try_auto_init_from_temp_data expects the context in
+	# {crew, enemies, mission_data} shape. generate_battle_context returns a
+	# FLAT payload, so wrap it: crew = the Bug Hunt squad (main characters +
+	# grunts); enemies spawn in-battle from contact markers (none at start);
+	# the flat payload rides as mission_data (it already carries
+	# battle_mode + contacts / tactical locations / spawn points, so the
+	# bug-hunt battle code still finds them). Fixed 2026-07-03 — previously
+	# the flat dict was stored directly, so the battle got EMPTY rosters and
+	# the entire payload was dropped (the keys don't match crew/enemies).
+	var crew: Array = []
+	if _campaign:
+		if _campaign.has_method("get_active_main_characters"):
+			crew = _campaign.get_active_main_characters().duplicate(true)
+		elif "main_characters" in _campaign:
+			crew = _campaign.main_characters.duplicate(true)
+		if "grunts" in _campaign and _campaign.grunts is Array:
+			crew.append_array(_campaign.grunts.duplicate(true))
+	var wrapped := {
+		"crew": crew,
+		"enemies": [],
+		"mission_data": battle_context,
+	}
+
 	# Store battle + mission context for TacticalBattleUI to pick up
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
 	if gs_mgr and gs_mgr.has_method("set_temp_data"):
-		gs_mgr.set_temp_data("bug_hunt_battle_context", battle_context)
+		gs_mgr.set_temp_data("bug_hunt_battle_context", wrapped)
 		gs_mgr.set_temp_data("bug_hunt_mission", _mission_context)
 
 	# Navigate to TacticalBattleUI — do NOT complete() here;
