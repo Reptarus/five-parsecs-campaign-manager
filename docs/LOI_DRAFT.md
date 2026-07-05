@@ -32,13 +32,13 @@ This is an informal record of how I currently understand our partnership and wha
 
 ## The project
 
-I am building a digital companion app for Five Parsecs From Home. It is a companion to the physical game rather than a replacement for it: it runs a player's campaign, assists with battles, tracks characters and crews, and presents the game's events and tables in an illustrated, guided way. The plan is Steam first (Windows and macOS), with an iOS / mobile edition as a later phase. The app is designed so that a buyer can run a full campaign inside it, which is how we reach players beyond the existing Five Parsecs audience, while still pointing them toward the physical books.
+I am building a digital companion app for Five Parsecs From Home. It is a companion to the physical game rather than a replacement for it: it runs a player's campaign, assists with battles, tracks characters and crews, and presents the game's events and tables in an illustrated, guided way. The plan is mobile first, Android to begin with and iOS to follow, with a desktop edition on Steam as the Early Access milestone we are building toward. The app is designed so that a buyer can run a full campaign inside it, which is how we reach players beyond the existing Five Parsecs audience, while still pointing them toward the physical books.
 
 The current build is solo-developed and already substantial: the full campaign loop, multiple game modes, and a battle assistant are working today. I am treating this first project as the proof of the architecture, and as the foundation for the wider digital strategy we have discussed across other Modiphius projects.
 
 ## The deal as I understand it
 
-**Recoupment first, then an even split.** I keep 100% of net receipts from the app (including Early Access payments) until an agreed development-cost figure has been recouped. There is no upfront payment from Modiphius. After that figure is recouped, a monthly maintenance and support fee comes to me off the top, and the remainder is then split 50/50 between us.
+**Recoupment first, then an even split.** I keep 100% of net receipts from the app across all stores (including mobile-store and Steam Early Access payments) until an agreed development-cost figure has been recouped. There is no upfront payment from Modiphius. After that figure is recouped, a monthly maintenance and support fee comes to me off the top, and the remainder is then split 50/50 between us.
 
 **The figures I am proposing as a starting point** for the recoupment-cost conversation we agreed to open:
 
@@ -47,7 +47,7 @@ The current build is solo-developed and already substantial: the full campaign l
 
 These are opening proposals, not fixed terms. I expect we will refine them together, anchored to the data we start gathering during alpha testing. The monthly fee is meant as an ongoing operating arrangement regardless of how we end up pricing the app to players (see the open point below), not a charge tied to any one pricing model.
 
-**"Net" means** gross receipts after the storefront's platform fee (for example Steam's cut) has been taken. The 50/50 split applies to that net figure.
+**"Net" means** gross receipts after the storefront's platform fee (for example Google Play's, the App Store's, or Steam's cut) has been taken. The 50/50 split applies to that net figure.
 
 **If Modiphius later funds development, recoupment becomes pro-rata.** The structure above assumes I have carried the development cost to date. If Modiphius later contributes cash toward building the app (for example, funding development hardware, a contractor, or a specific content expansion), the development-cost figure grows by that amount and we recoup pro-rata, each in proportion to the cash we put in. For clarity, the following are Modiphius's contributions in exchange for the revenue split, and are not development-budget contributions for this purpose: the Five Parsecs intellectual property and trademarks, the art and brand assets, and marketing or channel support such as newsletter, social, Discord, and community amplification. Those are already reflected in the 50/50 split and in Modiphius's physical-book sales.
 

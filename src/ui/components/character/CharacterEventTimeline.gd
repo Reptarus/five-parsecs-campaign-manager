@@ -119,9 +119,14 @@ func _build_ui() -> void:
 		"v_separation", SPACING_XS)
 	root_vbox.add_child(filter_flow)
 
-	# "All" button
+	# "All" button. Set the initial pressed state WITHOUT emitting `toggled`:
+	# _create_filter_button() already connected toggled -> _on_filter_toggled,
+	# and that handler dereferences _filter_buttons[""] — which isn't populated
+	# until below. Using button_pressed = true here fired the handler mid-build
+	# and crashed ("Invalid access ... on Dictionary"). set_pressed_no_signal
+	# applies the visual state only.
 	var all_btn := _create_filter_button("All", "")
-	all_btn.button_pressed = true
+	all_btn.set_pressed_no_signal(true)
 	filter_flow.add_child(all_btn)
 	_filter_buttons[""] = all_btn
 
@@ -270,6 +275,9 @@ func _get_journal() -> Node:
 func _on_filter_toggled(
 	pressed: bool, filter_type: String
 ) -> void:
+	# Defense-in-depth: never dereference the filter map before it's built.
+	if not _filter_buttons.has(""):
+		return
 	if filter_type.is_empty():
 		# "All" button — clear other filters
 		_active_filters.clear()

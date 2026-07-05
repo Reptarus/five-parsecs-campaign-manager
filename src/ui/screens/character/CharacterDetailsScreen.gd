@@ -87,6 +87,7 @@ var _touch_start_time: float = 0.0
 var _page_dots_container: HBoxContainer = null
 
 func _ready() -> void:
+	_apply_screen_background()
 
 	# Connect button signals
 	if save_button:
@@ -123,6 +124,23 @@ func _ready() -> void:
 
 	# Load character data
 	load_character_data()
+
+
+## This screen extends Control (not BaseCampaignPanel/CampaignScreenBase), so it
+## never got the auto-injected COLOR_BASE background those bases provide — it
+## rendered on the window's default gray, breaking the Deep Space theme. Mirror
+## that pattern: a full-rect COLOR_BASE ColorRect behind all content, injected
+## once (guarded by name) and mouse-transparent so it never eats input.
+func _apply_screen_background() -> void:
+	if get_node_or_null("__screen_bg"):
+		return
+	var bg := ColorRect.new()
+	bg.name = "__screen_bg"
+	bg.color = COLOR_BASE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	move_child(bg, 0)
 
 
 func _apply_ui_styling() -> void:
@@ -576,6 +594,24 @@ func _update_species_rules_display() -> void:
 	rules_label.text = bbcode
 	container.add_child(rules_label)
 
+## Resolve a character equipment entry to its human-readable name. Entries are
+## stored as internal ids (e.g. "rattle_gun_5168_92512"); look the id up in
+## EquipmentManager (which holds {id, name, ...}). Falls back to the raw value so
+## name-based or dict entries still display.
+func _resolve_equipment_name(item) -> String:
+	if item is Dictionary:
+		return str(item.get("name", item.get("id", "Unknown Item")))
+	var s := str(item)
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("get_equipment"):
+		var entry: Dictionary = eq_mgr.get_equipment(s)
+		if entry and not entry.is_empty():
+			var nm := str(entry.get("name", ""))
+			if not nm.is_empty():
+				return nm
+	return s
+
+
 func _update_equipment_display() -> void:
 	## Update equipment list — separates Weapons (with stats) from Gear/Armor, matching Crew Log layout
 	if not current_character or not equipment_rich_text:
@@ -592,7 +628,10 @@ func _update_equipment_display() -> void:
 	var gear_bbcode := ""
 
 	for item in current_character.equipment:
-		var item_str := str(item)
+		# Character equipment is stored as internal ids (e.g. "rattle_gun_5168_92512").
+		# Resolve to the human-readable item NAME so the sheet shows "Rattle Gun",
+		# not the id — and so the weapon-stat DB lookup below can match.
+		var item_str := _resolve_equipment_name(item)
 		var db_entry: Dictionary = _find_equipment_entry(item_str, equip_db)
 
 		if not db_entry.is_empty() and db_entry.get("type", "") not in ["Armor", "Screen", "Consumable", "Gadget", "Utility"]:
@@ -919,6 +958,24 @@ func _get_char_id() -> String:
 
 # ── Portrait Upload ─────────────────────────────────────────────
 
+## Full-rect, mouse-transparent overlay inside the HeroCard so floating buttons
+## can be positioned by anchors. HeroCard is a PanelContainer, which stretches
+## EVERY direct child to fill its rect — so buttons added directly to it overlap
+## the card content and each other, and their set_anchors_preset()/position()
+## calls are ignored (Containers override manual layout). The overlay is a plain
+## Control (not a Container), so ITS children honor anchors.
+func _get_or_create_hero_overlay() -> Control:
+	if not hero_card:
+		return null
+	var overlay := hero_card.get_node_or_null("__HeroOverlay") as Control
+	if overlay:
+		return overlay
+	overlay = Control.new()
+	overlay.name = "__HeroOverlay"
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero_card.add_child(overlay)
+	return overlay
+
 func _setup_portrait_upload() -> void:
 	## Add "Change Portrait" button overlaid on the HeroCard
 	if not hero_card:
@@ -940,7 +997,7 @@ func _setup_portrait_upload() -> void:
 	hover.bg_color = COLOR_ACCENT
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.pressed.connect(_on_change_portrait_pressed)
-	hero_card.add_child(btn)
+	_get_or_create_hero_overlay().add_child(btn)
 	# Position at bottom-left of hero card
 	btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	btn.position = Vector2(SPACING_SM, -40)
@@ -971,7 +1028,7 @@ func _setup_print_sheet_button() -> void:
 	hover.bg_color = COLOR_ACCENT
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.pressed.connect(_on_print_sheet_pressed)
-	hero_card.add_child(btn)
+	_get_or_create_hero_overlay().add_child(btn)
 	# Mirror position of Change Portrait — bottom-right of the hero card.
 	btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	btn.position = Vector2(-btn.custom_minimum_size.x - SPACING_SM, -40)

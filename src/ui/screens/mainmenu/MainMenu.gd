@@ -73,6 +73,18 @@ func _ready() -> void:
 
 	# Responsive layout
 	get_viewport().size_changed.connect(_on_viewport_resized)
+	# size_changed does NOT fire on rotation under the square 1080 base (logical
+	# size is unchanged), so also react to ResponsiveManager.layout_class_changed
+	# (the canonical rotation signal). Adapt the int payload to the no-arg handler.
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		# Connect a METHOD REFERENCE, not a lambda. A lambda connected to a
+		# persistent autoload signal is NOT auto-disconnected when this screen is
+		# freed (its captured `self` dangles), so after navigating away it fires on
+		# every emit with freed `self` → "Lambda capture at index 0 was freed".
+		# A method ref IS torn down when the node frees. Godot drops the extra
+		# `cols` arg when the target takes none. (Matches the 12 other screens.)
+		rm.layout_class_changed.connect(_on_viewport_resized)
 	_on_viewport_resized()
 
 	# First-run tutorial (deferred so UI is fully built)
@@ -1268,8 +1280,22 @@ func _on_viewport_resized() -> void:
 	var vp := get_viewport()
 	if not vp:
 		return
-	var vp_size := vp.get_visible_rect().size
-	var is_narrow := vp_size.x < 768
+	# Portrait detection MUST use physical density-independent size, not the
+	# viewport rect. The project uses a square 1080x1080 base with
+	# canvas_items+expand, so get_visible_rect().size.x is always ~1080 and
+	# CANNOT distinguish portrait from landscape. ResponsiveManager is the SSOT
+	# (it classifies by window_get_size()/screen_get_scale()). See
+	# docs/sop/responsive-adaptive-ui.md.
+	var is_narrow := false
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		is_narrow = rm.should_collapse_to_single_column()
+	else:
+		# Defensive fallback if the autoload is unavailable.
+		var scale := DisplayServer.screen_get_scale()
+		if scale <= 0.0:
+			scale = 1.0
+		is_narrow = (DisplayServer.window_get_size().x / scale) < 768
 	var menu_buttons := $MenuButtons
 	var title := $Title
 

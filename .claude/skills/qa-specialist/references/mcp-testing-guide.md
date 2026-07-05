@@ -336,3 +336,12 @@ If `click_element` fails with "not visible", fall back to coordinate-based click
 5. **Check debug output regularly** — errors may not be visible in the UI
 6. **Don't chain too many actions** — break into smaller action arrays for reliability
 7. **Coordinate clicks as fallback** — when `click_element` fails, use `mouse_button` at center of rect
+
+## On-device (T2) testing via ADB — the real-device path (Jun 24 2026)
+
+MCP is T1 (desktop layout logic). T2 = a real Android device, the ONLY way to verify physical portrait/touch/density. ADB: `C:\Users\admin\Documents\Android\Sdk\platform-tools\adb.exe` (not on PATH). Package `com.reptarus.fiveparsecs`, launcher `com.godot.game.GodotAppLauncher`.
+
+- **Screencap**: `adb exec-out screencap -p > x.png` (native 1840×2944 portrait). **Tap coords = screencap pixel coords** (`adb shell input tap X Y`). Don't eyeball displayed-image fractions — **color-scan the PNG** (System.Drawing in PowerShell) for button centers: bright-blue accent `B>210,R<130,120<G<200`; medium-blue `#2D5A7B`; green `#10B981`. Bottom action row ≈ y2845.
+- **Force portrait**: `adb shell settings put system accelerometer_rotation 0` then `user_rotation 0`; restore by re-enabling. SENSOR-orientation apps follow it.
+- **Limits**: MCP `take_screenshot` ONLY works on an MCP-`run_project`-launched instance, NOT an adb/standalone one. `uiautomator dump` does NOT expose Godot controls (one SurfaceView). DESKTOP cannot simulate a portrait window (editor embed + project.godot mode + SettingsManager re-assert landscape) → portrait layout is T2-only.
+- **Why it matters**: a real creation→Turn1 click-through caught data-flow desyncs (`reference_alpha_tester_adb_methodology` + `project_session_jun24_alpha_fixit_sprint` user memories) that `--headless` + green unit tests passed through — same class-(b) silent-abort family as the Jun-3 legacy-save sweep, but new-campaign-only. Walk BOTH save-states.

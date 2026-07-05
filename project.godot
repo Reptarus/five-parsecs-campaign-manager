@@ -26,6 +26,7 @@ run/max_fps=60
 config/icon="res://assets/iconnew.png"
 
 [autoload]
+
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 SettingsManager="*res://src/autoload/SettingsManager.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
@@ -116,6 +117,7 @@ common/physics_ticks_per_second=30
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.101961, 0.101961, 0.180392, 1)
 
 [steam]
 

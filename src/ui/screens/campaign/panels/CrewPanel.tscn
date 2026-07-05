@@ -43,6 +43,7 @@ text = "Crew Members"
 
 [node name="ItemList" type="ItemList" parent="Content/CrewList"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 160)
 size_flags_vertical = 3
 allow_reselect = true
 auto_height = true

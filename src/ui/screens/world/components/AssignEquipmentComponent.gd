@@ -135,7 +135,7 @@ func _populate_crew_list() -> void:
 		var member = crew_data[i]
 		var member_name: String = member.character_name if "character_name" in member else "Crew %d" % (i + 1)
 		var equipment_count = _get_equipment_count(member)
-		crew_list.add_item("%s (%d items)" % [member_name, equipment_count])
+		crew_list.add_item("%s (%d item%s)" % [member_name, equipment_count, "" if equipment_count == 1 else "s"])
 
 func _populate_stash_list() -> void:
 	## Populate stash items list
@@ -401,7 +401,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 		var member = option["member"]
 		var member_name: String = member.character_name if "character_name" in member else "Crew %d" % (option["index"] + 1)
 		var equipment_count = _get_equipment_count(member)
-		crew_list.add_item("%s (%d items)" % [member_name, equipment_count])
+		crew_list.add_item("%s (%d item%s)" % [member_name, equipment_count, "" if equipment_count == 1 else "s"])
 		crew_list.set_item_metadata(crew_list.item_count - 1, option["index"])
 
 	vbox.add_child(crew_list)

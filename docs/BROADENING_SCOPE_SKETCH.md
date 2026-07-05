@@ -61,7 +61,7 @@ A Five Parsecs campaign is wonderful, and it is admin-heavy. You track a crew, c
 
 ## Where it lives
 
-The companion's home is the phone or tablet in your hand at the table. It was built mobile-first from day one, with the touch layout already in the build, and it lives where players already get their apps: Google Play and the Apple App Store, the same stores Modiphius already publishes on.
+The companion's home is the phone or tablet in your hand at the table. It was built mobile-first from day one, with the touch layout already in the build, and it lives where players already get their apps. It comes to Android first, on Google Play, with the Apple App Store to follow, the same stores Modiphius already publishes on.
 
 The same app also has a desktop build, and that is the version that debuts on Steam. Steam is the shop window on desktop, where discovery, wishlists, and the run-up to the crowdfunding happen and where we gather the first audience. So Steam carries the desktop build for the launch, while the phone and tablet, where the companion is actually used at the table, run on their own stores.
 

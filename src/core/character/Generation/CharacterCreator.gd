@@ -919,8 +919,14 @@ func _on_randomize_pressed() -> void:
 				if idx >= 0:
 					bg_entry = BACKGROUND_ITEMS[idx]
 	if can_roll:
+		# Convert the enum id to its canonical string (validated String property);
+		# passing the raw int relied on the setter resolving GlobalEnums from a
+		# detached Resource, which fails and defaults to "COLONIST". Same fix as the
+		# dropdown handler _on_background_changed.
+		var bg_key: String = GlobalEnums.to_string_value("background", bg_entry[1])
 		_set_character_property(
-			current_character, "background", bg_entry[1])
+			current_character, "background",
+			bg_key if bg_key != "UNKNOWN" else bg_entry[1])
 
 	# Class: D100 weighted roll (Core Rules pp.26-27)
 	var class_entry = CLASS_ITEMS[randi() % CLASS_ITEMS.size()]
@@ -938,8 +944,11 @@ func _on_randomize_pressed() -> void:
 			if cls_name_str in [
 				"Technician", "Scientist", "Hacker"]:
 				class_entry = ["Primitive", 15]
+		# Convert enum id -> canonical string (see background above; default was "BASELINE").
+		var cls_key: String = GlobalEnums.to_string_value("character_class", class_entry[1])
 		_set_character_property(
-			current_character, "character_class", class_entry[1])
+			current_character, "character_class",
+			cls_key if cls_key != "UNKNOWN" else class_entry[1])
 
 	# Motivation: D100 weighted roll (Core Rules p.26)
 	var mot_entry = MOTIVATION_ITEMS[randi() % MOTIVATION_ITEMS.size()]
@@ -960,8 +969,11 @@ func _on_randomize_pressed() -> void:
 					MOTIVATION_ITEMS, mot_name)
 				if idx >= 0:
 					mot_entry = MOTIVATION_ITEMS[idx]
+		# Convert enum id -> canonical string (see background/class above; default "SURVIVAL").
+		var mot_key: String = GlobalEnums.to_string_value("motivation", mot_entry[1])
 		_set_character_property(
-			current_character, "motivation", mot_entry[1])
+			current_character, "motivation",
+			mot_key if mot_key != "UNKNOWN" else mot_entry[1])
 
 	# Apply all bonuses (origin, background, class, motivation)
 	if origin_enum > 0:
@@ -1123,13 +1135,23 @@ func _on_origin_changed(index: int) -> void:
 
 func _on_background_changed(index: int) -> void:
 	var enum_value: int = background_options.get_item_id(index)
-	_set_character_property(current_character, "background", enum_value)
+	# Character.background is a validated STRING property. Convert the enum id to its
+	# canonical key HERE (GlobalEnums is reliably reachable from this Node autoload) and
+	# pass the string — the setter's `value is String` branch stores it directly. Passing
+	# the int relied on the setter resolving GlobalEnums from a detached Resource, which
+	# failed and dropped the value to the setter default ("COLONIST"), ignoring the dropdown.
+	var enum_key: String = GlobalEnums.to_string_value("background", enum_value)
+	_set_character_property(current_character, "background",
+		enum_key if enum_key != "UNKNOWN" else enum_value)
 	_apply_background_bonuses(enum_value)
 	_update_preview()
 
 func _on_class_changed(index: int) -> void:
 	var enum_value: int = class_options.get_item_id(index)
-	_set_character_property(current_character, "character_class", enum_value)
+	# See _on_background_changed: pass the canonical string (default was "BASELINE").
+	var enum_key: String = GlobalEnums.to_string_value("character_class", enum_value)
+	_set_character_property(current_character, "character_class",
+		enum_key if enum_key != "UNKNOWN" else enum_value)
 	_apply_class_bonuses(enum_value)
 	_update_preview()
 

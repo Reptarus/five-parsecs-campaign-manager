@@ -381,6 +381,11 @@ func is_desktop_layout() -> bool:
 	return current_layout_mode == LayoutMode.DESKTOP
 
 func should_use_single_column() -> bool:
+	## Delegate to ResponsiveManager (SSOT) — get_visible_rect() returns the virtual
+	## ~square base under canvas_items+expand and cannot detect device portrait.
+	## See BaseCampaignPanel.should_use_single_column() for the full rationale.
+	if _responsive_manager and _responsive_manager.has_method("should_collapse_to_single_column"):
+		return _responsive_manager.should_collapse_to_single_column()
 	if current_layout_mode == LayoutMode.MOBILE:
 		return true
 	var sz := get_viewport().get_visible_rect().size

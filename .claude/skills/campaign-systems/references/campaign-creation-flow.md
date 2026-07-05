@@ -170,3 +170,12 @@ Campaign creation rules (difficulty modes, victory conditions, crew sizes, start
 - **Planetfall PDF**: `docs/Five_Parsecs_From_Home_Modiphius_Entertainment_Planetfall_MUH084V044OEF2026/`
 - **Text extractions**: `docs/rules/core_rulebook.txt`, `docs/rules/compendium_source.txt`, `docs/rules/planetfall_source.txt`
 - **Python page extraction (PyPDF2 ONLY)**: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"` (PyPDF2 3.0.1 via `py` launcher — do NOT use PyMuPDF/fitz)
+
+## Creation→world-phase boundaries are lossy — forward FULL dicts (Jun 24 2026)
+
+Three Jun-24 alpha bugs were all fields dropped at module boundaries (on-device verify PENDING):
+1. `CampaignFinalizationService._transform_crew_data_for_turn_system()` passed Character **Resources** through → a FRESH campaign held Resources in `crew_data["members"]` → `CrewTaskComponent`'s 2-arg `.get(key, default)` aborts on a Resource → empty crew → World Phase Step 2 soft-lock (loaded saves are dicts, so it was new-campaign-only). Now `to_dictionary()`-normalized.
+2. `update_captain_state()` hand-copied captain stats but OMITTED `luck` → review showed Luck 0.
+3. The `equipment_generated` signal adapter in `CampaignCreationUI` omitted the `credits` key → starting credits lost (Core Rules p.28 = 1/crew; 6-crew = 6cr + roll bonuses).
+
+RULE: forward the full `to_dictionary()` / `get_panel_data()` at boundaries; never hand-assemble a dict that cherry-picks keys. Also: victory is now REQUIRED, gated in `FinalPanel._validate_campaign_data()` — NOT in `ExpandedConfigPanel._validate_campaign_config()`, which intentionally defers victory to avoid breaking campaign-name propagation. Full: CLAUDE.md Gotchas + project memory `project_session_jun24_alpha_fixit_sprint`.

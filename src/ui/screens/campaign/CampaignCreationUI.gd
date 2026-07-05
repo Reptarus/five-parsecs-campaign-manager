@@ -129,8 +129,13 @@ func _connect_panel_signals() -> void:
 	# EquipmentPanel (extends FiveParsecsCampaignPanel)
 	if equipment_panel.has_signal("equipment_generated"):
 		equipment_panel.equipment_generated.connect(func(equipment: Array):
+			# Include the panel's computed starting credits (Core Rules p.28:
+			# 1 credit per crew member + background/class/motivation roll bonuses).
+			# This adapter previously dropped the credits key, so the coordinator
+			# kept its 0 default and finalization persisted ~1cr instead of 6.
 			coordinator.update_equipment_state({
 				"equipment": equipment,
+				"credits": equipment_panel.starting_credits,
 				"is_complete": equipment.size() > 0
 			})
 		)

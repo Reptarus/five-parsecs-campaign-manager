@@ -235,7 +235,7 @@ func _build_empty_state_card() -> PanelContainer:
 
 	var lbl := Label.new()
 	lbl.text = "No captain created yet.\n" \
-		+ "Click 'Create Captain' or 'Randomize' to begin."
+		+ "Click 'Create Captain' or 'Random Captain' to begin."
 	lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	lbl.add_theme_color_override(
 		"font_color", Color("#6b7280"))
@@ -294,7 +294,7 @@ func _on_help_pressed() -> void:
 		+ "[b]Motivation[/b]: Drives narrative and " \
 		+ "unlocks campaign events.\n\n" \
 		+ "Stats are generated with standard rolls. " \
-		+ "Use Randomize for a quick start.",
+		+ "Use Random Captain for a quick start.",
 		PackedStringArray(["Core Rules pp.12-22"]))
 
 func get_captain_data():

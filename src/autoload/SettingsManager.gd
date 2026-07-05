@@ -243,13 +243,17 @@ func _apply_ui_scale() -> void:
 	# stretch (x 1080/short_axis) and apply ONE consistent EFFECTIVE scale instead,
 	# so text is the same comfortable PHYSICAL size in portrait AND landscape, and
 	# resizing changes how much content fits (not the text size).
-	#  - TARGET_EFFECTIVE 1.12 = verified layout-safe (in landscape it yields
-	#    content_scale ~1.15, which the tightest screen/MainMenu tolerates; ~1.2+
-	#    starts to collide).
+	#  - TARGET_EFFECTIVE 1.16 = verified layout-safe (bumped from 1.12 for a
+	#    slightly larger default per alpha feedback that text read small). On a
+	#    maximized desktop window this yields content_scale ~1.19; MainMenu's
+	#    10-button column and dense campaign screens were re-verified clear at
+	#    this value. ~1.2+ (TARGET_EFFECTIVE ~1.17 on desktop) starts to collide,
+	#    so this is intentionally just under that ceiling. Users who want larger
+	#    text raise the ui_scale slider on top.
 	#  - ui_scale = the user's Settings slider, relative to that baseline.
 	#  - dpi_scale = hiDPI mobile density (1.0 on desktop) for consistent physical
 	#    size across screen densities.
-	const TARGET_EFFECTIVE := 1.12
+	const TARGET_EFFECTIVE := 1.16
 	const STRETCH_BASE := 1080.0  # project.godot viewport_width/height (square)
 	var win := Vector2(DisplayServer.window_get_size())
 	var short_axis: float = minf(win.x, win.y)

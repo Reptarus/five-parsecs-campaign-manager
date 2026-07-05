@@ -135,7 +135,7 @@ text = "Add to Crew"
 [node name="BackButton" type="Button" parent="MainPanel/MarginContainer/HBoxContainer/CreationPanel/ButtonSection"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Back"
+text = "Cancel"
 
 [node name="PreviewPanel" type="VBoxContainer" parent="MainPanel/MarginContainer/HBoxContainer"]
 unique_name_in_owner = true

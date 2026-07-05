@@ -5,22 +5,23 @@
 **Target kickoff**: Mon May 25, 2026 (or May 18 if A0 sanity-check passes early)
 **Window**: 6 weeks (May 25 → Jul 6, 2026)
 **Cohort**: 10-20 testers from Ivan's private playtesting Discord
-**Distribution**: signed Windows .exe via Discord/Drive
+**Distribution**: Android via Google Play closed testing track (invite-only email allowlist under Modiphius's Play account); opt-in link shared via Discord
 **Build cadence**: weekly (Mondays)
 **Status**: DRAFT v1 — for review with Ivan before kickoff
+**Timeline stale (flagged 2026-06-18)**: every date below (kickoff, the May 25 to Jul 6 window, the A0-A6 build cadence in §5, the §8 pipeline) predates the mobile-first re-pivot and has passed. Re-anchor the whole schedule once Modiphius commits a hard kickoff date (and Play Console access lands). Dates left in place until then.
 
 ---
 
 ## 1. What This Alpha Is
 
-This is the closed alpha phase for the **5PFH Digital** app — the partnership-blessed digital version of Five Parsecs From Home, currently in development with Modiphius for Steam Early Access launch in Q3-Q4 2026.
+This is the closed alpha phase for the **5PFH Digital** app — the partnership-blessed digital version of Five Parsecs From Home, in development with Modiphius. Launch is mobile-first: Android first via Google Play, iOS once an iOS device is affordable, desktop on Steam as a later scale-up phase.
 
 The alpha has **two goals**, equal weight:
 
 1. **Find blocking bugs** before we open it up wider. Crashes, save corruption, mode interactions, anything that breaks the experience.
 2. **Help us figure out what's worth paying for**. The app does a lot — campaign creation, multi-phase turns, battle assistance, character events, multiple game modes (Standard 5PFH, Bug Hunt, Planetfall, Tactics). We need testers who know the tabletop game to tell us **which parts feel valuable enough to justify a paid app** and which parts feel like noise.
 
-Bug-finding is the obvious part. The pricing-validation part matters more long-term — the testers that complete this alpha shape what the Steam EA build looks like.
+Bug-finding is the obvious part. The pricing-validation part matters more long-term — the testers that complete this alpha shape what the launch build looks like.
 
 ---
 
@@ -77,14 +78,14 @@ Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing
 
 ### Build distribution
 
-- **Windows-only for alpha** (signed .exe distributed via Discord pinned link or shared Drive folder)
-- Mac/Linux support deferred to beta (Phase D)
-- Build size: ~150-200MB
-- Defender whitelist instructions included in the onboarding doc — no code-signing cert at this stage, so first launch may flag SmartScreen
+- **Android-only for alpha** (installed through Google Play's closed testing track under Modiphius's Play account; testers opt in via an email-allowlisted link shared in Discord)
+- Desktop (Steam) and iOS deferred to later phases
+- Build size: Android App Bundle, target under 150MB
+- Install steps in the onboarding doc: accept the Play test invite, then install from the Play listing. No Defender or SmartScreen step (that was the Windows path); the tester's Gmail must match the device they install on
 
 ### What's included in the alpha build
 
-- All four game modes operational: Standard 5PFH, Bug Hunt, Planetfall, Tactics
+- Alpha-1 surface per §1.5: Standard 5PFH 9-phase campaign + the 3 Compendium DLC packs. Bug Hunt, Planetfall, and Tactics exist in the build but are out of alpha-1 testing scope (deferred to alpha-2)
 - Full campaign creation (7-phase wizard) + 9-phase campaign turns
 - Battle assistant (TacticalBattleUI), Battle Simulator standalone mode
 - 925/925 Core Rules data values verified, 170/170 game mechanics implemented
@@ -249,6 +250,8 @@ If any gate misses → extend alpha by 2 weeks; ship 2 more patches; re-evaluate
 
 ## 8. After Alpha (What Happens Next)
 
+> **Platform progression (settled, mobile-first)**: Android is the launch platform. iOS follows once an iOS device is in budget. Desktop (Steam Early Access) and beyond are the later "scale up" phases, after mobile is established. The Steam-dated pipeline below is a later-phase placeholder and re-anchors to real dates once Modiphius commits a hard schedule.
+
 - **Refinement phase (2 weeks, Jul 7 → Jul 20)**: I act on alpha findings. UX redesigns, bug fixes, scope decisions. No new testers. Marketing prep starts in parallel (capsule art commission, Coming Soon page draft).
 - **Beta / Steam Playtest (6 weeks, Jul 21 → Sep 1)**: bigger cohort (100-200) via Steam Playtest. Wishlist accumulation begins. Localization decisions.
 - **Marketing lock + EA prep (3 weeks, Sep 2 → Sep 22)**: store page populated, trailer cut, capsule art final, EA pricing locked.
@@ -281,7 +284,7 @@ Closed alpha testers stay in the loop after alpha ends — invited to beta cohor
 | Tester fatigue / churn past week 5 | Med | Low | Weekly debriefs (rotating 2-3) keep engagement high. If a tester drops, don't replace mid-alpha — adjust expectations and proceed. |
 | P0 bug discovered late (week 5-6) | Med | High | Hotfix builds permitted between weekly drops. If P0 surfaces in final week, extend by 1-2 weeks. |
 | Pricing data inconclusive | Low | Med | Supplement with Prolific paid survey (n=200) running in parallel — broader cohort gives statistical confidence beyond 10-20 directional. |
-| Tester can't get the build running (Defender, missing dependencies) | Med | Low | Onboarding doc with step-by-step Defender whitelist + dependency check. Discord channel for troubleshooting. |
+| Tester can't install the build (Play opt-in confusion, device/OS-version compatibility, Gmail does not match device) | Med | Low | Onboarding doc with step-by-step Play opt-in flow; confirm each tester's Gmail matches their device; state the minimum Android version up front. Discord channel for troubleshooting. |
 | Tester leaks build / streams publicly | Low | Med | No-NDA gentleman's agreement covered in onboarding. Recovery: ask them to take it down; minor incident, don't escalate. |
 | Modiphius wants formal NDA after alpha starts | Low | Med | Raise this in Apr 29 followup ask #4. Get answer before kickoff. |
 
@@ -292,6 +295,8 @@ Closed alpha testers stay in the loop after alpha ends — invited to beta cohor
 To resolve in Phase A.2 (May 5-11) before alpha launches:
 
 - [ ] Confirm exact cohort size with Ivan (target 10-20)
+- [ ] Modiphius Play Console access confirmed (Elijah added to their Play account with rights to manage the closed test track + tester allowlist)
+- [ ] New kickoff date set and the schedule (header, §5 build cadence, §8 pipeline) re-anchored to it
 - [ ] Confirm Modiphius's NDA stance (per Apr 29 followup ask #4)
 - [ ] Telemetry tooling decision (Talo vs GameAnalytics) — recommend Talo (Godot-native, open-source)
 - [ ] Discord channel structure agreed with Ivan (use existing community channels or set up dedicated ones)

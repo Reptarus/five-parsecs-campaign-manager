@@ -59,6 +59,7 @@ var local_campaign_config: Dictionary = {
 
 # UI Components with safe access
 var campaign_name_input: LineEdit
+var _name_hint_label: Label  # Inline "name required to continue" hint (silent-gating fix)
 var campaign_type_option: OptionButton
 var difficulty_option: OptionButton  # Difficulty selector
 var victory_conditions_list: VBoxContainer
@@ -277,10 +278,24 @@ func _build_campaign_identity_section(parent: Control) -> void:
 	_style_line_edit(campaign_name_input)
 	
 	var input_wrapper = _create_labeled_input("Campaign Name", campaign_name_input)
-	
+
+	# Inline hint: the wizard's "Next" stays hidden until a name is entered, which
+	# is otherwise silent. Show a gentle prompt while the field is empty so the
+	# player knows what's blocking them; hidden once a name is typed.
+	_name_hint_label = Label.new()
+	_name_hint_label.text = "Enter a campaign name to continue."
+	_name_hint_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	_name_hint_label.add_theme_color_override("font_color", COLOR_WARNING)
+	_name_hint_label.visible = local_campaign_config.campaign_name.strip_edges().is_empty()
+
+	var identity_box := VBoxContainer.new()
+	identity_box.add_theme_constant_override("separation", SPACING_XS)
+	identity_box.add_child(input_wrapper)
+	identity_box.add_child(_name_hint_label)
+
 	var card = _create_section_card(
 		"CAMPAIGN IDENTITY",
-		input_wrapper,
+		identity_box,
 		"Choose a memorable name for your crew's journey across the Fringe"
 	)
 	parent.add_child(card)
@@ -1000,6 +1015,9 @@ func _setup_tutorial_mode_options() -> void:
 func _on_campaign_name_changed(new_text: String) -> void:
 	## Handle campaign name change
 	local_campaign_config.campaign_name = new_text
+	# Silent-gating hint: hide once a name exists, show again if cleared.
+	if _name_hint_label:
+		_name_hint_label.visible = new_text.strip_edges().is_empty()
 	_update_display()
 	# B3: the coordinator's nav-enablement listens to campaign_config_data_changed
 	# (CampaignCreationUI wires it → coordinator.update_campaign_config_state). The

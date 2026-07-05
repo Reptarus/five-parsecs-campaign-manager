@@ -401,9 +401,17 @@ func get_character_history(character_id: String) -> Dictionary:
 	return character_histories.get(character_id, {})
 
 func get_character_timeline(character_id: String) -> Array[Dictionary]:
-	## Get character's timeline events
+	## Get character's timeline events.
+	## `timeline` is stored as an untyped Array (JSON deserialization loses the
+	## element type), so re-type it via assign() — returning it directly trips
+	## Godot 4's "Array where Array[Dictionary] expected" runtime error.
 	var history = get_character_history(character_id)
-	return history.get("timeline", [])
+	var raw: Array = history.get("timeline", [])
+	var typed: Array[Dictionary] = []
+	for entry in raw:
+		if entry is Dictionary:
+			typed.append(entry)
+	return typed
 
 func get_character_entries(character_id: String) -> Array[Dictionary]:
 	## Get all journal entries involving a character

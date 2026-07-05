@@ -168,3 +168,7 @@ for lbl_name in ["status_label", "stats_label"]:
         lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
         lbl.custom_minimum_size.x = 0.0
 ```
+
+## should_use_single_column() must use ResponsiveManager, never get_visible_rect() (Jun 24 2026)
+
+The base-class `should_use_single_column()` (`BaseCampaignPanel` L474, `CampaignScreenBase` L383) must delegate to `_responsive_manager.should_collapse_to_single_column()`. They previously used `get_viewport().get_visible_rect().size` (`y > x`), which under the square 1080 `canvas_items`+`expand` base returns the VIRTUAL base (~1080² per Godot 4.6 `Window.content_scale_size`) and never detects device portrait — silently defeating correct per-panel stacking (EquipmentPanel split, WorldInfoPanel cards: the panel calls the helper, gets false, stays multi-column). NEVER use `get_visible_rect()` for orientation/breakpoint logic. Full: `docs/sop/responsive-adaptive-ui.md` gotcha #7 + CLAUDE.md Gotchas.

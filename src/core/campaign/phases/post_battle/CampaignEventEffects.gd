@@ -112,7 +112,11 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 			if engineer_present:
 				cost = maxi(1, cost - 1)
 			if gsm:
-				gsm.add_credits(-cost)
+				# modify_credits clamps at 0 — credits must never go negative
+				# (Core Rules: you pay what you can; ship stays grounded on debt).
+				# add_credits() is unclamped and drove the balance to -N once the
+				# 1de89630 bridge made this effect actually apply.
+				gsm.modify_credits(-cost)
 			return "Life support upgrade: Paid %d credits (ship grounded until paid)" % cost
 
 		"New Ally":

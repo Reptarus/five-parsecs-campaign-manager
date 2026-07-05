@@ -187,12 +187,26 @@ func add_equipment(equipment_data: Dictionary) -> bool:
 	
 	_equipment_storage.append(equipment_data)
 
-	# Write-through to campaign equipment_data for save/load persistence
+	# Write-through to campaign equipment_data for save/load persistence.
+	# IDEMPOTENT BY ID: the ship stash is a set of unique physical item cards
+	# (tabletop invariant "one item, one home"), so an id already present is
+	# NEVER re-appended. Without this guard the restore pipeline — which calls
+	# add_equipment() for items it just read OUT of this same stash, after
+	# clear_all_equipment() emptied only the runtime cache and not the campaign
+	# stash — re-appended a copy of every unique item on each load, growing the
+	# persisted stash unboundedly across save/load cycles (8 -> 16 -> 24 -> ...).
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign:
 		var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
-		stash.append(equipment_data)
-		gs.current_campaign.equipment_data["equipment"] = stash
+		var new_id: String = str(equipment_data.get("id", ""))
+		var already_present: bool = false
+		for existing in stash:
+			if existing is Dictionary and str(existing.get("id", "")) == new_id:
+				already_present = true
+				break
+		if not already_present:
+			stash.append(equipment_data)
+			gs.current_campaign.equipment_data["equipment"] = stash
 
 	equipment_acquired.emit(equipment_data)
 	equipment_list_updated.emit()

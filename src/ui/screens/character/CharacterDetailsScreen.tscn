@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://cjsfsfp076uu" path="res://src/ui/screens/character/CharacterDetailsScreen.gd" id="1"]
 [ext_resource type="Script" uid="uid://twh7bkt1mcfn" path="res://src/ui/components/base/ResponsiveContainer.gd" id="2"]
-[ext_resource type="PackedScene" uid="uid://ci3xehq12huc8" path="res://src/ui/components/character/CharacterCard.tscn" id="3"]
-[ext_resource type="Script" uid="uid://de5o1q00s85o7" path="res://src/ui/components/tooltips/KeywordTooltip.gd" id="4"]
+[ext_resource type="PackedScene" uid="uid://character_card_component" path="res://src/ui/components/character/CharacterCard.tscn" id="3"]
+[ext_resource type="Script" uid="uid://cykr8h3m5jx2f" path="res://src/ui/components/tooltips/KeywordTooltip.gd" id="4"]
 
 [node name="CharacterDetailsScreen" type="Control"]
 layout_mode = 3
@@ -257,6 +257,7 @@ text = "EQUIPMENT"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/ScrollContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
 size_flags_vertical = 3
 
 [node name="EquipmentRichText" type="RichTextLabel" parent="MarginContainer/ScrollContainer/VBoxContainer/EquipmentPanel/VBoxContainer/ScrollContainer"]

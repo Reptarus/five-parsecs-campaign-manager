@@ -32,6 +32,17 @@ Verifying the post-consolidation cleanup branch, I walked create → turn → ba
 
 ---
 
+## On-device alpha-tester sweep (Jun 24, 2026) — ADB + a NEW-campaign happy path
+
+Walked the full Standard 5PFH creation→Turn1 on a real tablet (Lenovo TB370FU, portrait) via ADB; ~18 issues incl. a P0 soft-lock. **Complements the Jun 3 sweep**: those were LEGACY-save-only; these are NEW-CAMPAIGN-only (fresh crew/captain are Character **Resources**, not the dict form a save→reload produces). Walk BOTH save-states.
+
+- **P0 crew-tasks soft-lock** — 2-arg `Dictionary.get(key, default)` SILENTLY ABORTS on a Character Resource (Object.get takes 1 arg → class-(b) abort, gotcha #5) → empty crew list → World Phase Step 2 won't advance. Fresh campaigns hold Resources in `crew_data["members"]`; loaded saves hold dicts. Fix: finalization `to_dictionary()`-normalizes + type-safe `_member_get`.
+- Data-flow desyncs caught ONLY by committing the action on-device (--headless + green unit tests passed all through): captain class/bg int→validated-string default; captain luck omitted from a hand-copied stat list; starting credits dropped by a signal adapter (Core Rules p.28 = 1/crew).
+- **ADB methodology** (full: `reference_alpha_tester_adb_methodology` user memory): `adb exec-out screencap -p`; tap coords = screencap pixels; COLOR-SCAN the PNG for button centers (don't eyeball fractions); force portrait via `adb shell settings put system accelerometer_rotation 0` + `user_rotation 0`; MCP `take_screenshot` ONLY works on MCP-launched instances (not adb-launched); `uiautomator dump` does NOT expose Godot controls; desktop CANNOT simulate a portrait window → portrait layout is T2-only, device is authoritative.
+- Sprint writeup: `project_session_jun24_alpha_fixit_sprint` (user memory); plan `jiggly-growing-sunset.md`. **On-device re-verify of the fixes still PENDING** (tablet removed mid-sprint).
+
+---
+
 ## Cross-Mode Character Transfer Framework — Test Surface (SHIPPED — all 4 modes)
 
 Canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted): every mode exports-to / imports-from the full 5PFH Character dict; any-to-any = compose two legs. File-drop at `user://transfers/<id>.json` (v2 envelope), NOT a barracks. 24/24 gdUnit4 transfer tests currently green — KEEP GREEN.

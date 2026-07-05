@@ -140,7 +140,7 @@ func update_summary_display() -> void:
 			int(cycle_summary.get("battles_won", 0)),
 			int(cycle_summary.get("battles_lost", 0))
 		],
-		"Missions Completed": str(cycle_summary.get("missions_completed", 0)),
+		"Missions Completed": str(int(cycle_summary.get("missions_completed", 0))),
 		"Credits": _format_credits(int(cycle_summary.get("credits", 0))),
 		"Story Points": str(cycle_summary.get("story_points", 0)),
 		"Crew Size": str(cycle_summary.get("crew_size", 0)),

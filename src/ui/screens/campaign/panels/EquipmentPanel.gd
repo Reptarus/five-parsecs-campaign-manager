@@ -2625,6 +2625,18 @@ func _apply_split_section_widths() -> void:
 	var crew_section := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection")
 	if crew_section and crew_section is Control:
 		crew_section.custom_minimum_size.x = 0 if single_col else 350
+	# Auto-Assign is the primary "arm the crew" action. As a compact 110px
+	# SHRINK_END button beside the header it was a hard-to-hit target on mobile
+	# (5 taps in alpha testing). In single-column (mobile/portrait) make it expand
+	# to fill the header width at a comfortable 56px height; keep it compact on
+	# desktop/landscape where precision pointing is available.
+	if auto_assign_button and auto_assign_button is Button:
+		if single_col:
+			auto_assign_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			auto_assign_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+		else:
+			auto_assign_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+			auto_assign_button.custom_minimum_size = Vector2(110, TOUCH_TARGET_MIN)
 
 func _apply_mobile_layout() -> void:
 	## Mobile: Single column, 56dp targets, compact equipment list

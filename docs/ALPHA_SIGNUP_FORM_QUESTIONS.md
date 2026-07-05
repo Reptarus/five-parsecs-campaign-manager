@@ -6,7 +6,7 @@
 **Workflow** (per Entry #12): Elijah builds this as a Google Form. The Modiphius dev team reviews the wording before it goes live (bias-check). The form doubles as the experience filter that whittles a large interested pool down to a focused cohort (XCOM precedent: roughly 700 interested down to 50 testers).
 **Google Forms setup notes**:
 
-- Turn OFF "collect email addresses via Google sign-in" and "limit to 1 response" so people WITHOUT a Google account can still submit (known gotcha from the call). Collect the email as a normal question instead (Q2).
+- Android testing through Google Play's closed test REQUIRES each selected tester to have a Google account. We collect that Gmail as a normal question (Q2) rather than via "collect email addresses via Google sign-in", so the form stays low-friction to submit, but Q2 must be the Google account signed in on the Android device they will install on (it is the address we add to the test allowlist). Keep "limit to 1 response" OFF so a tester can resubmit to fix a typo in their Gmail.
 - Elijah owns the resulting responses and tester database. Modiphius stays out of the daily workflow and amplifies the signup link on demand.
 
 **House style**: no em dashes.
@@ -16,7 +16,7 @@
 Hard filters (a "no" usually screens out for alpha-1):
 
 - Has played 5PFH on the tabletop, at least a little (Q5). The app is a campaign manager; without table ground-truth, feedback is shallow.
-- Has a Windows PC (Q11). Mac and Linux are deferred to beta.
+- Has an Android device (Q11) with a Google account (Q2). The alpha installs through Google Play's closed test; desktop (Steam) and iOS come later.
 - Can commit roughly 2 to 3 sessions a week for about 6 weeks (Q10).
 - Comfortable using Discord (Q12).
 - Agrees to the closed-alpha terms (Q16).
@@ -42,7 +42,7 @@ Thank you for your interest in helping test the Five Parsecs companion app. This
 ### Section 1: How to reach you
 
 1. Name or handle (what should we call you?) [short answer]
-2. Email address (this is how we will contact you about the alpha) [short answer]
+2. Google account email (Gmail) [short answer] (this is how we will contact you, and because the Android test installs through Google Play it is also the account we add to the test, so please give the Gmail signed in on the device you will test on)
 3. Discord username (we run the alpha through a private Discord and will assign you a tester role) [short answer]
 4. Country and rough time zone (helps us schedule check-ins and time the build drops) [short answer]
 
@@ -87,7 +87,7 @@ Thank you for your interest in helping test the Five Parsecs companion app. This
     - Maybe, some weeks
     - No
 
-11. The alpha build is Windows only for now. Do you have a Windows PC you can test on? [multiple choice]
+11. The alpha runs on Android to start: you install it on your phone or tablet through Google Play. Do you have an Android device you can test on? [multiple choice]
     - Yes
     - No
 

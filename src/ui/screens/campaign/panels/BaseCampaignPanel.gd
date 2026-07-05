@@ -472,11 +472,18 @@ func get_responsive_touch_target() -> int:
 			return TOUCH_TARGET_MIN
 
 func should_use_single_column() -> bool:
-	## Check if layout should use single column (mobile/portrait)
+	## Check if layout should use single column (mobile/portrait).
+	## Delegate to ResponsiveManager (SSOT): it classifies by physical density-
+	## independent size (window_get_size / screen_get_scale), the only reliable
+	## portrait signal under the square 1080 canvas_items+expand base.
+	## get_viewport().get_visible_rect().size returns the VIRTUAL base size
+	## (~1080 square per Window.content_scale_size) and provably cannot detect
+	## portrait — that defeated the existing per-panel stacking on-device.
+	if _responsive_manager and _responsive_manager.has_method("should_collapse_to_single_column"):
+		return _responsive_manager.should_collapse_to_single_column()
+	# Fallback when the autoload is unavailable (editor/parse-order edge cases).
 	if current_layout_mode == LayoutMode.MOBILE:
 		return true
-
-	# Check for portrait orientation even on larger devices
 	var viewport_size = get_viewport().get_visible_rect().size
 	return viewport_size.y > viewport_size.x  # Height > Width = Portrait
 

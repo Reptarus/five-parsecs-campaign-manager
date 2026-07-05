@@ -472,9 +472,22 @@ func _create_colored_badge(
 
 # ── Left Column: Crew Manifest ─────────────────────────────────────
 
+## Tracks the in-flight staggered crew-card fade-in so a rebuild can cancel it
+## before the cards it captured are freed (see the kill in _update_crew_manifest).
+var _crew_fade_tween: Tween = null
+
 func _update_crew_manifest(campaign) -> void:
 	if not crew_vbox:
 		return
+	# Kill any in-flight staggered fade-in BEFORE freeing the cards it animates.
+	# Each tween_callback below captures its `child`; _update_all() (hence this
+	# method) fires from 8+ sites, so a second call within the ~0.4s animation
+	# window would free the first batch of cards while their callbacks are still
+	# pending — the engine then logs "Lambda capture at index 0 was freed" once
+	# per pending card. Cancelling the tween here stops that cleanly.
+	if _crew_fade_tween and _crew_fade_tween.is_valid():
+		_crew_fade_tween.kill()
+	_crew_fade_tween = null
 	# Clear existing
 	for child in crew_vbox.get_children():
 		child.queue_free()
@@ -505,6 +518,7 @@ func _update_crew_manifest(campaign) -> void:
 	var skip: bool = tm != null and tm.is_reduced_animation_enabled()
 	if not skip:
 		var anim_tw := create_tween()
+		_crew_fade_tween = anim_tw
 		for child in crew_vbox.get_children():
 			if child is Control and child.name != "__phase_bg":
 				child.modulate.a = 0.0

@@ -281,10 +281,18 @@ func _build_ui() -> void:
 	debug_btn.pressed.connect(_on_debug_pressed)
 	root_vbox.add_child(debug_btn)
 
-	# Fade-in content on screen entry
+	# Fade-in content on screen entry.
+	# SKIP when overlay_mode: SettingsOverlay pauses the SceneTree while this
+	# panel is up (SettingsOverlay.gd:132), and TweenFX.fade_in sets
+	# scroll.modulate.a = 0 immediately, then animates it back to 1 via a
+	# TREE-BOUND tween (get_tree().create_tween()). A tree-bound tween does NOT
+	# advance while get_tree().paused is true, so the fade would freeze the
+	# ScrollContainer at alpha 0 forever — every settings control invisible while
+	# only the un-faded header/footer chrome shows. The fade is pure decoration;
+	# skipping it in the paused overlay leaves the content at full opacity.
 	var tm := get_node_or_null("/root/ThemeManager")
 	var skip_a: bool = tm != null and tm.is_reduced_animation_enabled()
-	if not skip_a:
+	if not skip_a and not overlay_mode:
 		TweenFX.fade_in(scroll, 0.25)
 
 

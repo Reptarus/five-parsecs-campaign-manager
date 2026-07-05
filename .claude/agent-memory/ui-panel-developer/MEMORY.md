@@ -19,6 +19,10 @@ The Core Rules and Compendium PDFs at `docs/rules/` define all game terminology,
 - **GOTCHA — `%UniqueName` breaks after reparenting a node under a runtime `.new()` node**: `get_node("%X")` returns null though the node renders + signals fire; the cached `@onready` ref SURVIVES. Drive reparented nodes via cached refs, NOT `%`.
 - **GOTCHA — a freshly-created `class_name` script isn't in the global class cache until an editor rescan**: the running game throws "Identifier not declared". Use `load("res://...")` (NOT the bare class_name) for new helper scripts.
 
+### 0a. should_use_single_column() MUST use ResponsiveManager, NOT get_visible_rect() (Jun 24 2026)
+
+SYSTEMIC bug: `BaseCampaignPanel.should_use_single_column()` (L474) AND `CampaignScreenBase.should_use_single_column()` (L383) detected portrait via `get_viewport().get_visible_rect().size` (`y > x`). Under the square 1080 `canvas_items`+`expand` base, `get_visible_rect()` returns the VIRTUAL base size (~1080² per `Window.content_scale_size` — context7-confirmed), NOT physical pixels, so device portrait is NEVER detected. This DEFEATED already-correct per-panel stacking (EquipmentPanel `_apply_split_orientation`, WorldInfoPanel card row) — panels called the helper, got false, stayed multi-column. **FIX**: both now delegate to `_responsive_manager.should_collapse_to_single_column()` (the SSOT — physical size via DisplayServer). NEVER use `get_visible_rect()` for portrait/orientation/breakpoint logic; same bug was fixed in MainMenu earlier. Also this sprint (all uncommitted, on-device verify PENDING): Auto-Assign → `SIZE_EXPAND_FILL`+56px in single-column (was a 110px `SHRINK_END` hard-to-hit target); CharacterCreator inner "Back" → "Cancel" (it emits `creation_cancelled`, duplicated the wizard Back); ExpandedConfigPanel inline name-required hint; `CampaignTurnController` PhaseProgressBar made compact `SHRINK_CENTER` 96×18 (was `EXPAND_FILL` crowding the phase label).
+
 ### 1. TweenFX pivot_offset
 
 MUST set `node.pivot_offset = node.size / 2` before any scale or rotation animation. Without this, animations pivot from the top-left corner instead of center.

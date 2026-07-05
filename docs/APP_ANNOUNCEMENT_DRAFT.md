@@ -30,7 +30,7 @@ We are building a digital companion app for Five Parsecs From Home, and we are l
 - You can run the app a couple of times a week over roughly six weeks.
 - You are happy to give feedback through a few channels: email and short surveys for structured input, and Discord for the fast day-to-day back-and-forth. Discord is the one closest to the ground, and it is where you will have a direct line to me, the developer. No scheduled meetings to attend.
 
-**What it is not, yet.** This is a closed alpha on Windows. It is not finished, it is not public, and we ask testers to keep screenshots and recordings off social media until we open things up later. If you are looking for a polished, finished product, this is not that moment. If you want to help build it, this is exactly that moment.
+**What it is not, yet.** This is a closed alpha on Android, installed on your phone or tablet. It is not finished, it is not public, and we ask testers to keep screenshots and recordings off social media until we open things up later. If you are looking for a polished, finished product, this is not that moment. If you want to help build it, this is exactly that moment.
 
 **Where it is going.** Feedback from this alpha shapes the build we take to Steam Early Access later this year. Testers who see the program through are credited as playtesters.
 
@@ -44,6 +44,6 @@ Thank you for helping us make this the digital companion Five Parsecs deserves.
 
 We are looking for tabletop players to test an early version of the Five Parsecs companion app: campaign management, battle assistance, and the game's events brought to the screen. Officially supported by Modiphius. [confirm endorsement wording with Chris and Gavin]
 
-If you have played Five Parsecs at the table, can spare a couple of sessions a week for about six weeks, and will give us honest feedback, we would love your help. Closed alpha on Windows, weekly builds, private Discord, leading toward Steam Early Access later this year.
+If you have played Five Parsecs at the table, can spare a couple of sessions a week for about six weeks, and will give us honest feedback, we would love your help. Closed alpha on Android, weekly builds, private Discord, leading toward Steam Early Access on desktop later this year.
 
 Sign up here: [SIGNUP FORM LINK]
