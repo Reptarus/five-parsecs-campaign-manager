@@ -161,10 +161,38 @@ func _populate_crew_equipment() -> void:
 
 	var member = crew_data[selected_crew_index]
 	var equipment = _get_member_equipment(member)
+	var id_to_name: Dictionary = _build_equipment_id_name_map()
 
 	for item in equipment:
-		var item_name = item.get("name", "Unknown") if item is Dictionary else str(item)
-		crew_equipment_list.add_item(item_name)
+		crew_equipment_list.add_item(_resolve_item_display_name(item, id_to_name))
+
+func _build_equipment_id_name_map() -> Dictionary:
+	## id -> friendly name over the WHOLE campaign equipment registry (owned +
+	## unowned). Crew equipment sometimes holds raw id-strings (e.g.
+	## "needle_rifle_2650_30754"); the registry (equipment_data["equipment"], the
+	## Data-Ownership source of truth for item names) is where the friendly name
+	## lives. Crew items are owner-tagged, so the unowned stash_items alone can't
+	## resolve them.
+	var out: Dictionary = {}
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign:
+		var registry = gs.current_campaign.equipment_data.get("equipment", [])
+		if registry is Array:
+			for entry in registry:
+				if entry is Dictionary:
+					var eid: String = str(entry.get("id", ""))
+					if eid != "":
+						out[eid] = str(entry.get("name", eid))
+	return out
+
+func _resolve_item_display_name(item, id_to_name: Dictionary) -> String:
+	## Friendly display name for a crew equipment entry. Dictionaries carry their
+	## own name; a raw id-string is resolved via the registry map, falling back to
+	## the string itself so an already-friendly name still displays correctly.
+	if item is Dictionary:
+		return str(item.get("name", "Unknown"))
+	var s: String = str(item)
+	return str(id_to_name.get(s, s))
 
 func _get_member_equipment(member) -> Array:
 	## Get equipment array from crew member
