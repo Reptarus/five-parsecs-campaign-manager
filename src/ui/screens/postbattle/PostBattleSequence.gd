@@ -482,30 +482,25 @@ func _on_backend_experience_awarded(xp_awards: Array) -> void:
 			_add_result_to_log("%s gained %d XP" % [crew_name, xp_amount])
 
 func _on_backend_campaign_event(event: Dictionary) -> void:
-	## Handle campaign event from backend - apply effect!
+	## PRESENT a backend-applied campaign event. The backend orchestrator applies
+	## the effect (CampaignEventEffects) BEFORE emitting campaign_event_occurred,
+	## so this handler must only DISPLAY it. Re-applying here would double-apply —
+	## the backend is the authoritative writer. (The old re-apply also passed the
+	## whole event dict to apply_campaign_event_effect(event_title: String).)
 	var event_name = event.get("name", "Unknown Event")
 	var event_desc = event.get("description", "")
 	_add_result_to_log("Campaign Event: %s - %s" % [event_name, event_desc])
 
-	# CRITICAL: Apply the event effect via backend
-	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	if phase_manager and phase_manager.has_method("get_phase_handler"):
-		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
-		if post_battle_phase and post_battle_phase.has_method("apply_campaign_event_effect"):
-			post_battle_phase.apply_campaign_event_effect(event)
-
 func _on_backend_character_event(event: Dictionary) -> void:
-	## Handle character event from backend - apply effect!
+	## PRESENT a backend-applied character event. The backend orchestrator applies
+	## the effect (finalize_event) BEFORE emitting character_event_occurred, so this
+	## handler must only DISPLAY it — re-applying would double-apply (backend is
+	## authoritative). NOTE: the interactive per-crew roll path is separate
+	## (_on_character_event_roll) and DOES apply via the backend bridge. (The old
+	## re-apply also passed one dict to the 2-arg apply_character_event_effect().)
 	var char_name = event.get("character_name", "Unknown")
 	var event_name = event.get("name", "Unknown Event")
 	_add_result_to_log("%s: %s" % [char_name, event_name])
-
-	# Apply the event effect
-	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	if phase_manager and phase_manager.has_method("get_phase_handler"):
-		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
-		if post_battle_phase and post_battle_phase.has_method("apply_character_event_effect"):
-			post_battle_phase.apply_character_event_effect(event)
 
 func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 	## Handle Galactic War update from backend

@@ -254,3 +254,21 @@ func test_campaign_loop_continuity() -> void:
 	assert_int(phase_manager.turn_number).is_equal(2)
 	assert_int(phase_manager.current_phase) \
 		.is_equal(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
+
+## Regression: the UI->backend bridge method must EXIST and route "post_battle"
+## to the post-battle handler. It previously did not exist, so PostBattleSequence's
+## five has_method("get_phase_handler")-guarded delegation sites were all dead —
+## silently dropping every character-event effect (credits/status/XP/departures),
+## which apply ONLY through this bridge (_on_character_event_roll).
+func test_get_phase_handler_bridge_exists_and_routes() -> void:
+	if not is_instance_valid(phase_manager):
+		push_warning("phase_manager not valid - skipping test")
+		return
+	# The whole bug was this method not existing (the guards were always false).
+	assert_bool(phase_manager.has_method("get_phase_handler")).is_true()
+	# "post_battle" routes to the handler member (whether initialized or still
+	# null in this bare instance); any other name returns null.
+	assert_bool(
+		phase_manager.get_phase_handler("post_battle") \
+			== phase_manager.post_battle_phase_handler).is_true()
+	assert_bool(phase_manager.get_phase_handler("nonexistent") == null).is_true()

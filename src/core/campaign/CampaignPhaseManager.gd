@@ -1042,6 +1042,22 @@ func _execute_post_mission_phase_start() -> void:
 			battle_data = gs.get_battle_results()
 		post_battle_phase_handler.start_post_battle_phase(battle_data)
 
+## Return the backend handler for a named phase so the interactive UI
+## (PostBattleSequence) can delegate effect application to the AUTHORITATIVE
+## backend instead of mutating state itself. Only the PostBattlePhase 14-step
+## orchestrator is exposed today.
+##
+## This method previously did not exist, so PostBattleSequence's five
+## has_method("get_phase_handler")-guarded delegation sites were all dead —
+## silently dropping every character-event effect (credits, status effects, XP,
+## departures), which apply ONLY through this bridge. The interactive flow never
+## runs the orchestrator (CampaignTurnController skips POST_MISSION -> RETIREMENT),
+## so exposing the handler applies char-event effects exactly once (no double-apply).
+func get_phase_handler(phase_name: String):
+	if phase_name == "post_battle":
+		return post_battle_phase_handler
+	return null
+
 func _on_post_battle_phase_completed() -> void:
 	## PostBattlePhase backend finished processing
 	phase_events.append({"type": "post_battle_backend_completed"})
