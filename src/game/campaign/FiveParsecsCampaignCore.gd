@@ -517,20 +517,17 @@ func apply_pending_qol_data() -> void:
 	if planet_mgr and planet_mgr.has_method("deserialize_all"):
 		var planet_data: Dictionary = qol.get("planet_data", {})
 		planet_mgr.deserialize_all(planet_data)
-		# BACKFILL: load sets world_data via from_dictionary (NOT initialize_world),
-		# so world_changed never fired. If PDM has no record of the current world
-		# (legacy saves, or a save whose planet_data was empty), seed it from
-		# world_data so the Galaxy Log + World Log render the real current world.
+		# BACKFILL + HEAL: load sets world_data via from_dictionary (NOT
+		# initialize_world), so world_changed never fired. Always upsert the
+		# current world: it SEEDS PDM when the world is missing (legacy saves, or
+		# empty planet_data) AND HEALS a stale name when PDM has the world under
+		# the current id but with a drifted/fabricated name (pre-fix saves whose
+		# old finalization seeded a random planet). world_data is authoritative.
 		if planet_mgr.has_method("upsert_current_world") \
 				and world_data is Dictionary and not world_data.is_empty():
-			var cur_pid: String = str(world_data.get("id", ""))
-			var has_current: bool = false
-			if not cur_pid.is_empty() and "visited_planets" in planet_mgr:
-				has_current = planet_mgr.visited_planets.has(cur_pid)
-			if not has_current:
-				var turns: int = int(progress_data.get("turns_played", 0)) \
-					if progress_data is Dictionary else 0
-				planet_mgr.upsert_current_world(world_data, turns)
+			var turns: int = int(progress_data.get("turns_played", 0)) \
+				if progress_data is Dictionary else 0
+			planet_mgr.upsert_current_world(world_data, turns)
 	# GalacticWarManager: restore war track progress
 	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
 	if war_mgr and war_mgr.has_method("load_save_data"):

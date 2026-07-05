@@ -72,6 +72,24 @@ func test_upsert_current_world_is_idempotent_for_same_id() -> void:
 	assert_str(pdm.current_planet_id).is_equal("world_test_1")
 
 
+func test_upsert_current_world_heals_stale_name_for_existing_id() -> void:
+	# Legacy-save case: PDM has the world under the current id but with a
+	# fabricated/stale name; a later upsert from the authoritative world_data
+	# must HEAL the name in place (not duplicate, not append history).
+	var pdm = auto_free(PlanetDataManagerScript.new())
+	var stale := _sample_world("world_test_1", "Beta Major")
+	pdm.upsert_current_world(stale, 3)
+	assert_str(pdm.visited_planets["world_test_1"].name).is_equal("Beta Major")
+
+	var authoritative := _sample_world("world_test_1", "Byng IV")
+	var pid: String = pdm.upsert_current_world(authoritative, 5)
+
+	assert_str(pid).is_equal("world_test_1")
+	assert_int(pdm.visited_planets.size()).is_equal(1)          # no duplicate
+	assert_int(pdm.travel_history.size()).is_equal(1)           # history untouched
+	assert_str(pdm.visited_planets["world_test_1"].name).is_equal("Byng IV")  # healed
+
+
 func test_upsert_current_world_generates_id_when_missing() -> void:
 	var pdm = auto_free(PlanetDataManagerScript.new())
 	var world := _sample_world("", "Nameless")

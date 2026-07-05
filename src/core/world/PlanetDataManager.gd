@@ -378,6 +378,24 @@ func upsert_current_world(world_data: Dictionary, campaign_turn: int = -1) -> St
 			"visit_number": planet.visit_count,
 		})
 		planet_discovered.emit(planet)
+	else:
+		# HEAL an existing entry whose descriptive fields drifted from world_data.
+		# Legacy saves seeded PDM via the old finalization's random get_or_generate_planet,
+		# so the Galaxy Log showed a fabricated name while campaign.world_data (the
+		# authoritative current-world source) held the real one. world_data wins.
+		# Progression/history (visit_count, discovered_on_turn, breadcrumbs) is untouched.
+		var existing: PlanetData = visited_planets[pid]
+		var new_name: String = str(world_data.get("name", existing.name))
+		if new_name != "" and new_name != existing.name:
+			existing.name = new_name
+			existing.type = str(world_data.get("type", existing.type))
+			existing.type_name = str(world_data.get("type_name", existing.type_name))
+			existing.danger_level = int(world_data.get("danger_level", existing.danger_level))
+			existing.traits.assign(_normalize_string_array(
+				world_data.get("traits", existing.traits)))
+			existing.special_features.assign(_normalize_string_array(
+				world_data.get("special_features", existing.special_features)))
+			planet_data_updated.emit(pid, "world_synced")
 	set_current_planet(pid)
 	return pid
 
