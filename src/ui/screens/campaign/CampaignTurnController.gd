@@ -970,6 +970,20 @@ func _on_battle_completed(results: Dictionary) -> void:
 	game_state.set_battle_results(results)
 	battle_results = results
 
+	# Carry the accepted mission's payment terms into the stored battle result so
+	# Get Paid can add Patron Danger Pay (Core Rules p.120). The resolver/tactical
+	# output doesn't include mission fields, and PostBattleSequence reads
+	# get_battle_results(), so without this a Patron job's Danger Pay was dropped
+	# (mission_source != "patron" and danger_pay defaulted to 0).
+	var _mission: Dictionary = game_state.get_current_mission()
+	if not _mission.is_empty():
+		if not battle_results.has("mission_source"):
+			battle_results["mission_source"] = _mission.get(
+				"mission_source", _mission.get("source", "opportunity"))
+		if not battle_results.has("danger_pay"):
+			battle_results["danger_pay"] = int(_mission.get("danger_pay", 0))
+		game_state.set_battle_results(battle_results)
+
 	# B2 narrative bridge: 3-tier gate (per-battle > per-campaign > global).
 	# Per-battle override force_narrative_wrap (true/false) is absolute when
 	# present (e.g. story finale = always wrap, training mission = never).

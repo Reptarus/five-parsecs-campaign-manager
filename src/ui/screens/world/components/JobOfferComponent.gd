@@ -489,7 +489,12 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		"job_type": job_type,
 		"objective": job_type.capitalize(),
 		"objective_description": job_description,
-		"danger_pay": final_pay,
+		# danger_pay is the PURE Core Rules p.78 Danger Pay component that Get Paid
+		# adds on top of the 1D6 base for a Patron job (Core Rules p.120). It is NOT
+		# the total — "pay" carries the composite estimate for the offer summary.
+		# (Previously both fields held final_pay, so the offer mislabeled the
+		# inflated total as "Danger Pay" and Get Paid added 0.)
+		"danger_pay": danger_pay_credits,
 		"pay": final_pay,
 		"danger_level": danger_level,
 		"time_frame": time_frame,
@@ -896,7 +901,7 @@ func _update_ui_display() -> void:
 			var job_text = "%s (%s) - +%d cr - %s" % [
 				job.get("objective", "Unknown"),
 				job.get("patron_type", "Unknown"),
-				job.get("danger_pay", job.get("pay", 0)),
+				job.get("pay", job.get("danger_pay", 0)),  # total estimate, not the pure danger-pay component
 				job.get("time_frame", "Unknown")
 			]
 			job_list.add_item(job_text)
@@ -948,8 +953,11 @@ func _update_job_details() -> void:
 	details += "OBJECTIVE: %s\n" % job.get("objective", "Unknown")
 	details += "%s\n\n" % job.get("objective_description", "")
 
-	# Pay and timing
-	details += "DANGER PAY: +%d credits\n" % job.get("danger_pay", job.get("pay", 0))
+	# Pay and timing. Payout is 1D6 base (won -> 1-2 count as 3) + Danger Pay for a
+	# Patron job (Core Rules p.120). "pay" is the composite estimate; DANGER PAY is
+	# the pure component actually added on top of the base at Get Paid.
+	details += "PAY (est.): ~%d credits\n" % job.get("pay", 0)
+	details += "DANGER PAY: +%d credits\n" % job.get("danger_pay", 0)
 	if job.get("double_roll_bonus", false):
 		details += "(Bonus: Roll twice for mission pay, keep higher)\n"
 	details += "TIME FRAME: %s\n\n" % job.get("time_frame", "Unknown")

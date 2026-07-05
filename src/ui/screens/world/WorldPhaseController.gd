@@ -1074,7 +1074,11 @@ func _complete_world_phase() -> void:
 					"objective": job_results.get("objective", "patrol"),
 					"objective_description": job_results.get("objective_description", ""),
 					"enemy_type": job_results.get("enemy_type", "Unknown Hostiles"),
-					"pay": job_results.get("danger_pay", job_results.get("pay", 0)),
+					"pay": job_results.get("pay", job_results.get("danger_pay", 0)),
+					# Pure Danger Pay component (Core Rules p.78) carried through to
+					# Get Paid, where it is added on top of the 1D6 base for a Patron
+					# job (p.120). Merged into battle_results by _on_battle_completed.
+					"danger_pay": job_results.get("danger_pay", 0),
 					"danger_level": job_results.get("danger_level", 1),
 					"time_frame": job_results.get("time_frame", ""),
 					"deployment_condition": job_results.get("deployment_condition", ""),

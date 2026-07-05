@@ -247,3 +247,26 @@ func test_job_list_selectable_after_accept_reset_regenerate():
 	var job_list = component.get("job_list")
 	assert_that(job_list.mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
 	assert_that(job_list.modulate.a).is_equal(1.0)
+
+# ============================================================================
+# Danger Pay is the pure component, not the composite total (Core Rules p.120)
+# ============================================================================
+
+func test_danger_pay_is_pure_component_not_total():
+	"""🐛 REGRESSION: Get Paid = 1D6 base + Danger Pay (the pure Core Rules p.78
+	component). `danger_pay` must hold that small component (1-3), NOT the composite
+	total estimate (which lives in `pay`). The offer used to store the inflated
+	total in BOTH fields, so it mislabeled the total as Danger Pay and Get Paid
+	added 0 on top of the base."""
+	component.initialize_job_phase(
+		{"patron_name": "Test", "patron_type": "Corporation"}, "Loc")
+	var jobs = component.get("available_jobs")
+	assert_that(jobs.size()).is_greater(0)
+	for job in jobs:
+		var dp: int = int(job.get("danger_pay", -1))
+		var pay: int = int(job.get("pay", 0))
+		# p.78 Danger Pay is 1-3 credits (the Corporation +1 modifies the roll,
+		# not the resulting credits), and is never larger than the total estimate.
+		assert_that(dp).is_greater_equal(1)
+		assert_that(dp).is_less_equal(3)
+		assert_that(dp).is_less_equal(pay)
