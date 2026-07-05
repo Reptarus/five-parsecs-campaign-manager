@@ -413,35 +413,6 @@ func _on_post_battle_experience_awarded(xp_awards: Array) -> void:
 	for award in xp_awards:
 		total_xp += award.get("xp", 0)
 
-## Backend System Integration Methods
-
-func _trigger_world_phase_backend_integration() -> void:
-	## Trigger backend system integration when entering world phase
-	
-	var current_turn = campaign_phase_manager.get_turn_number()
-	var current_planet_id = _get_current_planet_id()
-	
-	# Update planet data using backend PlanetDataManager
-	var planet_manager = get_node_or_null("BackendPlanetManager")
-	if planet_manager and planet_manager.has_method("get_or_generate_planet"):
-		var planet_data = planet_manager.get_or_generate_planet(current_planet_id, current_turn)
-		
-		# Pass planet data to world phase UI if it has backend integration
-		if world_phase_controller and world_phase_controller.has_method("update_planet_data_backend"):
-			world_phase_controller.update_planet_data_backend(current_planet_id, current_turn)
-	
-	# Generate random contacts using backend ContactManager
-	var contact_manager = get_node_or_null("BackendContactManager")
-	if contact_manager and contact_manager.has_method("generate_random_contact"):
-		# Generate 1-3 random contacts for this planet/turn
-		var contact_count = randi_range(1, 3)
-		for i in range(contact_count):
-			var contact = contact_manager.generate_random_contact(current_planet_id, current_turn)
-		
-		# Notify world phase controller if it has backend integration
-		if world_phase_controller and world_phase_controller.has_method("generate_random_contact_backend"):
-			world_phase_controller.generate_random_contact_backend(current_planet_id, current_turn)
-
 func _get_current_planet_id() -> String:
 	## Get current planet ID from game state or generate one
 	if game_state and game_state.has_method("get_current_planet"):

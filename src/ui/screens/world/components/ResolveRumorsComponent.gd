@@ -175,16 +175,19 @@ func _generate_quest_from_rumors() -> void:
 		quest_description_label.visible = true
 
 
-	# Save quest to campaign data
+	# Save quest to campaign data. FiveParsecsCampaignCore is a Resource, so the
+	# old `campaign["active_quest"] = ...` was guarded by `is Dictionary` and thus
+	# never ran (the quest was silently lost). Route through GameState.set_active_quest
+	# which stores it in progress_data (Resource-safe) so has_active_quest() and the
+	# p.119 post-battle quest-progress roll can actually see it.
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign:
-			# Set active quest
-			if campaign is Dictionary:
-				campaign["active_quest"] = current_quest
-				# Also clear the rumors since they're now a quest
-				campaign["rumors"] = []
+		if campaign is Dictionary:
+			campaign["active_quest"] = current_quest
+			campaign["rumors"] = []
+		elif game_state.has_method("set_active_quest"):
+			game_state.set_active_quest(current_quest)
 
 func _generate_quest_name() -> String:
 	## Generate random quest name

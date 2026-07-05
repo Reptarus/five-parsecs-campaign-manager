@@ -1546,28 +1546,6 @@ func _remove_consumed_event(event: Dictionary) -> void:
 		campaign["pending_events"] = campaign.get("pending_events", []).filter(func(e): return e.get("id", "") != event_id)
 
 
-## Backend System Integration Methods
-
-func update_planet_data_backend(planet_id: String, campaign_turn: int = 0) -> void:
-	## Update or generate planet data using the backend PlanetDataManager
-	var planet_manager = get_node_or_null("BackendPlanetManager")
-	if planet_manager and planet_manager.has_method("get_or_generate_planet"):
-		var planet_data = planet_manager.get_or_generate_planet(planet_id, campaign_turn)
-		
-		# Update current world display if we have that functionality
-		if planet_data:
-			pass
-	else:
-		pass
-
-func generate_random_contact_backend(planet_id: String, turn_number: int = 0) -> void:
-	## Generate a random contact using the backend ContactManager
-	var contact_manager = get_node_or_null("BackendContactManager")
-	if contact_manager and contact_manager.has_method("generate_random_contact"):
-		var contact = contact_manager.generate_random_contact(planet_id, turn_number)
-	else:
-		pass
-
 ## Mission Selection Integration per Five Parsecs Rules
 func _initialize_mission_selection() -> void:
 	## Mission selection handled by JobOfferComponent - no separate UI needed

@@ -338,6 +338,69 @@ func _update_planet_visit(planet: PlanetData, campaign_turn: int) -> void:
 func set_current_planet(planet_id: String) -> void:
 	current_planet_id = planet_id
 
+## Create or refresh the current world FROM a campaign world_data dict and mark it
+## current. This is the canonical bridge from campaign.world_data (the game's
+## source of truth) into the galaxy-map store — called on load-backfill, campaign
+## creation, and travel arrival (via the world_changed signal) so the Galaxy Log
+## and World Log reflect the REAL world instead of a randomly-generated one.
+func upsert_current_world(world_data: Dictionary, campaign_turn: int = -1) -> String:
+	if world_data == null or world_data.is_empty():
+		return ""
+	var pid: String = str(world_data.get("id", ""))
+	if pid.is_empty():
+		pid = "world_%d" % Time.get_unix_time_from_system()
+	if not visited_planets.has(pid):
+		var planet := PlanetData.new(pid)
+		# Map fields defensively. PlanetData.traits is Array[String] and .locations
+		# is Array[Dictionary]; world_data matches (traits are ids, locations dicts),
+		# but normalize so a future world_data shape can't abort the typed .assign().
+		planet.name = str(world_data.get("name", "Unknown World"))
+		planet.type = str(world_data.get("type", ""))
+		planet.type_name = str(world_data.get("type_name", ""))
+		planet.danger_level = int(world_data.get("danger_level", 1))
+		planet.traits.assign(_normalize_string_array(world_data.get("traits", [])))
+		planet.locations.assign(_normalize_dict_array(world_data.get("locations", [])))
+		planet.special_features.assign(_normalize_string_array(world_data.get("special_features", [])))
+		var disc: int = int(world_data.get("discovered_on_turn", 0))
+		if disc <= 0 and campaign_turn >= 0:
+			disc = campaign_turn
+		planet.discovered_on_turn = disc
+		planet.last_visited_turn = campaign_turn if campaign_turn >= 0 else disc
+		planet.visit_count = max(1, int(world_data.get("visit_count", 1)))
+		planet.resources_extracted = int(world_data.get("resources_extracted", 0))
+		_initialize_planet_economy(planet)
+		visited_planets[pid] = planet
+		# Breadcrumb entry for the Galaxy Log travel path.
+		travel_history.append({
+			"planet_id": pid,
+			"planet_name": planet.name,
+			"turn": (campaign_turn if campaign_turn >= 0 else disc),
+			"visit_number": planet.visit_count,
+		})
+		planet_discovered.emit(planet)
+	set_current_planet(pid)
+	return pid
+
+func _normalize_string_array(v) -> Array:
+	## Coerce an untyped array to plain strings (extract id/name from dict entries).
+	var out: Array = []
+	if v is Array:
+		for e in v:
+			if e is Dictionary:
+				out.append(str(e.get("id", e.get("name", ""))))
+			else:
+				out.append(str(e))
+	return out
+
+func _normalize_dict_array(v) -> Array:
+	## Keep only Dictionary entries (PlanetData.locations is Array[Dictionary]).
+	var out: Array = []
+	if v is Array:
+		for e in v:
+			if e is Dictionary:
+				out.append(e)
+	return out
+
 ## Sync PlanetData to PlanetCache (loose coupling — cache may not have all planets)
 func _sync_to_cache(planet: PlanetData) -> void:
 	var cache: Node = get_node_or_null("/root/PlanetCache")

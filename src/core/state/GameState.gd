@@ -780,6 +780,40 @@ func _restore_equipment_from_campaign(campaign) -> void:
 	# can participate in the EquipmentManager ownership tracking. The generated
 	# id is also written back into the campaign data so future saves include it.
 	if campaign.has_method("get_all_equipment"):
+		# SELF-HEAL legacy corruption FIRST — before rehydrating EquipmentManager.
+		# Earlier builds' add_equipment() write-through re-appended every unique
+		# item on each load (see EquipmentManager.add_equipment), so saves
+		# accumulated duplicate item cards (8 -> 16 -> 24 -> ...). Collapsing the
+		# stash to unique-by-id here means the rehydrate loop below never sees a
+		# duplicate id (no "id already exists" spam) and a corrupted save heals on
+		# load (the next save then persists the clean stash). id-LESS legacy items
+		# are preserved, not collapsed: the bug only ever duplicated items that
+		# already HAD ids, so an id-less item is always a unique original.
+		if "equipment_data" in campaign and campaign.equipment_data is Dictionary \
+				and campaign.equipment_data.get("equipment", null) is Array:
+			var raw_stash: Array = campaign.equipment_data["equipment"]
+			var seen_stash_ids: Dictionary = {}
+			var deduped_stash: Array = []
+			for stash_item in raw_stash:
+				if not (stash_item is Dictionary):
+					deduped_stash.append(stash_item)
+					continue
+				var sid: String = str(stash_item.get("id", ""))
+				if sid.is_empty():
+					deduped_stash.append(stash_item)
+					continue
+				if seen_stash_ids.has(sid):
+					continue
+				seen_stash_ids[sid] = true
+				deduped_stash.append(stash_item)
+			var removed_dupes: int = raw_stash.size() - deduped_stash.size()
+			if removed_dupes > 0:
+				push_warning("GameState: healed %d duplicate stash item(s) on load" % removed_dupes)
+			campaign.equipment_data["equipment"] = deduped_stash
+
+		# Rehydrate EquipmentManager from the (now clean) stash. Items without an
+		# id (legacy saves) get a stable id auto-generated so they can participate
+		# in ownership tracking; the id is written back so future saves include it.
 		var all_items: Array = campaign.get_all_equipment()
 		for item in all_items:
 			if not (item is Dictionary):
@@ -788,8 +822,57 @@ func _restore_equipment_from_campaign(campaign) -> void:
 				var item_name: String = str(item.get("name", "unknown"))
 				var safe_base: String = item_name.to_lower().replace(" ", "_")
 				item["id"] = "%s_%d_%d" % [safe_base, Time.get_ticks_msec(), randi() % 100000]
-				push_warning("GameState: auto-generated id '%s' for id-less item '%s'" % [item["id"], item_name])
+				push_warning("GameState: auto-generated id for id-less item '%s'" % item_name)
 			eq_mgr.add_equipment(item)
+
+	# LEGACY HEAL — collapse dual-location: some pre-Phase-2.2 saves stored
+	# Character.equipment as raw item IDS (e.g. "rattle_gun_5168_92512") instead
+	# of the canonical item NAMES. Those ids also exist in the owner-tagged ship
+	# stash (equipment_data["equipment"]), so verify_consistency() CHECK 4 flags
+	# each as one-item-two-homes. Convert every id-string back to the stash item's
+	# NAME (matched by id); leave names/dicts/unknowns untouched (idempotent). The
+	# stash is the item registry and is NOT modified. This restores the
+	# Array[String]-of-names model every consumer expects and clears CHECK 4.
+	if "equipment_data" in campaign and campaign.equipment_data is Dictionary \
+			and campaign.equipment_data.get("equipment", null) is Array \
+			and "crew_data" in campaign and campaign.crew_data is Dictionary:
+		var stash_id_to_name: Dictionary = {}
+		for stash_it in campaign.equipment_data["equipment"]:
+			if stash_it is Dictionary:
+				var sid: String = str(stash_it.get("id", ""))
+				if not sid.is_empty():
+					stash_id_to_name[sid] = str(stash_it.get("name", sid))
+		var healed_names: int = 0
+		for member in campaign.crew_data.get("members", []):
+			var eq: Array = []
+			var is_obj := false
+			if member is Dictionary:
+				var de = member.get("equipment", [])
+				eq = de if de is Array else []
+			elif member is Object and "equipment" in member:
+				var oe = member.equipment
+				eq = oe if oe is Array else []
+				is_obj = true
+			else:
+				continue
+			var new_eq: Array = []
+			var changed := false
+			for entry in eq:
+				if entry is String and stash_id_to_name.has(entry):
+					new_eq.append(stash_id_to_name[entry])
+					changed = true
+					healed_names += 1
+				else:
+					new_eq.append(entry)
+			if changed:
+				if is_obj:
+					# Character.equipment is a typed Array[String]; a plain `=` of an
+					# untyped array aborts (Godot 4.6) — use assign() to convert.
+					member.equipment.assign(new_eq)
+				else:
+					member["equipment"] = new_eq
+		if healed_names > 0:
+			push_warning("GameState: healed %d legacy id-string equipment entr(y/ies) to names on load" % healed_names)
 
 	# PHASE 1.2 FIX: Reconstruct per-character ownership from crew_data.
 	# Character.equipment is currently Array[String] of item names; the items
@@ -1311,6 +1394,81 @@ func has_pending_invasion() -> bool:
 		return current_campaign.progress_data.get(
 			"invasion_pending", false)
 	return false
+
+## ============================================================================
+## QUEST TRACKING (Core Rules pp.85, 119) — Resource-safe via progress_data
+## ============================================================================
+## FiveParsecsCampaignCore is a Resource: campaign["active_quest"]=... silently
+## no-ops and `"active_quest" in campaign` is always false. So all quest state
+## that isn't already a first-class @var (quest_rumors is) routes through
+## progress_data here — the single Resource-safe home other systems read.
+
+## Set the current active Quest (Core Rules p.85). Empty dict clears it.
+func set_active_quest(quest: Dictionary) -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["active_quest"] = quest.duplicate(true)
+
+## Get the current active Quest (empty dict if none).
+func get_active_quest() -> Dictionary:
+	if current_campaign and "progress_data" in current_campaign:
+		var q = current_campaign.progress_data.get("active_quest", {})
+		return q if q is Dictionary else {}
+	return {}
+
+## Whether a Quest is currently active (gates the p.119 quest-progress roll).
+func has_active_quest() -> bool:
+	return not get_active_quest().is_empty()
+
+## Clear the active Quest (e.g. after the finale) plus its transient flags.
+func clear_active_quest() -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["active_quest"] = {}
+		current_campaign.progress_data.erase("quest_finale_available")
+		current_campaign.progress_data.erase("quest_requires_travel")
+
+## Quest Rumors accumulated on the current Quest (Core Rules p.119). Canonical
+## field is FiveParsecsCampaignCore.quest_rumors (int, serialized) — a property
+## write, which (unlike a Resource key-write) succeeds.
+func get_quest_rumors() -> int:
+	if current_campaign and "quest_rumors" in current_campaign:
+		return int(current_campaign.quest_rumors)
+	return 0
+
+## Add one Quest Rumor (Core Rules p.119, "a step closer. Gain a Quest Rumor").
+func add_quest_rumor() -> void:
+	if current_campaign and "quest_rumors" in current_campaign:
+		current_campaign.quest_rumors = int(current_campaign.quest_rumors) + 1
+
+## Mark that the next Quest mission is the finale (Core Rules p.119, 7+).
+func set_quest_finale_available(available: bool) -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["quest_finale_available"] = available
+
+## Whether the next Quest mission is the finale.
+func is_quest_finale_available() -> bool:
+	if current_campaign and "progress_data" in current_campaign:
+		return current_campaign.progress_data.get("quest_finale_available", false)
+	return false
+
+## Record that the Quest's next step needs travel (Core Rules p.119). The book's
+## only travel case is "another world" (second D6 5-6), so requires_new_world is
+## normally true whenever required is true. Cleared on arrival at a new world.
+func set_quest_requires_travel(required: bool, requires_new_world: bool) -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["quest_requires_travel"] = {
+			"required": required,
+			"requires_new_world": requires_new_world,
+		}
+
+## Get the Quest travel requirement: {required: bool, requires_new_world: bool}.
+## Always returns a dict with BOTH keys (a bare {} would make .get("required")
+## null and break callers that read it without a default).
+func get_quest_requires_travel() -> Dictionary:
+	if current_campaign and "progress_data" in current_campaign:
+		var q = current_campaign.progress_data.get("quest_requires_travel", {})
+		if q is Dictionary and q.has("required"):
+			return q
+	return {"required": false, "requires_new_world": false}
 
 ## Gets the current reputation
 ## @return int: The current reputation

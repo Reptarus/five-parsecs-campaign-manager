@@ -10,6 +10,7 @@ const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
+const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -698,6 +699,22 @@ func _build_travel_section() -> void:
 		"font_color", Color(0.31, 0.765, 0.969, 1))
 	vbox.add_child(world_label)
 
+	# View Galaxy Map — the map is a JOURNEY RECORD (Core Rules p.69 travel is
+	# roll-based, not map-navigated), so this opens the read-only Galaxy Log.
+	var map_btn := Button.new()
+	map_btn.text = "🗺  View Galaxy Map"
+	map_btn.custom_minimum_size = Vector2(0, 40)
+	map_btn.flat = true
+	map_btn.add_theme_color_override(
+		"font_color", Color(0.31, 0.765, 0.969, 1))
+	map_btn.add_theme_font_size_override("font_size", _scaled_font(14))
+	map_btn.pressed.connect(_on_view_galaxy_map_pressed)
+	vbox.add_child(map_btn)
+
+	# Mission-required travel prompt (Core Rules p.119 — a Quest step on another
+	# world). Encourages (never forces) travel; "Quests will wait for you".
+	_build_quest_travel_prompt(vbox)
+
 	# Invasion warning (Core Rules pp.88-90)
 	var gsm_inv = get_node_or_null("/root/GameStateManager")
 	if gsm_inv and gsm_inv.has_method("has_pending_invasion"):
@@ -876,6 +893,11 @@ func _on_travel_pressed() -> void:
 
 	# Generate D100 travel event (Core Rules pp.70-71)
 	_generate_travel_event()
+
+	# New World Arrival (Core Rules p.69): generate the world we travel TO and
+	# route it through the campaign's single world_data writer, which fires
+	# world_changed → PlanetDataManager sync (Galaxy Log) + world-arrival event.
+	_arrive_at_new_world()
 
 	# Refresh upkeep display (credits changed)
 	current_upkeep_data = calculate_upkeep_costs()
@@ -1294,6 +1316,50 @@ func _generate_travel_event() -> void:
 	var event := _process_travel_event_roll(roll)
 	_display_travel_event(event, roll)
 
+func _arrive_at_new_world() -> Dictionary:
+	## New World Arrival (Core Rules p.69). Generate a fresh world and write it
+	## through campaign.initialize_world() — the SINGLE world_data writer — which
+	## emits world_changed so the galaxy map + world log update. Returns the new
+	## world dict (empty on failure). Also clears any satisfied quest-travel flag.
+	var campaign: Resource = _get_campaign_resource()
+	if not campaign or not campaign.has_method("initialize_world"):
+		return {}
+
+	var turn: int = 1
+	if "progress_data" in campaign:
+		turn = int(campaign.progress_data.get("turns_played", 1))
+
+	var gen: Node = WorldGeneratorClass.new()
+	var new_world: Dictionary = {}
+	if gen and gen.has_method("generate_world"):
+		new_world = gen.generate_world(turn)
+	if gen:
+		gen.free()
+
+	if new_world.is_empty():
+		return {}
+
+	# The single chokepoint: fires world_changed → PDM sync + world-arrival event.
+	campaign.initialize_world(new_world)
+
+	# Mission-required travel (Core Rules p.119): traveling to a NEW world
+	# satisfies a Quest's "next step is on another world" requirement — clear it.
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_quest_requires_travel") \
+			and gs.has_method("set_quest_requires_travel"):
+		if gs.get_quest_requires_travel().get("required", false):
+			gs.set_quest_requires_travel(false, false)
+
+	# Surface the arrival: toast + refresh the current-world label.
+	var world_name: String = str(new_world.get("name", "a new world"))
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("Arrived: %s — added to Galaxy Log" % world_name)
+	if _travel_status_label:
+		_travel_status_label.text = "✓ Arrived: %s" % world_name
+
+	return new_world
+
 func _process_travel_event_roll(roll: int) -> Dictionary:
 	## Starship Travel Events Table (Core Rules pp.70-71).
 	## Single source of truth lives in TravelEventTable so this never diverges
@@ -1376,6 +1442,43 @@ func _get_current_world_name_for_travel() -> String:
 		if wd is Dictionary:
 			return wd.get("name", "Fringe World")
 	return "Fringe World"
+
+func _on_view_galaxy_map_pressed() -> void:
+	## Open the Galaxy Log (read-only journey record) from the Travel step.
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("galaxy_log")
+
+func _build_quest_travel_prompt(parent: VBoxContainer) -> void:
+	## If a Quest's next step is on another world (Core Rules p.119), show a
+	## non-blocking prompt encouraging travel. Traveling clears the flag (see
+	## _arrive_at_new_world). Quests wait for you — this never forces the choice.
+	var gs: Node = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("get_quest_requires_travel"):
+		return
+	var q: Dictionary = gs.get_quest_requires_travel()
+	if not q.get("required", false) or not q.get("requires_new_world", false):
+		return
+
+	var banner := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.16, 0.12, 0.28, 0.85)
+	style.border_color = Color(0.55, 0.35, 0.85, 1)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	banner.add_theme_stylebox_override("panel", style)
+	var lbl := Label.new()
+	lbl.text = ("A Quest's next step is on another world — travel to progress it"
+		+ " (Core Rules p.119). Quests will wait for you.")
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_color_override("font_color", Color(0.85, 0.78, 1.0, 1))
+	lbl.add_theme_font_size_override("font_size", _scaled_font(14))
+	banner.add_child(lbl)
+	parent.add_child(banner)
 
 func _check_has_ship_for_travel() -> bool:
 	## Check if crew has a ship for travel cost calculation

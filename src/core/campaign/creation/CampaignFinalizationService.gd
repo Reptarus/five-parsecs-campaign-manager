@@ -371,18 +371,17 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var root_for_pdm = tree_for_pdm.root if tree_for_pdm else null
 	if root_for_pdm and not world_data.is_empty():
 		var pdm = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
-		if pdm and pdm.has_method("get_or_generate_planet"):
-			var seeded_id: String = world_data.get("id", "")
-			var starting_planet = pdm.get_or_generate_planet(seeded_id, 0)
-			if starting_planet:
-				if pdm.has_method("set_current_planet"):
-					pdm.set_current_planet(starting_planet.id)
-				# Sync back to campaign.world_data so future references stay in
-				# step with the autoload's canonical id (matters when world_data
-				# had no "id" and PDM generated a fresh one).
-				if "world_data" in campaign:
-					var wd: Dictionary = campaign.world_data if campaign.world_data is Dictionary else {}
-					wd["id"] = starting_planet.id
+		if pdm and pdm.has_method("upsert_current_world"):
+			# Seed PDM from the REAL world_data (not a random planet) so the Galaxy
+			# Log / World Log show the same world + traits as the dashboard. (Was
+			# get_or_generate_planet, which fabricated a mismatched random planet.)
+			var seeded_id: String = pdm.upsert_current_world(world_data, 0)
+			# Sync the (possibly freshly-assigned) id back to campaign.world_data
+			# so future references match the autoload's canonical id.
+			if seeded_id != "" and "world_data" in campaign:
+				var wd: Dictionary = campaign.world_data if campaign.world_data is Dictionary else {}
+				if str(wd.get("id", "")) != seeded_id:
+					wd["id"] = seeded_id
 					campaign.world_data = wd
 
 	# Transfer victory conditions from config

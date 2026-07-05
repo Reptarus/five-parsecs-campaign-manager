@@ -5,6 +5,13 @@ extends Resource
 ## Framework Bible compliant: Simple data container with validation
 ## Stores complete campaign data for save/load operations
 
+## Emitted whenever the current world changes. initialize_world() is the SINGLE
+## writer of world_data, so this is the one chokepoint for world changes (creation
+## and travel). CampaignPhaseManager connects to it (world-arrival handling +
+## galaxy-map/PlanetDataManager sync). Per Godot 4.6 best practice the Resource
+## only EMITS — the autoload handler does the work; the Resource never touches it.
+signal world_changed(world_data: Dictionary)
+
 ## Schema version for save file migration (CRITICAL for data integrity)
 @export var schema_version: int = 1
 
@@ -134,9 +141,12 @@ func set_starting_equipment(data: Dictionary) -> void:
 	_update_modified_time()
 
 func initialize_world(data: Dictionary) -> void:
-	## Initialize world generation data
+	## Initialize world generation data. This is the ONLY writer of world_data;
+	## emit world_changed so CampaignPhaseManager can sync the galaxy map + fire
+	## the world-arrival event (creation and travel both route through here).
 	world_data = data.duplicate(true)
 	_update_modified_time()
+	world_changed.emit(world_data)
 
 func set_config(data: Dictionary) -> void:
 	## Set campaign configuration
@@ -507,6 +517,20 @@ func apply_pending_qol_data() -> void:
 	if planet_mgr and planet_mgr.has_method("deserialize_all"):
 		var planet_data: Dictionary = qol.get("planet_data", {})
 		planet_mgr.deserialize_all(planet_data)
+		# BACKFILL: load sets world_data via from_dictionary (NOT initialize_world),
+		# so world_changed never fired. If PDM has no record of the current world
+		# (legacy saves, or a save whose planet_data was empty), seed it from
+		# world_data so the Galaxy Log + World Log render the real current world.
+		if planet_mgr.has_method("upsert_current_world") \
+				and world_data is Dictionary and not world_data.is_empty():
+			var cur_pid: String = str(world_data.get("id", ""))
+			var has_current: bool = false
+			if not cur_pid.is_empty() and "visited_planets" in planet_mgr:
+				has_current = planet_mgr.visited_planets.has(cur_pid)
+			if not has_current:
+				var turns: int = int(progress_data.get("turns_played", 0)) \
+					if progress_data is Dictionary else 0
+				planet_mgr.upsert_current_world(world_data, turns)
 	# GalacticWarManager: restore war track progress
 	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
 	if war_mgr and war_mgr.has_method("load_save_data"):

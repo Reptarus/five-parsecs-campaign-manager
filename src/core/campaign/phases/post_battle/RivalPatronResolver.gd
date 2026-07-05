@@ -139,11 +139,17 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 		quest_progress = 2
 		if ctx.game_state.has_method("set_quest_finale_available"):
 			ctx.game_state.set_quest_finale_available(true)
-		var travel_roll: int = ctx.roll_d6("Quest finale travel requirement")
-		if travel_roll >= 4:
-			var requires_new_world: bool = travel_roll >= 5
-			if ctx.game_state.has_method("set_quest_requires_travel"):
-				ctx.game_state.set_quest_requires_travel(true, requires_new_world)
+
+	# Core Rules p.119: "If the modified roll was a 4 or higher, roll another D6
+	# with no modifiers. On a 5-6, the next step is on another world, and you must
+	# travel before you are able to progress the Quest." This applies to BOTH the
+	# 4-6 step-closer AND the 7+ finale (modified roll >= 4), so it lives outside
+	# the 7+ branch. There is no "travel but same world" tier — the only travel
+	# outcome is a 5-6 → another world ("Quests will wait for you"; not immediate).
+	if total_roll >= 4:
+		var travel_roll: int = ctx.roll_d6("Quest travel requirement")
+		if travel_roll >= 5 and ctx.game_state.has_method("set_quest_requires_travel"):
+			ctx.game_state.set_quest_requires_travel(true, true)
 
 	return quest_progress
 

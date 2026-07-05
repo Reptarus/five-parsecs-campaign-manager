@@ -670,6 +670,17 @@ func _on_campaign_resource_changed(resource_type: String, amount: int) -> void:
 	_check_resource_requirements(resource_type, amount)
 
 func _on_campaign_world_changed(world_data: Dictionary) -> void:
+	# Sync the galaxy map: mirror the new world into PlanetDataManager so the
+	# Galaxy Log + World Log reflect it. Runs on creation AND every travel (the
+	# campaign core emits world_changed from initialize_world). Unconditional —
+	# not gated on phase — because the map must always match campaign.world_data.
+	var pdm := get_node_or_null("/root/PlanetDataManager")
+	if pdm and pdm.has_method("upsert_current_world"):
+		var turn: int = 0
+		if game_state and game_state.current_campaign and "progress_data" in game_state.current_campaign:
+			turn = int(game_state.current_campaign.progress_data.get("turns_played", 0))
+		pdm.upsert_current_world(world_data, turn)
+
 	# Update location information and potentially trigger events
 	if current_phase == FiveParcsecsCampaignPhase.PRE_MISSION:
 		phase_events.append({

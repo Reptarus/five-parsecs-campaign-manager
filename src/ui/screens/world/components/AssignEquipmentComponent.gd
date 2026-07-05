@@ -510,11 +510,12 @@ func _on_confirm_pressed() -> void:
 				if "equipment" in local_member and "equipment" in campaign_member:
 					campaign_member.equipment = _get_member_equipment(local_member).duplicate()
 
-			# Update stash via campaign method if available
-			if campaign.has_method("set_ship_stash"):
-				campaign.set_ship_stash(stash_items.duplicate())
-			elif "ship_stash" in campaign:
-				campaign.ship_stash = stash_items.duplicate()
+			# NOTE: the ship stash is NOT committed here. Each crew<->stash move
+			# already persists through EquipmentManager.transfer_to_ship_stash() /
+			# transfer_from_ship_stash() (the canonical equipment_data["equipment"]
+			# owner). The old confirm-time `campaign.set_ship_stash(stash_items)`
+			# block was dead (no such method/property on FiveParsecsCampaignCore)
+			# AND would have clobbered the owner-tagged registry with a local copy.
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
