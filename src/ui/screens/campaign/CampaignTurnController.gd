@@ -1017,6 +1017,16 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 		dice_roller, dlc, "", mission_type)
 	resolved["auto_resolved"] = true
 
+	# Resolvers report the objective outcome as "success" (BattleResolver /
+	# NoMinisResolver / SalvageResolver). But the campaign W/L stat + narrative
+	# read "victory"/"won" (_on_post_battle_completed:1232), so without this an
+	# objective-won auto-resolve was recorded as a LOSS. Alias them, mirroring the
+	# tactical path (TacticalBattleUI:4072-4073).
+	if not resolved.has("victory"):
+		resolved["victory"] = resolved.get("success", false)
+	if not resolved.has("won"):
+		resolved["won"] = resolved.get("success", false)
+
 	_on_battle_completed(resolved)
 
 
