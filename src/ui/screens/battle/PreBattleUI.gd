@@ -251,11 +251,14 @@ func _setup_mission_info(data: Dictionary) -> void:
 		init_header.add_theme_font_size_override("font_size", _scaled_font(16))
 		mission_info_panel.add_child(init_header)
 		var init_info := Label.new()
+		# success_probability from SeizeInitiativeSystem is ALREADY a percentage
+		# (success_count / 36.0 * 100.0), matching InitiativeCalculator's usage.
+		# The old `prob * 100.0` double-scaled it (e.g. 41.67 -> "4167%").
 		var prob: float = init_ctx.get("success_probability", 0.0)
 		init_info.text = "Need %d+ on 2D6 (Savvy +%d) — %.0f%% chance" % [
 			init_ctx.get("required_roll", 10),
 			init_ctx.get("highest_savvy", 0),
-			prob * 100.0]
+			prob]
 		init_info.add_theme_font_size_override("font_size", _scaled_font(14))
 		init_info.add_theme_color_override("font_color", Color("#4FC3F7"))
 		init_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

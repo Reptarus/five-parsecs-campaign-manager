@@ -1246,14 +1246,20 @@ func _create_experience_panel(crew_member: Dictionary) -> Control:
 	var roll_button = Button.new()
 	roll_button.text = "Roll Advancement"
 	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
-	roll_button.pressed.connect(_on_experience_roll.bind(crew_member))
 	panel.add_child(roll_button)
-	
+
 	var result_label = Label.new()
 	result_label.name = "exp_result_" + str(crew_member.get("id", 0))
 	result_label.text = "Not rolled"
 	_style_pending_result(result_label)
 	panel.add_child(result_label)
+	# Bind the button + label so the handler can LOCK the button (one advancement
+	# roll per crew per battle — the button used to stay enabled, letting a crew
+	# stack advancements) and update the inline result directly. The old
+	# find_child("exp_result_...") lookup never matched the dynamically-added
+	# label (owner unset -> find_child's owned=true default skips it), so the
+	# inline status stayed "Not rolled" while only the log updated.
+	roll_button.pressed.connect(_on_experience_roll.bind(crew_member, roll_button, result_label))
 	
 	return panel
 
@@ -2624,25 +2630,31 @@ func _add_loot_to_inventory(loot_items: Array) -> void:
 	if not parts.is_empty():
 		_add_result_to_log("Added to campaign: %s" % ", ".join(parts))
 
-func _on_experience_roll(crew_member: Dictionary) -> void:
+func _on_experience_roll(crew_member: Dictionary, roll_button: Button = null, result_label: Label = null) -> void:
 	## Handle experience advancement roll
+	# Lock the button first so a crew can't stack multiple advancement rolls in
+	# one post-battle (Core Rules: one advancement roll per crew per battle).
+	if roll_button:
+		roll_button.disabled = true
+		roll_button.text = "Rolled"
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
-	
+
 	if dice_manager:
 		roll = dice_manager.roll_d6("Advancement: " + crew_member.get("name", "Unknown"))
 	else:
 		roll = randi_range(1, 6)
-	
+
 	var advancement = _interpret_advancement_roll(roll)
 	var result_text = "Rolled %d - %s" % [roll, advancement]
-	
-	# Update UI
-	var result_label = step_content.find_child("exp_result_" + str(crew_member.get("id", 0)))
+
+	# Update UI — prefer the bound label; fall back to find_child for safety.
+	if result_label == null:
+		result_label = step_content.find_child("exp_result_" + str(crew_member.get("id", 0)))
 	if result_label:
 		result_label.text = result_text
 		result_label.modulate = UIColors.COLOR_EMERALD if roll >= 4 else UIColors.COLOR_TEXT_SECONDARY
-	
+
 	_add_result_to_log("%s: %s" % [crew_member.get("name", "Crew"), result_text])
 
 func _interpret_injury_roll(roll: int, is_casualty: bool) -> String:
