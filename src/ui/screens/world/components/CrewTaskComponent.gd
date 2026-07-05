@@ -124,12 +124,15 @@ func initialize_crew_tasks(crew: Array) -> void:
 	assigned_tasks.clear()
 	completed_tasks.clear()
 	all_tasks_resolved = false
-	
-	pass # Initialized with crew members
-	
+
 	_populate_crew_list()
 	_populate_available_tasks()
 	_update_ui_state()
+	# Clear the TASK RESULTS panel too. Clearing completed_tasks alone leaves the
+	# previous turn's dynamically-built result labels on screen (progress_container
+	# is only rebuilt by _update_progress_display, which shows nothing when empty),
+	# so turn 2 showed turn 1's "Trade -> Luxury trinket" until the next resolve.
+	_update_progress_display()
 	
 	# Publish phase started event
 	if event_bus:

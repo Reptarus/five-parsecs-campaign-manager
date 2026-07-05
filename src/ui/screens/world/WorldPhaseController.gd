@@ -129,6 +129,7 @@ func _initialize_event_bus() -> void:
 	# Subscribe to component events - centralized event handling
 	# Use existing event types from CampaignTurnEventBus enum
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_RESOLVED, _on_crew_task_resolved)
+	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_ASSIGNED, _on_crew_task_assigned)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.MISSION_PREPARED, _on_mission_prepared)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_TRANSITION_REQUESTED, _on_phase_transition_requested)
@@ -954,6 +955,12 @@ func _on_crew_task_resolved(data: Dictionary) -> void:
 	if automation_enabled:
 		await get_tree().create_timer(1.0).timeout
 		_on_next_button_pressed()
+
+func _on_crew_task_assigned(_data: Dictionary) -> void:
+	## A crew task was assigned (not yet resolved). Refresh the nav/readout so the
+	## progress-blocker hint advances immediately (e.g. "Assign at least one crew
+	## task" -> "Tap Resolve All Tasks") instead of lagging until the next pass.
+	_update_ui_display()
 
 func _on_job_accepted(data: Dictionary) -> void:
 	## Handle job acceptance from JobOfferComponent
