@@ -910,9 +910,19 @@ func _update_ui_display() -> void:
 	# Lock reroll + job list after acceptance
 	if reroll_button:
 		reroll_button.disabled = job_accepted
-	if job_list and job_accepted:
-		job_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		job_list.modulate.a = 0.5
+	if job_list:
+		if job_accepted:
+			job_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			job_list.modulate.a = 0.5
+		else:
+			# Restore interactivity when NOT accepted. Critical for turn 2+:
+			# reset_job_phase() sets job_accepted=false but the old code only
+			# ever LOCKED the list (in the job_accepted branch) and never
+			# un-locked it, so a job accepted on turn 1 left the reused list
+			# MOUSE_FILTER_IGNORE on every later turn — a hard soft-lock on the
+			# REQUIRED Job Offers step (selection dead, no visible decline path).
+			job_list.mouse_filter = Control.MOUSE_FILTER_STOP
+			job_list.modulate.a = 1.0
 
 	_update_job_details()
 
