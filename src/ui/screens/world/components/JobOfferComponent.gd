@@ -1021,6 +1021,12 @@ func is_job_accepted() -> bool:
 	## Check if a job has been accepted
 	return job_accepted
 
+func get_blocker_hint() -> String:
+	## Human-readable reason this step can't advance yet ("" if it can).
+	if is_job_accepted():
+		return ""
+	return "Accept a job offer (or decline all) to continue."
+
 func get_accepted_job() -> Dictionary:
 	## Get the accepted job data
 	if job_accepted and selected_job_index >= 0 and selected_job_index < available_jobs.size():

@@ -569,6 +569,12 @@ func is_equipment_assigned() -> bool:
 	## Returns true if at least one crew member has equipment OR the user explicitly confirmed 'proceed without'.
 	return assignment_completed
 
+func get_blocker_hint() -> String:
+	## Human-readable reason this step can't advance yet ("" if it can).
+	if assignment_completed:
+		return ""
+	return "Tap \"Confirm\" to lock in equipment (or proceed without changes)."
+
 func get_crew_data() -> Array:
 	return crew_data.duplicate(true)
 

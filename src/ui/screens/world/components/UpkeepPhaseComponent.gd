@@ -1507,6 +1507,15 @@ func is_upkeep_completed() -> bool:
 	## Check if upkeep phase is completed
 	return upkeep_completed
 
+func get_blocker_hint() -> String:
+	## Human-readable reason this step can't advance yet ("" if it can).
+	## Surfaced by WorldPhaseController next to a disabled "Next Step".
+	if not travel_decision_made:
+		return "Choose \"Stay\" or \"Travel\" first."
+	if not upkeep_completed:
+		return "Tap \"Calculate Costs\", then \"Pay Upkeep\" to continue."
+	return ""
+
 func get_upkeep_results() -> Dictionary:
 	## Get the results of upkeep calculation
 	var results: Dictionary = current_upkeep_data.duplicate()

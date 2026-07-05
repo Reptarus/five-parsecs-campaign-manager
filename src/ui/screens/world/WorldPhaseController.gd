@@ -69,6 +69,7 @@ var step_names: Array[String] = [
 ]
 var step_completed: Dictionary = {} # WorldPhaseStep -> bool
 var automation_enabled: bool = false
+var _blocker_label: Label = null # readout shown when "Next Step" is disabled
 
 # Component instances - directly reference scene-instanced components
 @onready var upkeep_component = %UpkeepContainer/UpkeepPhaseComponent
@@ -686,11 +687,20 @@ func _update_ui_display() -> void:
 		if current_step == WorldPhaseStep.MISSION_PREP:
 			# Hide step nav button on final step — proceed_to_battle_button handles it
 			next_button.visible = false
+			if _blocker_label:
+				_blocker_label.visible = false
 		else:
 			next_button.visible = true
 			var can_advance = _can_advance_to_next_step()
 			next_button.disabled = not can_advance
 			next_button.text = "Next Step"
+			# Progress-blocker readout: when Next Step is disabled, tell the player
+			# exactly what this step still needs (mirrors the same gating checks).
+			_ensure_blocker_label()
+			if _blocker_label:
+				var hint: String = _get_current_step_blocker() if not can_advance else ""
+				_blocker_label.text = "⚠  " + hint
+				_blocker_label.visible = hint != ""
 
 	# Sprint C: Update step indicators
 	_update_step_indicators()
@@ -814,6 +824,48 @@ func _can_advance_to_next_step() -> bool:
 			result = false
 
 	return result
+
+func _ensure_blocker_label() -> void:
+	## Lazily create the progress-blocker readout label at the top of the Controls
+	## box (above the Automation row + Back/Next). Amber warning text, wraps.
+	if _blocker_label and is_instance_valid(_blocker_label):
+		return
+	var nav := get_node_or_null("%StepNavigation")
+	if not nav:
+		return
+	var controls: Node = nav.get_parent()
+	if not controls:
+		return
+	_blocker_label = Label.new()
+	_blocker_label.name = "BlockerHint"
+	_blocker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_blocker_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_blocker_label.add_theme_color_override("font_color", Color(0.851, 0.467, 0.024, 1))
+	_blocker_label.add_theme_font_size_override("font_size", 15)
+	_blocker_label.visible = false
+	controls.add_child(_blocker_label)
+	controls.move_child(_blocker_label, 0)
+
+func _get_current_step_blocker() -> String:
+	## Human-readable reason the CURRENT step can't advance ("" if it can).
+	## Delegates to the active component's get_blocker_hint() (each owns its state).
+	var comp: Node = null
+	match current_step:
+		WorldPhaseStep.UPKEEP:
+			comp = upkeep_component
+		WorldPhaseStep.CREW_TASKS:
+			comp = crew_task_component
+		WorldPhaseStep.JOB_OFFERS:
+			comp = job_offer_component
+		WorldPhaseStep.ASSIGN_EQUIPMENT:
+			comp = assign_equipment_component
+		WorldPhaseStep.RESOLVE_RUMORS:
+			comp = resolve_rumors_component
+	if comp and comp.has_method("get_blocker_hint"):
+		var h: String = comp.get_blocker_hint()
+		if h != "":
+			return h
+	return "Complete this step to continue."
 
 ## UI Event Handlers - orchestrator navigation
 func _on_back_button_pressed() -> void:

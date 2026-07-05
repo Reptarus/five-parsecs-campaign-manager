@@ -145,14 +145,14 @@ func _populate_crew_list() -> void:
 	crew_member_list.clear()
 	for i in range(crew_data.size()):
 		var crew_member = crew_data[i]
-		var crew_name = crew_member.get("character_name", "Crew Member %d" % (i + 1))
+		var crew_name = _member_get(crew_member, "character_name", "Crew Member %d" % (i + 1))
 
 		# Check if in Sick Bay (Core Rules - injured crew can't perform tasks)
-		var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
+		var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) or _member_get(crew_member, "status", "") == "injured"
 
 		# Time to Burn: extra action even in Sick Bay (Core Rules p.130)
 		var has_extra_action := false
-		for eff in crew_member.get("status_effects", []):
+		for eff in _member_get(crew_member, "status_effects", []):
 			if str(eff.get("type", "")) == "extra_action":
 				has_extra_action = true
 				break
@@ -163,7 +163,7 @@ func _populate_crew_list() -> void:
 			continue
 
 		var task_status = ""
-		var crew_id = crew_member.get("character_id", "crew_%d" % i)
+		var crew_id = _member_get(crew_member, "character_id", "crew_%d" % i)
 
 		if crew_id in assigned_tasks:
 			var assigned_task = assigned_tasks[crew_id]
@@ -176,22 +176,22 @@ func _get_eligible_crew() -> Array:
 	## Time to Burn (Core Rules p.130): extra_action allows tasks even in Sick Bay.
 	var eligible: Array = []
 	for crew_member in crew_data:
-		var is_in_sick_bay = crew_member.get("in_sick_bay", false) \
-			or crew_member.get("status", "") == "injured"
+		var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) \
+			or _member_get(crew_member, "status", "") == "injured"
 		# Time to Burn overrides Sick Bay restriction
 		var has_extra_action := false
-		for eff in crew_member.get("status_effects", []):
+		for eff in _member_get(crew_member, "status_effects", []):
 			if str(eff.get("type", "")) == "extra_action":
 				has_extra_action = true
 				break
 		if is_in_sick_bay and not has_extra_action:
 			continue
 		# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
-		if crew_member.get("locked_out_this_turn", false):
+		if _member_get(crew_member, "locked_out_this_turn", false):
 			continue
 		# Character Event restrictions (Core Rules pp.128-130)
 		var has_task_block := false
-		for eff in crew_member.get("status_effects", []):
+		for eff in _member_get(crew_member, "status_effects", []):
 			var eff_type: String = str(eff.get("type", ""))
 			if eff_type == "skip_tasks" or eff_type == "unavailable" or eff_type == "departed":
 				has_task_block = true
@@ -200,6 +200,20 @@ func _get_eligible_crew() -> Array:
 			continue
 		eligible.append(crew_member)
 	return eligible
+
+func _member_get(member, key: String, default = null):
+	## Type-safe crew-member field access. Crew members are canonically Dictionaries
+	## (crew_data["members"]), but a stray Character Resource must never silently abort
+	## this panel: Dictionary.get(key, default) is a 2-arg call, while Object.get(key)
+	## takes a single arg, so the 2-arg form aborts the whole function on a Resource
+	## (the new-campaign Crew Tasks soft-lock). This handles both shapes safely.
+	if member is Dictionary:
+		return member.get(key, default)
+	if member is Object:
+		if key in member:
+			return member.get(key)
+		return default
+	return default
 
 func _populate_available_tasks() -> void:
 	## Populate available tasks list UI with Core Rules info
@@ -1314,6 +1328,16 @@ func are_tasks_completed() -> bool:
 func is_tasks_completed() -> bool:
 	## Alias for are_tasks_completed() - matches controller API
 	return are_tasks_completed()
+
+func get_blocker_hint() -> String:
+	## Human-readable reason this step can't advance yet ("" if it can).
+	if are_tasks_completed():
+		return ""
+	if assigned_tasks.is_empty():
+		return "Assign at least one crew task, then \"Resolve All Tasks\"."
+	if not all_tasks_resolved:
+		return "Tap \"Resolve All Tasks\" to resolve your %d assigned task(s)." % assigned_tasks.size()
+	return ""
 
 func get_task_results() -> Array:
 	## Get results of all completed tasks

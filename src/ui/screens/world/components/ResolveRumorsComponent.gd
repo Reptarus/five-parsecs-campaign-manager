@@ -263,6 +263,12 @@ func is_rumors_resolved() -> bool:
 	## Check if rumors phase is completed
 	return rumors_resolved
 
+func get_blocker_hint() -> String:
+	## Human-readable reason this step can't advance yet ("" if it can).
+	if rumors_resolved:
+		return ""
+	return "Resolve your rumors (or skip if you have none) to continue."
+
 func get_current_quest() -> Dictionary:
 	## Get current quest data
 	return current_quest.duplicate(true)
