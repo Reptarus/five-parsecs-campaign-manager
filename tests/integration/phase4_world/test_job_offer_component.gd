@@ -208,3 +208,42 @@ func test_decline_without_selection_does_nothing():
 
 	var new_count = component.get("available_jobs").size()
 	assert_that(new_count).is_equal(initial_count)
+
+# ============================================================================
+# Regression: turn-2+ soft-lock (list stayed input-dead after acceptance)
+# ============================================================================
+
+func test_job_list_reenabled_after_turn_reset():
+	"""🐛 REGRESSION: accepting a job locked the ItemList (mouse_filter=IGNORE)
+	but reset_job_phase() on turn rollover never restored it, leaving the
+	REQUIRED Job Offers list untappable on turn 2+ (a hard soft-lock). The list
+	must be interactive again after reset."""
+	component.initialize_job_phase({"patron_name": "Test"}, "Location")
+	component.set("selected_job_index", 0)
+	component.accept_selected_job()
+
+	var job_list = component.get("job_list")
+	assert_that(job_list).is_not_null()
+	# Locked while a job is accepted (turn 1)
+	assert_that(job_list.mouse_filter).is_equal(Control.MOUSE_FILTER_IGNORE)
+
+	# Turn rollover
+	component.reset_job_phase()
+
+	# Must be tappable again (the bug: it stayed MOUSE_FILTER_IGNORE)
+	assert_that(job_list.mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
+	assert_that(job_list.modulate.a).is_equal(1.0)
+
+func test_job_list_selectable_after_accept_reset_regenerate():
+	"""Full turn-2 shape: accept (t1) -> reset -> regenerate offers (t2). The
+	list must remain interactive so the player can pick a new job."""
+	component.initialize_job_phase({"patron_name": "T1"}, "Loc1")
+	component.set("selected_job_index", 0)
+	component.accept_selected_job()
+
+	component.reset_job_phase()
+	component.initialize_job_phase({"patron_name": "T2"}, "Loc2")
+
+	var job_list = component.get("job_list")
+	assert_that(job_list.mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
+	assert_that(job_list.modulate.a).is_equal(1.0)
