@@ -95,9 +95,12 @@ func check_completion() -> bool:
 		"ACQUIRE":
 			return objective_progress.get("item_secured", false) and objective_progress.get("exited_with_item", false)
 		"MOVE_THROUGH":
-			return objective_progress.get("crew_exited", 0) >= 3
+			# Core Rules p.90 + mission_objectives.json: at least 2 crew exit.
+			return objective_progress.get("crew_exited", 0) >= 2
 		"PATROL":
-			return objective_progress.get("markers_checked", 0) >= 4
+			# Core Rules p.90 + mission_objectives.json: 3 patrol points (was 4 —
+			# unwinnable, only 3 markers are ever placed).
+			return objective_progress.get("markers_checked", 0) >= 3
 		"DEFEND":
 			return objective_progress.get("objective_intact", true) and objective_progress.get("rounds_survived", 0) >= 6
 		"SEARCH":

@@ -78,13 +78,15 @@ func test_invasion_survive_maps_to_survival():
 # --- PATROL: spatial counter ------------------------------------------------
 
 func test_patrol_counter_completes_at_threshold():
+	# Core Rules p.90 + mission_objectives.json: Patrol = 3 points (F5 fix; was 4,
+	# unwinnable since only 3 markers are ever placed).
 	var t = Tracker.new()
 	t.init_from_context(_obj("PATROL"), 4)
 	t.apply_panel_input(2)
 	assert_bool(t.is_complete()).is_false()
 	var rows: Array = t.get_panel_conditions()
-	assert_that(rows[0]["progress"]).is_equal(0.5)
-	t.apply_panel_input(4)
+	assert_float(float(rows[0]["progress"])).is_equal_approx(2.0 / 3.0, 0.01)
+	t.apply_panel_input(3)
 	assert_bool(t.is_complete()).is_true()
 
 # --- Uncovered types: NO fabricated completion math -------------------------

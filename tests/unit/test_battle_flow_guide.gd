@@ -56,9 +56,13 @@ func test_round_end_prompts_per_condition() -> void:
 	assert_int(vis.size()).is_equal(1)
 	assert_str(str(vis[0].get("text", ""))).contains("1D6+8")
 
-	# Conditions with no per-round effect produce NO prompt
+	# Conditions with no per-round-END effect produce NO prompt. All 11 p.88
+	# conditions are accounted for: 3 above have a round-end roll; these 8 do not
+	# (Small/Surprise/CaughtOffGuard are setup-only; Toxic is a per-Stun roll;
+	# Slippery/Bitter/Gloomy are passive).
 	for quiet in ["", "NO_CONDITION", "GLOOMY", "BITTER_STRUGGLE",
-			"TOXIC_ENVIRONMENT", "SLIPPERY_GROUND"]:
+			"TOXIC_ENVIRONMENT", "SLIPPERY_GROUND",
+			"SMALL_ENCOUNTER", "SURPRISE_ENCOUNTER", "CAUGHT_OFF_GUARD"]:
 		assert_int(Guide.build_round_end_prompts(quiet).size()).is_equal(0)
 
 

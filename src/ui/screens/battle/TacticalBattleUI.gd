@@ -2752,9 +2752,24 @@ func _show_quick_actions_ui() -> void:
 func _show_enemy_actions_ui() -> void:
 	## ENEMY ACTIONS — tier-aware display with contextual enemy info
 	_clear_action_buttons()
-	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle
+	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle.
 	if tier_controller and tier_controller.current_tier >= 2:
-		_surface_phase_component(enemy_intent_panel)
+		# F8 fix: enemy_intent_panel can be invalid by combat — it is the one
+		# phase component freed during the SETUP->COMBAT rebuild (the others
+		# survive). Passing a freed ref to the TYPED _surface_phase_component(
+		# component: Control) param fails the call-boundary type check and ABORTS
+		# this method, so the "Enemy Actions Done" button below never builds ->
+		# the Enemy Actions phase soft-locks (and the FULL_ORACLE oracle, the
+		# whole point of the tier, silently vanishes). Recreate if invalid,
+		# mirroring the line ~2009 recreate-if-null pattern.
+		if not is_instance_valid(enemy_intent_panel):
+			enemy_intent_panel = _get_res("enemy_intent").new()
+			enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			if phase_content:
+				phase_content.add_child(enemy_intent_panel)
+		if is_instance_valid(enemy_intent_panel):
+			_surface_phase_component(enemy_intent_panel)
 		if right_tabs: right_tabs.current_tab = 2
 	elif not _battle_context.is_empty():
 		# ASSISTED tier: show structured enemy action card

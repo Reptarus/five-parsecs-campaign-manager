@@ -25,8 +25,10 @@ const COVERED_IDS: Array[String] = [
 ## NOT new game data — kept here only because that switch does not expose them.
 ## KEEP IN SYNC with MissionObjectiveSystem.check_completion() if it changes.
 const COUNTER_TARGETS: Dictionary = {
-	"MOVE_THROUGH": {"key": "crew_exited", "target": 3},     # check_completion L98
-	"PATROL": {"key": "markers_checked", "target": 4},        # check_completion L100
+	# Core Rules p.90 + mission_objectives.json (the SSOT): Move Through = 2 crew,
+	# Patrol = 3 points. Were 3/4 — Patrol was unwinnable (only 3 markers placed).
+	"MOVE_THROUGH": {"key": "crew_exited", "target": 2},     # check_completion MOVE_THROUGH
+	"PATROL": {"key": "markers_checked", "target": 3},        # check_completion PATROL
 }
 
 ## Survival objectives: complete when rounds_survived >= target.
