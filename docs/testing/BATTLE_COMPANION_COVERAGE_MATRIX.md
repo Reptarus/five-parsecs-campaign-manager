@@ -220,6 +220,29 @@ before capture. NOTE: MCP runs in `--debug` → any script error HALTS at the de
 
 | F7 | LOW — page-cite | Pre-Battle Checklist "Roll d100 … deployment conditions (Core Rules p.90)" — table is on **p.88** (p.90 is objectives). | PENDING — Phase 5 (with F4) |
 
+## Phase 4 progress (integrated 5PFH played battle — the "how were you doing battles?" gap)
+
+Loaded a 5PFH campaign (Modiphius Demo) → `WorldPhaseController._debug_skip_to_battle()` → campaign
+`PreBattleUI` (`selected_representation_mode = "play_on_table"`) → `_on_confirm_pressed()` launched a
+**played** `TacticalBattleUI` in campaign context (COMBAT stage). Forced a victory and called
+`_resolve_battle()`.
+
+**Played-vs-auto-resolve result contract — VERIFIED identical:**
+- Code: `auto_result_dict` (`.gd:4280`) is commented "same contract as `_resolve_battle`" and has the
+  same **24 keys** as the played `result_dict` (`.gd:4086`). Only differences: `auto_resolved` flag +
+  `defeated_enemies` detail.
+- Runtime: the played battle emitted `tactical_battle_completed` with all 24 keys —
+  `victory:true, won:true, **success:true**, auto_resolved:false, crew_alive:6, enemies_remaining:0,
+  mission_source:"opportunity"`. The `success` key (once a latent bug — "won battles cascaded as
+  failures", `.gd:4071`) is present and correct.
+- The result flowed through `CampaignTurnController._on_battle_completed` → **`PostBattleSequence`
+  launched** (present in tree), no SCRIPT ERRORs.
+
+Caveat: the post-battle UI rendered blank on this path because `_debug_skip_to_battle` bypassed the
+World Phase mission-data setup its display needs — an artifact of the test shortcut, not the played
+path (the full interactive PostBattleSequence render was confirmed earlier on the tablet). The Phase-4
+GOAL (played result contract == auto contract, reaches PostBattle) is met.
+
 ## Phase 1 progress (data axis)
 
 Done + green: `test_seize_initiative_system` (13, D7 incl. verified-F2/F3), `test_battle_objective_completion`
