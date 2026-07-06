@@ -1,5 +1,27 @@
 {
-  "last_updated": "2026-06-07",
+  "last_updated": "2026-07-06",
+  "battle_companion_f9_f10": {
+    "date": "2026-07-06",
+    "status": "CODE+TESTS DONE; on-device re-test (Test18 APK) + git COMMIT PENDING",
+    "summary": "Battle-Phase Companion sprint, Phase 4 = the integrated 5PFH PLAYED (non-auto-resolved) campaign battle, walked ON THE TABLET via ADB touch. Found+fixed two device-only bugs. F9 (HIGH): the Crew/Enemy Tracker SlideOverDrawer ScrollContainer won't vertical-touch-scroll on tablet; full-height struck-through dead-unit cards pushed the last live enemy's Mark-Down button off the viewport with no reachable control. Fix = collapse DOWN figures to a compact control-free row (TacticalBattleUI._build_downed_unit_row, branched in _populate_unit_drawer). F10 (HIGH, core-feature): a played LOG_ONLY campaign battle had NO reachable control to end the battle or declare the objective (BattleRoundTracker.end_battle() has ZERO callers; LOG_ONLY has no victory check; fast path forces COMBAT for every tier). Fix (user choice B): keep the full companion + add an always-reachable emerald Record Result button (_rebuild_drawer_toolbar landscape + _rebuild_panels_menu portrait) -> objective-aware BattleResultsInputForm -> tactical_battle_completed -> PostBattle; removed the LOG_ONLY skip in _on_checklist_dismissed. Form now makes mission success = declared objective outcome (Core Rules p.90), not the Won/Lost proxy.",
+    "test_status": "9/9 new green (test_battle_results_input_form 6, test_tactical_downed_unit_row 3); 55 existing battle suites still green (64 total); headless compile clean",
+    "files_modified": [
+      "src/ui/screens/battle/TacticalBattleUI.gd (F9 _build_downed_unit_row + F10 _ensure_results_form_drawer/_build_results_prefill/_on_record_result_pressed + Record Result button in toolbar+panels menu + _on_checklist_dismissed skip removed)",
+      "src/ui/components/battle/BattleResultsInputForm.gd (objective section, objective_id/objective_met, success=objective outcome)",
+      "docs/testing/BATTLE_COMPANION_COVERAGE_MATRIX.md (F9/F10 rows + Phase-4 on-device section)",
+      "docs/QA_STATUS_DASHBOARD.md (F9/F10 findings, 64 cases)"
+    ],
+    "files_created": [
+      "tests/unit/test_battle_results_input_form.gd",
+      "tests/unit/test_tactical_downed_unit_row.gd"
+    ],
+    "pending": [
+      "Test18 APK build (c:/tmp/fiveparsecs_Test18.apk) was running in background at handoff",
+      "adb install -r Test18 + fresh played battle: mark down (compact rows) -> Record Result -> declare Deliver achieved -> PostBattle, capture on-device visuals",
+      "git commit (4 edits + 2 new test files, all uncommitted)"
+    ],
+    "related_memories": ["project_session_jul05_battle_companion_f9_f10.md", "reference_played_log_only_battle_needs_record_result.md", "reference_drawer_downed_card_collapse_touch_scroll.md"]
+  },
   "portrait_density_slider_hybrid": {
     "date": "2026-06-07",
     "status": "SHIPPED + committed 7ed81541",

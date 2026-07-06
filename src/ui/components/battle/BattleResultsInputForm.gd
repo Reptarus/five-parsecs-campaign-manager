@@ -22,6 +22,15 @@ var _enemies_defeated_spin: SpinBox
 var _enemies_total_label: Label
 var _submit_btn: Button
 
+# Mission objective (Core Rules p.90). When the battle carried a trackable
+# objective (Deliver, Access, Patrol, ...), the form shows it and lets the
+# player DECLARE whether they achieved it on the table — this is the
+# tabletop-companion authority for mission success, not a mere Won/Lost proxy.
+var _objective_id: String = ""
+var _objective_name: String = ""
+var _objective_condition: String = ""
+var _objective_met_check: CheckBox
+
 ## prefill: optional {victory, enemies_defeated, rounds, held_field} from
 ## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
 ## of _build_ui() — NOT here — because the UI nodes do not exist until then
@@ -32,6 +41,22 @@ func setup(crew: Array, enemy_count: int, mission_data: Dictionary = {},
 	_enemy_count = enemy_count
 	_mission_data = mission_data
 	_pending_prefill = prefill
+	# Objective info rides in the prefill dict (from BattleObjectiveTracker) with
+	# a fallback to mission_data so a played battle always shows what it was for.
+	# Campaign mission dicts store the objective under "objective" (a String, e.g.
+	# "Deliver") — NOT "objective_name" — which is the SAME key the battle's
+	# objective panel reads (TacticalBattleUI `_build_battlefield_intel`). When the
+	# live BattleObjectiveTracker is absent (its init reads different keys, so it is
+	# null for a campaign LOG_ONLY battle) the prefill is empty; without this
+	# "objective" fallback the whole MISSION OBJECTIVE section silently vanished
+	# on-device and success fell back to the Won/Lost proxy (F10 p.90 regression).
+	var md_objective: String = str(mission_data.get("objective", ""))
+	_objective_id = str(prefill.get("objective_id",
+		mission_data.get("objective_id", md_objective.to_upper())))
+	_objective_name = str(prefill.get("objective_name",
+		mission_data.get("objective_name", md_objective)))
+	_objective_condition = str(prefill.get("objective_condition",
+		mission_data.get("victory_condition", "")))
 	if is_inside_tree():
 		_build_ui()
 
@@ -44,22 +69,30 @@ func _build_ui() -> void:
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = UIColors.COLOR_SECONDARY
 	panel_style.set_corner_radius_all(12)
-	panel_style.set_content_margin_all(UIColors.SPACING_XL)
+	panel_style.set_content_margin_all(UIColors.SPACING_LG)
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
 	add_theme_stylebox_override("panel", panel_style)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_flags_vertical = Control.SIZE_EXPAND_FILL
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(scroll)
+	# NO internal ScrollContainer and NO vertical expand-fill. The host
+	# SlideOverDrawer hugs its content's height and OWNS scrolling (its documented
+	# contract — SlideOverDrawer.gd:122-125). Wrapping the whole form in its own
+	# SIZE_EXPAND_FILL ScrollContainer made it report a ~0 minimum height, so the
+	# drawer collapsed to its 200px MIN_PANEL_H floor and clipped the ENTIRE form
+	# on-device (the objective section + Submit were invisible). Parent the body
+	# directly so the form reports its natural height and the drawer fits to it.
+	#
+	# HEIGHT BUDGET (on-device, Jul 6): the drawer's ScrollContainer does NOT
+	# vertical-touch-scroll on the tablet (same limitation as the F9 unit drawer),
+	# so the whole form MUST FIT the viewport or the Submit button falls off the
+	# bottom unreachable. With the MISSION OBJECTIVE section + a full 6-crew roster
+	# the form overran by ~1 button-row, so spacing is tightened (SPACING_SM here,
+	# SPACING_LG panel margin) to keep Submit on-screen without needing to scroll.
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", UIColors.SPACING_LG)
-	scroll.add_child(vbox)
+	vbox.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	add_child(vbox)
 
 	# Title
 	var title := Label.new()
@@ -78,6 +111,31 @@ func _build_ui() -> void:
 
 	# Separator
 	vbox.add_child(HSeparator.new())
+
+	# === OBJECTIVE SECTION (Core Rules p.90) ===
+	# Only when the battle carried a trackable objective. The player DECLARES
+	# whether it was achieved on the table — this is what drives mission success
+	# for objective battles (e.g. Deliver), not the Won/Lost proxy below.
+	if _objective_name != "":
+		var obj_section := _create_section("MISSION OBJECTIVE")
+		var obj_card: VBoxContainer = obj_section[1]
+		var obj_name_lbl := Label.new()
+		obj_name_lbl.text = _objective_name
+		obj_name_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+		obj_name_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+		obj_card.add_child(obj_name_lbl)
+		if _objective_condition != "":
+			var obj_cond_lbl := Label.new()
+			obj_cond_lbl.text = _objective_condition
+			obj_cond_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			obj_cond_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+			obj_cond_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			obj_card.add_child(obj_cond_lbl)
+		_objective_met_check = CheckBox.new()
+		_objective_met_check.text = "Objective achieved"
+		_objective_met_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		obj_card.add_child(_objective_met_check)
+		vbox.add_child(obj_section[0])
 
 	# === OUTCOME SECTION ===
 	var outcome_section := _create_section("OUTCOME")
@@ -235,6 +293,9 @@ func _apply_prefill() -> void:
 			float(_pending_prefill["enemies_defeated"]),
 			_enemies_defeated_spin.min_value,
 			_enemies_defeated_spin.max_value)
+	if _pending_prefill.has("objective_met") and _objective_met_check:
+		_objective_met_check.button_pressed = bool(
+			_pending_prefill["objective_met"])
 
 func _create_section(title_text: String) -> Array:
 	## Returns [outer_container, inner_content] — add outer to parent, children to inner
@@ -321,6 +382,14 @@ func _on_submit() -> void:
 	var enemies_defeated: int = int(_enemies_defeated_spin.value)
 	var held_field: bool = _held_field_check.button_pressed and crew_alive > 0
 
+	# Objective battles (Deliver, Access, Patrol, ...): the player's declared
+	# objective outcome is authoritative for mission success — a crew can hold
+	# the field yet FAIL the objective, or lose the fight yet still deliver.
+	# Non-objective battles fall back to the Won/Lost proxy.
+	var has_objective: bool = _objective_name != "" and _objective_met_check != null
+	var objective_met: bool = _objective_met_check.button_pressed if has_objective else false
+	var mission_success: bool = objective_met if has_objective else victory
+
 	var result: Dictionary = {
 		# Outcome
 		"victory": victory,
@@ -343,8 +412,11 @@ func _on_submit() -> void:
 		# Enemy data
 		"defeated_enemies": [],
 		"defeated_enemy_list": [],
+		# Objective (Core Rules p.90) — player-declared, authoritative for success
+		"objective_id": _objective_id,
+		"objective_met": objective_met,
 		# Mission context passthrough
-		"success": victory,
+		"success": mission_success,
 		"is_red_zone": _mission_data.get("is_red_zone", false),
 		"is_black_zone": _mission_data.get("is_black_zone", false),
 		"is_quest_finale": _mission_data.get("is_quest_finale", false),

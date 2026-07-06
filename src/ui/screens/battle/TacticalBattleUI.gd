@@ -1279,8 +1279,15 @@ func _rebuild_panels_menu(ids: Array) -> void:
 	var pm := _panels_menu.get_popup()
 	for i in range(ids.size()):
 		pm.add_item(str(ids[i]).capitalize(), i)
+	# Portrait twin of the Record Result button (id == ids.size(), the one slot
+	# past the drawer ids). Same reachable end-a-played-battle path.
+	var record_idx: int = ids.size()
+	pm.add_separator()
+	pm.add_item("✔ Record Result", record_idx)
 	pm.id_pressed.connect(func(idx: int) -> void:
-		if idx >= 0 and idx < ids.size():
+		if idx == record_idx:
+			_on_record_result_pressed()
+		elif idx >= 0 and idx < ids.size():
 			_open_drawer(str(ids[idx])))
 	if _mobile_app_bar.has_method("add_action"):
 		_mobile_app_bar.add_action(_panels_menu)
@@ -2210,12 +2217,13 @@ func _battle_card_row(parent: Node, head: String, detail: String,
 		parent.add_child(detail_lbl)
 
 func _on_checklist_dismissed() -> void:
-	## Player clicked Begin Battle — close the modal, transition by tier
+	## Player clicked Begin Battle — close the modal, proceed to deployment.
+	## ALL tiers (incl. LOG_ONLY) now get the full companion: map, enemy tracker,
+	## 5-phase round HUD. LOG_ONLY no longer short-circuits to a bare results
+	## form — the reachable "Record Result" button (see _rebuild_drawer_toolbar)
+	## is how a played battle at any tier is recorded, so the companion's
+	## table-tracking value is never thrown away (choice-B design, 2026-07-05).
 	_hide_overlay()
-	if tier_controller and tier_controller.current_tier == 0:
-		# LOG_ONLY: Skip deployment and combat, show results input form
-		_show_log_only_results_form()
-		return
 	_apply_stage_visibility(BattleStage.DEPLOYMENT)
 	_update_action_buttons_for_deployment()
 	_log_message(
@@ -2228,26 +2236,43 @@ func _on_checklist_dismissed() -> void:
 var _log_only_results_form: Control = null
 
 func _show_log_only_results_form() -> void:
-	## Show the battle results input form for LOG_ONLY tier.
-	## Skips deployment and combat — player enters outcomes directly.
+	## Results-only view (TIER_SELECT / Battle Simulator path only). The campaign
+	## fast-path keeps the FULL companion + the Record Result button instead —
+	## this stays for callers that want the bare form with no combat screen.
+	_ensure_results_form_drawer()
+	current_stage = BattleStage.COMBAT
+	if return_button: return_button.visible = true
+	if auto_resolve_button: auto_resolve_button.visible = false
+	if turn_indicator:
+		turn_indicator.text = "Enter your battle results"
+	_open_drawer("results")
+
+func _ensure_results_form_drawer() -> void:
+	## Build the BattleResultsInputForm + its "results" drawer once (idempotent).
+	## This is the reachable "record what happened on my table" path for a PLAYED
+	## battle at ANY tier — the companion never simulates the fight for the player
+	## (that is what the top-bar Auto Resolve is for). Seeded from the live
+	## objective tracker so the player starts from the objective-accurate guess.
+	if _drawers.has("results") and _log_only_results_form \
+			and is_instance_valid(_log_only_results_form):
+		return
 	var FormClass = load(
 		"res://src/ui/components/battle/BattleResultsInputForm.gd")
 	_log_only_results_form = FormClass.new()
 
-	# Gather crew data from units or stored mission data
 	var crew_data: Array = []
 	for unit in crew_units:
 		if unit.original_character:
 			crew_data.append(unit.original_character)
 		else:
 			crew_data.append({
-				"character_name": unit.unit_name,
+				"character_name": unit.node_name,
 				"combat": unit.combat_skill,
 				"reactions": unit.reactions,
 				"toughness": unit.toughness,
 				"speed": unit.speed,
 			})
-	if crew_data.is_empty() and not _stored_mission_data is Dictionary:
+	if crew_data.is_empty():
 		crew_data = [{"character_name": "Crew", "combat": 1, "reactions": 1,
 			"toughness": 3, "speed": 4}]
 
@@ -2257,28 +2282,48 @@ func _show_log_only_results_form() -> void:
 
 	_log_only_results_form.setup(
 		crew_data, enemy_count,
-		_stored_mission_data if _stored_mission_data is Dictionary else {})
+		_stored_mission_data if _stored_mission_data is Dictionary else {},
+		_build_results_prefill())
 	_log_only_results_form.results_submitted.connect(
 		_on_log_only_results_submitted)
 
-	# LOG_ONLY: enter results in a slide-over drawer (plan §Tier scaling) —
-	# no deployment/combat screen takeover. Form still emits
-	# results_submitted → _on_log_only_results_submitted unchanged.
-	current_stage = BattleStage.COMBAT
 	_make_drawer("results", "Record Battle Result", DrawerClass.Edge.RIGHT, true)
 	var rbody: VBoxContainer = _drawer_bodies["results"]
 	for c in rbody.get_children():
 		c.queue_free()
 	_log_only_results_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rbody.add_child(_log_only_results_form)
-	if return_button: return_button.visible = true
-	if auto_resolve_button: auto_resolve_button.visible = false
-	if turn_indicator:
-		turn_indicator.text = "Enter your battle results"
+
+func _build_results_prefill() -> Dictionary:
+	## Seed the results form from the live objective tracker so the player starts
+	## from the objective-accurate guess (they still confirm/edit on the table).
+	var prefill: Dictionary = {}
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		prefill = _objective_tracker.get_result_prefill()
+		prefill["objective_id"] = _objective_tracker.get_objective_id()
+		prefill["objective_name"] = _objective_tracker.get_objective_name()
+		prefill["objective_met"] = _objective_tracker.is_complete()
+		var os = _objective_tracker._system  # resolved Objective lives here
+		if os and os.current_objective \
+				and "victory_condition" in os.current_objective:
+			prefill["objective_condition"] = str(
+				os.current_objective.victory_condition)
+	return prefill
+
+func _on_record_result_pressed() -> void:
+	## Reachable end-a-played-battle control (Record Result button). Opens the
+	## results form so the player declares their table outcome + objective, then
+	## submit → _on_log_only_results_submitted → tactical_battle_completed.
+	_ensure_results_form_drawer()
 	_open_drawer("results")
 
 func _on_log_only_results_submitted(result: Dictionary) -> void:
-	## Handle LOG_ONLY form submission — transition to resolution
+	## Handle LOG_ONLY form submission — transition to resolution.
+	## Close the results drawer FIRST so the form doesn't linger over the
+	## PostBattle sequence that tactical_battle_completed hands off to
+	## (on-device F10 walk, Test21: drawer stayed open atop PostBattle).
+	if _drawers.has("results") and is_instance_valid(_drawers["results"]):
+		_drawers["results"].close()
 	_log_message("Battle results recorded", UIColors.COLOR_EMERALD)
 	_apply_stage_visibility(BattleStage.RESOLUTION)
 	tactical_battle_completed.emit(result)
@@ -2333,6 +2378,26 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 		var cap_id: String = id
 		b.pressed.connect(func() -> void: _open_drawer(cap_id))
 		bar.add_child(b)
+	# Record Result — the reachable "I finished playing, here's the outcome"
+	# control for a PLAYED battle at ANY tier. Without this a played battle had
+	# no way to reach the results form / PostBattle except Auto Resolve (which
+	# simulates the fight you played by hand) or Return (abandon). Emerald-styled
+	# so it reads as the primary end-of-battle action, not just another drawer.
+	var record_btn := Button.new()
+	record_btn.text = "✔ Record Result"
+	record_btn.custom_minimum_size = Vector2(140, _touch_h())
+	record_btn.focus_mode = Control.FOCUS_NONE
+	var rec_style := StyleBoxFlat.new()
+	rec_style.bg_color = UIColors.COLOR_EMERALD
+	rec_style.set_corner_radius_all(8)
+	rec_style.set_content_margin_all(8)
+	record_btn.add_theme_stylebox_override("normal", rec_style)
+	var rec_hover := rec_style.duplicate()
+	rec_hover.bg_color = Color(UIColors.COLOR_EMERALD, 0.85)
+	record_btn.add_theme_stylebox_override("hover", rec_hover)
+	record_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	record_btn.pressed.connect(_on_record_result_pressed)
+	bar.add_child(record_btn)
 	# Portrait twin: a single ≡ Panels menu in the app bar (same drawer ids).
 	_drawer_tier = tier
 	_rebuild_panels_menu(ids)
@@ -3551,6 +3616,25 @@ func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
 
 	for unit in units:
 		var data: Dictionary = _unit_card_dict(unit)
+
+		# Register with the Tracking drawer's ActivationTrackerPanel so its
+		# crew/enemy sections stay in lock-step with these figures (alive OR
+		# down — a down figure still reads as defeated in the tracker).
+		if activation_tracker and is_instance_valid(activation_tracker) \
+				and activation_tracker.has_method("add_unit"):
+			activation_tracker.add_unit(data, is_crew)
+
+		# DOWN figures collapse to a compact one-line ledger row (F9). A defeated
+		# figure needs no stat block or Stun/Dmg/Aim/Snap/Mark-Down controls, and
+		# keeping FULL-height cards for the dead inflated the drawer past the
+		# viewport — the last LIVE enemy's Mark-Down button fell off the bottom
+		# with no way to touch-scroll to it (found on-device, 2026-07-05).
+		if unit.is_dead:
+			var down_row := _build_downed_unit_row(unit)
+			body.add_child(down_row)
+			_unit_card_by_id[_unit_id(unit)] = down_row
+			continue
+
 		var card: PanelContainer = _get_res("character_status_card").instantiate()
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		body.add_child(card)
@@ -3568,12 +3652,6 @@ func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
 				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				lbl.custom_minimum_size.x = 0.0
 
-		# Register with the Tracking drawer's ActivationTrackerPanel so its
-		# crew/enemy sections stay in lock-step with these figures.
-		if activation_tracker and is_instance_valid(activation_tracker) \
-				and activation_tracker.has_method("add_unit"):
-			activation_tracker.add_unit(data, is_crew)
-
 		# Card (view) -> model + log + trackers. bind() appends the unit so
 		# each card mutates exactly its own TacticalUnit (SSOT).
 		card.damage_taken.connect(_on_card_damage.bind(unit, is_crew))
@@ -3583,8 +3661,7 @@ func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
 		# Explicit eliminate path (instant kill: die = 6 or score >= Toughness,
 		# Core Rules pp.116-118) — no damage ticking required.
 		var down_btn := Button.new()
-		down_btn.text = "✖ Mark Down" if not unit.is_dead else "☠ Down"
-		down_btn.disabled = unit.is_dead
+		down_btn.text = "✖ Mark Down"
 		down_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 		var down_style := StyleBoxFlat.new()
 		down_style.bg_color = UIColors.COLOR_DANGER
@@ -3597,6 +3674,37 @@ func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
 
 		character_cards.append(card)
 		_unit_card_by_id[_unit_id(unit)] = card
+
+
+func _build_downed_unit_row(unit) -> PanelContainer:
+	## Compact one-line ledger entry for a DOWN figure (F9). Keeps the casualty
+	## visible for the post-battle reckoning without the full card's height, so
+	## a full roster + several casualties still fits the drawer viewport.
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = UIColors.COLOR_INPUT
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(UIColors.SPACING_SM)
+	panel.add_theme_stylebox_override("panel", style)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	panel.add_child(row)
+	var skull := Label.new()
+	skull.text = "☠"
+	skull.add_theme_color_override("font_color", UIColors.COLOR_DANGER)
+	row.add_child(skull)
+	var name_lbl := Label.new()
+	name_lbl.text = unit.node_name
+	name_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_lbl)
+	var down_lbl := Label.new()
+	down_lbl.text = "DOWN  0/%d" % unit.max_health
+	down_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_DISABLED)
+	down_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	row.add_child(down_lbl)
+	return panel
 
 
 func _on_card_damage(char_name: String, amount: int, unit, is_crew: bool) -> void:
