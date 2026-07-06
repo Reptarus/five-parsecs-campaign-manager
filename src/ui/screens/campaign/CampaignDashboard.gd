@@ -368,14 +368,21 @@ func _update_stat_strip(campaign) -> void:
 	var parent_vbox := header_panel.get_parent()
 	if not parent_vbox:
 		return
-	# Remove old strip if present
-	var old := parent_vbox.get_node_or_null("__stat_strip")
-	if old:
-		old.queue_free()
-	# Also drop any stale last-turn recap label so refreshes don't stack.
-	var old_recap := parent_vbox.get_node_or_null("__last_turn_recap")
-	if old_recap:
-		old_recap.queue_free()
+	# Remove old strip(s)/recap(s). queue_free() is deferred (end-of-frame) but
+	# add_child() with a duplicate name is immediate, so if a prior refresh ran
+	# while the old strip was still pending-free, Godot auto-suffixed the NEW
+	# child on the name clash (e.g. "__stat_strip" -> "@__stat_strip@2"). The
+	# survivor keeps a mangled name, so a later get_node_or_null("__stat_strip")
+	# can't find it and never frees it -> a duplicate row stacks (visible after
+	# load-over-dashboard). Sweep by name PREFIX (catches mangled survivors) and
+	# rename each match out of the namespace BEFORE freeing, so the fresh strip
+	# added below keeps the clean "__stat_strip" name and can't collide. Makes
+	# this refresh idempotent regardless of how often / when it is called.
+	for child in parent_vbox.get_children():
+		if child.name.begins_with("__stat_strip") \
+				or child.name.begins_with("__last_turn_recap"):
+			child.name = "_freeing_%d" % child.get_instance_id()
+			child.queue_free()
 
 	var pd: Dictionary = campaign.progress_data \
 		if "progress_data" in campaign else {}
@@ -522,10 +529,19 @@ func _update_crew_manifest(campaign) -> void:
 		for child in crew_vbox.get_children():
 			if child is Control and child.name != "__phase_bg":
 				child.modulate.a = 0.0
+				# Capture a WeakRef, NOT the card Node: a rapid _update_all()
+				# re-entry frees this card before the staggered callback fires, and
+				# a lambda whose capture is a freed Node makes the engine REFUSE the
+				# call ("Lambda capture at index 0 was freed") BEFORE the inner
+				# is_instance_valid guard can run — which is why the guard alone
+				# never silenced it. A WeakRef is RefCounted so it never frees; the
+				# guard then works and the freed-card case no-ops cleanly.
+				var card_ref := weakref(child)
 				anim_tw.tween_callback(func():
-					if is_instance_valid(child):
-						child.modulate.a = 1.0
-						TweenFX.fade_in(child, 0.18)
+					var c: Object = card_ref.get_ref()
+					if is_instance_valid(c):
+						c.modulate.a = 1.0
+						TweenFX.fade_in(c, 0.18)
 				)
 				anim_tw.tween_interval(0.05)
 

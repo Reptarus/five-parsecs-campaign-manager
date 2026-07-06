@@ -473,7 +473,15 @@ func _on_campaign_turn_started(turn_number: int) -> void:
 	## Handle campaign turn start — sync turn into progress_data so dashboard reads it
 	var campaign: Resource = GameState.current_campaign if GameState else null
 	if campaign and "progress_data" in campaign:
-		campaign.progress_data["turns_played"] = turn_number - 1
+		# NON-REGRESSING sync. GameState.advance_turn() is the MONOTONIC authority for
+		# turns_played (it does += 1 at each turn's RETIREMENT). This turn-start sync
+		# must only ever RAISE turns_played, never lower it: on a loaded/re-derived
+		# path cpm.turn_number can be stale (stuck at the loaded turn), and the old
+		# unconditional `turns_played = turn_number - 1` clobbered advance_turn's
+		# already-incremented value back down — re-freezing the campaign at that turn.
+		var derived: int = turn_number - 1
+		var current: int = int(campaign.progress_data.get("turns_played", 0))
+		campaign.progress_data["turns_played"] = max(current, derived)
 	_update_turn_display(turn_number)
 	self.campaign_turn_started.emit(turn_number)
 
@@ -1601,8 +1609,17 @@ func _on_battle_mode_selected(use_tactical: bool) -> void:
 
 ## UI Updates
 func _update_turn_display(turn_number: int) -> void:
-	## Update turn number display
-	current_turn_label.text = "Turn %d" % turn_number
+	## Show the "current turn" consistently with the dashboard, which displays
+	## turns_played + 1 (CampaignDashboard.gd:336). The passed turn_number can lag
+	## turns_played + 1 on load/resume paths where start_new_campaign_turn()'s bump
+	## (gated on phase == NONE, :81) is skipped — so derive the label from the
+	## persisted turns_played SSOT instead. At the turn-start caller (:476-477)
+	## turns_played was just set to turn_number - 1, so the value is unchanged there.
+	var display_turn: int = turn_number
+	var campaign: Resource = GameState.current_campaign if GameState else null
+	if campaign and "progress_data" in campaign:
+		display_turn = int(campaign.progress_data.get("turns_played", turn_number - 1)) + 1
+	current_turn_label.text = "Turn %d" % display_turn
 
 func _update_phase_display(phase_name: String) -> void:
 	## Update current phase display

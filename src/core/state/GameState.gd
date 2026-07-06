@@ -1360,11 +1360,25 @@ func set_turn_number(value: int) -> bool:
 	return false
 
 ## Advances the turn number by 1 and syncs to campaign progress_data
-## Called by CampaignPhaseManager at end of turn cycle
+## Called by CampaignPhaseManager at end of turn cycle (RETIREMENT phase start)
 func advance_turn() -> void:
-	_turn_number += 1
+	# turns_played is the AUTHORITATIVE campaign turn counter (dashboard + World
+	# Phase both read turns_played + 1 as the current turn). Increment it MONOTONICALLY
+	# here rather than deriving it from _turn_number. On a save/load, _turn_number
+	# restores from the save's top-level "turn_number" (often absent -> default) while
+	# CampaignPhaseManager.turn_number restores from turns_played, so the old
+	# `turns_played = _turn_number - 1` created a self-referential fixed point
+	# (turns_played=1 -> cpm.turn_number=2 -> turns_played = 2-1 = 1) that FROZE the
+	# campaign at turn 2 on ANY loaded save (fresh continuous play escaped only because
+	# start_new_turn increments cpm monotonically within one instance). Monotonic
+	# increment breaks the cycle. _on_campaign_turn_started's turns_played write stays
+	# consistent with this. Keep _turn_number in sync so get_turn_number() is correct.
 	if current_campaign and "progress_data" in current_campaign:
-		current_campaign.progress_data["turns_played"] = _turn_number - 1
+		var pd: Dictionary = current_campaign.progress_data
+		pd["turns_played"] = int(pd.get("turns_played", 0)) + 1
+		_turn_number = int(pd["turns_played"]) + 1
+	else:
+		_turn_number += 1
 	state_changed.emit()
 
 ## Gets the current story points

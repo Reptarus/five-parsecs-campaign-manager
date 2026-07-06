@@ -139,7 +139,20 @@ func _build_ui() -> void:
 
 	# Apply max width to card
 	_apply_max_width(card_wrapper)
-	get_viewport().size_changed.connect(func(): _apply_max_width(card_wrapper))
+	# Capture WeakRefs, NOT the Nodes: this closure is bound to the PERSISTENT
+	# viewport.size_changed, so it outlives this screen. A lambda whose capture is a
+	# freed Node (self or card_wrapper) makes the engine refuse the call and log
+	# "Lambda capture at index 0 was freed" on the next resize after this screen
+	# closes. WeakRefs are RefCounted (never freed); the guards below then no-op
+	# cleanly once the screen is gone.
+	var screen_ref := weakref(self)
+	var card_ref := weakref(card_wrapper)
+	get_viewport().size_changed.connect(func():
+		var s: Object = screen_ref.get_ref()
+		var c: Object = card_ref.get_ref()
+		if is_instance_valid(s) and is_instance_valid(c):
+			s.call("_apply_max_width", c)
+	)
 
 
 func _load_eula_text() -> void:

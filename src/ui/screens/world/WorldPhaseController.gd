@@ -32,6 +32,8 @@ const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResour
 const PsionicLegalityBadgeClass = preload("res://src/ui/components/world/PsionicLegalityBadge.gd")
 
 # UI Components (replaced monolith references)
+const WorldBriefingBuilderScript = preload("res://src/core/world/WorldBriefingBuilder.gd")
+
 @onready var phase_container: Control = %PhaseContainer
 @onready var step_navigation: Container = %StepNavigation  # HFlowContainer (wraps in portrait)
 @onready var current_step_label: Label = %CurrentStepLabel
@@ -84,6 +86,9 @@ var _psionic_badge: PsionicLegalityBadgeClass = null
 
 # Campaign data
 var world_phase_data: Dictionary = {}
+
+# Persistent "World Briefing" panel (fills the space short steps leave empty).
+var _world_briefing_vbox: VBoxContainer = null
 var ship_data: Dictionary = {}
 var crew_data: Array = []
 
@@ -112,6 +117,65 @@ func _ready() -> void:
 	_initialize_components()
 	_connect_ui_signals()
 	_setup_initial_state()
+	_setup_world_briefing()
+
+
+## Fill the World-Phase empty space with a persistent "World Briefing" of the
+## current planet (flavor + the law/rules meaning of each world trait). The 6 step
+## containers are wrapped in a VBox so the ScrollContainer (which takes a single
+## child) stacks the visible step ABOVE the briefing, letting it fill the space
+## that short steps otherwise leave empty. Idempotent.
+func _setup_world_briefing() -> void:
+	if not phase_container:
+		return
+	var scroll := phase_container.get_node_or_null("PhaseScroll")
+	if not (scroll is ScrollContainer):
+		return
+	if scroll.get_node_or_null("PhaseContentVBox"):
+		return  # already wrapped
+	var content := VBoxContainer.new()
+	content.name = "PhaseContentVBox"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 24)
+	# Reparent the step containers (unique_name_in_owner refs survive reparenting).
+	for c in [upkeep_container, crew_task_container, job_offer_container,
+			mission_prep_container, assign_equipment_container, resolve_rumors_container]:
+		if c and c.get_parent() == scroll:
+			scroll.remove_child(c)
+			content.add_child(c)
+	scroll.add_child(content)
+
+	var card := PanelContainer.new()
+	card.name = "WorldBriefingCard"
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#1E1E36")
+	style.border_color = Color("#3A3A5C")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(16)
+	card.add_theme_stylebox_override("panel", style)
+	_world_briefing_vbox = VBoxContainer.new()
+	_world_briefing_vbox.add_theme_constant_override("separation", 6)
+	card.add_child(_world_briefing_vbox)
+	content.add_child(card)
+	_refresh_world_briefing.call_deferred()
+
+
+## Repopulate the briefing from the current planet. Safe to call anytime.
+func _refresh_world_briefing() -> void:
+	if not is_instance_valid(_world_briefing_vbox):
+		return
+	for child in _world_briefing_vbox.get_children():
+		child.queue_free()
+	var pdm := get_node_or_null("/root/PlanetDataManager")
+	if not pdm or not pdm.has_method("get_current_planet"):
+		return
+	var planet = pdm.get_current_planet()
+	if not planet:
+		return
+	WorldBriefingBuilderScript.build_into(_world_briefing_vbox, planet)
+
 
 func _initialize_event_bus() -> void:
 	## Initialize centralized event bus - eliminates signal hell

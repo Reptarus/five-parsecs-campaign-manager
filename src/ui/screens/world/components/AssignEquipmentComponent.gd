@@ -626,6 +626,16 @@ func reset_equipment_phase() -> void:
 	_selected_equipment_index = -1
 	_selected_stash_index = -1
 	assignment_completed = false
+	# Undo _lock_after_confirm() from the previous turn. Without this, the ItemLists
+	# keep MOUSE_FILTER_IGNORE (input-dead) and the confirm button stays disabled from
+	# the prior turn's confirm, soft-locking the equipment step on turn 2+ (crew list
+	# unresponsive, no way to confirm or advance). Mirrors the Job Offers reset fix.
+	if confirm_button:
+		confirm_button.disabled = false
+	for list_ctrl in [crew_list, crew_equipment_list, stash_list]:
+		if list_ctrl:
+			list_ctrl.mouse_filter = Control.MOUSE_FILTER_STOP
+			list_ctrl.modulate.a = 1.0
 	_update_ui_display()
 	_update_detail_strip()
 

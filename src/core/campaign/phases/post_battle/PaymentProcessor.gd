@@ -58,8 +58,16 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	var danger_pay: int = ctx.battle_result.get("danger_pay", 0)
 	var total_payment: int = credit_roll + danger_pay
 
-	if total_payment > 0 and ctx.game_state and ctx.game_state.has_method("add_credits"):
-		ctx.game_state.add_credits(total_payment)
+	# GameState has NO add_credits (credits are owned by GameStateManager) — so
+	# `ctx.game_state.add_credits()` silently no-ops on the backend orchestrator path,
+	# which was DROPPING the entire mission payment (the interactive Get Paid UI uses
+	# GameStateManager and worked). Fall back to game_state_manager, mirroring
+	# LootProcessor._apply_loot_reward.
+	if total_payment > 0:
+		if ctx.game_state and ctx.game_state.has_method("add_credits"):
+			ctx.game_state.add_credits(total_payment)
+		elif ctx.game_state_manager and ctx.game_state_manager.has_method("add_credits"):
+			ctx.game_state_manager.add_credits(total_payment)
 
 	# Journal: log payment earned
 	if total_payment > 0 and ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
@@ -185,9 +193,11 @@ func process_black_zone_rewards(
 
 		# Bonus credits (5cr)
 		var bonus_cr: int = bz_rewards.get("bonus_credits", 5)
-		if bonus_cr > 0 and ctx.game_state:
-			if ctx.game_state.has_method("add_credits"):
+		if bonus_cr > 0:
+			if ctx.game_state and ctx.game_state.has_method("add_credits"):
 				ctx.game_state.add_credits(bonus_cr)
+			elif ctx.game_state_manager and ctx.game_state_manager.has_method("add_credits"):
+				ctx.game_state_manager.add_credits(bonus_cr)
 
 		# Ship loan payoff (5cr)
 		if ctx.game_state and ctx.game_state.current_campaign:
@@ -230,9 +240,11 @@ func process_black_zone_rewards(
 		# Failure: standard rewards + 1cr per casualty
 		var casualty_pay: int = bz_rewards.get(
 			"unity_casualty_pay", 0)
-		if casualty_pay > 0 and ctx.game_state:
-			if ctx.game_state.has_method("add_credits"):
+		if casualty_pay > 0:
+			if ctx.game_state and ctx.game_state.has_method("add_credits"):
 				ctx.game_state.add_credits(casualty_pay)
+			elif ctx.game_state_manager and ctx.game_state_manager.has_method("add_credits"):
+				ctx.game_state_manager.add_credits(casualty_pay)
 
 		# Journal: Black Zone failure
 		if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):

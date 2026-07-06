@@ -1180,7 +1180,16 @@ func _update_create_button_state() -> void:
 	
 	var errors = _validate_campaign_data()
 	create_button.disabled = not errors.is_empty()
-	
+
+	# Announce validity so the wizard's fixed-footer "Start Campaign" button can
+	# stay in sync with THIS panel's own create button. Without this, the footer
+	# finish_button (gated only on can_finish_campaign_creation, which does NOT
+	# check the victory-condition requirement) stays green/enabled and silently
+	# no-ops when a blocking error exists (e.g. no victory condition), with the
+	# red error scrolled below the fold. Fires on show/refresh too (this runs from
+	# the panel refresh), so the footer button greys out on entry when invalid.
+	panel_validation_changed.emit(errors.is_empty())
+
 	# Update validation panel
 	if is_instance_valid(validation_panel):
 		if errors.is_empty():

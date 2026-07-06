@@ -297,8 +297,13 @@ func get_narrative_wrap_override():
 
 # --- Credit arithmetic ---
 
+## Adds `amount` (may be negative) to credits, clamped at 0 — credits can never
+## go negative (Core Rules: you cannot spend below 0). This clamp is the safety
+## net that a "Life Support Upgrade" style unaffordable cost once bypassed.
+## For cost deductions prefer `modify_credits(-cost)` (identical clamp, clearer
+## intent) or `remove_credits(cost)` (gates on affordability, returns bool).
 func add_credits(amount: int) -> void:
-	set_credits(get_credits() + amount)
+	set_credits(max(0, get_credits() + amount))
 
 func remove_credits(amount: int) -> bool:
 	var current = get_credits()

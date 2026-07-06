@@ -19,6 +19,10 @@ const CampaignCreationCoordinatorScript = preload("res://src/ui/screens/campaign
 
 var coordinator: CampaignCreationCoordinatorScript
 var current_panel: Control
+# Tracks FinalPanel's own validation (victory condition etc.). Defaults true so
+# non-final steps (where finish_button is hidden) are unaffected; FinalPanel emits
+# panel_validation_changed on refresh to set the real value on Step 7.
+var _final_panel_valid: bool = true
 
 func _ready() -> void:
 	coordinator = CampaignCreationCoordinatorScript.new()
@@ -177,6 +181,14 @@ func _connect_panel_signals() -> void:
 	# FinalPanel (extends FiveParsecsCampaignPanel)
 	if final_panel.has_signal("campaign_finalization_complete"):
 		final_panel.campaign_finalization_complete.connect(_on_campaign_finalized)
+	# Keep the fixed-footer "Start Campaign" (finish_button) in sync with the
+	# FinalPanel's OWN create button. can_finish_campaign_creation() only checks
+	# the 6 phases are marked complete — it does NOT run FinalPanel's validation
+	# (e.g. the required victory condition). Without this, the footer button stays
+	# green/enabled and silently no-ops on a blocking error. Listening here lets it
+	# grey out in lockstep with the panel's internal button.
+	if final_panel.has_signal("panel_validation_changed"):
+		final_panel.panel_validation_changed.connect(_on_final_panel_validation_changed)
 
 func _set_coordinator_on_panels() -> void:
 	for panel in panels:
@@ -190,7 +202,17 @@ func _on_navigation_updated(can_go_back: bool, can_go_forward: bool, can_finish:
 	next_button.visible = can_go_forward and not can_finish
 	finish_button.visible = can_finish
 	next_button.disabled = not can_go_forward
-	finish_button.disabled = not can_finish
+	# Footer finish requires BOTH the coordinator's phase completion AND the
+	# FinalPanel's own validation (victory condition etc.) — see connect above.
+	finish_button.disabled = not (can_finish and _final_panel_valid)
+
+func _on_final_panel_validation_changed(is_valid: bool) -> void:
+	_final_panel_valid = is_valid
+	# Directly reflect on the footer button when it's the active control, so entry
+	# into Step 7 (which refreshes the panel and emits) greys/enables it immediately
+	# without waiting for the next navigation_updated.
+	if finish_button and finish_button.visible:
+		finish_button.disabled = not (coordinator.can_finish_campaign_creation() and is_valid)
 
 func _on_step_changed(step: int, _total_steps: int) -> void:
 	_show_panel(step)
