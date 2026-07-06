@@ -42,7 +42,7 @@ Then `Confirm Deployment → TacticalBattleUI` (tier pre-set, TIER_SELECT skippe
 | F1 | **NOT A BUG (verified — my characterization was wrong).** ACCESS/ELIMINATE/SECURE are **player-driven by design**: their win states (1D6+Savvy access roll, killing a specific marked figure, holding the exact centre 2 rounds) can't be seen on the physical table, so `check_completion()` correctly returns false and they complete via the player's manual toggle in `VictoryProgressPanel` (`BattleObjectiveTracker.is_complete()` → `_manual_met`; row is `interactive:true, input_kind:bool`). Same companion pattern as the FIGHT_OFF counter. Already tested in `test_battle_objective_tracker.gd` (`test_uncovered_types_have_no_auto_completion`, `_uncovered_row_exposes_manual_toggle`). No fix — auto-completing them would BREAK the companion model. | `BattleObjectiveTracker.gd:174-186` | RESOLVED — not a bug |
 | F2 | **NOT A BUG (verified).** Re-reading p.112: the Feral clause follows "Many opponent types will add a bonus or penalty" → it means **per-opponent-type** penalties (Alert −1), NOT the category-level Hired Muscle −1. Code skips only `enemy_type` for Feral = correct reading. Lock current behavior with a test. | `SeizeInitiativeSystem.gd:219` | RESOLVED — not a bug |
 | F3 | **VALID ITEMS, cite wrong.** Compendium p.26 "Multi-wave scanner: +1 Seize the Initiative, cumulative with a party-carried Motion Tracker." Both `motion_tracker`/`scanner_bot` (+1) are real. Fix only the page-cite (Compendium p.26, not Core p.112). | `SeizeInitiativeSystem.gd:132,139` | RESOLVED — cite fix P5 |
-| F4 | **Pagination-source question, not simple drift.** Code cites seize p.117 / reaction p.96 / morale pp.114-118; committed PDF has them at printed p.112 / p.112 / p.113. Offsets are non-uniform (5 vs 16 pages) → code likely references the physical-book pagination. Phase 5: decide canonical pagination (the committed `docs/rules` PDF) + reconcile all battle cites to it, noting the offset. | `SeizeInitiativeSystem.gd:9`, `BattleCalculations.gd:1100,1130`, `MoralePanicTracker.gd:4` | PENDING — reconcile P5 |
+| F4/F7 | **FIXED.** Committed PDF is canonical (user-confirmed). Re-verified each rule's printed page by footer: Seize = **p.112** (was p.117), Reaction Roll = **p.113** (was p.96), Deployment Conditions = **p.88** (was p.90/p.94/p.115), Notable Sights = **p.89** (was p.94). Morale **pp.114-118 was already correct** (I was off-by-one earlier). 14 cites fixed across 8 files, surgically (p.117 stays for the Battle Events table on p.117; p.94 stays for enemy encounters; p.90 stays for objectives). | `SeizeInitiativeSystem`, `InitiativeCalculator`, `BattleCalculations`, `BattleResolver`, `DeploymentConditionsSystem`, `NoMinisResolver`, `PreBattleChecklist`, `CampaignTurnController` | **FIXED** |
 | F5 | **CONFIRMED BUG (Patrol unwinnable).** `check_completion()` requires `markers_checked >= 4`, but rulebook p.90 + `mission_objectives.json` + BattleFlowGuide all say **3** patrol points. Only 3 markers are ever placed → Patrol can never complete. | `MissionObjectiveSystem.gd:100`, `BattleObjectiveTracker.gd:29` | FIXED (P1 inline) |
 | F6 | **CONFIRMED BUG (Move Through too hard).** `check_completion()` requires `crew_exited >= 3`, but rulebook p.90 + JSON + BattleFlowGuide all say **at least 2** crew. | `MissionObjectiveSystem.gd:98`, `BattleObjectiveTracker.gd:28` | FIXED (P1 inline) |
 
@@ -175,14 +175,17 @@ Then `Confirm Deployment → TacticalBattleUI` (tier pre-set, TIER_SELECT skippe
 
 ## Page-cite reconciliation (Phase 5) — printed page = PDF-index + 1
 
-| Rule | Cited in code | Actual (PyPDF2) | Status |
-|------|---------------|-----------------|--------|
-| Seizing the Initiative | p.117 | printed p.112 (pdf 111) | PENDING |
-| The Reaction Roll / Battle Round | — | printed p.112 | PENDING |
-| End Phase / Running Away / Morale | pp.114-118 | printed p.113 | PENDING |
-| Deployment conditions | p.88 | printed p.88 (pdf 87) ✓ | PENDING |
-| Objectives | p.89-90 | printed p.89-90 ✓ | PENDING |
-| Enemy setup spacing / AI | p.110, pp.94-103 | VERIFY | PENDING |
+| Rule | Was cited | Canonical PDF (footer-verified) | Status |
+|------|-----------|----------------------------------|--------|
+| Seizing the Initiative | p.117 | **p.112** (pdf-idx 111) | FIXED → p.112 |
+| The Reaction Roll | p.96 | **p.113** (pdf-idx 112) | FIXED → p.113 |
+| End Phase / Running Away / Morale | pp.114-118 | **p.114** (spans to p.118 ref) | CORRECT — kept |
+| Deployment conditions table | p.90 / p.94 / p.115 | **p.88** (pdf-idx 87) | FIXED → p.88 |
+| Notable Sights | p.94 | **p.89** (pdf-idx 88) | FIXED → p.89 |
+| Objectives ("Types of Objective") | p.90 | **p.90** (pdf-idx 89) ✓ | CORRECT — kept |
+| Enemy encounter tables | p.94 | **p.94-95** (pdf-idx 93-94) ✓ | CORRECT — kept |
+| Battle Events (ROLL EFFECT) table | p.117 | **p.117** (pdf-idx 116) ✓ | CORRECT — kept (NOT seize) |
+| Deployment procedure (edges/enemy-first/18") | p.110 | **p.110** ✓ | CORRECT — kept |
 
 ---
 

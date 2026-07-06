@@ -190,7 +190,7 @@ static func _execute_round(
 	# cut (Compendium p.71). The phase exists; the D100 table is a future opt-in.
 
 	# Phase 2 — Initiative + crew Initiative Actions (Compendium p.67).
-	# Normal initiative = one D6 per crew member (Core Rules p.117); No-Minis uses
+	# Normal initiative = one D6 per crew member (Core Rules p.113); No-Minis uses
 	# one die fewer. The Captain always acts; each other living crew member rolls a
 	# die and acts if it is ≤ their Reactions. We perform only the OFFENSIVE actions.
 	var living_crew: Array = _alive(crew_units)

@@ -6,7 +6,7 @@ extends PanelContainer
 ## UI component for calculating Seize the Initiative rolls.
 ## Displays all modifiers, calculates probability, and shows results.
 ##
-## Reference: Core Rules p.117 "Seizing the Initiative"
+## Reference: Core Rules p.112 "Seizing the Initiative"
 
 const SeizeInitiativeSystem = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const FiveParsecsCampaignPanel = preload("res://src/ui/screens/campaign/panels/BaseCampaignPanel.gd")

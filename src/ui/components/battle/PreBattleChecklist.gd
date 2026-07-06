@@ -63,14 +63,14 @@ const CHECKLIST_ITEMS: Array[Dictionary] = [
 	{
 		"id": "deployment_conditions",
 		"label": "Roll deployment conditions",
-		"hint": "Roll d100 to determine special deployment conditions (Core Rules p.90).",
+		"hint": "Roll d100 to determine special deployment conditions (Core Rules p.88).",
 		"tier": 1,
 		"dice_type": "d100",
 	},
 	{
 		"id": "notable_sighting",
 		"label": "Check for Notable Sighting",
-		"hint": "Roll d100 to check if a notable sight is encountered (Core Rules p.94).",
+		"hint": "Roll d100 to check if a notable sight is encountered (Core Rules p.89).",
 		"tier": 1,
 		"dice_type": "d100",
 	},

@@ -1091,13 +1091,13 @@ static func calculate_battle_credits(
 #region Initiative Calculations
 
 ## Target number for Seizing the Initiative: 2D6 + highest Savvy + modifiers
-## must meet or exceed this (Core Rules p.117). Single source of truth shared by
+## must meet or exceed this (Core Rules p.112). Single source of truth shared by
 ## the auto-resolve path (check_seize_initiative, below) AND the interactive UI
 ## (SeizeInitiativeSystem) so the threshold can never drift between the two.
 const SEIZE_INITIATIVE_TARGET := 10
 
 ## Roll to seize initiative (2d6 + highest savvy + difficulty modifier >= target)
-## Core Rules p.117; difficulty modifier from Core Rules p.65:
+## Core Rules p.112; difficulty modifier from Core Rules p.65:
 ##   Hardcore: -2, Insanity: -3
 static func check_seize_initiative(
 	die1: int,
@@ -1127,7 +1127,7 @@ static func get_reaction_dice_count(crew_alive: int) -> int:
 	return crew_alive
 
 ## Determine if action is Quick or Slow based on reaction die vs character Reaction stat
-## Core Rules p.96: Roll D6 per crew member; roll <= Reaction = Quick Actions
+## Core Rules p.113: Roll D6 per crew member; roll <= Reaction = Quick Actions
 static func is_quick_action(reaction_die: int, reaction_stat: int = 1) -> bool:
 	return reaction_die <= reaction_stat
 

@@ -6,7 +6,7 @@ extends Resource
 ## Calculates the initiative roll with all applicable modifiers.
 ## Formula: 2D6 + highest Savvy + modifiers >= 10
 ##
-## Reference: Core Rules p.117 "Seizing the Initiative"
+## Reference: Core Rules p.112 "Seizing the Initiative"
 
 # Signals
 signal initiative_rolled(result: InitiativeResult)

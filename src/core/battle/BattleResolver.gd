@@ -31,7 +31,7 @@ const BATTLEFIELD_FINDS_MAX := 2  # Held-field bonus finds range
 # Default unit toughness (fallback for missing data)
 const DEFAULT_TOUGHNESS := 3
 
-# Deployment condition modifiers (Core Rules p.115)
+# Deployment condition modifiers (Core Rules p.88)
 const AMBUSH_HIT_BONUS := 2
 const SURROUNDED_ENEMY_BONUS := 2
 const SURROUNDED_CREW_PENALTY := -1
@@ -268,7 +268,7 @@ static func execute_combat_round(
 		"consumed_items": []  # Phase 3: Bubble up consumed single-use items
 	}
 
-	# Step 1: Check initiative (Core Rules p.117 - seize initiative 2d6 + highest Savvy >= 10)
+	# Step 1: Check initiative (Core Rules p.112 - seize initiative 2d6 + highest Savvy >= 10)
 	# Difficulty modifier: Hardcore -2, Insanity -3 (Core Rules p.65)
 	var crew_has_initiative := _check_initiative(crew_units, dice_roller, battlefield_data)
 	if condition_effects.get("crew_first_strike", false):

@@ -716,7 +716,7 @@ func _initiate_battle_sequence() -> void:
 	# condition roll + objective normalization) — the condition can affect
 	# the terrain output, so book order is condition first (2026-07-02).
 
-	# Roll deployment condition (Core Rules p.94)
+	# Roll deployment condition (Core Rules p.88)
 	var deployment_condition: Dictionary = {}
 	var deploy_sys = FPCM_DeploymentConditionsSystem.new()
 	var deploy_mission_type := _infer_deployment_mission_type(
@@ -734,7 +734,7 @@ func _initiate_battle_sequence() -> void:
 		}
 	battle_results["deployment_condition"] = deployment_condition
 
-	# Apply deployment condition enemy count modifiers (Core Rules p.94)
+	# Apply deployment condition enemy count modifiers (Core Rules p.88)
 	var condition_id: String = deployment_condition.get("condition_id", "")
 	if condition_id == "SMALL_ENCOUNTER" and not enemies.is_empty():
 		var remove_count: int = 1
@@ -759,7 +759,7 @@ func _initiate_battle_sequence() -> void:
 		mission_data["enemy_force"]["units"] = enemies
 
 	# Build initiative context for InitiativeCalculator auto-configuration
-	# (Core Rules p.117: 2D6 + highest Savvy + modifiers >= 10)
+	# (Core Rules p.112: 2D6 + highest Savvy + modifiers >= 10)
 	var init_sys := SeizeInitiativeSystemClass.new()
 	init_sys.set_crew_data(active_crew)
 	# Difficulty modifier

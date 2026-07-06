@@ -6,7 +6,7 @@ extends Resource
 ## Handles pre-battle deployment conditions that affect how battles start.
 ## Different conditions apply based on mission type (Opportunity, Patron, Rival, Quest).
 ##
-## Reference: Core Rules p.94 "Determine Deployment Conditions"
+## Reference: Core Rules p.88 "Determine Deployment Conditions"
 
 # Signals
 signal condition_rolled(condition: DeploymentCondition)
