@@ -75,19 +75,25 @@ func test_deliver_completes_when_delivered() -> void:
 	_use("DELIVER", {"delivered": true})
 	assert_bool(_m.check_completion()).is_true()
 
-# ── F1 GAP characterization: no auto-eval for these 3 (fixed in Phase 6) ────
-# These assert CURRENT behavior. Phase 6 adds check_completion() cases and INVERTS
-# these to assert true on the rulebook win state. mission_objectives.json already
-# defines all three (victory_condition text present) — only the match arm is missing.
+# ── ACCESS / ELIMINATE / SECURE are PLAYER-DRIVEN by design (NOT a bug) ──────
+# check_completion() intentionally returns false for these three: their win
+# states (a 1D6+Savvy 6+ access roll, killing a specific marked figure, holding
+# the exact table centre for 2 consecutive rounds) are things the app cannot see
+# on the physical table, so they complete via the player's manual toggle in
+# VictoryProgressPanel — same tabletop-companion pattern as the FIGHT_OFF counter.
+# The player-driven completion path is covered in test_battle_objective_tracker.gd
+# (test_uncovered_types_have_no_auto_completion / _uncovered_row_exposes_manual_toggle).
+# These assertions lock that check_completion() (the AUTO path) correctly does NOT
+# claim to evaluate them — inventing auto-math here would violate the companion model.
 
-func test_F1_access_has_no_auto_eval_yet() -> void:
-	_use("ACCESS", {"console_accessed": true})  # p.90: 1D6+Savvy 6+ -> Win
-	assert_bool(_m.check_completion()).is_false()  # F1: falls through -> false
+func test_access_is_not_auto_derivable_by_design() -> void:
+	_use("ACCESS", {"console_accessed": true})  # p.90: 1D6+Savvy 6+ -> player reports Win
+	assert_bool(_m.check_completion()).is_false()
 
-func test_F1_eliminate_has_no_auto_eval_yet() -> void:
-	_use("ELIMINATE", {"target_eliminated": true})  # p.90: kill marked target -> Win
-	assert_bool(_m.check_completion()).is_false()  # F1
+func test_eliminate_is_not_auto_derivable_by_design() -> void:
+	_use("ELIMINATE", {"target_eliminated": true})  # p.90: kill marked target -> player reports
+	assert_bool(_m.check_completion()).is_false()
 
-func test_F1_secure_has_no_auto_eval_yet() -> void:
-	_use("SECURE", {"consecutive_secure_rounds": 2})  # p.91: 2 consecutive rounds -> Win
-	assert_bool(_m.check_completion()).is_false()  # F1
+func test_secure_is_not_auto_derivable_by_design() -> void:
+	_use("SECURE", {"consecutive_secure_rounds": 2})  # p.91: hold centre 2 rounds -> player reports
+	assert_bool(_m.check_completion()).is_false()
