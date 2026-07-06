@@ -1,6 +1,28 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-07-02 (Post-Fable QA sweep + fixit sprint + test-modernization triage → **first fully-green complete suite run: 129/129 suites, 1552/1552 cases, 0 errors, 0 failures**. See "§ Fixit Sprint (Jul 2 2026)" below. Prior 2026-06-06: Mobile/tablet responsive re-pivot)
+**Last Updated**: 2026-07-05 (Battle-Phase Companion comprehensiveness sprint → 3 genuine bugs fixed (F5/F6/F8), 3 "gaps" correctly dismissed on verification (F1/F2/F3), tier-gating + 5-phase round flow runtime-verified, 55 new/updated cases green. See "§ Battle Companion QA Sprint (Jul 5 2026)" below. Prior 2026-07-02: Post-Fable fixit sprint → 129/129 suites green)
+
+---
+
+## § Battle Companion QA Sprint (Jul 5 2026) — comprehensiveness of the tabletop battle companion
+
+Systematic sweep of `TacticalBattleUI` (the companion shared across all 4 modes — the app's T1 differentiator and least-tested subsystem). Rulebook values verified via PyPDF2 against the committed Core Rules/Compendium PDFs + `mission_objectives.json` SSOT; runtime findings via an MCP `run_script` + screenshot harness (drive the live scene tree by firing signals — `simulate_input` can't reach this project's Control-menu `pressed` pipeline). **Coverage matrix SSOT: `docs/testing/BATTLE_COMPANION_COVERAGE_MATRIX.md`.** Commits `8fb7c66d` + `f0b61af3`.
+
+| Finding | Severity | Verdict | Detail |
+|---|---|---|---|
+| **F5** | **HIGH** | **FIXED** | Patrol objective **UNWINNABLE** — `check_completion()` required 4 markers, only 3 are ever placed (Core Rules p.90 + JSON = 3). An existing test was *locking the bug*. Fixed `MissionObjectiveSystem` + synced `BattleObjectiveTracker.COUNTER_TARGETS`. |
+| **F6** | MED | **FIXED** | Move Through required 3 crew exited; rulebook p.90 + JSON = "at least 2". |
+| **F8** | **HIGH** | **FIXED** | FULL_ORACLE Enemy-Actions **soft-lock** — `enemy_intent_panel` freed by the SETUP→COMBAT rebuild; passing the freed ref to the TYPED `_surface_phase_component(component: Control)` param fails the call-boundary type check → aborts `_show_enemy_actions_ui()` before building the "Enemy Actions Done" button (soft-lock) and silently drops the tier's oracle. Guard+recreate at `TacticalBattleUI.gd:2755`; runtime-verified. Invisible to unit tests + `--headless`. |
+| F2 | — | Dismissed | Feral ignores per-opponent-type penalties (Alert −1), NOT the category-level −1 Hired Muscle. Code correct (p.112). |
+| F3 | — | Dismissed | Motion Tracker / Multi-wave scanner +1 seize modifiers are real Compendium p.26 items (only the page-cite is off). |
+| F1 | — | Dismissed | ACCESS/ELIMINATE/SECURE are player-driven by design (manual VictoryProgressPanel toggle, like FIGHT_OFF) — the app can't see their physical-table win states. Already tested. |
+| F4/F7 | LOW | OPEN | Battle page-cites (seize p.117, reaction p.96, morale pp.114-118, deployment-conditions p.90) disagree with the committed PDF (p.112/112/113/88) by inconsistent offsets. **Needs a decision: is the canonical player-facing pagination the committed PDF or the physical book?** Not changed unilaterally (Phase-30-hull risk). |
+
+**Runtime-verified (MCP `run_script` harness, Battle Simulator):** tier gating (LOG_ONLY = exactly the 5 log components, higher tiers absent; FULL_ORACLE = all 14 cumulative instantiated); 5-phase round HUD (Reaction→Quick→Enemy→Slow→End, p.112); Seize the Initiative (threshold 10, all modifiers incl. Compendium equipment); deployment steps card (p.110); phase guidance text; objective display; deployment-conditions d100 roll.
+
+**Tests (55 cases, all green):** `test_seize_initiative_system` (13), `test_battle_objective_completion` (14), `test_morale_panic_tracker` (7), `test_battle_flow_guide` extended, `test_battle_objective_tracker` (patrol updated to F5 value).
+
+**Remaining (not blocking):** Phase 4 integrated 5PFH *played* (not auto-resolved) campaign battle + the played-vs-auto-resolve PostBattle result-contract check; Compendium mission panels (stealth/salvage/street-fight) + no-minis/auto-resolve combat modes (campaign-path only); F4/F7 pagination decision.
 
 ---
 
