@@ -1,5 +1,33 @@
 # Wiring / Dead-Code Cleanup Backlog
 
+> ## ▶ RESUME STATE (last updated 2026-07-10)
+> - **Branch `master`, HEAD `b7b4f3ec`, working tree CLEAN.** All wiring-audit +
+>   cleanup work is committed (66ceeaa4 → b7b4f3ec). Nothing uncommitted.
+> - **Lint counts:** signals 66 (4 live dead-wires) · tscn 6 · autoload 35 ·
+>   data-ownership CLEAN. Re-run any lint to refresh (commands below).
+> - **DONE:** the wiring-audit sprint (normalizer + 8 live fixes + orphan deletes +
+>   contract doc + lints) and cleanup Tier 1 `rival_escalated` (dead scaffold).
+>   Tier 1 fully investigated — all 5 "live dead-wires" are dead scaffolds (delete,
+>   don't wire); the other 4 belong to the orphaned combat subsystem (see Tier 2).
+> - **NEXT (recommended order):** Tier 3 (35 autoload lookups — most mechanical, run
+>   `py scripts/lint_autoload_lookups.py` for the exact list; most are guarded dead
+>   branches → delete + the dead local var; a few bare `get_node` error-spammers;
+>   annotate genuine test seams `# lint:ignore`). THEN the combat subsystem
+>   (`src/ui/components/combat/{overrides,state,log,rules}/`, ~13 pairs) — **per-component**
+>   protocol (combat_log has a `test_combat_log_explanations` dep — do NOT bulk `git rm`).
+> - **PER WAVE:** run the deletion protocol (below) before each delete; headless
+>   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
+>   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
+> - **KEY GOTCHAS:** `/root/DiceSystem` is a MockDiceSystem TEST SEAM (already
+>   `# lint:ignore`), NOT dead — grep `tests/` before "fixing" any `/root/Name`.
+>   Producer battle-result keys are TEST-PINNED — never rename. `.uid` siblings
+>   auto-generate; delete them WITH their `.gd`/`.tscn`, never hand-create.
+> - **AFTER clean slate:** unblock the 2 paths (bottom of this doc): `get_deployable_crew`
+>   deployment filter + Unity Agent favor-resolution UI.
+> - Memory: `project_session_jul10_wiring_audit_sprint`, `reference_battle_result_normalizer_contract`,
+>   `reference_autoload_lookup_test_seam`. Plan/ledger:
+>   `C:\Users\admin\.claude\plans\commit-and-start-investigating-delightful-bentley.md`.
+
 **Goal:** the cleanest possible codebase — remove ALL dead code across every aspect,
 reach a clean slate, THEN unblock the two Blocked book-rule paths.
 
