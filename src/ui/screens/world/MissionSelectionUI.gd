@@ -46,11 +46,7 @@ func _ready() -> void:
 	_setup_ui()
 
 func _initialize_managers() -> void:
-	## Initialize manager references
-	alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
-	if alpha_manager and alpha_manager.has_method("get_mission_generator"):
-		mission_generator = alpha_manager.get_mission_generator()
-	
+	## Initialize manager references (no FPCM_AlphaGameManager autoload — mission_generator stays unset)
 	if not mission_generator:
 		push_warning("MissionSelectionUI: Mission generator not available")
 

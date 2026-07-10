@@ -326,10 +326,6 @@ func _connect_backend_signals() -> void:
 	if phase_manager and phase_manager.has_method("get_phase_handler"):
 		post_battle_phase = phase_manager.get_phase_handler("post_battle")
 
-	# Alternative: check for direct autoload
-	if not post_battle_phase:
-		post_battle_phase = get_node_or_null("/root/PostBattlePhase")
-
 	if not post_battle_phase:
 		# Backend is optional during _ready() — panel may be hidden and not in use yet.
 		# Error dialog is deferred to when the panel is actually shown via setup_post_battle().

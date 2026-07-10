@@ -1,20 +1,20 @@
 # Wiring / Dead-Code Cleanup Backlog
 
 > ## ▶ RESUME STATE (last updated 2026-07-10)
-> - **Branch `master`, HEAD `b7b4f3ec`, working tree CLEAN.** All wiring-audit +
->   cleanup work is committed (66ceeaa4 → b7b4f3ec). Nothing uncommitted.
-> - **Lint counts:** signals 66 (4 live dead-wires) · tscn 6 · autoload 35 ·
+> - **Branch `master`, working tree CLEAN** (after the Tier 3 commit — run `git log -1`).
+>   All wiring-audit + cleanup work is committed. Nothing uncommitted.
+> - **Lint counts:** signals 66 (4 live dead-wires) · tscn 6 · **autoload 4** (was 35;
+>   the 4 residual are `/root/CombatManager` in the combat subsystem, die with Tier 2) ·
 >   data-ownership CLEAN. Re-run any lint to refresh (commands below).
 > - **DONE:** the wiring-audit sprint (normalizer + 8 live fixes + orphan deletes +
->   contract doc + lints) and cleanup Tier 1 `rival_escalated` (dead scaffold).
->   Tier 1 fully investigated — all 5 "live dead-wires" are dead scaffolds (delete,
->   don't wire); the other 4 belong to the orphaned combat subsystem (see Tier 2).
-> - **NEXT (recommended order):** Tier 3 (35 autoload lookups — most mechanical, run
->   `py scripts/lint_autoload_lookups.py` for the exact list; most are guarded dead
->   branches → delete + the dead local var; a few bare `get_node` error-spammers;
->   annotate genuine test seams `# lint:ignore`). THEN the combat subsystem
->   (`src/ui/components/combat/{overrides,state,log,rules}/`, ~13 pairs) — **per-component**
->   protocol (combat_log has a `test_combat_log_explanations` dep — do NOT bulk `git rm`).
+>   contract doc + lints); Tier 1 `rival_escalated`; **Tier 3 (31 dead autoload lookups
+>   removed + orphan `AlphaGameManager.gd` deleted + `PersistentResourceBar` `# lint:ignore`d —
+>   see the Tier 3 section for full dispositions).**
+> - **NEXT (recommended order):** the **combat subsystem** (`src/ui/components/combat/{overrides,state,log,rules}/`,
+>   ~13 pairs) — clears the last 4 autoload findings AND Tier-1's `manual_override_applied`/
+>   `override_requested`/`tactical_advantage_changed`. **Per-component** protocol (combat_log has
+>   a `test_combat_log_explanations` dep — do NOT bulk `git rm`). THEN Tier 3-residual auto-clears,
+>   then legacy TravelPhaseUI (Tier 2 tscn), then Tier 4/5/6.
 > - **PER WAVE:** run the deletion protocol (below) before each delete; headless
 >   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
 >   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
@@ -87,19 +87,39 @@ its owning component is orphaned. All resolve to DELETE (clean-slate direction).
   `state_verification_controller.gd:37`, `BattlefieldMain.gd:49` + `TacticalBattleUI.gd:333`
   (`/root/FPCM_AlphaGameManager`), `TacticalBattleUI.gd:335` (`/root/BattleTracker`).
 
-## Priority tier 3 — dead autoload lookups (35, `lint_autoload_lookups.py`)
+## Priority tier 3 — dead autoload lookups — DONE (35 → 4 residual, all combat-subsystem)
 
-Fix-or-delete each (a `# lint:ignore` for genuine test seams — see the MockDiceSystem
-`/root/DiceSystem` case, already annotated). Names not in `project.godot [autoload]`:
-`FPCM_AlphaGameManager` (×6), `CombatManager` (×5), `CampaignManager` (×4),
-`FiveParsecsCombatSystem` (×3), `CampaignCreationUI` (×2), `UIManager` (×2),
-`BattleTracker` (×2), plus `PatronSystem`, `BattleManager`, `CharacterManagerAutoload`,
-`DataManagerAutoload` (→ `DataManager`), `OptimizedSystemsAutoload`,
-`CampaignCreationStateBridge`. Most are guarded (`get_node_or_null`/`has_node`) dead
-fallbacks → delete the branch + the now-dead local var. Verify the 5 possible
-runtime-node names before deleting (`PostBattlePhase`, `PersistentResourceBar`,
-`CampaignCreationUI`, `CampaignCreationStateBridge`, `BattleTracker` — allowlist with
-evidence if actually added under /root).
+Resolved 2026-07-10. 31 of 35 removed; the 4 residual are `/root/CombatManager` in
+`src/ui/components/combat/{log,rules,state}/` — deferred to the combat-subsystem
+deletion (Tier 2) because those files are being deleted wholesale (editing files
+about to be removed is wasted work). After that wave, `lint_autoload_lookups.py`
+exits 0.
+
+Dispositions applied:
+- **Dead guarded branches removed (kept the live fallback that followed):**
+  `FPCM_AlphaGameManager` (TravelPhase, TacticalBattleUI, BattlefieldMain, MissionSelectionUI —
+  the phantom autoload that was never registered), `PatronSystem` (WorldPhase → inline
+  patron-job generation), `CampaignManager` (DeveloperQuickStart health-check list entry,
+  MainCampaignScene fallback, CampaignPhasePanel, EquipmentManager screen ×2 → hardcoded
+  fallbacks; the legacy CampaignManager autoload was deleted Jul 2), `CharacterManagerAutoload`
+  (MainCampaignScene), `CampaignCreationUI` (MainCampaignScene search-path entry,
+  BaseCampaignPanel `get_coordinator_reference` Method 2 — other methods cover it),
+  `UIManager` (ResponsiveContainer — deleted the zero-caller `register_with_ui_manager`),
+  `DataManagerAutoload` + `BattleTracker` + `FiveParsecsCombatSystem` (TacticalBattleUI/
+  EquipmentManager — the reaction-dice-via-autoload integration was never built),
+  `OptimizedSystemsAutoload` (GameDataLoader), `PostBattlePhase` (PostBattleSequence dead
+  alternative — the live path is the already-fixed `get_phase_handler("post_battle")`;
+  CampaignEventComponent/CharacterEventComponent collapsed to the `find_child` fallback),
+  `CampaignCreationStateBridge` (EquipmentGenerationScene → always standalone mode).
+- **Dead vars removed:** TacticalBattleUI `alpha_manager` + `battle_tracker` (assigned, never read).
+- **Orphan file DELETED:** `src/core/managers/AlphaGameManager.gd` (+.uid) — `extends Node`,
+  no `class_name`, zero path/class/dynamic refs; the manager the phantom `FPCM_AlphaGameManager`
+  autoload was meant to be. Removed its internal `/root/BattleManager` finding too.
+- **Allowlisted (`# lint:ignore`, honest):** `/root/PersistentResourceBar` (NarrativeScreen ×2).
+  It's a real, documented L80 chrome component (`src/ui/components/common/PersistentResourceBar.gd`)
+  but is **not instantiated by any screen** — so it fails the allowlist's "actually created"
+  evidence bar; the null-guarded restore hooks no-op safely. **FEATURE-BACKLOG:** either wire
+  PersistentResourceBar into campaign screens or delete the orphan component + its hooks.
 
 ## Priority tier 4 — dead signals with NO listener (62, `lint_signal_wiring.py`)
 

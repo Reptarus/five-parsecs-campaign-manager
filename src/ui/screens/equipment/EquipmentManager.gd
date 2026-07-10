@@ -134,14 +134,7 @@ func _setup_adaptive_panels() -> void:
 	_panel_group = group
 
 func _load_equipment_database() -> void:
-	## Load equipment from data systems
-	# Connect to equipment database
-	var data_manager = get_node_or_null("/root/DataManagerAutoload")
-	if data_manager and data_manager.has_method("load_equipment_data"):
-		equipment_database = data_manager.load_equipment_data()
-		return
-	
-	# Fallback to hardcoded data if database not available
+	## Load equipment from data systems (hardcoded fallback — no DataManager equipment API)
 	equipment_database = [
 		{"name": "Military Rifle", "type": "weapon", "range": 24, "shots": 1, "damage": 1, "traits": ["Military"]},
 		{"name": "Scrap Pistol", "type": "weapon", "range": 12, "shots": 1, "damage": 1, "traits": ["Pistol"]},
@@ -151,14 +144,7 @@ func _load_equipment_database() -> void:
 	]
 
 func _load_crew_roster() -> void:
-	## Load current crew from campaign data
-	# Connect to campaign manager
-	var campaign_mgr = get_node_or_null("/root/CampaignManager")
-	if campaign_mgr and campaign_mgr.has_method("get_crew_roster"):
-		crew_roster = campaign_mgr.get_crew_roster()
-		return
-	
-	# Fallback to default crew if campaign manager not available
+	## Load current crew from campaign data (hardcoded fallback — no CampaignManager autoload)
 	crew_roster = [
 		{"name": "Captain Reynolds", "class": "Soldier", "equipment": []},
 		{"name": "Dr. Chen", "class": "Scientist", "equipment": []},
@@ -738,13 +724,7 @@ func _calculate_repair_cost(equipment: Dictionary) -> int:
 	return int(base_cost * damage_severity)
 
 func _get_current_credits() -> int:
-	## Get current credits from campaign data
-	# Try to get from campaign manager
-	var campaign_mgr = get_node_or_null("/root/CampaignManager")
-	if campaign_mgr and campaign_mgr.has_method("get_credits"):
-		return campaign_mgr.get_credits()
-	
-	# Fallback amount
+	## Get current credits from campaign data (fallback amount — no CampaignManager autoload)
 	return 2500
 
 func _get_damaged_equipment() -> Array[Dictionary]:

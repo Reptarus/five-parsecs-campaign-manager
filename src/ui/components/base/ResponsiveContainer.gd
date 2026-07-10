@@ -295,21 +295,6 @@ func cleanup() -> void:
 	if resized.is_connected(_on_resized):
 		resized.disconnect(_on_resized)
 
-## Register this container with the UI manager for responsive updates
-func register_with_ui_manager() -> void:
-	var ui_manager = null
-	
-	# Try to find the UI manager in the scene tree
-	var node := self as Node
-	while node:
-		if node.has_node("/root/UIManager"):
-			ui_manager = node.get_node("/root/UIManager")
-			break
-		node = node.get_parent()
-	
-	if ui_manager and ui_manager.has_method("register_responsive_element"):
-		ui_manager.register_responsive_element(self)
-
 ## Update responsive layout (for backward compatibility with test code)
 func update_responsive_layout() -> void:
 	_update_layout()

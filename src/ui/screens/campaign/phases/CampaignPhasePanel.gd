@@ -31,12 +31,8 @@ func _ready() -> void:
 	_style_rich_text(mission_details)
 	_style_phase_button(accept_button, true)
 
-	campaign_manager = get_node_or_null("/root/CampaignManager")
 	world_economy = get_node_or_null("/root/WorldEconomyManager")
 
-	if campaign_manager:
-		if campaign_manager.has_signal("mission_available"):
-			campaign_manager.mission_available.connect(_on_mission_available)
 	if world_economy:
 		if world_economy.has_signal("economy_updated"):
 			world_economy.economy_updated.connect(_on_economy_updated)

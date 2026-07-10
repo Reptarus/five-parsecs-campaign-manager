@@ -160,17 +160,8 @@ func _find_equipment_generator() -> Node:
 func setup_for_campaign_creation() -> void:
 	## Setup EquipmentGenerationScene for campaign creation workflow
 	
-	# Connect to campaign creation state bridge
-	state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
-	if state_bridge:
-		
-		# Load crew data from campaign state
-		_load_crew_from_campaign()
-		
-		# Connect our signals to the state bridge
-		_connect_state_bridge_signals()
-	else:
-		push_warning("EquipmentGenerationScene: CampaignCreationStateBridge not found - operating in standalone mode")
+	# CampaignCreationStateBridge autoload was never created — always standalone mode.
+	push_warning("EquipmentGenerationScene: operating in standalone mode (no state bridge)")
 
 func _connect_state_bridge_signals() -> void:
 	## Connect signals to state bridge

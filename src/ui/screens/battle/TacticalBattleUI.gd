@@ -182,8 +182,6 @@ const _StarsSysClassRef = preload(
 # Core Systems
 ## battlefield_manager removed — terrain handled by BattlefieldGenerator + GridPanel
 var dice_manager: Node = null
-var alpha_manager: Node = null
-var battle_tracker: Node = null # For reaction economy tracking
 
 ## Sprint 11.4: BattleRoundTracker integration for phase-based combat
 var round_tracker: Node = null # BattleRoundTracker instance for Five Parsecs combat rounds
@@ -330,9 +328,7 @@ func _ready() -> void:
 
 func _initialize_managers() -> void:
 	## Initialize manager references
-	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
-	battle_tracker = get_node("/root/BattleTracker") if has_node("/root/BattleTracker") else null
 
 	# Responsive layout manager
 	_responsive_manager = get_node_or_null("/root/ResponsiveManager")
@@ -364,14 +360,6 @@ func _connect_signals() -> void:
 	# Reaction Dice signals
 	if confirm_assignments_button:
 		confirm_assignments_button.pressed.connect(_on_confirm_dice_assignments)
-
-	# Connect to combat system for reaction dice events
-	var combat_system = get_node_or_null("/root/FiveParsecsCombatSystem")
-	if combat_system:
-		if combat_system.has_signal("reaction_dice_rolled"):
-			combat_system.reaction_dice_rolled.connect(_on_reaction_dice_rolled)
-		if combat_system.has_signal("reaction_dice_assigned"):
-			combat_system.reaction_dice_assigned.connect(_on_reaction_dice_assigned)
 
 	# Stars of the Story HUD — deferred so campaign data is loaded
 	call_deferred("_setup_stars_battle_ui")
@@ -2523,13 +2511,6 @@ func _exit_tree() -> void:
 	_objective_tracker = null
 	# Disconnect round tracker signals (autoload-child, persists across scenes)
 	_disconnect_round_tracker_signals()
-	# Disconnect FiveParsecsCombatSystem autoload signals
-	var combat_system = get_node_or_null("/root/FiveParsecsCombatSystem")
-	if combat_system:
-		if combat_system.has_signal("reaction_dice_rolled") and combat_system.reaction_dice_rolled.is_connected(_on_reaction_dice_rolled):
-			combat_system.reaction_dice_rolled.disconnect(_on_reaction_dice_rolled)
-		if combat_system.has_signal("reaction_dice_assigned") and combat_system.reaction_dice_assigned.is_connected(_on_reaction_dice_assigned):
-			combat_system.reaction_dice_assigned.disconnect(_on_reaction_dice_assigned)
 	# Note: Lambda connections to local child components (unified_log, morale_tracker,
 	# enemy_intent_panel, etc.) are automatically cleaned up when children are freed
 	# with this parent Control node. No explicit disconnect needed.
@@ -4462,9 +4443,6 @@ func _on_reaction_dice_assigned(character_id: String, dice_value: int) -> void:
 
 func _on_confirm_dice_assignments() -> void:
 	## Confirm all dice assignments and proceed
-	var combat_system = get_node_or_null("/root/FiveParsecsCombatSystem")
-	if combat_system and combat_system.has_method("confirm_reaction_assignments"):
-		combat_system.confirm_reaction_assignments(dice_assignments)
 	_log_message("Reaction dice assignments confirmed", UIColors.COLOR_EMERALD)
 
 func _display_dice_pool() -> void:

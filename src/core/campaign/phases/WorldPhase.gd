@@ -977,24 +977,7 @@ func _load_json_file(path: String) -> Dictionary:
 	return {}
 
 func _generate_patron_job() -> Dictionary:
-	## Generate patron-specific job - delegates to PatronSystem if available
-	var patron_sys = Engine.get_main_loop().root.get_node_or_null("/root/PatronSystem") if Engine.get_main_loop() else null
-	if patron_sys and patron_sys.has_method("generate_patron"):
-		var patron = patron_sys.generate_patron()
-		if not patron.is_empty():
-			var quests = patron_sys.get_available_quests(patron.get("id", ""))
-			var quest = quests[0] if quests.size() > 0 else {}
-			return {
-				"id": quest.get("id", "patron_job_" + str(Time.get_unix_time_from_system())),
-				"type": "patron",
-				"name": patron.get("name", "Patron") + " Contract",
-				"payment": quest.get("payment", randi_range(6, 12)),
-				"danger_level": quest.get("danger_level", randi_range(2, 4)),
-				"description": quest.get("description", "Specialized contract from established patron"),
-				"patron_id": patron.get("id", ""),
-				"patron_data": patron,
-			}
-	# Fallback: inline generation
+	## Generate patron-specific job (inline generation — no PatronSystem autoload exists)
 	return {
 		"id": "patron_job_" + str(Time.get_unix_time_from_system()),
 		"type": "patron",

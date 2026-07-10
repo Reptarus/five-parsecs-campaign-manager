@@ -124,10 +124,6 @@ static func _get_dice_system() -> Node:
 			if dice_node:
 				return dice_node
 			
-			# Try OptimizedSystemsAutoload which might contain DiceSystem
-			var systems = tree.root.get_node_or_null("/root/OptimizedSystemsAutoload")
-			if systems and systems.has_method("get_dice_system"):
-				return systems.get_dice_system()
 	
 	return null
 

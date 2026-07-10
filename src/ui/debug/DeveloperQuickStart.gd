@@ -634,7 +634,6 @@ func _perform_health_check() -> void:
 		{"name": "GameStateManager", "path": "/root/GameStateManager"},
 		{"name": "DataManager", "path": "/root/DataManager"},
 		{"name": "DiceManager", "path": "/root/DiceManager"},
-		{"name": "CampaignManager", "path": "/root/CampaignManager"},
 		{"name": "SceneRouter", "path": "/root/SceneRouter"}
 	]
 

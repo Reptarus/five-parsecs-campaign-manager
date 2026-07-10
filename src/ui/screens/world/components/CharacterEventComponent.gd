@@ -182,12 +182,9 @@ func _apply_event_effects() -> String:
 	## Apply effects of current event to character using PostBattlePhase handler
 	var title = current_event.get("title", "")
 	
-	# Get PostBattlePhase handler
-	var post_battle_phase = get_node_or_null("/root/PostBattlePhase")
-	if not post_battle_phase:
-		# Fallback: Try to find in scene tree
-		post_battle_phase = get_tree().root.find_child("PostBattlePhase", true, false)
-	
+	# Get PostBattlePhase handler (search tree; no /root/PostBattlePhase autoload exists)
+	var post_battle_phase = get_tree().root.find_child("PostBattlePhase", true, false)
+
 	if post_battle_phase and post_battle_phase.has_method("apply_character_event_effect"):
 		var result = post_battle_phase.apply_character_event_effect(title, selected_character)
 		return result

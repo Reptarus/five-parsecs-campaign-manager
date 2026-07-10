@@ -198,14 +198,6 @@ func _initialize_autoloads() -> void:
 	
 	if not game_state_manager:
 		push_error("TravelPhase: GameStateManager not found after retries")
-		# Try alternative access methods
-		var alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
-		if alpha_manager and alpha_manager.has_method("get_game_state_manager"):
-			game_state_manager = alpha_manager.get_game_state_manager()
-			if game_state_manager:
-				pass
-		else:
-			pass
 
 func _initialize_travel_tables() -> void:
 	## Initialize the travel events and world traits tables

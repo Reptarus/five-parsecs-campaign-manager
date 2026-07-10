@@ -667,13 +667,13 @@ func _populate_choices() -> void:
 # ── Chrome management ─────────────────────────────────────────────
 
 func _hide_chrome() -> void:
-	var bar = get_node_or_null("/root/PersistentResourceBar")
+	var bar = get_node_or_null("/root/PersistentResourceBar")  # lint:ignore — documented L80 chrome component (src/ui/components/common/PersistentResourceBar.gd) not yet instantiated by any screen; null-guarded no-op until wired (feature-backlog)
 	if bar and bar.has_method("hide_bar"):
 		bar.hide_bar()
 
 
 func _restore_chrome() -> void:
-	var bar = get_node_or_null("/root/PersistentResourceBar")
+	var bar = get_node_or_null("/root/PersistentResourceBar")  # lint:ignore — documented L80 chrome component (src/ui/components/common/PersistentResourceBar.gd) not yet instantiated by any screen; null-guarded no-op until wired (feature-backlog)
 	if bar and bar.has_method("show_bar"):
 		bar.show_bar()
 

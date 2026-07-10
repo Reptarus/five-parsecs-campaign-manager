@@ -623,12 +623,7 @@ func get_coordinator_reference():
 	if _coordinator and is_instance_valid(_coordinator):
 		return _coordinator
 	
-	# Method 2: Direct node path to UI
-	var coord = get_node_or_null("/root/CampaignCreationUI")
-	if coord and coord.has_method("get_coordinator"):
-		return coord.get_coordinator()
-	
-	# Method 3: Through owner
+	# Method 2: Through owner
 	if owner and owner.has_method("get_coordinator"):
 		var owner_coord = owner.get_coordinator()
 		if owner_coord:

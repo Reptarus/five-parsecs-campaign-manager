@@ -46,8 +46,6 @@ func _initialize_autoloads() -> void:
 		push_warning("MainCampaignScene: AutoloadManager not available, using direct references")
 		# Fallback to direct access (may fail)
 		GameState = get_node_or_null("/root/GameState")
-		CampaignManager = get_node_or_null("/root/CampaignManager")
-		CharacterManagerAutoload = get_node_or_null("/root/CharacterManagerAutoload")
 
 func _setup_ui_components() -> void:
 	## Configure main UI components
@@ -208,7 +206,6 @@ func _find_campaign_creation_ui() -> Node:
 	## Find CampaignCreationUI in scene tree
 	# Check common paths where CampaignCreationUI might be located
 	var search_paths = [
-		"/root/CampaignCreationUI",
 		"../CampaignCreationUI",
 		"CampaignCreationUI"
 	]

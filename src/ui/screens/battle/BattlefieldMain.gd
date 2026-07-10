@@ -46,11 +46,7 @@ func _ready() -> void:
 
 func _initialize_managers() -> void:
 	## Initialize manager references from autoloads
-	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
-
-	if alpha_manager and alpha_manager.has_method("get_battle_manager"):
-		battle_manager = alpha_manager.get_battle_manager()
 
 func _setup_battlefield() -> void:
 	## Setup the 3D battlefield view
