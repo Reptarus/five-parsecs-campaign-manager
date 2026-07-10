@@ -26,7 +26,7 @@ const NARRATIVE_CONTRACT_VERSION := 1
 @onready var game_state: Node = get_node("/root/GameState")
 
 # UI Phase Controllers
-@onready var travel_phase_ui: Control = %TravelPhaseUI
+# (legacy travel_phase_ui removed — travel is a step in the unified World Phase)
 @onready var world_phase_controller: Control = %WorldPhaseController
 @onready var battle_transition_ui: Control = %BattleTransitionUI
 @onready var post_battle_ui: Control = %PostBattleUI
@@ -93,7 +93,6 @@ func _validate_dependencies() -> void:
 	## Production validation - fail fast if core systems missing
 	assert(campaign_phase_manager != null, "CampaignPhaseManager not found in autoload")
 	assert(game_state != null, "GameState not found in autoload")
-	assert(travel_phase_ui != null, "TravelPhaseUI not found in scene")
 	assert(world_phase_controller != null, "WorldPhaseController not found in scene")
 
 func _connect_core_signals() -> void:
@@ -124,9 +123,6 @@ func _connect_core_signals() -> void:
 	# Battle flow runs through _initiate_battle_sequence() → PreBattleUI → TacticalBattleUI.
 
 	# Connect UI phase completion signals for phase transitions
-	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
-		travel_phase_ui.phase_completed.connect(_on_travel_phase_completed)
-
 	if world_phase_controller and world_phase_controller.has_signal("phase_completed"):
 		world_phase_controller.phase_completed.connect(_on_world_phase_completed)
 
@@ -210,10 +206,6 @@ func _exit_tree() -> void:
 	if post_battle_ui and post_battle_ui.has_signal("post_battle_completed"):
 		if post_battle_ui.post_battle_completed.is_connected(_on_post_battle_completed):
 			post_battle_ui.post_battle_completed.disconnect(_on_post_battle_completed)
-
-	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
-		if travel_phase_ui.phase_completed.is_connected(_on_travel_phase_completed):
-			travel_phase_ui.phase_completed.disconnect(_on_travel_phase_completed)
 
 	if world_phase_controller:
 		if world_phase_controller.has_signal("phase_completed") and world_phase_controller.phase_completed.is_connected(_on_world_phase_completed):
@@ -604,7 +596,6 @@ func _show_phase_ui(phase: int) -> void:
 
 func _hide_all_phase_uis() -> void:
 	## Hide all phase UI panels
-	travel_phase_ui.hide()
 	world_phase_controller.hide()
 	battle_transition_ui.hide()
 	post_battle_ui.hide()

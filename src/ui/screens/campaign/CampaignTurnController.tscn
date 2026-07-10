@@ -1,7 +1,6 @@
 [gd_scene load_steps=13 format=3 uid="uid://bbdf8j6xqaohc"]
 
 [ext_resource type="Script" uid="uid://sukbnoomk4wu" path="res://src/ui/screens/campaign/CampaignTurnController.gd" id="1_2xv8n"]
-[ext_resource type="PackedScene" uid="uid://bjdo0o2bet0av" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="2_4k3m1"]
 [ext_resource type="PackedScene" uid="uid://c8vx1lawp7fqj" path="res://src/ui/screens/world/WorldPhaseController.tscn" id="3_7n2p5"]
 [ext_resource type="PackedScene" uid="uid://bt5nx8q7m2wkp" path="res://src/ui/screens/battle/BattleTransitionUI.tscn" id="4_battle"]
 [ext_resource type="PackedScene" uid="uid://e9x6y3w8v4n5m" path="res://src/ui/screens/postbattle/PostBattleSequence.tscn" id="5_m8k2r"]
@@ -62,11 +61,6 @@ value = 0.0
 [node name="PhaseContainer" type="Control" parent="MainContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="TravelPhaseUI" parent="MainContainer/PhaseContainer" instance=ExtResource("2_4k3m1")]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
 
 [node name="WorldPhaseController" parent="MainContainer/PhaseContainer" instance=ExtResource("3_7n2p5")]
 unique_name_in_owner = true

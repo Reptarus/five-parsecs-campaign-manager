@@ -44,7 +44,7 @@ const SCENE_PATHS = {
 	"mission_selection": "res://src/ui/screens/world/MissionSelectionUI.tscn",
 	"patron_rival_manager": "res://src/ui/screens/world/PatronRivalManager.tscn",
 	# "world_phase_summary": UNUSED - no navigate_to calls exist
-	"travel_phase": "res://src/ui/screens/travel/TravelPhaseUI.tscn",
+	# "travel_phase": legacy screen DELETED — travel is a step in the unified World Phase
 
 	# Battle system
 	"pre_battle": "res://src/ui/screens/battle/PreBattle.tscn",
@@ -261,14 +261,14 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"equipment":
 			scenes = ["equipment_manager", "ship_manager", "ship_inventory"]
 		"world":
-			scenes = ["world_phase", "job_selection", "mission_selection", "patron_rival_manager", "travel_phase"]
+			scenes = ["world_phase", "job_selection", "mission_selection", "patron_rival_manager"]
 		"battle":
 			scenes = ["pre_battle", "battlefield_main", "tactical_battle", "post_battle", "post_battle_results", "post_battle_sequence"]
 		"events":
 			scenes = ["campaign_events"]
 		"phases":
-			# Official Five Parsecs Four-Phase structure
-			scenes = ["travel_phase", "world_phase", "post_battle_sequence"]
+			# Official Five Parsecs phase structure (travel folded into world_phase)
+			scenes = ["world_phase", "post_battle_sequence"]
 		"utility":
 			scenes = ["game_over", "campaign_journal", "settings"]
 		"tutorial":
@@ -280,7 +280,6 @@ func navigate_to_campaign_phase(phase: String) -> void:
 	# Navigate to a specific campaign phase
 	@warning_ignore("untyped_declaration")
 	var phase_scene_map = {
-		"travel": "travel_phase",
 		"world": "world_phase",
 		"pre_battle": "pre_battle",
 		"battle": "battlefield_main",

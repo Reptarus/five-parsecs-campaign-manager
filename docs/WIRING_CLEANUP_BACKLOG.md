@@ -3,17 +3,17 @@
 > ## ▶ RESUME STATE (last updated 2026-07-10)
 > - **Branch `master`, working tree CLEAN** (after the Tier 3 commit — run `git log -1`).
 >   All wiring-audit + cleanup work is committed. Nothing uncommitted.
-> - **Lint counts:** signals **64** (was 66; live dead-wires down to `tactical_advantage_changed`
->   + others) · tscn 6 · **autoload 0 (CLEAN ✅)** · data-ownership CLEAN. Re-run any lint to refresh.
-> - **DONE:** the wiring-audit sprint (normalizer + 8 live fixes + orphan deletes +
->   contract doc + lints); Tier 1 `rival_escalated`; **Tier 3 (autoload lint CLEAN — 31
->   lookups removed + orphan `AlphaGameManager.gd` deleted + `PersistentResourceBar` `# lint:ignore`d)**;
->   **combat subsystem (`combat/{log,overrides,rules,state}/`, 13 pairs + 2 dead-code test suites
->   DELETED — runtime-dead, superseded by `FPCM_UnifiedBattleLog`; KEPT BaseCombatManager +
->   top-level SimpleUnitCard/TerrainOverlay/TerrainTooltip).**
-> - **NEXT (recommended order):** legacy **TravelPhaseUI** (Tier 2 — the 6 `lint_tscn_connections`
->   findings, a self-contained dead-scene delete), THEN Tier 4 (62 no-listener signals, mechanical),
->   Tier 5 (~23 zero-caller methods), Tier 6 (temp_data + pending_combat book-check).
+> - **Lint counts:** signals **64** · **tscn 0 (CLEAN ✅)** · **autoload 0 (CLEAN ✅)** ·
+>   **data-ownership CLEAN ✅** — 3 of 4 lints clean; only signal-wiring remains.
+> - **DONE:** the wiring-audit sprint; Tier 1 `rival_escalated`; **Tier 3 (autoload CLEAN)**;
+>   **combat subsystem DELETED** (13 pairs + 2 dead-code tests — superseded by `FPCM_UnifiedBattleLog`;
+>   KEPT BaseCombatManager + top-level SimpleUnitCard/TerrainOverlay/TerrainTooltip);
+>   **Tier 2 legacy TravelPhaseUI DELETED** (scene + 2 scripts + CTC.gd/.tscn wiring + SceneRouter
+>   key/arrays/alias → tscn lint CLEAN).
+> - **NEXT (recommended order):** Tier 4 (62 no-listener signals, mechanical decl deletions — but
+>   VERIFY each per the signal lint's `[LIVE DEAD-WIRE]` tag first; `tactical_advantage_changed` in
+>   the live BaseBattlefieldManager has a listener), THEN Tier 5 (~23 zero-caller methods, incl. the
+>   `_on_travel_phase_completed` orphan just created), Tier 6 (temp_data + pending_combat book-check).
 > - **PER WAVE:** run the deletion protocol (below) before each delete; headless
 >   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
 >   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
@@ -76,17 +76,20 @@ its owning component is orphaned. All resolve to DELETE (clean-slate direction).
   1 remaining listener elsewhere, never emitted. Verify BaseBattlefieldManager liveness +
   find the listener before deleting.
 
-## Priority tier 2 — dead scenes / load-time errors
+## Priority tier 2 — dead scenes / load-time errors — DONE ✅ (`lint_tscn_connections.py` exits 0)
 
-- **Legacy TravelPhaseUI** (all 6 `lint_tscn_connections.py` findings). `TravelPhaseUI.tscn`
-  is scripted by `campaign/TravelPhase.gd` (missing all 6 `_on_*` handlers);
-  `travel/TravelPhaseUI.gd` (class_name TravelPhaseUI) has 4 handlers but is attached
-  to no scene. Instanced-but-hidden in `CampaignTurnController.tscn`, superseded by the
-  unified World Phase (CampaignTurnController.gd:1390 "legacy"). DECISION: delete the
-  whole legacy screen (scene + both scripts + the controller's `%TravelPhaseUI` instance
-  + `@onready`/assert/signal wiring at CTC :29,:96,:127-128,:214-216,:613), OR repoint the
-  script to `travel/TravelPhaseUI.gd` if the screen should live. Verify class_name
-  `TravelPhaseUI` has no other users first.
+- **Legacy TravelPhaseUI** — **DONE (deleted this session).** Confirmed dead 3 ways: its
+  live script `campaign/TravelPhase.gd` had NONE of the 6 `_on_*` handlers nor `phase_completed`
+  (so the .tscn connections + CTC's `has_signal` guard could never fire); instanced in CTC but
+  only ever `.hide()`d, never shown (unified World Phase superseded it); the SceneRouter
+  `"travel_phase"` key was reachable only via a debug-only `navigate_to_campaign_phase("travel")`
+  and the zero-caller `get_scenes_by_category` arrays. DELETED: `travel/TravelPhaseUI.tscn` +
+  `travel/TravelPhaseUI.gd` (class_name TravelPhaseUI, no type-users) + `campaign/TravelPhase.gd`
+  (wrong-script, attached to no other scene) + their `.uid`s; removed CTC.gd wiring
+  (`@onready`/assert/connect/disconnect/`.hide()`), the CTC.tscn instance node + ext_resource,
+  and the SceneRouter key + 2 array entries + the `"travel"` alias. **Left as a Tier-5 orphan:**
+  `CampaignTurnController._on_travel_phase_completed` (now zero-caller; `has_method`-guarded in
+  `test_ui_backend_bridge.gd`, so harmless).
 - **Bare `/root/...` `get_node`** — **DONE.** All resolved by Tier 3 + the combat-subsystem
   deletion (`combat_log_controller`/`state_verification_controller` gone with the subsystem;
   ResponsiveContainer/BattlefieldMain/TacticalBattleUI bare lookups removed in Tier 3).
