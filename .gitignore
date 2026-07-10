@@ -66,6 +66,8 @@ node_modules
 # Dev artifacts - prevent root clutter
 /reports/
 /scripts/
+# ...but the lint suite is tracked CI tooling (wiring-audit + data-ownership guards)
+!/scripts/lint_*.py
 /tools/
 /mcp-servers/
 /screenshot/
