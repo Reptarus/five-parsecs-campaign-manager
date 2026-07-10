@@ -1,8 +1,9 @@
 # Wiring / Dead-Code Cleanup Backlog
 
 > ## ▶ RESUME STATE (last updated 2026-07-10)
-> - **Branch `master`, working tree CLEAN** (after the Tier 3 commit — run `git log -1`).
->   All wiring-audit + cleanup work is committed. Nothing uncommitted.
+> - **Branch `master`, working tree CLEAN.** This session's cleanup commits:
+>   `5d38d039` (Tier 3 autoload), `e837ea6c` (combat subsystem), `74121314` (Tier 2 TravelPhaseUI).
+>   All committed. Nothing uncommitted.
 > - **Lint counts:** signals **64** · **tscn 0 (CLEAN ✅)** · **autoload 0 (CLEAN ✅)** ·
 >   **data-ownership CLEAN ✅** — 3 of 4 lints clean; only signal-wiring remains.
 > - **DONE:** the wiring-audit sprint; Tier 1 `rival_escalated`; **Tier 3 (autoload CLEAN)**;
