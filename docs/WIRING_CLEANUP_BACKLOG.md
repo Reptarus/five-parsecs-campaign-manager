@@ -3,18 +3,17 @@
 > ## ▶ RESUME STATE (last updated 2026-07-10)
 > - **Branch `master`, working tree CLEAN** (after the Tier 3 commit — run `git log -1`).
 >   All wiring-audit + cleanup work is committed. Nothing uncommitted.
-> - **Lint counts:** signals 66 (4 live dead-wires) · tscn 6 · **autoload 4** (was 35;
->   the 4 residual are `/root/CombatManager` in the combat subsystem, die with Tier 2) ·
->   data-ownership CLEAN. Re-run any lint to refresh (commands below).
+> - **Lint counts:** signals **64** (was 66; live dead-wires down to `tactical_advantage_changed`
+>   + others) · tscn 6 · **autoload 0 (CLEAN ✅)** · data-ownership CLEAN. Re-run any lint to refresh.
 > - **DONE:** the wiring-audit sprint (normalizer + 8 live fixes + orphan deletes +
->   contract doc + lints); Tier 1 `rival_escalated`; **Tier 3 (31 dead autoload lookups
->   removed + orphan `AlphaGameManager.gd` deleted + `PersistentResourceBar` `# lint:ignore`d —
->   see the Tier 3 section for full dispositions).**
-> - **NEXT (recommended order):** the **combat subsystem** (`src/ui/components/combat/{overrides,state,log,rules}/`,
->   ~13 pairs) — clears the last 4 autoload findings AND Tier-1's `manual_override_applied`/
->   `override_requested`/`tactical_advantage_changed`. **Per-component** protocol (combat_log has
->   a `test_combat_log_explanations` dep — do NOT bulk `git rm`). THEN Tier 3-residual auto-clears,
->   then legacy TravelPhaseUI (Tier 2 tscn), then Tier 4/5/6.
+>   contract doc + lints); Tier 1 `rival_escalated`; **Tier 3 (autoload lint CLEAN — 31
+>   lookups removed + orphan `AlphaGameManager.gd` deleted + `PersistentResourceBar` `# lint:ignore`d)**;
+>   **combat subsystem (`combat/{log,overrides,rules,state}/`, 13 pairs + 2 dead-code test suites
+>   DELETED — runtime-dead, superseded by `FPCM_UnifiedBattleLog`; KEPT BaseCombatManager +
+>   top-level SimpleUnitCard/TerrainOverlay/TerrainTooltip).**
+> - **NEXT (recommended order):** legacy **TravelPhaseUI** (Tier 2 — the 6 `lint_tscn_connections`
+>   findings, a self-contained dead-scene delete), THEN Tier 4 (62 no-listener signals, mechanical),
+>   Tier 5 (~23 zero-caller methods), Tier 6 (temp_data + pending_combat book-check).
 > - **PER WAVE:** run the deletion protocol (below) before each delete; headless
 >   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
 >   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
@@ -64,11 +63,18 @@ its owning component is orphaned. All resolve to DELETE (clean-slate direction).
   and its escalation MECHANIC is used, but the notification was unimplemented: signal
   never emitted + `CampaignTurnController._on_backend_rival_escalated` was a `pass`
   stub. Deleted signal + guarded connect + stub handler. (66 signals / 4 live remain.)
-- `manual_override_applied`, `override_requested` — DELETE with the **orphaned
-  combat-override subsystem** (see tier 2). The listeners live in that subsystem; no
-  external code instances it.
-- `tactical_advantage_changed` — `BaseBattlefieldManager.gd:12`. Verify BaseBattlefieldManager
-  liveness (base class); the listener is likely in the same dead battlefield-base tree → DELETE.
+- `manual_override_applied`, `override_requested` — **DONE (deleted with the combat
+  subsystem, this session).** The whole `src/ui/components/combat/{log,overrides,rules,state}/`
+  UI subsystem (13 component pairs) was runtime-dead: no live `.tscn` embeds it, no
+  `class_name` for indirect ref, the live combat log is `FPCM_UnifiedBattleLog` (which
+  "Replaces BattleJournal + FallbackLog"). Deleted the 4 subdirs + the 2 test suites that
+  pinned the dead code (`test_combat_log_explanations`, `test_validation_panel`).
+  **KEPT:** `BaseCombatManager`/`FiveParsecsCombatManager` (LIVE — used by FiveParsecsCombatSystem/
+  AIController/EnemyTacticalAI) and the top-level `combat/{SimpleUnitCard,TerrainOverlay,TerrainTooltip}`.
+- `tactical_advantage_changed` — `BaseBattlefieldManager.gd:12`. **Still open (Tier 4).**
+  Declared in the LIVE `BaseBattlefieldManager` base class (NOT the deleted subsystem) with
+  1 remaining listener elsewhere, never emitted. Verify BaseBattlefieldManager liveness +
+  find the listener before deleting.
 
 ## Priority tier 2 — dead scenes / load-time errors
 
@@ -81,19 +87,16 @@ its owning component is orphaned. All resolve to DELETE (clean-slate direction).
   + `@onready`/assert/signal wiring at CTC :29,:96,:127-128,:214-216,:613), OR repoint the
   script to `travel/TravelPhaseUI.gd` if the screen should live. Verify class_name
   `TravelPhaseUI` has no other users first.
-- **Bare `/root/...` `get_node`** (subset of the 35 autoload findings, tagged `[BARE
-  get_node]`) — these error at runtime, not just null. `combat_log_controller.gd:11`
-  (`/root/CombatManager`), `ResponsiveContainer.gd:306` (`/root/UIManager`),
-  `state_verification_controller.gd:37`, `BattlefieldMain.gd:49` + `TacticalBattleUI.gd:333`
-  (`/root/FPCM_AlphaGameManager`), `TacticalBattleUI.gd:335` (`/root/BattleTracker`).
+- **Bare `/root/...` `get_node`** — **DONE.** All resolved by Tier 3 + the combat-subsystem
+  deletion (`combat_log_controller`/`state_verification_controller` gone with the subsystem;
+  ResponsiveContainer/BattlefieldMain/TacticalBattleUI bare lookups removed in Tier 3).
+  `lint_autoload_lookups.py` now exits 0.
 
-## Priority tier 3 — dead autoload lookups — DONE (35 → 4 residual, all combat-subsystem)
+## Priority tier 3 — dead autoload lookups — DONE ✅ (`lint_autoload_lookups.py` exits 0)
 
-Resolved 2026-07-10. 31 of 35 removed; the 4 residual are `/root/CombatManager` in
-`src/ui/components/combat/{log,rules,state}/` — deferred to the combat-subsystem
-deletion (Tier 2) because those files are being deleted wholesale (editing files
-about to be removed is wasted work). After that wave, `lint_autoload_lookups.py`
-exits 0.
+Resolved 2026-07-10. 31 of 35 removed in the Tier 3 commit; the final 4
+(`/root/CombatManager` in `combat/{log,rules,state}/`) died with the combat-subsystem
+deletion. `lint_autoload_lookups.py` now CLEAN (0 findings).
 
 Dispositions applied:
 - **Dead guarded branches removed (kept the live fallback that followed):**
