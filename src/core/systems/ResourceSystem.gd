@@ -23,8 +23,6 @@ signal resource_removed(type: int, amount: int, source: String)
 signal transaction_recorded(transaction: Dictionary)
 signal validation_failed(type: int, amount: int, reason: String)
 ## Advanced signals for async operations and pooling
-signal resource_loaded(resource_path: String, resource: Resource)
-signal resource_load_failed(resource_path: String, error: int)
 signal pool_initialized(pool_name: String, size: int)
 signal pool_resource_acquired(pool_name: String, resource: Resource)
 signal pool_resource_released(pool_name: String, resource: Resource)

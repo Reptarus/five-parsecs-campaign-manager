@@ -13,7 +13,6 @@ const CharacterClass = preload("res://src/core/character/Character.gd")
 
 signal equipment_generated(equipment: Array[Dictionary])
 @warning_ignore("unused_signal")
-signal equipment_setup_complete(equipment_data: Dictionary)
 # SPRINT ENHANCEMENT: Backend integration signal
 # Sprint 26.3: Crew data contains Character objects
 signal equipment_requested(crew_data: Array[Character])

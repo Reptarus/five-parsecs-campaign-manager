@@ -5,9 +5,6 @@ extends Node
 
 
 ## Signals
-signal decision_made(enemy: Object, action: Dictionary)
-signal tactic_changed(enemy: Object, new_tactic: int)
-signal group_coordination_updated(group: Array, leader: Object)
 
 ## Dependencies
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")

@@ -14,7 +14,6 @@ const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 signal battle_completed()
 signal turn_ended()
 signal phase_completed()
-signal viewport_error(error: String, context: Dictionary)
 
 # UI References
 @onready var battlefield_view: SubViewportContainer = %BattlefieldView

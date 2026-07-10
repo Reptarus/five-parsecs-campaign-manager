@@ -7,7 +7,6 @@ const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
 
 signal training_completed(character: Character, skill: String)
 signal training_failed(character: Character, reason: String)
-signal training_cost_updated(new_cost: int)
 
 var game_state: FiveParsecsGameState
 var training_cost: int = 100

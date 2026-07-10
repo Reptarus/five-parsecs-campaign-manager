@@ -35,7 +35,6 @@ signal global_event_triggered(event: int)
 # World Economy Signals
 signal economy_updated(planet: String, new_status: int)
 signal trade_route_established(from_planet: String, to_planet: String)
-signal market_fluctuation(planet: String, resource_type: int, change: float)
 
 # System state
 var _initialized: bool = false

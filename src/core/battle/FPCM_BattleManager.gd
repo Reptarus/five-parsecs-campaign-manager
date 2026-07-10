@@ -34,7 +34,6 @@ signal battle_error(error_code: String, context: Dictionary)
 
 # UI coordination signals
 signal ui_transition_requested(target_ui: String, data: Dictionary)
-signal ui_lock_requested(locked: bool, reason: String)
 signal ui_refresh_requested(components: Array[String])
 
 # System integration signals  

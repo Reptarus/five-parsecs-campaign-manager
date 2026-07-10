@@ -11,10 +11,6 @@ const InjurySystemConstants = preload("res://src/core/systems/InjurySystemConsta
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 ## Signals for injury events
-signal injury_determined(character_id: String, injury_type: int, injury_details: Dictionary)
-signal character_died(character_id: String, cause: String)
-signal recovery_time_calculated(character_id: String, turns_to_recover: int)
-signal equipment_lost_to_injury(character_id: String, equipment_id: String)
 
 ## ==========================================
 ## PUBLIC API - INJURY DETERMINATION

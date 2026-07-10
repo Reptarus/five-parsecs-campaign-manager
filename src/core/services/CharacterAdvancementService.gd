@@ -10,9 +10,6 @@ class_name CharacterAdvancementService
 const CharacterAdvancementConstants = preload("res://src/core/systems/CharacterAdvancementConstants.gd")
 
 ## Signals for advancement events
-signal stat_advanced(character_id: String, stat_name: String, old_value: int, new_value: int, xp_cost: int)
-signal advancement_failed(character_id: String, stat_name: String, reason: String)
-signal multiple_advancements_applied(character_id: String, advancements: Array[Dictionary])
 
 ## ==========================================
 ## PUBLIC API - ADVANCEMENT VALIDATION

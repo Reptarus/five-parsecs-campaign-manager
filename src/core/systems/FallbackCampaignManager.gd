@@ -9,7 +9,6 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Signals
 signal campaign_turn_completed(turn_number: int)
-signal campaign_progress_updated(progress: Dictionary)
 
 # Properties
 var game_state: Node = null

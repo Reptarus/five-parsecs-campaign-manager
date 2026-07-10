@@ -42,7 +42,6 @@ var enemy_intelligence: int = 0 # How much enemies know about the escort
 signal vip_threatened(threat_data: Dictionary)
 signal protection_incident(incident_type: String, severity: int)
 signal vip_stress_changed(new_stress_level: int)
-signal route_compromised(location: int, threat_type: String)
 
 # Mission base properties
 var minimum_crew_size: int = 3

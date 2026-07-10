@@ -252,13 +252,9 @@ var current_recovery_turns: int:
 		return max_recovery
 
 # Signals for injury events
-signal injury_added(injury: Dictionary)
-signal injury_removed(index: int)
 signal recovery_progressed(turns_remaining: int)
 
 # Signals for implant events
-signal implant_added(implant: Dictionary)
-signal implant_removed(index: int)
 
 # Signals for experience/advancement events
 signal experience_changed(new_amount: int)

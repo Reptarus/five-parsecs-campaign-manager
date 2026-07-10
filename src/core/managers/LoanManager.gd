@@ -2,7 +2,6 @@ extends Resource
 
 signal loan_taken(amount: int, interest_rate: float)
 signal loan_repaid(amount: int)
-signal payment_missed(penalty: int)
 
 const BASE_INTEREST_RATE := 0.1
 const LATE_PAYMENT_PENALTY := 0.2

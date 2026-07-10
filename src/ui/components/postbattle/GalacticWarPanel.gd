@@ -10,7 +10,6 @@ extends PanelContainer
 ## Signals
 
 signal war_panel_closed()
-signal war_track_selected(track_id: String)
 
 ## Design System Constants (from BaseCampaignPanel)
 

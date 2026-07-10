@@ -19,10 +19,7 @@ signal combat_status_changed(character, status: int)
 signal manual_position_override_requested(character, current_position: Vector2i)
 signal manual_advantage_override_requested(character, current_advantage: int)
 signal manual_status_override_requested(character, current_status: int)
-signal combat_state_verification_requested(state: Dictionary)
-signal terrain_verification_requested(position: Vector2i, current_modifiers: Array)
 signal house_rule_applied(rule_name: String, details: Dictionary)
-signal manual_override_applied(override_type: String, override_data: Dictionary)
 
 # Verification signals
 signal verify_state_requested(verification_type: int, scope: int)

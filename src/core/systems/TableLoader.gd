@@ -9,12 +9,6 @@ const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
 ## Signals with proper type annotations
-signal table_loaded(table_name: String)
-signal loading_failed(table_name: String, reason: String)
-signal validation_error(table_name: String, error: String)
-signal table_saved(table_name: String, path: String)
-signal loading_progress(table_name: String, progress: float, status: String)
-signal batch_loading_completed(success_count: int, failure_count: int)
 
 ## Configuration
 const REQUIRED_FIELDS = ["name", "entries"]

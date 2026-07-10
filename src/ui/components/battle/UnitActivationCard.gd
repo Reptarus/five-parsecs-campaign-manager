@@ -7,7 +7,6 @@ extends Control
 
 # ============ SIGNALS ============
 signal activation_toggled(unit_id: String)
-signal damage_requested(unit_id: String)
 signal unit_selected(unit_id: String)
 
 # ============ CONSTANTS ============

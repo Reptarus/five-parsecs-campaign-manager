@@ -1,7 +1,6 @@
 extends Control
 
 signal connections_completed(connections: Array)
-signal connections_cancelled
 
 const TOUCH_BUTTON_HEIGHT = 64
 const PORTRAIT_LIST_HEIGHT_RATIO = 0.5 # List takes 50% in portrait mode

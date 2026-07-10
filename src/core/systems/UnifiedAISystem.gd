@@ -48,9 +48,7 @@ enum AITactic {
 }
 
 func _ready() -> void:
-	if battlefield_manager:
-		battlefield_manager.tactical_advantage_changed.connect(_on_tactical_advantage_changed)
-	else:
+	if not battlefield_manager:
 		push_warning("UnifiedAISystem: No battlefield manager assigned")
 	if not combat_resolver:
 		push_warning("UnifiedAISystem: No combat resolver assigned")
@@ -359,10 +357,6 @@ func _evaluate_squad_status(unit: Character) -> Dictionary:
 		"average_health": total_health / count,
 		"morale": total_morale / count
 	}
-
-## Handle changes in tactical advantage
-func _on_tactical_advantage_changed(position: Vector2, advantage: float) -> void:
-	threat_map[position] = 1.0 - advantage
 
 ## Optional Enemy AI Integration
 func process_enemy_turn(enemy: EnemyData) -> Dictionary:

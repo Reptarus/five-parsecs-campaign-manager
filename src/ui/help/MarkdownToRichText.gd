@@ -25,7 +25,6 @@ const SIZE_SMALL := 14
 
 # Signal emitted when a chapter cross-reference is clicked
 # HelpScreen connects to this to navigate between chapters
-signal chapter_link_clicked(chapter_id: String, section_id: String)
 
 
 ## Convert a full markdown string to BBCode.

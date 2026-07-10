@@ -14,7 +14,6 @@ const BattlefieldGrid = preload("res://src/core/battle/BattlefieldGrid.gd")
 # Signals for integration with the battle workflow
 signal generation_started(theme_name: String)
 signal generation_completed(battlefield_data: Dictionary)
-signal generation_error(error_message: String)
 
 ## Terrain data for text-based suggestions (loaded lazily)
 var _compendium_data: Dictionary = {}

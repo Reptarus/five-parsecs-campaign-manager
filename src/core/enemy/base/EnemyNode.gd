@@ -53,8 +53,6 @@ signal touch_handled(node: EnemyNode, position: Vector2)
 signal drag_handled(node: EnemyNode, start_position: Vector2, end_position: Vector2)
 signal selected(node: EnemyNode)
 signal position_changed(node: EnemyNode, old_position: Vector2, new_position: Vector2) # Emit Node position
-signal group_attack_coordinated() # For tactical group operations
-signal group_movement_completed() # For tactical group operations
 
 # Static helper method to determine type compatibility
 static func is_node_script() -> bool:

@@ -11,7 +11,6 @@ const CampaignSecurityManager = preload("res://src/core/security/CampaignSecurit
 
 # State machine signals
 signal state_changed(old_state: UIState, new_state: UIState)
-signal state_transition_requested(target_state: UIState)
 signal state_transition_blocked(current_state: UIState, target_state: UIState, reason: String)
 signal state_machine_error(error_type: String, details: String)
 signal recovery_initiated(recovery_type: String)

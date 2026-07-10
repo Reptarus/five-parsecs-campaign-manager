@@ -39,7 +39,6 @@ var information_network_quality: int = 2 # 1-5, affects info quality
 # Signals for investigation events
 signal evidence_discovered(evidence_data: Dictionary)
 signal investigation_compromised(discovery_method: String)
-signal contact_established(contact_data: Dictionary)
 signal security_alert_raised(alert_level: int)
 
 # Mission base properties

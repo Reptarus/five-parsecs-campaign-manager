@@ -10,7 +10,6 @@ class_name ShipStashPanel
 ## - Stash persists across missions
 
 signal item_transferred_to_crew(equipment_id: String, character_id: String)
-signal item_transferred_to_stash(equipment_id: String)
 signal stash_updated()
 
 # UI References

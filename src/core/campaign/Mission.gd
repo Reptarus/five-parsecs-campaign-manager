@@ -6,7 +6,6 @@ class_name Mission
 ## Used for patron jobs, opportunities, and story missions
 
 signal mission_status_changed(new_status: MissionStatus)
-signal objective_updated(objective_key: String, new_value)
 
 enum MissionType {
 	PATRON_JOB,

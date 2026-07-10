@@ -9,7 +9,6 @@ const STEP_NUMBER := 5  # Step 5 of 7 in campaign wizard (Core Rules: Ship after
 # GlobalEnums available as autoload singleton
 
 signal ship_updated(ship_data: Dictionary)
-signal ship_setup_complete(ship_data: Dictionary)
 
 const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 # SecurityValidator is inherited from BaseCampaignPanel

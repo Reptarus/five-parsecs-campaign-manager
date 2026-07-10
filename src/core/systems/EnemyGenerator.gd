@@ -10,7 +10,6 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 signal enemies_generated(enemies: Array[Resource])
 signal enemy_data_loaded(categories_count: int)
-signal generation_failed(error: String)
 
 # JSON data loaded from files
 var enemy_data: Dictionary = {}

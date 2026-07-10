@@ -63,7 +63,6 @@ signal panel_loaded(panel_id: String, panel: Control, loading_time_ms: float)
 signal panel_load_failed(panel_id: String, error_message: String)
 
 ## Emitted when a panel is cached
-signal panel_cached(panel_id: String, panel: Control)
 
 ## Emitted when a panel is evicted from cache
 signal panel_evicted(panel_id: String, reason: String)

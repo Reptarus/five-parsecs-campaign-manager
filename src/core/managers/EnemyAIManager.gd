@@ -6,7 +6,6 @@ const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
 const AIController = preload("res://src/core/systems/AIController.gd")
 
 # Signals
-signal ai_decision_made(enemy_ref: EnemyNode, decision: Dictionary)
 signal behavior_changed(enemy_ref: EnemyNode, new_behavior: GlobalEnums.AIBehavior)
 signal action_completed(enemy_ref: EnemyNode, action_type: String)
 

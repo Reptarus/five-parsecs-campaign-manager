@@ -3,7 +3,6 @@ extends Control
 
 signal character_advanced(character: Dictionary, advancement: Dictionary)
 signal injury_healed(character: Dictionary, injury: Dictionary)
-signal training_purchased(character: Dictionary, training: Dictionary)
 
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 var _panel_group: Control = null

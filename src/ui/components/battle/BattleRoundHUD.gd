@@ -14,7 +14,6 @@ const BattleRoundTrackerClass = preload("res://src/core/battle/BattleRoundTracke
 
 # Signals (call-down-signal-up pattern)
 signal phase_clicked(phase: int)
-signal round_info_requested()
 signal next_phase_requested()
 signal roll_dice_requested()
 

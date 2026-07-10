@@ -9,7 +9,6 @@ class_name WorldPhaseComponent
 ## inherited base with event bus auto-subscription pattern.
 
 # Signals for parent integration
-signal component_ready(component_name: String)
 signal component_error(component_name: String, error_message: String)
 ## Emitted whenever a sub-step's completion/gating state changes, so the
 ## WorldPhaseController can re-evaluate the "Next Step" button enablement

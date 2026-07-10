@@ -7,7 +7,6 @@ extends PanelContainer
 ## Toggled via floating "?" button. Touch-friendly section headers.
 ## All text references page numbers from the Five Parsecs Core Rulebook.
 
-signal cheat_sheet_toggled(is_visible: bool)
 
 # Design system constants
 const SPACING_SM: int = 8

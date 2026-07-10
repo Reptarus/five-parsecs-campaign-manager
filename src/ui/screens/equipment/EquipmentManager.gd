@@ -2,7 +2,6 @@ class_name EquipmentManagerUI
 extends Control
 
 signal equipment_assigned(equipment_item: Dictionary, crew_member: Dictionary)
-signal equipment_unassigned(equipment_item: Dictionary, crew_member: Dictionary)
 
 ## AdaptivePanelGroup preloaded by path (responsive 3-pane → tab strip in
 ## portrait; master-detail). Path preload avoids the stale class_name cache.

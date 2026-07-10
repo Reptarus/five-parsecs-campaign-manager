@@ -8,7 +8,6 @@ const Self = preload("res://src/core/systems/Mission.gd")
 # Import necessary classes
 signal mission_completed
 signal mission_failed
-signal mission_updated
 
 @export var mission_id: String = ""
 @export var mission_title: String = ""

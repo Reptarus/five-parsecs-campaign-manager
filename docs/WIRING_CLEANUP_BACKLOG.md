@@ -4,17 +4,16 @@
 > - **Branch `master`, working tree CLEAN.** This session's cleanup commits:
 >   `5d38d039` (Tier 3 autoload), `e837ea6c` (combat subsystem), `74121314` (Tier 2 TravelPhaseUI).
 >   All committed. Nothing uncommitted.
-> - **Lint counts:** signals **64** · **tscn 0 (CLEAN ✅)** · **autoload 0 (CLEAN ✅)** ·
->   **data-ownership CLEAN ✅** — 3 of 4 lints clean; only signal-wiring remains.
-> - **DONE:** the wiring-audit sprint; Tier 1 `rival_escalated`; **Tier 3 (autoload CLEAN)**;
->   **combat subsystem DELETED** (13 pairs + 2 dead-code tests — superseded by `FPCM_UnifiedBattleLog`;
->   KEPT BaseCombatManager + top-level SimpleUnitCard/TerrainOverlay/TerrainTooltip);
->   **Tier 2 legacy TravelPhaseUI DELETED** (scene + 2 scripts + CTC.gd/.tscn wiring + SceneRouter
->   key/arrays/alias → tscn lint CLEAN).
-> - **NEXT (recommended order):** Tier 4 (62 no-listener signals, mechanical decl deletions — but
->   VERIFY each per the signal lint's `[LIVE DEAD-WIRE]` tag first; `tactical_advantage_changed` in
->   the live BaseBattlefieldManager has a listener), THEN Tier 5 (~23 zero-caller methods, incl. the
->   `_on_travel_phase_completed` orphan just created), Tier 6 (temp_data + pending_combat book-check).
+> - **Lint counts: ALL 4 CLEAN ✅** — signal-wiring 0 · tscn 0 · autoload 0 · data-ownership 0.
+>   The lint-tracked dead-code slate is CLEAN. Remaining tiers (5, 6) are NOT lint-covered.
+> - **DONE:** wiring-audit sprint; Tier 1 `rival_escalated`; **Tier 3 (autoload CLEAN)**;
+>   **combat subsystem DELETED** (13 pairs + 2 tests); **Tier 2 TravelPhaseUI DELETED** (tscn CLEAN);
+>   **Tier 4 (all 64 dead signals removed — signal lint CLEAN;** incl. the mis-wired
+>   `tactical_advantage_changed` dead-wire deleted at all 3 ends).
+> - **NEXT (recommended order):** Tier 5 (~23 zero-caller public methods — NOT lint-covered, run the
+>   deletion protocol per method; includes the `_on_travel_phase_completed` orphan + `apply_gun_mod`
+>   + the EquipmentManager-autoload/GameStateManager/CampaignPhaseManager sets in the Tier 5 section),
+>   THEN Tier 6 (dead temp_data writes + pending_combat book-check), THEN unblock the 2 Blocked paths.
 > - **PER WAVE:** run the deletion protocol (below) before each delete; headless
 >   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
 >   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
@@ -128,10 +127,20 @@ Dispositions applied:
   evidence bar; the null-guarded restore hooks no-op safely. **FEATURE-BACKLOG:** either wire
   PersistentResourceBar into campaign screens or delete the orphan component + its hooks.
 
-## Priority tier 4 — dead signals with NO listener (62, `lint_signal_wiring.py`)
+## Priority tier 4 — dead signals — DONE ✅ (`lint_signal_wiring.py` exits 0)
 
-Harmless forward-declared component API nobody consumes. Per-signal: DELETE unless a
-near-term consumer is planned. Bulk-deletable but lower value; do after tiers 1-3.
+Resolved 2026-07-10. All 64 removed. Method: a batch verifier
+(`scratchpad/verify_dead_signals.py`) confirmed 63 of them had ZERO non-declaration
+references anywhere (no emit / connect / has_signal / `.tscn [connection]` /
+SignalConnectionManager variants); the 3 apparent "other refs" were all name-collisions
+(a dict key `result["character_died"]`, an analytics event string `"validation_error"`,
+and an `add_user_signal` on a *different* stub node for `campaign_progress_updated`) —
+none referenced the dead declarations. Removed the 63 decls via a self-auditing script
+driven off the lint's own output (auto-skipped the LIVE-DEAD-WIRE tag). Then the 1 LIVE
+DEAD-WIRE — `tactical_advantage_changed` (BaseBattlefieldManager) — was DELETED at all 3
+ends (decl + the `UnifiedAISystem._ready()` connect + the `_on_tactical_advantage_changed`
+handler): it was never emitted AND mis-wired (signal `(unit,int,float)` vs handler
+`(Vector2,float)` — would have errored if it ever fired). **ALL 4 LINTS NOW CLEAN.**
 
 ## Priority tier 5 — zero-caller public methods (~23; NOT lint-covered)
 

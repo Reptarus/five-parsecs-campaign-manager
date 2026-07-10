@@ -4,7 +4,6 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 signal patron_encountered(patron: Dictionary)
 signal patron_reputation_changed(patron: Dictionary, change: int)
-signal patron_quest_offered(patron: Dictionary, quest: Dictionary)
 signal patron_quest_completed(patron: Dictionary, quest: Dictionary)
 signal patron_quest_failed(patron: Dictionary, quest: Dictionary)
 

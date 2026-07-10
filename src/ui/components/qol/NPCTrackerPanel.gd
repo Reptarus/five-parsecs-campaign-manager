@@ -4,7 +4,6 @@ class_name NPCTrackerPanel
 ## NPCTrackerPanel - NPC relationship and history UI
 ## Displays patrons, rivals, and locations
 
-signal npc_selected(npc_id: String, npc_type: String)
 
 @onready var tab_container = $TabContainer
 @onready var patrons_tab = $TabContainer/Patrons

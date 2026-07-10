@@ -6,7 +6,6 @@ const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
 const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
 
-signal ai_action_completed(action: Dictionary)
 
 @export var ai_behavior: int = GlobalEnums.AIBehavior.CAUTIOUS
 
