@@ -5,8 +5,6 @@ const GameState = preload("res://src/core/state/GameState.gd")
 const _ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 
 signal game_state_changed(new_state: int)
-signal campaign_phase_changed(new_phase: int)
-signal difficulty_changed(new_difficulty: int)
 signal credits_changed(new_amount: int)
 signal supplies_changed(new_amount: int)
 signal reputation_changed(new_amount: int)
@@ -88,26 +86,13 @@ func set_game_state(new_state: GameState) -> void:
 		game_state = new_state
 		game_state_changed.emit(game_state)
 
-func set_campaign_phase(new_phase: int) -> void:
-	if campaign_phase != new_phase:
-		campaign_phase = new_phase
-		campaign_phase_changed.emit(campaign_phase)
 
-func set_difficulty(new_difficulty: int) -> void:
-	if difficulty_level != new_difficulty:
-		difficulty_level = new_difficulty
-		difficulty_changed.emit(difficulty_level)
 
 # Settings management
-func set_tutorials_enabled(enabled: bool) -> void:
-	enable_tutorials = enabled
 	
 func set_auto_save_enabled(enabled: bool) -> void:
 	auto_save_enabled = enabled
 	
-func set_language(language_name: String) -> void:
-	language = language_name
-	# You might want to emit a signal or perform additional actions here
 
 # Resource management.
 # PHASE 2.1 (persistence audit): the canonical owner of credits / supplies /
@@ -156,8 +141,6 @@ func set_story_progress(new_amount: int) -> void:
 func get_game_state() -> GameState:
 	return game_state
 
-func get_campaign_phase() -> int:
-	return campaign_phase
 
 func get_difficulty() -> int:
 	return difficulty_level
@@ -165,8 +148,6 @@ func get_difficulty() -> int:
 func get_credits() -> int:
 	return credits
 
-func get_supplies() -> int:
-	return supplies
 
 func get_reputation() -> int:
 	return reputation
@@ -289,11 +270,6 @@ func set_narrative_wrap_override(value) -> void:
 		campaign.progress_data["narrative_wrap_override"] = bool(value)
 
 
-func get_narrative_wrap_override():
-	var campaign := _get_campaign()
-	if campaign == null or not ("progress_data" in campaign):
-		return null
-	return campaign.progress_data.get("narrative_wrap_override", null)
 
 # --- Credit arithmetic ---
 

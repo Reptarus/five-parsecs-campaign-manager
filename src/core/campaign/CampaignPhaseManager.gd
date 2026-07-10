@@ -1334,21 +1334,8 @@ func _init_story_track() -> void:
 	# Persist initial state so dashboard/other systems can read it
 	save_story_track_state()
 
-## Check if current turn is a Story Event turn
-func is_story_event_turn() -> bool:
-	return _current_story_event != null
 
-## Get Story Track turn modifications for other phases to query
-func get_story_turn_mods() -> Dictionary:
-	if story_track:
-		return story_track.get_turn_modifications()
-	return {}
 
-## Get Story Track battle config for BattlePhase
-func get_story_battle_config() -> Dictionary:
-	if story_track:
-		return story_track.get_battle_config()
-	return {}
 
 ## Persist Story Track state to campaign progress_data
 func save_story_track_state() -> void:
@@ -1421,16 +1408,8 @@ func get_intro_status() -> Dictionary:
 	return {}
 
 
-## Check if intro campaign is currently active
-func is_intro_active() -> bool:
-	return intro_campaign != null and intro_campaign.is_active
 
 
-## Advance intro turn after post-battle (called by PostBattlePhase)
-func advance_intro_turn() -> bool:
-	if not intro_campaign or not intro_campaign.is_active:
-		return false
-	return intro_campaign.advance_turn()
 
 
 ## Persist intro campaign state to campaign progress_data
@@ -1692,18 +1671,6 @@ func _generate_turn_summary() -> Dictionary:
 	# Stub: Generate turn summary
 	return {}
 
-func validate_current_campaign() -> bool:
-	if not validator or not game_state:
-		phase_errors.append("Cannot validate campaign: validator or game state not ready")
-		return false
-	
-	var validation_result = validator.validate_campaign()
-	
-	if not validation_result.valid and validation_result.errors.size() > 0:
-		phase_errors.append_array(validation_result.errors)
-		return false
-	
-	return true
 
 # Method to set the game state for testing purposes
 func set_game_state(state) -> bool:
@@ -1739,52 +1706,6 @@ func setup_battle() -> bool:
 	return true
 
 # Get campaign results summary
-func get_campaign_results() -> Dictionary:
-	if not game_state or not game_state.current_campaign:
-		push_error("Cannot get campaign results - no active campaign")
-		return {}
-		
-	var campaign = game_state.current_campaign
-	var results = {
-		"campaign_id": "",
-		"campaign_name": "Unknown Campaign",
-		"completed": false,
-		"victory": false,
-		"turns": 0,
-		"final_credits": 0,
-		"battles_won": 0,
-		"enemies_defeated": 0
-	}
-	
-	# Extract data based on available methods
-	if campaign.has_method("get_campaign_id"):
-		results.campaign_id = campaign.get_campaign_id()
-	elif "campaign_id" in campaign:
-		results.campaign_id = campaign.campaign_id
-	
-	if campaign.has_method("get_campaign_name"):
-		results.campaign_name = campaign.get_campaign_name()
-	elif "campaign_name" in campaign:
-		results.campaign_name = campaign.campaign_name
-	
-	if campaign.has_method("get_turn"):
-		results.turns = campaign.get_turn()
-	elif "turn" in campaign:
-		results.turns = campaign.turn
-	
-	if campaign.has_method("get_credits"):
-		results.final_credits = campaign.get_credits()
-	elif "credits" in campaign:
-		results.final_credits = campaign.credits
-	
-	# Check for battle stats
-	if "battle_stats" in campaign:
-		if campaign.battle_stats.has("battles_won"):
-			results.battles_won = campaign.battle_stats.battles_won
-		if campaign.battle_stats.has("enemies_defeated"):
-			results.enemies_defeated = campaign.battle_stats.enemies_defeated
-	
-	return results
 
 # Calculate upkeep for the campaign
 func calculate_upkeep() -> Dictionary:
@@ -1821,21 +1742,3 @@ func calculate_upkeep() -> Dictionary:
 	return upkeep
 
 # Advance the campaign to the next turn
-func advance_campaign() -> bool:
-	if not game_state or not game_state.current_campaign:
-		push_error("Cannot advance campaign - no active campaign")
-		return false
-		
-	var campaign = game_state.current_campaign
-	
-	# Increment turn counter
-	if campaign.has_method("increment_turn"):
-		campaign.increment_turn()
-	elif "turn" in campaign:
-		campaign.turn += 1
-	
-	# Complete current phase
-	complete_phase_action("turn_completed")
-	
-	# Start the next phase (upkeep phase)
-	return start_phase(FiveParcsecsCampaignPhase.UPKEEP)

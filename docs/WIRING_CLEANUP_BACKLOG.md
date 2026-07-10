@@ -7,13 +7,14 @@
 > - **Lint counts: ALL 4 CLEAN ✅** — signal-wiring 0 · tscn 0 · autoload 0 · data-ownership 0.
 >   The lint-tracked dead-code slate is CLEAN. Remaining tiers (5, 6) are NOT lint-covered.
 > - **DONE:** wiring-audit sprint; Tier 1 `rival_escalated`; **Tier 3 (autoload CLEAN)**;
->   **combat subsystem DELETED** (13 pairs + 2 tests); **Tier 2 TravelPhaseUI DELETED** (tscn CLEAN);
->   **Tier 4 (all 64 dead signals removed — signal lint CLEAN;** incl. the mis-wired
->   `tactical_advantage_changed` dead-wire deleted at all 3 ends).
-> - **NEXT (recommended order):** Tier 5 (~23 zero-caller public methods — NOT lint-covered, run the
->   deletion protocol per method; includes the `_on_travel_phase_completed` orphan + `apply_gun_mod`
->   + the EquipmentManager-autoload/GameStateManager/CampaignPhaseManager sets in the Tier 5 section),
->   THEN Tier 6 (dead temp_data writes + pending_combat book-check), THEN unblock the 2 Blocked paths.
+>   **combat subsystem DELETED**; **Tier 2 TravelPhaseUI DELETED** (tscn CLEAN);
+>   **Tier 4 (all 64 dead signals removed — signal CLEAN)**; **Tier 5 (23 redundant zero-caller
+>   methods DELETED + 2 cascade-dead signals; 3 unwired book-mechanics PRESERVED+flagged —
+>   see new "Discovered unwired book-mechanic gaps" section).** ALL 4 LINTS still CLEAN.
+> - **NEXT (recommended order):** Tier 6 (dead temp_data writes — `return_screen`/`crew_add_mode`/
+>   temp `current_mission`/`world_phase_results`/`planetfall_mission`/`bug_hunt_mission`; + the
+>   `pending_combat` book-check, whose writer TravelPhaseUI is now gone so it's fully dead unless
+>   book-backed), THEN unblock the 2 Blocked paths (+ decide wire-or-cut on the 3 flagged gaps).
 > - **PER WAVE:** run the deletion protocol (below) before each delete; headless
 >   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
 >   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
@@ -142,26 +143,50 @@ ends (decl + the `UnifiedAISystem._ready()` connect + the `_on_tactical_advantag
 handler): it was never emitted AND mis-wired (signal `(unit,int,float)` vs handler
 `(Vector2,float)` — would have errored if it ever fired). **ALL 4 LINTS NOW CLEAN.**
 
-## Priority tier 5 — zero-caller public methods (~23; NOT lint-covered)
+## Priority tier 5 — zero-caller public methods — DONE ✅
 
-Unused-but-harmless public API. Run the deletion protocol per method. Known set:
-autoload `EquipmentManager` (×14 incl. `apply_gun_mod`, `use_consumable`,
-`repair_equipment`, `create_weapon_item`, `remove_equipment_from_character`, the
-onboard-item getters, `create_armor_item`/`create_gear_item`, krag helpers);
-`GameStateManager` (`set_campaign_phase`, `set_tutorials_enabled`, `set_language`,
-`get_supplies`; **NOT `get_deployable_crew`** — that's a Blocked path, keep);
-`CampaignPhaseManager` (×9 incl. `complete_current_turn`, `start_sub_phase`,
-`reset_phase_tracking`, `get_campaign_results`, `validate_current_campaign`).
-Re-prove zero-caller at execution time (some had `b>0` bareword hits = possible
-dynamic dispatch).
+Resolved 2026-07-10. **METHODOLOGY FIX (reusable):** the first detector matched only
+`\.NAME(` and gave **13 false positives** — it missed GDScript bareword calls (`NAME()`
+no dot) and dynamic dispatch. Corrected detector: `\bNAME\s*\(` (any call form) +
+`(has_method|call|call_deferred)\(["']NAME["']`, excluding the `func NAME(` def line;
+name-collisions err toward KEEP. 42 initial candidates → 23 true-redundant deletions.
+
+- **DELETED 23** (each redundant — mechanic live via another path): EquipmentManager (7)
+  `apply_gun_mod` (→ weapon traits), `repair_equipment`, 3 onboard getters (→ `get_onboard_item_effect`),
+  `get_equipment_by_category`, `remove_equipment_from_character` (→ `EquipmentTransferService`);
+  GameStateManager (7) `set_difficulty`/`set_language`/`set_tutorials_enabled` (→ `SettingsManager.set_setting`),
+  `get`/`set_campaign_phase`, `get_supplies`, `get_narrative_wrap_override`;
+  CampaignPhaseManager (8) story/intro wrappers (bypassed by direct `story_track`/`intro_state`
+  access) + `advance_campaign`/`get_campaign_results`/`validate_current_campaign`;
+  CampaignTurnController (1) `_on_travel_phase_completed` (Tier-2 orphan, has_method-guarded test).
+- **CASCADE:** deleting `set_campaign_phase`/`set_difficulty` orphaned their sole-emitted signals
+  `campaign_phase_changed` + `difficulty_changed` (0 listeners) → also DELETED. (A stale
+  self-mapping string `"campaign_phase_changed"` remains in `FiveParsecsConstants` event-name
+  registry — harmless, not lint-flagged, left to avoid touching that shared file.)
+- **The `EquipmentManager` `create_weapon_item`/`create_armor_item`/`create_gear_item` and the
+  CampaignPhaseManager `complete_current_turn`/`start_sub_phase`/`reset_phase_tracking` etc. that
+  the OLD list called zero-caller are NOT — they have bareword callers. Kept.**
+
+## Discovered unwired book-mechanic gaps (2026-07-10) — decide wire-or-cut (user chose PRESERVE)
+
+Zero-caller methods found in Tier 5 that are NOT redundant — they implement a book mechanic
+that is live NOWHERE else, so they're gaps (like the Blocked paths), not dead code. Preserved:
+- **`EquipmentManager.use_consumable`** — no consumable-use UI exists anywhere; consumables can
+  be looted/held but never used. Verify book intent (is there an active-use mechanic?) then wire or cut.
+- **`EquipmentManager.modify_armor_for_krag` + `set_armor_krag_designation`** — real Compendium
+  mechanic (`data/compendium/species.json`: Trade-table armor must be designated Krag/non-Krag,
+  Modification 2 Credits reversible; Skulkers/Engineers can wear Krag armor). Implemented, never
+  wired to any equipment/trade flow. Wire into the trade/equipment UI or cut.
 
 ## Priority tier 6 — dead temp_data writes (NOT lint-covered)
 
 `GameStateManager` temp keys written but never read: `return_screen`, `crew_add_mode`,
 `current_mission` (temp channel — live copy is `progress_data`), `world_phase_results`
-(temp channel), `planetfall_mission`, `bug_hunt_mission`. Delete the writes. `pending_combat`
-(TravelPhaseUI.gd:660 → sole writer, 0 readers) needs a Core-Rules-p.35 book-check first:
-book-backed travel→combat handoff → `Blocked(feature)`; else delete.
+(temp channel), `planetfall_mission`, `bug_hunt_mission`. Delete the writes. `pending_combat`:
+its sole writer was `TravelPhaseUI.gd:660` — **now DELETED in Tier 2**, so `pending_combat` has
+0 writers AND 0 readers, and `GameStateManager.set_pending_combat` is now itself zero-caller.
+Core-Rules-p.35 book-check: book-backed travel→combat handoff → `Blocked(feature)` + keep
+`set_pending_combat` as the seed; else delete the temp key + `set_pending_combat` together.
 
 ---
 

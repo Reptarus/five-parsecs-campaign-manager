@@ -75,9 +75,6 @@ func _load_onboard_items() -> void:
 	if json.data is Dictionary:
 		_onboard_items = json.data.get("onboard_items", [])
 
-## Get all on-board items (Core Rules pp.57-58)
-func get_onboard_items() -> Array:
-	return _onboard_items
 
 ## Get on-board item by ID
 func get_onboard_item(item_id: String) -> Dictionary:
@@ -86,10 +83,6 @@ func get_onboard_item(item_id: String) -> Dictionary:
 			return item
 	return {}
 
-## Check if an on-board item is single-use
-func is_onboard_item_single_use(item_id: String) -> bool:
-	var item := get_onboard_item(item_id)
-	return item.get("single_use", false)
 
 ## Phase 10: Get structured effect data for an on-board item (Core Rules pp.57-58)
 ## Returns {phase: String, effect_type: String, value: Variant, description: String}
@@ -136,15 +129,6 @@ func get_onboard_item_effect(item_id: String) -> Dictionary:
 			return {"phase": "world", "effect_type": "sp_xp_bonus", "value": {"xp": 1, "sp": 2}, "description": "+1 XP, +2 SP (single-use)"}
 	return {}
 
-## Get all on-board items owned by crew that affect a specific campaign phase
-func get_onboard_items_for_phase(phase: String, owned_items: Array) -> Array:
-	var matching: Array = []
-	for item_id: Variant in owned_items:
-		var effect := get_onboard_item_effect(str(item_id))
-		if not effect.is_empty() and effect.get("phase", "") == phase:
-			effect["item_id"] = str(item_id)
-			matching.append(effect)
-	return matching
 
 ## Return basic weapons (always available, 1 credit each — Core Rules p.126)
 func get_basic_weapons() -> Array[Dictionary]:
@@ -281,23 +265,6 @@ func assign_equipment_to_character(character_id: String, equipment_id: String) -
 	equipment_list_updated.emit()
 	return true
 
-## Remove equipment from a character
-func remove_equipment_from_character(character_id: String, equipment_id: String) -> bool:
-	if not character_id in _character_equipment:
-		return false
-	
-	var equipment_list = _character_equipment[character_id]
-	if equipment_id in equipment_list:
-		equipment_list.erase(equipment_id)
-		
-		# Update the character object
-		_update_character_with_equipment(character_id)
-		
-		equipment_removed.emit(character_id, equipment_id)
-		equipment_list_updated.emit()
-		return true
-	
-	return false
 
 ## Get all equipment assigned to a character
 func get_character_equipment(character_id: String) -> Array:
@@ -346,15 +313,6 @@ func set_character_equipment_ids(character_id: String, equipment_ids: Array) -> 
 	_character_equipment[character_id] = equipment_ids.duplicate()
 	equipment_list_updated.emit()
 
-## Get equipment of a specific category
-func get_equipment_by_category(category: int) -> Array:
-	var filtered_equipment = []
-	
-	for item in _equipment_storage:
-		if item.get("category") == category:
-			filtered_equipment.append(item)
-	
-	return filtered_equipment
 
 ## Sell equipment — Core Rules p.76: each item sold = 1 credit of Upkeep
 func sell_equipment(equipment_id: String) -> int:
@@ -525,24 +483,6 @@ func create_gear_item(name: String, gear_type: String, effect: Dictionary) -> Di
 		"value": 3  # Default purchase cost (Core Rules p.125: 3 credits for a table roll)
 	}
 
-## Repair equipment
-func repair_equipment(equipment_id: String, repair_amount: int = 100) -> bool:
-	var equipment_data = get_equipment(equipment_id)
-	if equipment_data.is_empty():
-		return false
-	
-	var current_condition = equipment_data.get("condition", 100)
-	var new_condition = min(100, current_condition + repair_amount)
-	
-	equipment_data["condition"] = new_condition
-	
-	for i in range(_equipment_storage.size()):
-		if _equipment_storage[i].get("id") == equipment_id:
-			_equipment_storage[i] = equipment_data
-			equipment_list_updated.emit()
-			return true
-	
-	return false
 
 ## Private Helper Methods
 
@@ -738,89 +678,3 @@ func use_consumable(item_data: Dictionary) -> Dictionary:
 	var depleted: bool = item_data["remaining_uses"] <= 0
 	return {"success": true, "remaining": item_data["remaining_uses"], "depleted": depleted, "reason": ""}
 
-## Phase 8: Apply a gun mod or gun sight to a weapon (Core Rules p.53)
-## Modifies the weapon's traits/stats permanently (mods) or until removed (sights)
-## Returns {success: bool, reason: String, modifications: Array}
-func apply_gun_mod(weapon: Dictionary, mod_id: String) -> Dictionary:
-	var result := {"success": false, "reason": "", "modifications": []}
-
-	match mod_id.to_lower():
-		"assault_blade":
-			# Core Rules p.53: Weapon gains Melee, +1 Damage, wins draws
-			var traits: Array = weapon.get("traits", [])
-			if "melee" not in traits:
-				traits.append("melee")
-			weapon["traits"] = traits
-			weapon["damage"] = weapon.get("damage", 0) + 1
-			weapon["wins_draws"] = true
-			result["modifications"] = ["melee_trait", "+1_damage", "wins_draws"]
-		"beam_light":
-			# Core Rules p.53: +3" visibility illumination
-			weapon["beam_light"] = true
-			result["modifications"] = ["beam_light_3in"]
-		"bipod":
-			# Core Rules p.53: +1 Hit over 8" when Aiming or from Cover
-			weapon["bipod"] = true
-			result["modifications"] = ["bipod_+1_hit_over_8"]
-		"hot_shot_pack":
-			# Core Rules p.53: +1 Damage, adds Overheat risk
-			weapon["damage"] = weapon.get("damage", 0) + 1
-			var traits: Array = weapon.get("traits", [])
-			if "hot" not in traits:
-				traits.append("hot")
-			weapon["traits"] = traits
-			result["modifications"] = ["+1_damage", "overheat_risk"]
-		"nano_sludge":
-			# Core Rules p.53: Permanent +1 Hit bonus
-			weapon["hit_bonus"] = weapon.get("hit_bonus", 0) + 1
-			result["modifications"] = ["permanent_+1_hit"]
-		"stabilizer_mod":
-			# Core Rules p.53: Ignore Heavy trait
-			var traits: Array = weapon.get("traits", [])
-			traits.erase("heavy")
-			weapon["traits"] = traits
-			weapon["stabilizer"] = true
-			result["modifications"] = ["heavy_removed"]
-		"shock_attachment":
-			# Core Rules p.53: Add Stun trait (within 8" only)
-			var traits: Array = weapon.get("traits", [])
-			if "stun" not in traits:
-				traits.append("stun")
-			weapon["traits"] = traits
-			weapon["stun_range_limit"] = 8
-			result["modifications"] = ["stun_within_8"]
-		"upgrade_kit":
-			# Core Rules p.53: +2 Range
-			weapon["range"] = weapon.get("range", 12) + 2
-			result["modifications"] = ["+2_range"]
-		# Gun Sights
-		"laser_sight":
-			# Core Rules p.53: Pistol gains Snap Shot trait
-			var traits: Array = weapon.get("traits", [])
-			if "snap_shot" not in traits:
-				traits.append("snap_shot")
-			weapon["traits"] = traits
-			result["modifications"] = ["snap_shot_trait"]
-		"quality_sight":
-			# Core Rules p.53: +2 Range, reroll 1s on single shot
-			weapon["range"] = weapon.get("range", 12) + 2
-			weapon["reroll_1s_single"] = true
-			result["modifications"] = ["+2_range", "reroll_1s_single"]
-		"seeker_sight":
-			# Core Rules p.53: +1 Hit if didn't Move
-			weapon["seeker_sight"] = true
-			result["modifications"] = ["+1_hit_stationary"]
-		"tracker_sight":
-			# Core Rules p.53: +1 Hit vs same target as last round
-			weapon["tracker_sight"] = true
-			result["modifications"] = ["+1_hit_same_target"]
-		"unity_battle_sight":
-			# Core Rules p.53: +1 to all Hit rolls
-			weapon["hit_bonus"] = weapon.get("hit_bonus", 0) + 1
-			result["modifications"] = ["permanent_+1_hit"]
-		_:
-			result["reason"] = "Unknown mod: %s" % mod_id
-			return result
-
-	result["success"] = true
-	return result

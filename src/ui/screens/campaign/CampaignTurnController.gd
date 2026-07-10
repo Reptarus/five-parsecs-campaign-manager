@@ -1363,10 +1363,6 @@ func _get_active_crew() -> Array:
 		return campaign.crew
 	return []
 
-## Phase Completion Handlers
-func _on_travel_phase_completed() -> void:
-	## Handle travel phase completion - advance to next phase via canonical sequence
-	campaign_phase_manager.complete_current_phase()
 
 ## Sprint 10.3: Bidirectional Navigation Handler
 func _on_return_to_travel() -> void:
