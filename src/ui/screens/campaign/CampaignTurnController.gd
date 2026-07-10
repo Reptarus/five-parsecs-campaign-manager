@@ -308,8 +308,6 @@ func _initialize_backend_systems() -> void:
 		rival_generator.name = "BackendRivalGenerator"
 		if rival_generator.has_signal("rival_battle_generated"):
 			rival_generator.rival_battle_generated.connect(_on_backend_rival_battle_generated)
-		if rival_generator.has_signal("rival_escalated"):
-			rival_generator.rival_escalated.connect(_on_backend_rival_escalated)
 		if rival_generator.has_signal("rival_defeated_permanently"):
 			rival_generator.rival_defeated_permanently.connect(_on_backend_rival_defeated)
 	else:
@@ -353,10 +351,6 @@ func _on_backend_rival_battle_generated(battle_data) -> void:
 	# Update battle UI if available
 	if battle_transition_ui and battle_transition_ui.has_method("set_rival_battle_data"):
 		battle_transition_ui.set_rival_battle_data(battle_data)
-
-func _on_backend_rival_escalated(_rival_id: String, _new_threat_level: int) -> void:
-	## Handle rival escalation from backend
-	pass
 
 func _on_backend_rival_defeated(_rival_id: String) -> void:
 	## Handle rival permanent defeat from backend

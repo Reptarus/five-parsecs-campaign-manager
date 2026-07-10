@@ -27,19 +27,20 @@ temp_data lists below are emptied.
 
 ---
 
-## Priority tier 1 — LIVE bugs (do first; these are not just dead code)
+## Priority tier 1 — the 5 "live" signal dead-wires (INVESTIGATED — all dead scaffolds, DELETE)
 
-**5 live signal dead-wires** (`lint_signal_wiring.py`, `[LIVE DEAD-WIRE]`) — a
-listener exists but the signal is never emitted, so the feature silently never
-fires (same class as the fixed `reroll_requested`). Each: decide WIRE (find the
-rules-legal emit point) vs DELETE (signal + listeners). First confirm whether the
-owning component is even in a live scene (several are in the combat-override
-subsystem that looks up the dead `/root/CombatManager`).
+Investigation 2026-07-10: none are live bugs to WIRE. Every listener is a stub or
+its owning component is orphaned. All resolve to DELETE (clean-slate direction).
 
-- `manual_override_applied` — `BaseCombatManager.gd:25` + `state_verification_controller.gd:59` (2 listeners)
-- `override_requested` — `manual_override_panel.gd:5` (1)
-- `tactical_advantage_changed` — `BaseBattlefieldManager.gd:12` (1)
-- `rival_escalated` — `RivalBattleGenerator.gd:41` (1) — most likely live code
+- `rival_escalated` — **DONE (deleted this session).** RivalBattleGenerator is live
+  and its escalation MECHANIC is used, but the notification was unimplemented: signal
+  never emitted + `CampaignTurnController._on_backend_rival_escalated` was a `pass`
+  stub. Deleted signal + guarded connect + stub handler. (66 signals / 4 live remain.)
+- `manual_override_applied`, `override_requested` — DELETE with the **orphaned
+  combat-override subsystem** (see tier 2). The listeners live in that subsystem; no
+  external code instances it.
+- `tactical_advantage_changed` — `BaseBattlefieldManager.gd:12`. Verify BaseBattlefieldManager
+  liveness (base class); the listener is likely in the same dead battlefield-base tree → DELETE.
 
 ## Priority tier 2 — dead scenes / load-time errors
 

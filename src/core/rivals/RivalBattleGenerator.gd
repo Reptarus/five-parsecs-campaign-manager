@@ -38,7 +38,6 @@ class RivalBattle:
 
 ## Rival Battle Generator Signals
 signal rival_battle_generated(battle_data: RivalBattle)
-signal rival_escalated(rival_id: String, new_threat_level: int)
 signal rival_pursuit_triggered(rival_id: String, pursuit_data: Dictionary)
 signal rival_defeated_permanently(rival_id: String)
 
