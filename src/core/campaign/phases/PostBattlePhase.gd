@@ -63,6 +63,10 @@ var mission_successful: bool = false
 var enemies_defeated: int = 0
 var loot_earned: Array = []
 var injuries_sustained: Array = []
+## Injuries as PROCESSED by InjuryProcessor (carries is_fatal). The played path
+## routes all downed crew to the Injury Table (casualties stays empty), so
+## "A Bitter Day" must inspect these, not just battle_result["casualties"].
+var _processed_injuries: Array = []
 
 ## Campaign reference — set by CampaignPhaseManager
 var _campaign: Variant = null
@@ -140,8 +144,11 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	# Store battle result data
 	battle_result = battle_data.duplicate(true)
 	mission_successful = battle_data.get("success", false)
-	enemies_defeated = battle_data.get("enemies_defeated", 0)
-	defeated_enemies = battle_data.get("defeated_enemy_list", [])
+	# Tactical producers write enemies_defeated_count / defeated_enemies; the
+	# map auto-resolve writes bare enemies_defeated + the legacy defeated_enemy_list.
+	# Accept both so no path silently reads 0 / [].
+	enemies_defeated = int(battle_data.get("enemies_defeated_count", battle_data.get("enemies_defeated", 0)))
+	defeated_enemies = battle_data.get("defeated_enemies", battle_data.get("defeated_enemy_list", []))
 	crew_participants = battle_data.get("crew_participants", [])
 	injuries_sustained = battle_data.get("injuries_sustained", [])
 
@@ -189,6 +196,7 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	# Step 8: Determine Injuries
 	_emit_substep(GlobalEnums.PostBattleSubPhase.INJURIES)
 	var processed_injuries: Array = _injury.process_injuries(_ctx)
+	_processed_injuries = processed_injuries
 	injuries_resolved.emit(processed_injuries)
 
 	# Step 9: Experience & Upgrades
@@ -466,6 +474,13 @@ func _check_bitter_day_story_point() -> void:
 		if casualty.get("type", "") in ["killed", "fatal"]:
 			has_fatal = true
 			break
+	# Played path: deaths surface as is_fatal on the processed Injury Table roll,
+	# not as pre-classified casualties. Scan those too (Core Rules p.67).
+	if not has_fatal:
+		for inj in _processed_injuries:
+			if inj is Dictionary and inj.get("is_fatal", false):
+				has_fatal = true
+				break
 	if not has_fatal:
 		return
 	# Award +1 story point

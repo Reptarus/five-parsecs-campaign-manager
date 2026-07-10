@@ -7,6 +7,7 @@ extends Control
 const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const BattleResolverRouter = preload("res://src/core/battle/BattleResolverRouter.gd")
+const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
 # Path preload: BattlefieldGrid is new (2026-07-02) and the global
 # class cache is stale until the editor reopens (project gotcha).
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
@@ -972,25 +973,30 @@ func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> 
 			if pre_battle_ui.has_method("set_deployment_condition"):
 				pre_battle_ui.set_deployment_condition(condition)
 
+func _normalize_battle_results(results: Dictionary) -> Dictionary:
+	## Single chokepoint for ALL battle-result paths (played, LOG_ONLY manual
+	## record, in-battle auto-resolve, campaign-map auto-resolve). Maps the
+	## producer battle-result vocabulary onto the keys the post-battle consumer
+	## chain reads (injuries_sustained, casualties, turn, danger_pay, patron_id,
+	## rival stamps). ADD-ONLY + idempotent — producer keys are test-pinned.
+	var mission: Dictionary = game_state.get_current_mission()
+	var turn: int = 1
+	var campaign = game_state.get_current_campaign()
+	if campaign and "progress_data" in campaign:
+		# Same SSOT convention as the dashboard display turn: turns_played =
+		# completed turns; the battle happens on turn +1.
+		turn = int(campaign.progress_data.get("turns_played", 0)) + 1
+	return BattleResultNormalizerClass.normalize(results, mission, turn)
+
+
 func _on_battle_completed(results: Dictionary) -> void:
-	## Handle battle completion - store results for post-battle phase
-	# Store battle results in game state
+	## Handle battle completion - store results for post-battle phase.
+	# Normalize FIRST — set_battle_results deep-duplicates, so any mutation after
+	# store is a silent no-op. The normalizer subsumes the old mission_source/
+	# danger_pay patch that used to live inline here (Core Rules p.120 Danger Pay).
+	results = _normalize_battle_results(results)
 	game_state.set_battle_results(results)
 	battle_results = results
-
-	# Carry the accepted mission's payment terms into the stored battle result so
-	# Get Paid can add Patron Danger Pay (Core Rules p.120). The resolver/tactical
-	# output doesn't include mission fields, and PostBattleSequence reads
-	# get_battle_results(), so without this a Patron job's Danger Pay was dropped
-	# (mission_source != "patron" and danger_pay defaulted to 0).
-	var _mission: Dictionary = game_state.get_current_mission()
-	if not _mission.is_empty():
-		if not battle_results.has("mission_source"):
-			battle_results["mission_source"] = _mission.get(
-				"mission_source", _mission.get("source", "opportunity"))
-		if not battle_results.has("danger_pay"):
-			battle_results["danger_pay"] = int(_mission.get("danger_pay", 0))
-		game_state.set_battle_results(battle_results)
 
 	# B2 narrative bridge: 3-tier gate (per-battle > per-campaign > global).
 	# Per-battle override force_narrative_wrap (true/false) is absolute when
@@ -1562,7 +1568,11 @@ func _on_tactical_battle_completed(battle_result) -> void:
 			"crew_injuries_data": injuries_arr
 		}
 
-	# Store results and transition to PostBattle
+	# Store results and transition to PostBattle. Normalize FIRST so the played
+	# path gets the same injuries/casualties/turn/danger_pay stamping the
+	# campaign-map auto-resolve path already had (previously this handler passed
+	# the raw producer dict straight through — injuries + danger pay were dropped).
+	results_dict = _normalize_battle_results(results_dict)
 	game_state.set_battle_results(results_dict)
 	battle_results = results_dict
 

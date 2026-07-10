@@ -21,7 +21,7 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	var roll_count: int = 1
 	if ctx.battle_result.get("is_invasion", false):
 		roll_count = 0  # Core Rules p.120: "If you just played an Invasion Battle, you receive no Loot."
-	elif ctx.battle_result.get("quest_final_stage", ctx.battle_result.get("is_quest_final", false)):
+	elif ctx.battle_result.get("is_quest_finale", ctx.battle_result.get("quest_final_stage", ctx.battle_result.get("is_quest_final", false))):
 		roll_count = 3  # Core Rules p.120: final stage of a Quest -> roll three times, claim all.
 
 	for _i in range(roll_count):

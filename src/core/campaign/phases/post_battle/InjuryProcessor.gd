@@ -33,7 +33,7 @@ func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 
 	# Log injuries to CampaignJournal
 	if ctx.campaign_journal and ctx.campaign_journal.has_method("auto_create_character_event"):
-		var turn_num: int = ctx.game_state_manager.turn_number if ctx.game_state_manager and "turn_number" in ctx.game_state_manager else 0
+		var turn_num: int = int(ctx.battle_result.get("turn", 0))
 		for inj in processed_injuries:
 			var crew_id: String = inj.get("crew_id", "")
 			if crew_id.is_empty():
@@ -80,8 +80,8 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 
 	var is_bot_character := false
 	var crew_origin: String = injury_data.get("origin", "")
-	if crew_origin.is_empty() and ctx.game_state_manager:
-		var crew_member = ctx.game_state_manager.get_crew_member(crew_id) if ctx.game_state_manager.has_method("get_crew_member") else null
+	if crew_origin.is_empty():
+		var crew_member = ctx.get_crew_member(crew_id)
 		if crew_member:
 			if crew_member.has_method("_is_bot"):
 				is_bot_character = crew_member._is_bot()
@@ -122,7 +122,7 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		"type": injury_type_name,
 		"severity": injury_type,
 		"recovery_turns": recovery_time,
-		"turn_sustained": ctx.game_state_manager.turn_number if ctx.game_state_manager and "turn_number" in ctx.game_state_manager else 0,
+		"turn_sustained": int(ctx.battle_result.get("turn", 0)),
 		"description": injury_description,
 		"is_fatal": is_fatal,
 		"equipment_lost": equipment_lost,
@@ -138,8 +138,7 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		return processed_injury
 
 	# Apply injury to crew member
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("apply_crew_injury"):
-		ctx.game_state_manager.apply_crew_injury(crew_id, processed_injury)
+	ctx.apply_crew_injury(crew_id, processed_injury)
 
 	return processed_injury
 
@@ -166,7 +165,7 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 		"type": injury_type_name,
 		"severity": bot_injury_type,
 		"recovery_turns": recovery_time,
-		"turn_sustained": ctx.game_state_manager.turn_number if ctx.game_state_manager and "turn_number" in ctx.game_state_manager else 0,
+		"turn_sustained": int(ctx.battle_result.get("turn", 0)),
 		"description": injury_description,
 		"is_fatal": is_fatal,
 		"equipment_lost": equipment_damaged,
@@ -178,7 +177,6 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 	if bot_props.get("all_equipment", false):
 		processed_injury["all_equipment_damaged"] = true
 
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("apply_crew_injury"):
-		ctx.game_state_manager.apply_crew_injury(crew_id, processed_injury)
+	ctx.apply_crew_injury(crew_id, processed_injury)
 
 	return processed_injury

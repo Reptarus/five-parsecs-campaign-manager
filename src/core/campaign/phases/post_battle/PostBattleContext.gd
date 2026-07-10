@@ -127,22 +127,68 @@ func get_campaign_difficulty() -> int:
 # --- Crew Helpers ---
 
 func get_crew_members() -> Array:
-	## Get crew members via campaign or game state
+	## Get crew members via campaign or game state. Dictionary check FIRST —
+	## Dictionary has no has_method(), so guarding with .has_method() before the
+	## `is Dictionary` branch hard-errors on a dict campaign (crew can be dicts).
 	var crew: Array = []
-	if campaign:
+	if campaign is Dictionary:
+		crew = campaign.get("crew", [])
+	elif campaign:
 		if campaign.has_method("get_crew_members"):
 			crew = campaign.get_crew_members()
-		elif campaign is Dictionary:
-			crew = campaign.get("crew", [])
 		elif "crew_members" in campaign:
 			crew = campaign.crew_members
 	if crew.is_empty() and game_state and game_state.current_campaign:
 		var gc = game_state.current_campaign
-		if gc.has_method("get_crew_members"):
-			crew = gc.get_crew_members()
-		elif gc is Dictionary:
+		if gc is Dictionary:
 			crew = gc.get("crew", [])
+		elif gc.has_method("get_crew_members"):
+			crew = gc.get_crew_members()
 	return crew
+
+func get_crew_member(crew_id: String) -> Variant:
+	## Revives the has_method("get_crew_member") guards at InjuryProcessor.gd:54,
+	## ExperienceTrainingProcessor.gd, CharacterEventEffects.gd — GameStateManager
+	## never defined this, so those guarded lookups always fell through.
+	if crew_id.is_empty():
+		return null
+	for member in get_crew_members():
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str(member.get("character_id", member.get("id", "")))
+		elif "character_id" in member:
+			mid = str(member.character_id)
+		if mid == crew_id:
+			return member
+	return null
+
+func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
+	## GameStateManager has no apply_crew_injury — the guarded calls at
+	## InjuryProcessor.gd:141,181 were dead, so rolled injuries never mutated the
+	## crew member. Mutate here (Dictionary + Resource paths, Core Rules pp.94-95).
+	var member = get_crew_member(crew_id)
+	if member == null:
+		return false
+	var recovery: int = int(injury.get("recovery_turns", 0))
+	var effect: Dictionary = {
+		"type": injury.get("type", "injury"),
+		"severity": injury.get("severity", 1),
+		"duration": recovery,
+		"description": injury.get("description", "Injury sustained"),
+	}
+	if member is Dictionary:
+		member["is_wounded"] = true
+		member["injury_recovery_turns"] = maxi(int(member.get("injury_recovery_turns", 0)), recovery)
+		if not member.has("status_effects"):
+			member["status_effects"] = []
+		member["status_effects"].append(effect)
+	else:
+		if "is_wounded" in member:
+			member.is_wounded = true
+		if "injury_recovery_turns" in member:
+			member.injury_recovery_turns = maxi(int(member.injury_recovery_turns), recovery)
+		apply_character_status_effect(member, effect)
+	return true
 
 func get_random_crew_member() -> Variant:
 	if crew_participants.size() > 0:
@@ -154,25 +200,23 @@ func get_random_crew_member() -> Variant:
 
 func get_participating_crew() -> Array:
 	var crew: Array = []
+	# Producers fill crew_participants with character OBJECTS (not IDs). The old
+	# loop treated them as IDs behind a dead gsm.get_crew_member guard and always
+	# returned []. Pass objects through; resolve only String ids.
 	if not crew_participants.is_empty():
-		if game_state_manager and game_state_manager.has_method("get_crew_member"):
-			for participant_id in crew_participants:
-				var member = game_state_manager.get_crew_member(participant_id)
-				if member:
+		for participant in crew_participants:
+			if participant is String:
+				var member = get_crew_member(participant)
+				if member != null:
 					crew.append(member)
+			elif participant != null:
+				crew.append(participant)
 		return crew
 	if game_state_manager and game_state_manager.has_method("get_crew_members"):
 		crew = game_state_manager.get_crew_members()
-	elif game_state_manager and game_state_manager.has_method("get_game_state"):
-		var gs = game_state_manager.get_game_state()
-		if gs and gs.has_method("get_crew"):
-			crew = gs.get_crew()
-		elif gs and gs.current_campaign and gs.current_campaign is Dictionary:
-			crew = gs.current_campaign.get("crew", [])
-	else:
-		if game_state and game_state.current_campaign:
-			if game_state.current_campaign is Dictionary:
-				crew = game_state.current_campaign.get("crew", [])
+	elif game_state and game_state.current_campaign:
+		if game_state.current_campaign is Dictionary:
+			crew = game_state.current_campaign.get("crew", [])
 	return crew
 
 func is_crew_member_bot(crew_id: String) -> bool:
