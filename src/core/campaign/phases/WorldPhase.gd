@@ -1277,10 +1277,11 @@ func get_completion_data() -> Dictionary:
 	# Job offers
 	completion_data["job_offers"] = available_job_offers.duplicate()
 	
-	# Crew assignments - get battle-ready crew from game state
+	# Crew assignments - get battle-ready crew from game state.
+	# Real API is get_crew_members (get_crew never existed → this was always empty).
 	var crew_assignments: Array = []
-	if game_state_manager and game_state_manager.has_method("get_crew"):
-		var crew_list = game_state_manager.get_crew()
+	if game_state_manager and game_state_manager.has_method("get_crew_members"):
+		var crew_list = game_state_manager.get_crew_members()
 		if crew_list is Array:
 			# Filter for active, non-sick crew members
 			for crew_member in crew_list:
@@ -1433,16 +1434,30 @@ func _handle_trade_special_rules(special_rules: Dictionary, roll: int, task_resu
 
 ## Crew Task Helper Functions
 func _get_crew_member_data(crew_id: String) -> Dictionary:
-	## Get crew member data for task resolution
-	if not game_state_manager or not game_state_manager.has_method("get_crew_member"):
-		return {"id": crew_id, "savvy": 0, "connections": 0}
-	
-	var crew_member = game_state_manager.get_crew_member(crew_id)
-	if crew_member:
-		return crew_member
-	
+	## Get crew member data for task resolution. GameStateManager has no
+	## get_crew_member (that guard never passed → savvy always defaulted to 0);
+	## resolve against the real get_crew_members() roster instead.
+	var default_data: Dictionary = {"id": crew_id, "savvy": 0, "connections": 0}
+	if not game_state_manager or not game_state_manager.has_method("get_crew_members"):
+		return default_data
+	for member in game_state_manager.get_crew_members():
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str(member.get("character_id", member.get("id", "")))
+		elif "character_id" in member:
+			mid = str(member.character_id)
+		if mid != crew_id:
+			continue
+		if member is Dictionary:
+			return member
+		# Resource crew member: extract the fields task resolution reads.
+		return {
+			"id": crew_id,
+			"savvy": int(member.savvy) if "savvy" in member else 0,
+			"connections": int(member.connections) if "connections" in member else 0,
+		}
 	# Return default data if crew member not found
-	return {"id": crew_id, "savvy": 0, "connections": 0}
+	return default_data
 
 func _calculate_task_modifiers(crew_member: Dictionary, task_name: String) -> int:
 	## Calculate total modifiers for a crew task

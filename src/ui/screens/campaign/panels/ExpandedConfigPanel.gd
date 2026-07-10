@@ -32,7 +32,6 @@ const COMPENDIUM_SETUP_FLAGS: Array[Dictionary] = [
 ]
 
 # GDScript 2.0: Typed signals
-signal campaign_config_updated(config: Dictionary)
 signal campaign_setup_complete(config: Dictionary)
 
 # Autonomous signals for coordinator pattern

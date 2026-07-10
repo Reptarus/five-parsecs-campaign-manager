@@ -88,11 +88,9 @@ func _connect_panel_signals() -> void:
 	var world_panel = panels[5]
 	var final_panel = panels[6]
 
-	# ExpandedConfigPanel (extends FiveParsecsCampaignPanel)
-	if config_panel.has_signal("campaign_config_updated"):
-		config_panel.campaign_config_updated.connect(func(config: Dictionary):
-			coordinator.update_campaign_config_state(config)
-		)
+	# ExpandedConfigPanel (extends FiveParsecsCampaignPanel).
+	# campaign_config_updated was never emitted — the live channel is
+	# campaign_config_data_changed (connected below), same handler + payload.
 	if config_panel.has_signal("campaign_config_data_complete"):
 		config_panel.campaign_config_data_complete.connect(func(data: Dictionary):
 			coordinator.update_campaign_config_state(data)

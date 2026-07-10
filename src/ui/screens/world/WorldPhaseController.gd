@@ -1822,11 +1822,11 @@ func save_checkpoint() -> void:
 		elif campaign is Resource and "progress_data" in campaign:
 			campaign.progress_data["world_phase_checkpoint"] = _checkpoint_data.duplicate()
 
-	# Try to trigger a game save through GameStateManager
-	if GameStateManager and GameStateManager.has_method("quick_save"):
-		GameStateManager.quick_save()
-	elif GameStateManager and GameStateManager.has_method("save_game"):
-		GameStateManager.save_game()
+	# Trigger a game save. GameStateManager has no quick_save/save_game (those
+	# guards never passed → checkpoint saves were silent no-ops); the real API is
+	# GameState.save_campaign() (gs fetched above).
+	if gs and gs.has_method("save_campaign"):
+		gs.save_campaign()
 
 
 func restore_from_checkpoint() -> void:

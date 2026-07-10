@@ -446,25 +446,26 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 	if entity.is_empty():
 		return
 
-	# Entity name
+	# Entity name. str()-wrap every field: loaded save data can carry int/enum
+	# values here and String + int hard-errors at runtime (twin of the :424 fix).
 	var name_label: Label = Label.new()
-	name_label.text = entity.name
+	name_label.text = str(entity.get("name", ""))
 	name_label.add_theme_font_size_override("font_size", _scaled_font(20))
 	details_container.add_child(name_label)
 
 	# Type
 	var type_label: Label = Label.new()
-	type_label.text = "Type: " + entity.type
+	type_label.text = "Type: " + str(entity.get("type", ""))
 	details_container.add_child(type_label)
 
 	# Status
 	var status_label: Label = Label.new()
-	status_label.text = "Status: " + entity.status
+	status_label.text = "Status: " + str(entity.get("status", ""))
 	details_container.add_child(status_label)
 
 	# Relationship
 	var relationship_label: Label = Label.new()
-	relationship_label.text = "Relationship: " + entity.relationship
+	relationship_label.text = "Relationship: " + str(entity.get("relationship", ""))
 	details_container.add_child(relationship_label)
 
 	if is_patron:
@@ -481,7 +482,7 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 	else:
 		# Threat level
 		var threat_label: Label = Label.new()
-		threat_label.text = "Threat Level: " + entity.threat_level
+		threat_label.text = "Threat Level: " + str(entity.get("threat_level", ""))
 		details_container.add_child(threat_label)
 
 	# Special rules

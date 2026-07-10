@@ -2081,10 +2081,10 @@ func _on_sp_popover_spent(
 				"Spent 1 SP for an extra campaign action")
 			var notif = get_node_or_null(
 				"/root/NotificationManager")
-			if notif and notif.has_method("show_notification"):
-				notif.show_notification(
+			if notif and notif.has_method("show_toast"):
+				notif.show_toast(
 					"Extra action granted! Take one"
-					+ " additional campaign action this turn.")
+					+ " additional campaign action this turn.", "success")
 		StoryPointSystemClass.SpendType.REROLL_RESULT:
 			spend_desc = "Spent 1 SP to reroll a result"
 		StoryPointSystemClass.SpendType.ROLL_TWICE_PICK_ONE:

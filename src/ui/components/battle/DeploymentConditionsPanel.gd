@@ -27,7 +27,6 @@ const DeploymentConditionsSystem = preload("res://src/core/battle/DeploymentCond
 
 # Signals
 signal condition_acknowledged()
-signal reroll_requested()
 signal details_requested(condition_id: String)
 
 # UI References

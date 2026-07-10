@@ -568,8 +568,13 @@ func _on_ui_batch_progress_updated(completed_tasks: int, total_tasks: int, curre
 		connected_ui_instance.update_batch_progress(completed_tasks, total_tasks, current_task)
 
 func _on_ui_notification_triggered(title: String, message: String, priority: String, duration: float) -> void:
-	if connected_ui_instance and connected_ui_instance.has_method("show_notification"):
-		connected_ui_instance.show_notification(title, message, priority, duration)
+	# No UI defines show_notification — route to the NotificationManager autoload
+	# (its real API is show_toast(message, type, duration)).
+	var notif = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_toast"):
+		var text: String = ("%s: %s" % [title, message]) if title != "" else message
+		var kind: String = priority if priority in ["info", "success", "warning", "error"] else "info"
+		notif.show_toast(text, kind, duration)
 
 func _on_ui_visual_feedback_requested(feedback_type: String, data: Dictionary) -> void:
 	if connected_ui_instance and connected_ui_instance.has_method("show_visual_feedback"):

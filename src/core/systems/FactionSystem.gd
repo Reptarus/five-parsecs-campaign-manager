@@ -857,9 +857,15 @@ func _faction_struggle(faction: Dictionary) -> void:
 
 func _office_party(faction: Dictionary) -> void:
 	## Faction throws office party
-	# Benefits crew members with loyalty to this faction
-	if _game_state and _game_state and _game_state.has_method("get_crew"):
-		var crew = _game_state.get_crew()
+	# Benefits crew members with loyalty to this faction. get_crew never existed;
+	# _game_state may be GameState (get_active_crew) OR GameStateManager
+	# (get_crew_members), so accept either real API.
+	var crew: Array = []
+	if _game_state and _game_state.has_method("get_active_crew"):
+		crew = _game_state.get_active_crew()
+	elif _game_state and _game_state.has_method("get_crew_members"):
+		crew = _game_state.get_crew_members()
+	if crew.size() > 0:
 		for character in crew:
 			if character and character.has_method("get_faction_loyalty"):
 				var loyalty = character.get_faction_loyalty(faction.get("name", ""))

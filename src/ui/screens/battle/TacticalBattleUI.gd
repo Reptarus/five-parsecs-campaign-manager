@@ -900,11 +900,13 @@ func _try_auto_init_from_temp_data() -> bool:
 	if not gs_mgr or not gs_mgr.has_method("get_temp_data"):
 		return false
 
-	# Check each gamemode's battle context key
+	# Check each gamemode's battle context key. Tactics is intentionally absent:
+	# no producer ever writes tactics_battle_context (the Tactics→TacticalBattleUI
+	# delegation was never built — TacticsBattleSetupPanel is an info stub), so
+	# this read was dead. Re-add when that delegation lands (feature backlog).
 	var context_keys: Array = [
 		{"context_key": "bug_hunt_battle_context", "result_key": "bug_hunt_battle_result", "return_screen": "bug_hunt_turn_controller"},
 		{"context_key": "planetfall_battle_context", "result_key": "planetfall_battle_result", "return_screen": "planetfall_turn_controller"},
-		{"context_key": "tactics_battle_context", "result_key": "tactics_battle_result", "return_screen": "tactics_turn_controller"},
 	]
 
 	for key_set in context_keys:
@@ -1813,10 +1815,6 @@ func _connect_assisted_signals() -> void:
 		deployment_conditions.condition_acknowledged.connect(
 			func() -> void:
 				unified_log.log_action("Deployment", "Conditions acknowledged")
-		)
-		deployment_conditions.reroll_requested.connect(
-			func() -> void:
-				unified_log.log_action("Deployment", "Reroll requested")
 		)
 
 	# InitiativeCalculator — initiative results + overlay dismiss

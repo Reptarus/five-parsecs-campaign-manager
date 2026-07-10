@@ -310,6 +310,25 @@ func get_character_equipment(character_id: String) -> Array:
 func get_all_equipment() -> Array:
 	return _equipment_storage.duplicate()
 
+## Ship-stash API — 8 call sites (ShipStashPanel, UpkeepPhaseComponent,
+## PurchaseItemsComponent, PostBattleSequence) guard on these names, which never
+## existed on this autoload, so the stash UI read empty and purchases were dropped.
+## The ship stash IS this manager's equipment storage (campaign.equipment_data).
+func get_ship_stash() -> Array:
+	return get_all_equipment()
+
+func get_ship_stash_count() -> int:
+	return _equipment_storage.size()
+
+func can_add_to_ship_stash() -> bool:
+	return true  # no hard cap in the data model; panels enforce any display caps
+
+func add_to_ship_stash(item: Dictionary) -> bool:
+	var to_add: Dictionary = item.duplicate(true)
+	if str(to_add.get("id", "")) == "":
+		to_add["id"] = "item_%d_%d" % [Time.get_ticks_msec(), randi() % 100000]
+	return add_equipment(to_add)  # campaign write-through, idempotent by id
+
 ## Reset the manager to an empty state. Used by GameState.restore_equipment_from_campaign
 ## when rehydrating runtime state from a newly-loaded campaign Resource so leftover
 ## items from a previous session don't bleed into the new one.
