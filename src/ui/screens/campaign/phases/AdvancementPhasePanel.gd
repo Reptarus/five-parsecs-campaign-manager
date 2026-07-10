@@ -123,8 +123,6 @@ func _get_crew_members() -> Array:
 	var campaign = _get_campaign_safe()
 	if not campaign:
 		return []
-	if campaign.has_method("get_active_crew_members"):
-		return campaign.get_active_crew_members()
 	if campaign.has_method("get_crew_members"):
 		return campaign.get_crew_members()
 	if "crew_data" in campaign:

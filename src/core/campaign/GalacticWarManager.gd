@@ -43,7 +43,7 @@ func _ensure_initialized() -> void:
 	if _initialized:
 		return
 	_initialized = true
-	dice_system = get_node_or_null("/root/DiceSystem")
+	dice_system = get_node_or_null("/root/DiceSystem")  # lint:ignore — intentional null (roll uses a guarded fallback; DiceManager's roll_dice API differs)
 	load_war_tracks()
 
 func load_war_tracks() -> void:

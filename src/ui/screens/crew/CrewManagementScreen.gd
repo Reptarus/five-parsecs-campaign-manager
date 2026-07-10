@@ -52,8 +52,6 @@ func load_crew_data() -> void:
 	var members: Array = []
 	if current_campaign.has_method("get_crew_members"):
 		members = current_campaign.get_crew_members()
-	elif current_campaign.has_method("get_active_crew_members"):
-		members = current_campaign.get_active_crew_members()
 	elif "crew_data" in current_campaign:
 		members = current_campaign.crew_data.get("members", [])
 
@@ -302,8 +300,6 @@ func _store_crew_list_for_swipe(gsm: Node, selected_character: Character) -> voi
 	var members: Array = []
 	if current_campaign.has_method("get_crew_members"):
 		members = current_campaign.get_crew_members()
-	elif current_campaign.has_method("get_active_crew_members"):
-		members = current_campaign.get_active_crew_members()
 	elif "crew_data" in current_campaign:
 		members = current_campaign.crew_data.get("members", [])
 	if members.is_empty():

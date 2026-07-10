@@ -120,7 +120,7 @@ static func _get_dice_system() -> Node:
 	if Engine.get_main_loop() and Engine.get_main_loop() is SceneTree:
 		var tree = Engine.get_main_loop() as SceneTree
 		if tree.root:
-			var dice_node = tree.root.get_node_or_null("/root/DiceSystem")
+			var dice_node = tree.root.get_node_or_null("/root/DiceSystem")  # lint:ignore — dice methods expect the FPCM_DiceSystem API (roll_dice(pattern,src).total), NOT DiceManager; lookup is intentionally null → else-fallback
 			if dice_node:
 				return dice_node
 			
