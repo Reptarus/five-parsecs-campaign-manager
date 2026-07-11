@@ -1,25 +1,21 @@
 # Wiring / Dead-Code Cleanup Backlog
 
 > ## ▶ RESUME STATE (last updated 2026-07-10)
-> - **Branch `master`, working tree CLEAN.** This session's cleanup commits:
->   `5d38d039` (Tier 3 autoload), `e837ea6c` (combat subsystem), `74121314` (Tier 2 TravelPhaseUI).
->   All committed. Nothing uncommitted.
+> - **Branch `master`, working tree CLEAN.** BOTH the 6-tier cleanup AND the follow-on Book-Rule
+>   Wiring Sprint are COMPLETE and committed. Cleanup: `5d38d039`→`65209733`. Wiring sprint:
+>   `2df0949a` (P1), `c1c02a31` (P2), `3ee5f2d5` (P3). Nothing uncommitted.
 > - **Lint counts: ALL 4 CLEAN ✅** — signal-wiring 0 · tscn 0 · autoload 0 · data-ownership 0.
->   The lint-tracked dead-code slate is CLEAN. Remaining tiers (5, 6) are NOT lint-covered.
-> - **DONE — ALL 6 CLEANUP TIERS COMPLETE:** wiring-audit sprint; Tier 1 `rival_escalated`;
->   Tier 3 (autoload CLEAN); combat subsystem DELETED; Tier 2 TravelPhaseUI DELETED (tscn CLEAN);
->   Tier 4 (all 64 dead signals — signal CLEAN); Tier 5 (23 redundant methods + 2 cascade signals;
->   3 book-mechanics PRESERVED+flagged); **Tier 6 (6 dead temp_data keys' writes + `set_pending_combat`
->   + 2 unused consts DELETED; `current_mission` FLAGGED as a behavioral latent-bug case).**
->   **ALL 4 LINTS CLEAN. The lint-tracked + backlog-tracked dead-code slate is CLEAN.**
-> - **NEXT — the clean slate is reached; remaining work is WIRING, not cleanup:**
->   (1) unblock the 2 Blocked paths (`get_deployable_crew` deployment filter; Unity Agent favor UI);
->   (2) decide wire-or-cut on the 3 flagged book-mechanic gaps (`use_consumable`, Krag armor ×2);
->   (3) resolve the `current_mission` behavioral flag (Tier 6 — is WorldPhaseController:1703's mission
->   a latent bug?). Each is a feature/behavioral task needing the user's call, NOT dead-code removal.
-> - **PER WAVE:** run the deletion protocol (below) before each delete; headless
->   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
->   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
+>   Full suite: **151 suites / 1695 cases / 0 failures** (deterministic).
+> - **DONE — cleanup (all 6 tiers) THEN the wiring sprint that used the clean slate:**
+>   - **P1** (`2df0949a`): `get_deployable_crew` filter now excludes DEAD/MISSING/RETIRED + Sick-Bay/
+>     recovering + departed/skip_next_battle, wired into both deploy sites; `current_mission` battle-handoff
+>     bug fixed (progress_data live channel); PatronRivalManager patron-panel str()-hardened.
+>   - **P2** (`c1c02a31`): Unity Agent "Call in a Favor" (p.20) — 3 backend methods + favor UI.
+>   - **P3** (`3ee5f2d5`): Krag armor 2cr-modify gate in AssignEquipmentComponent; consumable-use
+>     (companion effect-text + depletion) with a battle ActionBar button; 3 pre-existing flaky loot tests fixed.
+> - **NEXT — no tracked cleanup or book-rule-wiring items remain.** All Blocked paths unblocked, all
+>   flagged gaps wired, all lints clean. Future work is net-new features / whatever the user prioritizes.
+>   The 3 permanent lints (`scripts/lint_*.py`) remain the going-forward guard against wiring rot.
 > - **KEY GOTCHAS:** `/root/DiceSystem` is a MockDiceSystem TEST SEAM (already
 >   `# lint:ignore`), NOT dead — grep `tests/` before "fixing" any `/root/Name`.
 >   Producer battle-result keys are TEST-PINNED — never rename. `.uid` siblings
@@ -169,16 +165,16 @@ name-collisions err toward KEEP. 42 initial candidates → 23 true-redundant del
   CampaignPhaseManager `complete_current_turn`/`start_sub_phase`/`reset_phase_tracking` etc. that
   the OLD list called zero-caller are NOT — they have bareword callers. Kept.**
 
-## Discovered unwired book-mechanic gaps (2026-07-10) — decide wire-or-cut (user chose PRESERVE)
+## Discovered unwired book-mechanic gaps — WIRED ✅ (Book-Rule Wiring Sprint, 2026-07-10)
 
-Zero-caller methods found in Tier 5 that are NOT redundant — they implement a book mechanic
-that is live NOWHERE else, so they're gaps (like the Blocked paths), not dead code. Preserved:
-- **`EquipmentManager.use_consumable`** — no consumable-use UI exists anywhere; consumables can
-  be looted/held but never used. Verify book intent (is there an active-use mechanic?) then wire or cut.
-- **`EquipmentManager.modify_armor_for_krag` + `set_armor_krag_designation`** — real Compendium
-  mechanic (`data/compendium/species.json`: Trade-table armor must be designated Krag/non-Krag,
-  Modification 2 Credits reversible; Skulkers/Engineers can wear Krag armor). Implemented, never
-  wired to any equipment/trade flow. Wire into the trade/equipment UI or cut.
+The Tier-5 flagged gaps were WIRED in the follow-on Book-Rule Wiring Sprint (Phase 3, commit `3ee5f2d5`):
+- **`use_consumable` → WIRED.** Book-scoped: this is a COMPANION not a simulator, so "use" shows the
+  effect TEXT (already in `equipment_database.json`) + tracks depletion. Added
+  `EquipmentManager.get_stash_consumables()` + `use_stash_consumable()` + a "💊 Consumable" button on
+  the battle-companion ActionBar (Core Rules p.54, Free Action from the Stash). Test `test_consumable_use` 2/2.
+- **`modify_armor_for_krag` + `set_armor_krag_designation` → WIRED.** Hardened `is_armor_item` (enum OR
+  string type), gated `AssignEquipmentComponent`'s equip: a Krag equipping non-Krag armor is offered the
+  2cr modification, else blocked (Compendium p.15). Test `test_krag_armor` 6/6.
 
 ## Priority tier 6 — dead temp_data writes — DONE ✅ (1 behavioral case flagged)
 
@@ -194,28 +190,27 @@ book-check DONE:** no rules data links travel events to a `pending_combat` hando
 `set_pending_combat` is zero-caller (writer TravelPhaseUI deleted in Tier 2) → deleted the method
 (dead plumbing, not an implemented mechanic; a real travel→combat feature would be a fresh build).
 
-**FLAGGED (behavioral, NOT a clean dead-write — excluded from the delete):** `current_mission`.
-`GameStateManager.set_current_mission()` writes ONLY the dead temp channel, but `get_current_mission()`
-reads `progress_data["current_mission"]` (written LIVE at CampaignTurnController:924 +
-WorldPhaseController:1180). `set_current_mission` is still CALLED — DeveloperQuickStart:379 (guarded)
-and WorldPhaseController:1703, whose flow is SEPARATE from the live :1180 write. So :1703 may have a
-LATENT BUG (its mission stored to a dead channel, never retrievable). Needs a behavioral check: is
-:1703's mission read elsewhere, or should `set_current_mission` write `progress_data` (fix) / be
-deleted with its call sites (if redundant)? Not dead-code-cleanup scope.
+**`current_mission` behavioral bug → FIXED ✅** (Book-Rule Wiring Sprint P1.2, commit `2df0949a`).
+Confirmed a real functional bug: WorldPhaseController:1703 persisted the JOB_OFFERS mission "for Battle
+Phase" via `set_current_mission`, which wrote ONLY the dead temp channel, while the battle reads it
+(CTC:1499) via `get_current_mission` → `progress_data`. Repointed `set_current_mission` to
+`campaign.progress_data["current_mission"]` (the live channel). MCP round-trip verified.
 
 ---
 
-## Blocked paths — UNBLOCK ONLY AFTER the clean slate
+## Blocked paths — UNBLOCKED ✅ (Book-Rule Wiring Sprint, 2026-07-10)
 
-1. **`get_deployable_crew` deployment filter.** Uncalled; the live path
-   `GameState.get_active_crew()` applies NO status filter, so DEAD/RETIRED/DEPARTED/
-   MISSING + the Character-Events `skip_next_battle` gate are unenforced at deployment
-   (Core Rules pp.128-130). Wire the filter into the battle-crew assembly + add a
-   `skip_next_battle` status-effect exclusion; verify via MCP that an affected member is
-   excluded from the deployed roster. Keep `get_deployable_crew` as the fix seed.
-2. **Unity Agent "Call in a Favor" resolution UI** (Core Rules p.20).
-   `CampaignPhaseManager.resolve_unity_agent_favor()` / `mark_unity_agent_trait_lost()`
-   are correct scaffolding with no UI caller (the per-turn roll IS wired). Build the
-   player-facing favor-choice / trait-loss dialog and wire these two methods to it. Note
-   `resolve_unity_agent_favor` also calls `gsm.remove_random_rival()` (dead) —
-   fix/implement that too.
+Both Blocked paths were wired in the follow-on Book-Rule Wiring Sprint after the clean slate.
+
+1. **`get_deployable_crew` deployment filter → DONE** (P1.1, commit `2df0949a`). The filter also
+   didn't work as written — `status` only holds DEAD/MISSING/RETIRED ("DEPARTED" + `skip_next_battle`
+   live in `status_effects`), and INJURED/Sick-Bay crew weren't excluded at all (Core Rules p.55: a
+   Sick Bay character "cannot participate in battles"; p.76 they rejoin only at `recovery_turns == 0`).
+   Now excludes DEAD/MISSING/RETIRED, Sick Bay/recovering, and departed/skip_next_battle effects;
+   exposed `filter_deployable(crew)` as the single authority and routed the battle-deployment sites
+   (PreBattleUI selection + CTC:1497 deploy) through a CTC `_deployable()` helper. Test 10/10; MCP-verified.
+2. **Unity Agent "Call in a Favor" → DONE** (P2, commit `c1c02a31`). Implemented the 3 missing
+   `GameStateManager` methods (`remove_random_rival`/`add_quest_rumor`/`add_patron` — `add_patron`
+   produces a display-safe patron) and filled the empty `CampaignDashboard._on_phase_event` hook with
+   the favor UI (ItemChoicePopup 3-choice on 10-12; travel-or-lose on 2-4 → `mark_unity_agent_trait_lost`).
+   Book-verified p.20. Test `test_unity_agent_favor` 6/6; MCP-verified live resolution.
