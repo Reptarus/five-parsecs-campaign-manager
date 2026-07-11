@@ -14,6 +14,8 @@ const StarsSystemClass = preload(
 ## via this, while staying a 3-column glance grid on desktop/landscape.
 const AdaptivePanelGroupClass = preload(
 	"res://src/ui/components/base/AdaptivePanelGroup.gd")
+const ItemChoicePopupScript = preload(
+	"res://src/ui/components/dialogs/ItemChoicePopup.gd")
 
 # ── Node References (unique names from .tscn) ─────────────────────
 # Header
@@ -1700,9 +1702,68 @@ func _on_phase_completed() -> void:
 	if action_button:
 		action_button.disabled = false
 
-func _on_phase_event(_event: Dictionary) -> void:
+func _on_phase_event(event: Dictionary) -> void:
 	_sync_sp_system()
 	_update_all()
+	# Unity Agent "Call in a Favor" (Core Rules p.20): the per-turn roll is emitted by
+	# CampaignPhaseManager; the dashboard surfaces the player-facing resolution.
+	if str(event.get("type", "")) == "unity_agent_favor":
+		_handle_unity_agent_favor(event)
+
+func _handle_unity_agent_favor(event: Dictionary) -> void:
+	match str(event.get("subtype", "")):
+		"success":
+			_show_unity_favor_choice()
+		"forced_travel":
+			_show_unity_forced_travel(str(event.get("character_name", "")))
+
+## Roll 10-12: player picks one of remove a Rival / gain a Quest Rumor / gain a Patron.
+func _show_unity_favor_choice() -> void:
+	var label_to_key := {
+		"Remove a Rival": "remove_rival",
+		"Gain a Quest Rumor": "gain_quest_rumor",
+		"Gain a Patron": "gain_patron",
+	}
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.item_chosen.connect(func(chosen: String) -> void:
+		var key: String = str(label_to_key.get(chosen, ""))
+		if key != "" and phase_manager and phase_manager.has_method("resolve_unity_agent_favor"):
+			phase_manager.resolve_unity_agent_favor(key)
+		popup.queue_free()
+		_update_all()
+	)
+	add_child(popup)
+	popup.show_choices("Unity Agent — Call in a Favor", label_to_key.keys())
+
+## Roll 2-4: must travel to the next planet this turn, or lose the trait permanently.
+func _show_unity_forced_travel(char_name: String) -> void:
+	var lose_label := "Cannot travel — lose the ability"
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.item_chosen.connect(func(chosen: String) -> void:
+		if chosen == lose_label:
+			_unity_lose_trait(char_name)
+		popup.queue_free()
+		_update_all()
+	)
+	add_child(popup)
+	popup.show_choices(
+		"%s (Unity Agent) must travel to the next planet this turn." % char_name,
+		["We will travel this turn", lose_label])
+
+func _unity_lose_trait(char_name: String) -> void:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("get_active_crew"):
+		return
+	for m in gs.get_active_crew():
+		var mname: String = ""
+		if m is Dictionary:
+			mname = str(m.get("name", m.get("character_name", "")))
+		elif m is Resource and "character_name" in m:
+			mname = str(m.character_name)
+		if mname == char_name:
+			if phase_manager and phase_manager.has_method("mark_unity_agent_trait_lost"):
+				phase_manager.mark_unity_agent_trait_lost(m)
+			return
 
 func _update_phase_ui(phase) -> void:
 	var FPC = GameEnums.FiveParcsecsCampaignPhase
