@@ -296,6 +296,36 @@ func add_to_ship_stash(item: Dictionary) -> bool:
 		to_add["id"] = "item_%d_%d" % [Time.get_ticks_msec(), randi() % 100000]
 	return add_equipment(to_add)  # campaign write-through, idempotent by id
 
+## Consumables currently in the ship stash. (Core Rules p.54: consumables are not
+## carried by a specific character — any crew member may use one from the Stash in battle.)
+func get_stash_consumables() -> Array:
+	var out: Array = []
+	for eq in _equipment_storage:
+		if eq is Dictionary and (str(eq.get("type", "")).to_lower() == "consumable"
+				or str(eq.get("category", "")).to_lower() == "consumable"):
+			out.append(eq)
+	return out
+
+## Use a stash consumable (Core Rules p.54, a Free Action in battle). This is a TABLETOP
+## COMPANION: it does not simulate the effect — it returns the effect text for the player
+## to apply at the table — and tracks depletion (single-use items are removed from the
+## Stash; multi-use items decrement via use_consumable). Returns {used, name, effect, depleted}.
+func use_stash_consumable(item_id: String) -> Dictionary:
+	for eq in _equipment_storage:
+		if not (eq is Dictionary) or str(eq.get("id", "")) != item_id:
+			continue
+		var effect: String = str(eq.get("description", eq.get("effect", "")))
+		var item_name: String = str(eq.get("name", "Consumable"))
+		var single_use: bool = bool(eq.get("single_use", true))  # book consumables are single-use
+		var depleted: bool = single_use
+		if not single_use and (eq.has("remaining_uses") or eq.has("uses")):
+			depleted = bool(use_consumable(eq).get("depleted", false))
+		if depleted:
+			remove_equipment(item_id)
+		equipment_list_updated.emit()
+		return {"used": true, "name": item_name, "effect": effect, "depleted": depleted}
+	return {"used": false}
+
 ## Reset the manager to an empty state. Used by GameState.restore_equipment_from_campaign
 ## when rehydrating runtime state from a newly-loaded campaign Resource so leftover
 ## items from a previous session don't bleed into the new one.
@@ -546,10 +576,18 @@ func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool
 func set_armor_krag_designation(item: Dictionary, is_krag: bool) -> void:
 	item["is_krag_armor"] = is_krag
 
+## True if an item dict is armor, tolerant of both representations in the codebase:
+## the EquipmentCategory.ARMOR enum OR a string type/category "armor" (data items use
+## `{"type": "armor", ...}`, e.g. "Combat Armor").
+func is_armor_item(item: Dictionary) -> bool:
+	if item.get("category", -1) == EquipmentCategory.ARMOR:
+		return true
+	return str(item.get("type", item.get("category", ""))).to_lower() == "armor"
+
 ## Modify armor to fit Krag (or revert) — costs 2 credits (Compendium p.15)
 ## Called during Post-battle Step 11 (Purchase Items, Core Rules p.125)
 func modify_armor_for_krag(item: Dictionary) -> bool:
-	if item.get("category", -1) != EquipmentCategory.ARMOR:
+	if not is_armor_item(item):
 		return false
 	var gsm: Node = Engine.get_main_loop().root.get_node_or_null(
 		"/root/GameStateManager") if Engine.get_main_loop() else null

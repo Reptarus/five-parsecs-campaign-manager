@@ -1,6 +1,8 @@
 extends WorldPhaseComponent
 class_name AssignEquipmentComponent
 
+const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
+
 ## Assign Equipment Component - Equipment Management System
 ## Implements Core Rules p.85 - Transfer items between crew members and stash
 ## Characters can trade items, leave items in stash, or take items from stash
@@ -293,40 +295,84 @@ func _on_transfer_to_crew_pressed() -> void:
 		return
 
 	var item_index = selected[0]
-	if item_index >= 0 and item_index < stash_items.size():
-		var item = stash_items[item_index]
-		var member = crew_data[selected_crew_index]
+	if item_index < 0 or item_index >= stash_items.size():
+		return
+	var item = stash_items[item_index]
+	var member = crew_data[selected_crew_index]
 
-		# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
-		var character_id: String = member.character_id if "character_id" in member else ""
-		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
-		
-		# Try EquipmentManager first for proper state management
-		var equipment_manager = get_node_or_null("/root/EquipmentManager")
-		if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
-			if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):
-				# Update local state to match EquipmentManager
-				stash_items.remove_at(item_index)
-				var equipment = _get_member_equipment(member)
-				equipment.append(item)
-				_set_member_equipment(member, equipment)
-				pass # Transferred to crew member via EquipmentManager
-			else:
-				push_warning("AssignEquipmentComponent: EquipmentManager transfer from stash failed")
-				return
-		else:
-			# Fallback to local state update only
+	# Krag armor rule (Compendium p.15): a Krag can only wear Krag-fitted armor.
+	# Non-Krag armor must be modified to fit (2 Credits) before it can be equipped.
+	if _krag_needs_modification(member, item):
+		_offer_krag_modification(member, item, item_index)
+		return
+
+	_do_transfer_to_crew(member, item, item_index)
+
+func _do_transfer_to_crew(member, item, item_index: int) -> void:
+	# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
+	var character_id: String = member.character_id if "character_id" in member else ""
+	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
+
+	# Try EquipmentManager first for proper state management
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
+		if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):
+			# Update local state to match EquipmentManager
 			stash_items.remove_at(item_index)
 			var equipment = _get_member_equipment(member)
 			equipment.append(item)
 			_set_member_equipment(member, equipment)
+		else:
+			push_warning("AssignEquipmentComponent: EquipmentManager transfer from stash failed")
+			return
+	else:
+		# Fallback to local state update only
+		stash_items.remove_at(item_index)
+		var equipment = _get_member_equipment(member)
+		equipment.append(item)
+		_set_member_equipment(member, equipment)
 
-		_selected_stash_index = -1
-		_populate_crew_equipment()
-		_populate_stash_list()
-		_populate_crew_list()
-		_update_ui_display()
-		_update_detail_strip()
+	_selected_stash_index = -1
+	_populate_crew_equipment()
+	_populate_stash_list()
+	_populate_crew_list()
+	_update_ui_display()
+	_update_detail_strip()
+
+# --- Krag armor designation (Compendium p.15): a Krag can only wear Krag-fitted armor ---
+
+func _is_krag_member(member) -> bool:
+	var sid: String = ""
+	if member is Resource and "species_id" in member:
+		sid = str(member.species_id)
+	elif member is Dictionary:
+		sid = str(member.get("species_id", member.get("origin", "")))
+	return sid.to_lower() == "krag"
+
+## True when a Krag is being handed armor that is not yet Krag-fitted.
+func _krag_needs_modification(member, item) -> bool:
+	if not _is_krag_member(member) or not (item is Dictionary):
+		return false
+	var eqm = get_node_or_null("/root/EquipmentManager")
+	if not eqm or not eqm.has_method("is_armor_item") or not eqm.is_armor_item(item):
+		return false
+	return not item.get("is_krag_armor", false)
+
+## Offer the 2-credit modification (Compendium p.15). Equip only proceeds on modify.
+func _offer_krag_modification(member, item, item_index: int) -> void:
+	var modify_label := "Modify for 2 Credits"
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.item_chosen.connect(func(chosen: String) -> void:
+		if chosen == modify_label:
+			var eqm = get_node_or_null("/root/EquipmentManager")
+			if eqm and eqm.has_method("modify_armor_for_krag") and eqm.modify_armor_for_krag(item):
+				_do_transfer_to_crew(member, item, item_index)
+			else:
+				_show_notification("Not enough credits to modify armor for Krag (2 needed)")
+		popup.queue_free()
+	)
+	add_child(popup)
+	popup.show_choices("A Krag can only wear Krag-fitted armor.", [modify_label, "Cancel"])
 
 func _on_transfer_between_crew_pressed() -> void:
 	## Transfer item between crew members - Sprint C: Complete crew-to-crew transfer

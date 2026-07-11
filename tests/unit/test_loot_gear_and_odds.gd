@@ -26,8 +26,10 @@ func test_gear_gun_mods_minimum():
 	var result = helper._roll_gear_subtable(1)
 
 	assert_that(result).is_not_empty()
-	# Should be one of: Assault Blade, Bipod, Stabilizer, Laser Sight
-	var valid_mods = ["Assault Blade", "Bipod", "Stabilizer", "Laser Sight"]
+	# Book-correct gun mods (Core Rules p.53); must match LootSystemHelper's list.
+	# (Was flaky: expected "Laser Sight" — a gun SIGHT, not a mod — so it failed ~25%
+	# of the time when the helper's random pick returned "Hot Shot Pack".)
+	var valid_mods = ["Assault Blade", "Bipod", "Stabilizer", "Hot Shot Pack"]
 	assert_that(valid_mods).contains(result)
 
 func test_gear_gun_mods_maximum():
@@ -45,8 +47,9 @@ func test_gear_gun_sights():
 	var result = helper._roll_gear_subtable(30)
 
 	assert_that(result).is_not_empty()
-	# Should be one of: Laser Sight, Quality Sight, Seeker Sight
-	var valid_sights = ["Laser Sight", "Quality Sight", "Seeker Sight"]
+	# Book gun sights (Core Rules p.132) — must match LootSystemHelper's list.
+	# (Was flaky: omitted "Unity Battle Sight", failing when the helper picked it.)
+	var valid_sights = ["Laser Sight", "Quality Sight", "Seeker Sight", "Unity Battle Sight"]
 	assert_that(valid_sights).contains(result)
 
 func test_gear_protective_items():
@@ -76,9 +79,12 @@ func test_odds_consumables_minimum():
 	var result = helper._roll_odds_and_ends_subtable(1)
 
 	assert_that(result).contains("2 uses")
-	# Should be one of the consumables
+	# All 6 book consumables (Core Rules p.133) — must match LootSystemHelper's list.
+	# (Was flaky: omitted "Kiranin Crystals" and "Still", so it failed when the
+	# helper's random pick returned either of them.)
 	var has_consumable = result.contains("Booster Pills") or result.contains("Combat Serum") or \
-						 result.contains("Stim-pack") or result.contains("Rage Out")
+						 result.contains("Kiranin Crystals") or result.contains("Rage Out") or \
+						 result.contains("Still") or result.contains("Stim-pack")
 	assert_that(has_consumable).is_true()
 
 func test_odds_consumables_maximum():

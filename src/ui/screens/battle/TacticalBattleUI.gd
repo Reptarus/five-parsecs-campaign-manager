@@ -156,6 +156,7 @@ var _stars_battle_button: Button = null
 # Wave 3 battle-UX: single-level undo of the last player-recorded unit mutation,
 # plus its ActionBar button (set up like _stars_battle_button).
 var _undo_button: Button = null
+var _consumable_button: Button = null
 var _undo_snapshot: Dictionary = {}
 var _stars_battle_popup: PopupPanel = null
 
@@ -365,6 +366,8 @@ func _connect_signals() -> void:
 	call_deferred("_setup_stars_battle_ui")
 	# Wave 3: Undo button on the ActionBar (deferred so the bar exists).
 	call_deferred("_setup_undo_button")
+	# Consumable use — a Free Action from the Stash (Core Rules p.54).
+	call_deferred("_setup_consumable_button")
 
 func _setup_ui() -> void:
 	## Setup the tactical UI — Map-Primary + Drawers frame (redesign port).
@@ -3838,6 +3841,51 @@ func _setup_undo_button() -> void:
 	_undo_button.pressed.connect(_on_undo_button_pressed)
 	action_bar.add_child(_undo_button)
 	action_bar.move_child(_undo_button, 0)  # Leftmost in the bar
+
+
+func _setup_consumable_button() -> void:
+	## "Use Consumable" on the ActionBar. Consumables are a Free Action used from the
+	## Stash in battle (Core Rules p.54); this companion shows the effect + tracks depletion.
+	if not is_inside_tree() or _consumable_button != null:
+		return
+	var action_bar: Container = end_turn_button.get_parent() if end_turn_button else null
+	if not action_bar:
+		return
+	_consumable_button = Button.new()
+	_consumable_button.text = "💊 Consumable"
+	_consumable_button.tooltip_text = "Use a consumable from the Stash (a Free Action in battle)"
+	_consumable_button.custom_minimum_size = Vector2(128, _touch_h())
+	_consumable_button.pressed.connect(_on_consumable_button_pressed)
+	action_bar.add_child(_consumable_button)
+
+
+func _on_consumable_button_pressed() -> void:
+	var eqm = get_node_or_null("/root/EquipmentManager")
+	if not eqm or not eqm.has_method("get_stash_consumables"):
+		return
+	var consumables: Array = eqm.get_stash_consumables()
+	if consumables.is_empty():
+		_log_message("No consumables in the Stash.", UIColors.COLOR_AMBER)
+		return
+	var labels: Array = []
+	var label_to_id := {}
+	for c in consumables:
+		var nm: String = str(c.get("name", "Consumable"))
+		labels.append(nm)
+		label_to_id[nm] = str(c.get("id", ""))
+	var PopupScript = load("res://src/ui/components/dialogs/ItemChoicePopup.gd")
+	var popup: Window = PopupScript.new()
+	popup.item_chosen.connect(func(chosen: String) -> void:
+		var cid: String = str(label_to_id.get(chosen, ""))
+		if cid != "" and eqm.has_method("use_stash_consumable"):
+			var r: Dictionary = eqm.use_stash_consumable(cid)
+			if bool(r.get("used", false)):
+				_log_message("%s used — %s" % [str(r.get("name", "")), str(r.get("effect", ""))],
+					UIColors.COLOR_EMERALD)
+		popup.queue_free()
+	)
+	add_child(popup)
+	popup.show_choices("Use a Consumable (Free Action)", labels)
 
 
 func _on_undo_button_pressed() -> void:
