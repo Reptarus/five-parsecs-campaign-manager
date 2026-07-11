@@ -256,9 +256,7 @@ func _on_add_member_pressed() -> void:
 		push_warning("CrewManagementScreen: Cannot add member - crew at maximum size")
 		return
 	var gsm = get_node_or_null("/root/GameStateManager")
-	if gsm and gsm.has_method("set_temp_data"):
-		gsm.set_temp_data(gsm.TEMP_KEY_CREW_ADD_MODE, true)
-		gsm.set_temp_data(gsm.TEMP_KEY_RETURN_SCREEN, "crew_management")
+	if gsm and gsm.has_method("navigate_to_scene_path"):
 		gsm.navigate_to_scene_path("res://src/ui/screens/character/SimpleCharacterCreator.tscn")
 
 func _on_save_pressed() -> void:

@@ -6,15 +6,17 @@
 >   All committed. Nothing uncommitted.
 > - **Lint counts: ALL 4 CLEAN ✅** — signal-wiring 0 · tscn 0 · autoload 0 · data-ownership 0.
 >   The lint-tracked dead-code slate is CLEAN. Remaining tiers (5, 6) are NOT lint-covered.
-> - **DONE:** wiring-audit sprint; Tier 1 `rival_escalated`; **Tier 3 (autoload CLEAN)**;
->   **combat subsystem DELETED**; **Tier 2 TravelPhaseUI DELETED** (tscn CLEAN);
->   **Tier 4 (all 64 dead signals removed — signal CLEAN)**; **Tier 5 (23 redundant zero-caller
->   methods DELETED + 2 cascade-dead signals; 3 unwired book-mechanics PRESERVED+flagged —
->   see new "Discovered unwired book-mechanic gaps" section).** ALL 4 LINTS still CLEAN.
-> - **NEXT (recommended order):** Tier 6 (dead temp_data writes — `return_screen`/`crew_add_mode`/
->   temp `current_mission`/`world_phase_results`/`planetfall_mission`/`bug_hunt_mission`; + the
->   `pending_combat` book-check, whose writer TravelPhaseUI is now gone so it's fully dead unless
->   book-backed), THEN unblock the 2 Blocked paths (+ decide wire-or-cut on the 3 flagged gaps).
+> - **DONE — ALL 6 CLEANUP TIERS COMPLETE:** wiring-audit sprint; Tier 1 `rival_escalated`;
+>   Tier 3 (autoload CLEAN); combat subsystem DELETED; Tier 2 TravelPhaseUI DELETED (tscn CLEAN);
+>   Tier 4 (all 64 dead signals — signal CLEAN); Tier 5 (23 redundant methods + 2 cascade signals;
+>   3 book-mechanics PRESERVED+flagged); **Tier 6 (6 dead temp_data keys' writes + `set_pending_combat`
+>   + 2 unused consts DELETED; `current_mission` FLAGGED as a behavioral latent-bug case).**
+>   **ALL 4 LINTS CLEAN. The lint-tracked + backlog-tracked dead-code slate is CLEAN.**
+> - **NEXT — the clean slate is reached; remaining work is WIRING, not cleanup:**
+>   (1) unblock the 2 Blocked paths (`get_deployable_crew` deployment filter; Unity Agent favor UI);
+>   (2) decide wire-or-cut on the 3 flagged book-mechanic gaps (`use_consumable`, Krag armor ×2);
+>   (3) resolve the `current_mission` behavioral flag (Tier 6 — is WorldPhaseController:1703's mission
+>   a latent bug?). Each is a feature/behavioral task needing the user's call, NOT dead-code removal.
 > - **PER WAVE:** run the deletion protocol (below) before each delete; headless
 >   compile + FULL suite (`-a tests/unit -a tests/integration -a tests/battle -c`,
 >   baseline 149 suites / 1683 cases / 0 fail) green before commit; one wave = one commit.
@@ -178,15 +180,28 @@ that is live NOWHERE else, so they're gaps (like the Blocked paths), not dead co
   Modification 2 Credits reversible; Skulkers/Engineers can wear Krag armor). Implemented, never
   wired to any equipment/trade flow. Wire into the trade/equipment UI or cut.
 
-## Priority tier 6 — dead temp_data writes (NOT lint-covered)
+## Priority tier 6 — dead temp_data writes — DONE ✅ (1 behavioral case flagged)
 
-`GameStateManager` temp keys written but never read: `return_screen`, `crew_add_mode`,
-`current_mission` (temp channel — live copy is `progress_data`), `world_phase_results`
-(temp channel), `planetfall_mission`, `bug_hunt_mission`. Delete the writes. `pending_combat`:
-its sole writer was `TravelPhaseUI.gd:660` — **now DELETED in Tier 2**, so `pending_combat` has
-0 writers AND 0 readers, and `GameStateManager.set_pending_combat` is now itself zero-caller.
-Core-Rules-p.35 book-check: book-backed travel→combat handoff → `Blocked(feature)` + keep
-`set_pending_combat` as the seed; else delete the temp key + `set_pending_combat` together.
+Resolved 2026-07-10. Verified each key's read sites (literal AND `TEMP_KEY_*` constant forms +
+direct `temp_data[...]`) — all 6 target keys were written, never read. DELETED the dead writes:
+`return_screen` (×2), `crew_add_mode` (×1), `world_phase_results` (×2 — incl. the whole dead
+`if set_temp_data / elif progress_data` block; its only "read" `WorldPhaseSummary:51
+"world_phase_results" in campaign` inspects the campaign OBJECT, not the stored copy),
+`planetfall_mission` (×2, kept the live `_battle_result`/`_battle_context` siblings),
+`bug_hunt_mission` (×2, same). Removed the now-unused `TEMP_KEY_CREW_ADD_MODE`/
+`TEMP_KEY_RETURN_SCREEN` consts (kept `TEMP_KEY_SELECTED_CHARACTER` — live). **`pending_combat`
+book-check DONE:** no rules data links travel events to a `pending_combat` handoff, and
+`set_pending_combat` is zero-caller (writer TravelPhaseUI deleted in Tier 2) → deleted the method
+(dead plumbing, not an implemented mechanic; a real travel→combat feature would be a fresh build).
+
+**FLAGGED (behavioral, NOT a clean dead-write — excluded from the delete):** `current_mission`.
+`GameStateManager.set_current_mission()` writes ONLY the dead temp channel, but `get_current_mission()`
+reads `progress_data["current_mission"]` (written LIVE at CampaignTurnController:924 +
+WorldPhaseController:1180). `set_current_mission` is still CALLED — DeveloperQuickStart:379 (guarded)
+and WorldPhaseController:1703, whose flow is SEPARATE from the live :1180 write. So :1703 may have a
+LATENT BUG (its mission stored to a dead channel, never retrievable). Needs a behavioral check: is
+:1703's mission read elsewhere, or should `set_current_mission` write `progress_data` (fix) / be
+deleted with its call sites (if redundant)? Not dead-code-cleanup scope.
 
 ---
 

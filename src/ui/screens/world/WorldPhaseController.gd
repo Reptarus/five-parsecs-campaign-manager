@@ -1879,11 +1879,6 @@ func _save_world_phase_checkpoint() -> void:
 func _navigate_to_battle_phase(world_phase_results: Dictionary) -> void:
 	## Navigate to battle phase using SceneRouter with fallbacks
 
-	# Store results in GameStateManager temp data for battle phase access
-	if GameStateManager:
-		GameStateManager.set_temp_data("world_phase_results", world_phase_results)
-		GameStateManager.set_temp_data("return_screen", "campaign_turn_controller")
-
 	# Try SceneRouter first (preferred method)
 	if SceneRouter and SceneRouter.has_method("navigate_to"):
 		SceneRouter.navigate_to("pre_battle")

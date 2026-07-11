@@ -71,7 +71,6 @@ func _initialize() -> void:
 		# Clear temp data so we don't re-trigger
 		if gs_mgr.has_method("set_temp_data"):
 			gs_mgr.set_temp_data("bug_hunt_battle_result", null)
-			gs_mgr.set_temp_data("bug_hunt_mission", null)
 	elif campaign:
 		# Normal startup — start or resume turn
 		var turn: int = campaign.campaign_turn if "campaign_turn" in campaign else 0

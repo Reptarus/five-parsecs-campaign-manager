@@ -485,7 +485,6 @@ func _launch_mission() -> void:
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
 	if gs_mgr and gs_mgr.has_method("set_temp_data"):
 		gs_mgr.set_temp_data("bug_hunt_battle_context", wrapped)
-		gs_mgr.set_temp_data("bug_hunt_mission", _mission_context)
 
 	# Navigate to TacticalBattleUI — do NOT complete() here;
 	# the turn controller will handle completion on return from battle

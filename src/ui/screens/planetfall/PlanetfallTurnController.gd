@@ -144,7 +144,6 @@ func _start_or_resume_turn() -> void:
 		_resume_after_battle(battle_result)
 		if gs_mgr.has_method("set_temp_data"):
 			gs_mgr.set_temp_data("planetfall_battle_result", null)
-			gs_mgr.set_temp_data("planetfall_mission", null)
 	elif campaign:
 		var turn: int = campaign.campaign_turn if "campaign_turn" in campaign else 0
 		if turn <= 0:
@@ -808,7 +807,6 @@ func _launch_planetfall_battle() -> void:
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
 	if gs_mgr and gs_mgr.has_method("set_temp_data"):
 		gs_mgr.set_temp_data("planetfall_battle_context", battle_context)
-		gs_mgr.set_temp_data("planetfall_mission", _mission_context)
 
 	# Save campaign before leaving (in case of crash during battle)
 	var game_state = get_node_or_null("/root/GameState")

@@ -1384,11 +1384,6 @@ func _on_return_to_travel() -> void:
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	## Handle world phase completion - skip directly to MISSION phase.
-	# Store world phase results for battle phase access
-	if game_state.has_method("set_temp_data"):
-		game_state.set_temp_data("world_phase_results", results)
-	elif game_state.current_campaign and "progress_data" in game_state.current_campaign:
-		game_state.current_campaign.progress_data["world_phase_results"] = results
 
 	# Skip intermediate phases (STORY, TRAVEL, PRE_MISSION) — they're covered
 	# by the world phase steps. Go directly to MISSION for battle sequence.

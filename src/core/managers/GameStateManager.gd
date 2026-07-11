@@ -33,8 +33,6 @@ var settings: Dictionary = {
 
 # Temp data keys for inter-screen communication
 const TEMP_KEY_SELECTED_CHARACTER := "selected_character"
-const TEMP_KEY_CREW_ADD_MODE := "crew_add_mode"
-const TEMP_KEY_RETURN_SCREEN := "return_screen"
 
 # Temp data storage (cleared on scene change)
 var _temp_data: Dictionary = {}
@@ -536,9 +534,6 @@ func set_rivals(r: Array) -> void:
 
 func set_current_mission(mission: Dictionary) -> void:
 	set_temp_data("current_mission", mission)
-
-func set_pending_combat(combat_data: Dictionary) -> void:
-	set_temp_data("pending_combat", combat_data)
 
 # --- Victory conditions / Story track delegation ---
 
