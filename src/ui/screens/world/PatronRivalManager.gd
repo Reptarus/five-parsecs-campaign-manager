@@ -379,15 +379,16 @@ func _create_patron_panel(patron: Dictionary) -> Control:
 	var vbox = VBoxContainer.new()
 	panel.add_child(vbox)
 
-	# Name and type
+	# Name and type — str()-wrap: patron fields can be numeric enums in save data,
+	# and String + int hard-errors at runtime (aborts the panel; halts under --debug).
 	var name_label: Label = Label.new()
-	name_label.text = patron.name + " (" + patron.type + ")"
+	name_label.text = str(patron.name) + " (" + str(patron.type) + ")"
 	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
 	# Status and relationship
 	var status_label: Label = Label.new()
-	status_label.text = "Status: " + patron.status + " | " + patron.relationship
+	status_label.text = "Status: " + str(patron.status) + " | " + str(patron.relationship)
 	vbox.add_child(status_label)
 
 	# Jobs offered

@@ -347,22 +347,59 @@ func get_crew_size() -> int:
 	return 0
 
 func get_deployable_crew() -> Array:
-	## Returns crew members eligible for battle deployment.
-	## Excludes dead, departed, unavailable, and skip_next_battle characters.
-	## Used by BattlePhase._get_deployed_crew() (Core Rules pp.128-130).
-	var all_crew: Array = get_crew_members()
+	## Returns crew members eligible for battle deployment (single filter authority).
+	## Excludes, per the Core Rules:
+	##  - DEAD / MISSING / RETIRED (status);
+	##  - Sick Bay / recovering from an Injury — recovery_turns > 0 (p.55 "cannot
+	##    participate in battles"; p.76 they may rejoin only once recovery reaches 0);
+	##  - Character-Events status effects "departed" or "skip_next_battle" (pp.128-130).
+	## (Note: p.156 allows Sick Bay crew as "Impaired" in one special scenario — not the
+	##  general deployment case; handle at that scenario if/when built.)
+	return filter_deployable(get_crew_members())
+
+## Filters a given crew array down to battle-deployable members (single filter
+## authority — the battle-deployment sites route their get_active_crew() result
+## through this so "what you can select" and "what deploys" cannot drift).
+func filter_deployable(crew: Array) -> Array:
 	var deployable: Array = []
-	for member in all_crew:
-		var status_val: String = ""
-		if member is Resource and "status" in member:
-			status_val = str(member.status)
-		elif member is Dictionary:
-			status_val = str(member.get("status", "ACTIVE"))
-		# Exclude dead, retired, departed characters
-		if status_val in ["DEAD", "RETIRED", "DEPARTED", "MISSING"]:
-			continue
-		deployable.append(member)
+	for member in crew:
+		if _is_deployable_member(member):
+			deployable.append(member)
 	return deployable
+
+## True if a crew member may be selected/deployed for battle. See get_deployable_crew.
+func _is_deployable_member(member) -> bool:
+	# 1) Out-of-action status
+	var status_val: String = ""
+	if member is Resource and "status" in member:
+		status_val = str(member.status)
+	elif member is Dictionary:
+		status_val = str(member.get("status", "ACTIVE"))
+	if status_val in ["DEAD", "RETIRED", "MISSING"]:
+		return false
+	# 2) Sick Bay / recovering (recovery_turns > 0 = unavailable, p.55/p.76)
+	var recovery: int = 0
+	var in_sick_bay: bool = false
+	if member is Resource:
+		if "current_recovery_turns" in member:
+			recovery = int(member.current_recovery_turns)
+		if "in_sick_bay" in member:
+			in_sick_bay = bool(member.in_sick_bay)
+	elif member is Dictionary:
+		in_sick_bay = bool(member.get("in_sick_bay", false))
+		recovery = int(member.get("recovery_turns", 0))
+	if in_sick_bay or recovery > 0:
+		return false
+	# 3) Character-Events status effects: departed / skip_next_battle exclude this battle
+	var effects: Array = []
+	if member is Resource and "status_effects" in member:
+		effects = member.status_effects
+	elif member is Dictionary:
+		effects = member.get("status_effects", [])
+	for eff in effects:
+		if eff is Dictionary and str(eff.get("type", "")) in ["departed", "skip_next_battle"]:
+			return false
+	return true
 
 ## Returns the campaign crew size SETTING (4, 5, or 6) from Core Rules p.63.
 ## Used for enemy numbers, deployment limits, reaction dice — NOT roster count.
@@ -533,7 +570,13 @@ func set_rivals(r: Array) -> void:
 # --- Mission / Battle (temp_data based) ---
 
 func set_current_mission(mission: Dictionary) -> void:
-	set_temp_data("current_mission", mission)
+	## Store the active mission on the LIVE channel that get_current_mission reads —
+	## campaign.progress_data["current_mission"] (FiveParsecsCampaignCore.get_current_mission).
+	## Previously wrote temp_data (dead: nothing read it) so a mission persisted here for
+	## the battle phase (e.g. WorldPhaseController JOB_OFFERS) never reached the battle.
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["current_mission"] = mission
 
 # --- Victory conditions / Story track delegation ---
 

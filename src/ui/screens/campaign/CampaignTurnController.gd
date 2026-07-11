@@ -949,7 +949,7 @@ func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> 
 				if game_state.has_method("get_campaign_crew_size"):
 					deploy_limit = game_state.get_campaign_crew_size()
 				pre_battle_ui.setup_crew_selection(
-					crew_data, deploy_limit)
+					_deployable(crew_data), deploy_limit)
 
 		# Pass deployment condition to PreBattle
 		var condition: Dictionary = battle_results.get(
@@ -1351,6 +1351,15 @@ func _validate_crew_status_post_battle() -> void:
 			notification_mgr.show_error("All crew members lost! Campaign may need to end.")
 
 
+## Filter a crew array to battle-deployable members via GameStateManager's single
+## filter authority (excludes DEAD/MISSING/RETIRED, Sick Bay / recovering, and the
+## departed / skip_next_battle status effects — Core Rules pp.55, 76, 128-130).
+func _deployable(crew: Array) -> Array:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("filter_deployable"):
+		return gsm.filter_deployable(crew)
+	return crew
+
 func _get_active_crew() -> Array:
 	## Get current crew members from game state
 	if not game_state or not game_state.current_campaign:
@@ -1426,7 +1435,7 @@ func _on_battle_ready_to_launch(mission_context: Dictionary) -> void:
 					if gs_ref.has_method("get_campaign_crew_size"):
 						deploy_limit = gs_ref.get_campaign_crew_size()
 					pre_battle_ui.setup_crew_selection(
-						active_crew, deploy_limit)
+						_deployable(active_crew), deploy_limit)
 
 		# Pass deployment condition to PreBattle
 		var condition = battle_results.get(
@@ -1494,7 +1503,7 @@ func _on_deployment_confirmed() -> void:
 	if tactical_battle_ui:
 		# QA-FIX: Initialize BEFORE show() so _battle_initialized = true prevents
 		# _check_standalone_mode from firing the tier selection overlay
-		var crew_data = game_state.get_active_crew() if game_state.has_method("get_active_crew") else []
+		var crew_data = _deployable(game_state.get_active_crew()) if game_state.has_method("get_active_crew") else []
 		var enemy_data = game_state.get_current_enemies() if game_state.has_method("get_current_enemies") else []
 		var mission_data = game_state.get_current_mission() if game_state.has_method("get_current_mission") else null
 
