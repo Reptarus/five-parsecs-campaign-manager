@@ -125,6 +125,46 @@ func add_crew_member(member_dict: Dictionary) -> void:
 	_rebuild_crew_id_index()
 	_update_modified_time()
 
+func remove_crew_member(character_id: String) -> bool:
+	## Remove a crew member by id (character_id, or legacy "id"), rebuild the
+	## _crew_id_index, and return true if a member was removed. Mutation chokepoint
+	## for crew removals made after creation (e.g. the Campaign Editor). Matches ids
+	## the same way as _rebuild_crew_id_index() so lookups stay consistent.
+	if not crew_data.has("members") or not (crew_data["members"] is Array):
+		return false
+	var members: Array = crew_data["members"]
+	for i in range(members.size()):
+		var m = members[i]
+		if m is Dictionary and str(m.get("character_id", m.get("id", ""))) == character_id:
+			members.remove_at(i)
+			_rebuild_crew_id_index()
+			_update_modified_time()
+			return true
+	return false
+
+func update_crew_member(character_id: String, member_dict: Dictionary) -> bool:
+	## Replace an existing crew member (matched by id) in place, PRESERVING the
+	## current is_captain flag — unlike add_crew_member, which forces is_captain=false.
+	## This makes it the correct write-back for editing ANY member, including the
+	## captain (who lives in members with is_captain=true). Rebuilds the _crew_id_index
+	## and returns true if a member was updated. Mutation chokepoint for crew edits
+	## made after creation (e.g. the Campaign Editor).
+	if not crew_data.has("members") or not (crew_data["members"] is Array):
+		return false
+	var members: Array = crew_data["members"]
+	for i in range(members.size()):
+		var m = members[i]
+		if m is Dictionary and str(m.get("character_id", m.get("id", ""))) == character_id:
+			var safe: Dictionary = member_dict.duplicate(true)
+			# Captaincy comes from the CURRENT roster entry, not the edited dict —
+			# the character creator does not carry the roster's is_captain semantics.
+			safe["is_captain"] = bool(m.get("is_captain", false))
+			members[i] = safe
+			_rebuild_crew_id_index()
+			_update_modified_time()
+			return true
+	return false
+
 func set_captain(data: Dictionary) -> void:
 	## Set captain data
 	captain_data = data.duplicate(true)

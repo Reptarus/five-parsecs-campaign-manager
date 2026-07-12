@@ -312,6 +312,16 @@ func increment_turns_played() -> void:
 	if c and "progress_data" in c:
 		c.progress_data["turns_played"] = c.progress_data.get("turns_played", 0) + 1
 
+## Directly set the campaign turn counter (progress_data["turns_played"]). Sanctioned
+## write-through for the Campaign Editor (onboarding a mid-campaign game / corrections);
+## CampaignPhaseManager remains the normal advance path via increment_turns_played().
+## Clamped to >= 0. NOTE: the Story Track clock is a separate field — this only moves the
+## turn counter (display + a few turn-gate reads), not the story clock.
+func set_turns_played(n: int) -> void:
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["turns_played"] = max(0, n)
+
 func increment_missions_completed() -> void:
 	var c = _get_campaign()
 	if c and "progress_data" in c:

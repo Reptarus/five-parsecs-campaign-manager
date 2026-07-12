@@ -183,6 +183,7 @@ func _connect_buttons() -> void:
 		_safe_connect(load_campaign_button, "pressed", _on_load_campaign_pressed)
 	if new_campaign_button:
 		_safe_connect(new_campaign_button, "pressed", _on_new_campaign_pressed)
+		_add_onboard_button()
 	if coop_campaign_button:
 		_safe_connect(coop_campaign_button, "pressed", _on_coop_campaign_pressed)
 	if battle_simulator_button:
@@ -336,6 +337,36 @@ func _start_new_campaign() -> void:
 	if game_state_manager.has_method("start_new_campaign"):
 		game_state_manager.start_new_campaign()
 		request_scene_change("campaign_setup")
+
+## Code-add an "Onboard Existing Game" button as a sibling of New Campaign (avoids a
+## .tscn edit). Starts the normal creation wizard but flags onboarding mode, so on
+## finalize CampaignCreationUI hands off to the Campaign Editor (set the mid-campaign
+## accumulated state) instead of jumping straight into the turn controller.
+func _add_onboard_button() -> void:
+	if new_campaign_button == null or not is_instance_valid(new_campaign_button):
+		return
+	var parent = new_campaign_button.get_parent()
+	if parent == null:
+		return
+	var onboard_btn := Button.new()
+	onboard_btn.name = "OnboardExisting"
+	onboard_btn.text = "Onboard Existing Game"
+	onboard_btn.tooltip_text = "Enter a tabletop campaign already in progress (set turn, credits, crew)"
+	onboard_btn.custom_minimum_size.y = maxf(new_campaign_button.custom_minimum_size.y, 48.0)
+	onboard_btn.size_flags_horizontal = new_campaign_button.size_flags_horizontal
+	onboard_btn.size_flags_vertical = new_campaign_button.size_flags_vertical
+	onboard_btn.pressed.connect(_on_onboard_existing_pressed)
+	parent.add_child(onboard_btn)
+	parent.move_child(onboard_btn, new_campaign_button.get_index() + 1)
+
+func _on_onboard_existing_pressed() -> void:
+	if not is_instance_valid(game_state_manager):
+		show_message("Error: Game state manager not available")
+		return
+	# Flag consumed by CampaignCreationUI._on_campaign_finalized / CampaignEditorScreen.
+	if game_state_manager.has_method("set_temp_data"):
+		game_state_manager.set_temp_data("onboarding_mode", true)
+	_start_new_campaign()
 
 func _on_tutorial_popup_button_pressed(choice: String) -> void:
 	if tutorial_popup:

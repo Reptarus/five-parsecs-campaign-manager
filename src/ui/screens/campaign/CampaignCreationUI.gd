@@ -305,17 +305,29 @@ func _on_campaign_finalized(data: Dictionary) -> void:
 		gs.set_current_campaign(campaign)
 
 	var router = get_node_or_null("/root/SceneRouter")
-	if router:
-		router.navigate_to_with_loading(
-			"campaign_turn_controller",
-			PackedStringArray([
-				"Initializing Campaign",
-				"Loading Crew Roster",
-				"Loading World State",
-				"Preparing First Turn",
-			]))
-	else:
+	if router == null:
 		push_error("CampaignCreationUI: SceneRouter not found")
+		return
+
+	# Onboarding branch: if the Main-Menu "Onboard Existing Game" flow set the flag,
+	# the wizard just built the crew/ship/world STRUCTURE; hand off to the Campaign
+	# Editor so the player can set the accumulated mid-campaign state (turn #, credits,
+	# story points, per-character real stats). The editor reads + consumes the flag.
+	var gsm = get_node_or_null("/root/GameStateManager")
+	var onboarding: bool = gsm != null and gsm.has_method("get_temp_data") \
+		and bool(gsm.get_temp_data("onboarding_mode", false))
+	if onboarding:
+		router.navigate_to("campaign_editor")
+		return
+
+	router.navigate_to_with_loading(
+		"campaign_turn_controller",
+		PackedStringArray([
+			"Initializing Campaign",
+			"Loading Crew Roster",
+			"Loading World State",
+			"Preparing First Turn",
+		]))
 
 func _force_navigation_refresh() -> void:
 	# Bypass debounce — directly recalculate and emit navigation state

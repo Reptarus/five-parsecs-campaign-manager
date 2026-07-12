@@ -18,6 +18,7 @@ const SCENE_PATHS = {
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+	"campaign_editor": "res://src/ui/screens/campaign/CampaignEditorScreen.tscn",
 	# "main_campaign": UNUSED - no navigate_to calls exist
 	# "campaign_turn": DEPRECATED - replaced by campaign_turn_controller
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",

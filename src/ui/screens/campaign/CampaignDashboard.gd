@@ -164,6 +164,7 @@ func _connect_signals() -> void:
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
 	_add_sheets_button()
+	_add_edit_button()
 	pass  # Hub cards added in _update_ship_and_equipment
 
 
@@ -194,6 +195,33 @@ func _on_sheets_pressed() -> void:
 		router.navigate_to("print_sheet")
 	else:
 		push_warning("CampaignDashboard: SceneRouter unavailable for print_sheet")
+
+
+## Add an "Edit" button to the dashboard action row (Campaign Editor). Built
+## programmatically (like _add_sheets_button) so the .tscn stays clean; sibling-
+## inserted next to the Export button. Opens the CampaignEditorScreen over the
+## current campaign for corrections / mid-campaign adjustments.
+func _add_edit_button() -> void:
+	if export_button == null or not is_instance_valid(export_button):
+		return
+	var parent: Node = export_button.get_parent()
+	if parent == null:
+		return
+	var edit_btn := Button.new()
+	edit_btn.text = "Edit"
+	edit_btn.tooltip_text = "Edit campaign data (turn, credits, story points, crew)"
+	_style_button(edit_btn)
+	edit_btn.pressed.connect(_on_edit_campaign_pressed)
+	parent.add_child(edit_btn)
+	parent.move_child(edit_btn, export_button.get_index() + 1)
+
+
+func _on_edit_campaign_pressed() -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("campaign_editor")
+	else:
+		push_warning("CampaignDashboard: SceneRouter unavailable for campaign_editor")
 
 func _add_help_button() -> void:
 	if not header_panel:
