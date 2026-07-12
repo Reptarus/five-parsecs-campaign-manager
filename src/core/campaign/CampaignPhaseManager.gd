@@ -915,34 +915,24 @@ func _can_transition_to_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
 			return false
 
 func _execute_phase_start() -> void:
-	# Execute phase-specific initialization
+	# Execute phase-specific initialization.
+	# NOTE: the live campaign driver (CampaignDashboard + CampaignTurnController)
+	# only ever calls start_phase() for SETUP, UPKEEP and POST_MISSION — every other
+	# campaign phase is driven directly by CampaignTurnController / WorldPhaseController
+	# and its dedicated phase panel, NOT through this backend executor. The former
+	# STORY/TRAVEL/MISSION/BATTLE_SETUP/BATTLE_RESOLUTION/ADVANCEMENT/TRADING/CHARACTER/
+	# RETIREMENT executor arms (and their empty stub generators) were dead scaffold and
+	# were removed 2026-07-11. PRE_MISSION is retained only because the (currently inert)
+	# sub-phase state machine still hangs off _execute_campaign_phase_start().
 	match current_phase:
 		FiveParcsecsCampaignPhase.SETUP:
 			_execute_setup_phase_start()
 		FiveParcsecsCampaignPhase.UPKEEP:
 			_execute_upkeep_phase_start()
-		FiveParcsecsCampaignPhase.STORY:
-			_execute_story_phase_start()
-		FiveParcsecsCampaignPhase.TRAVEL:
-			_execute_travel_phase_start()
 		FiveParcsecsCampaignPhase.PRE_MISSION:
 			_execute_campaign_phase_start()
-		FiveParcsecsCampaignPhase.MISSION:
-			_execute_mission_phase_start()
-		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			_execute_battle_setup_phase_start()
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			_execute_battle_resolution_phase_start()
 		FiveParcsecsCampaignPhase.POST_MISSION:
 			_execute_post_mission_phase_start()
-		FiveParcsecsCampaignPhase.ADVANCEMENT:
-			_execute_advancement_phase_start()
-		FiveParcsecsCampaignPhase.TRADING:
-			_execute_trade_phase_start()
-		FiveParcsecsCampaignPhase.CHARACTER:
-			_execute_character_phase_start()
-		FiveParcsecsCampaignPhase.RETIREMENT:
-			_execute_end_phase_start()
 
 func _execute_sub_phase_start() -> void:
 	# Only relevant for Campaign Phase
@@ -1002,33 +992,6 @@ func _execute_upkeep_phase_start() -> void:
 	})
 	phase_event_triggered.emit(phase_events[-1])
 
-func _execute_story_phase_start() -> void:
-	# Story Track event turn or normal clock status
-	if _current_story_event:
-		phase_events.append({
-			"type": "story_event_active",
-			"event_id": _current_story_event.event_id,
-			"event_title": _current_story_event.title,
-			"turn_mods": _current_story_event.campaign_turn_mods,
-		})
-	else:
-		var status: Dictionary = {}
-		if story_track:
-			status = story_track.get_status()
-		phase_events.append({
-			"type": "story_clock_status",
-			"story_status": status,
-		})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_travel_phase_start() -> void:
-	phase_events.append({"type": "travel_started"})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_mission_phase_start() -> void:
-	phase_events.append({"type": "mission_started"})
-	phase_event_triggered.emit(phase_events[-1])
-
 func _execute_post_mission_phase_start() -> void:
 	phase_events.append({"type": "post_mission_started"})
 	phase_event_triggered.emit(phase_events[-1])
@@ -1063,71 +1026,9 @@ func _on_post_battle_phase_completed() -> void:
 	phase_events.append({"type": "post_battle_backend_completed"})
 	phase_event_triggered.emit(phase_events[-1])
 
-func _execute_character_phase_start() -> void:
-	phase_events.append({"type": "character_phase_started"})
-	phase_event_triggered.emit(phase_events[-1])
-
 func _execute_campaign_phase_start() -> void:
 	# Start with Travel sub-phase
 	start_sub_phase(CampaignSubPhase.TRAVEL)
-
-func _execute_battle_setup_phase_start() -> void:
-	# Generate battlefield
-	var battlefield = generate_battlefield()
-	phase_events.append({
-		"type": "battlefield_generated",
-		"battlefield": battlefield
-	})
-	phase_event_triggered.emit(phase_events[-1])
-	
-	# Generate enemy forces
-	var enemy_forces = _generate_enemy_forces()
-	phase_events.append({
-		"type": "enemy_forces_generated",
-		"enemies": enemy_forces
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_battle_resolution_phase_start() -> void:
-	# Initialize battle state
-	phase_events.append({
-		"type": "battle_started",
-		"battle_data": _get_current_battle_data()
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_advancement_phase_start() -> void:
-	# Calculate experience earned
-	var experience_earned = _calculate_experience_earned()
-	phase_resources["experience_earned"] = experience_earned
-	phase_events.append({
-		"type": "experience_earned",
-		"experience": experience_earned
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_trade_phase_start() -> void:
-	# Generate trade options
-	var trade_options = _generate_trade_options()
-	phase_events.append({
-		"type": "trade_options",
-		"options": trade_options
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_end_phase_start() -> void:
-	# Generate turn summary
-	var turn_summary = _generate_turn_summary()
-	phase_events.append({
-		"type": "turn_summary",
-		"summary": turn_summary
-	})
-	phase_event_triggered.emit(phase_events[-1])
-	
-	# Advance campaign turn (null-guarded: game_state is Nil on bare
-	# instances, and the unguarded call aborted RETIREMENT phase start)
-	if game_state and game_state.has_method("advance_turn"):
-		game_state.advance_turn()
 
 func _complete_current_sub_phase() -> void:
 	if current_phase != FiveParcsecsCampaignPhase.PRE_MISSION:
@@ -1650,26 +1551,6 @@ func generate_battlefield(theme: String = "", world_traits: Array = [],
 
 	return gen.generate_terrain_suggestions(
 		theme, world_traits, deployment_condition, rng_seed, table_size_ft)
-
-func _generate_enemy_forces() -> Array:
-	# Stub: Generate enemy forces
-	return []
-
-func _get_current_battle_data() -> Dictionary:
-	# Stub: Get current battle data
-	return {}
-
-func _calculate_experience_earned() -> Dictionary:
-	# Stub: Calculate experience earned from battle
-	return {}
-
-func _generate_trade_options() -> Array:
-	# Stub: Generate trade options
-	return []
-
-func _generate_turn_summary() -> Dictionary:
-	# Stub: Generate turn summary
-	return {}
 
 
 # Method to set the game state for testing purposes

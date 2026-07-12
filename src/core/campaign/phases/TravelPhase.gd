@@ -967,13 +967,11 @@ func _process_world_arrival() -> void:
 	if _license_required:
 		license_cost = randi_range(1, 6)  # Core Rules p.72: "Roll a further 1D6"
 
-	# Fake ID on-board item: +1 to license roll (Core Rules p.57)
-	var eq_mgr = get_node_or_null("/root/EquipmentManager")
-	if eq_mgr and eq_mgr.has_method("get_onboard_item_effect"):
-		var fake_id_effect: Dictionary = eq_mgr.get_onboard_item_effect("fake_id")
-		if not fake_id_effect.is_empty():
-			# Check if crew owns Fake ID — would need stash check
-			pass  # TODO: Wire when on-board item ownership is tracked
+	# NOTE: the Fake ID on-board item does NOT modify THIS requirement roll. Per Core
+	# Rules p.57 it adds +1 to "all attempts to OBTAIN a license" — i.e. the forged-
+	# license attempt (1D6 + Savvy, 6+), which is applied in attempt_forge_license()
+	# below, NOT to whether the world requires one. (attempt_forge_license is book-
+	# complete but not yet wired to the World-Phase licensing UI — a separate feature.)
 
 	# --- Step 7: Register new planet + handle return visits ---
 	var visit_number: int = 1
@@ -1156,17 +1154,37 @@ func get_current_substep() -> int:
 	return current_substep
 
 func attempt_forge_license(crew_savvy: int) -> Dictionary:
-	## Attempt to forge a freelancer license (Core Rules p.72)
+	## Attempt to forge a freelancer license (Core Rules p.72): roll 1D6 + Savvy;
+	## 6+ succeeds. A natural 1 (before modifiers) instead adds a new Rival.
+	## A Fake ID on-board item adds +1 to the attempt (Core Rules p.57 — "+1 to all
+	## attempts to obtain a license or other legal document").
 	## crew_savvy: the Savvy stat of the selected crew member
-	## Returns: {success: bool, rival_added: bool, roll: int, total: int}
+	## Returns: {success: bool, rival_added: bool, roll: int, total: int, fake_id: bool}
 	var raw_roll: int = randi_range(1, 6)
-	var total: int = raw_roll + crew_savvy
+	var fake_id_bonus: int = _fake_id_license_bonus()
+	var total: int = raw_roll + crew_savvy + fake_id_bonus
 	if raw_roll == 1:
-		# Natural 1 before modifiers: new rival added
-		return {"success": false, "rival_added": true, "roll": raw_roll, "total": total}
+		# Natural 1 before modifiers: new rival added (Fake ID does not prevent this).
+		return {"success": false, "rival_added": true, "roll": raw_roll, "total": total, "fake_id": fake_id_bonus > 0}
 	if total >= 6:
-		return {"success": true, "rival_added": false, "roll": raw_roll, "total": total}
-	return {"success": false, "rival_added": false, "roll": raw_roll, "total": total}
+		return {"success": true, "rival_added": false, "roll": raw_roll, "total": total, "fake_id": fake_id_bonus > 0}
+	return {"success": false, "rival_added": false, "roll": raw_roll, "total": total, "fake_id": fake_id_bonus > 0}
+
+func _fake_id_license_bonus() -> int:
+	## +1 if the ship stash owns a Fake ID (Core Rules p.57 on-board item). Fake ID is
+	## acquirable via the Gear table (gear_database.json) and the ship-items loot table
+	## (loot_tables.json), so ownership is a stash-name query — no separate on-board
+	## ownership subsystem is required. Returns the book value (1) or 0 if not owned.
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if not eq_mgr or not eq_mgr.has_method("get_ship_stash"):
+		return 0
+	for item in eq_mgr.get_ship_stash():
+		if str(item.get("name", "")).to_lower() == "fake id":
+			var effect: Dictionary = {}
+			if eq_mgr.has_method("get_onboard_item_effect"):
+				effect = eq_mgr.get_onboard_item_effect("fake_id")
+			return int(effect.get("value", 1))
+	return 0
 
 func force_travel_decision(decision: bool) -> void:
 	## Force a specific travel decision (for UI integration)

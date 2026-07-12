@@ -399,10 +399,39 @@ func _on_clear_resolved_pressed() -> void:
 	
 	_refresh_error_list()
 
-## Handler for export_logs_pressed signal
+## Handler for export_logs_pressed signal.
+## Writes the current error log to a timestamped JSON file under user://logs/ and
+## reports the result in the details pane. Prefers the full history; falls back to
+## the active-errors list if history is unavailable.
 func _on_export_logs_pressed() -> void:
-	# NOTE: Deferred — log export functionality not yet implemented
-	pass
+	if not error_logger:
+		return
+	var errors: Array = []
+	if error_logger.has_method("get_error_history"):
+		errors = error_logger.get_error_history()
+	elif error_logger.has_method("get_active_errors"):
+		errors = error_logger.get_active_errors()
+
+	var dir_path: String = "user://logs"
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_recursive_absolute(dir_path)
+	# Filesystem-safe timestamp (no ':' — invalid in filenames on Windows).
+	var stamp: String = Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
+	var path: String = "%s/error_log_%s.json" % [dir_path, stamp]
+	var payload: Dictionary = {
+		"exported_at": Time.get_datetime_string_from_system(),
+		"count": errors.size(),
+		"errors": errors,
+	}
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		if error_details:
+			error_details.text = "[color=#DC2626]Failed to write log export (%s).[/color]" % path
+		return
+	f.store_string(JSON.stringify(payload, "\t"))
+	f.close()
+	if error_details:
+		error_details.text = "[color=#10B981]Exported %d error(s) to %s[/color]" % [errors.size(), path]
 
 # Public methods for test access
 

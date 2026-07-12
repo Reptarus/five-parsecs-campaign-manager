@@ -335,7 +335,9 @@ func _on_clear_pressed() -> void:
 	clear_feed()
 
 func _on_settings_pressed() -> void:
-	# NOTE: Deferred — dice settings dialog not yet implemented
+	# No-op: this DiceFeed component is not instantiated by any live scene or script
+	# (verified 2026-07-11). There is no dice-settings dialog to open; if this component
+	# is ever brought into a live screen, route this to the Settings overlay.
 	pass
 
 func _on_auto_hide_timeout() -> void:

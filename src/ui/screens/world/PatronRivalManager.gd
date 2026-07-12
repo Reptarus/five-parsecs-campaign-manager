@@ -379,21 +379,24 @@ func _create_patron_panel(patron: Dictionary) -> Control:
 	var vbox = VBoxContainer.new()
 	panel.add_child(vbox)
 
-	# Name and type — str()-wrap: patron fields can be numeric enums in save data,
-	# and String + int hard-errors at runtime (aborts the panel; halts under --debug).
+	# Name and type — .get() with defaults: a patron dict from a save / FactionSystem
+	# may be MISSING these keys, and `patron.name` property access on a missing key
+	# hard-errors (aborts the panel; halts under --debug). str() alone only fixes the
+	# int-enum type case, not the missing-key case. Mirrors the safe _update_details
+	# sibling below (:453-470).
 	var name_label: Label = Label.new()
-	name_label.text = str(patron.name) + " (" + str(patron.type) + ")"
+	name_label.text = str(patron.get("name", "Unknown Patron")) + " (" + str(patron.get("type", "Unknown")) + ")"
 	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
 	# Status and relationship
 	var status_label: Label = Label.new()
-	status_label.text = "Status: " + str(patron.status) + " | " + str(patron.relationship)
+	status_label.text = "Status: " + str(patron.get("status", "Unknown")) + " | " + str(patron.get("relationship", "Unknown"))
 	vbox.add_child(status_label)
 
 	# Jobs offered
 	var jobs_label: Label = Label.new()
-	jobs_label.text = "Jobs Available: " + str(patron.jobs_offered)
+	jobs_label.text = "Jobs Available: " + str(patron.get("jobs_offered", 0))
 	vbox.add_child(jobs_label)
 
 	# Select button
@@ -412,22 +415,24 @@ func _create_rival_panel(rival: Dictionary) -> Control:
 
 	# Name and type
 	var name_label: Label = Label.new()
-	# str()-wrap all interpolated dict values: threat_level (and sometimes
-	# type/status/relationship) can be numeric enums in save data, and
-	# String + int hard-errors at runtime (aborting this panel build and, under
-	# the --debug MCP bridge, halting the run). Display-only; no game data changed.
-	name_label.text = str(rival.name) + " (" + str(rival.type) + ")"
+	# .get() with defaults: a rival dict from a save / combat / FactionSystem may be
+	# MISSING these keys (threat_level especially — the QA-dashboard OPEN crash), and
+	# `rival.threat_level` property access on a missing key hard-errors (aborts this
+	# panel build and, under the --debug MCP bridge, halts the run). str() alone only
+	# fixes the int-enum type case, not the missing-key case. Display-only; no game
+	# data changed. Mirrors the safe _update_details sibling below (:453-470).
+	name_label.text = str(rival.get("name", "Unknown Rival")) + " (" + str(rival.get("type", "Unknown")) + ")"
 	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
 	# Threat level and relationship
 	var threat_label: Label = Label.new()
-	threat_label.text = "Threat: " + str(rival.threat_level) + " | " + str(rival.relationship)
+	threat_label.text = "Threat: " + str(rival.get("threat_level", "Unknown")) + " | " + str(rival.get("relationship", "Unknown"))
 	vbox.add_child(threat_label)
 
 	# Status
 	var status_label: Label = Label.new()
-	status_label.text = "Status: " + str(rival.status)
+	status_label.text = "Status: " + str(rival.get("status", "Unknown"))
 	vbox.add_child(status_label)
 
 	# Select button
@@ -472,7 +477,7 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 	if is_patron:
 		# Jobs offered
 		var jobs_label: Label = Label.new()
-		jobs_label.text = "Jobs Available: " + str(entity.jobs_offered)
+		jobs_label.text = "Jobs Available: " + str(entity.get("jobs_offered", 0))
 		details_container.add_child(jobs_label)
 
 		# Offer job button
@@ -540,7 +545,7 @@ func _on_rival_selected(rival: Dictionary) -> void:
 
 func _on_request_job(patron: Dictionary) -> void:
 	## Request a job from selected patron
-	if patron.jobs_offered > 0:
+	if int(patron.get("jobs_offered", 0)) > 0:
 		var job = _generate_job_offer(patron)
 		patron["jobs_offered"] -= 1
 		_refresh_displays()

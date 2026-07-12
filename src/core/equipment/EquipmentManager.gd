@@ -682,12 +682,15 @@ func _on_character_removed(character_id: String) -> void:
 	if character_id in _character_equipment:
 		_character_equipment.erase(character_id)
 
-## Generate available items for market/trade UI.
-## Core Rules p.125: Purchase items by paying 3 credits for a roll on Military
-## Weapon, Gear, or Gadget table. You can also buy Hand Guns, Blades, Colony
-## Rifles, or Shotguns for 1 credit each.
-## TODO: Replace with proper Trade Table (Core Rules p.79) implementation.
-## For now returns random items from equipment database at their listed cost.
+## Generate available items for the TRADING-phase market/purchase UI.
+## Core Rules p.125 (Purchase Items): pay 3 credits for a roll on the Military
+## Weapon, Gear, or Gadget table, or buy Hand Guns, Blades, Colony Rifles, or
+## Shotguns for 1 credit each. This returns candidate items priced at their listed
+## JSON cost (no fabricated markup) for that market view.
+## NOTE: This is NOT the Trade Table (Core Rules p.79) — that barter/roll mechanic
+## is the World-Phase "Trade" crew task and is already implemented canonically at
+## CrewTaskComponent._get_trade_table_result() (data/trade_table.json). Do NOT
+## reimplement the Trade Table here; it would duplicate the single source of truth.
 func generate_market_items(_location_type: int, item_count: int = 5) -> Array:
 	var market_items: Array = []
 	for i in range(item_count):
@@ -715,4 +718,3 @@ func use_consumable(item_data: Dictionary) -> Dictionary:
 	item_data["remaining_uses"] = uses - 1
 	var depleted: bool = item_data["remaining_uses"] <= 0
 	return {"success": true, "remaining": item_data["remaining_uses"], "depleted": depleted, "reason": ""}
-
