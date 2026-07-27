@@ -816,8 +816,46 @@ func _transform_equipment_data_for_turn_system(equipment_data: Dictionary) -> Di
 		if category_items is Array:
 			all_items.append_array(category_items)
 
-	transformed["equipment"] = all_items
-	pass # Equipment data transformed
+	# DEDUPE BY ID while folding. A corrupted creation payload can carry the same
+	# item under both the flat key and a category key (see below), in which case
+	# the naive append_array above puts it in the stash twice. Erasing the source
+	# keys alone does not help: it just moves the duplicates INTO "equipment".
+	# id-less entries are always unique originals (the duplication bugs only ever
+	# copied items that already HAD ids), so they pass through untouched.
+	var folded: Array = []
+	var seen_ids: Dictionary = {}
+	for candidate in all_items:
+		if not (candidate is Dictionary):
+			folded.append(candidate)
+			continue
+		var cid: String = str(candidate.get("id", ""))
+		if cid.is_empty():
+			folded.append(candidate)
+			continue
+		if seen_ids.has(cid):
+			continue
+		seen_ids[cid] = true
+		folded.append(candidate)
+	transformed["equipment"] = folded
+
+	# ERASE the category keys we just folded in. `duplicate(true)` above copied
+	# them, and without this they survive alongside the flat list holding the SAME
+	# items, which then persists into every save. FiveParsecsCampaignCore
+	# .get_all_equipment() unions equipment + weapons + armor + gear, so each item
+	# comes back TWICE: the restore loop in GameState._restore_equipment_from_campaign
+	# auto-generates an id on the first pass, writes it into the shared Dictionary,
+	# then hits the same object on the second pass and reports "Equipment with ID
+	# already exists" (8 errors on every single boot of an affected save).
+	#
+	# `items` goes too. Its only reader is FinalPanel.gd:691, which reads the
+	# CREATION dict during Step 7 review, before this transform runs. Nothing reads
+	# it off the persisted campaign, so keeping it is pure save bloat: a third copy
+	# of the same stash.
+	#
+	# `equipment` is the canonical ship stash per the data-ownership contract, so
+	# collapsing to it is the correct end state, not just a dedupe.
+	for consumed_key in ["weapons", "armor", "gear", "items"]:
+		transformed.erase(consumed_key)
 
 	if not transformed.has("credits"):
 		transformed["credits"] = 0  # Set during equipment generation (Core Rules p.28)

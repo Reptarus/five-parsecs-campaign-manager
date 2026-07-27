@@ -791,7 +791,31 @@ func _restore_equipment_from_campaign(campaign) -> void:
 		# already HAD ids, so an id-less item is always a unique original.
 		if "equipment_data" in campaign and campaign.equipment_data is Dictionary \
 				and campaign.equipment_data.get("equipment", null) is Array:
-			var raw_stash: Array = campaign.equipment_data["equipment"]
+			# Collapse to the canonical single stash. Two distinct corruptions land
+			# here and BOTH must be healed before the rehydrate loop below runs:
+			#
+			# 1. Duplicates WITHIN "equipment" (the original bug: an older
+			#    add_equipment() write-through re-appended every item per load,
+			#    growing the stash 8 -> 16 -> 24).
+			# 2. The SPLIT-FORMAT copies. CampaignFinalizationService folded
+			#    weapons/armor/gear into the flat list but did not erase the source
+			#    keys, so affected saves carry the same items under several keys at
+			#    once (observed: "equipment" and "gear" byte-identical, both with the
+			#    same persisted ids). get_all_equipment() unions equipment + weapons +
+			#    armor + gear, handing the rehydrate loop each item twice and
+			#    producing one "Equipment with ID already exists" per item on every
+			#    boot. Fixed at source, healed here for saves already written.
+			#
+			# "items" is deliberately NOT unioned: it is the id-less creation-format
+			# copy, and since id-less entries are preserved as unique originals (see
+			# below), folding it in would ADD a duplicate of every item rather than
+			# remove one. get_all_equipment() does not read it either. It is erased
+			# as dead weight.
+			var raw_stash: Array = []
+			for source_key in ["equipment", "weapons", "armor", "gear"]:
+				var source_list = campaign.equipment_data.get(source_key, [])
+				if source_list is Array:
+					raw_stash.append_array(source_list)
 			var seen_stash_ids: Dictionary = {}
 			var deduped_stash: Array = []
 			for stash_item in raw_stash:
@@ -800,6 +824,8 @@ func _restore_equipment_from_campaign(campaign) -> void:
 					continue
 				var sid: String = str(stash_item.get("id", ""))
 				if sid.is_empty():
+					# id-less items are always unique originals: the duplication bugs
+					# only ever copied items that already HAD ids.
 					deduped_stash.append(stash_item)
 					continue
 				if seen_stash_ids.has(sid):
@@ -810,6 +836,8 @@ func _restore_equipment_from_campaign(campaign) -> void:
 			if removed_dupes > 0:
 				push_warning("GameState: healed %d duplicate stash item(s) on load" % removed_dupes)
 			campaign.equipment_data["equipment"] = deduped_stash
+			for consumed_key in ["weapons", "armor", "gear", "items"]:
+				campaign.equipment_data.erase(consumed_key)
 
 		# Rehydrate EquipmentManager from the (now clean) stash. Items without an
 		# id (legacy saves) get a stable id auto-generated so they can participate
