@@ -66,7 +66,13 @@ node_modules
 
 # Dev artifacts - prevent root clutter
 /reports/
-/scripts/
+# NOTE: `/scripts/*` not `/scripts/`. Git cannot re-include a file whose PARENT
+# DIRECTORY is excluded, so with `/scripts/` the negation below silently did
+# nothing: the four existing lints only appeared to be covered by it because they
+# were added before the rule existed, and .gitignore does not affect
+# already-tracked files. Any NEW lint was silently dropped by `git add`.
+# Excluding the directory CONTENTS instead lets the negation work.
+/scripts/*
 # ...but the lint suite is tracked CI tooling (wiring-audit + data-ownership guards)
 !/scripts/lint_*.py
 /tools/
