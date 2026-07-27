@@ -730,6 +730,30 @@ func verify_consistency() -> Array[String]:
 						"DUAL LOCATION: item '%s' in both stash and character '%s'" %
 						[eq_id, cid])
 
+	# CHECK 5: equipment_data must carry ONLY the canonical flat "equipment"
+	# stash, never the split-format sibling keys.
+	#
+	# get_all_equipment() UNIONS equipment + weapons + armor + gear, so any
+	# surviving category key makes every item in it appear twice to the restore
+	# loop, the Trade phase, Mission Prep and the save file. That was the bug in
+	# 87c06567 (finalization folded the categories in and never erased them), and
+	# CampaignDashboard._build_equipment_section then re-created it on every visit
+	# by writing its display split back onto the live campaign dict.
+	#
+	# A static lint cannot own this rule: the same key names legitimately appear on
+	# the equipment DATABASE dicts (DataManager.gd:344-346, TradingSystem), which
+	# are a different concept entirely. The distinction is what the dict IS, not
+	# what it is called, so the check belongs here at runtime where the receiver is
+	# known to be the campaign.
+	if "equipment_data" in current_campaign and current_campaign.equipment_data is Dictionary:
+		for category_key in ["weapons", "armor", "gear", "items"]:
+			if current_campaign.equipment_data.has(category_key):
+				violations.append(
+					("SPLIT STASH: equipment_data carries '%s' alongside 'equipment'. " +
+					"get_all_equipment() unions them, so every item in it is counted " +
+					"twice. Something wrote a display split back onto the campaign.") %
+					category_key)
+
 	for v in violations:
 		push_warning("GameState.verify_consistency: " + v)
 	return violations

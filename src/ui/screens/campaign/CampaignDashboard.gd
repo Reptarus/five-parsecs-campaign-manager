@@ -955,28 +955,38 @@ func _build_equipment_section(campaign) -> void:
 		center_vbox.add_child(empty)
 		return
 
-	# If equipment is stored in unified "equipment" array (from creation),
-	# decompose into typed sub-arrays for display
-	if ed.has("equipment") and not ed.has("weapons"):
-		var all_items: Array = ed.get("equipment", [])
-		var _weapons: Array = []
-		var _armor: Array = []
-		var _gear: Array = []
-		for item in all_items:
+	# Decompose the unified "equipment" array into typed groups FOR DISPLAY ONLY.
+	#
+	# These MUST stay local. `ed` above is a live reference to
+	# campaign.equipment_data (GDScript Dictionaries are reference types and there
+	# is no duplicate() here), and FiveParsecsCampaignCore.get_all_equipment()
+	# UNIONS equipment + weapons + armor + gear. Writing the split back therefore
+	# makes every item appear twice, and to_dictionary() persists equipment_data
+	# wholesale so the next save carries the corruption to disk. That is exactly
+	# the bug fixed in 87c06567, and this code re-created it on every dashboard
+	# visit: measured live, get_all_equipment() went 8 -> 16 with 8 duplicate ids
+	# after one visit.
+	#
+	# Worse, the old guard was `not ed.has("weapons")`, so it only stayed dormant
+	# while a stale empty "weapons" key happened to exist. Collapsing the stash to
+	# its canonical shape removed that key and ARMED this path.
+	var weapons: Array = []
+	var armor: Array = []
+	var gear: Array = []
+	if ed.has("weapons") or ed.has("armor") or ed.has("gear"):
+		# Legacy split-format campaign still in memory: read the groups as-is.
+		weapons = ed.get("weapons", [])
+		armor = ed.get("armor", [])
+		gear = ed.get("gear", [])
+	else:
+		for item in ed.get("equipment", []):
 			if item is Dictionary:
-				var itype: String = item.get("type", "gear")
-				if itype == "weapon":
-					_weapons.append(item)
-				elif itype == "armor":
-					_armor.append(item)
-				else:
-					_gear.append(item)
-		ed["weapons"] = _weapons
-		ed["armor"] = _armor
-		ed["gear"] = _gear
+				match str(item.get("type", "gear")):
+					"weapon": weapons.append(item)
+					"armor": armor.append(item)
+					_: gear.append(item)
 
 	# Weapons list
-	var weapons: Array = ed.get("weapons", [])
 	if not weapons.is_empty():
 		center_vbox.add_child(
 			_create_info_row(
@@ -1003,7 +1013,6 @@ func _build_equipment_section(campaign) -> void:
 				center_vbox.add_child(item_lbl)
 
 	# Armor
-	var armor: Array = ed.get("armor", [])
 	if not armor.is_empty():
 		center_vbox.add_child(
 			_create_info_row(
@@ -1025,7 +1034,6 @@ func _build_equipment_section(campaign) -> void:
 				center_vbox.add_child(item_lbl)
 
 	# Gear
-	var gear: Array = ed.get("gear", [])
 	if not gear.is_empty():
 		center_vbox.add_child(
 			_create_info_row(

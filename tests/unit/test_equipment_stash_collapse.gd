@@ -125,6 +125,56 @@ func test_get_all_equipment_returns_each_item_once_after_finalization() -> void:
 	assert_int(ids.size()).is_equal(3)
 
 
+# --- CHECK 5: the runtime invariant that catches a re-infection -------------
+
+func _with_temp_campaign(equipment_data: Dictionary) -> Array:
+	## Swaps a throwaway campaign into GameState, returns verify_consistency()'s
+	## violations, and restores whatever was there. GameState is an autoload, so
+	## leaving a test campaign behind would pollute every later suite.
+	var gs: Node = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return []
+	var previous = gs.current_campaign
+	var campaign = CampaignCore.new()
+	campaign.set_starting_equipment(equipment_data)
+	gs.current_campaign = campaign
+	var violations: Array = gs.verify_consistency()
+	gs.current_campaign = previous
+	return violations
+
+
+func _split_violations(violations: Array) -> Array:
+	var out: Array = []
+	for v in violations:
+		if str(v).begins_with("SPLIT STASH"):
+			out.append(str(v))
+	return out
+
+
+func test_check5_flags_a_stash_that_regained_category_keys() -> void:
+	# The exact damage CampaignDashboard._build_equipment_section used to do by
+	# writing its display split back onto the live campaign dict.
+	var violations := _with_temp_campaign({
+		"equipment": [{"id": "a1", "name": "Rattle Gun"}],
+		"gear": [{"id": "a1", "name": "Rattle Gun"}],
+	})
+	assert_int(_split_violations(violations).size()).override_failure_message(
+		"CHECK 5 did not flag a split stash; got: %s" % str(violations)
+	).is_greater(0)
+
+
+func test_check5_is_quiet_on_a_canonical_stash() -> void:
+	# Anti-false-positive: the healthy shape must not trip it, or the check gets
+	# ignored as noise and stops being a guard at all.
+	var violations := _with_temp_campaign({
+		"equipment": [{"id": "a1", "name": "Rattle Gun"}],
+		"credits": 12,
+	})
+	assert_int(_split_violations(violations).size()).override_failure_message(
+		"CHECK 5 false-positived on a canonical stash: %s" % str(violations)
+	).is_equal(0)
+
+
 func test_the_corrupt_shape_really_did_duplicate() -> void:
 	# Anti-vacuous guard: proves the invariant above is worth asserting by showing
 	# the pre-fix shape genuinely produces doubles through the same accessor. If
