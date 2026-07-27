@@ -10,6 +10,7 @@ extends CanvasLayer
 ## paused while settings are visible.
 
 const SettingsScreenScript = preload("res://src/ui/screens/settings/SettingsScreen.gd")
+const BugReportDialogScript = preload("res://src/ui/components/common/BugReportDialog.gd")
 
 const COLOR_GEAR_BG := Color("#252542")
 const COLOR_GEAR_BG_HOVER := Color("#3A3A5C")
@@ -19,9 +20,14 @@ const GEAR_SIZE := 48  # ISSUE-037: meet TOUCH_TARGET_MIN
 const GEAR_MARGIN := 12
 
 var _gear_button: Button
+var _bug_button: Button
+var _bug_dialog: Window
 var _dimmer: ColorRect
 var _settings_panel: SettingsScreen
 var _hidden_scenes: Array[String] = ["MainMenu", "SettingsScreen"]
+## The bug reporter stays available on MainMenu — a tester can hit a bug there
+## too — so it deliberately does NOT reuse _hidden_scenes.
+var _bug_hidden_scenes: Array[String] = ["SettingsScreen"]
 
 
 func _ready() -> void:
@@ -61,6 +67,10 @@ func _ready() -> void:
 	_gear_button.pressed.connect(_on_gear_pressed)
 	add_child(_gear_button)
 
+	_bug_button = _make_round_button("⚠", "Report a Bug")  # ⚠
+	_bug_button.pressed.connect(_on_bug_pressed)
+	add_child(_bug_button)
+
 	# Position in top-right — CanvasLayer children need manual positioning
 	get_tree().root.size_changed.connect(_reposition)
 	call_deferred("_reposition")
@@ -78,6 +88,28 @@ func _ready() -> void:
 	call_deferred("_update_visibility")
 
 
+## Builds a round chrome button matching the settings gear.
+func _make_round_button(glyph: String, label: String) -> Button:
+	var b := Button.new()
+	b.text = glyph
+	b.custom_minimum_size = Vector2(GEAR_SIZE, GEAR_SIZE)
+	b.size = Vector2(GEAR_SIZE, GEAR_SIZE)
+	b.add_theme_font_size_override("font_size", 22)
+	b.add_theme_color_override("font_color", COLOR_GEAR_TEXT)
+	b.accessibility_name = label
+	b.tooltip_text = label
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.focus_mode = Control.FOCUS_NONE
+
+	for state in ["normal", "hover", "pressed"]:
+		var s := StyleBoxFlat.new()
+		s.bg_color = COLOR_GEAR_BG if state == "normal" else COLOR_GEAR_BG_HOVER
+		s.set_corner_radius_all(GEAR_SIZE / 2)
+		s.set_content_margin_all(4)
+		b.add_theme_stylebox_override(state, s)
+	return b
+
+
 func _reposition() -> void:
 	if not _gear_button:
 		return
@@ -86,6 +118,12 @@ func _reposition() -> void:
 		vp_size.x - GEAR_SIZE - GEAR_MARGIN,
 		GEAR_MARGIN
 	)
+	if _bug_button:
+		# One slot to the left of the gear.
+		_bug_button.position = Vector2(
+			vp_size.x - (GEAR_SIZE * 2) - (GEAR_MARGIN * 2),
+			GEAR_MARGIN
+		)
 	# Keep dimmer and settings panel filling the viewport
 	if _dimmer:
 		_dimmer.position = Vector2.ZERO
@@ -100,6 +138,19 @@ func _on_gear_pressed() -> void:
 	if _settings_panel and _settings_panel.visible:
 		return
 	_show_settings_overlay()
+
+
+func _on_bug_pressed() -> void:
+	# Guard: already open
+	if is_instance_valid(_bug_dialog):
+		return
+	_bug_dialog = BugReportDialogScript.show_report(self)
+
+
+## Opens the bug reporter from anywhere. Public so SettingsScreen (and any
+## future caller) reaches the same single instance guard.
+func open_bug_report() -> void:
+	_on_bug_pressed()
 
 
 func _show_settings_overlay() -> void:
@@ -129,6 +180,12 @@ func _show_settings_overlay() -> void:
 	_dimmer.visible = true
 	_settings_panel.visible = true
 	_gear_button.visible = false
+	# The bug button must hide too. In overlay mode SettingsScreen is a child of
+	# this autoload rather than a root scene, so the _bug_hidden_scenes name
+	# check cannot see it — hide it explicitly here. _hide_settings_overlay()
+	# calls _update_visibility(), which restores it.
+	if _bug_button:
+		_bug_button.visible = false
 	get_tree().paused = true
 
 
@@ -171,13 +228,28 @@ func _update_visibility() -> void:
 	var root := get_tree().root
 	if not root:
 		return
-	# Hide gear when overlay is showing
+	# Hide chrome when the settings overlay is showing
 	if _settings_panel and _settings_panel.visible:
 		_gear_button.visible = false
+		if _bug_button:
+			_bug_button.visible = false
 		return
-	var should_hide := false
+
+	var live_scene_names: Array[String] = []
 	for child in root.get_children():
-		if child.name in _hidden_scenes:
-			should_hide = true
+		live_scene_names.append(child.name)
+
+	var hide_gear := false
+	for n in _hidden_scenes:
+		if n in live_scene_names:
+			hide_gear = true
 			break
-	_gear_button.visible = not should_hide
+	_gear_button.visible = not hide_gear
+
+	if _bug_button:
+		var hide_bug := false
+		for n in _bug_hidden_scenes:
+			if n in live_scene_names:
+				hide_bug = true
+				break
+		_bug_button.visible = not hide_bug

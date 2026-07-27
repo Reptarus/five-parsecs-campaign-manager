@@ -655,11 +655,30 @@ func _build_about_section(parent: VBoxContainer) -> void:
 	card_vbox.add_child(hint_sep)
 
 	var hint := Label.new()
-	hint.text = "When filing a bug report, include the Version + Build values shown above."
+	hint.text = ("The report form fills in Version and Build for you, "
+		+ "along with the screen, campaign phase and recent log.")
 	hint.add_theme_font_size_override("font_size", _font_sm)
 	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card_vbox.add_child(hint)
+
+	# Second entry point for the bug reporter. The always-on button beside the
+	# settings gear (SettingsOverlay) is the fast path; this is the discoverable
+	# one, and it is the only route while the settings overlay itself is open.
+	var report_btn := Button.new()
+	report_btn.text = "Report a Bug"
+	report_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	report_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var report_style := StyleBoxFlat.new()
+	report_style.bg_color = UIColors.COLOR_TERTIARY
+	report_style.border_color = UIColors.COLOR_BORDER
+	report_style.set_border_width_all(1)
+	report_style.set_corner_radius_all(4)
+	report_btn.add_theme_stylebox_override("normal", report_style)
+	report_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	report_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	report_btn.pressed.connect(_on_report_bug_pressed)
+	card_vbox.add_child(report_btn)
 
 	# Telemetry diagnostic — debug-only smoke-test entry point.
 	# Fires a single CampaignAnalytics event through the consent gate
@@ -978,6 +997,19 @@ func _on_debug_pressed() -> void:
 		debug_screen.queue_free()
 	)
 	add_child(debug_screen)
+
+func _on_report_bug_pressed() -> void:
+	## Route through SettingsOverlay so both entry points share one instance
+	## guard. Falls back to opening it here if the autoload is unavailable
+	## (headless tests, or this screen used outside the normal app).
+	var overlay := get_node_or_null("/root/SettingsOverlay")
+	if overlay and overlay.has_method("open_bug_report"):
+		overlay.open_bug_report()
+		return
+	var DialogScript: GDScript = load(
+		"res://src/ui/components/common/BugReportDialog.gd"
+	)
+	DialogScript.show_report(self)
 
 func _on_back_pressed() -> void:
 	if overlay_mode:

@@ -65,6 +65,7 @@ Talo="*uid://bpmdn8oc34pg7"
 
 [debug]
 
+file_logging/enable_file_logging=true
 gdscript/warnings/enable=false
 gdscript/warnings/unused_variable=true
 gdscript/warnings/unused_signal=true
@@ -105,10 +106,6 @@ theme/custom="res://src/ui/themes/sci_fi_theme.tres"
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
-
-[logging]
-
-file_logging/enable_file_logging=true
 
 [physics]
 

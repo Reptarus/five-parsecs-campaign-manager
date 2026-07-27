@@ -51,6 +51,11 @@ const DEFAULTS := {
 		"haptic_feedback": true,
 		"touch_sensitivity": 1.0,
 	},
+	# Remembered so a tester filing repeat bug reports does not retype it.
+	# Not applied to anything at boot — _apply_one() ignores unknown sections.
+	"support": {
+		"reporter_contact": "",
+	},
 }
 
 ## Maps legacy flat-section keys → [section, key] in the new sectioned schema.

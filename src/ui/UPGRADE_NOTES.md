@@ -23,14 +23,14 @@ A new centralized theme manager (`src/ui/themes/ThemeManager.gd`) has been imple
 - Accessibility features (high contrast mode, reduced animations)
 - Theme property overrides for runtime customization
 
-### SettingsDialog
+### SettingsDialog (SUPERSEDED)
 
-A new settings dialog (`src/ui/dialogs/SettingsDialog.gd`) allows users to:
-
-- Select their preferred theme
-- Adjust UI scaling
-- Toggle accessibility features
-- Apply settings immediately or reset to defaults
+The dialog described here (`src/ui/dialogs/SettingsDialog.gd`) was replaced by
+`src/ui/screens/settings/SettingsScreen.gd` and deleted in July 2026 after
+sitting with zero references. Theme selection, UI scaling, accessibility
+toggles, and reset-to-defaults all live in `SettingsScreen`, which the
+`SettingsOverlay` autoload opens as an inline overlay so campaign and battle
+state is never destroyed.
 
 ### ResponsiveContainer
 
