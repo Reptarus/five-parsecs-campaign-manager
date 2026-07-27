@@ -1,6 +1,18 @@
 # MainMenu.gd
 extends Control
 
+## Alpha-1 build scope. The closed alpha validates the Standard 5PFH loop plus
+## the Battle Simulator, so the other gamemodes are hidden from the menu. Bug
+## Hunt, Tactics and Planetfall are ~28k lines carrying no turn-loop test
+## coverage, and a tester crash inside one of them spends alpha time on content
+## that is not being validated. Battle Simulator stays because it reuses
+## TacticalBattleUI, which the core loop already exercises, and it gives a
+## tester the companion in two minutes without the 7-step wizard.
+##
+## The modes remain compiled in and reachable via SceneRouter. Flip this to
+## false to restore every entry point in one edit.
+const A1_BUILD := true
+
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 @onready var continue_button = %Continue as Button
 @onready var load_campaign_button = %LoadCampaign as Button
@@ -82,8 +94,15 @@ func _ready() -> void:
 		# persistent autoload signal is NOT auto-disconnected when this screen is
 		# freed (its captured `self` dangles), so after navigating away it fires on
 		# every emit with freed `self` → "Lambda capture at index 0 was freed".
-		# A method ref IS torn down when the node frees. Godot drops the extra
-		# `cols` arg when the target takes none. (Matches the 12 other screens.)
+		# A method ref IS torn down when the node frees.
+		#
+		# Godot does NOT drop a surplus signal arg — it errors ("Method expected 0
+		# argument(s), but called with 1") and the handler never runs, so the menu
+		# silently failed to re-lay-out on every rotation. `_on_viewport_resized`
+		# therefore takes an OPTIONAL int: it is invoked three ways (viewport
+		# size_changed with 0 args, this signal with 1, and directly below), and a
+		# default param satisfies all three. Same shape as
+		# WorldPhaseComponent._apply_responsive_boxes(_cols: int = 0).
 		rm.layout_class_changed.connect(_on_viewport_resized)
 	_on_viewport_resized()
 
@@ -132,6 +151,7 @@ func setup_ui() -> void:
 	_inject_tactics_button()
 	_inject_planetfall_button()
 	_connect_buttons()
+	_apply_a1_scope()
 	_build_mode_showcase()
 	_wire_mode_hovers()
 	_enforce_touch_targets()
@@ -139,6 +159,8 @@ func setup_ui() -> void:
 
 func _inject_tactics_button() -> void:
 	# Dynamically add Tactics button after Bug Hunt
+	if A1_BUILD:
+		return # out of alpha-1 scope; every later use of tactics_button is null-guarded
 	if not bug_hunt_button:
 		return
 	var menu_container := bug_hunt_button.get_parent()
@@ -154,6 +176,8 @@ func _inject_tactics_button() -> void:
 
 func _inject_planetfall_button() -> void:
 	# Dynamically add Planetfall button after Tactics
+	if A1_BUILD:
+		return # out of alpha-1 scope; every later use of planetfall_button is null-guarded
 	var anchor: Button = tactics_button if tactics_button else bug_hunt_button
 	if not anchor:
 		return
@@ -167,6 +191,22 @@ func _inject_planetfall_button() -> void:
 	var idx := anchor.get_index() + 1
 	menu_container.add_child(planetfall_button)
 	menu_container.move_child(planetfall_button, idx)
+
+func _apply_a1_scope() -> void:
+	## Hide the scene-defined buttons for modes outside alpha-1 scope. Tactics and
+	## Planetfall are handled at their injection sites (never created at all), so
+	## only Co-op and Bug Hunt need hiding here.
+	##
+	## Runs AFTER _connect_buttons so the handlers stay wired: this is a visibility
+	## change, not a teardown, and flipping A1_BUILD restores the menu with no other
+	## edit. A hidden Control does not emit mouse_entered, so _wire_mode_hovers
+	## leaves the showcase card able to resolve only "standard".
+	if not A1_BUILD:
+		return
+	if coop_campaign_button:
+		coop_campaign_button.visible = false
+	if bug_hunt_button:
+		bug_hunt_button.visible = false
 
 func _enforce_touch_targets() -> void:
 	# Ensure all menu buttons meet TOUCH_TARGET_MIN (48px)
@@ -1307,7 +1347,12 @@ func _show_credits() -> void:
 	_active_dialogs.append(dialog)
 	dialog.popup_centered()
 
-func _on_viewport_resized() -> void:
+func _on_viewport_resized(_cols: int = 0) -> void:
+	## `_cols` is unused: the effective-column count arrives from
+	## ResponsiveManager.layout_class_changed, but this screen re-derives what it
+	## needs from should_collapse_to_single_column() below. The parameter exists so
+	## one handler can serve both that 1-arg signal and the 0-arg viewport
+	## size_changed. See the connection site in _ready().
 	var vp := get_viewport()
 	if not vp:
 		return
