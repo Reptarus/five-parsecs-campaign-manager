@@ -1838,6 +1838,34 @@ func restore_from_checkpoint() -> void:
 	world_phase_data = _checkpoint_data.get("world_phase_data", {}).duplicate()
 	automation_enabled = _checkpoint_data.get("automation_enabled", false)
 
+	# RE-DERIVE the stash instead of trusting the checkpoint's copy.
+	#
+	# world_phase_data["stash"] is populated from campaign.get_all_equipment()
+	# (:378, :1287) and then PERSISTED inside progress_data.world_phase_checkpoint.
+	# That makes it a second, independently-stale copy of the ship stash, and it is
+	# what every World Phase surface reads (:496, :508, :1292).
+	#
+	# It is already known to diverge: a real save inspected on 2026-07-27 carried 16
+	# checkpoint items against 8 canonical ones — every item doubled, because the
+	# checkpoint was taken while get_all_equipment() was still unioning the
+	# split-format keys (fixed in 87c06567). The load-time heal in GameState repairs
+	# equipment_data but does NOT reach inside this checkpoint, so a pre-fix
+	# checkpoint would restore the doubled list straight back into the UI.
+	#
+	# Re-deriving on restore fixes existing saves without a migration and removes the
+	# divergence permanently: the stash is derivable, so it should never have been a
+	# persisted copy in the first place.
+	var gs_for_stash = get_node_or_null("/root/GameState")
+	var live_campaign = gs_for_stash.current_campaign if gs_for_stash else null
+	if live_campaign != null:
+		if live_campaign is Dictionary:
+			if live_campaign.has("stash"):
+				world_phase_data["stash"] = live_campaign.get("stash", [])
+		elif live_campaign.has_method("get_all_equipment"):
+			world_phase_data["stash"] = live_campaign.get_all_equipment()
+		elif "equipment_data" in live_campaign:
+			world_phase_data["stash"] = live_campaign.equipment_data.get("equipment", [])
+
 	# Ensure all step keys exist with defaults (guards against incomplete checkpoint data)
 	for step_key in [WorldPhaseStep.UPKEEP, WorldPhaseStep.CREW_TASKS,
 			WorldPhaseStep.JOB_OFFERS, WorldPhaseStep.ASSIGN_EQUIPMENT,
