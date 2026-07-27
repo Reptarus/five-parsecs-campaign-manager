@@ -99,27 +99,38 @@ func set_auto_save_enabled(enabled: bool) -> void:
 # var for UI consumers that still read GameStateManager directly. The legacy
 # `progress_data["credits"/"supplies"/"reputation"/"story_points"]` sync was
 # a dead write target (nobody read it back) and has been removed.
+## All three setters below follow the shape set_story_progress already uses
+## (see its comment at the "Write through ... UNCONDITIONALLY" block): the owner
+## write is NOT change-guarded, because the local mirror can already equal
+## new_amount while the campaign Resource is stale — right after a campaign
+## switch, or after any code that wrote campaign.<field> directly. Only the mirror
+## update and the signal are guarded. The guard itself compares against the FRESH
+## value via the getter, so a direct owner write is never mistaken for "no change".
+
 func set_credits(new_amount: int) -> void:
-	if credits != new_amount:
+	var current := get_credits()
+	if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
+		game_state.current_campaign.credits = new_amount
+	if current != new_amount:
 		credits = new_amount
-		if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
-			game_state.current_campaign.credits = new_amount
 		credits_changed.emit(credits)
 
 func set_supplies(new_amount: int) -> void:
-	if supplies != new_amount:
+	var current := get_supplies()
+	var camp = game_state.current_campaign if game_state else null
+	if camp and "supplies" in camp:
+		camp.supplies = new_amount
+	if current != new_amount:
 		supplies = new_amount
-		var camp = game_state.current_campaign if game_state else null
-		if camp and "supplies" in camp:
-			camp.supplies = new_amount
 		supplies_changed.emit(supplies)
 
 func set_reputation(new_amount: int) -> void:
-	if reputation != new_amount:
+	var current := get_reputation()
+	var camp = game_state.current_campaign if game_state else null
+	if camp and "reputation" in camp:
+		camp.reputation = new_amount
+	if current != new_amount:
 		reputation = new_amount
-		var camp = game_state.current_campaign if game_state else null
-		if camp and "reputation" in camp:
-			camp.reputation = new_amount
 		reputation_changed.emit(reputation)
 
 func set_story_progress(new_amount: int) -> void:
@@ -136,6 +147,34 @@ func set_story_progress(new_amount: int) -> void:
 		story_progress_changed.emit(story_progress)
 
 # Getters
+
+func _canonical_int(field: String, cached: int) -> int:
+	## Re-read a resource value from its CANONICAL OWNER before returning it.
+	##
+	## `credits` / `supplies` / `reputation` / `story_progress` on this manager are
+	## CACHES. FiveParsecsCampaignCore's top-level @vars own them (data-ownership
+	## table, CLAUDE.md). Returning the cache unchecked is what made the resource
+	## arithmetic lossy: add_credits/remove_credits/modify_credits/modify_story_progress
+	## all compute `set_X(f(get_X()))`, so they derived the new canonical value FROM
+	## THE CACHE. Any code that wrote the owner directly was therefore invisible to
+	## them and got silently reverted by the next write.
+	##
+	## Concretely (RedZoneSystem.gd:108): `campaign.credits -= 15` for the Red Zone
+	## licence, then `_commit_zone_travel` calls modify_credits(-5) computed from the
+	## stale cache — the 15cr fee is refunded and the player keeps the licence.
+	## Core Rules Appendix III's endgame gate was free. Other direct writers with the
+	## same exposure: AdvancementPhasePanel.gd:553/557, PostBattleSequence.gd:2594,
+	## ShiplessSystem.gd:53/135, CharacterGeneration.gd:443.
+	##
+	## Note `c.get(field)` is the ONE-arg Object.get(), which is valid. The two-arg
+	## Dictionary-style .get(key, default) on a Resource is an invalid call that
+	## silently aborts the caller — do not "improve" this into that.
+	var c = _get_campaign()
+	if c and field in c:
+		return int(c.get(field))
+	return cached
+
+
 func get_game_state() -> GameState:
 	return game_state
 
@@ -144,13 +183,21 @@ func get_difficulty() -> int:
 	return difficulty_level
 
 func get_credits() -> int:
+	credits = _canonical_int("credits", credits)
 	return credits
 
 
+func get_supplies() -> int:
+	supplies = _canonical_int("supplies", supplies)
+	return supplies
+
+
 func get_reputation() -> int:
+	reputation = _canonical_int("reputation", reputation)
 	return reputation
 
 func get_story_progress() -> int:
+	story_progress = _canonical_int("story_points", story_progress)
 	return story_progress
 
 # Campaign lifecycle
