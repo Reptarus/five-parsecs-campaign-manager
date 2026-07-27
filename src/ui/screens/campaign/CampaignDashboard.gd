@@ -2356,9 +2356,19 @@ func _sync_sp_system() -> void:
 	var campaign = _get_campaign()
 	if not campaign:
 		return
+	# Flags from the mirror, BALANCE from the canonical owner. from_dict() would
+	# restore both from story_point_turn_state, and that mirror goes stale the
+	# moment anything awards a point through campaign.story_points (which is what
+	# GameStateManager.add_story_points and the post-battle A Bitter Day award both
+	# do). The old `elif` fallback only ran while the mirror was EMPTY — false from
+	# the first turn rollover onward — so in practice the popover showed the stale
+	# balance for the whole campaign. Same defect as CampaignPhaseManager's rollover.
 	if _sp_system and "story_point_turn_state" in campaign \
 			and not campaign.story_point_turn_state.is_empty():
-		_sp_system.from_dict(campaign.story_point_turn_state)
+		var turn_state: Dictionary = campaign.story_point_turn_state.duplicate(true)
+		if "story_points" in campaign:
+			turn_state["current_points"] = int(campaign.story_points)
+		_sp_system.from_dict(turn_state)
 	elif _sp_system and "story_points" in campaign:
 		# Fallback: sync balance directly from campaign
 		var diff: int = campaign.story_points \

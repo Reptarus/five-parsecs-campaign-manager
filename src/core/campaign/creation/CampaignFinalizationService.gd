@@ -369,6 +369,35 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# it (Opus 4.8 audit B2 — Galaxy Log plan, 2026-06-01).
 	var tree_for_pdm = Engine.get_main_loop() if Engine.get_main_loop() else null
 	var root_for_pdm = tree_for_pdm.root if tree_for_pdm else null
+
+	# CLEAR THE SHARED AUTOLOADS FIRST — the LOAD path already does this and the
+	# CREATION path did not, so a second campaign made in the same session
+	# inherited the first one's galaxy and factions.
+	#
+	# PlanetDataManager and FactionSystem are process-wide singletons. Their only
+	# reset lives in <Core>.apply_pending_qol_data() (FiveParsecsCampaignCore.gd
+	# :556-559 and :589-592, the latter commented "so stale faction/rival state
+	# from a PRIOR campaign can't bleed in via the shared autoload"). Creation
+	# never reaches that: CampaignCreationUI calls set_current_campaign(), not
+	# load_campaign(), and _pending_qol_data is only filled by from_dictionary().
+	# GameStateManager.start_new_campaign() clears only _temp_data.
+	#
+	# This is not cosmetic. upsert_current_world() below is additive, and
+	# _build_qol_data() snapshots the LIVE autoloads into every save
+	# (FiveParsecsCampaignCore.gd:388-390, :399-402) — and finalize_campaign()
+	# saves immediately after this. So the new campaign's FIRST file on disk
+	# already contained the previous campaign's worlds, travel breadcrumbs,
+	# faction standings and rival reputations, and the Galaxy Log rendered them.
+	# The starting-world anchor was wrong too: the prior campaign's entries are
+	# inserted before ours, so the min-discovered_on_turn scan reached theirs first.
+	if root_for_pdm:
+		var pdm_reset = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
+		if pdm_reset and pdm_reset.has_method("deserialize_all"):
+			pdm_reset.deserialize_all({})
+		var faction_reset = root_for_pdm.get_node_or_null("/root/FactionSystem")
+		if faction_reset and faction_reset.has_method("cleanup"):
+			faction_reset.cleanup()
+
 	if root_for_pdm and not world_data.is_empty():
 		var pdm = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
 		if pdm and pdm.has_method("upsert_current_world"):

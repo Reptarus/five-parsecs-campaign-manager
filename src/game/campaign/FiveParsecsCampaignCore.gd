@@ -155,11 +155,26 @@ func update_crew_member(character_id: String, member_dict: Dictionary) -> bool:
 	for i in range(members.size()):
 		var m = members[i]
 		if m is Dictionary and str(m.get("character_id", m.get("id", ""))) == character_id:
-			var safe: Dictionary = member_dict.duplicate(true)
+			# MERGE, do not replace.
+			#
+			# Editors build member_dict from Character.to_dictionary(), which is a
+			# NARROWING projection of a roster entry: the Character class does not
+			# model roster-only keys, so they are absent from its output. A wholesale
+			# replace therefore DELETED them. Confirmed casualties: in_sick_bay and
+			# sick_bay_turns_remaining (written by CrewTaskComponent.gd:2283-2285), so
+			# editing any crew member sprang them out of Sick Bay — re-counted for
+			# upkeep against Core Rules p.76 and re-eligible for deployment. Same
+			# exposure for locked_out_this_turn and injury_recovery_turns.
+			#
+			# Merging at this chokepoint covers every present and future editor path,
+			# which patching one editor would not. Edited values win; keys the editor
+			# never knew about survive.
+			var merged: Dictionary = m.duplicate(true)
+			merged.merge(member_dict.duplicate(true), true)
 			# Captaincy comes from the CURRENT roster entry, not the edited dict —
 			# the character creator does not carry the roster's is_captain semantics.
-			safe["is_captain"] = bool(m.get("is_captain", false))
-			members[i] = safe
+			merged["is_captain"] = bool(m.get("is_captain", false))
+			members[i] = merged
 			_rebuild_crew_id_index()
 			_update_modified_time()
 			return true

@@ -171,10 +171,26 @@ func _process_turn_rollover() -> void:
 	# Route through StoryPointSystem so signals fire and Insanity mode is checked
 	if "story_points" in campaign:
 		var sp_sys := StoryPointSystemClass.new(campaign)
-		# Load persisted turn state (balance + per-turn flags)
+		# Load the per-turn FLAGS from story_point_turn_state, but take the BALANCE
+		# from campaign.story_points.
+		#
+		# story_point_turn_state is a MIRROR; campaign.story_points is the canonical
+		# owner (data-ownership table, CLAUDE.md). from_dict() restores BOTH from the
+		# mirror, and line ~190 below then writes that value back over the owner — so
+		# every point awarded since the previous rollover was silently rolled back.
+		# Awards do not go through this mirror: GameStateManager.add_story_points()
+		# reads c.story_points, and PostBattlePhase._check_bitter_day_story_point()
+		# does `campaign.story_points += 1` directly. Core Rules pp.66-67 currency
+		# earned from Character Events, Campaign Events, loot and A Bitter Day all
+		# vanished at the next turn boundary.
+		#
+		# Overriding the key rather than reconciling with add_points/remove_points
+		# keeps this free of spend signals and of the Insanity gate in _add_story_points.
 		if "story_point_turn_state" in campaign \
 				and not campaign.story_point_turn_state.is_empty():
-			sp_sys.from_dict(campaign.story_point_turn_state)
+			var turn_state: Dictionary = campaign.story_point_turn_state.duplicate(true)
+			turn_state["current_points"] = int(campaign.story_points)
+			sp_sys.from_dict(turn_state)
 		else:
 			# First turn or missing state — sync from campaign balance
 			sp_sys.add_points(campaign.story_points, "Campaign sync")
@@ -292,9 +308,25 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 			for idx in healed:
 				if idx < injuries.size():
 					injuries.remove_at(idx)
-			# Update status if no more injuries
-			if injuries.is_empty() and member.get("status", "") == "RECOVERING":
-				member["status"] = "ACTIVE"
+			# Update status if no more injuries.
+			#
+			# Accept BOTH casings. The countdown only ever cleared "RECOVERING", but
+			# the writers use lowercase "injured" — CrewTaskComponent._apply_sick_bay
+			# and, since the Sick Bay fix, PostBattleContext.apply_crew_injury (which
+			# uses "injured" because CrewTaskComponent.gd:183 gates on exactly that).
+			# Clearing only one casing would let a healed crew member stay locked out
+			# forever, which is a worse bug than the one being fixed.
+			#
+			# in_sick_bay / recovery_turns must be cleared here too: they are what the
+			# task and upkeep gates actually read, so leaving them set would keep the
+			# member in Sick Bay after their injuries had all healed.
+			if injuries.is_empty():
+				var st: String = str(member.get("status", ""))
+				if st == "RECOVERING" or st == "injured":
+					member["status"] = "ACTIVE"
+				member["in_sick_bay"] = false
+				member["recovery_turns"] = 0
+				member["injury_recovery_turns"] = 0
 
 	# Medical Bay: one crew member marks off 2 turns total (Core Rules p.61)
 	# Normal loop already decremented by 1, so apply 1 more to best candidate

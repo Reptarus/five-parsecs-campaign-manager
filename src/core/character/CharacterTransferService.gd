@@ -128,8 +128,52 @@ func muster_out(character_data: Dictionary) -> Dictionary:
 	}
 
 
+func _current_campaign() -> Variant:
+	## Reach the live campaign from a detached RefCounted. Null-safe by design:
+	## the service is also constructed in tests with no tree.
+	var loop := Engine.get_main_loop()
+	if loop == null or not (loop is SceneTree):
+		return null
+	var root := (loop as SceneTree).root
+	if root == null:
+		return null
+	var gs = root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	return gs.get("current_campaign")
+
+
+func _store_stashed_equipment(character_id: String, items: Array) -> void:
+	## Persist the stash on the CAMPAIGN, not just on this service instance.
+	##
+	## `_stashed_equipment` is a member of a RefCounted that CharacterTransferPanel
+	## creates per-panel and BugHuntDashboard queue_free()s immediately after the
+	## enlistment completes. Muster-out then builds a BRAND NEW service, so the
+	## instance dict was always empty and `_convert_to_standard` restored nothing —
+	## a 5PFH character's entire loadout was destroyed by enlisting, permanently and
+	## irrecoverably, while CharacterTransferPanel.gd:346 told the player
+	## "Equipment has been stashed safely."
+	##
+	## BugHuntCampaignCore already declares `stashed_equipment` (:71) and already
+	## round-trips it (serialise :376, restore :434), so the canonical home existed
+	## the whole time and simply was not being written. No schema change needed.
+	_stashed_equipment[character_id] = items
+	var c = _current_campaign()
+	if c != null and "stashed_equipment" in c:
+		var store: Dictionary = c.stashed_equipment
+		store[character_id] = items.duplicate(true)
+		c.stashed_equipment = store
+
+
 func get_stashed_equipment(character_id: String) -> Array:
-	## Retrieve equipment stashed when a character enlisted.
+	## Retrieve equipment stashed when a character enlisted. Prefers the campaign
+	## (survives the panel teardown and a process restart); falls back to this
+	## instance for tests and for any in-flight single-instance use.
+	var c = _current_campaign()
+	if c != null and "stashed_equipment" in c:
+		var persisted = c.stashed_equipment.get(character_id, null)
+		if persisted is Array:
+			return (persisted as Array).duplicate(true)
 	return _stashed_equipment.get(character_id, [])
 
 
@@ -155,7 +199,7 @@ func _convert_to_bug_hunt(char_data: Dictionary) -> Dictionary:
 		else:
 			stashed.append(item)
 
-	_stashed_equipment[char_id] = stashed
+	_store_stashed_equipment(char_id, stashed)
 
 	# Build transferred character
 	return {

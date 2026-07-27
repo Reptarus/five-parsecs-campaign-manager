@@ -176,9 +176,42 @@ func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 		"duration": recovery,
 		"description": injury.get("description", "Injury sustained"),
 	}
+	# Write the CANONICAL Sick Bay shape, not a private counter.
+	#
+	# This used to set only `injury_recovery_turns`, a field NO reader knows. Every
+	# Sick Bay consumer checks something else, so a post-battle injury enforced
+	# nothing at all: the crew member stayed deployable
+	# (GameStateManager.filter_deployable), stayed eligible for Crew Tasks
+	# (CrewTaskComponent.gd:182-183), and still counted for upkeep
+	# (UpkeepPhaseComponent.gd:151-153, UpkeepSystem.gd:73-77). Core Rules p.55 /
+	# p.76 / p.99 were unenforced for every injury rolled after a battle.
+	#
+	# The canonical shape, confirmed against each reader:
+	#   injuries[]      Array of {type, recovery_turns, ...}; the turn-rollover
+	#                   countdown (CampaignPhaseManager.gd:296-313) decrements each
+	#                   entry and removes it at 0.
+	#   in_sick_bay     bool, the primary gate for tasks and upkeep exemption.
+	#   recovery_turns  int, UpkeepPhaseComponent's fallback when in_sick_bay is absent.
+	#   status          "injured", which CrewTaskComponent.gd:183 ORs into its gate.
+	# `injury_recovery_turns` is still written so anything already reading it keeps
+	# working, but it is no longer the only home.
+	var turn_sustained: int = int(battle_result.get("turn", 0))
+	var injury_record := {
+		"type": effect["type"],
+		"recovery_turns": recovery,
+		"description": effect["description"],
+		"turn_sustained": turn_sustained,
+	}
 	if member is Dictionary:
 		member["is_wounded"] = true
 		member["injury_recovery_turns"] = maxi(int(member.get("injury_recovery_turns", 0)), recovery)
+		if not member.has("injuries"):
+			member["injuries"] = []
+		member["injuries"].append(injury_record)
+		if recovery > 0:
+			member["in_sick_bay"] = true
+			member["recovery_turns"] = maxi(int(member.get("recovery_turns", 0)), recovery)
+			member["status"] = "injured"
 		if not member.has("status_effects"):
 			member["status_effects"] = []
 		member["status_effects"].append(effect)
@@ -187,6 +220,15 @@ func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 			member.is_wounded = true
 		if "injury_recovery_turns" in member:
 			member.injury_recovery_turns = maxi(int(member.injury_recovery_turns), recovery)
+		if "injuries" in member and member.injuries is Array:
+			member.injuries.append(injury_record)
+		if recovery > 0:
+			if "in_sick_bay" in member:
+				member.in_sick_bay = true
+			if "recovery_turns" in member:
+				member.recovery_turns = maxi(int(member.recovery_turns), recovery)
+			if "status" in member:
+				member.status = "injured"
 		apply_character_status_effect(member, effect)
 	return true
 

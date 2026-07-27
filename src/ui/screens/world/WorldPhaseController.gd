@@ -1916,6 +1916,23 @@ func _show_battle_scene_missing_error() -> void:
 
 ## BUG-035 FIX: Enrich crew member dicts with equipment from EquipmentManager
 func _enrich_crew_equipment(typed_crew: Array[Dictionary]) -> void:
+	## Attach the EquipmentManager view of each member's kit WITHOUT clobbering the
+	## canonical one.
+	##
+	## `Character.equipment` is an Array[String] of item NAMES (Character.gd:129).
+	## `EquipmentManager.get_character_equipment()` returns stash item IDs. This used
+	## to assign the IDs straight over `typed_crew[i]["equipment"]`, and typed_crew
+	## holds the LIVE campaign member dictionaries — WorldPhaseController.gd:417 and
+	## CrewTaskComponent.gd:123 only SHALLOW-duplicate the array, so the elements are
+	## shared references into campaign.crew_data["members"]. One Mission Prep visit
+	## therefore rewrote every crew member's canonical equipment as internal ids like
+	## "rattle_gun_5168_92512", and the next save persisted that. GameState.gd:880-927
+	## is a legacy heal that converts exactly those id-strings back to names, i.e.
+	## this has bitten before.
+	##
+	## The ids ARE wanted downstream (MissionPrepComponent's assignment map), so they
+	## are exposed under a SEPARATE key. MissionPrepComponent.gd:87-95 already accepts
+	## either shape, and `equipment` keeps meaning names for every card and DB lookup.
 	var eq_mgr = get_node_or_null("/root/EquipmentManager")
 	if not eq_mgr or not eq_mgr.has_method("get_character_equipment"):
 		return
@@ -1925,8 +1942,20 @@ func _enrich_crew_equipment(typed_crew: Array[Dictionary]) -> void:
 		if member_id.is_empty():
 			continue
 		var member_equip: Array = eq_mgr.get_character_equipment(member_id)
-		if not member_equip.is_empty():
-			typed_crew[i]["equipment"] = member_equip
+		if member_equip.is_empty():
+			continue
+		typed_crew[i]["equipment_ids"] = member_equip
+		# Only fill `equipment` when the member has none — never overwrite names.
+		var existing = typed_crew[i].get("equipment", [])
+		if existing is Array and existing.is_empty() and eq_mgr.has_method("get_equipment"):
+			var resolved: Array = []
+			for eq_id in member_equip:
+				var item = eq_mgr.get_equipment(str(eq_id))
+				var item_name: String = ""
+				if item is Dictionary:
+					item_name = str(item.get("name", ""))
+				resolved.append(item_name if not item_name.is_empty() else str(eq_id))
+			typed_crew[i]["equipment"] = resolved
 
 
 func _setup_psionic_legality_badge() -> void:

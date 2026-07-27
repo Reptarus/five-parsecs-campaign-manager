@@ -6,6 +6,11 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+## Path-preloaded: BattleResultNormalizer deliberately declares NO class_name
+## (see its header — the global class cache is stale), so it cannot be referenced
+## as a global identifier. Reused here for _to_crew_entry(), which is the exact
+## character-object -> crew_id resolution the journal harvest below needs.
+const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
 
 func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 	## Update character lifetime statistics from battle results (kills, damage, participation)
@@ -41,14 +46,45 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 			member.lifetime_damage_taken += damage_taken_per_unit.get(char_id, 0)
 			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
 
+func _resolve_participant_ids(participants: Array) -> Array:
+	## Resolve battle participants to character IDS for journal attribution.
+	##
+	## The journal harvest used to keep only `participant is String`, but ALL THREE
+	## live producers fill crew_participants with character OBJECTS:
+	## TacticalBattleUI.gd:4194-4197 and :4428-4430 (both pass
+	## unit.original_character) and BattleResultsInputForm.gd:373. So crew_ids was
+	## deterministically [] and every battle entry landed with
+	## characters_involved == [] — no battle was ever attributable to a crew member
+	## in CharacterHistoryPanel's "Journal Entries" section, the journal screen's
+	## per-character filter, or the entry detail pane.
+	##
+	## The contract is documented one file over, at PostBattleContext.gd:203-205:
+	## "Producers fill crew_participants with character OBJECTS (not IDs). The old
+	## loop treated them as IDs ... and always returned []." That fix landed on
+	## get_participating_crew() and never reached this harvest.
+	##
+	## Only tests/fixtures/BattleTestFactory.gd:239 supplies Strings, which is
+	## exactly why the suite never caught it: the fixture modelled the contract the
+	## code EXPECTED rather than the one production produces. Strings are still
+	## accepted so those fixtures keep working.
+	var ids: Array = []
+	for participant in participants:
+		if participant is String:
+			if not str(participant).is_empty():
+				ids.append(str(participant))
+			continue
+		var entry: Dictionary = BattleResultNormalizerClass._to_crew_entry(participant)
+		var cid: String = str(entry.get("crew_id", ""))
+		if not cid.is_empty():
+			ids.append(cid)
+	return ids
+
+
 func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 	## Create a journal entry for the completed battle
 	if not ctx.campaign_journal or not ctx.campaign_journal.has_method("auto_create_battle_entry"):
 		return
-	var crew_ids: Array = []
-	for participant in ctx.crew_participants:
-		if participant is String:
-			crew_ids.append(participant)
+	var crew_ids: Array = _resolve_participant_ids(ctx.crew_participants)
 
 	# Determine zone type for tagging and description enrichment
 	var zone_type: String = ""
