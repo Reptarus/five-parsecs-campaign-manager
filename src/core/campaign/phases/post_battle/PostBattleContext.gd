@@ -319,23 +319,35 @@ func remove_quest_rumor() -> void:
 			gc["rumors"] = rumors
 
 func add_rival(rival_name: String) -> void:
+	## Adds an event-sourced rival to the canonical `rivals` list.
+	##
+	## This used to be gated on `if gc is Dictionary` alone. The live 5PFH campaign
+	## is a FiveParsecsCampaignCore RESOURCE, not a Dictionary, so the whole body was
+	## skipped and every event-granted rival was silently dropped. It used the RIGHT
+	## key and still wrote nothing, which is why it never looked wrong. Same class of
+	## defect as RivalPatronResolver's `active_rivals`, opposite cause.
 	var gc = _get_current_campaign()
 	if gc == null:
 		return
+	var rival_id: String = "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
+	var rival := {
+		"id": rival_id,
+		"name": rival_name,
+		"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
+		"hostility": randi_range(3, 5),
+		"resources": randi_range(1, 3),
+		"source": "event"
+	}
 	if gc is Dictionary:
 		var rivals: Array = gc.get("rivals", [])
-		var rival_id: String = "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
-		rivals.append({
-			"id": rival_id,
-			"name": rival_name,
-			"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
-			"hostility": randi_range(3, 5),
-			"resources": randi_range(1, 3),
-			"source": "event"
-		})
+		rivals.append(rival)
 		gc["rivals"] = rivals
-		if planet_data_manager and planet_data_manager.current_planet_id != "":
-			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
+	elif "rivals" in gc:
+		gc.rivals.append(rival)
+	else:
+		return
+	if planet_data_manager and planet_data_manager.current_planet_id != "":
+		planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
 
 func remove_random_patron() -> void:
 	var gc = _get_current_campaign()

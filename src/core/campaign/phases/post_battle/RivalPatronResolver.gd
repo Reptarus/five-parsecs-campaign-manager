@@ -186,17 +186,36 @@ func _create_new_rival_from_battle(ctx: PostBattleContextClass) -> String:
 		"created_turn": ctx.battle_result.get("turn", 0),
 		"origin": "battle_grudge"
 	}
-	if "active_rivals" in campaign:
-		campaign.active_rivals.append(new_rival)
+	# The canonical rival list on FiveParsecsCampaignCore is `rivals`
+	# (FiveParsecsCampaignCore.gd:44, serialised at :225 and :346). `active_rivals`
+	# belongs to DIFFERENT classes — RivalManager, RivalSystem, FactionSystem and
+	# the legacy Campaign — so this was written against the wrong type. Both
+	# branches were permanently false for a real campaign: the Resource has no
+	# `active_rivals` property, and it is not a Dictionary either. The rival was
+	# built, silently discarded, and its id returned as though it had been recorded.
+	# Core Rules p.86 rival acquisition therefore never happened.
+	#
+	# `rivals` is a mixed Array of Strings and Dictionaries (CharacterGeneration
+	# appends names, CrewTaskComponent.gd:2320 and CharacterTransferService.gd:487
+	# append dicts), which is why _remove_rival below reads both shapes.
+	if "rivals" in campaign:
+		campaign.rivals.append(new_rival)
 	elif campaign is Dictionary:
-		if not campaign.has("active_rivals"):
-			campaign["active_rivals"] = []
-		campaign["active_rivals"].append(new_rival)
+		if not campaign.has("rivals"):
+			campaign["rivals"] = []
+		campaign["rivals"].append(new_rival)
 	return new_rival.id
 
 func _remove_rival(ctx: PostBattleContextClass, rival_id: String) -> void:
-	if ctx.game_state and ctx.game_state.current_campaign and "active_rivals" in ctx.game_state.current_campaign:
-		var rivals: Array = ctx.game_state.current_campaign.active_rivals
+	## Same wrong-field bug as _create_new_rival_from_battle, and worse in effect:
+	## the caller appends to `rivals_removed` BEFORE calling this (line 32), and
+	## that array IS consumed — PostBattlePhase.gd:161 emits it, and
+	## CampaignTurnController.gd:381 / PostBattleSequence.gd:649 render it. So with
+	## the guard permanently false, the post-battle screen reported rivals as
+	## removed while the canonical list still held them, and they reappeared next
+	## turn. A silent no-op would have been better than a false success.
+	if ctx.game_state and ctx.game_state.current_campaign and "rivals" in ctx.game_state.current_campaign:
+		var rivals: Array = ctx.game_state.current_campaign.rivals
 		for i in range(rivals.size() - 1, -1, -1):
 			var rival = rivals[i]
 			var rid = rival.get("id", rival) if rival is Dictionary else str(rival)
