@@ -8,9 +8,7 @@ class_name BaseCombatManager
 ## Game-specific implementations should extend this class.
 
 ## Combat-related signals
-signal combat_state_changed(new_state: Dictionary)
 signal character_position_updated(character, new_position: Vector2i)
-signal terrain_modifier_applied(position: Vector2i, modifier: int)
 signal combat_result_calculated(attacker, target, result: int)
 signal combat_advantage_changed(character, advantage: int)
 signal combat_status_changed(character, status: int)

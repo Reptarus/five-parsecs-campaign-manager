@@ -13,7 +13,6 @@ signal roll_processed(table_name: String, result: Dictionary)
 signal validation_failed(table_name: String, reason: String)
 signal custom_roll_processed(table_name: String, roll: int, result: Dictionary)
 signal history_exported(success: bool, file_path: String)
-signal validation_rule_added(table_name: String, rule_name: String)
 signal table_modified(table_name: String, modification_type: String)
 
 # Table Entry class for defining table rows

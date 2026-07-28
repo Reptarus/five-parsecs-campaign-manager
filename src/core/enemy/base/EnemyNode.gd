@@ -44,7 +44,6 @@ var weapon_range: float = 1.0
 # Signals
 signal enemy_initialized(node: EnemyNode) # Pass self
 signal health_changed(old_value, new_value)
-signal died
 signal turn_started(node: EnemyNode)
 signal turn_ended(node: EnemyNode)
 signal attack_executed(node: EnemyNode, target_node: Node) # Specify target type later if possible
