@@ -460,14 +460,25 @@ func add_patron() -> void:
 # --- Character Mutation Helpers ---
 
 func add_character_xp(character: Variant, xp_amount: int) -> void:
-	if not character:
+	## DICTIONARY BRANCH FIRST — has_method() on a Dictionary is an INVALID CALL that
+	## unwinds the whole function, so this mutator silently did nothing for the crew
+	## shape the project actually uses (crew members are canonically Dictionaries per
+	## the data-ownership table). Every caller was affected: the post-battle XP award,
+	## award_xp_to_random_crew and award_xp_to_all_crew.
+	##
+	## Third occurrence of this exact trap found today — see InjuryProcessor and
+	## get_crew_members(), which already documents the rule at :130.
+	if character == null:
 		return
-	if character.has_method("add_experience"):
-		character.add_experience(xp_amount)
-	elif "experience" in character:
-		character.experience += xp_amount
-	elif character is Dictionary:
-		character["experience"] = character.get("experience", 0) + xp_amount
+	if character is Dictionary:
+		var d: Dictionary = character
+		d["experience"] = int(d.get("experience", 0)) + xp_amount
+		return
+	if character is Object:
+		if character.has_method("add_experience"):
+			character.add_experience(xp_amount)
+		elif "experience" in character:
+			character.experience += xp_amount
 
 func award_xp_to_random_crew(xp_amount: int) -> void:
 	var crew := get_crew_members()

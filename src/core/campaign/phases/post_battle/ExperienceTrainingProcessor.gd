@@ -118,8 +118,22 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 
 		if xp_earned > 0:
 			xp_awards.append({"crew_id": crew_id, "xp": xp_earned})
-			if ctx.game_state and ctx.game_state.has_method("add_crew_experience"):
-				ctx.game_state.add_crew_experience(crew_id, xp_earned)
+			# Write through the context, which HAS a working mutator.
+			#
+			# THE BUG THIS FIXES: this was the only XP write, and it was gated on
+			# ctx.game_state.has_method("add_crew_experience") — a method that DOES
+			# NOT EXIST anywhere in the repo. A grep finds only call sites (here,
+			# :226 and WorldPhase.gd:604) and never a `func add_crew_experience`.
+			# Character.gd:263 even carries a comment saying it is "called by
+			# GameState.add_crew_experience", a function that was never written.
+			#
+			# So the guard was permanently false and NO crew member ever gained XP
+			# from a battle, on either the played-out or auto-resolved path. The
+			# post-battle wizard printed "Kaya gained 3 XP" (PostBattleSequence:472
+			# is log-only) while the character sheet never moved — nobody advanced,
+			# bought a stat, or reached an Advanced Training threshold. Campaign
+			# progression was completely flat.
+			ctx.add_character_xp(ctx.get_crew_member(crew_id), xp_earned)
 
 	# Journal: log XP awards
 	if xp_awards.size() > 0 and ctx.campaign_journal \
@@ -223,8 +237,10 @@ func attempt_training_enrollment(ctx: PostBattleContextClass, crew_id: String, c
 	available_credits -= course_cost
 
 	var xp_awarded: int = 1
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("add_crew_experience"):
-		ctx.game_state_manager.add_crew_experience(crew_id, xp_awarded)
+	# Same dead guard as the battle-XP site above — add_crew_experience exists on
+	# neither GameState nor GameStateManager, so paid Advanced Training (Core Rules
+	# p.124) charged the credits and awarded nothing.
+	ctx.add_character_xp(ctx.get_crew_member(crew_id), xp_awarded)
 
 	if ctx.game_state and ctx.game_state.has_method("set_crew_training"):
 		ctx.game_state.set_crew_training(crew_id, course)

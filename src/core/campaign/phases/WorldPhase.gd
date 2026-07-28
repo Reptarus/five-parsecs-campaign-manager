@@ -600,9 +600,23 @@ func _resolve_train_task(crew_id: String) -> Dictionary:
 	var description = training_outcome.get("narrative", "Character completes training and gains experience")
 	var advancement_check = training_outcome.get("advancement_check", true)
 	
-	# Award XP to crew member
-	if game_state_manager and game_state_manager.has_method("add_crew_experience"):
-		game_state_manager.add_crew_experience(crew_id, xp_gained)
+	# Award XP to crew member.
+	#
+	# THE BUG THIS FIXES: this was gated on add_crew_experience(), which exists on
+	# NEITHER GameState nor GameStateManager — a repo-wide grep finds only call sites,
+	# never a definition. So the guard was permanently false and the World Phase Train
+	# task (Core Rules p.124) reported "gains experience" while writing nothing.
+	# Mutate the crew member directly, matching PostBattleContext.add_character_xp.
+	var gs_node := get_node_or_null("/root/GameState")
+	if gs_node and gs_node.get("current_campaign"):
+		var camp = gs_node.current_campaign
+		if camp.has_method("get_crew_member_by_id"):
+			var member = camp.get_crew_member_by_id(crew_id)
+			if member != null:
+				if member is Dictionary:
+					member["experience"] = int(member.get("experience", 0)) + xp_gained
+				elif member is Object and "experience" in member:
+					member.experience += xp_gained
 
 	return {
 		"crew_id": crew_id,

@@ -1028,10 +1028,43 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	var crew_data = _deployable(game_state.get_active_crew())
 	var mission_data = game_state.get_current_mission()
 
-	# Build enemy list from mission data
+	# Build the enemy list from the SAME source the tactical path uses (:1577).
+	#
+	# THE BUG THIS FIXES: this read mission_data["enemies"], a key NOTHING EVER
+	# WRITES. The generated squad lives in GameState._current_enemies
+	# (set_current_enemies at :649/:741) and in mission_data["enemy_force"]["units"]
+	# (:654). current_mission is built as a literal at WorldPhaseController.gd:1170-1206
+	# with objective/enemy_type/pay/danger_pay and no "enemies" key at all — verified
+	# against every writer of that dict.
+	#
+	# So `enemies` was ALWAYS []. BattleResolver.calculate_battle_outcome:527-530
+	# short-circuits `if enemies_alive == 0: success = true; held_field = true`, which
+	# made every single "Play it out for me" an instant flawless victory: zero rounds
+	# fought, zero enemies defeated, zero crew hurt. Today's _deployable and
+	# _map_resolver_crew_outcome fixes were faithfully mapping the casualties of a
+	# battle that had no opponent.
 	var enemies: Array = []
-	if mission_data.has("enemies"):
-		enemies = mission_data["enemies"]
+	if game_state.has_method("get_current_enemies"):
+		var live: Variant = game_state.get_current_enemies()
+		if live is Array:
+			enemies = live
+	if enemies.is_empty():
+		# Fallback to the squad stashed on the mission itself before giving up.
+		var force: Variant = mission_data.get("enemy_force", {})
+		if force is Dictionary:
+			var units: Variant = (force as Dictionary).get("units", [])
+			if units is Array:
+				enemies = units
+	if enemies.is_empty():
+		# REFUSE to auto-resolve an unopposed battle rather than hand the player a
+		# free win. Silently resolving an empty enemy list is what hid this for so
+		# long; a visible failure is strictly better than a fake victory.
+		push_error("CampaignTurnController: auto-resolve has no enemies — "
+			+ "refusing to resolve a battle with no opposition")
+		var nm := get_node_or_null("/root/NotificationManager")
+		if nm and nm.has_method("show_notification"):
+			nm.show_notification("Could not auto-resolve: no enemy force was generated.")
+		return
 
 	# Use BattleResolver for real combat resolution
 	var dice_roller := func() -> int:
