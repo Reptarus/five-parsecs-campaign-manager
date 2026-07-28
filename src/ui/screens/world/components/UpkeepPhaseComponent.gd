@@ -1709,21 +1709,23 @@ func _execute_crew_dismissal(
 	# Remove crew member from campaign
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign:
-		var members: Array = []
-		if "crew_data" in gs.current_campaign:
-			members = gs.current_campaign.crew_data.get("members", [])
 		var member_id: String = member.get(
 			"id", member.get("character_id", ""))
-		for i in range(members.size()):
-			var m = members[i]
-			var mid: String = ""
-			if m is Dictionary:
-				mid = m.get("id", m.get("character_id", ""))
-			elif m is Resource and "id" in m:
-				mid = str(m.id)
-			if mid == member_id and not mid.is_empty():
-				members.remove_at(i)
-				break
+		# Route through the campaign's own mutator (Core Rules p.76 dismissal).
+		#
+		# This used to grab the live members Array (Arrays are reference types, so
+		# that IS the owner) and call members.remove_at(i) directly. That bypassed
+		# remove_crew_member(), which is the chokepoint that also rebuilds
+		# _crew_id_index — so every member positioned AFTER the dismissed one was left
+		# indexed one slot too high, and the dismissed member's own id stayed in the
+		# index pointing at whoever moved into their place.
+		#
+		# get_crew_member_by_id() then resolved those stale entries as cache HITS (it
+		# only range-checked), so World Phase crew-task XP was credited to the wrong
+		# character sheet — silently, in the same turn, since Upkeep is where dismissal
+		# is offered and crew tasks resolve later in that same World Phase.
+		if not member_id.is_empty() and gs.current_campaign.has_method("remove_crew_member"):
+			gs.current_campaign.remove_crew_member(member_id)
 
 	# Remove from local crew_data too
 	crew_data.erase(member)

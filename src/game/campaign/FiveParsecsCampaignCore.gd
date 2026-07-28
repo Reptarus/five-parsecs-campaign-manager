@@ -763,18 +763,52 @@ func get_crew_member_by_id(character_id: String) -> Variant:
 	var members = crew_data.get("members", [])
 	if not (members is Array):
 		return null
-	# Try cached index first.
+	# Try cached index first — but VALIDATE the hit.
+	#
+	# THE BUG THIS FIXES: this used to return members[idx] after checking only that
+	# idx was in range. The docblock above promised a fallback "if the cache is
+	# stale", but the fallback fired on a cache MISS, never on a stale HIT — and a
+	# stale-but-in-range hit is exactly what remove_at() of a non-final member
+	# produces. UpkeepPhaseComponent._execute_crew_dismissal() did precisely that
+	# (:1725), shifting every later member down one while leaving the index untouched
+	# and the dismissed member's own id still in it.
+	#
+	# The result was a silent wrong-member lookup: CrewTaskComponent:1443-1457 credits
+	# World Phase task XP to whatever get_crew_member_by_id returns and RETURNS before
+	# reaching its own linear-scan fallback, so the XP landed on a different character
+	# sheet with no error. Upkeep offers dismissal and crew tasks resolve later in the
+	# SAME World Phase, so it is a same-turn bug.
+	#
+	# GameState.verify_consistency CHECK 3 could not see it either: it flags only
+	# out-of-range entries, and this case is in range and wrong.
 	if _crew_id_index.has(character_id):
 		var idx: int = _crew_id_index[character_id]
-		if idx < members.size():
+		if idx >= 0 and idx < members.size() and _member_has_id(members[idx], character_id):
 			return members[idx]
-	# Cache miss — full scan. Rebuild the cache as a side effect.
+	# Cache miss OR a stale hit — full scan. Rebuild the cache as a side effect.
 	_rebuild_crew_id_index()
 	if _crew_id_index.has(character_id):
 		var idx: int = _crew_id_index[character_id]
 		if idx < members.size():
 			return members[idx]
 	return null
+
+## True if `member` actually carries `character_id`.
+##
+## Used to validate a cached-index hit before trusting it. Extracts the id exactly the
+## way _rebuild_crew_id_index() below does — both spellings, Dictionary and Object —
+## so validation can never disagree with the index it is checking.
+func _member_has_id(member, character_id: String) -> bool:
+	if member is Dictionary:
+		var d: Dictionary = member
+		return str(d.get("character_id", d.get("id", ""))) == character_id
+	if member is Object:
+		if "character_id" in member:
+			return str(member.character_id) == character_id
+		if "id" in member:
+			return str(member.id) == character_id
+	return false
+
 
 func _rebuild_crew_id_index() -> void:
 	_crew_id_index.clear()
