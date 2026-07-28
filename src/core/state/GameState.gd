@@ -411,6 +411,31 @@ func update_recent_campaigns(campaign_id: String) -> void:
 	game_settings.last_campaign = campaign_id
 	save_settings()
 
+## Forget a campaign that has been deleted from disk.
+##
+## Deleting the save file is not enough on its own: the loaded campaign lives on in
+## current_campaign, and `last_campaign` still names it. Without this, Continue
+## reopens the deleted campaign straight from memory and the next autosave writes
+## the file back to the same path — a delete that silently undoes itself. It also
+## drops the id from the recent list so it cannot be offered again.
+func forget_campaign(campaign_id: String) -> void:
+	if campaign_id.is_empty():
+		return
+
+	if current_campaign and "campaign_id" in current_campaign \
+			and str(current_campaign.campaign_id) == campaign_id:
+		current_campaign = null
+		state_changed.emit()
+
+	if str(game_settings.get("last_campaign", "")) == campaign_id:
+		game_settings["last_campaign"] = ""
+
+	var recent = game_settings.get("recently_used_campaigns", [])
+	if recent is Array and recent.has(campaign_id):
+		recent.erase(campaign_id)
+
+	save_settings()
+
 ## Save a campaign to disk
 ## @param campaign The campaign to save (uses current_campaign if null)
 ## @param path The path to save to (uses default if empty)

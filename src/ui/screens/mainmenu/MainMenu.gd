@@ -678,6 +678,18 @@ func _on_delete_save(path: String, row: Node, save_name: String, dialog: Node) -
 	confirm.ok_button_text = "Delete"
 	confirm.confirmed.connect(func():
 		if DirAccess.remove_absolute(path) == OK:
+			# Remove the .bak generation too. SaveFileWriter keeps the previous
+			# generation beside every save and load_from_file() now falls back to it,
+			# so deleting only the primary would let the campaign reappear on the very
+			# next load — a delete that quietly undoes itself.
+			var bak := path + ".bak"
+			if FileAccess.file_exists(bak):
+				DirAccess.remove_absolute(bak)
+			# Evict it from memory as well. GameState holds the loaded campaign, and
+			# nothing here told it the file is gone: Continue would reopen the deleted
+			# campaign from RAM and the next autosave would write the file straight
+			# back to the same path.
+			_forget_deleted_campaign(path)
 			if is_instance_valid(row):
 				row.queue_free()
 			push_warning("MainMenu: Deleted save: %s" % path)
@@ -691,6 +703,19 @@ func _on_delete_save(path: String, row: Node, save_name: String, dialog: Node) -
 	else:
 		add_child(confirm)
 	confirm.popup_centered()
+
+func _forget_deleted_campaign(path: String) -> void:
+	## Evict a just-deleted campaign from GameState. Saves are written as
+	## user://saves/<campaign_id>.save, so the basename IS the id.
+	var campaign_id := path.get_file().get_basename()
+	if campaign_id.is_empty():
+		return
+	var gs := get_node_or_null("/root/GameState")
+	if gs and gs.has_method("forget_campaign"):
+		gs.forget_campaign(campaign_id)
+	# Continue is only meaningful while a campaign is loaded; re-evaluate now that
+	# one may have just been dropped.
+	update_continue_button_visibility()
 
 
 func _on_import_from_file(load_dialog: Node) -> void:

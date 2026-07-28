@@ -766,23 +766,19 @@ static func create_new_campaign(name: String, difficulty: int = 0) -> FiveParsec
 	return campaign
 
 static func load_from_file(path: String) -> FiveParsecsCampaignCore:
-	## Load campaign from save file
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return null
-
-	var json_string = file.get_as_text()
-	file.close()
-
-	var json = JSON.new()
-	var parse_result = json.parse(json_string)
-
-	if parse_result != OK:
+	## Load campaign from save file, falling back to the .bak generation.
+	##
+	## Reading through SaveFileWriter is what makes the backup real: save_to_file()
+	## keeps the prior generation as <path>.bak on every write, but reading the
+	## primary directly (as this did) meant a truncated or half-written save was
+	## simply unloadable and the intact backup sitting beside it was never opened.
+	var data := SaveFileWriterRef.read_json_with_fallback(path)
+	if data.is_empty():
 		return null
 
 	var _Self = load("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 	var campaign = _Self.new()
-	campaign.from_dictionary(json.data)
+	campaign.from_dictionary(data)
 	return campaign
 
 ## JSON-based save (consistent with load_from_file)

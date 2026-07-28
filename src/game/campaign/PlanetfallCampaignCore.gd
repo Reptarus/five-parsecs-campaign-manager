@@ -770,19 +770,14 @@ func save_to_file(path: String) -> Error:
 
 
 static func load_from_file(path: String) -> PlanetfallCampaignCore:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return null
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		file.close()
-		return null
-	file.close()
-	if json.data is not Dictionary:
+	## Reads through SaveFileWriter so the .bak generation written by save_to_file()
+	## is actually consulted when the primary is truncated or unparseable.
+	var data := SaveFileWriterRef.read_json_with_fallback(path)
+	if data.is_empty():
 		return null
 	var _Self = load("res://src/game/campaign/PlanetfallCampaignCore.gd")
 	var campaign = _Self.new()
-	campaign.from_dictionary(json.data)
+	campaign.from_dictionary(data)
 	return campaign
 
 

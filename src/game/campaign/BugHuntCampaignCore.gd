@@ -527,21 +527,15 @@ func save_to_file(path: String) -> Error:
 
 
 static func load_from_file(path: String) -> BugHuntCampaignCore:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return null
-
-	var json_string := file.get_as_text()
-	file.close()
-
-	var json := JSON.new()
-	var parse_result := json.parse(json_string)
-	if parse_result != OK:
+	## Reads through SaveFileWriter so the .bak generation written by save_to_file()
+	## is actually consulted when the primary is truncated or unparseable.
+	var data := SaveFileWriterRef.read_json_with_fallback(path)
+	if data.is_empty():
 		return null
 
 	var _Self = load("res://src/game/campaign/BugHuntCampaignCore.gd")
 	var campaign = _Self.new()
-	campaign.from_dictionary(json.data)
+	campaign.from_dictionary(data)
 	return campaign
 
 
