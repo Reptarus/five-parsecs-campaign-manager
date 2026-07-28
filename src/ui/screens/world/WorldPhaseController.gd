@@ -14,6 +14,9 @@ signal proceed_to_battle
 # Event bus integration - single source of truth for events
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
 var event_bus: CampaignTurnEventBus = null
+## Event-bus subscriptions made by THIS controller, so _exit_tree() can undo them.
+## The bus is parented to /root and outlives every scene change.
+var _event_subscriptions: Array[Dictionary] = []
 
 # Component dependencies
 const UpkeepPhaseComponent = preload("res://src/ui/screens/world/components/UpkeepPhaseComponent.gd")
@@ -190,14 +193,37 @@ func _initialize_event_bus() -> void:
 	# Enable debug mode for development
 	event_bus.enable_debug_mode(true)
 	
-	# Subscribe to component events - centralized event handling
-	# Use existing event types from CampaignTurnEventBus enum
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_RESOLVED, _on_crew_task_resolved)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_ASSIGNED, _on_crew_task_assigned)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.MISSION_PREPARED, _on_mission_prepared)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_TRANSITION_REQUESTED, _on_phase_transition_requested)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, _on_phase_completed)
+	# Subscribe to component events - centralized event handling.
+	# Tracked so _exit_tree() can unsubscribe: the bus is parented to /root above, so
+	# it OUTLIVES this scene. SceneRouter frees the controller on every navigation
+	# (2-3x per campaign turn), and without cleanup each freed controller left 6 dead
+	# Callables registered forever — ~300 by turn 100.
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.CREW_TASK_RESOLVED, _on_crew_task_resolved)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.CREW_TASK_ASSIGNED, _on_crew_task_assigned)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.MISSION_PREPARED, _on_mission_prepared)
+	_subscribe_tracked(
+		CampaignTurnEventBus.TurnEvent.PHASE_TRANSITION_REQUESTED,
+		_on_phase_transition_requested)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, _on_phase_completed)
+
+
+func _subscribe_tracked(event_type, handler: Callable) -> void:
+	## Subscribe and remember it, mirroring WorldPhaseComponent's pattern
+	## (WorldPhaseComponent.gd:53-55). The controller was the one subscriber that
+	## never adopted it.
+	if not event_bus:
+		return
+	event_bus.subscribe_to_event(event_type, handler)
+	_event_subscriptions.append({"event": event_type, "handler": handler})
+
+
+func _exit_tree() -> void:
+	## Auto-cleanup event bus subscriptions — the bus lives on /root and outlives us.
+	if event_bus and is_instance_valid(event_bus):
+		for sub in _event_subscriptions:
+			event_bus.unsubscribe_from_event(sub.event, sub.handler)
+	_event_subscriptions.clear()
 
 
 func _initialize_components() -> void:

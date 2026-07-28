@@ -115,14 +115,37 @@ func unsubscribe_from_event(event_type: TurnEvent, handler: Callable) -> void:
 
 ## Event Dispatcher - routes events to specific handlers
 func _dispatch_event(event_type: TurnEvent, data: Dictionary) -> void:
-	## Internal dispatcher - routes events to subscribed handlers
-	if event_subscribers.has(event_type):
-		for handler in event_subscribers[event_type]:
-			if handler.is_valid():
-				handler.call(data)
-			else:
-				# Clean up invalid handlers
-				event_subscribers[event_type].erase(handler)
+	## Internal dispatcher - routes events to subscribed handlers.
+	##
+	## THE BUG THIS FIXES: this used to call erase() on the array it was iterating.
+	## Godot's Array docs warn against exactly that — erasing at index 0 shifts every
+	## later element left while the iterator still advances, so the element that moved
+	## INTO the freed slot is skipped entirely.
+	##
+	## With [stale_handler, live_handler] — the normal state after any World Phase
+	## re-entry, because WorldPhaseController parents the bus to /root (it outlives
+	## scene changes) — dispatch went: i=0 invalid -> erase -> array is [live], size 1
+	## -> iterator advances to i=1 -> loop ends. THE LIVE HANDLER WAS NEVER CALLED.
+	##
+	## The bus is the only path from the phase components to those handlers, so the
+	## first publish of each event type after re-entering the World Phase was
+	## swallowed: in Automation mode the wizard stalled on that step, and
+	## _on_job_accepted's npc_tracker.track_patron_interaction() never ran.
+	##
+	## Snapshot, call every live handler, then write back only the live ones.
+	if not event_subscribers.has(event_type):
+		return
+	var handlers: Array = event_subscribers[event_type]
+	var live: Array = []
+	for handler in handlers.duplicate():
+		if handler.is_valid():
+			live.append(handler)
+	# Prune BEFORE dispatching: a handler is free to subscribe or unsubscribe during
+	# its own call without corrupting the list being walked.
+	event_subscribers[event_type] = live
+	for handler in live:
+		if handler.is_valid():  # re-check: an earlier handler may have freed a later one
+			handler.call(data)
 
 ## Debugging and Monitoring
 func enable_debug_mode(enabled: bool = true) -> void:
