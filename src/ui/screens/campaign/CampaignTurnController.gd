@@ -1016,7 +1016,16 @@ func _on_battle_completed(results: Dictionary) -> void:
 func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	## Auto-resolve battle using BattleResolver combat math engine
 
-	var crew_data = game_state.get_active_crew()
+	# FILTER, exactly as the three sibling crew-to-battle sites do (:962, :1448, :1516).
+	# This was the fourth door and the only unguarded one: get_active_crew() returns the
+	# raw crew_data["members"] array with NO status filter, and injured members STAY in
+	# that array (PostBattleContext.apply_crew_injury sets in_sick_bay/recovery_turns in
+	# place and never removes them). So a crew member wounded on turn N was correctly
+	# hidden from the pre-battle list on turn N+1 but still fought — adding attack dice,
+	# counting as a casualty and taking fresh hits — the moment the player chose
+	# PreBattleUI's "Play it out for me". Same for anyone carrying a `departed` or
+	# `skip_next_battle` Character Event (Core Rules pp.55, 76, 128-130).
+	var crew_data = _deployable(game_state.get_active_crew())
 	var mission_data = game_state.get_current_mission()
 
 	# Build enemy list from mission data
@@ -1050,7 +1059,58 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	if not resolved.has("won"):
 		resolved["won"] = resolved.get("success", false)
 
+	_map_resolver_crew_outcome(resolved, crew_data)
+
 	_on_battle_completed(resolved)
+
+
+func _map_resolver_crew_outcome(resolved: Dictionary, deployed: Array) -> void:
+	## Turn the resolver's COUNTS into the per-character arrays post-battle consumes.
+	##
+	## THE BUG THIS FIXES: there are two auto-resolve producers and only one was mapped.
+	## TacticalBattleUI's in-battle auto-resolve walks crew_units_final and builds
+	## crew_casualties / crew_injuries from the matching characters
+	## (TacticalBattleUI.gd:4338-4360). This campaign-map path passed the router's
+	## return value through UNTOUCHED — and BattleResolver returns only counts
+	## ("crew_casualties": <int>) plus crew_units_final, with no crew_participants, no
+	## crew_injuries_data, no crew_casualties_data.
+	##
+	## BattleResultNormalizer derives injuries_sustained from crew_injuries_data and
+	## casualties from crew_casualties_data, so both came out EMPTY. InjuryProcessor
+	## iterates ctx.injuries_sustained and is the only caller of apply_crew_injury —
+	## the sole writer of the canonical Sick Bay shape. So every battle resolved through
+	## PreBattleUI's "Play it out for me" was consequence-free: the wizard announced
+	## "Casualty 1: Serious injury (2 turns recovery)" and afterwards nobody had
+	## in_sick_bay, recovery_turns, injuries[] or status "injured" — nobody entered Sick
+	## Bay, nobody died, upkeep and crew-task eligibility were untouched.
+	##
+	## Also restored here: crew_participants, without which PostBattleCompletion:87
+	## attributes the battle to NO crew member (empty characters_involved in the journal,
+	## so it never appears in CharacterHistoryPanel) and PaymentProcessor:101 computes
+	## zero battlefield-find search attempts.
+	var finals: Array = resolved.get("crew_units_final", [])
+	var casualties: Array = []
+	var injuries: Array = []
+	for i in range(deployed.size()):
+		var is_alive := true
+		if i < finals.size() and finals[i] is Dictionary:
+			is_alive = bool((finals[i] as Dictionary).get("is_alive", true))
+		if is_alive:
+			continue
+		# Core Rules p.114 post-battle casualty roll decides dead vs injured. The
+		# resolver only reports "down", so the distinction is rolled here — matching
+		# how the tactical path treats a downed crew member.
+		var roll: int = (randi() % 6) + 1
+		if roll == 1:
+			casualties.append(deployed[i])
+		else:
+			injuries.append(deployed[i])
+	if not resolved.has("crew_casualties_data"):
+		resolved["crew_casualties_data"] = casualties
+	if not resolved.has("crew_injuries_data"):
+		resolved["crew_injuries_data"] = injuries
+	if not resolved.has("crew_participants"):
+		resolved["crew_participants"] = deployed.duplicate()
 
 
 # --- B2 narrative bridge -----------------------------------------------------

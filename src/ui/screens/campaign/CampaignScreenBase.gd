@@ -225,6 +225,16 @@ func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 
 ## Dispatch an imported character to the right roster mutator for its mode.
 func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
+	# Reject a character id already on this roster.
+	#
+	# Cross-mode import is a PULL — it reads the source save and does not remove the
+	# character from it — so importing the same veteran twice (or re-importing after a
+	# muster-out) put two entries with the SAME character_id on one roster. From there
+	# every id-keyed lookup resolves to whichever copy is first, XP and injuries land on
+	# one of the two arbitrarily, and the crew id index has a duplicate key.
+	if _roster_already_has(campaign, mode, str(ch.get("character_id", ch.get("id", "")))):
+		push_warning("CampaignScreenBase: character already on this roster; import skipped")
+		return false
 	match mode:
 		"five_parsecs":
 			if campaign.has_method("add_crew_member"):
@@ -245,6 +255,35 @@ func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
 				campaign.add_veteran_character(ch)
 				return true
 	return false
+
+func _roster_already_has(campaign, mode: String, character_id: String) -> bool:
+	## True if this character id is already on the target roster. Each mode keeps its
+	## roster in a different field, so the lookup is per-mode.
+	if character_id.is_empty() or campaign == null:
+		return false
+	var roster: Array = []
+	match mode:
+		"five_parsecs":
+			if "crew_data" in campaign and campaign.crew_data is Dictionary:
+				var m = campaign.crew_data.get("members", [])
+				roster = m if m is Array else []
+		"bug_hunt":
+			if "main_characters" in campaign and campaign.main_characters is Array:
+				roster = campaign.main_characters
+		"planetfall":
+			if "roster" in campaign and campaign.roster is Array:
+				roster = campaign.roster
+		"tactics":
+			if "veteran_characters" in campaign and campaign.veteran_characters is Array:
+				roster = campaign.veteran_characters
+	for m in roster:
+		if not (m is Dictionary):
+			continue
+		var d: Dictionary = m
+		if str(d.get("character_id", d.get("id", ""))) == character_id:
+			return true
+	return false
+
 
 func _notify_transfer_result(applied: int, skipped: int) -> void:
 	var nm = get_node_or_null("/root/NotificationManager")

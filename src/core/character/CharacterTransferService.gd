@@ -478,6 +478,26 @@ static func load_pending_transfers(target_mode: String = "") -> Array:
 					if target_mode.is_empty() or _transfer_targets_mode(data, target_mode):
 						data["_file_path"] = path
 						transfers.append(data)
+				else:
+					# QUARANTINE an unusable envelope instead of leaving it in place.
+					#
+					# A malformed or truncated transfer file silently failed validation
+					# and was skipped — forever. It stayed in user://transfers/, was
+					# re-read and re-skipped on every single dashboard open, and the
+					# character it represented was already gone from the source roster.
+					# Nothing ever told the player, and nothing ever cleaned it up.
+					#
+					# Renaming to .corrupt takes it out of the scan (the loop only reads
+					# .json) while KEEPING the bytes, so the character is recoverable by
+					# hand rather than lost or endlessly retried.
+					var quarantined := path + ".corrupt"
+					if DirAccess.rename_absolute(path, quarantined) == OK:
+						push_error("CharacterTransferService: unreadable transfer file "
+							+ "quarantined as %s — the character it held could not be "
+							% quarantined + "imported")
+					else:
+						push_error("CharacterTransferService: unreadable transfer file "
+							+ "%s could not be quarantined" % path)
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	return transfers

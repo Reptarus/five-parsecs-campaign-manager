@@ -71,9 +71,20 @@ func create_entry(data: Dictionary) -> String:
 
 	JournalEntryTypesClass.validate_entry(entry)
 
-	entries.append(entry)
+	# INSERT IN ORDER instead of re-sorting the whole array on every insert.
+	#
+	# _sort_entries_by_turn() ran on EVERY create_entry, making journal growth O(n^2 log n)
+	# across a campaign — and its comparator is not stable, so entries sharing a turn
+	# number could reorder on each insert and the timeline would visibly reshuffle.
+	# Entries almost always arrive in turn order, so the scan below hits the tail
+	# immediately and is O(1) in practice.
+	var turn: int = int(entry.get("turn_number", 0))
+	var pos: int = entries.size()
+	while pos > 0 and int(entries[pos - 1].get("turn_number", 0)) > turn:
+		pos -= 1
+	entries.insert(pos, entry)
 	entries_by_id[entry_id] = entry
-	_sort_entries_by_turn()
+	_prune_entries()
 
 	last_updated = Time.get_unix_time_from_system()
 	entry_created.emit(entry)
@@ -601,6 +612,34 @@ func _generate_entry_id() -> String:
 	var entry_id: String = "entry_%d" % next_entry_id
 	next_entry_id += 1
 	return entry_id
+
+## Cap on ordinary journal entries. Milestones are NEVER pruned — they are the
+## campaign's narrative spine and there are only a handful per campaign.
+##
+## Sized from measurement: ~8 entries per turn, so 400 covers ~50 turns of full
+## history. Without a cap the journal only ever appended (entries, milestones and
+## per-character timelines all), and the whole corpus is deep-copied and
+## JSON-stringified into every save — which happens ~8 times per campaign turn. A
+## turn-100 campaign projected to ~650 KB of save, rewritten on every World Phase
+## "Next" tap on a phone.
+const MAX_ENTRIES: int = 400
+
+
+func _prune_entries() -> void:
+	## Drop the oldest non-milestone entries once over the cap.
+	if entries.size() <= MAX_ENTRIES:
+		return
+	var over: int = entries.size() - MAX_ENTRIES
+	var i: int = 0
+	while over > 0 and i < entries.size():
+		var e: Dictionary = entries[i]
+		if str(e.get("type", "")) == "milestone":
+			i += 1
+			continue
+		entries_by_id.erase(str(e.get("id", "")))
+		entries.remove_at(i)
+		over -= 1
+
 
 func _sort_entries_by_turn() -> void:
 	## Sort entries by turn number

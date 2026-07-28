@@ -859,6 +859,25 @@ func _rail_hp_bar(hp: int, mx: int) -> Control:
 	row.add_child(lbl)
 	return row
 
+func _is_standalone_battle() -> bool:
+	## True when this battle has no owning 5PFH campaign to persist a table for.
+	##
+	## Two independent signals, either sufficient:
+	##  - a non-empty _battle_mode_id (bug_hunt / planetfall / tactics run their own
+	##    campaign cores and never use 5PFH's active_battlefield contract)
+	##  - no current_campaign at all (Battle Simulator, MCP/demo, tier-select mode)
+	##
+	## Deliberately NOT using the PhaseContainer ancestor walk that
+	## _check_standalone_mode does: this is called during persistence, long after
+	## reparenting, so an ownership question must be answered from state, not layout.
+	if not _battle_mode_id.is_empty():
+		return true
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null:
+		return true
+	return gs.get("current_campaign") == null
+
+
 func _check_standalone_mode() -> void:
 	## If initialize_battle() was never called, check if battle context was
 	## stored in temp_data by a gamemode turn controller (Bug Hunt, Planetfall,
@@ -5286,6 +5305,17 @@ func _persist_battlefield_contract(sector_data: Dictionary,
 		sector_rerolls: Dictionary = {}) -> void:
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.has_method("set_battlefield_data"):
+		return
+	# A STANDALONE battle must not write the campaign's saved table.
+	#
+	# active_battlefield is shared state written by four entry points but cleared by
+	# ONE (CampaignTurnController's post-battle handler). Battle Simulator and the
+	# other standalone modes generate their own map and persisted it through the same
+	# chokepoint, which writes through to campaign.progress_data — so playing a
+	# standalone battle while a campaign was loaded OVERWROTE the physical table the
+	# player had already built for their next campaign mission, and it survived the
+	# save. Standalone battles have no campaign to persist to; keep them in memory.
+	if _is_standalone_battle():
 		return
 	# Carry over campaign-path context a re-persist shouldn't lose
 	var prev: Dictionary = gs.get_battlefield_data() \
