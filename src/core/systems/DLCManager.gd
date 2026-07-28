@@ -9,6 +9,7 @@
 ## ContentFlags are granular per-feature toggles saved per-campaign.
 ## DLC ownership is persistent across campaigns (user prefs).
 extends Node
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 
 signal dlc_ownership_changed(dlc_id: String, owned: bool)
 signal feature_flag_changed(flag: int, enabled: bool)
@@ -273,20 +274,60 @@ func reset_campaign_flags() -> void:
 const PREFS_PATH := "user://dlc_ownership.cfg"
 
 
+## True once load_ownership() has actually read a usable record. While false, the
+## in-memory ownership dict is NOT trustworthy and must never be written back.
+var _ownership_loaded: bool = false
+
+
+func is_ownership_loaded() -> bool:
+	return _ownership_loaded
+
+
 func save_ownership() -> void:
+	## REFUSES TO WRITE A RECORD IT NEVER SUCCESSFULLY READ.
+	##
+	## THE BUG THIS FIXES: this rewrote the live file in place on EVERY boot, and a
+	## degraded load was laundered to disk 0.5s later. Two degradation paths existed:
+	## a 0-byte file (ConfigFile.load returns OK on empty, so the err guard below did
+	## NOT fire and every get_value yielded false) and a truncated file (load fails,
+	## the guard returns early, _owned_dlcs stays {}). Either way ALL DLC read as
+	## unowned — and StoreManager._sync_store_entitlements() then called
+	## save_ownership() unconditionally at the end of its boot sync, writing the zeroed
+	## dict straight back. It only ever sets flags TRUE, so it could never restore.
+	##
+	## The tester silently lost all three Compendium packs plus Bug Hunt / Planetfall /
+	## Tactics — the exact content the alpha exists to test — and on a sideloaded APK
+	## the Offline adapter makes "Restore Purchases" a no-op, so there was no recovery.
+	if not _ownership_loaded:
+		push_warning("DLCManager: refusing to save ownership — the record was never "
+			+ "successfully loaded; writing now would erase real entitlements")
+		return
 	var config := ConfigFile.new()
 	for dlc_id in _owned_dlcs:
 		config.set_value("dlc", dlc_id, _owned_dlcs[dlc_id])
-	config.save(PREFS_PATH)
+	# Atomic: temp -> flush -> verified rename, so a kill mid-write leaves the previous
+	# generation intact instead of a truncated file.
+	var err := SaveFileWriterRef.write_text_atomic(PREFS_PATH, config.encode_to_text())
+	if err != OK:
+		push_error("DLCManager: ownership save failed (err %d)" % err)
 
 
 func load_ownership() -> void:
 	var config := ConfigFile.new()
 	var err := config.load(PREFS_PATH)
 	if err != OK:
-		return  # No prefs file yet, all DLCs unowned
+		# Distinguish "no file yet" (a first run — legitimately all-unowned, and safe
+		# to write) from "unreadable file" (a torn write — must NOT be overwritten).
+		if not FileAccess.file_exists(PREFS_PATH):
+			_ownership_loaded = true
+			return
+		var recovered := SaveFileWriterRef.read_json_with_fallback(PREFS_PATH)
+		push_error("DLCManager: %s is unreadable; entitlements left untouched" % PREFS_PATH)
+		_ownership_loaded = not recovered.is_empty()
+		return
 	for dlc_id in DLC_IDS:
 		_owned_dlcs[dlc_id] = config.get_value("dlc", dlc_id, false)
+	_ownership_loaded = true
 
 
 ## Null-safe check: is a feature flag enabled?

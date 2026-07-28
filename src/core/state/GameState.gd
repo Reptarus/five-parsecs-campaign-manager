@@ -444,6 +444,50 @@ func forget_campaign(campaign_id: String) -> void:
 ## @param campaign The campaign to save (uses current_campaign if null)
 ## @param path The path to save to (uses default if empty)
 ## @return Result dictionary with success status and message
+func _notification(what: int) -> void:
+	## Flush the campaign to disk when the OS is about to take the app away.
+	##
+	## THE GAP THIS CLOSES: there was NO app-lifecycle save anywhere in src/. A grep
+	## for NOTIFICATION_APPLICATION_PAUSED / _FOCUS_OUT / WM_CLOSE_REQUEST /
+	## WM_GO_BACK_REQUEST returned nothing outside addons. The two functions written
+	## for it — GameState.auto_save() and persist_game_state() — both had ZERO callers,
+	## and project.godot sets no auto_accept_quit override, so the Android Back button
+	## quit with no hook at all.
+	##
+	## Saves only happened at explicit points: phase completion, the dashboard Save
+	## button, a few panels. Everything mutated between two phase boundaries lived only
+	## in RAM. A tester taking a phone call, swiping the app away, or hitting Back
+	## mid-phase lost it — and Android killing a backgrounded app is routine.
+	##
+	## The worst window is post-battle: PostBattlePhase applies pay, loot, injuries, XP
+	## and training across 14 steps and none of it reaches disk until POST_MISSION
+	## completes, so a kill part-way through discarded an entire battle's rewards while
+	## the battle itself was already spent.
+	##
+	## PAUSED/FOCUS_OUT fire on Android when backgrounding; the WM_* ones cover desktop
+	## window close and the Android Back button. Writes are atomic (SaveFileWriter), so
+	## being killed during the flush leaves the previous generation intact.
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, \
+		NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST:
+			_flush_on_lifecycle_event()
+
+
+func _flush_on_lifecycle_event() -> void:
+	## Best-effort save. Never throws and never blocks the shutdown path: if there is
+	## no campaign, or it has no id yet (mid-creation), there is nothing worth writing.
+	if current_campaign == null:
+		return
+	if not ("campaign_id" in current_campaign):
+		return
+	if str(current_campaign.campaign_id).is_empty():
+		return
+	var result: Dictionary = save_campaign(current_campaign)
+	if not result.get("success", false):
+		push_error("GameState: lifecycle flush failed — %s"
+			% str(result.get("message", "unknown")))
+
+
 func save_campaign(campaign = null, path: String = "") -> Dictionary:
 	save_started.emit()
 
