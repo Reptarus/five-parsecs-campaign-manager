@@ -162,6 +162,41 @@ func get_crew_member(crew_id: String) -> Variant:
 			return member
 	return null
 
+func apply_crew_death(crew_id: String) -> bool:
+	## Mark a crew member killed by a post-battle injury (Core Rules pp.94-95).
+	##
+	## THE BUG THIS FIXES: InjuryProcessor.process_single_injury() returns EARLY on a
+	## fatal roll (`if is_fatal: return processed_injury`) and never reached
+	## apply_crew_injury — and nothing else wrote a death either. Grep confirmed
+	## `status == "DEAD"` is READ (PostBattleCompletion.gd:205, to pick the journal
+	## outcome) and never WRITTEN. PostBattleSequence only appends the string
+	## "(FATAL)" to a UI label (:2194).
+	##
+	## So a crew member killed by the injury table stayed fully active: still
+	## deployable (GameStateManager.filter_deployable checks status DEAD), still
+	## eligible for Crew Tasks, still counted for upkeep, and their battle journal
+	## entry recorded them as "survived".
+	##
+	## Writes the shape the existing readers already look for, rather than inventing
+	## a new field: status "DEAD" is what filter_deployable and PostBattleCompletion
+	## test, and is_dead/in_sick_bay keep the dashboard and task gates consistent.
+	var member = get_crew_member(crew_id)
+	if member == null:
+		return false
+	if member is Dictionary:
+		member["status"] = "DEAD"
+		member["is_dead"] = true
+		member["is_wounded"] = true
+		member["in_sick_bay"] = false  # dead, not recovering
+		member["recovery_turns"] = 0
+	elif member is Object:
+		if "status" in member:
+			member.status = "DEAD"
+		if "is_dead" in member:
+			member.is_dead = true
+	return true
+
+
 func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 	## GameStateManager has no apply_crew_injury — the guarded calls at
 	## InjuryProcessor.gd:141,181 were dead, so rolled injuries never mutated the

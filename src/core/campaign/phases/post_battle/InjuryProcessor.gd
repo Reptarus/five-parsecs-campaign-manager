@@ -82,11 +82,28 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 	var crew_origin: String = injury_data.get("origin", "")
 	if crew_origin.is_empty():
 		var crew_member = ctx.get_crew_member(crew_id)
-		if crew_member:
-			if crew_member.has_method("_is_bot"):
-				is_bot_character = crew_member._is_bot()
-			elif "origin" in crew_member:
-				crew_origin = str(crew_member.origin)
+		if crew_member != null:
+			# DICTIONARY BRANCH FIRST. Dictionary has no has_method(), so calling it
+			# on one is an INVALID CALL, which aborts the whole enclosing function —
+			# process_single_injury returned {} and NOTHING downstream ran: no
+			# apply_crew_injury, no Sick Bay, no death. Crew members are canonically
+			# Dictionaries (the data-ownership table), so this aborted on EVERY
+			# post-battle injury in every campaign, not just auto-resolved ones. The
+			# post-battle wizard still printed the rolled injury from the count, so it
+			# looked like it was working.
+			#
+			# Same trap PostBattleContext.get_crew_members() already documents at :130.
+			if crew_member is Dictionary:
+				var d: Dictionary = crew_member
+				if bool(d.get("is_bot", false)):
+					is_bot_character = true
+				else:
+					crew_origin = str(d.get("origin", d.get("species_id", "")))
+			elif crew_member is Object:
+				if crew_member.has_method("_is_bot"):
+					is_bot_character = crew_member._is_bot()
+				elif "origin" in crew_member:
+					crew_origin = str(crew_member.origin)
 	if not is_bot_character and crew_origin in [
 		"BOT", "SOULLESS", "ASSAULT BOT", "Assault Bot"]:
 		is_bot_character = true
@@ -135,6 +152,12 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 	# which is offered to the player via PostBattleSequence nudge UI for any
 	# non-fatal injury (flagged via star_offer_available in process_injuries()).
 	if is_fatal:
+		# MARK THEM DEAD. This used to just return, and nothing else wrote a death
+		# either — `status == "DEAD"` was READ (PostBattleCompletion.gd:205) and never
+		# WRITTEN, while PostBattleSequence only appended "(FATAL)" to a UI label.
+		# So a crew member killed by the injury table stayed fully active: deployable,
+		# task-eligible, counted for upkeep, and journalled as "survived".
+		ctx.apply_crew_death(crew_id)
 		return processed_injury
 
 	# Apply injury to crew member
