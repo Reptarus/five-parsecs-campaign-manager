@@ -30,6 +30,17 @@ enum EquipmentCategory {
 var _equipment_storage: Array = []
 var _character_equipment: Dictionary = {}
 
+## When false, add_equipment() does NOT write through to GameState.current_campaign.
+## Disabled for the duration of the campaign-creation wizard, where the "current"
+## campaign is still the previously played one. See add_equipment().
+var _campaign_write_through: bool = true
+
+
+func set_campaign_write_through(enabled: bool) -> void:
+	## Gate the campaign write-through. Callers MUST re-enable it — leaving it off
+	## would silently stop the live campaign's ship stash from persisting.
+	_campaign_write_through = enabled
+
 # Equipment database loaded from JSON (Core Rules pp.49-58)
 var _equipment_db: Dictionary = {}
 var _db_weapons: Array = []
@@ -206,8 +217,17 @@ func add_equipment(equipment_data: Dictionary) -> bool:
 	# clear_all_equipment() emptied only the runtime cache and not the campaign
 	# stash — re-appended a copy of every unique item on each load, growing the
 	# persisted stash unboundedly across save/load cycles (8 -> 16 -> 24 -> ...).
+	#
+	# SUPPRESSED DURING CAMPAIGN CREATION. The write-through targets whatever
+	# GameState currently holds, and during the creation wizard that is still the
+	# PREVIOUS campaign — set_current_campaign() is not called until after
+	# finalization (CampaignCreationUI.gd:335). So the new crew's starting gear,
+	# loaded at creation step 4, was being appended to the OLD campaign's ship stash.
+	# The new campaign does not need it: finalization builds equipment_data from the
+	# wizard's own data (CampaignFinalizationService.gd:280).
 	var gs = get_node_or_null("/root/GameState")
-	if gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign:
+	if _campaign_write_through and gs and gs.get("current_campaign") \
+			and "equipment_data" in gs.current_campaign:
 		var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
 		var new_id: String = str(equipment_data.get("id", ""))
 		var already_present: bool = false

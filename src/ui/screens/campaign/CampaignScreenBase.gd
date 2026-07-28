@@ -181,6 +181,9 @@ func _show_pending_transfers_dialog(pending: Array, campaign, mode: String) -> v
 func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 	var applied := 0
 	var skipped := 0
+	# Transfer files whose character made it into the roster in memory. They are
+	# deleted only after the campaign is successfully written (see below).
+	var consumed_files: Array[String] = []
 	for t in pending:
 		# Crew-size guard (5PFH only — fixed cap chosen at creation, Core Rules p.63).
 		# Skipped transfers keep their file (apply deletes only on success).
@@ -196,8 +199,27 @@ func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 		var ch: Dictionary = res.get("character", {})
 		if _add_character_to_mode(campaign, mode, ch):
 			applied += 1
+			# Queue, do not delete yet — the character exists only in memory until the
+			# save below succeeds. A transfer file is the ONLY copy of that character.
+			var consumed: String = str(res.get("consumed_file", ""))
+			if not consumed.is_empty():
+				consumed_files.append(consumed)
 	if applied > 0 and _game_state and _game_state.has_method("save_campaign"):
-		_game_state.save_campaign(campaign)
+		var save_res = _game_state.save_campaign(campaign)
+		# Only now is it safe to destroy the source files. If the write failed, the
+		# transfers stay on disk and are re-offered next time rather than vanishing.
+		var saved := true
+		if save_res is Dictionary:
+			saved = bool(save_res.get("success", true))
+		if saved:
+			for path in consumed_files:
+				if FileAccess.file_exists(path):
+					DirAccess.remove_absolute(path)
+		else:
+			push_warning(
+				"CampaignScreenBase: campaign save failed; %d transfer file(s) kept for retry"
+				% consumed_files.size())
+			applied = 0
 		_on_transfers_applied()
 	_notify_transfer_result(applied, skipped)
 

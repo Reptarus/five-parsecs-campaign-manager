@@ -162,10 +162,18 @@ func _paths_in(transfers: Array) -> Array:
 
 
 # ============================================================================
-# apply_transfer_rewards — patron grant + atomic file delete
+# apply_transfer_rewards — patron grant + deferred file delete
+#
+# CONTRACT CHANGE: this used to delete the transfer file inline and the assertion
+# below checked for that. It no longer does. A transfer file is the ONLY copy of
+# the character, and the receiving campaign is not written to disk until after the
+# caller's loop finishes — so deleting inline destroyed the source while the
+# destination existed only in memory. The path is now returned as `consumed_file`
+# and CampaignScreenBase._apply_pending_transfers deletes it only after a verified
+# save; a failed save leaves the file for retry.
 # ============================================================================
 
-func test_apply_transfer_rewards_adds_patron_and_deletes_file() -> void:
+func test_apply_transfer_rewards_adds_patron_and_defers_file_delete() -> void:
 	var path := _write_transfer_file("test_hub_apply.json", {
 		"schema_version": 2, "target_mode": "five_parsecs",
 		"character": _make_full_character(),
@@ -186,8 +194,12 @@ func test_apply_transfer_rewards_adds_patron_and_deletes_file() -> void:
 	assert_that(res.get("success", false)).is_true()
 	assert_that(campaign.patrons.size()).is_equal(1)
 	assert_that(str(campaign.patrons[0].get("type", ""))).is_equal("sector_government")
-	# File is deleted on success (prevents double-import).
-	assert_that(FileAccess.file_exists(path)).is_false()
+	# The file SURVIVES this call and is reported back for the caller to delete once
+	# the campaign has actually been saved. Deleting here would destroy the only copy
+	# of the character before it is persisted anywhere.
+	assert_that(str(res.get("consumed_file", ""))).is_equal(path)
+	assert_that(FileAccess.file_exists(path)).is_true()
+	DirAccess.remove_absolute(path)  # the caller's job in production
 
 
 # ============================================================================

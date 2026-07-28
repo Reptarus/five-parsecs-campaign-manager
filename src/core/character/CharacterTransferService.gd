@@ -583,14 +583,20 @@ static func apply_transfer_rewards(
 	if safe_char.get("gains_psionic", false):
 		summary_parts.append("+Psionic")  # rides on the character into the roster
 
-	# Delete the transfer file to prevent double-import
-	var file_path: String = transfer_data.get("_file_path", "")
-	if not file_path.is_empty() and FileAccess.file_exists(file_path):
-		DirAccess.remove_absolute(file_path)
-
+	# The transfer file is NOT deleted here. It is reported back as `consumed_file`
+	# so the caller can delete it only AFTER the receiving campaign has been
+	# successfully written to disk.
+	#
+	# Deleting inline meant the source was destroyed while the destination existed
+	# only in memory: this function applies rewards and returns, but the campaign is
+	# not saved until after the caller's loop, and that save's result was never
+	# checked. Anything failing in between — the roster mutator missing, the save
+	# erroring, a crash — lost the character permanently, with the rewards already
+	# granted. Commit the destination first, then drop the source.
 	return {
 		"success": true,
 		"character": safe_char,
+		"consumed_file": str(transfer_data.get("_file_path", "")),
 		"summary": ", ".join(summary_parts) if not summary_parts.is_empty() else "Character transferred"
 	}
 

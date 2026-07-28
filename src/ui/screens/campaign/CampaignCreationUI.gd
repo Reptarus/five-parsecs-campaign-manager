@@ -50,6 +50,21 @@ func _ready() -> void:
 	back_button.text = "Cancel"
 
 
+func _exit_tree() -> void:
+	## Restore the equipment write-through however the wizard was left — finished,
+	## cancelled, or navigated away from. Leaving it off would silently stop the live
+	## campaign's ship stash from persisting for the rest of the session.
+	##
+	## _exit_tree() (not tree_exited) because absolute autoload paths still resolve
+	## while the node is in the tree.
+	var root := get_tree().root if get_tree() else null
+	if root == null:
+		return
+	var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("set_campaign_write_through"):
+		eq_mgr.set_campaign_write_through(true)
+
+
 func _reset_campaign_scoped_autoloads() -> void:
 	## Wipe per-campaign autoload state that survives from a previously played or
 	## loaded campaign, so a new campaign starts from a clean slate.
@@ -70,6 +85,12 @@ func _reset_campaign_scoped_autoloads() -> void:
 	var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
 	if eq_mgr and eq_mgr.has_method("clear_all_equipment"):
 		eq_mgr.clear_all_equipment()
+	# Stop add_equipment() writing through while the wizard is open: GameState still
+	# holds the PREVIOUS campaign until finalization, so step 4's starting loadout
+	# would be appended to that campaign's ship stash. Re-enabled in _exit_tree(),
+	# which covers finishing AND cancelling.
+	if eq_mgr and eq_mgr.has_method("set_campaign_write_through"):
+		eq_mgr.set_campaign_write_through(false)
 	var dlc_mgr := root.get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_method("reset_campaign_flags"):
 		dlc_mgr.reset_campaign_flags()
