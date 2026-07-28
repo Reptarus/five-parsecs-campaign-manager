@@ -88,7 +88,11 @@ func _do_muster_out(char_data: Dictionary, target_mode: String, overlay: Node) -
 	envelope["source_campaign_id"] = _campaign.campaign_id if "campaign_id" in _campaign else ""
 	envelope["source_campaign_name"] = _campaign.campaign_name \
 		if "campaign_name" in _campaign else ""
-	_write_transfer_file(envelope, c)
+	# Write the destination FIRST and only drop the source if it succeeded. The
+	# transfer file is the ONLY copy of this character once it leaves the roster.
+	if not _write_transfer_file(envelope, c):
+		_notify_transfer_write_failed()
+		return
 
 	var cid: String = str(c.get("id", c.get("character_id", "")))
 	if _campaign.has_method("remove_roster_character"):
@@ -102,19 +106,35 @@ func _do_muster_out(char_data: Dictionary, target_mode: String, overlay: Node) -
 	_build_dashboard()
 
 
-func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> void:
+func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> bool:
+	## Returns true only if the envelope is on disk.
+	##
+	## This used to return void and swallow every failure: the write was wrapped in
+	## `if file:` while the caller removed the character and saved unconditionally.
+	## An I/O failure therefore deleted the colonist from this campaign, PERSISTED
+	## that deletion, and wrote nothing for the destination to pick up — the character
+	## vanished from both ends, silently. That is the exact loss the file-drop
+	## mechanism exists to prevent.
+	##
+	## Routed through SaveFileWriter so the write is checked rather than assumed
+	## (flush, get_error, verified rename) instead of hand-rolled here.
 	var transfer_dir := "user://transfers/"
 	if not DirAccess.dir_exists_absolute(transfer_dir):
 		DirAccess.make_dir_recursive_absolute(transfer_dir)
 	var cid: String = str(char_data.get("id", char_data.get("character_id", "")))
 	var filename := "transfer_%s_%s.json" % [cid, str(Time.get_unix_time_from_system())]
-	var temp_path := transfer_dir + filename + ".tmp"
-	var final_path := transfer_dir + filename
-	var file := FileAccess.open(temp_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(envelope, "\t"))
-		file.close()
-		DirAccess.rename_absolute(temp_path, final_path)
+	var err: Error = SaveFileWriterRef.write_text_atomic(
+		transfer_dir + filename, JSON.stringify(envelope, "\t"))
+	return err == OK
+
+
+func _notify_transfer_write_failed() -> void:
+	push_error("PlanetfallDashboard: transfer file could not be written — "
+		+ "colonist kept in the roster rather than lost")
+	var notifier := get_node_or_null("/root/NotificationManager")
+	if notifier and notifier.has_method("show_notification"):
+		notifier.show_notification(
+			"Transfer failed — the colonist is still on your roster. Check device storage.")
 
 
 func _build_muster_out_overlay(roster: Array) -> Control:

@@ -6,6 +6,7 @@ extends BugHuntScreenBase
 
 const EmptyStateWidgetClass = preload("res://src/ui/components/common/EmptyStateWidget.gd")
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const TransferPanelClass = preload("res://src/ui/screens/bug_hunt/panels/CharacterTransferPanel.gd")
 
 var _campaign: Resource
@@ -313,14 +314,27 @@ func _apply_muster_out(char_data: Dictionary) -> void:
 		"transferred_at": Time.get_datetime_string_from_system()
 	}
 
-	# Atomic write: temp file + rename
-	var temp_path := transfer_dir + filename + ".tmp"
-	var final_path := transfer_dir + filename
-	var file := FileAccess.open(temp_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(transfer_data, "\t"))
-		file.close()
-		DirAccess.rename_absolute(temp_path, final_path)
+	# Write the destination FIRST and only drop the source if it succeeded.
+	#
+	# The write used to be wrapped in `if file:` while the removal and _on_save()
+	# below ran unconditionally. An I/O failure therefore deleted the character from
+	# the squad, PERSISTED that deletion, and wrote nothing to user://transfers/ for
+	# the 5PFH side to pick up — the veteran vanished from both ends with no message,
+	# which is precisely the loss the file-drop mechanism exists to prevent.
+	#
+	# SaveFileWriter checks the write (flush, get_error, verified rename) instead of
+	# assuming a successful open means a successful save.
+	var write_err: Error = SaveFileWriterRef.write_text_atomic(
+		transfer_dir + filename, JSON.stringify(transfer_data, "\t"))
+	if write_err != OK:
+		push_error("BugHuntDashboard: transfer file could not be written (err %d) — "
+			% write_err + "character kept in the squad rather than lost")
+		var notifier := get_node_or_null("/root/NotificationManager")
+		if notifier and notifier.has_method("show_notification"):
+			notifier.show_notification(
+				"Muster out failed — the character is still in your squad. "
+				+ "Check device storage.")
+		return
 
 	# Remove character from Bug Hunt squad
 	var idx_to_remove := -1

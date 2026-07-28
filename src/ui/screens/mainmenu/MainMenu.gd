@@ -660,7 +660,25 @@ func _cleanup_load_ui(
 func _do_load_campaign(gs: Node, path: String) -> void:
 	var result: Dictionary = gs.load_campaign(path)
 	if result.get("success", false):
-		_navigate_with_loading("campaign_turn_controller", PackedStringArray([
+		# Route by the loaded campaign's OWN type, exactly as _on_continue_pressed
+		# does. This used to hardcode "campaign_turn_controller", so picking a Bug
+		# Hunt / Planetfall / Tactics save out of the Load list opened the 5PFH turn
+		# controller: load_campaign() parses the save correctly, but the screen was
+		# chosen before anyone looked at what had been loaded, so the tester saw the
+		# 5PFH World Phase with an empty crew, no ship and no world — their squad
+		# apparently gone.
+		#
+		# Continue was fixed for this and Load was not: the same guard on one of two
+		# doors. Only the three newer cores declare campaign_type; an absent field
+		# means 5PFH.
+		var target := "campaign_turn_controller"
+		var loaded = gs.current_campaign
+		if loaded != null and "campaign_type" in loaded:
+			match str(loaded.campaign_type):
+				"bug_hunt": target = "bug_hunt_dashboard"
+				"planetfall": target = "planetfall_dashboard"
+				"tactics": target = "tactics_dashboard"
+		_navigate_with_loading(target, PackedStringArray([
 			"Loading Campaign Data",
 			"Loading Crew Roster",
 			"Loading World State",
