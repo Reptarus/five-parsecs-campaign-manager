@@ -103,6 +103,42 @@ func _init() -> void:
 	# Auto-load last campaign if available
 	_try_auto_load_last_campaign()
 
+## Load a save through the correct Core for its declared campaign_type.
+##
+## THE SINGLE ENTRY POINT for turning a save path into a campaign Resource. It
+## exists because the routing used to live inline in load_campaign() only, while
+## _try_auto_load_last_campaign() below hardcoded the 5PFH loader — a guard on one
+## of the two doors, and the unguarded one runs at every launch.
+##
+## The consequence was DATA DESTRUCTION, verified at runtime on a real save:
+## FiveParsecsCampaignCore.load_from_file() only returns null on a JSON PARSE
+## failure, and a Bug Hunt save is perfectly valid JSON. So it returned a populated
+## 5PFH object carrying the BUG HUNT campaign_id and name, with crew_members 0 and
+## credits 0 (the file has "squad"/"state", not "crew"/"progress"). has_active_campaign()
+## then reported true, MainMenu lit up Continue, and because campaign_id was the Bug
+## Hunt id the next autosave rewrote user://saves/<bughunt_id>.save through the 5PFH
+## serialiser — which emits no campaign_type at all, so the campaign also vanished
+## from the Bug Hunt menu (MainMenu._find_bug_hunt_saves filters on that field).
+## Every mode reaches this: save_campaign() sets last_campaign for all four, and
+## Bug Hunt / Planetfall / Tactics all call it.
+func load_campaign_typed(path: String) -> Resource:
+	var campaign_type := _detect_campaign_type(path)
+	if campaign_type == "bug_hunt":
+		var BugHuntCore = load("res://src/game/campaign/BugHuntCampaignCore.gd")
+		if BugHuntCore:
+			return BugHuntCore.load_from_file(path)
+	elif campaign_type == "planetfall":
+		var PlanetfallCore = load("res://src/game/campaign/PlanetfallCampaignCore.gd")
+		if PlanetfallCore:
+			return PlanetfallCore.load_from_file(path)
+	elif campaign_type == "tactics":
+		var TacticsCore = load("res://src/game/campaign/TacticsCampaignCore.gd")
+		if TacticsCore:
+			return TacticsCore.load_from_file(path)
+	# Legacy saves predate the campaign_type field and are always 5PFH.
+	return FiveParsecsCampaignCore.load_from_file(path)
+
+
 func _try_auto_load_last_campaign() -> void:
 	var last_id: String = game_settings.get("last_campaign", "")
 	if last_id.is_empty():
@@ -110,7 +146,9 @@ func _try_auto_load_last_campaign() -> void:
 	var path = SAVE_DIRECTORY + last_id + ".save"
 	if not FileAccess.file_exists(path):
 		return
-	var loaded = FiveParsecsCampaignCore.load_from_file(path)
+	# Route by declared type — see load_campaign_typed(). Hardcoding the 5PFH
+	# loader here silently converted and then destroyed non-5PFH campaigns.
+	var loaded = load_campaign_typed(path)
 	if loaded:
 		set_current_campaign(loaded)
 		# BUG-035 FIX: Restore EquipmentManager state on auto-load too
@@ -515,27 +553,7 @@ func load_campaign(path: String) -> Dictionary:
 
 	# Detect campaign type and route to correct loader
 	var campaign_type := _detect_campaign_type(path)
-	var loaded: Resource = null
-	if campaign_type == "bug_hunt":
-		var BugHuntCore = load(
-			"res://src/game/campaign/BugHuntCampaignCore.gd"
-		)
-		if BugHuntCore:
-			loaded = BugHuntCore.load_from_file(path)
-	elif campaign_type == "planetfall":
-		var PlanetfallCore = load(
-			"res://src/game/campaign/PlanetfallCampaignCore.gd"
-		)
-		if PlanetfallCore:
-			loaded = PlanetfallCore.load_from_file(path)
-	elif campaign_type == "tactics":
-		var TacticsCore = load(
-			"res://src/game/campaign/TacticsCampaignCore.gd"
-		)
-		if TacticsCore:
-			loaded = TacticsCore.load_from_file(path)
-	else:
-		loaded = FiveParsecsCampaignCore.load_from_file(path)
+	var loaded: Resource = load_campaign_typed(path)
 	if not loaded:
 		var error_msg = "Failed to parse campaign save file"
 		_log_error(error_msg)

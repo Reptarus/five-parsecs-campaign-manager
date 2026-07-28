@@ -344,7 +344,25 @@ func _on_continue_pressed() -> void:
 		return
 	
 	if game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
-		_navigate_with_loading("campaign_dashboard", PackedStringArray([
+		# Route by the campaign's OWN type. This used to hardcode
+		# "campaign_dashboard", so a boot-auto-loaded Bug Hunt / Planetfall /
+		# Tactics campaign opened the 5PFH dashboard. Paired with the boot loader
+		# fix in GameState.load_campaign_typed(): that stops the save being
+		# mis-parsed, this stops it being shown on the wrong screen.
+		#
+		# Only the three newer cores declare campaign_type (BugHuntCampaignCore:16,
+		# PlanetfallCampaignCore:22, TacticsCampaignCore:18). FiveParsecsCampaignCore
+		# does not, which is also why its saves carry no type field and the detector
+		# treats an absent field as 5PFH.
+		var dashboard := "campaign_dashboard"
+		var gs := get_node_or_null("/root/GameState")
+		var active = gs.current_campaign if gs else null
+		if active != null and "campaign_type" in active:
+			match str(active.campaign_type):
+				"bug_hunt": dashboard = "bug_hunt_dashboard"
+				"planetfall": dashboard = "planetfall_dashboard"
+				"tactics": dashboard = "tactics_dashboard"
+		_navigate_with_loading(dashboard, PackedStringArray([
 			"Loading Campaign Data",
 			"Loading Crew Roster",
 			"Loading World State",
