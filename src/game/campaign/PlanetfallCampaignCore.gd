@@ -763,7 +763,7 @@ func save_to_file(path: String) -> Error:
 	# reported OK. write_text_atomic checks the write and leaves the previous save
 	# intact on failure.
 	var write_err: Error = SaveFileWriterRef.write_text_atomic(
-		path, JSON.stringify(to_dictionary(), "\t"))
+		path, JSON.stringify(to_dictionary()))
 	if write_err != OK:
 		push_error("PlanetfallCampaignCore: Failed to save: %s (error: %d)" % [path, write_err])
 	return write_err

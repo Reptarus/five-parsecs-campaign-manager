@@ -515,7 +515,11 @@ func save_to_file(path: String) -> Error:
 	if data.has("squad"):
 		data["squad"]["main_characters"] = clean_chars
 
-	var json_string := JSON.stringify(data, "\t")
+	# Compact, not pretty-printed. Tab indentation cost a MEASURED 24-27% on the
+	# real save files, and save_campaign() runs ~8x per campaign turn, so that is
+	# a quarter of every write on a phone spent on whitespace. Nothing parses the
+	# indentation; to read a save by hand: py -m json.tool <file>
+	var json_string := JSON.stringify(data)
 	# ATOMIC write — see src/core/state/SaveFileWriter.gd. Opening the live path with
 	# FileAccess.WRITE truncates it to 0 bytes immediately, so a kill mid-write
 	# destroyed the campaign. Shared with the other three cores so the four write

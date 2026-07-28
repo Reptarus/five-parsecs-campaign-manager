@@ -364,11 +364,37 @@ func player_sabotage_success(track_id: String) -> void:
 
 ## Save/Load Support
 
+## Fields on a war track that are campaign STATE. Everything else on the track —
+## name, description, faction, thresholds and their narrative text, min/max/starting
+## progress — is static config owned by data/war_progress_tracks.json.
+const _WAR_TRACK_STATE_FIELDS := ["current_progress", "highest_threshold_reached", "active"]
+
+
 func get_save_data() -> Dictionary:
-	## Get war state for saving
+	## Get war state for saving.
+	##
+	## Persists only the three MUTABLE fields per track. This used to duplicate the
+	## whole track, baking ~7 KB of static rulebook config into every save — measured
+	## at 17% of a 41 KB campaign file — and save_campaign() runs roughly 8x per turn,
+	## so that config was re-serialised and rewritten ~8 times a turn on a phone.
+	##
+	## It also meant a corrected threshold or reworded effect shipped in a patch would
+	## never reach an existing campaign: the stale copy in the save overwrote the JSON
+	## on every load. Persisting state only means the config now always comes from the
+	## data file.
 	_ensure_initialized()
+	var slim := {}
+	for track_id in war_tracks:
+		var track = war_tracks[track_id]
+		if not (track is Dictionary):
+			continue
+		var state := {}
+		for f in _WAR_TRACK_STATE_FIELDS:
+			if (track as Dictionary).has(f):
+				state[f] = (track as Dictionary)[f]
+		slim[track_id] = state
 	return {
-		"war_tracks": war_tracks.duplicate(true),
+		"war_tracks": slim,
 		"active_track_ids": active_track_ids.duplicate(),
 		"current_effects": current_effects.duplicate(true)
 	}
@@ -377,8 +403,28 @@ func load_save_data(data: Dictionary) -> void:
 	## Restore war state from save.
 	## Mark initialized BEFORE applying data so lazy-init won't overwrite later.
 	_initialized = true
-	if "war_tracks" in data:
-		war_tracks = data.war_tracks.duplicate(true)
+	if "war_tracks" in data and data.war_tracks is Dictionary:
+		# MERGE state onto the config already loaded from war_progress_tracks.json,
+		# rather than replacing the tracks wholesale.
+		#
+		# This reads BOTH shapes with one code path: a pre-existing save carries the
+		# full track (config + state) and only its state fields are taken; a save
+		# written after the slimming carries state only. Replacing wholesale would
+		# have destroyed the config when reading a slim save, and — the older bug —
+		# let a stale copy of the config in an old save override the data file.
+		var saved: Dictionary = data.war_tracks
+		for track_id in saved:
+			var saved_track = saved[track_id]
+			if not (saved_track is Dictionary):
+				continue
+			if not war_tracks.has(track_id):
+				# A track the data file no longer defines. Keep it verbatim so a
+				# removed/renamed track cannot silently erase campaign progress.
+				war_tracks[track_id] = (saved_track as Dictionary).duplicate(true)
+				continue
+			for f in _WAR_TRACK_STATE_FIELDS:
+				if (saved_track as Dictionary).has(f):
+					war_tracks[track_id][f] = (saved_track as Dictionary)[f]
 	
 	if "active_track_ids" in data:
 		active_track_ids.clear()
@@ -407,7 +453,13 @@ func reset_all_tracks() -> void:
 	_ensure_initialized()
 	for track_id in war_tracks.keys():
 		var track = war_tracks[track_id]
-		track.current_progress = track.starting_progress
-		track.highest_threshold_reached = 0
+		if not (track is Dictionary):
+			continue
+		# .get() with a default, NOT track.starting_progress: a track restored from a
+		# save for an id the data file no longer defines carries STATE ONLY, and
+		# `dict.key` errors on a missing key (it does not return null). That aborted
+		# the whole reset, leaving every later track unreset.
+		track["current_progress"] = (track as Dictionary).get("starting_progress", 0)
+		track["highest_threshold_reached"] = 0
 	
 	current_effects.clear()
