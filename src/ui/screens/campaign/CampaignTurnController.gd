@@ -67,6 +67,16 @@ func _ready() -> void:
 
 	# Restore turn number from loaded campaign data BEFORE UI init
 	var campaign = game_state.get_current_campaign()
+
+	# Rebind the phase manager if this is a DIFFERENT campaign than it currently
+	# holds. It is an autoload, so turn_number / current_phase / the post-battle
+	# campaign reference otherwise survive a campaign switch — and the turn number
+	# then gets written into the new campaign and autosaved. bind_campaign() is a
+	# no-op when the identity is unchanged, so re-entering the turn controller
+	# mid-campaign still preserves in-flight turn and phase state.
+	if campaign and campaign_phase_manager.has_method("bind_campaign"):
+		campaign_phase_manager.bind_campaign(campaign)
+
 	if campaign and "progress_data" in campaign:
 		var saved_turn: int = campaign.progress_data.get("turns_played", 0)
 		if saved_turn > 0 and campaign_phase_manager.turn_number == 0:

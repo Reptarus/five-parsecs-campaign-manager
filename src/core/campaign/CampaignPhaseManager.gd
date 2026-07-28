@@ -94,6 +94,53 @@ func setup(state: FiveParsecsGameState) -> void:
 	if game_state and game_state.current_campaign:
 		_connect_to_campaign(game_state.current_campaign)
 
+## Campaign identity this manager is currently bound to. Empty until first bind.
+var _bound_campaign_id: String = ""
+
+
+func bind_campaign(campaign: Resource) -> void:
+	## Rebind per-campaign turn state when the campaign IDENTITY changes.
+	##
+	## This manager is an AUTOLOAD, so turn_number, current_phase and the
+	## post-battle handler's campaign reference live for the whole app session. The
+	## only things that reset them were setup() — which CampaignTurnController guards
+	## behind `if not campaign_phase_manager.game_state`, true exactly ONCE per
+	## session — and set_campaign(), called only from new-campaign finalization.
+	## GameState.load_campaign() never touched this manager at all.
+	##
+	## So loading a SECOND campaign in one session carried the first one's turn
+	## number straight into it, and it was PERSISTED:
+	## CampaignTurnController._on_campaign_turn_started() writes
+	## progress_data["turns_played"] = max(current, turn_number - 1) and the phase
+	## completion handler autosaves. The max() was added to stop a stale value
+	## LOWERING the count, which means a stale HIGH value from the previous campaign
+	## silently RAISES this one. Play A to turn 20, load B at turn 1, and B is turn
+	## 19 on disk forever — moving Red Zone eligibility (10+ turns), story-point
+	## earning (every 3rd turn) and Galactic War progression.
+	##
+	## Binding on identity, not on first run, is the fix: the same campaign re-entering
+	## the turn controller keeps its in-flight turn and phase, a different one resets.
+	if campaign == null:
+		return
+	var cid: String = str(campaign.campaign_id) if "campaign_id" in campaign else ""
+	if not _bound_campaign_id.is_empty() and cid == _bound_campaign_id:
+		return  # same campaign — preserve in-flight turn/phase state
+	_bound_campaign_id = cid
+
+	turn_number = 0
+	reset_phase_tracking()
+
+	# The post-battle handler caches its own campaign reference, and
+	# PostBattleContext._get_current_campaign() PREFERS that cached value over
+	# GameState.current_campaign — so without this rebind, character-event effects
+	# (credits, XP, status effects, item loss) applied while playing B were written
+	# into A's in-memory Resource and discarded.
+	if post_battle_phase_handler and post_battle_phase_handler.has_method("set_campaign"):
+		post_battle_phase_handler.set_campaign(campaign)
+
+	_connect_to_campaign(campaign)
+
+
 func get_current_phase() -> FiveParcsecsCampaignPhase:
 	return current_phase
 
