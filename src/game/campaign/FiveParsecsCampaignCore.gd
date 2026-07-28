@@ -383,6 +383,76 @@ func to_dictionary() -> Dictionary:
 		"qol_data": _build_qol_data()
 	}
 
+## GlobalEnums.Origin ordinal -> character_species.json id.
+##
+## Every target below was checked against data/character_species.json — note `kerin`,
+## NOT `k_erin`; guessing that would have written an id nothing matches.
+##
+## The Origin enum conflates SPECIES with human HOMEWORLDS: CORE_WORLDS, FRONTIER,
+## DEEP_SPACE, COLONY, HIVE_WORLD, FORGE_WORLD and PRISON_PLANET are all origins a
+## HUMAN character can have, so they map to "human".
+##
+## NONE (0) is deliberately absent: a character saved with no origin has no
+## recoverable species and is left untouched rather than guessed at.
+const _ORIGIN_TO_SPECIES := {
+	1: "human", 2: "engineer", 3: "feral", 4: "kerin", 5: "precursor",
+	6: "soulless", 7: "swift", 8: "bot",
+	9: "human", 10: "human", 11: "human", 12: "human", 13: "human", 14: "human",
+	15: "krag", 16: "skulker", 17: "human",
+}
+
+
+## Re-derive species_id (and the flags that depend on it) for crew members saved by
+## the narrowed writer.
+##
+## THE BUG THIS REPAIRS. Until CampaignCreationCoordinator._character_to_dict() was
+## fixed, every NON-CAPTAIN crew member was written through a ~17-field projection
+## that dropped species_id, is_bot and is_soulless. Measured across the 30 save files
+## on disk: 0 of 73 non-captain members carry species_id. Fixing the writer does
+## nothing for files already written, so those campaigns would keep running with all
+## 16 Strange Character rules inert.
+##
+## DERIVED, NOT INVENTED. `origin` survived the projection, and it is the same datum
+## the species was chosen from. It arrives as a String display name ("De-converted"),
+## an int, or a float (the documented legacy-origin-float trap), so all three are
+## handled. Anything that cannot be resolved is LEFT ALONE — an absent species_id is
+## honest, a wrong one silently changes which rules fire.
+func _backfill_crew_species() -> void:
+	if not (crew_data is Dictionary):
+		return
+	var members = crew_data.get("members", [])
+	if not (members is Array):
+		return
+	for m in members:
+		if not (m is Dictionary):
+			continue
+		var member: Dictionary = m
+		if not str(member.get("species_id", "")).is_empty():
+			continue  # already correct — a captain, or written post-fix
+
+		var species := ""
+		var origin = member.get("origin", null)
+		if origin is String and not (origin as String).is_empty():
+			# Display name -> id, matching the captains that DID round-trip
+			# ("De-converted" -> "de_converted", "Assault Bot" -> "assault_bot").
+			species = (origin as String).to_lower().replace(" ", "_").replace("-", "_") \
+				.replace("'", "")
+		elif origin is int or origin is float:
+			species = str(_ORIGIN_TO_SPECIES.get(int(origin), ""))
+
+		if species.is_empty():
+			continue
+		member["species_id"] = species
+		member["species_backfilled"] = true  # auditable: this was derived, not saved
+
+		# Flags that are pure functions of species and were dropped alongside it.
+		# is_bot gates the Core Rules p.98 "Bots never gain XP" rule.
+		if not member.has("is_bot"):
+			member["is_bot"] = species in ["bot", "assault_bot"]
+		if not member.has("is_soulless"):
+			member["is_soulless"] = species == "soulless"
+
+
 func _build_qol_data() -> Dictionary:
 	## Collect QoL system data for campaign save
 	var qol: Dictionary = {}
@@ -440,6 +510,7 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Load data sections
 	crew_data = data.get("crew", {})
+	_backfill_crew_species()
 	_rebuild_crew_id_index()
 	captain_data = data.get("captain", {})
 	ship_data = data.get("ship", {})
