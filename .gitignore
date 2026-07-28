@@ -75,6 +75,10 @@ node_modules
 /scripts/*
 # ...but the lint suite is tracked CI tooling (wiring-audit + data-ownership guards)
 !/scripts/lint_*.py
+# ...and the release tooling, which has to be reproducible on another machine.
+# Named explicitly rather than globbed so adding a scratch script here stays ignored
+# by default — the same trap the comment above describes.
+!/scripts/make_launcher_icons.py
 /tools/
 /mcp-servers/
 /screenshot/
@@ -94,4 +98,18 @@ test_full_run.txt
 
 # Sheet-calibration tool debug outputs (visualization only, not source of truth)
 tools/_debug/
+
+# Signing keys — NEVER commit.
+# Losing the Play upload key means the app can never be updated; leaking it means
+# someone else can publish as us. Keep the keystore outside the repo entirely; these
+# patterns are a backstop for the day someone drops one in by accident.
+*.jks
+*.keystore
+*.p12
+*.pepk
+keystore.properties
+key.properties
+
+# Godot stores the release keystore PATH AND PASSWORD in plaintext here.
+.godot/export_credentials.cfg
 
