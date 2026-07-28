@@ -79,6 +79,7 @@ node_modules
 # Named explicitly rather than globbed so adding a scratch script here stays ignored
 # by default — the same trap the comment above describes.
 !/scripts/make_launcher_icons.py
+!/scripts/inspect_pck.py
 /tools/
 /mcp-servers/
 /screenshot/
