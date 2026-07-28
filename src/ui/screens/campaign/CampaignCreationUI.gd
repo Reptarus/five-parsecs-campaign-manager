@@ -25,6 +25,12 @@ var current_panel: Control
 var _final_panel_valid: bool = true
 
 func _ready() -> void:
+	# Clear the two campaign-scoped autoloads that the wizard itself WRITES INTO as
+	# the player works, before any panel runs. They cannot be cleared at finalization
+	# (step 7) the way the others are, because by then they hold this campaign's own
+	# data — see the note in CampaignFinalizationService.
+	_reset_campaign_scoped_autoloads()
+
 	coordinator = CampaignCreationCoordinatorScript.new()
 	add_child(coordinator)
 
@@ -42,6 +48,31 @@ func _ready() -> void:
 	# Initial navigation state — back button always visible (Cancel on Step 1)
 	back_button.visible = true
 	back_button.text = "Cancel"
+
+
+func _reset_campaign_scoped_autoloads() -> void:
+	## Wipe per-campaign autoload state that survives from a previously played or
+	## loaded campaign, so a new campaign starts from a clean slate.
+	##
+	## GameState._init() auto-loads the last campaign at every launch, so by the time
+	## the player taps "New Campaign" the previous campaign's state is already live in
+	## these singletons. Neither is covered by the finalization reset:
+	##
+	##   EquipmentManager  — EquipmentPanel loads the new crew's gear into it at step 4.
+	##                       Its registry is the ship stash for five consumers, incl.
+	##                       the Core Rules p.76 sell-for-upkeep dialog, so a leaked
+	##                       item from the last campaign was sellable for real credits.
+	##   DLCManager        — ExpandedConfigPanel toggles it directly as the player picks
+	##                       expansions, then reads it back as this campaign's config.
+	var root := get_tree().root if get_tree() else null
+	if root == null:
+		return
+	var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("clear_all_equipment"):
+		eq_mgr.clear_all_equipment()
+	var dlc_mgr := root.get_node_or_null("/root/DLCManager")
+	if dlc_mgr and dlc_mgr.has_method("reset_campaign_flags"):
+		dlc_mgr.reset_campaign_flags()
 	finish_button.visible = false
 	next_button.visible = true
 	next_button.disabled = false

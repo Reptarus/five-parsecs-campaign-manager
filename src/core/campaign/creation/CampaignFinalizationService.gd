@@ -390,6 +390,17 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# faction standings and rival reputations, and the Galaxy Log rendered them.
 	# The starting-world anchor was wrong too: the prior campaign's entries are
 	# inserted before ours, so the min-discovered_on_turn scan reached theirs first.
+	#
+	# The list below must stay in step with FiveParsecsCampaignCore._build_qol_data(),
+	# which is what actually snapshots these autoloads into the save. That function
+	# reads EIGHT autoloads; this block used to reset two of them, so the other six
+	# leaked the previous campaign into the new one's first file on disk.
+	#
+	# DLCManager is deliberately NOT reset here: campaign creation mutates that
+	# autoload live as the player toggles expansions (ExpandedConfigPanel.gd:705) and
+	# reads it back as the new campaign's config (:707), so clearing it at
+	# finalization would erase the player's own selections. Its cross-campaign leak
+	# is fixed on the load path instead (FiveParsecsCampaignCore.apply_pending_qol_data).
 	if root_for_pdm:
 		var pdm_reset = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
 		if pdm_reset and pdm_reset.has_method("deserialize_all"):
@@ -397,6 +408,33 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		var faction_reset = root_for_pdm.get_node_or_null("/root/FactionSystem")
 		if faction_reset and faction_reset.has_method("cleanup"):
 			faction_reset.cleanup()
+		# Patrons / rivals / locations — otherwise the new crew starts with the last
+		# campaign's contacts, and NPCTracker suppresses generating their own.
+		var npc_reset = root_for_pdm.get_node_or_null("/root/NPCTracker")
+		if npc_reset and npc_reset.has_method("reset"):
+			npc_reset.reset()
+		# Transaction ledger + credits mirror.
+		var econ_reset = root_for_pdm.get_node_or_null("/root/WorldEconomyManager")
+		if econ_reset and econ_reset.has_method("deserialize"):
+			econ_reset.deserialize({})
+		# Journal entries + timeline (a new campaign must not inherit a history).
+		var journal_reset = root_for_pdm.get_node_or_null("/root/CampaignJournal")
+		if journal_reset and journal_reset.has_method("load_from_save"):
+			journal_reset.load_from_save({})
+		# Per-phase checklist ticks from the previous campaign's turn.
+		var checklist_reset = root_for_pdm.get_node_or_null("/root/TurnPhaseChecklist")
+		if checklist_reset and checklist_reset.has_method("load_from_save"):
+			checklist_reset.load_from_save({})
+		# War track progress.
+		var war_reset = root_for_pdm.get_node_or_null("/root/GalacticWarManager")
+		if war_reset and war_reset.has_method("reset_all_tracks"):
+			war_reset.reset_all_tracks()
+		# EquipmentManager is deliberately NOT reset here either, for the same reason as
+		# DLCManager: EquipmentPanel._persist_equipment_to_manager() (EquipmentPanel.gd:747)
+		# loads the new crew's starting gear into that autoload at creation STEP 4, and
+		# finalization is step 7 — clearing here would wipe the loadout the player just
+		# generated. Both are cleared when the creation flow OPENS instead
+		# (CampaignCreationUI._reset_campaign_scoped_autoloads).
 
 	if root_for_pdm and not world_data.is_empty():
 		var pdm = root_for_pdm.get_node_or_null("/root/PlanetDataManager")

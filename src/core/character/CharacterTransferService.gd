@@ -84,8 +84,21 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 			"reason": "Enlistment rejected (rolled %d+%d+%d=%d, needed %d)" % [die1, die2, combat_bonus, total, ENLISTMENT_TARGET]
 		}
 
-	# Transfer successful — create Bug Hunt version
-	var transferred := _convert_to_bug_hunt(character_data)
+	# Transfer successful — create Bug Hunt version.
+	#
+	# Route through the canonical hub rather than calling _convert_to_bug_hunt()
+	# directly. This leg is reached from CharacterTransferPanel:311 and was the ONLY
+	# one of the four that bypassed import_from_canonical(), so it was also the only
+	# one that never attached the lossless `snapshot`. A 5PFH veteran who enlisted and
+	# later mustered out came back as a stat-only husk: export_to_canonical() found no
+	# snapshot and fell through to _convert_to_standard(), which rebuilds from the Bug
+	# Hunt shape and cannot recover species, class, traits or implants.
+	#
+	# For a 5PFH source with no snapshot, export_to_canonical() returns
+	# char_data.duplicate(true) — the same input _convert_to_bug_hunt() got before —
+	# so the enlistment result is otherwise unchanged.
+	var canonical := export_to_canonical(character_data, MODE_5PFH)
+	var transferred := import_from_canonical(canonical, MODE_BUG_HUNT)
 
 	return {
 		"success": true,
@@ -257,7 +270,7 @@ func _convert_to_standard(char_data: Dictionary) -> Dictionary:
 	# Mustering out benefit: 1 Credit per 2 Completed Missions
 	var mustering_credits: int = completed_missions / 2
 
-	return {
+	var result := {
 		"id": char_id,
 		"character_id": char_id,
 		"name": char_data.get("name", char_data.get("character_name", "Unknown")),
@@ -273,7 +286,6 @@ func _convert_to_standard(char_data: Dictionary) -> Dictionary:
 		# its Tech->Savvy rule (Planetfall p.26). Bug Hunt itself doesn't use it.
 		"tech": char_data.get("tech", char_data.get("savvy", 0)),
 		"luck": 1,  # Restore base Luck for standard campaigns
-		"xp": char_data.get("xp", 0),
 		"equipment": restored_equipment,
 		"status": "active",
 		"transferred_from_bug_hunt": true,
@@ -283,6 +295,11 @@ func _convert_to_standard(char_data: Dictionary) -> Dictionary:
 		"bonus_story_points": 1,
 		"add_sector_government_patron": true
 	}
+	# "Retain profile and unused XP" (Compendium p.213, the docblock above). The
+	# retained value was being written under "xp", which nothing in 5PFH reads, so a
+	# mustered-out veteran arrived with their full XP recorded and none of it usable.
+	_set_xp_5pfh(result, _xp_of(char_data))
+	return result
 
 
 ## ============================================================================
@@ -394,6 +411,37 @@ func _attach_snapshot(down_converted: Dictionary, canonical: Dictionary) -> void
 	var clean := canonical.duplicate(true)
 	clean.erase("snapshot")
 	down_converted["snapshot"] = clean
+
+
+func _xp_of(char_data: Dictionary) -> int:
+	## Read a character's experience regardless of which mode's key it carries.
+	##
+	## The two sides of a transfer name this field differently and BOTH are correct
+	## in their own mode:
+	##   5PFH      -> "experience"  (Character.to_dictionary():1306 / from_dictionary():1404;
+	##                CharacterAdvancementService:62/152 spends against it, and
+	##                CampaignPhaseManager:500 + PostBattleContext:435 award into it)
+	##   Bug Hunt  -> "xp"          (BugHuntPhaseManager:177, BugHuntCharacterGeneration)
+	##   Planetfall-> "xp"
+	##
+	## Every conversion below used to read "xp" unconditionally, so any leg whose
+	## SOURCE was 5PFH read a key that does not exist there and silently got 0.
+	## Reading both keys makes the helper direction-agnostic.
+	if char_data.has("experience"):
+		return int(char_data.get("experience", 0))
+	return int(char_data.get("xp", 0))
+
+
+func _set_xp_5pfh(result: Dictionary, xp: int) -> void:
+	## Write experience onto a 5PFH-bound dict under BOTH keys.
+	##
+	## "experience" is the one 5PFH actually reads — writing only "xp" (as every
+	## return-to-5PFH leg did) meant a transferred veteran landed in the roster with
+	## 0 usable XP no matter how much they had earned. "xp" is kept alongside it for
+	## the same reason Character.to_dictionary() emits both "id"/"character_id" and
+	## "name"/"character_name": mixed-vintage consumers read either.
+	result["experience"] = xp
+	result["xp"] = xp
 
 
 func _restore_from_snapshot(char_data: Dictionary) -> Dictionary:
@@ -567,7 +615,11 @@ func convert_to_planetfall(char_data: Dictionary, source: String = "5pfh") -> Di
 		"combat_skill": char_data.get("combat_skill", char_data.get("combat", 0)),
 		"toughness": char_data.get("toughness", 3),
 		"savvy": char_data.get("savvy", 0),
-		"xp": char_data.get("xp", 0),
+		# Planetfall's own key IS "xp" — the bug was on the READ side. This leg's
+		# source is a 5PFH (or Bug Hunt) character, and a 5PFH character stores
+		# "experience", so get("xp", 0) always returned 0 and every imported veteran
+		# started the colony with nothing.
+		"xp": _xp_of(char_data),
 		"kp": 0,
 		"loyalty": "loyal",  # Imported characters start as Loyal (p.24)
 		"motivation": "",
@@ -666,12 +718,14 @@ func convert_from_planetfall(char_data: Dictionary, ending: String = "") -> Dict
 		"toughness": char_data.get("toughness", 3),
 		"savvy": char_data.get("savvy", 0),
 		"luck": 1,  # Restore base Luck
-		"xp": char_data.get("xp", 0),
 		"equipment": [],
 		"status": "active",
 		"transferred_from_planetfall": true,
 		"planetfall_ending": ending
 	}
+	# Planetfall stores "xp"; 5PFH reads "experience". This dict is 5PFH-bound, so a
+	# returning colonist's XP has to change key or it lands unusable.
+	_set_xp_5pfh(result, _xp_of(char_data))
 
 	# Ending-specific bonuses (Planetfall pp.165-166)
 	match ending:
@@ -825,6 +879,11 @@ func convert_from_tactics(char_data: Dictionary) -> Dictionary:
 		"toughness": char_data.get("toughness", 3),
 		"savvy": char_data.get("savvy", 0),
 		"luck": luck,
+		# Tactics has no XP track (it converts Kill Points to Luck above), so a
+		# born-in-Tactics veteran genuinely returns with 0. Written under both keys
+		# purely for consistency with the other return legs — no behaviour change,
+		# since a missing "experience" already reads as 0.
+		"experience": 0,
 		"xp": 0,
 		# "Carry weapons over as they are" (Tactics p.184).
 		"equipment": char_data.get("imported_equipment", char_data.get("equipment", [])),

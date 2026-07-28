@@ -569,20 +569,25 @@ func apply_pending_qol_data() -> void:
 	var journal = root.get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("load_from_save"):
 		journal.load_from_save(_pending_qol_data)
+	# NPCTracker: restore patrons/rivals/locations UNCONDITIONALLY.
+	# deserialize() assigns every field from data.get(key, {}), so an empty dict
+	# clears cleanly — the old `if not npc_data.is_empty()` guard meant a campaign
+	# with no contacts inherited the PREVIOUS campaign's patrons and rivals from the
+	# shared autoload, and _build_qol_data() then baked them into its first save.
+	# (Same defect PlanetDataManager and FactionSystem were each fixed for below.)
 	var npc_tracker = root.get_node_or_null("/root/NPCTracker")
 	if npc_tracker and npc_tracker.has_method("deserialize"):
-		var npc_data: Dictionary = qol.get("npc_tracker", {})
-		if not npc_data.is_empty():
-			npc_tracker.deserialize(npc_data)
+		npc_tracker.deserialize(qol.get("npc_tracker", {}))
 	var checklist = root.get_node_or_null("/root/TurnPhaseChecklist")
 	if checklist and checklist.has_method("load_from_save"):
 		checklist.load_from_save(_pending_qol_data)
-	# WorldEconomyManager: restore credits + transaction history
+	# WorldEconomyManager: restore credits + transaction history UNCONDITIONALLY.
+	# deserialize() reads data.get("current_credits", 0) / ("transaction_history", []),
+	# so an empty dict clears. Guarded, a fresh campaign inherited the previous one's
+	# transaction ledger.
 	var economy = root.get_node_or_null("/root/WorldEconomyManager")
 	if economy and economy.has_method("deserialize"):
-		var econ_data: Dictionary = qol.get("world_economy", {})
-		if not econ_data.is_empty():
-			economy.deserialize(econ_data)
+		economy.deserialize(qol.get("world_economy", {}))
 	# PlanetDataManager: restore per-planet progression.
 	# Call deserialize_all() UNCONDITIONALLY (empty dict cleanly clears via the
 	# clear() at top of deserialize_all). Without this, loading a save without
@@ -603,18 +608,27 @@ func apply_pending_qol_data() -> void:
 			var turns: int = int(progress_data.get("turns_played", 0)) \
 				if progress_data is Dictionary else 0
 			planet_mgr.upsert_current_world(world_data, turns)
-	# GalacticWarManager: restore war track progress
+	# GalacticWarManager: reset FIRST, then restore.
+	# Unlike its siblings, load_save_data() applies fields with `if "war_tracks" in
+	# data`, so handing it {} leaves the previous campaign's war progress fully
+	# intact — dropping the guard alone would not clear it. reset_all_tracks() is the
+	# explicit clear (it had zero callers before this).
 	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
-	if war_mgr and war_mgr.has_method("load_save_data"):
+	if war_mgr:
+		if war_mgr.has_method("reset_all_tracks"):
+			war_mgr.reset_all_tracks()
 		var war_data: Dictionary = qol.get("galactic_war", {})
-		if not war_data.is_empty():
+		if war_mgr.has_method("load_save_data") and not war_data.is_empty():
 			war_mgr.load_save_data(war_data)
-	# DLCManager: restore per-campaign ContentFlag toggles
+	# DLCManager: restore per-campaign ContentFlag toggles UNCONDITIONALLY.
+	# deserialize_campaign_flags() opens with _enabled_flags.clear(), so {} clears.
+	# This is the highest-impact of the four: a campaign that enables NO expansions
+	# serializes {} — the normal case for vanilla 5PFH — so the guard fired on the
+	# most common load and left the previous campaign's Compendium rules live, which
+	# _build_qol_data() then persisted into the vanilla campaign's own save.
 	var dlc_mgr = root.get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_method("deserialize_campaign_flags"):
-		var dlc_data: Dictionary = qol.get("dlc_flags", {})
-		if not dlc_data.is_empty():
-			dlc_mgr.deserialize_campaign_flags(dlc_data)
+		dlc_mgr.deserialize_campaign_flags(qol.get("dlc_flags", {}))
 	# FactionSystem: restore faction standings + rival reputations.
 	# ALWAYS clear first so stale faction/rival state from a PRIOR campaign can't
 	# bleed in via the shared autoload. update_data() early-returns on empty data
