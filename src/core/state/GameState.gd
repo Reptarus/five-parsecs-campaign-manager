@@ -7,6 +7,10 @@ extends Node
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
+## Shared atomic writer + .bak-aware reader. _detect_campaign_type MUST read through
+## this so the type router and the campaign loaders agree on which file they are
+## looking at — see the note on _detect_campaign_type.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 
 ## Signals with proper type annotations
 signal state_changed
@@ -532,19 +536,37 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 
 	return {"success": true, "message": success_msg, "path": path}
 
-## Detect campaign type from save file JSON without fully loading it
+## Detect campaign type from save file JSON without fully loading it.
+##
+## MUST read through SaveFileWriter, exactly as the four campaign cores' load_from_file
+## do. This used to open `path` directly, which reopened the data-destruction bug
+## documented at the top of load_campaign_typed — on the RECOVERY path that exists to
+## prevent data loss:
+##
+##   truncated primary -> JSON.parse_string returns null here -> falls through to the
+##   legacy default "five_parsecs" -> load_campaign_typed routes to
+##   FiveParsecsCampaignCore.load_from_file, which DOES consult the .bak, recovers
+##   perfectly good Bug Hunt JSON, and hands it to the 5PFH deserialiser.
+##
+## The type router and the recovery reader were looking at two different files. The
+## result is a populated 5PFH object carrying the Bug Hunt id and name with 0 crew and
+## 0 credits; the next autosave then rewrites that save through the 5PFH serialiser,
+## which emits no campaign_type, so the campaign is destroyed AND vanishes from the
+## Bug Hunt menu (MainMenu._find_bug_hunt_saves filters on that field).
+##
+## The trigger is an interrupted write — the exact scenario SaveFileWriter was added
+## for — so before this fix, backup recovery could destroy the campaign it recovered.
 static func _detect_campaign_type(path: String) -> String:
-	if not FileAccess.file_exists(path):
+	var data := SaveFileWriterRef.read_json_with_fallback(path)
+	if data.is_empty():
 		return "five_parsecs"
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return "five_parsecs"
-	var text := file.get_as_text()
-	file.close()
-	var data = JSON.parse_string(text)
-	if data is Dictionary:
-		# BugHuntCampaignCore writes "campaign_type": "bug_hunt" at root level
-		return data.get("campaign_type", "five_parsecs")
+	# BugHuntCampaignCore writes "campaign_type" at root level; also accept it under
+	# meta so a future writer moving the field cannot silently mis-route a save.
+	if data.has("campaign_type"):
+		return str(data["campaign_type"])
+	var meta = data.get("meta", {})
+	if meta is Dictionary and (meta as Dictionary).has("campaign_type"):
+		return str((meta as Dictionary)["campaign_type"])
 	return "five_parsecs"
 
 ## Peek at required DLC packs without fully loading the campaign

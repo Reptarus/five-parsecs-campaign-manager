@@ -786,6 +786,38 @@ func _character_to_dict(character) -> Dictionary:
 	if character == null:
 		return {}
 
+	# CANONICAL PATH: a Character Resource knows how to serialise itself — use it.
+	#
+	# THE BUG THIS FIXES. Everything below hand-built a NEW dict from ~17 properties
+	# and discarded the rest, while Character.to_dictionary() emits 53. CrewPanel
+	# appends Character RESOURCES (CrewPanel.gd:143/153), so every non-captain crew
+	# member went through the narrow path and lost ~38 fields on the way to disk.
+	# The captain escaped it: update_crew_state wraps the captain as
+	# {name, character_name, "character": <Resource>}, which is a DICTIONARY, and the
+	# dictionary branch below already merges to_dictionary() back in.
+	#
+	# MEASURED across all 30 save files on disk: 0 of 73 non-captain crew members
+	# carry species_id; the median non-captain has 18 keys against the captain's 27.
+	# Absent from every one of them: species_id, is_bot, is_soulless, special_rules,
+	# psionic_powers, status_effects, implants, acquired_training, health/max_health,
+	# character_id, portrait_path and the lifetime_* counters.
+	#
+	# So for 5 of 6 crew, every rule keyed on those fields was silently inert for the
+	# whole campaign: the 16 Strange Character species rules (CampaignPhaseManager:576
+	# Unity Agent favor, EquipmentManager:604 Krag armor gate, LuckSystem:300
+	# can_receive_luck, CharacterEventEffects, ExperienceTrainingProcessor:100),
+	# the Bot no-XP rule (Core Rules p.98), rolled psionic powers, and Character
+	# Events status_effects persistence. It reads as "species rules work" in any spot
+	# check, because the captain is the one member that is fine.
+	#
+	# character_object is the one key to_dictionary() does not emit, so it is
+	# re-attached here rather than lost in the swap.
+	if not (character is Dictionary) and character is Resource \
+			and character.has_method("to_dictionary"):
+		var canonical: Dictionary = character.to_dictionary()
+		canonical["character_object"] = character
+		return canonical
+
 	# SPRINT 27 FIX: Relax validation - accept Dictionaries with either "character_name" OR "name"
 	# Previous code required BOTH "character_name" AND "background", which was too strict
 	if character is Dictionary and (character.has("character_name") or character.has("name")):
