@@ -84,6 +84,51 @@ def read_settings(path):
     return found
 
 
+EXPORT_PRESETS = os.path.join(PROJECT_ROOT, "export_presets.cfg")
+
+# Files under addons/talo/ that must NEVER reach a build, with the reason.
+# settings.cfg itself is exempt: the runtime needs it and talo_export.gd
+# force-includes it regardless of any filter.
+MUST_NOT_SHIP = {
+    "settings.example.cfg":
+        "its header comments are a written index of this build's own weak points — "
+        "they name the plaintext JWT, state that it is extractable from the APK, and "
+        "point at the Discord webhook in support_config.cfg. Shipping it hands a "
+        "reader the map.",
+    "samples/":
+        "144 files of Talo demo scenes (chat, friends list, leaderboards, playground) "
+        "that no game code references. Pure weight and extra surface.",
+}
+
+
+def check_export_filters():
+    """Flag export filters that sweep more of addons/talo/ than the runtime needs.
+
+    THE BUG THIS EXISTS TO PREVENT (Jul 27 2026): include_filter was
+    "data/*, addons/talo/*.cfg". The `*.cfg` glob is wider than it looks — it packed
+    settings.example.cfg and plugin.cfg alongside the one file the runtime reads.
+    Verified by unzipping the AAB. Narrow it to the exact file.
+    """
+    out = []
+    if not os.path.exists(EXPORT_PRESETS):
+        return out
+    with open(EXPORT_PRESETS, "r", encoding="utf-8", errors="replace") as fh:
+        lines = fh.readlines()
+
+    for lineno, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped.startswith("include_filter="):
+            continue
+        if "addons/talo/*" in stripped or "addons/talo/*.cfg" in stripped:
+            out.append((
+                lineno,
+                "export_presets.cfg include_filter uses a WILDCARD over addons/talo/. "
+                "That sweeps settings.example.cfg and plugin.cfg into the build along "
+                "with the one file the runtime needs. Use 'addons/talo/settings.cfg'.",
+            ))
+    return out
+
+
 def main():
     findings = []
 
@@ -116,6 +161,8 @@ def main():
             if "settings.cfg" not in fh.read():
                 print("lint_talo_config: NOTE — talo_export.gd no longer force-includes "
                       "settings.cfg; re-check whether this lint is still needed.")
+
+    findings.extend(check_export_filters())
 
     if not findings:
         print("lint_talo_config: CLEAN (0 findings)")
