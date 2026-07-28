@@ -838,6 +838,20 @@ func _restore_equipment_from_campaign(campaign) -> void:
 		return
 	var eq_mgr = get_node_or_null("/root/EquipmentManager")
 	if not eq_mgr:
+		# Loud, not silent. _ready() clears _pending_equipment_restore BEFORE calling
+		# in here, so a miss here drops the restore with no retry — and the symptom is
+		# remote from the cause: the dashboard reads campaign.equipment_data directly
+		# so gear still DISPLAYS, while the ~30 call sites that read
+		# /root/EquipmentManager (ShipStashPanel, TradePhasePanel, WorldPhase,
+		# PostBattlePhase, TacticalBattleUI, CharacterDetailsScreen) see an empty
+		# stash. That reads as "my gear vanished in Trade but not on the dashboard".
+		#
+		# This is not believed reachable — autoloads are all attached before any
+		# _ready() runs, so registration order sets _ready() ORDER, not availability,
+		# and that was confirmed by running the app. Kept loud so the assumption
+		# announces itself if it is ever wrong on a different platform or Godot build.
+		push_error("GameState: EquipmentManager unavailable during equipment restore — "
+			+ "stash-backed screens will be empty this session")
 		return
 	# Clear transient storage to avoid duplicates on reload
 	if eq_mgr.has_method("clear_all_equipment"):

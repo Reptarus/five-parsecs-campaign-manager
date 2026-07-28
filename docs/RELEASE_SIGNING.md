@@ -131,9 +131,23 @@ Checklist:
 
 ## 6. Every build after this one
 
-Increment `version/code` in the export preset for **every** artifact you distribute.
-Play rejects a re-used version code, and testers on an older build will not be offered
-the update. It is currently `2`.
+Two version fields have to move, and they do different jobs:
+
+| Field | Where | Who reads it |
+|---|---|---|
+| `version/code` | `export_presets.cfg` (Android preset) | Play. Rejects a re-used code, and testers are not offered the update. Currently `2`. |
+| `config/version` | `project.godot` | The About panel, the main-menu footer, and **every bug report** (`BugReportContext.gd:48`). Currently `0.9.7-alpha1`. |
+
+Bump **both** for each weekly alpha build — `alpha1` → `alpha2` and so on.
+
+This matters more than it looks. `config/version` was `0.9.7-dev` for every build ever
+made, so across a six-week alpha with weekly drops (A1–A6) every incoming bug report
+would have claimed the same version and there would be no way to tell which build a
+tester was on, or whether a fix had actually reached them.
+
+`version/name` in the Android preset is deliberately the bare `0.9.7`: Godot rejects
+anything with a hyphen there (`Invalid version number "0.9.7-dev"`). The
+human-readable alpha tag lives in `config/version` instead.
 
 ---
 

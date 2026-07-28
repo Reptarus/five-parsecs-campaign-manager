@@ -19,14 +19,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Five Parsecs Campaign Manager"
-config/version="0.9.7-dev"
+config/version="0.9.7-alpha1"
 run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 config/icon="res://assets/iconnew.png"
 
 [autoload]
-
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 SettingsManager="*res://src/autoload/SettingsManager.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
