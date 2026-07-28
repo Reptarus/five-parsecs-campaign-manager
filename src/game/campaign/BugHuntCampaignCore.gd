@@ -1,6 +1,10 @@
 class_name BugHuntCampaignCore
 extends Resource
 
+## Atomic save writer. All four cores share ONE implementation so the write path
+## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+
 ## Bug Hunt Campaign Core Resource
 ## Stores complete Bug Hunt campaign data for save/load operations.
 ## Follows the same to_dictionary/from_dictionary/save_to_file/load_from_file
@@ -512,15 +516,14 @@ func save_to_file(path: String) -> Error:
 		data["squad"]["main_characters"] = clean_chars
 
 	var json_string := JSON.stringify(data, "\t")
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	if not file:
-		var error := FileAccess.get_open_error()
-		push_error("BugHuntCampaignCore: Failed to save: %s (error: %d)" % [path, error])
-		return error
-
-	file.store_string(json_string)
-	file.close()
-	return OK
+	# ATOMIC write — see src/core/state/SaveFileWriter.gd. Opening the live path with
+	# FileAccess.WRITE truncates it to 0 bytes immediately, so a kill mid-write
+	# destroyed the campaign. Shared with the other three cores so the four write
+	# paths cannot drift apart again.
+	var write_err: Error = SaveFileWriterRef.write_text_atomic(path, json_string)
+	if write_err != OK:
+		push_error("BugHuntCampaignCore: Failed to save: %s (error: %d)" % [path, write_err])
+	return write_err
 
 
 static func load_from_file(path: String) -> BugHuntCampaignCore:

@@ -1,6 +1,10 @@
 class_name PlanetfallCampaignCore
 extends Resource
 
+## Atomic save writer. All four cores share ONE implementation so the write path
+## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+
 ## Planetfall Campaign Core Resource
 ## Stores complete Planetfall colony campaign data for save/load operations.
 ## Follows the same to_dictionary/from_dictionary/save_to_file/load_from_file
@@ -750,13 +754,19 @@ func apply_pending_qol_data() -> void:
 
 
 func save_to_file(path: String) -> Error:
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	if not file:
-		return FileAccess.get_open_error()
-	var json := JSON.new()
-	file.store_string(json.stringify(to_dictionary(), "\t"))
-	file.close()
-	return OK
+	# ATOMIC write — see src/core/state/SaveFileWriter.gd. Opening the live path with
+	# FileAccess.WRITE truncates it to 0 bytes immediately, so a kill mid-write
+	# destroyed the campaign. Shared with the other three cores so the four write
+	# paths cannot drift apart again.
+	#
+	# This one also silently returned the OPEN error only; a failed WRITE still
+	# reported OK. write_text_atomic checks the write and leaves the previous save
+	# intact on failure.
+	var write_err: Error = SaveFileWriterRef.write_text_atomic(
+		path, JSON.stringify(to_dictionary(), "\t"))
+	if write_err != OK:
+		push_error("PlanetfallCampaignCore: Failed to save: %s (error: %d)" % [path, write_err])
+	return write_err
 
 
 static func load_from_file(path: String) -> PlanetfallCampaignCore:

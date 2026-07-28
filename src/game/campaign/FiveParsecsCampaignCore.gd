@@ -1,6 +1,10 @@
 class_name FiveParsecsCampaignCore
 extends Resource
 
+## Atomic save writer. All four cores share ONE implementation so the write path
+## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+
 ## Five Parsecs Campaign Core Resource
 ## Framework Bible compliant: Simple data container with validation
 ## Stores complete campaign data for save/load operations
@@ -783,13 +787,14 @@ func save_to_file(path: String) -> Error:
 
 	var json_string = JSON.stringify(data, "\t")
 
-	var file = FileAccess.open(path, FileAccess.WRITE)
-	if not file:
-		var error = FileAccess.get_open_error()
-		push_error("FiveParsecsCampaignCore: Failed to save: %s (error: %d)" % [path, error])
-		return error
-
-	file.store_string(json_string)
-	file.close()
-
-	return OK
+	# ATOMIC write. FileAccess.WRITE on the live path truncates it to 0 bytes
+	# immediately, so an Android background-kill between the truncate and the close
+	# destroyed the campaign outright — and that window opened on every phase
+	# completion. SaveFileWriter writes a temp, flushes, then renames over the real
+	# file, so the save on disk is always either the previous complete one or the new
+	# complete one. See src/core/state/SaveFileWriter.gd.
+	var write_err: Error = SaveFileWriterRef.write_text_atomic(path, json_string)
+	if write_err != OK:
+		push_error("FiveParsecsCampaignCore: Failed to save: %s (error: %d)"
+			% [path, write_err])
+	return write_err

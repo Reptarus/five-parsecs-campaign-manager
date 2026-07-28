@@ -44,6 +44,33 @@ func _ready() -> void:
 	_load_equipment_database()
 
 func _load_equipment_database() -> void:
+	## Reuse GameDataManager's already-parsed copy instead of re-reading the file.
+	##
+	## equipment_database.json (~20 KB) was being parsed THREE times at every cold
+	## start: GameDataManager.load_equipment_database() (autoload #3),
+	## DataManager._load_json_databases() (#4) and here (#20). That is pure
+	## duplicated work on the main thread before the menu is interactive, and on a
+	## mid-range Android phone JSON parsing plus the Dictionary/Array allocation it
+	## causes is a measurable slice of boot.
+	##
+	## Ordering is safe: GameDataManager is autoload #3 and EquipmentManager is #20,
+	## and _ready() runs in registration order, so its `equipment_database` is
+	## already populated by the time this runs. The file fallback below stays for
+	## unit tests and any context where the autoload is absent — it must not become
+	## a hard dependency.
+	var gdm: Node = null
+	var loop := Engine.get_main_loop()
+	if loop and loop is SceneTree:
+		gdm = (loop as SceneTree).root.get_node_or_null("/root/GameDataManager")
+	if gdm and gdm.get("equipment_database") is Dictionary \
+			and not (gdm.equipment_database as Dictionary).is_empty():
+		_equipment_db = gdm.equipment_database
+		_db_weapons = _equipment_db.get("weapons", [])
+		_db_armor = _equipment_db.get("armor", [])
+		_db_gear = _equipment_db.get("gear", [])
+		_load_onboard_items()
+		return
+
 	var path := "res://data/equipment_database.json"
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
