@@ -567,15 +567,51 @@ func get_emergency_takeoff_damage() -> int:
 				break
 	return base_damage
 
+## Ship debt lived in TWO places that nothing reconciled:
+##   campaign.ship_debt      - what the RULES code reads/writes (Black Zone loan
+##                             payoff PaymentProcessor.gd:205-209, the Planetfall
+##                             independence prepayment, ShiplessSystem's interest
+##                             ladder and p.76 seizure roll)
+##   ship_data["debt"]       - what CREATION and every DISPLAY use (ShipPanel:921,
+##                             ShipManager:269/315, TradePhasePanel:780)
+##
+## The bridge meant to join them, CampaignFinalizationService.gd:347-351, called
+## set_ship_debt(ship_data.get("debt", 0)) — and set_ship_debt did
+## `c.ship_data["debt"] = amount`, i.e. it read the nested field and wrote the same
+## nested field back. A self-copy. campaign.ship_debt was never touched.
+##
+## Measured across all 15 real 5PFH saves on disk: ship_debt = 0 in every one while
+## ship.debt ranged 12-36. So the starting ship loan the player took at creation was
+## invisible to the rules, and — live today — the Black Zone victory decremented a
+## field that is always 0 while writing a journal milestone reading "Ship loan
+## reduced by 5" (PaymentProcessor.gd:222-225). The player is told it happened and
+## the displayed debt never moves.
+##
+## `campaign.ship_debt` is now the OWNER (it is what the rules code already uses).
+## `ship_data["debt"]` is kept in sync as a DISPLAY MIRROR so the existing ship and
+## trade screens keep working without rewiring them during release week — but it is
+## written only through this setter, so there is exactly one writer.
 func get_ship_debt() -> int:
 	var c = _get_campaign()
-	if c:
-		return c.ship_data.get("debt", 0)
+	if c == null:
+		return 0
+	var owner_value: int = int(c.ship_debt) if "ship_debt" in c else 0
+	if owner_value > 0:
+		return owner_value
+	# Self-heal: legacy saves, and the creation/ship screens that still write the
+	# nested field directly, leave the owner at 0. Fall back rather than reporting
+	# a debt-free ship.
+	if "ship_data" in c and c.ship_data is Dictionary:
+		return int(c.ship_data.get("debt", 0))
 	return 0
 
 func set_ship_debt(amount: int) -> void:
 	var c = _get_campaign()
-	if c:
+	if c == null:
+		return
+	if "ship_debt" in c:
+		c.ship_debt = amount
+	if "ship_data" in c and c.ship_data is Dictionary:
 		c.ship_data["debt"] = amount
 
 # --- World / Location delegation ---

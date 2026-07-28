@@ -511,6 +511,22 @@ func from_dictionary(data: Dictionary) -> void:
 	if data.has("ship_debt"):
 		ship_debt = data.get("ship_debt", 0)
 
+	# MIGRATION: seed the canonical ship_debt from the nested display field.
+	#
+	# `ship_debt` is the owner — it is what the rules code reads and writes (the
+	# Black Zone loan payoff at PaymentProcessor.gd:205-209, the Planetfall
+	# independence prepayment). But creation and every ship/trade screen write
+	# ship_data["debt"], and the bridge that was meant to join them
+	# (CampaignFinalizationService.gd:347-351) called a setter that copied the
+	# nested field onto ITSELF. Measured across all 15 real 5PFH saves on disk:
+	# ship_debt = 0 in every one while ship.debt ranged 12-36.
+	#
+	# So every existing save has the player's starting loan in the wrong home. Seed
+	# it here rather than shipping a migration script; it is idempotent because it
+	# only fires while the owner is still 0.
+	if ship_debt == 0 and ship_data is Dictionary and ship_data.has("debt"):
+		ship_debt = int(ship_data.get("debt", 0))
+
 	if data.has("victory_conditions"):
 		victory_conditions = data.get("victory_conditions", {}).duplicate(true)
 	if data.has("victory_conditions_locked"):
