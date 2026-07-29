@@ -65,6 +65,30 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 				enemy["rival_id"] = rid
 	return results
 
+static func casualty_count(results: Dictionary) -> int:
+	## Casualty COUNT, tolerant of both shapes. EVERY numeric read of
+	## `casualties` must route through this.
+	##
+	## normalize() step 8 guarantees `casualties` is an Array of dicts on every
+	## 5PFH path, but consumers were written against an int and Bug Hunt /
+	## Planetfall / legacy saves can still carry one. An Array reaching `int()`,
+	## `%d`, a comparison, or a typed-int assignment is a RUNTIME ERROR that
+	## aborts the enclosing function — verified against 4.6, all five of:
+	##   Invalid operands 'Array' and 'int' in operator '=='  /  '>'
+	##   Trying to assign value of type 'Array' to a variable of type 'int'
+	##   Invalid call. Nonexistent 'int' constructor
+	##   a number is required in operator '%'
+	## Those aborts shipped: battle journal entries had no description and no
+	## mood, the post-battle narrative screen never opened, and the summary
+	## sheet stopped updating at the casualty label. Nothing errored visibly
+	## because an abort unwinds only the callee.
+	var raw: Variant = results.get("casualties", 0)
+	if raw is Array:
+		return (raw as Array).size()
+	if raw is int or raw is float:
+		return int(raw)
+	return 0
+
 static func _to_crew_entry(character: Variant) -> Dictionary:
 	## Character dict/Resource -> fields post-battle consumers read. Mirrors the
 	## PostBattleContext access patterns (get_char_name / get_character_origin).

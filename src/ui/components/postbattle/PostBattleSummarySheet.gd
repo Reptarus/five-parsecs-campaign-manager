@@ -5,6 +5,11 @@ class_name PostBattleSummarySheet
 ## Shows mission outcome, stats, crew changes, loot, and campaign impacts
 ## Integrates all post-battle results into comprehensive summary view
 
+## Only for casualty_count() — `casualties` arrives as an Array of dicts
+## (BattleResultNormalizer step 8), not the int this sheet assumed.
+const BattleResultNormalizerClass := preload(
+	"res://src/core/battle/BattleResultNormalizer.gd")
+
 # ============================================================================
 # SIGNALS
 # ============================================================================
@@ -287,7 +292,9 @@ func _setup_stats() -> void:
 		enemies_defeated_label.text = "Enemies Defeated: %d" % defeated
 
 	if casualties_label:
-		var casualties: int = _summary_data.get("casualties", 0)
+		# Assigning the raw Array to this int aborted _update_*, so the casualty
+		# label AND every field below it stopped updating.
+		var casualties: int = BattleResultNormalizerClass.casualty_count(_summary_data)
 		casualties_label.text = "Casualties: %d" % casualties
 		# Color code based on severity
 		if casualties > 0:

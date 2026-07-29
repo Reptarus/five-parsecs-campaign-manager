@@ -5,6 +5,11 @@
 
 const JournalEntryTypesClass := preload(
 	"res://src/core/campaign/JournalEntryTypes.gd")
+## Only for casualty_count() — `battle_result["casualties"]` is an Array of
+## dicts (BattleResultNormalizer step 8), not the int this file was written
+## against. Reading it as a number aborts the enclosing function.
+const BattleResultNormalizerClass := preload(
+	"res://src/core/battle/BattleResultNormalizer.gd")
 
 ## Bumped to 2 when JournalEntryTypes canonical taxonomy + filter helpers landed.
 ## Saves predating v2 still load (validation is warn-only).
@@ -179,7 +184,7 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 	# Build stats with zone info
 	var stats: Dictionary = {
 		"battle_result": battle_result.get("outcome", "unknown"),
-		"casualties": battle_result.get("casualties", 0),
+		"casualties": BattleResultNormalizerClass.casualty_count(battle_result),
 		"loot_earned": battle_result.get("loot", 0),
 		"xp_gained": battle_result.get("xp", 0),
 	}
@@ -652,7 +657,11 @@ func _generate_battle_description(
 ) -> String:
 	## Generate battle description from results
 	var outcome: String = battle_result.get("outcome", "unknown")
-	var casualties: int = battle_result.get("casualties", 0)
+	# Was `var casualties: int = battle_result.get("casualties", 0)`, which threw
+	# "Trying to assign value of type 'Array' to a variable of type 'int'" on the
+	# FIRST statement that touched it — so this function aborted and every battle
+	# journal entry shipped with an empty description.
+	var casualties: int = BattleResultNormalizerClass.casualty_count(battle_result)
 	var enemy_type: String = battle_result.get(
 		"enemy_type", "Unknown")
 
@@ -674,7 +683,9 @@ func _determine_battle_mood(
 ) -> String:
 	## Determine mood from battle result
 	var outcome = battle_result.get("outcome", "unknown")
-	var casualties = battle_result.get("casualties", 0)
+	# `casualties == 0` below is "Invalid operands 'Array' and 'int'" against the
+	# real shape, which aborted this function — every entry got an empty mood.
+	var casualties: int = BattleResultNormalizerClass.casualty_count(battle_result)
 
 	if outcome == "victory":
 		if casualties == 0:

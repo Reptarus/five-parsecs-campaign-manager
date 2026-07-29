@@ -66,22 +66,48 @@ static func resolve(
 	if battle_mode_id == "" or battle_mode_id == "standard":
 		var mt: String = mission_type.to_lower()
 		if "street_fight" in mt:
-			return StreetFightResolverRef.resolve_battle(
+			return _with_defeated_enemies(StreetFightResolverRef.resolve_battle(
 				crew_deployed, enemies_deployed, battlefield_data,
-				deployment_condition, dice_roller)
+				deployment_condition, dice_roller))
 		if "stealth" in mt:
-			return StealthResolverRef.resolve_battle(
+			return _with_defeated_enemies(StealthResolverRef.resolve_battle(
 				crew_deployed, enemies_deployed, battlefield_data,
-				deployment_condition, dice_roller)
+				deployment_condition, dice_roller))
 		if "salvage" in mt:
-			return SalvageResolverRef.resolve_battle(
+			return _with_defeated_enemies(SalvageResolverRef.resolve_battle(
 				crew_deployed, enemies_deployed, battlefield_data,
-				deployment_condition, dice_roller)
+				deployment_condition, dice_roller))
 
 	if use_no_minis(dlc_manager, battle_mode_id, mission_type):
-		return NoMinisResolverRef.resolve_battle(
+		return _with_defeated_enemies(NoMinisResolverRef.resolve_battle(
 			crew_deployed, enemies_deployed, battlefield_data,
-			deployment_condition, dice_roller, options)
-	return BattleResolverRef.resolve_battle(
+			deployment_condition, dice_roller, options))
+	return _with_defeated_enemies(BattleResolverRef.resolve_battle(
 		crew_deployed, enemies_deployed, battlefield_data,
-		deployment_condition, dice_roller)
+		deployment_condition, dice_roller))
+
+
+static func _with_defeated_enemies(result: Dictionary) -> Dictionary:
+	## Derive the defeated-enemy LIST from the per-unit end state.
+	##
+	## Every resolver reports `enemies_defeated` as a COUNT and returns
+	## `enemy_units_final`, but none produce `defeated_enemies` — the LIST that
+	## PostBattlePhase:151 reads and RivalPatronResolver.process_rival_status()
+	## iterates to find `is_rival`. So on every auto-resolved battle that array
+	## was empty, and two book rules silently inverted (Core Rules p.86):
+	##   • a defeated Rival was NEVER removed — the removal roll never ran, and
+	##     the rival came back next turn.
+	##   • `fought_existing_rival` stayed false, so the "no rival fought" branch
+	##     ran instead and offered a 1-in-6 chance of gaining a BRAND NEW rival
+	##     for the battle you just won against your existing one.
+	## Derived here, at the single routing chokepoint, so it cannot drift between
+	## the campaign-map and in-battle auto-resolve callers. ADD-ONLY: a resolver
+	## that later produces its own list keeps it.
+	if result.has("defeated_enemies"):
+		return result
+	var defeated: Array = []
+	for unit in result.get("enemy_units_final", []):
+		if unit is Dictionary and not bool(unit.get("is_alive", true)):
+			defeated.append(unit)
+	result["defeated_enemies"] = defeated
+	return result

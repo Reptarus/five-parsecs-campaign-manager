@@ -1291,7 +1291,11 @@ static func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
 	# successes (lost objective but held position) as withdrawals.
 	var held_field: bool = result.get("held_field", result.get("held_the_field", false))
 	var rounds: int = int(result.get("rounds_played", result.get("rounds", 0)))
-	var casualties: int = int(result.get("casualties", 0))
+	# NOT int(result.get("casualties", 0)) — the normalizer guarantees an Array
+	# here, and `int(Array)` is "Nonexistent 'int' constructor", which aborted
+	# this whole function. The post-battle narrative screen never opened after
+	# ANY battle. See BattleResultNormalizer.casualty_count().
+	var casualties: int = BattleResultNormalizerClass.casualty_count(result)
 	var combat_mode: String = "Auto-resolved"
 	if result.get("no_minis", false) or result.get("combat_mode", "") == "no_minis":
 		combat_mode = "No-Minis combat"
