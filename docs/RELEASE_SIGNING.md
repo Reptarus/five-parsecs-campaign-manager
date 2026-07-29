@@ -91,9 +91,40 @@ editor UI**, not by editing files:
 3. Under **Keystore**, set:
    - *Release*: `C:\Users\admin\keys\fpfh-release.jks`
    - *Release User*: `fpfh-upload`
-   - *Release Password*: the password you chose
+   - *Release Password*: **the exact password the keystore was created with in step 2.**
+     This field does not *set* a password — it supplies the one the keystore already
+     has. The keystore's password was fixed the moment `-genkeypair` ran and cannot be
+     changed from here. Type anything else and the export fails at signing with
+     `keystore password was incorrect`.
 4. Close the dialog (this writes `.godot/export_credentials.cfg`, which is gitignored
    — Godot stores that password in **plaintext**).
+
+> **Godot has ONE password field; a keystore conceptually has TWO** (one for the
+> file, one for the key inside). Godot sends its single value for both, so answer
+> step 2's final prompt — `Enter key password for <fpfh-upload>` — by pressing
+> **Enter** to reuse the store password.
+>
+> In practice this keystore is **PKCS12** (the default keystore type since Java 9),
+> where keytool does not manage the two separately at all. That has a trap of its
+> own: `keytool -keypasswd` on a PKCS12 store fails with
+> `UnsupportedOperationException: -keypasswd commands not supported if -storetype is
+> PKCS12` **regardless of the passwords**. Do not read that error — or a non-zero
+> exit from `-keypasswd` — as evidence of a password mismatch. It says nothing
+> about the passwords.
+>
+> **To verify the private key really unlocks**, use a read-only operation that
+> needs the key itself. `-list` only reads metadata and will pass even where
+> signing would not:
+>
+> ```powershell
+> $kt = "C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot\bin\keytool.exe"
+> $ks = "C:\Users\admin\keys\fpfh-release.jks"
+> & $kt -certreq -alias fpfh-upload -keystore $ks    # prompts; prints a CSR on success
+> ```
+>
+> A `CERTIFICATE REQUEST` block means the private key unlocked and signing will
+> work. `keystore password was incorrect` means the password is genuinely wrong —
+> regenerate while nothing is published.
 
 ## 4. Build both artifacts
 
