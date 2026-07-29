@@ -37,7 +37,7 @@ theme_override_font_sizes/font_size = 48
 text = "5 Parsecs From Home Manager"
 horizontal_alignment = 1
 
-[node name="MenuButtons" type="VBoxContainer" parent="." unique_id=1697064865]
+[node name="MenuScroll" type="ScrollContainer" parent="." unique_id=1697064866]
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
@@ -50,52 +50,57 @@ offset_right = -50.0
 offset_bottom = 250.0
 grow_horizontal = 0
 grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="MenuButtons" type="VBoxContainer" parent="MenuScroll" unique_id=1697064865]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 20
 
-[node name="Continue" type="Button" parent="MenuButtons" unique_id=2062215877]
+[node name="Continue" type="Button" parent="MenuScroll/MenuButtons" unique_id=2062215877]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 text = "Continue Campaign"
 
-[node name="LoadCampaign" type="Button" parent="MenuButtons" unique_id=1234567890]
+[node name="LoadCampaign" type="Button" parent="MenuScroll/MenuButtons" unique_id=1234567890]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 text = "Load Campaign"
 
-[node name="NewCampaign" type="Button" parent="MenuButtons" unique_id=6108552]
+[node name="NewCampaign" type="Button" parent="MenuScroll/MenuButtons" unique_id=6108552]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 text = "New Campaign"
 
-[node name="CoopCampaign" type="Button" parent="MenuButtons" unique_id=63227583]
+[node name="CoopCampaign" type="Button" parent="MenuScroll/MenuButtons" unique_id=63227583]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 text = "Co-op Campaign"
 
-[node name="BattleSimulator" type="Button" parent="MenuButtons" unique_id=1910675085]
+[node name="BattleSimulator" type="Button" parent="MenuScroll/MenuButtons" unique_id=1910675085]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 text = "Battle Simulator"
 
-[node name="BugHunt" type="Button" parent="MenuButtons" unique_id=1289406324]
+[node name="BugHunt" type="Button" parent="MenuScroll/MenuButtons" unique_id=1289406324]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 text = "Bug Hunt"
 
-[node name="Options" type="Button" parent="MenuButtons" unique_id=1528693910]
+[node name="Options" type="Button" parent="MenuScroll/MenuButtons" unique_id=1528693910]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 text = "Settings"
 
-[node name="Library" type="Button" parent="MenuButtons" unique_id=1764279588]
+[node name="Library" type="Button" parent="MenuScroll/MenuButtons" unique_id=1764279588]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3

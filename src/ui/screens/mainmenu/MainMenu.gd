@@ -46,6 +46,38 @@ func _scaled_font(base: int) -> int:
 		return rm.get_responsive_font_size(base)
 	return base
 
+## Bottom edge (design px) of the global top-right overlay strip. The SettingsOverlay
+## autoload parks the "Report a Bug" button there on EVERY screen, so top-anchored
+## content has to clear it or the overlay draws on top: in portrait the bug button
+## landed squarely on the app title (measured 120x60 reserved at 393x851). Read live
+## rather than hardcoded so the reservation tracks the overlay instead of drifting.
+func _top_right_overlay_bottom() -> float:
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so == null:
+		return 0.0
+	var bottom := 0.0
+	var stack: Array = [so]
+	while not stack.is_empty():
+		var n = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Control and (n as Control).is_visible_in_tree():
+			var r: Rect2 = (n as Control).get_global_rect()
+			if r.size.x > 0.0 and r.size.y > 0.0:
+				bottom = maxf(bottom, r.end.y)
+	return bottom
+
+## Line height for a Label at `font_size`, used to reserve vertical room for
+## WRAPPED text. get_combined_minimum_size() cannot serve here: it still reports
+## the unwrapped single-line height until the next layout pass, so sizing the box
+## from it re-creates the overflow it is meant to prevent. Falls back to a 1.4x
+## ratio if the theme font is unavailable.
+func _title_line_height(label: Label, font_size: int) -> float:
+	var f := label.get_theme_font("font")
+	if f:
+		return f.get_height(font_size)
+	return float(font_size) * 1.4
+
 func _exit_tree() -> void:
 	_cleanup_dialogs()
 	if game_state_manager:
@@ -308,7 +340,7 @@ func _on_mode_cta_pressed(mode_id: String, is_unlocked: bool) -> void:
 			break
 	if btn_name.is_empty():
 		return
-	var btn = get_node_or_null("MenuButtons/" + btn_name)
+	var btn = get_node_or_null("MenuScroll/MenuButtons/" + btn_name)
 	if not btn:
 		# Dynamically-injected buttons (Tactics/Planetfall) live by name on the
 		# menu container; find_child handles them.
@@ -1433,7 +1465,12 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 		if scale <= 0.0:
 			scale = 1.0
 		is_narrow = (DisplayServer.window_get_size().x / scale) < 768
-	var menu_buttons := $MenuButtons
+	# The column lives inside a ScrollContainer: anchors/offsets go on the SCROLL,
+	# never on the VBox. A phone in landscape has only ~339 design px of height and
+	# the menu's own minimum is ~351 at the touch-target floor, so at some sizes the
+	# list simply cannot fit and MUST scroll rather than clip items off-screen.
+	var menu_scroll := $MenuScroll
+	var menu_buttons := $MenuScroll/MenuButtons
 	var title := $Title
 
 	# Social footer: hide on very narrow, show on wide
@@ -1445,39 +1482,154 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 	if _showcase_card:
 		_showcase_card.visible = not is_narrow
 
+	# Every box below is derived from the LIVE design space, never hardcoded.
+	# SettingsManager._apply_ui_scale() cancels the square-1080 base stretch, so the
+	# design space is always `window_dp / 1.16` -- only ~339 wide at a 393dp phone,
+	# NOT the ~1080 the old constants assumed. Those constants sized the title at
+	# 473px inside a 339px space (clipped 67px off BOTH edges) and left it 103px
+	# UNDERNEATH the button column, so the app title was unreadable on the first
+	# screen in the primary alpha form factor. Measured via MCP at 393x851.
+	var ds: Vector2 = vp.get_visible_rect().size
+	var half_w: float = ds.x * 0.5
+	var half_h: float = ds.y * 0.5
+	var margin := 12.0
+	# Wrap rather than overflow: a box that is too narrow costs a second line, not
+	# clipped glyphs.
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
 	if is_narrow:
-		# Portrait/narrow: center buttons, scale down title
-		menu_buttons.anchor_left = 0.5
-		menu_buttons.anchor_right = 0.5
-		menu_buttons.anchor_top = 0.5
-		menu_buttons.anchor_bottom = 0.5
-		menu_buttons.offset_left = -160
-		menu_buttons.offset_right = 160
-		# Tall enough for the full ~10-item menu in portrait (was 400px = severe clip).
-		menu_buttons.offset_top = -320
-		menu_buttons.offset_bottom = 320
-		title.add_theme_font_size_override(
-			"font_size", _scaled_font(36))
-		title.offset_left = -180
-		title.offset_right = 180
+		# Portrait/narrow: title across the full usable width, buttons stacked below.
+		var narrow_font := _scaled_font(36)
+		title.add_theme_font_size_override("font_size", narrow_font)
+		# Re-centre: the short-landscape branch below left-anchors the title, and a
+		# rotation can land here afterwards.
+		title.anchor_left = 0.5
+		title.anchor_right = 0.5
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.offset_left = -(half_w - margin)
+		title.offset_right = half_w - margin
+		# A full-width title spans under the top-right overlay strip, so start below
+		# it. The landscape branch instead sits in the left gutter, which never
+		# reaches that far right, and needs no such offset.
+		title.offset_top = maxf(margin, _top_right_overlay_bottom() + margin)
+		# Reserve two wrapped lines. Derived from the font metrics rather than
+		# get_combined_minimum_size(), which still reports the UNWRAPPED single-line
+		# height until the next layout pass.
+		title.offset_bottom = title.offset_top + _title_line_height(title, narrow_font) * 2.0
+
+		menu_scroll.anchor_left = 0.5
+		menu_scroll.anchor_right = 0.5
+		menu_scroll.anchor_top = 0.5
+		menu_scroll.anchor_bottom = 0.5
+		menu_scroll.offset_left = -minf(160.0, half_w - margin)
+		menu_scroll.offset_right = minf(160.0, half_w - margin)
+		# Start below the title instead of centring over it.
+		menu_scroll.offset_top = (title.offset_bottom + margin) - half_h
+		menu_scroll.offset_bottom = (ds.y - margin) - half_h
 	else:
 		# Landscape/wide: right-aligned buttons (original layout)
-		menu_buttons.anchor_left = 1.0
-		menu_buttons.anchor_right = 1.0
-		menu_buttons.anchor_top = 0.5
-		menu_buttons.anchor_bottom = 0.5
-		menu_buttons.offset_left = -400
-		menu_buttons.offset_right = -50
+		menu_scroll.anchor_left = 1.0
+		menu_scroll.anchor_right = 1.0
+		menu_scroll.anchor_top = 0.5
+		menu_scroll.anchor_bottom = 0.5
+		var col_w: float = minf(400.0, half_w - margin)
+		menu_scroll.offset_left = -col_w
+		menu_scroll.offset_right = -minf(50.0, margin)
 		# Taller bounds so the full ~10-item menu column (Continue…Library) fits
-		# without clipping top/bottom at 720p.
-		menu_buttons.offset_top = -340
-		menu_buttons.offset_bottom = 340
+		# without clipping top/bottom at 720p -- but CLAMPED to the design space. A
+		# phone on its side is 851dp wide, so it lands in the DESKTOP bucket and runs
+		# this branch with only ~339 design px of HEIGHT, where the fixed +-340
+		# column overflowed 170px off BOTH ends. Measured via MCP at 851x393.
+		var col_half: float = minf(340.0, half_h - margin)
+		# The column is right-aligned, so on a SHORT landscape its top rises into the
+		# reserved top-right band and the "Report a Bug" button lands on the first
+		# menu item. Clamp the top below that band; on a full-height desktop window
+		# the column already starts lower and this changes nothing.
+		menu_scroll.offset_top = maxf(-col_half, (_top_right_overlay_bottom() + margin) - half_h)
+		menu_scroll.offset_bottom = col_half
+
+		# The centred title is only safe when the free LEFT gutter beside the
+		# right-hand button column is wide enough to contain its 800px box. On a
+		# 1280x800 tablet the gutter is 679 and the centred title RAN UNDER the
+		# column (measured collision 248x139 via MCP); on desktop the gutter is 1231
+		# and centring is correct. So: centre when it fits, otherwise left-align into
+		# the gutter. A short landscape (a phone on its side) also drops the point
+		# size -- 48pt would eat a third of a 339px-tall screen.
+		var gutter: float = ds.x - col_w - margin * 2.0
+		var use_gutter: bool = gutter < 800.0
+		var short_landscape: bool = ds.y < 420.0
 		# 48, not 75: at 75 (×responsive scale ≈ 86) the title overflowed its
 		# 800px box and rendered clipped ("…Manag"). 48 fits the full title.
-		title.add_theme_font_size_override(
-			"font_size", _scaled_font(48))
-		title.offset_left = -400
-		title.offset_right = 400
+		var wide_font := _scaled_font(28 if short_landscape else 48)
+		title.add_theme_font_size_override("font_size", wide_font)
+		var line_h := _title_line_height(title, wide_font)
+		if use_gutter:
+			title.anchor_left = 0.0
+			title.anchor_right = 0.0
+			title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			title.offset_left = margin
+			# Stop short of the button column's left edge (ds.x - col_w).
+			title.offset_right = maxf(margin + 120.0, ds.x - col_w - margin)
+			title.offset_top = margin
+			title.offset_bottom = margin + line_h * 3.0
+		else:
+			title.anchor_left = 0.5
+			title.anchor_right = 0.5
+			title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			# 400 when there is room (unchanged on desktop), clamped when there is
+			# not: the old fixed 800px box overflowed a 733px design space.
+			var wide_box: float = minf(400.0, half_w - margin)
+			title.offset_left = -wide_box
+			title.offset_right = wide_box
+			title.offset_top = 50.0
+			title.offset_bottom = 50.0 + maxf(100.0, line_h * 2.0)
+
+	# Fill-or-scroll. A ScrollContainer sizes its child to the child's MINIMUM on
+	# the scrolling axis, which would collapse every button to its 48px floor and
+	# shrink the desktop menu. Pushing the viewport height onto the VBox as a
+	# minimum keeps the buttons expanding to fill whenever there IS room, and lets
+	# the content exceed the viewport (i.e. scroll) only when there genuinely is
+	# not. Deferred because the scroll's own size is not final until this layout
+	# pass completes.
+	_apply_menu_fill.call_deferred()
+
+## Guards _apply_menu_fill against the re-entry its own writes provoke: changing
+## custom_minimum_size re-emits minimum_size_changed on the very node we listen to.
+var _menu_fill_busy := false
+
+## Keep the button column filling the scroll viewport when it fits, scrolling when
+## it does not. Split out of _on_viewport_resized so it can run deferred.
+##
+## Driven by TWO triggers, and it needs both: a viewport resize (handled by the
+## caller) and a change to the VISIBLE BUTTON SET, which happens well after layout
+## -- update_continue_button_visibility() toggles Continue, and the A1 gate hides
+## whole modes. With only the resize trigger a stale minimum from a taller previous
+## layout survives, and the menu scrolls with "Library" clipped off the bottom on a
+## screen it actually fits. Subscribing to minimum_size_changed covers every future
+## caller for free, instead of a list of sites to keep in sync.
+func _apply_menu_fill() -> void:
+	if _menu_fill_busy:
+		return
+	var menu_scroll := get_node_or_null("MenuScroll")
+	if menu_scroll == null:
+		return
+	var menu_buttons := menu_scroll.get_node_or_null("MenuButtons")
+	if menu_buttons == null:
+		return
+	if not menu_buttons.minimum_size_changed.is_connected(_on_menu_min_size_changed):
+		menu_buttons.minimum_size_changed.connect(_on_menu_min_size_changed)
+	_menu_fill_busy = true
+	# Clear first: a stale minimum from a LARGER previous layout would otherwise be
+	# reported as the content minimum and never shrink back.
+	menu_buttons.custom_minimum_size.y = 0.0
+	var content_min: float = menu_buttons.get_combined_minimum_size().y
+	menu_buttons.custom_minimum_size.y = maxf(content_min, menu_scroll.size.y)
+	_menu_fill_busy = false
+
+func _on_menu_min_size_changed() -> void:
+	if _menu_fill_busy:
+		return
+	_apply_menu_fill.call_deferred()
 
 func request_scene_change(scene_name: String) -> void:
 	var router = get_node_or_null("/root/SceneRouter")
