@@ -316,6 +316,67 @@ Android Studio emulator is acceptable for pre-device smoke checks, but `screen_g
 not return the correct hardware density. Always confirm with a real device before any APK
 distribution.
 
+### ⛔ THE EMULATOR CANNOT RENDER THIS APP (verified 2026-07-29 — do not re-run this)
+
+A full emulator provisioning + smoke attempt was made and **the app cannot be visually
+verified on the Android emulator**. Everything below was established empirically; do not
+spend hours rediscovering it.
+
+**The app boots fine and renders nothing.** It installs, launches
+(`Status: ok`, cold start 1.5–1.9 s), Godot 4.6 reaches `OnGodotMainLoopStarted`,
+`TaloAnalyticsAdapter` subscribes, a live `SurfaceView(BLAST)` layer is composited, and
+**zero** `SCRIPT ERROR` / `Invalid call` / `Nonexistent function` / `Method expected`
+appear. Only the screen is black.
+
+**Root cause: [godotengine/godot#121035](https://github.com/godotengine/godot/issues/121035)** —
+projects with `display/window/frame_pacing/android/enable_frame_pacing` (ON by default)
+fail on the Android Emulator with `Couldn't present to Vulkan queue (VkResult error 5)`.
+Affects 4.6.3 / 4.7 / 4.8.dev1; fixed by PR #121701. The issue report states plainly that
+the same build works on real devices. Our logs match exactly:
+`ERROR: QueuePresentKHR failed with error: 5` at
+`rendering_device_driver_vulkan.cpp:3064`, repeating.
+
+Turning frame pacing OFF removes those errors and produces a **native SIGSEGV instead**,
+in the engine's own Vulkan draw thread — no GDScript involved:
+
+```
+F DEBUG: #01 libgodot_android.so (Java_org_godotengine_godot_GodotLib_step+93)
+F DEBUG: #04 org.godotengine.godot.vulkan.VkRenderer.onVkDrawFrame+0
+F DEBUG: #06 org.godotengine.godot.vulkan.VkThread.run+274
+```
+
+Two distinct Vulkan failure modes. Hardware is not the constraint — the emulator
+negotiated host Vulkan on an RTX 3070 (`Selecting Vulkan device: NVIDIA GeForce RTX 3070,
+Version: 1.4.341`).
+
+**`adb screencap` is blind to the SurfaceView anyway.** Proven with a control, same
+emulator, seconds apart:
+
+| Target | Capture |
+|---|---|
+| Home screen (regular Android Views) | 1,374,740 bytes ✅ |
+| The app (Godot SurfaceView) | 15,580 bytes (black) ❌ |
+
+`screenrecord` and forcing GPU composition (`service call SurfaceFlinger 1008 i32 1`)
+return the same black frame. So **a black screenshot is not evidence about the app** —
+you cannot conclude anything about rendering from it.
+
+**What does NOT fix it:**
+- `-gpu host` vs `-gpu swiftshader_indirect` — both fail, differently
+- `advancedFeatures.ini` with `Vulkan = on` / `GLDirectMem = on`
+- Switching the editor's renderer dropdown to Mobile — that sets
+  `rendering/renderer/rendering_method` (**desktop**). Android already uses
+  `rendering_method.mobile = "mobile"`, and Forward+ *and* Mobile both use Vulkan.
+  Only *Compatibility* avoids Vulkan, and that is a renderer we do not ship.
+
+**What the emulator IS still good for:** install/launch, package id, `versionCode`,
+`targetSdk`, cold-start timing, and — most valuable — confirming the four abort
+signatures are absent from logcat on a real Android runtime.
+
+**For logic verification, use the headless harness instead**:
+`tests/tools/verify_post_battle.gd` asserts campaign STATE and needs no device.
+For layout, DPI, safe-area and touch, use a real device.
+
 ---
 
 ## MCP Quick-Start for This Session
