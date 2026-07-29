@@ -522,6 +522,32 @@ func award_xp_to_all_crew(xp_amount: int) -> void:
 	for member in crew:
 		add_character_xp(member, xp_amount)
 
+func award_xp_to_captain(xp_amount: int) -> void:
+	## THIS METHOD DID NOT EXIST. CampaignEventEffects.gd:162 called it directly,
+	## with no has_method() guard, for the Core Rules p.126 campaign event
+	## "You've managed to settle some old business ... If you have no Rivals, your
+	## captain earns +1 XP instead." A call to a nonexistent method is an INVALID
+	## CALL that aborts the enclosing function, so apply_effect() unwound: the
+	## captain gained nothing AND the event's result string was never returned.
+	##
+	## The captain is the crew member carrying is_captain == true — it MUST live in
+	## crew_data["members"], not only in captain_data (data-ownership table).
+	## Falls back to the first member so the book's XP is never silently dropped
+	## on a campaign whose captain flag is missing.
+	var crew := get_crew_members()
+	if crew.is_empty():
+		return
+	for member in crew:
+		var flagged := false
+		if member is Dictionary:
+			flagged = bool((member as Dictionary).get("is_captain", false))
+		elif member is Object and "is_captain" in member:
+			flagged = bool(member.is_captain)
+		if flagged:
+			add_character_xp(member, xp_amount)
+			return
+	add_character_xp(crew[0], xp_amount)
+
 func injure_random_crew(recovery_turns: int) -> void:
 	var crew := get_crew_members()
 	if crew.size() > 0:

@@ -480,10 +480,25 @@ func _check_bitter_day_story_point() -> void:
 	if not held:
 		return
 	var has_fatal: bool = false
-	for casualty in battle_result.get("casualties", []):
-		if casualty.get("type", "") in ["killed", "fatal"]:
-			has_fatal = true
-			break
+	# ITERATE ONLY WHEN IT IS ACTUALLY AN ARRAY. `casualties` is an Array of dicts
+	# on every normalized 5PFH path, but Bug Hunt / Planetfall / legacy saves can
+	# still carry a plain int — and in GDScript `for x in 5` iterates the INTEGERS
+	# 0..4, so `casualty.get("type", ...)` is then an invalid call on an int and
+	# ABORTS this whole function. The crew would hold the field, lose someone, and
+	# silently never receive the Core Rules p.67 story point.
+	var raw_casualties: Variant = battle_result.get("casualties", [])
+	if raw_casualties is Array:
+		for casualty in raw_casualties:
+			if casualty is Dictionary and casualty.get("type", "") in ["killed", "fatal"]:
+				has_fatal = true
+				break
+	elif raw_casualties is int or raw_casualties is float:
+		# Legacy int shape carries no per-entry type, but "casualty" means DEATH in
+		# this codebase — TacticalBattleUI:4398-4408 appends to crew_casualties only
+		# on instant_kill / dead / a death roll of 1-2, with the survivors going to
+		# crew_injuries, and BattleResultNormalizer step 8 stamps every derived
+		# entry type "killed". So a non-zero count IS one or more deaths.
+		has_fatal = int(raw_casualties) > 0
 	# Played path: deaths surface as is_fatal on the processed Injury Table roll,
 	# not as pre-classified casualties. Scan those too (Core Rules p.67).
 	if not has_fatal:
