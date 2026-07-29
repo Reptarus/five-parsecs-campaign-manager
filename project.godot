@@ -58,7 +58,6 @@ LegalConsentManager="*res://src/core/legal/LegalConsentManager.gd"
 CampaignAnalytics="*res://src/core/analytics/CampaignAnalytics.gd"
 TaloAnalyticsAdapter="*res://src/core/analytics/TaloAnalyticsAdapter.gd"
 TweenFX="*uid://d2n10rw2dnx8o"
-GalacticWarManager="*res://src/core/campaign/GalacticWarManager.gd"
 FactionSystem="*res://src/core/systems/FactionSystem.gd"
 Talo="*uid://bpmdn8oc34pg7"
 

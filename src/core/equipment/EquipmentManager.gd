@@ -442,8 +442,27 @@ func use_stash_consumable(item_id: String) -> Dictionary:
 ## when rehydrating runtime state from a newly-loaded campaign Resource so leftover
 ## items from a previous session don't bleed into the new one.
 func clear_all_equipment() -> void:
+	## Clear the runtime caches AND the canonical owner.
+	##
+	## This used to clear only _equipment_storage / _character_equipment. But every
+	## stash READ is owner-backed (get_ship_stash() resolves
+	## campaign.equipment_data["equipment"], see its note), so clearing the caches
+	## cleared nothing observable — get_ship_stash() kept returning the same items
+	## and callers that use this to reset saw the previous state survive intact.
+	## add_equipment()'s idempotency note at :245 already documents the asymmetry;
+	## this closes it.
+	##
+	## Gated on _campaign_write_through for the same reason add_equipment() is:
+	## during the creation wizard GameState still holds the PREVIOUS campaign, and
+	## wiping that campaign's stash from here would destroy real data.
 	_equipment_storage.clear()
 	_character_equipment.clear()
+	var gs = get_node_or_null("/root/GameState")
+	if _campaign_write_through and gs and gs.get("current_campaign") \
+			and "equipment_data" in gs.current_campaign:
+		var ed: Dictionary = gs.current_campaign.equipment_data
+		if ed.has("equipment") and ed["equipment"] is Array:
+			ed["equipment"].clear()
 	equipment_list_updated.emit()
 
 ## Bulk-set a character's owned equipment IDs, bypassing the normal compatibility

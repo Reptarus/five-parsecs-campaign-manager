@@ -66,6 +66,18 @@ var story_point_turn_state: Dictionary = {}
 var red_zone_licensed: bool = false
 var red_zone_turns_completed: int = 0
 
+# Galactic War Progress (Core Rules p.126 step 14)
+# "If you are tracking any planets that were previously Invaded, roll 2D6."
+# GalacticWarProcessor implements that table faithfully but read these four
+# fields off the campaign, and NONE of them existed — so `invaded_planets` was
+# permanently empty, the step returned at its own is_empty() guard, and the
+# 2D6 roll never happened in any campaign. Nothing ever recorded an invaded
+# world either; see record_invaded_planet(), called when the invasion resolves.
+var invaded_planets: Array = []      # [{id, name, war_modifier}] — actively tracked
+var lost_planets: Array = []         # ids: "cannot be visited again"
+var liberated_planets: Array = []    # ids: "can now be visited again"
+var invasion_modifiers: Dictionary = {}  # planet_id -> int, the p.126 "-2 future Invasion Threat"
+
 # Phase 30: Being Without a Ship (Core Rules p.59)
 var has_ship: bool = true
 var ship_debt: int = 0  # Remaining loan amount (max financed 70cr)
@@ -128,6 +140,43 @@ func add_crew_member(member_dict: Dictionary) -> void:
 	crew_data["members"].append(safe)
 	_rebuild_crew_id_index()
 	_update_modified_time()
+
+func record_invaded_planet(planet_id: String, planet_name: String = "") -> bool:
+	## Start tracking a world that has been Invaded (Core Rules p.126 step 14:
+	## "If you are tracking any planets that were previously Invaded, roll 2D6").
+	##
+	## The single mutation chokepoint for the Galactic War tracked list. NOTHING
+	## called anything like this before — the invasion check set a transient
+	## `invasion_pending` flag that TravelPhase consumed to force a flee, and the
+	## world was then forgotten. So step 14's own is_empty() guard returned
+	## immediately, every campaign, and the 2D6 table never rolled once.
+	##
+	## Idempotent: a world already tracked, already lost, or already liberated is
+	## not re-added (a liberated world can be invaded again only after it leaves
+	## the liberated list, which the book does not describe, so we do not invent it).
+	if planet_id.is_empty():
+		return false
+	if planet_id in lost_planets or planet_id in liberated_planets:
+		return false
+	for tracked in invaded_planets:
+		if tracked is Dictionary and str(tracked.get("id", "")) == planet_id:
+			return false
+	invaded_planets.append({
+		"id": planet_id,
+		"name": planet_name if not planet_name.is_empty() else planet_id,
+		"war_modifier": 0,
+	})
+	_update_modified_time()
+	return true
+
+func get_invasion_threat_modifier(planet_id: String) -> int:
+	## The p.126 "Unity Victorious" aftermath: "all future Invasion Threat rolls
+	## on this world are at -2". GalacticWarProcessor WROTE this into
+	## invasion_modifiers and nothing ever read it, so a liberated world stayed
+	## exactly as dangerous as before it was freed.
+	if planet_id.is_empty():
+		return 0
+	return int(invasion_modifiers.get(planet_id, 0))
 
 func remove_crew_member(character_id: String) -> bool:
 	## Remove a crew member by id (character_id, or legacy "id"), rebuild the
@@ -370,6 +419,11 @@ func to_dictionary() -> Dictionary:
 		"story_track_enabled": story_track_enabled,
 		# Campaign crew size setting (Core Rules p.63)
 		"campaign_crew_size": campaign_crew_size,
+		# Galactic War Progress (Core Rules p.126 step 14)
+		"invaded_planets": invaded_planets.duplicate(true),
+		"lost_planets": lost_planets.duplicate(),
+		"liberated_planets": liberated_planets.duplicate(),
+		"invasion_modifiers": invasion_modifiers.duplicate(),
 		# Phase 30: Red Zone Jobs + Shipless State
 		"red_zone_licensed": red_zone_licensed,
 		"red_zone_turns_completed": red_zone_turns_completed,
@@ -477,10 +531,6 @@ func _build_qol_data() -> Dictionary:
 	var planet_mgr = root.get_node_or_null("/root/PlanetDataManager")
 	if planet_mgr and planet_mgr.has_method("serialize_all"):
 		qol["planet_data"] = planet_mgr.serialize_all()
-	# GalacticWarManager: war track progress
-	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
-	if war_mgr and war_mgr.has_method("get_save_data"):
-		qol["galactic_war"] = war_mgr.get_save_data()
 	# DLCManager: per-campaign ContentFlag toggles
 	var dlc_mgr = root.get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_method("serialize_campaign_flags"):
@@ -571,6 +621,16 @@ func from_dictionary(data: Dictionary) -> void:
 		campaign_crew_size = clampi(data.meta.get("campaign_crew_size", 6), 4, 6)
 	else:
 		campaign_crew_size = 6  # Legacy save default
+
+	# Galactic War Progress (Core Rules p.126 step 14). Absent in pre-fix saves.
+	if data.has("invaded_planets"):
+		invaded_planets = (data.get("invaded_planets", []) as Array).duplicate(true)
+	if data.has("lost_planets"):
+		lost_planets = (data.get("lost_planets", []) as Array).duplicate()
+	if data.has("liberated_planets"):
+		liberated_planets = (data.get("liberated_planets", []) as Array).duplicate()
+	if data.has("invasion_modifiers"):
+		invasion_modifiers = (data.get("invasion_modifiers", {}) as Dictionary).duplicate()
 
 	# Phase 30: Red Zone Jobs + Shipless State
 	if data.has("red_zone_licensed"):
@@ -679,18 +739,6 @@ func apply_pending_qol_data() -> void:
 			var turns: int = int(progress_data.get("turns_played", 0)) \
 				if progress_data is Dictionary else 0
 			planet_mgr.upsert_current_world(world_data, turns)
-	# GalacticWarManager: reset FIRST, then restore.
-	# Unlike its siblings, load_save_data() applies fields with `if "war_tracks" in
-	# data`, so handing it {} leaves the previous campaign's war progress fully
-	# intact — dropping the guard alone would not clear it. reset_all_tracks() is the
-	# explicit clear (it had zero callers before this).
-	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
-	if war_mgr:
-		if war_mgr.has_method("reset_all_tracks"):
-			war_mgr.reset_all_tracks()
-		var war_data: Dictionary = qol.get("galactic_war", {})
-		if war_mgr.has_method("load_save_data") and not war_data.is_empty():
-			war_mgr.load_save_data(war_data)
 	# DLCManager: restore per-campaign ContentFlag toggles UNCONDITIONALLY.
 	# deserialize_campaign_flags() opens with _enabled_flags.clear(), so {} clears.
 	# This is the highest-impact of the four: a campaign that enables NO expansions

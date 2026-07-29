@@ -7,7 +7,6 @@ const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.g
 const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
 const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.gd")
 const DataLoader = preload("res://src/utils/GameDataLoader.gd")
-const WarPanel = preload("res://src/ui/components/postbattle/GalacticWarPanel.tscn")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
 const NarrativeInjuryDialog = preload(
@@ -553,10 +552,8 @@ func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 		var outcome = result.get("result", "unknown")
 		_add_result_to_log("Galactic War - %s: %s" % [planet_name, outcome])
 
-	# Update GalacticWarPanel if visible
-	var war_panel = step_content.find_child("GalacticWarPanel") if step_content else null
-	if war_panel and war_panel.has_method("update_war_status"):
-		war_panel.update_war_status(progress)
+	if planet_results.is_empty():
+		_add_result_to_log("Galactic War: no Invaded worlds tracked.")
 
 func _on_backend_training_result(training: Array) -> void:
 	## Handle training enrollment result from backend
@@ -1669,29 +1666,42 @@ func _on_character_event_roll(crew_member: Dictionary, btn: Button = null) -> vo
 	_increment_inline_roll()
 
 func _add_galactic_war_content() -> void:
-	## Add galactic war content using GalacticWarPanel
+	## Check for Galactic War Progress (Core Rules p.126 step 14).
+	##
+	## This step used to instantiate GalacticWarPanel, which rendered "war
+	## tracks" — a system that appears in NEITHER rulebook (verified with PyPDF2
+	## across both PDFs; the Compendium index lists exactly one entry, "Galactic
+	## War Progress 126"). That whole subsystem was fabricated AND inert, so the
+	## step showed a permanently-empty panel. Meanwhile the REAL result — the
+	## 2D6 roll per tracked Invaded planet — was already arriving via
+	## _on_backend_galactic_war_updated and being logged as text.
 	if not step_content:
 		return
 
-	# Remove description — component has its own header
-	for child in step_content.get_children():
-		step_content.remove_child(child)
-		child.queue_free()
+	var label: Label = Label.new()
+	label.text = ("Roll 2D6 for each planet you are tracking that was previously Invaded.\n"
+		+ "2-4 Lost to Unity  •  5-7 Contested  •  8-9 Making Ground (+1 to future rolls)\n"
+		+ "10+ Unity Victorious (world visitable again, future Invasion Threat at -2)")
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	step_content.add_child(label)
 
-	# Instantiate war panel
-	var panel = WarPanel.instantiate()
-	if panel:
-		# Add to tree FIRST so @onready vars resolve
-		step_content.add_child(panel)
+	var tracked: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "invaded_planets" in gs.current_campaign:
+		tracked = gs.current_campaign.invaded_planets
 
-		# Connect signals before setup
-		if panel.has_signal("war_panel_closed"):
-			panel.war_panel_closed.connect(_on_war_panel_closed)
-
-		# Setup AFTER add_child so @onready node refs are valid
-		if panel.has_method("setup"):
-			var war_events = _get_war_events()
-			panel.setup(war_events)
+	var status: Label = Label.new()
+	if tracked.is_empty():
+		status.text = "\nNo Invaded worlds are being tracked — nothing to roll."
+	else:
+		var names: Array = []
+		for planet in tracked:
+			if planet is Dictionary:
+				names.append(str(planet.get("name", planet.get("id", "?"))))
+		status.text = "\nTracking %d Invaded world(s): %s" % [tracked.size(), ", ".join(names)]
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	step_content.add_child(status)
 
 func _get_current_turn() -> int:
 	var gs = get_node_or_null("/root/GameState")
@@ -2775,16 +2785,6 @@ func _was_crew_casualty(crew_member: Dictionary) -> bool:
 					return true
 
 	return false
-
-func _get_war_events() -> Array:
-	## Return war events from battle results or state manager
-	if battle_results and battle_results.has("war_events"):
-		return battle_results.get("war_events", [])
-	return []
-
-func _on_war_panel_closed() -> void:
-	## Handle war panel closed signal
-	_advance_to_next_step()
 
 func _advance_to_next_step() -> void:
 	## Advance to next step (used by war panel and other components)

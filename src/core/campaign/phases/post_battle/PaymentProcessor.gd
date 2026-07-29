@@ -131,6 +131,19 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 		var rz_invasion_mod: int = rz_mods.get("invasion_roll_modifier", 2)
 		modifiers += rz_invasion_mod
 
+	# Per-world aftermath of a liberated planet: "Due to increased troop
+	# presence, all future Invasion Threat rolls on this world are at -2"
+	# (Core Rules p.126, Unity Victorious). GalacticWarProcessor wrote this into
+	# campaign.invasion_modifiers and NOTHING read it, so a world you liberated
+	# stayed exactly as invasion-prone as before you freed it.
+	var campaign_for_world: Variant = ctx.campaign
+	if campaign_for_world != null and campaign_for_world.has_method("get_invasion_threat_modifier"):
+		var pdm: Node = Engine.get_main_loop().root.get_node_or_null("/root/PlanetDataManager") \
+			if Engine.get_main_loop() else null
+		if pdm != null:
+			modifiers += campaign_for_world.get_invasion_threat_modifier(
+				str(pdm.current_planet_id))
+
 	var final_roll: int = invasion_roll + modifiers
 	var invasion_pending: bool = final_roll >= 9
 
@@ -169,27 +182,32 @@ func process_black_zone_rewards(
 		ctx.battle_result)
 
 	if bz_rewards.get("is_victory", false):
-		# Clear all Rivals
+		# CANONICAL OWNERS ARE campaign.rivals / campaign.patrons (top-level @vars,
+		# per the data-ownership table and RivalPatronResolver._remove_rival).
+		# Both writes used to target campaign.crew_data["rivals"] / ["patrons"] —
+		# a location NOTHING reads — and the rival clear was additionally gated on
+		# `cd.has("rivals")`, a key crew_data never carries. So the entire Black
+		# Zone victory payout ("Clear ALL Rivals, +2 Patrons", Core Rules
+		# Appendix III) applied to neither rivals nor patrons, while the journal
+		# entry below dutifully reported both as done.
 		if ctx.game_state and ctx.game_state.current_campaign:
 			var campaign: Resource = ctx.game_state.current_campaign
-			if "crew_data" in campaign:
-				var cd: Dictionary = campaign.crew_data
-				if cd.has("rivals"):
-					cd["rivals"] = []
 
-		# Add 2 persistent Patrons
-		if ctx.game_state and ctx.game_state.current_campaign:
-			var campaign: Resource = ctx.game_state.current_campaign
-			if "crew_data" in campaign:
-				var cd: Dictionary = campaign.crew_data
-				var patrons: Array = cd.get("patrons", [])
+			# Clear all Rivals
+			if "rivals" in campaign and campaign.rivals is Array:
+				campaign.rivals.clear()
+
+			# Add 2 persistent Patrons
+			if "patrons" in campaign and campaign.patrons is Array:
 				for i in range(bz_rewards.get("add_patrons", 2)):
-					patrons.append({
+					campaign.patrons.append({
+						"id": "bz_unity_contact_%d_%d" % [Time.get_ticks_msec(), i],
 						"name": "Unity Contact %d" % (i + 1),
 						"type": "persistent",
 						"is_persistent": true,
+						"persistent": true,
+						"source": "black_zone",
 					})
-				cd["patrons"] = patrons
 
 		# Bonus credits (5cr)
 		var bonus_cr: int = bz_rewards.get("bonus_credits", 5)

@@ -1183,33 +1183,31 @@ func _build_world_section(campaign) -> void:
 					"Event", evt_desc, COLOR_AMBER
 				))
 
-	# ── Galactic War status ──
-	var gwm = get_node_or_null("/root/GalacticWarManager")
-	if gwm and gwm.active_track_ids.size() > 0:
+	# ── Galactic War status (Core Rules p.126 step 14) ──
+	# Was reading GalacticWarManager.active_track_ids — a fabricated "war track"
+	# system that no rulebook contains and that nothing could ever advance, so
+	# this block never rendered. Now shows the real tracked state: worlds that
+	# were Invaded and are still being rolled for each post-battle.
+	if campaign and "invaded_planets" in campaign \
+			and not campaign.invaded_planets.is_empty():
 		var war_sep := HSeparator.new()
 		war_sep.modulate = COLOR_BORDER
 		right_vbox.add_child(war_sep)
 		right_vbox.add_child(
 			_create_section_header("GALACTIC WAR")
 		)
-		for track_id in gwm.active_track_ids:
-			var track: Dictionary = gwm.war_tracks.get(
-				track_id, {}
-			)
-			var track_name: String = track.get(
-				"name", str(track_id)
-			)
-			var progress: int = track.get(
-				"current_progress", 0
-			)
-			var max_val: int = track.get("max_progress", 10)
-			var war_color: Color = COLOR_AMBER
-			if progress > max_val * 0.7:
-				war_color = COLOR_RED
+		for planet in campaign.invaded_planets:
+			if not (planet is Dictionary):
+				continue
+			var planet_name: String = str(planet.get("name", planet.get("id", "?")))
+			var war_mod: int = int(planet.get("war_modifier", 0))
+			var status_text: String = "Contested"
+			if war_mod > 0:
+				status_text = "Making Ground (+%d)" % war_mod
 			right_vbox.add_child(_create_info_row(
-				track_name,
-				"%d / %d" % [progress, max_val],
-				war_color
+				planet_name,
+				status_text,
+				COLOR_AMBER if war_mod <= 0 else COLOR_SUCCESS
 			))
 
 	# ── View World Log button ──

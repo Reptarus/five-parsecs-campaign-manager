@@ -123,12 +123,28 @@ func test_is_canonical_tag_known():
 func test_is_canonical_tag_unknown():
 	assert_that(JET.is_canonical_tag("not_a_tag")).is_false()
 
-func test_get_all_tag_keys_returns_25():
+func test_get_all_tag_keys_covers_the_real_producer_vocabulary():
+	# Was `is_equal(25)`. A hardcoded count breaks whenever a tag is added and
+	# says nothing about correctness — the taxonomy only matters because
+	# validate_entry() push_warning()s on anything it doesn't list. 44 of the 54
+	# tags producers actually emit were missing, so nearly every journal entry
+	# logged warnings. Assert coverage of the real vocabulary instead of a size.
 	var keys: Array[String] = JET.get_all_tag_keys()
-	assert_that(keys.size()).is_equal(25)
 	assert_that(keys).contains([
 		"stars_of_the_story", "battle", "red_zone", "milestone",
 	])
+	# A sample from each producer family that was previously non-canonical.
+	assert_that(keys).contains([
+		"galactic_war", "invasion", "psionics", "ship_component",
+		"character_event", "campaign_event", "loot", "upkeep",
+		"experience", "victory", "defeat", "bug_hunt", "planetfall", "tactics",
+	])
+	# No duplicate keys, and every key is non-empty.
+	var seen: Dictionary = {}
+	for k in keys:
+		assert_bool(k.is_empty()).is_false()
+		assert_bool(seen.has(k)).is_false()
+		seen[k] = true
 
 # ============================================================================
 # validate_entry — soft-validate, warn but accept

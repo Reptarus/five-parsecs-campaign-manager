@@ -353,6 +353,50 @@ func _process_flee_invasion() -> void:
 		_debug_log_flee_invasion(false)
 		_process_decide_travel()
 
+func _record_invaded_world() -> void:
+	## Hand the current world to the campaign's Galactic War tracked list
+	## (Core Rules p.126 step 14). Routed through the campaign's own mutation
+	## API per the data-ownership rule — no direct writes to invaded_planets.
+	var planet_mgr: Node = get_node_or_null("/root/PlanetDataManager")
+	if planet_mgr == null:
+		return
+	var planet_id: String = str(planet_mgr.current_planet_id)
+	if planet_id.is_empty():
+		return
+	var planet_name: String = planet_id
+	if planet_mgr.has_method("get_current_planet"):
+		var planet: Variant = planet_mgr.get_current_planet()
+		if planet is Dictionary:
+			planet_name = str(planet.get("name", planet_id))
+		elif planet != null and "name" in planet:
+			planet_name = str(planet.name)
+
+	var campaign: Variant = _campaign
+	if campaign == null:
+		var gs: Node = get_node_or_null("/root/GameState")
+		if gs and "current_campaign" in gs:
+			campaign = gs.current_campaign
+	if campaign == null or not campaign.has_method("record_invaded_planet"):
+		return
+	if not campaign.record_invaded_planet(planet_id, planet_name):
+		return
+
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		var turn_number: int = 0
+		if campaign and "progress_data" in campaign:
+			turn_number = int(campaign.progress_data.get("turns_played", 0))
+		journal.create_entry({
+			"type": "milestone",
+			"auto_generated": true,
+			"title": "%s Invaded" % planet_name,
+			"description": ("Unity forces have invaded %s. The world's fate is now "
+				+ "tracked during Check for Galactic War Progress.") % planet_name,
+			"location": planet_name,
+			"turn_number": turn_number,
+			"tags": ["invasion", "galactic_war"],
+		})
+
 func _handle_invasion_escape() -> void:
 	## Handle invasion escape mechanics - 2D6, need 8+ to escape
 	if not dice_manager:
@@ -394,6 +438,13 @@ func _handle_invasion_escape() -> void:
 func _invasion_escape_result(success: bool) -> void:
 	## Process result of invasion escape attempt
 	self.invasion_escaped.emit(success)
+
+	# Start tracking this world for Galactic War Progress (Core Rules p.126
+	# step 14). The invasion HAS happened by the time we get here — escaping or
+	# not only decides whether the crew fights. Before this call the world was
+	# simply forgotten, so step 14 had an empty list to iterate and its 2D6
+	# table never rolled in any campaign.
+	_record_invaded_world()
 
 	# Clear persisted invasion state regardless of outcome
 	if game_state_manager and game_state_manager.has_method(

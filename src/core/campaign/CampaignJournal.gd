@@ -47,9 +47,25 @@ func create_entry(data: Dictionary) -> String:
 	## Create new journal entry - returns entry ID
 	var entry_id: String = _generate_entry_id()
 
+	# Fill turn_number / location HERE rather than at 45 call sites.
+	#
+	# 23 of 45 create_entry() callers omitted turn_number, so those entries
+	# stamped turn 0 and sorted to the very front of the chronicle forever.
+	# 42 of 45 omitted location, so get_entries_by_location() — the whole basis
+	# of the Galaxy Log's per-world history — joined on "" and returned nothing.
+	# Both are derivable from authoritative state that this autoload can reach,
+	# so deriving them once at the chokepoint is the only version that cannot
+	# drift as new callers are added. Explicit values are ALWAYS respected.
+	var resolved_turn: int = int(data.get("turn_number", -1))
+	if resolved_turn < 0:
+		resolved_turn = _resolve_current_turn()
+	var resolved_location: String = str(data.get("location", ""))
+	if resolved_location.is_empty():
+		resolved_location = _resolve_current_location()
+
 	var entry: Dictionary = {
 		"id": entry_id,
-		"turn_number": data.get("turn_number", 0),
+		"turn_number": resolved_turn,
 		"timestamp": Time.get_unix_time_from_system(),
 		"type": data.get("type", "custom"),  # battle, story, purchase, injury, milestone, custom
 		"auto_generated": data.get("auto_generated", false),
@@ -62,7 +78,7 @@ func create_entry(data: Dictionary) -> String:
 		# Metadata
 		"tags": data.get("tags", []),
 		"characters_involved": data.get("characters_involved", []),
-		"location": data.get("location", ""),
+		"location": resolved_location,
 
 		# Media
 		"photos": data.get("photos", []),
@@ -94,6 +110,30 @@ func create_entry(data: Dictionary) -> String:
 	last_updated = Time.get_unix_time_from_system()
 	entry_created.emit(entry)
 	return entry_id
+
+func _resolve_current_turn() -> int:
+	## Authoritative turn for an entry that didn't supply one.
+	## SSOT is progress_data["turns_played"] (the data-ownership table).
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+		var pd: Variant = gs.current_campaign.progress_data
+		if pd is Dictionary:
+			return int(pd.get("turns_played", 0))
+	return 0
+
+func _resolve_current_location() -> String:
+	## Authoritative world name for an entry that didn't supply one.
+	## Matches the write contract every other journal writer follows:
+	## location == PlanetDataManager.get_current_planet().name.
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not pdm.has_method("get_current_planet"):
+		return ""
+	var planet: Variant = pdm.get_current_planet()
+	if planet is Dictionary:
+		return str(planet.get("name", ""))
+	if planet != null and "name" in planet:
+		return str(planet.name)
+	return ""
 
 func update_entry(entry_id: String, data: Dictionary) -> bool:
 	## Update existing journal entry
@@ -965,7 +1005,7 @@ func load_from_save(save_data: Dictionary) -> void:
 	# the guard fired on the most common case.
 	#
 	# Same defect fixed in six sibling autoloads (NPCTracker, WorldEconomyManager,
-	# GalacticWarManager, DLCManager, PlanetDataManager, FactionSystem). This one was
+	# DLCManager, PlanetDataManager, FactionSystem). This one was
 	# missed because callers pass {} deliberately to RESET — CampaignCreationUI and
 	# the creation-path autoload reset both do — and that reset silently did nothing.
 	entries.clear()

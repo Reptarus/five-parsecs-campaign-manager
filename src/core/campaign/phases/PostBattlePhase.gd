@@ -104,7 +104,6 @@ func _ensure_subsystems() -> void:
 	_ctx.campaign_journal = get_node_or_null("/root/CampaignJournal")
 	_ctx.equipment_manager = get_node_or_null("/root/EquipmentManager")
 	_ctx.dlc_manager = get_node_or_null("/root/DLCManager")
-	_ctx.galactic_war_manager = get_node_or_null("/root/GalacticWarManager")
 	_rival_patron = RivalPatronResolverClass.new()
 	_payment = PaymentProcessorClass.new()
 	_loot = LootProcessorClass.new()
@@ -388,7 +387,18 @@ func _check_psionic_detection() -> void:
 			if detection.get("detected", false):
 				var etype: Dictionary = detection.get("enforcement", {})
 				msg += " — DETECTED! %s" % etype.get("type", "Enforcers")
-			j.create_entry({"type": "battle", "text": msg})
+			# "text" is NOT a key create_entry() reads — the entry was built with
+			# title "Untitled Entry" and an empty description, so this message
+			# was discarded every time psionic detection fired.
+			j.create_entry({
+				"type": "battle",
+				"auto_generated": true,
+				"title": "Psionic Detection",
+				"description": msg,
+				"turn_number": int(battle_result.get("turn", 0)),
+				"tags": ["psionics", "post_battle"],
+				"mood": "somber" if detection.get("detected", false) else "neutral",
+			})
 
 func _log_traveler_events(results: Array) -> void:
 	## Log Traveler post-battle events to journal and character history

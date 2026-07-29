@@ -4287,10 +4287,16 @@ func _on_auto_resolve_battle() -> void:
 	## Auto-resolve the remaining battle using BattleResolver for rules-accurate combat
 	_log_message("Auto-resolving battle with Five Parsecs combat rules...", UIColors.COLOR_AMBER)
 
-	# Convert TacticalUnits to dictionaries for BattleResolver
+	# Convert TacticalUnits to dictionaries for BattleResolver.
+	# `_auto_resolve_deployed_units` keeps the TacticalUnit for each entry we
+	# push into crew_deployed, IN THE SAME ORDER. Without it the result mapping
+	# below indexed crew_units_final (which mirrors the FILTERED crew_deployed)
+	# using an index from the UNFILTERED crew_units — see the comment there.
 	var crew_deployed: Array = []
+	var deployed_units: Array = []
 	for unit in crew_units:
 		if unit.health > 0:
+			deployed_units.append(unit)
 			var unit_dict: Dictionary = {
 				"name": unit.node_name,
 				"character_name": unit.node_name,
@@ -4354,15 +4360,34 @@ func _on_auto_resolve_battle() -> void:
 	_log_message("Combat resolved: %d rounds fought" % result.rounds_fought, UIColors.COLOR_CYAN)
 	_log_message("Enemies defeated: %d / %d" % [enemies_defeated_count, enemies_deployed.size()], UIColors.COLOR_CYAN)
 
-	# Determine crew casualties from resolver's final state
+	# Determine crew casualties from resolver's final state.
+	#
+	# THE BUG: this walked `crew_units` (ALL crew) but indexed `crew_units_final`
+	# (which mirrors `crew_deployed`, FILTERED to health > 0) with the same `i`.
+	# Any crew member already down when auto-resolve is triggered — the normal
+	# case, since you auto-resolve after taking losses — shifted every later
+	# index by one, so THE WRONG CREW MEMBERS TOOK THE CASUALTIES:
+	#   crew_units      = [A(down), B, C]
+	#   crew_deployed   = [B, C]        -> crew_units_final = [B', C']
+	#   i=0: unit A read B' and was reported ALIVE despite being down
+	#   i=1: unit B read C' and inherited C's fate
+	#   i=2: unit C fell past the end and was judged on its pre-resolve health
+	# Now indexed through `deployed_units`, built in lockstep with crew_deployed,
+	# and the not-deployed crew are handled explicitly as the casualties they are.
 	var crew_units_final: Array = resolver_result.get("crew_units_final", [])
-	for i in range(crew_units.size()):
-		var unit: TacticalUnit = crew_units[i]
-		var is_alive: bool = true
+	var fates: Dictionary = {}  # TacticalUnit -> is_alive
+	for i in range(deployed_units.size()):
+		var alive: bool = true
 		if i < crew_units_final.size():
-			is_alive = crew_units_final[i].get("is_alive", true)
-		elif unit.health <= 0:
-			is_alive = false
+			alive = crew_units_final[i].get("is_alive", true)
+		fates[deployed_units[i]] = alive
+	for unit_pre in crew_units:
+		if not fates.has(unit_pre):
+			# Not deployed => already at 0 health when auto-resolve started.
+			fates[unit_pre] = false
+
+	for unit in crew_units:
+		var is_alive: bool = fates.get(unit, true)
 
 		if not is_alive and unit.original_character:
 			# Use Compendium casualty table if available, else core rules

@@ -20,7 +20,6 @@ var planet_data_manager: Variant = null
 var campaign_journal: Variant = null
 var equipment_manager: Variant = null
 var dlc_manager: Variant = null
-var galactic_war_manager: Variant = null
 
 # Campaign and battle state (set per start_post_battle_phase() call)
 var campaign: Variant = null
@@ -122,7 +121,14 @@ func get_campaign_difficulty() -> int:
 					return gs.difficulty
 				elif "difficulty_level" in gs:
 					return gs.difficulty_level
-	return 1
+	# NONE (0), NOT 1. GlobalEnums.DifficultyLevel is
+	# {NONE=0, EASY=1, NORMAL=2, ...}, so the old `return 1` fallback reported
+	# EASY whenever game_state_manager was absent — handing out the Core Rules
+	# p.64 Easy-mode concessions (PaymentProcessor +1 credit at :45, the
+	# invasion-roll modifier at :124, the XP modifier in
+	# ExperienceTrainingProcessor:286) to campaigns that were not on Easy.
+	# NONE matches no real mode, so every difficulty branch correctly declines.
+	return GlobalEnums.DifficultyLevel.NONE
 
 # --- Crew Helpers ---
 

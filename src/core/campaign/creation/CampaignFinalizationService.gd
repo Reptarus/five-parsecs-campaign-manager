@@ -425,10 +425,6 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		var checklist_reset = root_for_pdm.get_node_or_null("/root/TurnPhaseChecklist")
 		if checklist_reset and checklist_reset.has_method("load_from_save"):
 			checklist_reset.load_from_save({})
-		# War track progress.
-		var war_reset = root_for_pdm.get_node_or_null("/root/GalacticWarManager")
-		if war_reset and war_reset.has_method("reset_all_tracks"):
-			war_reset.reset_all_tracks()
 		# EquipmentManager is deliberately NOT reset here either, for the same reason as
 		# DLCManager: EquipmentPanel._persist_equipment_to_manager() (EquipmentPanel.gd:747)
 		# loads the new crew's starting gear into that autoload at creation STEP 4, and
