@@ -570,6 +570,21 @@ func _show_phase_ui(phase: int) -> void:
 
 		GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION:
 			if post_battle_ui:
+				# RE-READ the real battle result before showing the wizard.
+				#
+				# THE BUG THIS FIXES: PostBattleSequence._load_battle_results() was
+				# called ONLY from its own _ready() (:136). PostBattleUI is a permanent
+				# instanced child of this scene (CampaignTurnController.tscn:75), so
+				# _ready() fires once at scene load — long before any battle exists.
+				# get_battle_results() was empty then, so it fell through to the
+				# hardcoded {"victory": true, ...} placeholder at :306 and NEVER
+				# re-read it.
+				#
+				# Every post-battle wizard therefore ran on a fabricated victory: the
+				# displayed outcome, the step gating and the manual Get Paid victory
+				# bonus all came from the stub rather than the battle just fought.
+				if post_battle_ui.has_method("refresh_from_battle_results"):
+					post_battle_ui.refresh_from_battle_results()
 				post_battle_ui.show()
 				current_ui_phase = post_battle_ui
 

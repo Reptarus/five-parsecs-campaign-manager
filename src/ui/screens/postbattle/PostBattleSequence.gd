@@ -302,10 +302,20 @@ func _load_battle_results() -> void:
 			battle_results = stored
 			return
 
-	# Fallback for testing when no battle was run
+	# NO battle data. Do NOT fabricate a victory.
+	#
+	# This used to fall back to {"victory": true, "mission_type": "Opportunist", ...}.
+	# Combined with _load_battle_results() only ever running from _ready() — before
+	# any battle existed — that stub WAS the wizard's data on every run: the displayed
+	# outcome, the step gating and the manual Get Paid victory bonus all came from it.
+	#
+	# An empty result is now honest and inert: victory false, nothing earned. The
+	# authoritative backend (PostBattlePhase) still drives real state either way; this
+	# only governs what the wizard shows.
 	battle_results = {
-		"victory": true,
-		"mission_type": "Opportunist",
+		"victory": false,
+		"no_battle_data": true,
+		"mission_type": "",
 		"enemy_defeated": 0,
 		"crew_casualties": 0,
 		"crew_injuries": 0,
@@ -314,6 +324,24 @@ func _load_battle_results() -> void:
 		"story_points_earned": 0,
 		"loot_found": []
 	}
+
+
+func refresh_from_battle_results() -> void:
+	## Re-read the stored battle result and rebuild the wizard.
+	##
+	## Public entry point for CampaignTurnController._show_phase_ui's POST_MISSION arm.
+	## The panel is a permanent instanced child, so _ready() fires once at scene load —
+	## far too early — and without this the wizard kept whatever it read then.
+	_load_battle_results()
+	_initialize_steps()
+	current_step = 0
+	_refresh_steps_list()
+	_show_current_step()
+	# The backend handler is created by CampaignPhaseManager.setup(); on the FIRST
+	# load of a session that happens AFTER this panel's _ready(), so the original
+	# connect attempt bailed and NO backend signal was ever wired. Retrying here —
+	# when the phase actually starts — closes that first-load gap.
+	_connect_backend_signals()
 
 ## Sprint 20.1: Connect backend signals from PostBattlePhase
 ## This wires UI to all backend signals for real-time updates
@@ -337,61 +365,80 @@ func _connect_backend_signals() -> void:
 
 	# Connect all backend signals to UI handlers
 	if post_battle_phase.has_signal("payment_received"):
-		post_battle_phase.payment_received.connect(_on_backend_payment_received)
+		if not post_battle_phase.payment_received.is_connected(_on_backend_payment_received):
+			post_battle_phase.payment_received.connect(_on_backend_payment_received)
 
 	if post_battle_phase.has_signal("quest_progress_updated"):
-		post_battle_phase.quest_progress_updated.connect(_on_backend_quest_progress)
+		if not post_battle_phase.quest_progress_updated.is_connected(_on_backend_quest_progress):
+			post_battle_phase.quest_progress_updated.connect(_on_backend_quest_progress)
 
 	if post_battle_phase.has_signal("invasion_checked"):
-		post_battle_phase.invasion_checked.connect(_on_backend_invasion_checked)
+		if not post_battle_phase.invasion_checked.is_connected(_on_backend_invasion_checked):
+			post_battle_phase.invasion_checked.connect(_on_backend_invasion_checked)
 
 	if post_battle_phase.has_signal("experience_awarded"):
-		post_battle_phase.experience_awarded.connect(_on_backend_experience_awarded)
+		if not post_battle_phase.experience_awarded.is_connected(_on_backend_experience_awarded):
+			post_battle_phase.experience_awarded.connect(_on_backend_experience_awarded)
 
 	if post_battle_phase.has_signal("campaign_event_occurred"):
-		post_battle_phase.campaign_event_occurred.connect(_on_backend_campaign_event)
+		if not post_battle_phase.campaign_event_occurred.is_connected(_on_backend_campaign_event):
+			post_battle_phase.campaign_event_occurred.connect(_on_backend_campaign_event)
 
 	if post_battle_phase.has_signal("character_event_occurred"):
-		post_battle_phase.character_event_occurred.connect(_on_backend_character_event)
+		if not post_battle_phase.character_event_occurred.is_connected(_on_backend_character_event):
+			post_battle_phase.character_event_occurred.connect(_on_backend_character_event)
 
 	if post_battle_phase.has_signal("galactic_war_updated"):
-		post_battle_phase.galactic_war_updated.connect(_on_backend_galactic_war_updated)
+		if not post_battle_phase.galactic_war_updated.is_connected(_on_backend_galactic_war_updated):
+			post_battle_phase.galactic_war_updated.connect(_on_backend_galactic_war_updated)
 
 	if post_battle_phase.has_signal("training_completed"):
-		post_battle_phase.training_completed.connect(_on_backend_training_result)
+		if not post_battle_phase.training_completed.is_connected(_on_backend_training_result):
+			post_battle_phase.training_completed.connect(_on_backend_training_result)
 
 	if post_battle_phase.has_signal("precursor_event_choice_available"):
-		post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
+		if not post_battle_phase.precursor_event_choice_available.is_connected(_on_backend_precursor_event_choice):
+			post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
 
 	if post_battle_phase.has_signal("traveler_event_occurred"):
-		post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
+		if not post_battle_phase.traveler_event_occurred.is_connected(_on_backend_traveler_event):
+			post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
 
 	if post_battle_phase.has_signal("manipulator_bonus_earned"):
-		post_battle_phase.manipulator_bonus_earned.connect(_on_backend_manipulator_bonus)
+		if not post_battle_phase.manipulator_bonus_earned.is_connected(_on_backend_manipulator_bonus):
+			post_battle_phase.manipulator_bonus_earned.connect(_on_backend_manipulator_bonus)
 
 	if post_battle_phase.has_signal("loot_gathered"):
-		post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
+		if not post_battle_phase.loot_gathered.is_connected(_on_backend_loot_generated):
+			post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
 
 	if post_battle_phase.has_signal("items_consumed_in_battle"):
-		post_battle_phase.items_consumed_in_battle.connect(_on_backend_items_consumed)
+		if not post_battle_phase.items_consumed_in_battle.is_connected(_on_backend_items_consumed):
+			post_battle_phase.items_consumed_in_battle.connect(_on_backend_items_consumed)
 
 	if post_battle_phase.has_signal("injuries_resolved"):
-		post_battle_phase.injuries_resolved.connect(_on_backend_injury_result)
+		if not post_battle_phase.injuries_resolved.is_connected(_on_backend_injury_result):
+			post_battle_phase.injuries_resolved.connect(_on_backend_injury_result)
 
 	if post_battle_phase.has_signal("battlefield_finds_completed"):
-		post_battle_phase.battlefield_finds_completed.connect(_on_backend_battlefield_finds)
+		if not post_battle_phase.battlefield_finds_completed.is_connected(_on_backend_battlefield_finds):
+			post_battle_phase.battlefield_finds_completed.connect(_on_backend_battlefield_finds)
 
 	if post_battle_phase.has_signal("rival_status_resolved"):
-		post_battle_phase.rival_status_resolved.connect(_on_backend_rival_status)
+		if not post_battle_phase.rival_status_resolved.is_connected(_on_backend_rival_status):
+			post_battle_phase.rival_status_resolved.connect(_on_backend_rival_status)
 
 	if post_battle_phase.has_signal("patron_status_resolved"):
-		post_battle_phase.patron_status_resolved.connect(_on_backend_patron_status)
+		if not post_battle_phase.patron_status_resolved.is_connected(_on_backend_patron_status):
+			post_battle_phase.patron_status_resolved.connect(_on_backend_patron_status)
 
 	if post_battle_phase.has_signal("purchases_made"):
-		post_battle_phase.purchases_made.connect(_on_backend_purchases_made)
+		if not post_battle_phase.purchases_made.is_connected(_on_backend_purchases_made):
+			post_battle_phase.purchases_made.connect(_on_backend_purchases_made)
 
 	if post_battle_phase.has_signal("post_battle_substep_changed"):
-		post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
+		if not post_battle_phase.post_battle_substep_changed.is_connected(_on_backend_substep_changed):
+			post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
 
 func _exit_tree() -> void:
 	# Disconnect the ResponsiveManager rotation signal (autoload persists across scenes).
@@ -686,9 +733,19 @@ func _on_backend_purchases_made(purchases: Array) -> void:
 			_add_result_to_log("Purchased: %s (-%d credits)" % [item_name, cost])
 
 func _on_backend_substep_changed(substep: int) -> void:
-	## Handle substep change from backend - sync UI
-	if substep != current_step and substep < max_steps:
-		current_step = substep
+	## Handle substep change from backend - sync UI.
+	##
+	## OFF BY ONE: GlobalEnums.PostBattleSubPhase starts at NONE = 0, so the first real
+	## substep RIVAL_STATUS is 1 — while the wizard's step 0 IS "1. Rival Status".
+	## Assigning current_step = substep therefore advanced the UI one step ahead of the
+	## backend for the whole sequence: the backend resolved Rival Status while the
+	## player looked at Patron Status, and the final substep pushed current_step past
+	## the last card.
+	if substep <= 0:
+		return  # NONE — the backend is not on a substep yet
+	var ui_step: int = substep - 1
+	if ui_step != current_step and ui_step < max_steps:
+		current_step = ui_step
 		_show_current_step()
 
 ## Step group headers inserted before specific step indices
