@@ -1296,7 +1296,14 @@ func to_dictionary() -> Dictionary:
 		"character_class": character_class,
 		# Stats (flat)
 		"combat": combat,
+		# DUAL KEY, same convention as id/character_id and name/character_name.
+		# Consumers are genuinely split: battle reads "reactions"
+		# (NoMinisResolver:204, BattlefieldTypes:167, BattleServiceStub:210) while
+		# the crew UI reads "reaction" (CampaignDashboard:621,
+		# CrewManagementScreen:146). Emitting only the plural meant EVERY crew card
+		# on the dashboard displayed R: 0, because .get("reaction", 0) missed.
 		"reactions": reactions,
+		"reaction": reactions,
 		"toughness": toughness,
 		"savvy": savvy,
 		"tech": tech,

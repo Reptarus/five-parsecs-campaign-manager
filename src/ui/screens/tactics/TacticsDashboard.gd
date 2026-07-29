@@ -189,8 +189,23 @@ func _on_commission_pressed() -> void:
 func _apply_commission(vet: Dictionary) -> void:
 	if not _campaign or not _campaign.has_method("add_veteran_character"):
 		return
+	# Strip the source coordinates before the veteran lands in the roster.
+	var src_path: String = str(vet.get("_source_path", ""))
+	var src_id: String = str(vet.get("_source_character_id", ""))
+	vet.erase("_source_path")
+	vet.erase("_source_character_id")
+
 	_campaign.add_veteran_character(vet)
 	_on_save()
+
+	# DESTINATION FIRST, THEN DROP THE SOURCE — matches the retire-out path.
+	# Without this a commissioned veteran stayed in their original campaign
+	# too, so one character existed in two and could be commissioned again.
+	if not src_path.is_empty() and not src_id.is_empty():
+		if not CharacterTransferService.remove_character_from_save(src_path, src_id):
+			push_warning(
+				"TacticsDashboard: commissioned %s but could not remove them from %s"
+				% [src_id, src_path])
 	_rebuild()
 
 

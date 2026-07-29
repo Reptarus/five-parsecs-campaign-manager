@@ -87,6 +87,9 @@ func _load_from_save_file(save_path: String) -> void:
 		if c is Dictionary:
 			var tagged: Dictionary = (c as Dictionary).duplicate(true)
 			tagged["_source_mode"] = src_mode
+			# Lets the dashboard remove the original after a successful commission
+			# — otherwise the pull direction leaves the veteran in both campaigns.
+			tagged["_source_path"] = save_path
 			_source_characters.append(tagged)
 
 
@@ -180,6 +183,12 @@ func _show_step_2(source_char: Dictionary) -> void:
 	# Canonical 5PFH-standard form is the lossless snapshot; convert INTO Tactics.
 	var canonical: Dictionary = _transfer_service.export_to_canonical(source_char, sm)
 	var veteran: Dictionary = _transfer_service.convert_to_tactics(canonical, "5pfh")
+
+	# Stamp HERE — export_to_canonical() and convert_to_tactics() both rebuild
+	# the dict from known keys and would drop these.
+	veteran["_source_path"] = str(source_char.get("_source_path", ""))
+	veteran["_source_character_id"] = str(source_char.get("character_id",
+		source_char.get("id", "")))
 
 	var char_name: String = veteran.get("name", "Unknown")
 	var title := Label.new()

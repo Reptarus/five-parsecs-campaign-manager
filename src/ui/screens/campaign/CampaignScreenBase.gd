@@ -193,17 +193,33 @@ func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 			if campaign.get_crew_size() >= campaign.get_campaign_crew_size():
 				skipped += 1
 				continue
+		# ADD FIRST, REWARD SECOND. apply_transfer_rewards() used to run before the
+		# roster add, so a failed _add_character_to_mode() left the player holding
+		# the mustering credits, the Story Point and the Sector Government patron
+		# with no character — and since the transfer file is (correctly) kept on
+		# failure, re-importing granted the whole lot again.
+		var ch: Dictionary = CharacterTransferService.peek_character(t)
+		if ch.is_empty():
+			continue
+		# Planetfall p.164: "You may only bring one character from an Isolation
+		# victory into each new campaign." `isolation_single_char` was set on the
+		# character and read NOWHERE, so the cap did not exist — every Isolation
+		# survivor could be imported.
+		if bool(ch.get("from_isolation_victory", false)) \
+				and _campaign_has_isolation_veteran(campaign, mode):
+			skipped += 1
+			continue
+		if not _add_character_to_mode(campaign, mode, ch):
+			continue
 		var res: Dictionary = CharacterTransferService.apply_transfer_rewards(campaign, t)
 		if not res.get("success", false):
 			continue
-		var ch: Dictionary = res.get("character", {})
-		if _add_character_to_mode(campaign, mode, ch):
-			applied += 1
-			# Queue, do not delete yet — the character exists only in memory until the
-			# save below succeeds. A transfer file is the ONLY copy of that character.
-			var consumed: String = str(res.get("consumed_file", ""))
-			if not consumed.is_empty():
-				consumed_files.append(consumed)
+		applied += 1
+		# Queue, do not delete yet — the character exists only in memory until the
+		# save below succeeds. A transfer file is the ONLY copy of that character.
+		var consumed: String = str(res.get("consumed_file", ""))
+		if not consumed.is_empty():
+			consumed_files.append(consumed)
 	if applied > 0 and _game_state and _game_state.has_method("save_campaign"):
 		var save_res = _game_state.save_campaign(campaign)
 		# Only now is it safe to destroy the source files. If the write failed, the
@@ -224,6 +240,31 @@ func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 	_notify_transfer_result(applied, skipped)
 
 ## Dispatch an imported character to the right roster mutator for its mode.
+func _campaign_has_isolation_veteran(campaign, mode: String) -> bool:
+	## True if this campaign already holds a character brought out of a Planetfall
+	## Isolation victory (Planetfall p.164 caps that at one per campaign).
+	## Scans the roster the same way _add_character_to_mode() writes it.
+	if campaign == null:
+		return false
+	var roster: Array = []
+	match mode:
+		"five_parsecs":
+			if "crew_data" in campaign and campaign.crew_data is Dictionary:
+				roster = campaign.crew_data.get("members", [])
+		"bug_hunt":
+			if "main_characters" in campaign:
+				roster = campaign.main_characters
+		"planetfall":
+			if "roster" in campaign:
+				roster = campaign.roster
+		"tactics":
+			if "veteran_characters" in campaign:
+				roster = campaign.veteran_characters
+	for member in roster:
+		if member is Dictionary and bool(member.get("from_isolation_victory", false)):
+			return true
+	return false
+
 func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
 	# Reject a character id already on this roster.
 	#

@@ -60,8 +60,24 @@ func _on_import_pressed() -> void:
 func _apply_import(pf_char: Dictionary) -> void:
 	if not _campaign or not _campaign.has_method("add_roster_character"):
 		return
+	# Pull the source coordinates off before the character lands in the roster, so
+	# they never persist into the Planetfall save.
+	var src_path: String = str(pf_char.get("_source_path", ""))
+	var src_id: String = str(pf_char.get("_source_character_id", ""))
+	pf_char.erase("_source_path")
+	pf_char.erase("_source_character_id")
+
 	_campaign.add_roster_character(pf_char)
 	_on_save()
+
+	# DESTINATION FIRST, THEN DROP THE SOURCE — the same ordering muster-out uses.
+	# Without this the imported veteran stayed in their original campaign as well,
+	# so one character existed in two campaigns and could be imported repeatedly.
+	if not src_path.is_empty() and not src_id.is_empty():
+		if not CharacterTransferService.remove_character_from_save(src_path, src_id):
+			push_warning(
+				"PlanetfallDashboard: imported %s but could not remove them from %s"
+				% [src_id, src_path])
 	for child in get_children():
 		child.queue_free()
 	_build_dashboard()

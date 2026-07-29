@@ -604,6 +604,12 @@ static func _detect_campaign_type(path: String) -> String:
 	var data := SaveFileWriterRef.read_json_with_fallback(path)
 	if data.is_empty():
 		return "five_parsecs"
+	return campaign_type_from_data(data)
+
+static func campaign_type_from_data(data: Dictionary) -> String:
+	## Campaign type from ALREADY-PARSED save data. Shared by _detect_campaign_type()
+	## (which reads the file) and get_campaign_info() (which has already parsed it),
+	## so the two cannot drift on where the field lives.
 	# BugHuntCampaignCore writes "campaign_type" at root level; also accept it under
 	# meta so a future writer moving the field cannot silently mis-route a save.
 	if data.has("campaign_type"):
@@ -1170,7 +1176,12 @@ func get_campaign_info(path: String) -> Dictionary:
 		"game_phase": meta.get("game_phase",
 			json_result.get("game_phase", "unknown")),
 		"difficulty": meta.get("difficulty",
-			json_result.get("difficulty", 0))
+			json_result.get("difficulty", 0)),
+		# Gamemode of this save. Absent before, so nothing enumerating saves could
+		# tell a 5PFH campaign from a Bug Hunt / Planetfall / Tactics one without
+		# re-reading and re-parsing the file itself. Resolved through the same
+		# helper _detect_campaign_type() uses so the two cannot disagree.
+		"campaign_type": campaign_type_from_data(json_result)
 	}
 
 	# Add save metadata if available

@@ -101,6 +101,11 @@ func _load_from_save_file(save_path: String) -> void:
 		if c is Dictionary:
 			var tagged: Dictionary = (c as Dictionary).duplicate(true)
 			tagged["_source_mode"] = src_mode
+			# Needed so the dashboard can REMOVE this character from its source
+			# save after a successful import — otherwise the pull direction leaves
+			# them in both campaigns. The push direction (muster-out) already does
+			# destination-first-then-remove; this is its missing counterpart.
+			tagged["_source_path"] = save_path
 			_source_characters.append(tagged)
 
 
@@ -226,6 +231,15 @@ func _show_step_2(source_char: Dictionary) -> void:
 	var planetfall_char: Dictionary = _transfer_service.convert_to_planetfall(
 		source_char, source_label)
 	var canonical: Dictionary = _transfer_service.export_to_canonical(source_char, sm)
+
+	# Stamp the source coordinates HERE, the only scope holding the raw source
+	# character — both convert_to_planetfall() and export_to_canonical() rebuild
+	# the dict from known keys and would drop them. The dashboard uses these to
+	# remove the original after a successful import, so a pulled veteran stops
+	# existing in two campaigns at once.
+	planetfall_char["_source_path"] = str(source_char.get("_source_path", ""))
+	planetfall_char["_source_character_id"] = str(source_char.get("character_id",
+		source_char.get("id", "")))
 
 	var char_name: String = planetfall_char.get("name", "Unknown")
 	var title := Label.new()
