@@ -200,6 +200,14 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 	if bot_props.get("all_equipment", false):
 		processed_injury["all_equipment_damaged"] = true
 
+	# A DESTROYED bot is dead, not injured (Core Rules p.95 Bot Injury Table).
+	# is_fatal was computed at :175 and recorded in the result dict, then ignored:
+	# this called apply_crew_injury unconditionally, so a destroyed Bot/Soulless went
+	# to Sick Bay and came back. Mirrors the organic fatal branch.
+	if is_fatal:
+		ctx.apply_crew_death(crew_id)
+		return processed_injury
+
 	ctx.apply_crew_injury(crew_id, processed_injury)
 
 	return processed_injury

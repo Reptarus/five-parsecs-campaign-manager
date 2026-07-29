@@ -945,9 +945,18 @@ func load_from_save(save_data: Dictionary) -> void:
 	## Load journal from campaign save
 	var qol: Dictionary = save_data.get("qol_data", {})
 	var journal_data: Dictionary = qol.get("journal", {})
-	if journal_data.is_empty():
-		return
-
+	# NO is_empty() EARLY RETURN.
+	#
+	# This is a shared autoload, so returning early on empty data left the PREVIOUS
+	# campaign's journal live — and _build_qol_data() then snapshots the live journal
+	# into the new campaign's very next save, permanently grafting one campaign's
+	# history onto another. A brand-new campaign legitimately has an empty journal, so
+	# the guard fired on the most common case.
+	#
+	# Same defect fixed in six sibling autoloads (NPCTracker, WorldEconomyManager,
+	# GalacticWarManager, DLCManager, PlanetDataManager, FactionSystem). This one was
+	# missed because callers pass {} deliberately to RESET — CampaignCreationUI and
+	# the creation-path autoload reset both do — and that reset silently did nothing.
 	entries.clear()
 	entries_by_id.clear()
 

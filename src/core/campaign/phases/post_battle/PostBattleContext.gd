@@ -384,6 +384,14 @@ func add_quest_rumor() -> void:
 			"source": "event"
 		})
 		gc["rumors"] = rumors
+	# RESOURCE BRANCH — the live 5PFH campaign is a FiveParsecsCampaignCore RESOURCE,
+	# never a Dictionary, so gating on `gc is Dictionary` alone skipped the whole body.
+	# add_rival() below was fixed for exactly this; its four siblings were not. They
+	# also targeted fields that do not exist on the Resource (gc["rumors"], gc["patrons"]
+	# as a dict key) while the canonical owners are quest_rumors: int (:49) and
+	# patrons: Array (:47) on FiveParsecsCampaignCore.
+	elif "quest_rumors" in gc:
+		gc.quest_rumors += 1
 
 func remove_quest_rumor() -> void:
 	var gc = _get_current_campaign()
@@ -394,6 +402,8 @@ func remove_quest_rumor() -> void:
 		if rumors.size() > 0:
 			rumors.remove_at(randi() % rumors.size())
 			gc["rumors"] = rumors
+	elif "quest_rumors" in gc:
+		gc.quest_rumors = maxi(0, int(gc.quest_rumors) - 1)
 
 func add_rival(rival_name: String) -> void:
 	## Adds an event-sourced rival to the canonical `rivals` list.
@@ -435,6 +445,8 @@ func remove_random_patron() -> void:
 		if patrons.size() > 0:
 			patrons.remove_at(randi() % patrons.size())
 			gc["patrons"] = patrons
+	elif "patrons" in gc and gc.patrons is Array and gc.patrons.size() > 0:
+		gc.patrons.remove_at(randi() % gc.patrons.size())
 
 func add_patron() -> void:
 	var gc = _get_current_campaign()
@@ -456,6 +468,20 @@ func add_patron() -> void:
 		gc["patrons"] = patrons
 		if planet_data_manager and planet_data_manager.current_planet_id != "":
 			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, patron_id)
+	elif "patrons" in gc and gc.patrons is Array:
+		var patron_types2: Array = ["Corporate", "Government", "Criminal", "Private", "Mercenary"]
+		var patron_names2: Array = ["The Broker", "Lady Silver", "Commander Vex", "Old Sal", "The Collector"]
+		var pid: String = "patron_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
+		gc.patrons.append({
+			"id": pid,
+			"name": patron_names2[randi() % patron_names2.size()],
+			"type": patron_types2[randi() % patron_types2.size()],
+			"relationship": randi_range(1, 3),
+			"persistent": randi_range(1, 6) >= 4,
+			"source": "event"
+		})
+		if planet_data_manager and planet_data_manager.current_planet_id != "":
+			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, pid)
 
 # --- Character Mutation Helpers ---
 

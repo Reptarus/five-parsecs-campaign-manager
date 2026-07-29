@@ -188,8 +188,10 @@ func process_purchases(ctx: PostBattleContextClass) -> Array[Dictionary]:
 					if ctx.game_state_manager.has_method("remove_credits"):
 						ctx.game_state_manager.remove_credits(cost)
 						credits -= cost
-					if ctx.game_state_manager.has_method("add_to_ship_inventory"):
-						ctx.game_state_manager.add_to_ship_inventory(item)
+					# add_to_ship_inventory does not exist (zero definitions repo-wide);
+					# the real ship-stash API is EquipmentManager.add_to_ship_stash.
+					if ctx.equipment_manager 							and ctx.equipment_manager.has_method("add_to_ship_stash"):
+						ctx.equipment_manager.add_to_ship_stash(item)
 					purchases_made.append(item)
 
 			if gs and "purchase_queue" in gs:

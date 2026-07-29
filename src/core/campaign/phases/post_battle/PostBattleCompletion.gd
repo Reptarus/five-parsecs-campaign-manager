@@ -36,11 +36,25 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 		if char_id.is_empty():
 			continue
 
-		if member is Object and "battles_participated" in member:
+		var kills: Array = kills_by_character.get(char_id, [])
+		# DICTIONARY BRANCH TOO. Crew members are canonically Dictionaries (the
+		# data-ownership table), so gating on `member is Object` skipped every real
+		# crew member: no lifetime counters ever moved, and the per-character battle
+		# journal event was never created — which is why CharacterHistoryPanel showed
+		# no battles for anyone.
+		if member is Dictionary:
+			var d: Dictionary = member
+			d["battles_participated"] = int(d.get("battles_participated", 0)) + 1
+			if char_id not in units_downed:
+				d["battles_survived"] = int(d.get("battles_survived", 0)) + 1
+			d["lifetime_kills"] = int(d.get("lifetime_kills", 0)) + kills.size()
+			d["lifetime_damage_dealt"] = int(d.get("lifetime_damage_dealt", 0)) 				+ int(damage_dealt_per_unit.get(char_id, 0))
+			d["lifetime_damage_taken"] = int(d.get("lifetime_damage_taken", 0)) 				+ int(damage_taken_per_unit.get(char_id, 0))
+			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
+		elif member is Object and "battles_participated" in member:
 			member.battles_participated += 1
 			if char_id not in units_downed:
 				member.battles_survived += 1
-			var kills: Array = kills_by_character.get(char_id, [])
 			member.lifetime_kills += kills.size()
 			member.lifetime_damage_dealt += damage_dealt_per_unit.get(char_id, 0)
 			member.lifetime_damage_taken += damage_taken_per_unit.get(char_id, 0)

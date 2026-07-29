@@ -73,9 +73,13 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 
 	if ctx.mission_successful and ctx.battle_result.has("patron_id"):
 		var patron_id = ctx.battle_result.patron_id
-		if ctx.game_state and ctx.game_state.has_method("add_patron_contact"):
-			ctx.game_state.add_patron_contact(patron_id)
-			patrons_added.append(patron_id)
+		# add_patron_contact() does NOT exist on GameState (zero definitions
+		# repo-wide), so completing a patron job recorded nothing. Route through the
+		# context's canonical patron mutator, which writes campaign.patrons — the
+		# owner per the data-ownership table (Core Rules p.79, patron becomes a
+		# standing contact after a completed job).
+		ctx.add_patron()
+		patrons_added.append(str(patron_id))
 
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
