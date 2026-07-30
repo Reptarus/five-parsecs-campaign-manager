@@ -51,11 +51,14 @@ stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79
 
 ### Honest residual — NOT fixed
 
+Final sweep: **82 passed / 110 failed / 12 skipped** of 192 configs (34 screens × 6
+sizes), up from 63 passed at the start of the close-out.
+
 | Category | Count | Note |
 |---|---|---|
-| Off-screen overflow | 60 | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel and title are the visible worst case. |
-| Overlay-band collisions | 118 | Real content under the floating gear/bug buttons. Needs the reserved-band treatment applied in a shared base rather than per screen. |
-| Sub-48dp controls | 52 | Remaining sites: ShipInventory (18), PrintSheetScreen (12), WorldPhase + TurnController (16), CampaignEventsManager (6). |
+| Overlay-band collisions | 113 | Real content under the floating gear/bug buttons. Needs the reserved-band treatment applied in a shared base rather than per screen — but NOT via container padding, which propagates minimum width (see the HelpScreen lesson below). |
+| Off-screen overflow | 58 | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel and title are the visible worst case: its responsive wiring is correct (it uses the `ResponsiveManager` SSOT and overrides all four layout hooks), so the overflow is content that cannot shrink, not a missing collapse. The fix is the `ExpandedConfigPanel` treatment — autowrap labels, `clip_text` on OptionButtons, zero minimum widths. |
+| Sub-48dp controls | 52 | Remaining sites: ShipInventory (18), PrintSheetScreen (12), WorldPhaseController + CampaignTurnController (16), CampaignEventsManager (6). |
 | Unwrapped labels | 3 | TacticalBattleUI only; built at runtime so a bare instantiation does not expose them. |
 | Sweep skips | 12 | Screens needing campaign state to build — reported SKIP-with-reason, never folded into the pass count. |
 
