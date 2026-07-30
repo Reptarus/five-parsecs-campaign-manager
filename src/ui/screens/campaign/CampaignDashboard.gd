@@ -1852,8 +1852,10 @@ func _on_manage_crew_pressed() -> void:
 	if router:
 		router.navigate_to("crew_management")
 	else:
+		# CrewManagementScreen.tscn — "CrewManagement.tscn" does not exist, so this
+		# router-absent fallback failed exactly when it was needed.
 		get_tree().change_scene_to_file(
-			"res://src/ui/screens/crew/CrewManagement.tscn"
+			"res://src/ui/screens/crew/CrewManagementScreen.tscn"
 		)
 
 func _on_save_pressed() -> void:

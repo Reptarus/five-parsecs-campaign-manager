@@ -253,3 +253,37 @@ func _update_visibility() -> void:
 				hide_bug = true
 				break
 		_bug_button.visible = not hide_bug
+
+
+## Screen area this overlay currently occupies, in design-space coordinates, as
+## the union of its VISIBLE buttons (empty Rect2 when nothing is showing).
+##
+## This overlay floats above every screen, so top-anchored content that ignores it
+## gets drawn under the gear / bug buttons. That happened twice — the MainMenu
+## title and the tutorial card title both rendered beneath the bug button — so the
+## geometry lives here rather than being re-derived per screen. The set of visible
+## buttons VARIES by screen (_hidden_scenes hides the gear on MainMenu and
+## SettingsScreen; _bug_hidden_scenes hides the bug button only on SettingsScreen),
+## which is why callers must ask at layout time instead of hardcoding a band.
+func get_reserved_rect() -> Rect2:
+	var out := Rect2()
+	var first := true
+	for b in [_gear_button, _bug_button]:
+		if b == null or not is_instance_valid(b) or not b.is_visible_in_tree():
+			continue
+		var r: Rect2 = b.get_global_rect()
+		if r.size.x <= 0.0 or r.size.y <= 0.0:
+			continue
+		if first:
+			out = r
+			first = false
+		else:
+			out = out.merge(r)
+	return out
+
+
+## Convenience for the common case: the y a top-anchored control must start below
+## in order to clear this overlay. Returns 0.0 when nothing is reserved.
+func get_reserved_bottom() -> float:
+	var r := get_reserved_rect()
+	return 0.0 if r.size.y <= 0.0 else r.end.y

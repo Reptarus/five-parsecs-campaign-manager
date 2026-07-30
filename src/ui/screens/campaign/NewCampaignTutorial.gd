@@ -6,18 +6,74 @@ signal tutorial_step_completed(step: String)
 signal tutorial_next_requested
 signal tutorial_back_requested
 
-@onready var title_label := $VBoxContainer/TitleLabel
-@onready var content_label := $VBoxContainer/ContentLabel
-@onready var next_button := $VBoxContainer/ButtonContainer/NextButton
-@onready var back_button := $VBoxContainer/ButtonContainer/BackButton
-@onready var skip_button := $VBoxContainer/ButtonContainer/SkipButton
+@onready var title_label := $CardScroll/VBoxContainer/TitleLabel
+@onready var content_label := $CardScroll/VBoxContainer/ContentLabel
+@onready var next_button := $CardScroll/VBoxContainer/ButtonContainer/NextButton
+@onready var back_button := $CardScroll/VBoxContainer/ButtonContainer/BackButton
+@onready var skip_button := $CardScroll/VBoxContainer/ButtonContainer/SkipButton
 
 var current_step: String = ""
 var tutorial_type: String = "basic"
 
+## Width cap for the centred card, matching BaseCampaignPanel.MAX_FORM_WIDTH so a
+## wide desktop window does not stretch a two-button tutorial across 1600px.
+const MAX_CARD_WIDTH := 800.0
+const CARD_MARGIN := 16.0
+
 func _ready() -> void:
 	_connect_signals()
 	_initialize_ui()
+	_apply_responsive_card()
+	# TutorialSelection.tscn formerly hardcoded an 800x600 centred Panel and a
+	# 760x560 VBox. The design space is window_dp / 1.16 — only ~339x733 on a
+	# 393dp phone — so both overflowed by 210-230px and the tutorial rendered off
+	# the edges of the screen. They are full-rect with margins now; this clamps
+	# the width back down on large windows so the desktop look is preserved.
+	var vp := get_viewport()
+	if vp and not vp.size_changed.is_connected(_apply_responsive_card):
+		vp.size_changed.connect(_apply_responsive_card)
+
+func _apply_responsive_card() -> void:
+	var vp := get_viewport()
+	if not vp:
+		return
+	var ds: Vector2 = vp.get_visible_rect().size
+	# Centre and cap: on a phone this is the full width minus margins; on desktop
+	# it settles at MAX_CARD_WIDTH.
+	var half: float = minf(MAX_CARD_WIDTH, ds.x - CARD_MARGIN * 2.0) * 0.5
+	# Start below the floating SettingsOverlay buttons, which are drawn above every
+	# screen — otherwise the bug-report button sits on top of the card title.
+	var top := CARD_MARGIN
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so and so.has_method("get_reserved_bottom"):
+		top = maxf(top, so.get_reserved_bottom() + CARD_MARGIN)
+	for spec in [["Panel", 0.0], ["CardScroll", CARD_MARGIN]]:
+		var node := get_node_or_null(NodePath(spec[0]))
+		if node == null:
+			continue
+		var inset: float = spec[1]
+		node.anchor_left = 0.5
+		node.anchor_right = 0.5
+		node.offset_left = -(half - inset)
+		node.offset_right = half - inset
+		node.offset_top = top + inset
+		node.offset_bottom = -(CARD_MARGIN + inset)
+	# Fill-or-scroll, same contract as the main menu column: a ScrollContainer sizes
+	# its child to the child's MINIMUM, which would collapse the buttons. Pushing the
+	# viewport height on as a minimum keeps them expanding when there IS room, and
+	# lets the content exceed it (i.e. scroll) when there is not — a phone in
+	# landscape has only ~339 design px of height and this card needs ~348.
+	_apply_card_fill.call_deferred()
+
+func _apply_card_fill() -> void:
+	var scroll := get_node_or_null("CardScroll")
+	if scroll == null:
+		return
+	var box := scroll.get_node_or_null("VBoxContainer")
+	if box == null:
+		return
+	box.custom_minimum_size.y = 0.0
+	box.custom_minimum_size.y = maxf(box.get_combined_minimum_size().y, scroll.size.y)
 
 func _connect_signals() -> void:
 	if next_button:

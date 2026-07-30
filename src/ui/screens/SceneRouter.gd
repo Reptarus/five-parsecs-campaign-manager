@@ -14,7 +14,9 @@ var transition_duration: float = 0.2  # Default 200ms
 const SCENE_PATHS = {
 	# Main screens
 	"main_menu": "res://src/ui/screens/mainmenu/MainMenu.tscn",
-	"main_game": "res://src/scenes/main/MainGameScene.tscn",
+	# "main_game" removed: src/scenes/main/MainGameScene.tscn does not exist
+	# anywhere in the repo, and its only callers were this file's own
+	# enter_main_game()/navigate_to_main_game() helpers, which nothing called.
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
@@ -73,7 +75,11 @@ const SCENE_PATHS = {
 
 	# Tutorial
 	"tutorial_selection": "res://src/ui/screens/tutorial/TutorialSelection.tscn",
-	"new_campaign_tutorial": "res://src/ui/screens/tutorial/NewCampaignTutorial.tscn",
+	# "new_campaign_tutorial" removed with its scene: nothing navigated to it, and
+	# the scene was non-functional anyway — its node names (Label/StoryTrackButton/
+	# CompendiumButton) did not match the shared NewCampaignTutorial.gd @onready
+	# paths (TitleLabel/ContentLabel/ButtonContainer/*), so every reference resolved
+	# null and none of its three buttons had a handler.
 
 	# Help / Library
 	"help": "res://src/ui/help/HelpScreen.tscn",
@@ -273,7 +279,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"utility":
 			scenes = ["game_over", "campaign_journal", "settings"]
 		"tutorial":
-			scenes = ["tutorial_selection", "new_campaign_tutorial"]
+			scenes = ["tutorial_selection"]
 	return scenes
 
 ## Campaign phase navigation helpers
@@ -309,14 +315,6 @@ func return_to_main_menu() -> void:
 	# Return to main menu
 	clear_history()
 	navigate_to("main_menu")
-
-func enter_main_game() -> void:
-	# Enter the main game scene
-	navigate_to("main_game")
-
-func navigate_to_main_game() -> void:
-	# Navigate to the main game scene - alias for enter_main_game
-	enter_main_game()
 
 func change_scene(scene_path: String) -> void:
 	# Direct scene change using file path - for compatibility

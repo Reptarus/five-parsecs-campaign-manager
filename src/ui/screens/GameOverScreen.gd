@@ -37,4 +37,12 @@ func _update_game_over_display() -> void:
 		defeat_label.show()
 
 func _on_return_button_pressed() -> void:
-	get_tree().change_scene_to_file("res://ui/mainmenu/MainMenu.tscn")
+	## Route through SceneRouter like every other screen. The previous direct
+	## change_scene_to_file() targeted a bare "ui/mainmenu/MainMenu.tscn" — a path
+	## that does not exist in this repo (the real one is under src/ui/screens/), so
+	## ending a campaign dead-ended on the Game Over screen with no way back.
+	var router := get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("main_menu")
+		return
+	get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")

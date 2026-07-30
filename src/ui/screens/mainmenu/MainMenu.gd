@@ -53,19 +53,9 @@ func _scaled_font(base: int) -> int:
 ## rather than hardcoded so the reservation tracks the overlay instead of drifting.
 func _top_right_overlay_bottom() -> float:
 	var so := get_node_or_null("/root/SettingsOverlay")
-	if so == null:
+	if so == null or not so.has_method("get_reserved_bottom"):
 		return 0.0
-	var bottom := 0.0
-	var stack: Array = [so]
-	while not stack.is_empty():
-		var n = stack.pop_back()
-		for c in n.get_children():
-			stack.append(c)
-		if n is Control and (n as Control).is_visible_in_tree():
-			var r: Rect2 = (n as Control).get_global_rect()
-			if r.size.x > 0.0 and r.size.y > 0.0:
-				bottom = maxf(bottom, r.end.y)
-	return bottom
+	return so.get_reserved_bottom()
 
 ## Line height for a Label at `font_size`, used to reserve vertical room for
 ## WRAPPED text. get_combined_minimum_size() cannot serve here: it still reports
