@@ -73,6 +73,16 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	# Portrait de-clip. The root margins are what push this screen past a phone's
+	# ~339 design px: the content itself needs ~341 and the 20+20 margins take it to
+	# 381. PortraitChrome trims LEFT/RIGHT only (never the top, so it does not fight
+	# the SettingsOverlay band reservation above) and restores them in landscape.
+	var _pc_mc := get_node_or_null("MarginContainer")
+	if _pc_mc is MarginContainer:
+		var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(_pc)
+		_pc.setup(_pc_mc as MarginContainer)
+
 	# Restore turn number from loaded campaign data BEFORE UI init
 	var campaign = game_state.get_current_campaign()
 

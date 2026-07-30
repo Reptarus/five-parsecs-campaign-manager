@@ -53,16 +53,34 @@ stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79
 
 ### Honest residual — NOT fixed
 
-Final sweep: **134 passed / 58 failed / 12 skipped** of 192 configs (34 screens × 6
+Final sweep: **136 passed / 56 failed / 12 skipped** of 192 configs (34 screens × 6
 sizes), up from **63 passed** when the sweep first ran clean of its own false positives.
 
 | Category | Start | Now | Note |
 |---|---|---|---|
 | Sub-48dp controls | 181 | **0** | Fully closed. |
-| Overlay-band collisions | 157 | **40** | `SettingsOverlay.reserve_band_on()` now also runs automatically on `SceneRouter.scene_changed`, which is the only route for `ShipInventory.tscn` (no script attached, so no `_ready()` to call from). **The sweep cannot see that fallback** — it instantiates scenes directly instead of navigating, so ShipInventory's 9 findings persist in the report while being fixed at runtime. Left visible rather than teaching the harness to compensate, which would hide real problems in the same breath. |
-| Off-screen overflow | 60 | **43** | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel is the visible worst case: its responsive wiring is correct (it uses the `ResponsiveManager` SSOT and overrides all four layout hooks), so the overflow is content that cannot shrink, not a missing collapse. The fix is the `ExpandedConfigPanel` treatment — autowrap labels, `clip_text` on OptionButtons, zero minimum widths. |
+| Overlay-band collisions | 157 | **42** | `SettingsOverlay.reserve_band_on()` also runs automatically on `SceneRouter.scene_changed`, the only route for `ShipInventory.tscn` (no script attached, so no `_ready()` to call from). **The sweep cannot see that fallback** — it instantiates scenes directly instead of navigating, so ShipInventory's 9 findings persist in the report while being fixed at runtime. Left visible rather than teaching the harness to compensate, which would hide real problems in the same breath. |
+| Off-screen overflow | 60 | **39** | Now mostly VERTICAL (content taller than a short viewport), not horizontal. |
 | Unwrapped labels | 14 | **3** | TacticalBattleUI only; built at runtime so a bare instantiation does not expose them. |
 | Sweep skips | 12 | 12 | Screens needing campaign state to build — reported SKIP-with-reason, never folded into the pass count. |
+
+The three sizing rules that governed nearly every one of these are now written up in
+`docs/sop/responsive-adaptive-ui.md` (docs-confirmed, not folklore): `custom_minimum_size`
+is a floor and never a ceiling; a minimum propagates to top level; and scrolling is what
+stops it. Finding the real driver means tree-walking `get_combined_minimum_size().x` and
+sorting — the parent is almost never the culprit.
+
+**What is left, and why each resisted the shared fix:**
+
+- *Vertical overflow on short viewports* (phone landscape 733×338, small phone 310×551) —
+  CampaignJournalScreen's filter block is the worst at 180–449px. Its responsive wiring is
+  correct; the content is simply taller than the screen. The principled fix is a vertical
+  scroll, but the entry list below it is `SIZE_EXPAND_FILL` and would collapse to its
+  minimum inside one — so this needs a UX decision (collapsible filters) rather than a
+  container swap, and was not shipped blind.
+- *TacticalBattleUI's 3 labels* — built at runtime, so a standalone instantiation never
+  creates them and no probe can name them without driving a real battle.
+- *ShipInventory's 9 collisions* — fixed at runtime, invisible to the harness (above).
 
 Screens taken to **zero** findings: MainMenu, CampaignCreationUI, AdvancementManager,
 EULAScreen, EquipmentManager, WorldPhaseController, HelpScreen, StoreScreen,

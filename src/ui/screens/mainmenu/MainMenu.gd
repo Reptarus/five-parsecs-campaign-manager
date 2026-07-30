@@ -1463,14 +1463,23 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 	var menu_buttons := $MenuScroll/MenuButtons
 	var title := $Title
 
-	# Social footer: hide on very narrow, show on wide
+	# Both of these were gated on WIDTH alone, which is why they survived into a
+	# phone in LANDSCAPE — wide enough to count as roomy, but only ~338 design px
+	# tall. The showcase card is anchored 180px from the top with an 80px bottom
+	# inset, so its own content minimum then ran 567px past the bottom edge. Chrome
+	# needs BOTH dimensions to be worth showing.
+	var short_viewport: bool = vp.get_visible_rect().size.y < 420.0
+	var hide_chrome: bool = is_narrow or short_viewport
+
+	# Social footer: hide on very narrow or very short, show when there is room
 	var social_footer := get_node_or_null("SocialFooter")
 	if social_footer:
-		social_footer.visible = not is_narrow
+		social_footer.visible = not hide_chrome
 
-	# Mode info card: hide on narrow (buttons take center stage on mobile)
+	# Mode info card: hide when the buttons need the space (mobile, or any short
+	# viewport where the card physically cannot fit between its own anchors)
 	if _showcase_card:
-		_showcase_card.visible = not is_narrow
+		_showcase_card.visible = not hide_chrome
 
 	# Every box below is derived from the LIVE design space, never hardcoded.
 	# SettingsManager._apply_ui_scale() cancels the square-1080 base stretch, so the

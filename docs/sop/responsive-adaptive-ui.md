@@ -133,6 +133,48 @@ CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 
 - **Live (MCP):** `run_project` → `run_script` to `DisplayServer.window_set_size()` and read `ResponsiveManager.current_viewport_size` / `get_effective_columns()` / a screen's actual columns. `window_set_size` is async — read on the NEXT `run_script` call. Disable the TransitionManager overlay ColorRect (`visible=false`) so screenshots aren't blocked. Test the matrix: 540×960 (phone→1 col), 768×1024 (tablet→2), 1280×720 (desktop→3), plus a constant-width rotation to confirm `layout_class_changed` re-lays-out exactly once.
 - **Geometry sweep (`tests/tools/verify_layout.gd`, Jul 30 2026):** 34 screens × 6 sizes, measuring REAL rects — off-screen overflow, SettingsOverlay-band collision, the ≥48dp touch floor, and unwrapped-Label minimums. Run **WITHOUT `--headless`**: it needs a real window or `window_set_size` means nothing. A screen with <3 visible Controls is reported SKIP-with-reason, never folded into the pass count (a screen whose `_ready()` silently unwound renders almost nothing and would trivially satisfy every geometric check).
 
+### Sizing rules that actually govern overflow (Godot 4.6 docs-confirmed)
+
+Every off-screen bug fixed in the Jul 30 sweep came back to one of these three. They are
+cheap to check and were each re-derived the expensive way first.
+
+**1. `custom_minimum_size` is a FLOOR, never a ceiling.** Per the Control docs: *"The
+actual minimum size is the **maximum** value of this property and the internal minimum
+size (see `get_combined_minimum_size()`)."* So "capping" a container by assigning a
+smaller `custom_minimum_size` does nothing — if the CONTENT wants more, the content wins.
+EULAScreen kept rendering ~380px wide with a 275 cap set, because a 46-character
+unwrapped `CheckButton` label underneath demanded ~350. **Always find the widest CHILD
+before touching the parent** — tree-walk `get_combined_minimum_size().x` and sort.
+
+**2. A minimum propagates all the way up.** `update_minimum_size()` "invalidates the
+minimum size cache in this node and in parent nodes **up to top level**". That is why
+adding a right-hand content margin to clear the floating overlay pushed an entire screen
+off the side: the margin raised the container's minimum width, and that travelled up the
+tree. Reserve space with something that costs only the axis you can afford — a spacer or
+a top margin, not a side margin.
+
+**3. Scrolling is what STOPS a minimum from propagating.** A `ScrollContainer` absorbs its
+child's minimum on any axis where scrolling is enabled. Two modes do NOT absorb it:
+`SCROLL_MODE_DISABLED` (the child must fit, so it propagates) and
+`SCROLL_MODE_MAXIMIZE_FIRST` (documented as making the container "report a minimum size
+based on its content"). So wrapping in a ScrollContainer is the principled fix for content
+that legitimately cannot fit — as long as the axis you need absorbed is actually
+scrollable.
+
+Corollaries worth knowing:
+
+- **`clip_text` on a Label zeroes its width minimum** — useful, but in a container that
+  does not expand it, the Label then gets zero width and vanishes. Pair it with
+  `size_flags_horizontal = SIZE_EXPAND_FILL`.
+- **Autowrap inside an `HFlowContainer` explodes the HEIGHT.** HFlow asks an autowrapping
+  Label for its height at its narrowest width (its longest word) and gets back the line
+  count for the whole string — one AdvancementManager title produced a 900px header. Use
+  `clip_text` + ellipsis there instead.
+- **`flat = true` on a Button drops the themed stylebox**, so it gets no padding and falls
+  under the touch floor unless given its own `custom_minimum_size`.
+- **CheckBox height is icon-driven, not stylebox-driven.** Adding `content_margin` to its
+  stylebox measurably does nothing; pin `custom_minimum_size.y`.
+
 ### A desktop window pixel IS a device dp — layout QA is NOT device-blocked
 
 This SOP previously said portrait layout could only be verified on hardware. **That was wrong.**

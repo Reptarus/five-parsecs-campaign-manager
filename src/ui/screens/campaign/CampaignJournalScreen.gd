@@ -112,6 +112,15 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_bottom", SPACING_MD)
 	add_child(margin)
 
+	# Portrait de-clip. SPACING_LG on both sides is 48px of the ~339 design px a
+	# phone has, and this screen's content needs ~341 on its own — so the margins
+	# alone put it over. PortraitChrome trims LEFT/RIGHT only (never the top, so it
+	# does not fight the SettingsOverlay band reservation) and restores them in
+	# landscape via ResponsiveManager.layout_class_changed.
+	var portrait_chrome = load("res://src/ui/components/base/PortraitChrome.gd").new()
+	add_child(portrait_chrome)
+	portrait_chrome.setup(margin)
+
 	_outer = VBoxContainer.new()
 	_outer.add_theme_constant_override("separation", SPACING_MD)
 	margin.add_child(_outer)
