@@ -71,7 +71,7 @@ A `@tool` container for **local** two-pane horizontal↔vertical switching of on
 4. **`_apply_responsive_layout()` runs before `_setup_screen()`** in `CampaignScreenBase._ready` — code-built responsive nodes need the post-setup re-apply (already in the base) or a synchronous pull in setup.
 5. **3-column screens that stack to 1 column** need an OUTER scroll + content-sized columns; nested inner+outer ScrollContainers double-scroll. (Dashboard Phase-4 work.)
 6. **Touch-target sizing stays device-keyed** (COMFORT on mobile bucket, MIN otherwise), NOT orientation-keyed — target size tracks input method, not aspect.
-7. **The base-class `should_use_single_column()` ITSELF must delegate to `ResponsiveManager` — not `get_visible_rect()`.** (Jun 24 2026) For a long time `BaseCampaignPanel.should_use_single_column()` (L474) AND `CampaignScreenBase.should_use_single_column()` (L383) detected portrait via `get_viewport().get_visible_rect().size` (`y > x`) — the exact thing gotcha #1 forbids — so they returned false in device portrait and SILENTLY DEFEATED every panel's correct stacking code (EquipmentPanel `_apply_split_orientation`, WorldInfoPanel cards): the panel called the helper, got false, stayed multi-column. Both now call `_responsive_manager.should_collapse_to_single_column()` with the old logic as fallback. Anti-regression: `grep -rn get_visible_rect src/ui` should find NO orientation/breakpoint use — only true content-rect needs (e.g. pan/zoom math). The fix only shows on a real device; desktop can't hold a portrait window (see Verification).
+7. **The base-class `should_use_single_column()` ITSELF must delegate to `ResponsiveManager` — not `get_visible_rect()`.** (Jun 24 2026) For a long time `BaseCampaignPanel.should_use_single_column()` (L474) AND `CampaignScreenBase.should_use_single_column()` (L383) detected portrait via `get_viewport().get_visible_rect().size` (`y > x`) — the exact thing gotcha #1 forbids — so they returned false in device portrait and SILENTLY DEFEATED every panel's correct stacking code (EquipmentPanel `_apply_split_orientation`, WorldInfoPanel cards): the panel called the helper, got false, stayed multi-column. Both now call `_responsive_manager.should_collapse_to_single_column()` with the old logic as fallback. Anti-regression: `grep -rn get_visible_rect src/ui` should find NO orientation/breakpoint use — only true content-rect needs (e.g. pan/zoom math). ~~The fix only shows on a real device; desktop can't hold a portrait window~~ — **corrected Jul 30 2026: a desktop window pixel IS a device dp, so this is verifiable at a 393×851 desktop window. See Verification.**
 
 ## Phase status (Jun 2026)
 
@@ -131,3 +131,19 @@ CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 
 
 - **Unit:** `tests/unit/test_responsive_manager_effective_columns.gd` (16) + `tests/unit/test_adaptive_panel_group.gd` (10, incl. `focus_pane` TABS-switch + GRID-noop guard). gdUnit4 with `-c`, NEVER `--headless` (signal-11).
 - **Live (MCP):** `run_project` → `run_script` to `DisplayServer.window_set_size()` and read `ResponsiveManager.current_viewport_size` / `get_effective_columns()` / a screen's actual columns. `window_set_size` is async — read on the NEXT `run_script` call. Disable the TransitionManager overlay ColorRect (`visible=false`) so screenshots aren't blocked. Test the matrix: 540×960 (phone→1 col), 768×1024 (tablet→2), 1280×720 (desktop→3), plus a constant-width rotation to confirm `layout_class_changed` re-lays-out exactly once.
+- **Geometry sweep (`tests/tools/verify_layout.gd`, Jul 30 2026):** 34 screens × 6 sizes, measuring REAL rects — off-screen overflow, SettingsOverlay-band collision, the ≥48dp touch floor, and unwrapped-Label minimums. Run **WITHOUT `--headless`**: it needs a real window or `window_set_size` means nothing. A screen with <3 visible Controls is reported SKIP-with-reason, never folded into the pass count (a screen whose `_ready()` silently unwound renders almost nothing and would trivially satisfy every geometric check).
+
+### A desktop window pixel IS a device dp — layout QA is NOT device-blocked
+
+This SOP previously said portrait layout could only be verified on hardware. **That was wrong.**
+
+```text
+Device:   design space = (physical px / screen_get_scale()) / 1.16 = dp / 1.16
+Desktop:  screen_get_scale() == 1.0 on Windows       → design space = window_px / 1.16
+```
+
+The 1.16 is derived, not magic: `SettingsManager._apply_ui_scale()` cancels the square-1080 base stretch with `stretch_cancel = 1080 / short_axis` (the same `1080/min(window)` term described above). Measured live: a 393×851 window reports `MOBILE / portrait / 1 column / 56px touch target`, design space `338.79 × 733.42`, and `338.79 × 1.16 = 392.99998`. **Derive the ratio at runtime; never hardcode 1.16.**
+
+Consequence: everything geometric is a desktop job. Device time is for what dp equivalence genuinely cannot settle — safe-area insets (`get_display_safe_area()` returns the whole monitor on Windows), real touch physics / fling, physical legibility and thumb reach, ARM perf/thermals, Android plugins, scoped storage. See `docs/testing/TABLET_CHECKLIST_2026-08-02.md`.
+
+**Why this matters more than it sounds**: the existing "responsive" suites (`test_postbattle_responsive.gd`, `test_prebattle_responsive_layout.gd`, `test_tactical_battle_responsive.gd`) assert CONFIGURATION — autowrap flags, panel resolution, column counts — and contain zero `window_set_size` / `get_global_rect` calls. Every one of them passed while the MainMenu title was clipped 67px off both edges and drawn 103px underneath the button column. Asserting a flag is not measuring a rect.
