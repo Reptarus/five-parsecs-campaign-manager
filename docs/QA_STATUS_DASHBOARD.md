@@ -23,7 +23,9 @@ stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79
 | **`R: 0` on every crew card of every pre-existing save** | **HIGH** | `Character.to_dictionary()` already emitted both `reaction` and `reactions`, but nothing normalised saves written before that. Measured on a live save: 6/6 members had the plural, 0/6 the singular; `CampaignDashboard.gd:621` reads the singular. Fixed at the load chokepoint (`FiveParsecsCampaignCore._normalize_crew_stat_keys()`), not per-consumer. It survived because it looked *plausible* — the other five stats were the correct Core Rules p.14 baseline human. |
 | **Core Rules p.121 Luck death-save never implemented** | **HIGH** | "If a character with Luck would be slain through a roll on this table, they miraculously survive, but immediately lose ALL Luck points." `InjuryProcessor`'s fatal branch went straight to `apply_crew_death()` with no Luck check — permanent character loss the book explicitly prevents. A working implementation existed but was stranded off the live path (`PostBattleProcessor.gd:186-202`, reachable only from a comment). Fixed at `PostBattleContext.apply_luck_death_save()`. |
 | **`_restore_crew_luck()` — a fabricated rule, deleted** | MED | It set `luck = max_luck` (the CAP, not the character's rating), inflating every human to 3 Luck they never spent 30 XP to buy. It also could not run at all (2-arg `.get()` on a Resource silently unwinds; no Dictionary branch for the canonical crew shape) and gated on a flag nothing ever set. **Broken in a way that masked a worse bug** — naively repairing it would have introduced the violation. Deleted with a block comment at the call site. |
-| **Tag chips and TOC buttons under the touch floor** | MED | `CampaignJournalScreen._make_chip()` used `TOUCH_TARGET_MIN - 12` (= 36 design px = 41.8dp) and `HelpScreen` hardcoded 36. Together, 129 of 181 sub-floor controls — firing at **every** window size including desktop, so never a compression artifact. |
+| **Sub-48dp touch targets — 181 → 0** | MED | Four distinct causes, each found by measuring rather than assuming. (1) `CampaignJournalScreen._make_chip()` used `TOUCH_TARGET_MIN - 12` (= 36 design px = 41.8dp) and `HelpScreen` hardcoded 36 — 129 of the 181. (2) The theme's `optionbutton_*` and `lineedit_*` styleboxes were still at 8.0 vertical padding while `button_*` had been raised to 12.0. (3) Hardcoded 40s in `ShipInventory.tscn`, `WorldPhaseController.tscn` and `UpkeepPhaseComponent`'s map button (`flat = true` removes the themed stylebox, so such a button gets *no* padding from the theme). (4) CheckBox height is icon-driven, not stylebox-driven — adding `content_margin` to `checkbox_normal` measurably did nothing, so it was reverted rather than shipped as a no-op, and the two `PrintSheetScreen` boxes were pinned explicitly. All 181 fired at **every** window size including desktop, so none was a compression artifact. |
+| **Content drawn under the floating overlay buttons — 157 → 55** | MED | `SettingsOverlay` is a CanvasLayer above every screen, so full-width headers ran beneath the gear/bug buttons — obscured and untappable. Fixed with `SettingsOverlay.reserve_band_on(screen)`, which pushes content **down** using the live button geometry. It lives on the overlay because the screens needing it have three different ancestors (`CampaignScreenBase`, `FiveParsecsCampaignPanel`, plain `Control`/`Node`) — there is no single base to put it in. Two strategies: raise a wrapping `MarginContainer`'s top margin, else insert a named spacer as the first child of a vertical root container. `GalaxyLogScreen` and `CompendiumCategoryView` deliberately skip `super._ready()`, so they call it manually alongside the other base setup they already replicate. |
+| **`Header` demanded 900px of height** | MED | Self-inflicted, caught by screenshot: adding `autowrap_mode` to the AdvancementManager title — a Label inside an **HFlowContainer** — made the header 900px tall, because HFlow asks an autowrapping Label for its height at its narrowest width (its longest word) and gets back the line count for the whole string. The screen overflowed at all six sizes including desktop. Replaced with `clip_text` + ellipsis + `size_flags_horizontal = 3`. This is a documented trap in project memory (`feedback_autowrap_in_hflow_trap`) that was walked into twice in one day. |
 | **Unwrapped labels overflowing the design space** | MED | EULAScreen title, HelpScreen title, AdvancementManager title, DLC pack taglines. Same shape as the MainMenu title bug. 14 → 3 remaining. |
 | **236 orphan files deleted** | LOW | New reachability lint `scripts/lint_orphan_assets.py`. Grep passes had said 89 — the gap was `MainCampaignScene.tscn`, referenced by nothing, keeping its script alive. *Dead scenes keep scripts alive; liveness needs a graph, not a grep.* |
 
@@ -51,16 +53,32 @@ stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79
 
 ### Honest residual — NOT fixed
 
-Final sweep: **82 passed / 110 failed / 12 skipped** of 192 configs (34 screens × 6
-sizes), up from 63 passed at the start of the close-out.
+Final sweep: **125 passed / 67 failed / 12 skipped** of 192 configs (34 screens × 6
+sizes), up from **63 passed** when the sweep first ran clean of its own false positives.
 
-| Category | Count | Note |
-|---|---|---|
-| Overlay-band collisions | 113 | Real content under the floating gear/bug buttons. Needs the reserved-band treatment applied in a shared base rather than per screen — but NOT via container padding, which propagates minimum width (see the HelpScreen lesson below). |
-| Off-screen overflow | 58 | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel and title are the visible worst case: its responsive wiring is correct (it uses the `ResponsiveManager` SSOT and overrides all four layout hooks), so the overflow is content that cannot shrink, not a missing collapse. The fix is the `ExpandedConfigPanel` treatment — autowrap labels, `clip_text` on OptionButtons, zero minimum widths. |
-| Sub-48dp controls | 52 | Remaining sites: ShipInventory (18), PrintSheetScreen (12), WorldPhaseController + CampaignTurnController (16), CampaignEventsManager (6). |
-| Unwrapped labels | 3 | TacticalBattleUI only; built at runtime so a bare instantiation does not expose them. |
-| Sweep skips | 12 | Screens needing campaign state to build — reported SKIP-with-reason, never folded into the pass count. |
+| Category | Start | Now | Note |
+|---|---|---|---|
+| Sub-48dp controls | 181 | **0** | Fully closed. |
+| Overlay-band collisions | 157 | **55** | Remaining screens have no wrapping `MarginContainer` and no vertical root box for `reserve_band_on` to act on: TacticalBattleUI (9), ShipInventory (9, its `.tscn` has no script at all to hook), CampaignTurnController (9), EquipmentGenerationScene (4), ShipManager (3), PostBattleSequence (3). Each needs a small structural edit rather than a shared call. |
+| Off-screen overflow | 60 | **49** | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel is the visible worst case: its responsive wiring is correct (it uses the `ResponsiveManager` SSOT and overrides all four layout hooks), so the overflow is content that cannot shrink, not a missing collapse. The fix is the `ExpandedConfigPanel` treatment — autowrap labels, `clip_text` on OptionButtons, zero minimum widths. PrintSheetScreen's sheet preview `TextureRect` renders at natural size and needs to scale to fit. |
+| Unwrapped labels | 14 | **3** | TacticalBattleUI only; built at runtime so a bare instantiation does not expose them. |
+| Sweep skips | 12 | 12 | Screens needing campaign state to build — reported SKIP-with-reason, never folded into the pass count. |
+
+### A third false-positive class removed: measuring before the screen settled
+
+The sweep waited a fixed 3 frames after `add_child`. Panels populate from
+`call_deferred`, ScrollContainers re-sort once their content arrives, and
+`AdaptivePanelGroup` re-parents whole panes — so an early read catches transient rects.
+CampaignCreationUI was reported as `StepLabel off-screen by 86.7 px` at desktop while
+the **running app measured zero overflow there**. It now waits for the geometry
+signature (the summed rects of every visible Control) to hold steady for three
+consecutive frames, capped at 30 so a screen that never settles is still measured
+rather than hanging the sweep. That removed 4 phantom findings, and detection was
+re-proven afterwards on the reverted `7590c67b`.
+
+Deciding whether a finding was real meant checking it against the **running app**, not
+just the harness — that is what separated the AdvancementManager 900px header (real,
+and self-inflicted) from the CampaignCreationUI overflow (harness artifact).
 
 One data residual: the oldest save has a crew member with **neither** reaction key, so that
 card still shows `R: 0`. Backfilling would mean inventing a stat value.
