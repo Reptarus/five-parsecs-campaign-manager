@@ -193,12 +193,25 @@ func _process_turn_rollover() -> void:
 		if not campaign.are_victory_conditions_locked():
 			campaign.lock_victory_conditions()
 
-	# --- Luck Recovery (Core Rules p.91) ---
-	# "All Luck is regained automatically after each battle."
-	# Unless the character used the Luck death-save (fatal injury protection),
-	# in which case ALL Luck was already set to 0 by InjuryProcessor.
-	# Characters whose luck was zeroed by death-save keep luck=0 until earned.
-	_restore_crew_luck(campaign)
+	# --- Luck Recovery (Core Rules p.46 / p.121) — DELIBERATELY NOTHING HERE ---
+	# "All Luck is regained automatically after each battle" (p.46) needs no campaign
+	# write, because campaign Luck is never DEPLETED in the first place: both resolvers
+	# deep-copy the crew before the fight (BattleResolver.gd:177 `crew.duplicate(true)`)
+	# and the in-battle save decrements only that copy. Regain is therefore automatic.
+	#
+	# The one persistent Luck loss in the book is the p.121 post-battle death-save
+	# ("miraculously survive, but immediately lose ALL Luck points"), which is
+	# permanent — "They can earn additional points as normal in the future." It is
+	# applied at its source, PostBattleContext.apply_luck_death_save().
+	#
+	# A _restore_crew_luck() used to be called here. Do NOT re-add it. It set
+	# `luck = max_luck` (cap 1, or 3 Human — Ability Increase Table p.121), which is
+	# the CAP, not the character's rating: every human would have been inflated to 3
+	# Luck they never spent 10 XP to buy. It also could not run at all — it called the
+	# 2-arg `member.get("luck_death_save_used", false)` on a Resource, which is an
+	# invalid call that silently unwinds the function, and it had no Dictionary branch
+	# for the canonical crew shape — and it gated on a flag nothing in the codebase
+	# ever set.
 
 	# --- Sick Bay Recovery Countdown (Core Rules p.99) ---
 	# Each campaign turn, reduce recovery_turns by 1 for all injured crew.
@@ -275,28 +288,6 @@ func _process_turn_rollover() -> void:
 			"progress": vc_result.get("progress", 0),
 			"required": vc_result.get("required", 0)
 		})
-
-func _restore_crew_luck(campaign: Resource) -> void:
-	## Core Rules p.91: "All Luck is regained automatically after each battle."
-	## Humans max 3, non-humans max 1 (BaseCharacterResource enforces caps via setter).
-	## Characters flagged with luck_death_save_used keep luck=0 (already handled by
-	## InjuryProcessor setting luck=0 on the character directly).
-	if not campaign.has_method("get_crew_members"):
-		return
-	var crew: Array = campaign.get_crew_members()
-	for member in crew:
-		if member is Resource and "luck" in member:
-			# Skip characters who used luck death-save this turn
-			# (InjuryProcessor already set their luck to 0 permanently until earned)
-			if member.get("luck_death_save_used", false):
-				# Clear the flag — they start fresh but at 0
-				member.set("luck_death_save_used", false)
-				continue
-			# Restore to species cap: humans=3, others=1
-			var max_luck: int = 1
-			if member.get("is_human", false):
-				max_luck = 3
-			member.luck = max_luck
 
 func _process_sick_bay_recovery(campaign: Resource) -> void:
 	## Core Rules p.99: Injuries have "Campaign Turns in Sick Bay" recovery.

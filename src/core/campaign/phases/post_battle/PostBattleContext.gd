@@ -203,6 +203,34 @@ func apply_crew_death(crew_id: String) -> bool:
 	return true
 
 
+func apply_luck_death_save(crew_id: String) -> bool:
+	## Core Rules p.121 (step 8, Determine Injuries and Recovery), verbatim:
+	##   "If a character with Luck would be slain through a roll on this table, they
+	##    miraculously survive, but immediately lose ALL Luck points. They can earn
+	##    additional points as normal in the future. Unless this occurs, Luck points
+	##    are now recovered automatically."
+	##
+	## This is a DIFFERENT rule from the in-battle Luck save (p.46, "lose 1 point of
+	## Luck instead" of becoming a casualty). The in-battle one needs no campaign
+	## write: both resolvers deep-copy the crew before the fight
+	## (BattleResolver.gd:177 `crew.duplicate(true)`), so campaign Luck is never
+	## depleted by a battle and "recovered automatically" is already satisfied.
+	##
+	## The post-battle one was NOT implemented on the live path at all. InjuryProcessor
+	## went straight to apply_crew_death() on any fatal roll, so a crew member holding
+	## Luck was killed outright — permanent character loss the book explicitly prevents.
+	##
+	## Returns true if Luck was spent to save them (caller must NOT kill the character).
+	var member = get_crew_member(crew_id)
+	if member == null:
+		return false
+	if _get_character_stat(member, "luck") <= 0:
+		return false
+	# "immediately lose ALL Luck points" — zero, not decrement.
+	_set_character_stat(member, "luck", 0)
+	return true
+
+
 func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 	## GameStateManager has no apply_crew_injury — the guarded calls at
 	## InjuryProcessor.gd:141,181 were dead, so rolled injuries never mutated the

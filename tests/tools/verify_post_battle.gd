@@ -149,6 +149,9 @@ func _process(_delta: float) -> bool:
 	_row_crew_dict_dual_reaction_key()
 	_row_difficulty_none_fallback()
 	_row_campaign_event_effect_reaches_campaign()
+	_row_luck_death_save()
+	_row_turn_rollover_mechanics()
+	_row_save_load_round_trip()
 
 	print("\n================ RESULT ================")
 	print("passed=%d failed=%d skipped=%d" % [_pass, _fail, _skip])
@@ -1337,3 +1340,185 @@ func _row_campaign_event_effect_reaches_campaign() -> void:
 	_check(name, after == before + 1,
 		"total crew XP on campaign.crew_data[members] +1 (the captain gains 1 XP)",
 		"%d -> %d" % [before, after])
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROW 17 — the post-battle Luck death-save (Core Rules p.121)
+#
+#   Book, verbatim (step 8, Determine Injuries and Recovery): "If a character with
+#   Luck would be slain through a roll on this table, they miraculously survive, but
+#   immediately lose ALL Luck points. They can earn additional points as normal in
+#   the future."
+#
+#   NOT IMPLEMENTED on the live path. InjuryProcessor's fatal branch went straight to
+#   ctx.apply_crew_death() with no Luck check, so a crew member holding Luck was
+#   killed outright by a 1-15 roll — permanent character loss the book prevents.
+#   (An older non-live processor did implement it: PostBattleProcessor.gd:186-202,
+#   reachable only from a comment in FPCM_BattleManager.gd:401 plus one test.)
+#
+#   Same 40-seed harness as ROW 2 so the fatal band (1-15) is genuinely hit.
+#   The luck=0 CONTROL is the point of this row: a "nobody died" assertion passes
+#   just as happily when the injury step is broken and rolls nothing at all. Only
+#   the control proves the fatal branch still reaches death when Luck cannot save.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+func _luck_save_trial(tag: String, luck: int) -> Dictionary:
+	var trials := 40
+	var out := {"dead": 0, "saved": 0, "luck_kept": 0}
+	for s in range(1, trials + 1):
+		seed(s * 7919)
+		var campaign: Resource = _make_campaign("luck_%s_%d" % [tag, s], 5)
+		_bind(campaign)
+		var victim: Dictionary = _members(campaign)[2]
+		victim["luck"] = luck
+		var producer: Dictionary = {
+			"character_id": victim["character_id"], "id": victim["id"],
+			"character_name": victim["character_name"], "name": victim["name"],
+		}
+		var ok: bool = _run_pipeline(campaign, {
+			"success": false, "victory": false, "won": false, "held_field": true,
+			"crew_participants": _participants(campaign, [0, 1, 2, 3, 4]),
+			"crew_injuries_data": [producer], "crew_casualties_data": [],
+			"defeated_enemies": [], "enemy_type": "Raiders",
+		}, {"mission_source": "opportunity"})
+		if not ok:
+			continue
+		var m: Dictionary = _find(campaign, str(victim["character_id"]))
+		if m.is_empty():
+			continue
+		if str(m.get("status", "")) == "DEAD" and bool(m.get("is_dead", false)):
+			out["dead"] += 1
+		elif luck > 0 and int(m.get("luck", -1)) == 0:
+			# Survived a roll that would otherwise have killed them, Luck now zero.
+			out["saved"] += 1
+		if luck > 0 and int(m.get("luck", 0)) > 0:
+			out["luck_kept"] += 1
+	return out
+
+func _row_luck_death_save() -> void:
+	var with_luck: Dictionary = _luck_save_trial("has_luck", 1)
+	var control: Dictionary = _luck_save_trial("no_luck", 0)
+	print("  [luck_death_save] luck=1 dead=%d saved=%d | control luck=0 dead=%d"
+		% [with_luck["dead"], with_luck["saved"], control["dead"]])
+
+	# The control MUST still kill — otherwise "nobody died" proves nothing.
+	_check("luck_death_save_control_still_kills", int(control["dead"]) > 0,
+		"a crew member with luck=0 still dies on a 1-15 roll across 40 seeds",
+		"dead=%d" % control["dead"])
+	_check("luck_death_save_prevents_death", int(with_luck["dead"]) == 0,
+		"0 deaths when the victim holds 1 Luck (Core Rules p.121)",
+		"dead=%d" % with_luck["dead"])
+	_check("luck_death_save_fires_and_zeroes_luck", int(with_luck["saved"]) > 0,
+		"at least 1 save writes luck=0 on the campaign crew member",
+		"saved=%d" % with_luck["saved"])
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROW 18 — turn rollover mutates the campaign (Core Rules p.76 / p.99 / pp.128-130)
+#
+#   CampaignPhaseManager.start_new_turn() -> _process_turn_rollover(). Every one of
+#   these mechanics reads and writes DICTIONARY crew members, which is the canonical
+#   crew shape — and a Dictionary-vs-Resource branch gap is exactly how the deleted
+#   _restore_crew_luck() managed to be a no-op for years.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+func _row_turn_rollover_mechanics() -> void:
+	var campaign: Resource = _make_campaign("rollover", 4)
+	# p.76: an upkeep lockout lasts one campaign turn.
+	_members(campaign)[0]["locked_out_this_turn"] = true
+	# p.99: Sick Bay recovery counts down each turn.
+	_members(campaign)[1]["in_sick_bay"] = true
+	_members(campaign)[1]["recovery_turns"] = 2
+	_members(campaign)[1]["injuries"] = [
+		{"type": "Serious injury", "recovery_turns": 2}]
+	# pp.128-130: a Character Event status effect expires when duration hits 0.
+	_members(campaign)[2]["status_effects"] = [
+		{"type": "skip_next_battle", "name": "Shaken", "duration": 1},
+		{"type": "no_xp", "name": "Distracted", "duration": 3},
+	]
+	_bind(campaign)
+
+	var turns_before: int = int(campaign.progress_data.get("turns_played", 0))
+	_cpm.start_new_turn()
+
+	var m0: Dictionary = _members(campaign)[0]
+	_check("rollover_clears_upkeep_lockout",
+		not m0.has("locked_out_this_turn"),
+		"locked_out_this_turn erased from the crew member (p.76)",
+		"still present=%s" % str(m0.get("locked_out_this_turn")))
+
+	var m1: Dictionary = _members(campaign)[1]
+	var inj: Array = m1.get("injuries", [])
+	var rec: int = int(inj[0].get("recovery_turns", -1)) if inj.size() > 0 else -1
+	_check("rollover_counts_down_sick_bay", rec == 1,
+		"injury recovery_turns 2 -> 1 (p.99)", "recovery_turns=%d" % rec)
+
+	var effects: Array = _members(campaign)[2].get("status_effects", [])
+	var types: Array[String] = []
+	for e in effects:
+		types.append(str(e.get("type", "")))
+	var durations: Array[int] = []
+	for e in effects:
+		durations.append(int(e.get("duration", -1)))
+	_check("rollover_expires_finished_status_effect",
+		effects.size() == 1 and types == ["no_xp"] and durations == [2],
+		"duration-1 effect removed, duration-3 decremented to 2 (pp.128-130)",
+		"remaining=%s durations=%s" % [str(types), str(durations)])
+
+	# turns_played is owned by GameState.advance_turn()/CampaignTurnController, both of
+	# which are MONOTONIC guards. Rollover must never lower it (the loaded-save freeze).
+	var turns_after: int = int(campaign.progress_data.get("turns_played", 0))
+	_check("rollover_never_lowers_turns_played", turns_after >= turns_before,
+		"turns_played >= %d after rollover" % turns_before, str(turns_after))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROW 19 — save/load round-trip preserves campaign state
+#
+#   to_dictionary() -> from_dictionary() on a fresh core. Compared field by field on
+#   the CANONICAL owners named in the data-ownership table (CLAUDE.md), not on a UI
+#   read. Includes the reaction/reactions dual key, which is what rendered "R: 0" on
+#   every crew card of every pre-existing save.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+func _row_save_load_round_trip() -> void:
+	var campaign: Resource = _make_campaign("roundtrip", 4)
+	campaign.credits = 37
+	campaign.story_points = 4
+	campaign.equipment_data = {"equipment": [
+		{"id": "itm_1", "name": "Blade", "type": "weapon"},
+		{"id": "itm_2", "name": "Stim-pack", "type": "gear"},
+	]}
+	_members(campaign)[0]["is_captain"] = true
+	_members(campaign)[1]["experience"] = 9
+	campaign.progress_data["turns_played"] = 6
+
+	var restored: Resource = _core_script.new()
+	restored.from_dictionary(campaign.to_dictionary())
+
+	var problems: Array[String] = []
+	if int(restored.credits) != 37:
+		problems.append("credits %d != 37" % int(restored.credits))
+	if int(restored.story_points) != 4:
+		problems.append("story_points %d != 4" % int(restored.story_points))
+	if int(restored.progress_data.get("turns_played", -1)) != 6:
+		problems.append("turns_played %s != 6"
+			% str(restored.progress_data.get("turns_played")))
+	var stash: Array = restored.equipment_data.get("equipment", [])
+	if stash.size() != 2:
+		problems.append("ship stash size %d != 2" % stash.size())
+	var rm: Array = _members(restored)
+	if rm.size() != 4:
+		problems.append("crew size %d != 4" % rm.size())
+	else:
+		if not bool(rm[0].get("is_captain", false)):
+			problems.append("captain flag lost")
+		if int(rm[1].get("experience", -1)) != 9:
+			problems.append("crew XP %s != 9" % str(rm[1].get("experience")))
+		for i in range(rm.size()):
+			var m: Dictionary = rm[i]
+			# Both spellings must survive: battle reads the plural, the crew UI the
+			# singular (CampaignDashboard.gd:621 renders "R:" from "reaction").
+			if int(m.get("reaction", -1)) != 2 or int(m.get("reactions", -1)) != 2:
+				problems.append("member %d reaction=%s reactions=%s (want 2/2)"
+					% [i, str(m.get("reaction")), str(m.get("reactions"))])
+	_check("save_load_round_trip_preserves_campaign_state", problems.is_empty(),
+		"credits/story points/turn/stash/crew/captain/XP/reaction keys all survive",
+		str(problems))

@@ -152,6 +152,29 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 	# which is offered to the player via PostBattleSequence nudge UI for any
 	# non-fatal injury (flagged via star_offer_available in process_injuries()).
 	if is_fatal:
+		# Core Rules p.121, BEFORE the death is applied: "If a character with Luck
+		# would be slain through a roll on this table, they miraculously survive, but
+		# immediately lose ALL Luck points."
+		#
+		# This was never implemented on the live path — a crew member holding Luck was
+		# killed outright by a 1-15 roll, i.e. permanent character loss the book
+		# explicitly prevents. (An older, non-live processor did implement it:
+		# PostBattleProcessor.gd:186-202, reachable only from a comment + one test.)
+		#
+		# Organic table only. The Luck clause sits in the prose that introduces BOTH
+		# tables and says "a roll on this table", so its application to the Bot Injury
+		# Table is genuinely ambiguous; this matches the existing in-repo reading
+		# (PostBattleProcessor.gd:189 gates on `not is_bot`) rather than inventing one.
+		# _process_bot_injury handles the Bot table and does not call this branch.
+		if ctx.apply_luck_death_save(crew_id):
+			processed_injury["is_fatal"] = false
+			processed_injury["luck_death_save"] = true
+			processed_injury["recovery_turns"] = 0
+			processed_injury["description"] = (
+				"Miraculously survived %s — lost ALL Luck (Core Rules p.121)"
+				% injury_type_name.to_lower())
+			return processed_injury
+
 		# MARK THEM DEAD. This used to just return, and nothing else wrote a death
 		# either — `status == "DEAD"` was READ (PostBattleCompletion.gd:205) and never
 		# WRITTEN, while PostBattleSequence only appended "(FATAL)" to a UI label.
