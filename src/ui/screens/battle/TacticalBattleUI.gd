@@ -327,6 +327,14 @@ func _ready() -> void:
 	# show tier selection anyway so standalone/MCP/demo mode works (BUG-B01 fix)
 	call_deferred("_check_standalone_mode")
 
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons (drawn on
+	# their own CanvasLayer above this screen). Pushes content DOWN -- a right-side
+	# margin would raise the container's minimum WIDTH and propagate an overflow up
+	# the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 func _initialize_managers() -> void:
 	## Initialize manager references
 	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null

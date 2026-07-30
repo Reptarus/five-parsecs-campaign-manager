@@ -212,6 +212,42 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_scene_changed(_new_scene: String, _previous_scene: String) -> void:
 	_update_visibility()
+	# Safety net so no screen can draw under these buttons just because nobody
+	# remembered to wire it up — and the only route for a screen with NO script at
+	# all (ShipInventory.tscn has none, so it has no _ready() to call from).
+	#
+	# Deferred twice over: once so the incoming scene's _ready() has built its UI,
+	# and after _update_visibility() so get_reserved_bottom() reflects which buttons
+	# are actually visible on THIS scene. reserve_band_on() is idempotent — it only
+	# ever raises a margin, and reuses its named spacer — so a screen that already
+	# called it explicitly is unaffected.
+	call_deferred("_reserve_band_on_current_scene")
+
+
+func _reserve_band_on_current_scene() -> void:
+	if not is_inside_tree():
+		return
+	# WAIT FOR THE SWAP, don't guess at a frame count. scene_changed is emitted
+	# around change_scene_to_file(), which completes at the END of a frame, so a
+	# plain call_deferred — and even a fixed 2-frame wait — still saw the OUTGOING
+	# scene and reserved the band on the screen being navigated AWAY from. Both were
+	# tried and measured: no spacer appeared on ShipInventory either time, while
+	# calling reserve_band_on() by hand a moment later worked and returned true.
+	#
+	# So: remember what was current when the signal fired and poll until it is
+	# replaced. The cap keeps a navigation that never swaps (same-scene reload) from
+	# looping — it just reserves on whatever is current at that point, which is
+	# correct anyway since reserve_band_on() is idempotent.
+	var before := get_tree().current_scene
+	for _i in range(12):
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return
+		if get_tree().current_scene != before and get_tree().current_scene != null:
+			break
+	var scene := get_tree().current_scene
+	if scene != null:
+		reserve_band_on(scene)
 
 
 func _on_node_added(_node: Node) -> void:
