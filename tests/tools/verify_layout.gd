@@ -186,6 +186,40 @@ func _inside_scroll(n: Node, stop: Node) -> bool:
 ## Rect the global SettingsOverlay is occupying right now. Asked live rather than
 ## hardcoded because WHICH buttons are visible varies per screen (the gear hides
 ## on MainMenu and SettingsScreen, the bug button only on SettingsScreen).
+## Content a user reads or touches — the only kind of node that can meaningfully be
+## "hidden under" the floating overlay. Layout containers, separators and
+## backgrounds merely span the region.
+func _is_content(ctl: Control) -> bool:
+	return ctl is Label or ctl is Button or ctl is LineEdit or ctl is TextEdit \
+		or ctl is RichTextLabel or ctl is TextureRect or ctl is ProgressBar \
+		or ctl is Slider or ctl is SpinBox or ctl is ItemList or ctl is Tree
+
+
+## A near-full-screen element is a backdrop, not content that got covered.
+func _is_backdrop(r: Rect2, ds: Vector2) -> bool:
+	if ds.x <= 0.0 or ds.y <= 0.0:
+		return false
+	return (r.size.x * r.size.y) >= (ds.x * ds.y) * 0.8
+
+
+## True when an ancestor (below `stop`) already overflows by at least as much, so
+## this node's overflow is a consequence rather than the cause.
+func _parent_already_overflows(ctl: Control, stop: Node, off: float) -> bool:
+	var ds: Vector2 = root.get_visible_rect().size
+	var p := ctl.get_parent()
+	while p != null and p != stop:
+		if p is Control and (p as Control).is_visible_in_tree():
+			var pr: Rect2 = (p as Control).get_global_rect()
+			if pr.size.x > 0.0 and pr.size.y > 0.0:
+				var poff: float = maxf(
+					maxf(-pr.position.x, pr.end.x - ds.x),
+					maxf(-pr.position.y, pr.end.y - ds.y))
+				if poff >= off - EPS:
+					return true
+		p = p.get_parent()
+	return false
+
+
 func _overlay_rect() -> Rect2:
 	var so := root.get_node_or_null("/root/SettingsOverlay")
 	if so != null and so.has_method("get_reserved_rect"):
@@ -218,9 +252,18 @@ func _measure(inst: Node, short: String, label: String) -> void:
 			var off: float = maxf(
 				maxf(-r.position.x, r.end.x - ds.x),
 				maxf(-r.position.y, r.end.y - ds.y))
-			if off > EPS:
+			# Report the OUTERMOST cause only. A container that overflows drags every
+			# descendant with it, and listing all of them buries the one node worth
+			# fixing under dozens of consequences.
+			if off > EPS and not _parent_already_overflows(ctl, inst, off):
 				problems.append("%s off-screen by %.1f px" % [nm, off])
-			if overlay.size.y > 0.0 and r.intersects(overlay) and ctl != inst:
+			# Only content a user actually reads or taps can be "hidden under" the
+			# overlay. A full-screen Background or a layout container merely SPANS
+			# that corner — MainMenu reported 50 failures whose sole cause was its
+			# background TextureRect, and 822 of the sweep's first 1129 findings were
+			# this same noise. Verified against a screen already proven clean.
+			if overlay.size.y > 0.0 and r.intersects(overlay) and _is_content(ctl) \
+					and not _is_backdrop(r, ds):
 				problems.append("%s collides with the SettingsOverlay band" % nm)
 
 		# Interactive controls must clear the touch floor. Measured in dp, not
