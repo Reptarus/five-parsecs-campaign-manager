@@ -78,7 +78,12 @@ const SCREENS: Array = [
 	"res://src/ui/screens/ships/ShipManager.tscn",
 	"res://src/ui/screens/ships/ShipInventory.tscn",
 	"res://src/ui/screens/world/WorldPhaseController.tscn",
-	"res://src/ui/screens/world/MissionSelectionUI.tscn",
+	# MissionSelectionUI.tscn is deliberately NOT in scope. Every one of its controls
+	# lives under a PopupPanel, which is a Window: it lays out against its OWN rect,
+	# not root.get_visible_rect(), so measuring it here compares two different
+	# coordinate spaces and reports overflow that cannot exist on screen. It needs
+	# Window-aware measurement (deferred, see docs/QA_STATUS_DASHBOARD.md), not a
+	# skip line that pretends the screen was checked.
 	"res://src/ui/screens/world/PatronRivalManager.tscn",
 	"res://src/ui/screens/battle/PreBattle.tscn",
 	"res://src/ui/screens/battle/BattlefieldMain.tscn",
@@ -153,10 +158,43 @@ func _sweep_screen(path: String) -> void:
 			_findings.append("SKIP %s @ %s — instantiate() returned null" % [short, label])
 			continue
 		root.add_child(inst)
+		# Modal screens ship hidden and are shown by whoever opens them —
+		# SimpleCharacterCreator.gd:60 sets visible = false in _ready(). A hidden root
+		# measures as zero visible Controls, which the anti-false-pass guard below was
+		# reporting as "likely needs campaign state": a misdiagnosis that quietly took
+		# six configs out of the sweep. Showing it is exactly what its caller does.
+		if inst is CanvasItem and not (inst as CanvasItem).visible:
+			(inst as CanvasItem).show()
+		await _settle(inst)
+		_apply_runtime_overlay_net(inst)
 		await _settle(inst)
 		_measure(inst, short, label)
 		inst.queue_free()
 		await process_frame
+
+
+## Reproduce what the RUNNING APP does to every screen it navigates to.
+##
+## SceneRouter emits scene_changed, SettingsOverlay updates which buttons are visible
+## and then reserves the band on the incoming scene (SettingsOverlay.gd:213-250). A
+## sweep that add_child()es a screen never emits that signal, so every screen here was
+## being measured WITHOUT a reservation the user always gets — reporting collisions
+## that do not happen in the app, and hiding which screens are genuinely unreachable
+## by the net.
+##
+## This is reproduction, NOT suppression: it calls the same two functions, in the same
+## order, on the same node. reserve_band_on() only succeeds where the screen's own
+## structure allows it (a root MarginContainer or a vertical root BoxContainer), so a
+## screen it cannot act on still collides and still fails — which is the finding worth
+## having.
+func _apply_runtime_overlay_net(inst: Node) -> void:
+	var so := root.get_node_or_null("/root/SettingsOverlay")
+	if so == null:
+		return
+	if so.has_method("_update_visibility"):
+		so._update_visibility()
+	if so.has_method("reserve_band_on"):
+		so.reserve_band_on(inst)
 
 
 ## Wait until the screen's geometry STOPS CHANGING before measuring.
@@ -363,9 +401,10 @@ func _measure(inst: Node, short: String, label: String) -> void:
 	# near-empty screen is reported as a SKIP with its reason instead.
 	if visible_controls < 3:
 		_skip += 1
-		_findings.append("SKIP %s @ %s — only %d visible Controls; screen likely needs "
+		_findings.append("SKIP %s @ %s — only %d visible Controls, so its geometry was "
 			% [short, label, visible_controls]
-			+ "campaign state to build, so its geometry was NOT verified")
+			+ "NOT verified (a modal needing an explicit show entrypoint, a _ready() "
+			+ "that aborted, or a screen that builds from campaign state)")
 		return
 
 	if problems.is_empty():
