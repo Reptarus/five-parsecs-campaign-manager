@@ -211,6 +211,7 @@ func _create_dev_banner() -> PanelContainer:
 	label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	label.add_theme_color_override("font_color", COLOR_AMBER)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel.add_child(label)
 	return panel
 

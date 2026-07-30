@@ -108,6 +108,10 @@ func _build_ui() -> void:
 		"font_size", FONT_SIZE_SM)
 	tagline_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
+	# Taglines are full sentences (the longest needs 421px unwrapped). Without
+	# autowrap the Label demands that as a MINIMUM and drags the whole card — and
+	# therefore the store page — past the edge of a phone screen.
+	tagline_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_col.add_child(tagline_lbl)
 
 	_price_label = Label.new()

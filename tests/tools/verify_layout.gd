@@ -195,6 +195,35 @@ func _is_content(ctl: Control) -> bool:
 		or ctl is Slider or ctl is SpinBox or ctl is ItemList or ctl is Tree
 
 
+## The rect a control's PIXELS actually occupy, which for a Label is usually much
+## narrower than its box. A full-width header Label with left-aligned text has a rect
+## spanning the whole screen — including the top-right overlay corner — while its
+## glyphs are nowhere near it. Testing the box instead of the text reported dozens of
+## "collisions" that are invisible on screen. Interactive controls are NOT narrowed:
+## their whole rect is the hit area, so any part of it under the overlay is a real
+## conflict even where nothing is drawn.
+func _drawn_rect(ctl: Control, r: Rect2) -> Rect2:
+	if not (ctl is Label):
+		return r
+	var lbl := ctl as Label
+	if lbl.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		return r  # wrapped text fills the box width
+	var fnt: Font = lbl.get_theme_font("font")
+	if fnt == null:
+		return r
+	var w: float = minf(
+		fnt.get_string_size(lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			lbl.get_theme_font_size("font_size")).x,
+		r.size.x)
+	var x: float = r.position.x
+	match lbl.horizontal_alignment:
+		HORIZONTAL_ALIGNMENT_CENTER:
+			x = r.position.x + (r.size.x - w) * 0.5
+		HORIZONTAL_ALIGNMENT_RIGHT, HORIZONTAL_ALIGNMENT_FILL:
+			x = r.position.x + r.size.x - w
+	return Rect2(Vector2(x, r.position.y), Vector2(w, r.size.y))
+
+
 ## A near-full-screen element is a backdrop, not content that got covered.
 func _is_backdrop(r: Rect2, ds: Vector2) -> bool:
 	if ds.x <= 0.0 or ds.y <= 0.0:
@@ -262,8 +291,8 @@ func _measure(inst: Node, short: String, label: String) -> void:
 			# that corner — MainMenu reported 50 failures whose sole cause was its
 			# background TextureRect, and 822 of the sweep's first 1129 findings were
 			# this same noise. Verified against a screen already proven clean.
-			if overlay.size.y > 0.0 and r.intersects(overlay) and _is_content(ctl) \
-					and not _is_backdrop(r, ds):
+			if overlay.size.y > 0.0 and _is_content(ctl) and not _is_backdrop(r, ds) \
+					and _drawn_rect(ctl, r).intersects(overlay):
 				problems.append("%s collides with the SettingsOverlay band" % nm)
 
 		# Interactive controls must clear the touch floor. Measured in dp, not

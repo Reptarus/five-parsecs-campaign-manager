@@ -541,7 +541,14 @@ func _make_chip(label: String, accent: Color) -> Button:
 	var btn := Button.new()
 	btn.text = label
 	btn.toggle_mode = true
-	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN - 12)
+	# TOUCH_TARGET_MIN is 48 DESIGN px, which is the 48dp floor exactly — the "- 12"
+	# that used to be here made every tag chip 36 design px = 41.8dp, under the floor
+	# on the primary form factor. With TOP_TAG_CHIPS at 12 this was the single largest
+	# source of sub-floor controls in the whole app (84 of 181 sweep findings, and it
+	# fired at EVERY window size including desktop, so it was never a compression
+	# artifact). Keep the compact LOOK via the small font + tight chip styling below;
+	# do not buy it back out of the touch target.
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 
 	var normal := StyleBoxFlat.new()

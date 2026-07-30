@@ -67,6 +67,10 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Without this the Label demands its full unwrapped width as a MINIMUM and drags
+	# the whole column past the screen edge on a phone — the MainMenu title bug. This
+	# is the first screen a new user ever sees, and it gates the app behind a button.
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(title)
 
 	var subtitle := Label.new()

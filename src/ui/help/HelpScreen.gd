@@ -111,6 +111,19 @@ func _build_ui() -> void:
 	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# This label is rewritten with UPPERCASED chapter titles (:243) and "SEARCH
+	# RESULTS" (:275/:294), so its content is far longer than the placeholder above.
+	# With autowrap OFF it demanded that full width as a minimum and pushed the whole
+	# header bar off a phone screen.
+	#
+	# ELLIPSIS, NOT AUTOWRAP. This label shares a single HBox row with a Back button,
+	# a Chapters button and a 200px-min search field, so on a phone it is squeezed to
+	# a few dozen px — and AUTOWRAP_WORD_SMART in a box narrower than one word falls
+	# back to breaking ANYWHERE, rendering "CHAPTER 1: GETTING START" one letter per
+	# line down the screen. A geometry sweep passes that happily (the minimum fits);
+	# only a screenshot shows it. Clipping keeps the row one line tall and readable.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_header_bar.add_child(_title_label)
 
 	# Search input
@@ -194,7 +207,10 @@ func _populate_toc() -> void:
 		btn.text = title
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.custom_minimum_size.y = 36
+		# Was a hardcoded 36 (= 41.8dp, under the 48dp floor). The mobile TOC popup
+		# built at :340 already uses TOUCH_TARGET_COMFORT — this sidebar copy was the
+		# one that drifted.
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 
 		var btn_style := StyleBoxFlat.new()
 		btn_style.bg_color = Color.TRANSPARENT
@@ -342,7 +358,11 @@ func _on_mobile_toc_pressed() -> void:
 # ── Responsive layout overrides ──────────────────────────────────────────────
 
 func _apply_mobile_layout() -> void:
-	_apply_sidebar_state(false, 0, 120)
+	# search_width 0: on a phone the header row (Back + Chapters + search) already
+	# exceeds ~339 design px, and a 120px floor on the search field is what pushed
+	# its tail underneath the floating SettingsOverlay buttons. It expands into
+	# whatever is left instead (see _apply_sidebar_state).
+	_apply_sidebar_state(false, 0, 0)
 
 func _apply_tablet_layout() -> void:
 	# Collapse the sidebar in portrait even at tablet+ width: a tall, narrow
@@ -370,3 +390,23 @@ func _apply_sidebar_state(show_sidebar: bool, sidebar_width: int, search_width: 
 		_mobile_toc_button.visible = not show_sidebar
 	if _search_input:
 		_search_input.custom_minimum_size.x = search_width
+	if _title_label:
+		# The header row is over-subscribed on a phone: Back + Chapters + title +
+		# search do not fit in ~339 design px, and the tail ran underneath the
+		# floating SettingsOverlay gear/bug buttons. The title is redundant there
+		# anyway — the chapter heading is already rendered at the top of the content
+		# (_content_label), so dropping it from the bar loses nothing and gives the
+		# search field room. Restored with the sidebar on wider layouts.
+		_title_label.visible = show_sidebar
+	if _search_input:
+		# Let the search field ABSORB leftover width rather than demand a fixed slice.
+		# Padding the header to clear the floating overlay was tried and REVERTED: a
+		# right content-margin raises the header's MINIMUM width, that minimum
+		# propagates up the VBox, and the screen's content then overflows to the right
+		# — visibly worse than the overlap it fixed.
+		_search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Even absorbing the remainder, a phone leaves ~40px after Back + Chapters,
+		# and that sliver renders UNDERNEATH the floating gear/bug buttons. A 40px
+		# text field is not a usable control, so drop it from the phone header; the
+		# Chapters popup is the navigation path there. Returns with the sidebar.
+		_search_input.visible = show_sidebar
