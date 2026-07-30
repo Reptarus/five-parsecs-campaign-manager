@@ -49,20 +49,71 @@ func _ready() -> void:
 	back_button.visible = true
 	back_button.text = "Cancel"
 
+	finish_button.visible = false
+	next_button.visible = true
+	next_button.disabled = false
 
-func _exit_tree() -> void:
-	## Restore the equipment write-through however the wizard was left — finished,
-	## cancelled, or navigated away from. Leaving it off would silently stop the live
-	## campaign's ship stash from persisting for the rest of the session.
-	##
-	## _exit_tree() (not tree_exited) because absolute autoload paths still resolve
-	## while the node is in the tree.
-	var root := get_tree().root if get_tree() else null
-	if root == null:
+	# UX-060/UX-070 FIX: Style navigation buttons with Deep Space theme
+	_style_navigation_buttons()
+
+	# QA-FIX: Connect StepPanels resize to keep panels bounded
+	$MarginContainer/VBoxContainer/StepPanels.resized.connect(_on_step_panels_resized)
+
+	_clear_settings_overlay_band()
+	var vp := get_viewport()
+	if vp and not vp.size_changed.is_connected(_clear_settings_overlay_band):
+		vp.size_changed.connect(_clear_settings_overlay_band)
+
+
+## Keep the wizard header out from under the floating SettingsOverlay buttons.
+##
+## SettingsOverlay is an autoload CanvasLayer drawn above every screen, so it does
+## not participate in this scene's layout and nothing here reserves room for it.
+## At 393dp the bug-report button (x 219-273, y 12-60) sat directly on top of
+## "Create New Campaign" and "Step 1 of 7", which read as the title being clipped.
+## The band's CONTENTS vary per screen (the gear hides on MainMenu/SettingsScreen,
+## the bug button only on SettingsScreen), so it is measured at layout time rather
+## than hardcoded.
+func _clear_settings_overlay_band() -> void:
+	var mc := get_node_or_null("MarginContainer")
+	if mc == null:
 		return
-	var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
-	if eq_mgr and eq_mgr.has_method("set_campaign_write_through"):
-		eq_mgr.set_campaign_write_through(true)
+	var top := 20.0  # the scene's design margin
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so and so.has_method("get_reserved_bottom"):
+		top = maxf(top, so.get_reserved_bottom() + 8.0)
+	mc.add_theme_constant_override("margin_top", int(top))
+
+
+## Cleanup for BOTH concerns that need to run however the wizard is left —
+## finished, cancelled, or navigated away from.
+##
+## There were briefly TWO _exit_tree() definitions in this file (one added by
+## ed405ae6 for the write-through restore, one pre-existing for the coordinator
+## disconnect). GDScript rejects a duplicate function name outright, so the whole
+## script failed to PARSE and campaign creation could not open at all. Neither the
+## headless compile nor the test suite caught it, because this script is only
+## parsed when its scene is loaded. Keep this as the single definition.
+##
+## _exit_tree() (not tree_exited) because absolute autoload paths still resolve
+## while the node is in the tree.
+func _exit_tree() -> void:
+	# Restore the equipment write-through. Leaving it off would silently stop the
+	# live campaign's ship stash from persisting for the rest of the session.
+	var root := get_tree().root if get_tree() else null
+	if root != null:
+		var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
+		if eq_mgr and eq_mgr.has_method("set_campaign_write_through"):
+			eq_mgr.set_campaign_write_through(true)
+
+	# Disconnect coordinator signals (defensive cleanup). Note: lambda
+	# panel-to-coordinator connections clean up automatically because both panels
+	# and coordinator are children of this Control.
+	if coordinator and is_instance_valid(coordinator):
+		if coordinator.navigation_updated.is_connected(_on_navigation_updated):
+			coordinator.navigation_updated.disconnect(_on_navigation_updated)
+		if coordinator.step_changed.is_connected(_on_step_changed):
+			coordinator.step_changed.disconnect(_on_step_changed)
 
 
 func _reset_campaign_scoped_autoloads() -> void:
@@ -94,25 +145,13 @@ func _reset_campaign_scoped_autoloads() -> void:
 	var dlc_mgr := root.get_node_or_null("/root/DLCManager")
 	if dlc_mgr and dlc_mgr.has_method("reset_campaign_flags"):
 		dlc_mgr.reset_campaign_flags()
-	finish_button.visible = false
-	next_button.visible = true
-	next_button.disabled = false
+	# NOTE: nothing else belongs in this function. It was written directly in front
+	# of the TAIL of _ready() (ed405ae6), which captured that tail — the
+	# finish/next button state, _style_navigation_buttons() and the StepPanels
+	# resize connect — into this function. Two consequences: that setup ran FIRST
+	# instead of last (this is called at the top of _ready), and the `root == null`
+	# early return above could skip it entirely. Moved back into _ready().
 
-	# UX-060/UX-070 FIX: Style navigation buttons with Deep Space theme
-	_style_navigation_buttons()
-
-	# QA-FIX: Connect StepPanels resize to keep panels bounded
-	$MarginContainer/VBoxContainer/StepPanels.resized.connect(_on_step_panels_resized)
-
-func _exit_tree() -> void:
-	# Disconnect coordinator signals (defensive cleanup)
-	if coordinator and is_instance_valid(coordinator):
-		if coordinator.navigation_updated.is_connected(_on_navigation_updated):
-			coordinator.navigation_updated.disconnect(_on_navigation_updated)
-		if coordinator.step_changed.is_connected(_on_step_changed):
-			coordinator.step_changed.disconnect(_on_step_changed)
-	# Note: Lambda panel-to-coordinator connections are cleaned up automatically
-	# because both panels and coordinator are children of this Control.
 
 func _connect_coordinator_signals() -> void:
 	coordinator.navigation_updated.connect(_on_navigation_updated)

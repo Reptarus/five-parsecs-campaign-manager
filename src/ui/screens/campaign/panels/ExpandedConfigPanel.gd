@@ -6,6 +6,35 @@ extends FiveParsecsCampaignPanel
 
 const STEP_NUMBER := 1  # Step 1 of 7 in campaign wizard (Configuration)
 
+## HFlowContainer card minimum widths.
+##
+## These are the widths that make the flow WRAP the way we want on a wide screen:
+## paired cards sit two-per-row at 500, and the two "own row" cards force a break
+## at 1000. Both used to be written straight onto custom_minimum_size, which is a
+## hard floor, not a preference — and FormContent is a ScrollContainer with
+## horizontal scrolling DISABLED, so a floor wider than the viewport cannot be
+## absorbed. It propagates up through FlowContent -> MainContent -> ContentMargin
+## -> the panel itself.
+##
+## On a 393dp phone the design space is only ~339 px wide (window_dp / the
+## effective UI scale), and the 500 floor made the whole config panel 662 px wide,
+## centred at x = -162: the step title, "IDENTITY" and "STYLE" headings all
+## rendered off the screen edges. Measured live via MCP.
+##
+## So they are treated as a CAP now — the desired width when there is room, capped
+## to what the viewport actually offers — and re-applied on resize/rotation.
+const CARD_MIN_PAIRED := 500.0
+const CARD_MIN_FULL_ROW := 1000.0
+## Floor so a card never collapses to unusable width on a very small screen.
+const CARD_MIN_FLOOR := 180.0
+## Room for ContentMargin + panel stylebox padding either side. Measured at 73.6
+## (a 661.4 card produced a 735 panel), so 80 keeps a small margin rather than
+## landing 1px over the edge.
+const CARD_CHROME_ALLOWANCE := 80.0
+const CARD_MIN_META := "card_min_base"
+
+var _flow_content: HFlowContainer = null
+
 # GlobalEnums available as autoload singleton
 const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
@@ -254,10 +283,20 @@ func _initialize_components() -> void:
 	_build_expansion_features_section(flow)
 	_build_progressive_difficulty_section(flow)
 
+	_flow_content = flow
 	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
 	for child in flow.get_children():
 		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		child.custom_minimum_size.x = 500
+		if not child.has_meta(CARD_MIN_META):
+			_set_card_min_width(child, CARD_MIN_PAIRED)
+	_refresh_card_min_widths()
+	# ...and again next frame. During the build get_viewport() can still be null,
+	# in which case _capped_card_width() has nothing to cap against and returns the
+	# raw base — which is exactly the 500px floor that pushed the panel to 662px on
+	# a 339px-wide phone. Godot's own docs use the same "wait a frame after adding"
+	# idiom (ScrollContainer.ensure_control_visible: "this will not work on a node
+	# just added in the same frame"). Idempotent, so a second pass is harmless.
+	call_deferred("_refresh_card_min_widths")
 
 	# SPRINT 27 FIX: Setup options BEFORE connecting signals to prevent double-loading
 	# (selecting default values triggers signal handlers, causing duplicate _update_display calls)
@@ -266,6 +305,79 @@ func _initialize_components() -> void:
 	_update_display()
 	_update_all_descriptions()
 	call_deferred("emit_panel_ready")
+
+## Make card CONTENT able to shrink, so a card can honour its capped width.
+##
+## Capping the card's custom_minimum_size is necessary but NOT sufficient. Per
+## Control.get_combined_minimum_size(), a control's real floor is the MAXIMUM of
+## custom_minimum_size and its INTERNAL content minimum — so content that refuses
+## to shrink sets the floor no matter what the card asks for. Two offenders here,
+## both confirmed in the Godot 4.6 docs:
+##   * Label with autowrap OFF reports its entire single-line text width.
+##   * Button.clip_text defaults false, and then "the button will always be wide
+##     enough to hold the text" — an OptionButton reports its longest item.
+##
+## Measured live at 393dp (design space ~339 wide): the label "Guided tutorial
+## campaign for new players" alone demanded 291px and its row 508px, and the
+## campaign-type OptionButton 286px. That is what kept the panel at 662px wide
+## after the card cap was already applied.
+##
+## Desktop is unaffected: wrapping only wraps when the text does not fit, and
+## clip_text only clips when there is no room.
+func _make_card_content_shrinkable(node: Node) -> void:
+	for child in node.get_children():
+		if child is Label:
+			var lbl := child as Label
+			if lbl.autowrap_mode == TextServer.AUTOWRAP_OFF:
+				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			lbl.custom_minimum_size.x = 0.0
+		elif child is OptionButton:
+			# A dropdown reads badly wrapped — clip instead, with an ellipsis.
+			var opt := child as OptionButton
+			opt.clip_text = true
+			opt.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			opt.custom_minimum_size.x = 0.0
+		elif child is Button:
+			# CheckBox / CheckButton option rows carry sentence-length labels, so
+			# wrapping keeps them readable where clipping would hide the meaning.
+			var btn := child as Button
+			if btn.autowrap_mode == TextServer.AUTOWRAP_OFF:
+				btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			btn.custom_minimum_size.x = 0.0
+		_make_card_content_shrinkable(child)
+
+
+## Remember a card's DESIRED width and apply the viewport-capped value now.
+func _set_card_min_width(card: Control, base: float) -> void:
+	card.set_meta(CARD_MIN_META, base)
+	card.custom_minimum_size.x = _capped_card_width(base)
+
+
+## The desired width, capped to what the viewport can actually show.
+func _capped_card_width(base: float) -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return base
+	var avail: float = vp.get_visible_rect().size.x - CARD_CHROME_ALLOWANCE
+	return minf(base, maxf(CARD_MIN_FLOOR, avail))
+
+
+## Re-cap every card. Cheap, idempotent, and safe to call on every resize.
+func _refresh_card_min_widths() -> void:
+	if _flow_content == null or not is_instance_valid(_flow_content):
+		return
+	_make_card_content_shrinkable(_flow_content)
+	for child in _flow_content.get_children():
+		if child is Control:
+			var base: float = float(child.get_meta(CARD_MIN_META, CARD_MIN_PAIRED))
+			(child as Control).custom_minimum_size.x = _capped_card_width(base)
+
+
+func _on_viewport_resized() -> void:
+	super()
+	# Rotation and window resize both change how wide a card may be.
+	_refresh_card_min_widths()
+
 
 func _build_campaign_identity_section(parent: Control) -> void:
 	## Build campaign name input section with card design
@@ -460,7 +572,7 @@ func _build_victory_conditions_section(parent: Control) -> void:
 		"Select one or more conditions - achieve ANY to win your campaign"
 	)
 	# Force full-width row in HFlowContainer (don't pair with other cards)
-	card.custom_minimum_size.x = 1000
+	_set_card_min_width(card, CARD_MIN_FULL_ROW)
 	parent.add_child(card)
 
 func _build_narrative_options_section(parent: Control) -> void:
@@ -691,7 +803,7 @@ func _build_compendium_setup_section(parent: Control) -> void:
 		"Per-campaign optional rules from the Compendium (pp.11-12)"
 	)
 	# Force full-width row in HFlowContainer
-	card.custom_minimum_size.x = 1000
+	_set_card_min_width(card, CARD_MIN_FULL_ROW)
 	parent.add_child(card)
 
 func _on_compendium_setup_toggled(enabled: bool, flag_name: String) -> void:
