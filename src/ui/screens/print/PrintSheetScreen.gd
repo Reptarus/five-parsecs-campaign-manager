@@ -30,12 +30,34 @@ var _blank_toggle: CheckBox = null
 var _debug_toggle: CheckBox = null
 var _status_label: Label = null
 var _active_dialogs: Array[Node] = []
+var _center_row: BoxContainer = null
 
 
 func _ready() -> void:
 	_apply_background()
 	_build_layout()
 	_render_active_sheet()
+	_apply_responsive_layout()
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	# layout_class_changed, not breakpoint_changed: rotating a device keeps the
+	# width bucket but flips portrait/landscape, and this screen only cares about
+	# the latter (docs/sop/responsive-adaptive-ui.md).
+	if rm and rm.has_signal("layout_class_changed"):
+		rm.layout_class_changed.connect(func(_a = null, _b = null): _apply_responsive_layout())
+
+
+## The preview and the 240px action rail do not fit side by side in ~339 design px,
+## so the rail was pushed off the right edge with Save PNG/PDF unreachable. Stack
+## them instead. BoxContainer.vertical is the documented toggle for this — the same
+## HBoxContainer becomes a column without rebuilding the tree.
+func _apply_responsive_layout() -> void:
+	if _center_row == null or not is_instance_valid(_center_row):
+		return
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	var stack := false
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		stack = rm.should_collapse_to_single_column()
+	_center_row.vertical = stack
 
 
 func _apply_background() -> void:
@@ -88,10 +110,17 @@ func _build_layout() -> void:
 	top_bar.add_child(_tabs)
 
 	# ── Center row: renderer + right rail ──────────────────────────
-	var center := HBoxContainer.new()
+	# BoxContainer, NOT HBoxContainer. The H/V subclasses hard-set their orientation,
+	# so assigning `vertical` on an HBoxContainer silently does nothing — verified
+	# here by reading the property straight back off the running scene after the
+	# assignment. The base class is the one whose `vertical` is actually togglable.
+	# (Same rule as SplitContainer vs HSplitContainer, already in project memory.)
+	var center := BoxContainer.new()
+	center.vertical = false
 	center.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_vbox.add_child(center)
+	_center_row = center
 
 	_renderer = SheetRenderer.new()
 	_renderer.size_flags_horizontal = Control.SIZE_EXPAND_FILL

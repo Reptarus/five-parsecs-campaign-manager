@@ -157,7 +157,18 @@ func _ensure_background() -> void:
 	_background = TextureRect.new()
 	_background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_background.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	# IGNORE_SIZE, not FIT_WIDTH_PROPORTIONAL. The sheet PNGs are tall portrait
+	# pages, so FIT_WIDTH_PROPORTIONAL gave this TextureRect a MINIMUM HEIGHT of
+	# width x aspect — which propagated up and pushed the preview 640-844px off the
+	# bottom of the screen at every size the layout sweep measured.
+	#
+	# It also disagreed with the field overlays. _get_display_scale() (:285) fits the
+	# source page into the renderer's OWN size by the limiting axis and centres it —
+	# i.e. exactly KEEP_ASPECT_CENTERED with no minimum imposed. IGNORE_SIZE makes
+	# the background obey the same box the field rects are computed against, so this
+	# fixes the overflow and removes a latent mismatch in the CV-calibrated overlay
+	# alignment rather than trading one for the other.
+	_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# show_behind_parent so the SheetRenderer's own _draw() (debug overlay rects)
 	# renders ON TOP of the background PNG. Without this, the parent's _draw is
