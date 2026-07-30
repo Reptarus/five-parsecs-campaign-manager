@@ -56,7 +56,7 @@ layout_mode = 2
 text = "Hull:"
 
 [node name="HullOption" type="OptionButton" parent="VBoxContainer/ComponentsContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -65,7 +65,7 @@ layout_mode = 2
 text = "Engine:"
 
 [node name="EngineOption" type="OptionButton" parent="VBoxContainer/ComponentsContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -78,7 +78,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="AddWeaponButton" type="Button" parent="VBoxContainer/ComponentsContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Add Weapon"
 
@@ -87,7 +87,7 @@ layout_mode = 2
 text = "Medical Bay:"
 
 [node name="MedicalOption" type="OptionButton" parent="VBoxContainer/ComponentsContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 

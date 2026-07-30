@@ -40,6 +40,14 @@ func _ready() -> void:
 		add_child(pc)
 		pc.setup(pc_mc as MarginContainer)
 
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons, which
+	# are drawn on their own CanvasLayer ABOVE this screen. Pushes content DOWN --
+	# a right-side margin would raise the container's minimum WIDTH and propagate
+	# an overflow up the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 	# Wait for scene to be fully ready if nodes are null
 	if equipment_grid == null or crew_list == null or details_container == null:
 		call_deferred("_deferred_initialization")

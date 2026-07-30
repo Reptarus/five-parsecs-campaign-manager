@@ -122,6 +122,14 @@ func _ready() -> void:
 	_setup_initial_state()
 	_setup_world_briefing()
 
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons, which
+	# are drawn on their own CanvasLayer ABOVE this screen. Pushes content DOWN --
+	# a right-side margin would raise the container's minimum WIDTH and propagate
+	# an overflow up the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 
 ## Fill the World-Phase empty space with a persistent "World Briefing" of the
 ## current planet (flavor + the law/rules meaning of each world trait). The 6 step

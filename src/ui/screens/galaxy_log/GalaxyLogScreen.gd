@@ -34,6 +34,14 @@ func _ready() -> void:
 	_load_user_preferences()
 	_refresh_from_planet_data_manager()
 
+	# Base _ready() is deliberately skipped above, so the SettingsOverlay band
+	# reservation it normally performs is invoked manually here -- same as
+	# _ensure_base_background() / _setup_responsive_layout(). Without it this
+	# screen's header draws underneath the floating gear/bug buttons.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 
 func _build_ui() -> void:
 	var outer := VBoxContainer.new()

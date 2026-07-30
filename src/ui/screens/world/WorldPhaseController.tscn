@@ -209,6 +209,7 @@ text = "Automation:"
 
 [node name="AutomationToggle" type="CheckBox" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Enable Auto-Processing"
 

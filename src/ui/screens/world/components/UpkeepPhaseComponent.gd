@@ -703,7 +703,10 @@ func _build_travel_section() -> void:
 	# roll-based, not map-navigated), so this opens the read-only Galaxy Log.
 	var map_btn := Button.new()
 	map_btn.text = "🗺  View Galaxy Map"
-	map_btn.custom_minimum_size = Vector2(0, 40)
+	# 40 was under the 48dp touch floor (40 design px = 41.8dp). `flat` removes the
+	# themed stylebox, so this button gets no padding from the theme and its height
+	# is whatever is set here — TOUCH_TARGET_MIN, like every other tappable control.
+	map_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	map_btn.flat = true
 	map_btn.add_theme_color_override(
 		"font_color", Color(0.31, 0.765, 0.969, 1))

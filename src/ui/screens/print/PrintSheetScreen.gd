@@ -138,6 +138,11 @@ func _build_right_rail() -> Control:
 	_blank_toggle = CheckBox.new()
 	_blank_toggle.text = "Print blank"
 	_blank_toggle.tooltip_text = "Hide data overlay — for filling by hand on paper"
+	# A themed CheckBox comes out 40 design px = 41.8dp, under the 48dp floor, and
+	# unlike Button/LineEdit its height is driven by the check icon rather than the
+	# stylebox — adding content margins to checkbox_normal measurably did nothing.
+	# Pin it explicitly.
+	_blank_toggle.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	_blank_toggle.toggled.connect(_on_blank_toggled)
 	vbox.add_child(_blank_toggle)
 
@@ -147,6 +152,7 @@ func _build_right_rail() -> Control:
 		_debug_toggle.text = "Debug overlay"
 		_debug_toggle.tooltip_text = "Show field bounding rects (red) " \
 			+ "for calibration"
+		_debug_toggle.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 		_debug_toggle.toggled.connect(_on_debug_toggled)
 		vbox.add_child(_debug_toggle)
 

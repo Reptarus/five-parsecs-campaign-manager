@@ -44,6 +44,14 @@ func _ready() -> void:
 	# Setup responsive layout system
 	_setup_responsive_layout()
 
+	# Keep content out from under the floating SettingsOverlay gear/bug buttons.
+	# Panels reached as full screens (GalaxyLogScreen, CompendiumCategoryView, ...)
+	# otherwise draw their header underneath them. No-ops for a panel with no root
+	# MarginContainer, and for one nested inside a screen that already reserved.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 	# Deferred: fix touch scrolling by setting MOUSE_FILTER_PASS on all non-interactive containers
 	call_deferred("_fix_touch_scroll_filters")
 

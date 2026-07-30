@@ -153,11 +153,54 @@ func _sweep_screen(path: String) -> void:
 			_findings.append("SKIP %s @ %s — instantiate() returned null" % [short, label])
 			continue
 		root.add_child(inst)
-		for _i in range(3):
-			await process_frame
+		await _settle(inst)
 		_measure(inst, short, label)
 		inst.queue_free()
 		await process_frame
+
+
+## Wait until the screen's geometry STOPS CHANGING before measuring.
+##
+## A fixed 3-frame wait was measuring screens mid-build. Panels populate from
+## call_deferred, ScrollContainers re-sort after their content arrives, and
+## AdaptivePanelGroup re-parents whole panes — so an early read catches transient
+## rects and reports overflow that does not exist once the screen settles.
+## CampaignCreationUI was reported as "StepLabel off-screen by 86.7 px" at desktop
+## while the running app had ZERO overflow there; the finding was the harness, not
+## the screen.
+##
+## Signature is the sum of every visible Control's rect, which changes whenever
+## anything moves or resizes. Three identical consecutive frames means settled.
+## The cap keeps a screen that never settles (an animation, a spinner) from
+## hanging the sweep — it just gets measured at the cap, as before.
+func _settle(inst: Node) -> void:
+	var last := ""
+	var stable := 0
+	for _i in range(30):
+		await process_frame
+		var sig := _geometry_signature(inst)
+		if sig == last:
+			stable += 1
+			if stable >= 3:
+				return
+		else:
+			stable = 0
+			last = sig
+
+
+func _geometry_signature(inst: Node) -> String:
+	var acc := 0.0
+	var n := 0
+	var stack: Array = [inst]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		for c in node.get_children():
+			stack.append(c)
+		if node is Control and (node as Control).is_visible_in_tree():
+			var r: Rect2 = (node as Control).get_global_rect()
+			acc += r.position.x + r.position.y * 3.0 + r.size.x * 7.0 + r.size.y * 11.0
+			n += 1
+	return "%d:%.2f" % [n, acc]
 
 
 ## Design-space -> dp ratio, derived live. Never hardcode 1.16: it is

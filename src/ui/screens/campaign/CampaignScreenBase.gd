@@ -95,7 +95,30 @@ func _ready() -> void:
 	# code-built responsive node (e.g. HelpScreen's sidebar split) would otherwise
 	# get no orientation-correct initial layout until the first rotation.
 	_update_layout_for_mode()
+	_clear_settings_overlay_band()
 	screen_ready.emit()
+
+
+## Keep screen content out from under the floating SettingsOverlay buttons.
+##
+## SettingsOverlay is an autoload CanvasLayer drawn ABOVE every screen, so a header
+## that spans the full width runs underneath the gear/bug buttons in the top-right
+## corner — obscured and untappable there. The MainMenu title was the visible worst
+## case; the layout sweep counted this on most screens.
+##
+## Push content DOWN rather than padding it in from the right: a right-side margin
+## raises the container's MINIMUM WIDTH, that minimum propagates up the tree, and
+## the whole screen then overflows horizontally — measurably worse than the overlap
+## it fixes (proven and reverted on HelpScreen). Vertical space is far less
+## contended than horizontal on the phone form factor this app targets.
+##
+## Geometry is ASKED OF the overlay, never hardcoded: which buttons are visible
+## varies per screen (SettingsOverlay hides the gear on MainMenu/Settings and the
+## bug button on Settings), so the reserved band is not a constant.
+func _clear_settings_overlay_band() -> void:
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so and so.has_method("reserve_band_on"):
+		so.reserve_band_on(self)
 
 func _exit_tree() -> void:
 	if _responsive_manager and \

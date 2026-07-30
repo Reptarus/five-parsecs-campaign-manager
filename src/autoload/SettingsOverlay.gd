@@ -12,6 +12,11 @@ extends CanvasLayer
 const SettingsScreenScript = preload("res://src/ui/screens/settings/SettingsScreen.gd")
 const BugReportDialogScript = preload("res://src/ui/components/common/BugReportDialog.gd")
 
+## Name of the spacer reserve_band_on() inserts into a code-built screen's root
+## box container. Named so a repeat call resizes the existing one instead of
+## stacking a second spacer on every navigation.
+const _BAND_SPACER := "__settings_band_spacer"
+
 const COLOR_GEAR_BG := Color("#252542")
 const COLOR_GEAR_BG_HOVER := Color("#3A3A5C")
 const COLOR_GEAR_TEXT := Color("#E0E0E0")
@@ -287,3 +292,63 @@ func get_reserved_rect() -> Rect2:
 func get_reserved_bottom() -> float:
 	var r := get_reserved_rect()
 	return 0.0 if r.size.y <= 0.0 else r.end.y
+
+
+## Push a screen's content down so it stops running underneath these floating
+## buttons. Call once from a screen's _ready(), after its UI exists.
+##
+## This layer is drawn ABOVE every screen, so a full-width header runs under the
+## gear/bug buttons in the top-right corner — obscured and untappable there. The
+## MainMenu title was the visible worst case; the layout sweep counted this on most
+## screens.
+##
+## DOWN, not in from the right: a right-side content margin raises the container's
+## MINIMUM WIDTH, that minimum propagates up the tree, and the whole screen then
+## overflows horizontally — measurably worse than the overlap it fixes (proven and
+## reverted on HelpScreen). Vertical space is far less contended than horizontal on
+## the phone form factor this app targets.
+##
+## Lives here rather than in a screen base class because the screens that need it
+## have three different ancestors (CampaignScreenBase, FiveParsecsCampaignPanel and
+## plain Control/Node), so there is no single base to put it in. Geometry comes from
+## the live buttons, never a constant — which buttons are visible varies per screen.
+func reserve_band_on(screen: Node, margin_container_path: String = "MarginContainer") -> bool:
+	if screen == null:
+		return false
+	var reserved: float = get_reserved_bottom()
+	if reserved <= 0.0:
+		return false
+	var wanted := int(reserved + 8.0)
+
+	# Strategy 1 — a MarginContainer wrapping the screen: raise its top margin.
+	var mc := screen.get_node_or_null(margin_container_path)
+	if mc == null:
+		for child in screen.get_children():
+			if child is MarginContainer:
+				mc = child
+				break
+	if mc is MarginContainer:
+		if wanted > mc.get_theme_constant("margin_top"):
+			mc.add_theme_constant_override("margin_top", wanted)
+		return true
+
+	# Strategy 2 — a code-built screen whose root is a box container (most of them
+	# are: they build a VBox and add a header row to it). Insert a spacer as the
+	# first child. A spacer costs only HEIGHT, so unlike a right-side margin it
+	# cannot inflate the minimum WIDTH and push content off the side.
+	for child in screen.get_children():
+		if child is BoxContainer:
+			var box := child as BoxContainer
+			if box.vertical:
+				var existing := box.get_node_or_null(_BAND_SPACER)
+				if existing is Control:
+					(existing as Control).custom_minimum_size.y = float(wanted)
+					return true
+				var spacer := Control.new()
+				spacer.name = _BAND_SPACER
+				spacer.custom_minimum_size.y = float(wanted)
+				spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				box.add_child(spacer)
+				box.move_child(spacer, 0)
+				return true
+	return false
