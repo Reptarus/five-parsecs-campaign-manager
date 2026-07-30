@@ -116,13 +116,18 @@ func test_game_state_signal_chain():
 ## Test 7: Autoload Accessibility
 ## Expected: All critical autoloads remain accessible
 func test_all_autoloads_accessible():
+	# "SaveManager" and "CampaignManager" were REMOVED from this list on 2026-07-30.
+	# Neither is registered in project.godot, and no SaveManager script exists in
+	# the repo at all — so these two assertions could never pass and had been
+	# failing silently in tests/regression (which was not part of the routine
+	# unit+integration run). Saving is GameState.save_campaign(); the legacy
+	# CampaignManager autoload was deleted 2026-07-02 and its orphaned script in the
+	# tier-7 reachability sweep. Do not re-add either without a real autoload entry.
 	var critical_autoloads = [
 		"GameState",
 		"GameStateManager",
 		"DataManager",
 		"DiceManager",
-		"SaveManager",
-		"CampaignManager",
 		"CampaignPhaseManager",
 		"SceneRouter",
 		"CampaignTurnEventBus",
@@ -137,15 +142,11 @@ func test_all_autoloads_accessible():
 ## Test 8: Class Name Resolution
 ## Expected: All critical class_names remain registered
 func test_critical_class_names_registered():
-	var critical_classes = [
-		"Character",
-		"FiveParsecsCampaign",
-		"BattleSetupData",
-		"Mission",
-		"VictoryConditionTracker",
-		"CampaignCreationStateManager"
-	]
-
+	# NOTE: a decorative `critical_classes` string array used to sit here. Nothing
+	# iterated it, so it named classes this test never actually checked — including
+	# "FiveParsecsCampaign", deleted in Sprint A Bug 3. A list that looks like
+	# coverage but drives no assertion is worse than no list. The real checks are
+	# the direct instantiations below; add to THOSE to extend coverage.
 	# Attempt to instantiate each class
 	# If class_name is missing, this will error
 	var character = Character.new()

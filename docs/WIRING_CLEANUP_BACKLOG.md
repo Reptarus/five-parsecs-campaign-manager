@@ -1,6 +1,28 @@
 # Wiring / Dead-Code Cleanup Backlog
 
-> ## ▶ RESUME STATE (last updated 2026-07-10)
+> ## ▶ RESUME STATE (last updated 2026-07-30 — reachability sweep)
+> - **236 orphan files DELETED** (scripts + scenes, unreachable from product AND
+>   tests). Found by the new `scripts/lint_orphan_assets.py`, which walks the real
+>   reference graph from real entry points instead of grepping. It now exits with
+>   `orphans=0` at fixpoint.
+> - **Why the earlier grep-based passes under-counted:** a DEAD scene keeps its
+>   script alive. `MainCampaignScene.tscn` was referenced by nothing at all, yet
+>   its `ext_resource` made `MainCampaignScene.gd` look live. Script-pass and
+>   scene-pass have to converge, which the graph does in one shot.
+> - **⚠ CORRECTION to tier-1 below:** this doc previously recorded
+>   `combat/{SimpleUnitCard,TerrainOverlay,TerrainTooltip}` as **"KEPT — LIVE"**.
+>   That was wrong. All three had **zero** word-boundary references in `src/`, and
+>   all three are now deleted. A manual liveness judgement recorded as fact is
+>   exactly what the lint exists to replace.
+> - **39 files are PRODUCTION-DEAD but test-referenced** — triaged below, NOT
+>   deleted. Several are finished features that were never wired into a screen;
+>   deleting them would throw away work, and wiring them is a product decision.
+> - **CLAUDE.md's widget table is stale**: `BookFrame`, `OrnamentPanel`,
+>   `ContactMarkerPanel`, `InlineRenameWidget`, `DiceFeed` and
+>   `AttackResolutionOverlay` are all documented as live components but are
+>   referenced only from their own files (or tests).
+>
+> ## ▶ RESUME STATE (2026-07-10)
 > - **Branch `master`, working tree CLEAN.** BOTH the 6-tier cleanup AND the follow-on Book-Rule
 >   Wiring Sprint are COMPLETE and committed. Cleanup: `5d38d039`→`65209733`. Wiring sprint:
 >   `2df0949a` (P1), `c1c02a31` (P2), `3ee5f2d5` (P3). Nothing uncommitted.
@@ -70,6 +92,11 @@ its owning component is orphaned. All resolve to DELETE (clean-slate direction).
   pinned the dead code (`test_combat_log_explanations`, `test_validation_panel`).
   **KEPT:** `BaseCombatManager`/`FiveParsecsCombatManager` (LIVE — used by FiveParsecsCombatSystem/
   AIController/EnemyTacticalAI) and the top-level `combat/{SimpleUnitCard,TerrainOverlay,TerrainTooltip}`.
+  > **⚠ 2026-07-30 CORRECTION — this "KEPT" line was WRONG.** All three of
+  > `SimpleUnitCard` / `TerrainOverlay` / `TerrainTooltip` had **zero** word-boundary
+  > references anywhere in `src/`, and `FiveParsecsCombatSystem` was itself an orphan,
+  > so the "LIVE — used by FiveParsecsCombatSystem" chain was dead at both ends. All
+  > deleted in the tier-7 reachability sweep. See tier 7.
 - `tactical_advantage_changed` — `BaseBattlefieldManager.gd:12`. **Still open (Tier 4).**
   Declared in the LIVE `BaseBattlefieldManager` base class (NOT the deleted subsystem) with
   1 remaining listener elsewhere, never emitted. Verify BaseBattlefieldManager liveness +
@@ -214,3 +241,82 @@ Both Blocked paths were wired in the follow-on Book-Rule Wiring Sprint after the
    produces a display-safe patron) and filled the empty `CampaignDashboard._on_phase_event` hook with
    the favor UI (ItemChoicePopup 3-choice on 10-12; travel-or-lose on 2-4 → `mark_unity_agent_trait_lost`).
    Book-verified p.20. Test `test_unity_agent_favor` 6/6; MCP-verified live resolution.
+
+---
+
+## Tier 7 — reachability sweep (2026-07-30)
+
+Run `python scripts/lint_orphan_assets.py` (add `--list` to enumerate). It walks
+the reference graph from real entry points — `project.godot` `run/main_scene` and
+every `[autoload]`, plus a documented-standalone allowlist — and reports anything
+unreachable. Edges: `res://` literals in `.gd`, `path=` in `.tscn`/`.tres`
+ext_resources, and **word-bounded** `class_name` usage.
+
+Word boundaries are not optional here: `CampaignManager` is a substring of
+`CampaignPhaseManager`, and `MissionGenerator` of `StealthMissionGenerator` /
+`TacticsMissionGenerator`. A substring scan reports both orphans as live. Same
+trap as the `replace_all` rule in CLAUDE.md.
+
+**Verified inputs before trusting the graph:** all 139 `Script` ext_resources in
+the repo carry a `path=` (no uid-only refs to miss); `data/` JSON never names a
+script or scene; and every dynamic `load()` takes a DATA path (texture, portrait,
+pooled scene) — no script is loaded from a runtime-composed name. If any of those
+stops holding, the lint goes stale and needs the new case added.
+
+### Deleted: 236 files, `orphans=0` at fixpoint
+
+Notable clusters: the `MainCampaignScene` script+scene pair (the case that proves
+why one grep pass is not enough), `ui/screens/campaign/CampaignManager.gd`,
+`core/victory/VictoryDescriptions.gd` (the documented "basic" duplicate),
+duplicate-name corpses shadowing live autoloads (`core/managers/` and
+`game/world/WorldEconomyManager.gd`, `game/world/PlanetCache.gd`), the
+`WeaponSystem`→`GearDatabase` chain (`GearDatabase` could not even compile — its
+`preload` targeted a `GameEnums.gd` path that does not exist), 4 never-wired
+mission classes, and `combat/{SimpleUnitCard,TerrainOverlay,TerrainTooltip}`
+(previously mis-recorded in tier 1 as KEPT/LIVE).
+
+Also removed as unreachable-and-broken: the `"main_game"` route (target scene
+absent from the repo) and `"new_campaign_tutorial"` + its scene, whose node names
+did not match the shared script's `@onready` paths, so none of its buttons had a
+handler. See `e33d3294`.
+
+### NOT deleted: 39 production-dead-but-test-referenced files
+
+These need a wire-or-delete decision each, so they are listed rather than swept.
+
+**Built, documented, never wired into a screen** — deleting these throws away
+finished work; wiring them is a product call:
+
+| File | Note |
+|---|---|
+| `ui/components/postbattle/PostBattleSummarySheet.tscn` | `PreBattleUI.gd:648` still *produces* battlefield-recap data "consumed by PostBattleSummarySheet on the next screen" — a producer feeding a consumer that never runs |
+| `ui/components/postbattle/BattlefieldFindCard.{gd,tscn}` | post-battle finds card |
+| `ui/components/campaign/{QuickActionsFooter,StoryTrackSection,CampaignTurnProgressTracker}` | dashboard sections |
+| `ui/components/{mission/MissionStatusCard,world/WorldStatusCard}` | status cards |
+| `ui/components/common/{BookFrame,OrnamentPanel}` | CLAUDE.md documents both as live widget-library chrome; nothing references them |
+| `ui/components/ResponsiveContainer.gd` | superseded by `AdaptivePanelGroup` / `ResponsiveManager`? verify before deleting |
+
+**Superseded model/scaffold classes** (safe to delete once their suites are
+repointed or removed): `core/campaign/{Campaign,VictoryConditionTracker}`,
+`base/campaign/BaseMissionGenerator`, `{base/mission/mission_base,
+core/mission/base/mission}`, `game/campaign/FiveParsecsMissionGenerator{,Wrapper}`,
+`core/economy/loot/{GameGear,GameItem}`, `core/systems/items/GameArmor`,
+`core/character/Equipment/ConsolidatedArmor`, `core/rivals/Patron`,
+`core/patrons/PatronJobGenerator`, `data/{config/CampaignConfig,ship/ShipData}`,
+`core/character/{connections/CharacterConnections,tables/CharacterCreationTables}`,
+`core/terrain/TerrainRules`, `core/battle/{BattleSetupData,PostBattleProcessor}`,
+`core/systems/UniversalDataAccess`, `core/state/SerializableResource`,
+`ui/screens/world/WorldPhaseAutomationController`.
+
+Two were book-checked and carry no unique Core Rules mechanic, so they are
+delete-not-wire: `VictoryConditionTracker` (the live path is
+`core/victory/VictoryChecker.gd` via `CampaignPhaseManager`; the tracker's own
+test emits the signal it then asserts on, so it proves nothing) and
+`WorldPhaseAutomationController` (invented "Digital Dice / object pooling /
+frame yielding" scaffolding).
+
+**Worth wiring, not deleting:** `core/state/SaveFileMigration.gd` is a complete,
+tested, version-safe migration framework that production never calls
+(`CURRENT_SCHEMA_VERSION = 1`, no migrations registered). It is the correct home
+for the legacy `origin` float→String normalization that CLAUDE.md currently
+band-aids with `str()` guards at each call site.

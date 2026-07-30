@@ -625,6 +625,15 @@ COLOR_DANGER := Color("#DC2626")   # Red
 
 ### Reusable Widget Library (`src/ui/components/common/`, 14 files)
 
+> **⚠ Liveness is NOT implied by this table (verified 2026-07-30).** Several rows
+> describe components that exist and are documented but are referenced by nothing
+> in `src/`: **`BookFrame`, `OrnamentPanel`, `InlineRenameWidget`** (plus
+> `ContactMarkerPanel`, `DiceFeed`, `AttackResolutionOverlay` elsewhere in this
+> file). They are built and usable, but not currently wired into any screen — so
+> "CLAUDE.md lists it" is not evidence a component is in use. Run
+> `python scripts/lint_orphan_assets.py` for ground truth, and see
+> `docs/WIRING_CLEANUP_BACKLOG.md` tier 7 for the wire-or-delete triage.
+
 | Component | Class | API |
 |-----------|-------|-----|
 | `EmptyStateWidget` | VBoxContainer | `setup(title, flavor, action_text, callback)` → `signal action_pressed` |

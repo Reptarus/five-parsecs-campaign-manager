@@ -16,7 +16,9 @@ const GEAR_DATABASE_PATH = "res://data/gear_database.json"
 const EQUIPMENT_DATABASE_PATH = "res://data/equipment_database.json"
 const LOOT_TABLES_PATH = "res://data/loot_tables.json"
 const MISSION_TEMPLATES_PATH = "res://data/mission_templates.json"
-const CHARACTER_CREATION_PATH = "res://data/character_creation_data.json"
+# CHARACTER_CREATION_PATH removed 2026-07-30: data/character_creation_data.json
+# does not exist and nothing read the constant. Creation data is canonical in
+# data/character_creation_tables/ + character_species.json (SpeciesDataService).
 const WEAPONS_DATABASE_PATH = "res://data/weapons.json"
 const ARMOR_DATABASE_PATH = "res://data/armor.json"
 const STATUS_EFFECTS_PATH = "res://data/status_effects.json"

@@ -9,7 +9,9 @@ class_name BaseCombatManager
 
 ## Combat-related signals
 signal character_position_updated(character, new_position: Vector2i)
-signal combat_result_calculated(attacker, target, result: int)
+# "combat_result_calculated" removed 2026-07-30: its only emitter was
+# FiveParsecsCombatSystem, deleted in the tier-7 reachability sweep, and nothing
+# ever listened for it. This class stays live via EnemyTacticalAI.
 signal combat_advantage_changed(character, advantage: int)
 signal combat_status_changed(character, status: int)
 
