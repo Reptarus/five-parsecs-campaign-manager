@@ -125,6 +125,9 @@ var _crew_id_index: Dictionary = {}  # character_id -> int (index into members)
 func initialize_crew(data: Dictionary) -> void:
 	## Initialize crew data from campaign creation
 	crew_data = data.duplicate(true)
+	# Also normalise here, not only on load: a crew built from a source that does
+	# not go through Character.to_dictionary() would otherwise carry one spelling.
+	_normalize_crew_stat_keys()
 	_rebuild_crew_id_index()
 	_update_modified_time()
 
@@ -471,6 +474,40 @@ const _ORIGIN_TO_SPECIES := {
 ## an int, or a float (the documented legacy-origin-float trap), so all three are
 ## handled. Anything that cannot be resolved is LEFT ALONE — an absent species_id is
 ## honest, a wrong one silently changes which rules fire.
+## Give every loaded crew member BOTH spellings of the reaction stat.
+##
+## Character.to_dictionary() emits "reactions" AND "reaction" (Character.gd:1305-6)
+## because the consumers are genuinely split: battle reads the plural
+## (NoMinisResolver, BattlefieldTypes) while the crew UI reads the singular
+## (CampaignDashboard:621, CrewManagementScreen:146). That fixed everything written
+## AFTERWARDS — but every campaign saved before it contains only the plural, and
+## nothing normalised it on load.
+##
+## So on any pre-existing save, CampaignDashboard's `member.get("reaction", 0)`
+## missed and EVERY crew card rendered "R: 0". Confirmed on a real save during the
+## Jul 30 core-loop walk: 6/6 members had "reactions", 0/6 had "reaction", and the
+## dashboard showed R:0 on all six while C/T/S/Sv/L were correct baseline values.
+##
+## Fixed HERE, at the single load chokepoint, rather than by teaching each consumer
+## to try both spellings — that band-aid has to be repeated at every read site and
+## one will always be missed. Same reasoning as the `origin` float/String guards,
+## which are still per-site and should move here too.
+func _normalize_crew_stat_keys() -> void:
+	if not (crew_data is Dictionary):
+		return
+	var members = crew_data.get("members", [])
+	if not (members is Array):
+		return
+	for m in members:
+		if not (m is Dictionary):
+			continue
+		var member: Dictionary = m
+		if member.has("reactions") and not member.has("reaction"):
+			member["reaction"] = member["reactions"]
+		elif member.has("reaction") and not member.has("reactions"):
+			member["reactions"] = member["reaction"]
+
+
 func _backfill_crew_species() -> void:
 	if not (crew_data is Dictionary):
 		return
@@ -560,6 +597,7 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Load data sections
 	crew_data = data.get("crew", {})
+	_normalize_crew_stat_keys()
 	_backfill_crew_species()
 	_rebuild_crew_id_index()
 	captain_data = data.get("captain", {})
