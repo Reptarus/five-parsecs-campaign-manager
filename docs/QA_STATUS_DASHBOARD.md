@@ -53,16 +53,38 @@ stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79
 
 ### Honest residual — NOT fixed
 
-Final sweep: **125 passed / 67 failed / 12 skipped** of 192 configs (34 screens × 6
+Final sweep: **134 passed / 58 failed / 12 skipped** of 192 configs (34 screens × 6
 sizes), up from **63 passed** when the sweep first ran clean of its own false positives.
 
 | Category | Start | Now | Note |
 |---|---|---|---|
 | Sub-48dp controls | 181 | **0** | Fully closed. |
-| Overlay-band collisions | 157 | **55** | Remaining screens have no wrapping `MarginContainer` and no vertical root box for `reserve_band_on` to act on: TacticalBattleUI (9), ShipInventory (9, its `.tscn` has no script at all to hook), CampaignTurnController (9), EquipmentGenerationScene (4), ShipManager (3), PostBattleSequence (3). Each needs a small structural edit rather than a shared call. |
-| Off-screen overflow | 60 | **49** | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel is the visible worst case: its responsive wiring is correct (it uses the `ResponsiveManager` SSOT and overrides all four layout hooks), so the overflow is content that cannot shrink, not a missing collapse. The fix is the `ExpandedConfigPanel` treatment — autowrap labels, `clip_text` on OptionButtons, zero minimum widths. PrintSheetScreen's sheet preview `TextureRect` renders at natural size and needs to scale to fit. |
+| Overlay-band collisions | 157 | **40** | `SettingsOverlay.reserve_band_on()` now also runs automatically on `SceneRouter.scene_changed`, which is the only route for `ShipInventory.tscn` (no script attached, so no `_ready()` to call from). **The sweep cannot see that fallback** — it instantiates scenes directly instead of navigating, so ShipInventory's 9 findings persist in the report while being fixed at runtime. Left visible rather than teaching the harness to compensate, which would hide real problems in the same breath. |
+| Off-screen overflow | 60 | **43** | Concentrated on small phone (310×551) and phone portrait. CampaignJournalScreen's filter panel is the visible worst case: its responsive wiring is correct (it uses the `ResponsiveManager` SSOT and overrides all four layout hooks), so the overflow is content that cannot shrink, not a missing collapse. The fix is the `ExpandedConfigPanel` treatment — autowrap labels, `clip_text` on OptionButtons, zero minimum widths. |
 | Unwrapped labels | 14 | **3** | TacticalBattleUI only; built at runtime so a bare instantiation does not expose them. |
 | Sweep skips | 12 | 12 | Screens needing campaign state to build — reported SKIP-with-reason, never folded into the pass count. |
+
+Screens taken to **zero** findings: MainMenu, CampaignCreationUI, AdvancementManager,
+EULAScreen, EquipmentManager, WorldPhaseController, HelpScreen, StoreScreen,
+CampaignJournalScreen (touch targets), GalaxyLogScreen and CompendiumCategoryView
+(overlay band).
+
+### Two gate screens that were genuinely blocking
+
+- **EULAScreen** — the consent card carried a fixed `360×400` minimum, wider than a
+  phone in portrait (~339 design px) and taller than one in landscape (~338), so it hung
+  154–202px off the edge with **ACCEPT unreachable**. This is the gate in front of the
+  entire app. Capping the card width did nothing on its own, because
+  `get_combined_minimum_size()` takes the MAX of the custom minimum and the content's own
+  — and the content won: the 46-character consent checkbox label demanded ~350px
+  unwrapped. Fixed by wrapping that label, deriving both minimums from the live viewport,
+  dropping the decorative spacers on short viewports, and adding an outer scroll so the
+  card degrades instead of clipping. Verified on-screen in both orientations.
+- **PrintSheetScreen** — `EXPAND_FIT_WIDTH_PROPORTIONAL` on a tall portrait sheet PNG gave
+  the preview a minimum height of width × aspect, pushing it 640–844px off the bottom; and
+  the 240px action rail sat beside it in one row, so **Save PNG / Save PDF were off the
+  right edge** on a phone. `EXPAND_IGNORE_SIZE` also removed a latent mismatch with the
+  CV-calibrated field overlays, which already fit the page by the limiting axis.
 
 ### A third false-positive class removed: measuring before the screen settled
 
