@@ -658,6 +658,14 @@ func _initiate_battle_sequence() -> void:
 		"panic": first_enemy.get("panic", "1-2"),
 		"weapons": first_enemy.get("weapons", []),
 		"special_rules": first_enemy.get("special_rules", []),
+		# Category-level context. PreBattleUI renders a "Category rules" block and
+		# a NUMBERS column from these; both were dead UI because the live generator
+		# never emitted the keys and this hoist never carried them.
+		"category": first_enemy.get("category", ""),
+		"category_name": first_enemy.get("category_name", ""),
+		"category_rules": first_enemy.get("category_rules", ""),
+		"seize_initiative_modifier": int(
+			first_enemy.get("seize_initiative_modifier", 0)),
 		"units": enemies,
 	}
 	# Ensure mission_source flows to BattlePhase for Compendium battle type (p.118)
@@ -773,11 +781,35 @@ func _initiate_battle_sequence() -> void:
 		init_sys.set_enemy_modifier(enemy_init_mod,
 			first_enemy.get("type", "Enemy"))
 
+	# Difficulty index in InitiativeCalculator's dropdown order
+	# (0 Normal / 1 Challenging / 2 Hardcore -2 / 3 Insanity -3), mapped from
+	# GlobalEnums.DifficultyLevel {CHALLENGING=4, HARDCORE=6, INSANITY=8}.
+	var difficulty_index: int = 0
+	match difficulty:
+		4: difficulty_index = 1
+		6: difficulty_index = 2
+		8: difficulty_index = 3
+
 	mission_data["initiative_context"] = {
 		"highest_savvy": init_sys.highest_savvy,
 		"modifiers": init_sys.get_current_modifiers(),
 		"required_roll": init_sys.calculate_required_roll(),
 		"success_probability": init_sys.get_success_probability(),
+		# RAW INPUTS, added so the in-battle InitiativeCalculator can actually
+		# apply what was computed here. Previously this dict held only the derived
+		# display values and was read by PreBattleUI alone, so the app showed a
+		# required roll before the battle and then rolled against a different,
+		# unmodified target inside it (Core Rules p.112).
+		"outnumbered": enemies.size() > active_crew.size(),
+		"difficulty_index": difficulty_index,
+		# The Hired Muscle -1 (Core Rules p.112) is stored on the ENCOUNTER
+		# CATEGORY in enemy_types.json, so it arrives here inside
+		# seize_initiative_modifier and is applied once, through enemy_modifier.
+		# Deliberately NOT also flagged as hired_muscle — the calculator has its
+		# own -1 toggle for that rule and setting both would apply it twice.
+		"hired_muscle": false,
+		"enemy_modifier": enemy_init_mod,
+		"enemy_name": first_enemy.get("type", "Enemy"),
 	}
 
 	# Normalize data keys for downstream consumers

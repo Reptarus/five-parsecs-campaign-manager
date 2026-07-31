@@ -1892,6 +1892,14 @@ func _connect_assisted_signals() -> void:
 	# InitiativeCalculator — initiative results + overlay dismiss
 	if initiative_calculator:
 		initiative_calculator.continue_requested.connect(_hide_overlay)
+		# Record the outcome into _battle_context so the battle briefing's
+		# INITIATIVE block (which reads seize_initiative_result, a key nothing
+		# used to write) actually renders, and the p.112 "may Move or fire, hits
+		# only on a natural 6" instruction reaches the player.
+		if not initiative_calculator.initiative_calculated.is_connected(
+				_on_initiative_calculated):
+			initiative_calculator.initiative_calculated.connect(
+				_on_initiative_calculated)
 		if unified_log:
 			initiative_calculator.initiative_calculated.connect(
 				func(result) -> void:
@@ -2140,9 +2148,19 @@ func _on_tier_selected(tier: int) -> void:
 		_create_character_cards([])
 
 	# Same reason the cards are rebuilt above: initialize_battle() runs BEFORE the
-	# player picks a tier, so morale_tracker did not exist yet and could not be
-	# seeded there. enemy_units and _stored_mission_data are both populated by now.
+	# player picks a tier, so these ASSISTED components did not exist yet and the
+	# configuration calls there were no-ops. enemy_units, _stored_mission_data and
+	# the crew are all populated by now.
 	_seed_morale_tracker()
+	if initiative_calculator and is_instance_valid(initiative_calculator) \
+			and initiative_calculator.has_method("set_crew"):
+		var crew_for_init: Array = []
+		for unit in crew_units:
+			if unit.original_character:
+				crew_for_init.append(unit.original_character)
+		if not crew_for_init.is_empty():
+			initiative_calculator.set_crew(crew_for_init)
+	_apply_initiative_context()
 
 	_apply_tier_visibility(tier)
 	_hide_overlay()
@@ -3513,6 +3531,61 @@ func _ai_reference_lines(ai_code: String) -> Array:
 	return lines
 
 
+func _apply_initiative_context() -> void:
+	## Hand the campaign-computed Seize the Initiative modifiers to the calculator
+	## that actually rolls (Core Rules p.112).
+	##
+	## THE BUG THIS FIXES: mission_data["initiative_context"] had exactly two
+	## references in the whole repo — written by CampaignTurnController, read by
+	## PreBattleUI to draw a probability. It never reached the roll. The calculator
+	## sourced every modifier from checkboxes the player had to tick by hand, so
+	## the app told you "you need 9+ on 2D6" and then rolled against an unmodified
+	## target: Hardcore -2, Insanity -3 and the outnumbered +1 were all displayed
+	## and then silently dropped.
+	if not (initiative_calculator and is_instance_valid(initiative_calculator)):
+		return
+	if not initiative_calculator.has_method("apply_initiative_context"):
+		return
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var ctx: Dictionary = md.get("initiative_context", {})
+	if ctx is Dictionary and not ctx.is_empty():
+		initiative_calculator.apply_initiative_context(ctx)
+
+
+func _on_initiative_calculated(result) -> void:
+	## Record the seize outcome where the battle briefing already looks for it.
+	##
+	## _build_battlefield_intel renders an "INITIATIVE: SEIZED / not seized" block
+	## from _battle_context["seize_initiative_result"] — a key NOTHING in the repo
+	## ever wrote, so that block was dead. The calculator's result only ever
+	## reached the log feed.
+	if result == null:
+		return
+	var seized: bool = false
+	var total: int = 0
+	if "success" in result:
+		seized = bool(result.success)
+	if "roll_total" in result:
+		total = int(result.roll_total)
+	elif "total" in result:
+		total = int(result.total)
+	_battle_context["seize_initiative_result"] = {
+		"success": seized,
+		"roll_total": total,
+	}
+	# Core Rules p.112: on 10+ every crew figure may either Move or fire before
+	# round 1, and those shots only Hit on a natural 6.
+	if seized:
+		_log_message(
+			"INITIATIVE SEIZED (%d) — each crew figure may Move OR fire now. "
+			% total + "Shots Hit only on a natural 6.",
+			UIColors.COLOR_EMERALD)
+	else:
+		_log_message("Initiative not seized (%d) — begin Round 1 normally."
+			% total, UIColors.COLOR_TEXT_SECONDARY)
+
+
 func _activate_enemy_oracle() -> void:
 	## Turn the oracle on and seed it with the force we already know about, so the
 	## player is not asked to hand-enter an enemy group and its AI type that the
@@ -3735,6 +3808,7 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# BUG-042 FIX: Pass crew data to initiative calculator for equipment auto-detection
 	if initiative_calculator and initiative_calculator.has_method("set_crew"):
 		initiative_calculator.set_crew(crew_members)
+	_apply_initiative_context()
 
 	# Pass crew data to CharacterQuickRollPanel for dice rolling with stats
 	if character_quick_roll and character_quick_roll.has_method("set_crew"):

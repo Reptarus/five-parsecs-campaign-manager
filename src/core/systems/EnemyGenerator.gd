@@ -494,6 +494,8 @@ func generate_enemies_as_dicts(
 		template.get("numbers", "+0"))
 	var enemy_count: int = maxi(1, base_count + numbers_mod)
 
+	var cat_info: Dictionary = _category_info(category)
+
 	var enemy_name: String = template.get("name", "Unknown Hostiles")
 	var base_combat: int = template.get("combat_skill", 0)
 	var base_tough: int = template.get("toughness", 3)
@@ -543,9 +545,35 @@ func generate_enemies_as_dicts(
 			"special_rules": template.get("special_rules", []),
 			"is_leader": (role == "lieutenant"),
 			"category": category,
+			# The type's Numbers entry (Core Rules p.92). PreBattleUI has a NUMBERS
+			# column that reads this key and was permanently blank because the live
+			# generator never emitted it.
+			"numbers": str(template.get("numbers", "")),
+			# Category-level rules, including the Seize the Initiative modifier
+			# (Core Rules p.112: "When fighting opponents from the Hired Muscle
+			# encounter tables, modify by -1"). These were looked up ONLY in
+			# select_enemy_for_mission(), which the live path never calls — so the
+			# modifier read at the campaign layer was always 0 and PreBattleUI's
+			# whole "Category rules" block was dead UI.
+			"category_name": cat_info.get("name", ""),
+			"category_rules": cat_info.get("rules", ""),
+			"seize_initiative_modifier": int(cat_info.get("seize", 0)),
 		})
 
 	return enemies
+
+
+func _category_info(category_id: String) -> Dictionary:
+	## Category-level display name, rules text and Seize modifier for an encounter
+	## category (Core Rules p.94 tables / p.112 Seize the Initiative).
+	for cat_data in enemy_data.get("enemy_categories", []):
+		if cat_data.get("id", "") == category_id:
+			return {
+				"name": cat_data.get("name", ""),
+				"rules": cat_data.get("category_rules", ""),
+				"seize": cat_data.get("seize_initiative_modifier", 0),
+			}
+	return {"name": "", "rules": "", "seize": 0}
 
 func generate_random_encounter() -> Array[Resource]:
 	## Generate a random encounter for unexpected battles

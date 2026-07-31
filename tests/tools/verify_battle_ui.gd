@@ -91,6 +91,16 @@ func _mission() -> Dictionary:
 			"units": _enemies(),
 		},
 		"deployment": {"condition_id": "NO_CONDITION"},
+		# Shaped as CampaignTurnController writes it. Hardcore is -2 and the crew
+		# is outnumbered 6-to-5, so the net modifier is -1 (Core Rules p.112).
+		"initiative_context": {
+			"highest_savvy": 2,
+			"outnumbered": true,
+			"hired_muscle": false,
+			"difficulty_index": 2,
+			"enemy_modifier": 0,
+			"enemy_name": "Gangers",
+		},
 	}
 
 var _ui2: Node = null
@@ -129,6 +139,7 @@ func _process(_delta: float) -> bool:
 			_check_hud_wiring()
 			_check_feed_strip()
 			_check_ai_reference()
+			_check_seize_initiative()
 			_check_results_prefill()
 
 			# FULL_ORACLE is a different UI arrangement — verify it on its own
@@ -167,6 +178,36 @@ func _check_ai_reference() -> void:
 	_ok("enemy action card carries the behaviour table",
 		card_text.to_lower().contains("otherwise roll 1d6"),
 		"behaviour table absent from the rendered card")
+
+func _check_seize_initiative() -> void:
+	## P0.6 — initiative_context had exactly two references repo-wide: written by
+	## CampaignTurnController, read by PreBattleUI to draw a probability. It never
+	## reached the calculator that rolls, so Hardcore -2 / Insanity -3 / the
+	## outnumbered +1 were displayed before the battle and dropped inside it.
+	var calc: Variant = _ui.get("initiative_calculator")
+	if calc == null or not is_instance_valid(calc):
+		_ok("initiative calculator instanced at ASSISTED tier", false, "null")
+		return
+	_ok("initiative calculator instanced at ASSISTED tier", true)
+
+	var sys: Variant = calc.get("initiative_system")
+	if sys == null:
+		_ok("initiative system reachable", false, "null system")
+		return
+	_ok("campaign savvy reached the roller",
+		int(sys.highest_savvy) == 2, "got %d" % int(sys.highest_savvy))
+	# Core Rules p.112: +1 outnumbered, -2 Hardcore -> net -1 off a 10+ target,
+	# i.e. the crew needs 11+ on 2D6+Savvy.
+	var required: int = int(calc.initiative_system.calculate_required_roll())
+	_ok("difficulty and outnumbered modifiers actually change the target",
+		required != 10, "required roll is still the unmodified 10")
+
+	# The outcome must land where the briefing reads it.
+	calc._on_roll_pressed()
+	var ctx: Dictionary = _ui.get("_battle_context")
+	_ok("seize outcome recorded into _battle_context for the briefing",
+		ctx.has("seize_initiative_result"),
+		"seize_initiative_result still unwritten")
 
 func _check_results_prefill() -> void:
 	## P0.4 — Record Result used to open blank. _build_results_prefill read ONLY

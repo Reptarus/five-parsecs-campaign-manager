@@ -172,6 +172,48 @@ func set_enemy_modifier(value: int, enemy_name: String = "Enemy Type") -> void:
 	initiative_system.set_enemy_modifier(value, enemy_name)
 	_update_probability()
 
+## Pre-apply the modifiers the campaign already knows (Core Rules p.112).
+##
+## THE BUG THIS FIXES: CampaignTurnController computes an `initiative_context`
+## with the difficulty penalty (Hardcore -2 / Insanity -3), the outnumbered +1 and
+## the enemy's own modifier — and it was read by exactly ONE place, PreBattleUI,
+## to draw a probability. It never reached this calculator, which sourced every
+## modifier from checkboxes the player had to tick by hand. So the app displayed
+## "you need 9+ on 2D6" before the battle and then rolled against a different,
+## unmodified target, and the Hired Muscle -1 (p.112) never applied at all.
+##
+## The controls stay live: this seeds them, the player can still correct any of it.
+func apply_initiative_context(ctx: Dictionary) -> void:
+	if ctx.is_empty():
+		return
+	# This panel is instantiated and held for an overlay popup, so _ready() has
+	# not run yet the first time the battle configures it. Same self-heal as
+	# set_crew() — without it every line below dereferences null and the whole
+	# method aborts silently.
+	if not initiative_system:
+		initiative_system = SeizeInitiativeSystem.new()
+	if ctx.has("highest_savvy"):
+		set_savvy(int(ctx["highest_savvy"]))
+	if ctx.has("outnumbered"):
+		var out: bool = bool(ctx["outnumbered"])
+		initiative_system.set_outnumbered(out)
+		if outnumbered_check:
+			outnumbered_check.set_pressed_no_signal(out)
+	if ctx.has("hired_muscle"):
+		var hm: bool = bool(ctx["hired_muscle"])
+		initiative_system.set_hired_muscle(hm)
+		if hired_muscle_check:
+			hired_muscle_check.set_pressed_no_signal(hm)
+	if ctx.has("difficulty_index"):
+		var idx: int = clampi(int(ctx["difficulty_index"]), 0, 3)
+		if difficulty_option:
+			difficulty_option.select(idx)
+		_on_difficulty_changed(idx)
+	if ctx.has("enemy_modifier") and int(ctx["enemy_modifier"]) != 0:
+		set_enemy_modifier(int(ctx["enemy_modifier"]),
+			str(ctx.get("enemy_name", "Enemy Type")))
+	_update_probability()
+
 ## Get last roll result
 func get_last_result() -> SeizeInitiativeSystem.InitiativeResult:
 	return last_result
