@@ -213,8 +213,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_scene_changed(_new_scene: String, _previous_scene: String) -> void:
 	_update_visibility()
 	# Safety net so no screen can draw under these buttons just because nobody
-	# remembered to wire it up — and the only route for a screen with NO script at
-	# all (ShipInventory.tscn has none, so it has no _ready() to call from).
+	# remembered to wire it up — and the only route for a screen whose script has no
+	# _ready() to call from (ShipInventory.tscn's script, ShipCreation.gd, is a pure
+	# factory: it defines no _ready(), so there is nowhere in it to put the call).
 	#
 	# Deferred twice over: once so the incoming scene's _ready() has built its UI,
 	# and after _update_visibility() so get_reserved_bottom() reflects which buttons
@@ -348,13 +349,41 @@ func get_reserved_bottom() -> float:
 ## have three different ancestors (CampaignScreenBase, FiveParsecsCampaignPanel and
 ## plain Control/Node), so there is no single base to put it in. Geometry comes from
 ## the live buttons, never a constant — which buttons are visible varies per screen.
+##
+## Reserves only the part of the band the screen ACTUALLY sits under. Several screens
+## are both a SceneRouter target and an embedded child — PreBattleUI is navigated to
+## as "pre_battle" AND lives at MainContainer/PhaseContainer/PreBattleUI inside
+## CampaignTurnController.tscn. Embedded, its top already starts below the buttons
+## because the parent reserved for it; reserving the full band a second time would
+## burn another ~68px out of a 338px landscape viewport. Asking where the screen is
+## costs nothing and makes the call safe to add everywhere.
 func reserve_band_on(screen: Node, margin_container_path: String = "MarginContainer") -> bool:
-	if screen == null:
+	if screen == null or not is_instance_valid(screen):
 		return false
 	var reserved: float = get_reserved_bottom()
 	if reserved <= 0.0:
 		return false
+
 	var wanted := int(reserved + 8.0)
+	if screen is Control:
+		var ctl := screen as Control
+		if ctl.size == Vector2.ZERO:
+			# Called from _ready(), before the first layout pass: the screen's global
+			# position is not meaningful yet, and measuring it here would reserve the
+			# full band for a screen that may be nested well below the buttons. Wait
+			# one frame and measure for real rather than guess. Reserving nothing now
+			# is deliberate: strategy 1 can only RAISE a margin, so a guess made here
+			# could not be corrected afterwards.
+			_reserve_when_laid_out(screen, margin_container_path)
+			return false
+		# Clamped at the top end as well: a screen whose root sits at a NEGATIVE y
+		# (grow-both re-centres a container that overflows vertically) would otherwise
+		# ask for band + overflow, which reserves space it cannot use and makes the
+		# overflow worse. The band is the most that is ever needed.
+		wanted = int(clampf(reserved + 8.0 - ctl.get_global_rect().position.y,
+			0.0, reserved + 8.0))
+		if wanted <= 0:
+			return true  # already clear of the band; nothing to reserve
 
 	# Strategy 1 — a MarginContainer wrapping the screen: raise its top margin.
 	var mc := screen.get_node_or_null(margin_container_path)
@@ -388,3 +417,20 @@ func reserve_band_on(screen: Node, margin_container_path: String = "MarginContai
 				box.move_child(spacer, 0)
 				return true
 	return false
+
+
+## Retry reserve_band_on() once the screen has been through a layout pass.
+##
+## A screen calling this from _ready() has not been sized or positioned yet, so its
+## global position reads 0 whether it is a root screen or nested three containers
+## deep. One frame later it is real. The screen can also be freed in between —
+## navigation is fast — hence the validity re-checks.
+func _reserve_when_laid_out(screen: Node, margin_container_path: String) -> void:
+	if not is_inside_tree():
+		return
+	await get_tree().process_frame
+	if not is_inside_tree() or not is_instance_valid(screen) or not screen.is_inside_tree():
+		return
+	if screen is Control and (screen as Control).size == Vector2.ZERO:
+		return  # still unsized (hidden, or never laid out) — nothing meaningful to do
+	reserve_band_on(screen, margin_container_path)

@@ -33,6 +33,11 @@ func _ready() -> void:
 	_create_panels()
 	_connect_signals()
 	_show_setup()
+	# Push the header below the floating gear/bug buttons. Must run after
+	# _build_layout(): the MarginContainer it targets is created there.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _build_layout() -> void:

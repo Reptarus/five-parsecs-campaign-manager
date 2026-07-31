@@ -47,6 +47,13 @@ func _ready() -> void:
 	_initialize_dependencies()
 	_setup_adaptive_panels()
 
+	# Push content below the floating gear/bug buttons. Belt-and-braces: this scene is
+	# also instantiated as a step inside campaign creation, where it never becomes
+	# current_scene and so is never reached by the autoload's scene_changed net.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 	# Setup campaign integration
 	call_deferred("setup_for_campaign_creation")
 

@@ -93,6 +93,11 @@ func _ready() -> void:
 	_consume_scene_router_context()
 	_apply_filters()
 	_subscribe_to_journal_signals()
+	# super._ready() is skipped above, so reserve the floating-overlay band by hand.
+	# Must run after _build_ui(): the MarginContainer it targets is created there.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _setup_debounce_timer() -> void:

@@ -139,6 +139,13 @@ func _ready() -> void:
 	_style_step_content_panel()
 	_style_side_panels()
 	_setup_portrait_chrome()
+	# Push content below the floating gear/bug buttons — the MobileAppBar's log button
+	# sits exactly under them otherwise. Belt-and-braces: post-battle is also
+	# instantiated as a child by CampaignTurnController, where it never becomes
+	# current_scene and so is never reached by the autoload's scene_changed net.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 ## First PanelContainer ancestor of `node` (robust to scene-tree depth changes).

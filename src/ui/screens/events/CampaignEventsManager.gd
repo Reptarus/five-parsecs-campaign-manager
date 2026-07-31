@@ -57,6 +57,12 @@ var travel_events: Array[Dictionary] = [
 func _ready() -> void:
 	_refresh_display()
 	_setup_adaptive_panels()
+	# Push content below the floating gear/bug buttons. Belt-and-braces: this screen is
+	# also opened as a child from the campaign flow, where it never becomes
+	# current_scene and so is never reached by the autoload's scene_changed net.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 	# Portrait de-clip: trim root margins in portrait (restored landscape).
 	var pc_mc := get_node_or_null("MarginContainer")
 	if pc_mc is MarginContainer:

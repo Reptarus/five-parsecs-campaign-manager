@@ -23,6 +23,11 @@ func _ready() -> void:
 	_setup_responsive_layout()
 	_build_ui()
 	_show_categories()
+	# super._ready() is skipped above, so the band reservation it normally performs is
+	# invoked by hand — same as _ensure_base_background() / _setup_responsive_layout().
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _build_ui() -> void:

@@ -38,6 +38,11 @@ func _ready() -> void:
 	_build_layout()
 	_render_active_sheet()
 	_apply_responsive_layout()
+	# Push the header below the floating gear/bug buttons. Must run after
+	# _build_layout(): the MarginContainer it targets is created there.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	# layout_class_changed, not breakpoint_changed: rotating a device keeps the
 	# width bucket but flips portrait/landscape, and this screen only cares about

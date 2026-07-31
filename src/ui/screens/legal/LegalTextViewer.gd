@@ -12,6 +12,13 @@ var _rtl: RichTextLabel
 func _ready() -> void:
 	_build_ui()
 	_load_from_context()
+	# Push the header below the floating gear/bug buttons. Belt-and-braces: the
+	# autoload's own scene_changed net only fires for a screen that becomes
+	# current_scene, and this viewer is also opened as a child from the EULA and
+	# settings screens. reserve_band_on() is idempotent, so both routes are safe.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _build_ui() -> void:
