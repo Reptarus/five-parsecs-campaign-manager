@@ -925,6 +925,15 @@ func _check_standalone_mode() -> void:
 	## tier selection for standalone/MCP/demo mode (BUG-B01, B06, B17, B18 fix).
 	if _battle_initialized:
 		return
+	# Deferred from _ready(), so it runs a frame later and this screen may have
+	# left the tree by then. Guarding HERE rather than at each symptom: the whole
+	# chain below is tree-dependent, and a detached run produced three separate
+	# errors from one deferred call — the /root/GameStateManager lookup in
+	# _try_auto_init_from_temp_data(), the /root lookup in
+	# _build_terrain_controls(), and get_viewport() coming back null in
+	# _overlay_width(). One check at the entry point stops all of them.
+	if not is_inside_tree():
+		return
 	# QA-FIX: Only show tier selection if actually visible and not embedded in campaign flow.
 	if not visible:
 		return
@@ -1044,6 +1053,14 @@ func _apply_responsive_layout() -> void:
 	## Scale panel sizes proportionally to viewport
 	if _responsive_layout_in_progress:
 		return  # Guard against re-entrant calls from resize feedback
+	# Reached from call_deferred() AND from a resize debounce timer, so it can
+	# fire a frame or more after this screen left the tree — during a scene
+	# transition, say. get_viewport() is null on a detached node, and the next
+	# line called a method on it ("Cannot call method 'get_visible_rect' on a
+	# null value"). Checked before the re-entrancy flag is set, so an early
+	# return cannot leave the flag stuck true and permanently disable layout.
+	if not is_inside_tree():
+		return
 	_responsive_layout_in_progress = true
 
 	var vp := get_viewport().get_visible_rect().size

@@ -275,7 +275,12 @@ func load_character_data() -> void:
 		current_character = GameStateManager.get_temp_data(GameStateManager.TEMP_KEY_SELECTED_CHARACTER)
 
 	if not current_character:
-		push_error("CharacterDetailsScreen: No character selected")
+		# Warning, not error. Reaching this screen with no character in temp_data
+		# is an ordinary outcome — the route can be opened without a selection —
+		# and the guard below handles it. push_error implies something went wrong
+		# and prints a full backtrace into the console and into player bug
+		# reports; a route sweep produced one per open.
+		push_warning("CharacterDetailsScreen: opened with no character selected")
 		return
 
 

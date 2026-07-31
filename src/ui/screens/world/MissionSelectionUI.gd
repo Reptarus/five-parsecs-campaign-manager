@@ -46,9 +46,19 @@ func _ready() -> void:
 	_setup_ui()
 
 func _initialize_managers() -> void:
-	## Initialize manager references (no FPCM_AlphaGameManager autoload — mission_generator stays unset)
-	if not mission_generator:
-		push_warning("MissionSelectionUI: Mission generator not available")
+	## Initialize manager references.
+	##
+	## `mission_generator` is PERMANENTLY unset: there is no FPCM_AlphaGameManager
+	## autoload to source it from. The previous push_warning() therefore fired on
+	## every open, reporting a condition that can never be otherwise and that no
+	## one can act on — noise, not a warning.
+	##
+	## THIS WHOLE SCREEN IS DEPRECATED. Job selection is handled by
+	## JobOfferComponent; WorldPhaseController._initialize_mission_selection() is
+	## a documented `pass` for that reason, and the "mission_selection" route has
+	## ZERO navigate_to callers. Kept for now rather than deleted, but it is a
+	## wire-or-delete candidate.
+	pass
 
 func _connect_signals() -> void:
 	## Connect UI signals

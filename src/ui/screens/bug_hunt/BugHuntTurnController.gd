@@ -50,6 +50,12 @@ func _ready() -> void:
 
 
 func _initialize() -> void:
+	# Deferred from _ready(), so it lands a frame later and this controller may
+	# already have left the tree. The /root campaign lookups below ERROR from a
+	# detached node rather than returning null, and the turn would initialise
+	# against no campaign at all. Same guard as the other deferred entry points.
+	if not is_inside_tree():
+		return
 	_load_campaign()
 	if not campaign:
 		return  # _load_campaign already navigated to main_menu

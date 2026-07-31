@@ -249,6 +249,13 @@ func _setup_panel_content() -> void:
 	pass
 
 func _initialize_components() -> void:
+	# Deferred from _ready(), so it runs a frame later — by which point this panel
+	# may have left the tree (a fast wizard step change, a screen swap). Absolute
+	# autoload lookups like get_node_or_null("/root/DLCManager") ERROR from a
+	# detached node rather than returning null, and the DLC-gated Introductory
+	# Campaign toggle would then silently never appear. Bail cleanly instead.
+	if not is_inside_tree():
+		return
 	## Initialize campaign config panel with card-based design system
 	# Get or create main container
 	var main_container = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer", 

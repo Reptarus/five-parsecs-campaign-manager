@@ -260,6 +260,12 @@ func _on_coordinator_set() -> void:
 		pass
 
 func _initialize_components() -> void:
+	# Deferred from _ready(), so it runs a frame later and this panel may already
+	# have left the tree. has_node("/root/DiceManager") ERRORS from a detached
+	# node instead of returning false, which then dropped this panel onto the
+	# FallbackDiceManager even though the real autoload was present.
+	if not is_inside_tree():
+		return
 	## Initialize equipment panel by connecting to actual scene nodes
 	
 	# Use unique name access (marked with unique_name_in_owner = true) with fallback paths

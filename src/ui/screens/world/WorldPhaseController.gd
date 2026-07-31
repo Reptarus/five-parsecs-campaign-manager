@@ -309,6 +309,11 @@ func _setup_world_briefing() -> void:
 func _refresh_world_briefing() -> void:
 	if not is_instance_valid(_world_briefing_vbox):
 		return
+	# Reached via call_deferred(), so it can land a frame after this screen left
+	# the tree. The /root/PlanetDataManager lookup below ERRORS from a detached
+	# node instead of returning null, and the briefing then silently stays empty.
+	if not is_inside_tree():
+		return
 	for child in _world_briefing_vbox.get_children():
 		child.queue_free()
 	var pdm := get_node_or_null("/root/PlanetDataManager")

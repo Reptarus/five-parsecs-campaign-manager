@@ -478,9 +478,15 @@ func _on_ship_repaired(hull_points: int) -> void:
 
 func _validate_no_ui_duplication() -> void:
 	## Ensure no UI duplication occurred - improved to only remove true duplicates
+	# Deferred from the build, so it can run a frame after this panel left the
+	# tree. The walk below calls node.get_path(), which ERRORS on every node of a
+	# detached subtree ("Cannot get path of node as it is not in a scene tree") —
+	# one error per node, and the paths it collects are unusable anyway.
+	if not is_inside_tree():
+		return
 	var content_containers = []
 	var form_containers = []
-	
+
 	# Check all children recursively
 	_find_containers_recursive(self, content_containers, form_containers)
 	
