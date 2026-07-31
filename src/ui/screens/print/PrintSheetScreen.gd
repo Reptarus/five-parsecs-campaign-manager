@@ -91,13 +91,16 @@ func _build_layout() -> void:
 	margin.add_child(root_vbox)
 
 	# ── Top bar: back + tabs ───────────────────────────────────────
-	var top_bar := HBoxContainer.new()
-	top_bar.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	# HFlow: Back + title + the sheet tabs need 324px side by side, more than a 310px
+	# phone, and an HBox has no way to give that back. They wrap onto a second line.
+	var top_bar := HFlowContainer.new()
+	top_bar.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
+	top_bar.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
 	root_vbox.add_child(top_bar)
 
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(120, UIColors.TOUCH_TARGET_MIN)
+	back_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	back_btn.pressed.connect(_on_back_pressed)
 	top_bar.add_child(back_btn)
 

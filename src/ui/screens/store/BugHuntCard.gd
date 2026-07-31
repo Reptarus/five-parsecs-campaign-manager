@@ -55,8 +55,11 @@ func _build_ui() -> void:
 	add_child(vbox)
 
 	# Header
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow: title beside tagline overflows a phone-width card, and an HBox cannot
+	# give that width back -- the minimum propagates to the store page.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_MD)
+	header.add_theme_constant_override("v_separation", SPACING_XS)
 	vbox.add_child(header)
 
 	var title := Label.new()

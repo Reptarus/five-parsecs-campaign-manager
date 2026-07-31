@@ -83,6 +83,10 @@ func _build_ui() -> void:
 	# here pushed the count under the gear on a 375px portrait header; let it
 	# size to its content ("25 worlds · turn 100") instead.
 	_count_label.custom_minimum_size.x = 0
+	# "25 worlds - turn 100" is 294px unwrapped, which is most of a 310px phone. Clip
+	# it: the header already wraps, and a truncated count is better than a clipped map.
+	_count_label.clip_text = true
+	_count_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(_count_label)
 	# No horizontal gear spacer any more. reserve_band_on() in _ready() pushes this

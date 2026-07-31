@@ -120,6 +120,7 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_load_requested_campaign()
 	print("=== LAYOUT SWEEP: %d screens x %d sizes ===" % [SCREENS.size(), SIZES.size()])
 	# STATE MATTERS AND IS NOT ALWAYS THE SAME. Several screens build from the current
 	# campaign, so a machine that has one auto-loaded measures far more content than an
@@ -138,6 +139,32 @@ func _run() -> void:
 			print("  " + f)
 	print("LAYOUT SWEEP: %s" % ("PASS" if _fail == 0 else "FAIL"))
 	quit(1 if _fail > 0 else 0)
+
+
+## Load a campaign on request, so "with content" is a DELIBERATE input.
+##
+##   godot ... --script res://tests/tools/verify_layout.gd -- campaign=user://saves/x.save
+##
+## Without this the state is whatever the machine happened to have: a campaign left
+## loaded by a previous session made the sweep measure real content (finding real
+## defects an empty screen hides), and then quietly unloaded again, so two runs an
+## hour apart were not measuring the same thing. Both readings are worth having —
+## just never by accident.
+func _load_requested_campaign() -> void:
+	var wanted := ""
+	for arg in OS.get_cmdline_user_args():
+		if String(arg).begins_with("campaign="):
+			wanted = String(arg).substr("campaign=".length())
+	if wanted.is_empty():
+		return
+	var gs := root.get_node_or_null("/root/GameState")
+	if gs == null or not gs.has_method("load_campaign"):
+		print("campaign load requested but GameState is unavailable: %s" % wanted)
+		return
+	if not FileAccess.file_exists(wanted):
+		print("campaign load requested but file does not exist: %s" % wanted)
+		return
+	gs.load_campaign(wanted)
 
 
 ## Which campaign, if any, the screens will build from. See the note in _run().

@@ -62,8 +62,11 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	add_child(vbox)
 
 	# Header
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow: the bundle name beside the savings badge does not fit a phone card, and
+	# an HBox has no way to give that width back -- it propagates to the store page.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_MD)
+	header.add_theme_constant_override("v_separation", SPACING_XS)
 	vbox.add_child(header)
 
 	var title := Label.new()

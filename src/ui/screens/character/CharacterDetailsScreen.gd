@@ -89,6 +89,19 @@ var _page_dots_container: HBoxContainer = null
 func _ready() -> void:
 	_apply_screen_background()
 
+	# Portrait de-clip: 32px margins on both sides is 64 of a phone's ~310 design px,
+	# and this screen's content needs ~280 on its own. PortraitChrome trims LEFT/RIGHT
+	# only (never the top, so it does not fight the SettingsOverlay band) and restores
+	# them in landscape.
+	var _pc_mc := get_node_or_null("MarginContainer")
+	if _pc_mc is MarginContainer:
+		var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(_pc)
+		_pc.setup(_pc_mc as MarginContainer)
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 	# Connect button signals
 	if save_button:
 		save_button.pressed.connect(_on_save_pressed)

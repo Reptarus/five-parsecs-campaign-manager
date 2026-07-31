@@ -23,94 +23,106 @@ texture = ExtResource("3_iolqo")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="ContentColumn" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="ContentScroll" type="ScrollContainer" parent="ContentColumn"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ContentColumn/ContentScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="ContentColumn/ContentScroll/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
+clip_text = true
+text_overrun_behavior = 3
 text = "Ship Creation"
 horizontal_alignment = 1
 
-[node name="ShipNameInput" type="LineEdit" parent="VBoxContainer"]
+[node name="ShipNameInput" type="LineEdit" parent="ContentColumn/ContentScroll/VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 placeholder_text = "Enter Ship Name"
 
-[node name="ShipTypeOption" type="OptionButton" parent="VBoxContainer"]
+[node name="ShipTypeOption" type="OptionButton" parent="ContentColumn/ContentScroll/VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
-[node name="ComponentsContainer" type="GridContainer" parent="VBoxContainer"]
+[node name="ComponentsContainer" type="GridContainer" parent="ContentColumn/ContentScroll/VBoxContainer"]
 layout_mode = 2
 columns = 2
 
-[node name="HullLabel" type="Label" parent="VBoxContainer/ComponentsContainer"]
+[node name="HullLabel" type="Label" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 layout_mode = 2
 text = "Hull:"
 
-[node name="HullOption" type="OptionButton" parent="VBoxContainer/ComponentsContainer"]
+[node name="HullOption" type="OptionButton" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="EngineLabel" type="Label" parent="VBoxContainer/ComponentsContainer"]
+[node name="EngineLabel" type="Label" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 layout_mode = 2
 text = "Engine:"
 
-[node name="EngineOption" type="OptionButton" parent="VBoxContainer/ComponentsContainer"]
+[node name="EngineOption" type="OptionButton" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="WeaponsLabel" type="Label" parent="VBoxContainer/ComponentsContainer"]
+[node name="WeaponsLabel" type="Label" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 layout_mode = 2
 text = "Weapons:"
 
-[node name="WeaponOptionsContainer" type="VBoxContainer" parent="VBoxContainer/ComponentsContainer"]
+[node name="WeaponOptionsContainer" type="VBoxContainer" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="AddWeaponButton" type="Button" parent="VBoxContainer/ComponentsContainer"]
+[node name="AddWeaponButton" type="Button" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Add Weapon"
 
-[node name="MedicalLabel" type="Label" parent="VBoxContainer/ComponentsContainer"]
+[node name="MedicalLabel" type="Label" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 layout_mode = 2
 text = "Medical Bay:"
 
-[node name="MedicalOption" type="OptionButton" parent="VBoxContainer/ComponentsContainer"]
+[node name="MedicalOption" type="OptionButton" parent="ContentColumn/ContentScroll/VBoxContainer/ComponentsContainer"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="ContentColumn/ContentScroll/VBoxContainer"]
 layout_mode = 2
 
-[node name="ShipInfoLabel" type="RichTextLabel" parent="VBoxContainer"]
+[node name="ShipInfoLabel" type="RichTextLabel" parent="ContentColumn/ContentScroll/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
 text = "Ship Information"
 
-[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="ContentColumn/ContentScroll/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="CreateShipButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="CreateShipButton" type="Button" parent="ContentColumn/ContentScroll/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Create Ship"
 
-[node name="BackButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="BackButton" type="Button" parent="ContentColumn/ContentScroll/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Back"

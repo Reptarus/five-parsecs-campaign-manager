@@ -81,10 +81,10 @@ func _run() -> void:
 		rows.append([mv, depth, "%s (%s)" % [str(inst.get_path_to(node)), node.get_class()]])
 
 	rows.sort_custom(func(a, b): return a[0] > b[0] if a[0] != b[0] else a[1] > b[1])
-	print("--- controls within 60px of the worst minimum (%.0f), deepest first ---" % worst)
+	print("--- controls within 140px of the worst minimum (%.0f), deepest first ---" % worst)
 	var shown := 0
 	for r in rows:
-		if r[0] < worst - 60.0 or shown >= 25:
+		if r[0] < worst - 140.0 or shown >= 25:
 			break
 		print("  %7.1f  depth=%-2d  %s" % [r[0], r[1], r[2]])
 		shown += 1

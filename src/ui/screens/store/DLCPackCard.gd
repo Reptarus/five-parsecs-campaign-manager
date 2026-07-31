@@ -100,6 +100,10 @@ func _build_ui() -> void:
 	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
+	# Same reason as the tagline below: pack names are long enough that an unwrapped
+	# Label's minimum width carried the whole card, and therefore the store page, past
+	# the edge of a phone. Autowrap is safe in this VBox column.
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_col.add_child(name_lbl)
 
 	var tagline_lbl := Label.new()
