@@ -99,11 +99,10 @@ func _build_ui() -> void:
 	# the content, with the EULA ScrollContainer absorbing the slack.
 	card.custom_minimum_size = Vector2(_card_min_width(), 0)
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = UIColors.COLOR_SECONDARY
-	card_style.border_color = UIColors.COLOR_BORDER
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(8)
+	# The house card recipe, then widened: this is a full-page consent card rather
+	# than a list row, so it keeps its generous padding. The 8px radius it used to
+	# hardcode was the only remaining place the app drew a card at the old size.
+	var card_style := ScreenChrome.panel_style()
 	card_style.content_margin_left = UIColors.SPACING_XL
 	card_style.content_margin_right = UIColors.SPACING_XL
 	card_style.content_margin_top = UIColors.SPACING_LG

@@ -49,19 +49,10 @@ func _ready() -> void:
 
 
 func _init_row_styles() -> void:
-	# Card-style rows matching HubFeatureCard: 3px cyan left border
-	_style_row_even = StyleBoxFlat.new()
-	_style_row_even.bg_color = UIColors.COLOR_SECONDARY
-	_style_row_even.border_color = UIColors.COLOR_CYAN
-	_style_row_even.border_width_left = 3
-	_style_row_even.border_width_top = 0
-	_style_row_even.border_width_right = 0
-	_style_row_even.border_width_bottom = 0
-	_style_row_even.set_corner_radius_all(4)
-	_style_row_even.content_margin_left = UIColors.SPACING_MD
-	_style_row_even.content_margin_right = UIColors.SPACING_MD
-	_style_row_even.content_margin_top = UIColors.SPACING_SM
-	_style_row_even.content_margin_bottom = UIColors.SPACING_SM
+	# The row look is the Library's nav-card recipe. Read from ScreenChrome rather
+	# than re-typed here: this file used to carry its own copy of the same twelve
+	# lines, so a change to the card style silently skipped the category list.
+	_style_row_even = ScreenChrome.card_style()
 
 	_style_row_odd = _style_row_even.duplicate()
 	_style_row_odd.bg_color = UIColors.COLOR_SECONDARY.lerp(

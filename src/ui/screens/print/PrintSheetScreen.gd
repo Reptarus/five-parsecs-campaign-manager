@@ -106,6 +106,10 @@ func _build_layout() -> void:
 	margin.add_theme_constant_override("margin_top", UIColors.SPACING_MD)
 	margin.add_theme_constant_override("margin_bottom", UIColors.SPACING_MD)
 	add_child(margin)
+	# One page-gutter rule for the whole app: 16dp in portrait, this screen's own
+	# value restored in landscape. PortraitChrome reads the scene's current margin
+	# as the landscape value, so the 24px here is preserved on wide layouts.
+	ScreenChrome.apply_page_chrome(self, margin)
 
 	var root_vbox := VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", UIColors.SPACING_MD)
@@ -121,7 +125,9 @@ func _build_layout() -> void:
 
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	# Was left unstyled, so it rendered as a project-theme button next to a header
+	# that otherwise matched the Library's exactly.
+	DialogStyles.style_back_button(back_btn)
 	back_btn.pressed.connect(_on_back_pressed)
 	top_bar.add_child(back_btn)
 

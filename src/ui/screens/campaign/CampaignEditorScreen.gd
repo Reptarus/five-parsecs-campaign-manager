@@ -91,6 +91,9 @@ func _build_ui() -> void:
 	_body.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	_body.offset_left = UIColors.SPACING_XL
 	_body.offset_right = -UIColors.SPACING_XL
+	# 32px per side is a fifth of a 360dp phone. PortraitChrome trims it to the
+	# 16dp page margin in portrait and restores this value in landscape.
+	ScreenChrome.apply_page_chrome_offsets(self, _body)
 	_body.offset_top = UIColors.SPACING_LG
 	_body.offset_bottom = -UIColors.SPACING_LG
 	add_child(_body)
