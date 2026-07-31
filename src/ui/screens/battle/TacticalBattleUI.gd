@@ -327,6 +327,10 @@ var _result_temp_key: String = ""
 # erase real progress.
 var _morale_seeded: bool = false
 
+## Always-visible battle-state chip strip (round / enemies + panic / objective /
+## deployment condition), built into the phase banner.
+var _glance_row: HFlowContainer = null
+
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
 var _dlc_escalation_count: int = 0
@@ -1260,6 +1264,83 @@ func _reconcile_bars_portrait() -> void:
 ## Build the persistent phase-instruction banner at the TOP of BottomContent
 ## (adjacent to the phase buttons that advance it), so the player always sees the
 ## PHYSICAL action to perform this phase. Hidden until the first instruction is set.
+func _refresh_glance_chips() -> void:
+	## Repaint the always-visible battle-state strip. Cheap, so it is rebuilt on
+	## every state change rather than diffed.
+	if _glance_row == null or not is_instance_valid(_glance_row):
+		return
+	# remove_child BEFORE queue_free: queue_free is deferred, so the old chips are
+	# still in the tree for the rest of the frame and the strip would briefly show
+	# both the stale and the fresh set.
+	for c in _glance_row.get_children():
+		_glance_row.remove_child(c)
+		c.queue_free()
+
+	# The tracker is authoritative once the battle is running, but it reports 0
+	# before it starts (setup/deployment), which would blank the chip. Take
+	# whichever is further along.
+	var round_num: int = current_turn
+	if round_tracker and round_tracker.has_method("get_current_round"):
+		round_num = maxi(round_num, int(round_tracker.get_current_round()))
+	if round_num > 0:
+		_add_glance_chip("Round %d" % round_num, UIColors.COLOR_CYAN,
+			"Battle round %d" % round_num)
+
+	# Enemies left + the Panic range they bail on — the two numbers that decide
+	# whether to press the attack. Available now that the morale tracker is seeded.
+	var standing: int = 0
+	for unit in enemy_units:
+		if not unit.is_dead and unit.health > 0:
+			standing += 1
+	var panic_txt: String = ""
+	if morale_tracker and is_instance_valid(morale_tracker) \
+			and "panic_range_max" in morale_tracker:
+		var pr: int = int(morale_tracker.panic_range_max)
+		panic_txt = " · Panic %s" % ("0" if pr <= 0 else "1-%d" % pr)
+	if not enemy_units.is_empty():
+		_add_glance_chip("%d enemy left%s" % [standing, panic_txt],
+			UIColors.COLOR_RED,
+			"%d enemy figures still standing%s" % [standing, panic_txt])
+
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		var done: bool = _objective_tracker.is_complete()
+		_add_glance_chip(
+			"%s: %s" % [_objective_tracker.get_objective_name(),
+				"DONE" if done else "open"],
+			UIColors.COLOR_EMERALD if done else UIColors.COLOR_WARNING,
+			"Objective %s %s" % [_objective_tracker.get_objective_name(),
+				"complete" if done else "not yet met"])
+
+	var deploy: Dictionary = _battle_context.get("deployment", {})
+	var cond_title: String = str(deploy.get("condition_title",
+		deploy.get("condition_id", "")))
+	if cond_title != "" and cond_title != "NO_CONDITION":
+		_add_glance_chip(cond_title.capitalize(), UIColors.COLOR_WARNING,
+			"Deployment condition: %s" % cond_title)
+
+
+func _add_glance_chip(text: String, color: Color, a11y: String) -> void:
+	var chip := PanelContainer.new()
+	var st := StyleBoxFlat.new()
+	st.bg_color = UIColors.COLOR_TERTIARY
+	st.border_color = color
+	st.set_border_width_all(1)
+	st.set_corner_radius_all(10)
+	st.content_margin_left = UIColors.SPACING_SM
+	st.content_margin_right = UIColors.SPACING_SM
+	st.content_margin_top = 2
+	st.content_margin_bottom = 2
+	chip.add_theme_stylebox_override("panel", st)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+	lbl.add_theme_color_override("font_color", color)
+	# Godot 4.6 AccessKit reports nothing useful for unnamed code-built controls.
+	lbl.accessibility_name = a11y
+	chip.add_child(lbl)
+	_glance_row.add_child(chip)
+
+
 func _build_phase_instruction_banner() -> void:
 	if _phase_banner != null or phase_hud == null:
 		return
@@ -1288,6 +1369,16 @@ func _build_phase_instruction_banner() -> void:
 		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_phase_banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(_phase_banner_label)
+	# Glance strip: the handful of numbers a player at a physical table checks
+	# constantly (round, enemies left + their Panic range, objective progress,
+	# active deployment condition). All of it previously required opening a
+	# drawer mid-turn with dice in one hand. HFlow so it wraps in portrait
+	# instead of overflowing the 360dp floor.
+	_glance_row = HFlowContainer.new()
+	_glance_row.name = "GlanceChips"
+	_glance_row.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+	_glance_row.add_theme_constant_override("v_separation", 4)
+	vb.add_child(_glance_row)
 	bottom_content.add_child(_phase_banner)
 	bottom_content.move_child(_phase_banner, 0)
 	_phase_banner.visible = false
@@ -1355,6 +1446,9 @@ func _set_phase_instruction(phase_idx: int, phase_name: String, instruction: Str
 	if _phase_banner_label:
 		_phase_banner_label.text = instruction
 	_phase_banner.visible = true
+	# The banner changes once per phase, which is exactly when the glance numbers
+	# are worth repainting.
+	_refresh_glance_chips()
 
 func _build_phase_breadcrumb() -> void:
 	## Build the stage breadcrumb in TopBar
@@ -4250,6 +4344,7 @@ func _mark_casualty(unit, is_crew: bool, feed_morale: bool = true) -> void:
 				and battle_round_hud.has_method("report_casualty"):
 			battle_round_hud.report_casualty()
 	_refresh_unit_rails()
+	_refresh_glance_chips()
 	_queue_drawer_repopulate()
 
 

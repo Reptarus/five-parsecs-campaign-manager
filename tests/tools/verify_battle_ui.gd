@@ -142,6 +142,7 @@ func _process(_delta: float) -> bool:
 			_check_seize_initiative()
 			_check_results_prefill()
 			_check_end_phase_checklist()
+			_check_glance_chips()
 
 			# FULL_ORACLE is a different UI arrangement — verify it on its own
 			# instance so the ASSISTED assertions above are not disturbed.
@@ -203,6 +204,23 @@ func _check_end_phase_checklist() -> void:
 	_ok("no give-up prompt before the objective is complete",
 		_ui._giveup_check_info().is_empty(),
 		"give-up prompt offered with no completed objective")
+
+func _check_glance_chips() -> void:
+	## U5 — round, enemies-left + Panic range, objective and active deployment
+	## condition are the numbers a player checks constantly at a physical table.
+	## All of them previously required opening a drawer mid-turn.
+	_ui._refresh_glance_chips()
+	var row: Variant = _ui.get("_glance_row")
+	if row == null or not is_instance_valid(row):
+		_ok("glance chip strip exists", false, "_glance_row is null")
+		return
+	var text: String = _harvest_text(row)
+	_ok("glance strip shows the round", text.contains("Round"), text)
+	# Two enemy figures have been marked down by this point, so the count must be
+	# the LIVE one. A stale chip surviving a refresh (queue_free is deferred) read
+	# "5 enemy left" here and is exactly what this assertion pins.
+	_ok("glance strip shows the live enemies-left count with its Panic range",
+		text.contains("4 enemy left") and text.contains("Panic"), text)
 
 func _count_buttons(node: Node) -> int:
 	var n: int = 1 if node is Button else 0
