@@ -1,6 +1,9 @@
 extends Control
 
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+## The canonical victory evaluator (Core Rules p.64, 18 condition types). The
+## same one CampaignPhaseManager uses on turn rollover.
+const VictoryCheckerRef = preload("res://src/core/victory/VictoryChecker.gd")
 
 @onready var return_button: Button = $Button
 @onready var victory_label: Label = $VictoryLabel
@@ -20,21 +23,43 @@ func _ready() -> void:
 		push_error("GameStateManager not found. Make sure GameStateManager is properly set up as an AutoLoad.")
 		return
 
-	return_button.pressed.connect(_on_return_button_pressed)
+	# The .tscn ALREADY wires Button.pressed -> _on_return_button_pressed via a
+	# [connection]. Connecting again here made Godot error ("Signal 'pressed' is
+	# already connected"), and had it succeeded the handler would have fired
+	# twice per press. The scene connection is the one true wiring; this guard
+	# keeps the code path working for anyone who builds the screen without it.
+	if not return_button.pressed.is_connected(_on_return_button_pressed):
+		return_button.pressed.connect(_on_return_button_pressed)
 	_update_game_over_display()
 
 func _update_game_over_display() -> void:
-	var game_state = game_state_manager.game_state
-	if not game_state:
-		push_error("GameState not found. Make sure GameStateManager.game_state is properly initialized.")
-		return
+	## THE BUG THIS FIXES: this called game_state_manager.check_victory_conditions(),
+	## which DOES NOT EXIST — GameStateManager only has get/set_victory_conditions()
+	## accessors. A nonexistent method call aborts the enclosing function, so
+	## _update_game_over_display() unwound at this line every single time and
+	## NEITHER label was ever shown or hidden. The Game Over screen displayed
+	## whatever the scene happened to ship with, regardless of the outcome.
+	##
+	## Routed through VictoryChecker, the evaluator CampaignPhaseManager already
+	## uses, so the screen agrees with the turn-rollover check that sent us here.
+	# The campaign lives on GameState, not on the manager — GameStateManager has
+	# no get_current_campaign(). Checked rather than assumed, because assuming a
+	# method exists is precisely what broke this function in the first place.
+	var campaign: Variant = null
+	var gs = game_state_manager.game_state
+	if gs != null and gs.has_method("get_current_campaign"):
+		campaign = gs.get_current_campaign()
 
-	if game_state_manager.check_victory_conditions():
-		victory_label.show()
-		defeat_label.hide()
-	else:
-		victory_label.hide()
-		defeat_label.show()
+	var achieved: bool = false
+	if campaign != null:
+		var turn: int = 0
+		if "progress_data" in campaign and campaign.progress_data is Dictionary:
+			turn = int(campaign.progress_data.get("turns_played", 0))
+		achieved = bool(VictoryCheckerRef.check_victory(campaign, turn) \
+			.get("achieved", false))
+
+	victory_label.visible = achieved
+	defeat_label.visible = not achieved
 
 func _on_return_button_pressed() -> void:
 	## Route through SceneRouter like every other screen. The previous direct

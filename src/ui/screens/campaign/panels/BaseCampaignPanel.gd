@@ -232,6 +232,28 @@ func _setup_panel_content() -> void:
 # ============ RESPONSIVE LAYOUT SYSTEM (MOBILE-FIRST) ============
 # Sprint 3: Mobile-first responsive design with breakpoint detection
 
+func _reparent(node: Node, from_parent: Node, to_parent: Node) -> void:
+	## Move a node that came from the .tscn into a container built at runtime.
+	##
+	## Clearing `owner` first is the whole point. A node loaded from a scene keeps
+	## `owner` pointing at that scene's root; re-adding it under a code-built
+	## parent that is not in the owner's branch leaves the ownership graph
+	## inconsistent, and Godot warns on EVERY one:
+	##   "Adding 'X' as child to 'Y' will make owner 'Z' inconsistent.
+	##    Consider unsetting the owner beforehand."
+	## A route sweep produced nine of these in a single pass across ShipPanel and
+	## WorldInfoPanel, both of which reshuffle .tscn sections into card layouts.
+	## Rendering survives, but a scene saved or duplicated in that state drops the
+	## reparented nodes — and the warning spam buries real errors in the console.
+	if node == null or to_parent == null:
+		return
+	if from_parent != null and node.get_parent() == from_parent:
+		from_parent.remove_child(node)
+	elif node.get_parent() != null:
+		node.get_parent().remove_child(node)
+	node.owner = null
+	to_parent.add_child(node)
+
 func _setup_responsive_layout() -> void:
 	## Initialize responsive layout system on panel load
 	_apply_responsive_layout()

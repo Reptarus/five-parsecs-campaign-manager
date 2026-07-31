@@ -584,10 +584,11 @@ func _ensure_overview_card() -> void:
 	# Reparent labels into wrapper
 	var orig_parent = government_info.get_parent()
 	var idx = government_info.get_index()
-	orig_parent.remove_child(government_info)
-	orig_parent.remove_child(tech_level_display)
-	overview_vbox.add_child(government_info)
-	overview_vbox.add_child(tech_level_display)
+	# _reparent (BaseCampaignPanel) clears `owner` first. These labels come from
+	# the .tscn, so moving them into a runtime-built card without that left the
+	# scene ownership graph inconsistent and Godot warned on each one.
+	_reparent(government_info, orig_parent, overview_vbox)
+	_reparent(tech_level_display, orig_parent, overview_vbox)
 	# Wrap in card
 	_wrap_in_card_node(overview_vbox, "WORLD OVERVIEW")
 	# Insert card at original position
@@ -688,8 +689,7 @@ func _wrap_in_card(
 	# Reparent the container into the card
 	var orig_parent = container.get_parent()
 	var idx = container.get_index()
-	orig_parent.remove_child(container)
-	card_inner.add_child(container)
+	_reparent(container, orig_parent, card_inner)
 	# Wrap in PanelContainer
 	var panel := PanelContainer.new()
 	panel.name = "__card_%s" % title.to_lower().replace(

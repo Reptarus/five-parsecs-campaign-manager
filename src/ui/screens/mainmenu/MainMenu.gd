@@ -489,8 +489,20 @@ func _check_first_run_tutorial() -> void:
 	if tui.is_tutorial_completed("first_run"):
 		tui.queue_free()
 		return
-	# Brief delay so buttons are laid out
+	# Brief delay so buttons are laid out.
+	#
+	# The await is the hazard: if this node leaves the tree during those 0.3s —
+	# the player taps a menu button, or the screen is reparented — execution
+	# resumes on a detached node and get_tree() returns null, so the NEXT line
+	# would call a method on it. A route sweep hit exactly that
+	# ("Cannot call method 'create_timer' on a null value"). Re-check on both
+	# sides of the await: once before creating the timer, once after it fires.
+	if not is_inside_tree():
+		tui.queue_free()
+		return
 	await get_tree().create_timer(0.3).timeout
+	if not is_inside_tree() or not is_instance_valid(tui):
+		return
 	tui.start_tutorial("first_run")
 
 func _on_load_campaign_pressed() -> void:

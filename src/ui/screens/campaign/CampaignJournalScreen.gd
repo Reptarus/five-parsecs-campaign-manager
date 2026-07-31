@@ -314,7 +314,16 @@ func _build_filter_panel() -> Control:
 		# object is freed, but a lambda's captures are not tracked that way — after
 		# this screen is freed the autoload kept calling it, printing "Lambda capture
 		# at index 0 was freed" on every rotation for the rest of the session.
-		rm.layout_class_changed.connect(_on_layout_class_changed)
+		#
+		# GUARDED: CampaignScreenBase._connect_responsive_signals() already connects
+		# this exact signal to this exact method (and guards its own call), so this
+		# second connect errored with "Signal 'layout_class_changed' is already
+		# connected" every time the screen opened. Godot 4 refuses duplicate
+		# connects, which is why the handler still only fired once — but the error
+		# was real and the project convention is that any connect() reachable from a
+		# rebuild path is is_connected-guarded.
+		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
+			rm.layout_class_changed.connect(_on_layout_class_changed)
 	return panel
 
 

@@ -182,14 +182,12 @@ func _wrap_form_in_cards() -> void:
 	# Move ship name section into card
 	var ship_name_section = content_node.get_node_or_null("ShipName")
 	if ship_name_section:
-		content_node.remove_child(ship_name_section)
-		identity_content.add_child(ship_name_section)
+		_reparent(ship_name_section, content_node, identity_content)
 
 	# Move ship type section into card
 	var ship_type_section = content_node.get_node_or_null("ShipType")
 	if ship_type_section:
-		content_node.remove_child(ship_type_section)
-		identity_content.add_child(ship_type_section)
+		_reparent(ship_type_section, content_node, identity_content)
 
 	cards_container.add_child(identity_card)
 
@@ -200,20 +198,17 @@ func _wrap_form_in_cards() -> void:
 	# Move hull points section into card
 	var hull_section = content_node.get_node_or_null("HullPoints")
 	if hull_section:
-		content_node.remove_child(hull_section)
-		specs_content.add_child(hull_section)
+		_reparent(hull_section, content_node, specs_content)
 
 	# Move debt section into card
 	var debt_section = content_node.get_node_or_null("Debt")
 	if debt_section:
-		content_node.remove_child(debt_section)
-		specs_content.add_child(debt_section)
+		_reparent(debt_section, content_node, specs_content)
 
 	# Move ship stats if present
 	var stats_section = content_node.get_node_or_null("ShipStats")
 	if stats_section:
-		content_node.remove_child(stats_section)
-		specs_content.add_child(stats_section)
+		_reparent(stats_section, content_node, specs_content)
 
 	cards_container.add_child(specs_card)
 
@@ -222,8 +217,7 @@ func _wrap_form_in_cards() -> void:
 	if traits_section:
 		var traits_card := _create_form_section_card("SHIP TRAITS", "Special capabilities and modifications.")
 		var traits_content := traits_card.get_node("CardMargin/CardContent")
-		content_node.remove_child(traits_section)
-		traits_content.add_child(traits_section)
+		_reparent(traits_section, content_node, traits_content)
 		cards_container.add_child(traits_card)
 
 	# === CREW FLAVOR CARD (Core Rules p.32) ===
@@ -233,9 +227,8 @@ func _wrap_form_in_cards() -> void:
 	# === ACTION BUTTONS (no card, centered) ===
 	var controls_section = content_node.get_node_or_null("Controls")
 	if controls_section:
-		content_node.remove_child(controls_section)
 		controls_section.alignment = BoxContainer.ALIGNMENT_CENTER
-		cards_container.add_child(controls_section)
+		_reparent(controls_section, content_node, cards_container)
 
 	# Set min widths for HFlowContainer responsive columns
 	for child in cards_container.get_children():

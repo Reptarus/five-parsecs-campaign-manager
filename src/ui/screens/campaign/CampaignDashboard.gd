@@ -276,7 +276,17 @@ func _check_dashboard_tutorial() -> void:
 	if tui.is_tutorial_completed("campaign_dashboard"):
 		tui.queue_free()
 		return
+	# Same hazard as MainMenu._check_first_run_tutorial(): this runs from screen
+	# setup, and if the dashboard leaves the tree during the delay — the player
+	# taps through, or the screen is swapped — execution resumes on a detached
+	# node, get_tree() returns null, and the next line calls a method on it. A
+	# route sweep hit exactly that. Re-check on both sides of the await.
+	if not is_inside_tree():
+		tui.queue_free()
+		return
 	await get_tree().create_timer(0.5).timeout
+	if not is_inside_tree() or not is_instance_valid(tui):
+		return
 	tui.start_tutorial("campaign_dashboard")
 
 func _add_hub_cards() -> void:

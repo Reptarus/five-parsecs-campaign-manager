@@ -30,7 +30,11 @@ const MarkdownToRichTextScript = preload("res://src/ui/help/MarkdownToRichText.g
 
 
 func _setup_screen() -> void:
-	push_warning("HelpScreen: _setup_screen starting")
+	# Two push_warning() calls ("_setup_screen starting" / "complete") were left
+	# here as debug tracing. push_warning is not a log channel — it prints a
+	# warning with a full GDScript backtrace on every open, which is noise in the
+	# console and in any bug report a player submits. Removed, not downgraded:
+	# a screen that opened successfully has nothing to report.
 	_content_loader = HelpContentLoaderScript.new()
 	_md_converter = MarkdownToRichTextScript.new()
 
@@ -39,7 +43,6 @@ func _setup_screen() -> void:
 		_populate_toc()
 	else:
 		push_error("HelpScreen: HelpContentLoader failed to initialize")
-	push_warning("HelpScreen: _setup_screen complete")
 
 	# Check if we should open a specific chapter from SceneRouter context
 	var router := get_node_or_null("/root/SceneRouter")
