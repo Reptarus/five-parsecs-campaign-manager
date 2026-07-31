@@ -438,8 +438,8 @@ func _style_navigation_buttons() -> void:
 		btn.custom_minimum_size.y = 48  # TOUCH_TARGET_MIN
 
 		var normal := StyleBoxFlat.new()
-		normal.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
-		normal.border_color = Color("#3A7199")
+		normal.bg_color = UIColors.COLOR_BLUE  # COLOR_ACCENT
+		normal.border_color = UIColors.COLOR_ACCENT_HOVER
 		normal.set_border_width_all(1)
 		normal.set_corner_radius_all(4)
 		normal.content_margin_left = 20
@@ -449,8 +449,8 @@ func _style_navigation_buttons() -> void:
 		btn.add_theme_stylebox_override("normal", normal)
 
 		var hover := StyleBoxFlat.new()
-		hover.bg_color = Color("#3A7199")  # COLOR_ACCENT_HOVER
-		hover.border_color = Color("#4FC3F7")  # COLOR_FOCUS
+		hover.bg_color = UIColors.COLOR_ACCENT_HOVER  # COLOR_ACCENT_HOVER
+		hover.border_color = UIColors.COLOR_CYAN  # COLOR_FOCUS
 		hover.set_border_width_all(1)
 		hover.set_corner_radius_all(4)
 		hover.content_margin_left = 20
@@ -461,7 +461,7 @@ func _style_navigation_buttons() -> void:
 
 		var pressed := StyleBoxFlat.new()
 		pressed.bg_color = Color("#1E4A66")
-		pressed.border_color = Color("#4FC3F7")
+		pressed.border_color = UIColors.COLOR_CYAN
 		pressed.set_border_width_all(2)
 		pressed.set_corner_radius_all(4)
 		pressed.content_margin_left = 20
@@ -471,8 +471,8 @@ func _style_navigation_buttons() -> void:
 		btn.add_theme_stylebox_override("pressed", pressed)
 
 		var disabled := StyleBoxFlat.new()
-		disabled.bg_color = Color("#1A1A2E")  # COLOR_BASE
-		disabled.border_color = Color("#3A3A5C")  # COLOR_BORDER
+		disabled.bg_color = UIColors.COLOR_PRIMARY  # COLOR_BASE
+		disabled.border_color = UIColors.COLOR_BORDER  # COLOR_BORDER
 		disabled.set_border_width_all(1)
 		disabled.set_corner_radius_all(4)
 		disabled.content_margin_left = 20
@@ -481,14 +481,14 @@ func _style_navigation_buttons() -> void:
 		disabled.content_margin_bottom = 10
 		btn.add_theme_stylebox_override("disabled", disabled)
 
-		btn.add_theme_color_override("font_color", Color("#E0E0E0"))
+		btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		btn.add_theme_color_override("font_hover_color", Color.WHITE)
-		btn.add_theme_color_override("font_disabled_color", Color("#404040"))
+		btn.add_theme_color_override("font_disabled_color", UIColors.COLOR_TEXT_MUTED)
 
 	# Make Finish button more prominent (accent highlight)
 	if finish_button:
 		var finish_normal := StyleBoxFlat.new()
-		finish_normal.bg_color = Color("#10B981")  # COLOR_SUCCESS
+		finish_normal.bg_color = UIColors.COLOR_EMERALD  # COLOR_SUCCESS
 		finish_normal.border_color = Color("#34D399")
 		finish_normal.set_border_width_all(1)
 		finish_normal.set_corner_radius_all(4)

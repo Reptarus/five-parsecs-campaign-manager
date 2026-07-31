@@ -512,8 +512,8 @@ func _on_load_campaign_pressed() -> void:
 	dialog.ok_button_text = "Cancel"
 	# Deep Space theme (matches Bug Hunt dialog)
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1A1A2E")
-	panel_style.border_color = Color("#3A3A5C")
+	panel_style.bg_color = UIColors.COLOR_PRIMARY
+	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(6)
 	panel_style.content_margin_left = 16
@@ -522,7 +522,7 @@ func _on_load_campaign_pressed() -> void:
 	panel_style.content_margin_bottom = 12
 	dialog.add_theme_stylebox_override("panel", panel_style)
 	dialog.add_theme_color_override(
-		"font_color", Color("#E0E0E0"))
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 	# Wrap campaign list in ScrollContainer for many saves
 	var scroll := ScrollContainer.new()
@@ -569,16 +569,16 @@ func _on_load_campaign_pressed() -> void:
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Deep Space button styling
 		var btn_sty := StyleBoxFlat.new()
-		btn_sty.bg_color = Color("#252542")
-		btn_sty.border_color = Color("#3A3A5C")
+		btn_sty.bg_color = UIColors.COLOR_SECONDARY
+		btn_sty.border_color = UIColors.COLOR_BORDER
 		btn_sty.set_border_width_all(1)
 		btn_sty.set_corner_radius_all(4)
 		btn_sty.set_content_margin_all(8)
 		btn.add_theme_stylebox_override("normal", btn_sty)
 		var btn_hov := btn_sty.duplicate()
-		btn_hov.bg_color = Color("#2D5A7B")
+		btn_hov.bg_color = UIColors.COLOR_BLUE
 		btn.add_theme_stylebox_override("hover", btn_hov)
-		btn.add_theme_color_override("font_color", Color("#E0E0E0"))
+		btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		btn.pressed.connect(
 			_load_and_go_to_dashboard.bind(
 				save_path, dialog, backdrop))
@@ -589,7 +589,7 @@ func _on_load_campaign_pressed() -> void:
 		del_btn.text = "\u2715"  # ✕ unicode multiply sign — cleaner than "X"
 		del_btn.custom_minimum_size = Vector2(48, 48)
 		del_btn.tooltip_text = "Delete this save"
-		del_btn.add_theme_color_override("font_color", Color("#DC2626"))
+		del_btn.add_theme_color_override("font_color", UIColors.COLOR_RED)
 		del_btn.add_theme_color_override("font_hover_color", Color("#FF4444"))
 		del_btn.pressed.connect(
 			_on_delete_save.bind(save_path, row, info.get("name", ""), dialog))
@@ -601,14 +601,14 @@ func _on_load_campaign_pressed() -> void:
 	import_btn.text = "Import from File..."
 	import_btn.custom_minimum_size.y = 48
 	var imp_sty := StyleBoxFlat.new()
-	imp_sty.bg_color = Color("#252542")
-	imp_sty.border_color = Color("#4FC3F7")
+	imp_sty.bg_color = UIColors.COLOR_SECONDARY
+	imp_sty.border_color = UIColors.COLOR_CYAN
 	imp_sty.set_border_width_all(1)
 	imp_sty.set_corner_radius_all(4)
 	imp_sty.set_content_margin_all(8)
 	import_btn.add_theme_stylebox_override("normal", imp_sty)
 	import_btn.add_theme_color_override(
-		"font_color", Color("#4FC3F7"))
+		"font_color", UIColors.COLOR_CYAN)
 	import_btn.pressed.connect(
 		_on_import_from_file.bind(dialog))
 	vbox.add_child(import_btn)
@@ -824,8 +824,8 @@ func _on_bug_hunt_pressed() -> void:
 	dialog.ok_button_text = "Cancel"
 	# Deep Space theme for dialog
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1A1A2E")
-	panel_style.border_color = Color("#3A3A5C")
+	panel_style.bg_color = UIColors.COLOR_PRIMARY
+	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(6)
 	panel_style.content_margin_left = 16
@@ -834,7 +834,7 @@ func _on_bug_hunt_pressed() -> void:
 	panel_style.content_margin_bottom = 12
 	dialog.add_theme_stylebox_override("panel", panel_style)
 	dialog.add_theme_color_override(
-		"font_color", Color("#E0E0E0"))
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -844,7 +844,7 @@ func _on_bug_hunt_pressed() -> void:
 	info_lbl.text = "Found %d Bug Hunt campaign(s)." % bh_saves.size()
 	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_lbl.add_theme_color_override(
-		"font_color", Color("#E0E0E0"))
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(info_lbl)
 
 	# Continue most recent
@@ -974,8 +974,8 @@ func _on_tactics_pressed() -> void:
 	dialog.title = "Tactics"
 	dialog.ok_button_text = "Cancel"
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1A1A2E")
-	panel_style.border_color = Color("#3A3A5C")
+	panel_style.bg_color = UIColors.COLOR_PRIMARY
+	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(6)
 	panel_style.content_margin_left = 16
@@ -983,7 +983,7 @@ func _on_tactics_pressed() -> void:
 	panel_style.content_margin_top = 12
 	panel_style.content_margin_bottom = 12
 	dialog.add_theme_stylebox_override("panel", panel_style)
-	dialog.add_theme_color_override("font_color", Color("#E0E0E0"))
+	dialog.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -992,7 +992,7 @@ func _on_tactics_pressed() -> void:
 	var info_lbl := Label.new()
 	info_lbl.text = "Found %d Tactics campaign(s)." % tac_saves.size()
 	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info_lbl.add_theme_color_override("font_color", Color("#E0E0E0"))
+	info_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(info_lbl)
 
 	var latest: Dictionary = tac_saves[0]
@@ -1118,8 +1118,8 @@ func _on_planetfall_pressed() -> void:
 	dialog.title = "Planetfall"
 	dialog.ok_button_text = "Cancel"
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1A1A2E")
-	panel_style.border_color = Color("#3A3A5C")
+	panel_style.bg_color = UIColors.COLOR_PRIMARY
+	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(6)
 	panel_style.content_margin_left = 16
@@ -1127,7 +1127,7 @@ func _on_planetfall_pressed() -> void:
 	panel_style.content_margin_top = 12
 	panel_style.content_margin_bottom = 12
 	dialog.add_theme_stylebox_override("panel", panel_style)
-	dialog.add_theme_color_override("font_color", Color("#E0E0E0"))
+	dialog.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -1136,7 +1136,7 @@ func _on_planetfall_pressed() -> void:
 	var info_lbl := Label.new()
 	info_lbl.text = "Found %d Planetfall campaign(s)." % pf_saves.size()
 	info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info_lbl.add_theme_color_override("font_color", Color("#E0E0E0"))
+	info_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(info_lbl)
 
 	var latest: Dictionary = pf_saves[0]
@@ -1336,7 +1336,7 @@ func _build_social_footer() -> void:
 	label.text = "Community:"
 	label.add_theme_font_size_override("font_size", 13)
 	label.add_theme_color_override(
-		"font_color", Color("#808080"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_social_bar.add_child(label)
 
 	# Link buttons
@@ -1348,7 +1348,7 @@ func _build_social_footer() -> void:
 		btn.custom_minimum_size.y = 36
 		btn.add_theme_font_size_override("font_size", 13)
 		btn.add_theme_color_override(
-			"font_color", Color("#4FC3F7"))
+			"font_color", UIColors.COLOR_CYAN)
 		btn.add_theme_color_override(
 			"font_hover_color", Color("#81D4FA"))
 		var url: String = link.get("url", "")
@@ -1366,7 +1366,7 @@ func _build_social_footer() -> void:
 	credits_btn.custom_minimum_size.y = 36
 	credits_btn.add_theme_font_size_override("font_size", 13)
 	credits_btn.add_theme_color_override(
-		"font_color", Color("#808080"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	credits_btn.add_theme_color_override(
 		"font_hover_color", Color("#B0B0B0"))
 	credits_btn.pressed.connect(_show_credits)
@@ -1382,7 +1382,7 @@ func _build_social_footer() -> void:
 	privacy_btn.flat = true
 	privacy_btn.add_theme_font_size_override("font_size", 11)
 	privacy_btn.add_theme_color_override(
-		"font_color", Color("#808080"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	privacy_btn.add_theme_color_override(
 		"font_hover_color", Color("#B0B0B0"))
 	privacy_btn.pressed.connect(func():

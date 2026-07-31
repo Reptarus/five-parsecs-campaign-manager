@@ -15,13 +15,13 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 
 # Color palette - Deep Space Theme
-const COLOR_SECONDARY := Color("#111827")
-const COLOR_TERTIARY := Color("#1f2937")
-const COLOR_BORDER := Color("#374151")
-const COLOR_BLUE := Color("#3b82f6")
-const COLOR_TEXT_PRIMARY := Color("#f3f4f6")
-const COLOR_TEXT_SECONDARY := Color("#9ca3af")
-const COLOR_AMBER := Color("#f59e0b")
+const COLOR_SECONDARY := UIColors.COLOR_SECONDARY
+const COLOR_TERTIARY := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_BLUE := UIColors.COLOR_BLUE
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_AMBER := UIColors.COLOR_AMBER
 
 # Signals
 signal mission_details_requested()

@@ -42,16 +42,16 @@ const ORNAMENT_IDS: Array[String] = [
 
 ## Semantic color tokens mirroring BaseCampaignPanel.gd palette so the book
 ## chrome reads as an extension of the existing visual language.
-const COLOR_NEUTRAL := Color("#E0E0E0")   ## generic, default
-const COLOR_PRIMARY := Color("#4FC3F7")   ## primary narrative / focus
-const COLOR_SUCCESS := Color("#10B981")   ## owned / positive
-const COLOR_WARNING := Color("#D97706")   ## caution / low resources
-const COLOR_DANGER  := Color("#DC2626")   ## hostile / critical
+const COLOR_NEUTRAL := UIColors.COLOR_TEXT_PRIMARY   ## generic, default
+const COLOR_PRIMARY := UIColors.COLOR_CYAN   ## primary narrative / focus
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD   ## owned / positive
+const COLOR_WARNING := UIColors.COLOR_AMBER   ## caution / low resources
+const COLOR_DANGER  := UIColors.COLOR_RED   ## hostile / critical
 
 ## Glass card StyleBox copied from BaseCampaignPanel._create_glass_card_style()
 ## so BookFrame can be used standalone without inheriting from a campaign panel.
-const BG_COLOR := Color("#252542")
-const BORDER_COLOR := Color("#3A3A5C")
+const BG_COLOR := UIColors.COLOR_SECONDARY
+const BORDER_COLOR := UIColors.COLOR_BORDER
 
 @export var border_color: Color = COLOR_NEUTRAL:
 	set(value):

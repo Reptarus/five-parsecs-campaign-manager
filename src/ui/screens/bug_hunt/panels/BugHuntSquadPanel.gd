@@ -197,7 +197,7 @@ func _add_character_card(mc: Dictionary) -> void:
 	avatar.add_theme_font_size_override("font_size", _scaled_font(16))
 	# Deterministic color from name hash (8 colors like CharacterCard)
 	var avatar_colors := [
-		Color("#4FC3F7"), Color("#81C784"), Color("#FFB74D"),
+		UIColors.COLOR_CYAN, Color("#81C784"), Color("#FFB74D"),
 		Color("#E57373"), Color("#BA68C8"), Color("#4DD0E1"),
 		Color("#AED581"), Color("#FF8A65"),
 	]

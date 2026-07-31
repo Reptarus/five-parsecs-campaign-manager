@@ -383,10 +383,10 @@ func _show_transfer_feedback(success: bool, item_name: String, character_id: Str
 
 	if success:
 		_feedback_label.text = "✅ Transferred %s to %s" % [item_name, character_id]
-		_feedback_label.add_theme_color_override("font_color", Color("#10B981"))  # Green
+		_feedback_label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)  # Green
 	else:
 		_feedback_label.text = "❌ Failed to transfer %s" % item_name
-		_feedback_label.add_theme_color_override("font_color", Color("#DC2626"))  # Red
+		_feedback_label.add_theme_color_override("font_color", UIColors.COLOR_RED)  # Red
 
 	_feedback_label.add_theme_font_size_override("font_size", 12)
 

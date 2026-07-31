@@ -683,8 +683,8 @@ func _build_crew_card(member) -> PanelContainer:
 	av.custom_minimum_size = Vector2(av_size, av_size)
 	av.clip_contents = true
 	var av_colors := [
-		Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
-		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"),
+		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
+		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
 		Color("#ec4899"), Color("#14b8a6")]
 	var ci := char_name.hash() % av_colors.size()
 	if ci < 0:
@@ -752,8 +752,8 @@ func _build_crew_card(member) -> PanelContainer:
 	pill_row.add_theme_constant_override("separation", SPACING_XS)
 	if is_captain:
 		pill_row.add_child(_create_pill("Captain", COLOR_AMBER))
-	pill_row.add_child(_create_pill(species, Color("#3b82f6")))
-	pill_row.add_child(_create_pill(char_class, Color("#8b5cf6")))
+	pill_row.add_child(_create_pill(species, UIColors.COLOR_BLUE))
+	pill_row.add_child(_create_pill(char_class, UIColors.COLOR_PURPLE))
 	vbox.add_child(pill_row)
 
 	# Status effect indicators (Core Rules pp.128-130)
@@ -772,15 +772,15 @@ func _build_crew_card(member) -> PanelContainer:
 			var eff_color: Color
 			match eff_type:
 				"departed":
-					eff_color = Color("#DC2626")  # Red
+					eff_color = UIColors.COLOR_RED  # Red
 				"unavailable", "skip_next_battle":
-					eff_color = Color("#D97706")  # Orange
+					eff_color = UIColors.COLOR_AMBER  # Orange
 				"skip_tasks", "no_xp", "item_damaged":
-					eff_color = Color("#D97706")
+					eff_color = UIColors.COLOR_AMBER
 				"extra_action", "ignore_next_injury":
-					eff_color = Color("#10B981")  # Green
+					eff_color = UIColors.COLOR_EMERALD  # Green
 				_:
-					eff_color = Color("#808080")
+					eff_color = UIColors.COLOR_TEXT_SECONDARY
 			var label_text: String = eff_name
 			if dur > 0:
 				label_text += " (%dt)" % dur

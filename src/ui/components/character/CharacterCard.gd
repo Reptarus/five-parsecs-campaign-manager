@@ -369,8 +369,8 @@ func _create_portrait(size: int) -> TextureRect:
 
 ## Deterministic avatar background colors (Deep Space palette)
 const AVATAR_COLORS: Array[Color] = [
-	Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"), Color("#10b981"),
-	Color("#f59e0b"), Color("#ef4444"), Color("#ec4899"), Color("#14b8a6"),
+	UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN, UIColors.COLOR_EMERALD,
+	UIColors.COLOR_AMBER, UIColors.COLOR_RED, Color("#ec4899"), Color("#14b8a6"),
 ]
 
 func _update_portrait() -> void:
@@ -630,11 +630,11 @@ func _create_stats_grid_5col() -> GridContainer:
 		return grid
 
 	var stats := [
-		{"label": "REA", "value": _get_reaction() if _get_reaction() else 1, "color": Color("#10b981")},
-		{"label": "SPD", "value": str(character_data.speed if character_data.speed else 4) + '"', "color": Color("#3b82f6")},
-		{"label": "CBT", "value": _format_modifier(character_data.combat if character_data.combat else 0), "color": Color("#f59e0b")},
-		{"label": "TGH", "value": character_data.toughness if character_data.toughness else 3, "color": Color("#ef4444")},
-		{"label": "SAV", "value": _format_modifier(character_data.savvy if character_data.savvy else 0), "color": Color("#8b5cf6")}
+		{"label": "REA", "value": _get_reaction() if _get_reaction() else 1, "color": UIColors.COLOR_EMERALD},
+		{"label": "SPD", "value": str(character_data.speed if character_data.speed else 4) + '"', "color": UIColors.COLOR_BLUE},
+		{"label": "CBT", "value": _format_modifier(character_data.combat if character_data.combat else 0), "color": UIColors.COLOR_AMBER},
+		{"label": "TGH", "value": character_data.toughness if character_data.toughness else 3, "color": UIColors.COLOR_RED},
+		{"label": "SAV", "value": _format_modifier(character_data.savvy if character_data.savvy else 0), "color": UIColors.COLOR_PURPLE}
 	]
 
 	for stat in stats:
@@ -733,7 +733,7 @@ func _create_equipment_badges() -> HBoxContainer:
 		var overflow := Label.new()
 		overflow.text = "+%d items" % (equipment_items.size() - 2)
 		overflow.add_theme_font_size_override("font_size", 11)
-		overflow.add_theme_color_override("font_color", Color("#6b7280"))
+		overflow.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		hbox.add_child(overflow)
 
 	return hbox
@@ -744,16 +744,16 @@ func _create_equipment_badge(item) -> PanelContainer:
 	var badge := PanelContainer.new()
 
 	# Determine color based on item type
-	var accent_color := Color("#ef4444")  # Default red for weapons
+	var accent_color := UIColors.COLOR_RED  # Default red for weapons
 	var item_name := "Unknown"
 
 	if item is Dictionary:
 		item_name = item.get("name", "Unknown")
 		var item_type = item.get("type", "weapon")
 		if item_type == "armor":
-			accent_color = Color("#6b7280")
+			accent_color = UIColors.COLOR_TEXT_MUTED
 		elif item_type == "gadget":
-			accent_color = Color("#8b5cf6")
+			accent_color = UIColors.COLOR_PURPLE
 	elif item is Resource and item.has_method("get_item_name"):
 		item_name = item.get_item_name()
 	elif item is String:
@@ -787,7 +787,7 @@ func _create_xp_progress_bar() -> VBoxContainer:
 	var label := Label.new()
 	label.text = "XP to Upgrade"
 	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", Color("#6b7280"))
+	label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	label_row.add_child(label)
 
 	var spacer := Control.new()
@@ -804,7 +804,7 @@ func _create_xp_progress_bar() -> VBoxContainer:
 	var value := Label.new()
 	value.text = "%d/%d" % [current_xp, max_xp]
 	value.add_theme_font_size_override("font_size", 11)
-	value.add_theme_color_override("font_color", Color("#8b5cf6"))
+	value.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
 	label_row.add_child(value)
 
 	container.add_child(label_row)
@@ -818,13 +818,13 @@ func _create_xp_progress_bar() -> VBoxContainer:
 
 	# Style background
 	var bg_style := StyleBoxFlat.new()
-	bg_style.bg_color = Color("#374151")
+	bg_style.bg_color = UIColors.COLOR_BORDER
 	bg_style.set_corner_radius_all(3)
 	progress.add_theme_stylebox_override("background", bg_style)
 
 	# Style fill (purple gradient effect)
 	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color("#8b5cf6")
+	fill_style.bg_color = UIColors.COLOR_PURPLE
 	fill_style.set_corner_radius_all(3)
 	progress.add_theme_stylebox_override("fill", fill_style)
 
@@ -840,13 +840,13 @@ func _create_status_badge(status: String) -> PanelContainer:
 	var color: Color
 	match status.to_lower():
 		"leader":
-			color = Color("#3b82f6")  # Blue
+			color = UIColors.COLOR_BLUE  # Blue
 		"ready":
-			color = Color("#10b981")  # Green
+			color = UIColors.COLOR_EMERALD  # Green
 		"injured":
-			color = Color("#ef4444")  # Red
+			color = UIColors.COLOR_RED  # Red
 		_:
-			color = Color("#6b7280")  # Gray
+			color = UIColors.COLOR_TEXT_MUTED  # Gray
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)

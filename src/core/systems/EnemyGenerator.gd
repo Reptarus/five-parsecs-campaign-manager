@@ -567,14 +567,16 @@ func generate_enemies_as_dicts(
 	# explicit that the figure "is always in addition to those normally
 	# encountered" (Core Rules p.94) — it must not consume a Specialist or
 	# Lieutenant slot or change the counts already rolled.
-	for unique in roll_unique_individuals(mission_data, category, difficulty_mode):
+	for unique in roll_unique_individuals(
+			mission_data, category, difficulty_mode, template):
 		enemies.append(unique)
 
 	return enemies
 
 
 func roll_unique_individuals(
-	mission_data: Dictionary, category: String, difficulty_mode: int = 0
+	mission_data: Dictionary, category: String, difficulty_mode: int = 0,
+	base_template: Dictionary = {}
 ) -> Array[Dictionary]:
 	## Core Rules pp.93-94. Returns the Unique Individual figures accompanying this
 	## force — usually none.
@@ -619,6 +621,16 @@ func roll_unique_individuals(
 			roll += 1
 		count = 1 if roll >= 9 else 0
 
+	# Base profile of the enemy type being fought. Required by the designer's
+	# official FAQ (modiphius.net/pages/five-parsecs-faq), verbatim: "The first
+	# three Unique Individuals on the table (Enemy Bruiser, Enemy Heavy, Enemy
+	# Boss) use the base profile of the enemy type you are fighting with a boost."
+	# Their table rows carry "-" (keep the base value) and "+1" (base value plus
+	# one) rather than absolute scores, which is meaningless without this.
+	var base_combat: int = int(base_template.get("combat_skill", 0))
+	var base_tough: int = int(base_template.get("toughness", 3))
+	var base_speed: int = int(base_template.get("speed", 4))
+
 	for _i in range(count):
 		var entry: Dictionary = _roll_unique_individual_entry(table)
 		if entry.is_empty():
@@ -631,9 +643,9 @@ func roll_unique_individuals(
 			# "Unique Individuals are Fearless and will not be affected by Morale
 			# checks" (p.105).
 			"is_fearless": true,
-			"combat_skill": _stat_or(entry.get("combat_skill", "-"), 0),
-			"toughness": _stat_or(entry.get("toughness", "-"), 3),
-			"speed": _stat_or(entry.get("speed", "-"), 4),
+			"combat_skill": _stat_or(entry.get("combat_skill", "-"), base_combat),
+			"toughness": _stat_or(entry.get("toughness", "-"), base_tough),
+			"speed": _stat_or(entry.get("speed", "-"), base_speed),
 			"reactions": 1,
 			"luck": int(entry.get("luck", 0)),
 			# "Note that they may follow a different AI routine than the group they
@@ -658,16 +670,32 @@ func _roll_unique_individual_entry(table: Array) -> Dictionary:
 	return table.back() if not table.is_empty() else {}
 
 
-func _stat_or(raw: Variant, fallback: int) -> int:
-	## Unique entries use "-" to mean "keep the base enemy's value" and a bare
-	## number or "+1" to mean an absolute or relative score. Only absolute values
-	## are meaningful without a base figure, so "-" and "+n" fall back.
+func _stat_or(raw: Variant, base: int) -> int:
+	## Resolve one Unique Individual stat against the base enemy's profile.
+	##
+	## The pp.105-107 table mixes three notations, and the designer's FAQ is what
+	## makes the first two meaningful: "The first three Unique Individuals on the
+	## table (Enemy Bruiser, Enemy Heavy, Enemy Boss) use the base profile of the
+	## enemy type you are fighting with a boost."
+	##   "-"   keep the base enemy's value       (Enemy Heavy: all three)
+	##   "+1"  base enemy's value plus one       (Enemy Bruiser Toughness,
+	##                                            Enemy Boss Combat + Toughness)
+	##   5     an absolute score                 (every later entry, e.g. Hired
+	##                                            Killer 5" / +1 / 5)
+	## Treating "+1" as "no data" — which an earlier pass did — silently threw the
+	## boost away and gave an Enemy Bruiser the same Toughness as the mooks it
+	## leads.
 	if raw is int or raw is float:
 		return int(raw)
 	var s: String = str(raw).strip_edges()
-	if s == "" or s == "-" or s.begins_with("+"):
-		return fallback
-	return int(s) if s.is_valid_int() else fallback
+	if s == "" or s == "-":
+		return base
+	if s.begins_with("+") or s.begins_with("-"):
+		var delta: String = s.substr(1)
+		if delta.is_valid_int():
+			return base + (int(delta) * (-1 if s.begins_with("-") else 1))
+		return base
+	return int(s) if s.is_valid_int() else base
 
 
 func _category_info(category_id: String) -> Dictionary:

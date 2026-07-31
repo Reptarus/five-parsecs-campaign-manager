@@ -383,7 +383,7 @@ func _setup_validation_hint(before_button: Button) -> void:
 		return
 	_validation_hint_label = Label.new()
 	_validation_hint_label.add_theme_font_size_override("font_size", _scaled_font(UIColors.FONT_SIZE_SM))
-	_validation_hint_label.add_theme_color_override("font_color", Color("#D97706"))  # Amber warning
+	_validation_hint_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)  # Amber warning
 	_validation_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_validation_hint_label.visible = false
 	# Insert before button in its parent container

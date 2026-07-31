@@ -106,6 +106,61 @@ func test_a_unique_carries_usable_stats_and_weapons() -> void:
 	assert_int(u["speed"]).is_greater(0)
 	assert_array(u["weapons"]).is_not_empty()
 
+# ── Designer FAQ: the first three entries scale off the enemy you fight ───
+#
+# modiphius.net/en-us/pages/five-parsecs-faq, verbatim: "The first three Unique
+# Individuals on the table (Enemy Bruiser, Enemy Heavy, Enemy Boss) use the base
+# profile of the enemy type you are fighting with a boost." Their table rows are
+# "-" and "+1" rather than absolute scores, so without the base profile they are
+# meaningless — and treating "+1" as no-data hands an Enemy Bruiser the same
+# Toughness as the mooks it leads.
+
+const TOUGH_BASE := 5
+const COMBAT_BASE := 2
+const SPEED_BASE := 6
+
+func _base() -> Dictionary:
+	return {"toughness": TOUGH_BASE, "combat_skill": COMBAT_BASE, "speed": SPEED_BASE}
+
+func _find(exact_name: String) -> Dictionary:
+	# EXACT match: the table also contains a "Mutant Bruiser" with absolute
+	# scores, so a substring search for "Bruiser" picks up the wrong entry and
+	# the test fails against correct code.
+	var g = _gen()
+	for _i in range(400):
+		for u in g.roll_unique_individuals({}, "criminal_elements", DIFF_INSANITY, _base()):
+			if str(u["name"]) == exact_name:
+				return u
+	return {}
+
+func test_enemy_heavy_inherits_the_base_profile_unchanged() -> void:
+	# Enemy Heavy's row is "-" for Speed, Combat Skill and Toughness.
+	var u: Dictionary = _find("Enemy Heavy")
+	assert_dict(u).is_not_empty()
+	assert_int(u["toughness"]).is_equal(TOUGH_BASE)
+	assert_int(u["combat_skill"]).is_equal(COMBAT_BASE)
+	assert_int(u["speed"]).is_equal(SPEED_BASE)
+
+func test_enemy_bruiser_takes_the_base_toughness_plus_one() -> void:
+	# Enemy Bruiser's row is Toughness "+1" off the base enemy.
+	var u: Dictionary = _find("Enemy Bruiser")
+	assert_dict(u).is_not_empty()
+	assert_int(u["toughness"]).is_equal(TOUGH_BASE + 1)
+
+func test_enemy_boss_takes_base_combat_and_toughness_plus_one() -> void:
+	var u: Dictionary = _find("Enemy Boss")
+	assert_dict(u).is_not_empty()
+	assert_int(u["combat_skill"]).is_equal(COMBAT_BASE + 1)
+	assert_int(u["toughness"]).is_equal(TOUGH_BASE + 1)
+
+func test_later_entries_keep_their_absolute_scores() -> void:
+	# Everything after the first three carries real numbers and must NOT be
+	# rebased onto the enemy being fought (Hired Killer is 5" / +1 / 5).
+	var u: Dictionary = _find("Hired Killer")
+	assert_dict(u).is_not_empty()
+	assert_int(u["toughness"]).is_equal(5)
+	assert_int(u["speed"]).is_equal(5)
+
 func test_the_full_book_table_is_reachable() -> void:
 	# The pp.105-107 table has 22 entries covering D100 1-100 with no gaps. Roll
 	# enough times that a hole in the ranges would surface as a repeat-only set.

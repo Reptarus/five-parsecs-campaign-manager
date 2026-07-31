@@ -5,12 +5,12 @@ extends VBoxContainer
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # Design system colors
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_WARNING := Color("#D97706")
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_WARNING := UIColors.COLOR_AMBER
 
 var toggle_states: Dictionary = {}
 

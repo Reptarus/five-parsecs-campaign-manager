@@ -354,7 +354,7 @@ func _show_sell_for_upkeep_dialog(
 	_sell_deficit_label = Label.new()
 	_sell_deficit_label.text = "Still need: %d credit(s)" % deficit
 	_sell_deficit_label.add_theme_color_override(
-		"font_color", Color("#D97706"))
+		"font_color", UIColors.COLOR_AMBER)
 	vbox.add_child(_sell_deficit_label)
 
 	# Scrollable item list
@@ -419,7 +419,7 @@ func _on_sell_item_pressed(
 			if _pending_deficit <= 0:
 				_sell_deficit_label.text = "Upkeep fully covered!"
 				_sell_deficit_label.add_theme_color_override(
-					"font_color", Color("#10B981"))
+					"font_color", UIColors.COLOR_EMERALD)
 			else:
 				_sell_deficit_label.text = (
 					"Still need: %d credit(s)" % _pending_deficit)
@@ -725,7 +725,7 @@ func _build_travel_section() -> void:
 			var inv_banner := PanelContainer.new()
 			var inv_style := StyleBoxFlat.new()
 			inv_style.bg_color = Color(0.55, 0.1, 0.1, 0.8)
-			inv_style.border_color = Color("#DC2626")
+			inv_style.border_color = UIColors.COLOR_RED
 			inv_style.set_border_width_all(2)
 			inv_style.set_corner_radius_all(8)
 			inv_style.content_margin_left = 12

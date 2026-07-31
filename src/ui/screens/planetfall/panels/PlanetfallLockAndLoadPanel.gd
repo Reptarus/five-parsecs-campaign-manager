@@ -10,13 +10,13 @@ signal phase_completed(result_data: Dictionary)
 const PlanetfallArmoryScript := preload(
 	"res://src/core/systems/PlanetfallArmorySystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -201,7 +201,7 @@ func _build_mission_info() -> void:
 			"The Slyn have been detected. You will fight Slyn " +
 			"pairs instead of the regular opposition. Prepare " +
 			"for beam focus weapons and short-range distortion.",
-			Color("#DC2626"))
+			UIColors.COLOR_RED)
 		_mission_info_section.add_child(slyn_card)
 
 	# Active battlefield condition
@@ -218,7 +218,7 @@ func _build_mission_info() -> void:
 		var cond_card := _create_info_card(
 			"Battlefield Condition: %s" % cond_name,
 			full_desc,
-			Color("#D97706"))
+			UIColors.COLOR_AMBER)
 		_mission_info_section.add_child(cond_card)
 
 	# Opposition type

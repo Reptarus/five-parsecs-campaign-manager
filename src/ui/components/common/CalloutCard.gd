@@ -19,11 +19,11 @@ extends PanelContainer
 
 ## Pre-defined semantic color tokens. Mirror BookFrame's palette so the two
 ## layers (page chrome + callout cards) read as one design system.
-const COLOR_NEUTRAL := Color("#E0E0E0")
-const COLOR_PRIMARY := Color("#4FC3F7")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER  := Color("#DC2626")
+const COLOR_NEUTRAL := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_PRIMARY := UIColors.COLOR_CYAN
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER  := UIColors.COLOR_RED
 
 ## StyleBox geometry, tuned to match the rulebook's "Elite Ranks" callout.
 const BORDER_WIDTH := 2
@@ -34,7 +34,7 @@ const PADDING_BOTTOM := 16
 const TITLE_FONT_SIZE := 18
 const TITLE_BODY_SEPARATION := 8
 
-const BG_COLOR := Color("#252542")  ## matches existing glass card bg
+const BG_COLOR := UIColors.COLOR_SECONDARY  ## matches existing glass card bg
 
 @export var border_color: Color = COLOR_WARNING:
 	set(value):

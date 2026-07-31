@@ -1123,7 +1123,7 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 				trait_strings.append(str(t))
 			traits_label.text = " / ".join(trait_strings)
 			traits_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
-			traits_label.add_theme_color_override("font_color", Color("#8b5cf6"))
+			traits_label.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
 			traits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			stats_row.add_child(traits_label)
 
@@ -1470,7 +1470,7 @@ func _build_generation_summary() -> void:
 		"military_weapon": COLOR_BLUE,
 		"low_tech_weapon": COLOR_CYAN,
 		"gear": COLOR_AMBER,
-		"gadget": Color("#8b5cf6")
+		"gadget": UIColors.COLOR_PURPLE
 	}
 	# If source_table isn't set, count by type from shared pool
 	if table_counts.is_empty():

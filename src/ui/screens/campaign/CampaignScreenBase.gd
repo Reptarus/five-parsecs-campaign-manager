@@ -873,8 +873,8 @@ func _create_character_card(
 	p_container.clip_contents = true
 
 	var avatar_colors := [
-		Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
-		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"),
+		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
+		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
 		Color("#ec4899"), Color("#14b8a6")]
 	var c_idx := char_name.hash() % avatar_colors.size()
 	if c_idx < 0:

@@ -22,12 +22,12 @@ enum DisplayMode {
 }
 
 ## Design System Constants (from BaseCampaignPanel)
-const COLOR_ELEVATED := Color("#252542")     # Card backgrounds
-const COLOR_BORDER := Color("#3A3A5C")       # Card borders
-const COLOR_FOCUS := Color("#4FC3F7")        # Focus ring (cyan)
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0") # Main content
-const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
-const COLOR_SUCCESS := Color("#10B981")      # Green (for bookmarks)
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY     # Card backgrounds
+const COLOR_BORDER := UIColors.COLOR_BORDER       # Card borders
+const COLOR_FOCUS := UIColors.COLOR_CYAN        # Focus ring (cyan)
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY # Main content
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY # Descriptions
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD      # Green (for bookmarks)
 const TOUCH_TARGET_COMFORT := 56             # Button height
 const SPACING_MD := 16                       # Padding
 

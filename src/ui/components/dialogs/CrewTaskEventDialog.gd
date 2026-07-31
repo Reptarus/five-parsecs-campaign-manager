@@ -39,18 +39,18 @@ enum EventType {
 }
 
 # ── Deep Space Theme ──────────────────────────────────────────────────
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_TEXT_GOLD := Color("#FFD700")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_DEFERRED := Color("#4FC3F7")
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_DEFERRED := UIColors.COLOR_CYAN
 const TOUCH_TARGET_MIN := 48
 
 # ── State ─────────────────────────────────────────────────────────────

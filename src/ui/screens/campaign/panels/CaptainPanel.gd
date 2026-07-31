@@ -31,7 +31,7 @@ func _ready() -> void:
 func _apply_base_background() -> void:
 	var bg := ColorRect.new()
 	bg.name = "__panel_bg"
-	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.color = UIColors.COLOR_PRIMARY  # COLOR_BASE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.show_behind_parent = true
@@ -130,7 +130,7 @@ func _build_captain_card() -> PanelContainer:
 	name_lbl.text = current_captain.character_name
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override(
-		"font_color", Color("#f3f4f6"))
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_lbl)
 
 	# Subtitle: Class / Origin / Background / Motivation
@@ -148,13 +148,13 @@ func _build_captain_card() -> PanelContainer:
 		cls, origin, bg, motiv]
 	sub_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	sub_lbl.add_theme_color_override(
-		"font_color", Color("#9ca3af"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	sub_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(sub_lbl)
 
 	# Separator
 	var sep := HSeparator.new()
-	sep.modulate = Color("#374151")
+	sep.modulate = UIColors.COLOR_BORDER
 	vbox.add_child(sep)
 
 	# Stats grid — 3 columns x 2 rows
@@ -179,7 +179,7 @@ func _build_captain_card() -> PanelContainer:
 	var bonuses := _get_starting_bonuses(current_captain)
 	if not bonuses.is_empty():
 		var bonus_sep := HSeparator.new()
-		bonus_sep.modulate = Color("#374151")
+		bonus_sep.modulate = UIColors.COLOR_BORDER
 		vbox.add_child(bonus_sep)
 		var bonus_flow := HFlowContainer.new()
 		bonus_flow.add_theme_constant_override(
@@ -200,7 +200,7 @@ func _build_stat_badge(
 ) -> PanelContainer:
 	var badge := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1f2937")
+	style.bg_color = UIColors.COLOR_TERTIARY
 	style.set_corner_radius_all(6)
 	style.set_content_margin_all(6)
 	badge.add_theme_stylebox_override("panel", style)
@@ -213,7 +213,7 @@ func _build_stat_badge(
 	name_l.text = stat_name
 	name_l.add_theme_font_size_override("font_size", _scaled_font(12))
 	name_l.add_theme_color_override(
-		"font_color", Color("#9ca3af"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_l)
 
@@ -221,7 +221,7 @@ func _build_stat_badge(
 	val_l.text = str(value)
 	val_l.add_theme_font_size_override("font_size", _scaled_font(14))
 	val_l.add_theme_color_override(
-		"font_color", Color("#3b82f6"))
+		"font_color", UIColors.COLOR_BLUE)
 	hbox.add_child(val_l)
 
 	badge.add_child(hbox)
@@ -238,7 +238,7 @@ func _build_empty_state_card() -> PanelContainer:
 		+ "Click 'Create Captain' or 'Random Captain' to begin."
 	lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	lbl.add_theme_color_override(
-		"font_color", Color("#6b7280"))
+		"font_color", UIColors.COLOR_TEXT_MUTED)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(lbl)
@@ -246,8 +246,8 @@ func _build_empty_state_card() -> PanelContainer:
 
 func _card_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#111827")
-	style.border_color = Color("#374151")
+	style.bg_color = UIColors.COLOR_SECONDARY
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(12)
 	style.set_content_margin_all(16)
@@ -271,7 +271,7 @@ func _add_help_button() -> void:
 	help_btn.add_theme_font_size_override(
 		"font_size", _scaled_font(18))
 	help_btn.add_theme_color_override(
-		"font_color", Color("#4FC3F7"))
+		"font_color", UIColors.COLOR_CYAN)
 	help_btn.tooltip_text = "Help: Captain creation"
 	help_btn.pressed.connect(_on_help_pressed)
 	var controls = get_node_or_null("Content/Controls")
@@ -313,16 +313,16 @@ func _apply_button_style(button: Button, is_primary: bool) -> void:
 	if not button:
 		return
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#3b82f6") if is_primary \
-		else Color("#1f2937")
+	style.bg_color = UIColors.COLOR_BLUE if is_primary \
+		else UIColors.COLOR_TERTIARY
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(8)
 	button.add_theme_stylebox_override("normal", style)
 	button.add_theme_font_size_override("font_size", _scaled_font(16))
-	button.add_theme_color_override("font_color", Color("#f3f4f6"))
+	button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	button.custom_minimum_size.y = 48
 	var hover := style.duplicate()
-	hover.bg_color = Color("#60a5fa") if is_primary \
+	hover.bg_color = UIColors.COLOR_ACCENT_HOVER if is_primary \
 		else Color("#2d3748")
 	button.add_theme_stylebox_override("hover", hover)
 	var pressed := style.duplicate()
@@ -375,7 +375,7 @@ func _get_starting_bonuses(character) -> Array:
 	for item in rolled_items:
 		tags.append({
 			"text": item.get("name", "Unknown"),
-			"color": Color("#3b82f6"),
+			"color": UIColors.COLOR_BLUE,
 			"source": item.get("type", "").capitalize()})
 
 	var tables := {
@@ -413,34 +413,34 @@ func _get_starting_bonuses(character) -> Array:
 					"_", " ").capitalize() + " Roll"
 				tags.append({
 					"text": label,
-					"color": Color("#3b82f6"),
+					"color": UIColors.COLOR_BLUE,
 					"source": source_name})
 		# Resources (patrons, rivals, rumors, credits)
 		var res: Dictionary = entry.get("resources", {})
 		if res.get("patron", 0) > 0:
 			tags.append({
 				"text": "Patron ×%d" % res["patron"],
-				"color": Color("#10B981"),
+				"color": UIColors.COLOR_EMERALD,
 				"source": source_name})
 		if res.get("rival", 0) > 0:
 			tags.append({
 				"text": "Rival ×%d" % res["rival"],
-				"color": Color("#DC2626"),
+				"color": UIColors.COLOR_RED,
 				"source": source_name})
 		if res.get("quest_rumors", 0) > 0:
 			tags.append({
 				"text": "Rumors ×%d" % res["quest_rumors"],
-				"color": Color("#D97706"),
+				"color": UIColors.COLOR_AMBER,
 				"source": source_name})
 		if res.has("credits_dice"):
 			tags.append({
 				"text": "+%s credits" % res["credits_dice"],
-				"color": Color("#D97706"),
+				"color": UIColors.COLOR_AMBER,
 				"source": source_name})
 		if res.get("story_points", 0) > 0:
 			tags.append({
 				"text": "Story Pt ×%d" % res["story_points"],
-				"color": Color("#8B5CF6"),
+				"color": UIColors.COLOR_PURPLE,
 				"source": source_name})
 	return tags
 
@@ -502,7 +502,7 @@ func _build_bonus_tag(
 		src_lbl.add_theme_font_size_override(
 			"font_size", _scaled_font(9))
 		src_lbl.add_theme_color_override(
-			"font_color", Color("#6b7280"))
+			"font_color", UIColors.COLOR_TEXT_MUTED)
 		vb.add_child(src_lbl)
 		pill.add_child(vb)
 	return pill

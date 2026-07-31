@@ -7,9 +7,9 @@ extends Control
 signal expedition_updated(data: Dictionary)
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
 
 var _coordinator = null
 var _rolled: bool = false

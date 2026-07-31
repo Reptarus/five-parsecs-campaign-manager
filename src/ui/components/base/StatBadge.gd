@@ -33,10 +33,10 @@ const FONT_SIZE_XS := 11
 const FONT_SIZE_SM := 14
 
 # Default colors (fallback if ThemeManager not available)
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 # ============ PUBLIC PROPERTIES ============
 

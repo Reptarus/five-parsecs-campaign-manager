@@ -38,14 +38,14 @@ const SceneAtmosphereLayerScript = preload(
 
 # Deep Space theme constants (mirroring BaseCampaignPanel — local copies so
 # this component has no inheritance dependency).
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_SUCCESS := Color("#10B981")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const SPACING_XS := 4
 const SPACING_SM := 8
 const SPACING_MD := 16

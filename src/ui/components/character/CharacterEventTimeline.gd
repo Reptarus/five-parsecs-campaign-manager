@@ -5,12 +5,12 @@ extends PanelContainer
 ## unified, filterable reverse-chronological list.
 
 # ── Deep Space Theme Constants ──────────────────────────────────
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ACCENT := Color("#2D5A7B")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
 
 const SPACING_XS := 4
 const SPACING_SM := 8
@@ -25,16 +25,16 @@ const MAX_VISIBLE := 50
 
 # ── Event Type Colors ───────────────────────────────────────────
 const EVENT_COLORS: Dictionary = {
-	"battle": Color("#DC2626"),
-	"injury": Color("#D97706"),
-	"advancement": Color("#10B981"),
-	"story_event": Color("#8B5CF6"),
-	"story_complete": Color("#8B5CF6"),
-	"story": Color("#8B5CF6"),
-	"milestone": Color("#8B5CF6"),
-	"kill": Color("#EF4444"),
+	"battle": UIColors.COLOR_RED,
+	"injury": UIColors.COLOR_AMBER,
+	"advancement": UIColors.COLOR_EMERALD,
+	"story_event": UIColors.COLOR_PURPLE,
+	"story_complete": UIColors.COLOR_PURPLE,
+	"story": UIColors.COLOR_PURPLE,
+	"milestone": UIColors.COLOR_PURPLE,
+	"kill": UIColors.COLOR_RED,
 }
-const DEFAULT_COLOR := Color("#808080")
+const DEFAULT_COLOR := UIColors.COLOR_TEXT_SECONDARY
 
 const EVENT_LABELS: Dictionary = {
 	"battle": "Battle",

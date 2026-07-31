@@ -109,10 +109,10 @@ const SHORT_VIEWPORT_DESIGN_PX := 620.0
 const CONTENT_SCROLL_NAME := "ContentScroll"
 
 # Design System Constants (matching BaseCampaignPanel)
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_ACCENT := Color("#4FC3F7")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_ACCENT := UIColors.COLOR_CYAN
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -292,8 +292,8 @@ func _setup_world_briefing() -> void:
 	card.name = "WorldBriefingCard"
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1E1E36")
-	style.border_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_TERTIARY
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(16)

@@ -414,7 +414,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1A1A2E")
+	style.bg_color = UIColors.COLOR_PRIMARY
 	panel.add_theme_stylebox_override("panel", style)
 	popup.add_child(panel)
 
@@ -434,7 +434,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 	var header := Label.new()
 	header.text = "Select crew member to receive item:"
 	header.add_theme_font_size_override("font_size", _scaled_font(14))
-	header.add_theme_color_override("font_color", Color("#E0E0E0"))
+	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(header)
 
 	# Crew list
@@ -471,10 +471,10 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 
 	# Style transfer button
 	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color("#2D5A7B")
+	btn_style.bg_color = UIColors.COLOR_BLUE
 	btn_style.set_corner_radius_all(6)
 	transfer_btn.add_theme_stylebox_override("normal", btn_style)
-	transfer_btn.add_theme_color_override("font_color", Color("#E0E0E0"))
+	transfer_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 	# Enable transfer button when selection made
 	crew_list.item_selected.connect(func(_idx): transfer_btn.disabled = false)
@@ -938,17 +938,17 @@ func _build_crew_stats_content(member) -> VBoxContainer:
 
 	var stats := [
 		{"label": "REA", "value": str(rea),
-			"color": Color("#10b981")},
+			"color": UIColors.COLOR_EMERALD},
 		{"label": "SPD", "value": str(spd) + '"',
-			"color": Color("#3b82f6")},
+			"color": UIColors.COLOR_BLUE},
 		{"label": "CBT", "value": _fmt_mod(cbt),
-			"color": Color("#f59e0b")},
+			"color": UIColors.COLOR_AMBER},
 		{"label": "TGH", "value": str(tgh),
-			"color": Color("#ef4444")},
+			"color": UIColors.COLOR_RED},
 		{"label": "SAV", "value": _fmt_mod(sav),
-			"color": Color("#8b5cf6")},
+			"color": UIColors.COLOR_PURPLE},
 		{"label": "LCK", "value": str(lck),
-			"color": Color("#06b6d4")},
+			"color": UIColors.COLOR_CYAN},
 	]
 
 	for stat: Dictionary in stats:

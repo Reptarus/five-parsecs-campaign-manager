@@ -34,21 +34,21 @@ const FONT_SIZE_LG := 18  # Section headers
 const FONT_SIZE_XL := 24  # Panel titles
 
 ## Color Palette - Deep Space Theme
-const COLOR_BASE := Color("#1A1A2E")         # Panel background
-const COLOR_ELEVATED := Color("#252542")     # Card backgrounds
-const COLOR_INPUT := Color("#1E1E36")        # Form field backgrounds
-const COLOR_BORDER := Color("#3A3A5C")       # Card borders
-const COLOR_ACCENT := Color("#2D5A7B")       # Primary accent (Deep Space Blue)
-const COLOR_ACCENT_HOVER := Color("#3A7199") # Hover state
-const COLOR_FOCUS := Color("#4FC3F7")        # Focus ring (cyan)
+const COLOR_BASE := UIColors.COLOR_PRIMARY         # Panel background
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY     # Card backgrounds
+const COLOR_INPUT := UIColors.COLOR_TERTIARY        # Form field backgrounds
+const COLOR_BORDER := UIColors.COLOR_BORDER       # Card borders
+const COLOR_ACCENT := UIColors.COLOR_BLUE       # Primary accent (Deep Space Blue)
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER # Hover state
+const COLOR_FOCUS := UIColors.COLOR_CYAN        # Focus ring (cyan)
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")   # Main content
-const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
-const COLOR_TEXT_DISABLED := Color("#404040")  # Inactive
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY   # Main content
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY # Descriptions
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED  # Inactive
 
-const COLOR_SUCCESS := Color("#10B981")  # Green
-const COLOR_WARNING := Color("#D97706")  # Orange
-const COLOR_DANGER := Color("#DC2626")   # Red
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD  # Green
+const COLOR_WARNING := UIColors.COLOR_AMBER  # Orange
+const COLOR_DANGER := UIColors.COLOR_RED   # Red
 
 # UI Node References - using %NodeName for maintainability
 @onready var hero_card: Control = %HeroCard
@@ -594,7 +594,7 @@ func _update_species_rules_display() -> void:
 	header.text = "Species Rules"
 	header.add_theme_font_size_override("font_size", 16)
 	header.add_theme_color_override(
-		"font_color", Color("#D97706"))
+		"font_color", UIColors.COLOR_AMBER)
 	container.add_child(header)
 
 	var rules_label := RichTextLabel.new()
@@ -785,7 +785,7 @@ func _update_implants_display() -> void:
 	header.name = "ImplantsLabel"
 	header.text = "INSTALLED IMPLANTS (%d/3)" % current_character.implants.size()
 	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	header.add_theme_color_override("font_color", Color("#8B5CF6"))  # Purple for implants
+	header.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)  # Purple for implants
 	character_info_container.add_child(header)
 
 	# List each implant with stat bonus
@@ -1125,7 +1125,7 @@ func _build_psionic_info_section() -> void:
 	var header := Label.new()
 	header.text = "PSIONIC POWERS"
 	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	header.add_theme_color_override("font_color", Color("#4FC3F7"))
+	header.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	character_info_container.add_child(header)
 
 	var enhanced: bool = current_character.psionic_power_enhanced if "psionic_power_enhanced" in current_character else false
@@ -1139,7 +1139,7 @@ func _build_psionic_info_section() -> void:
 		var enhanced_tag: String = " [Enhanced +1D6]" if enhanced else ""
 		power_label.text = "  %s%s" % [pname, enhanced_tag]
 		power_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-		power_label.add_theme_color_override("font_color", Color("#4FC3F7"))
+		power_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		character_info_container.add_child(power_label)
 
 		if not pdesc.is_empty():

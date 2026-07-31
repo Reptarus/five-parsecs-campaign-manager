@@ -7,7 +7,7 @@ signal tutorial_completed
 signal tutorial_skipped
 
 const DIMMED_COLOR := Color(0, 0, 0, 0.6)
-const HIGHLIGHT_BORDER_COLOR := Color("#4FC3F7")
+const HIGHLIGHT_BORDER_COLOR := UIColors.COLOR_CYAN
 const ANIMATION_TIME := 0.3
 
 # Layer 95: between Notifications (90) and Loading (99)
@@ -49,8 +49,8 @@ func _setup_overlay() -> void:
 	# Tooltip panel with Deep Space styling
 	_tooltip_panel = PanelContainer.new()
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1A1A2E")
-	panel_style.border_color = Color("#4FC3F7")
+	panel_style.bg_color = UIColors.COLOR_PRIMARY
+	panel_style.border_color = UIColors.COLOR_CYAN
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(8)
 	panel_style.content_margin_left = 16
@@ -67,7 +67,7 @@ func _setup_overlay() -> void:
 	_tooltip_panel.add_child(tooltip_vbox)
 
 	_tooltip_label = Label.new()
-	_tooltip_label.add_theme_color_override("font_color", Color("#E0E0E0"))
+	_tooltip_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_tooltip_label.add_theme_font_size_override("font_size", 14)
 	_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tooltip_vbox.add_child(_tooltip_label)
@@ -79,7 +79,7 @@ func _setup_overlay() -> void:
 
 	_step_label = Label.new()
 	_step_label.add_theme_font_size_override("font_size", 11)
-	_step_label.add_theme_color_override("font_color", Color("#808080"))
+	_step_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_step_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_row.add_child(_step_label)
 
@@ -88,7 +88,7 @@ func _setup_overlay() -> void:
 	_skip_button.flat = true
 	_skip_button.custom_minimum_size = Vector2(60, 36)
 	_skip_button.add_theme_font_size_override("font_size", 13)
-	_skip_button.add_theme_color_override("font_color", Color("#808080"))
+	_skip_button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_skip_button.pressed.connect(_on_skip_pressed)
 	btn_row.add_child(_skip_button)
 
@@ -97,10 +97,10 @@ func _setup_overlay() -> void:
 	_next_button.custom_minimum_size = Vector2(80, 36)
 	_next_button.add_theme_font_size_override("font_size", 13)
 	var next_style := StyleBoxFlat.new()
-	next_style.bg_color = Color("#2D5A7B")
+	next_style.bg_color = UIColors.COLOR_BLUE
 	next_style.set_corner_radius_all(4)
 	_next_button.add_theme_stylebox_override("normal", next_style)
-	_next_button.add_theme_color_override("font_color", Color("#E0E0E0"))
+	_next_button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_next_button.pressed.connect(_on_next_pressed)
 	btn_row.add_child(_next_button)
 

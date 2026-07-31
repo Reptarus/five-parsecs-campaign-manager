@@ -4,8 +4,8 @@ extends Control
 ## Shows summary of all creation choices before launching the campaign.
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 var _coordinator = null
 var _content: VBoxContainer
@@ -102,7 +102,7 @@ func _build_summary() -> void:
 	var ready_lbl := Label.new()
 	ready_lbl.text = "\nPress 'Establish Colony' to begin your Planetfall campaign!"
 	ready_lbl.add_theme_font_size_override("font_size", 16)
-	ready_lbl.add_theme_color_override("font_color", Color("#10B981"))
+	ready_lbl.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
 	ready_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ready_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(ready_lbl)

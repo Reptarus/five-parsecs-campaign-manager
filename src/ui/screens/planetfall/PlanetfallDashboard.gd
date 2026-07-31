@@ -443,7 +443,7 @@ func _build_character_card(char_dict: Dictionary) -> PanelContainer:
 	pill_row.add_child(_create_class_pill(char_dict.get("class", "")))
 	pill_row.add_child(_create_loyalty_pill(char_dict.get("loyalty", "committed")))
 	if char_dict.get("is_imported", false):
-		pill_row.add_child(_create_pill("Imported", Color("#8b5cf6")))
+		pill_row.add_child(_create_pill("Imported", UIColors.COLOR_PURPLE))
 	vbox.add_child(pill_row)
 
 	# Stat line

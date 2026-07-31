@@ -80,14 +80,14 @@ const PADDING_HORIZONTAL := 18
 ## 6 semantic colors mirror BaseCampaignPanel palette: NEUTRAL + 5 chapter
 ## accents observed in the rulebook (cyan default + red + gold/amber +
 ## green + purple). All applied uniformly via `accent_color` setter.
-const COLOR_NEUTRAL := Color("#E0E0E0")
-const COLOR_PRIMARY := Color("#4FC3F7")  ## cyan — rulebook default
-const COLOR_SUCCESS := Color("#10B981")  ## green
-const COLOR_WARNING := Color("#D97706")  ## gold/amber
-const COLOR_DANGER  := Color("#DC2626")  ## red — Character Creation etc.
+const COLOR_NEUTRAL := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_PRIMARY := UIColors.COLOR_CYAN  ## cyan — rulebook default
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD  ## green
+const COLOR_WARNING := UIColors.COLOR_AMBER  ## gold/amber
+const COLOR_DANGER  := UIColors.COLOR_RED  ## red — Character Creation etc.
 const COLOR_PURPLE  := Color("#9333EA")  ## GM appendix accent
 
-const BG_COLOR := Color("#252542")  ## matches existing glass-card bg
+const BG_COLOR := UIColors.COLOR_SECONDARY  ## matches existing glass-card bg
 
 @export var accent_color: Color = COLOR_PRIMARY:
 	set(value):
