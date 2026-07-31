@@ -37,6 +37,22 @@ func process_scenario_loss_penalties(
 	if bool(ctx.battle_result.get("held_field", false)):
 		return applied
 
+	# p.91, every Rival attack type: "If you flee from the battle before 4 rounds
+	# are up, a random crew member will lose a random item of equipment carried in
+	# your flight."
+	#
+	# This is a DIFFERENT window from the p.123 XP rule ("flees in the first 2
+	# rounds receives no XP"), which is what battle_result["fled_early"] means.
+	# Conflating the two would deny XP for a round-3 withdrawal the book pays for.
+	var flee_before: int = int(setup_rules.get("flee_before_round", 0))
+	var rounds: int = int(ctx.battle_result.get("rounds",
+		ctx.battle_result.get("rounds_fought", 0)))
+	if flee_before > 0 and rounds > 0 and rounds < flee_before:
+		var lost: Dictionary = _lose_random_item_from_random_crew(ctx)
+		if not lost.is_empty():
+			applied.append(lost)
+			_log_penalty(ctx, "item", 1, str(lost.get("reason", "")))
+
 	for penalty in penalties:
 		var kind: String = str(penalty.get("type", ""))
 		var reason: String = str(penalty.get("reason", ""))
@@ -54,6 +70,66 @@ func process_scenario_loss_penalties(
 		applied.append({"type": kind, "amount": amount, "reason": reason})
 		_log_penalty(ctx, kind, amount, reason)
 	return applied
+
+func _lose_random_item_from_random_crew(
+	ctx: PostBattleContextClass
+) -> Dictionary:
+	## p.91: "a random crew member will lose a random item of equipment carried
+	## in your flight." Per-character equipment is owned by Character.equipment
+	## (the data-ownership table), so the item is dropped from the figure that
+	## carried it, not from the ship stash.
+	var crew: Array = ctx.get_crew_members()
+	if crew.is_empty():
+		return {}
+	var candidates: Array = []
+	for member in crew:
+		var gear: Array = _equipment_of(member)
+		if not gear.is_empty():
+			candidates.append(member)
+	if candidates.is_empty():
+		return {}
+	var victim: Variant = candidates[randi() % candidates.size()]
+	var gear: Array = _equipment_of(victim)
+	var idx: int = randi() % gear.size()
+	var item_name: String = _item_name(gear[idx])
+	gear.remove_at(idx)
+	return {
+		"type": "item",
+		"amount": 1,
+		"item": item_name,
+		"crew_name": _crew_name(victim),
+		"reason": "Fled a Rival battle before round 4 — %s lost %s (Core Rules p.91)"
+			% [_crew_name(victim), item_name],
+	}
+
+func _equipment_of(member: Variant) -> Array:
+	## Crew are Dictionaries on a loaded save and Character Resources on a fresh
+	## campaign, and a 2-arg .get() silently ABORTS the whole function on a
+	## Resource — so the two shapes must be branched, never merged.
+	if member is Dictionary:
+		var d: Dictionary = member
+		if d.has("equipment") and d["equipment"] is Array:
+			return d["equipment"]
+		return []
+	if member and "equipment" in member and member.equipment is Array:
+		return member.equipment
+	return []
+
+func _crew_name(member: Variant) -> String:
+	if member is Dictionary:
+		var d: Dictionary = member
+		return str(d.get("character_name", d.get("name", "A crew member")))
+	if member and "character_name" in member:
+		return str(member.character_name)
+	return "A crew member"
+
+func _item_name(item: Variant) -> String:
+	if item is Dictionary:
+		var d: Dictionary = item
+		return str(d.get("name", d.get("id", "an item")))
+	if item and "name" in item:
+		return str(item.name)
+	return str(item)
 
 func _charge_credits(ctx: PostBattleContextClass, amount: int) -> void:
 	## Credits are owned by the campaign core; GameState has no subtract API, so
@@ -88,8 +164,11 @@ func _log_penalty(
 		"/root/CampaignJournal") if Engine.get_main_loop() else null
 	if not journal or not journal.has_method("create_entry"):
 		return
-	var text: String = "Lost %d credits" % amount if kind == "credits" \
-		else "Ship took %d Hull Point damage" % amount
+	var text: String = ""
+	match kind:
+		"credits": text = "Lost %d credits" % amount
+		"hull": text = "Ship took %d Hull Point damage" % amount
+		_: text = "Lost equipment in the retreat"
 	journal.create_entry({
 		"type": "battle",
 		"title": text,

@@ -2552,20 +2552,10 @@ func _build_results_prefill() -> Dictionary:
 
 	# Live table state. Only fills what the objective tracker did not already
 	# provide, so the tracker stays authoritative where it has an opinion.
-	var enemies_down: int = 0
-	var defeated: Array = []
-	for unit in enemy_units:
-		if unit.is_dead or unit.health <= 0:
-			enemies_down += 1
-			defeated.append({
-				"name": unit.node_name,
-				"type": unit.enemy_type,
-				"was_lieutenant": unit.is_lieutenant,
-				"was_specialist": unit.is_specialist,
-				"was_unique_individual": unit.is_unique_individual,
-			})
 	# defeated_enemies was hardcoded [] on this path, so RivalPatronResolver's
 	# per-enemy rival stamp had nothing to walk after a manually recorded battle.
+	var defeated: Array = _defeated_enemy_records()
+	var enemies_down: int = defeated.size()
 	prefill["defeated_enemies"] = defeated
 	if not prefill.has("enemies_defeated"):
 		prefill["enemies_defeated"] = enemies_down
@@ -2596,6 +2586,32 @@ func _build_results_prefill() -> Dictionary:
 	if not prefill.has("held_field"):
 		prefill["held_field"] = bool(prefill["victory"])
 	return prefill
+
+func _defeated_enemy_records() -> Array:
+	## The single builder for the `defeated_enemies` contract, shared by all four
+	## result paths (played, manual Record Result prefill, in-battle auto-resolve,
+	## "It's Time To Go").
+	##
+	## THE GAP THIS CLOSES: each path built its own version and they disagreed.
+	## The in-battle auto-resolve path hardcoded [], so RivalPatronResolver could
+	## never chase a Rival off after an auto-resolved battle; two others omitted
+	## was_specialist / was_unique_individual, which the post-battle XP reads.
+	## Consolidated on the richest shape so no consumer is starved by which
+	## button the player happened to press.
+	var records: Array = []
+	for unit in enemy_units:
+		if unit.is_dead or unit.health <= 0:
+			records.append({
+				"name": unit.node_name,
+				"type": unit.enemy_type if "enemy_type" in unit else "",
+				"was_lieutenant": unit.is_lieutenant \
+					if "is_lieutenant" in unit else false,
+				"was_specialist": unit.is_specialist \
+					if "is_specialist" in unit else false,
+				"was_unique_individual": unit.is_unique_individual \
+					if "is_unique_individual" in unit else false,
+			})
+	return records
 
 func _on_record_result_pressed() -> void:
 	## Reachable end-a-played-battle control (Record Result button). Opens the
@@ -4851,16 +4867,7 @@ func _resolve_battle() -> void:
 			injuries_data.append(unit.original_character)
 
 	# Build defeated enemy list for loot/XP
-	var defeated_enemies: Array = []
-	for unit in enemy_units:
-		if unit.health <= 0:
-			defeated_enemies.append({
-				"name": unit.node_name,
-				"type": unit.enemy_type if "enemy_type" in unit \
-					else "",
-				"was_lieutenant": unit.is_lieutenant \
-					if "is_lieutenant" in unit else false,
-			})
+	var defeated_enemies: Array = _defeated_enemy_records()
 
 	# Crew who participated (for XP distribution)
 	var crew_participants: Array = []
@@ -5125,10 +5132,27 @@ func _on_auto_resolve_battle() -> void:
 		"crew_participants": crew_units.map(
 			func(u): return u.original_character).filter(
 			func(c): return c != null),
-		"defeated_enemies": [],
+		# THE GAP THIS FIXES: this path hardcoded []. BattleResultNormalizer walks
+		# defeated_enemies to stamp rival kills, and RivalPatronResolver reads
+		# those stamps to decide whether a Rival is chased off — so on the
+		# in-battle auto-resolve path a Rival could never be removed no matter
+		# how comprehensively you beat it. Built the same way as the played path.
+		"defeated_enemies": _defeated_enemy_records(),
 		"enemies_defeated_count": enemies_defeated_count,
 		"enemies_remaining": enemies_deployed.size() \
 			- enemies_defeated_count,
+		# Core Rules p.123: "Any character that flees the battlefield in the first
+		# 2 rounds of the battle receives no XP." That is the ONLY rule this key
+		# feeds — ExperienceTrainingProcessor._calculate_crew_xp returns 0 on it.
+		# Do NOT widen it to the p.91 Rival threshold ("flee before 4 rounds are
+		# up" costs an item); that is a separate rule with a separate window, and
+		# carried on setup_rules.flee_before_round.
+		# Only the manual Record Result form and the "It's Time To Go" star wrote
+		# this key, so an auto-resolved 1-round rout still paid full XP.
+		"fled_early": (not held_field) and result.rounds_fought <= 2,
+		# The round count the p.91 item-loss check needs, which the XP threshold
+		# above cannot express.
+		"rounds": result.rounds_fought,
 		"crew_alive": crew_units.filter(
 			func(u): return u.health > 0).size(),
 		"is_red_zone": md.get("is_red_zone", false),
@@ -6904,16 +6928,7 @@ func _build_evacuation_result_dict(via_star: bool) -> Dictionary:
 		if unit.health <= 0:
 			injuries_data.append(unit.original_character)
 
-	var defeated_enemies: Array = []
-	for unit in enemy_units:
-		if unit.health <= 0:
-			defeated_enemies.append({
-				"name": unit.node_name,
-				"type": unit.enemy_type,
-				"was_lieutenant": unit.is_lieutenant,
-				"was_specialist": unit.is_specialist,
-				"was_unique_individual": unit.is_unique_individual,
-			})
+	var defeated_enemies: Array = _defeated_enemy_records()
 
 	var crew_participants: Array = []
 	for unit in crew_units:
