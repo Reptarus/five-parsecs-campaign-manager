@@ -378,3 +378,51 @@ scan zero script errors. Rules audit vs the extracted PDFs recorded in
 QA_RULES_ACCURACY_AUDIT (F1-F8 fixes: industrial-only hill rule p.97,
 toxic = note not terrain p.88, Beast/Defensive deployment p.110, haze
 cadence p.72, labeled p.109 suggestions, Guardian = attach cluster).
+
+## 2026-07: Only the two record-keeping managers get a Dashboard door; advancement/events stay one-door
+
+**Decision**: Of the five screens registered in `SceneRouter` under
+`*_manager` keys, exactly two — **ShipManager** and
+**PatronRivalManager** — get a `HubFeatureCard` entry point on the
+CampaignDashboard's QUICK ACCESS hub, with back-navigation falling back
+to `campaign_dashboard` rather than `main_menu`. AdvancementManager,
+CampaignEventsManager and EquipmentManager deliberately do not.
+
+**Alternatives considered**:
+1. Delete all four unreachable screens
+2. Wire all five to the Dashboard
+3. Leave all five unreachable and only restyle them
+4. Wire the two that are records; leave the three that are duplicates (chosen)
+
+**Reasoning**: The Core Rules campaign turn (p.68) already owns every
+one of these jobs — ship repairs are World step 1, patron/rival status
+is Post-Battle steps 1-2, Experience and Character Upgrades is
+Post-Battle step 9, Advanced Training step 10, Campaign and Character
+Events steps 12-13, Assign Equipment World step 4. So none of these are
+missing turn steps; the turn implements them all. What the turn does not
+provide is a place to LOOK at the accumulated record between turns, and
+that is exactly what the ship sheet and the patron/rival list are. The
+other three are not records, they are second doors onto a flow that
+already has a correct one: CharacterDetailsScreen already spends XP via
+`CharacterAdvancementService` and the book's p.123 costs, so
+AdvancementManager's own invented "every stat costs 5 XP" would have
+contradicted it in the same build; CampaignEventsManager duplicates
+Post-Battle 12-13 with three D6 tables that appear in neither rulebook;
+EquipmentManager is already reachable as the campaign-creation "Manual
+Selection" popup, and in-turn assignment is AssignEquipmentComponent.
+Two doors with different numbers behind them is worse than one door.
+
+**Tradeoff accepted**: three screens remain built, styled and
+unreachable rather than deleted. They stay as-is until their fabricated
+tables are either replaced with book data or the files are cut — a
+decision deferred to the user, not taken here. `lint_orphan_assets.py`
+will not flag them because the SceneRouter map counts as a reference.
+
+**Blocker found and fixed on the way in**: PatronRivalManager could not
+be made reachable as it stood. `_load_patrons_and_rivals()` invented two
+patrons and two rivals from JSON templates whenever either list was
+empty and then SAVED them into the campaign — merely opening the screen
+wrote four contacts the player never earned into their save file. That
+auto-generation is gone; an empty list is a true state on turn 1. Its
+two "Add" buttons were `pass` stubs and were removed, and the Generate
+buttons, which appended only to a local array, now persist.

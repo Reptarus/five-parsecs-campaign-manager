@@ -315,7 +315,7 @@ when the project moves off 4.6.
 
 | Symptom | Helper | What it does |
 | --- | --- | --- |
-| Content clipped LEFT/RIGHT in portrait | `PortraitChrome` (`src/ui/components/base/`) | Trims a root MarginContainer's L/R margins to **16dp** in portrait (`PORTRAIT_GUTTER_DP`, derived to ~14 design px at runtime — the Material 3 margin at the 360dp breakpoint), restores the scene's original margin in landscape. Also has `setup_offsets(content)` for a screen that pads with anchor offsets instead of a MarginContainer |
+| Content clipped LEFT/RIGHT in portrait | `PortraitChrome` (`src/ui/components/base/`) | Trims a root MarginContainer's L/R margins in portrait to **16dp under 600dp wide, 24dp at or above it** (`PORTRAIT_GUTTER_DP` / `PORTRAIT_GUTTER_MEDIUM_DP`, derived to design px at runtime); restores the scene's original margin in landscape. 16dp is Material 3's *compact* margin — it is the phone value, not the every-portrait-window value, and holding it on a larger portrait window reads as content jammed against the frame. Also has `setup_offsets(content)` for a screen that pads with anchor offsets instead of a MarginContainer |
 | Content taller than the screen (phone landscape ~338 design px) | `ShortScreenScroll` (same directory) | Wraps everything after N pinned children in a ScrollContainer whose vertical scrolling is AUTO only while the viewport is short |
 | Content under the floating gear/bug buttons | `SettingsOverlay.reserve_band_on(self)` | Pushes content DOWN by exactly the overlap that exists at this screen's position |
 

@@ -31,6 +31,19 @@ extends Node
 ## the same way tests/tools/verify_layout.gd derives it for its dp assertions.
 const PORTRAIT_GUTTER_DP := 16.0
 
+## Wider gutter once the window is no longer "compact".
+##
+## Material 3 specifies margins of 8/16/24/40dp and moves off 16dp above the compact
+## breakpoint (600dp) — 16dp is the value for a PHONE, not for every portrait window.
+## Reported as "edge to edge kissing" on a larger portrait window, where a 16dp margin
+## that reads as deliberate on a 360dp phone reads as content jammed against the frame.
+##   https://m3.material.io/foundations/layout/applying-layout/window-size-classes
+const PORTRAIT_GUTTER_MEDIUM_DP := 24.0
+
+## Width (dp) at which the medium gutter takes over. Material 3's compact/medium
+## boundary, and the same number ResponsiveManager classifies TABLET from.
+const COMPACT_MAX_DP := 600.0
+
 ## Fallback design-px gutter for the rare case where the viewport cannot be measured.
 const PORTRAIT_GUTTER := 14
 
@@ -113,7 +126,15 @@ func _gutter_design_px() -> int:
 	var ratio: float = float(DisplayServer.window_get_size().x) / ds.x
 	if ratio <= 0.0:
 		return PORTRAIT_GUTTER
-	return int(round(PORTRAIT_GUTTER_DP / ratio))
+	# window px / OS display scale = dp, the same identity ResponsiveManager
+	# classifies breakpoints from. On Windows screen_get_scale() is 1.0, so a
+	# window pixel IS a dp and this is verifiable on the desktop.
+	var scale: float = maxf(1.0, DisplayServer.screen_get_scale())
+	var width_dp: float = float(DisplayServer.window_get_size().x) / scale
+	var gutter_dp: float = PORTRAIT_GUTTER_DP
+	if width_dp >= COMPACT_MAX_DP:
+		gutter_dp = PORTRAIT_GUTTER_MEDIUM_DP
+	return int(round(gutter_dp / ratio))
 
 
 ## Extra inset when the OS reports a cutout or system bar on this edge.

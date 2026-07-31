@@ -303,6 +303,51 @@ func _add_hub_cards() -> void:
 			router.navigate_to("compendium")
 	)
 
+	# The two campaign-record screens. Both were registered in SceneRouter and
+	# reachable from nothing, so a campaign's ship sheet and its patron/rival list
+	# could not be consulted at all outside the turn that happened to touch them.
+	#
+	# The dashboard is the right door for exactly these two and NOT for the other
+	# three registered "managers", because the book puts every one of these jobs
+	# inside the campaign turn (p.68: ship repairs = World step 1, patron/rival
+	# status = Post-Battle steps 1-2). What the turn does NOT give you is a place to
+	# LOOK at the record between turns, which is what these two are -- a reference
+	# view over state the turn already owns, which is the hub-and-spoke shape the
+	# rest of this screen already uses.
+	#
+	# Deliberately NOT added here:
+	#   AdvancementManager    -- CharacterDetailsScreen already spends XP, through
+	#                            CharacterAdvancementService and the book's p.123
+	#                            costs. A second door with different numbers is
+	#                            worse than no second door.
+	#   CampaignEventsManager -- Post-Battle steps 12-13 already roll these.
+	#   EquipmentManager      -- already reachable, as the campaign-creation
+	#                            "Manual Selection" popup; in-turn assignment is
+	#                            World step 4 (AssignEquipmentComponent).
+	var ship_card := HubFeatureCard.new()
+	center_vbox.add_child(ship_card)
+	ship_card.setup(
+		"\ud83d\ude80", "Ship",
+		"Hull, debt, upgrades, and travel readiness"
+	)
+	ship_card.card_pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("ship_manager")
+	)
+
+	var patron_card := HubFeatureCard.new()
+	center_vbox.add_child(patron_card)
+	patron_card.setup(
+		"\ud83e\udd1d", "Patrons & Rivals",
+		"Who is hiring you, and who is hunting you"
+	)
+	patron_card.card_pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("patron_rival_manager")
+	)
+
 	var battle_card := HubFeatureCard.new()
 	center_vbox.add_child(battle_card)
 	battle_card.setup(

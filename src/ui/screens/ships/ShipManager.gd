@@ -325,12 +325,10 @@ func _on_debt_changed(_value: float) -> void:
 	ship_data["debt"] = int(_value)
 
 func _on_back_pressed() -> void:
-	## Handle back button press
-	if has_node("/root/SceneRouter"):
-		get_node("/root/SceneRouter").navigate_back()
-	else:
-		# Fallback - emit a signal or use get_tree().change_scene_to_file()
-		pass
+	## Reachable from the Campaign Dashboard, so fall back THERE rather than the
+	## main menu when there is no history to pop. The old fallback branch was a bare
+	## `pass`, i.e. a dead end at exactly the moment the router was missing.
+	ScreenChrome.navigate_back(self, "campaign_dashboard")
 
 func _on_travel_pressed() -> void:
 	## Handle travel button press

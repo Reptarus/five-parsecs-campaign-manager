@@ -1532,13 +1532,9 @@ func _create_training_section(character_dict: Dictionary) -> VBoxContainer:
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
-	# Training list (from AdvancementSystem)
-	var training_types := ["pilot", "medical", "mechanic", "broker", "security", "merchant", "bot_tech", "engineer"]
-	var training_costs := {
-		"pilot": 20, "medical": 20, "mechanic": 15, "broker": 15,
-		"security": 10, "merchant": 10, "bot_tech": 10, "engineer": 15
-	}
-	
+	var training_costs := _load_training_costs()
+	var training_types: Array = training_costs.keys()
+
 	var current_training: Array = character_dict.get("training", [])
 	var current_xp: int = character_dict.get("experience", 0)
 	
@@ -1561,21 +1557,15 @@ func _create_training_card(training_type: String, cost: int, current_training: A
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
-	# Style the card
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_ELEVATED
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(SPACING_MD)
-	panel.add_theme_stylebox_override("panel", style)
-	
+	# Static content card — the shared 4px recipe, not a local 8px one.
+	ScreenChrome.apply_section_card(panel)
+
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
-	
-	# Training name
+
+	# Training name. capitalize() already turns bot_technician into "Bot Technician".
 	var name_label := Label.new()
-	name_label.text = training_type.capitalize().replace("_", " ")
+	name_label.text = training_type.capitalize()
 	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_label)
@@ -1631,19 +1621,44 @@ func _on_stat_advance_pressed(stat_name: String) -> void:
 	else:
 		pass
 
+## The seven Advanced Training courses and their XP costs, from the book.
+##
+## Core Rules p.124 lists exactly seven: Pilot 20, Mechanic 15, Medical school 20,
+## Merchant school 10, Security 10, Broker 15, Bot technician 10. This screen used
+## to hardcode that table twice -- once to draw the cards, once to charge for them --
+## and both copies carried an EIGHTH course, "engineer" at 15 XP, which appears in
+## neither rulebook. Engineer is a species, not a course. The copies also disagreed
+## with the data file on a key (`bot_tech` vs `bot_technician`), so the JSON's own
+## effect wiring could never match what this screen wrote onto a character.
+##
+## data/training_courses.json is the single source of truth (it cites pp.123-124);
+## reading it is what keeps a fabricated course from reappearing.
+func _load_training_costs() -> Dictionary:
+	var costs: Dictionary = {}
+	var file := FileAccess.open("res://data/training_courses.json", FileAccess.READ)
+	if file == null:
+		push_error("CharacterDetailsScreen: training_courses.json missing")
+		return costs
+	var json := JSON.new()
+	var ok: bool = json.parse(file.get_as_text()) == OK
+	file.close()
+	if not ok or not (json.data is Dictionary):
+		push_error("CharacterDetailsScreen: training_courses.json failed to parse")
+		return costs
+	var courses: Dictionary = (json.data as Dictionary).get("courses", {})
+	for key: String in courses:
+		costs[key] = int((courses[key] as Dictionary).get("cost", 0))
+	return costs
+
+
 func _on_training_pressed(training_type: String) -> void:
 	## Handle training purchase button press
 	if not current_character:
 		return
-	
-	
-	# Get training cost
-	var training_costs := {
-		"pilot": 20, "medical": 20, "mechanic": 15, "broker": 15,
-		"security": 10, "merchant": 10, "bot_tech": 10, "engineer": 15
-	}
-	
-	var cost: int = training_costs.get(training_type, 0)
+	var training_costs := _load_training_costs()
+	if not training_costs.has(training_type):
+		return
+	var cost: int = int(training_costs[training_type])
 	var current_xp: int = current_character.experience if "experience" in current_character else 0
 	var current_training: Array = current_character.training if "training" in current_character else []
 	

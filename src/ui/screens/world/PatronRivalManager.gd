@@ -283,16 +283,15 @@ func _load_patrons_and_rivals() -> void:
 	else:
 		push_warning("PatronRivalManager: GameStateManager not available")
 
-	# Enhanced fallback using JSON templates if no data exists
-	if patrons.is_empty():
-		_generate_patrons_from_templates()
-		# Save generated patrons to GameState for persistence
-		_save_patrons_to_gamestate()
-
-	if rivals.is_empty():
-		_generate_rivals_from_templates()
-		# Save generated rivals to GameState for persistence
-		_save_rivals_to_gamestate()
+	# NO auto-generation on an empty list.
+	#
+	# This used to invent 2 patrons and 2 rivals from the JSON templates whenever
+	# either list was empty, and then SAVE them into the campaign. Merely opening
+	# the screen wrote four contacts that the player never earned into their save
+	# file. Patrons are found at World step 3 (Determine job offers, p.76) and
+	# rivals arrive from battles and encounters -- a read-only record of who you
+	# have met must never mint entries. "You have no patrons yet" is a true and
+	# legitimate state, especially on turn 1, and the empty list renders as such.
 
 func _save_patrons_to_gamestate() -> void:
 	## Save current patrons to GameStateManager for persistence
@@ -608,27 +607,28 @@ func _generate_job_offer(patron: Dictionary) -> Dictionary:
 	}
 
 func _on_back_pressed() -> void:
-	## Handle back button press
-	SceneRouter.navigate_back()
+	## Reachable from the Campaign Dashboard, so fall back THERE rather than the
+	## main menu when there is no history to pop.
+	ScreenChrome.navigate_back(self, "campaign_dashboard")
 
-func _on_add_patron_pressed() -> void:
-	## Handle add patron button press
-	pass
-
-func _on_add_rival_pressed() -> void:
-	## Handle add rival button press
-	pass
-
+## Record a patron the player met at the table.
+##
+## This is a companion app: the player rolls on the book's tables physically, so
+## recording the result is a legitimate action even though the book never has the
+## APP invent a patron. What is not legitimate is doing it silently on open — see
+## _load_patrons_and_rivals().
+##
+## Persist immediately. The append used to live only in this screen's local array,
+## so a patron added here vanished the moment you navigated away, while the
+## auto-generated ones (now removed) were the only ones that ever got saved.
 func _on_generate_patron_pressed() -> void:
-	## Handle generate patron button press
-	var new_patron = _generate_patron()
-	patrons.append(new_patron)
+	patrons.append(_generate_patron())
+	_save_patrons_to_gamestate()
 	_refresh_displays()
 
 func _on_generate_rival_pressed() -> void:
-	## Handle generate rival button press
-	var new_rival = _generate_rival()
-	rivals.append(new_rival)
+	rivals.append(_generate_rival())
+	_save_rivals_to_gamestate()
 	_refresh_displays()
 
 func _on_manage_jobs_pressed() -> void:

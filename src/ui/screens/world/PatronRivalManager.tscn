@@ -66,10 +66,6 @@ text = "Patrons"
 horizontal_alignment = 1
 theme_type_variation = &"TextLG"
 
-[node name="AddPatronButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer/Header"]
-layout_mode = 2
-text = "Add Patron"
-
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -98,10 +94,6 @@ size_flags_horizontal = 3
 text = "Rivals"
 horizontal_alignment = 1
 theme_type_variation = &"TextLG"
-
-[node name="AddRivalButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer/Header"]
-layout_mode = 2
-text = "Add Rival"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer"]
 layout_mode = 2
@@ -152,8 +144,6 @@ layout_mode = 2
 text = "Manage Jobs"
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Patrons/VBoxContainer/Header/AddPatronButton" to="." method="_on_add_patron_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Rivals/VBoxContainer/Header/AddRivalButton" to="." method="_on_add_rival_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GeneratePatronButton" to="." method="_on_generate_patron_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GenerateRivalButton" to="." method="_on_generate_rival_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/ManageJobsButton" to="." method="_on_manage_jobs_pressed"]
