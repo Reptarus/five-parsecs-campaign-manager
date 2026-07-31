@@ -490,21 +490,39 @@ func generate_enemies_as_dicts(
 	var specialist_weapons: Array = resolve_specialist_weapon(weapon_code)
 	var ai_code: String = str(template.get("ai", "A"))
 
+	# Core Rules p.93 draws a hard line at animals "that do not use weapons".
+	# They take no Blade, no Specialist loadout, and no AI weapon rule — a Sand
+	# Runner cannot carry a sword. Detected from the loadout itself: these
+	# entries name a natural weapon instead of a table code, which is the same
+	# distinction the errata draws when it says "'animal' type enemies that only
+	# carry natural melee weapons".
+	var uses_weapons: bool = _uses_manufactured_weapons(base_weapons)
+
 	# Optional Rule: Varied Armaments (Core Rules p.104) — "split the
 	# non-Specialist opponents into two groups, and roll for the weapon carried
 	# by each group." A second basic-column roll arms the back half of the
 	# rank and file. Opt-in; off by default, exactly as the book has it.
 	var second_group_weapons: Array = []
-	var varied_armaments: bool = HouseRulesHelper.is_enabled("varied_armaments")
+	var varied_armaments: bool = uses_weapons \
+		and HouseRulesHelper.is_enabled("varied_armaments")
 	if varied_armaments:
 		second_group_weapons = resolve_basic_weapon(weapon_code)
 
-	# Specialist/Lieutenant per Core Rules p.93
+	# Specialist/Lieutenant per Core Rules p.93:
+	#   1-2 opponents -> no Specialist; 3-6 -> one; 7+ -> two.
+	#   Insanity difficulty -> "one further Specialist will be present".
+	# Errata v1.06: "For 'animal' type enemies that only carry natural melee
+	# weapons, Specialists are treated as normal combatants" — so animals get
+	# no Specialist at all.
 	var specialist_count: int = 0
-	if enemy_count >= 7:
-		specialist_count = 2
-	elif enemy_count >= 3:
-		specialist_count = 1
+	if uses_weapons:
+		if enemy_count >= 7:
+			specialist_count = 2
+		elif enemy_count >= 3:
+			specialist_count = 1
+		if difficulty_mode == 8 and specialist_count > 0:  # INSANITY
+			specialist_count += 1
+		specialist_count = mini(specialist_count, maxi(0, enemy_count - 1))
 	var has_lieutenant: bool = (enemy_count >= 4)
 
 	var enemies: Array[Dictionary] = []
@@ -517,7 +535,17 @@ func generate_enemies_as_dicts(
 		if has_lieutenant and i == 0:
 			role = "lieutenant"
 			combat_mod = 1
-			extra_weapons = ["Blade"]
+			if uses_weapons:
+				# p.93: "They carry a Blade in addition to their normal weapon,
+				# and increase their Combat Skill by +1." Specialists and
+				# Lieutenants "will both roll separately for their weapons", so
+				# the Lieutenant gets its own basic-column roll rather than
+				# sharing the rank-and-file result.
+				weapons = resolve_basic_weapon(weapon_code)
+				extra_weapons = ["Blade"]
+			# Otherwise p.93: "If the opponents encountered are animals that do
+			# not use weapons, the Lieutenant will be a pack leader; increase
+			# Combat Skill by +1, but MAKE NO OTHER CHANGES." No Blade.
 		elif specialist_count > 0 and i >= (enemy_count - specialist_count):
 			role = "specialist"
 			weapons = specialist_weapons.duplicate()
@@ -546,9 +574,12 @@ func generate_enemies_as_dicts(
 			# p.104 + errata v1.06: Rampaging AI always carry a Blade; Aggressive
 			# AI do too unless Combat Skill is +0. Checked against THIS figure's
 			# Combat Skill, so a Lieutenant's +1 can qualify it where its mooks
-			# do not.
+			# do not. Skipped entirely for animals with only natural weapons —
+			# Large Bugs and Vent Crawlers are Rampaging (R) AI, and a literal
+			# reading would hand a Blade to a creature with mandibles.
 			"weapons": apply_ai_blade_rule(
-				weapons + extra_weapons, ai_code, figure_combat),
+				weapons + extra_weapons, ai_code, figure_combat) \
+				if uses_weapons else (weapons + extra_weapons),
 			"ai": template.get("ai", "A"),
 			"panic": template.get("panic", "1-2"),
 			"special_rules": template.get("special_rules", []),
@@ -990,6 +1021,30 @@ func resolve_specialist_weapon(weapon_code) -> Array:
 	if not parsed.get("is_table_code", false):
 		return parsed.get("fixed", ["Hand Gun"])
 	return _roll_on_weapon_table("specialist", parsed["specialist_column"])
+
+## The natural weapons carried by the animal entries in enemy_types.json. Every
+## non-table-code loadout in the file is either one of these or a manufactured
+## weapon ("Hand Cannon, Blade"), so this cleanly separates Core Rules p.93's
+## "animals that do not use weapons" from armed enemies that happen to have a
+## fixed loadout. The errata calls the same set "natural melee weapons".
+const _NATURAL_WEAPONS := ["fangs", "claws", "mandibles", "smash", "touch"]
+
+func _uses_manufactured_weapons(weapons: Array) -> bool:
+	## False only when EVERY listed weapon is a natural one — a creature with
+	## fangs and nothing else. An enemy carrying any manufactured weapon is a
+	## weapon user for the p.93 Lieutenant rule and the p.104 AI Blade rule.
+	if weapons.is_empty():
+		return true
+	for w in weapons:
+		var name: String = str(w).to_lower()
+		var natural: bool = false
+		for stem in _NATURAL_WEAPONS:
+			if name.begins_with(stem):
+				natural = true
+				break
+		if not natural:
+			return true
+	return false
 
 func apply_ai_blade_rule(
 	weapons: Array, ai_code: String, combat_skill: int

@@ -466,6 +466,8 @@ func _setup_initial_state() -> void:
 		return
 
 	current_step = WorldPhaseStep.UPKEEP
+	# A new world phase can complete again (see _complete_world_phase).
+	_world_phase_completed = false
 	step_completed = {
 		WorldPhaseStep.UPKEEP: false,
 		WorldPhaseStep.CREW_TASKS: false,
@@ -1072,7 +1074,7 @@ func _ensure_blocker_label() -> void:
 	_blocker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_blocker_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_blocker_label.add_theme_color_override("font_color", Color(0.851, 0.467, 0.024, 1))
-	_blocker_label.add_theme_font_size_override("font_size", 15)
+	_blocker_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(15))
 	_blocker_label.visible = false
 	controls.add_child(_blocker_label)
 	controls.move_child(_blocker_label, 0)
@@ -1253,8 +1255,27 @@ func _on_phase_completed(data: Dictionary) -> void:
 		_on_next_button_pressed()
 
 ## World Phase Completion
+##
+## Guards re-entry. With auto-processing enabled on the final step, every
+## component that finishes publishes a completion which _on_phase_completed
+## turns into another _on_next_button_pressed() — and at MISSION_PREP that is
+## another _complete_world_phase(). A desktop run of one turn produced TWENTY
+## calls, each re-gathering results, re-emitting world_phase_completed and
+## asking CampaignTurnController to enter MISSION again.
+##
+## Nothing broke only because CampaignPhaseManager refuses the duplicate
+## transition — the "Failed to transition to MISSION" warning WAS the guard.
+## That is accidental protection: it sits one behaviour change away from
+## re-running _initiate_battle_sequence, which would re-roll the enemies, the
+## deployment condition and the battlefield after the player had already seen
+## them in PreBattleUI. The world phase completes once.
+var _world_phase_completed: bool = false
+
 func _complete_world_phase() -> void:
 	## Complete the entire world phase and transition to battle
+	if _world_phase_completed:
+		return
+	_world_phase_completed = true
 
 	# Clear checkpoint — world phase is done, next turn should start fresh
 	clear_checkpoint()
@@ -1570,6 +1591,8 @@ func get_world_phase_results() -> Dictionary:
 func reset_world_phase() -> void:
 	## Reset world phase for new turn
 	current_step = WorldPhaseStep.UPKEEP
+	# A new world phase can complete again (see _complete_world_phase).
+	_world_phase_completed = false
 	step_completed = {
 		WorldPhaseStep.UPKEEP: false,
 		WorldPhaseStep.CREW_TASKS: false,

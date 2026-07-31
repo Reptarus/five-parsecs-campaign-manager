@@ -183,6 +183,97 @@ func test_blade_is_not_duplicated_when_already_carried() -> void:
 	var out: Array = g.apply_ai_blade_rule(["Scrap Pistol", "Blade"], "R", 1)
 	assert_int(out.count("Blade")).is_equal(1)
 
+# ── Animals that do not use weapons (p.93 + errata v1.06) ────────────────
+#
+# Found by a runtime walk, not by these tests: a Sand Runners force (Beast AI,
+# "Fangs (Damage +1)") arrived in PreBattleUI carrying "Fangs (Damage +1),
+# Blade". Two separate causes — the unconditional Lieutenant Blade, and the AI
+# Blade rule firing on Rampaging-AI animals like Large Bugs and Vent Crawlers.
+
+func _animal_squad(name: String) -> Array:
+	var g = _gen()
+	for _i in range(80):
+		var squad: Array = g.generate_enemies_as_dicts(
+			{"enemy_type": name, "enemy_category": "roving_threats"}, 6)
+		if not squad.is_empty() and str(squad[0].get("type", "")) == name \
+				and squad.size() >= 4:
+			return squad
+	return []
+
+func test_an_animal_pack_leader_carries_no_blade() -> void:
+	# p.93: "If the opponents encountered are animals that do not use weapons,
+	# the Lieutenant will be a pack leader; increase Combat Skill by +1, but make
+	# no other changes."
+	var squad: Array = _animal_squad("Sand Runners")
+	assert_array(squad).is_not_empty()
+	for e in squad:
+		assert_bool("Blade" in e["weapons"]).override_failure_message(
+			"Animal figure '%s' carries %s" % [e.get("name", "?"), str(e["weapons"])]) \
+			.is_false()
+
+func test_an_animal_pack_leader_still_gets_the_combat_bonus() -> void:
+	# "make no other changes" removes the Blade, NOT the +1 Combat Skill.
+	var squad: Array = _animal_squad("Sand Runners")
+	assert_array(squad).is_not_empty()
+	var leader: Dictionary = {}
+	var mook: Dictionary = {}
+	for e in squad:
+		if str(e.get("role", "")) == "lieutenant": leader = e
+		elif str(e.get("role", "")) == "standard": mook = e
+	assert_dict(leader).is_not_empty()
+	assert_dict(mook).is_not_empty()
+	assert_int(leader["combat_skill"]).is_equal(int(mook["combat_skill"]) + 1)
+
+func test_rampaging_animals_are_exempt_from_the_ai_blade_rule() -> void:
+	# Large Bugs and Vent Crawlers are Rampaging (R) AI with natural weapons. A
+	# literal reading of p.104 would arm a creature with mandibles with a sword.
+	for name in ["Large Bugs", "Vent Crawlers"]:
+		var squad: Array = _animal_squad(name)
+		if squad.is_empty():
+			continue
+		for e in squad:
+			assert_bool("Blade" in e["weapons"]).override_failure_message(
+				"Rampaging animal '%s' carries %s" % [name, str(e["weapons"])]) \
+				.is_false()
+
+func test_animals_get_no_specialist() -> void:
+	# Errata v1.06: "For 'animal' type enemies that only carry natural melee
+	# weapons, Specialists are treated as normal combatants."
+	var squad: Array = _animal_squad("Sand Runners")
+	assert_array(squad).is_not_empty()
+	for e in squad:
+		assert_str(str(e.get("role", ""))).override_failure_message(
+			"An animal force produced a Specialist").is_not_equal("specialist")
+
+func test_the_natural_weapon_test_does_not_catch_armed_enemies() -> void:
+	# "Hand Cannon, Blade" is also a fixed loadout but its carriers are weapon
+	# users, so the animal exemptions must not apply to them.
+	var g = _gen()
+	assert_bool(g._uses_manufactured_weapons(["Hand Cannon", "Blade"])).is_true()
+	assert_bool(g._uses_manufactured_weapons(["Fangs (Damage +1)"])).is_false()
+	assert_bool(g._uses_manufactured_weapons(["Claws (Damage +2)"])).is_false()
+	assert_bool(g._uses_manufactured_weapons(["Mandibles (Damage +1)"])).is_false()
+	assert_bool(g._uses_manufactured_weapons(["Smash (Damage +0)"])).is_false()
+	assert_bool(g._uses_manufactured_weapons(["Touch (Damage +3)"])).is_false()
+	# A creature that also carries a gun is a weapon user.
+	assert_bool(g._uses_manufactured_weapons(["Claws (Damage +0)", "Rattle Gun"])) \
+		.is_true()
+
+func test_an_armed_lieutenant_still_carries_its_blade() -> void:
+	# The animal exemption must not have disarmed ordinary Lieutenants.
+	var g = _gen()
+	for _i in range(60):
+		var squad: Array = g.generate_enemies_as_dicts(
+			{"enemy_type": "Gangers", "enemy_category": "criminal_elements"}, 6)
+		for e in squad:
+			if str(e.get("role", "")) == "lieutenant" \
+					and str(e.get("type", "")) == "Gangers":
+				assert_bool("Blade" in e["weapons"]).override_failure_message(
+					"Armed Lieutenant lost its Blade: %s" % str(e["weapons"])).is_true()
+				return
+	assert_bool(false).override_failure_message(
+		"No Gangers Lieutenant appeared in 60 squads").is_true()
+
 # ── The rule reaches a generated squad, not just the helper ───────────────
 
 func test_a_generated_rampaging_squad_carries_blades() -> void:
