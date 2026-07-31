@@ -328,8 +328,7 @@ func _make_card_content_shrinkable(node: Node) -> void:
 	for child in node.get_children():
 		if child is Label:
 			var lbl := child as Label
-			if lbl.autowrap_mode == TextServer.AUTOWRAP_OFF:
-				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_wrap_or_clip(lbl)
 			lbl.custom_minimum_size.x = 0.0
 		elif child is OptionButton:
 			# A dropdown reads badly wrapped — clip instead, with an ellipsis.
@@ -341,10 +340,36 @@ func _make_card_content_shrinkable(node: Node) -> void:
 			# CheckBox / CheckButton option rows carry sentence-length labels, so
 			# wrapping keeps them readable where clipping would hide the meaning.
 			var btn := child as Button
-			if btn.autowrap_mode == TextServer.AUTOWRAP_OFF:
-				btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_wrap_or_clip(btn)
 			btn.custom_minimum_size.x = 0.0
 		_make_card_content_shrinkable(child)
+
+
+## Wrap where wrapping works, clip where it does not — decided by the PARENT.
+##
+## Turning autowrap on blindly is what this used to do, and in a HORIZONTAL row it
+## backfires completely: the container hands a wrapping child its minimum width, which
+## for wrapped text is its longest WORD, and the child then reports the height of the
+## whole string. Measured on the DLC feature rows here — a 273x18 description became a
+## 1x711 sliver, 36 of them across the panel, at every size including desktop. Nothing
+## overflowed, so no geometry check saw it; only tests/tools/verify_layout.gd's
+## autowrap-collapse check does.
+##
+## In a vertical container the default FILL flag already gives the child the full width,
+## so wrapping is safe there and nothing else is needed.
+func _wrap_or_clip(ctl: Control) -> void:
+	var parent := ctl.get_parent()
+	if parent is FlowContainer:
+		# A FlowContainer sizes children to their minimum on the main axis AND ignores
+		# main-axis expand, so there is no way to give a wrapping child room. Clip.
+		ctl.set("clip_text", true)
+		ctl.set("text_overrun_behavior", TextServer.OVERRUN_TRIM_ELLIPSIS)
+		return
+	if ctl.get("autowrap_mode") == TextServer.AUTOWRAP_OFF:
+		ctl.set("autowrap_mode", TextServer.AUTOWRAP_WORD_SMART)
+	if parent is BoxContainer and not (parent as BoxContainer).vertical:
+		# Horizontal row: the child has to claim width before wrapping means anything.
+		ctl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 ## Remember a card's DESIRED width and apply the viewport-capped value now.

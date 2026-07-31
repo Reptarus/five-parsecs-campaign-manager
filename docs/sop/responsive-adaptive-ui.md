@@ -133,6 +133,8 @@ CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 
 - **Live (MCP):** `run_project` → `run_script` to `DisplayServer.window_set_size()` and read `ResponsiveManager.current_viewport_size` / `get_effective_columns()` / a screen's actual columns. `window_set_size` is async — read on the NEXT `run_script` call. Disable the TransitionManager overlay ColorRect (`visible=false`) so screenshots aren't blocked. Test the matrix: 540×960 (phone→1 col), 768×1024 (tablet→2), 1280×720 (desktop→3), plus a constant-width rotation to confirm `layout_class_changed` re-lays-out exactly once.
 - **Geometry sweep (`tests/tools/verify_layout.gd`, Jul 30 2026):** 34 screens × 6 sizes, measuring REAL rects — off-screen overflow, SettingsOverlay-band collision, the ≥48dp touch floor, and unwrapped-Label minimums. Run **WITHOUT `--headless`**: it needs a real window or `window_set_size` means nothing. A screen with <3 visible Controls is reported SKIP-with-reason, never folded into the pass count (a screen whose `_ready()` silently unwound renders almost nothing and would trivially satisfy every geometric check).
 
+- **Rotation sweep (`tests/tools/verify_rotation.gd`, Jul 30 2026):** 25 screens, ONE instance each, walked portrait → landscape → back at phone and tablet scale. This is the sweep above's blind spot: `verify_layout.gd` builds a fresh screen at each size, so every screen gets its first layout AT its final size and one that ignores a live rotation passes at both. Checks overflow after each resize AND that the layout changed shape — a phone in portrait is one column or a tab strip, a tablet in landscape is not the same shape as phone portrait, and rotating back restores the portrait shape (no one-way latch). Shape assertions are behavioural on purpose; asserting "columns == what the code computes" would only re-assert the implementation. ResponsiveManager's own answer is reported next to a failure but deliberately NOT part of the compared string — folding it in made every portrait/landscape pair differ by construction and turned the check into a guaranteed pass.
+
 ### Sizing rules that actually govern overflow (Godot 4.6 docs-confirmed)
 
 Every off-screen bug fixed in the Jul 30 sweep came back to one of these three. They are
@@ -181,8 +183,72 @@ Corollaries worth knowing:
   `size_flags_horizontal` already defaults to FILL — and in an HBox/HFlow it shrinks to
   its text. Floors below ~140 are usually guaranteeing a comfortable tap area on a small
   inline control and are fine.
-- **A long button label wants `autowrap_mode`, not a wider button.** "Accept Black Zone
-  Mission" is 254px of text; wrapping to two lines drops its minimum to the longest word.
+- **A long button label wants `autowrap_mode`, not a wider button** — but only where the
+  container will give it width. See the next section; getting this wrong produces slabs.
+
+### Autowrap collapse: the trap this project has hit three times
+
+Turning on `autowrap_mode` makes a control's minimum WIDTH fall to its longest word. If
+the container then hands it that minimum, the control reports the height of the *entire*
+string and renders as a tall thin sliver. Measured on 4.6-stable
+(`tests/tools/probe_control_caps.gd`, one autowrapping Button, text "Accept Black Zone
+Mission"):
+
+| Container | flags | minimum |
+| --- | --- | --- |
+| horizontal `BoxContainer` | default (FILL) | **32 × 486** ← slab |
+| horizontal `BoxContainer` | `SIZE_EXPAND_FILL` | 32 × 45 ✓ |
+| `HFlowContainer` | any | **32 × 486** ← slab (FlowContainer ignores main-axis expand) |
+| `HFlowContainer` | autowrap OFF | 254 × 45 ✓ |
+| vertical container | default (FILL) | fine — FILL already gives the full column width |
+
+So the rule is about the PARENT, not the control:
+
+- **vertical container** → autowrap freely.
+- **horizontal `BoxContainer`** → autowrap **plus** `SIZE_EXPAND_FILL`, or it slabs.
+- **`FlowContainer`** → never autowrap. It sizes children to their main-axis minimum and
+  ignores expand, so there is no way to give a wrapping child room. Use `clip_text` +
+  `OVERRUN_TRIM_ELLIPSIS`.
+
+Nothing overflows when this happens, which is why three separate occurrences were each
+caught by a screenshot rather than a check. `verify_layout.gd` now detects it directly:
+the control wraps, its minimum width is under half its unwrapped width, its minimum
+height is over three lines, **and** the container actually handed it that collapsed width
+(the last condition is what keeps a wrapping label in a VBox from being flagged). The
+finding carries the node path and the first 32 characters of its text, because these are
+code-built nodes whose names are `@Label@2497`.
+
+Community context: this is a known rough edge, not a project quirk — see
+[godot#47005](https://github.com/godotengine/godot/issues/47005) (popup with an autowrap
+label opens too tall), [godot#83546](https://github.com/godotengine/godot/issues/83546)
+(popup + container + autowrap sorts wrong) and the standing proposal for
+[`autowrap_maximum_width`](https://github.com/godotengine/godot-proposals/issues/13568).
+
+### Reparenting silently unsubscribes a component
+
+`_ready()` runs **once**. `_exit_tree()` runs on every removal. So a component that
+subscribes in `_ready()` and unsubscribes in `_exit_tree()` goes permanently deaf the
+first time anything MOVES it — and `ShortScreenScroll`, `AdaptivePanelGroup.add_pane()`
+and any `reparent()` all move things.
+
+Two live examples found by `verify_rotation.gd`: `AdaptivePanelGroup` kept a phone tab
+strip on a tablet in landscape (ResponsiveManager said `eff_cols=4`, the group sat at
+`cols=1`), and `WorldPhaseComponent` stopped receiving turn events entirely **with no
+visual symptom at all**.
+
+**Subscribe in `_enter_tree()`, disconnect in `_exit_tree()`**, and make the subscribe
+idempotent. This is the pattern the Godot community converged on for the same reason —
+see the [Godot forum thread on re-added nodes](https://forum.godotengine.org/t/handling-signal-subscription-when-re-adding-nodes-to-the-scene-in-godot-4-3-with-c/85210).
+
+### `custom_maximum_size` does NOT exist in 4.6-stable
+
+The **master** class reference documents `get_bound_minimum_size()` ("maximum size has
+priority over minimum size"), which implies a maximum-size API. It is not in this build:
+`custom_maximum_size` is absent from the property list, and `get_combined_maximum_size()`
+and `get_bound_minimum_size()` both report `has_method() == false`
+(`tests/tools/probe_control_caps.gd`). Keep capping width the way EULAScreen and
+LegalTextViewer do — a `CenterContainer` sizing a child to its minimum. Re-check this
+when the project moves off 4.6.
 
 ### The three helpers that fix "does not fit", and when to reach for which
 
