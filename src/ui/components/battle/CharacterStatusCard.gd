@@ -202,7 +202,17 @@ func _update_display() -> void:
 			if stun_markers >= 3:
 				status_parts.append("[KNOCKED OUT - 3+ Stuns]")
 			else:
-				status_parts.append("Stunned x%d (Move OR Combat, not both)" % stun_markers)
+				# Core Rules p.118: "Stunned figures may Move OR make a Combat
+				# Action. Remove one Stun marker after acting." The consequence
+				# the old one-liner left out is the one that decides the turn:
+				# moving into contact IS what starts a Brawl (p.118 "If entering
+				# contact, Brawl"), and errata v1.06 clarifies that entering a
+				# Brawl requires the Combat Action. A Stunned figure only has one
+				# of the two, so it cannot charge in — it can only Brawl if it is
+				# ALREADY in contact and spends its action there.
+				status_parts.append(
+					"Stunned x%d — Move OR Combat Action (not both); cannot move into a Brawl; remove 1 marker after acting"
+					% stun_markers)
 
 		if is_aiming:
 			status_parts.append("[AIMING - reroll 1s]")

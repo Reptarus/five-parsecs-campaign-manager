@@ -45,6 +45,10 @@ const DEFAULTS := {
 		"show_fps": false,
 		"screen_shake": true,
 		"use_narrative_events": true,
+		# Core Rules p.116 "BATTLE EVENTS (OPTIONAL)". Default on so existing
+		# campaigns behave exactly as before; the switch exists because the book
+		# says the table is the player's choice.
+		"use_battle_events": true,
 		"table_size_ft": 3.0,  # physical table: 2.0 / 2.5 / 3.0 (Core Rules p.108)
 	},
 	"mobile": {
@@ -370,6 +374,17 @@ func is_screen_shake_enabled() -> bool:
 
 func are_narrative_events_enabled() -> bool:
 	return get_setting("gameplay", "use_narrative_events")
+
+func are_battle_events_enabled() -> bool:
+	## Core Rules p.116 heads the section "BATTLE EVENTS (OPTIONAL)" and closes
+	## it with "Use of this table is optional — you may choose to use it
+	## occasionally during your campaign, or not at all."
+	##
+	## The app rolled them unconditionally, so a player who had opted out at the
+	## table still had the app announce an event at the end of rounds 2 and 4.
+	## Defaults TRUE, preserving the existing behaviour for anyone who does not
+	## go looking for the switch.
+	return get_setting("gameplay", "use_battle_events")
 
 func get_table_size_ft() -> float:
 	## Player's physical table size: 2.0 / 2.5 / 3.0 ft (Core Rules p.108)

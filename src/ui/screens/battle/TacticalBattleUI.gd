@@ -2216,6 +2216,15 @@ func _check_pending_battle_event() -> void:
 	## Guarded so it only fires once per round (not on every overlay dismiss).
 	if not round_tracker or not round_tracker.has_method("check_battle_event"):
 		return
+	# Core Rules p.116 heads this table "BATTLE EVENTS (OPTIONAL)" and closes it
+	# with "Use of this table is optional — you may choose to use it occasionally
+	# during your campaign, or not at all." The app rolled them unconditionally,
+	# so a player who had opted out at the table still got an event announced at
+	# the end of rounds 2 and 4. Defaults on, so nothing changes unless asked.
+	var settings := get_node_or_null("/root/SettingsManager")
+	if settings and settings.has_method("are_battle_events_enabled") \
+			and not settings.are_battle_events_enabled():
+		return
 	var current_round: int = round_tracker.get_current_round()
 	if _battle_event_fired_this_round == current_round:
 		return  # Already fired this round
@@ -3204,8 +3213,24 @@ func _show_enemy_actions_ui() -> void:
 		if right_tabs: right_tabs.current_tab = 1
 	var ef: Dictionary = _battle_context.get("enemy_force", {})
 	var enemy_name: String = ef.get("type", "enemies")
+	# Snap Fire holders. The card already flags each holder individually, but the
+	# player is looking at the ENEMY half of the table during this phase and has
+	# no reason to scroll the crew cards — so whoever is holding was invisible at
+	# exactly the moment their hold matters. Errata v1.06 also clarifies that a
+	# snap shot may be taken at ANY point of the enemy's move, not only at its
+	# end, which is the part that decides where to interrupt.
+	var snap_holders: Array[String] = []
+	for unit in crew_units:
+		if "is_holding_snap" in unit and unit.is_holding_snap \
+				and not unit.is_dead and unit.health > 0:
+			snap_holders.append(str(unit.node_name))
+	var snap_line: String = ""
+	if not snap_holders.is_empty():
+		snap_line = "\n⚡ Holding Snap Fire: %s — may shoot at ANY point of an enemy's move (errata v1.06), not only when it stops." \
+			% ", ".join(snap_holders)
 	_set_phase_instruction(2, "Enemy Actions",
-		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range." % enemy_name)
+		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range.%s"
+			% [enemy_name, snap_line])
 	_log_message(
 		"Enemy Actions — resolve %s actions on the table." % enemy_name,
 		UIColors.COLOR_RED)

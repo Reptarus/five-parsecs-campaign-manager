@@ -613,6 +613,13 @@ func generate_enemies_as_dicts(
 			"weapons": apply_ai_blade_rule(
 				weapons + extra_weapons, ai_code, figure_combat) \
 				if uses_weapons else (weapons + extra_weapons),
+			# Errata v1.06: "Enemies with built-in weapons (like claws or fangs)
+			# have the Melee weapon trait and thus receive the +2 bonus to
+			# Brawling." BattleCalculations._get_brawl_weapon_bonus() already
+			# grants +2 for a "melee" trait; natural weapons simply never carried
+			# one, because they are not entries in the equipment database. Stamped
+			# at the source so the combat math needs no special case for animals.
+			"weapon_traits": ([] if uses_weapons else ["melee"]),
 			"ai": template.get("ai", "A"),
 			"panic": template.get("panic", "1-2"),
 			"special_rules": template.get("special_rules", []),

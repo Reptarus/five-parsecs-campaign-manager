@@ -342,3 +342,45 @@ func test_a_generated_squad_gives_its_specialist_a_specialist_weapon() -> void:
 			return
 	assert_int(checked).override_failure_message(
 		"60 squads produced no table-code force with a Specialist").is_greater(0)
+
+
+# ── Natural weapons carry the Melee trait (errata v1.06) ─────────────────
+#
+# Errata: "Enemies with built-in weapons (like claws or fangs) have the Melee
+# weapon trait and thus receive the +2 bonus to Brawling."
+# BattleCalculations._get_brawl_weapon_bonus() already grants +2 for a "melee"
+# trait; natural weapons simply never carried one, because they are not entries
+# in the equipment database. Stamped by the generator so the combat math needs
+# no animal special case.
+
+func test_natural_weapon_enemies_carry_the_melee_trait() -> void:
+	var g = _gen()
+	var squad: Array = _animal_squad("Sand Runners")
+	assert_array(squad).is_not_empty()
+	for e in squad:
+		assert_bool("melee" in e["weapon_traits"]).override_failure_message(
+			"'%s' fights with %s but has no melee trait, so it loses the +2 Brawl bonus"
+			% [e.get("name", "?"), str(e["weapons"])]).is_true()
+
+func test_armed_enemies_do_not_get_a_blanket_melee_trait() -> void:
+	# The +2 is for BUILT-IN weapons. An armed enemy's traits come from its
+	# actual weapon, so stamping "melee" on everyone would hand a rifleman a
+	# brawl bonus the book never gives.
+	var g = _gen()
+	for _i in range(60):
+		var squad: Array = g.generate_enemies_as_dicts(
+			{"enemy_type": "Gangers", "enemy_category": "criminal_elements"}, 6)
+		if squad.is_empty() or str(squad[0].get("type", "")) != "Gangers":
+			continue
+		for e in squad:
+			# Skip Unique Individuals. They are "always in addition to those
+			# normally encountered" (p.94) and roll their OWN profile off the
+			# pp.105-107 table — several of which are creatures with natural
+			# weapons, which correctly do carry the trait. An earlier version of
+			# this case swept them up and failed on the RNG.
+			if str(e.get("role", "")) == "unique":
+				continue
+			assert_bool("melee" in e["weapon_traits"]).override_failure_message(
+				"Armed Gangers figure '%s' (%s) was stamped with the natural-weapon melee trait"
+				% [e.get("name", "?"), str(e.get("weapons", []))]).is_false()
+		return
