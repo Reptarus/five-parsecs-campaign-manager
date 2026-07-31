@@ -162,7 +162,7 @@ theme_override_constants/v_separation = 8
 
 [node name="AssignTaskButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 48)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 tooltip_text = "Assign selected crew member to selected task"
 text = "Assign Task"
@@ -171,7 +171,7 @@ theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="ResolveAllButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(160, 48)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 tooltip_text = "Resolve all assigned tasks and apply results"
 text = "Resolve All Tasks"

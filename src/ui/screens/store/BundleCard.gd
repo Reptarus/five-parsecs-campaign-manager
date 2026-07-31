@@ -127,7 +127,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 
 	_buy_btn = Button.new()
 	_buy_btn.text = "Buy Bundle"
-	_buy_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_AMBER.darkened(0.2)
 	btn_style.set_corner_radius_all(6)

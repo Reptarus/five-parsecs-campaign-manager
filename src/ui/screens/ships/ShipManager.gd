@@ -62,6 +62,9 @@ func _setup_adaptive_panels() -> void:
 	var travel: Control = get_node_or_null("%Travel")
 	if not (ship_status and ship_upgrades and travel):
 		return
+	# Do this BEFORE the panes are reparented: it only touches their own children.
+	_wrap_pane_content_in_scroll(ship_status)
+	_wrap_pane_content_in_scroll(travel)
 	var main_content: Node = ship_status.get_parent()       # the MainContent HBox
 	var vbox: Node = main_content.get_parent() if main_content else null
 	if not vbox:
@@ -82,6 +85,44 @@ func _setup_adaptive_panels() -> void:
 	group.add_pane(travel, "Travel")
 	main_content.queue_free()  # now empty; Header + Controls untouched
 	_panel_group = group
+
+
+## Let a pane's content scroll instead of forcing the whole screen taller.
+##
+## Ship Status and Travel stack six-plus rows — two of them SpinBoxes sitting at the
+## 48px touch floor — with no scroll of their own, so their combined minimum HEIGHT
+## dragged the root MarginContainer ~67px off a 338px landscape viewport. Because the
+## root grows both ways that overflow also re-centres the screen to a negative y,
+## which is what put the title back under the SettingsOverlay band. Upgrades already
+## solves this with an internal ScrollContainer around its list; this gives the other
+## two panes the same treatment.
+##
+## horizontal_scroll_mode stays DISABLED on purpose: a ScrollContainer absorbs a
+## child's minimum on its SCROLLABLE axes only, so the pane keeps reporting its
+## content width (nothing gets clipped sideways) while the height stops propagating —
+## docs/sop/responsive-adaptive-ui.md.
+func _wrap_pane_content_in_scroll(pane: Control) -> void:
+	if pane == null or not is_instance_valid(pane):
+		return
+	var content: Control = null
+	for child in pane.get_children():
+		if child is ScrollContainer:
+			return  # already wrapped — keep this idempotent
+		if content == null and child is Control:
+			content = child as Control
+	if content == null:
+		return
+	var scroll := ScrollContainer.new()
+	scroll.name = "PaneScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var idx: int = content.get_index()
+	pane.remove_child(content)
+	pane.add_child(scroll)
+	pane.move_child(scroll, idx)
+	scroll.add_child(content)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _load_components_database() -> void:
 	## Load Core Rules components from JSON (pp.60-62)

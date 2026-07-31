@@ -133,7 +133,7 @@ func _create_action_buttons() -> HBoxContainer:
 	# Confirm button (styled based on destructive flag)
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
-	confirm_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_COMFORT)
+	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	confirm_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	container.add_child(confirm_button)

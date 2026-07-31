@@ -222,7 +222,7 @@ func _create_action_buttons() -> HBoxContainer:
 	# Confirm button (primary action)
 	confirm_button = Button.new()
 	confirm_button.text = "Create Custom Condition"
-	confirm_button.custom_minimum_size = Vector2(220, TOUCH_TARGET_COMFORT)
+	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 
 	var confirm_style := StyleBoxFlat.new()
 	confirm_style.bg_color = COLOR_ACCENT

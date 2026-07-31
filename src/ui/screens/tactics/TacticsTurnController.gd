@@ -353,7 +353,7 @@ func _create_battle_indicator() -> VBoxContainer:
 
 	var win_btn := Button.new()
 	win_btn.text = "Victory"
-	win_btn.custom_minimum_size = Vector2(150, TOUCH_TARGET_COMFORT)
+	win_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	win_btn.pressed.connect(func():
 		phase_manager.complete_current_phase(
 			{"battle_result": {"won": true}}))
@@ -361,7 +361,7 @@ func _create_battle_indicator() -> VBoxContainer:
 
 	var lose_btn := Button.new()
 	lose_btn.text = "Defeat"
-	lose_btn.custom_minimum_size = Vector2(150, TOUCH_TARGET_COMFORT)
+	lose_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	lose_btn.pressed.connect(func():
 		phase_manager.complete_current_phase(
 			{"battle_result": {"won": false}}))
@@ -370,7 +370,7 @@ func _create_battle_indicator() -> VBoxContainer:
 	# Play another battle option
 	var another_btn := Button.new()
 	another_btn.text = "Play Another Battle"
-	another_btn.custom_minimum_size = Vector2(200, 44)
+	another_btn.custom_minimum_size = Vector2(0, 44)
 	another_btn.visible = false  # Shown after first battle
 	btn_box.add_child(another_btn)
 

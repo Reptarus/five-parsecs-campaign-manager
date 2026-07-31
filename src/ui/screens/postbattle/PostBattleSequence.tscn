@@ -152,7 +152,7 @@ text = "Roll Dice"
 
 [node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 56)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "Finish Post-Battle"
 visible = false

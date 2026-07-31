@@ -217,7 +217,7 @@ func _setup_control_buttons() -> void:
 	# so only a re-roll action is needed (removes redundant "Re-generate World" button)
 	reroll_button = Button.new()
 	reroll_button.text = "Reroll World"
-	reroll_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
+	reroll_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	reroll_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	reroll_button.disabled = true
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
@@ -227,7 +227,7 @@ func _setup_control_buttons() -> void:
 	# Create Confirm button (initially disabled)
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm World"
-	confirm_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
+	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	confirm_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	confirm_button.disabled = true
 	confirm_button.pressed.connect(_on_confirm_button_pressed)

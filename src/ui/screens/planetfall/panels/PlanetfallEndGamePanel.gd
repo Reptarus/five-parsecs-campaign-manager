@@ -91,7 +91,7 @@ func _build_ui() -> void:
 
 	_action_btn = Button.new()
 	_action_btn.text = "Hold Summit"
-	_action_btn.custom_minimum_size = Vector2(240, 48)
+	_action_btn.custom_minimum_size = Vector2(0, 48)
 	_action_btn.pressed.connect(_on_action)
 	vbox.add_child(_action_btn)
 	_action_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

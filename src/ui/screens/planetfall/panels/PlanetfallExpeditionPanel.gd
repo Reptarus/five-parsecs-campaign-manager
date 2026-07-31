@@ -87,7 +87,7 @@ func _build_ui() -> void:
 
 	_roll_button = Button.new()
 	_roll_button.text = "Roll D100 — Expedition Type"
-	_roll_button.custom_minimum_size = Vector2(280, 56)
+	_roll_button.custom_minimum_size = Vector2(0, 56)
 	_roll_button.pressed.connect(_on_roll_pressed)
 	_content.add_child(_roll_button)
 

@@ -101,6 +101,13 @@ var _checkpoint_data: Dictionary = {}
 # Sprint C: Step completion indicators
 var step_indicators: Array = []
 
+# Below this much DESIGN height the fixed chrome has to give space back — a phone in
+# landscape has ~338 (see _apply_vertical_compaction), a 360x640 phone in portrait 551.
+const SHORT_VIEWPORT_DESIGN_PX := 620.0
+
+# Name of the code-inserted scroll that holds everything below the Header.
+const CONTENT_SCROLL_NAME := "ContentScroll"
+
 # Design System Constants (matching BaseCampaignPanel)
 const COLOR_SUCCESS := Color("#10B981")
 const COLOR_ACCENT := Color("#4FC3F7")
@@ -139,6 +146,117 @@ func _ready() -> void:
 		var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
 		add_child(_pc)
 		_pc.setup(_pc_mc as MarginContainer)
+
+	_ensure_content_scroll()
+	_apply_vertical_compaction()
+	var _rm := get_node_or_null("/root/ResponsiveManager")
+	if _rm and _rm.has_signal("layout_class_changed"):
+		_rm.layout_class_changed.connect(func(_c = null, _d = null): _apply_vertical_compaction())
+	get_viewport().size_changed.connect(_apply_vertical_compaction)
+
+
+## Wrap everything below the Header in one scroll view, so a short screen can reach
+## the parts of the chrome that do not fit.
+##
+## Measured at 733x338 (a phone on its side): the fixed chrome alone — header 66,
+## two separators, the 131px controls block, the 48px footer — needs 295px, the band
+## reservation takes 68 more, and there are 338 to spend. Nothing was reachable past
+## the fold and the step content area was squeezed to TWO pixels.
+##
+## Only the Header stays pinned. The scroll is created once and always present, so
+## the two layouts differ by a single flag rather than by a re-parent:
+## _apply_vertical_compaction() turns its vertical scrolling ON for short screens and
+## OFF everywhere else, and a disabled ScrollContainer propagates its child's minimum
+## exactly like the plain container this used to be — so tall screens lay out as they
+## always did.
+func _ensure_content_scroll() -> void:
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if not (vbox is VBoxContainer) or vbox.get_node_or_null(CONTENT_SCROLL_NAME):
+		return
+	var header := vbox.get_node_or_null("Header")
+	var movable: Array[Node] = []
+	for child in vbox.get_children():
+		if child != header and child is Control:
+			movable.append(child)
+	if movable.is_empty():
+		return
+
+	var scroll := ScrollContainer.new()
+	scroll.name = CONTENT_SCROLL_NAME
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var column := VBoxContainer.new()
+	column.name = "ContentColumn"
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", vbox.get_theme_constant("separation"))
+
+	vbox.add_child(scroll)
+	scroll.add_child(column)
+	for child in movable:
+		vbox.remove_child(child)
+		column.add_child(child)
+
+
+## Reclaim vertical space on short viewports so the screen stops overflowing.
+##
+## A phone on its side has ~338 design px of HEIGHT. This screen's fixed chrome —
+## header, two separators, the step navigation row and the footer — is laid out with
+## 24px between six children (120px of pure gap) plus 32px margins top and bottom,
+## and that alone pushed the whole MarginContainer 68px off the bottom. Because the
+## root grows both ways, that overflow re-centres the screen to a NEGATIVE y, which
+## is what put the title back underneath the SettingsOverlay band the reservation had
+## just cleared it from: fixing the overflow is what fixes the collision.
+##
+## Gaps and the bottom margin only. margin_top belongs to the band reservation and
+## left/right to PortraitChrome — writing those here would fight them.
+##
+## Height comes from get_visible_rect(), which is the DESIGN space. That is correct
+## here and is NOT the orientation-detection trap from
+## docs/sop/responsive-adaptive-ui.md: the design-space height IS the layout budget
+## being spent, whereas deciding "is this device portrait" needs physical pixels.
+func _apply_vertical_compaction() -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var tight: bool = vp.get_visible_rect().size.y < SHORT_VIEWPORT_DESIGN_PX
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if vbox is VBoxContainer:
+		(vbox as VBoxContainer).add_theme_constant_override("separation", 8 if tight else 24)
+	var mc := get_node_or_null("MarginContainer")
+	if mc is MarginContainer:
+		(mc as MarginContainer).add_theme_constant_override("margin_bottom", 8 if tight else 32)
+
+	# The screen title repeats what the step label underneath it already says
+	# ("Step 2 of 6: Crew Tasks"), so it is the first thing to go when 35px matters.
+	var title := get_node_or_null("MarginContainer/VBoxContainer/Header/Title")
+	if title is Control:
+		(title as Control).visible = not tight
+
+	# Exactly ONE scrollbar, always. On a short screen the outer scroll owns the
+	# gesture and the step area stops scrolling independently (nested vertical
+	# scrolling is unusable on touch); everywhere else the outer one is inert and the
+	# step area scrolls as it always has.
+	var scroll := get_node_or_null("MarginContainer/VBoxContainer/" + CONTENT_SCROLL_NAME)
+	if scroll is ScrollContainer:
+		(scroll as ScrollContainer).vertical_scroll_mode = \
+			ScrollContainer.SCROLL_MODE_AUTO if tight else ScrollContainer.SCROLL_MODE_DISABLED
+		var column := scroll.get_node_or_null("ContentColumn")
+		if column is VBoxContainer:
+			(column as VBoxContainer).add_theme_constant_override(
+				"separation", 8 if tight else 24)
+	# Resolve through the cached node, NOT "%PhaseContainer/PhaseScroll": a %-unique
+	# name only resolves as the FIRST element of a path, so that lookup returned null
+	# and the step area silently stayed scrollable — which is exactly the two-pixel
+	# content strip the first landscape screenshot showed.
+	var phase_scroll: Node = null
+	if phase_container and is_instance_valid(phase_container):
+		phase_scroll = phase_container.get_node_or_null("PhaseScroll")
+	if phase_scroll is ScrollContainer:
+		(phase_scroll as ScrollContainer).vertical_scroll_mode = \
+			ScrollContainer.SCROLL_MODE_DISABLED if tight else ScrollContainer.SCROLL_MODE_AUTO
 
 
 ## Fill the World-Phase empty space with a persistent "World Briefing" of the

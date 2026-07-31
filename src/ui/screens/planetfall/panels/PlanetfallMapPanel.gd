@@ -55,7 +55,7 @@ func _build_placeholder() -> void:
 	for size_opt in sizes:
 		var btn := Button.new()
 		btn.text = size_opt.label
-		btn.custom_minimum_size = Vector2(300, 48)
+		btn.custom_minimum_size = Vector2(0, 48)
 		var r: int = size_opt.rows
 		var c: int = size_opt.cols
 		btn.pressed.connect(func(): _on_size_selected(r, c))

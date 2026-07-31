@@ -152,7 +152,7 @@ func _setup_ui() -> void:
 
 	resolve_button = Button.new()
 	resolve_button.text = "Mark as Resolved"
-	resolve_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	resolve_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	resolve_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	resolve_button.pressed.connect(_on_resolve_pressed)
 	resolve_button.visible = false  # Only shown in escalation mode

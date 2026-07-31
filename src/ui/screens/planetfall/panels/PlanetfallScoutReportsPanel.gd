@@ -149,19 +149,19 @@ func _build_ui() -> void:
 
 	_explore_btn = Button.new()
 	_explore_btn.text = "Scout Explore"
-	_explore_btn.custom_minimum_size = Vector2(180, 48)
+	_explore_btn.custom_minimum_size = Vector2(0, 48)
 	_explore_btn.pressed.connect(_on_explore_pressed)
 	action_row.add_child(_explore_btn)
 
 	_discovery_btn = Button.new()
 	_discovery_btn.text = "Scout Discovery (D100)"
-	_discovery_btn.custom_minimum_size = Vector2(220, 48)
+	_discovery_btn.custom_minimum_size = Vector2(0, 48)
 	_discovery_btn.pressed.connect(_on_discovery_pressed)
 	action_row.add_child(_discovery_btn)
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Continue to Next Step"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.visible = false
 	btn_box.add_child(_continue_btn)

@@ -199,7 +199,7 @@ size_flags_horizontal = 3
 [node name="Controls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="AutomationContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Controls"]
+[node name="AutomationContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer/Controls"]
 layout_mode = 2
 alignment = 1
 
@@ -255,7 +255,7 @@ alignment = 1
 
 [node name="BackToDashboardButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 48)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -269,7 +269,7 @@ size_flags_horizontal = 3
 
 [node name="ProceedToBattleButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)

@@ -170,7 +170,7 @@ func _build_ui() -> void:
 	vbox.add_child(action_row)
 
 	_buy_btn = Button.new()
-	_buy_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	action_row.add_child(_buy_btn)
 	_style_buy_button(catalog.get("price_default", ""))
 

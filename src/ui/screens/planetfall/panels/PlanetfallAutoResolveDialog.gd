@@ -142,14 +142,14 @@ func _build_ui() -> void:
 
 	_resolve_btn = Button.new()
 	_resolve_btn.text = _get_resolve_button_text()
-	_resolve_btn.custom_minimum_size = Vector2(200, 48)
+	_resolve_btn.custom_minimum_size = Vector2(0, 48)
 	_resolve_btn.pressed.connect(_on_resolve_pressed)
 	_resolve_btn.visible = _needs_resolve_button()
 	btn_box.add_child(_resolve_btn)
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.visible = not _needs_resolve_button()
 	btn_box.add_child(_continue_btn)

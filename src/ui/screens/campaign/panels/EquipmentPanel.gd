@@ -1237,7 +1237,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 		var toughness_val: int = _get_member_stat(member, "toughness")
 
 		var crew_btn: Button = Button.new()
-		crew_btn.custom_minimum_size = Vector2(160, 40)
+		crew_btn.custom_minimum_size = Vector2(0, 40)
 		crew_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 
 		# Show name + compact stats

@@ -104,7 +104,7 @@ func _build_ui() -> void:
 
 		var success_btn := Button.new()
 		success_btn.text = "Mission Success"
-		success_btn.custom_minimum_size = Vector2(150, 40)
+		success_btn.custom_minimum_size = Vector2(0, 40)
 		var mid: String = m.id
 		var skey: String = m.success_key
 		success_btn.pressed.connect(func(): _on_mission_result(mid, skey, true))
@@ -112,7 +112,7 @@ func _build_ui() -> void:
 
 		var fail_btn := Button.new()
 		fail_btn.text = "Mission Failed"
-		fail_btn.custom_minimum_size = Vector2(150, 40)
+		fail_btn.custom_minimum_size = Vector2(0, 40)
 		fail_btn.pressed.connect(func(): _on_mission_result(mid, skey, false))
 		btn_row.add_child(fail_btn)
 
@@ -121,7 +121,7 @@ func _build_ui() -> void:
 	# Skip all button
 	var skip_btn := Button.new()
 	skip_btn.text = "Skip All Tutorials"
-	skip_btn.custom_minimum_size = Vector2(200, 48)
+	skip_btn.custom_minimum_size = Vector2(0, 48)
 	skip_btn.pressed.connect(_on_skip_all)
 	content.add_child(skip_btn)
 

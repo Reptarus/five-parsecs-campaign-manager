@@ -129,13 +129,13 @@ func _build_ui() -> void:
 
 	_roll_btn = Button.new()
 	_roll_btn.text = "Roll Colony Event (D100)"
-	_roll_btn.custom_minimum_size = Vector2(240, 48)
+	_roll_btn.custom_minimum_size = Vector2(0, 48)
 	_roll_btn.pressed.connect(_on_roll_pressed)
 	btn_box.add_child(_roll_btn)
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.visible = false
 	btn_box.add_child(_continue_btn)
@@ -302,7 +302,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	# For most choice events, provide simple accept/decline buttons
 	var accept_btn := Button.new()
 	accept_btn.text = "Accept Event"
-	accept_btn.custom_minimum_size = Vector2(200, 48)
+	accept_btn.custom_minimum_size = Vector2(0, 48)
 	accept_btn.pressed.connect(func():
 		_apply_choice_accept(event_id, effect)
 		accept_btn.disabled = true
@@ -314,7 +314,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	if penalty != 0:
 		var decline_btn := Button.new()
 		decline_btn.text = "Decline (%+d Morale)" % penalty
-		decline_btn.custom_minimum_size = Vector2(200, 48)
+		decline_btn.custom_minimum_size = Vector2(0, 48)
 		decline_btn.pressed.connect(func():
 			if _campaign and _campaign.has_method("adjust_morale"):
 				_campaign.adjust_morale(penalty)

@@ -142,13 +142,13 @@ func _build_ui() -> void:
 
 	_action_btn = Button.new()
 	_action_btn.text = _get_action_button_text()
-	_action_btn.custom_minimum_size = Vector2(200, 48)
+	_action_btn.custom_minimum_size = Vector2(0, 48)
 	_action_btn.pressed.connect(_on_action_pressed)
 	btn_box.add_child(_action_btn)
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.visible = false
 	btn_box.add_child(_continue_btn)

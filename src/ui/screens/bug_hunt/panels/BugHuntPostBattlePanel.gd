@@ -100,7 +100,7 @@ func _populate_post_battle() -> void:
 	# Process button
 	var process_btn := Button.new()
 	process_btn.text = "Process Post-Battle"
-	process_btn.custom_minimum_size = Vector2(220, 48)
+	process_btn.custom_minimum_size = Vector2(0, 48)
 	process_btn.pressed.connect(_process_post_battle)
 	_content_container.add_child(process_btn)
 
@@ -154,7 +154,7 @@ func _process_post_battle() -> void:
 	# Complete button
 	var complete_btn := Button.new()
 	complete_btn.text = "Complete Post-Battle"
-	complete_btn.custom_minimum_size = Vector2(220, 48)
+	complete_btn.custom_minimum_size = Vector2(0, 48)
 	complete_btn.pressed.connect(func(): complete())
 	_content_container.add_child(complete_btn)
 

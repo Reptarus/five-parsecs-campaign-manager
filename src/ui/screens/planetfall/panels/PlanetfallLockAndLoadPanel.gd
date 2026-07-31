@@ -176,7 +176,7 @@ func _build_ui() -> void:
 
 	_confirm_btn = Button.new()
 	_confirm_btn.text = "Deploy for Mission"
-	_confirm_btn.custom_minimum_size = Vector2(220, 48)
+	_confirm_btn.custom_minimum_size = Vector2(0, 48)
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
 	vbox.add_child(_confirm_btn)
 	_confirm_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

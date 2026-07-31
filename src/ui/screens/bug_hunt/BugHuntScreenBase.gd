@@ -60,6 +60,6 @@ func _create_scroll_layout() -> Dictionary:
 func _create_action_button(text: String, is_primary: bool = false) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(200, TOUCH_TARGET_COMFORT)
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	_style_button(btn, is_primary)
 	return btn

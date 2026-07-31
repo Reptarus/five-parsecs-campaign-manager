@@ -186,7 +186,7 @@ func _build_layout() -> void:
 
 	_advance_button = Button.new()
 	_advance_button.text = "Complete Phase"
-	_advance_button.custom_minimum_size = Vector2(200, 48)
+	_advance_button.custom_minimum_size = Vector2(0, 48)
 	_advance_button.pressed.connect(_on_advance_pressed)
 	nav.add_child(_advance_button)
 

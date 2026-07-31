@@ -159,7 +159,7 @@ func _show_step_1() -> void:
 
 		var load_btn := Button.new()
 		load_btn.text = "Load Characters from Save File"
-		load_btn.custom_minimum_size = Vector2(260, 48)
+		load_btn.custom_minimum_size = Vector2(0, 48)
 		load_btn.pressed.connect(_on_load_save)
 		_step_container.add_child(load_btn)
 	else:
@@ -181,7 +181,7 @@ func _show_step_1() -> void:
 	# Cancel button
 	var cancel_btn := Button.new()
 	cancel_btn.text = "Cancel — Go Back"
-	cancel_btn.custom_minimum_size = Vector2(200, 44)
+	cancel_btn.custom_minimum_size = Vector2(0, 44)
 	cancel_btn.pressed.connect(func():
 		transfer_cancelled.emit()
 		queue_free()
@@ -218,7 +218,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
-	select_btn.custom_minimum_size = Vector2(200, 44)
+	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func(): _show_step_2(captured))
 	card.add_child(select_btn)
@@ -291,13 +291,13 @@ func _show_step_2(char_data: Dictionary) -> void:
 		confirm_btn.text = "Roll for Enlistment"
 	else:
 		confirm_btn.text = "Confirm Muster Out"
-	confirm_btn.custom_minimum_size = Vector2(220, 52)
+	confirm_btn.custom_minimum_size = Vector2(0, 52)
 	confirm_btn.pressed.connect(func(): _execute_transfer())
 	btn_row.add_child(confirm_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
-	back_btn.custom_minimum_size = Vector2(140, 48)
+	back_btn.custom_minimum_size = Vector2(0, 48)
 	back_btn.pressed.connect(func(): _show_step_1())
 	btn_row.add_child(back_btn)
 
@@ -350,7 +350,7 @@ func _show_enlistment_result(result: Dictionary) -> void:
 
 		var done_btn := Button.new()
 		done_btn.text = "Welcome Aboard!"
-		done_btn.custom_minimum_size = Vector2(200, 48)
+		done_btn.custom_minimum_size = Vector2(0, 48)
 		done_btn.pressed.connect(func():
 			character_transferred.emit(result.transferred_character, "enlist")
 		)
@@ -370,7 +370,7 @@ func _show_enlistment_result(result: Dictionary) -> void:
 
 		var back_btn := Button.new()
 		back_btn.text = "Back to Selection"
-		back_btn.custom_minimum_size = Vector2(200, 48)
+		back_btn.custom_minimum_size = Vector2(0, 48)
 		back_btn.pressed.connect(func(): _show_step_1())
 		_step_container.add_child(back_btn)
 
@@ -408,7 +408,7 @@ func _show_muster_result(result: Dictionary) -> void:
 
 		var done_btn := Button.new()
 		done_btn.text = "Dismiss — Good Luck Out There"
-		done_btn.custom_minimum_size = Vector2(280, 48)
+		done_btn.custom_minimum_size = Vector2(0, 48)
 		done_btn.pressed.connect(func():
 			character_transferred.emit(transferred, "muster_out")
 		)
@@ -423,7 +423,7 @@ func _show_muster_result(result: Dictionary) -> void:
 
 		var back_btn := Button.new()
 		back_btn.text = "Go Back"
-		back_btn.custom_minimum_size = Vector2(160, 48)
+		back_btn.custom_minimum_size = Vector2(0, 48)
 		back_btn.pressed.connect(func(): _show_step_1())
 		_step_container.add_child(back_btn)
 
@@ -479,7 +479,7 @@ func _on_load_save() -> void:
 
 	var cancel := Button.new()
 	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(160, 44)
+	cancel.custom_minimum_size = Vector2(0, 44)
 	cancel.pressed.connect(func(): _show_step_1())
 	_step_container.add_child(cancel)
 

@@ -667,7 +667,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 	wrap_row.add_child(wrap_label)
 
 	narrative_wrap_option = OptionButton.new()
-	narrative_wrap_option.custom_minimum_size = Vector2(260, TOUCH_TARGET_MIN)
+	narrative_wrap_option.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	narrative_wrap_option.add_item("Use Global Setting", 0)
 	narrative_wrap_option.add_item("Always Wrap (Cinematic)", 1)
 	narrative_wrap_option.add_item("Never Wrap (Classic)", 2)

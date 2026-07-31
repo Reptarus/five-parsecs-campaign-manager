@@ -106,11 +106,11 @@ theme_override_constants/separation = 20
 alignment = 1
 
 [node name="CreateShipButton" type="Button" parent="VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Create Ship"
 
 [node name="BackButton" type="Button" parent="VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Back"

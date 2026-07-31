@@ -92,7 +92,7 @@ func _build_ui() -> void:
 
 	var reroll_btn := Button.new()
 	reroll_btn.text = "Reroll Names"
-	reroll_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET)
+	reroll_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	reroll_btn.pressed.connect(_on_reroll_pressed)
 	crew_row.add_child(reroll_btn)
 
@@ -119,7 +119,7 @@ func _build_ui() -> void:
 	cat_row.add_child(cat_label)
 
 	_category_dropdown = OptionButton.new()
-	_category_dropdown.custom_minimum_size = Vector2(220, TOUCH_TARGET)
+	_category_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	_category_dropdown.add_item("Random", 0)
 	for i in range(_categories.size()):
 		_category_dropdown.add_item(_categories[i].get("name", ""), i + 1)
@@ -137,7 +137,7 @@ func _build_ui() -> void:
 	type_row.add_child(type_label)
 
 	_enemy_dropdown = OptionButton.new()
-	_enemy_dropdown.custom_minimum_size = Vector2(220, TOUCH_TARGET)
+	_enemy_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	_enemy_dropdown.item_selected.connect(_on_enemy_selected)
 	type_row.add_child(_enemy_dropdown)
 
@@ -164,7 +164,7 @@ func _build_ui() -> void:
 	mission_row.add_child(mission_label)
 
 	_mission_dropdown = OptionButton.new()
-	_mission_dropdown.custom_minimum_size = Vector2(220, TOUCH_TARGET)
+	_mission_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	_mission_dropdown.add_item("Random", 0)
 	var mission_types: Array = _setup.get_mission_types()
 	for i in range(mission_types.size()):
@@ -187,7 +187,7 @@ func _build_ui() -> void:
 	diff_row.add_child(diff_label)
 
 	_difficulty_dropdown = OptionButton.new()
-	_difficulty_dropdown.custom_minimum_size = Vector2(280, TOUCH_TARGET)
+	_difficulty_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	_difficulty_dropdown.add_item("1 - Easy (fewer enemies)", 0)
 	_difficulty_dropdown.add_item("2 - Normal", 1)
 	_difficulty_dropdown.add_item("3 - Challenging", 2)
@@ -204,7 +204,7 @@ func _build_ui() -> void:
 
 	_launch_button = Button.new()
 	_launch_button.text = "LAUNCH BATTLE"
-	_launch_button.custom_minimum_size = Vector2(280, 56)
+	_launch_button.custom_minimum_size = Vector2(0, 56)
 	_launch_button.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	_launch_button.pressed.connect(_on_launch_pressed)
 	launch_container.add_child(_launch_button)

@@ -52,14 +52,14 @@ func _build_placeholder() -> void:
 	# Quick-generate button for testing
 	var gen_btn := Button.new()
 	gen_btn.text = "Auto-Generate Default Roster (2S / 2Sc / 4T)"
-	gen_btn.custom_minimum_size = Vector2(300, 56)
+	gen_btn.custom_minimum_size = Vector2(0, 56)
 	gen_btn.pressed.connect(_on_auto_generate)
 	content.add_child(gen_btn)
 
 	# Import veterans from a 5PFH / Bug Hunt save (Planetfall pp.26-29)
 	var import_btn := Button.new()
 	import_btn.text = "Import Characters from 5PFH / Bug Hunt"
-	import_btn.custom_minimum_size = Vector2(300, 48)
+	import_btn.custom_minimum_size = Vector2(0, 48)
 	import_btn.pressed.connect(_on_import_pressed)
 	content.add_child(import_btn)
 

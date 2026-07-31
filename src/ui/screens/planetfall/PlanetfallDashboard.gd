@@ -202,7 +202,7 @@ func _build_muster_out_overlay(roster: Array) -> Control:
 
 	var cancel := Button.new()
 	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(200, 44)
+	cancel.custom_minimum_size = Vector2(0, 44)
 	cancel.pressed.connect(func() -> void: overlay.queue_free())
 	vbox.add_child(cancel)
 	return overlay

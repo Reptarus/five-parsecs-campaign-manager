@@ -149,7 +149,7 @@ func _show_step_1() -> void:
 
 	var cancel := Button.new()
 	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(200, 44)
+	cancel.custom_minimum_size = Vector2(0, 44)
 	cancel.pressed.connect(func() -> void:
 		import_cancelled.emit()
 		queue_free())
@@ -170,7 +170,7 @@ func _build_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
-	select_btn.custom_minimum_size = Vector2(200, 44)
+	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func() -> void: _show_step_2(captured))
 	card.add_child(select_btn)
@@ -219,14 +219,14 @@ func _show_step_2(source_char: Dictionary) -> void:
 
 	var commission_btn := Button.new()
 	commission_btn.text = "Commission %s" % char_name
-	commission_btn.custom_minimum_size = Vector2(240, 52)
+	commission_btn.custom_minimum_size = Vector2(0, 52)
 	commission_btn.pressed.connect(func() -> void:
 		_finalize(veteran, canonical))
 	btn_row.add_child(commission_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
-	back_btn.custom_minimum_size = Vector2(140, 48)
+	back_btn.custom_minimum_size = Vector2(0, 48)
 	back_btn.pressed.connect(func() -> void: _show_step_1())
 	btn_row.add_child(back_btn)
 

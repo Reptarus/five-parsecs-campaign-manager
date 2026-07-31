@@ -164,19 +164,19 @@ horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="StoryTrackButton" type="Button" parent="TutorialPopup/VBoxContainer" unique_id=1775659538]
-custom_minimum_size = Vector2(200, 40)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Story Track"
 
 [node name="CompendiumButton" type="Button" parent="TutorialPopup/VBoxContainer" unique_id=220172932]
-custom_minimum_size = Vector2(200, 40)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Compendium"
 
 [node name="SkipButton" type="Button" parent="TutorialPopup/VBoxContainer" unique_id=880461678]
-custom_minimum_size = Vector2(200, 40)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Skip Tutorial"

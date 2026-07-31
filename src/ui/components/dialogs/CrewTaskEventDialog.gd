@@ -333,14 +333,14 @@ func _build_accept_decline_buttons() -> void:
 
 	var accept_btn := Button.new()
 	accept_btn.text = "Accept"
-	accept_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	accept_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(accept_btn, COLOR_ACCENT)
 	accept_btn.pressed.connect(_on_accept_risk)
 	hbox.add_child(accept_btn)
 
 	var decline_btn := Button.new()
 	decline_btn.text = "Decline"
-	decline_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	decline_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(decline_btn, COLOR_ELEVATED)
 	decline_btn.pressed.connect(_on_decline_risk)
 	hbox.add_child(decline_btn)
@@ -354,7 +354,7 @@ func _build_purchase_buttons() -> void:
 
 	var buy_btn := Button.new()
 	buy_btn.text = "Pay %d Credits" % cost
-	buy_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(buy_btn, COLOR_ACCENT)
 	buy_btn.pressed.connect(_on_purchase_accepted)
 	hbox.add_child(buy_btn)
@@ -479,7 +479,7 @@ func _build_sell_list() -> void:
 
 	var sell_btn := Button.new()
 	sell_btn.text = "Sell Selected"
-	sell_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	sell_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(sell_btn, COLOR_ACCENT)
 	sell_btn.pressed.connect(_on_sell_confirmed)
 	hbox.add_child(sell_btn)
@@ -523,7 +523,7 @@ func _build_quantity_picker() -> void:
 
 	var buy_btn := Button.new()
 	buy_btn.text = "Purchase"
-	buy_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(buy_btn, COLOR_ACCENT)
 	buy_btn.pressed.connect(_on_buy_confirmed)
 	hbox.add_child(buy_btn)
@@ -544,7 +544,7 @@ func _build_trade_buttons() -> void:
 
 	var trade_btn := Button.new()
 	trade_btn.text = "Trade a %s" % trade_type.capitalize()
-	trade_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	trade_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(trade_btn, COLOR_ACCENT)
 	trade_btn.pressed.connect(_on_trade_accepted)
 	hbox.add_child(trade_btn)

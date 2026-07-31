@@ -109,17 +109,17 @@ func _build_layout() -> void:
 
 	_back_button = Button.new()
 	_back_button.text = "Back"
-	_back_button.custom_minimum_size = Vector2(140, 48)
+	_back_button.custom_minimum_size = Vector2(0, 48)
 	nav.add_child(_back_button)
 
 	_next_button = Button.new()
 	_next_button.text = "Next"
-	_next_button.custom_minimum_size = Vector2(140, 48)
+	_next_button.custom_minimum_size = Vector2(0, 48)
 	nav.add_child(_next_button)
 
 	_finish_button = Button.new()
 	_finish_button.text = "Launch Campaign"
-	_finish_button.custom_minimum_size = Vector2(200, 48)
+	_finish_button.custom_minimum_size = Vector2(0, 48)
 	nav.add_child(_finish_button)
 
 

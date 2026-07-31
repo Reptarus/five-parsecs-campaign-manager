@@ -197,7 +197,7 @@ func _refresh_equipment_display() -> void:
 		var validated_equipment = DataValidator.validate_equipment(equipment)
 		var item_button: Button = Button.new()
 		item_button.text = DataValidator.safe_get_name(validated_equipment)
-		item_button.custom_minimum_size = Vector2(150, 60)
+		item_button.custom_minimum_size = Vector2(0, 60)
 		item_button.pressed.connect(_on_equipment_selected.bind(validated_equipment))
 		equipment_grid.add_child(item_button)
 

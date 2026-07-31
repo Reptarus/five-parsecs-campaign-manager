@@ -65,13 +65,13 @@ theme_override_constants/separation = 10
 alignment = 1
 
 [node name="NextButton" type="Button" parent="CardScroll/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(200, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Next"
 
 [node name="BackButton" type="Button" parent="CardScroll/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(200, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Back"
@@ -80,7 +80,7 @@ text = "Back"
 layout_mode = 2
 
 [node name="SkipButton" type="Button" parent="CardScroll/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(200, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Skip Tutorial"

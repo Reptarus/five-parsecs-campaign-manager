@@ -90,7 +90,7 @@ func _build_ui() -> void:
 	vbox.add_child(action_row)
 
 	_action_btn = Button.new()
-	_action_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_action_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	action_row.add_child(_action_btn)
 
 	if _is_owned:

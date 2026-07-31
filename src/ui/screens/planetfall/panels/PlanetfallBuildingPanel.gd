@@ -177,7 +177,7 @@ func _build_ui() -> void:
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Done Building"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	vbox.add_child(_continue_btn)
 	_continue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

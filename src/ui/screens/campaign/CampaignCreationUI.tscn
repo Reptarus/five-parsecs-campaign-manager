@@ -97,16 +97,16 @@ theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Back"
 
 [node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Next"
 
 [node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Start Campaign"

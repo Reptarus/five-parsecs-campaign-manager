@@ -133,7 +133,7 @@ func _build_layout() -> void:
 
 	_finish_button = Button.new()
 	_finish_button.text = "Launch Campaign"
-	_finish_button.custom_minimum_size = Vector2(180, 48)
+	_finish_button.custom_minimum_size = Vector2(0, 48)
 	_finish_button.visible = false
 	nav.add_child(_finish_button)
 

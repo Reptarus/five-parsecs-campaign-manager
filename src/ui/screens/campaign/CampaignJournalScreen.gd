@@ -166,14 +166,14 @@ func _build_header() -> Control:
 
 	_sort_toggle = Button.new()
 	_sort_toggle.text = "Newest first"
-	_sort_toggle.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_sort_toggle.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	DialogStyles.style_secondary_button(_sort_toggle)
 	_sort_toggle.pressed.connect(_on_sort_toggled)
 	header.add_child(_sort_toggle)
 
 	_share_button = MenuButton.new()
 	_share_button.text = "Share..."
-	_share_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	_share_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_share_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	_share_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var share_popup: PopupMenu = _share_button.get_popup()
@@ -232,17 +232,17 @@ func _build_filter_panel() -> Control:
 	v.add_child(adv)
 
 	_character_dropdown = OptionButton.new()
-	_character_dropdown.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_character_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_character_dropdown.item_selected.connect(_on_character_selected)
 	adv.add_child(_labeled("Character:", _character_dropdown))
 
 	_location_dropdown = OptionButton.new()
-	_location_dropdown.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_location_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_location_dropdown.item_selected.connect(_on_location_selected)
 	adv.add_child(_labeled("Planet:", _location_dropdown))
 
 	_mood_dropdown = OptionButton.new()
-	_mood_dropdown.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	_mood_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_mood_dropdown.item_selected.connect(_on_mood_selected)
 	adv.add_child(_labeled("Mood:", _mood_dropdown))
 
@@ -273,7 +273,7 @@ func _build_filter_panel() -> Control:
 
 	_reset_button = Button.new()
 	_reset_button.text = "Reset Filters"
-	_reset_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	_reset_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	DialogStyles.style_secondary_button(_reset_button)
 	_reset_button.pressed.connect(_on_reset_filters)
 	adv.add_child(_reset_button)

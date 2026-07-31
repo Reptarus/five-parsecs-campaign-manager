@@ -49,7 +49,7 @@ func _build_placeholder() -> void:
 
 	var roll_btn := Button.new()
 	roll_btn.text = "Auto-Roll All Backgrounds"
-	roll_btn.custom_minimum_size = Vector2(280, 56)
+	roll_btn.custom_minimum_size = Vector2(0, 56)
 	roll_btn.pressed.connect(_on_auto_roll)
 	content.add_child(roll_btn)
 

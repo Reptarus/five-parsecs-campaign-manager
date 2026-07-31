@@ -121,6 +121,13 @@ func _process(_delta: float) -> bool:
 
 func _run() -> void:
 	print("=== LAYOUT SWEEP: %d screens x %d sizes ===" % [SCREENS.size(), SIZES.size()])
+	# STATE MATTERS AND IS NOT ALWAYS THE SAME. Several screens build from the current
+	# campaign, so a machine that has one auto-loaded measures far more content than an
+	# empty one — CampaignDashboard's landscape overflow went 30.6 -> 154.8 px purely
+	# from a campaign being present. Both readings are legitimate; a run whose header
+	# says NO CAMPAIGN is a FLOOR, not a clean bill of health. Print it so two runs are
+	# never silently compared across that boundary.
+	print("campaign state: %s" % _campaign_state())
 	for path in SCREENS:
 		await _sweep_screen(path)
 	print("\n================ RESULT ================")
@@ -131,6 +138,24 @@ func _run() -> void:
 			print("  " + f)
 	print("LAYOUT SWEEP: %s" % ("PASS" if _fail == 0 else "FAIL"))
 	quit(1 if _fail > 0 else 0)
+
+
+## Which campaign, if any, the screens will build from. See the note in _run().
+func _campaign_state() -> String:
+	var gs := root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return "GameState autoload missing"
+	var campaign = null
+	if gs.has_method("get_current_campaign"):
+		campaign = gs.get_current_campaign()
+	if campaign == null:
+		return "NO CAMPAIGN loaded (screens that build from campaign data render empty)"
+	var id := ""
+	if "campaign_id" in campaign:
+		id = str(campaign.campaign_id)
+	elif "campaign_name" in campaign:
+		id = str(campaign.campaign_name)
+	return "campaign loaded: %s" % (id if not id.is_empty() else "<unnamed>")
 
 
 func _sweep_screen(path: String) -> void:

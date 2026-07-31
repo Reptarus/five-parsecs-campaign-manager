@@ -756,7 +756,7 @@ func _build_travel_section() -> void:
 	# Stay button
 	_stay_button = Button.new()
 	_stay_button.text = "Stay in Current Location"
-	_stay_button.custom_minimum_size = Vector2(220, 48)
+	_stay_button.custom_minimum_size = Vector2(0, 48)
 	var stay_style := StyleBoxFlat.new()
 	stay_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
 	stay_style.border_width_left = 1
@@ -781,7 +781,7 @@ func _build_travel_section() -> void:
 	var credits := GameStateManager.get_credits()
 	var crew_size := _get_crew_size_for_travel()
 	_update_travel_button_text(credits, crew_size)
-	_travel_button.custom_minimum_size = Vector2(260, 48)
+	_travel_button.custom_minimum_size = Vector2(0, 48)
 	var travel_style := StyleBoxFlat.new()
 	travel_style.bg_color = Color(0.231, 0.51, 0.965, 1)
 	travel_style.set_corner_radius_all(8)
@@ -936,10 +936,16 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	if turns_played < 10:
 		return
 
-	var zone_row := HBoxContainer.new()
+	# HFlow, not HBox, for the same reason as the Stay/Travel row above: side by side
+	# "Travel to Red Zone" and "Accept Black Zone Mission" demand 456px, which is more
+	# than a phone's whole 339px design space, and an HBox has no way to give that
+	# back — it propagated straight up and clipped the entire World Phase on both
+	# edges once a campaign reached turn 10.
+	var zone_row := HFlowContainer.new()
 	zone_row.name = "ZoneButtonRow"
-	zone_row.add_theme_constant_override("separation", 16)
-	zone_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	zone_row.add_theme_constant_override("h_separation", 16)
+	zone_row.add_theme_constant_override("v_separation", 8)
+	zone_row.alignment = FlowContainer.ALIGNMENT_CENTER
 
 	# Red Zone button
 	_red_zone_button = Button.new()
@@ -948,7 +954,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		"Red Zone: Dangerous endgame missions with "
 		+ "increased opposition and improved rewards "
 		+ "(Core Rules Appendix III)")
-	_red_zone_button.custom_minimum_size = Vector2(220, 48)
+	_red_zone_button.custom_minimum_size = Vector2(0, 48)
 	var rz_style := StyleBoxFlat.new()
 	rz_style.bg_color = Color(0.55, 0.08, 0.08, 0.9)
 	rz_style.border_width_left = 1
@@ -976,7 +982,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		"Black Zone: Near-suicide Unity missions. "
 		+ "No upkeep, 3 free weapons, massive rewards "
 		+ "(Core Rules Appendix III)")
-	_black_zone_button.custom_minimum_size = Vector2(260, 48)
+	_black_zone_button.custom_minimum_size = Vector2(0, 48)
 	var bz_style := StyleBoxFlat.new()
 	bz_style.bg_color = Color(0.15, 0.05, 0.25, 0.9)
 	bz_style.border_width_left = 1
@@ -1038,7 +1044,7 @@ func _build_colony_world_buttons(parent: VBoxContainer) -> void:
 		krag_btn.tooltip_text = (
 			"Krag colonies always have Busy Markets + Vendetta System traits. "
 			+ "Costs 1 Story Point to discover (Compendium p.15)")
-		krag_btn.custom_minimum_size = Vector2(240, 48)
+		krag_btn.custom_minimum_size = Vector2(0, 48)
 		var krag_style := StyleBoxFlat.new()
 		krag_style.bg_color = Color(0.35, 0.25, 0.1, 0.9)
 		krag_style.border_color = Color(0.6, 0.45, 0.15, 1)
@@ -1066,7 +1072,7 @@ func _build_colony_world_buttons(parent: VBoxContainer) -> void:
 		skulker_btn.tooltip_text = (
 			"Skulker colonies always have Adventurous trait + one random trait. "
 			+ "'Alien species restricted' = no result (Compendium p.17)")
-		skulker_btn.custom_minimum_size = Vector2(240, 48)
+		skulker_btn.custom_minimum_size = Vector2(0, 48)
 		var skulker_style := StyleBoxFlat.new()
 		skulker_style.bg_color = Color(0.15, 0.3, 0.2, 0.9)
 		skulker_style.border_color = Color(0.2, 0.5, 0.35, 1)

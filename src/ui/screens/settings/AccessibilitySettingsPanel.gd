@@ -59,7 +59,7 @@ func _setup_ui() -> void:
 	vbox.add_child(theme_label)
 
 	_theme_option_button = OptionButton.new()
-	_theme_option_button.custom_minimum_size = Vector2(400, 48)
+	_theme_option_button.custom_minimum_size = Vector2(0, 48)
 	_theme_option_button.item_selected.connect(_on_theme_selected)
 	vbox.add_child(_theme_option_button)
 
@@ -82,7 +82,7 @@ func _setup_ui() -> void:
 	# Apply button
 	_apply_button = Button.new()
 	_apply_button.text = "Apply Theme"
-	_apply_button.custom_minimum_size = Vector2(200, 56)
+	_apply_button.custom_minimum_size = Vector2(0, 56)
 	_apply_button.pressed.connect(_on_apply_pressed)
 	vbox.add_child(_apply_button)
 

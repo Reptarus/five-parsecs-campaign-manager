@@ -141,7 +141,7 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Continue"
-	_close_btn.custom_minimum_size = Vector2(200, 48)
+	_close_btn.custom_minimum_size = Vector2(0, 48)
 	_close_btn.pressed.connect(_on_close_pressed)
 	vbox.add_child(_close_btn)
 	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

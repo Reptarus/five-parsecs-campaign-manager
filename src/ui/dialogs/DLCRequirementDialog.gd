@@ -164,7 +164,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 
 	var store_btn := Button.new()
 	store_btn.text = "Get Expansion"
-	store_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	store_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var store_style := StyleBoxFlat.new()
 	store_style.bg_color = COLOR_EMERALD.darkened(0.2)
 	store_style.set_corner_radius_all(6)

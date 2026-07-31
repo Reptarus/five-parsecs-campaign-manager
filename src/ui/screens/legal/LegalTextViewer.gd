@@ -82,7 +82,7 @@ func _build_ui() -> void:
 
 	var close_btn := Button.new()
 	close_btn.text = "Close"
-	close_btn.custom_minimum_size = Vector2(200, UIColors.TOUCH_TARGET_MIN)
+	close_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	DialogStyles.style_primary_button(close_btn)
 	close_btn.pressed.connect(_on_back_pressed)
 	footer.add_child(close_btn)

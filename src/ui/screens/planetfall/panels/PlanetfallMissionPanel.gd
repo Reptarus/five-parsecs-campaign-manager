@@ -135,7 +135,7 @@ func _build_ui() -> void:
 
 	_confirm_btn = Button.new()
 	_confirm_btn.text = "Confirm Mission Selection"
-	_confirm_btn.custom_minimum_size = Vector2(240, 48)
+	_confirm_btn.custom_minimum_size = Vector2(0, 48)
 	_confirm_btn.disabled = true
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
 	vbox.add_child(_confirm_btn)

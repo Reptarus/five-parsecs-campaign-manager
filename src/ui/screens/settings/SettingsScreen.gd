@@ -351,7 +351,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 			if _vsync_option.get_item_id(i) == saved_vsync:
 				_vsync_option.select(i)
 				break
-		_vsync_option.custom_minimum_size = Vector2(200, _touch_target)
+		_vsync_option.custom_minimum_size = Vector2(0, _touch_target)
 		_vsync_option.accessibility_name = "Vertical sync mode selection"
 		if _sm:
 			_vsync_option.item_selected.connect(func(idx: int):
@@ -452,7 +452,7 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		if table_option.get_item_id(i) == saved_id:
 			table_option.select(i)
 			break
-	table_option.custom_minimum_size = Vector2(200, _touch_target)
+	table_option.custom_minimum_size = Vector2(0, _touch_target)
 	table_option.accessibility_name = "Physical table size selection"
 	if _sm:
 		table_option.item_selected.connect(func(idx: int):
@@ -909,7 +909,7 @@ func _add_slider_row(parent: VBoxContainer, label_text: String,
 func _create_accent_button(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(200, _touch_target)
+	btn.custom_minimum_size = Vector2(0, _touch_target)
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
 	style.set_corner_radius_all(6)
@@ -927,7 +927,7 @@ func _create_accent_button(text: String) -> Button:
 func _create_button(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(200, _touch_target)
+	btn.custom_minimum_size = Vector2(0, _touch_target)
 	return btn
 
 

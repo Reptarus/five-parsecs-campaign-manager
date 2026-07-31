@@ -87,7 +87,7 @@ func _build_ui() -> void:
 
 	_complete_btn = Button.new()
 	_complete_btn.text = "Complete Phase"
-	_complete_btn.custom_minimum_size = Vector2(200, TOUCH_TARGET_COMFORT)
+	_complete_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	_complete_btn.pressed.connect(_on_complete)
 	nav.add_child(_complete_btn)
 
