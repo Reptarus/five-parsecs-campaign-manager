@@ -31,6 +31,12 @@ var _objective_name: String = ""
 var _objective_condition: String = ""
 var _objective_met_check: CheckBox
 
+# Core Rules p.123 per-character XP bonuses. Both are things only the player
+# witnessed, so they are asked rather than derived; both were previously read
+# from battle_result keys that no producer wrote.
+var _first_casualty_btn: OptionButton
+var _unique_kill_btn: OptionButton
+
 ## prefill: optional {victory, enemies_defeated, rounds, held_field} from
 ## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
 ## of _build_ui() — NOT here — because the UI nodes do not exist until then
@@ -250,6 +256,34 @@ func _build_ui() -> void:
 		_injury_checks.append(check)
 	vbox.add_child(inj_section[0])
 
+	# === XP CREDIT SECTION (Core Rules p.123) ===
+	#
+	# Two of the book's seven XP sources are per-character and depend on
+	# something only the player saw happen on their table:
+	#   "First character to inflict a casualty  +1"
+	#   "Killed Unique Individual                +1"
+	# Both were read by ExperienceTrainingProcessor from battle_result keys that
+	# NO PRODUCER EVER WROTE, so neither bonus had ever been awarded. They cannot
+	# be derived — the app does not watch the dice — so it asks, which is the
+	# whole companion-app premise.
+	var xp_section := _create_section("XP CREDIT  (Core Rules p.123)")
+	var xp_card: VBoxContainer = xp_section[1]
+
+	var xp_hint := Label.new()
+	xp_hint.text = "Optional. Leave as \"Nobody\" if it did not happen."
+	xp_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	xp_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	xp_card.add_child(xp_hint)
+
+	_first_casualty_btn = _build_crew_picker(
+		xp_card, "First to inflict a casualty (+1 XP)")
+	# Errata v1.06 (update 1.03): the bonus goes to the first crew figure that
+	# inflicts a casualty AND CAN EARN XP — Bots are ignored, so they are not
+	# offered here at all.
+	_unique_kill_btn = _build_crew_picker(
+		xp_card, "Killed a Unique Individual (+1 XP)")
+	vbox.add_child(xp_section[0])
+
 	# === SUBMIT BUTTON ===
 	vbox.add_child(HSeparator.new())
 	_submit_btn = Button.new()
@@ -306,6 +340,63 @@ func _apply_prefill() -> void:
 			var i: int = int(idx)
 			if i >= 0 and i < _injury_checks.size():
 				_injury_checks[i].button_pressed = true
+
+func _build_crew_picker(parent: VBoxContainer, label_text: String) -> OptionButton:
+	## A labelled "which crew member?" dropdown. Item 0 is always "Nobody" so the
+	## default awards nothing — an XP bonus must be a deliberate answer.
+	##
+	## Bots are omitted: errata v1.06 states the first-casualty bonus goes to the
+	## first figure that inflicts a casualty AND CAN EARN XP, and a Bot cannot.
+	## Offering one would invite the player to record a bonus the rules then drop.
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", UIColors.SPACING_XS)
+
+	var lbl := Label.new()
+	lbl.text = label_text
+	lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	row.add_child(lbl)
+
+	var picker := OptionButton.new()
+	picker.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	picker.accessibility_name = label_text
+	picker.add_item("Nobody", -1)
+	for i in _crew.size():
+		if _is_bot(_crew[i]):
+			continue
+		picker.add_item(_get_crew_name(_crew[i]), i)
+	picker.select(0)
+	row.add_child(picker)
+
+	parent.add_child(row)
+	return picker
+
+func _is_bot(member) -> bool:
+	if member is Dictionary:
+		var d: Dictionary = member
+		if bool(d.get("is_bot", false)):
+			return true
+		return str(d.get("species_id", "")).to_lower() in ["bot", "soulless"]
+	if member and "is_bot" in member and bool(member.is_bot):
+		return true
+	if member and "species_id" in member:
+		return str(member.species_id).to_lower() in ["bot", "soulless"]
+	return false
+
+func _picked_crew_id(picker: OptionButton) -> String:
+	## The crew_id behind the current selection, or "" for "Nobody".
+	if picker == null or picker.selected < 0:
+		return ""
+	var idx: int = picker.get_item_id(picker.selected)
+	if idx < 0 or idx >= _crew.size():
+		return ""
+	var member = _crew[idx]
+	if member is Dictionary:
+		var d: Dictionary = member
+		return str(d.get("character_id", d.get("id", "")))
+	if member and "character_id" in member:
+		return str(member.character_id)
+	return ""
 
 func _create_section(title_text: String) -> Array:
 	## Returns [outer_container, inner_content] — add outer to parent, children to inner
@@ -453,6 +544,14 @@ func _on_submit() -> void:
 		# Objective (Core Rules p.90) — player-declared, authoritative for success
 		"objective_id": _objective_id,
 		"objective_met": objective_met,
+		# Core Rules p.123 per-character XP bonuses, player-declared for the same
+		# reason the objective is: the app cannot see whose shot landed first.
+		# ExperienceTrainingProcessor reads first_casualty_by as a crew_id and
+		# unique_kills as a LIST of crew_ids — matching those shapes exactly, so
+		# no consumer change is needed.
+		"first_casualty_by": _picked_crew_id(_first_casualty_btn),
+		"unique_kills": ([] if _picked_crew_id(_unique_kill_btn) == ""
+			else [_picked_crew_id(_unique_kill_btn)]),
 		# Mission context passthrough
 		"success": mission_success,
 		"is_red_zone": _mission_data.get("is_red_zone", false),

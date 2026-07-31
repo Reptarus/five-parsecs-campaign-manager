@@ -62,6 +62,29 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			entry["type"] = "killed"
 			casualties.append(entry)
 		results["casualties"] = casualties
+	# 8b) units_downed <- the crew who went Out of Action, which is exactly the
+	#    union of the two arrays above. NO PRODUCER EVER WROTE THIS KEY, and two
+	#    real mechanics read it:
+	#      - Core Rules p.21 Hopeful Rookie: +1 XP if they were NOT downed
+	#        (ExperienceTrainingProcessor) — so every Hopeful Rookie silently
+	#        collected the bonus, downed or not.
+	#      - battles_survived (PostBattleCompletion) — incremented for everyone,
+	#        so the counter actually meant "battles participated".
+	#    Derived here rather than asked of the player: going Out of Action is
+	#    already recorded on both paths, so there is nothing new to observe.
+	if not results.has("units_downed"):
+		var downed: Array = []
+		for entry in results.get("injuries_sustained", []):
+			var cid: String = str((entry as Dictionary).get("crew_id", "")) \
+				if entry is Dictionary else ""
+			if cid != "" and cid not in downed:
+				downed.append(cid)
+		for entry in results.get("casualties", []):
+			var cid2: String = str((entry as Dictionary).get("crew_id", "")) \
+				if entry is Dictionary else ""
+			if cid2 != "" and cid2 not in downed:
+				downed.append(cid2)
+		results["units_downed"] = downed
 	# 9) rival stamp on defeated enemies (RivalPatronResolver reads is_rival/rival_id
 	#    per element; produced elements only carry name/type/was_lieutenant).
 	var rid: String = str(results.get("rival_id", ""))
