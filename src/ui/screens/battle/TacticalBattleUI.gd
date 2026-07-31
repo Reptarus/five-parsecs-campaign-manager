@@ -3621,60 +3621,116 @@ func _build_end_phase_checklist() -> Control:
 
 	var step_num: int = 0
 
-	# Step: Morale check (always)
+	# Step: Morale check. Core Rules p.114 — the enemy tests ONLY if it lost
+	# figures this round, one die per figure lost. Say which it is, and when there
+	# is nothing to roll say so instead of leaving a box the player must reason about.
 	step_num += 1
-	vbox.add_child(_make_checklist_step(
-		step_num, "Morale check — roll 1D6 per casualty this round, "
-		+ "Bail Range removes enemies"))
+	var enemy_losses: int = 0
+	if morale_tracker and is_instance_valid(morale_tracker) \
+			and "casualties_this_round" in morale_tracker:
+		enemy_losses = int(morale_tracker.casualties_this_round)
+	if enemy_losses > 0:
+		vbox.add_child(_make_checklist_step(
+			step_num, "Morale: roll %dD6 (enemy lost %d). Each die in the Bail range removes one, closest to their edge first."
+				% [enemy_losses, enemy_losses],
+			_resolve_end_phase_morale, "Roll morale"))
+	else:
+		vbox.add_child(_make_checklist_step(
+			step_num, "Morale: no enemy figures lost this round — no check.",
+			Callable(), "", true))
 
-	# Step: Deployment condition round checks
+	# Step: the enemy may give up once your objective is met (Core Rules
+	# pp.114-115). This prompt did not exist anywhere in the app, so a player who
+	# completed their objective had no way to learn the battle could end here.
+	var giveup: Dictionary = _giveup_check_info()
+	if not giveup.is_empty():
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num, giveup["text"],
+			_on_giveup_roll_pressed if giveup["rollable"] else Callable(),
+			"Roll", not giveup["rollable"]))
+
+	# Step: Deployment condition round checks. Each opens the Dice drawer with the
+	# roll named, rather than telling the player to go find it.
+	var open_dice: Callable = func() -> void: _open_drawer("dice")
+
 	if cond_id == "BRIEF_ENGAGEMENT":
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Brief Engagement: Roll 2D6 — on %d or less, battle ends" % round_num))
+			"Brief Engagement: Roll 2D6 — on %d or less, battle ends" % round_num,
+			open_dice, "2D6"))
 
 	if cond_id == "DELAYED" and round_num >= 2:
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Delayed crew: Roll 1D6 — on %d or less, they arrive at your edge" % round_num))
+			"Delayed crew: Roll 1D6 — on %d or less, they arrive at your edge" % round_num,
+			open_dice, "1D6"))
 
 	if cond_id == "TOXIC_ENVIRONMENT":
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Toxic Environment: Stunned units roll 1D6+Savvy, below 4 = casualty"))
+			"Toxic Environment: Stunned units roll 1D6+Savvy, below 4 = casualty",
+			open_dice, "1D6"))
 
 	if cond_id == "POOR_VISIBILITY":
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Reroll visibility: 1D6+8\" maximum range for next round"))
+			"Reroll visibility: 1D6+8\" maximum range for next round",
+			open_dice, "1D6"))
 
-	# Step: Battle Event (rounds 2 and 4 only)
+	# Step: Battle Event — end of Round 2 and Round 4 only (Core Rules pp.116-117).
 	if round_num == 2 or round_num == 4:
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Battle Event: Roll D100 (Core Rules p.116)"))
+			"Battle Event: Roll D100 (Core Rules p.116)",
+			func() -> void: _on_battle_event_triggered(round_num, "end_phase"),
+			"Roll D100"))
 
-	# Step: Victory check (always)
+	# Step: objective / battle end (always). Reads the live tracker so it states
+	# where the battle actually stands instead of asking an open question.
 	step_num += 1
-	vbox.add_child(_make_checklist_step(
-		step_num,
-		"Victory check — all enemies eliminated or bailed?"))
+	var enemies_up: int = 0
+	for unit in enemy_units:
+		if not unit.is_dead and unit.health > 0:
+			enemies_up += 1
+	if enemies_up == 0:
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"No enemies left standing — you Hold the Field. Record the result.",
+			_on_record_result_pressed, "Record"))
+	else:
+		var obj_line: String = "%d enemy figure%s still standing." % [
+			enemies_up, "" if enemies_up == 1 else "s"]
+		if _objective_tracker != null and _objective_tracker.has_objective():
+			obj_line += "  Objective: %s" % (
+				"COMPLETE" if _objective_tracker.is_complete() else "not yet met")
+		vbox.add_child(_make_checklist_step(step_num, obj_line, Callable(), "", true))
 
 	return vbox
 
-func _make_checklist_step(number: int, text: String) -> HBoxContainer:
-	## Create a single checklist step with checkbox + label.
+func _make_checklist_step(number: int, text: String,
+		action: Callable = Callable(), action_label: String = "",
+		resolved: bool = false) -> HBoxContainer:
+	## One end-of-round step. When the step has something to roll it carries a
+	## button that DOES it; steps that do not apply this round arrive already
+	## ticked with an explanation.
+	##
+	## These rows used to be bare CheckBoxes with no signal and no state — purely
+	## decorative. The player read "Morale check" and then had to go find the
+	## morale panel themselves, which is the opposite of what a companion is for.
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 8)
 
 	var check := CheckBox.new()
 	check.custom_minimum_size = Vector2(
 		UIColors.TOUCH_TARGET_MIN, UIColors.TOUCH_TARGET_MIN)
+	check.button_pressed = resolved
+	check.accessibility_name = "Step %d done" % number
 	hbox.add_child(check)
 
 	var lbl := Label.new()
@@ -3683,10 +3739,82 @@ func _make_checklist_step(number: int, text: String) -> HBoxContainer:
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lbl.add_theme_font_size_override("font_size", 14)
 	lbl.add_theme_color_override(
-		"font_color", UIColors.COLOR_TEXT_PRIMARY)
+		"font_color", UIColors.COLOR_TEXT_SECONDARY if resolved
+			else UIColors.COLOR_TEXT_PRIMARY)
 	hbox.add_child(lbl)
 
+	if action.is_valid() and not resolved:
+		# A Button (not a CheckBox) so it gets keyboard/controller focus and a
+		# focus ring for free, per the Godot 4 GUI navigation defaults.
+		var btn := Button.new()
+		btn.text = action_label if action_label != "" else "Roll"
+		btn.custom_minimum_size = Vector2(96, UIColors.TOUCH_TARGET_MIN)
+		btn.accessibility_name = "%s: %s" % [btn.text, text]
+		btn.pressed.connect(func() -> void:
+			action.call()
+			check.button_pressed = true)
+		hbox.add_child(btn)
+
 	return hbox
+
+
+func _giveup_check_info() -> Dictionary:
+	## Core Rules pp.114-115: once you have achieved your objective's Win
+	## condition, at the end of the current and EVERY subsequent round roll to see
+	## if the enemy gives up — 2D6 for Cautious / Defensive / Tactical opponents,
+	## 1D6 for Aggressive. "If either die is a natural 1, the enemy withdraws and
+	## the battle ends immediately, with you Holding the Field." Rampaging and
+	## Beast opponents never give up: they "fight until either side has completely
+	## left the table."
+	##
+	## Returns {} when the check does not apply this round.
+	if _objective_tracker == null or not _objective_tracker.has_objective():
+		return {}
+	if not _objective_tracker.is_complete():
+		return {}
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	var ai: String = str(ef.get("ai", "A")).to_upper()
+	var name: String = str(ef.get("type", "The enemy"))
+	if ai in ["R", "B"]:
+		return {
+			"text": "%s will NOT give up (%s) — they fight until one side leaves the table."
+				% [name, _ai_type_name(ai)],
+			"rollable": false,
+		}
+	var dice: int = 1 if ai == "A" else 2
+	return {
+		"text": "Objective complete — roll %dD6 for %s to give up. A natural 1 on either die ends the battle; you Hold the Field."
+			% [dice, name],
+		"rollable": true,
+	}
+
+
+func _on_giveup_roll_pressed() -> void:
+	## Roll the enemy give-up check and, on a natural 1, end the battle with the
+	## field held (Core Rules p.115). Routed to the Record Result form pre-filled
+	## as a win rather than resolving it silently — the player still confirms what
+	## happened on their table.
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	var ai: String = str(ef.get("ai", "A")).to_upper()
+	var dice: int = 1 if ai == "A" else 2
+	var rolls: Array[int] = []
+	var withdrew: bool = false
+	for _i in range(dice):
+		var r: int = randi_range(1, 6)
+		rolls.append(r)
+		if r == 1:
+			withdrew = true
+	var roll_text: String = ", ".join(
+		PackedStringArray(rolls.map(func(r): return str(r))))
+	if withdrew:
+		_log_message("Give up: rolled %s — the enemy WITHDRAWS. You Hold the Field."
+			% roll_text, UIColors.COLOR_EMERALD)
+		if unified_log:
+			unified_log.log_victory("Enemy withdrew (give-up roll %s)" % roll_text)
+		_on_record_result_pressed()
+	else:
+		_log_message("Give up: rolled %s — they stay. Roll again next round."
+			% roll_text, UIColors.COLOR_TEXT_SECONDARY)
 
 func _surface_custom_phase_content(content: Control) -> void:
 	## Surface a dynamically-built Control in the phase content area.

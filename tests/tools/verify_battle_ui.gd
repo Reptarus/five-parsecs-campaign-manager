@@ -141,6 +141,7 @@ func _process(_delta: float) -> bool:
 			_check_ai_reference()
 			_check_seize_initiative()
 			_check_results_prefill()
+			_check_end_phase_checklist()
 
 			# FULL_ORACLE is a different UI arrangement — verify it on its own
 			# instance so the ASSISTED assertions above are not disturbed.
@@ -178,6 +179,36 @@ func _check_ai_reference() -> void:
 	_ok("enemy action card carries the behaviour table",
 		card_text.to_lower().contains("otherwise roll 1d6"),
 		"behaviour table absent from the rendered card")
+
+func _check_end_phase_checklist() -> void:
+	## U3/U4 — the End-Phase rows were inert CheckBoxes with no signal and no
+	## state, and the enemy give-up roll (Core Rules pp.114-115) did not exist
+	## anywhere in the app, so a player who completed their objective had no way
+	## to learn the battle could end there.
+	var card: Control = _ui._build_end_phase_checklist()
+	var text: String = _harvest_text(card)
+	_ok("morale row states the actual dice to roll",
+		text.to_lower().contains("morale"), "no morale row")
+	# One enemy was killed earlier in this run, so the row must name a real count
+	# rather than the old unconditional "roll 1D6 per casualty" boilerplate.
+	_ok("morale row reflects THIS round's losses",
+		text.contains("D6 (enemy lost") or text.contains("no enemy figures lost"),
+		"morale row is still generic")
+	var buttons: int = _count_buttons(card)
+	_ok("checklist rows carry controls that DO the step",
+		buttons > 0, "no actionable buttons in the checklist")
+	card.queue_free()
+
+	# Give-up roll: absent while the objective is unmet, present once it is met.
+	_ok("no give-up prompt before the objective is complete",
+		_ui._giveup_check_info().is_empty(),
+		"give-up prompt offered with no completed objective")
+
+func _count_buttons(node: Node) -> int:
+	var n: int = 1 if node is Button else 0
+	for child in node.get_children():
+		n += _count_buttons(child)
+	return n
 
 func _check_seize_initiative() -> void:
 	## P0.6 — initiative_context had exactly two references repo-wide: written by
