@@ -470,6 +470,36 @@ func add_rival(rival_name: String) -> void:
 	if planet_data_manager and planet_data_manager.current_planet_id != "":
 		planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
 
+func remove_patron(patron_id: String) -> bool:
+	## Errata v1.06 (Core Rules p.119): "Failing a job you have accepted from a
+	## known Patron causes them to be removed from your list of known Patrons."
+	## Returns true if a matching Patron was actually dropped.
+	if patron_id.is_empty():
+		return false
+	var gc = _get_current_campaign()
+	if gc == null:
+		return false
+	var patrons: Array = []
+	if gc is Dictionary:
+		patrons = gc.get("patrons", [])
+	elif "patrons" in gc and gc.patrons is Array:
+		patrons = gc.patrons
+	else:
+		return false
+	for i in range(patrons.size() - 1, -1, -1):
+		var p = patrons[i]
+		var pid: String = ""
+		if p is Dictionary:
+			pid = str(p.get("id", p.get("patron_id", "")))
+		elif p != null and "id" in p:
+			pid = str(p.id)
+		if pid == patron_id:
+			patrons.remove_at(i)
+			if gc is Dictionary:
+				gc["patrons"] = patrons
+			return true
+	return false
+
 func remove_random_patron() -> void:
 	var gc = _get_current_campaign()
 	if gc == null:

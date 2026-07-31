@@ -93,6 +93,28 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
 			npc_tracker.track_patron_interaction(ctx.battle_result.patron_id, "job_failed", {"turn": ctx.battle_result.get("turn", 0)})
 
+		# Errata v1.06 (Core Rules p.119): "Failing a job you have accepted from
+		# a known Patron causes them to be removed from your list of known
+		# Patrons." Failure previously only logged an NPCTracker interaction —
+		# the Patron stayed on the list and kept offering work, so a failed job
+		# cost the crew nothing in standing.
+		#
+		# Only the ACCEPTED job's Patron is dropped. The same errata is explicit
+		# that turning a job down carries no consequence: "You can turn down a
+		# job from a known Patron without any consequence. They remain a known
+		# Patron."
+		var failed_patron_id: String = str(ctx.battle_result.get("patron_id", ""))
+		if ctx.remove_patron(failed_patron_id):
+			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+				ctx.campaign_journal.create_entry({
+					"type": "patron",
+					"title": "Patron contract failed",
+					"description": "Failing an accepted job removed this Patron "
+						+ "from your known contacts (Core Rules p.119, errata v1.06).",
+					"turn": int(ctx.battle_result.get("turn", 0)),
+					"tags": ["patron", "failure"],
+				})
+
 	return patrons_added
 
 func process_quest_progress(ctx: PostBattleContextClass) -> int:
@@ -169,8 +191,20 @@ func _roll_rival_removal(ctx: PostBattleContextClass, rival_id: String) -> int:
 			tracked_rivals = campaign.get("tracked_rivals", [])
 		if rival_id in tracked_rivals:
 			modifiers += 1
+	# Core Rules p.119: "Add +1 if you killed a Unique Individual in the battle."
+	# Errata v1.06 amends that line to "a Unique Individual OR LIEUTENANT".
+	#
+	# THE BUG THIS FIXES: this read enemy["is_unique"], a key NO producer writes.
+	# Every path builds defeated_enemies with was_unique_individual /
+	# was_lieutenant (see TacticalBattleUI._defeated_enemy_records), so the
+	# modifier could never apply and killing the enemy Boss did nothing to help
+	# you chase a Rival off. `is_unique` is still accepted for any older result
+	# dict that used it.
 	for enemy in ctx.defeated_enemies:
-		if enemy.get("rival_id", "") == rival_id and enemy.get("is_unique", false):
+		if enemy.get("rival_id", "") != rival_id:
+			continue
+		if bool(enemy.get("was_unique_individual", enemy.get("is_unique", false))) \
+				or bool(enemy.get("was_lieutenant", false)):
 			modifiers += 1
 			break
 	return base_roll + modifiers
