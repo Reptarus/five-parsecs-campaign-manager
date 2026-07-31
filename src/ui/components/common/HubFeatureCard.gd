@@ -96,6 +96,12 @@ func _build_ui() -> void:
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
 	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Autowrap is safe HERE (a VBox column, unlike an HBox header where it would grow
+	# the row). Without it "Gear & Consumables" pinned this card's minimum width at
+	# 290px: in a single-column HFlow that is wider than a phone's scroll viewport, so
+	# the Library list grew a horizontal scrollbar and every card sized to its own
+	# title instead of the column — a ragged list of different-width cards.
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_vbox.add_child(_title_label)
 
 	_desc_label = Label.new()

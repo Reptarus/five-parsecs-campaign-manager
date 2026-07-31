@@ -104,6 +104,10 @@ func _build_ui() -> void:
 	title.text = "Edit: %s" % cname
 	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# The campaign NAME is in this title, so its unwrapped width is player-controlled
+	# and unbounded. Clip + ellipsis in an HBox header; autowrap would grow the row.
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(title)
 
 	# --- Onboarding banner ---

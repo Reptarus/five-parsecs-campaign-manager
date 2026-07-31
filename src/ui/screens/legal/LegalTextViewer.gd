@@ -54,6 +54,10 @@ func _build_ui() -> void:
 	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	# Document titles ("Privacy Policy", "End User License Agreement") are long, and an
+	# unclipped Label in an HBox header demands its full unwrapped width as a minimum.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(_title_label)
 
 	# Scrollable content

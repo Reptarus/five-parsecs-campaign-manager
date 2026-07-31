@@ -189,7 +189,10 @@ func _build_footer(parent: VBoxContainer) -> void:
 	_status_label = RichTextLabel.new()
 	_status_label.bbcode_enabled = true
 	_status_label.fit_content = true
-	_status_label.custom_minimum_size = Vector2(200, 0)
+	# No width floor: this shows a short platform name ("Steam", "Offline"), and a
+	# 200px floor inside the footer flow was 200px of a 339px phone reserved for one
+	# word — enough on its own to push the footer, and so the screen, off the edge.
+	_status_label.custom_minimum_size = Vector2(0, 0)
 	_status_label.scroll_active = false
 	if _store_mgr:
 		var platform: String = _store_mgr.get_platform_name()

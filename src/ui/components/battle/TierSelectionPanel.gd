@@ -57,6 +57,13 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# These two lines set this whole overlay's minimum width. Unwrapped, the title
+	# needs 367px and the subtitle 336 — both wider than a 339px phone — so the
+	# overlay was dragged off the screen edge and the tier buttons underneath it went
+	# with it. Autowrap is safe here: this is a plain VBox, and the tier buttons below
+	# already wrap the same way.
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(title)
 
 	# Subtitle
@@ -65,6 +72,8 @@ func _build_ui() -> void:
 	subtitle.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(subtitle)
 
 	# Tier buttons

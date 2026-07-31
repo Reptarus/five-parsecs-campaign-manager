@@ -757,6 +757,7 @@ func _build_travel_section() -> void:
 	_stay_button = Button.new()
 	_stay_button.text = "Stay in Current Location"
 	_stay_button.custom_minimum_size = Vector2(0, 48)
+	_stay_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var stay_style := StyleBoxFlat.new()
 	stay_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
 	stay_style.border_width_left = 1
@@ -782,6 +783,7 @@ func _build_travel_section() -> void:
 	var crew_size := _get_crew_size_for_travel()
 	_update_travel_button_text(credits, crew_size)
 	_travel_button.custom_minimum_size = Vector2(0, 48)
+	_travel_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var travel_style := StyleBoxFlat.new()
 	travel_style.bg_color = Color(0.231, 0.51, 0.965, 1)
 	travel_style.set_corner_radius_all(8)
@@ -955,6 +957,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		+ "increased opposition and improved rewards "
 		+ "(Core Rules Appendix III)")
 	_red_zone_button.custom_minimum_size = Vector2(0, 48)
+	_red_zone_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var rz_style := StyleBoxFlat.new()
 	rz_style.bg_color = Color(0.55, 0.08, 0.08, 0.9)
 	rz_style.border_width_left = 1
@@ -983,6 +986,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		+ "No upkeep, 3 free weapons, massive rewards "
 		+ "(Core Rules Appendix III)")
 	_black_zone_button.custom_minimum_size = Vector2(0, 48)
+	_black_zone_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var bz_style := StyleBoxFlat.new()
 	bz_style.bg_color = Color(0.15, 0.05, 0.25, 0.9)
 	bz_style.border_width_left = 1

@@ -33,7 +33,7 @@ grow_vertical = 2
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/HeaderPanel"]
+[node name="HeaderContent" type="HFlowContainer" parent="MainContainer/HeaderPanel"]
 layout_mode = 2
 
 [node name="CurrentTurnLabel" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]

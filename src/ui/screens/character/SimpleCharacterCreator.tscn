@@ -293,9 +293,10 @@ flat = true
 [node name="HSeparator6" type="HSeparator" parent="Dialog/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="Dialog/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
 
 [node name="RandomizeButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true

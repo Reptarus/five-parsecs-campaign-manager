@@ -94,6 +94,8 @@ theme_override_font_sizes/font_size = 24
 text = "CREW MANAGEMENT"
 horizontal_alignment = 0
 vertical_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="CrewCountLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer/HBoxContainer"]
 unique_name_in_owner = true

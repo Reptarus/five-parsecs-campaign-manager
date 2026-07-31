@@ -9,6 +9,7 @@ var _provider: CompendiumDataProvider
 var _search_input: LineEdit
 var _results_label: Label
 var _category_container: HFlowContainer
+var _content_scroll: ScrollContainer
 var _search_results_container: VBoxContainer
 var _search_timer: Timer
 var _is_searching := false
@@ -101,6 +102,10 @@ func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	outer.add_child(scroll)
+	_content_scroll = scroll
+	# Re-fit the cards whenever the viewport width changes (rotation, window resize,
+	# or the vertical scrollbar appearing and taking 16px away).
+	scroll.resized.connect(_update_card_sizes)
 
 	var content_vbox := VBoxContainer.new()
 	content_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -207,7 +212,13 @@ func _update_card_sizes() -> void:
 	if should_use_single_column():
 		# Portrait (or mobile): full-width cards. Keyed off orientation so a
 		# WIDE-by-width portrait tablet doesn't render oversized 400px cards.
-		card_min_width = 0
+		#
+		# "Full width" has to be an actual NUMBER. A FlowContainer ignores main-axis
+		# expand (see the header comment in _build_ui), so leaving this at 0 let every
+		# card size to its own title — a ragged list where "Weapons" was 188px wide and
+		# "Gear & Consumables" 290. Measure the scroll's usable width instead, minus the
+		# vertical scrollbar when it is showing, and give every card the same floor.
+		card_min_width = _available_card_width()
 	else:
 		match current_layout_mode:
 			LayoutMode.TABLET:
@@ -219,6 +230,21 @@ func _update_card_sizes() -> void:
 	for child: Node in _category_container.get_children():
 		if child is Control:
 			(child as Control).custom_minimum_size.x = card_min_width
+
+
+## Usable width inside the category scroll, or 0 before it has been laid out.
+##
+## Subtracting the visible vertical scrollbar matters: without it every card is
+## exactly scrollbar-width too wide, which is enough to raise a HORIZONTAL scrollbar
+## on a list that should only ever scroll vertically.
+func _available_card_width() -> float:
+	if _content_scroll == null or not is_instance_valid(_content_scroll):
+		return 0.0
+	var avail: float = _content_scroll.size.x
+	var vbar := _content_scroll.get_v_scroll_bar()
+	if vbar and vbar.visible:
+		avail -= vbar.size.x
+	return maxf(0.0, avail)
 
 
 func _update_layout_for_mode() -> void:

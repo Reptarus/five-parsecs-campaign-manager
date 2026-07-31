@@ -355,6 +355,52 @@ func _parent_already_overflows(ctl: Control, stop: Node, off: float) -> bool:
 	return false
 
 
+## Name the DEEPEST descendant whose own minimum accounts for this overflow.
+##
+## The finding above reports the OUTERMOST node, which is the right thing to report —
+## but it is never the thing to fix. A minimum propagates all the way up, so a screen
+## that hangs 127px off the edge is usually one label or one button row deep inside it
+## refusing to shrink. Without this you fix by guesswork, one sweep run per guess.
+##
+## "Accounts for" is generous by 8px so panel padding between the driver and the
+## reported node does not hide it, and the DEEPEST match wins because every ancestor
+## of the real driver reports the same inflated minimum.
+func _driver_hint(ctl: Control, ds: Vector2) -> String:
+	var minimum: Vector2 = ctl.get_combined_minimum_size()
+	# Pick the axis that is actually overflowing, not the one whose minimum happens to
+	# exceed the viewport. A grow-both container that overflows re-centres itself, so
+	# it can hang off both edges while its minimum still fits — those findings got no
+	# hint at all until this used the RECT to choose the axis.
+	var r: Rect2 = ctl.get_global_rect()
+	var h_off: float = maxf(-r.position.x, r.end.x - ds.x)
+	var v_off: float = maxf(-r.position.y, r.end.y - ds.y)
+	var horiz: bool = h_off >= v_off
+	var target: float = minimum.x if horiz else minimum.y
+	if target <= 0.0:
+		return ""
+	var best: Control = null
+	var best_depth := -1
+	var stack: Array = [[ctl, 0]]
+	while not stack.is_empty():
+		var entry: Array = stack.pop_back()
+		var node: Node = entry[0]
+		var depth: int = entry[1]
+		for c in node.get_children():
+			stack.append([c, depth + 1])
+		if node == ctl or not (node is Control) or not (node as Control).is_visible_in_tree():
+			continue
+		var m: Vector2 = (node as Control).get_combined_minimum_size()
+		var mv: float = m.x if horiz else m.y
+		if mv >= target - 24.0 and depth > best_depth:
+			best = node as Control
+			best_depth = depth
+	if best == null:
+		return ""
+	return "  [%s driver: %s %s min=%.0fx%.0f]" % [
+		"width" if horiz else "height", best.get_class(), str(ctl.get_path_to(best)),
+		best.get_combined_minimum_size().x, best.get_combined_minimum_size().y]
+
+
 func _overlay_rect() -> Rect2:
 	var so := root.get_node_or_null("/root/SettingsOverlay")
 	if so != null and so.has_method("get_reserved_rect"):
@@ -391,7 +437,8 @@ func _measure(inst: Node, short: String, label: String) -> void:
 			# descendant with it, and listing all of them buries the one node worth
 			# fixing under dozens of consequences.
 			if off > EPS and not _parent_already_overflows(ctl, inst, off):
-				problems.append("%s off-screen by %.1f px" % [nm, off])
+				problems.append("%s off-screen by %.1f px%s"
+					% [nm, off, _driver_hint(ctl, ds)])
 			# Only content a user actually reads or taps can be "hidden under" the
 			# overlay. A full-screen Background or a layout container merely SPANS
 			# that corner — MainMenu reported 50 failures whose sole cause was its

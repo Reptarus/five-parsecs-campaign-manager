@@ -105,10 +105,20 @@ func _build_layout() -> void:
 	title.text = "Print Sheet"
 	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	# A Label with neither autowrap nor clipping demands its full unwrapped width as a
+	# MINIMUM, and that minimum propagates to the top of the tree. In an HBox header the
+	# fix is clip + ellipsis (autowrap here would make the row taller instead).
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_bar.add_child(title)
 
 	_tabs = TabBar.new()
 	_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Without this a TabBar's minimum width is the SUM of every tab label, which on this
+	# screen is ~505px in a 339px space — the single largest driver of the whole screen
+	# hanging off both edges. clip_tabs scrolls them instead.
+	_tabs.clip_tabs = true
 	for sheet in SHEETS:
 		_tabs.add_tab(str(sheet.label))
 	_tabs.tab_changed.connect(_on_tab_changed)

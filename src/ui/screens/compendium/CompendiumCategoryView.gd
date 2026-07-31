@@ -126,10 +126,16 @@ func _build_ui() -> void:
 	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	# Clip + ellipsis in an HBox header: an unclipped Label demands its full unwrapped
+	# width as a minimum and that minimum propagates up to the screen root.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(_title_label)
 
 	_count_label = Label.new()
-	_count_label.custom_minimum_size.x = 100
+	# No width floor. "36 items" needs ~60px; the 100px floor it used to carry was
+	# 40px of a phone's 339 spent on nothing, on a row that was already overflowing.
+	_count_label.custom_minimum_size.x = 0
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)

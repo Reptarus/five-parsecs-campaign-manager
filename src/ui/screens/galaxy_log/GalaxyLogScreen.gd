@@ -53,9 +53,12 @@ func _build_ui() -> void:
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
 
-	# Header row.
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	# Header row. HFlow, not HBox: Back + "Galaxy Log" + "25 worlds - turn 100" side by
+	# side demand 611px, and an HBox has no way to give that back, so the whole screen
+	# was dragged 304px off a 339px phone. They wrap onto a second line instead.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
+	header.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
 	outer.add_child(header)
 
 	var back_btn := Button.new()
@@ -82,12 +85,9 @@ func _build_ui() -> void:
 	_count_label.custom_minimum_size.x = 0
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(_count_label)
-	# Reserve space for the global SettingsOverlay gear (top-right, ~56px wide
-	# on a CanvasLayer above this screen). Without this spacer the count label
-	# extends under the gear and gets visually clipped on the right.
-	var gear_reserve := Control.new()
-	gear_reserve.custom_minimum_size = Vector2(64, 0)
-	header.add_child(gear_reserve)
+	# No horizontal gear spacer any more. reserve_band_on() in _ready() pushes this
+	# screen's content DOWN past the gear/bug buttons, so a 64px spacer here would
+	# only be 64px of a 339px phone spent twice on the same problem.
 
 	# Hex map — fills remaining vertical space.
 	_hex_map = HexStarMapScript.new()

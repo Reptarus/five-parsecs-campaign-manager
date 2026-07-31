@@ -67,8 +67,77 @@ func _ready() -> void:
 	
 	_initialize_ui_components()
 	_connect_signals()
-	
+	_make_dialog_responsive()
+
 	pass # _ready() completed
+
+
+## Fit the creator dialog to the screen instead of assuming an 800x600 desktop one.
+##
+## The scene pins the dialog at +/-400 x +/-300 around centre, and the form inside it
+## needs 435x933 — so on every size measured it hung off the edges, by 231px on a
+## phone and still 2px on a 1080p desktop. Two changes, both required: the panel is
+## now sized from the viewport (capped at the original 800x600 so a big screen looks
+## unchanged), and the form scrolls, because 933px of fields does not fit a phone at
+## any dialog size.
+func _make_dialog_responsive() -> void:
+	var dialog := get_node_or_null("Dialog")
+	if dialog == null or not (dialog is Control):
+		return
+	var form := dialog.get_node_or_null("VBoxContainer")
+	if form is Control and not (form.get_parent() is ScrollContainer):
+		var scroll := ScrollContainer.new()
+		scroll.name = "FormScroll"
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		dialog.remove_child(form)
+		dialog.add_child(scroll)
+		scroll.add_child(form)
+		(form as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Dropdowns take their minimum width from the CURRENTLY SELECTED item's text, and
+	# background names are long ("Wealthy Merchant Family"), so one row demanded 421px
+	# in a 310px space. Clipping with an ellipsis lets the row shrink; expand-fill
+	# keeps the control filling whatever width is actually there, so nothing jitters
+	# as the selection changes.
+	for node in _all_descendants(dialog):
+		if node is OptionButton:
+			var opt := node as OptionButton
+			opt.clip_text = true
+			opt.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	_fit_dialog_to_viewport()
+	if not get_viewport().size_changed.is_connected(_fit_dialog_to_viewport):
+		get_viewport().size_changed.connect(_fit_dialog_to_viewport)
+
+
+func _all_descendants(root_node: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	var stack: Array[Node] = [root_node]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+			out.append(c)
+	return out
+
+
+func _fit_dialog_to_viewport() -> void:
+	var dialog := get_node_or_null("Dialog")
+	if dialog == null or not (dialog is Control) or not is_inside_tree():
+		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var ds: Vector2 = vp.get_visible_rect().size
+	var w: float = minf(800.0, maxf(240.0, ds.x - 32.0))
+	var h: float = minf(600.0, maxf(240.0, ds.y - 32.0))
+	var ctl := dialog as Control
+	ctl.offset_left = -w * 0.5
+	ctl.offset_right = w * 0.5
+	ctl.offset_top = -h * 0.5
+	ctl.offset_bottom = h * 0.5
 
 func _load_character_data() -> void:
 	## Load character creation data from JSON files

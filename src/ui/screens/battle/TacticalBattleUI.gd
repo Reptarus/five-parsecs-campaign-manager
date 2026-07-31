@@ -6328,7 +6328,14 @@ func _setup_battle_notes_widget() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	panel.offset_left = -260
-	panel.offset_top = 16
+	# Start below the floating gear/bug buttons, which live on their own CanvasLayer in
+	# the same top-right corner. reserve_band_on() cannot help here: this widget is on
+	# a CanvasLayer of its own, so it is not a descendant of anything the reservation
+	# can push down. Ask the overlay where it actually is instead of hardcoding a gap.
+	panel.offset_top = 16.0
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("get_reserved_bottom"):
+		panel.offset_top = maxf(16.0, float(_so.get_reserved_bottom()) + 8.0)
 	panel.offset_right = -16
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.08, 0.10, 0.85)

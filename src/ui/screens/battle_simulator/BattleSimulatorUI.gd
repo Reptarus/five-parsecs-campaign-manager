@@ -77,6 +77,11 @@ func _build_layout() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(28))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Clip + ellipsis, not autowrap: this is an HBox header, where autowrap would make
+	# the row taller instead of narrower. Without it the 28pt title demands its full
+	# unwrapped width as a minimum and drags the screen off both edges on a phone.
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_header.add_child(title)
 
 	# Panel container — fills remaining space
