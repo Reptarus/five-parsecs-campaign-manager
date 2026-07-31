@@ -305,6 +305,11 @@ const AI_DESCRIPTIONS: Dictionary = {
 var _return_screen: String = ""
 var _result_temp_key: String = ""
 
+# Seed-once guard for the End-Phase Morale tracker. set_enemy_count() resets the
+# per-round casualty count and the fled tally, so a second seed mid-battle would
+# erase real progress.
+var _morale_seeded: bool = false
+
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
 var _dlc_escalation_count: int = 0
@@ -2100,6 +2105,11 @@ func _on_tier_selected(tier: int) -> void:
 	if tier >= 1 and (not crew_units.is_empty() or not enemy_units.is_empty()):
 		_create_character_cards([])
 
+	# Same reason the cards are rebuilt above: initialize_battle() runs BEFORE the
+	# player picks a tier, so morale_tracker did not exist yet and could not be
+	# seeded there. enemy_units and _stored_mission_data are both populated by now.
+	_seed_morale_tracker()
+
 	_apply_tier_visibility(tier)
 	_hide_overlay()
 	_apply_stage_visibility(BattleStage.SETUP)
@@ -2755,6 +2765,10 @@ func _on_tracker_battle_started() -> void:
 
 	# Session 48: Pass battle context to HUD and cheat sheet
 	_battle_context = _stored_mission_data if _stored_mission_data is Dictionary else {}
+	# Second seeding attempt: on the pre-selected-tier fast path the tier can be
+	# applied before _battle_context exists. Guarded internally, so whichever call
+	# gets there first wins and the other is a no-op.
+	_seed_morale_tracker()
 	if battle_round_hud and battle_round_hud.has_method("set_battle_context"):
 		battle_round_hud.set_battle_context(_battle_context)
 	if cheat_sheet_panel and cheat_sheet_panel.has_method("set_battle_context"):
@@ -3851,6 +3865,13 @@ func _mark_casualty(unit, is_crew: bool, feed_morale: bool = true) -> void:
 				morale_tracker.add_casualty()
 			elif "casualties_this_round" in morale_tracker:
 				morale_tracker.casualties_this_round += 1
+			# Keep the survivor count honest — it caps how many figures CAN bail.
+			# Only on the feed_morale path: perform_morale_check() already
+			# subtracts the bails itself, and the bail removal re-enters here
+			# with feed_morale=false, so decrementing there would double-count.
+			if "enemies_remaining" in morale_tracker:
+				morale_tracker.enemies_remaining = maxi(
+					0, morale_tracker.enemies_remaining - 1)
 		# The HUD keeps its own per-round count for the End-Phase prompt text.
 		# Its report_casualty() was only ever called from one legacy "mark unit
 		# dead" branch, never from this chokepoint, so the prompt under-reported
@@ -4035,6 +4056,71 @@ func _assign_crew_reaction_slots() -> void:
 	if unified_log:
 		unified_log.log_action("Reaction Roll", "%d Quick · %d Slow" % [q, s])
 	_refresh_unit_rails()
+
+
+func _seed_morale_tracker() -> void:
+	## Feed MoralePanicTracker the REAL enemy force (Core Rules p.114).
+	##
+	## THE BUG THIS FIXES: set_enemy_count() and setup_from_enemy_data() had ZERO
+	## callers anywhere in the repo. So total_enemies / enemies_remaining stayed 0,
+	## and perform_morale_check() capped its result with
+	##   bailable    = maxi(0, enemies_remaining - fearless) -> 0
+	##   actual_bails = mini(bails, bailable)                -> 0
+	## which made _resolve_end_phase_morale() return at `if bails <= 0` every single
+	## time. The End-Phase Morale check — the mechanic that ends most Five Parsecs
+	## battles — could never remove a figure. The panel also showed the hardcoded
+	## default "Panic: 1-2" with a blank enemy name regardless of who you fought,
+	## and Stubborn / Fearless / Dogged were never detected because the special
+	## rules were never handed over.
+	##
+	## Seeded once per battle: set_enemy_count() resets casualties_this_round and
+	## fled_enemies, so re-seeding mid-battle would silently erase progress.
+	if _morale_seeded:
+		return
+	if not (morale_tracker and is_instance_valid(morale_tracker)):
+		return
+
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var ef: Dictionary = _battle_context.get("enemy_force", md.get("enemy_force", {}))
+	if ef.is_empty():
+		return
+
+	# enemy_force names the type under "type"; setup_from_enemy_data reads "name"
+	# (it was written against a raw enemy_types.json entry).
+	if morale_tracker.has_method("setup_from_enemy_data"):
+		morale_tracker.setup_from_enemy_data({
+			"name": ef.get("type", "Unknown"),
+			"panic": ef.get("panic", "1-2"),
+			"special_rules": ef.get("special_rules", []),
+		})
+
+	# Figures actually on the table beats the generator's count — a Unique
+	# Individual is added "in addition to those normally encountered" (p.94).
+	var figure_count: int = enemy_units.size()
+	if figure_count <= 0:
+		figure_count = int(ef.get("count", 0))
+	if morale_tracker.has_method("set_enemy_count"):
+		morale_tracker.set_enemy_count(figure_count)
+
+	# Fearless figures are skipped by the Morale dice and must not be counted as
+	# bailable (Core Rules p.114 Fearless, p.105 Unique Individuals).
+	var lieutenants: int = 0
+	var has_unique: bool = bool(ef.get("has_unique_individual", false))
+	for unit in enemy_units:
+		if unit.is_lieutenant:
+			lieutenants += 1
+		if unit.is_unique_individual:
+			has_unique = true
+	if "lieutenant_count" in morale_tracker:
+		morale_tracker.lieutenant_count = lieutenants
+	if "unique_individual_present" in morale_tracker:
+		morale_tracker.unique_individual_present = has_unique
+
+	_morale_seeded = true
+	if unified_log:
+		unified_log.log_action("Morale", "%s — Panic %s, %d figures" % [
+			ef.get("type", "Enemy"), str(ef.get("panic", "?")), figure_count])
 
 
 func _resolve_end_phase_morale() -> void:
@@ -5921,6 +6007,17 @@ class TacticalUnit:
 	var is_activated: bool = false
 	var react_slot: int = 0
 
+	# Enemy identity carried over from the generated force. These did not exist,
+	# so every `"is_lieutenant" in unit` / `"enemy_type" in unit` guard in this file
+	# was permanently FALSE: the post-battle `defeated_enemies` list recorded every
+	# kill as type "" with was_lieutenant false, and the End-Phase Morale seeding
+	# could not tell how many figures are Fearless (Core Rules p.114 — a Lieutenant
+	# is skipped by the Morale dice unless Cowardly).
+	var enemy_type: String = ""
+	var is_lieutenant: bool = false
+	var is_specialist: bool = false
+	var is_unique_individual: bool = false
+
 	# Equipment
 	var _weapon_range: int = 12
 	var _weapon_shots: int = 1
@@ -5960,12 +6057,37 @@ class TacticalUnit:
 			combat_skill = enemy.get("combat", enemy.get("combat_skill", 0))
 			toughness = enemy.get("toughness", 0)
 			reactions = enemy.get("reaction", enemy.get("reactions", 0))
+			# Carry the generator's role flags onto the figure — without these the
+			# post-battle defeated-enemy list and the Morale seeding were blind.
+			#
+			# EnemyGenerator's vocabulary is `role` ("standard"/"lieutenant"/
+			# "specialist") plus `is_leader`; it does NOT emit is_lieutenant. Read the
+			# producer's real keys here rather than renaming them at the source —
+			# those keys are pinned by the battle-result contract.
+			enemy_type = str(enemy.get("type", ""))
+			var _role: String = str(enemy.get("role", "")).to_lower()
+			is_lieutenant = _role == "lieutenant" \
+				or bool(enemy.get("is_leader", false)) \
+				or bool(enemy.get("is_lieutenant", false))
+			is_specialist = _role == "specialist" \
+				or bool(enemy.get("is_specialist", false))
+			is_unique_individual = _role == "unique" \
+				or bool(enemy.get("is_unique_individual", false))
 		else:
 			var _name_val = enemy.get("name") if enemy else null
 			node_name = str(_name_val) if _name_val else "Enemy"
 			combat_skill = enemy.get("combat_skill") if enemy and enemy.get("combat_skill") != null else 0
 			toughness = enemy.get("toughness") if enemy and enemy.get("toughness") != null else 0
 			reactions = enemy.get("reactions") if enemy and enemy.get("reactions") != null else 0
+			if enemy:
+				if enemy.get("type") != null:
+					enemy_type = str(enemy.get("type"))
+				is_lieutenant = bool(enemy.get("is_lieutenant")) \
+					if enemy.get("is_lieutenant") != null else false
+				is_specialist = bool(enemy.get("is_specialist")) \
+					if enemy.get("is_specialist") != null else false
+				is_unique_individual = bool(enemy.get("is_unique_individual")) \
+					if enemy.get("is_unique_individual") != null else false
 
 		max_health = max(1, toughness)
 		health = max_health
@@ -6311,9 +6433,10 @@ func _build_evacuation_result_dict(via_star: bool) -> Dictionary:
 		if unit.health <= 0:
 			defeated_enemies.append({
 				"name": unit.node_name,
-				"type": unit.enemy_type if "enemy_type" in unit else "",
-				"was_lieutenant": unit.is_lieutenant \
-					if "is_lieutenant" in unit else false,
+				"type": unit.enemy_type,
+				"was_lieutenant": unit.is_lieutenant,
+				"was_specialist": unit.is_specialist,
+				"was_unique_individual": unit.is_unique_individual,
 			})
 
 	var crew_participants: Array = []
