@@ -29,15 +29,43 @@ var component_name: String = ""
 # Feature flag
 var feature_enabled: bool = true
 
+var _lifecycle_started: bool = false
+
 func _ready() -> void:
 	if component_name.is_empty():
 		component_name = name
 	if not feature_enabled:
 		hide()
 		return
+	_lifecycle_started = true
 	_initialize_event_bus()
 	_connect_ui_signals()
 	_setup_initial_state()
+
+## Re-subscribe after a REPARENT, which _exit_tree() below unsubscribes from.
+##
+## Godot runs _ready() once, so a component moved to a new parent — the World Phase
+## wrapping its content in a scroll, an AdaptivePanelGroup collecting panes — kept
+## running but stopped receiving turn events entirely. Nothing visible would break at
+## the moment of the move: the step still draws, still takes input, and silently never
+## hears "phase changed" again.
+##
+## Guarded on _lifecycle_started so the FIRST tree entry (which precedes _ready) does
+## not subscribe twice, and idempotent besides: _initialize_event_bus() re-resolves the
+## autoload and the subscription list is rebuilt from empty each time.
+func _enter_tree() -> void:
+	if not _lifecycle_started or not feature_enabled:
+		return
+	if _event_subscriptions.is_empty():
+		_initialize_event_bus()
+	# Same story for the rotation handler: _exit_tree() drops it, and a component that
+	# registered a responsive box would otherwise stop flipping it on rotation.
+	if not _responsive_boxes.is_empty():
+		var rm := get_node_or_null("/root/ResponsiveManager")
+		if rm and rm.has_signal("layout_class_changed") \
+				and not rm.layout_class_changed.is_connected(_apply_responsive_boxes):
+			rm.layout_class_changed.connect(_apply_responsive_boxes)
+		_apply_responsive_boxes(0)
 
 func _initialize_event_bus() -> void:
 	## Resolve event bus autoload and call virtual _subscribe_to_events().

@@ -64,12 +64,33 @@ const TAB_BAR_MIN_HEIGHT := 56
 
 
 func _ready() -> void:
-	_responsive_manager = get_node_or_null("/root/ResponsiveManager")
 	_ensure_structure()
+	_subscribe()
+	_relayout()
+
+
+## Re-subscribe on EVERY tree entry, not just the first.
+##
+## _exit_tree() drops the subscription, and Godot runs _ready() once — so anything that
+## REPARENTS this group (ShortScreenScroll moving a screen's content into a scroll, an
+## AdaptivePanelGroup being moved between containers) left it permanently deaf to
+## rotation. It kept whatever column count it had when it was moved: measured on
+## CampaignDashboard, a tablet in landscape reported eff_cols=4 while the group sat at
+## cols=1 with its phone tab strip showing. Caught by tests/tools/verify_rotation.gd,
+## which resizes ONE instance instead of building a fresh one per size.
+func _enter_tree() -> void:
+	_subscribe()
+	# The viewport may have changed size while this node was detached.
+	if _grid:
+		_relayout()
+
+
+func _subscribe() -> void:
+	if _responsive_manager == null:
+		_responsive_manager = get_node_or_null("/root/ResponsiveManager")
 	if _responsive_manager and _responsive_manager.has_signal("layout_class_changed"):
 		if not _responsive_manager.layout_class_changed.is_connected(_on_layout_class_changed):
 			_responsive_manager.layout_class_changed.connect(_on_layout_class_changed)
-	_relayout()
 
 
 func _exit_tree() -> void:

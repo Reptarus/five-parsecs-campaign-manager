@@ -747,17 +747,32 @@ func _build_travel_section() -> void:
 			inv_banner.add_child(inv_lbl)
 			vbox.add_child(inv_banner)
 
-	# Button row — HFlow so Stay + Travel (2x220px) wrap to two rows in portrait.
-	var btn_row := HFlowContainer.new()
-	btn_row.add_theme_constant_override("h_separation", 16)
-	btn_row.add_theme_constant_override("v_separation", 8)
-	btn_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	# Button row — a BoxContainer that goes VERTICAL in portrait via
+	# _register_responsive_box(), NOT an HFlowContainer, and its buttons EXPAND.
+	#
+	# The expand flag is not cosmetic: a horizontal BoxContainer hands each child only
+	# its MINIMUM width, which for an autowrapping button is its longest word — so
+	# without it the same two buttons rendered as thin vertical slabs in landscape even
+	# after the container was fixed. Expanding, they share the row and wrap inside it.
+	#
+	# These buttons autowrap (their labels are long), and autowrap inside an HFlow is a
+	# trap: HFlow asks an autowrapping child for its height at its NARROWEST width — its
+	# longest word — and gets back the line count for the whole string, so each button
+	# rendered as a ~40px-wide, 300px-tall slab with no readable text. In a vertical
+	# BoxContainer each button gets the full column width and wraps to at most two lines,
+	# which is what a full-width mobile button should look like. Landscape and desktop
+	# keep them side by side, sized to their text.
+	var btn_row := BoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 16)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_register_responsive_box(btn_row)
 
 	# Stay button
 	_stay_button = Button.new()
 	_stay_button.text = "Stay in Current Location"
 	_stay_button.custom_minimum_size = Vector2(0, 48)
 	_stay_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_stay_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var stay_style := StyleBoxFlat.new()
 	stay_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
 	stay_style.border_width_left = 1
@@ -784,6 +799,7 @@ func _build_travel_section() -> void:
 	_update_travel_button_text(credits, crew_size)
 	_travel_button.custom_minimum_size = Vector2(0, 48)
 	_travel_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_travel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var travel_style := StyleBoxFlat.new()
 	travel_style.bg_color = Color(0.231, 0.51, 0.965, 1)
 	travel_style.set_corner_radius_all(8)
@@ -938,16 +954,16 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	if turns_played < 10:
 		return
 
-	# HFlow, not HBox, for the same reason as the Stay/Travel row above: side by side
-	# "Travel to Red Zone" and "Accept Black Zone Mission" demand 456px, which is more
-	# than a phone's whole 339px design space, and an HBox has no way to give that
-	# back — it propagated straight up and clipped the entire World Phase on both
-	# edges once a campaign reached turn 10.
-	var zone_row := HFlowContainer.new()
+	# Same treatment as the Stay/Travel row above, for the same two reasons. Side by side
+	# "Travel to Red Zone" and "Accept Black Zone Mission" demand 456px — more than a
+	# phone's entire design space, which clipped the whole World Phase on both edges once
+	# a campaign reached turn 10 — and their labels autowrap, which an HFlow would turn
+	# into tall thin slabs. A BoxContainer that goes vertical in portrait solves both.
+	var zone_row := BoxContainer.new()
 	zone_row.name = "ZoneButtonRow"
-	zone_row.add_theme_constant_override("h_separation", 16)
-	zone_row.add_theme_constant_override("v_separation", 8)
-	zone_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	zone_row.add_theme_constant_override("separation", 16)
+	zone_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_register_responsive_box(zone_row)
 
 	# Red Zone button
 	_red_zone_button = Button.new()
@@ -958,6 +974,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		+ "(Core Rules Appendix III)")
 	_red_zone_button.custom_minimum_size = Vector2(0, 48)
 	_red_zone_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_red_zone_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var rz_style := StyleBoxFlat.new()
 	rz_style.bg_color = Color(0.55, 0.08, 0.08, 0.9)
 	rz_style.border_width_left = 1
@@ -987,6 +1004,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		+ "(Core Rules Appendix III)")
 	_black_zone_button.custom_minimum_size = Vector2(0, 48)
 	_black_zone_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_black_zone_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bz_style := StyleBoxFlat.new()
 	bz_style.bg_color = Color(0.15, 0.05, 0.25, 0.9)
 	bz_style.border_width_left = 1
