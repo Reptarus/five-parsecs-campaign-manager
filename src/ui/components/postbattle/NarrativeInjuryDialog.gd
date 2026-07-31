@@ -93,7 +93,7 @@ func _build_layout() -> void:
 	# Title
 	title_label = Label.new()
 	title_label.text = "Narrative Injury Selection"
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(title_label)
@@ -101,7 +101,7 @@ func _build_layout() -> void:
 	# Character name subtitle
 	description_label = Label.new()
 	description_label.text = "Choose an injury for %s" % character_name
-	description_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	description_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	description_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(description_label)
@@ -109,7 +109,7 @@ func _build_layout() -> void:
 	# House rule explanation
 	var house_rule_label := Label.new()
 	house_rule_label.text = "House Rule: Narrative Injuries - You decide the outcome!"
-	house_rule_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	house_rule_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	house_rule_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	house_rule_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(house_rule_label)

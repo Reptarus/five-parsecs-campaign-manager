@@ -65,15 +65,14 @@ func _add_resource(
 
 	var icon_label := Label.new()
 	icon_label.text = icon
-	icon_label.add_theme_font_size_override("font_size", 14)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	icon_label.add_theme_color_override("font_color", color)
 	container.add_child(icon_label)
 
 	var value_label := Label.new()
 	value_label.text = "0"
 	value_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	value_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)

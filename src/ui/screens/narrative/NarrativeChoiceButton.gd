@@ -69,7 +69,7 @@ func _ready() -> void:
 
 	_label_main = Label.new()
 	_label_main.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label_main.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_label_main.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_label_main.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_label_main.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_main.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -78,7 +78,7 @@ func _ready() -> void:
 
 	_label_hint = Label.new()
 	_label_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label_hint.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_label_hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_label_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_label_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL

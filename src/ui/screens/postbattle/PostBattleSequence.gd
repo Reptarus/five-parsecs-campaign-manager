@@ -289,7 +289,7 @@ func _apply_portrait_ia() -> void:
 	# Title font-scale is moot when the Header is hidden in portrait, but harmless
 	# (restores the 32px header for landscape).
 	if _title_label:
-		_title_label.add_theme_font_size_override("font_size", 20 if portrait else 32)
+		_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(20 if portrait else 32))
 
 
 func _initialize_advancement_system() -> void:
@@ -1054,7 +1054,7 @@ func _add_payment_content() -> void:
 	rules_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rules_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rules_note.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	rules_note.add_theme_color_override(
 		"font_color", COLOR_TEXT_MUTED)
 	step_content.add_child(rules_note)
@@ -1732,7 +1732,7 @@ func _add_result_to_log(result: String) -> void:
 	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	result_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	result_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	results_container.add_child(result_label)
@@ -1772,7 +1772,7 @@ func _add_inline_results_if_available(step_idx: int) -> void:
 
 	var header := Label.new()
 	header.text = "RESULT"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	header.add_theme_color_override(
 		"font_color", UIColors.COLOR_EMERALD)
 	vbox.add_child(header)
@@ -1783,7 +1783,7 @@ func _add_inline_results_if_available(step_idx: int) -> void:
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY)
 		vbox.add_child(lbl)
@@ -2331,7 +2331,7 @@ func _add_stars_nudge_for_injury(
 	btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_BLUE)
 	btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	btn.pressed.connect(
 		_on_stars_nudge_pressed.bind(
 			SA.LOOKED_WORSE, type, num,

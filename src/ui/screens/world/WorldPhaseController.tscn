@@ -115,7 +115,7 @@ layout_mode = 2
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"TextXL"
 text = "World Phase - Campaign Turn Management"
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -124,7 +124,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "Step 1 of 6: Upkeep"
 horizontal_alignment = 1
 
@@ -273,7 +273,7 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"ButtonLG"
 theme_override_styles/normal = SubResource("StyleBoxFlat_battle_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_battle_button_hover")
 text = "⚔ Proceed to Battle"

@@ -913,7 +913,7 @@ func _build_crew_stats_content(member) -> VBoxContainer:
 
 	var header := Label.new()
 	header.text = "CREW STATS"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	header.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	vbox.add_child(header)
 
@@ -977,14 +977,14 @@ func _create_stat_box(
 	var lbl := Label.new()
 	lbl.text = label_text
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	vbox.add_child(lbl)
 
 	var val := Label.new()
 	val.text = value_text
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	val.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	val.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	val.add_theme_color_override("font_color", accent_color)
 	vbox.add_child(val)
 
@@ -1021,7 +1021,7 @@ func _build_weapon_stats(
 
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(name_lbl)
@@ -1069,7 +1069,7 @@ func _build_armor_stats(
 
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(name_lbl)
@@ -1103,7 +1103,7 @@ func _build_armor_stats(
 			parts.append(text)
 		bonus_lbl.text = ", ".join(parts)
 		bonus_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bonus_lbl.add_theme_color_override(
 			"font_color", COLOR_SUCCESS)
 		container.add_child(bonus_lbl)
@@ -1124,7 +1124,7 @@ func _build_armor_stats(
 			val, stat_name,
 			condition.replace("_", " ")]
 		cond_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		cond_lbl.add_theme_color_override(
 			"font_color", COLOR_WARNING)
 		container.add_child(cond_lbl)
@@ -1136,7 +1136,7 @@ func _build_armor_stats(
 		desc_lbl.text = desc
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_XS)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		desc_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_MUTED)
 		container.add_child(desc_lbl)
@@ -1149,7 +1149,7 @@ func _build_gear_stats(
 
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(name_lbl)
@@ -1161,7 +1161,7 @@ func _build_gear_stats(
 		var warn := Label.new()
 		warn.text = "SINGLE USE"
 		warn.add_theme_font_size_override(
-			"font_size", FONT_SIZE_XS)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		warn.add_theme_color_override(
 			"font_color", COLOR_WARNING)
 		row.add_child(warn)
@@ -1174,7 +1174,7 @@ func _build_gear_stats(
 		desc_lbl.text = desc
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		container.add_child(desc_lbl)
@@ -1183,7 +1183,7 @@ func _stat_label(text: String) -> Label:
 	## Create a compact stat label for weapon rows
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return lbl
 
@@ -1202,7 +1202,7 @@ func _create_type_badge(type_name: String) -> PanelContainer:
 
 	var lbl := Label.new()
 	lbl.text = type_name
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	panel.add_child(lbl)
 	return panel
@@ -1229,7 +1229,7 @@ func _create_trait_badge(trait_name: String) -> PanelContainer:
 
 	var lbl := Label.new()
 	lbl.text = trait_name
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	panel.add_child(lbl)
 	return panel
@@ -1355,7 +1355,7 @@ func _build_synergy_hints(
 		var lbl := Label.new()
 		lbl.text = "\u25b8 " + hints[i]
 		lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_XS)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		lbl.add_theme_color_override(
 			"font_color", hint_colors[i])
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

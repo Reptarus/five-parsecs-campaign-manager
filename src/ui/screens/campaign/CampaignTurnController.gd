@@ -66,19 +66,22 @@ func _ready() -> void:
 
 	_connect_core_signals()
 
-	# Keep content clear of the floating SettingsOverlay gear/bug buttons (drawn on
-	# their own CanvasLayer above this screen). Pushes content DOWN — a right-side
-	# margin would raise the container's minimum WIDTH and propagate an overflow up
-	# the tree (proven and reverted on HelpScreen).
-	var _so := get_node_or_null("/root/SettingsOverlay")
-	if _so and _so.has_method("reserve_band_on"):
-		_so.reserve_band_on(self)
-
-	# NOTE: no PortraitChrome here. This scene's root is a Control whose only child is
-	# MainContainer (a VBoxContainer) — there is no root MarginContainer for
-	# PortraitChrome to trim, so the block that used to sit here never ran. The
-	# portrait clipping attributed to this screen belongs to the WorldPhaseController
-	# instance embedded at MainContainer/PhaseContainer, which does its own trimming.
+	# Page chrome: the SettingsOverlay band (keeps content clear of the floating
+	# gear/bug buttons, which are drawn on their own CanvasLayer above this screen)
+	# plus a portrait gutter for the turn/phase strip.
+	#
+	# The strip used to run edge to edge. The earlier note here said there was
+	# nothing for PortraitChrome to trim -- true of the ROOT, whose only child was a
+	# full-rect VBoxContainer, and the conclusion drawn was that the embedded
+	# WorldPhaseController's own trimming covered this screen. It does not: that
+	# covers the hosted PHASE, while the header strip is this shell's own chrome and
+	# so had no gutter at all on any screen size. HeaderMargin exists now purely to
+	# give PortraitChrome something to trim, and it wraps ONLY the header -- the
+	# phase container stays full-bleed so hosted screens keep managing their own
+	# gutters instead of getting a second one stacked on top.
+	ScreenChrome.apply_page_chrome(
+		self, get_node_or_null("MainContainer/HeaderMargin") as MarginContainer
+	)
 
 	# Restore turn number from loaded campaign data BEFORE UI init
 	var campaign = game_state.get_current_campaign()

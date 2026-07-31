@@ -685,19 +685,19 @@ func _create_section_card(
 		hdr.add_theme_constant_override("separation", SPACING_SM)
 		var icon_lbl := Label.new()
 		icon_lbl.text = icon
-		icon_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		icon_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		icon_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 		hdr.add_child(icon_lbl)
 		var title_lbl := Label.new()
 		title_lbl.text = title.to_upper()
-		title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		hdr.add_child(title_lbl)
 		vbox.add_child(hdr)
 	else:
 		var title_lbl := Label.new()
 		title_lbl.text = title.to_upper()
-		title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(title_lbl)
 
@@ -711,7 +711,7 @@ func _create_section_card(
 	if not description.is_empty():
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)
@@ -734,13 +734,13 @@ func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
 		icon_lbl.text = icon
 		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		icon_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		icon_panel.add_child(icon_lbl)
 		hbox.add_child(icon_panel)
 
 	var title_lbl := Label.new()
 	title_lbl.text = title
-	title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(title_lbl)
 	return hbox
@@ -766,14 +766,14 @@ func _create_info_row(
 
 	var lbl := Label.new()
 	lbl.text = label
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	hbox.add_child(lbl)
 
 	var val_lbl := Label.new()
 	val_lbl.text = value
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val_lbl.add_theme_color_override("font_color", value_color)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	# Fill the remaining row width and WRAP long values (e.g. a ship name) so a
@@ -798,13 +798,13 @@ func _create_stat_display(stat_name: String, value) -> PanelContainer:
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name_lbl := Label.new()
 	name_lbl.text = stat_name.to_upper()
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(name_lbl)
 	var val_lbl := Label.new()
 	val_lbl.text = str(value)
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	val_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(val_lbl)
@@ -836,7 +836,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name_lbl := Label.new()
 	name_lbl.text = stat_name.to_upper()
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hbox.add_child(name_lbl)
 	var val_lbl := Label.new()
@@ -846,7 +846,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	else:
 		val_text = str(value)
 	val_lbl.text = val_text
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	hbox.add_child(val_lbl)
 	panel.add_child(hbox)
@@ -908,7 +908,7 @@ func _create_character_card(
 		il.text = char_name.substr(0, 1).to_upper() if char_name else "?"
 		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		il.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		il.add_theme_font_size_override("font_size", int(p_size * 0.45))
+		il.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(p_size * 0.45)))
 		il.add_theme_color_override("font_color", Color.WHITE)
 		il.custom_minimum_size = Vector2(p_size, p_size)
 		p_container.add_child(il)
@@ -919,12 +919,12 @@ func _create_character_card(
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var name_lbl := Label.new()
 	name_lbl.text = char_name
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	info.add_child(name_lbl)
 	var sub_lbl := Label.new()
 	sub_lbl.text = subtitle
-	sub_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sub_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sub_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.add_child(sub_lbl)
 
@@ -936,7 +936,7 @@ func _create_character_card(
 			stats_txt += "%s:%s" % [key, stats[key]]
 		var stats_lbl := Label.new()
 		stats_lbl.text = stats_txt
-		stats_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		info.add_child(stats_lbl)
 
@@ -951,7 +951,7 @@ func _create_labeled_input(label_text: String, input: Control) -> VBoxContainer:
 	if not label_text.is_empty():
 		var lbl := Label.new()
 		lbl.text = label_text
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		container.add_child(lbl)
 	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL

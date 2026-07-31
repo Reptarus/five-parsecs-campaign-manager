@@ -44,13 +44,13 @@ func _build_ui() -> void:
 
 	var header := Label.new()
 	header.text = "INITIAL MISSIONS (Optional)"
-	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
 
 	var desc := Label.new()
 	desc.text = "Before the campaign begins, play 3 tutorial missions to earn starting bonuses. You can skip these and proceed directly to the campaign."
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
@@ -87,13 +87,13 @@ func _build_ui() -> void:
 
 		var title_lbl := Label.new()
 		title_lbl.text = m.title
-		title_lbl.add_theme_font_size_override("font_size", 16)
+		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 		title_lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 		vbox.add_child(title_lbl)
 
 		var desc_lbl := Label.new()
 		desc_lbl.text = m.desc
-		desc_lbl.add_theme_font_size_override("font_size", 13)
+		desc_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 		desc_lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc_lbl)

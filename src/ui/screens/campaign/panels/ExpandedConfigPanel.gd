@@ -417,7 +417,7 @@ func _build_campaign_identity_section(parent: Control) -> void:
 	# player knows what's blocking them; hidden once a name is typed.
 	_name_hint_label = Label.new()
 	_name_hint_label.text = "Enter a campaign name to continue."
-	_name_hint_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	_name_hint_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	_name_hint_label.add_theme_color_override("font_color", COLOR_WARNING)
 	_name_hint_label.visible = local_campaign_config.campaign_name.strip_edges().is_empty()
 
@@ -439,7 +439,7 @@ func _build_crew_size_section(parent: Control) -> void:
 	_style_option_button(crew_size_option)
 
 	crew_size_description = Label.new()
-	crew_size_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	crew_size_description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	crew_size_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	crew_size_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -462,7 +462,7 @@ func _build_campaign_type_section(parent: Control) -> void:
 
 	# Create description label
 	campaign_type_description = Label.new()
-	campaign_type_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	campaign_type_description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	campaign_type_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	campaign_type_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -485,7 +485,7 @@ func _build_difficulty_section(parent: Control) -> void:
 
 	# Create description label for difficulty details
 	difficulty_description = Label.new()
-	difficulty_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	difficulty_description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	difficulty_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	difficulty_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -515,7 +515,7 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 		# DLC not enabled — show locked indicator
 		var locked_label := Label.new()
 		locked_label.text = "Requires Compendium DLC to unlock combat toggles"
-		locked_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		locked_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		locked_label.add_theme_color_override("font_color", COLOR_TEXT_DISABLED)
 		locked_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(locked_label)
@@ -532,7 +532,7 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 			# Category header
 			var cat_label := Label.new()
 			cat_label.text = CompendiumDifficultyTogglesRef.get_category_name(category)
-			cat_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			cat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			cat_label.add_theme_color_override("font_color", COLOR_ACCENT)
 			content.add_child(cat_label)
 
@@ -543,7 +543,7 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 				cb.text = toggle.get("name", toggle_id)
 				cb.tooltip_text = toggle.get("description", "")
 				cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-				cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+				cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 				cb.toggled.connect(_on_difficulty_toggle_changed.bind(toggle_id))
 				content.add_child(cb)
 				difficulty_toggle_checkboxes[toggle_id] = cb
@@ -584,7 +584,7 @@ func _build_victory_conditions_section(parent: Control) -> void:
 	victory_condition_description.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
 	victory_condition_description.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 	var content = VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_MD)
@@ -610,7 +610,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 	story_track_checkbox.text = "Enable Story Track"
 	story_track_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	story_track_checkbox.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	story_track_checkbox.toggled.connect(_on_story_track_toggled)
 	content.add_child(story_track_checkbox)
 
@@ -619,7 +619,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		"7-event narrative arc overlaying your campaign "
 		+ "(Core Rules Appendix V). Recommended for experienced players.")
 	story_track_description.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	story_track_description.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	story_track_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -644,7 +644,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		intro_campaign_checkbox.custom_minimum_size = Vector2(
 			0, TOUCH_TARGET_MIN)
 		intro_campaign_checkbox.add_theme_font_size_override(
-			"font_size", FONT_SIZE_MD)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		intro_campaign_checkbox.toggled.connect(
 			_on_intro_campaign_toggled)
 		content.add_child(intro_campaign_checkbox)
@@ -654,7 +654,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 			"6 guided encounters teaching core mechanics step by step "
 			+ "(Compendium pp.104-109). Recommended for first-time players.")
 		intro_campaign_description.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		intro_campaign_description.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		intro_campaign_description.autowrap_mode = \
@@ -669,7 +669,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		+ "automatically — providing a guided narrative journey from "
 		+ "beginner to story veteran.")
 	narrative_combo_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	narrative_combo_label.add_theme_color_override(
 		"font_color", COLOR_ACCENT_HOVER)
 	narrative_combo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -687,7 +687,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 
 	var wrap_label := Label.new()
 	wrap_label.text = "Narrative Wrap Style"
-	wrap_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	wrap_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	wrap_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap_row.add_child(wrap_label)
 
@@ -708,7 +708,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		+ "'Never Wrap' forces the classic card UI even when the global "
 		+ "setting is on. Default 'Use Global' respects your Settings preference.")
 	narrative_wrap_description.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	narrative_wrap_description.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	narrative_wrap_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -807,7 +807,7 @@ func _build_compendium_setup_section(parent: Control) -> void:
 		var cb := CheckBox.new()
 		cb.text = opt["label"]
 		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-		cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		if flag_val >= 0:
 			cb.button_pressed = dlc.is_feature_enabled(flag_val)
 		cb.toggled.connect(_on_compendium_setup_toggled.bind(flag_name))
@@ -817,7 +817,7 @@ func _build_compendium_setup_section(parent: Control) -> void:
 		# Description label
 		var desc := Label.new()
 		desc.text = opt["description"]
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(desc)
@@ -877,7 +877,7 @@ func _build_progressive_difficulty_section(parent: Control) -> void:
 
 	var desc := Label.new()
 	desc.text = "Ramp up challenge as you play. Options can be combined."
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
@@ -886,7 +886,7 @@ func _build_progressive_difficulty_section(parent: Control) -> void:
 	progressive_basic_checkbox.text = "Option 1: Classic (Respawn + Strength)"
 	progressive_basic_checkbox.tooltip_text = "Enemies respawn and increase by campaign turn. Compendium p.30."
 	progressive_basic_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	progressive_basic_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	progressive_basic_checkbox.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	progressive_basic_checkbox.toggled.connect(_on_progressive_difficulty_changed)
 	content.add_child(progressive_basic_checkbox)
 
@@ -894,13 +894,13 @@ func _build_progressive_difficulty_section(parent: Control) -> void:
 	progressive_advanced_checkbox.text = "Option 2: Compendium (Toggle Escalation)"
 	progressive_advanced_checkbox.tooltip_text = "Progressively enables difficulty toggles and elite enemies. Compendium p.31."
 	progressive_advanced_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	progressive_advanced_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	progressive_advanced_checkbox.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	progressive_advanced_checkbox.toggled.connect(_on_progressive_difficulty_changed)
 	content.add_child(progressive_advanced_checkbox)
 
 	progressive_warning_label = Label.new()
 	progressive_warning_label.text = ""
-	progressive_warning_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	progressive_warning_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	progressive_warning_label.add_theme_color_override("font_color", COLOR_WARNING)
 	progressive_warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	progressive_warning_label.visible = false
@@ -1248,7 +1248,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	
 	var title = Label.new()
 	title.text = condition.name
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
@@ -1256,7 +1256,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	var checkmark = Label.new()
 	checkmark.text = "✓"
 	checkmark.name = "Checkmark"
-	checkmark.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	checkmark.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	checkmark.add_theme_color_override("font_color", COLOR_SUCCESS)
 	checkmark.visible = false  # Hidden until selected
 	title_row.add_child(checkmark)
@@ -1266,7 +1266,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	# Description (always visible inline)
 	var desc = Label.new()
 	desc.text = condition.description
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1275,7 +1275,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	# Target badge
 	var target = Label.new()
 	target.text = "Target: %d %s" % [int(condition.target), condition.type]
-	target.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	target.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	target.add_theme_color_override("font_color", COLOR_ACCENT)
 	vbox.add_child(target)
 	

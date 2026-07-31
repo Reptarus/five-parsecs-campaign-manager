@@ -521,7 +521,7 @@ func _display_world_data(world_data: Dictionary) -> void:
 	if world_name_label:
 		world_name_label.text = "Current World: " + safe_name
 		world_name_label.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_XL)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 		world_name_label.add_theme_color_override(
 			"font_color", UIColors.COLOR_TEXT_PRIMARY)
 
@@ -606,7 +606,7 @@ func _wrap_in_card_node(
 	var title_lbl := Label.new()
 	title_lbl.text = title
 	title_lbl.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	title_lbl.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	card_inner.add_child(title_lbl)
@@ -678,7 +678,7 @@ func _wrap_in_card(
 	var title_lbl := Label.new()
 	title_lbl.text = title
 	title_lbl.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	title_lbl.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	card_inner.add_child(title_lbl)
@@ -891,7 +891,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 	else:
 		var no_market_label := Label.new()
 		no_market_label.text = "No market data available for this world"
-		no_market_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		no_market_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		no_market_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		opportunities_container.add_child(no_market_label)
 

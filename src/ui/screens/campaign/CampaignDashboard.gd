@@ -250,7 +250,7 @@ func _add_help_button() -> void:
 	help_btn.text = "?"
 	help_btn.custom_minimum_size = Vector2(48, 48)  # TOUCH_TARGET_MIN (touch parity)
 	help_btn.flat = true
-	help_btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	help_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	help_btn.add_theme_color_override("font_color", COLOR_CYAN)
 	help_btn.tooltip_text = "Show dashboard tutorial"
 	help_btn.pressed.connect(_on_help_pressed)
@@ -494,7 +494,7 @@ func _render_last_turn_recap(
 	var recap := Label.new()
 	recap.name = "__last_turn_recap"
 	recap.text = "Last turn: " + ", ".join(parts)
-	recap.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	recap.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	recap.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	recap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent_vbox.add_child(recap)
@@ -511,13 +511,13 @@ func _create_colored_badge(
 	badge.add_child(vb)
 	var val_lbl := Label.new()
 	val_lbl.text = value_text
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	val_lbl.add_theme_color_override("font_color", color)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(val_lbl)
 	var cat_lbl := Label.new()
 	cat_lbl.text = label_text
-	cat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	cat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	cat_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	cat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(cat_lbl)
@@ -735,12 +735,12 @@ func _build_crew_card(member) -> PanelContainer:
 	if is_captain:
 		var star := Label.new()
 		star.text = "★"
-		star.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		star.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		star.add_theme_color_override("font_color", COLOR_AMBER)
 		name_row.add_child(star)
 	var name_lbl := Label.new()
 	name_lbl.text = char_name
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY
 	)
@@ -793,7 +793,7 @@ func _build_crew_card(member) -> PanelContainer:
 		stat_parts.append("%s:%d" % [key, stats[key]])
 	var stat_lbl := Label.new()
 	stat_lbl.text = "  ".join(stat_parts)
-	stat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	stat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	stat_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 	# Deferred "tooltips": the C/R/T/S/Sv/L abbreviations are undiscoverable —
 	# hovering the stat line now explains them (Core Rules character profile).
@@ -819,7 +819,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	pill.add_theme_stylebox_override("panel", style)
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	pill.add_child(lbl)
 	return pill
@@ -879,8 +879,7 @@ func _build_ship_section(campaign) -> void:
 		var hull_label := Label.new()
 		hull_label.text = "Hull: %d / %d" % [hull, hull_max]
 		hull_label.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM
-		)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		hull_label.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY
 		)
@@ -1021,8 +1020,7 @@ func _build_equipment_section(campaign) -> void:
 				var item_lbl := Label.new()
 				item_lbl.text = detail
 				item_lbl.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				item_lbl.add_theme_color_override(
 					"font_color", COLOR_TEXT_SECONDARY
 				)
@@ -1042,8 +1040,7 @@ func _build_equipment_section(campaign) -> void:
 				var item_lbl := Label.new()
 				item_lbl.text = "  %s" % a.get("name", "Unknown")
 				item_lbl.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				item_lbl.add_theme_color_override(
 					"font_color", COLOR_TEXT_SECONDARY
 				)
@@ -1063,8 +1060,7 @@ func _build_equipment_section(campaign) -> void:
 				var item_lbl := Label.new()
 				item_lbl.text = "  %s" % g.get("name", "Unknown")
 				item_lbl.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				item_lbl.add_theme_color_override(
 					"font_color", COLOR_TEXT_SECONDARY
 				)
@@ -1173,8 +1169,7 @@ func _build_world_section(campaign) -> void:
 				var loc_header := Label.new()
 				loc_header.text = "Locations:"
 				loc_header.add_theme_font_size_override(
-					"font_size", FONT_SIZE_SM
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				loc_header.add_theme_color_override(
 					"font_color", COLOR_TEXT_MUTED
 				)
@@ -1294,8 +1289,7 @@ func _build_patrons_section(campaign) -> void:
 				var badge := Label.new()
 				badge.text = " LOCAL"
 				badge.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				badge.add_theme_color_override(
 					"font_color", COLOR_CYAN
 				)
@@ -1349,8 +1343,7 @@ func _build_rivals_section(campaign) -> void:
 				var badge := Label.new()
 				badge.text = " LOCAL"
 				badge.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				badge.add_theme_color_override(
 					"font_color", COLOR_CYAN
 				)
@@ -1469,7 +1462,7 @@ func _build_narrative_status(campaign) -> void:
 		var delay_remaining: int = st_data.get("delay_turns_remaining", 0)
 		var banner := Label.new()
 		banner.text = "Final Story Event ready!"
-		banner.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		banner.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		banner.add_theme_color_override("font_color", COLOR_AMBER)
 		right_vbox.add_child(banner)
 
@@ -1478,7 +1471,7 @@ func _build_narrative_status(campaign) -> void:
 			sub.text = "You may delay up to %d more turn(s)." % delay_remaining
 		else:
 			sub.text = "Last chance — fires at next turn rollover."
-		sub.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		sub.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		sub.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		right_vbox.add_child(sub)
 
@@ -1514,7 +1507,7 @@ func _build_narrative_status(campaign) -> void:
 		var alert := Label.new()
 		alert.text = "Story Event next turn!"
 		alert.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		alert.add_theme_color_override(
 			"font_color", COLOR_AMBER)
 		right_vbox.add_child(alert)
@@ -1534,7 +1527,7 @@ func _add_exploration_bar(progress: float) -> void:
 	var lbl := Label.new()
 	lbl.text = "Explored"
 	lbl.custom_minimum_size.x = 90
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	row.add_child(lbl)
 	var bar := ProgressBar.new()
@@ -1554,7 +1547,7 @@ func _add_exploration_bar(progress: float) -> void:
 	row.add_child(bar)
 	var pct := Label.new()
 	pct.text = "%d%%" % int(progress * 100)
-	pct.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	pct.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	pct.add_theme_color_override("font_color", COLOR_EMERALD)
 	row.add_child(pct)
 	right_vbox.add_child(row)
@@ -1621,7 +1614,7 @@ func _build_world_log_panel() -> PanelContainer:
 	title_row.add_theme_constant_override("separation", SPACING_SM)
 	var title := Label.new()
 	title.text = "WORLD LOG"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_CYAN)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
@@ -1730,14 +1723,14 @@ func _create_progress_stat(
 	hbox.add_theme_constant_override("separation", SPACING_XS)
 	var lbl := Label.new()
 	lbl.text = label + ":"
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY
 	)
 	hbox.add_child(lbl)
 	var val := Label.new()
 	val.text = value
-	val.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(val)
 	return hbox
@@ -2473,7 +2466,7 @@ func _build_phase_checklist() -> void:
 
 	var pct_label := Label.new()
 	pct_label.text = "%d / %d required actions complete" % [req_done, req_total]
-	pct_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	pct_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	pct_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	right_vbox.add_child(pct_label)
 
@@ -2484,7 +2477,7 @@ func _build_phase_checklist() -> void:
 			if checklist.has_method("get_action_description") else action_id
 		var item := Label.new()
 		item.text = "  - %s" % desc
-		item.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		item.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		item.add_theme_color_override("font_color", COLOR_AMBER)
 		right_vbox.add_child(item)
 
@@ -2605,7 +2598,7 @@ func _build_contacts_panel() -> PanelContainer:
 	header_hbox.add_child(back_btn)
 	var title := Label.new()
 	title.text = "Contacts & Rivals"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(title)
@@ -2687,7 +2680,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 	card.add_child(vbox)
 	var name_lbl := Label.new()
 	name_lbl.text = npc.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	var name_color: Color = COLOR_EMERALD if npc_type == "patron" else COLOR_RED
 	name_lbl.add_theme_color_override("font_color", name_color)
 	vbox.add_child(name_lbl)
@@ -2698,7 +2691,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 			npc.get("jobs_completed", 0),
 			npc.get("jobs_failed", 0)
 		]
-		info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(info)
 	else:
@@ -2708,7 +2701,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 			npc.get("victories", 0),
 			npc.get("defeats", 0)
 		]
-		info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(info)
 	var history: Array = npc.get("history", [])
@@ -2718,7 +2711,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 			var turn_str: String = str(entry.get("turn", "?"))
 			var event_str: String = str(entry.get("event", entry.get("result", "")))
 			entry_lbl.text = "  Turn %s: %s" % [turn_str, event_str]
-			entry_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			entry_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			entry_lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 			vbox.add_child(entry_lbl)
 	return card
@@ -2732,7 +2725,7 @@ func _create_location_contact_card(location: Dictionary) -> PanelContainer:
 	card.add_child(vbox)
 	var name_lbl := Label.new()
 	name_lbl.text = location.get("name", "Unknown Location")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_PURPLE)
 	vbox.add_child(name_lbl)
 	var info := Label.new()
@@ -2740,14 +2733,14 @@ func _create_location_contact_card(location: Dictionary) -> PanelContainer:
 		location.get("visits", 0),
 		location.get("reputation", 0)
 	]
-	info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 	var npcs_met: Array = location.get("npcs_met", [])
 	if not npcs_met.is_empty():
 		var npcs_lbl := Label.new()
 		npcs_lbl.text = "Contacts: " + ", ".join(npcs_met)
-		npcs_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		npcs_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		npcs_lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		vbox.add_child(npcs_lbl)
 	return card
@@ -2780,7 +2773,7 @@ func _build_hof_panel() -> PanelContainer:
 	header_hbox.add_child(back_btn)
 	var title := Label.new()
 	title.text = "Hall of Fame"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(title)
@@ -2811,7 +2804,7 @@ func _build_hof_panel() -> PanelContainer:
 			card.add_child(card_vbox)
 			var name_lbl := Label.new()
 			name_lbl.text = archive.get("campaign_id", "Unknown Campaign")
-			name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 			name_lbl.add_theme_color_override("font_color", COLOR_AMBER)
 			card_vbox.add_child(name_lbl)
 			var victory: bool = archive.get("victory", false)
@@ -2822,12 +2815,12 @@ func _build_hof_panel() -> PanelContainer:
 			else:
 				status_lbl.text = "Ended — Turn %d" % archive.get("turns_survived", 0)
 				status_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-			status_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			status_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			card_vbox.add_child(status_lbl)
 			var crew_count: int = archive.get("crew", []).size()
 			var crew_lbl := Label.new()
 			crew_lbl.text = "Crew: %d members" % crew_count
-			crew_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			crew_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			crew_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			card_vbox.add_child(crew_lbl)
 			vbox.add_child(card)

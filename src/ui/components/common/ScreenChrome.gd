@@ -40,6 +40,40 @@ const BACKGROUND_NAME := "PageBackground"
 
 
 # ============================================================================
+# Type scale
+# ============================================================================
+
+## Resolve a design token (UIColors.FONT_SIZE_*) to the size this screen should
+## actually draw at.
+##
+## ── WHY EVERY OVERRIDE HAS TO GO THROUGH HERE ────────────────────────────────
+## ResponsiveManager rescales the sizes stored in sci_fi_theme.tres, so anything
+## that just inherits the theme already responds to screen size. But a control
+## with add_theme_font_size_override() is invisible to the theme system for good
+## — and this app had 990 of those in non-battle UI against 208 that asked for a
+## responsive size. That is why type looked identical on a 360dp phone and a
+## 1440px desktop: the theme was scaling, and almost nothing was listening.
+##
+## Wrapping the token at the call site keeps the design tokens as plain consts
+## (they are the authored ladder, and must stay comparable) while making the
+## VALUE that reaches the control depend on the current breakpoint.
+##
+## Safe from anywhere: a static has no `self`, so the autoload is reached through
+## the main loop's root, and every failure path returns the token unchanged.
+static func font_size(base: int) -> int:
+	var loop := Engine.get_main_loop()
+	if loop == null:
+		return base
+	var tree := loop as SceneTree
+	if tree == null or tree.root == null:
+		return base
+	var rm := tree.root.get_node_or_null(NodePath("/root/ResponsiveManager"))
+	if rm != null and rm.has_method("get_responsive_font_size"):
+		return int(rm.get_responsive_font_size(base))
+	return base
+
+
+# ============================================================================
 # Header
 # ============================================================================
 
@@ -68,7 +102,7 @@ static func build_header(title: String, back_callable: Callable,
 	var title_label := Label.new()
 	title_label.name = TITLE_NAME
 	title_label.text = title
-	title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(title_label)
@@ -93,11 +127,11 @@ static func adopt_header(back: Button, title: Label, context: Label = null) -> v
 		# Screen titles converge on FONT_SIZE_XL. The scene files ask for 32, which
 		# is wide enough that "Equipment Manager" wrapped to two lines and pushed
 		# the Back button off the top of a 360dp phone.
-		title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+		title.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 		title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if context != null:
-		context.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		context.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		context.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 
 
@@ -119,7 +153,7 @@ static func _build_context_label(text: String) -> Label:
 	var ctx := Label.new()
 	ctx.name = CONTEXT_NAME
 	ctx.text = text
-	ctx.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	ctx.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	# TEXT_SECONDARY, not TEXT_MUTED: muted is about 3.7:1 against a card and
 	# misses the 4.5:1 that normal-size text needs to stay readable.
 	ctx.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
@@ -194,7 +228,7 @@ static func section_card(title: String, content: Control,
 	if not title.is_empty():
 		var title_label := Label.new()
 		title_label.text = title
-		title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		# Card titles can be content-driven (a planet or crew name interpolated in),
 		# so their unwrapped width is unbounded. Autowrap is safe in a VBox column.
@@ -208,7 +242,7 @@ static func section_card(title: String, content: Control,
 	if not description.is_empty():
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)

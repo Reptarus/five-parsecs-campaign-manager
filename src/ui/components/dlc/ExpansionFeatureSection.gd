@@ -109,7 +109,7 @@ func _build_pack_section(
 	var name_lbl := Label.new()
 	name_lbl.text = catalog.get("name", dlc_id)
 	name_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -117,7 +117,7 @@ func _build_pack_section(
 
 	# Owned/locked badge
 	var badge := Label.new()
-	badge.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	if is_owned:
 		badge.text = "Owned"
 		badge.add_theme_color_override(

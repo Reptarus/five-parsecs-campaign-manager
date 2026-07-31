@@ -41,7 +41,7 @@ func _setup_ui() -> void:
 	var header = HBoxContainer.new()
 	var title = Label.new()
 	title.text = "Ship Stash"
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
 	header.add_child(title)
 	
@@ -51,7 +51,7 @@ func _setup_ui() -> void:
 	
 	stash_count_label = Label.new()
 	stash_count_label.text = "0 / %d items" % MAX_STASH_SIZE
-	stash_count_label.add_theme_font_size_override("font_size", 14)
+	stash_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	header.add_child(stash_count_label)
 	
 	main_vbox.add_child(header)
@@ -83,7 +83,7 @@ func _setup_ui() -> void:
 	
 	var transfer_label = Label.new()
 	transfer_label.text = "Transfer Selected To:"
-	transfer_label.add_theme_font_size_override("font_size", 12)
+	transfer_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	transfer_section.add_child(transfer_label)
 	
 	var transfer_controls = HBoxContainer.new()
@@ -212,7 +212,7 @@ func _create_stash_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var name_label = Label.new()
 	name_label.text = item.get("name", "Unknown Item")
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	hbox.add_child(name_label)
 	
 	# Item type
@@ -220,7 +220,7 @@ func _create_stash_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var item_type: String = item.get("type", "Misc")
 	type_label.text = "[%s]" % item_type
 	type_label.custom_minimum_size.x = 100
-	type_label.add_theme_font_size_override("font_size", 12)
+	type_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	type_label.add_theme_color_override("font_color", _get_type_color(item_type))
 	hbox.add_child(type_label)
 	
@@ -229,7 +229,7 @@ func _create_stash_item_row(item: Dictionary, index: int) -> PanelContainer:
 	if not prev_owner.is_empty():
 		var owner_label = Label.new()
 		owner_label.text = "(from %s)" % prev_owner
-		owner_label.add_theme_font_size_override("font_size", 11)
+		owner_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 		owner_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		hbox.add_child(owner_label)
 	
@@ -388,7 +388,7 @@ func _show_transfer_feedback(success: bool, item_name: String, character_id: Str
 		_feedback_label.text = "❌ Failed to transfer %s" % item_name
 		_feedback_label.add_theme_color_override("font_color", UIColors.COLOR_RED)  # Red
 
-	_feedback_label.add_theme_font_size_override("font_size", 12)
+	_feedback_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 
 	# Add after stash list
 	if stash_list and stash_list.get_parent():

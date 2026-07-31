@@ -120,14 +120,14 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 7: LOCK AND LOAD"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
 
 	_deploy_count_label = Label.new()
 	_deploy_count_label.text = "Deployed: 0 / %d" % _max_deploy
-	_deploy_count_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_deploy_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_deploy_count_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	_deploy_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_deploy_count_label)
@@ -137,14 +137,14 @@ func _build_ui() -> void:
 	info.fit_content = true
 	info.scroll_active = false
 	info.text = "Select characters to deploy and assign weapons from the colony pool. Characters in Sick Bay cannot deploy."
-	info.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 
 	# Roster section
 	var roster_header := Label.new()
 	roster_header.text = "ROSTER"
-	roster_header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	roster_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	roster_header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(roster_header)
 
@@ -164,7 +164,7 @@ func _build_ui() -> void:
 
 	_grunt_count_label = Label.new()
 	_grunt_count_label.text = ""
-	_grunt_count_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_grunt_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_grunt_count_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	_grunt_count_label.visible = false
 	vbox.add_child(_grunt_count_label)
@@ -227,7 +227,7 @@ func _build_mission_info() -> void:
 		var opp_text: String = _opposition_type.replace("_", " ").capitalize()
 		var opp_lbl := Label.new()
 		opp_lbl.text = "Opposition: %s" % opp_text
-		opp_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		opp_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		opp_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 		_mission_info_section.add_child(opp_lbl)
 
@@ -251,7 +251,7 @@ func _create_info_card(title_text: String, desc_text: String,
 
 	var t := Label.new()
 	t.text = title_text
-	t.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	t.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	t.add_theme_color_override("font_color", accent)
 	inner.add_child(t)
 
@@ -260,7 +260,7 @@ func _create_info_card(title_text: String, desc_text: String,
 	d.fit_content = true
 	d.scroll_active = false
 	d.text = desc_text
-	d.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	d.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	d.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	inner.add_child(d)
 
@@ -298,7 +298,7 @@ func _build_roster_list() -> void:
 		var name_lbl := Label.new()
 		var status: String = " [SICK BAY]" if in_sick_bay else ""
 		name_lbl.text = "%s (%s)%s" % [cname, cclass.capitalize(), status]
-		name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		name_lbl.add_theme_color_override(
 			"font_color",
 			COLOR_TEXT_SECONDARY if in_sick_bay else COLOR_TEXT_PRIMARY)
@@ -377,7 +377,7 @@ func _build_grunt_section() -> void:
 
 	var header := Label.new()
 	header.text = "GRUNT FIRETEAMS"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_grunt_section.add_child(header)
 
@@ -395,13 +395,13 @@ func _build_grunt_section() -> void:
 
 		var check := CheckBox.new()
 		check.text = "Fireteam %d (up to %d grunts)" % [ft_idx + 1, mini(per_fireteam, can_deploy)]
-		check.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		check.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		check.toggled.connect(_on_grunt_fireteam_toggled.bind(ft_idx, mini(per_fireteam, can_deploy)))
 		row.add_child(check)
 
 	var info := Label.new()
 	info.text = "Each fireteam deploys up to 4 grunts. Grunts past 4 form a second team."
-	info.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_grunt_section.add_child(info)

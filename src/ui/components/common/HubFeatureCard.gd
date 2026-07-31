@@ -66,8 +66,7 @@ func _build_ui() -> void:
 	# Icon
 	_icon_label = Label.new()
 	_icon_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_XL + 4
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL + 4))
 	_icon_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_CYAN
 	)
@@ -99,8 +98,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_title_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
@@ -115,8 +113,7 @@ func _build_ui() -> void:
 
 	_desc_label = Label.new()
 	_desc_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_desc_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)
@@ -128,8 +125,7 @@ func _build_ui() -> void:
 	var arrow := Label.new()
 	arrow.text = "→"
 	arrow.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	arrow.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_MUTED
 	)

@@ -63,13 +63,13 @@ func _setup_ui() -> void:
 
 	icon_label = Label.new()
 	icon_label.text = "🎯"
-	icon_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	icon_label.add_theme_color_override("font_color", COLOR_BLUE)
 	header_hbox.add_child(icon_label)
 
 	name_label = Label.new()
 	name_label.text = mission_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(name_label)
@@ -77,7 +77,7 @@ func _setup_ui() -> void:
 	# Mission Type
 	type_label = Label.new()
 	type_label.text = mission_type
-	type_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	type_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(type_label)
 
@@ -92,7 +92,7 @@ func _setup_ui() -> void:
 	# Progress Label
 	progress_label = Label.new()
 	progress_label.text = "0 of 0 objectives"
-	progress_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	progress_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	progress_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(progress_label)
 
@@ -160,14 +160,14 @@ func _create_difficulty_badge() -> PanelContainer:
 	# Difficulty label
 	var diff_label := Label.new()
 	diff_label.text = "DIFFICULTY"
-	diff_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	diff_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	diff_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hbox.add_child(diff_label)
 
 	# Stars display (visual rating)
 	var stars_label := Label.new()
 	stars_label.text = _get_difficulty_stars(difficulty_level)
-	stars_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	stars_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	stars_label.add_theme_color_override("font_color", COLOR_AMBER)
 	hbox.add_child(stars_label)
 

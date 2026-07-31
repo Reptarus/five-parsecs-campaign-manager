@@ -88,7 +88,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	pill.add_theme_stylebox_override("panel", style)
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	pill.add_child(lbl)
 	return pill

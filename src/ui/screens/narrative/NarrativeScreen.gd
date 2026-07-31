@@ -176,7 +176,7 @@ func _build_ui() -> void:
 	margin.add_child(vbox)
 
 	_event_title = Label.new()
-	_event_title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	_event_title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_event_title.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(_event_title)
 
@@ -185,7 +185,7 @@ func _build_ui() -> void:
 	_narrative_text.fit_content = true
 	_narrative_text.scroll_active = false
 	_narrative_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_narrative_text.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(_narrative_text)
@@ -209,7 +209,7 @@ func _build_ui() -> void:
 	_advisor_portrait_fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_advisor_portrait_fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_advisor_portrait_fallback.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XL)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_advisor_portrait_fallback.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_advisor_portrait_fallback.visible = false
@@ -222,7 +222,7 @@ func _build_ui() -> void:
 	_advisor_row.add_child(advisor_vbox)
 
 	_advisor_name_lbl = Label.new()
-	_advisor_name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_advisor_name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_advisor_name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	advisor_vbox.add_child(_advisor_name_lbl)
@@ -232,7 +232,7 @@ func _build_ui() -> void:
 	_advisor_quote_lbl.fit_content = true
 	_advisor_quote_lbl.scroll_active = false
 	_advisor_quote_lbl.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_advisor_quote_lbl.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	advisor_vbox.add_child(_advisor_quote_lbl)
@@ -240,7 +240,7 @@ func _build_ui() -> void:
 	# Briefing section (optional)
 	_briefing_header = Label.new()
 	_briefing_header.text = "THE BRIEFING"
-	_briefing_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_briefing_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_briefing_header.add_theme_color_override("font_color", COLOR_WARNING)
 	_briefing_header.visible = false
 	vbox.add_child(_briefing_header)
@@ -250,7 +250,7 @@ func _build_ui() -> void:
 	_briefing_text.fit_content = true
 	_briefing_text.scroll_active = false
 	_briefing_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_briefing_text.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	_briefing_text.visible = false
@@ -262,7 +262,7 @@ func _build_ui() -> void:
 	_restrictions_text.fit_content = true
 	_restrictions_text.scroll_active = false
 	_restrictions_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_restrictions_text.visible = false
 	vbox.add_child(_restrictions_text)
 
@@ -277,7 +277,7 @@ func _build_ui() -> void:
 	_bonus_text.fit_content = true
 	_bonus_text.scroll_active = false
 	_bonus_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_bonus_text.add_theme_color_override("default_color", COLOR_SUCCESS)
 	_bonus_panel.add_child(_bonus_text)
 
@@ -297,7 +297,7 @@ func _build_ui() -> void:
 	_outcome_text.fit_content = true
 	_outcome_text.scroll_active = false
 	_outcome_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_outcome_panel.add_child(_outcome_text)
 
 	_continue_button = Button.new()
@@ -313,7 +313,7 @@ func _build_ui() -> void:
 	# text — invisible against the dim background at small sizes.
 	_skip_button = Button.new()
 	_skip_button.text = "Skip ✕"
-	_skip_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_skip_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_skip_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var sb_skip := StyleBoxFlat.new()
 	sb_skip.bg_color = COLOR_ELEVATED

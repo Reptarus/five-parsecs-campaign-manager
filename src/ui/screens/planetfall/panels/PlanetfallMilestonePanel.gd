@@ -95,7 +95,7 @@ func _build_content() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "CAMPAIGN PROGRESSION"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
@@ -151,12 +151,12 @@ func _build_milestone_bar(completed: int, total: int) -> void:
 		lbl.text = str(i + 1)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		segment.add_child(lbl)
 
 	var status := Label.new()
 	status.text = "%d / %d Milestones" % [completed, total]
-	status.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	status.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	status.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(status)
@@ -180,19 +180,19 @@ func _build_stat_card(title_text: String, value_text: String,
 
 	var t := Label.new()
 	t.text = title_text
-	t.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	t.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	t.add_theme_color_override("font_color", accent)
 	inner.add_child(t)
 
 	var v := Label.new()
 	v.text = value_text
-	v.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	v.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	v.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	inner.add_child(v)
 
 	var d := Label.new()
 	d.text = desc_text
-	d.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	d.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	d.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inner.add_child(d)
@@ -205,7 +205,7 @@ func _build_tech_checklist() -> void:
 
 	var header := Label.new()
 	header.text = "Tech That Grants Milestones"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_content.add_child(header)
 
@@ -219,7 +219,7 @@ func _build_tech_checklist() -> void:
 				"[x]" if owned else "[ ]",
 				display_name,
 				category.replace("_", " ")]
-			lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			lbl.add_theme_color_override("font_color",
 				COLOR_SUCCESS if owned else COLOR_TEXT_SECONDARY)
 			_content.add_child(lbl)
@@ -228,7 +228,7 @@ func _build_tech_checklist() -> void:
 func _build_next_milestone_section(next_index: int, effects: Array) -> void:
 	var header := Label.new()
 	header.text = "Next Milestone (#%d) Effects:" % next_index
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_ACCENT)
 	_content.add_child(header)
 
@@ -238,7 +238,7 @@ func _build_next_milestone_section(next_index: int, effects: Array) -> void:
 		var desc: String = effect.get("description", effect.get("type", ""))
 		var lbl := Label.new()
 		lbl.text = "  - %s" % desc
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(lbl)

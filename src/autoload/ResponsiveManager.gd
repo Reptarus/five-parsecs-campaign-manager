@@ -237,17 +237,28 @@ func get_spacing_multiplier() -> float:
 func get_responsive_spacing(base_spacing: int) -> int:
 	return int(float(base_spacing) * get_spacing_multiplier())
 
+## The type ladder, one distinct step per breakpoint.
+##
+## TABLET used to return 1.0, the same as DESKTOP, so nothing about the type
+## changed anywhere between 480dp and 1024dp -- which is most of a desktop
+## window's travel and the whole tablet range. A ladder with a repeated rung is
+## indistinguishable from no ladder at the sizes people actually resize through.
+##
+## The tokens in UIColors are authored at the DESKTOP rung (1.0), so this only
+## ever trims for smaller screens and grows for genuinely large ones.
 func get_font_size_multiplier() -> float:
 	match current_breakpoint:
 		Breakpoint.MOBILE: return 0.85
-		Breakpoint.TABLET: return 1.0
+		Breakpoint.TABLET: return 0.92
 		Breakpoint.DESKTOP: return 1.0
 		Breakpoint.WIDE: return 1.15
 		Breakpoint.ULTRAWIDE: return 1.3
 	return 1.0
 
+## Never round a readable size down into an unreadable one: 9px is the floor the
+## theme rescale uses too, so the two paths agree on the smallest legible step.
 func get_responsive_font_size(base_size: int) -> int:
-	return int(float(base_size) * get_font_size_multiplier())
+	return maxi(9, int(round(float(base_size) * get_font_size_multiplier())))
 
 func get_touch_target_size() -> int:
 	if current_breakpoint == Breakpoint.MOBILE:

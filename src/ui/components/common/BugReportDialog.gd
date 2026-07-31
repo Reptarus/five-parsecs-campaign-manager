@@ -185,7 +185,7 @@ func _build_ui() -> void:
 	_details_label.fit_content = true
 	_details_label.selection_enabled = true
 	_details_label.custom_minimum_size.y = 160
-	_details_label.add_theme_font_size_override("normal_font_size", UIColorsScript.FONT_SIZE_XS)
+	_details_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColorsScript.FONT_SIZE_XS))
 	_details_label.add_theme_color_override("default_color", UIColorsScript.COLOR_TEXT_MUTED)
 	vbox.add_child(_details_label)
 
@@ -193,7 +193,7 @@ func _build_ui() -> void:
 	_status_label = Label.new()
 	_status_label.visible = false
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.add_theme_font_size_override("font_size", UIColorsScript.FONT_SIZE_SM)
+	_status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColorsScript.FONT_SIZE_SM))
 	outer.add_child(_status_label)
 
 	# HFlow so a narrow portrait dialog wraps the row instead of clipping it.
@@ -427,7 +427,7 @@ func _on_close() -> void:
 func _add_label(parent: Control, text: String) -> void:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", UIColorsScript.FONT_SIZE_SM)
+	l.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColorsScript.FONT_SIZE_SM))
 	l.add_theme_color_override("font_color", UIColorsScript.COLOR_TEXT_SECONDARY)
 	parent.add_child(l)
 
@@ -436,7 +436,7 @@ func _add_hint(parent: Control, text: String) -> void:
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_font_size_override("font_size", UIColorsScript.FONT_SIZE_SM)
+	l.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColorsScript.FONT_SIZE_SM))
 	l.add_theme_color_override("font_color", UIColorsScript.COLOR_TEXT_MUTED)
 	parent.add_child(l)
 
@@ -499,7 +499,7 @@ func _style_button(b: Button, is_primary: bool = false) -> void:
 	s.content_margin_top = UIColorsScript.SPACING_SM
 	s.content_margin_bottom = UIColorsScript.SPACING_SM
 	b.add_theme_stylebox_override("normal", s)
-	b.add_theme_font_size_override("font_size", UIColorsScript.FONT_SIZE_MD)
+	b.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColorsScript.FONT_SIZE_MD))
 	b.add_theme_color_override("font_color", UIColorsScript.COLOR_TEXT_PRIMARY)
 	b.custom_minimum_size = Vector2(0, UIColorsScript.TOUCH_TARGET_MIN)
 

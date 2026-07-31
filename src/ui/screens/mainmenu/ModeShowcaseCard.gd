@@ -151,13 +151,13 @@ func _build_layout() -> void:
 	root.add_child(title_row)
 
 	_title_label = Label.new()
-	_title_label.add_theme_font_size_override("font_size", 24)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(24))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(_title_label)
 
 	_dlc_badge = Label.new()
-	_dlc_badge.add_theme_font_size_override("font_size", 12)
+	_dlc_badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	_dlc_badge.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var badge_style := StyleBoxFlat.new()
 	badge_style.bg_color = COLOR_ELEVATED
@@ -170,7 +170,7 @@ func _build_layout() -> void:
 
 	# Tagline (italic, dim)
 	_tagline_label = Label.new()
-	_tagline_label.add_theme_font_size_override("font_size", 14)
+	_tagline_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	_tagline_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	_tagline_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(_tagline_label)
@@ -184,7 +184,7 @@ func _build_layout() -> void:
 	_description.fit_content = false
 	_description.scroll_active = true
 	_description.scroll_following = false
-	_description.add_theme_font_size_override("normal_font_size", 13)
+	_description.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(13))
 	_description.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_description.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -200,7 +200,7 @@ func _build_layout() -> void:
 	_cta_button = Button.new()
 	_cta_button.custom_minimum_size = Vector2(0, 48)
 	_cta_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_cta_button.add_theme_font_size_override("font_size", 16)
+	_cta_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	_apply_cta_style(true)
 	_cta_button.pressed.connect(_on_cta_pressed)
 	root.add_child(_cta_button)
@@ -284,7 +284,7 @@ func _populate(mode_id: String) -> void:
 	for feat in features:
 		var lbl := Label.new()
 		lbl.text = "  •  %s" % str(feat)
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_features_box.add_child(lbl)

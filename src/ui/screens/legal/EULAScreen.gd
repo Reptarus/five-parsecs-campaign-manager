@@ -117,7 +117,7 @@ func _build_ui() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "End User License Agreement"
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# Without this the Label demands its full unwrapped width as a MINIMUM and drags
@@ -128,7 +128,7 @@ func _build_ui() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "Please read and accept the following terms to continue."
-	subtitle.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	subtitle.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -148,7 +148,7 @@ func _build_ui() -> void:
 	_eula_text.bbcode_enabled = true
 	_eula_text.fit_content = true
 	_eula_text.size_flags_horizontal = SIZE_EXPAND_FILL
-	_eula_text.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_SM)
+	_eula_text.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_eula_text.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	_scroll.add_child(_eula_text)
 
@@ -165,7 +165,7 @@ func _build_ui() -> void:
 	# content's own, and the content won. Safe to wrap here: it sits in a plain
 	# VBoxContainer, not an HFlowContainer (where autowrap explodes the height).
 	_privacy_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_privacy_check.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	_privacy_check.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	_privacy_check.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_privacy_check.toggled.connect(_on_checkbox_toggled)
 	content.add_child(_privacy_check)
@@ -173,7 +173,7 @@ func _build_ui() -> void:
 	# Privacy policy link
 	var privacy_link := LinkButton.new()
 	privacy_link.text = "Read the Privacy Policy"
-	privacy_link.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	privacy_link.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	privacy_link.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	privacy_link.pressed.connect(_on_privacy_link_pressed)
 	content.add_child(privacy_link)
@@ -322,7 +322,7 @@ func _on_privacy_link_pressed() -> void:
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.size_flags_horizontal = SIZE_EXPAND_FILL
-	rtl.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_SM)
+	rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 
 	var file := FileAccess.open("res://data/legal/privacy_policy.md", FileAccess.READ)
 	if file:

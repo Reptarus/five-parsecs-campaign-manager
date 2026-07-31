@@ -35,13 +35,13 @@ func _build_placeholder() -> void:
 
 	var header := Label.new()
 	header.text = "MAP GENERATION"
-	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
 
 	var desc := Label.new()
 	desc.text = "Choose your colony map size. 10 Investigation Sites will be placed randomly."
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)

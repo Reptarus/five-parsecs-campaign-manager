@@ -89,29 +89,29 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Upkeep Phase"
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="HelpButton" type="Button" parent="UpkeepContainer/HeaderPanel/HeaderContent/TitleRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 tooltip_text = "Pay crew wages and ship maintenance (Rules p.76)"
 text = "?"
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"ButtonSM"
 
 [node name="Description" type="Label" parent="UpkeepContainer/HeaderPanel/HeaderContent"]
 layout_mode = 2
 text = "Pay maintenance costs for your crew and ship each campaign turn."
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="CreditsDisplay" type="Label" parent="UpkeepContainer/HeaderPanel/HeaderContent"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Available Credits: 0"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
 
 [node name="CostBreakdownPanel" type="PanelContainer" parent="UpkeepContainer"]
@@ -127,7 +127,7 @@ theme_override_constants/separation = 12
 [node name="CostHeader" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
 text = "COST BREAKDOWN"
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"TextXS"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="CrewCostRow" type="HBoxContainer" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
@@ -137,21 +137,19 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Crew Upkeep"
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="CrewUpkeepLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/CrewCostRow"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 credits"
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="CrewHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
 text = "1 credit for 4-6 crew, +1 per crew member past 6 (Core Rules p.76)"
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"TextXS"
 theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
 
 [node name="ShipCostRow" type="HBoxContainer" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
@@ -161,21 +159,19 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Ship Maintenance"
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="MaintenanceCostLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/ShipCostRow"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 credits"
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="ShipHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
 layout_mode = 2
 text = "1 Hull Point repairs free each turn. Pay 1 credit per additional HP (Core Rules p.76)"
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"TextXS"
 theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
 
 [node name="Divider" type="HSeparator" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
@@ -189,14 +185,14 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Total Cost"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="TotalCostLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/TotalRow"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 credits"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
 
 [node name="UpkeepProgressBar" type="ProgressBar" parent="UpkeepContainer"]

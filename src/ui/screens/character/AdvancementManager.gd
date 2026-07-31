@@ -54,6 +54,13 @@ func _ready() -> void:
 		add_child(_sss)
 		_sss.setup(_sss_column as BoxContainer, 1)
 
+	# One header idiom app-wide: "< Back" first, then the title at FONT_SIZE_XL. The
+	# scene used to pin the title at 32px, which outranks the responsive theme.
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
+
 func _setup_adaptive_panels() -> void:
 	## Migrate the side-by-side MainContent HBox into an AdaptivePanelGroup so the
 	## three panes (crew list / details / advancement options) collapse to a tabbed

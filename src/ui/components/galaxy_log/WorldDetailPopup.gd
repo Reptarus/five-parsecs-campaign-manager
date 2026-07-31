@@ -94,8 +94,7 @@ func _build_ui() -> void:
 		"font_color", UIColorsClass.COLOR_TEXT_PRIMARY
 	)
 	close_btn.add_theme_font_size_override(
-		"font_size", UIColorsClass.FONT_SIZE_MD
-	)
+		"font_size", ScreenChrome.font_size(UIColorsClass.FONT_SIZE_MD))
 	close_btn.pressed.connect(_on_close)
 	outer.add_child(close_btn)
 

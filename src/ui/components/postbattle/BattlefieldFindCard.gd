@@ -163,7 +163,7 @@ func _update_display() -> void:
 
 	_find_icon.color = icon_color
 	_find_title.text = title
-	_find_title.add_theme_font_size_override("font_size", 18)
+	_find_title.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	_find_title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
 	# Configure description with BBCode colors
@@ -176,14 +176,14 @@ func _update_display() -> void:
 	if credits > 0:
 		var credits_label := Label.new()
 		credits_label.text = "[color=#f59e0b]%d Credits[/color]" % credits
-		credits_label.add_theme_font_size_override("font_size", 16)
+		credits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 		credits_label.add_theme_color_override("font_color", COLOR_WARNING)
 		_value_row.add_child(credits_label)
 
 	if not item.is_empty():
 		var item_label := Label.new()
 		item_label.text = item
-		item_label.add_theme_font_size_override("font_size", 16)
+		item_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 		item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		_value_row.add_child(item_label)
 

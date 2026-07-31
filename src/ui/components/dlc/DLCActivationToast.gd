@@ -55,7 +55,7 @@ func _build_ui(pack_name: String) -> void:
 	var check := Label.new()
 	check.text = "✓"
 	check.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	check.add_theme_color_override(
 		"font_color", COLOR_EMERALD)
 	hbox.add_child(check)
@@ -64,7 +64,7 @@ func _build_ui(pack_name: String) -> void:
 	var msg := Label.new()
 	msg.text = "%s Activated!" % pack_name
 	msg.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	msg.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(msg)
@@ -75,7 +75,7 @@ func _build_ui(pack_name: String) -> void:
 	manage_btn.flat = true
 	manage_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 	manage_btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	manage_btn.add_theme_color_override(
 		"font_color", COLOR_CYAN)
 	manage_btn.pressed.connect(_on_manage_pressed)

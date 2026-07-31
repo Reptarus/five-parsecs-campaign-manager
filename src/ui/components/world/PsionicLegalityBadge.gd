@@ -42,7 +42,7 @@ func _build_ui() -> void:
 	add_child(hbox)
 
 	_icon_label = Label.new()
-	_icon_label.add_theme_font_size_override("font_size", 16)
+	_icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	hbox.add_child(_icon_label)
 
 	var vbox := VBoxContainer.new()
@@ -51,12 +51,12 @@ func _build_ui() -> void:
 	hbox.add_child(vbox)
 
 	_status_label = Label.new()
-	_status_label.add_theme_font_size_override("font_size", 14)
+	_status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	_status_label.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(_status_label)
 
 	_detail_label = Label.new()
-	_detail_label.add_theme_font_size_override("font_size", 11)
+	_detail_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	_detail_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_detail_label)

@@ -32,17 +32,15 @@ layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 6
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 32
-text = "Character Advancement"
-clip_text = true
-text_overrun_behavior = 3
-
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 text = "Back"
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+text = "Character Advancement"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -62,7 +60,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 text = "Crew Members"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/CrewList/VBoxContainer"]
 layout_mode = 2
@@ -88,7 +86,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Select Character"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"TextLG"
 
 [node name="Stats" type="GridContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
 unique_name_in_owner = true
@@ -101,7 +99,6 @@ layout_mode = 2
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Experience"]
 layout_mode = 2
 text = "Experience Points"
-theme_override_font_sizes/font_size = 16
 
 [node name="ExperienceContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Experience"]
 unique_name_in_owner = true
@@ -113,7 +110,6 @@ layout_mode = 2
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Injuries"]
 layout_mode = 2
 text = "Injuries & Recovery"
-theme_override_font_sizes/font_size = 16
 
 [node name="InjuriesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer/Injuries"]
 unique_name_in_owner = true
@@ -132,7 +128,7 @@ theme_override_constants/separation = 15
 layout_mode = 2
 text = "Advancement Options"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/AdvancementOptions/VBoxContainer"]
 layout_mode = 2

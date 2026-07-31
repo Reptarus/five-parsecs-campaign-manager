@@ -788,7 +788,7 @@ func _create_callout_card(title: String, content: Control,
 		vbox.add_child(content)
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)
@@ -819,13 +819,13 @@ func _create_section_card(title: String, content: Control, description: String =
 		
 		var icon_label := Label.new()
 		icon_label.text = icon
-		icon_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		icon_label.add_theme_color_override("font_color", COLOR_ACCENT)
 		header_hbox.add_child(icon_label)
 		
 		var title_label := Label.new()
 		title_label.text = title.to_upper()
-		title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		header_hbox.add_child(title_label)
 		
@@ -834,7 +834,7 @@ func _create_section_card(title: String, content: Control, description: String =
 		# Original code path (no icon)
 		var title_label := Label.new()
 		title_label.text = title.to_upper()
-		title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(title_label)
 
@@ -851,7 +851,7 @@ func _create_section_card(title: String, content: Control, description: String =
 	if description != "":
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)
@@ -912,7 +912,7 @@ func _create_labeled_input(label_text: String, input: Control) -> VBoxContainer:
 	if label_text != "":
 		var label := Label.new()
 		label.text = label_text
-		label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		container.add_child(label)
 
@@ -940,7 +940,7 @@ func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
 	# Stat name
 	var name_label := Label.new()
 	name_label.text = stat_name.to_upper()
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(name_label)
@@ -948,7 +948,7 @@ func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
 	# Value
 	var value_label := Label.new()
 	value_label.text = str(value)
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	value_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(value_label)
@@ -1048,7 +1048,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 		initial_label.text = char_name.substr(0, 1).to_upper() if not char_name.is_empty() else "?"
 		initial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		initial_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		initial_label.add_theme_font_size_override("font_size", int(portrait_size * 0.45))
+		initial_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(portrait_size * 0.45)))
 		initial_label.add_theme_color_override("font_color", Color.WHITE)
 		initial_label.custom_minimum_size = Vector2(portrait_size, portrait_size)
 		portrait_container.add_child(initial_label)
@@ -1061,13 +1061,13 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 
 	var name_label := Label.new()
 	name_label.text = char_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	info.add_child(name_label)
 
 	var sub_label := Label.new()
 	sub_label.text = subtitle
-	sub_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sub_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sub_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.add_child(sub_label)
 
@@ -1080,7 +1080,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 			stats_text += "%s: %s" % [key, stats[key]]
 		var stats_label := Label.new()
 		stats_label.text = stats_text
-		stats_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		stats_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		info.add_child(stats_label)
 
@@ -1131,7 +1131,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	# Stat name (small, secondary color)
 	var name_label := Label.new()
 	name_label.text = stat_name.to_upper()
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hbox.add_child(name_label)
 	
@@ -1139,7 +1139,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	var value_label := Label.new()
 	var value_text := str(value) if not show_plus else ("+" + str(value) if value >= 0 else str(value))
 	value_label.text = value_text
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	value_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	hbox.add_child(value_label)
 	
@@ -1256,14 +1256,14 @@ func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
 		icon_label.text = icon
 		icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		icon_panel.add_child(icon_label)
 		hbox.add_child(icon_panel)
 
 	# Title
 	var title_label := Label.new()
 	title_label.text = title
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(title_label)
 
@@ -1332,19 +1332,19 @@ func _create_progress_indicator(current_step: int, total_steps: int, step_title:
 			# Completed step
 			style.bg_color = COLOR_SUCCESS
 			label.text = "✓"
-			label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 			label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		elif i == current_step - 1:
 			# Current step
 			style.bg_color = COLOR_FOCUS
 			label.text = str(i + 1)
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		else:
 			# Upcoming step
 			style.bg_color = COLOR_BORDER
 			label.text = str(i + 1)
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		
 		style.set_corner_radius_all(16)  # Circular
@@ -1359,7 +1359,7 @@ func _create_progress_indicator(current_step: int, total_steps: int, step_title:
 		var title_label := Label.new()
 		title_label.text = step_title
 		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		container.add_child(title_label)
 	

@@ -144,7 +144,7 @@ func _create_step_indicator(step_index: int) -> VBoxContainer:
 	icon_label.text = "✓"
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.add_theme_font_size_override("font_size", 18)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	icon_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	icon_label.visible = false
 	circle.add_child(icon_label)
@@ -156,7 +156,7 @@ func _create_step_indicator(step_index: int) -> VBoxContainer:
 	label.name = "Label"
 	label.text = TURN_STEPS[step_index]["label"]
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	container.add_child(label)
 	

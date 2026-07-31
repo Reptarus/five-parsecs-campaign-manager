@@ -124,7 +124,7 @@ func _setup_ui() -> void:
 	add_theme_stylebox_override("panel", panel_style)
 	
 	# Title styling
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	
 	# Style buttons
@@ -135,11 +135,11 @@ func _setup_ui() -> void:
 	character_selector.custom_minimum_size.y = TOUCH_TARGET_MIN
 	
 	# Cost display styling
-	xp_cost_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	credits_cost_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	xp_cost_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	credits_cost_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	
 	# Result display styling
-	result_display.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	result_display.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	result_display.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 func _style_button(button: Button, bg_color: Color) -> void:

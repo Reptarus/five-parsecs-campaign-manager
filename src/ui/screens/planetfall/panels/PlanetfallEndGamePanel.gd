@@ -80,7 +80,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "THE END GAME"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
@@ -187,7 +187,7 @@ func _build_path_selection() -> void:
 
 		var desc := Label.new()
 		desc.text = path_data.get("description", "")
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(desc)
@@ -316,7 +316,7 @@ func _on_path_selected(path_id: String) -> void:
 func _add_text(text: String, size: int, color: Color) -> void:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(size))
 	lbl.add_theme_color_override("font_color", color)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(lbl)

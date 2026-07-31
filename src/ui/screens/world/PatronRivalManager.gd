@@ -52,6 +52,24 @@ func _ready() -> void:
 		add_child(pc)
 		pc.setup(pc_mc as MarginContainer)
 
+	# One header idiom app-wide: "< Back" first, then the title at FONT_SIZE_XL. The
+	# scene used to pin the title at 32px, which outranks the responsive theme.
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
+
+	# Short-screen scroll: this column wants 343 design px and a phone in landscape
+	# only has ~291. Without this the grow-both root re-centres to a NEGATIVE y and
+	# the header slides up under the floating gear/bug buttons. The other four
+	# manager screens already wire this; this one was missed. Pinned=1 keeps the
+	# header row fixed while the content below it scrolls; no-ops above 620 px.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+
 func _setup_adaptive_panels() -> void:
 	## Reparent the three side-by-side panes (Patrons / Rivals / Details) into an
 	## AdaptivePanelGroup so they collapse to a master-detail tab strip in portrait

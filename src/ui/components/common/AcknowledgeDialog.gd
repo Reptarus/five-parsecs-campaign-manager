@@ -57,8 +57,7 @@ func _build_ui() -> void:
 	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_message_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_message_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_message_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
@@ -83,7 +82,7 @@ func _build_ui() -> void:
 	ok_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
-	ok_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	ok_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	ok_btn.pressed.connect(_on_ok_pressed)
 	vbox.add_child(ok_btn)
 

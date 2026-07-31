@@ -6,6 +6,10 @@ extends "res://src/ui/screens/planetfall/PlanetfallScreenBase.gd"
 ## TODO: Full implementation in Colony Systems sprint.
 
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
+# Used at :142 but never declared here, so this screen failed to PARSE and the
+# Planetfall Dashboard hard-broke into the debugger. BugHuntDashboard and
+# TacticsDashboard both declare it; only this one was missed.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const ColonyStatusScript = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallColonyStatusPanel.gd")
 const EquipmentPanelScript = preload(
@@ -434,7 +438,7 @@ func _build_character_card(char_dict: Dictionary) -> PanelContainer:
 
 	var name_lbl := Label.new()
 	name_lbl.text = char_dict.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_lbl)
 
@@ -460,7 +464,7 @@ func _build_character_card(char_dict: Dictionary) -> PanelContainer:
 		stat_parts.append("%s:%d" % [abbrev, char_dict.get(key, 0)])
 	var stat_lbl := Label.new()
 	stat_lbl.text = "  ".join(stat_parts)
-	stat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	stat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	stat_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 	vbox.add_child(stat_lbl)
 

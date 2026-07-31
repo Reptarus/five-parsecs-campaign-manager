@@ -233,7 +233,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			lbl.position = rect_screen.position
 			lbl.size = rect_screen.size
 			lbl.text = str(value) if value != null else ""
-			lbl.add_theme_font_size_override("font_size", display_font_size)
+			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(display_font_size))
 			lbl.add_theme_color_override("font_color", Color.BLACK)
 			lbl.clip_text = true
 			lbl.horizontal_alignment = _h_align(align)
@@ -249,7 +249,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			rtl.scroll_active = false
 			rtl.text = str(value) if value != null else ""
 			rtl.add_theme_font_size_override(
-				"normal_font_size", display_font_size)
+				"normal_font_size", ScreenChrome.font_size(display_font_size))
 			rtl.add_theme_color_override("default_color", Color.BLACK)
 			rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			return rtl
@@ -259,7 +259,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			cb.size = rect_screen.size
 			# Filled checkbox if value is truthy; empty otherwise.
 			cb.text = "X" if _is_truthy(value) else ""
-			cb.add_theme_font_size_override("font_size", display_font_size)
+			cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(display_font_size))
 			cb.add_theme_color_override("font_color", Color.BLACK)
 			cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			cb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

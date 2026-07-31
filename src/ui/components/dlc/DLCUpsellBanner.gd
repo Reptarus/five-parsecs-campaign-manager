@@ -44,7 +44,7 @@ func _setup(pack_name: String, preview: String) -> void:
 	var lock_lbl := Label.new()
 	lock_lbl.text = "🔒"
 	lock_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	hbox.add_child(lock_lbl)
 
 	var text_col := VBoxContainer.new()
@@ -55,7 +55,7 @@ func _setup(pack_name: String, preview: String) -> void:
 	var title_lbl := Label.new()
 	title_lbl.text = "Available with %s" % pack_name
 	title_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	title_lbl.add_theme_color_override(
 		"font_color", COLOR_AMBER)
 	text_col.add_child(title_lbl)
@@ -64,7 +64,7 @@ func _setup(pack_name: String, preview: String) -> void:
 		var preview_lbl := Label.new()
 		preview_lbl.text = preview
 		preview_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		preview_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		preview_lbl.autowrap_mode = (
@@ -76,7 +76,7 @@ func _setup(pack_name: String, preview: String) -> void:
 	learn_btn.flat = true
 	learn_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 	learn_btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	learn_btn.add_theme_color_override(
 		"font_color", COLOR_CYAN)
 	learn_btn.pressed.connect(_on_learn_more)

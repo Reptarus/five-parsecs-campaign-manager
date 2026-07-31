@@ -202,7 +202,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "OPTIONS"
-	title.add_theme_font_size_override("font_size", _font_xl)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_xl))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(title)
 
@@ -277,7 +277,7 @@ func _build_ui() -> void:
 	debug_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_MUTED
 	)
-	debug_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	debug_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	debug_btn.pressed.connect(_on_debug_pressed)
 	root_vbox.add_child(debug_btn)
 
@@ -336,7 +336,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 		var vsync_label := Label.new()
 		vsync_label.text = "VSync Mode"
 		vsync_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		vsync_label.add_theme_font_size_override("font_size", _font_md)
+		vsync_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 		vsync_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		vsync_row.add_child(vsync_label)
 
@@ -366,7 +366,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	var scale_label := Label.new()
 	scale_label.text = "UI Scale"
 	scale_label.custom_minimum_size.x = 180
-	scale_label.add_theme_font_size_override("font_size", _font_md)
+	scale_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	scale_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	scale_row.add_child(scale_label)
 
@@ -385,7 +385,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	_ui_scale_label.text = "%d%%" % int(_ui_scale_slider.value * 100)
 	_ui_scale_label.custom_minimum_size.x = 50
 	_ui_scale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_ui_scale_label.add_theme_font_size_override("font_size", _font_md)
+	_ui_scale_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	_ui_scale_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	scale_row.add_child(_ui_scale_label)
 
@@ -394,7 +394,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	# stays crisp via dynamic-font re-rasterization); raising it enlarges text.
 	var scale_hint := Label.new()
 	scale_hint.text = "Lower = more fits on screen; higher = larger text"
-	scale_hint.add_theme_font_size_override("font_size", _font_sm)
+	scale_hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 	scale_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	scale_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(scale_hint)
@@ -438,7 +438,7 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	var table_label := Label.new()
 	table_label.text = "My Table Size"
 	table_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table_label.add_theme_font_size_override("font_size", _font_md)
+	table_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	table_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	table_row.add_child(table_label)
 	var table_option := OptionButton.new()
@@ -461,7 +461,7 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	table_row.add_child(table_option)
 	var table_hint := Label.new()
 	table_hint.text = "Battle maps match your physical table (Core Rules p.108)"
-	table_hint.add_theme_font_size_override("font_size", _font_sm)
+	table_hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 	table_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	table_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(table_hint)
@@ -499,7 +499,7 @@ func _build_expansions_section(
 	var summary := Label.new()
 	summary.text = "%d of 3 expansions owned" % owned_count
 	summary.add_theme_font_size_override(
-		"font_size", _font_md)
+		"font_size", ScreenChrome.font_size(_font_md))
 	summary.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	card_vbox.add_child(summary)
@@ -571,7 +571,7 @@ func _build_legal_section(parent: VBoxContainer) -> void:
 	# Data & Privacy subsection label
 	var data_label := Label.new()
 	data_label.text = "Data & Privacy"
-	data_label.add_theme_font_size_override("font_size", _font_md)
+	data_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	data_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	card_vbox.add_child(data_label)
 
@@ -633,14 +633,14 @@ func _build_about_section(parent: VBoxContainer) -> void:
 
 		var label := Label.new()
 		label.text = row_data[0]
-		label.add_theme_font_size_override("font_size", _font_sm)
+		label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		label.custom_minimum_size.x = 120
 		row.add_child(label)
 
 		var value := Label.new()
 		value.text = row_data[1]
-		value.add_theme_font_size_override("font_size", _font_md)
+		value.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 		value.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Long values (e.g. the multi-word "Build" string) wrap instead of
@@ -657,7 +657,7 @@ func _build_about_section(parent: VBoxContainer) -> void:
 	var hint := Label.new()
 	hint.text = ("The report form fills in Version and Build for you, "
 		+ "along with the screen, campaign phase and recent log.")
-	hint.add_theme_font_size_override("font_size", _font_sm)
+	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card_vbox.add_child(hint)
@@ -676,7 +676,7 @@ func _build_about_section(parent: VBoxContainer) -> void:
 	report_style.set_corner_radius_all(4)
 	report_btn.add_theme_stylebox_override("normal", report_style)
 	report_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	report_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	report_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	report_btn.pressed.connect(_on_report_bug_pressed)
 	card_vbox.add_child(report_btn)
 
@@ -690,14 +690,14 @@ func _build_about_section(parent: VBoxContainer) -> void:
 
 		var diag_label := Label.new()
 		diag_label.text = "Telemetry diagnostics (debug build)"
-		diag_label.add_theme_font_size_override("font_size", _font_md)
+		diag_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 		diag_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		card_vbox.add_child(diag_label)
 
 		var status_label := Label.new()
 		status_label.name = "TelemetryStatusLabel"
 		status_label.text = _get_telemetry_status_text()
-		status_label.add_theme_font_size_override("font_size", _font_sm)
+		status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 		status_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card_vbox.add_child(status_label)
@@ -822,7 +822,7 @@ func _create_section_card(title_text: String, parent: VBoxContainer) -> VBoxCont
 
 	var title := Label.new()
 	title.text = title_text
-	title.add_theme_font_size_override("font_size", _font_lg)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_lg))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(title)
 
@@ -845,14 +845,14 @@ func _add_toggle_row(parent: VBoxContainer, label_text: String, initial: bool, a
 
 	var label := Label.new()
 	label.text = label_text
-	label.add_theme_font_size_override("font_size", _font_md)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	text_col.add_child(label)
 
 	if not description.is_empty():
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", _font_sm)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 		desc.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY
 		)
@@ -878,7 +878,7 @@ func _add_slider_row(parent: VBoxContainer, label_text: String,
 	var label := Label.new()
 	label.text = label_text
 	label.custom_minimum_size.x = 180
-	label.add_theme_font_size_override("font_size", _font_md)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(label)
 
@@ -897,7 +897,7 @@ func _add_slider_row(parent: VBoxContainer, label_text: String,
 	val_label.text = "%d%%" % int(initial * 100)
 	val_label.custom_minimum_size.x = 50
 	val_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	val_label.add_theme_font_size_override("font_size", _font_md)
+	val_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	val_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	row.add_child(val_label)
 

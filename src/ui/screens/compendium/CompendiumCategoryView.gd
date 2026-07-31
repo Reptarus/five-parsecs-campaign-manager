@@ -119,7 +119,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = _category.get("title", "Category")
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	# Clip + ellipsis in an HBox header: an unclipped Label demands its full unwrapped
@@ -133,7 +133,7 @@ func _build_ui() -> void:
 	# 40px of a phone's 339 spent on nothing, on a row that was already overflowing.
 	_count_label.custom_minimum_size.x = 0
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	header.add_child(_count_label)
 
@@ -145,7 +145,7 @@ func _build_ui() -> void:
 		_header_desc.text = "%s — %s" % [desc, source] if not desc.is_empty() else source
 	else:
 		_header_desc.text = desc
-	_header_desc.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	_header_desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	_header_desc.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	_header_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(_header_desc)
@@ -177,7 +177,7 @@ func _build_ui() -> void:
 	_search_input.add_theme_stylebox_override("normal", s_style)
 	_search_input.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_search_input.add_theme_color_override("font_placeholder_color", UIColors.COLOR_TEXT_MUTED)
-	_search_input.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	_search_input.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	_search_input.text_changed.connect(_on_filter_text_changed)
 	outer.add_child(_search_input)
 
@@ -230,7 +230,7 @@ func _create_filter_button(label_text: String, filter_value: String) -> Button:
 	btn.custom_minimum_size.y = 36
 	btn.toggle_mode = true
 	btn.button_pressed = (filter_value == _active_filter)
-	btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	# Store raw filter value as metadata (display text may differ from value)
 	btn.set_meta("filter_value", filter_value)
 	btn.toggled.connect(func(pressed: bool) -> void:
@@ -352,7 +352,7 @@ func _create_group_header(section_text: String) -> HBoxContainer:
 
 	var label := Label.new()
 	label.text = section_text.replace("_", " ").to_upper()
-	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	row.add_child(label)
@@ -417,7 +417,7 @@ func _create_rich_item_row(item: Dictionary, index: int) -> PanelContainer:
 	name_label.text = str(
 		item.get("name", item.get("term", item.get("type", "Unknown")))
 	)
-	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	name_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
@@ -444,8 +444,7 @@ func _create_rich_item_row(item: Dictionary, index: int) -> PanelContainer:
 		var stat_label := Label.new()
 		stat_label.text = stat_text
 		stat_label.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_XS
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 		stat_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		stat_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_vbox.add_child(stat_label)
@@ -517,7 +516,7 @@ func _create_compact_item_row(item: Dictionary, index: int) -> PanelContainer:
 
 	var name_label := Label.new()
 	name_label.text = str(item.get("name", item.get("term", item.get("type", "Unknown"))))
-	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -576,7 +575,7 @@ func _create_type_badge(type_text: String) -> PanelContainer:
 
 	var label := Label.new()
 	label.text = type_text
-	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", _get_type_color(type_text))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge.add_child(label)

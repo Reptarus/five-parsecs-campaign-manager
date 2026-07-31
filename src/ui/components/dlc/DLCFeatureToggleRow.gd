@@ -52,7 +52,7 @@ func _build_owned_row(
 	_checkbox.button_pressed = is_enabled
 	_checkbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	_checkbox.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_checkbox.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -63,7 +63,7 @@ func _build_owned_row(
 		var desc_lbl := Label.new()
 		desc_lbl.text = description
 		desc_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		add_child(desc_lbl)
@@ -75,13 +75,13 @@ func _build_locked_row(
 	var lock_icon := Label.new()
 	lock_icon.text = "🔒"
 	lock_icon.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	add_child(lock_icon)
 
 	var name_lbl := Label.new()
 	name_lbl.text = display_name
 	name_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_MUTED)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -91,7 +91,7 @@ func _build_locked_row(
 	upsell_btn.text = "Get %s" % pack_name
 	upsell_btn.flat = true
 	upsell_btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	upsell_btn.add_theme_color_override(
 		"font_color", COLOR_CYAN)
 	upsell_btn.custom_minimum_size.y = TOUCH_TARGET_MIN

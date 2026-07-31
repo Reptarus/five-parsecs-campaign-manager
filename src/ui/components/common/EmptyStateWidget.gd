@@ -25,7 +25,7 @@ func setup(
 	# Icon placeholder (unicode glyph)
 	var icon_label := Label.new()
 	icon_label.text = "◇"
-	icon_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL + 8)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL + 8))
 	icon_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(icon_label)
@@ -33,7 +33,7 @@ func setup(
 	# Title
 	var title_label := Label.new()
 	title_label.text = title_text
-	title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(title_label)
@@ -41,7 +41,7 @@ func setup(
 	# Flavor text (italic feel via secondary color + smaller size)
 	var flavor_label := Label.new()
 	flavor_label.text = flavor_text
-	flavor_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	flavor_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	flavor_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	flavor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flavor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -73,7 +73,7 @@ func setup(
 		action_btn.add_theme_stylebox_override("hover", btn_hover)
 
 		action_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-		action_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+		action_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 
 		action_btn.pressed.connect(func():
 			action_pressed.emit()

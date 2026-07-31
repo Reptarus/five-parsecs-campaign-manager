@@ -105,7 +105,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 5: COLONY EVENTS"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -276,7 +276,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	choice_label.bbcode_enabled = true
 	choice_label.fit_content = true
 	choice_label.scroll_active = false
-	choice_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	choice_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	choice_label.add_theme_color_override("default_color", COLOR_WARNING)
 
 	match event_id:
@@ -441,7 +441,7 @@ func _add_info_text(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -452,7 +452,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

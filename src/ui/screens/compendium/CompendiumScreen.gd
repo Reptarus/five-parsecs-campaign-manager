@@ -60,7 +60,7 @@ func _build_ui() -> void:
 
 	# Search results label (hidden until searching)
 	_results_label = Label.new()
-	_results_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_results_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_results_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_results_label.visible = false
 	outer.add_child(_results_label)
@@ -96,7 +96,7 @@ func _build_ui() -> void:
 	# Source footer
 	var footer := Label.new()
 	footer.text = "Source: Five Parsecs From Home Core Rules & Compendium"
-	footer.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	footer.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	footer.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# Wrap the long source line on a ~384px portrait column instead of clipping.
@@ -303,7 +303,7 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	# Line 1: Item name
 	var name_label := Label.new()
 	name_label.text = str(item.get("name", item.get("term", "Unknown")))
-	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	text_vbox.add_child(name_label)
@@ -316,7 +316,7 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	if not stat_text.is_empty():
 		var stat_label := Label.new()
 		stat_label.text = stat_text
-		stat_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+		stat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 		stat_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		stat_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_vbox.add_child(stat_label)
@@ -324,7 +324,7 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	# Category badge
 	var badge := Label.new()
 	badge.text = str(item.get("_category_title", ""))
-	badge.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	badge.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(badge)

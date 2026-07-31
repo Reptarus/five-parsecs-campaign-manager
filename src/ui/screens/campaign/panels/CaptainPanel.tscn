@@ -24,7 +24,7 @@ theme_override_constants/separation = 20
 
 [node name="Title" type="Label" parent="Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"TextXL"
 text = "Captain Creation"
 horizontal_alignment = 1
 

@@ -64,13 +64,13 @@ func _setup_ui() -> void:
 
 	planet_icon = Label.new()
 	planet_icon.text = "🌍"
-	planet_icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	planet_icon.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	planet_icon.add_theme_color_override("font_color", COLOR_EMERALD)
 	header_hbox.add_child(planet_icon)
 
 	planet_name_label = Label.new()
 	planet_name_label.text = planet_name
-	planet_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	planet_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	planet_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	planet_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(planet_name_label)
@@ -78,7 +78,7 @@ func _setup_ui() -> void:
 	# Location Type
 	location_type_label = Label.new()
 	location_type_label.text = location_type
-	location_type_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	location_type_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	location_type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(location_type_label)
 
@@ -89,7 +89,7 @@ func _setup_ui() -> void:
 
 	threat_label = Label.new()
 	threat_label.text = "THREAT"
-	threat_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	threat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	threat_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	threat_container.add_child(threat_label)
 
@@ -101,7 +101,7 @@ func _setup_ui() -> void:
 	# Patrons Available
 	patrons_label = Label.new()
 	patrons_label.text = "0 patrons available"
-	patrons_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	patrons_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	patrons_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(patrons_label)
 

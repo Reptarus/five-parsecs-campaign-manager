@@ -113,7 +113,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 6: MISSION DETERMINATION"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -149,7 +149,7 @@ func _build_ui() -> void:
 func _build_mission_list() -> void:
 	var header := Label.new()
 	header.text = "Available Missions"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_list_container.add_child(header)
 
@@ -192,7 +192,7 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	# Mission name
 	var name_lbl := Label.new()
 	name_lbl.text = mission.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_detail_container.add_child(name_lbl)
 
@@ -202,7 +202,7 @@ func _show_mission_detail(mission: Dictionary) -> void:
 		mission.get("table_size", "3x3")]
 	var cat_lbl := Label.new()
 	cat_lbl.text = cat_text
-	cat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	cat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	cat_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	_detail_container.add_child(cat_lbl)
 
@@ -212,7 +212,7 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = mission.get("description", "")
-	desc.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc)
 
@@ -232,14 +232,14 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	if has_conditions:
 		var cond_lbl := Label.new()
 		cond_lbl.text = "Battlefield Conditions: Roll on Campaign Condition table"
-		cond_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		cond_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		cond_lbl.add_theme_color_override("font_color", COLOR_WARNING)
 		_detail_container.add_child(cond_lbl)
 
 	# Page reference
 	var page_lbl := Label.new()
 	page_lbl.text = "Rulebook: p.%d" % mission.get("page", 0)
-	page_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	page_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	page_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(page_lbl)
 
@@ -264,7 +264,7 @@ func _add_briefing_section(title: String, content: String) -> void:
 
 	var title_lbl := Label.new()
 	title_lbl.text = title
-	title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	title_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	inner.add_child(title_lbl)
 
@@ -273,7 +273,7 @@ func _add_briefing_section(title: String, content: String) -> void:
 	content_lbl.fit_content = true
 	content_lbl.scroll_active = false
 	content_lbl.text = content
-	content_lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_XS)
+	content_lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	content_lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	inner.add_child(content_lbl)
 

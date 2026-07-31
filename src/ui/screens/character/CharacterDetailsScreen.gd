@@ -334,7 +334,7 @@ func populate_ui() -> void:
 
 		var creation_summary = Label.new()
 		creation_summary.text = "%s | %s / %s / %s" % [origin, background, motivation, char_class]
-		creation_summary.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		creation_summary.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		creation_summary.add_theme_color_override("font_color", COLOR_FOCUS)  # Cyan highlight
 		character_info_container.add_child(creation_summary)
 
@@ -347,7 +347,7 @@ func populate_ui() -> void:
 		if "injuries" in current_character and current_character.injuries.size() > 0:
 			var injury_header = Label.new()
 			injury_header.text = "INJURIES (%d active)" % current_character.injuries.size()
-			injury_header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			injury_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			injury_header.add_theme_color_override("font_color", COLOR_DANGER)  # Red for injuries
 			character_info_container.add_child(injury_header)
 
@@ -357,7 +357,7 @@ func populate_ui() -> void:
 				var injury_type = injury.get("type", "UNKNOWN")
 				var recovery_turns = injury.get("recovery_turns", 0)
 				injury_label.text = "  • %s: %d turns remaining" % [injury_type, recovery_turns]
-				injury_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				injury_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				injury_label.add_theme_color_override("font_color", COLOR_WARNING)  # Orange for injury details
 				character_info_container.add_child(injury_label)
 
@@ -382,13 +382,13 @@ func populate_ui() -> void:
 			var field_name = Label.new()
 			field_name.text = field_data[0] + ":"
 			field_name.custom_minimum_size = Vector2(120, 0)
-			field_name.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			field_name.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			field_name.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			info_row.add_child(field_name)
 
 			var field_value = Label.new()
 			field_value.text = str(field_data[1])
-			field_value.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			field_value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			field_value.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 			info_row.add_child(field_value)
 
@@ -592,7 +592,7 @@ func _update_species_rules_display() -> void:
 
 	var header := Label.new()
 	header.text = "Species Rules"
-	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	header.add_theme_color_override(
 		"font_color", UIColors.COLOR_AMBER)
 	container.add_child(header)
@@ -784,7 +784,7 @@ func _update_implants_display() -> void:
 	var header := Label.new()
 	header.name = "ImplantsLabel"
 	header.text = "INSTALLED IMPLANTS (%d/3)" % current_character.implants.size()
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)  # Purple for implants
 	character_info_container.add_child(header)
 
@@ -793,7 +793,7 @@ func _update_implants_display() -> void:
 		var implant_row := Label.new()
 		var formatted := EquipmentFormatter.format_implant(implant)
 		implant_row.text = "  • %s" % formatted
-		implant_row.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		implant_row.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		implant_row.add_theme_color_override("font_color", COLOR_FOCUS)  # Cyan highlight
 		character_info_container.add_child(implant_row)
 
@@ -895,7 +895,7 @@ func _populate_history_section() -> void:
 	journal_link.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	journal_link.flat = true
 	journal_link.add_theme_color_override("font_color", COLOR_FOCUS)
-	journal_link.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	journal_link.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	journal_link.pressed.connect(_on_view_full_journal_pressed.bind(char_id))
 	main_vbox.add_child(journal_link)
 	main_vbox.move_child(journal_link, mini(
@@ -997,7 +997,7 @@ func _setup_portrait_upload() -> void:
 	btn.name = "__ChangePortraitBtn"
 	btn.text = "Change Portrait"
 	btn.custom_minimum_size = Vector2(120, 32)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
 		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.85)
@@ -1028,7 +1028,7 @@ func _setup_print_sheet_button() -> void:
 	btn.tooltip_text = "Open printable sheets (Crew Log / Encounter Log / " \
 		+ "World Record)"
 	btn.custom_minimum_size = Vector2(120, 32)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
 		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.85)
@@ -1124,7 +1124,7 @@ func _build_psionic_info_section() -> void:
 
 	var header := Label.new()
 	header.text = "PSIONIC POWERS"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	character_info_container.add_child(header)
 
@@ -1138,7 +1138,7 @@ func _build_psionic_info_section() -> void:
 		var power_label := Label.new()
 		var enhanced_tag: String = " [Enhanced +1D6]" if enhanced else ""
 		power_label.text = "  %s%s" % [pname, enhanced_tag]
-		power_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		power_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		power_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		character_info_container.add_child(power_label)
 
@@ -1146,7 +1146,7 @@ func _build_psionic_info_section() -> void:
 			var desc_label := Label.new()
 			desc_label.text = "    %s" % pdesc
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			character_info_container.add_child(desc_label)
 
@@ -1161,14 +1161,14 @@ func _build_psionic_info_section() -> void:
 		if not tags.is_empty():
 			var tag_label := Label.new()
 			tag_label.text = "    [%s]" % " | ".join(tags)
-			tag_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			tag_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			tag_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			character_info_container.add_child(tag_label)
 
 	# Weapon restriction note
 	var restriction := Label.new()
 	restriction.text = "  Weapon restriction: Pistol or Melee only"
-	restriction.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	restriction.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	restriction.add_theme_color_override("font_color", COLOR_WARNING)
 	character_info_container.add_child(restriction)
 
@@ -1256,7 +1256,7 @@ func _status_chip(
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", color)
 	chip.add_child(lbl)
 	return chip
@@ -1411,7 +1411,7 @@ func _create_advancement_header(character_dict: Dictionary) -> VBoxContainer:
 	# Title
 	var title := Label.new()
 	title.text = "CHARACTER ADVANCEMENT"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(title)
 	
@@ -1421,13 +1421,13 @@ func _create_advancement_header(character_dict: Dictionary) -> VBoxContainer:
 	
 	var xp_label_text := Label.new()
 	xp_label_text.text = "Available XP:"
-	xp_label_text.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	xp_label_text.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	xp_label_text.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	xp_display.add_child(xp_label_text)
 	
 	var xp_value := Label.new()
 	xp_value.text = str(character_dict.get("experience", 0))
-	xp_value.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	xp_value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	xp_value.add_theme_color_override("font_color", COLOR_ACCENT)
 	xp_value.name = "AvailableXPValue"
 	xp_display.add_child(xp_value)
@@ -1444,7 +1444,7 @@ func _create_stat_advancement_section(character_dict: Dictionary) -> VBoxContain
 	# Section title
 	var title := Label.new()
 	title.text = "STAT ADVANCEMENT"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
@@ -1485,7 +1485,7 @@ func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String
 	# Stat name
 	var stat_label := Label.new()
 	stat_label.text = stat_name.capitalize().replace("_", " ")
-	stat_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	stat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	stat_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(stat_label)
 	
@@ -1495,7 +1495,7 @@ func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String
 	
 	var value_label := Label.new()
 	value_label.text = "%d / %d" % [current_value, max_value]
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	value_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(value_label)
 	
@@ -1528,7 +1528,7 @@ func _create_training_section(character_dict: Dictionary) -> VBoxContainer:
 	# Section title
 	var title := Label.new()
 	title.text = "TRAINING"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
@@ -1576,7 +1576,7 @@ func _create_training_card(training_type: String, cost: int, current_training: A
 	# Training name
 	var name_label := Label.new()
 	name_label.text = training_type.capitalize().replace("_", " ")
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_label)
 	
@@ -1754,7 +1754,7 @@ func _populate_bot_upgrade_section() -> void:
 	if available_upgrades.is_empty():
 		var no_upgrades := Label.new()
 		no_upgrades.text = "All upgrades installed!"
-		no_upgrades.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		no_upgrades.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		no_upgrades.add_theme_color_override("font_color", COLOR_SUCCESS)
 		advancement_section.add_child(no_upgrades)
 	else:
@@ -1787,14 +1787,14 @@ func _create_bot_upgrade_header(campaign_credits: int) -> VBoxContainer:
 	# Title
 	var title := Label.new()
 	title.text = "BOT UPGRADES"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(title)
 	
 	# Subtitle
 	var subtitle := Label.new()
 	subtitle.text = "Bots purchase upgrades with credits (no XP system)"
-	subtitle.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	header.add_child(subtitle)
 	
@@ -1804,13 +1804,13 @@ func _create_bot_upgrade_header(campaign_credits: int) -> VBoxContainer:
 	
 	var credits_label := Label.new()
 	credits_label.text = "Campaign Credits:"
-	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	credits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	credits_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	credits_display.add_child(credits_label)
 	
 	var credits_value := Label.new()
 	credits_value.text = str(campaign_credits)
-	credits_value.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	credits_value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	credits_value.add_theme_color_override("font_color", COLOR_ACCENT)
 	credits_value.name = "CampaignCreditsValue"
 	credits_display.add_child(credits_value)
@@ -1839,14 +1839,14 @@ func _create_bot_upgrade_card(upgrade: Dictionary, campaign_credits: int, advanc
 	# Upgrade name
 	var name_label := Label.new()
 	name_label.text = upgrade.get("name", "Unknown Upgrade")
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_label)
 	
 	# Description
 	var desc_label := Label.new()
 	desc_label.text = upgrade.get("description", "")
-	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc_label)
 	
@@ -1880,7 +1880,7 @@ func _create_installed_upgrades_section() -> VBoxContainer:
 	# Title
 	var title := Label.new()
 	title.text = "INSTALLED UPGRADES"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
@@ -1890,7 +1890,7 @@ func _create_installed_upgrades_section() -> VBoxContainer:
 	if installed_upgrades.is_empty():
 		var no_upgrades := Label.new()
 		no_upgrades.text = "No upgrades installed yet"
-		no_upgrades.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		no_upgrades.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		no_upgrades.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		section.add_child(no_upgrades)
 	else:
@@ -1903,7 +1903,7 @@ func _create_installed_upgrades_section() -> VBoxContainer:
 				
 				var upgrade_label := Label.new()
 				upgrade_label.text = "✓ %s: %s" % [upgrade_data.get("name", "Unknown"), upgrade_data.get("description", "")]
-				upgrade_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				upgrade_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				upgrade_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 				section.add_child(upgrade_label)
 	
@@ -2031,7 +2031,7 @@ func _build_page_dots() -> void:
 	for i in _crew_list.size():
 		var dot := Label.new()
 		dot.text = "\u25cf" if i == _current_index else "\u25cb"
-		dot.add_theme_font_size_override("font_size", 12)
+		dot.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 		dot.add_theme_color_override("font_color",
 			COLOR_FOCUS if i == _current_index else COLOR_TEXT_DISABLED)
 		_page_dots_container.add_child(dot)

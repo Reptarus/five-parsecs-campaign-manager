@@ -105,7 +105,7 @@ func _build() -> void:
 	# Wrap it instead so the header min width stays tiny.
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.custom_minimum_size.x = 0.0
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_title_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	header.add_child(_title_label)

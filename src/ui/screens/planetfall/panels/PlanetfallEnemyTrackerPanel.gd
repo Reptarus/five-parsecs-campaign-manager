@@ -69,7 +69,7 @@ func _build_content() -> void:
 
 	var title := Label.new()
 	title.text = "TACTICAL ENEMIES"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
@@ -79,7 +79,7 @@ func _build_content() -> void:
 	info.fit_content = true
 	info.scroll_active = false
 	info.text = "Tactical Enemies appear at milestones 1, 2, and 5. Gather Enemy Information through missions and scout patrols to locate their Bosses and Strongpoints."
-	info.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content.add_child(info)
 
@@ -87,7 +87,7 @@ func _build_content() -> void:
 	if enemies.is_empty():
 		var empty := Label.new()
 		empty.text = "No Tactical Enemies present yet. They appear at Milestones 1, 2, and 5."
-		empty.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		empty.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_content.add_child(empty)
@@ -129,7 +129,7 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 	var enemy_type: String = enemy.get("type", "Unknown Enemy")
 	var name_lbl := Label.new()
 	name_lbl.text = "Enemy %d: %s" % [index + 1, enemy_type]
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(name_lbl)
@@ -137,7 +137,7 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 	if defeated:
 		var status := Label.new()
 		status.text = "DEFEATED"
-		status.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		status.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		status.add_theme_color_override("font_color", COLOR_SUCCESS)
 		header_row.add_child(status)
 
@@ -145,14 +145,14 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 	var enemy_info_val: int = enemy.get("enemy_info", 0)
 	var info_lbl := Label.new()
 	info_lbl.text = "Enemy Information: %d / 6" % enemy_info_val
-	info_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	info_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 	vbox.add_child(info_lbl)
 
 	if enemy_info_val >= 6:
 		var full_intel := Label.new()
 		full_intel.text = "Full intel — can always attempt Strike Mission"
-		full_intel.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		full_intel.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		full_intel.add_theme_color_override("font_color", COLOR_SUCCESS)
 		vbox.add_child(full_intel)
 
@@ -166,14 +166,14 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 
 	var boss_lbl := Label.new()
 	boss_lbl.text = "Boss: %s" % ("Located" if boss_located else "Unknown")
-	boss_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	boss_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	boss_lbl.add_theme_color_override(
 		"font_color", COLOR_WARNING if boss_located else COLOR_TEXT_SECONDARY)
 	status_row.add_child(boss_lbl)
 
 	var sp_lbl := Label.new()
 	sp_lbl.text = "Strongpoint: %s" % ("Located" if strongpoint else "Unknown")
-	sp_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sp_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sp_lbl.add_theme_color_override(
 		"font_color", COLOR_DANGER if strongpoint else COLOR_TEXT_SECONDARY)
 	status_row.add_child(sp_lbl)
@@ -182,7 +182,7 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 	var sectors: Array = enemy.get("occupied_sectors", [])
 	var sectors_lbl := Label.new()
 	sectors_lbl.text = "Occupied Sectors: %d" % sectors.size()
-	sectors_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sectors_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sectors_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(sectors_lbl)
 
@@ -191,13 +191,13 @@ func _build_ancient_signs_section() -> void:
 	var signs: Array = _campaign.ancient_signs if "ancient_signs" in _campaign else []
 	var section := Label.new()
 	section.text = "ANCIENT SIGNS: %d" % signs.size()
-	section.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	section.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	section.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_content.add_child(section)
 
 	var desc := Label.new()
 	desc.text = "Roll 1D6 when obtaining a sign. On a roll equal to or below total signs, locate an Ancient Site for a Delve mission."
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(desc)

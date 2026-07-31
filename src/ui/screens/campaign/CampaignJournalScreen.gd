@@ -165,7 +165,7 @@ func _build_header() -> Control:
 
 	_title_label = Label.new()
 	_title_label.text = "Campaign Journal"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(_title_label)
@@ -180,7 +180,7 @@ func _build_header() -> Control:
 	_share_button = MenuButton.new()
 	_share_button.text = "Share..."
 	_share_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	_share_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_share_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_share_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var share_popup: PopupMenu = _share_button.get_popup()
 	share_popup.add_item("Copy Entry (Plain)", SHARE_COPY_ENTRY_PLAIN)
@@ -277,7 +277,7 @@ func _build_filter_panel() -> Control:
 	turn_box.add_theme_constant_override("separation", SPACING_XS)
 	var turn_lbl := Label.new()
 	turn_lbl.text = "Turn:"
-	turn_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	turn_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	turn_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	turn_box.add_child(turn_lbl)
 	_turn_min_spin = SpinBox.new()
@@ -373,7 +373,7 @@ func _update_filter_toggle_text() -> void:
 func _build_chip_row_header(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return lbl
 
@@ -383,7 +383,7 @@ func _labeled(label_text: String, control: Control) -> Control:
 	hb.add_theme_constant_override("separation", SPACING_XS)
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hb.add_child(lbl)
 	hb.add_child(control)
@@ -393,7 +393,7 @@ func _labeled(label_text: String, control: Control) -> Control:
 func _build_results_label() -> Label:
 	_results_label = Label.new()
 	_results_label.text = "Showing 0 entries"
-	_results_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_results_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_results_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return _results_label
 
@@ -450,7 +450,7 @@ func _build_content_split() -> Control:
 	_detail_richtext.fit_content = true
 	_detail_richtext.scroll_active = false
 	_detail_richtext.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_richtext.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	_detail_richtext.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_detail_richtext.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_detail_richtext.meta_clicked.connect(_on_meta_clicked)
 	detail_vbox.add_child(_detail_richtext)
@@ -652,7 +652,7 @@ func _make_chip(label: String, accent: Color) -> Button:
 	# artifact). Keep the compact LOOK via the small font + tight chip styling below;
 	# do not buy it back out of the touch target.
 	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.5)
@@ -1247,7 +1247,7 @@ func _ensure_notes_dialog() -> void:
 	var hint := Label.new()
 	hint.text = "Add a free-form note for sharing or future reference."
 	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	hint.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	vbox.add_child(hint)
 
 	_notes_editor_text = TextEdit.new()
@@ -1393,7 +1393,7 @@ func _populate_photos_grid(photos: Array) -> void:
 		var caption_label := Label.new()
 		caption_label.text = caption if not caption.is_empty() else path.get_file()
 		caption_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-		caption_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		caption_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cell.add_child(caption_label)
 

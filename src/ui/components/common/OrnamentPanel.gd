@@ -180,7 +180,7 @@ func _build_panel() -> void:
 	# Banner font scales with atlas variant: smaller on compact panels so
 	# the title doesn't compete with the body for visual weight.
 	var banner_font_size: int = 14 if _active_atlas == ATLAS_COMPACT else 18
-	_banner_label.add_theme_font_size_override("font_size", banner_font_size)
+	_banner_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(banner_font_size))
 	_banner.add_child(_banner_label)
 
 	_content_slot = MarginContainer.new()

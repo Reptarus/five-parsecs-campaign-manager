@@ -179,7 +179,7 @@ func _create_crew_preview_section() -> VBoxContainer:
 	
 	var title := Label.new()
 	title.text = "Your Crew"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	section.add_child(title)
 	
@@ -222,7 +222,7 @@ func _create_create_campaign_button() -> Button:
 	btn.add_theme_stylebox_override("normal", style_normal)
 	btn.add_theme_stylebox_override("hover", style_hover)
 	btn.add_theme_stylebox_override("disabled", style_disabled)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	
 	btn.pressed.connect(_on_create_campaign_pressed)
 	
@@ -351,7 +351,7 @@ func _create_config_summary_card() -> PanelContainer:
 	# Campaign Name (Enhanced: XL size for primary data, accent color for prominence)
 	var name_label := Label.new()
 	name_label.text = config_data.get("campaign_name", "Unknown Campaign")
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)  # XL for primary data hierarchy
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))  # XL for primary data hierarchy
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)      # Accent color for emphasis
 	content.add_child(name_label)
 	
@@ -363,7 +363,7 @@ func _create_config_summary_card() -> PanelContainer:
 		difficulty_name,
 		config_data.get("game_mode", "Standard")
 	]
-	difficulty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	difficulty_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	difficulty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(difficulty_label)
 	
@@ -387,7 +387,7 @@ func _create_config_summary_card() -> PanelContainer:
 	else:
 		victory_label.text = "⚠ Victory: None Selected — campaign will have no win condition"
 		victory_label.add_theme_color_override("font_color", COLOR_WARNING)
-	victory_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	victory_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	victory_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(victory_label)
 	
@@ -395,7 +395,7 @@ func _create_config_summary_card() -> PanelContainer:
 	var story_track = config_data.get("story_track_enabled", false)
 	var story_label := Label.new()
 	story_label.text = "Story Track: %s" % ("Enabled" if story_track else "Disabled")
-	story_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	story_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	story_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(story_label)
 
@@ -404,7 +404,7 @@ func _create_config_summary_card() -> PanelContainer:
 	if intro_campaign_on:
 		var intro_label := Label.new()
 		intro_label.text = "Introductory Campaign: Enabled (6 guided turns)"
-		intro_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		intro_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		intro_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(intro_label)
 
@@ -421,14 +421,14 @@ func _create_ship_summary_card() -> PanelContainer:
 	var ship_name: String = ship_data.get("name", "Unnamed Ship")
 	var name_label := Label.new()
 	name_label.text = ship_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)  # XL for primary data
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))  # XL for primary data
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)     # Accent color
 	content.add_child(name_label)
 	
 	# Ship Type (Secondary info)
 	var type_label := Label.new()
 	type_label.text = ship_data.get("type", "Unknown Type")
-	type_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	type_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(type_label)
 	
@@ -460,7 +460,7 @@ func _create_ship_summary_card() -> PanelContainer:
 		var traits_label := Label.new()
 		traits_label.text = "Traits: " + ", ".join(traits)
 		traits_label.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		traits_label.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		traits_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -478,7 +478,7 @@ func _create_ship_summary_card() -> PanelContainer:
 			var met_label := Label.new()
 			met_label.text = "Met through: " + met
 			met_label.add_theme_font_size_override(
-				"font_size", FONT_SIZE_SM)
+				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			met_label.add_theme_color_override(
 				"font_color", COLOR_TEXT_SECONDARY)
 			flavor_vbox.add_child(met_label)
@@ -486,7 +486,7 @@ func _create_ship_summary_card() -> PanelContainer:
 			var char_label := Label.new()
 			char_label.text = "Known as: " + char_as
 			char_label.add_theme_font_size_override(
-				"font_size", FONT_SIZE_SM)
+				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			char_label.add_theme_color_override(
 				"font_color", COLOR_TEXT_SECONDARY)
 			flavor_vbox.add_child(char_label)
@@ -564,7 +564,7 @@ func _create_captain_summary_card() -> PanelContainer:
 	# Captain Name (Enhanced: XL size, accent color)
 	var name_label := Label.new()
 	name_label.text = captain_name if not captain_name.is_empty() else "No Captain Assigned"
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)  # XL for primary data
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))  # XL for primary data
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)     # Accent color
 	content.add_child(name_label)
 	
@@ -585,14 +585,14 @@ func _create_captain_summary_card() -> PanelContainer:
 	if not background.is_empty():
 		var bg_label := Label.new()
 		bg_label.text = "Background: %s" % background
-		bg_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		bg_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(bg_label)
 	
 	if not char_class.is_empty():
 		var class_label := Label.new()
 		class_label.text = "Class: %s" % char_class
-		class_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		class_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		class_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(class_label)
 	
@@ -638,7 +638,7 @@ func _create_crew_summary_card() -> PanelContainer:
 	var count_label := Label.new()
 	count_label.text = "%d Crew Members (Campaign Size: %d)" % [
 		crew_members.size(), campaign_crew_setting]
-	count_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)  # Larger!
+	count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))  # Larger!
 	count_label.add_theme_color_override("font_color", COLOR_ACCENT)  # Accent color!
 	content.add_child(count_label)
 
@@ -699,14 +699,14 @@ func _create_equipment_summary_card() -> PanelContainer:
 		credits_label.text = "Starting Credits: %d cr (%d base + %d bonus)" % [total, credits_value, crew_bonus]
 	else:
 		credits_label.text = "Starting Credits: %d cr" % credits_value
-	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	credits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	credits_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	content.add_child(credits_label)
 	
 	# Equipment list with owners and conditions
 	var eq_header := Label.new()
 	eq_header.text = "%d Equipment Items" % equipment_list.size()
-	eq_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	eq_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	eq_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(eq_header)
 	for item in equipment_list:
@@ -722,7 +722,7 @@ func _create_equipment_summary_card() -> PanelContainer:
 		if condition != "standard":
 			parts.append("[%s]" % condition)
 		item_label.text = "  %s" % " — ".join(parts)
-		item_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		item_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		item_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(item_label)
 	
@@ -742,7 +742,7 @@ func _create_equipment_summary_card() -> PanelContainer:
 				patrons.size(),
 				rivals.size()
 			]
-			res_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			res_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			res_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			content.add_child(res_label)
 	
@@ -767,7 +767,7 @@ func _create_extras_summary_card() -> PanelContainer:
 	if not patrons.is_empty():
 		var patron_header = Label.new()
 		patron_header.text = "Starting Patrons"
-		patron_header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		patron_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		patron_header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		content.add_child(patron_header)
 		for patron in patrons:
@@ -777,14 +777,14 @@ func _create_extras_summary_card() -> PanelContainer:
 			var patron_source: String = patron.get("source_character", "") if patron is Dictionary else ""
 			var patron_source_text: String = " — via %s" % patron_source if not patron_source.is_empty() else ""
 			patron_label.text = "  %s%s%s" % [patron_name, " (%s)" % patron_type if not patron_type.is_empty() else "", patron_source_text]
-			patron_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			patron_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			patron_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			content.add_child(patron_label)
 
 	if not rivals.is_empty():
 		var rival_header = Label.new()
 		rival_header.text = "Starting Rivals"
-		rival_header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		rival_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		rival_header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		content.add_child(rival_header)
 		for rival in rivals:
@@ -794,7 +794,7 @@ func _create_extras_summary_card() -> PanelContainer:
 			var rival_source: String = rival.get("source_character", "") if rival is Dictionary else ""
 			var rival_source_text: String = " — via %s" % rival_source if not rival_source.is_empty() else ""
 			rival_label.text = "  %s%s%s" % [rival_name, " (%s)" % rival_type if not rival_type.is_empty() else "", rival_source_text]
-			rival_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			rival_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			rival_label.add_theme_color_override("font_color", COLOR_DANGER)
 			content.add_child(rival_label)
 
@@ -809,7 +809,7 @@ func _create_extras_summary_card() -> PanelContainer:
 	if not extras_text.is_empty():
 		var extras_label = Label.new()
 		extras_label.text = extras_text.strip_edges()
-		extras_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		extras_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		extras_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(extras_label)
 
@@ -835,11 +835,11 @@ func _create_elite_bonuses_card() -> PanelContainer:
 	var rank_label := Label.new()
 	if elite_ranks > 0:
 		rank_label.text = "Elite Rank: %d" % elite_ranks
-		rank_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		rank_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		rank_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	else:
 		rank_label.text = "New Player (No Elite Ranks)"
-		rank_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		rank_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		rank_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(rank_label)
 
@@ -853,21 +853,21 @@ func _create_elite_bonuses_card() -> PanelContainer:
 		if bonus_summary.get("story_points", 0) > 0:
 			var sp_label := Label.new()
 			sp_label.text = "+%d Starting Story Points" % bonus_summary.story_points
-			sp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			sp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			sp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(sp_label)
 
 		if bonus_summary.get("bonus_xp", 0) > 0:
 			var xp_label := Label.new()
 			xp_label.text = "+%d Bonus XP (distributable)" % bonus_summary.bonus_xp
-			xp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			xp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			xp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(xp_label)
 
 		if bonus_summary.get("extra_characters", 0) > 0:
 			var char_label := Label.new()
 			char_label.text = "+%d Extra Starting Characters" % bonus_summary.extra_characters
-			char_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			char_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			char_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(char_label)
 
@@ -894,7 +894,7 @@ func _create_elite_bonuses_card() -> PanelContainer:
 	if _stars_preview_system.is_active():
 		var stars_header := Label.new()
 		stars_header.text = "Emergency Abilities Available:"
-		stars_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		stars_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		stars_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(stars_header)
 
@@ -907,7 +907,7 @@ func _create_elite_bonuses_card() -> PanelContainer:
 		# Insanity: no stars
 		var insanity_label := Label.new()
 		insanity_label.text = "⚠ Insanity Mode: Stars of the Story NOT available"
-		insanity_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		insanity_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		insanity_label.add_theme_color_override("font_color", COLOR_DANGER)
 		content.add_child(insanity_label)
 
@@ -924,21 +924,21 @@ func _build_elite_rank_picker_section(picks_available: int) -> VBoxContainer:
 	# Header
 	var header := Label.new()
 	header.text = "Elite Rank Bonus Picks (Core Rules p.65)"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_ACCENT)
 	section.add_child(header)
 
 	var help := Label.new()
 	help.text = ("Every 5 Elite Ranks grants 1 pick. Pick"
 		+ " distinct abilities to use twice this campaign.")
-	help.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	help.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	help.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	section.add_child(help)
 
 	# Status label
 	_stars_picker_status_label = Label.new()
-	_stars_picker_status_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_stars_picker_status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	section.add_child(_stars_picker_status_label)
 
 	# Toggle button per ability
@@ -1075,7 +1075,7 @@ func _update_crew_preview() -> void:
 	if crew_members.is_empty():
 		var no_crew_label := Label.new()
 		no_crew_label.text = "No crew members created yet"
-		no_crew_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		no_crew_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		no_crew_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		crew_hbox.add_child(no_crew_label)
 		return

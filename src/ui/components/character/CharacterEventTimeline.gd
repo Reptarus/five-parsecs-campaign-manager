@@ -106,7 +106,7 @@ func _build_ui() -> void:
 	var header := Label.new()
 	header.text = "EVENT LOG"
 	header.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	root_vbox.add_child(header)
@@ -160,7 +160,7 @@ func _build_ui() -> void:
 	_empty_label = Label.new()
 	_empty_label.text = "No events recorded yet"
 	_empty_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_empty_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	_empty_label.horizontal_alignment = (
@@ -190,7 +190,7 @@ func _create_filter_button(
 	btn.toggle_mode = true
 	btn.custom_minimum_size = Vector2(60, 32)
 	btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 
 	# Style: border-only when inactive, filled when active
 	var normal := StyleBoxFlat.new()
@@ -365,7 +365,7 @@ func _create_event_row(event: Dictionary) -> HBoxContainer:
 	turn_lbl.text = "T%d" % turn
 	turn_lbl.custom_minimum_size = Vector2(36, 0)
 	turn_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	turn_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	turn_lbl.horizontal_alignment = (
@@ -383,7 +383,7 @@ func _create_event_row(event: Dictionary) -> HBoxContainer:
 	badge.text = type_label
 	badge.custom_minimum_size = Vector2(52, 0)
 	badge.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	badge.add_theme_color_override("font_color", type_color)
 	row.add_child(badge)
 
@@ -392,7 +392,7 @@ func _create_event_row(event: Dictionary) -> HBoxContainer:
 	desc.text = event.get("text", "")
 	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	desc.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	desc.text_overrun_behavior = (

@@ -113,7 +113,7 @@ func _build_ui() -> void:
 	var title := Label.new()
 	var cname := str(_campaign.campaign_name) if _campaign and "campaign_name" in _campaign else "Campaign"
 	title.text = "Edit: %s" % cname
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# The campaign NAME is in this title, so its unwrapped width is player-controlled
 	# and unbounded. Clip + ellipsis in an HBox header; autowrap would grow the row.
@@ -127,7 +127,7 @@ func _build_ui() -> void:
 		banner.text = "Set your current campaign state — turn, credits, story points, and each crew member's real stats."
 		banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		banner.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
-		banner.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		banner.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		_body.add_child(banner)
 
 	if _campaign == null:

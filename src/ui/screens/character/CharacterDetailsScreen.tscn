@@ -50,7 +50,7 @@ theme_override_constants/separation = 4
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "XP: 0/1000"
 
 [node name="XPProgressBar" type="ProgressBar" parent="MarginContainer/ScrollContainer/VBoxContainer/XPProgressContainer"]
@@ -84,7 +84,7 @@ theme_override_constants/separation = 8
 [node name="InfoTitle" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/CharacterInfoPanel/InfoContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "CHARACTER INFO"
 
 [node name="StatsPanel" type="PanelContainer" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection"]
@@ -101,7 +101,7 @@ theme_override_constants/separation = 16
 [node name="StatsTitle" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "STATS"
 
 [node name="StatsGrid" type="GridContainer" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer"]
@@ -120,7 +120,7 @@ alignment = 1
 [node name="Label" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/ReactionsCell"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "Reactions"
 horizontal_alignment = 1
 
@@ -128,7 +128,6 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 
@@ -141,7 +140,7 @@ alignment = 1
 [node name="Label" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/SpeedCell"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "Speed"
 horizontal_alignment = 1
 
@@ -149,7 +148,6 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 
@@ -162,7 +160,7 @@ alignment = 1
 [node name="Label" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/CombatCell"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "Combat"
 horizontal_alignment = 1
 
@@ -170,7 +168,6 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 
@@ -183,7 +180,7 @@ alignment = 1
 [node name="Label" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/ToughnessCell"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "Toughness"
 horizontal_alignment = 1
 
@@ -191,7 +188,6 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 
@@ -204,7 +200,7 @@ alignment = 1
 [node name="Label" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/SavvyCell"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "Savvy"
 horizontal_alignment = 1
 
@@ -212,7 +208,6 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 
@@ -225,7 +220,7 @@ alignment = 1
 [node name="Label" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/LuckCell"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 text = "Luck"
 horizontal_alignment = 1
 
@@ -233,7 +228,6 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "0"
 horizontal_alignment = 1
 
@@ -248,7 +242,7 @@ layout_mode = 2
 [node name="EquipmentTitle" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "EQUIPMENT"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/ScrollContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
@@ -278,7 +272,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "Add Item"
 
 [node name="RemoveEquipmentButton" type="Button" parent="MarginContainer/ScrollContainer/VBoxContainer/EquipmentPanel/VBoxContainer/ButtonContainer"]
@@ -286,7 +279,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "Remove Selected"
 
 [node name="AdvancementPanel" type="PanelContainer" parent="MarginContainer/ScrollContainer/VBoxContainer"]
@@ -315,7 +307,7 @@ layout_mode = 2
 [node name="NotesTitle" type="Label" parent="MarginContainer/ScrollContainer/VBoxContainer/NotesPanel/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "NOTES"
 
 [node name="NotesEdit" type="TextEdit" parent="MarginContainer/ScrollContainer/VBoxContainer/NotesPanel/VBoxContainer"]
@@ -338,7 +330,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "Save Changes"
 
 [node name="Spacer" type="Control" parent="MarginContainer/ScrollContainer/VBoxContainer/ButtonPanel"]
@@ -350,7 +341,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
-theme_override_font_sizes/font_size = 16
 text = "Cancel"
 
 [node name="KeywordTooltip" type="Control" parent="."]

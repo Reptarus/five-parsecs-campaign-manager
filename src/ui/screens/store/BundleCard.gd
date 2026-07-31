@@ -73,7 +73,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	var title := Label.new()
 	title.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"name", "Compendium Bundle")
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -82,7 +82,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	_savings_label = Label.new()
 	_savings_label.text = DLCContentCatalogRef.get_bundle_savings_text()
 	_savings_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_savings_label.add_theme_color_override(
 		"font_color", COLOR_AMBER)
 	header.add_child(_savings_label)
@@ -92,7 +92,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	desc.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"description", "")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)
@@ -113,7 +113,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	individual_price.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"individual_total", "$17.97")
 	individual_price.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	individual_price.add_theme_color_override(
 		"font_color", COLOR_TEXT_MUTED)
 	# Strikethrough via BBCode would need RichTextLabel;
@@ -125,7 +125,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	bundle_price.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"price_default", "$14.99")
 	bundle_price.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	bundle_price.add_theme_color_override("font_color", COLOR_CYAN)
 	price_row.add_child(bundle_price)
 
@@ -173,7 +173,7 @@ func _update_checklist(bundle_info: Dictionary) -> void:
 		var check := Label.new()
 		check.text = "[x]" if owned else "[ ]"
 		check.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		check.add_theme_color_override("font_color",
 			COLOR_EMERALD if owned else COLOR_TEXT_MUTED)
 		row.add_child(check)
@@ -181,7 +181,7 @@ func _update_checklist(bundle_info: Dictionary) -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = DLCContentCatalogRef.get_pack_name(pack_id)
 		name_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		name_lbl.add_theme_color_override("font_color",
 			COLOR_TEXT_PRIMARY if owned else COLOR_TEXT_SECONDARY)
 		row.add_child(name_lbl)

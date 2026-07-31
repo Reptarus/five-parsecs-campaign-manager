@@ -226,7 +226,7 @@ func _build_compact_layout() -> void:
 	
 	# Name label (larger font) with text clipping
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -234,7 +234,7 @@ func _build_compact_layout() -> void:
 	
 	# Class/Background subtitle
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_info_container.add_child(_subtitle_label)
 
@@ -261,7 +261,7 @@ func _build_standard_layout() -> void:
 	header_row.add_theme_constant_override("separation", SPACING_SM)
 	
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_label.clip_text = true
@@ -277,7 +277,7 @@ func _build_standard_layout() -> void:
 	
 	# Subtitle (class + background)
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_subtitle_label)
 	
@@ -315,7 +315,7 @@ func _build_expanded_layout() -> void:
 	
 	# Name label with text clipping
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -323,7 +323,7 @@ func _build_expanded_layout() -> void:
 	
 	# Subtitle
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_subtitle_label)
 	
@@ -445,7 +445,7 @@ func _show_initials_fallback() -> void:
 		clip.add_child(initials_label)
 
 	initials_label.text = initial
-	initials_label.add_theme_font_size_override("font_size", int(_portrait.custom_minimum_size.x * 0.45))
+	initials_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(_portrait.custom_minimum_size.x * 0.45)))
 	initials_label.add_theme_color_override("font_color", Color.WHITE)
 	initials_label.custom_minimum_size = _portrait.custom_minimum_size
 	initials_label.size = _portrait.custom_minimum_size
@@ -487,7 +487,7 @@ func _create_stat_label(stat_name: String, value: int) -> Label:
 	## Create stat label with consistent styling
 	var label := Label.new()
 	label.text = "%s: %d" % [stat_name.substr(0, 3).to_upper(), value]  # "COM: 4"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return label
 
@@ -682,7 +682,7 @@ func _create_stat_box(label_text: String, value_text: String, accent_color: Colo
 	var label := Label.new()
 	label.text = label_text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	label_row.add_child(label)
 
@@ -692,7 +692,7 @@ func _create_stat_box(label_text: String, value_text: String, accent_color: Colo
 	var value := Label.new()
 	value.text = value_text
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	value.add_theme_color_override("font_color", accent_color)
 	vbox.add_child(value)
 
@@ -732,7 +732,7 @@ func _create_equipment_badges() -> HBoxContainer:
 	if equipment_items.size() > 2:
 		var overflow := Label.new()
 		overflow.text = "+%d items" % (equipment_items.size() - 2)
-		overflow.add_theme_font_size_override("font_size", 11)
+		overflow.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 		overflow.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		hbox.add_child(overflow)
 
@@ -769,7 +769,7 @@ func _create_equipment_badge(item) -> PanelContainer:
 
 	var label := Label.new()
 	label.text = item_name
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	label.add_theme_color_override("font_color", accent_color)
 	badge.add_child(label)
 
@@ -786,7 +786,7 @@ func _create_xp_progress_bar() -> VBoxContainer:
 
 	var label := Label.new()
 	label.text = "XP to Upgrade"
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	label_row.add_child(label)
 
@@ -803,7 +803,7 @@ func _create_xp_progress_bar() -> VBoxContainer:
 
 	var value := Label.new()
 	value.text = "%d/%d" % [current_xp, max_xp]
-	value.add_theme_font_size_override("font_size", 11)
+	value.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	value.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
 	label_row.add_child(value)
 
@@ -858,7 +858,7 @@ func _create_status_badge(status: String) -> PanelContainer:
 
 	var label := Label.new()
 	label.text = status
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	label.add_theme_color_override("font_color", color)
 	badge.add_child(label)
 

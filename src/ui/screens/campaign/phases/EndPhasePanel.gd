@@ -176,7 +176,7 @@ func update_summary_display() -> void:
 		var vp_lbl := Label.new()
 		vp_lbl.text = vp
 		vp_lbl.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
-		vp_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+		vp_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 		vp_vbox.add_child(vp_lbl)
 		vp_card.add_child(vp_vbox)
 		stats_container.add_child(vp_card)

@@ -58,7 +58,7 @@ func show_choices(result_name: String, options: Array) -> void:
 	# Title
 	var title_label := Label.new()
 	title_label.text = "Choose Your Reward"
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title_label)
@@ -67,7 +67,7 @@ func show_choices(result_name: String, options: Array) -> void:
 	if not result_name.is_empty():
 		var subtitle := Label.new()
 		subtitle.text = result_name
-		subtitle.add_theme_font_size_override("font_size", 14)
+		subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vbox.add_child(subtitle)
@@ -116,7 +116,7 @@ func show_choices(result_name: String, options: Array) -> void:
 		# Text color
 		btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		btn.add_theme_color_override("font_hover_color", Color.WHITE)
-		btn.add_theme_font_size_override("font_size", 16)
+		btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 
 		btn.pressed.connect(_on_option_selected.bind(str(option_name)))
 		button_container.add_child(btn)

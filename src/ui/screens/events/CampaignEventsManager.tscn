@@ -32,16 +32,15 @@ layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 6
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "Campaign Events"
-clip_text = true
-text_overrun_behavior = 3
-
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 text = "Back"
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+text = "Campaign Events"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -61,7 +60,7 @@ theme_override_constants/separation = 15
 layout_mode = 2
 text = "Roll for Events"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"TextLG"
 
 [node name="EventTypeSelector" type="OptionButton" parent="MarginContainer/VBoxContainer/MainContent/EventRoller/VBoxContainer"]
 unique_name_in_owner = true
@@ -98,7 +97,7 @@ theme_override_constants/separation = 15
 layout_mode = 2
 text = "Current Event"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"TextLG"
 
 [node name="EventContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CurrentEvent/VBoxContainer"]
 unique_name_in_owner = true
@@ -119,7 +118,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 text = "Event History"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/EventHistory/VBoxContainer"]
 layout_mode = 2

@@ -36,13 +36,13 @@ func _build_placeholder() -> void:
 
 	var header := Label.new()
 	header.text = "CHARACTER BACKGROUNDS"
-	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
 
 	var desc := Label.new()
 	desc.text = "All characters roll Motivation. The first 4 are experienced and also roll Prior Experience and Notable Event."
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)

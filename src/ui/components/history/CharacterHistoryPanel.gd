@@ -77,7 +77,7 @@ func _add_header(parent: VBoxContainer) -> void:
 
 	var title = Label.new()
 	title.text = "Character History"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(20))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(title)
@@ -98,7 +98,7 @@ func _add_character_header(parent: VBoxContainer) -> void:
 	var char_name = _character.character_name if "character_name" in _character else str(_character)
 	var name_label = Label.new()
 	name_label.text = char_name
-	name_label.add_theme_font_size_override("font_size", 22)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(22))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_vbox.add_child(name_label)
 
@@ -108,7 +108,7 @@ func _add_character_header(parent: VBoxContainer) -> void:
 	status_label.text = "Status: %s" % status_text
 	var status_color = COLOR_SUCCESS if status_text == "ACTIVE" else (COLOR_DANGER if status_text == "DEAD" else COLOR_WARNING)
 	status_label.add_theme_color_override("font_color", status_color)
-	status_label.add_theme_font_size_override("font_size", 14)
+	status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	name_vbox.add_child(status_label)
 
 	# Class/Origin if available
@@ -116,13 +116,13 @@ func _add_character_header(parent: VBoxContainer) -> void:
 		var class_label = Label.new()
 		class_label.text = "Class: %s" % str(_character.character_class)
 		class_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-		class_label.add_theme_font_size_override("font_size", 14)
+		class_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		name_vbox.add_child(class_label)
 
 func _add_stats_grid(parent: VBoxContainer) -> void:
 	var section_label = Label.new()
 	section_label.text = "Lifetime Statistics"
-	section_label.add_theme_font_size_override("font_size", 18)
+	section_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	section_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	parent.add_child(section_label)
 
@@ -151,14 +151,14 @@ func _add_stats_grid(parent: VBoxContainer) -> void:
 
 		var value_label = Label.new()
 		value_label.text = str(stat[1])
-		value_label.add_theme_font_size_override("font_size", 24)
+		value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(24))
 		value_label.add_theme_color_override("font_color", COLOR_ACCENT)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		stat_box.add_child(value_label)
 
 		var label = Label.new()
 		label.text = stat[0]
-		label.add_theme_font_size_override("font_size", 12)
+		label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		stat_box.add_child(label)
@@ -170,7 +170,7 @@ func _add_advancement_history(parent: VBoxContainer) -> void:
 
 	var section_label = Label.new()
 	section_label.text = "Advancement History"
-	section_label.add_theme_font_size_override("font_size", 18)
+	section_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	section_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	parent.add_child(section_label)
 
@@ -194,7 +194,7 @@ func _add_advancement_history(parent: VBoxContainer) -> void:
 		var old_val = entry.get("old_value", "?")
 		var new_val = entry.get("new_value", "?")
 		entry_label.text = "Turn %s: %s %s -> %s" % [str(turn), stat_name, str(old_val), str(new_val)]
-		entry_label.add_theme_font_size_override("font_size", 13)
+		entry_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 		entry_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		timeline_vbox.add_child(entry_label)
 
@@ -212,7 +212,7 @@ func _add_journal_entries(parent: VBoxContainer) -> void:
 
 	var section_label = Label.new()
 	section_label.text = "Journal Entries"
-	section_label.add_theme_font_size_override("font_size", 18)
+	section_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	section_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	parent.add_child(section_label)
 
@@ -226,13 +226,13 @@ func _add_journal_entries(parent: VBoxContainer) -> void:
 
 		var title_label = Label.new()
 		title_label.text = "Turn %d - %s" % [entry.get("turn_number", 0), entry.get("title", "Untitled")]
-		title_label.add_theme_font_size_override("font_size", 14)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		entry_vbox.add_child(title_label)
 
 		var desc_label = Label.new()
 		desc_label.text = entry.get("description", "")
-		desc_label.add_theme_font_size_override("font_size", 12)
+		desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 		desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		entry_vbox.add_child(desc_label)

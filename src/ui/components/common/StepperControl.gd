@@ -46,8 +46,7 @@ func _build_ui() -> void:
 	_baseline_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_baseline_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_baseline_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_baseline_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_MUTED
 	)
@@ -70,8 +69,7 @@ func _build_ui() -> void:
 	_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_value_label.custom_minimum_size = Vector2(48, 0)
 	_value_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_value_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_CYAN
 	)
@@ -119,7 +117,7 @@ func _style_stepper_btn(btn: Button, color: Color) -> void:
 	btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
-	btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 
 func _on_minus() -> void:
 	value -= step

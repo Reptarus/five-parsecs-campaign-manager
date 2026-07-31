@@ -30,7 +30,7 @@ theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="ContentMargin/MainContent/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"TextXL"
 text = "Panel Title"
 horizontal_alignment = 1
 
@@ -108,13 +108,13 @@ alignment = 1
 
 [node name="LoadingIcon" type="Label" parent="LoadingOverlay/LoadingCenter/LoadingContent"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_type_variation = &"TextHero"
 text = "⏳"
 horizontal_alignment = 1
 
 [node name="LoadingLabel" type="Label" parent="LoadingOverlay/LoadingCenter/LoadingContent"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "Loading..."
 horizontal_alignment = 1
 

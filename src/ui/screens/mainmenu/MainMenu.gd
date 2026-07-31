@@ -1334,7 +1334,7 @@ func _build_social_footer() -> void:
 	# "Community" label
 	var label := Label.new()
 	label.text = "Community:"
-	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_social_bar.add_child(label)
@@ -1346,7 +1346,7 @@ func _build_social_footer() -> void:
 		btn.tooltip_text = link.get("tooltip", "")
 		btn.flat = true
 		btn.custom_minimum_size.y = 36
-		btn.add_theme_font_size_override("font_size", 13)
+		btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 		btn.add_theme_color_override(
 			"font_color", UIColors.COLOR_CYAN)
 		btn.add_theme_color_override(
@@ -1364,7 +1364,7 @@ func _build_social_footer() -> void:
 	credits_btn.text = "Credits"
 	credits_btn.flat = true
 	credits_btn.custom_minimum_size.y = 36
-	credits_btn.add_theme_font_size_override("font_size", 13)
+	credits_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	credits_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	credits_btn.add_theme_color_override(
@@ -1380,7 +1380,7 @@ func _build_social_footer() -> void:
 	var privacy_btn := Button.new()
 	privacy_btn.text = "Privacy"
 	privacy_btn.flat = true
-	privacy_btn.add_theme_font_size_override("font_size", 11)
+	privacy_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	privacy_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	privacy_btn.add_theme_color_override(
@@ -1405,7 +1405,7 @@ func _build_social_footer() -> void:
 		"application/config/version", "dev"
 	)
 	version_label.text = "v%s" % version
-	version_label.add_theme_font_size_override("font_size", 11)
+	version_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	version_label.add_theme_color_override(
 		"font_color", Color("#606060"))
 	_social_bar.add_child(version_label)
@@ -1499,7 +1499,7 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 	if is_narrow:
 		# Portrait/narrow: title across the full usable width, buttons stacked below.
 		var narrow_font := _scaled_font(36)
-		title.add_theme_font_size_override("font_size", narrow_font)
+		title.add_theme_font_size_override("font_size", ScreenChrome.font_size(narrow_font))
 		# Re-centre: the short-landscape branch below left-anchors the title, and a
 		# rotation can land here afterwards.
 		title.anchor_left = 0.5
@@ -1560,7 +1560,7 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 		# 48, not 75: at 75 (×responsive scale ≈ 86) the title overflowed its
 		# 800px box and rendered clipped ("…Manag"). 48 fits the full title.
 		var wide_font := _scaled_font(28 if short_landscape else 48)
-		title.add_theme_font_size_override("font_size", wide_font)
+		title.add_theme_font_size_override("font_size", ScreenChrome.font_size(wide_font))
 		var line_h := _title_line_height(title, wide_font)
 		if use_gutter:
 			title.anchor_left = 0.0

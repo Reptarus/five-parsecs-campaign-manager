@@ -64,13 +64,13 @@ func _setup_ui() -> void:
 
 	book_icon = Label.new()
 	book_icon.text = "📖"
-	book_icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	book_icon.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	book_icon.add_theme_color_override("font_color", COLOR_PURPLE)
 	header_hbox.add_child(book_icon)
 
 	title_label = Label.new()
 	title_label.text = "STORY TRACK"
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(title_label)
@@ -93,7 +93,7 @@ func _setup_ui() -> void:
 	# Current Quest Name
 	current_quest_label = Label.new()
 	current_quest_label.text = current_quest
-	current_quest_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	current_quest_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	current_quest_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	current_quest_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main_vbox.add_child(current_quest_label)
@@ -101,7 +101,7 @@ func _setup_ui() -> void:
 	# Next Objective
 	next_objective_label = Label.new()
 	next_objective_label.text = next_objective
-	next_objective_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	next_objective_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	next_objective_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	next_objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main_vbox.add_child(next_objective_label)
@@ -171,19 +171,19 @@ func _create_milestone_markers() -> void:
 			# Completed milestone - green with checkmark
 			style.bg_color = COLOR_EMERALD
 			label.text = "✓"
-			label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 			label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		elif i == completed_milestones:
 			# Current milestone - purple with number
 			style.bg_color = COLOR_PURPLE
 			label.text = str(i + 1)
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		else:
 			# Future milestone - gray with number
 			style.bg_color = COLOR_BORDER
 			label.text = str(i + 1)
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 		style.set_corner_radius_all(16)  # Circular

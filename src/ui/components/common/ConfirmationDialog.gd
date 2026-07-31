@@ -99,7 +99,7 @@ func _create_message_container() -> VBoxContainer:
 	# Message label
 	message_label = Label.new()
 	message_label.text = "Are you sure you want to proceed?"
-	message_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	message_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	message_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -126,7 +126,7 @@ func _create_action_buttons() -> HBoxContainer:
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_button.add_theme_stylebox_override("normal", cancel_style)
 	cancel_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	cancel_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	cancel_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	container.add_child(cancel_button)
 
@@ -134,7 +134,7 @@ func _create_action_buttons() -> HBoxContainer:
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
 	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
-	confirm_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	confirm_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	container.add_child(confirm_button)
 

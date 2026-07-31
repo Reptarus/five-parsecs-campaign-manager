@@ -87,7 +87,7 @@ func _build_ui() -> void:
 	exp_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	exp_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	exp_header.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	exp_header.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	content.add_child(exp_header)
@@ -110,7 +110,7 @@ func _build_ui() -> void:
 	var modes_header := Label.new()
 	modes_header.text = "Game Modes"
 	modes_header.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	modes_header.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	content.add_child(modes_header)
@@ -153,7 +153,7 @@ func _build_header(parent: VBoxContainer) -> void:
 
 	var title := Label.new()
 	title.text = "Expansions"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -226,7 +226,7 @@ func _create_dev_banner() -> PanelContainer:
 	panel.add_theme_stylebox_override("panel", style)
 	var label := Label.new()
 	label.text = "Development Mode — No store connection"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	label.add_theme_color_override("font_color", COLOR_AMBER)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

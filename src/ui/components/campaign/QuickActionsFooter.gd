@@ -123,7 +123,7 @@ func _create_action_button(action: Dictionary) -> Control:
 	# Icon label
 	var icon_label := Label.new()
 	icon_label.text = action["icon"]
-	icon_label.add_theme_font_size_override("font_size", 24)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(24))
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -136,7 +136,7 @@ func _create_action_button(action: Dictionary) -> Control:
 	# Action name label
 	var name_label := Label.new()
 	name_label.text = action["name"]
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Pass clicks to parent

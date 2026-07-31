@@ -80,6 +80,13 @@ func _ready() -> void:
 		add_child(pc)
 		pc.setup(pc_mc as MarginContainer)
 
+	# One header idiom app-wide: "< Back" first, then the title at FONT_SIZE_XL. The
+	# scene used to pin the title at 32px, which outranks the responsive theme.
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
+
 ## Reparent the 3 content panels (EventRoller / CurrentEvent / EventHistory) into
 ## an AdaptivePanelGroup so they sit side-by-side in landscape and collapse to a
 ## tab strip in portrait (master-detail). The Header and Controls rows are

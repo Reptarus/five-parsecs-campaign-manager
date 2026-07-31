@@ -79,7 +79,7 @@ func _setup_ui() -> void:
 	title_label = Label.new()
 	title_label.text = "PRECURSOR VISION"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(title_label)
 
@@ -88,7 +88,7 @@ func _setup_ui() -> void:
 	description_label.bbcode_enabled = true
 	description_label.fit_content = true
 	description_label.text = "[center]Your Precursor heritage grants you a glimpse into possible futures.\nChoose which path to walk.[/center]"
-	description_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	description_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	description_label.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(description_label)
 
@@ -142,7 +142,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	var header := Label.new()
 	header.text = "Event %d" % event_num
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override("font_color", COLOR_ACCENT_HOVER)
 	vbox.add_child(header)
 
@@ -151,7 +151,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	name_label.name = "EventName"
 	name_label.text = "---"
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(name_label)
@@ -162,7 +162,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	desc_label.bbcode_enabled = true
 	desc_label.fit_content = true
 	desc_label.text = "[center]No event data[/center]"
-	desc_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	desc_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_label.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_label)

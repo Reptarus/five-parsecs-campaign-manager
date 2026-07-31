@@ -49,12 +49,11 @@ theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"TextXL"
 text = "Create New Campaign"
 
 [node name="StepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 text = "Step 1 of 7: Configuration"
 

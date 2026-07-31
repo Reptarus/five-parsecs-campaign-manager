@@ -99,7 +99,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "GENETIC AUGMENTATION"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -109,7 +109,7 @@ func _build_ui() -> void:
 	info.fit_content = true
 	info.scroll_active = false
 	info.text = "Purchase augmentations to enhance all current and future characters. Cost increases with each purchase. Max 1 per campaign turn. Bots and Soulless imports are excluded."
-	info.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 
@@ -121,13 +121,13 @@ func _build_ui() -> void:
 
 	_ap_label = Label.new()
 	_ap_label.text = "Augmentation Points: 0"
-	_ap_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_ap_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_ap_label.add_theme_color_override("font_color", COLOR_CYAN)
 	stat_row.add_child(_ap_label)
 
 	_cost_label = Label.new()
 	_cost_label.text = "Next Cost: 1 AP"
-	_cost_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_cost_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_cost_label.add_theme_color_override("font_color", COLOR_WARNING)
 	stat_row.add_child(_cost_label)
 
@@ -192,7 +192,7 @@ func _build_augmentation_list() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = aname
-		name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_row.add_child(name_lbl)
@@ -200,7 +200,7 @@ func _build_augmentation_list() -> void:
 		if not is_available:
 			var owned_lbl := Label.new()
 			owned_lbl.text = "OWNED"
-			owned_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			owned_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			owned_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 			name_row.add_child(owned_lbl)
 		elif is_available and not purchased_this_turn:
@@ -213,7 +213,7 @@ func _build_augmentation_list() -> void:
 
 		var desc_lbl := Label.new()
 		desc_lbl.text = desc
-		desc_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card_vbox.add_child(desc_lbl)
@@ -268,7 +268,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

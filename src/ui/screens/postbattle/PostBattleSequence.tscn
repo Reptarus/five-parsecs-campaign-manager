@@ -35,7 +35,7 @@ theme_override_constants/v_separation = 4
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"TextXL"
 text = "Post-Battle Sequence"
 
 [node name="StepCounter" type="Label" parent="MarginContainer/VBoxContainer/Header"]
@@ -65,7 +65,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "Post-Battle Steps"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/StepsList/VBoxContainer"]
 layout_mode = 2
@@ -91,7 +91,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Current Step"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"TextLG"
 
 [node name="StepContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CurrentStep/VBoxContainer"]
 unique_name_in_owner = true
@@ -112,7 +112,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "Battle Results"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Results/VBoxContainer"]
 layout_mode = 2

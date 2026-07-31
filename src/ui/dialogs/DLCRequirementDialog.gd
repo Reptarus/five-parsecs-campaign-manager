@@ -63,7 +63,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	# Warning header
 	var header := Label.new()
 	header.text = "This campaign uses expansion content"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override("font_color", COLOR_AMBER)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(header)
@@ -86,7 +86,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	var requires_lbl := Label.new()
 	requires_lbl.text = "Required expansions not owned:"
 	requires_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	requires_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	list_vbox.add_child(requires_lbl)
@@ -101,14 +101,14 @@ func _build_ui(missing_packs: Array[String]) -> void:
 		var bullet := Label.new()
 		bullet.text = "·"
 		bullet.add_theme_font_size_override(
-			"font_size", FONT_SIZE_MD)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		bullet.add_theme_color_override("font_color", COLOR_RED)
 		row.add_child(bullet)
 
 		var name_lbl := Label.new()
 		name_lbl.text = pack_name
 		name_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_MD)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY)
 		row.add_child(name_lbl)
@@ -120,7 +120,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 		+ " unavailable. Species bonuses, special mission rules,"
 		+ " and other expansion content may not function correctly.")
 	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warning.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	warning.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	warning.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(warning)

@@ -72,12 +72,12 @@ func _setup_ui() -> void:
 
 	# Icon label
 	_icon_label = Label.new()
-	_icon_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_header_container.add_child(_icon_label)
 
 	# Title label
 	_title_label = Label.new()
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_header_container.add_child(_title_label)
@@ -125,7 +125,7 @@ func _update_display() -> void:
 func _add_message_label(text: String) -> void:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -720,3 +720,37 @@ SectionCard/styles/panel = SubResource("sectioncard")
 SearchField/base_type = &"LineEdit"
 SearchField/styles/focus = SubResource("search_focus")
 SearchField/styles/normal = SubResource("search_normal")
+
+; ── The type scale, as theme types ───────────────────────────────────────────
+; A scene file cannot call a function, so `theme_override_font_sizes/font_size`
+; was the only way a .tscn could ask for a size other than 16 -- and an override
+; is permanently invisible to the theme system, so those 173 pins stayed the same
+; size on a phone and a desktop. Naming the rungs instead lets a scene say WHICH
+; rung it wants and leaves the pixel value to the theme, which ResponsiveManager
+; rescales per breakpoint. Verified: a variation's font size appears in
+; get_font_size_type_list(), rescales with it, and a live control re-resolves one
+; frame after the mutation (so rotation works without rebuilding the screen).
+;
+; Values are the authored UIColors ladder. The migration collapsed ten ad-hoc
+; sizes (10/11/12/13/14/16/18/20/22/24/32) onto these rungs -- that convergence is
+; the point, not a side effect.
+TextXS/base_type = &"Label"
+TextXS/font_sizes/font_size = 11
+TextSM/base_type = &"Label"
+TextSM/font_sizes/font_size = 14
+TextLG/base_type = &"Label"
+TextLG/font_sizes/font_size = 18
+TextXL/base_type = &"Label"
+TextXL/font_sizes/font_size = 24
+; The MainMenu wordmark. Kept as its own rung rather than folded into TextXL
+; because the hero is deliberately larger than any screen title (user decision:
+; keep the photo hero and the big title), but it still has to shrink on a phone.
+TextHero/base_type = &"Label"
+TextHero/font_sizes/font_size = 48
+TextHero/fonts/font = ExtResource("font_bold")
+; Buttons need their own rungs: a Button wearing a Label variation would inherit
+; Label's (nonexistent) styleboxes and lose its background entirely.
+ButtonSM/base_type = &"Button"
+ButtonSM/font_sizes/font_size = 14
+ButtonLG/base_type = &"Button"
+ButtonLG/font_sizes/font_size = 18

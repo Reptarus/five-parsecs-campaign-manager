@@ -48,12 +48,24 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	_adopt_screen_header()
+
 	# Wait for scene to be fully ready if nodes are null
 	if equipment_grid == null or crew_list == null or details_container == null:
 		call_deferred("_deferred_initialization")
 		return
 	
 	_initialize_systems()
+
+## Bring the scene-built header onto the shared idiom: "< Back" first, then the
+## title at FONT_SIZE_XL. The scene used to pin the title at 32px, which outranks
+## the responsive theme, so on a phone "Equipment Manager" wrapped to two lines and
+## pushed the Back button off the top of the screen.
+func _adopt_screen_header() -> void:
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
 
 func _deferred_initialization():
 	## Initialize after scene is fully ready

@@ -49,6 +49,13 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	# One header idiom app-wide: "< Back" first, then the title at FONT_SIZE_XL. The
+	# scene used to pin the title at 32px, which outranks the responsive theme.
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
+
 ## Reparent the 3 content panels (Ship Status / Upgrades / Travel) into an
 ## AdaptivePanelGroup: side-by-side in landscape, stacked vertically in portrait
 ## (STACK / browse-overview — no master-detail selection). Header + Controls are

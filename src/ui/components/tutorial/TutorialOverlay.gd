@@ -68,7 +68,7 @@ func _setup_overlay() -> void:
 
 	_tooltip_label = Label.new()
 	_tooltip_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	_tooltip_label.add_theme_font_size_override("font_size", 14)
+	_tooltip_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tooltip_vbox.add_child(_tooltip_label)
 
@@ -78,7 +78,7 @@ func _setup_overlay() -> void:
 	tooltip_vbox.add_child(btn_row)
 
 	_step_label = Label.new()
-	_step_label.add_theme_font_size_override("font_size", 11)
+	_step_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	_step_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_step_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_row.add_child(_step_label)
@@ -87,7 +87,7 @@ func _setup_overlay() -> void:
 	_skip_button.text = "Skip"
 	_skip_button.flat = true
 	_skip_button.custom_minimum_size = Vector2(60, 36)
-	_skip_button.add_theme_font_size_override("font_size", 13)
+	_skip_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	_skip_button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_skip_button.pressed.connect(_on_skip_pressed)
 	btn_row.add_child(_skip_button)
@@ -95,7 +95,7 @@ func _setup_overlay() -> void:
 	_next_button = Button.new()
 	_next_button.text = "Next"
 	_next_button.custom_minimum_size = Vector2(80, 36)
-	_next_button.add_theme_font_size_override("font_size", 13)
+	_next_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	var next_style := StyleBoxFlat.new()
 	next_style.bg_color = UIColors.COLOR_BLUE
 	next_style.set_corner_radius_all(4)

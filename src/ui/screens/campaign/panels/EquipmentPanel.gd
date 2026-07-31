@@ -996,7 +996,7 @@ func _update_equipment_display() -> void:
 		name_label.text = item_name
 		name_label.custom_minimum_size.x = 120
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		header_row.add_child(name_label)
 
@@ -1009,7 +1009,7 @@ func _update_equipment_display() -> void:
 		var current_owner: String = str(item.get("owner", "Unassigned"))
 		var owner_btn: Button = Button.new()
 		owner_btn.custom_minimum_size = Vector2(130, 32)
-		owner_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		owner_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		if current_owner == "Unassigned" or current_owner.is_empty():
 			owner_btn.text = "Assign..."
 			owner_btn.add_theme_color_override("font_color", COLOR_WARNING)
@@ -1039,7 +1039,7 @@ func _update_equipment_display() -> void:
 				source_label.text = "Bonus - %s" % src_char if not src_char.is_empty() else "Bonus Roll"
 			else:
 				source_label.text = source.capitalize()
-			source_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			source_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			source_label.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
 			card_vbox.add_child(source_label)
 
@@ -1089,7 +1089,7 @@ func _create_condition_badge(condition: String) -> PanelContainer:
 	badge.add_theme_stylebox_override("panel", cond_style)
 	var condition_label: Label = Label.new()
 	condition_label.text = condition.capitalize()
-	condition_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	condition_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
 	condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.add_child(condition_label)
@@ -1122,7 +1122,7 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 			for t in traits:
 				trait_strings.append(str(t))
 			traits_label.text = " / ".join(trait_strings)
-			traits_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			traits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			traits_label.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
 			traits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			stats_row.add_child(traits_label)
@@ -1135,7 +1135,7 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 		if not desc.is_empty():
 			var desc_label: Label = Label.new()
 			desc_label.text = desc
-			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1146,7 +1146,7 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 		if not desc.is_empty():
 			var desc_label: Label = Label.new()
 			desc_label.text = desc
-			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1201,7 +1201,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 	# Label
 	var assign_label: Label = Label.new()
 	assign_label.text = "Assign to:"
-	assign_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	assign_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	assign_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	panel.add_child(assign_label)
 
@@ -1214,7 +1214,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 	var unassign_btn: Button = Button.new()
 	unassign_btn.text = "Unassigned"
 	unassign_btn.custom_minimum_size = Vector2(100, 36)
-	unassign_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	unassign_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	unassign_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, "Unassigned"))
 	buttons_flow.add_child(unassign_btn)
 
@@ -1222,7 +1222,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 	var stash_btn: Button = Button.new()
 	stash_btn.text = "Ship Stash"
 	stash_btn.custom_minimum_size = Vector2(100, 36)
-	stash_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	stash_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	stash_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, "Ship Stash"))
 	buttons_flow.add_child(stash_btn)
 
@@ -1238,7 +1238,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 
 		var crew_btn: Button = Button.new()
 		crew_btn.custom_minimum_size = Vector2(0, 40)
-		crew_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		crew_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 		# Show name + compact stats
 		var stats_text: String = ""
@@ -1349,7 +1349,7 @@ func _create_equipment_type_badge(item_type: String) -> PanelContainer:
 		_:
 			icon_label.text = "📦"  # Box icon
 	
-	icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	icon_label.add_theme_color_override("font_color", type_color)
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1504,7 +1504,7 @@ func _build_generation_summary() -> void:
 		var savvy_label: Label = Label.new()
 		var remaining: int = _savvy_subs_available - _savvy_subs_used
 		savvy_label.text = "Savvy Substitution: Swap Military \u2192 High-Tech (%d available)" % remaining
-		savvy_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		savvy_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		savvy_label.add_theme_color_override("font_color", COLOR_FOCUS)
 		savvy_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		savvy_row.add_child(savvy_label)
@@ -1518,7 +1518,7 @@ func _build_generation_summary() -> void:
 					var swap_btn: Button = Button.new()
 					swap_btn.text = "Swap: %s" % item.get("name", "")
 					swap_btn.custom_minimum_size.y = 32
-					swap_btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+					swap_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 					swap_btn.pressed.connect(_on_savvy_swap_pressed.bind(idx))
 					savvy_row.add_child(swap_btn)
 
@@ -1529,13 +1529,13 @@ func _build_generation_summary() -> void:
 	credits_row.add_theme_constant_override("separation", SPACING_SM)
 	var credits_lbl: Label = Label.new()
 	credits_lbl.text = "Starting Credits: %d" % starting_credits
-	credits_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	credits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	credits_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	credits_row.add_child(credits_lbl)
 
 	var credits_detail: Label = Label.new()
 	credits_detail.text = "(%d base + bonus rolls from backgrounds/motivations/classes)" % crew_members.size()
-	credits_detail.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	credits_detail.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	credits_detail.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	credits_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	credits_row.add_child(credits_detail)
@@ -1604,7 +1604,7 @@ func _create_prov_tag(text: String, color: Color) -> PanelContainer:
 
 	var lbl: Label = Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	pill.add_child(lbl)
 	return pill
@@ -1833,13 +1833,13 @@ func _create_inline_stat(stat_name: String, value: String, color: Color) -> Pane
 
 	var name_lbl: Label = Label.new()
 	name_lbl.text = stat_name
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_lbl.add_theme_color_override("font_color", Color(color, 0.7))
 	hbox.add_child(name_lbl)
 
 	var val_lbl: Label = Label.new()
 	val_lbl.text = value
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val_lbl.add_theme_color_override("font_color", color)
 	hbox.add_child(val_lbl)
 
@@ -2008,14 +2008,14 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 
 	var name_label = Label.new()
 	name_label.text = char_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(name_label)
 
 	if not background.is_empty():
 		var bg_label = Label.new()
 		bg_label.text = "(%s)" % background.capitalize()
-		bg_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		bg_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		bg_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header.add_child(bg_label)
@@ -2049,7 +2049,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 	if equipment.size() == 0:
 		var empty_label = Label.new()
 		empty_label.text = "No equipment assigned"
-		empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		empty_label.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		vbox.add_child(empty_label)
 	else:
@@ -2071,7 +2071,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 			var item_label = Label.new()
 			var item_name: String = item.get("name", "Unknown")
 			item_label.text = item_name
-			item_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			item_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 			item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			item_hbox.add_child(item_label)
@@ -2081,7 +2081,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 				var unassign_btn: Button = Button.new()
 				unassign_btn.text = "x"
 				unassign_btn.custom_minimum_size = Vector2(28, 28)
-				unassign_btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+				unassign_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				unassign_btn.tooltip_text = "Unassign %s" % item_name
 				# Find the equipment index in generated_equipment
 				var eq_idx: int = _find_equipment_index(item)
@@ -2095,7 +2095,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 	if char_name != "Ship Stash" and not has_weapon and member != null:
 		var warning_label: Label = Label.new()
 		warning_label.text = "No weapon!"
-		warning_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		warning_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		warning_label.add_theme_color_override("font_color", COLOR_DANGER)
 		vbox.add_child(warning_label)
 

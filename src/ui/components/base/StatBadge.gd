@@ -126,7 +126,7 @@ func _setup_ui() -> void:
 	_name_label = Label.new()
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_name_label)
 	
@@ -134,7 +134,7 @@ func _setup_ui() -> void:
 	_value_label = Label.new()
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_value_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	vbox.add_child(_value_label)
 

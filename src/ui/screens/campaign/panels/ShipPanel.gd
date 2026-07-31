@@ -269,7 +269,7 @@ func _create_form_section_card(title: String, description: String = "") -> Panel
 	# Card header
 	var header := Label.new()
 	header.text = title
-	header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(header)
 
@@ -282,7 +282,7 @@ func _create_form_section_card(title: String, description: String = "") -> Panel
 	if not description.is_empty():
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		desc.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(desc)
@@ -722,7 +722,7 @@ func _create_flavor_section() -> PanelContainer:
 	met_header_row.add_theme_constant_override("separation", SPACING_SM)
 	var met_header := Label.new()
 	met_header.text = "We met through..."
-	met_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	met_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	met_header.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	met_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -746,7 +746,7 @@ func _create_flavor_section() -> PanelContainer:
 	flavor_met_label = Label.new()
 	flavor_met_label.text = "Not rolled yet"
 	flavor_met_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	flavor_met_label.add_theme_color_override(
 		"font_color", COLOR_ACCENT)
 	met_vbox.add_child(flavor_met_label)
@@ -754,7 +754,7 @@ func _create_flavor_section() -> PanelContainer:
 	flavor_met_details_label = Label.new()
 	flavor_met_details_label.text = ""
 	flavor_met_details_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	flavor_met_details_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	flavor_met_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -773,7 +773,7 @@ func _create_flavor_section() -> PanelContainer:
 		"separation", SPACING_SM)
 	var char_header := Label.new()
 	char_header.text = "Best characterized as..."
-	char_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	char_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	char_header.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	char_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -797,7 +797,7 @@ func _create_flavor_section() -> PanelContainer:
 	flavor_char_label = Label.new()
 	flavor_char_label.text = "Not rolled yet"
 	flavor_char_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	flavor_char_label.add_theme_color_override(
 		"font_color", COLOR_ACCENT)
 	char_vbox.add_child(flavor_char_label)
@@ -805,7 +805,7 @@ func _create_flavor_section() -> PanelContainer:
 	flavor_char_details_label = Label.new()
 	flavor_char_details_label.text = ""
 	flavor_char_details_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	flavor_char_details_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	flavor_char_details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -952,7 +952,7 @@ func _update_traits_display() -> void:
 				var icon_label = Label.new()
 				icon_label.text = ">"
 				icon_label.add_theme_font_size_override(
-					"font_size", FONT_SIZE_MD)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 				icon_label.add_theme_color_override(
 					"font_color", COLOR_ACCENT)
 				trait_hbox.add_child(icon_label)
@@ -966,7 +966,7 @@ func _update_traits_display() -> void:
 				var name_label = Label.new()
 				name_label.text = ship_trait
 				name_label.add_theme_font_size_override(
-					"font_size", FONT_SIZE_SM)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				name_label.add_theme_color_override(
 					"font_color", COLOR_TEXT_PRIMARY)
 				text_vbox.add_child(name_label)
@@ -976,7 +976,7 @@ func _update_traits_display() -> void:
 					var desc_label = Label.new()
 					desc_label.text = desc_text
 					desc_label.add_theme_font_size_override(
-						"font_size", FONT_SIZE_XS)
+						"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 					desc_label.add_theme_color_override(
 						"font_color", COLOR_TEXT_SECONDARY)
 					desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -999,7 +999,7 @@ func _update_traits_display() -> void:
 			empty_label.text = "This ship has no special traits"
 		else:
 			empty_label.text = "No special traits — generate a ship to see its traits"
-		empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		empty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		traits_container.add_child(empty_label)
@@ -1052,7 +1052,7 @@ func _create_ship_stat_card(stat_name: String, current_value: int, max_value: in
 	# Stat name label
 	var name_label = Label.new()
 	name_label.text = stat_name.to_upper()
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(name_label)
@@ -1063,7 +1063,7 @@ func _create_ship_stat_card(stat_name: String, current_value: int, max_value: in
 		value_label.text = "%d / %d" % [current_value, max_value]
 	else:
 		value_label.text = str(current_value)
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	value_label.add_theme_color_override("font_color", accent_color)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(value_label)
@@ -1575,7 +1575,7 @@ func _create_fallback_ui() -> Control:
 
 	var title = Label.new()
 	title.text = "Ship Selection"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(title)
 
@@ -1591,7 +1591,7 @@ func _create_ship_name_section(parent: Node) -> LineEdit:
 	var label = Label.new()
 	label.text = "Ship Name:"
 	label.custom_minimum_size.x = 100
-	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
 
@@ -1614,7 +1614,7 @@ func _create_ship_type_section(parent: Node) -> OptionButton:
 	var label = Label.new()
 	label.text = "Ship Type:"
 	label.custom_minimum_size.x = 100
-	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
 
@@ -1646,7 +1646,7 @@ func _create_hull_points_section(parent: Node) -> SpinBox:
 	var label = Label.new()
 	label.text = "Hull Points:"
 	label.custom_minimum_size.x = 100
-	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
 
@@ -1671,7 +1671,7 @@ func _create_debt_section(parent: Node) -> SpinBox:
 	var label = Label.new()
 	label.text = "Ship Debt:"
 	label.custom_minimum_size.x = 100
-	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
 
@@ -1696,7 +1696,7 @@ func _create_traits_section(parent: Node) -> VBoxContainer:
 
 	var label = Label.new()
 	label.text = "Ship Traits:"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
 

@@ -69,14 +69,14 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "COLONY ARMORY"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
 
 	var info := Label.new()
 	info.text = "Weapons are assigned per mission from the colony pool — not individually owned."
-	info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -153,21 +153,21 @@ func _build_weapon_list() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = wname
-		name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY if is_available else COLOR_TEXT_SECONDARY)
 		name_vbox.add_child(name_lbl)
 
 		var tier_lbl := Label.new()
 		tier_lbl.text = tier.replace("_", " ").capitalize()
-		tier_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		tier_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		tier_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 		name_vbox.add_child(tier_lbl)
 
 		if not is_available:
 			var lock := Label.new()
 			lock.text = "LOCKED"
-			lock.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			lock.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			lock.add_theme_color_override("font_color", COLOR_DANGER)
 			name_vbox.add_child(lock)
 
@@ -177,7 +177,7 @@ func _build_weapon_list() -> void:
 		var shots_val: Variant = weapon.get("shots", 0)
 		var dmg: int = weapon.get("damage", 0)
 		stats_lbl.text = "R:%s  S:%s  D:%+d" % [str(range_val), str(shots_val), dmg]
-		stats_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		stats_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 		hbox.add_child(stats_lbl)
 
@@ -186,7 +186,7 @@ func _build_weapon_list() -> void:
 		if not traits.is_empty():
 			var traits_lbl := Label.new()
 			traits_lbl.text = ", ".join(traits)
-			traits_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			traits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			traits_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			traits_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			hbox.add_child(traits_lbl)

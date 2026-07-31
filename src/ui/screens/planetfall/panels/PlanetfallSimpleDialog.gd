@@ -119,7 +119,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = _get_step_title().to_upper()
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -199,7 +199,7 @@ func _build_repairs_content() -> void:
 
 		var lbl := Label.new()
 		lbl.text = "Spend Raw Materials for extra repairs (max 3):"
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		row.add_child(lbl)
 
@@ -465,7 +465,7 @@ func _add_info_text(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -476,7 +476,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

@@ -108,7 +108,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = "USER GUIDE"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# This label is rewritten with UPPERCASED chapter titles (:243) and "SEARCH
@@ -183,7 +183,7 @@ func _build_ui() -> void:
 	_content_label.fit_content = true
 	_content_label.scroll_active = false  # Outer ScrollContainer handles scrolling
 	_content_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	_content_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_content_label.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_content_label.meta_clicked.connect(_on_meta_clicked)
 	_content_scroll.add_child(_content_label)
@@ -222,7 +222,7 @@ func _populate_toc() -> void:
 		hover_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.15)
 		btn.add_theme_stylebox_override("hover", hover_style)
 
-		btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 		btn.pressed.connect(_on_toc_button_pressed.bind(ch_id))

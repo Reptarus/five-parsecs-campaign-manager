@@ -43,14 +43,14 @@ theme_override_constants/separation = 20
 
 [node name="TitleLabel" type="Label" parent="CardScroll/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_type_variation = &"TextXL"
 text = "Welcome to Five Parsecs"
 horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="ContentLabel" type="Label" parent="CardScroll/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "Choose your tutorial experience"
 horizontal_alignment = 1
 autowrap_mode = 3

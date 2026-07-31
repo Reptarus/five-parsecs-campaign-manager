@@ -109,7 +109,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 3: SCOUT REPORTS"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -125,7 +125,7 @@ func _build_ui() -> void:
 
 	var scout_lbl := Label.new()
 	scout_lbl.text = "Assign Scout (optional):"
-	scout_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	scout_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	scout_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	scout_row.add_child(scout_lbl)
 
@@ -349,7 +349,7 @@ func _add_info_text(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -360,7 +360,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

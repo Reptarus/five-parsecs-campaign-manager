@@ -65,7 +65,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = info.get("name", "Bug Hunt")
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -84,7 +84,7 @@ func _build_ui() -> void:
 	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tagline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tagline.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	tagline.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(tagline)
@@ -93,7 +93,7 @@ func _build_ui() -> void:
 	var desc := Label.new()
 	desc.text = info.get("description", "")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)

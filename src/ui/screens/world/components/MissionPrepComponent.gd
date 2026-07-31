@@ -335,7 +335,7 @@ func _build_red_zone_info() -> void:
 
 	var title: Label = Label.new()
 	title.text = "RED ZONE MISSION"
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	title.add_theme_color_override(
 		"font_color", Color(1, 0.5, 0.5, 1))
 	vbox.add_child(title)
@@ -350,7 +350,7 @@ func _build_red_zone_info() -> void:
 		opp_rules.get("base_enemy_count", 7),
 		opp_rules.get("specialist_count", 3)]
 	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	opp_label.add_theme_font_size_override("font_size", 13)
+	opp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	opp_label.add_theme_color_override(
 		"font_color", Color(0.88, 0.88, 0.88, 1))
 	vbox.add_child(opp_label)
@@ -362,7 +362,7 @@ func _build_red_zone_info() -> void:
 		+ "Time Constraint: Checked at end of Round 6 (D6)\n"
 		+ "Invasion rolls: +2 | Galactic War: -1")
 	warn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn_label.add_theme_font_size_override("font_size", 12)
+	warn_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	warn_label.add_theme_color_override(
 		"font_color", Color(0.7, 0.7, 0.7, 1))
 	vbox.add_child(warn_label)
@@ -373,7 +373,7 @@ func _build_red_zone_info() -> void:
 		"Improved Rewards: +1 XP/survivor (held field), "
 		+ "credits roll 2x pick best, extra Loot roll on Win")
 	reward_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	reward_label.add_theme_font_size_override("font_size", 12)
+	reward_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	reward_label.add_theme_color_override(
 		"font_color", Color(0.063, 0.725, 0.506, 1))
 	vbox.add_child(reward_label)
@@ -389,7 +389,7 @@ func _build_black_zone_info() -> void:
 
 	var title: Label = Label.new()
 	title.text = "BLACK ZONE MISSION — Unity Drop"
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	title.add_theme_color_override(
 		"font_color", Color(0.85, 0.6, 1.0, 1))
 	vbox.add_child(title)
@@ -401,7 +401,7 @@ func _build_black_zone_info() -> void:
 		bz_mission.get("name", "Unknown"),
 		bz_mission.get("description", "")]
 	mission_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mission_label.add_theme_font_size_override("font_size", 13)
+	mission_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	mission_label.add_theme_color_override(
 		"font_color", Color(0.88, 0.88, 0.88, 1))
 	vbox.add_child(mission_label)
@@ -415,7 +415,7 @@ func _build_black_zone_info() -> void:
 		+ "(Active/Passive system)\n"
 		+ "No Notable Sights or Deployment Conditions")
 	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	opp_label.add_theme_font_size_override("font_size", 12)
+	opp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	opp_label.add_theme_color_override(
 		"font_color", Color(0.7, 0.7, 0.7, 1))
 	vbox.add_child(opp_label)
@@ -426,7 +426,7 @@ func _build_black_zone_info() -> void:
 		"WARNING: This is not intended to be fair. "
 		+ "Your entire team may become casualties.")
 	warn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn_label.add_theme_font_size_override("font_size", 12)
+	warn_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	warn_label.add_theme_color_override(
 		"font_color", Color(0.86, 0.15, 0.15, 1))
 	vbox.add_child(warn_label)
@@ -437,7 +437,7 @@ func _build_black_zone_info() -> void:
 		"Advantages: 3 free Weapon Table rolls, "
 		+ "no Upkeep, no Rival interference")
 	adv_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	adv_label.add_theme_font_size_override("font_size", 12)
+	adv_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	adv_label.add_theme_color_override(
 		"font_color", Color(0.063, 0.725, 0.506, 1))
 	vbox.add_child(adv_label)

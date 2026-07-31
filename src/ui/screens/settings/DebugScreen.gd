@@ -47,8 +47,7 @@ func _build_ui() -> void:
 	back_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	back_btn.flat = true
 	back_btn.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_MD
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	back_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_CYAN
 	)
@@ -58,8 +57,7 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "Debug & Support"
 	title.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_XL
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
@@ -73,8 +71,7 @@ func _build_ui() -> void:
 	)
 	_version_label.text = "v%s • Godot %s" % [version, Engine.get_version_info().string]
 	_version_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_version_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_MUTED
 	)
@@ -85,8 +82,7 @@ func _build_ui() -> void:
 	desc.text = "This page helps debug issues. Copy the log below and include it when reporting bugs."
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)
@@ -125,8 +121,7 @@ func _build_ui() -> void:
 	_log_display.scroll_following = true
 	_log_display.selection_enabled = true
 	_log_display.add_theme_font_size_override(
-		"normal_font_size", 12
-	)
+		"normal_font_size", ScreenChrome.font_size(12))
 	_log_display.add_theme_color_override(
 		"default_color", UIColors.COLOR_TEXT_SECONDARY
 	)
@@ -160,7 +155,7 @@ func _style_action_btn(btn: Button, color: Color) -> void:
 	btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
-	btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 
 func _refresh_log() -> void:
 	if not _log_display:

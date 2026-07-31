@@ -56,8 +56,7 @@ func _build_ui() -> void:
 	var title_label := Label.new()
 	title_label.text = "LOADING"
 	title_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_XL
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
@@ -106,8 +105,7 @@ func start_loading(tasks: PackedStringArray) -> void:
 		var icon_label := Label.new()
 		icon_label.text = ICON_PENDING
 		icon_label.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_MD
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 		icon_label.add_theme_color_override(
 			"font_color", UIColors.COLOR_TEXT_MUTED
 		)
@@ -118,8 +116,7 @@ func start_loading(tasks: PackedStringArray) -> void:
 		var name_label := Label.new()
 		name_label.text = task_name
 		name_label.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_MD
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 		name_label.add_theme_color_override(
 			"font_color", UIColors.COLOR_TEXT_SECONDARY
 		)

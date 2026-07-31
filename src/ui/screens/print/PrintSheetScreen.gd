@@ -133,7 +133,7 @@ func _build_layout() -> void:
 
 	var title := Label.new()
 	title.text = "Print Sheet"
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	# A Label with neither autowrap nor clipping demands its full unwrapped width as a
 	# MINIMUM, and that minimum propagates to the top of the tree. In an HBox header the
@@ -236,7 +236,7 @@ func _build_right_rail() -> Control:
 	_status_label.text = ""
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(_status_label)

@@ -43,7 +43,7 @@ func _build_ui() -> void:
 	# Campaign name
 	var name_label := Label.new()
 	name_label.text = "Campaign Name"
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	name_label.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	_content.add_child(name_label)
 
@@ -56,7 +56,7 @@ func _build_ui() -> void:
 	# Colony name
 	var colony_label := Label.new()
 	colony_label.text = "Colony Name"
-	colony_label.add_theme_font_size_override("font_size", 16)
+	colony_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	colony_label.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	_content.add_child(colony_label)
 
@@ -74,13 +74,13 @@ func _build_ui() -> void:
 	# Expedition Type section
 	var exp_header := Label.new()
 	exp_header.text = "EXPEDITION TYPE"
-	exp_header.add_theme_font_size_override("font_size", 18)
+	exp_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	exp_header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	_content.add_child(exp_header)
 
 	var exp_desc := Label.new()
 	exp_desc.text = "Roll D100 to determine your colonization agenda. This sets your starting bonuses."
-	exp_desc.add_theme_font_size_override("font_size", 14)
+	exp_desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	exp_desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	exp_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(exp_desc)
@@ -95,7 +95,7 @@ func _build_ui() -> void:
 	_result_label.bbcode_enabled = true
 	_result_label.fit_content = true
 	_result_label.custom_minimum_size = Vector2(0, 80)
-	_result_label.add_theme_font_size_override("normal_font_size", 16)
+	_result_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(16))
 	_result_label.visible = false
 	_content.add_child(_result_label)
 

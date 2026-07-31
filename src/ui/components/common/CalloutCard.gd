@@ -65,7 +65,7 @@ func _build_layout() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = title_text.to_upper()
-	_title_label.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(TITLE_FONT_SIZE))
 	_vbox.add_child(_title_label)
 
 

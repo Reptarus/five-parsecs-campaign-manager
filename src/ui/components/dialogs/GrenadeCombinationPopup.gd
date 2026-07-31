@@ -57,14 +57,14 @@ func show_grenade_picker() -> void:
 	# Title
 	var title_label := Label.new()
 	title_label.text = "Choose Grenade Combination"
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title_label)
 
 	var subtitle := Label.new()
 	subtitle.text = "Pick %d grenades total (Frakk and/or Dazzle)" % TOTAL_GRENADES
-	subtitle.add_theme_font_size_override("font_size", 14)
+	subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
@@ -104,7 +104,7 @@ func show_grenade_picker() -> void:
 	btn_hover.set_border_width_all(2)
 	confirm_btn.add_theme_stylebox_override("hover", btn_hover)
 	confirm_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	confirm_btn.add_theme_font_size_override("font_size", 16)
+	confirm_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	confirm_btn.pressed.connect(_on_confirm)
 	vbox.add_child(confirm_btn)
 
@@ -117,7 +117,7 @@ func _create_counter_row(label_text: String, initial_count: int) -> HBoxContaine
 
 	var name_label := Label.new()
 	name_label.text = label_text
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
@@ -130,7 +130,7 @@ func _create_counter_row(label_text: String, initial_count: int) -> HBoxContaine
 
 	var count_label := Label.new()
 	count_label.text = str(initial_count)
-	count_label.add_theme_font_size_override("font_size", 18)
+	count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	count_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_label.custom_minimum_size = Vector2(40, 0)
@@ -161,7 +161,7 @@ func _style_counter_button(btn: Button) -> void:
 	hover.set_border_width_all(1)
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	btn.add_theme_font_size_override("font_size", 18)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 
 func _adjust_frakk(delta: int) -> void:
 	var new_val: int = clampi(_frakk_count + delta, 0, TOTAL_GRENADES)

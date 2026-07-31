@@ -54,7 +54,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "Legal Document"
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	# Document titles ("Privacy Policy", "End User License Agreement") are long, and an
@@ -79,7 +79,7 @@ func _build_ui() -> void:
 	_rtl.fit_content = true
 	_rtl.size_flags_horizontal = SIZE_EXPAND_FILL
 	_rtl.custom_minimum_size.x = 300
-	_rtl.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_SM)
+	_rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_rtl.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	center.add_child(_rtl)
 

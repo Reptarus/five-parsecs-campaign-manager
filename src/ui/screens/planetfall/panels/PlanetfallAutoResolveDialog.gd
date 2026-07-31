@@ -114,7 +114,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = _get_step_title().to_upper()
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -125,7 +125,7 @@ func _build_ui() -> void:
 	_description_label.fit_content = true
 	_description_label.scroll_active = false
 	_description_label.text = _get_step_description()
-	_description_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	_description_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_description_label.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_description_label)
 
@@ -399,7 +399,7 @@ func _add_result_text(text: String, _color: Color) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

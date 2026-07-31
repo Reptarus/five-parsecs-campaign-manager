@@ -97,7 +97,7 @@ func _build_ui() -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = catalog.get("name", _dlc_id)
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	# Same reason as the tagline below: pack names are long enough that an unwrapped
@@ -109,7 +109,7 @@ func _build_ui() -> void:
 	var tagline_lbl := Label.new()
 	tagline_lbl.text = catalog.get("tagline", "")
 	tagline_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	tagline_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	# Taglines are full sentences (the longest needs 421px unwrapped). Without
@@ -121,7 +121,7 @@ func _build_ui() -> void:
 	_price_label = Label.new()
 	_price_label.text = catalog.get("price_default", "")
 	_price_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_price_label.add_theme_color_override("font_color", COLOR_CYAN)
 	header.add_child(_price_label)
 
@@ -132,7 +132,7 @@ func _build_ui() -> void:
 	desc.scroll_active = false
 	desc.text = catalog.get("description", "")
 	desc.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)
@@ -141,7 +141,7 @@ func _build_ui() -> void:
 	_enabled_badge = Label.new()
 	_enabled_badge.visible = false
 	_enabled_badge.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	_enabled_badge.add_theme_color_override(
 		"font_color", COLOR_ACCENT_HOVER)
 	vbox.add_child(_enabled_badge)
@@ -151,7 +151,7 @@ func _build_ui() -> void:
 	_details_toggle.text = "Show Details"
 	_details_toggle.flat = true
 	_details_toggle.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_details_toggle.add_theme_color_override(
 		"font_color", COLOR_CYAN)
 	_details_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
@@ -187,7 +187,7 @@ func _build_feature_list(catalog: Dictionary) -> void:
 		var cat_label := Label.new()
 		cat_label.text = cat_name
 		cat_label.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		cat_label.add_theme_color_override(
 			"font_color", COLOR_ACCENT)
 		_features_container.add_child(cat_label)
@@ -202,7 +202,7 @@ func _build_feature_list(catalog: Dictionary) -> void:
 			var bullet := Label.new()
 			bullet.text = "  ·"
 			bullet.add_theme_font_size_override(
-				"font_size", FONT_SIZE_SM)
+				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			bullet.add_theme_color_override(
 				"font_color", COLOR_TEXT_MUTED)
 			row.add_child(bullet)
@@ -212,7 +212,7 @@ func _build_feature_list(catalog: Dictionary) -> void:
 				feat.get("label", ""),
 				feat.get("preview", "")]
 			feat_label.add_theme_font_size_override(
-				"font_size", FONT_SIZE_SM)
+				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			feat_label.add_theme_color_override(
 				"font_color", COLOR_TEXT_SECONDARY)
 			feat_label.autowrap_mode = (

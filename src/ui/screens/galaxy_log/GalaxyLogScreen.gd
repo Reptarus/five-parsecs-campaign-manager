@@ -73,7 +73,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "Galaxy Log"
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	# The campaign name is appended to this title at runtime ("Galaxy Log - <name>"),
@@ -86,7 +86,7 @@ func _build_ui() -> void:
 
 	_count_label = Label.new()
 	_count_label.text = "0 worlds"
-	_count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	# No fixed min width — the title (expand-fill) absorbs slack. Forcing 220px
 	# here pushed the count under the gear on a 375px portrait header; let it
@@ -149,7 +149,7 @@ func _make_legend_chip(label_text: String, swatch_color: Color) -> HBoxContainer
 
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	row.add_child(lbl)
 
