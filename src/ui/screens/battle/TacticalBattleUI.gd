@@ -2415,8 +2415,17 @@ func _ensure_results_form_drawer() -> void:
 	rbody.add_child(_log_only_results_form)
 
 func _build_results_prefill() -> Dictionary:
-	## Seed the results form from the live objective tracker so the player starts
-	## from the objective-accurate guess (they still confirm/edit on the table).
+	## Seed the results form from what the player already recorded during the
+	## battle, so Record Result opens pre-filled and they only correct it.
+	##
+	## THE BUG THIS FIXES: this read ONLY the objective tracker. A player who spent
+	## the whole fight marking figures down on the crew and enemy cards opened the
+	## form to every casualty box unchecked, zero enemies defeated and round 1 — and
+	## for a battle with no trackable objective _objective_tracker is null, so the
+	## prefill was completely empty. The one screen that decides what the campaign
+	## records ignored every input the companion had collected.
+	##
+	## The player still owns every value: this is a starting point, not an answer.
 	var prefill: Dictionary = {}
 	if _objective_tracker != null and _objective_tracker.has_objective():
 		prefill = _objective_tracker.get_result_prefill()
@@ -2428,6 +2437,52 @@ func _build_results_prefill() -> Dictionary:
 				and "victory_condition" in os.current_objective:
 			prefill["objective_condition"] = str(
 				os.current_objective.victory_condition)
+
+	# Live table state. Only fills what the objective tracker did not already
+	# provide, so the tracker stays authoritative where it has an opinion.
+	var enemies_down: int = 0
+	var defeated: Array = []
+	for unit in enemy_units:
+		if unit.is_dead or unit.health <= 0:
+			enemies_down += 1
+			defeated.append({
+				"name": unit.node_name,
+				"type": unit.enemy_type,
+				"was_lieutenant": unit.is_lieutenant,
+				"was_specialist": unit.is_specialist,
+				"was_unique_individual": unit.is_unique_individual,
+			})
+	# defeated_enemies was hardcoded [] on this path, so RivalPatronResolver's
+	# per-enemy rival stamp had nothing to walk after a manually recorded battle.
+	prefill["defeated_enemies"] = defeated
+	if not prefill.has("enemies_defeated"):
+		prefill["enemies_defeated"] = enemies_down
+
+	# Downed crew, by index into the SAME array _ensure_results_form_drawer
+	# passes to setup() (built from crew_units in order).
+	#
+	# These pre-check the INJURIES boxes, never the casualties boxes: Core Rules
+	# p.122 — a figure that went Out of Action always rolls the post-battle Injury
+	# Table, and the ROLL decides dead / injured / recovered. Being downed
+	# mid-battle must not pre-classify anyone as killed. Same rule the played path
+	# already applies when it routes downed crew into injuries_data.
+	var downed: Array = []
+	var crew_standing: int = 0
+	for i in range(crew_units.size()):
+		var unit = crew_units[i]
+		if unit.is_dead or unit.health <= 0:
+			downed.append(i)
+		else:
+			crew_standing += 1
+	prefill["downed_crew_indices"] = downed
+
+	if not prefill.has("rounds"):
+		prefill["rounds"] = maxi(1, current_turn)
+	if not prefill.has("victory"):
+		prefill["victory"] = enemies_down >= enemy_units.size() \
+			and crew_standing > 0
+	if not prefill.has("held_field"):
+		prefill["held_field"] = bool(prefill["victory"])
 	return prefill
 
 func _on_record_result_pressed() -> void:

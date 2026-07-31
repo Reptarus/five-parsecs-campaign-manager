@@ -129,6 +129,7 @@ func _process(_delta: float) -> bool:
 			_check_hud_wiring()
 			_check_feed_strip()
 			_check_ai_reference()
+			_check_results_prefill()
 
 			# FULL_ORACLE is a different UI arrangement — verify it on its own
 			# instance so the ASSISTED assertions above are not disturbed.
@@ -166,6 +167,51 @@ func _check_ai_reference() -> void:
 	_ok("enemy action card carries the behaviour table",
 		card_text.to_lower().contains("otherwise roll 1d6"),
 		"behaviour table absent from the rendered card")
+
+func _check_results_prefill() -> void:
+	## P0.4 — Record Result used to open blank. _build_results_prefill read ONLY
+	## the objective tracker, never crew_units/enemy_units, so a player who spent
+	## the fight marking figures down saw every box unchecked and zero kills.
+	## Two enemies and one crew member are already down at this point (the casualty
+	## bridge check marked one enemy; mark the rest here through the real chokepoint).
+	var crew: Array = _ui.get("crew_units")
+	var enemies: Array = _ui.get("enemy_units")
+	_ui._mark_casualty(crew[2], true, false)
+	_ui._mark_casualty(enemies[3], false, true)
+
+	var prefill: Dictionary = _ui._build_results_prefill()
+	_ok("prefill counts the enemies actually marked down",
+		int(prefill.get("enemies_defeated", 0)) == 2,
+		"got %s" % str(prefill.get("enemies_defeated")))
+	_ok("prefill carries per-figure defeated-enemy records (rival stamping)",
+		(prefill.get("defeated_enemies", []) as Array).size() == 2,
+		"got %d" % (prefill.get("defeated_enemies", []) as Array).size())
+	_ok("prefill reports the downed crew member by index",
+		prefill.get("downed_crew_indices", []) == [2],
+		"got %s" % str(prefill.get("downed_crew_indices")))
+	_ok("prefill reports the round actually reached",
+		int(prefill.get("rounds", 0)) >= 1, "got %s" % str(prefill.get("rounds")))
+
+	# And it must actually reach the form's controls, not just the dict.
+	_ui._ensure_results_form_drawer()
+	var form: Variant = _ui.get("_log_only_results_form")
+	if form == null or not is_instance_valid(form):
+		_ok("results form built", false, "form is null")
+		return
+	var inj: Array = form.get("_injury_checks")
+	_ok("downed crew arrives pre-ticked in the form",
+		inj != null and inj.size() > 2 and bool(inj[2].button_pressed),
+		"injury checkbox for crew 2 not ticked")
+	# Core Rules p.122: going down mid-battle must NOT pre-declare a kill — the
+	# post-battle Injury Table roll decides dead / injured / recovered.
+	var cas: Array = form.get("_casualty_checks")
+	_ok("a downed figure is NOT pre-declared killed (p.122)",
+		cas != null and cas.size() > 2 and not bool(cas[2].button_pressed),
+		"casualty checkbox for crew 2 was ticked")
+	var spin: Variant = form.get("_enemies_defeated_spin")
+	_ok("enemies-defeated spinner arrives pre-filled",
+		spin != null and int(spin.value) == 2,
+		"got %s" % (str(spin.value) if spin else "<null>"))
 
 func _check_oracle_tier() -> void:
 	## The tier-2 Oracle drawer body was created and NOTHING was ever added to it,

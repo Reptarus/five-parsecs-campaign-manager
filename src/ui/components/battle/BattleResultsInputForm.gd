@@ -296,6 +296,16 @@ func _apply_prefill() -> void:
 	if _pending_prefill.has("objective_met") and _objective_met_check:
 		_objective_met_check.button_pressed = bool(
 			_pending_prefill["objective_met"])
+	# Figures the player marked down during the battle. These tick the INJURIES
+	# boxes, not the casualties boxes: Core Rules p.122 says a figure that went
+	# Out of Action always rolls the post-battle Injury Table and the ROLL decides
+	# dead / injured / recovered, so going down mid-battle must not pre-declare
+	# anyone killed. The player can still move any of them to Casualties.
+	if _pending_prefill.has("downed_crew_indices"):
+		for idx in _pending_prefill["downed_crew_indices"]:
+			var i: int = int(idx)
+			if i >= 0 and i < _injury_checks.size():
+				_injury_checks[i].button_pressed = true
 
 func _create_section(title_text: String) -> Array:
 	## Returns [outer_container, inner_content] — add outer to parent, children to inner
@@ -353,6 +363,30 @@ func _on_outcome_changed(index: int) -> void:
 		_held_field_check.button_pressed = false
 		_held_field_check.disabled = true
 
+func _resolve_defeated_enemies(confirmed_count: int) -> Array:
+	## The per-figure defeated-enemy records the prefill collected, trimmed to the
+	## count the player confirmed on the form (they own the final number). If the
+	## player raised the count above what was marked down mid-battle, the extras
+	## are recorded as anonymous figures of the mission's enemy type so downstream
+	## consumers still see the right number of kills.
+	var tracked: Array = _pending_prefill.get("defeated_enemies", [])
+	var out: Array = []
+	for entry in tracked:
+		if out.size() >= confirmed_count:
+			break
+		if entry is Dictionary:
+			out.append(entry)
+	while out.size() < confirmed_count:
+		out.append({
+			"name": str(_mission_data.get("enemy_type", "Enemy")),
+			"type": str(_mission_data.get("enemy_type", "")),
+			"was_lieutenant": false,
+			"was_specialist": false,
+			"was_unique_individual": false,
+		})
+	return out
+
+
 func _on_casualty_toggled(_pressed: bool, _member) -> void:
 	# If a crew member is marked as casualty, uncheck their injury box
 	for i in _crew.size():
@@ -409,9 +443,13 @@ func _on_submit() -> void:
 		"crew_casualties_data": casualties_data,
 		"crew_injuries_data": injuries_data,
 		"crew_participants": participants,
-		# Enemy data
-		"defeated_enemies": [],
-		"defeated_enemy_list": [],
+		# Enemy data. These were hardcoded [] regardless of what happened, so
+		# BattleResultNormalizer's per-enemy rival stamp (which walks
+		# defeated_enemies to mark who your new Rivals are) had nothing to work
+		# with after a manually recorded battle. The prefill carries the figures
+		# the player actually marked down, trimmed to the count they confirmed.
+		"defeated_enemies": _resolve_defeated_enemies(enemies_defeated),
+		"defeated_enemy_list": _resolve_defeated_enemies(enemies_defeated),
 		# Objective (Core Rules p.90) — player-declared, authoritative for success
 		"objective_id": _objective_id,
 		"objective_met": objective_met,
