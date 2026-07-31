@@ -235,7 +235,50 @@ func setup_preview(data: Dictionary) -> void:
 	_setup_mission_info(data)
 	_setup_enemy_info(data)
 	_setup_battlefield_preview(data)
+	_setup_scenario_rules(data)
 	preview_updated.emit()
+
+func _setup_scenario_rules(data: Dictionary) -> void:
+	## The physical-setup instructions this scenario imposes before the first
+	## die: Rival attack type (Core Rules pp.91-92), Invasion structure (p.92)
+	## and the deployment condition's setup half (p.88).
+	##
+	## THE GAP THIS FILLS: these were rolled and stored, and the player was never
+	## told. An Assault silently required the whole crew to set up in a building;
+	## an Ambush silently cost a deployment slot; an Invasion silently ran on a
+	## 6-round clock. All of it now arrives as a checklist the player can read
+	## while laying out the table.
+	if not mission_info_panel:
+		return
+	var rules: Dictionary = data.get("setup_rules", {})
+	var notes: Array = rules.get("setup_notes", [])
+	if notes.is_empty():
+		return
+
+	# Rebuilt on every preview, so clear any prior copy rather than stacking.
+	for child in mission_info_panel.get_children():
+		if child.name.begins_with("__scenario_rule"):
+			mission_info_panel.remove_child(child)
+			child.queue_free()
+
+	var sep := HSeparator.new()
+	sep.name = "__scenario_rule_sep"
+	mission_info_panel.add_child(sep)
+
+	var header := Label.new()
+	header.name = "__scenario_rule_header"
+	header.text = "Before You Deploy"
+	header.add_theme_font_size_override("font_size", _scaled_font(16))
+	header.add_theme_color_override("font_color", Color("#4FC3F7"))
+	mission_info_panel.add_child(header)
+
+	for i in range(notes.size()):
+		var row := Label.new()
+		row.name = "__scenario_rule_%d" % i
+		row.text = "•  %s" % str(notes[i])
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_theme_font_size_override("font_size", _scaled_font(14))
+		mission_info_panel.add_child(row)
 
 ## Setup mission information
 func _setup_mission_info(data: Dictionary) -> void:

@@ -212,7 +212,28 @@ func apply_initiative_context(ctx: Dictionary) -> void:
 	if ctx.has("enemy_modifier") and int(ctx["enemy_modifier"]) != 0:
 		set_enemy_modifier(int(ctx["enemy_modifier"]),
 			str(ctx.get("enemy_name", "Enemy Type")))
+	# Core Rules p.91: a Rival Ambush means you "cannot roll to Seize the
+	# Initiative" at all. Disable the roll rather than letting the player make a
+	# roll the scenario forbids.
+	if ctx.has("can_seize") and not bool(ctx["can_seize"]):
+		_set_seize_forbidden(str(ctx.get("cannot_seize_reason",
+			"This scenario does not allow a Seize the Initiative roll.")))
 	_update_probability()
+
+func _set_seize_forbidden(reason: String) -> void:
+	if roll_button:
+		roll_button.disabled = true
+		roll_button.text = "Cannot Seize the Initiative"
+		roll_button.tooltip_text = reason
+		# Godot 4.6 AccessKit reports nothing useful for a code-changed control
+		# unless it is named, and a disabled button with no explanation is the
+		# exact case a screen reader user cannot resolve visually.
+		roll_button.accessibility_name = reason
+	if result_panel:
+		result_panel.show()
+	if result_label:
+		result_label.bbcode_enabled = true
+		result_label.text = "[center]%s[/center]" % reason
 
 ## Get last roll result
 func get_last_result() -> SeizeInitiativeSystem.InitiativeResult:

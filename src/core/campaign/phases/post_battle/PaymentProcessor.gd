@@ -10,6 +10,94 @@ const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 
+func process_scenario_loss_penalties(
+	ctx: PostBattleContextClass
+) -> Array[Dictionary]:
+	## Core Rules p.92 — the two Rival attack types that cost you something when
+	## you fail to Hold the Field:
+	##   Assault: "If you fail to Hold the Field, you will lose 1D3 credits."
+	##   Raid:    "If you fail to Hold the Field, your ship will take 1D6+1
+	##            points of Hull Point damage."
+	##
+	## THE GAP THIS FILLS: `rival_attack_type` was rolled, stored on mission_data
+	## and read by exactly one label. Neither consequence existed anywhere, so an
+	## Assault and a Showdown were mechanically identical.
+	##
+	## The penalties ride in on battle_result["setup_rules"]["loss_penalties"],
+	## built at scenario setup by BattleSetupRules so the reason and the page
+	## citation travel with the charge.
+	var applied: Array[Dictionary] = []
+	var setup_rules: Dictionary = ctx.battle_result.get("setup_rules", {})
+	var penalties: Array = setup_rules.get("loss_penalties", [])
+	if penalties.is_empty():
+		return applied
+
+	# "Hold the Field" is the trigger, not mission success — you can lose the
+	# objective and still hold the table, and the book charges on the field.
+	if bool(ctx.battle_result.get("held_field", false)):
+		return applied
+
+	for penalty in penalties:
+		var kind: String = str(penalty.get("type", ""))
+		var reason: String = str(penalty.get("reason", ""))
+		var amount: int = 0
+		match kind:
+			"credits":
+				# 1D3: the book's D3 is a D6 halved up.
+				amount = int(ceil(ctx.roll_d6() / 2.0))
+				_charge_credits(ctx, amount)
+			"hull":
+				amount = ctx.roll_d6() + 1
+				amount = _damage_ship(ctx, amount)
+			_:
+				continue
+		applied.append({"type": kind, "amount": amount, "reason": reason})
+		_log_penalty(ctx, kind, amount, reason)
+	return applied
+
+func _charge_credits(ctx: PostBattleContextClass, amount: int) -> void:
+	## Credits are owned by the campaign core; GameState has no subtract API, so
+	## this goes through the same manager chain process_payment() uses.
+	if amount <= 0:
+		return
+	if ctx.game_state_manager and ctx.game_state_manager.has_method("set_credits") \
+			and ctx.game_state_manager.has_method("get_credits"):
+		var current: int = int(ctx.game_state_manager.get_credits())
+		ctx.game_state_manager.set_credits(maxi(0, current - amount))
+	elif ctx.campaign and "credits" in ctx.campaign:
+		ctx.campaign.credits = maxi(0, int(ctx.campaign.credits) - amount)
+
+func _damage_ship(ctx: PostBattleContextClass, amount: int) -> int:
+	## apply_ship_damage() returns the damage actually dealt after ship traits
+	## (Armored -1, Improved Shielding -1, Dodgy Drive +2), so the reported
+	## number matches what the player writes on their ship sheet.
+	if amount <= 0:
+		return 0
+	if ctx.game_state_manager and ctx.game_state_manager.has_method("apply_ship_damage"):
+		return int(ctx.game_state_manager.apply_ship_damage(amount))
+	if ctx.campaign and "ship_data" in ctx.campaign:
+		var ship: Dictionary = ctx.campaign.ship_data
+		ship["hull_points"] = maxi(0, int(ship.get("hull_points", 0)) - amount)
+		return amount
+	return 0
+
+func _log_penalty(
+	ctx: PostBattleContextClass, kind: String, amount: int, reason: String
+) -> void:
+	var journal: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/CampaignJournal") if Engine.get_main_loop() else null
+	if not journal or not journal.has_method("create_entry"):
+		return
+	var text: String = "Lost %d credits" % amount if kind == "credits" \
+		else "Ship took %d Hull Point damage" % amount
+	journal.create_entry({
+		"type": "battle",
+		"title": text,
+		"description": reason,
+		"turn": int(ctx.battle_result.get("turn", 0)),
+		"tags": ["rival", "penalty", kind],
+	})
+
 func process_payment(ctx: PostBattleContextClass) -> int:
 	## Step 4: Get Paid (Core Rules p.120)
 	## You earn 1D6 credits in pay, loot, bounty or salvage.

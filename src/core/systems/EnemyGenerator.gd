@@ -88,7 +88,7 @@ func _build_legacy_compatibility() -> void:
 				"combat_skill": enemy.get("combat_skill", 0),
 				"toughness": enemy.get("toughness", 3),
 				"speed": enemy.get("speed", 4),
-				"weapons": _resolve_weapon_code(enemy.get("weapons", "1 A"))
+				"weapons": resolve_basic_weapon(enemy.get("weapons", "1 A"))
 			}
 
 		enemy_categories[category_id] = enemies
@@ -351,7 +351,7 @@ func _create_enemy_from_template(
 	# Weapons — JSON stores Core Rules notation (e.g., "2 A"): the number is the
 	# basic weapon column, the letter the Specialist column (p.104).
 	var weapons: Array = apply_ai_blade_rule(
-		_resolve_weapon_code(template.get("weapons", "1 A")),
+		resolve_basic_weapon(template.get("weapons", "1 A")),
 		str(template.get("ai", "A")),
 		int(modified_stats.get("combat_skill", 0))
 	)
@@ -486,7 +486,7 @@ func generate_enemies_as_dicts(
 	# Core Rules p.104: ONE roll on the numbered column arms the rank and file,
 	# and the Specialist rolls separately on the lettered Specialist column.
 	var weapon_code: Variant = template.get("weapons", "1 A")
-	var base_weapons: Array = _resolve_weapon_code(weapon_code)
+	var base_weapons: Array = resolve_basic_weapon(weapon_code)
 	var specialist_weapons: Array = resolve_specialist_weapon(weapon_code)
 	var ai_code: String = str(template.get("ai", "A"))
 
@@ -497,7 +497,7 @@ func generate_enemies_as_dicts(
 	var second_group_weapons: Array = []
 	var varied_armaments: bool = HouseRulesHelper.is_enabled("varied_armaments")
 	if varied_armaments:
-		second_group_weapons = _resolve_weapon_code(weapon_code)
+		second_group_weapons = resolve_basic_weapon(weapon_code)
 
 	# Specialist/Lieutenant per Core Rules p.93
 	var specialist_count: int = 0
@@ -974,7 +974,7 @@ func parse_weapon_code(weapon_code) -> Dictionary:
 	return {"is_table_code": false,
 		"fixed": fixed if not fixed.is_empty() else [code_str]}
 
-func _resolve_weapon_code(weapon_code) -> Array:
+func resolve_basic_weapon(weapon_code) -> Array:
 	## The RANK-AND-FILE loadout for an enemy entry: one D6 on the numbered
 	## basic-weapon column, or the literal weapons if the entry names them.
 	var parsed: Dictionary = parse_weapon_code(weapon_code)

@@ -31,8 +31,15 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 		var pid: String = str(mission.get("patron_id", ""))
 		if pid != "":
 			results["patron_id"] = pid
-	# 5) context passthrough (faction_id / faction_job_id / rival_id / is_invasion).
-	for key in ["faction_id", "faction_job_id", "rival_id", "is_invasion"]:
+	# 5) context passthrough (faction_id / faction_job_id / rival_id / is_invasion,
+	#    plus setup_rules and rival_attack_type). setup_rules is the scenario
+	#    modifier bundle BattleSetupRules computed before deployment; the
+	#    post-battle side reads its loss_penalties to charge the Rival Assault
+	#    1D3 credits and the Rival Raid 1D6+1 Hull damage (Core Rules p.92). No
+	#    producer carries either key, so without this passthrough both penalties
+	#    would stay as unreachable as the attack type itself was.
+	for key in ["faction_id", "faction_job_id", "rival_id", "is_invasion",
+			"setup_rules", "rival_attack_type"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
 	# 6) is_rival_mission (PaymentProcessor rival-payment branch).

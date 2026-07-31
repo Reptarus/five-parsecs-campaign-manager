@@ -46,7 +46,7 @@ func _basic_names(code: String) -> Dictionary:
 	var g = _gen()
 	var seen := {}
 	for _i in range(TRIALS):
-		for w in g._resolve_weapon_code(code):
+		for w in g.resolve_basic_weapon(code):
 			seen[str(w)] = true
 	return seen
 
@@ -74,8 +74,8 @@ func test_basic_enemies_roll_once_not_once_per_code_number() -> void:
 	for _i in range(TRIALS):
 		# Only row 5 of WEAPON 1 ("Scrap Pistol + Blade") yields two entries,
 		# and only column 1 has such a row — so 2 and 3 are always exactly one.
-		assert_int(g._resolve_weapon_code("3 C").size()).is_equal(1)
-		assert_int(g._resolve_weapon_code("2 B").size()).is_equal(1)
+		assert_int(g.resolve_basic_weapon("3 C").size()).is_equal(1)
+		assert_int(g.resolve_basic_weapon("2 B").size()).is_equal(1)
 
 # ── The letter selects the SPECIALIST column ──────────────────────────────
 
@@ -121,7 +121,7 @@ func test_combo_entries_split_into_two_weapons() -> void:
 	var g = _gen()
 	var saw_split: bool = false
 	for _i in range(TRIALS):
-		var w: Array = g._resolve_weapon_code("1 A")
+		var w: Array = g.resolve_basic_weapon("1 A")
 		for name in w:
 			assert_bool("+" in str(name)).override_failure_message(
 				"Combo entry '%s' was never split" % name).is_false()
@@ -136,9 +136,9 @@ func test_named_loadouts_are_carried_verbatim() -> void:
 	# p.104: "Some enemies have a specific weapon listed, and always carries
 	# that. No roll is made." These entries are real rows in enemy_types.json.
 	var g = _gen()
-	assert_array(g._resolve_weapon_code("Hand Cannon, Blade")) \
+	assert_array(g.resolve_basic_weapon("Hand Cannon, Blade")) \
 		.contains_exactly(["Hand Cannon", "Blade"])
-	assert_array(g._resolve_weapon_code("Fangs (Damage +1)")) \
+	assert_array(g.resolve_basic_weapon("Fangs (Damage +1)")) \
 		.contains_exactly(["Fangs (Damage +1)"])
 	# A named-loadout enemy has no Specialist column, so its Specialist just
 	# carries the listed weapons.
@@ -208,11 +208,20 @@ func test_a_generated_rampaging_squad_carries_blades() -> void:
 func test_a_generated_squad_gives_its_specialist_a_specialist_weapon() -> void:
 	# Needs >= 3 enemies for a Specialist to exist (p.93). Drives the real squad
 	# builder so the join from template -> role -> weapon column is covered.
+	#
+	# Only enemies whose entry is a TABLE CODE ("2 C") have a Specialist column.
+	# Entries that name their loadout outright ("Fangs (Damage +1)", "Hand
+	# Cannon, Blade") correctly give the Specialist those same listed weapons —
+	# p.104: "Some enemies have a specific weapon listed, and always carries
+	# that." Squads of that kind are skipped rather than failed; an earlier
+	# version of this case asserted against them and failed on the RNG.
 	var g = _gen()
-	for _i in range(30):
+	var all_basic: Array = WEAPON_1 + WEAPON_2 + WEAPON_3
+	var all_spec: Array = SPEC_A + SPEC_B + SPEC_C
+	var checked: int = 0
+	for _i in range(60):
 		var squad: Array = g.generate_enemies_as_dicts(
 			{"enemy_category": "criminal_elements"}, 6)
-		var template_code: String = ""
 		var spec_weapons: Array = []
 		var basic_weapons: Array = []
 		for e in squad:
@@ -221,9 +230,16 @@ func test_a_generated_squad_gives_its_specialist_a_specialist_weapon() -> void:
 				"standard": basic_weapons = e["weapons"]
 		if spec_weapons.is_empty() or basic_weapons.is_empty():
 			continue
-		# A Specialist's weapon must come from a Specialist column. Union of all
-		# three covers whichever letter this enemy type carries.
-		var all_spec: Array = SPEC_A + SPEC_B + SPEC_C
+		# Identify a table-code force: its rank and file rolled off a basic
+		# column, so every basic weapon is on one (Blade may ride along from the
+		# AI rule, and is itself on WEAPON 1 row 5).
+		var is_table_force: bool = true
+		for w in basic_weapons:
+			if str(w) not in all_basic:
+				is_table_force = false
+		if not is_table_force:
+			continue
+		checked += 1
 		var from_spec_table: bool = false
 		for w in spec_weapons:
 			if str(w) in all_spec:
@@ -231,8 +247,7 @@ func test_a_generated_squad_gives_its_specialist_a_specialist_weapon() -> void:
 		assert_bool(from_spec_table).override_failure_message(
 			"Specialist carried %s, none of which is on any p.104 Specialist column"
 			% str(spec_weapons)).is_true()
-		return
-	# Fall through only if 30 squads produced no Specialist, which the p.93
-	# thresholds make effectively impossible at crew size 6.
-	assert_bool(false).override_failure_message(
-		"No Specialist appeared in 30 generated squads").is_true()
+		if checked >= 3:
+			return
+	assert_int(checked).override_failure_message(
+		"60 squads produced no table-code force with a Specialist").is_greater(0)

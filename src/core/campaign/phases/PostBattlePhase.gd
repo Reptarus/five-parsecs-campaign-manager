@@ -37,6 +37,9 @@ signal quest_progress_updated(progress: int)
 signal payment_received(amount: int)
 signal battlefield_finds_completed(finds: Array)
 signal invasion_checked(invasion_pending: bool)
+## Rival Assault credit fine / Rival Raid Hull damage, charged on a failure to
+## Hold the Field (Core Rules p.92). Each entry is {type, amount, reason}.
+signal scenario_penalties_applied(penalties: Array)
 signal loot_gathered(loot: Array)
 signal injuries_resolved(injuries: Array)
 signal experience_awarded(xp_awards: Array)
@@ -176,6 +179,15 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 
 	# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
 	_payment.process_black_zone_rewards(_ctx)
+
+	# Step 4c: Scenario loss penalties (Core Rules p.92) — the Rival Assault
+	# 1D3-credit fine and the Rival Raid 1D6+1 Hull damage, charged only when you
+	# failed to Hold the Field. Both were rolled into mission_data at setup and
+	# then read by nothing.
+	var loss_penalties: Array[Dictionary] = \
+		_payment.process_scenario_loss_penalties(_ctx)
+	if not loss_penalties.is_empty():
+		scenario_penalties_applied.emit(loss_penalties)
 
 	# Step 5: Battlefield Finds
 	_emit_substep(GlobalEnums.PostBattleSubPhase.BATTLEFIELD_FINDS)

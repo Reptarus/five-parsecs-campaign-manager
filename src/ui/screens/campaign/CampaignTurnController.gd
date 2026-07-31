@@ -8,6 +8,7 @@ const MissionTableManagerClass = preload("res://src/core/mission/MissionTableMan
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const BattleResolverRouter = preload("res://src/core/battle/BattleResolverRouter.gd")
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
+const BattleSetupRulesClass = preload("res://src/core/battle/BattleSetupRules.gd")
 # Path preload: BattlefieldGrid is new (2026-07-02) and the global
 # class cache is stale until the editor reopens (project gotcha).
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
@@ -740,17 +741,22 @@ func _initiate_battle_sequence() -> void:
 		}
 	battle_results["deployment_condition"] = deployment_condition
 
-	# Apply deployment condition enemy count modifiers (Core Rules p.88)
-	var condition_id: String = deployment_condition.get("condition_id", "")
-	if condition_id == "SMALL_ENCOUNTER" and not enemies.is_empty():
-		var remove_count: int = 1
-		if enemies.size() > crew_size:
-			remove_count = 2  # Outnumbered = remove 2
-		for i in range(mini(remove_count, enemies.size() - 1)):
-			enemies.pop_back()
+	# Setup-time scenario modifications: Rival attack type (pp.91-92), Invasion
+	# structure (p.92) and the deployment condition (p.88), computed in one
+	# book-cited place. Before this, `rival_attack_type` reached only a label,
+	# Invasion had no extra enemy or hold clock, and of the conditions only Small
+	# Encounter's ENEMY half was applied — its crew-sit-out half never was.
+	mission_data["deployment_condition"] = deployment_condition
+	var setup_bundle: Dictionary = BattleSetupRulesClass.compute(
+		mission_data, enemies.size(), crew_size)
+	if setup_bundle["enemy_delta"] != 0 and not enemies.is_empty():
+		enemies = BattleSetupRulesClass.apply_enemy_delta(
+			enemies, setup_bundle["enemy_delta"])
 		game_state.set_current_enemies(enemies)
 		mission_data["enemy_force"]["count"] = enemies.size()
 		mission_data["enemy_force"]["units"] = enemies
+	mission_data["setup_rules"] = setup_bundle
+	battle_results["setup_rules"] = setup_bundle
 
 	# Quest finale +1 enemy (Core Rules p.89)
 	var is_quest_finale: bool = mission_data.get("is_quest_finale", false) \
@@ -816,6 +822,11 @@ func _initiate_battle_sequence() -> void:
 		"hired_muscle": false,
 		"enemy_modifier": enemy_init_mod,
 		"enemy_name": first_enemy.get("type", "Enemy"),
+		# Core Rules p.91, Rival Ambush: "cannot roll to Seize the Initiative".
+		# The only scenario in the battle chapter that forbids the roll outright.
+		"can_seize": bool(setup_bundle.get("can_seize_initiative", true)),
+		"cannot_seize_reason": "" if setup_bundle.get("can_seize_initiative", true) \
+			else "Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)",
 	}
 
 	# Normalize data keys for downstream consumers
@@ -992,6 +1003,13 @@ func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> 
 				var deploy_limit: int = 6
 				if game_state.has_method("get_campaign_crew_size"):
 					deploy_limit = game_state.get_campaign_crew_size()
+				# Scenarios that shrink the deployment: Rival Ambush ("deploy one
+				# crew member less than standard", p.91) and Small Encounter
+				# ("a random crew member sits out", p.88). The cap was previously
+				# always the full campaign crew size, so neither ever bit.
+				var setup_rules: Dictionary = mission_data.get("setup_rules", {})
+				deploy_limit = maxi(1,
+					deploy_limit + int(setup_rules.get("crew_cap_delta", 0)))
 				pre_battle_ui.setup_crew_selection(
 					_deployable(crew_data), deploy_limit)
 
