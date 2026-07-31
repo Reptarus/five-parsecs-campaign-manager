@@ -17,9 +17,18 @@ const BugReportDialogScript = preload("res://src/ui/components/common/BugReportD
 ## stacking a second spacer on every navigation.
 const _BAND_SPACER := "__settings_band_spacer"
 
-const COLOR_GEAR_BG := Color("#252542")
-const COLOR_GEAR_BG_HOVER := Color("#3A3A5C")
-const COLOR_GEAR_TEXT := Color("#E0E0E0")
+## These are the UIColors tokens COLOR_SECONDARY / COLOR_TERTIARY /
+## COLOR_TEXT_PRIMARY, written as literals rather than referenced.
+##
+## An autoload is parsed before global class_names are registered, so a
+## parse-time `UIColors.COLOR_SECONDARY` in a const initialiser cannot be
+## resolved here. The values are what matters and they must stay in step with
+## UIColors — this chrome sits on top of EVERY screen, so when it drifted (it was
+## on the old purple #252542 while the screens moved to #111827) the drift was
+## visible on all of them at once.
+const COLOR_GEAR_BG := Color("#111827")
+const COLOR_GEAR_BG_HOVER := Color("#1f2937")
+const COLOR_GEAR_TEXT := Color("#f3f4f6")
 const COLOR_DIMMER := Color(0.0, 0.0, 0.0, 0.6)
 const GEAR_SIZE := 48  # ISSUE-037: meet TOUCH_TARGET_MIN
 const GEAR_MARGIN := 12

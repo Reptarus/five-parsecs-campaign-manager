@@ -113,7 +113,11 @@ common/physics_ticks_per_second=30
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.101961, 0.101961, 0.180392, 1)
+; UIColors.COLOR_PRIMARY (#0a0d14). Eleven screens inject no background of their
+; own and render straight onto this, so it IS the page colour for a third of the
+; app; it used to be the old navy-purple #1A1A2E, which is why those screens
+; looked like a different product than the ones that do inject a background.
+environment/defaults/default_clear_color=Color(0.0392157, 0.0509804, 0.0784314, 1)
 
 [steam]
 

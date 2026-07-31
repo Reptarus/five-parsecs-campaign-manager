@@ -227,6 +227,20 @@ func navigate_back() -> void:
 	@warning_ignore("unsafe_call_argument")
 	navigate_to(previous_scene, {}, false) # Don't add to history when going back
 
+## Alias for navigate_back().
+##
+## Four screens — CompendiumScreen, CompendiumCategoryView, GalaxyLogScreen and
+## LegalTextViewer — call `go_back()` behind a `has_method("go_back")` guard with a
+## hardcoded destination as the fallback. The method never existed, so the guard was
+## always false and every one of them took the fallback: the Library's Back button
+## went to the main menu even when the Library had been opened from a campaign
+## dashboard. The guard hid the bug instead of surfacing it.
+##
+## Adding the alias lights all four up with no edit at their call sites, and stops
+## the next copy-paste of that block from silently doing the same thing.
+func go_back() -> void:
+	navigate_back()
+
 ## Get the name of the current scene
 func get_current_scene() -> String:
 	return current_scene
