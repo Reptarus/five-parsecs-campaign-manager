@@ -174,6 +174,49 @@ Corollaries worth knowing:
   under the touch floor unless given its own `custom_minimum_size`.
 - **CheckBox height is icon-driven, not stylebox-driven.** Adding `content_margin` to its
   stylebox measurably does nothing; pin `custom_minimum_size.y`.
+- **A width floor on a Button is almost always a bug.** Its HEIGHT floor is the 48dp
+  touch target and is real; its width floor stops the button shrinking with its
+  container and propagates by rule 2. The Jul 30 sweep removed 161 of them across
+  `src/ui` (everything ≥140px). A button in a VBox still fills the column afterwards —
+  `size_flags_horizontal` already defaults to FILL — and in an HBox/HFlow it shrinks to
+  its text. Floors below ~140 are usually guaranteeing a comfortable tap area on a small
+  inline control and are fine.
+- **A long button label wants `autowrap_mode`, not a wider button.** "Accept Black Zone
+  Mission" is 254px of text; wrapping to two lines drops its minimum to the longest word.
+
+### The three helpers that fix "does not fit", and when to reach for which
+
+| Symptom | Helper | What it does |
+| --- | --- | --- |
+| Content clipped LEFT/RIGHT in portrait | `PortraitChrome` (`src/ui/components/base/`) | Trims a root MarginContainer's L/R margins to `PORTRAIT_GUTTER` (8px) in portrait, restores them in landscape |
+| Content taller than the screen (phone landscape ~338 design px) | `ShortScreenScroll` (same directory) | Wraps everything after N pinned children in a ScrollContainer whose vertical scrolling is AUTO only while the viewport is short |
+| Content under the floating gear/bug buttons | `SettingsOverlay.reserve_band_on(self)` | Pushes content DOWN by exactly the overlap that exists at this screen's position |
+
+All three are idempotent, self-wiring (they react to rotation), and safe to call from a
+screen's `_ready()`. **`ShortScreenScroll` toggles a flag rather than re-parenting on
+rotation** — the scroll exists always, and a DISABLED ScrollContainer propagates its
+child's minimum exactly like the plain container it replaced, so tall screens are byte
+for byte what they were.
+
+**Ordering matters when a root grows both ways.** A vertical overflow on a `grow_vertical = 2`
+root re-centres the screen to a negative `y`, which puts the header back under the
+SettingsOverlay band that `reserve_band_on()` just cleared it from. Fix the height first;
+the band collision usually disappears with it.
+
+### Diagnosing: let the tools name the driver
+
+The outermost overflowing node is the right thing to REPORT and never the thing to FIX —
+a minimum propagates, so a screen hanging 300px off the edge is one label or one button
+row deep inside it refusing to shrink.
+
+- `tests/tools/verify_layout.gd` names the deepest control accounting for each overflow,
+  inline in the finding (`[width driver: PanelContainer .../LeftColumn min=327x16]`).
+- `tests/tools/probe_widest.gd <scene> <w> <h> [x|y] [campaign=...]` prints the whole
+  minimum-size chain for one screen at one size, excluding anything inside a
+  ScrollContainer (which is allowed to overflow).
+- `tests/tools/probe_label_min.gd` is the settled answer to "what actually reduces a
+  Label's minimum width": plain 233px → `clip_text` 1px → `autowrap` 1px. Measured, not
+  inferred from the docs, which only describe what is DRAWN.
 
 ### A desktop window pixel IS a device dp — layout QA is NOT device-blocked
 

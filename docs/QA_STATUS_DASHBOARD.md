@@ -51,41 +51,75 @@ stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79
    check to the drawn text (interactive controls keep the full-rect test, since their whole
    rect is hit area) dropped 39 findings **with detection re-proven** on the reverted MainMenu.
 
-### Honest residual — NOT fixed
+### Layout close-out (Jul 30, second pass) — sweep now GREEN
 
-Final sweep: **136 passed / 56 failed / 12 skipped** of 192 configs (34 screens × 6
-sizes), up from **63 passed** when the sweep first ran clean of its own false positives.
+**198 passed / 0 failed / 0 skipped**, with a real campaign loaded. Every screen on the
+A1 surface fits at all six sizes, including the two hardest (phone landscape 733×338
+design px and a 360dp phone at 310×551).
 
-| Category | Start | Now | Note |
+| Category | First clean run | Mid-sprint | Final |
 |---|---|---|---|
-| Sub-48dp controls | 181 | **0** | Fully closed. |
-| Overlay-band collisions | 157 | **42** | `SettingsOverlay.reserve_band_on()` also runs automatically on `SceneRouter.scene_changed`, the only route for `ShipInventory.tscn` (no script attached, so no `_ready()` to call from). **The sweep cannot see that fallback** — it instantiates scenes directly instead of navigating, so ShipInventory's 9 findings persist in the report while being fixed at runtime. Left visible rather than teaching the harness to compensate, which would hide real problems in the same breath. |
-| Off-screen overflow | 60 | **39** | Now mostly VERTICAL (content taller than a short viewport), not horizontal. |
-| Unwrapped labels | 14 | **3** | TacticalBattleUI only; built at runtime so a bare instantiation does not expose them. |
-| Sweep skips | 12 | 12 | Screens needing campaign state to build — reported SKIP-with-reason, never folded into the pass count. |
+| Sub-48dp controls | 181 | 0 | **0** |
+| Overlay-band collisions | 157 | 42 | **0** |
+| Off-screen overflow | 60 | 39 | **0** |
+| Unwrapped labels | 14 | 3 | **0** |
+| Sweep skips | 12 | 12 | **0** |
 
-The three sizing rules that governed nearly every one of these are now written up in
-`docs/sop/responsive-adaptive-ui.md` (docs-confirmed, not folklore): `custom_minimum_size`
-is a floor and never a ceiling; a minimum propagates to top level; and scrolling is what
-stops it. Finding the real driver means tree-walking `get_combined_minimum_size().x` and
-sorting — the parent is almost never the culprit.
+Two harness corrections came first, because the mid-sprint numbers were partly measuring
+the harness rather than the app:
 
-**What is left, and why each resisted the shared fix:**
+1. **The sweep now applies the same overlay net the app does.** In the app, SceneRouter
+   emits `scene_changed` and `SettingsOverlay` reserves the band on the incoming scene; a
+   sweep that `add_child()`es a screen never fires that signal, so every screen was being
+   measured without a reservation the user always gets. Reproduction, not suppression —
+   `reserve_band_on()` only acts where a screen's structure allows it, so a screen it
+   cannot reach still collides and still fails.
+2. **`SimpleCharacterCreator` was being skipped as "needs campaign state".** It sets
+   `visible = false` in `_ready()` because its caller shows it. The skip message was a
+   misdiagnosis that quietly took six configs out of the sweep; shown, it surfaced nine
+   real findings including a dialog pinned at 800×600 that hung off the edge at **every**
+   size measured, 1080p included. `MissionSelectionUI` was dropped from scope with its
+   reason (all its controls live under a PopupPanel — a Window, which lays out against
+   its own rect, so measuring it compared two coordinate spaces).
 
-- *Vertical overflow on short viewports* (phone landscape 733×338, small phone 310×551) —
-  CampaignJournalScreen's filter block is the worst at 180–449px. Its responsive wiring is
-  correct; the content is simply taller than the screen. The principled fix is a vertical
-  scroll, but the entry list below it is `SIZE_EXPAND_FILL` and would collapse to its
-  minimum inside one — so this needs a UX decision (collapsible filters) rather than a
-  container swap, and was not shipped blind.
-- *TacticalBattleUI's 3 labels* — built at runtime, so a standalone instantiation never
-  creates them and no probe can name them without driving a real battle.
-- *ShipInventory's 9 collisions* — fixed at runtime, invisible to the harness (above).
+**Campaign state is now an explicit input**: `-- campaign=user://saves/x.save`. It used to
+be whatever the machine happened to have, and that mattered more than expected — a
+campaign left loaded by an earlier session made `CampaignDashboard`'s landscape overflow
+read 154.8px instead of 30.6px, and revealed that the World Phase clipped on **both**
+edges from turn 10 (the Red/Black Zone buttons appear then and needed 456px in a 339px
+space). A NO-CAMPAIGN run is a floor, not a clean bill of health.
 
-Screens taken to **zero** findings: MainMenu, CampaignCreationUI, AdvancementManager,
-EULAScreen, EquipmentManager, WorldPhaseController, HelpScreen, StoreScreen,
-CampaignJournalScreen (touch targets), GalaxyLogScreen and CompendiumCategoryView
-(overlay band).
+**The systemic cause, and the user who spotted it.** Mid-sprint feedback — *"your buttons
+don't seem to be correctly resizing with the layouts"* — matched what the measurements
+were converging on: **161 hardcoded width floors on buttons and dropdowns** across
+`src/ui`. A button's height floor is the 48dp touch target and is real; its width floor
+stops it shrinking and propagates to the top of the tree, so one `Vector2(260, 48)` made
+every ancestor at least 260 wide. All 161 (≥140px) are gone.
+
+Beyond that, the fixes reduced to four repeated shapes, now in the SOP:
+
+- **A row that cannot wrap** — `HBoxContainer` → `HFlowContainer` (World Phase automation
+  and zone rows, Galaxy Log header, store card headers, print top bar, creator buttons,
+  equipment buttons, character-details equipment, PreBattle footer, six battle-simulator
+  rows).
+- **A label that cannot shrink** — `clip_text` + ellipsis in an HBox header, `autowrap` in
+  a VBox column. Settled by measurement (`tests/tools/probe_label_min.gd`): clip takes a
+  Label's minimum from 233px to 1px.
+- **Content taller than the screen** — the new `ShortScreenScroll` helper, applied to
+  seven screens, scrolling only while the viewport is short.
+- **Too many columns for the width** — `AdaptivePanelGroup` now drops columns that do not
+  fit, independent of the device breakpoint. A phone in landscape is 733 design px wide
+  and lands in a wide bucket; three dashboard columns need ~900.
+
+**Portrait gutter 4px → 8px** so content is not flush against the screen edge (12px was
+tried first and left two screens 3px over; the constant carries that note).
+
+Screens taken to zero: **all of them.** Previously listed as unresolved and now closed —
+CampaignJournalScreen (collapsible "Filters (N active)" disclosure, the UX decision that
+was deliberately not shipped blind mid-sprint), TacticalBattleUI (tier-panel labels
+autowrap; the modal overlay scrolls), and ShipInventory (content column wrapped in a
+scroll inside the .tscn, since its script is a pure factory with no `_ready()` — the
+earlier "no script attached" note was wrong: it binds `ShipCreation.gd`).
 
 ### Two gate screens that were genuinely blocking
 
@@ -132,7 +166,7 @@ screenshot, both reverted, final state verified visually.
 
 ---
 
-**Last Updated**: 2026-07-06 (Battle-Phase Companion sprint → Phase 4 on-device played walk surfaced + fixed 2 more bugs: **F9** drawer touch-scroll blocked the last enemy's controls, **F10** a played LOG_ONLY battle had no reachable end/objective control → added the objective-aware **Record Result** button (choice B). The on-device re-verification of F10 then surfaced FOUR device-/played-flow-only follow-ups the unit tests + `--headless` + desktop MCP all passed (**F10-b** form collapsed the hug-to-content drawer, **F10-c** missing objective section for a real campaign mission, **F10-d** Submit off-screen in the non-touch-scroll drawer, **F10-e** results drawer lingered over PostBattle) — all fixed + re-verified on-device (Test16). 5 genuine bugs fixed total (F5/F6/F8/F9/F10), 3 gaps dismissed (F1/F2/F3), 66 cases green. Prior 2026-07-02: Post-Fable fixit sprint → 129/129 suites green)
+**Last Updated**: 2026-07-30 (Pre-tablet QA sprint, layout close-out: geometry sweep **198/198 green with a campaign loaded**, up from 136/56/12. 161 hardcoded button width floors removed after user feedback that controls were not resizing; new `ShortScreenScroll` helper across 7 screens; `AdaptivePanelGroup` now drops columns that do not fit the width; portrait gutter 4→8px; sweep gained per-finding driver hints and an explicit `campaign=` input. Gates: gdUnit4 180 suites / 1919 cases / 0 failures, campaign-state harness 45/45, four lints clean + orphans=0. Prior 2026-07-06: Battle-Phase Companion sprint → Phase 4 on-device played walk surfaced + fixed 2 more bugs: **F9** drawer touch-scroll blocked the last enemy's controls, **F10** a played LOG_ONLY battle had no reachable end/objective control → added the objective-aware **Record Result** button (choice B). The on-device re-verification of F10 then surfaced FOUR device-/played-flow-only follow-ups the unit tests + `--headless` + desktop MCP all passed (**F10-b** form collapsed the hug-to-content drawer, **F10-c** missing objective section for a real campaign mission, **F10-d** Submit off-screen in the non-touch-scroll drawer, **F10-e** results drawer lingered over PostBattle) — all fixed + re-verified on-device (Test16). 5 genuine bugs fixed total (F5/F6/F8/F9/F10), 3 gaps dismissed (F1/F2/F3), 66 cases green. Prior 2026-07-02: Post-Fable fixit sprint → 129/129 suites green)
 
 ---
 

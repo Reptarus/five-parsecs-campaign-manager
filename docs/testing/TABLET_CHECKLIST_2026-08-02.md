@@ -32,6 +32,25 @@ Re-testing these burns the device window for no new information.
 | Campaign-state correctness (post-battle, rollover, save/load) | `verify_post_battle.gd` | 45 rows, campaign Resource read back |
 | Legacy save loading, every historical `origin` shape | Walk B | 5 saves, float 6.0/7.0/17.0, String, missing |
 
+As of the Jul 30 close-out the sweep is **198/198 green with a campaign loaded** (33
+screens × 6 sizes), so no screen should be clipped on arrival. If one is, that is a
+finding the desktop sweep cannot see — capture the size and the screen name, and check
+whether the sweep reproduces it at that size with `-- campaign=<save>`.
+
+**Worth a deliberate look on the device** (changed late and verified on desktop only):
+
+- The **portrait gutter is now 8px** on each side. Confirm it reads as breathing room on a
+  real panel, not as a misalignment, and that nothing is cut by the screen's rounded
+  corners (that part IS device-bound — see safe-area below).
+- **Short-screen scrolling** kicks in below 620 design px of height, so a tablet in
+  landscape should NOT scroll while a phone in landscape should. Screens using it: World
+  Phase, PreBattle, PostBattle, Campaign Dashboard, Campaign Editor, Events, Advancement,
+  Print Sheet. Check the scroll feels like one gesture, not two nested ones.
+- The **journal filter block starts collapsed** on a phone and expanded on a tablet;
+  rotating a tablet to a short landscape should collapse it.
+- The **main-menu showcase card** drops its cover art, then its feature bullets, before it
+  ever pushes the CTA button off — verify the CTA is always reachable.
+
 ---
 
 ## 1. Safe-area insets — HIGH, wholly device-bound
