@@ -185,30 +185,18 @@ func _build_ui() -> void:
 	root_vbox.add_theme_constant_override("separation", _spacing_md)
 	margin.add_child(root_vbox)
 
-	# Header
-	var header := HBoxContainer.new()
+	# Header — the shared [< Back] [Title] row.
+	#
+	# This screen was the only one that CENTRED its title, using two expanding
+	# spacers to push it away from the Back button. Every other screen reads
+	# left-to-right from the back affordance, so the eye had to go somewhere
+	# different here for no reason. build_header also uses an HFlowContainer, which
+	# wraps on a narrow phone instead of squeezing the title.
+	var header := ScreenChrome.build_header("Options", _on_back_pressed)
 	root_vbox.add_child(header)
-
-	var back_btn := Button.new()
-	back_btn.text = "< Back"
-	back_btn.custom_minimum_size.y = 48  # ISSUE-035: meet TOUCH_TARGET_MIN
-	back_btn.pressed.connect(_on_back_pressed)
-	back_btn.accessibility_name = "Back to Main Menu"
-	header.add_child(back_btn)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer)
-
-	var title := Label.new()
-	title.text = "OPTIONS"
-	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_xl))
-	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	header.add_child(title)
-
-	var spacer2 := Control.new()
-	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer2)
+	var back_btn := header.get_node_or_null(NodePath(ScreenChrome.BACK_NAME))
+	if back_btn != null:
+		back_btn.accessibility_name = "Back to Main Menu"
 
 	# Scrollable content
 	var scroll := ScrollContainer.new()
@@ -228,6 +216,12 @@ func _build_ui() -> void:
 
 	if _is_mobile:
 		_build_mobile_section(content)
+
+	# Page chrome: portrait gutter + keep the header clear of the floating gear/bug
+	# buttons. This screen never wired either, so its content ran wider than every
+	# other page in portrait and its Back button sat under the overlay chrome. No
+	# ShortScreenScroll — the content already lives in its own ScrollContainer.
+	ScreenChrome.apply_page_chrome(self, margin)
 
 	# Accessibility panel (existing code-built component)
 	var acc_panel := AccessibilitySettingsPanelScript.new()
@@ -253,9 +247,12 @@ func _build_ui() -> void:
 	## SettingsManager live via its change signal. Persistence is debounced
 	## inside the manager. Reset stays since it's a one-shot action with no
 	## continuous control equivalent.
-	var footer := HBoxContainer.new()
-	footer.alignment = BoxContainer.ALIGNMENT_CENTER
-	footer.add_theme_constant_override("separation", _spacing_md)
+	# HFlow, not HBox: two full-width buttons side by side do not fit a phone, and
+	# an HBox has no way to give that width back.
+	var footer := HFlowContainer.new()
+	footer.alignment = FlowContainer.ALIGNMENT_CENTER
+	footer.add_theme_constant_override("h_separation", _spacing_md)
+	footer.add_theme_constant_override("v_separation", _spacing_sm)
 	root_vbox.add_child(footer)
 
 	var reset_btn := _create_button("Reset to Defaults")
@@ -266,16 +263,13 @@ func _build_ui() -> void:
 	# Debug button — bottom of settings, like Fallout companion app
 	var debug_btn := Button.new()
 	debug_btn.text = "DEBUG"
-	debug_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	debug_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var dbg_style := StyleBoxFlat.new()
-	dbg_style.bg_color = UIColors.COLOR_TERTIARY
-	dbg_style.border_color = UIColors.COLOR_BORDER
-	dbg_style.set_border_width_all(1)
-	dbg_style.set_corner_radius_all(4)
-	debug_btn.add_theme_stylebox_override("normal", dbg_style)
+	# Was a hand-rolled box with only `normal`, so it lost its outline the instant
+	# you hovered it. TEXT_SECONDARY rather than TEXT_MUTED: muted is about 3.7:1
+	# against this background, under the 4.5:1 that normal-size text needs.
+	DialogStyles.style_secondary_button(debug_btn)
 	debug_btn.add_theme_color_override(
-		"font_color", UIColors.COLOR_TEXT_MUTED
+		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)
 	debug_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	debug_btn.pressed.connect(_on_debug_pressed)

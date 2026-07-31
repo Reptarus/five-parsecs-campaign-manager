@@ -37,17 +37,16 @@ theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 16
 
-[node name="HBoxContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 4
+theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 theme_type_variation = &"TextXL"
-text = "CREW MANAGEMENT"
+text = "Crew"
 horizontal_alignment = 0
 vertical_alignment = 1
 clip_text = true
@@ -75,6 +74,7 @@ theme_override_constants/margin_bottom = 16
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/CrewListContainer/MarginContainer"]
 layout_mode = 2
+horizontal_scroll_mode = 0
 
 [node name="CrewGrid" type="GridContainer" parent="MarginContainer/VBoxContainer/CrewListContainer/MarginContainer/ScrollContainer"]
 unique_name_in_owner = true

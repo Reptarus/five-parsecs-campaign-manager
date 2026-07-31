@@ -917,15 +917,33 @@ func _create_character_card(
 
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# All three labels below CLIP rather than sit atomic, and that is load-bearing.
+	# An atomic Label reports its full text width as a minimum, and a minimum
+	# propagates to the top of the tree: "[Captain] Lieutenant Blake Zhang" made one
+	# crew card demand 349px in a 290px column, so the crew list scrolled sideways
+	# and every name in it was cut off mid-word with no ellipsis to say so. Crew
+	# names are player-authored, so their width is unbounded by definition -- this
+	# cannot be solved by picking a wider column.
+	#
+	# clip_text + EXPAND_FILL is the pair: clip drops the minimum to ~0, expand
+	# claims the leftover width so the label does not then vanish. (Only valid
+	# because `info` is a VBox — a FlowContainer would ignore the expand.)
 	var name_lbl := Label.new()
 	name_lbl.text = char_name
 	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(name_lbl)
 	var sub_lbl := Label.new()
 	sub_lbl.text = subtitle
 	sub_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sub_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	sub_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sub_lbl.clip_text = true
+	sub_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(sub_lbl)
 
 	if not stats.is_empty():
@@ -938,6 +956,9 @@ func _create_character_card(
 		stats_lbl.text = stats_txt
 		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		stats_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stats_lbl.clip_text = true
+		stats_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		info.add_child(stats_lbl)
 
 	hbox.add_child(info)

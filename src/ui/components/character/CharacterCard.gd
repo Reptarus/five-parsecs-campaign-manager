@@ -232,10 +232,17 @@ func _build_compact_layout() -> void:
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_info_container.add_child(_name_label)
 	
-	# Class/Background subtitle
+	# Class/Background subtitle.
+	# clip_text, like the name above it: an atomic Label reports its FULL text width
+	# as a minimum, and "De-converted / BASELINE" beside a 64px portrait was wider
+	# than a phone column -- which pushed the whole crew list into horizontal scroll
+	# and cut every name off mid-word.
 	_subtitle_label = Label.new()
 	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_subtitle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_subtitle_label.clip_text = true
+	_subtitle_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_info_container.add_child(_subtitle_label)
 
 func _build_standard_layout() -> void:
@@ -275,10 +282,15 @@ func _build_standard_layout() -> void:
 	
 	vbox.add_child(header_row)
 	
-	# Subtitle (class + background)
+	# Subtitle (class + background). Same reasoning as the name label above: an
+	# atomic Label's minimum IS its full text width, so this one line was setting
+	# the card's minimum and forcing the crew list to scroll sideways.
 	_subtitle_label = Label.new()
 	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_subtitle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_subtitle_label.clip_text = true
+	_subtitle_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	vbox.add_child(_subtitle_label)
 	
 	# 5-column stats grid (REA, SPD, CBT, TGH, SAV)
@@ -618,10 +630,16 @@ func _on_remove_pressed() -> void:
 
 # ============ MOCKUP-STYLE ENHANCEMENTS ============
 
-func _create_stats_grid_5col() -> GridContainer:
-	## Create 5-column stats grid: REA, SPD, CBT, TGH, SAV
-	var grid := GridContainer.new()
-	grid.columns = 5
+func _create_stats_grid_5col() -> FlowContainer:
+	## REA, SPD, CBT, TGH, SAV — five across when there is room, wrapping when not.
+	##
+	## This was a GridContainer pinned to columns = 5, and a GridContainer cannot
+	## wrap: its minimum width is always the sum of all five columns. Beside a 96px
+	## portrait that made a single crew card demand more width than a phone has, so
+	## the crew list scrolled sideways and every name was cut off mid-word. An
+	## HFlowContainer keeps the five-across look wherever it fits and folds to two
+	## rows where it does not, so its minimum is one stat box instead of five.
+	var grid := HFlowContainer.new()
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 4)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -651,7 +669,15 @@ const STAT_ICON_KEYS := {
 
 func _create_stat_box(label_text: String, value_text: String, accent_color: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(48, 48)
+	# Height floor only. This was Vector2(48, 48), and the WIDTH half of it made the
+	# crew list unusable on a phone: five stat boxes at a 48px floor plus their
+	# separations is 272px, and with the 96px portrait beside them a single card
+	# demanded ~380px against a 290px column. The list absorbed that by scrolling
+	# sideways, which is why every crew name was cut off mid-word.
+	#
+	# A stat box is a read-only readout, not a tap target, so it has no reason to
+	# hold a 48dp width -- it shrinks to its text now. The height stays for rhythm.
+	panel.custom_minimum_size = Vector2(0, 48)
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.122, 0.161, 0.216, 0.5)
