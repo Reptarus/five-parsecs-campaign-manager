@@ -27,13 +27,18 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderSection"]
 layout_mode = 2
+theme_type_variation = &"TextXL"
 text = "Equipment Generation"
 horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="StatusLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderSection"]
 layout_mode = 2
+theme_type_variation = &"TextSM"
 text = "Equipment Generation Ready"
 horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="ProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/HeaderSection"]
 layout_mode = 2

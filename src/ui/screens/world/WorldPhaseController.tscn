@@ -16,7 +16,7 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content_panel"]
-bg_color = Color(0.145, 0.145, 0.259, 0.85)
+bg_color = Color(0.0666667, 0.0941176, 0.152941, 0.85)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -91,7 +91,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.102, 0.102, 0.18, 1)
+color = Color(0.0392157, 0.0509804, 0.0784314, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1

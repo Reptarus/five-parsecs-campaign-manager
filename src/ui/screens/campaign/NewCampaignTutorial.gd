@@ -23,6 +23,14 @@ const CARD_MARGIN := 16.0
 func _ready() -> void:
 	_connect_signals()
 	_initialize_ui()
+
+	# Shared button idiom: Next carries the flow forward, Back steps within the
+	# tutorial, Skip leaves it. Three same-looking default buttons stacked in a
+	# column gave no clue which one was the intended path.
+	DialogStyles.style_primary_button(next_button)
+	DialogStyles.style_back_button(back_button)
+	DialogStyles.style_secondary_button(skip_button)
+
 	_apply_responsive_card()
 	# TutorialSelection.tscn formerly hardcoded an 800x600 centred Panel and a
 	# 760x560 VBox. The design space is window_dp / 1.16 — only ~339x733 on a

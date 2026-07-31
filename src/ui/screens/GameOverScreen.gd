@@ -5,9 +5,15 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 ## same one CampaignPhaseManager uses on turn rollover.
 const VictoryCheckerRef = preload("res://src/core/victory/VictoryChecker.gd")
 
-@onready var return_button: Button = $Button
-@onready var victory_label: Label = $VictoryLabel
-@onready var defeat_label: Label = $DefeatLabel
+## %-unique, not $-paths: the three nodes now live inside
+## MarginContainer/CenterContainer/Column so they can be laid out instead of
+## absolutely positioned, and a $-path would have to be rewritten every time the
+## wrapper changes. They previously sat at the scene root at fixed offsets — the
+## outcome label was a 40x23 px box (too small to render the word "Victory!") and
+## the button was 96 px wide for the text "Return to Main Menu".
+@onready var return_button: Button = %Button
+@onready var victory_label: Label = %VictoryLabel
+@onready var defeat_label: Label = %DefeatLabel
 
 var game_state_manager: GameStateManager
 
@@ -30,6 +36,12 @@ func _ready() -> void:
 	# keeps the code path working for anyone who builds the screen without it.
 	if not return_button.pressed.is_connected(_on_return_button_pressed):
 		return_button.pressed.connect(_on_return_button_pressed)
+
+	DialogStyles.style_primary_button(return_button)
+	ScreenChrome.apply_page_chrome(
+		self, get_node_or_null("MarginContainer") as MarginContainer
+	)
+
 	_update_game_over_display()
 
 func _update_game_over_display() -> void:
