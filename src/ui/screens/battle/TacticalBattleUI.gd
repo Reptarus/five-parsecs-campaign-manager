@@ -458,7 +458,9 @@ func _build_redesign_frame() -> void:
 	# survives when the rail is suppressed on a narrow screen.
 	_make_drawer("intel", "Battlefield Intel", DrawerClass.Edge.RIGHT, true)
 	_make_drawer("dice", "Dice Roller", DrawerClass.Edge.RIGHT, true)
-	_make_drawer("reference", "Battle Round Reference (Core Rules p.119)",
+	# p.118 is the BATTLE ROUND REFERENCE spread (verified against the PDF);
+	# p.119 is where Post-Battle Activities starts.
+	_make_drawer("reference", "Battle Round Reference (Core Rules p.118)",
 		DrawerClass.Edge.RIGHT)
 	_make_drawer("tracking", "Tracking", DrawerClass.Edge.RIGHT, true)
 	_make_drawer("oracle", "Enemy AI Oracle", DrawerClass.Edge.RIGHT, true)
@@ -1380,12 +1382,25 @@ func _update_breadcrumb(stage: int) -> void:
 
 func _instance_log_only_components() -> void:
 	## Instance and add LOG_ONLY tier components to zones
-	# UnifiedBattleLog → Center / replaces BattleJournal + FallbackLog
-	unified_log = FPCM_UnifiedBattleLog.new()
-	unified_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	unified_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if phase_content:
-		phase_content.add_child(unified_log)
+	# UnifiedBattleLog — the canonical instance is built ONCE into the FeedStrip
+	# (see the "Single canonical feed" block in the layout builder) and reused here.
+	#
+	# THE BUG THIS FIXES: this function used to unconditionally `.new()` a SECOND
+	# UnifiedBattleLog and reassign `unified_log` to it. The first instance stayed
+	# parented in %FeedHost — the visible bottom feed strip, which
+	# _apply_stage_visibility shows for every stage except TIER_SELECT and
+	# _apply_responsive_layout even sizes — but no longer had any reference pointing
+	# at it, so it never received a single line. Every _log_message /
+	# unified_log.log_* call went into the Tracking drawer copy instead, i.e. the
+	# player's always-on battle feed was permanently blank and the whole running
+	# account of the fight was hidden behind a drawer.
+	if not (unified_log and is_instance_valid(unified_log)):
+		unified_log = FPCM_UnifiedBattleLog.new()
+		unified_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		unified_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var log_host: Node = feed_host if feed_host else phase_content
+		if log_host:
+			log_host.add_child(unified_log)
 
 	# DiceDashboard
 	dice_dashboard = _get_res("dice_dashboard").instantiate()
@@ -2037,8 +2052,9 @@ func show_enemy_generation_overlay() -> void:
 var _battle_event_fired_this_round: int = 0  # Track which round we already fired event for
 
 func _check_pending_battle_event() -> void:
-	## Check if a battle event should trigger this round (Core Rules p.118:
-	## rounds 2 and 4). Called after overlay dismissal so overlays don't collide.
+	## Check if a battle event should trigger this round (Core Rules pp.116-117:
+	## end of Round 2 and end of Round 4, and no more after that).
+	## Called after overlay dismissal so overlays don't collide.
 	## Guarded so it only fires once per round (not on every overlay dismiss).
 	if not round_tracker or not round_tracker.has_method("check_battle_event"):
 		return
@@ -2399,6 +2415,15 @@ func _apply_tier_visibility(tier: int) -> void:
 			0: tier_badge.text = "[LOG ONLY]"
 			1: tier_badge.text = "[ASSISTED]"
 			2: tier_badge.text = "[FULL ORACLE]"
+	# BattleRoundHUD gates its End-Phase auto-prompt (the "morale check needed /
+	# roll d100 for a Battle Event" reminder) on its OWN _display_tier, which
+	# defaults to 0 and was never set from here — set_display_tier() had zero
+	# callers repo-wide. So _update_auto_prompt() hit `if _display_tier < 1:` and
+	# hid the prompt at EVERY tier, including FULL_ORACLE. This is the single
+	# place a tier change is applied, so it is the correct hook.
+	if battle_round_hud and is_instance_valid(battle_round_hud) \
+			and battle_round_hud.has_method("set_display_tier"):
+		battle_round_hud.set_display_tier(tier)
 	_rebuild_drawer_toolbar(tier)
 
 
@@ -2632,6 +2657,13 @@ func _on_round_started(round_number: int) -> void:
 	_log_message("=== ROUND %d BEGINS ===" % round_number, UIColors.COLOR_CYAN)
 	if unified_log:
 		unified_log.new_round()
+	# The HUD counts casualties PER ROUND to size its End-Phase morale prompt
+	# (Core Rules p.114: roll 1D6 per figure lost THIS round). reset_round_tracking()
+	# had zero callers, so _casualties_this_round accumulated across the whole
+	# battle and round 4 would claim every casualty since round 1.
+	if battle_round_hud and is_instance_valid(battle_round_hud) \
+			and battle_round_hud.has_method("reset_round_tracking"):
+		battle_round_hud.reset_round_tracking()
 	_reset_all_unit_reactions()
 	# Tick down battle event overlay durations (fog/hazard/reinforcement markers expire)
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("tick_overlay_durations"):
@@ -2649,7 +2681,7 @@ func _on_round_ended(round_number: int) -> void:
 	_check_escalating_battles(round_number)
 
 func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
-	## Handle battle event trigger (rounds 2 and 4 per Five Parsecs p.118)
+	## Handle battle event trigger (end of Rounds 2 and 4, Core Rules pp.116-117)
 	_log_message(
 		"BATTLE EVENT! (Round %d) - Rolling on event table..." % round_num,
 		UIColors.COLOR_AMBER
@@ -3812,13 +3844,20 @@ func _mark_casualty(unit, is_crew: bool, feed_morale: bool = true) -> void:
 	if activation_tracker and is_instance_valid(activation_tracker) \
 			and activation_tracker.has_method("set_unit_defeated"):
 		activation_tracker.set_unit_defeated(_unit_id(unit), true)
-	if feed_morale and not is_crew and morale_tracker \
-			and is_instance_valid(morale_tracker):
-		# casualties_this_round drives perform_morale_check() at End Phase.
-		if morale_tracker.has_method("add_casualty"):
-			morale_tracker.add_casualty()
-		elif "casualties_this_round" in morale_tracker:
-			morale_tracker.casualties_this_round += 1
+	if feed_morale and not is_crew:
+		if morale_tracker and is_instance_valid(morale_tracker):
+			# casualties_this_round drives perform_morale_check() at End Phase.
+			if morale_tracker.has_method("add_casualty"):
+				morale_tracker.add_casualty()
+			elif "casualties_this_round" in morale_tracker:
+				morale_tracker.casualties_this_round += 1
+		# The HUD keeps its own per-round count for the End-Phase prompt text.
+		# Its report_casualty() was only ever called from one legacy "mark unit
+		# dead" branch, never from this chokepoint, so the prompt under-reported
+		# (usually reading zero) even once the tier gate was fixed.
+		if battle_round_hud and is_instance_valid(battle_round_hud) \
+				and battle_round_hud.has_method("report_casualty"):
+			battle_round_hud.report_casualty()
 	_refresh_unit_rails()
 	_queue_drawer_repopulate()
 
@@ -6232,18 +6271,100 @@ func _apply_its_time_to_go(campaign, stars) -> void:
 	# Hide popup + Stars button (one-shot used; popup also reflects 0/1 anyway)
 	if _stars_battle_popup:
 		_stars_battle_popup.hide()
-	# Build battle_result and emit completion
-	var battle_result := {
+	tactical_battle_completed.emit(_build_evacuation_result_dict(true))
+
+
+func _build_evacuation_result_dict(via_star: bool) -> Dictionary:
+	## Standard battle-result contract for a battle the crew LEAVES rather than
+	## fights to a finish — currently the "It's time to go!" star (Core Rules p.67).
+	##
+	## THE BUG THIS FIXES: the evacuation path emitted its own ad-hoc 8-key dict.
+	## It sent crew_casualties / crew_injuries as ARRAYS where every other producer
+	## sends ints, used an "objectives_met" key no consumer reads, and omitted
+	## success, crew_participants, crew_casualties_data, crew_injuries_data,
+	## mission_source and the zone flags. Downstream, BattleResultNormalizer steps 7
+	## and 8 build injuries_sustained / casualties FROM crew_*_data, so both came out
+	## empty, and PostBattlePhase reads a missing "success" as false. Invoking the
+	## once-per-campaign escape therefore cost the player every injury roll, all XP,
+	## and any objective they had already completed.
+	##
+	## Core Rules p.115: leaving the battlefield means you do NOT Hold the Field, but
+	## objectives achieved BEFORE exiting still stand ("having achieved your
+	## objectives before exiting the battle").
+	var crew_alive: int = crew_units.filter(func(u): return u.health > 0).size()
+	var enemies_alive: int = enemy_units.filter(func(u): return u.health > 0).size()
+
+	# current_turn is the round in progress (set by _on_round_started), so the round
+	# the crew bails in IS a round they fought.
+	var rounds: int = maxi(0, current_turn)
+
+	# Downed crew route to injuries_data, never casualties_data — Core Rules p.122:
+	# a figure that went Out of Action ALWAYS rolls the post-battle Injury Table, and
+	# the roll decides dead / injured / recovered. Same rule the played path applies.
+	var injuries_data: Array = []
+	for unit in crew_units:
+		if unit.health <= 0:
+			injuries_data.append(unit.original_character)
+
+	var defeated_enemies: Array = []
+	for unit in enemy_units:
+		if unit.health <= 0:
+			defeated_enemies.append({
+				"name": unit.node_name,
+				"type": unit.enemy_type if "enemy_type" in unit else "",
+				"was_lieutenant": unit.is_lieutenant \
+					if "is_lieutenant" in unit else false,
+			})
+
+	var crew_participants: Array = []
+	for unit in crew_units:
+		if unit.original_character:
+			crew_participants.append(unit.original_character)
+
+	var obj_id: String = ""
+	var obj_met: bool = false
+	var obj_progress: Array = []
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		obj_id = _objective_tracker.get_objective_id()
+		obj_met = _objective_tracker.is_complete()
+		obj_progress = _objective_tracker.get_panel_conditions()
+
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+
+	return {
 		"victory": false,
+		"won": false,
+		# The objective still decides the mission (Core Rules p.90); leaving the
+		# table only forfeits Holding the Field.
+		"success": obj_met,
 		"held_field": false,
 		"evacuated": true,
-		"evacuated_via_star": true,
-		"crew_casualties": [],
-		"crew_injuries": [],
-		"rounds_fought": 0,
-		"objectives_met": []
+		"evacuated_via_star": via_star,
+		# Core Rules p.123, verbatim: "Any character that flees the battlefield in
+		# the first 2 rounds of the battle receives no XP."
+		"fled_early": rounds <= 2,
+		"objective_id": obj_id,
+		"objective_met": obj_met,
+		"objective_progress": obj_progress,
+		"rounds_fought": rounds,
+		"crew_casualties": 0,
+		"crew_injuries": injuries_data.size(),
+		"crew_casualties_data": [],
+		"crew_injuries_data": injuries_data,
+		"crew_participants": crew_participants,
+		"defeated_enemies": defeated_enemies,
+		"enemies_defeated_count": defeated_enemies.size(),
+		"enemies_remaining": enemies_alive,
+		"crew_alive": crew_alive,
+		"is_red_zone": md.get("is_red_zone", false),
+		"is_black_zone": md.get("is_black_zone", false),
+		"is_quest_finale": md.get("is_quest_finale", false),
+		"mission_source": md.get("mission_source", "opportunity"),
+		"mission_type": md.get("type", ""),
+		"auto_resolved": false,
+		"psionic_uses": _psionic_uses,
 	}
-	tactical_battle_completed.emit(battle_result)
 
 
 func _use_battle_star_met_my_mate(campaign, stars) -> void:

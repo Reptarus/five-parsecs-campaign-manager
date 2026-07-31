@@ -8,6 +8,9 @@ extends RefCounted
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
+## Path-preloaded (BattleResultNormalizer declares no class_name — see its header).
+## Reused for _to_crew_entry(), the character-object -> crew_id resolver.
+const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
 
 # XP awards loaded from data/injury_results.json (Core Rules p.123)
 static var _xp_data: Dictionary = {}
@@ -65,6 +68,23 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 		elif participant is Dictionary:
 			crew_id = participant.get("id", participant.get("character_id", ""))
 			is_bot = participant.get("is_bot", false) or ctx.is_crew_member_bot(crew_id)
+		elif participant != null:
+			# CHARACTER RESOURCE. All three live producers fill crew_participants with
+			# character OBJECTS (TacticalBattleUI.gd:4265-4268 and :4524-4526 pass
+			# unit.original_character; BattleResultsInputForm.gd), and on a FRESH campaign
+			# crew_data["members"] holds Character Resources — so this is the real shape
+			# until the first save/load round-trips them to Dictionaries.
+			#
+			# Without this branch crew_id stayed "" and the loop `continue`d for every
+			# participant: nobody gained XP on a new campaign, on either battle path.
+			# The identical fix already landed on the two sibling consumers
+			# (PostBattleContext.get_participating_crew:312-324 and
+			# PostBattleCompletion._resolve_participant_ids:63-94, which uses this exact
+			# resolver at :90) and never reached the XP processor.
+			crew_id = str(BattleResultNormalizerClass._to_crew_entry(participant).get("crew_id", ""))
+			is_bot = ctx.is_crew_member_bot(crew_id)
+			if not is_bot and "is_bot" in participant:
+				is_bot = bool(participant.is_bot)
 
 		if crew_id.is_empty():
 			continue
