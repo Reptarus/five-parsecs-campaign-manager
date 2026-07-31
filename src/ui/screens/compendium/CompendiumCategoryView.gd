@@ -95,6 +95,11 @@ func _build_ui() -> void:
 	outer.offset_top = UIColors.SPACING_LG
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
+	# Portrait de-clip, same as CompendiumScreen: 32px per side is a fifth of a
+	# 360dp phone, and the entry rows were paying for it.
+	var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+	add_child(_pc)
+	_pc.setup_offsets(outer)
 
 	# Header row
 	var header := HBoxContainer.new()
@@ -425,6 +430,13 @@ func _create_rich_item_row(item: Dictionary, index: int) -> PanelContainer:
 	name_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
+	# Entry names are book terms and some are long ("Converted Assault Team"). Unclipped
+	# they set the row's minimum width, which on a 360dp phone put the rows 51px wider
+	# than the list and gave the Library a HORIZONTAL scrollbar. Expand-fill so the
+	# label claims the leftover width, and wrap inside it rather than clipping — the
+	# name is the one thing on the row the reader needs in full.
+	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(name_label)
 

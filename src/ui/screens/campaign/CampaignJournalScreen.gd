@@ -310,8 +310,11 @@ func _build_filter_panel() -> Control:
 	# layout_class_changed, not breakpoint_changed: rotating a tablet keeps the width
 	# bucket but flips single-column, which is what this decision keys off.
 	if rm and rm.has_signal("layout_class_changed"):
-		rm.layout_class_changed.connect(
-			func(_a = null, _b = null): _apply_filter_disclosure_default())
+		# A METHOD callable, not a lambda. Godot cleans up connections whose target
+		# object is freed, but a lambda's captures are not tracked that way — after
+		# this screen is freed the autoload kept calling it, printing "Lambda capture
+		# at index 0 was freed" on every rotation for the rest of the session.
+		rm.layout_class_changed.connect(_on_layout_class_changed)
 	return panel
 
 
@@ -1423,3 +1426,7 @@ func _consume_scene_router_context() -> void:
 		_filter_type_set[pre_type] = true
 		if _type_chip_buttons.has(pre_type):
 			_type_chip_buttons[pre_type].set_pressed_no_signal(true)
+
+
+func _on_layout_class_changed(_cols: int = 0) -> void:
+	_apply_filter_disclosure_default()

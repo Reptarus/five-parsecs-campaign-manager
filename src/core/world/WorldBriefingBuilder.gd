@@ -135,6 +135,12 @@ static func _section_header(title: String) -> Label:
 	lbl.text = title
 	lbl.add_theme_font_size_override("font_size", UIColorsClass.FONT_SIZE_LG)
 	lbl.add_theme_color_override("font_color", UIColorsClass.COLOR_TEXT_PRIMARY)
+	# These headers interpolate the PLANET NAME ("WORLD BRIEFING: Fuller VI"), so their
+	# unwrapped width is content-driven and unbounded — measured at 250px, which with
+	# the card and page padding was the widest thing on the whole World Phase and the
+	# reason it could not fit a 16dp page margin on a 360dp phone. Autowrap is safe:
+	# these sit in a VBox column, where FILL already gives the full width.
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return lbl
 
 

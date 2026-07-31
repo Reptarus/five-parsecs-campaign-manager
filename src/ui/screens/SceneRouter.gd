@@ -51,7 +51,6 @@ const SCENE_PATHS = {
 
 	# Battle system
 	"pre_battle": "res://src/ui/screens/battle/PreBattle.tscn",
-	"battlefield_main": "res://src/ui/screens/battle/BattlefieldMain.tscn",
 	"tactical_battle": "res://src/ui/screens/battle/TacticalBattleUI.tscn",
 	"post_battle": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 	"post_battle_sequence": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
@@ -270,7 +269,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"world":
 			scenes = ["world_phase", "job_selection", "mission_selection", "patron_rival_manager"]
 		"battle":
-			scenes = ["pre_battle", "battlefield_main", "tactical_battle", "post_battle", "post_battle_results", "post_battle_sequence"]
+			scenes = ["pre_battle", "tactical_battle", "post_battle", "post_battle_results", "post_battle_sequence"]
 		"events":
 			scenes = ["campaign_events"]
 		"phases":
@@ -289,7 +288,10 @@ func navigate_to_campaign_phase(phase: String) -> void:
 	var phase_scene_map = {
 		"world": "world_phase",
 		"pre_battle": "pre_battle",
-		"battle": "battlefield_main",
+		# NOTE: no "battle" entry. The battle phase runs CampaignTurnController ->
+		# PreBattleUI -> TacticalBattleUI. It used to point at BattlefieldMain, a 3D
+		# SubViewport screen that drew a grey PlaneMesh; that contradicted the
+		# companion-not-simulator thesis and has been deleted.
 		"post_battle": "post_battle_sequence"
 		# Note: Battle flow runs CampaignTurnController → PreBattleUI → TacticalBattleUI
 		# Note: Deprecated phases removed (upkeep, story) - functionality integrated into official phases
@@ -445,7 +447,7 @@ func _preload_campaign_flow_scenes(current_scene_name: String) -> void:
 		"equipment_generation":
 			scenes_to_preload = ["campaign_dashboard"]
 		"world_phase":
-			scenes_to_preload = ["pre_battle", "battlefield_main", "post_battle"]
+			scenes_to_preload = ["pre_battle", "post_battle"]
 		"campaign_dashboard":
 			scenes_to_preload = ["world_phase"]
 	

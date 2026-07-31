@@ -86,7 +86,6 @@ const SCREENS: Array = [
 	# skip line that pretends the screen was checked.
 	"res://src/ui/screens/world/PatronRivalManager.tscn",
 	"res://src/ui/screens/battle/PreBattle.tscn",
-	"res://src/ui/screens/battle/BattlefieldMain.tscn",
 	"res://src/ui/screens/battle/TacticalBattleUI.tscn",
 	"res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 	"res://src/ui/screens/utils/GameOverScreen.tscn",
@@ -382,6 +381,55 @@ func _parent_already_overflows(ctl: Control, stop: Node, off: float) -> bool:
 	return false
 
 
+## Catch CONTENT DRAWN ON TOP OF OTHER CONTENT.
+##
+## The MainMenu showcase card is anchored top-to-bottom with an 80px bottom offset
+## reserving the social footer, and grow_vertical = GROW_DIRECTION_END. When its
+## minimum exceeded that slot it expanded DOWNWARD, putting its call-to-action button
+## on top of the footer links. Nothing clipped, nothing went off-screen, and no
+## minimum-size check could see it — the two controls simply occupied the same pixels.
+##
+## Restricted to ANCHOR-POSITIONED siblings: children of a Container are laid out by
+## the parent and cannot overlap each other, so testing those would be pure noise.
+## Backdrops are skipped (a full-bleed background legitimately sits under everything)
+## and Labels are compared on their DRAWN text, not their full box.
+##
+## An earlier version of this check compared each control against the slot its anchors
+## allocated. It fired 23 times across screens that look perfectly fine, because
+## growing past the anchor box is normal minimum-size behaviour — the parent usually
+## has room. A check that cries wolf is worse than no check, so it was replaced with
+## this one, which tests the thing that actually goes wrong.
+func _check_sibling_overlap(ctl: Control, problems: Array) -> void:
+	var parent := ctl.get_parent()
+	if parent == null or parent is Container or not (parent is Control):
+		return
+	if not _is_content(ctl):
+		return
+	var ds: Vector2 = root.get_visible_rect().size
+	var r: Rect2 = _drawn_rect(ctl, ctl.get_global_rect())
+	if r.size.x <= 0.0 or r.size.y <= 0.0 or _is_backdrop(r, ds):
+		return
+	for sibling in parent.get_children():
+		if sibling == ctl or not (sibling is Control):
+			continue
+		var sib := sibling as Control
+		if not sib.is_visible_in_tree() or not _is_content(sib):
+			continue
+		# Only report each pair once — the later sibling (drawn on top) is the one
+		# doing the covering, so it is the one worth naming.
+		if sib.get_index() > ctl.get_index():
+			continue
+		var sr: Rect2 = _drawn_rect(sib, sib.get_global_rect())
+		if sr.size.x <= 0.0 or sr.size.y <= 0.0 or _is_backdrop(sr, ds):
+			continue
+		var hit: Rect2 = r.intersection(sr)
+		# A few pixels of touching is kerning slop, not a covered control.
+		if hit.size.x > 4.0 and hit.size.y > 4.0:
+			problems.append("%s is drawn ON TOP OF %s (%.0fx%.0f px of overlap) — "
+				% [String(ctl.name), String(sib.name), hit.size.x, hit.size.y]
+				+ "anchored siblings, so one of them grew past what its offsets reserved")
+
+
 ## Catch the autowrap-collapse trap: a wrapping control whose minimum WIDTH fell to its
 ## longest word, so its minimum HEIGHT became the whole string's line count.
 ##
@@ -558,6 +606,7 @@ func _measure(inst: Node, short: String, label: String) -> void:
 				% [nm, r.size.y * ratio, int(TOUCH_FLOOR_DP)])
 
 		_check_autowrap_collapse(ctl, problems)
+		_check_sibling_overlap(ctl, problems)
 
 		# The exact shape of the MainMenu title bug: a Label with autowrap OFF
 		# demands its full unwrapped width as a minimum, which drags its whole

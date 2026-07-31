@@ -1,6 +1,5 @@
-[gd_scene load_steps=3 format=3 uid="uid://css3jafhkpmdr"]
+[gd_scene load_steps=2 format=3 uid="uid://css3jafhkpmdr"]
 
-[ext_resource type="Texture2D" path="res://assets/backgrounds/Dec_12_escape_.jpg" id="3_iolqo"]
 [ext_resource type="Script" path="res://src/core/managers/ShipCreation.gd" id="4_script"]
 
 [node name="ShipCreation" type="Control"]
@@ -12,16 +11,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_script")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("3_iolqo")
-expand_mode = 1
-stretch_mode = 6
+color = Color(0.102, 0.102, 0.18, 1)
 
 [node name="ContentColumn" type="VBoxContainer" parent="."]
 layout_mode = 1

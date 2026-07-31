@@ -40,6 +40,11 @@ func _build_ui() -> void:
 	outer.offset_top = UIColors.SPACING_LG
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
+	# Portrait de-clip. 32px per side is a fifth of a 360dp phone's 310 design px, and
+	# it was going straight into the category cards' width — they measured 246 wide.
+	var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+	add_child(_pc)
+	_pc.setup_offsets(outer)
 
 	# Header — HFlow so Back / title / item-count wrap onto a second line on a
 	# narrow (~384px) portrait header instead of clipping. FlowContainer ignores
@@ -220,13 +225,19 @@ func _update_card_sizes() -> void:
 		# vertical scrollbar when it is showing, and give every card the same floor.
 		card_min_width = _available_card_width()
 	else:
-		match current_layout_mode:
-			LayoutMode.TABLET:
-				card_min_width = 340
-			LayoutMode.DESKTOP, LayoutMode.WIDE:
-				card_min_width = 400
-			_:
-				card_min_width = 0
+		# Multi-column: divide the row rather than pinning a fixed card width. A flat
+		# 400px left ~270px of dead space at 1103 design px — two cards and a gap —
+		# because the leftover was never enough for a third. Work out how many cards of
+		# roughly the preferred size fit, then give each an equal share of what is
+		# actually there, so the grid always reaches both edges.
+		var preferred: float = 340.0 if current_layout_mode == LayoutMode.TABLET else 400.0
+		var avail: float = _available_card_width()
+		var sep: float = float(_category_container.get_theme_constant("h_separation"))
+		if avail <= 0.0:
+			card_min_width = preferred
+		else:
+			var cols: int = maxi(1, int((avail + sep) / (preferred + sep)))
+			card_min_width = (avail - sep * (cols - 1)) / float(cols)
 	for child: Node in _category_container.get_children():
 		if child is Control:
 			(child as Control).custom_minimum_size.x = card_min_width

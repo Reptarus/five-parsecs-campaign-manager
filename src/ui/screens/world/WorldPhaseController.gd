@@ -151,7 +151,11 @@ func _ready() -> void:
 	_apply_vertical_compaction()
 	var _rm := get_node_or_null("/root/ResponsiveManager")
 	if _rm and _rm.has_signal("layout_class_changed"):
-		_rm.layout_class_changed.connect(func(_c = null, _d = null): _apply_vertical_compaction())
+		# A METHOD callable, not a lambda. Godot cleans up connections whose target
+		# object is freed, but a lambda's captures are not tracked that way — after
+		# this screen is freed the autoload kept calling it, printing "Lambda capture
+		# at index 0 was freed" on every rotation for the rest of the session.
+		_rm.layout_class_changed.connect(_on_layout_class_changed)
 	get_viewport().size_changed.connect(_apply_vertical_compaction)
 
 
@@ -2170,3 +2174,7 @@ func _setup_psionic_legality_badge() -> void:
 	_psionic_badge.set_legality(legality)
 	if upkeep_container:
 		upkeep_container.add_child(_psionic_badge)
+
+
+func _on_layout_class_changed(_cols: int = 0) -> void:
+	_apply_vertical_compaction()

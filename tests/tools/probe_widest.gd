@@ -14,6 +14,7 @@ extends SceneTree
 ##   <w> <h>  WINDOW size in device dp (design space is this / ~1.16)
 ##   [axis]   "x" (default) or "y"
 
+var _include_scrolled := false
 var _frame := 0
 var _started := false
 
@@ -33,6 +34,9 @@ func _run() -> void:
 	var w: int = int(args[1]) if args.size() > 1 else 393
 	var h: int = int(args[2]) if args.size() > 2 else 851
 	var axis: String = String(args[3]).to_lower() if args.size() > 3 else "x"
+	for a in args:
+		if String(a) == "scrolled":
+			_include_scrolled = true
 	if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
 		print("usage: --script probe_widest.gd -- res://path/Scene.tscn 393 851 [x|y]")
 		quit(1)
@@ -87,7 +91,10 @@ func _run() -> void:
 		# Content inside a ScrollContainer is ALLOWED to exceed the screen — that is
 		# what scrolling means — and listing it buries the nodes that actually force
 		# the screen wider. Same exemption the sweep applies.
-		if _inside_scroll(node, inst):
+		# "scrolled" arg: include content inside ScrollContainers. Off by default because
+		# scrolled content is ALLOWED to overflow; on when hunting a width that a
+		# horizontal-scroll-disabled scroll is propagating upward anyway.
+		if not _include_scrolled and _inside_scroll(node, inst):
 			continue
 		var m: Vector2 = (node as Control).get_combined_minimum_size()
 		var mv: float = m.x if horiz else m.y

@@ -63,14 +63,25 @@ func _ready() -> void:
 func _fit_to_available_height() -> void:
 	if _cover == null or _description == null:
 		return
-	# Budget from the SCREEN, not from size.y. A container never gives a child less
-	# than its minimum, so size.y already includes the overflow being fixed -- keying
-	# off it, the card measures itself as fitting while it hangs off the bottom.
-	var vp := get_viewport()
-	if vp == null or size.y <= 0.0:
+	# Budget from the slot the ANCHORS allocate, not from size.y and not from the
+	# viewport bottom.
+	#
+	# size.y is wrong because a control is never smaller than its minimum, so it
+	# already includes the overflow being fixed — keyed off it the card measures itself
+	# as fitting while it hangs off the bottom.
+	#
+	# The viewport bottom is wrong too, and that is what put the CTA button on top of
+	# the social footer: this card is anchored top-to-bottom with an 80px bottom offset
+	# reserving that footer, and grow_vertical = GROW_DIRECTION_END, so exceeding the
+	# slot pushes it DOWNWARD over whatever the offset was reserving. Measuring to the
+	# viewport bottom hands back those 80px and the card spends them.
+	if size.y <= 0.0:
+		return
+	var parent_h: float = get_parent_area_size().y
+	if parent_h <= 0.0:
 		return
 	var available: float = maxf(
-		160.0, vp.get_visible_rect().size.y - global_position.y - 16.0)
+		160.0, parent_h * (anchor_bottom - anchor_top) - offset_top + offset_bottom)
 	# Everything the card needs BESIDES the three flexible parts, measured rather than
 	# assumed. Hidden children contribute nothing to a container's minimum, so each
 	# term is dropped while its part is hidden -- `fixed` then reads the same in every

@@ -5,6 +5,10 @@ extends PanelContainer
 ## Used as a dashboard hub navigation element — replaces plain button lists.
 ## Inspired by Fallout Wasteland Warfare hub screen feature cards.
 
+## Icon box, square. Sized up from the original 28 now that it no longer stretches to
+## the card's height — at 28 in a 100px-tall card it read as an afterthought.
+const ICON_SIZE := 36
+
 signal card_pressed
 
 var _icon_label: Label
@@ -75,7 +79,12 @@ func _build_ui() -> void:
 	_icon_texture_rect = TextureRect.new()
 	_icon_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_icon_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_icon_texture_rect.custom_minimum_size = Vector2(28, 28)
+	_icon_texture_rect.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+	# SHRINK_CENTER, not the default FILL. A child of an HBox fills vertically, so this
+	# box was stretching to the card's full height — measured 28 wide by 111 TALL — and
+	# KEEP_ASPECT_CENTERED then drew a 28px icon marooned in the middle of it. That is
+	# why the icons read as too small for the card: they were, relative to their box.
+	_icon_texture_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_icon_texture_rect.modulate = UIColors.COLOR_CYAN
 	_icon_texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_icon_texture_rect.visible = false

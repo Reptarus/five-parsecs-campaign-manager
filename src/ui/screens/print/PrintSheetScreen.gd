@@ -65,7 +65,11 @@ func _ready() -> void:
 	# width bucket but flips portrait/landscape, and this screen only cares about
 	# the latter (docs/sop/responsive-adaptive-ui.md).
 	if rm and rm.has_signal("layout_class_changed"):
-		rm.layout_class_changed.connect(func(_a = null, _b = null): _apply_responsive_layout())
+		# A METHOD callable, not a lambda. Godot cleans up connections whose target
+		# object is freed, but a lambda's captures are not tracked that way — after
+		# this screen is freed the autoload kept calling it, printing "Lambda capture
+		# at index 0 was freed" on every rotation for the rest of the session.
+		rm.layout_class_changed.connect(_on_layout_class_changed)
 
 
 ## The preview and the 240px action rail do not fit side by side in ~339 design px,
@@ -384,3 +388,7 @@ func _default_filename(ext: String) -> String:
 func _set_status(text: String) -> void:
 	if _status_label:
 		_status_label.text = text
+
+
+func _on_layout_class_changed(_cols: int = 0) -> void:
+	_apply_responsive_layout()
