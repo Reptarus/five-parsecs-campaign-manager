@@ -20,17 +20,35 @@ enum SaveType {
 	COMBINED   # Both armor and screen present
 }
 
-# Core Rules to-hit table (p.44): Roll 1D6 + Combat Skill
-# Open within 6": 3+
-# Open in range OR Cover within 6": 5+
-# Cover in range: 6+
+# Core Rules to-hit table: roll 1D6 + Combat Skill.
+#   Open within 6"    3+
+#   Open in range     5+
+#   Cover within 6"   5+   <- errata only; see below
+#   Cover in range    6+
 const HIT_OPEN_CLOSE := 3       # Open target within 6" (Core Rules p.44)
 const HIT_OPEN_RANGE := 5       # Open target in range (Core Rules p.44)
-# Core Rules p.44 ("To Hit") lists a close bonus ONLY for OPEN targets. Cover is a
-# single row — "within weapon range and in Cover 6+" — spanning ALL ranges, so a
-# cover target within 6" is ALSO 6+. Was 5 (an unflagged deviation, no
-# GAME_BALANCE_ESTIMATE tag) — corrected per the Data Integrity rule (book wins).
-const HIT_COVER_CLOSE := 6      # Cover target within 6" (Core Rules p.44 — cover is 6+ at all ranges)
+
+# ⚠ DO NOT "CORRECT" THIS TO 6. It has already been flipped once by mistake.
+#
+# Both printed tables list only THREE rows and neither mentions a covered target
+# within 6". p.44: "Within 6" and in the open 3+ / Within weapon range and in the
+# open 5+ / Within weapon range and in Cover 6+". p.118 repeats those three. Read
+# on its own, that reasonably implies cover is 6+ at every range — which is
+# exactly the inference a previous pass made when it changed this constant from
+# 5 to 6 and pinned the change with a test.
+#
+# The official errata settles it the other way. "Five Parsecs errata,
+# clarifications and tweaks" v1.06 (docs/gameplay/rules/5P_errata_and_tweaks106.pdf),
+# verbatim:
+#
+#     "Correction p.118: Add to Firing table: Covered target within 6": 5+.
+#      The main rules on p.44 are correct."
+#
+# So the missing fourth row is real and the close-range bonus DOES apply to
+# covered targets. The errata is the designer's corrections document and
+# outranks the printed tables, which are the thing being corrected. The original
+# value of 5 was right all along.
+const HIT_COVER_CLOSE := 5      # Cover target within 6" (errata v1.06, correction to p.118)
 const HIT_COVER_RANGE := 6      # Cover target in range (Core Rules p.44)
 const ELEVATION_BONUS := 1
 const LONG_RANGE_PENALTY := 1   # Added to threshold beyond weapon range

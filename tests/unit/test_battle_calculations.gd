@@ -40,15 +40,34 @@ func test_cover_increases_hit_threshold() -> void:
 	)
 	assert_int(threshold).is_equal(6)
 
-func test_cover_close_is_6_not_5() -> void:
-	# Core Rules p.44: cover is a SINGLE row ("within weapon range and in Cover
-	# 6+") — the close bonus is open-only. A target in Cover within 6" is 6+,
-	# NOT 5+. Pins the HIT_COVER_CLOSE correction.
+func test_cover_close_is_5_per_errata() -> void:
+	# ⚠ This value has been flipped once by mistake already. Do not "correct" it
+	# back to 6 by reading the printed tables.
+	#
+	# Both p.44 and the p.118 reference list only three rows and neither mentions
+	# a covered target within 6", which reasonably reads as "cover is 6+ at every
+	# range" — the inference an earlier pass made when it changed the constant to
+	# 6 and pinned it here.
+	#
+	# The official errata v1.06 (docs/gameplay/rules/5P_errata_and_tweaks106.pdf)
+	# states the missing row explicitly: "Correction p.118: Add to Firing table:
+	# Covered target within 6": 5+. The main rules on p.44 are correct." The
+	# close-range bonus DOES apply to covered targets.
 	var threshold := BattleCalculations.calculate_hit_threshold(
 		0,  # combat_skill
 		true,  # target_in_cover
 		false, false,
 		3.0,  # within 6" (close band)
+		24
+	)
+	assert_int(threshold).is_equal(5)
+
+func test_cover_at_range_is_still_6() -> void:
+	# The errata adds a row; it does not change this one (Core Rules p.44:
+	# "Within weapon range and in Cover 6+").
+	var threshold := BattleCalculations.calculate_hit_threshold(
+		0, true, false, false,
+		12.0,  # beyond the 6" close band, within weapon range
 		24
 	)
 	assert_int(threshold).is_equal(6)
