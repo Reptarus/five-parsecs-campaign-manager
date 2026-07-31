@@ -18,6 +18,11 @@ const COLOR_TEXT := Color("#E0E0E0")
 const COLOR_TEXT_SEC := Color("#808080")
 const COLOR_SUCCESS := Color("#10B981")
 
+# SPACING_XS was USED (twice) but never declared, and this panel extends Control
+# rather than a Deep Space base class that could supply it — so the script failed
+# to PARSE and the Battle Simulator button on the main menu hard-broke into the
+# debugger. Value per the Deep Space 8px grid.
+const SPACING_XS := 4
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
@@ -216,7 +221,10 @@ func _build_ui() -> void:
 
 	# --- Launch Button ---
 	var launch_container := HFlowContainer.new()
-	launch_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	# FlowContainer.AlignmentMode, NOT BoxContainer's — Godot 4.6 treats them as
+	# distinct types and the mismatched assignment is a hard PARSE error, which
+	# is the second of the two breaks that made this screen unopenable.
+	launch_container.alignment = FlowContainer.ALIGNMENT_CENTER
 	vbox.add_child(launch_container)
 
 	_launch_button = Button.new()
