@@ -21,6 +21,9 @@ const FILTER_DEBOUNCE_SEC := 0.15
 const SIDEBAR_WIDTH := 320
 const EXPORT_DIR := "user://exports/journal/"
 const TOP_TAG_CHIPS := 12
+## Below this much DESIGN height the filter block is collapsed regardless of width —
+## a phone in landscape is wide but only ~338px tall. Matches WorldPhaseController.
+const SHORT_VIEWPORT_DESIGN_PX := 620.0
 
 ## Share menu item IDs
 const SHARE_COPY_ENTRY_PLAIN := 0
@@ -80,6 +83,9 @@ var _empty_label: Label
 var _debounce_timer: Timer
 var _type_chip_buttons: Dictionary = {}    ## type_string → Button
 var _tag_chip_buttons: Dictionary = {}     ## tag_string → Button
+var _filter_toggle: Button                 ## "Filters (N active)" disclosure
+var _filter_body: VBoxContainer            ## Everything the disclosure collapses
+var _filters_collapsed: bool = false
 
 
 func _ready() -> void:
@@ -207,6 +213,27 @@ func _build_filter_panel() -> Control:
 	v.add_theme_constant_override("separation", SPACING_SM)
 	panel.add_child(v)
 
+	# Disclosure row. Search stays visible always; everything below it collapses.
+	#
+	# Expanded, this block is a search field, two chip rows (14 type chips and up to 12
+	# tag chips, each wrapping), three dropdowns, a turn range and a reset button —
+	# over 400px of filters sitting on top of the entry list it filters. On a phone
+	# that left nothing for the entries themselves and pushed the screen 232px off the
+	# bottom. It starts collapsed on phones and expanded on tablet/desktop, and
+	# re-evaluates on rotation.
+	_filter_toggle = Button.new()
+	_filter_toggle.toggle_mode = true
+	_filter_toggle.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_filter_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	DialogStyles.style_secondary_button(_filter_toggle)
+	_filter_toggle.toggled.connect(_on_filters_toggled)
+	v.add_child(_filter_toggle)
+
+	_filter_body = VBoxContainer.new()
+	_filter_body.add_theme_constant_override("separation", SPACING_SM)
+	v.add_child(_filter_body)
+	v = _filter_body  # everything below builds into the collapsible body
+
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search title / description..."
 	_search_input.custom_minimum_size.y = TOUCH_TARGET_MIN
@@ -278,7 +305,66 @@ func _build_filter_panel() -> Control:
 	_reset_button.pressed.connect(_on_reset_filters)
 	adv.add_child(_reset_button)
 
+	_apply_filter_disclosure_default(true)
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	# layout_class_changed, not breakpoint_changed: rotating a tablet keeps the width
+	# bucket but flips single-column, which is what this decision keys off.
+	if rm and rm.has_signal("layout_class_changed"):
+		rm.layout_class_changed.connect(
+			func(_a = null, _b = null): _apply_filter_disclosure_default())
 	return panel
+
+
+## Collapse the filter block on phones, expand it everywhere else.
+##
+## Only touches the state when the layout class changes, so a player who opened the
+## filters on a phone keeps them open until they rotate.
+func _apply_filter_disclosure_default(force: bool = false) -> void:
+	var collapse := false
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		collapse = bool(rm.should_collapse_to_single_column())
+	# Height matters as much as width. A phone in landscape is 733 design px WIDE, so
+	# it is not single-column and kept the filters open — in 338px of height, where the
+	# block alone is taller than the screen. Collapse on a short viewport too.
+	var vp := get_viewport()
+	if vp and vp.get_visible_rect().size.y < SHORT_VIEWPORT_DESIGN_PX:
+		collapse = true
+	if collapse == _filters_collapsed and not force:
+		return
+	_filters_collapsed = collapse
+	if _filter_toggle:
+		_filter_toggle.button_pressed = not collapse
+	if _filter_body:
+		_filter_body.visible = not collapse
+	_update_filter_toggle_text()
+
+
+func _on_filters_toggled(pressed: bool) -> void:
+	_filters_collapsed = not pressed
+	if _filter_body:
+		_filter_body.visible = pressed
+	_update_filter_toggle_text()
+
+
+## "Filters" alone would hide the fact that a filter is still narrowing the list after
+## the block is collapsed, so the count of non-default filters is part of the label.
+func _update_filter_toggle_text() -> void:
+	if _filter_toggle == null:
+		return
+	var active := _filter_type_set.size() + _filter_tag_set.size()
+	if not _filter_character_id.is_empty():
+		active += 1
+	if not _filter_location.is_empty():
+		active += 1
+	if not _filter_mood.is_empty():
+		active += 1
+	if not _filter_search.is_empty():
+		active += 1
+	if _filter_turn_min >= 0 or _filter_turn_max >= 0:
+		active += 1
+	var suffix := " (%d active)" % active if active > 0 else ""
+	_filter_toggle.text = "Filters%s %s" % [suffix, "▾" if not _filters_collapsed else "▸"]
 
 
 func _build_chip_row_header(text: String) -> Label:
@@ -629,6 +715,9 @@ func _on_journal_entry_id_changed(entry_id: String) -> void:
 # ── Filter Application ──────────────────────────────────────────────────────
 
 func _apply_filters() -> void:
+	# Keep the "(N active)" count on the disclosure honest — it is the only signal
+	# that the list is still filtered once the block is collapsed.
+	_update_filter_toggle_text()
 	_filtered_entries.clear()
 	for entry: Dictionary in _all_entries:
 		if _entry_passes_filters(entry):

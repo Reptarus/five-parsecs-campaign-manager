@@ -27,6 +27,11 @@ const COLOR_SUCCESS := Color("#10B981")
 const COLOR_WARNING := Color("#D97706")
 
 const COVER_MAX_HEIGHT := 260
+## Floors for the shrink-to-fit pass in _fit_to_available_height(). Below these the
+## cover stops reading as art and the description stops showing a useful first line.
+const COVER_MIN_HEIGHT := 120.0
+const DESCRIPTION_MAX_HEIGHT := 140.0
+const DESCRIPTION_MIN_HEIGHT := 60.0
 
 signal cta_pressed(mode_id: String, is_unlocked: bool)
 
@@ -44,6 +49,64 @@ var _cta_button: Button
 
 func _ready() -> void:
 	_build_layout()
+	resized.connect(_fit_to_available_height)
+	_fit_to_available_height()
+
+
+## Shrink the cover art and the description to whatever height this card is given.
+##
+## The card's parts add up to a 706px minimum: a 260px cover, a 140px description, the
+## title, tagline, feature list and CTA. A tablet in landscape only offers about 429px
+## for it, so the card hung 197px off the bottom of the main menu. Both parts have a
+## sensible smaller size -- the cover is decorative and the description already
+## scrolls -- so they give ground first and the CTA button stays reachable.
+func _fit_to_available_height() -> void:
+	if _cover == null or _description == null:
+		return
+	# Budget from the SCREEN, not from size.y. A container never gives a child less
+	# than its minimum, so size.y already includes the overflow being fixed -- keying
+	# off it, the card measures itself as fitting while it hangs off the bottom.
+	var vp := get_viewport()
+	if vp == null or size.y <= 0.0:
+		return
+	var available: float = maxf(
+		160.0, vp.get_visible_rect().size.y - global_position.y - 16.0)
+	# Everything the card needs BESIDES the three flexible parts, measured rather than
+	# assumed. Hidden children contribute nothing to a container's minimum, so each
+	# term is dropped while its part is hidden -- `fixed` then reads the same in every
+	# state and the show/hide decisions below cannot oscillate between frames.
+	var fixed: float = get_combined_minimum_size().y - _description.custom_minimum_size.y
+	if _cover.visible:
+		fixed -= _cover.custom_minimum_size.y
+	if _features_box and _features_box.visible:
+		fixed -= _features_box.get_combined_minimum_size().y
+	var spare: float = available - fixed
+
+	# Give ground in order of how little it costs the reader: the cover is decoration,
+	# the feature bullets repeat what the description says, and the CTA button is the
+	# reason the card exists — it never gives ground.
+	var want_cover: bool = spare >= COVER_MIN_HEIGHT + DESCRIPTION_MIN_HEIGHT
+	var features_min: float = _features_box.get_combined_minimum_size().y if _features_box else 0.0
+	var want_features: bool = spare - (COVER_MIN_HEIGHT if want_cover else 0.0) \
+		- DESCRIPTION_MIN_HEIGHT >= features_min
+	if _features_box:
+		_features_box.visible = want_features
+	if want_features:
+		spare -= features_min
+	if not want_cover:
+		_cover.visible = false
+		_cover.custom_minimum_size.y = 0.0
+		_description.custom_minimum_size.y = clampf(
+			spare, DESCRIPTION_MIN_HEIGHT, DESCRIPTION_MAX_HEIGHT)
+		return
+	_cover.visible = true
+	# Split what is left in the same proportion as their natural sizes.
+	var cover_share: float = spare * (
+		float(COVER_MAX_HEIGHT) / float(COVER_MAX_HEIGHT + DESCRIPTION_MAX_HEIGHT))
+	_cover.custom_minimum_size.y = clampf(
+		cover_share, COVER_MIN_HEIGHT, COVER_MAX_HEIGHT)
+	_description.custom_minimum_size.y = clampf(
+		spare - _cover.custom_minimum_size.y, DESCRIPTION_MIN_HEIGHT, DESCRIPTION_MAX_HEIGHT)
 
 
 func _build_layout() -> void:
@@ -114,7 +177,7 @@ func _build_layout() -> void:
 	_description.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_description.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_description.custom_minimum_size = Vector2(0, 140)
+	_description.custom_minimum_size = Vector2(0, DESCRIPTION_MAX_HEIGHT)
 	root.add_child(_description)
 
 	# Features list

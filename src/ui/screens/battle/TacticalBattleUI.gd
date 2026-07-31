@@ -1964,8 +1964,52 @@ func _show_overlay(content_node: Control) -> void:
 	overlay_content.add_child(content_node)
 	# Drive the overlay width responsively so portrait phones don't overflow.
 	overlay_content.custom_minimum_size.x = _overlay_width()
+	_ensure_overlay_scroll()
+	call_deferred("_fit_overlay_height")
 	overlay_bg.visible = true
 	overlay_center.visible = true
+
+
+## Put the overlay content in a scroll so a tall modal cannot exceed the screen.
+##
+## Width was already handled; height was not. The tier picker needs 568px on a phone
+## in landscape (338 available) and 770px on a small phone, and a CenterContainer
+## sizes its child to that minimum whatever the screen — so the top and bottom of the
+## overlay, including its buttons, were simply off the screen. Created once and reused.
+func _ensure_overlay_scroll() -> ScrollContainer:
+	if overlay_content == null or not is_instance_valid(overlay_content):
+		return null
+	var parent := overlay_content.get_parent()
+	if parent is ScrollContainer:
+		return parent as ScrollContainer
+	if parent == null:
+		return null
+	var scroll := ScrollContainer.new()
+	scroll.name = "OverlayScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var idx: int = overlay_content.get_index()
+	parent.remove_child(overlay_content)
+	parent.add_child(scroll)
+	parent.move_child(scroll, idx)
+	scroll.add_child(overlay_content)
+	return scroll
+
+
+## Cap the overlay at the viewport, but only when it is actually taller.
+##
+## Deferred because the content's minimum is not known until the frame after it is
+## added; a short overlay keeps its natural height rather than stretching.
+func _fit_overlay_height() -> void:
+	var scroll := _ensure_overlay_scroll()
+	if scroll == null or not is_inside_tree():
+		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var available: float = maxf(160.0, vp.get_visible_rect().size.y - 32.0)
+	var wanted: float = overlay_content.get_combined_minimum_size().y
+	scroll.custom_minimum_size.x = _overlay_width()
+	scroll.custom_minimum_size.y = minf(wanted, available)
 
 func _hide_overlay() -> void:
 	## Hide the modal overlay. Uses remove_child for reusable nodes.
