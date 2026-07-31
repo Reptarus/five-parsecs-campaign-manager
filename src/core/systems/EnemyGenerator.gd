@@ -291,10 +291,10 @@ func _create_enemy(category: String, difficulty: int) -> Resource:
 	# Apply difficulty modifiers
 	var modified_stats = _apply_difficulty_modifiers(base_stats, difficulty)
 
-	# HOUSE RULE: varied_armaments - Each enemy gets individually rolled weapons
+	# Varied Armaments (p.104) is a SQUAD-level split into two groups, so it has
+	# no meaning when creating one enemy in isolation — it is applied in
+	# generate_enemies_as_dicts(), the live squad path.
 	var weapons = modified_stats.weapons
-	if HouseRulesHelper.is_enabled("varied_armaments"):
-		weapons = _roll_varied_weapons(weapons)
 
 	# Set enemy properties
 	enemy.set_meta("name", enemy_type)
@@ -348,15 +348,13 @@ func _create_enemy_from_template(
 	enemy.set_meta("toughness", modified_stats.get("toughness", 3))
 	enemy.set_meta("speed", modified_stats.get("speed", 4))
 
-	# Weapons — JSON stores Core Rules notation (e.g., "2 A")
-	var weapons: Array = _resolve_weapon_code(
-		template.get("weapons", "1 A")
+	# Weapons — JSON stores Core Rules notation (e.g., "2 A"): the number is the
+	# basic weapon column, the letter the Specialist column (p.104).
+	var weapons: Array = apply_ai_blade_rule(
+		_resolve_weapon_code(template.get("weapons", "1 A")),
+		str(template.get("ai", "A")),
+		int(modified_stats.get("combat_skill", 0))
 	)
-
-	# HOUSE RULE: varied_armaments
-	if HouseRulesHelper.is_enabled("varied_armaments"):
-		weapons = _roll_varied_weapons(weapons)
-
 	enemy.set_meta("weapons", weapons)
 
 	# AI type and special rules from JSON
@@ -424,32 +422,14 @@ func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dic
 
 	return modified
 
-func _roll_varied_weapons(base_weapons: Array) -> Array:
-	## Instead of all enemies having the same weapons, each gets a randomly selected subset
-	if base_weapons.is_empty():
-		return ["Basic Weapon"]
-
-	# Pool of common weapon variants to add variety
-	var weapon_variants = [
-		"Handgun", "Auto Pistol", "Shotgun", "Military Rifle", "Colony Rifle",
-		"Blade", "Club", "Hand Cannon", "Scrap Pistol", "Infantry Laser"
-	]
-
-	var varied_weapons = []
-
-	# 70% chance to keep a base weapon, 30% chance to swap for a variant
-	for weapon in base_weapons:
-		if randf() < 0.7:
-			varied_weapons.append(weapon)
-		else:
-			# Swap for a random variant
-			varied_weapons.append(weapon_variants.pick_random())
-
-	# Ensure at least one weapon
-	if varied_weapons.is_empty():
-		varied_weapons.append(base_weapons[0] if not base_weapons.is_empty() else "Handgun")
-
-	return varied_weapons
+# _roll_varied_weapons() was DELETED (Core Rules p.104). It claimed to implement
+# the Varied Armaments optional rule but invented its own mechanic: a 70/30 per
+# weapon chance to SWAP the listed weapon for one drawn from a hardcoded pool of
+# ten weapon names that is not a table in either book. That both fabricated a
+# mechanic and broke "Some enemies have a specific weapon listed, and always
+# carries that." The book's actual rule — "split the non-Specialist opponents
+# into two groups, and roll for the weapon carried by each group" — is now
+# implemented at the squad level in generate_enemies_as_dicts().
 
 func generate_enemies_as_dicts(
 	mission_data: Dictionary, campaign_crew_size: int = 6
@@ -503,8 +483,21 @@ func generate_enemies_as_dicts(
 	var base_combat: int = template.get("combat_skill", 0)
 	var base_tough: int = template.get("toughness", 3)
 	var base_speed: int = template.get("speed", 4)
-	var base_weapons: Array = _resolve_weapon_code(
-		template.get("weapons", "1 A"))
+	# Core Rules p.104: ONE roll on the numbered column arms the rank and file,
+	# and the Specialist rolls separately on the lettered Specialist column.
+	var weapon_code: Variant = template.get("weapons", "1 A")
+	var base_weapons: Array = _resolve_weapon_code(weapon_code)
+	var specialist_weapons: Array = resolve_specialist_weapon(weapon_code)
+	var ai_code: String = str(template.get("ai", "A"))
+
+	# Optional Rule: Varied Armaments (Core Rules p.104) — "split the
+	# non-Specialist opponents into two groups, and roll for the weapon carried
+	# by each group." A second basic-column roll arms the back half of the
+	# rank and file. Opt-in; off by default, exactly as the book has it.
+	var second_group_weapons: Array = []
+	var varied_armaments: bool = HouseRulesHelper.is_enabled("varied_armaments")
+	if varied_armaments:
+		second_group_weapons = _resolve_weapon_code(weapon_code)
 
 	# Specialist/Lieutenant per Core Rules p.93
 	var specialist_count: int = 0
@@ -527,6 +520,13 @@ func generate_enemies_as_dicts(
 			extra_weapons = ["Blade"]
 		elif specialist_count > 0 and i >= (enemy_count - specialist_count):
 			role = "specialist"
+			weapons = specialist_weapons.duplicate()
+
+		# Varied Armaments splits only the NON-Specialists (p.104).
+		if varied_armaments and role != "specialist" \
+				and not second_group_weapons.is_empty() \
+				and i >= int(ceil((enemy_count - specialist_count) / 2.0)):
+			weapons = second_group_weapons.duplicate()
 
 		var display_name: String = enemy_name
 		if role == "lieutenant":
@@ -534,15 +534,21 @@ func generate_enemies_as_dicts(
 		elif role == "specialist":
 			display_name = "%s Specialist" % enemy_name
 
+		var figure_combat: int = base_combat + combat_mod
 		enemies.append({
 			"type": enemy_name,
 			"name": display_name,
 			"role": role,
-			"combat_skill": base_combat + combat_mod,
+			"combat_skill": figure_combat,
 			"toughness": base_tough,
 			"reactions": 2 if role == "lieutenant" else 1,
 			"speed": base_speed,
-			"weapons": weapons + extra_weapons,
+			# p.104 + errata v1.06: Rampaging AI always carry a Blade; Aggressive
+			# AI do too unless Combat Skill is +0. Checked against THIS figure's
+			# Combat Skill, so a Lieutenant's +1 can qualify it where its mooks
+			# do not.
+			"weapons": apply_ai_blade_rule(
+				weapons + extra_weapons, ai_code, figure_combat),
 			"ai": template.get("ai", "A"),
 			"panic": template.get("panic", "1-2"),
 			"special_rules": template.get("special_rules", []),
@@ -885,73 +891,128 @@ func _parse_numbers_modifier(numbers_str) -> int:
 ## WEAPON CODE RESOLUTION — Core Rules weapon tables
 ## ═══════════════════════════════════════════════════════════════════════════════
 
-func _resolve_weapon_code(weapon_code) -> Array:
-	## Convert Core Rules weapon notation (e.g., "2 A") to weapon names.
-	## Format: "N X" where N = weapon count column, X = table letter.
-	## A = basic weapon_1, B = basic weapon_2, C = basic weapon_3.
-	## Also handles already-resolved arrays and plain weapon names.
+## ═══════════════════════════════════════════════════════════════════════════════
+## ENEMY WEAPONS — Core Rules p.104
+## ═══════════════════════════════════════════════════════════════════════════════
+##
+## The book: "Enemies are usually listed with a weapon code and a Specialist code
+## under Weapons (a number and a letter respectively). To determine the weapon
+## carried by the basic opponents (except Specialists), roll once below. Then roll
+## for the Specialist weapon if available."
+##
+## So "2 C" means the rank-and-file roll 1D6 on the WEAPON 2 column, and the
+## Specialist rolls 1D6 on the SPECIALIST C column. One roll each, not a count.
+##
+## THE GAP THIS FIXES: both halves of that notation were read backwards. The
+## number was treated as "how many weapons to roll" and the LETTER was mapped
+## onto the basic columns (A→weapon_1, B→weapon_2, C→weapon_3). Consequences on
+## every enemy in every battle:
+##   - a "2 A" enemy got TWO weapons rolled off the WEAPON 1 column
+##   - the column actually rolled was chosen by the Specialist code
+##   - the entire 18-entry Specialist table was unreachable, so Specialists
+##     carried the same gun as the mooks they lead
+##   - "Scrap Pistol + Blade" / "Handgun + Ripper Sword" stayed one fused string
+##     (the "handle combo weapons" comment sat above a bare `break`)
+##   - weapon_tables.ai_weapon_rules in enemy_types.json was never consulted
+## The JSON data was correct and complete the whole time.
+
+const _BASIC_COLUMNS := {1: "weapon_1", 2: "weapon_2", 3: "weapon_3"}
+const _SPECIALIST_COLUMNS := {
+	"A": "specialist_A", "B": "specialist_B", "C": "specialist_C"
+}
+
+func _split_combo(weapon_name: String) -> Array:
+	## Two table entries list a pair joined by "+" ("Scrap Pistol + Blade",
+	## "Handgun + Ripper Sword"). They are two carried weapons, not one item.
+	var out: Array = []
+	for part in weapon_name.split("+"):
+		var trimmed: String = str(part).strip_edges()
+		if not trimmed.is_empty():
+			out.append(trimmed)
+	return out if not out.is_empty() else [weapon_name]
+
+func _roll_on_weapon_table(table_key: String, column: String) -> Array:
+	## One D6 roll on one column of one weapon table (Core Rules p.104).
+	var table: Array = enemy_data.get("weapon_tables", {}).get(table_key, [])
+	if table.is_empty():
+		return ["Hand Gun"]
+	var roll: int = randi_range(1, 6)
+	for row in table:
+		if int(row.get("roll", 0)) == roll:
+			return _split_combo(str(row.get(column, "Hand Gun")))
+	return ["Hand Gun"]
+
+func parse_weapon_code(weapon_code) -> Dictionary:
+	## Split an enemy's WEAPONS entry into its two book halves.
+	## Returns {"is_table_code", "basic_column", "specialist_column", "fixed"}.
+	## `fixed` carries the literal loadout for entries that name their weapons
+	## outright ("Hand Cannon, Blade", "Fangs (Damage +1)") — p.104: "Some enemies
+	## have a specific weapon listed, and always carries that. No roll is made."
 	if weapon_code is Array:
-		return weapon_code
+		return {"is_table_code": false, "fixed": (weapon_code as Array).duplicate()}
 
 	var code_str: String = str(weapon_code).strip_edges()
-	if code_str.is_empty():
-		return ["Hand Gun"]
+	if code_str.is_empty() or code_str == "-":
+		return {"is_table_code": false, "fixed": ["Hand Gun"]}
 
-	# Check if it's a Core Rules notation like "1 A", "2 B", "3 C"
-	var parts: PackedStringArray = code_str.split(" ")
-	if parts.size() == 2 and parts[0].is_valid_int():
-		var count: int = parts[0].to_int()
-		var table_letter: String = parts[1].to_upper()
-		return _roll_weapons_from_table(count, table_letter)
+	var parts: PackedStringArray = code_str.split(" ", false)
+	if parts.size() == 2 and parts[0].is_valid_int() \
+			and _SPECIALIST_COLUMNS.has(parts[1].to_upper()):
+		return {
+			"is_table_code": true,
+			"basic_column": _BASIC_COLUMNS.get(int(parts[0]), "weapon_1"),
+			"specialist_column": _SPECIALIST_COLUMNS[parts[1].to_upper()],
+			"fixed": [],
+		}
 
-	# Plain weapon name (e.g., "Shotgun, Blade")
-	if "," in code_str:
-		var weapons: Array = []
-		for w in code_str.split(","):
-			weapons.append(w.strip_edges())
-		return weapons
+	# A literal loadout, comma-separated for multiples.
+	var fixed: Array = []
+	for w in code_str.split(","):
+		var trimmed: String = str(w).strip_edges()
+		if not trimmed.is_empty():
+			fixed.append(trimmed)
+	return {"is_table_code": false,
+		"fixed": fixed if not fixed.is_empty() else [code_str]}
 
-	return [code_str]
+func _resolve_weapon_code(weapon_code) -> Array:
+	## The RANK-AND-FILE loadout for an enemy entry: one D6 on the numbered
+	## basic-weapon column, or the literal weapons if the entry names them.
+	var parsed: Dictionary = parse_weapon_code(weapon_code)
+	if not parsed.get("is_table_code", false):
+		return parsed.get("fixed", ["Hand Gun"])
+	return _roll_on_weapon_table("basic", parsed["basic_column"])
 
-func _roll_weapons_from_table(
-	count: int, table_letter: String
+func resolve_specialist_weapon(weapon_code) -> Array:
+	## The SPECIALIST loadout: one D6 on the lettered Specialist column. Entries
+	## that name a literal loadout have no Specialist column, so the Specialist
+	## simply carries the same listed weapons (p.104: "always carries that").
+	var parsed: Dictionary = parse_weapon_code(weapon_code)
+	if not parsed.get("is_table_code", false):
+		return parsed.get("fixed", ["Hand Gun"])
+	return _roll_on_weapon_table("specialist", parsed["specialist_column"])
+
+func apply_ai_blade_rule(
+	weapons: Array, ai_code: String, combat_skill: int
 ) -> Array:
-	## Roll on weapon tables from enemy_types.json.
-	## table_letter: A=weapon_1, B=weapon_2, C=weapon_3
-	var weapon_tables: Dictionary = enemy_data.get(
-		"weapon_tables", {}
-	)
-	var basic_table: Array = weapon_tables.get("basic", [])
-
-	# Map table letter to column name
-	var column: String
-	match table_letter:
-		"A":
-			column = "weapon_1"
-		"B":
-			column = "weapon_2"
-		"C":
-			column = "weapon_3"
-		_:
-			column = "weapon_1"
-
-	var weapons: Array = []
-	for i in range(count):
-		if basic_table.is_empty():
-			weapons.append("Hand Gun")
-			continue
-
-		# Roll D6 for weapon table row
-		var roll: int = randi_range(1, 6)
-		var weapon_name: String = "Hand Gun"
-		for row in basic_table:
-			if row.get("roll", 0) == roll:
-				weapon_name = row.get(column, "Hand Gun")
-				# Handle combo weapons like "Scrap Pistol + Blade"
-				break
-		weapons.append(weapon_name)
-
-	return weapons
+	## Core Rules p.104, as corrected by the official errata v1.06 ("Replace
+	## reference to Psycho AI with Rampaging AI" — there is no Psycho AI type in
+	## the p.92 code table; R is Rampage, which is what the Psychos entry uses):
+	##   - Rampaging (R) AI ALWAYS carry a Blade in addition to any other weapon.
+	##   - Aggressive (A) AI carry a Blade in addition to any listed weapons,
+	##     UNLESS their Combat Skill is +0.
+	## Was never implemented anywhere; enemy_types.json even ships the rule text
+	## under weapon_tables.ai_weapon_rules, unread.
+	var code: String = ai_code.strip_edges().to_upper()
+	var gets_blade: bool = false
+	if code.begins_with("R"):
+		gets_blade = true
+	elif code.begins_with("A") and combat_skill != 0:
+		gets_blade = true
+	if not gets_blade or "Blade" in weapons:
+		return weapons
+	var out: Array = weapons.duplicate()
+	out.append("Blade")
+	return out
 
 ## ═══════════════════════════════════════════════════════════════════════════════
 ## DEBUG LOGGING - Sprint 26.5: Enemy Count Calculation Tracing
