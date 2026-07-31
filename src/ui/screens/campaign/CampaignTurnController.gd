@@ -640,6 +640,12 @@ func _initiate_battle_sequence() -> void:
 	var crew_size: int = 6
 	if game_state and game_state.has_method("get_campaign_crew_size"):
 		crew_size = game_state.get_campaign_crew_size()
+	# Difficulty must reach the generator: it drives the Unique Individual roll
+	# (Hardcore +1, Insanity always-present with 11-12 = two — Core Rules pp.93-94).
+	if not mission_data.has("difficulty_mode") and game_state.current_campaign \
+			and "progress_data" in game_state.current_campaign:
+		mission_data["difficulty_mode"] = game_state.current_campaign.progress_data.get(
+			"difficulty_mode", 0)
 	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
 		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)

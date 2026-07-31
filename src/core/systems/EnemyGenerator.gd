@@ -467,6 +467,9 @@ func generate_enemies_as_dicts(
 		"mission_source", "patron"
 	)
 	var is_quest: bool = mission_data.get("is_quest", false)
+	# GlobalEnums.DifficultyLevel ordinal. Needed for the Unique Individual roll
+	# (Hardcore +1, Insanity always-present) — Core Rules pp.93-94.
+	var difficulty_mode: int = int(mission_data.get("difficulty_mode", 0))
 
 	# Step 1: Select enemy type FIRST (Core Rules pp.91-94)
 	var category: String = ""
@@ -560,7 +563,111 @@ func generate_enemies_as_dicts(
 			"seize_initiative_modifier": int(cat_info.get("seize", 0)),
 		})
 
+	# Unique Individuals are added AFTER the roster above, because the book is
+	# explicit that the figure "is always in addition to those normally
+	# encountered" (Core Rules p.94) — it must not consume a Specialist or
+	# Lieutenant slot or change the counts already rolled.
+	for unique in roll_unique_individuals(mission_data, category, difficulty_mode):
+		enemies.append(unique)
+
 	return enemies
+
+
+func roll_unique_individuals(
+	mission_data: Dictionary, category: String, difficulty_mode: int = 0
+) -> Array[Dictionary]:
+	## Core Rules pp.93-94. Returns the Unique Individual figures accompanying this
+	## force — usually none.
+	##
+	## THE GAP THIS FILLS: this roll was never made anywhere. It lived in
+	## BattlePhase.gd, which was deleted in 99fad30b2 and never re-homed, leaving
+	## only post-battle consumers reading a "unique_kills" key nothing wrote. The
+	## table itself (22 entries) has been sitting complete and unused in
+	## enemy_types.json.
+	##
+	## Verbatim (p.93): "Unless fighting an Invasion battle or an enemy from the
+	## Roving Threats Subtable, roll 2D6. Add +1 if fighting opponents from the
+	## Interested Parties Subtable. If the campaign's difficulty mode is Hardcore,
+	## add +1. On a roll of 9+, the opposition is accompanied by a Unique
+	## Individual." And (p.94): "If the campaign's difficulty mode is Insanity, a
+	## Unique Individual is present, even if fighting a Roving Threat. Roll 2D6
+	## without any modifiers. A result of 11-12 means you have to fight 2 Unique
+	## Individuals."
+	var out: Array[Dictionary] = []
+	var table: Array = enemy_data.get("unique_individuals", [])
+	if table.is_empty():
+		return out
+
+	# GlobalEnums.DifficultyLevel: HARDCORE = 6, INSANITY = 8.
+	var is_insanity: bool = difficulty_mode == 8
+	var is_hardcore: bool = difficulty_mode == 6
+	var is_invasion: bool = bool(mission_data.get("is_invasion", false)) \
+		or str(mission_data.get("mission_source", "")) == "invasion"
+
+	var count: int = 0
+	if is_insanity:
+		# Always present, unmodified roll, 11-12 = two. Applies even to Roving
+		# Threats; the book calls that exception out by name.
+		count = 2 if (randi_range(1, 6) + randi_range(1, 6)) >= 11 else 1
+	else:
+		if is_invasion or category == "roving_threats":
+			return out
+		var roll: int = randi_range(1, 6) + randi_range(1, 6)
+		if category == "interested_parties":
+			roll += 1
+		if is_hardcore:
+			roll += 1
+		count = 1 if roll >= 9 else 0
+
+	for _i in range(count):
+		var entry: Dictionary = _roll_unique_individual_entry(table)
+		if entry.is_empty():
+			continue
+		out.append({
+			"type": str(entry.get("name", "Unique Individual")),
+			"name": str(entry.get("name", "Unique Individual")),
+			"role": "unique",
+			"is_unique_individual": true,
+			# "Unique Individuals are Fearless and will not be affected by Morale
+			# checks" (p.105).
+			"is_fearless": true,
+			"combat_skill": _stat_or(entry.get("combat_skill", "-"), 0),
+			"toughness": _stat_or(entry.get("toughness", "-"), 3),
+			"speed": _stat_or(entry.get("speed", "-"), 4),
+			"reactions": 1,
+			"luck": int(entry.get("luck", 0)),
+			# "Note that they may follow a different AI routine than the group they
+			# are accompanying" (p.105). An entry with "-" (the Enemy Boss) uses
+			# the main force's AI type.
+			"ai": str(entry.get("ai", "A")) if str(entry.get("ai", "-")) != "-" else "",
+			"weapons": str(entry.get("weapons", "")).split(", ", false),
+			"special_rules": entry.get("special_rules", []),
+			"category": category,
+			"unique_id": str(entry.get("id", "")),
+		})
+	return out
+
+
+func _roll_unique_individual_entry(table: Array) -> Dictionary:
+	## D100 against the pp.105-107 table's roll_range bounds.
+	var roll: int = randi_range(1, 100)
+	for entry in table:
+		var rng: Array = entry.get("roll_range", [])
+		if rng.size() >= 2 and roll >= int(rng[0]) and roll <= int(rng[1]):
+			return entry
+	return table.back() if not table.is_empty() else {}
+
+
+func _stat_or(raw: Variant, fallback: int) -> int:
+	## Unique entries use "-" to mean "keep the base enemy's value" and a bare
+	## number or "+1" to mean an absolute or relative score. Only absolute values
+	## are meaningful without a base figure, so "-" and "+n" fall back.
+	if raw is int or raw is float:
+		return int(raw)
+	var s: String = str(raw).strip_edges()
+	if s == "" or s == "-" or s.begins_with("+"):
+		return fallback
+	return int(s) if s.is_valid_int() else fallback
 
 
 func _category_info(category_id: String) -> Dictionary:
