@@ -99,8 +99,12 @@ Every one of these is a no-op or an offline adapter on desktop.
 - [ ] Review: `InappReviewPlugin` two-step flow does not crash
 - [ ] Haptics: `SettingsManager` haptic helper actually buzzes
 - [ ] Bug reporter: attach + submit path works end-to-end
-- [ ] Verify the shipped APK does NOT contain `CLAUDE.md` / partnership docs —
-      **unzip the artifact**, do not trust the export glob (see the export-filter gotcha)
+- [x] ~~Verify the shipped APK does NOT contain `CLAUDE.md` / partnership docs~~ —
+      **settled on desktop Jul 30**, this never needed device time. Unzipped
+      `build/fpfh-0.9.7-sideload.apk`: 2,870 entries, 0 partnership/dev matches, and the
+      only 4 markdown files packed are the legal ones the app actually reads
+      (`assets/data/legal/`). **Re-run this check on the NEW build** — it verifies an
+      artifact, not a config, so it has to be repeated per APK.
 
 ## 6. Scoped storage — MED
 
@@ -129,12 +133,25 @@ blind to SurfaceView.
 
 ---
 
+## Must happen BEFORE Sunday (else the device tests the wrong build)
+
+- [ ] **Build a fresh APK from `campaign-editor-and-fixits`.** The newest artifact,
+      `build/fpfh-0.9.7-sideload.apk`, is dated **Jul 29** — one day before the entire
+      layout close-out. Sideloading it would test none of the 161 button-width fixes, the
+      short-screen scrolling, the 8px gutter, or any of the screen fixes, and every
+      "device bug" found would be a ghost already fixed on desktop.
+- [ ] Re-run the unzip check on that new APK (above).
+- [ ] Decide whether the branch merges to `master` first — it is 77 commits ahead.
+
 ## Known-open before the device arrives
 
 State these honestly rather than discovering them as "device bugs":
 
-- Layout sweep findings not yet fixed (small-phone off-screen overflow). The tablet is
-  larger than the worst case, so most will not manifest at 800×1280 — but they are real at
-  360×640 and a tester on a small phone will hit them.
 - The oldest save has one crew member with neither `reaction` nor `reactions`, so that one
   card still shows `R: 0`. Backfilling would mean inventing a stat value.
+- `MissionSelectionUI` is out of the geometry sweep's scope: all of its controls live
+  under a `PopupPanel`, which is a Window and lays out against its own rect rather than
+  the screen's, so measuring it compares two coordinate spaces. It is the one screen with
+  no desktop geometry evidence — **worth an explicit look on the device.**
+- Layout findings are no longer on this list: the sweep is 198/198 green with a campaign
+  loaded, at all six sizes including the 360dp small-phone worst case.
