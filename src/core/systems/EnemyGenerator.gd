@@ -8,6 +8,13 @@ extends Resource
 # DataManager accessed via autoload singleton (not preload)
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
+## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
+## data/red_zone_jobs.json increased_opposition; kept as named constants so the
+## generator reads as the book does.
+const RED_ZONE_BASE_FIGURES := 7
+const RED_ZONE_SPECIALISTS := 3      # "3 Specialists, one of which is a Lieutenant"
+const RED_ZONE_UNIQUE_BONUS := 1     # "+1 to the roll to determine whether a Unique Individual is present"
+
 signal enemies_generated(enemies: Array[Resource])
 signal enemy_data_loaded(categories_count: int)
 
@@ -451,6 +458,13 @@ func generate_enemies_as_dicts(
 	# (Hardcore +1, Insanity always-present) — Core Rules pp.93-94.
 	var difficulty_mode: int = int(mission_data.get("difficulty_mode", 0))
 
+	# Red / Black Zone jobs (Core Rules Appendix III pp.149-151). Both were rolled
+	# and PRINTED by MissionPrepComponent and applied nowhere: the generator never
+	# read either flag, so a Red Job fielded an ordinary force and a Black Job
+	# could draw any encounter category at all.
+	var is_red_zone: bool = bool(mission_data.get("is_red_zone", false))
+	var is_black_zone: bool = bool(mission_data.get("is_black_zone", false))
+
 	# Step 1: Select enemy type FIRST (Core Rules pp.91-94)
 	var category: String = ""
 	var template: Dictionary = {}
@@ -461,7 +475,11 @@ func generate_enemies_as_dicts(
 			category = template.get("category", "")
 	# Fallback: roll random enemy from D100 encounter table
 	if template.is_empty():
-		if not mission_source.is_empty():
+		if is_black_zone:
+			# p.150: "You will always be facing an opponent from the Roving
+			# Threats Subtable."
+			category = "roving_threats"
+		elif not mission_source.is_empty():
 			category = _roll_encounter_category(mission_source)
 		else:
 			var objective: String = mission_data.get("objective", "patrol")
@@ -476,6 +494,14 @@ func generate_enemies_as_dicts(
 	var numbers_mod: int = _parse_numbers_modifier(
 		template.get("numbers", "+0"))
 	var enemy_count: int = maxi(1, base_count + numbers_mod)
+
+	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
+	# numbers. Instead, you will encounter a base of 7 figures + any modifier
+	# from the enemy type encountered. NO OTHER MODIFIERS ARE APPLIED up or
+	# down." So the crew-size dice and the difficulty adjustment are discarded
+	# outright — this replaces base_count rather than adding to it.
+	if is_red_zone:
+		enemy_count = maxi(1, RED_ZONE_BASE_FIGURES + numbers_mod)
 
 	var cat_info: Dictionary = _category_info(category)
 
@@ -522,8 +548,15 @@ func generate_enemies_as_dicts(
 			specialist_count = 1
 		if difficulty_mode == 8 and specialist_count > 0:  # INSANITY
 			specialist_count += 1
+		# Red Job (p.150): "Opposing figures will include 3 Specialists, one of
+		# which is a Lieutenant." Three special figures TOTAL with the Lieutenant
+		# counted among them — so two Specialists sit alongside it, not three.
+		# This replaces the p.93 thresholds rather than stacking with them.
+		if is_red_zone:
+			specialist_count = RED_ZONE_SPECIALISTS - 1
 		specialist_count = mini(specialist_count, maxi(0, enemy_count - 1))
-	var has_lieutenant: bool = (enemy_count >= 4)
+	# A Red Job always fields its Lieutenant, even below the p.93 count of 4.
+	var has_lieutenant: bool = (enemy_count >= 4) or is_red_zone
 
 	var enemies: Array[Dictionary] = []
 	for i in range(enemy_count):
@@ -656,6 +689,10 @@ func roll_unique_individuals(
 			roll += 1
 		if is_hardcore:
 			roll += 1
+		# Red Job (Core Rules p.150): "Add +1 to the roll to determine whether a
+		# Unique Individual is present."
+		if bool(mission_data.get("is_red_zone", false)):
+			roll += RED_ZONE_UNIQUE_BONUS
 		count = 1 if roll >= 9 else 0
 
 	# Base profile of the enemy type being fought. Required by the designer's
