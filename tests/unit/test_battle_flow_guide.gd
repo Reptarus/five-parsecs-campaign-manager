@@ -122,3 +122,61 @@ func test_append_notable_sight_marker() -> void:
 	assert_bool(out[1].get("grid_pos") is Vector2).is_true()
 	assert_str(str(out[1].get("label", ""))).contains("Loot cache")
 	assert_str(str(out[1].get("rule", ""))).contains("p.89")
+
+
+# ── Win-condition lookup accepts the names the data actually ships ────────
+#
+# Found by a desktop runtime walk. The Battle Card's objective row exists to
+# tell the player how they WIN, and it was printing a blank one.
+#
+# Two compounding causes:
+#   1. The card read mission_data["objective"] — the JOB name from the world
+#      phase — while the glance chip, battle log and results form all read the
+#      objective the tracker resolved from the p.89 D10 table. The card said
+#      "Objective: Fight Off" while the chip said "Deliver: open".
+#   2. This table is keyed by snake_case ("fight_off"), but every objective in
+#      data/patron_generation.json is stored as a DISPLAY name ("Fight Off").
+#      Eight of the ten matched by luck because they are single words; the two
+#      multi-word ones fell through to "" and rendered an empty row.
+
+## Every objective on the Core Rules p.89 D10 tables, spelled as the data file
+## spells it.
+const BOOK_OBJECTIVES := [
+	"Move Through", "Deliver", "Access", "Patrol", "Fight Off",
+	"Eliminate", "Secure", "Protect", "Search", "Defend", "Acquire",
+]
+
+func test_every_book_objective_has_a_win_condition() -> void:
+	for objective in BOOK_OBJECTIVES:
+		assert_str(Guide.objective_win_text(objective)) \
+			.override_failure_message(
+				"Objective '%s' has no win-condition text — the Battle Card row would be blank"
+				% objective).is_not_empty()
+
+func test_multi_word_objectives_resolve_from_their_display_name() -> void:
+	# The exact two that were silently blank.
+	assert_str(Guide.objective_win_text("Fight Off")).is_not_empty()
+	assert_str(Guide.objective_win_text("Move Through")).is_not_empty()
+
+func test_display_name_and_snake_case_id_agree() -> void:
+	# The card looks up by tracker ID, other callers by name; both must land on
+	# the same text so the player never sees two different win conditions.
+	assert_str(Guide.objective_win_text("Fight Off")) \
+		.is_equal(Guide.objective_win_text("fight_off"))
+	assert_str(Guide.objective_win_text("Move Through")) \
+		.is_equal(Guide.objective_win_text("move_through"))
+
+func test_win_text_states_the_book_condition_not_a_paraphrase() -> void:
+	# Spot-check the two whose conditions are easiest to get subtly wrong.
+	# p.91 Secure: "end 2 consecutive rounds with crew within 2\" of the center.
+	# A crew member with an enemy within 6\" of them does not count."
+	var secure: String = Guide.objective_win_text("Secure").to_lower()
+	assert_str(secure).contains("2 consecutive rounds")
+	assert_str(secure).contains("6\"")
+	# p.91 Search: "A 5+ finds what you were looking for, and you Win."
+	assert_str(Guide.objective_win_text("Search")).contains("5+")
+
+func test_an_unknown_objective_still_returns_empty() -> void:
+	# The fallback must stay empty rather than inventing a condition.
+	assert_str(Guide.objective_win_text("Nonexistent Objective")).is_empty()
+	assert_str(Guide.objective_win_text("")).is_empty()

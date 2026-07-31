@@ -2376,10 +2376,34 @@ func _build_battle_card() -> Control:
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(title)
 
-	# Objective + win condition (p.89-90)
-	var obj_txt: String = str(md.get("objective", md.get("type", "")))
+	# Objective + win condition (p.89-90).
+	#
+	# THE BUG THIS FIXES: this read mission_data["objective"] — the JOB's name
+	# from the world phase — while the glance chip, the battle log and the
+	# results form all read the objective the tracker actually resolved from the
+	# p.89 D10 table. A desktop run showed "◆ Objective: Fight Off" on the card
+	# while the chip read "Deliver: open" and the log was tracking "all enemies
+	# with package undamaged". The card's whole purpose is to state the WIN
+	# CONDITION, so naming a different objective than the one being tracked told
+	# the player to satisfy the wrong one. The tracker is authoritative; the
+	# mission keys are the fallback for paths that never built a tracker.
+	var obj_txt: String = ""
+	var obj_key: String = ""
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		obj_txt = _objective_tracker.get_objective_name()
+		# The win-text table is keyed by the snake_case objective ID, so look up
+		# by ID and display by name. Passing the display name matched nothing for
+		# the two multi-word objectives ("Fight Off" != "fight_off",
+		# "Move Through" != "move_through") and printed a BLANK win condition —
+		# on the one card row whose entire job is to state how you win.
+		obj_key = _objective_tracker.get_objective_id()
+	if obj_txt == "":
+		obj_txt = str(md.get("mission_objective",
+			md.get("objective", md.get("type", ""))))
+	if obj_key == "":
+		obj_key = obj_txt
 	if obj_txt != "":
-		var win: String = BattleFlowGuideClass.objective_win_text(obj_txt)
+		var win: String = BattleFlowGuideClass.objective_win_text(obj_key)
 		rows += 1
 		_battle_card_row(vbox, "◆ Objective: %s" % obj_txt.capitalize(),
 			win + (" (Core Rules p.90)" if win != "" else ""),
