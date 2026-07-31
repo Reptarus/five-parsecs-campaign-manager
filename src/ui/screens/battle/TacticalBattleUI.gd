@@ -4302,6 +4302,17 @@ func _on_card_action(char_name: String, action_type: String, unit) -> void:
 		if activation_tracker and is_instance_valid(activation_tracker) \
 				and activation_tracker.has_method("set_unit_activated"):
 			activation_tracker.set_unit_activated(_unit_id(unit), true)
+		# Core Rules p.118, verbatim: "Stunned figures may Move OR make a Combat
+		# Action. Remove one Stun marker after acting." Nothing removed markers
+		# anywhere — they were only cleared by a full round reset, so a figure
+		# Stunned once stayed Stunned for the rest of the battle and the player
+		# had to remember to clear it by hand.
+		if unit.stun_markers > 0:
+			unit.stun_markers -= 1
+			if unified_log:
+				unified_log.log_action(char_name,
+					"acted while Stunned — remove 1 Stun marker (%d left)"
+						% unit.stun_markers)
 	if unified_log:
 		unified_log.log_action(char_name, action_type)
 	_refresh_unit_rails()

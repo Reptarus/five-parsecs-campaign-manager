@@ -143,6 +143,7 @@ func _process(_delta: float) -> bool:
 			_check_results_prefill()
 			_check_end_phase_checklist()
 			_check_glance_chips()
+			_check_stun_decrement()
 
 			# FULL_ORACLE is a different UI arrangement — verify it on its own
 			# instance so the ASSISTED assertions above are not disturbed.
@@ -204,6 +205,22 @@ func _check_end_phase_checklist() -> void:
 	_ok("no give-up prompt before the objective is complete",
 		_ui._giveup_check_info().is_empty(),
 		"give-up prompt offered with no completed objective")
+
+func _check_stun_decrement() -> void:
+	## P1.13 — Core Rules p.118: "Stunned figures may Move OR make a Combat
+	## Action. Remove one Stun marker after acting." Nothing removed markers, so a
+	## figure Stunned once stayed Stunned for the whole battle.
+	var crew: Array = _ui.get("crew_units")
+	var unit = crew[0]
+	unit.stun_markers = 2
+	_ui._on_card_action(unit.node_name, "generic_action", unit)
+	_ok("acting removes exactly one Stun marker (p.118)",
+		unit.stun_markers == 1, "got %d, expected 1" % unit.stun_markers)
+	# An unstunned figure must not go negative.
+	unit.stun_markers = 0
+	_ui._on_card_action(unit.node_name, "generic_action", unit)
+	_ok("an unstunned figure stays at zero markers",
+		unit.stun_markers == 0, "got %d" % unit.stun_markers)
 
 func _check_glance_chips() -> void:
 	## U5 — round, enemies-left + Panic range, objective and active deployment
