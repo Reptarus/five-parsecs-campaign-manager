@@ -64,6 +64,14 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	# Short-screen scroll: the edit panes need 538px of height and a phone in landscape
+	# has 338. Header stays pinned; everything below it scrolls when the screen is
+	# short, and lays out exactly as before when it is not.
+	if _body:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_body, 1)
+
 
 func _resolve_context() -> void:
 	var gs := get_node_or_null("/root/GameState")

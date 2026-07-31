@@ -15,13 +15,25 @@ extends Node
 ## Margins only (it never reparents or restyles) — pair with an HBox->HFlow scene
 ## edit for non-wrapping button rows, per docs/sop/responsive-adaptive-ui.md.
 
+## Gutter kept on each side in portrait. NOT the old 4px: content flush against the
+## screen edge reads as broken, and on a rounded-corner phone the first few pixels are
+## physically cut off.
+##
+## 8 design px (~9dp) is what the narrowest supported screen can currently afford on
+## BOTH sides while every screen still fits the 310px floor — the World Phase and the
+## turn controller clear it by about 5px, and at 12 they were 3px over. Raising this
+## further is a real change, not a constant tweak: it needs another pass at those two
+## screens' content widths first, verified with tests/tools/verify_layout.gd.
+const PORTRAIT_GUTTER := 8
+
 var _mc: MarginContainer = null
-var _portrait_lr: int = 4
+var _portrait_lr: int = PORTRAIT_GUTTER
 var _landscape_lr: int = 20
 var _rm: Node = null
 var _wired: bool = false
 
-func setup(margin_container: MarginContainer, portrait_lr: int = 4, landscape_lr: int = -1) -> void:
+func setup(margin_container: MarginContainer, portrait_lr: int = PORTRAIT_GUTTER,
+		landscape_lr: int = -1) -> void:
 	_mc = margin_container
 	_portrait_lr = portrait_lr
 	# Capture the scene's ORIGINAL L/R margin as the landscape restore value (robust

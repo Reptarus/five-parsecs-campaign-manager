@@ -45,6 +45,15 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	# Short-screen scroll: needs more height than a phone in landscape has (~338 design
+	# px), and a grow-both root turns that overflow into content hanging off the TOP as
+	# well, under the floating settings buttons. Scrolls there, unchanged when taller.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+
 func _setup_adaptive_panels() -> void:
 	## Migrate the side-by-side MainContent HBox into an AdaptivePanelGroup so the
 	## three panes (crew list / details / advancement options) collapse to a tabbed

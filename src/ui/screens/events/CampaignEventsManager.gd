@@ -63,6 +63,16 @@ func _ready() -> void:
 	var _so := get_node_or_null("/root/SettingsOverlay")
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
+
+	# Short-screen scroll: this screen needs more height than a phone in landscape has
+	# (~338 design px), and a grow-both root turns that overflow into content hanging
+	# off the TOP as well, underneath the floating settings buttons. Scrolls there,
+	# unchanged on anything taller.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
 	# Portrait de-clip: trim root margins in portrait (restored landscape).
 	var pc_mc := get_node_or_null("MarginContainer")
 	if pc_mc is MarginContainer:

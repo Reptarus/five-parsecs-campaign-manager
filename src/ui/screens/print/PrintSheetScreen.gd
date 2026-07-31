@@ -43,6 +43,23 @@ func _ready() -> void:
 	var _so := get_node_or_null("/root/SettingsOverlay")
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
+
+	# Short-screen scroll. This is also the "scrollable rail" fix: the preview and the
+	# 240px action rail stack in portrait, and on a short screen the stack is taller
+	# than the viewport, so Save PNG / Save PDF sat below the fold with no way to
+	# reach them. The top bar stays pinned.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column == null:
+		for _child in get_children():
+			if _child is MarginContainer:
+				for _inner in _child.get_children():
+					if _inner is BoxContainer:
+						_sss_column = _inner
+						break
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	# layout_class_changed, not breakpoint_changed: rotating a device keeps the
 	# width bucket but flips portrait/landscape, and this screen only cares about

@@ -38,6 +38,15 @@ func _run() -> void:
 		quit(1)
 		return
 
+	# Optional 5th arg: campaign=user://saves/x.save — several screens build from
+	# campaign data and measure very differently when it is present.
+	for arg in args:
+		if String(arg).begins_with("campaign="):
+			var path := String(arg).substr("campaign=".length())
+			var gs := root.get_node_or_null("/root/GameState")
+			if gs and gs.has_method("load_campaign") and FileAccess.file_exists(path):
+				gs.load_campaign(path)
+
 	DisplayServer.window_set_size(Vector2i(w, h))
 	for _i in range(3):
 		await process_frame
@@ -75,10 +84,24 @@ func _run() -> void:
 			stack.append([c, depth + 1])
 		if not (node is Control) or not (node as Control).is_visible_in_tree():
 			continue
+		# Content inside a ScrollContainer is ALLOWED to exceed the screen — that is
+		# what scrolling means — and listing it buries the nodes that actually force
+		# the screen wider. Same exemption the sweep applies.
+		if _inside_scroll(node, inst):
+			continue
 		var m: Vector2 = (node as Control).get_combined_minimum_size()
 		var mv: float = m.x if horiz else m.y
 		worst = maxf(worst, mv)
-		rows.append([mv, depth, "%s (%s)" % [str(inst.get_path_to(node)), node.get_class()]])
+		var label_text := ""
+		if node is Label:
+			label_text = "  text=\"%s\" clip=%s wrap=%d" % [
+				(node as Label).text.substr(0, 40), str((node as Label).clip_text),
+				(node as Label).autowrap_mode]
+		elif node is Button:
+			label_text = "  text=\"%s\" clip=%s" % [
+				(node as Button).text.substr(0, 40), str((node as Button).clip_text)]
+		rows.append([mv, depth,
+			"%s (%s)%s" % [str(inst.get_path_to(node)), node.get_class(), label_text]])
 
 	rows.sort_custom(func(a, b): return a[0] > b[0] if a[0] != b[0] else a[1] > b[1])
 	print("--- controls within 140px of the worst minimum (%.0f), deepest first ---" % worst)
@@ -89,3 +112,13 @@ func _run() -> void:
 		print("  %7.1f  depth=%-2d  %s" % [r[0], r[1], r[2]])
 		shown += 1
 	quit(0)
+
+
+## True when the node sits inside a ScrollContainer somewhere below `stop`.
+func _inside_scroll(n: Node, stop: Node) -> bool:
+	var p := n.get_parent()
+	while p != null and p != stop:
+		if p is ScrollContainer:
+			return true
+		p = p.get_parent()
+	return false

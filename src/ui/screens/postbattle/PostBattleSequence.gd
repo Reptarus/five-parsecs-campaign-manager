@@ -147,6 +147,15 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	# The step list, the current step and the results panel do not fit 338px of
+	# landscape height between them; the current step ended up 236px off the screen.
+	# Scroll on a short screen, unchanged on anything taller.
+	var _column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_column as BoxContainer, 0)
+
 
 ## First PanelContainer ancestor of `node` (robust to scene-tree depth changes).
 func _find_panel_ancestor(node: Node) -> PanelContainer:

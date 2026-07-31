@@ -35,6 +35,10 @@ enum PortraitMode { STACK, TABS, AUTO }
 			_relayout()
 
 ## Maximum side-by-side columns in GRID mode (clamped to pane count).
+## Narrowest a pane may get before a column is dropped. Sized from the real content:
+## the dashboard's three columns each report a ~300px minimum.
+const MIN_COLUMN_DESIGN_PX := 320.0
+
 @export var max_columns: int = 3:
 	set(value):
 		max_columns = maxi(1, value)
@@ -149,10 +153,28 @@ func _effective_columns() -> int:
 	return max_columns  # no RM (e.g. @tool editor preview): assume spread
 
 
+## How many columns the DESIGN SPACE can actually hold, whatever the breakpoint says.
+##
+## ResponsiveManager answers "how wide is this device", which is the right question for
+## a phone in portrait and the wrong one for a phone in LANDSCAPE: 733 design px lands
+## in a wide bucket and asks for three columns, but three dashboard columns need ~900px
+## between them, so the whole screen was dragged ~95px off BOTH edges (grow-both
+## re-centres the overflow). Column count has to respect the width that exists.
+func _columns_that_fit() -> int:
+	var vp := get_viewport()
+	if vp == null:
+		return max_columns
+	var avail: float = vp.get_visible_rect().size.x
+	if avail <= 0.0:
+		return max_columns
+	return maxi(1, int(avail / MIN_COLUMN_DESIGN_PX))
+
+
 func _relayout() -> void:
 	if not _grid or _panes.is_empty():
 		return
 	var eff := mini(_effective_columns(), mini(max_columns, _panes.size()))
+	eff = mini(eff, _columns_that_fit())
 	if eff >= 2:
 		_show_grid(eff)
 	elif _resolve_portrait_mode() == PortraitMode.TABS:

@@ -83,6 +83,16 @@ func _setup_screen() -> void:
 	_check_pending_transfers.call_deferred()
 	_setup_adaptive_panels()
 
+	# Short-screen scroll: app bar, resource strip, panes and action buttons need more
+	# than the ~338 design px a phone in landscape has. The app bar stays pinned so
+	# navigation is always reachable; everything below it scrolls on a short screen and
+	# lays out exactly as before on anything taller.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+
 
 ## Reparent the 3 info columns into an AdaptivePanelGroup: a 3-column glance GRID
 ## on desktop/landscape, a Crew/Ship/World TAB strip in portrait (one focused,
@@ -106,6 +116,12 @@ func _setup_adaptive_panels() -> void:
 		var inner: Node = col.get_node_or_null(pair[1]) if col else null
 		if inner is ScrollContainer:
 			(inner as ScrollContainer).vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+			# Horizontal too. These panes hold player-authored text — crew names, ship
+			# names, world names — so their content width is not something the layout
+			# can bound. With horizontal scrolling DISABLED that width propagated all
+			# the way up and pushed the whole dashboard 16px off a 360dp phone; with it
+			# AUTO the pane absorbs it and an over-long row scrolls inside its own box.
+			(inner as ScrollContainer).horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	var group = AdaptivePanelGroupClass.new()
 	group.name = "DashboardPanes"
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS

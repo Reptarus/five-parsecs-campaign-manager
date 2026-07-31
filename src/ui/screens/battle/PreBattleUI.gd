@@ -103,6 +103,14 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
+	# This screen needs 561px of height; a phone in landscape has 338. Let it scroll
+	# there, and lay out exactly as before on anything taller.
+	var _column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_column as BoxContainer, 0)
+
 
 ## Reparent the 3 content panels (Mission / Battlefield / Crew) into an
 ## AdaptivePanelGroup so they sit side-by-side in landscape and collapse to a tab
