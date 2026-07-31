@@ -93,12 +93,12 @@ func show_grenade_picker() -> void:
 	confirm_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_ACCENT
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	btn_style.set_content_margin_all(8)
 	confirm_btn.add_theme_stylebox_override("normal", btn_style)
 	var btn_hover := StyleBoxFlat.new()
 	btn_hover.bg_color = COLOR_ACCENT_HOVER
-	btn_hover.set_corner_radius_all(6)
+	btn_hover.set_corner_radius_all(4)
 	btn_hover.set_content_margin_all(8)
 	btn_hover.border_color = COLOR_FOCUS
 	btn_hover.set_border_width_all(2)
@@ -150,13 +150,13 @@ func _create_counter_row(label_text: String, initial_count: int) -> HBoxContaine
 func _style_counter_button(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = COLOR_ELEVATED
-	normal.set_corner_radius_all(6)
+	normal.set_corner_radius_all(4)
 	normal.border_color = COLOR_BORDER
 	normal.set_border_width_all(1)
 	btn.add_theme_stylebox_override("normal", normal)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = COLOR_ACCENT
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(1)
 	btn.add_theme_stylebox_override("hover", hover)

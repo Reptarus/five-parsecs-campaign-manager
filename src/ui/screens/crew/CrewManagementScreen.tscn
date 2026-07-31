@@ -1,52 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://crew_management_screen_001"]
+[gd_scene load_steps=2 format=3 uid="uid://crew_management_screen_001"]
 
 [ext_resource type="Script" path="res://src/ui/screens/crew/CrewManagementScreen.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_HeaderPanel"]
-bg_color = Color(0.067, 0.094, 0.153, 0.8)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.216, 0.255, 0.318, 0.5)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_CrewListContainer"]
-bg_color = Color(0.067, 0.094, 0.153, 0.8)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.216, 0.255, 0.318, 0.5)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_Button"]
-bg_color = Color(0.176, 0.353, 0.482, 1)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 0
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ButtonHover"]
-bg_color = Color(0.227, 0.443, 0.6, 1)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 0
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 
 [node name="CrewManagementScreen" type="Control"]
 layout_mode = 3
@@ -73,8 +27,8 @@ theme_override_constants/separation = 24
 
 [node name="HeaderPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_type_variation = &"SectionCard"
 custom_minimum_size = Vector2(0, 60)
-theme_override_styles/panel = SubResource("StyleBoxFlat_HeaderPanel")
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/HeaderPanel"]
 layout_mode = 2
@@ -83,8 +37,10 @@ theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 16
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer"]
+[node name="HBoxContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer"]
 layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 4
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/MarginContainer/HBoxContainer"]
 layout_mode = 2
@@ -107,8 +63,8 @@ vertical_alignment = 1
 
 [node name="CrewListContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_type_variation = &"SectionCard"
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_CrewListContainer")
 
 [node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/CrewListContainer"]
 layout_mode = 2
@@ -137,31 +93,19 @@ theme_override_constants/v_separation = 8
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_Button")
+theme_type_variation = &"PrimaryButton"
 text = "Add Member"
 
 [node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_Button")
+theme_type_variation = &"ConfirmButton"
 text = "Save"
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_Button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_ButtonHover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_Button")
+theme_type_variation = &"BackButton"
 text = "Back to Dashboard"

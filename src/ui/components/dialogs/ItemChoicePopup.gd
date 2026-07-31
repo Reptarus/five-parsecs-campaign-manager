@@ -91,14 +91,14 @@ func show_choices(result_name: String, options: Array) -> void:
 		# Normal style
 		var btn_normal := StyleBoxFlat.new()
 		btn_normal.bg_color = COLOR_ACCENT
-		btn_normal.set_corner_radius_all(6)
+		btn_normal.set_corner_radius_all(4)
 		btn_normal.set_content_margin_all(8)
 		btn.add_theme_stylebox_override("normal", btn_normal)
 
 		# Hover style
 		var btn_hover := StyleBoxFlat.new()
 		btn_hover.bg_color = COLOR_ACCENT_HOVER
-		btn_hover.set_corner_radius_all(6)
+		btn_hover.set_corner_radius_all(4)
 		btn_hover.set_content_margin_all(8)
 		btn_hover.border_color = COLOR_FOCUS
 		btn_hover.set_border_width_all(2)
@@ -107,7 +107,7 @@ func show_choices(result_name: String, options: Array) -> void:
 		# Pressed style
 		var btn_pressed := StyleBoxFlat.new()
 		btn_pressed.bg_color = COLOR_ELEVATED
-		btn_pressed.set_corner_radius_all(6)
+		btn_pressed.set_corner_radius_all(4)
 		btn_pressed.set_content_margin_all(8)
 		btn_pressed.border_color = COLOR_FOCUS
 		btn_pressed.set_border_width_all(2)

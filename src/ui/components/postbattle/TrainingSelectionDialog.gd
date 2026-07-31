@@ -119,7 +119,7 @@ func _setup_ui() -> void:
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
 	panel_style.border_width_bottom = 2
-	panel_style.set_corner_radius_all(8)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
 	

@@ -811,7 +811,7 @@ func _create_section_card(title_text: String, parent: VBoxContainer) -> VBoxCont
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(_spacing_md)
 	card.add_theme_stylebox_override("panel", style)
 	parent.add_child(card)
@@ -912,12 +912,12 @@ func _create_accent_button(text: String) -> Button:
 	btn.custom_minimum_size = Vector2(0, _touch_target)
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("normal", style)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = COLOR_ACCENT_HOVER
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)

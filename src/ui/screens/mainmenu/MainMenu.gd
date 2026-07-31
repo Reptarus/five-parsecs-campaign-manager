@@ -527,7 +527,7 @@ func _on_load_campaign_pressed() -> void:
 	panel_style.bg_color = UIColors.COLOR_PRIMARY
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(6)
+	panel_style.set_corner_radius_all(4)
 	panel_style.content_margin_left = 16
 	panel_style.content_margin_right = 16
 	panel_style.content_margin_top = 12
@@ -839,7 +839,7 @@ func _on_bug_hunt_pressed() -> void:
 	panel_style.bg_color = UIColors.COLOR_PRIMARY
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(6)
+	panel_style.set_corner_radius_all(4)
 	panel_style.content_margin_left = 16
 	panel_style.content_margin_right = 16
 	panel_style.content_margin_top = 12
@@ -989,7 +989,7 @@ func _on_tactics_pressed() -> void:
 	panel_style.bg_color = UIColors.COLOR_PRIMARY
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(6)
+	panel_style.set_corner_radius_all(4)
 	panel_style.content_margin_left = 16
 	panel_style.content_margin_right = 16
 	panel_style.content_margin_top = 12
@@ -1133,7 +1133,7 @@ func _on_planetfall_pressed() -> void:
 	panel_style.bg_color = UIColors.COLOR_PRIMARY
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(6)
+	panel_style.set_corner_radius_all(4)
 	panel_style.content_margin_left = 16
 	panel_style.content_margin_right = 16
 	panel_style.content_margin_top = 12
@@ -1315,7 +1315,7 @@ func _build_social_footer() -> void:
 	footer.name = "SocialFooter"
 	var footer_style := StyleBoxFlat.new()
 	footer_style.bg_color = Color(0, 0, 0, 0.4)
-	footer_style.set_corner_radius_all(6)
+	footer_style.set_corner_radius_all(4)
 	footer_style.content_margin_left = 12
 	footer_style.content_margin_right = 12
 	footer_style.content_margin_top = 6

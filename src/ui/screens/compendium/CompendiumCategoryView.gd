@@ -565,7 +565,7 @@ func _create_type_badge(type_text: String) -> PanelContainer:
 	var badge := PanelContainer.new()
 	var badge_style := StyleBoxFlat.new()
 	badge_style.bg_color = _get_type_color(type_text).darkened(0.6)
-	badge_style.set_corner_radius_all(8)
+	badge_style.set_corner_radius_all(4)
 	badge_style.content_margin_left = 6
 	badge_style.content_margin_right = 6
 	badge_style.content_margin_top = 1

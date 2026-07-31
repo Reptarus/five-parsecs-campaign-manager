@@ -728,7 +728,7 @@ func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
 		icon_panel.custom_minimum_size = Vector2(32, 32)
 		var icon_style := StyleBoxFlat.new()
 		icon_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.2)
-		icon_style.set_corner_radius_all(8)
+		icon_style.set_corner_radius_all(4)
 		icon_panel.add_theme_stylebox_override("panel", icon_style)
 		var icon_lbl := Label.new()
 		icon_lbl.text = icon
@@ -790,7 +790,7 @@ func _create_stat_display(stat_name: String, value) -> PanelContainer:
 	panel.custom_minimum_size = Vector2(64, 56)
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_INPUT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -827,7 +827,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	style.bg_color = Color(COLOR_INPUT.r, COLOR_INPUT.g, COLOR_INPUT.b, 0.6)
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XS)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -968,7 +968,7 @@ func _create_add_button(text: String) -> Button:
 	style.bg_color = Color.TRANSPARENT
 	style.border_color = COLOR_TEXT_SECONDARY
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	btn.add_theme_stylebox_override("normal", style)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
@@ -982,7 +982,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	line_edit.add_theme_stylebox_override("normal", style)
 	var focus_style := style.duplicate()
@@ -996,7 +996,7 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 

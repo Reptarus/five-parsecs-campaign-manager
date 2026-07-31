@@ -47,7 +47,7 @@ func _build_ui() -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 
@@ -120,7 +120,7 @@ func _style_buy_button() -> void:
 	_action_btn.text = "Buy %s" % price
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_action_btn.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate() as StyleBoxFlat
@@ -146,7 +146,7 @@ func _style_play_button() -> void:
 	_action_btn.text = "Play Bug Hunt"
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_SUCCESS.darkened(0.2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_action_btn.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate() as StyleBoxFlat

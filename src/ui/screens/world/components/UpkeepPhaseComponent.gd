@@ -663,7 +663,7 @@ func _build_travel_section() -> void:
 	style.border_width_right = 1
 	style.border_width_bottom = 1
 	style.border_color = Color(0.216, 0.255, 0.318, 0.5)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 20.0
 	style.content_margin_top = 20.0
 	style.content_margin_right = 20.0
@@ -727,7 +727,7 @@ func _build_travel_section() -> void:
 			inv_style.bg_color = Color(0.55, 0.1, 0.1, 0.8)
 			inv_style.border_color = UIColors.COLOR_RED
 			inv_style.set_border_width_all(2)
-			inv_style.set_corner_radius_all(8)
+			inv_style.set_corner_radius_all(4)
 			inv_style.content_margin_left = 12
 			inv_style.content_margin_right = 12
 			inv_style.content_margin_top = 8
@@ -780,7 +780,7 @@ func _build_travel_section() -> void:
 	stay_style.border_width_right = 1
 	stay_style.border_width_bottom = 1
 	stay_style.border_color = Color(0.216, 0.255, 0.318, 1)
-	stay_style.set_corner_radius_all(8)
+	stay_style.set_corner_radius_all(4)
 	stay_style.content_margin_left = 16.0
 	stay_style.content_margin_top = 8.0
 	stay_style.content_margin_right = 16.0
@@ -802,7 +802,7 @@ func _build_travel_section() -> void:
 	_travel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var travel_style := StyleBoxFlat.new()
 	travel_style.bg_color = Color(0.231, 0.51, 0.965, 1)
-	travel_style.set_corner_radius_all(8)
+	travel_style.set_corner_radius_all(4)
 	travel_style.content_margin_left = 16.0
 	travel_style.content_margin_top = 8.0
 	travel_style.content_margin_right = 16.0
@@ -982,7 +982,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	rz_style.border_width_right = 1
 	rz_style.border_width_bottom = 1
 	rz_style.border_color = Color(0.86, 0.15, 0.15, 1)
-	rz_style.set_corner_radius_all(8)
+	rz_style.set_corner_radius_all(4)
 	rz_style.content_margin_left = 16.0
 	rz_style.content_margin_top = 8.0
 	rz_style.content_margin_right = 16.0
@@ -1012,7 +1012,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	bz_style.border_width_right = 1
 	bz_style.border_width_bottom = 1
 	bz_style.border_color = Color(0.4, 0.1, 0.6, 1)
-	bz_style.set_corner_radius_all(8)
+	bz_style.set_corner_radius_all(4)
 	bz_style.content_margin_left = 16.0
 	bz_style.content_margin_top = 8.0
 	bz_style.content_margin_right = 16.0
@@ -1071,7 +1071,7 @@ func _build_colony_world_buttons(parent: VBoxContainer) -> void:
 		krag_style.bg_color = Color(0.35, 0.25, 0.1, 0.9)
 		krag_style.border_color = Color(0.6, 0.45, 0.15, 1)
 		krag_style.set_border_width_all(1)
-		krag_style.set_corner_radius_all(8)
+		krag_style.set_corner_radius_all(4)
 		krag_style.set_content_margin_all(12)
 		krag_btn.add_theme_stylebox_override("normal", krag_style)
 		krag_btn.add_theme_color_override(
@@ -1099,7 +1099,7 @@ func _build_colony_world_buttons(parent: VBoxContainer) -> void:
 		skulker_style.bg_color = Color(0.15, 0.3, 0.2, 0.9)
 		skulker_style.border_color = Color(0.2, 0.5, 0.35, 1)
 		skulker_style.set_border_width_all(1)
-		skulker_style.set_corner_radius_all(8)
+		skulker_style.set_corner_radius_all(4)
 		skulker_style.set_content_margin_all(12)
 		skulker_btn.add_theme_stylebox_override("normal", skulker_style)
 		skulker_btn.add_theme_color_override(
@@ -1430,7 +1430,7 @@ func _display_travel_event(
 			card_style.border_color = Color(0.31, 0.765, 0.969, 1)
 		_:
 			card_style.border_color = Color(0.216, 0.255, 0.318, 1)
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.content_margin_left = 16.0
 	card_style.content_margin_top = 12.0
 	card_style.content_margin_right = 16.0
@@ -1496,7 +1496,7 @@ func _build_quest_travel_prompt(parent: VBoxContainer) -> void:
 	style.bg_color = Color(0.16, 0.12, 0.28, 0.85)
 	style.border_color = Color(0.55, 0.35, 0.85, 1)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 12
 	style.content_margin_right = 12
 	style.content_margin_top = 8

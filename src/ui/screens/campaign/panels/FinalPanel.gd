@@ -206,17 +206,17 @@ func _create_create_campaign_button() -> Button:
 	# Accent button styling
 	var style_normal := StyleBoxFlat.new()
 	style_normal.bg_color = COLOR_ACCENT
-	style_normal.set_corner_radius_all(8)
+	style_normal.set_corner_radius_all(4)
 	style_normal.set_content_margin_all(SPACING_MD)
 	
 	var style_hover := StyleBoxFlat.new()
 	style_hover.bg_color = COLOR_ACCENT_HOVER
-	style_hover.set_corner_radius_all(8)
+	style_hover.set_corner_radius_all(4)
 	style_hover.set_content_margin_all(SPACING_MD)
 	
 	var style_disabled := StyleBoxFlat.new()
 	style_disabled.bg_color = COLOR_TEXT_DISABLED
-	style_disabled.set_corner_radius_all(8)
+	style_disabled.set_corner_radius_all(4)
 	style_disabled.set_content_margin_all(SPACING_MD)
 	
 	btn.add_theme_stylebox_override("normal", style_normal)
@@ -1143,7 +1143,7 @@ func _create_validation_feedback_panel(errors: Array) -> PanelContainer:
 		style.border_color = COLOR_DANGER
 	
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	

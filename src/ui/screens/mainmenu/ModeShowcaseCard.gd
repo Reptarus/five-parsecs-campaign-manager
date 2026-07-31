@@ -127,7 +127,7 @@ func _build_layout() -> void:
 	style.bg_color.a = 0.85
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(16)
 	add_theme_stylebox_override("panel", style)
 
@@ -211,7 +211,7 @@ func _apply_cta_style(unlocked: bool) -> void:
 	s.bg_color = COLOR_ACCENT if unlocked else COLOR_WARNING
 	s.set_border_width_all(1)
 	s.border_color = COLOR_FOCUS if unlocked else COLOR_WARNING
-	s.set_corner_radius_all(6)
+	s.set_corner_radius_all(4)
 	s.set_content_margin_all(10)
 	_cta_button.add_theme_stylebox_override("normal", s)
 	var h := s.duplicate()

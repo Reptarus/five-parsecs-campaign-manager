@@ -76,7 +76,7 @@ func _build_ui() -> void:
 		card_style.bg_color = COLOR_ELEVATED
 		card_style.border_color = COLOR_BORDER
 		card_style.set_border_width_all(1)
-		card_style.set_corner_radius_all(6)
+		card_style.set_corner_radius_all(4)
 		card_style.set_content_margin_all(12)
 		card.add_theme_stylebox_override("panel", card_style)
 		add_child(card)
@@ -110,7 +110,7 @@ func _build_ui() -> void:
 	save_btn.pressed.connect(_save_toggle_states)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_ACCENT
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	btn_style.set_content_margin_all(8)
 	save_btn.add_theme_stylebox_override("normal", btn_style)
 	save_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)

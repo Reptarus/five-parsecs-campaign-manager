@@ -52,7 +52,7 @@ func _setup_overlay() -> void:
 	panel_style.bg_color = UIColors.COLOR_PRIMARY
 	panel_style.border_color = UIColors.COLOR_CYAN
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(8)
+	panel_style.set_corner_radius_all(4)
 	panel_style.content_margin_left = 16
 	panel_style.content_margin_right = 16
 	panel_style.content_margin_top = 12

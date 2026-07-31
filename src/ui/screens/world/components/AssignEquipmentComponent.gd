@@ -472,7 +472,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 	# Style transfer button
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = UIColors.COLOR_BLUE
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	transfer_btn.add_theme_stylebox_override("normal", btn_style)
 	transfer_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 
@@ -846,7 +846,7 @@ func _apply_glass_style(panel: PanelContainer) -> void:
 		COLOR_BORDER.r, COLOR_BORDER.g,
 		COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(float(SPACING_SM))
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -967,7 +967,7 @@ func _create_stat_box(
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.122, 0.161, 0.216, 0.5)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(float(SPACING_XS))
 	panel.add_theme_stylebox_override("panel", style)
 

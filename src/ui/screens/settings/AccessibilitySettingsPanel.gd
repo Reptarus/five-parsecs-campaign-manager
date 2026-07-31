@@ -252,7 +252,7 @@ func _create_color_swatch(name: String, color: Color) -> PanelContainer:
 	style.bg_color = color
 	style.set_border_width_all(2)
 	style.border_color = Color.WHITE
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 
 	var label = Label.new()

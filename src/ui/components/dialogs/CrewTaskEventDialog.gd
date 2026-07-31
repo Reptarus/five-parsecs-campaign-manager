@@ -1131,13 +1131,13 @@ func _build_counter_row(label_text: String, initial: int) -> HBoxContainer:
 func _style_button(btn: Button, bg_color: Color) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = bg_color
-	normal.set_corner_radius_all(6)
+	normal.set_corner_radius_all(4)
 	normal.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("normal", normal)
 
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = bg_color.lightened(0.15)
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.set_content_margin_all(8)
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(2)
@@ -1145,13 +1145,13 @@ func _style_button(btn: Button, bg_color: Color) -> void:
 
 	var pressed := StyleBoxFlat.new()
 	pressed.bg_color = bg_color.darkened(0.1)
-	pressed.set_corner_radius_all(6)
+	pressed.set_corner_radius_all(4)
 	pressed.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("pressed", pressed)
 
 	var disabled := StyleBoxFlat.new()
 	disabled.bg_color = bg_color.darkened(0.4)
-	disabled.set_corner_radius_all(6)
+	disabled.set_corner_radius_all(4)
 	disabled.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("disabled", disabled)
 
@@ -1163,13 +1163,13 @@ func _style_button(btn: Button, bg_color: Color) -> void:
 func _style_counter_button(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = COLOR_ELEVATED
-	normal.set_corner_radius_all(6)
+	normal.set_corner_radius_all(4)
 	normal.border_color = COLOR_BORDER
 	normal.set_border_width_all(1)
 	btn.add_theme_stylebox_override("normal", normal)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = COLOR_ACCENT
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(1)
 	btn.add_theme_stylebox_override("hover", hover)

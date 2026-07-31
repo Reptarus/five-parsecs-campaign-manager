@@ -126,7 +126,7 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = COLOR_ELEVATED
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.border_width_left = 2
 	card_style.border_width_right = 2
 	card_style.border_width_top = 2

@@ -627,7 +627,7 @@ func _wrap_in_card_node(
 		UIColors.COLOR_BORDER.g,
 		UIColors.COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -704,7 +704,7 @@ func _wrap_in_card(
 		UIColors.COLOR_BORDER.g,
 		UIColors.COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL

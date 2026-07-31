@@ -866,7 +866,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
 	style.border_color = color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 2
@@ -1282,17 +1282,10 @@ func _build_world_section(campaign) -> void:
 	world_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 	world_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	world_btn.pressed.connect(_on_view_world_log)
-	var wbtn_style := StyleBoxFlat.new()
-	wbtn_style.bg_color = COLOR_ACCENT
-	wbtn_style.set_corner_radius_all(8)
-	wbtn_style.set_content_margin_all(SPACING_SM)
-	world_btn.add_theme_stylebox_override("normal", wbtn_style)
-	var wbtn_hover := wbtn_style.duplicate()
-	wbtn_hover.bg_color = COLOR_ACCENT_HOVER
-	world_btn.add_theme_stylebox_override("hover", wbtn_hover)
-	world_btn.add_theme_color_override(
-		"font_color", COLOR_TEXT_PRIMARY
-	)
+	# Was a hand-rolled 8px box with only `normal` and `hover`, so pressing it
+	# snapped back to the theme's 4px box mid-click. The variation carries all five
+	# states.
+	DialogStyles.style_secondary_button(world_btn)
 	right_vbox.add_child(world_btn)
 
 func _build_patrons_section(campaign) -> void:
@@ -1649,7 +1642,7 @@ func _build_world_log_panel() -> PanelContainer:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.97)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XL)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -2648,7 +2641,10 @@ func _build_contacts_panel() -> PanelContainer:
 	vbox.add_child(header_hbox)
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(80, 36)
+	# Was Vector2(80, 36): 36 design px is ~42dp, under the 48dp touch floor, and
+	# the 80px WIDTH floor stopped it shrinking with the overlay. style_back_button
+	# applies the shared variation and floors the HEIGHT only.
+	DialogStyles.style_back_button(back_btn)
 	back_btn.pressed.connect(_hide_history_overlay)
 	header_hbox.add_child(back_btn)
 	var title := Label.new()
@@ -2823,7 +2819,10 @@ func _build_hof_panel() -> PanelContainer:
 	vbox.add_child(header_hbox)
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(80, 36)
+	# Was Vector2(80, 36): 36 design px is ~42dp, under the 48dp touch floor, and
+	# the 80px WIDTH floor stopped it shrinking with the overlay. style_back_button
+	# applies the shared variation and floors the HEIGHT only.
+	DialogStyles.style_back_button(back_btn)
 	back_btn.pressed.connect(_hide_history_overlay)
 	header_hbox.add_child(back_btn)
 	var title := Label.new()

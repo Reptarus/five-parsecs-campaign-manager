@@ -295,7 +295,7 @@ func _setup_world_briefing() -> void:
 	style.bg_color = UIColors.COLOR_TERTIARY
 	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(16)
 	card.add_theme_stylebox_override("panel", style)
 	_world_briefing_vbox = VBoxContainer.new()

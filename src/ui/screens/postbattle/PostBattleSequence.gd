@@ -56,7 +56,6 @@ var _inline_rolls_completed: Dictionary = {}  # step_index -> {total: int, done:
 var _rm: Node = null  # ResponsiveManager (rotation handler)
 var _portrait_chrome: Node = null  # PortraitChrome margin-trim helper
 var _steps_panel: PanelContainer = null  # StepsList nav panel (hidden in portrait)
-var _title_label: Label = null  # "Post-Battle Sequence" header (font shrinks in portrait)
 # Portrait IA: a MobileAppBar replaces the Header (title + "Step N/14" subtitle)
 # and hosts a "Log" button that opens the Results log as a BOTTOM drawer, so the
 # active step gets the full column. All self-hide/restore by orientation.
@@ -173,7 +172,6 @@ func _find_panel_ancestor(node: Node) -> PanelContainer:
 func _setup_portrait_chrome() -> void:
 	_steps_panel = _find_panel_ancestor(steps_container)
 	_results_panel = _find_panel_ancestor(results_container)
-	_title_label = get_node_or_null("MarginContainer/VBoxContainer/Header/Title")
 	_header = get_node_or_null("MarginContainer/VBoxContainer/Header")
 	var mc := get_node_or_null("MarginContainer")
 	if mc:
@@ -286,10 +284,12 @@ func _apply_portrait_ia() -> void:
 	if not portrait and _results_drawer and _results_drawer.has_method("is_open") \
 			and _results_drawer.is_open():
 		_results_drawer.close()
-	# Title font-scale is moot when the Header is hidden in portrait, but harmless
-	# (restores the 32px header for landscape).
-	if _title_label:
-		_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(20 if portrait else 32))
+	# The title no longer needs per-orientation font gating. The scene puts it on the
+	# TextXL rung and ResponsiveManager rescales that rung per breakpoint (20 on a
+	# phone, 24 desktop, 28 wide) -- which is the 20-in-portrait this used to compute
+	# by hand. Worse, the override OUTRANKED the variation, so TextXL was dead on this
+	# one label and the two mechanisms disagreed. See docs/sop/responsive-adaptive-ui.md,
+	# "The type scale".
 
 
 func _initialize_advancement_system() -> void:
@@ -1763,7 +1763,7 @@ func _add_inline_results_if_available(step_idx: int) -> void:
 		UIColors.COLOR_EMERALD.g,
 		UIColors.COLOR_EMERALD.b, 0.4)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(float(SPACING_SM))
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -1967,7 +1967,7 @@ func _style_side_panels() -> void:
 			UIColors.COLOR_BORDER.b, 0.5
 		)
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(8)
+		style.set_corner_radius_all(4)
 		style.content_margin_left = float(SPACING_SM)
 		style.content_margin_right = float(SPACING_SM)
 		style.content_margin_top = float(SPACING_SM)

@@ -218,7 +218,7 @@ func _on_keyword_clicked(meta: Variant) -> void:
 		UIColors.COLOR_SECONDARY.b, 0.97)
 	style.border_color = UIColors.COLOR_CYAN
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_MD)
 	popup.add_theme_stylebox_override("panel", style)
 
@@ -276,7 +276,7 @@ func _apply_phase_theme() -> void:
 		)
 		style.border_color = UIColors.COLOR_BORDER
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(12)
+		style.set_corner_radius_all(4)
 		style.set_content_margin_all(UIColors.SPACING_MD)
 		add_theme_stylebox_override("panel", style)
 
@@ -299,7 +299,7 @@ func _style_phase_button(button: Button, is_primary: bool = false) -> void:
 		return
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIColors.COLOR_BLUE if is_primary else UIColors.COLOR_TERTIARY
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = UIColors.SPACING_MD
 	style.content_margin_right = UIColors.SPACING_MD
 	style.content_margin_top = UIColors.SPACING_SM
@@ -349,7 +349,7 @@ func _style_sub_panel(panel: PanelContainer) -> void:
 	style.bg_color = UIColors.COLOR_TERTIARY
 	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_SM)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -361,7 +361,7 @@ func _style_item_list(item_list: ItemList) -> void:
 	style.bg_color = UIColors.COLOR_PRIMARY
 	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_SM)
 	item_list.add_theme_stylebox_override("panel", style)
 	item_list.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
@@ -423,7 +423,7 @@ func _create_phase_card(
 		UIColors.COLOR_BORDER.g,
 		UIColors.COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -502,7 +502,7 @@ func _style_button_disabled(button: Button) -> void:
 	disabled_style.border_color = Color(UIColors.COLOR_BORDER.r, UIColors.COLOR_BORDER.g,
 		UIColors.COLOR_BORDER.b, 0.25)
 	disabled_style.set_border_width_all(1)
-	disabled_style.set_corner_radius_all(8)
+	disabled_style.set_corner_radius_all(4)
 	disabled_style.content_margin_left = UIColors.SPACING_MD
 	disabled_style.content_margin_right = UIColors.SPACING_MD
 	disabled_style.content_margin_top = UIColors.SPACING_SM

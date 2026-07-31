@@ -74,7 +74,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	card_style.bg_color = COLOR_ELEVATED
 	card_style.border_color = COLOR_BORDER
 	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.set_content_margin_all(SPACING_MD)
 	list_card.add_theme_stylebox_override("panel", card_style)
 	vbox.add_child(list_card)
@@ -141,7 +141,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	cancel_btn.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
 	var cancel_style := StyleBoxFlat.new()
 	cancel_style.bg_color = COLOR_BORDER
-	cancel_style.set_corner_radius_all(6)
+	cancel_style.set_corner_radius_all(4)
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_btn.add_theme_stylebox_override("normal", cancel_style)
 	cancel_btn.add_theme_color_override(
@@ -154,7 +154,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	load_btn.custom_minimum_size = Vector2(130, TOUCH_TARGET_MIN)
 	var load_style := StyleBoxFlat.new()
 	load_style.bg_color = COLOR_AMBER.darkened(0.3)
-	load_style.set_corner_radius_all(6)
+	load_style.set_corner_radius_all(4)
 	load_style.set_content_margin_all(SPACING_SM)
 	load_btn.add_theme_stylebox_override("normal", load_style)
 	load_btn.add_theme_color_override(
@@ -167,7 +167,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	store_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var store_style := StyleBoxFlat.new()
 	store_style.bg_color = COLOR_EMERALD.darkened(0.2)
-	store_style.set_corner_radius_all(6)
+	store_style.set_corner_radius_all(4)
 	store_style.set_content_margin_all(SPACING_SM)
 	store_btn.add_theme_stylebox_override("normal", store_style)
 	store_btn.add_theme_color_override(

@@ -54,7 +54,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_AMBER.darkened(0.3)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 
@@ -134,7 +134,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	_buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_AMBER.darkened(0.2)
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	btn_style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", btn_style)
 	var hover := btn_style.duplicate() as StyleBoxFlat

@@ -164,7 +164,7 @@ func _apply_ui_styling() -> void:
 	if save_button:
 		var s := StyleBoxFlat.new()
 		s.bg_color = COLOR_SUCCESS
-		s.set_corner_radius_all(6)
+		s.set_corner_radius_all(4)
 		s.set_content_margin_all(SPACING_SM)
 		save_button.add_theme_stylebox_override("normal", s)
 		var h := s.duplicate()
@@ -175,7 +175,7 @@ func _apply_ui_styling() -> void:
 	if cancel_button:
 		var s := StyleBoxFlat.new()
 		s.bg_color = COLOR_BORDER
-		s.set_corner_radius_all(6)
+		s.set_corner_radius_all(4)
 		s.set_content_margin_all(SPACING_SM)
 		cancel_button.add_theme_stylebox_override("normal", s)
 
@@ -186,7 +186,7 @@ func _apply_ui_styling() -> void:
 			s.bg_color = COLOR_ELEVATED
 			s.border_color = COLOR_ACCENT
 			s.set_border_width_all(1)
-			s.set_corner_radius_all(6)
+			s.set_corner_radius_all(4)
 			s.set_content_margin_all(SPACING_SM)
 			btn.add_theme_stylebox_override("normal", s)
 			var h := s.duplicate()
@@ -203,7 +203,7 @@ func _apply_ui_styling() -> void:
 			s.bg_color = COLOR_ELEVATED
 			s.border_color = COLOR_BORDER
 			s.set_border_width_all(1)
-			s.set_corner_radius_all(8)
+			s.set_corner_radius_all(4)
 			s.set_content_margin_all(SPACING_MD)
 			panel.add_theme_stylebox_override("panel", s)
 
@@ -222,7 +222,7 @@ func _apply_ui_styling() -> void:
 		s.bg_color = COLOR_INPUT
 		s.border_color = COLOR_BORDER
 		s.set_border_width_all(1)
-		s.set_corner_radius_all(6)
+		s.set_corner_radius_all(4)
 		s.set_content_margin_all(SPACING_SM)
 		notes_edit.add_theme_stylebox_override("normal", s)
 		var f := s.duplicate()
@@ -247,7 +247,7 @@ func _style_stat_cells() -> void:
 	)
 	badge_style.border_color = COLOR_BORDER
 	badge_style.set_border_width_all(1)
-	badge_style.set_corner_radius_all(6)
+	badge_style.set_corner_radius_all(4)
 	badge_style.set_content_margin_all(SPACING_XS)
 	for child in stats_grid.get_children():
 		if child is VBoxContainer:
@@ -1480,7 +1480,7 @@ func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	
@@ -1849,7 +1849,7 @@ func _create_bot_upgrade_card(upgrade: Dictionary, campaign_credits: int, advanc
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	

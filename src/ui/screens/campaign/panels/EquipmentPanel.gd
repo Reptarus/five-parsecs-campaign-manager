@@ -1261,7 +1261,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 			btn_style.bg_color = Color(COLOR_SUCCESS, 0.3)
 			btn_style.border_color = COLOR_SUCCESS
 			btn_style.set_border_width_all(1)
-			btn_style.set_corner_radius_all(6)
+			btn_style.set_corner_radius_all(4)
 			btn_style.set_content_margin_all(SPACING_XS)
 			crew_btn.add_theme_stylebox_override("normal", btn_style)
 
@@ -1335,7 +1335,7 @@ func _create_equipment_type_badge(item_type: String) -> PanelContainer:
 	badge_style.bg_color = Color(type_color.r, type_color.g, type_color.b, 0.2)
 	badge_style.border_color = type_color
 	badge_style.set_border_width_all(1)
-	badge_style.set_corner_radius_all(6)
+	badge_style.set_corner_radius_all(4)
 	badge_style.set_content_margin_all(SPACING_XS)
 	badge.add_theme_stylebox_override("panel", badge_style)
 	
@@ -1601,7 +1601,7 @@ func _create_prov_tag(text: String, color: Color) -> PanelContainer:
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
 	style.border_color = color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = SPACING_SM
 	style.content_margin_right = SPACING_SM
 	style.content_margin_top = SPACING_XS

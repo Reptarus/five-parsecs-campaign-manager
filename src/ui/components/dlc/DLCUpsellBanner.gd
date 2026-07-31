@@ -33,7 +33,7 @@ func _setup(pack_name: String, preview: String) -> void:
 	style.bg_color = Color(0, 0, 0, 0.1)
 	style.border_color = COLOR_AMBER.darkened(0.3)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	add_theme_stylebox_override("panel", style)
 

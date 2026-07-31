@@ -29,7 +29,7 @@ func _ready() -> void:
 func _setup_style() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_BG_BASE
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_border_width_all(1)
 	style.border_color = COLOR_BORDER_BASE
 	style.set_content_margin_all(8)

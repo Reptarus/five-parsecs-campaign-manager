@@ -456,7 +456,7 @@ func _style_text_edit(te: TextEdit) -> void:
 	s.bg_color = UIColorsScript.COLOR_INPUT
 	s.border_color = UIColorsScript.COLOR_BORDER
 	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
+	s.set_corner_radius_all(4)
 	s.set_content_margin_all(UIColorsScript.SPACING_SM)
 	te.add_theme_stylebox_override("normal", s)
 	var f := s.duplicate()
@@ -470,7 +470,7 @@ func _style_line_edit(le: LineEdit) -> void:
 	s.bg_color = UIColorsScript.COLOR_INPUT
 	s.border_color = UIColorsScript.COLOR_BORDER
 	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
+	s.set_corner_radius_all(4)
 	s.set_content_margin_all(UIColorsScript.SPACING_SM)
 	le.add_theme_stylebox_override("normal", s)
 	var f := s.duplicate()
@@ -485,7 +485,7 @@ func _style_option_button(ob: OptionButton) -> void:
 	s.bg_color = UIColorsScript.COLOR_INPUT
 	s.border_color = UIColorsScript.COLOR_BORDER
 	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
+	s.set_corner_radius_all(4)
 	s.set_content_margin_all(UIColorsScript.SPACING_SM)
 	ob.add_theme_stylebox_override("normal", s)
 
@@ -493,7 +493,7 @@ func _style_option_button(ob: OptionButton) -> void:
 func _style_button(b: Button, is_primary: bool = false) -> void:
 	var s := StyleBoxFlat.new()
 	s.bg_color = UIColorsScript.COLOR_BLUE if is_primary else UIColorsScript.COLOR_TERTIARY
-	s.set_corner_radius_all(8)
+	s.set_corner_radius_all(4)
 	s.content_margin_left = UIColorsScript.SPACING_MD
 	s.content_margin_right = UIColorsScript.SPACING_MD
 	s.content_margin_top = UIColorsScript.SPACING_SM

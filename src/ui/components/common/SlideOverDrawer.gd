@@ -81,7 +81,7 @@ func _build() -> void:
 	panel_style.bg_color = UIColors.COLOR_ELEVATED
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(UIColors.SPACING_MD)
 	_panel.add_theme_stylebox_override("panel", panel_style)
 	add_child(_panel)

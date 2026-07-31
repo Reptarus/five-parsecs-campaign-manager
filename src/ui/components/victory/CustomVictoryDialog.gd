@@ -139,7 +139,7 @@ func _create_victory_type_card() -> PanelContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 
@@ -173,7 +173,7 @@ func _create_target_value_card() -> PanelContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 
@@ -211,7 +211,7 @@ func _create_action_buttons() -> HBoxContainer:
 
 	var cancel_style := StyleBoxFlat.new()
 	cancel_style.bg_color = COLOR_BORDER
-	cancel_style.set_corner_radius_all(6)
+	cancel_style.set_corner_radius_all(4)
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_button.add_theme_stylebox_override("normal", cancel_style)
 	cancel_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
@@ -226,7 +226,7 @@ func _create_action_buttons() -> HBoxContainer:
 
 	var confirm_style := StyleBoxFlat.new()
 	confirm_style.bg_color = COLOR_ACCENT
-	confirm_style.set_corner_radius_all(6)
+	confirm_style.set_corner_radius_all(4)
 	confirm_style.set_content_margin_all(SPACING_SM)
 	confirm_button.add_theme_stylebox_override("normal", confirm_style)
 
@@ -248,7 +248,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	line_edit.add_theme_stylebox_override("normal", style)
 
@@ -266,7 +266,7 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 
@@ -397,7 +397,7 @@ func _create_preview_card(victory_type: int, target_value: int) -> PanelContaine
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_FOCUS # Cyan to show "preview" state
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 

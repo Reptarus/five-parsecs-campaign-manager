@@ -137,7 +137,7 @@ func _get_style_for_type(type: FeedbackType) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 
 	# Corner radius
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 
 	# Content margins
 	style.content_margin_left = SPACING_MD

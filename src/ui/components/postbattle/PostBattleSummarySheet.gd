@@ -494,7 +494,7 @@ func _apply_design_system_styling() -> void:
 	panel_style.bg_color = COLOR_PRIMARY
 	panel_style.set_border_width_all(2)
 	panel_style.border_color = COLOR_BORDER
-	panel_style.set_corner_radius_all(16)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
 	_panel_style = panel_style  # cached so portrait padding-trim can mutate it
@@ -530,7 +530,7 @@ func _apply_design_system_styling() -> void:
 		continue_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 		var btn_style := StyleBoxFlat.new()
 		btn_style.bg_color = COLOR_SUCCESS
-		btn_style.set_corner_radius_all(8)
+		btn_style.set_corner_radius_all(4)
 		btn_style.set_content_margin_all(SPACING_MD)
 		continue_button.add_theme_stylebox_override("normal", btn_style)
 		continue_button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)

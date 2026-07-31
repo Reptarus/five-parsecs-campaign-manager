@@ -171,7 +171,7 @@ func _setup_card_style() -> void:
 	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
 	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)  # rounded-2xl
+	style.set_corner_radius_all(4)  # rounded-2xl
 	style.set_content_margin_all(SPACING_LG)  # Use LG padding for glass cards
 	add_theme_stylebox_override("panel", style)
 
@@ -655,7 +655,7 @@ func _create_stat_box(label_text: String, value_text: String, accent_color: Colo
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.122, 0.161, 0.216, 0.5)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -763,7 +763,7 @@ func _create_equipment_badge(item) -> PanelContainer:
 	style.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
 	style.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", style)
 
@@ -819,13 +819,13 @@ func _create_xp_progress_bar() -> VBoxContainer:
 	# Style background
 	var bg_style := StyleBoxFlat.new()
 	bg_style.bg_color = UIColors.COLOR_BORDER
-	bg_style.set_corner_radius_all(3)
+	bg_style.set_corner_radius_all(4)
 	progress.add_theme_stylebox_override("background", bg_style)
 
 	# Style fill (purple gradient effect)
 	var fill_style := StyleBoxFlat.new()
 	fill_style.bg_color = UIColors.COLOR_PURPLE
-	fill_style.set_corner_radius_all(3)
+	fill_style.set_corner_radius_all(4)
 	progress.add_theme_stylebox_override("fill", fill_style)
 
 	container.add_child(progress)
@@ -850,7 +850,7 @@ func _create_status_badge(status: String) -> PanelContainer:
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
-	style.set_corner_radius_all(10)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8

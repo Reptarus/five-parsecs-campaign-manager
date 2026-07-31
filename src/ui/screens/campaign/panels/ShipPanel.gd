@@ -288,7 +288,7 @@ func _create_form_card_style() -> StyleBoxFlat:
 	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(0)  # Margin handled by MarginContainer
 	return style
 

@@ -77,7 +77,7 @@ func _build_ui() -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 
@@ -227,7 +227,7 @@ func _style_buy_button(price: String) -> void:
 	_buy_btn.text = "Buy %s" % price if price else "Buy"
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate() as StyleBoxFlat
@@ -255,7 +255,7 @@ func _style_owned_button() -> void:
 	_buy_btn.text = "Manage Features"
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_SUCCESS.darkened(0.3)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", style)
 	_buy_btn.add_theme_color_override(

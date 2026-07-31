@@ -122,7 +122,7 @@ func _create_action_buttons() -> HBoxContainer:
 
 	var cancel_style := StyleBoxFlat.new()
 	cancel_style.bg_color = COLOR_BORDER
-	cancel_style.set_corner_radius_all(6)
+	cancel_style.set_corner_radius_all(4)
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_button.add_theme_stylebox_override("normal", cancel_style)
 	cancel_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
@@ -159,7 +159,7 @@ func _update_confirm_button_style() -> void:
 
 	var confirm_style := StyleBoxFlat.new()
 	confirm_style.bg_color = bg_color
-	confirm_style.set_corner_radius_all(6)
+	confirm_style.set_corner_radius_all(4)
 	confirm_style.set_content_margin_all(SPACING_SM)
 	confirm_button.add_theme_stylebox_override("normal", confirm_style)
 

@@ -238,7 +238,7 @@ func _create_stash_item_row(item: Dictionary, index: int) -> PanelContainer:
 	# Style
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.15, 0.15, 0.18)
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 6

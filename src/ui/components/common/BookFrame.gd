@@ -205,7 +205,7 @@ func _make_glass_stylebox() -> StyleBoxFlat:
 	sb.bg_color = BG_COLOR
 	sb.border_color = BORDER_COLOR
 	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
+	sb.set_corner_radius_all(4)
 	return sb
 
 

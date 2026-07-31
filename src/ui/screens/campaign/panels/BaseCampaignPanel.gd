@@ -952,7 +952,7 @@ func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_INPUT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -1023,7 +1023,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -1122,7 +1122,7 @@ func _create_add_button(text: String) -> Button:
 	style.bg_color = Color.TRANSPARENT
 	style.border_color = COLOR_TEXT_SECONDARY
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	btn.add_theme_stylebox_override("normal", style)
 
@@ -1141,7 +1141,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	style.bg_color = Color(COLOR_INPUT, 0.6)  # Semi-transparent background
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XS)
 	panel.add_theme_stylebox_override("panel", style)
 	
@@ -1177,7 +1177,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	line_edit.add_theme_stylebox_override("normal", style)
 
@@ -1195,7 +1195,7 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 
@@ -1231,7 +1231,7 @@ func _create_glass_panel_style() -> StyleBoxFlat:
 	style.set_border_width_all(1)
 
 	# Rounded corners (16px = rounded-2xl in Tailwind)
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 
 	# Padding
 	style.set_content_margin_all(SPACING_LG)
@@ -1243,7 +1243,7 @@ func _create_glass_panel_style_compact() -> StyleBoxFlat:
 	## Compact glass panel with smaller padding (for cards within sections)
 	var style := _create_glass_panel_style()
 	style.set_content_margin_all(SPACING_MD)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	return style
 
 
@@ -1271,7 +1271,7 @@ func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
 
 		var icon_style := StyleBoxFlat.new()
 		icon_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.2)
-		icon_style.set_corner_radius_all(8)
+		icon_style.set_corner_radius_all(4)
 		icon_panel.add_theme_stylebox_override("panel", icon_style)
 
 		var icon_label := Label.new()

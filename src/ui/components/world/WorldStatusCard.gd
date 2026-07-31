@@ -122,7 +122,7 @@ func _apply_glass_style() -> void:
 	style.set_border_width_all(1)
 
 	# Rounded corners
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 
 	# Padding
 	style.set_content_margin_all(SPACING_MD)

@@ -218,7 +218,7 @@ func _populate_toc() -> void:
 		var btn_style := StyleBoxFlat.new()
 		btn_style.bg_color = Color.TRANSPARENT
 		btn_style.set_content_margin_all(SPACING_SM)
-		btn_style.set_corner_radius_all(6)
+		btn_style.set_corner_radius_all(4)
 		btn.add_theme_stylebox_override("normal", btn_style)
 
 		var hover_style := btn_style.duplicate()

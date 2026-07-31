@@ -43,7 +43,7 @@ func _build_ui(pack_name: String) -> void:
 	style.bg_color = Color("#1A2E1A")
 	style.border_color = COLOR_EMERALD
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	_panel.add_theme_stylebox_override("panel", style)
 

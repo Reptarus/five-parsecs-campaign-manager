@@ -349,7 +349,7 @@ func _build_stat_badge(
 	var badge := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIColors.COLOR_TERTIARY
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", style)
 	badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -378,7 +378,7 @@ func _card_style() -> StyleBoxFlat:
 	style.bg_color = UIColors.COLOR_SECONDARY
 	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(12)
 	return style
 
@@ -410,7 +410,7 @@ func _apply_button_style(
 	var style := StyleBoxFlat.new()
 	style.bg_color = UIColors.COLOR_BLUE if is_primary \
 		else UIColors.COLOR_TERTIARY
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(8)
 	button.add_theme_stylebox_override("normal", style)
 	button.add_theme_font_size_override("font_size", _scaled_font(16))

@@ -205,7 +205,7 @@ func _build_filter_panel() -> Control:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -422,7 +422,7 @@ func _build_content_split() -> Control:
 	sidebar_style.bg_color = COLOR_ELEVATED
 	sidebar_style.border_color = COLOR_BORDER
 	sidebar_style.set_border_width_all(1)
-	sidebar_style.set_corner_radius_all(6)
+	sidebar_style.set_corner_radius_all(4)
 	sidebar_style.set_content_margin_all(SPACING_SM)
 	sidebar.add_theme_stylebox_override("panel", sidebar_style)
 	_entry_list = ItemList.new()
@@ -439,7 +439,7 @@ func _build_content_split() -> Control:
 	detail_style.bg_color = COLOR_ELEVATED
 	detail_style.border_color = COLOR_BORDER
 	detail_style.set_border_width_all(1)
-	detail_style.set_corner_radius_all(6)
+	detail_style.set_corner_radius_all(4)
 	detail_style.set_content_margin_all(SPACING_MD)
 	detail_panel.add_theme_stylebox_override("panel", detail_style)
 	var detail_scroll := ScrollContainer.new()
@@ -667,7 +667,7 @@ func _make_chip(label: String, accent: Color) -> Button:
 	normal.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.5)
 	normal.border_color = COLOR_BORDER
 	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(12)
+	normal.set_corner_radius_all(4)
 	normal.set_content_margin_all(SPACING_XS)
 	normal.content_margin_left = SPACING_SM
 	normal.content_margin_right = SPACING_SM
@@ -677,7 +677,7 @@ func _make_chip(label: String, accent: Color) -> Button:
 	pressed.bg_color = Color(accent.r, accent.g, accent.b, 0.35)
 	pressed.border_color = accent
 	pressed.set_border_width_all(1)
-	pressed.set_corner_radius_all(12)
+	pressed.set_corner_radius_all(4)
 	pressed.set_content_margin_all(SPACING_XS)
 	pressed.content_margin_left = SPACING_SM
 	pressed.content_margin_right = SPACING_SM

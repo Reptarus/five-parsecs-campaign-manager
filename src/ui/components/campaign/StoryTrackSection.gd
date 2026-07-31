@@ -125,7 +125,7 @@ func _apply_glass_style() -> void:
 	style.set_border_width_all(1)
 
 	# Rounded corners
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 
 	# Padding
 	style.set_content_margin_all(SPACING_MD)
@@ -138,13 +138,13 @@ func _style_progress_bar() -> void:
 	# Background
 	var bg_style := StyleBoxFlat.new()
 	bg_style.bg_color = COLOR_BORDER
-	bg_style.set_corner_radius_all(6)
+	bg_style.set_corner_radius_all(4)
 	progress_bar.add_theme_stylebox_override("background", bg_style)
 
 	# Fill (purple gradient effect)
 	var fill_style := StyleBoxFlat.new()
 	fill_style.bg_color = COLOR_PURPLE
-	fill_style.set_corner_radius_all(6)
+	fill_style.set_corner_radius_all(4)
 	progress_bar.add_theme_stylebox_override("fill", fill_style)
 
 

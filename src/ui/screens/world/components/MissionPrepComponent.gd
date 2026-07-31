@@ -455,7 +455,7 @@ func _create_zone_card(
 	style.border_width_right = 1
 	style.border_width_bottom = 1
 	style.border_color = border_color
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 16.0
 	style.content_margin_top = 12.0
 	style.content_margin_right = 16.0
