@@ -86,11 +86,24 @@ func _mission() -> Dictionary:
 			"count": 6,
 			"speed": 4, "combat_skill": 0, "toughness": 3,
 			"ai": "A",
-			"panic": "1-2",
+			"panic": "1-3",
 			"special_rules": [],
 			"units": _enemies(),
 		},
-		"deployment": {"condition_id": "NO_CONDITION"},
+		"deployment": {"condition_id": "BITTER_STRUGGLE",
+			"condition_title": "Bitter Struggle"},
+		# The bundle BattleSetupRules computes at scenario setup. Four of its
+		# fields shipped with NO consumer at all — panic_range_delta,
+		# round_one, hold_rounds and early_leave_is_casualty were computed and
+		# read by nothing, which is the exact "built but never seeded" shape
+		# this harness exists to catch. These rows pin the joins.
+		"setup_rules": {
+			"panic_range_delta": -1,
+			"hold_rounds": 6,
+			"early_leave_is_casualty": true,
+			"round_one": {"crew_all_slow": true, "delayed_crew": 2},
+			"setup_notes": [], "loss_penalties": [],
+		},
 		# Shaped as CampaignTurnController writes it. Hardcore is -2 and the crew
 		# is outnumbered 6-to-5, so the net modifier is -1 (Core Rules p.112).
 		"initiative_context": {
@@ -238,6 +251,15 @@ func _check_glance_chips() -> void:
 	# "5 enemy left" here and is exactly what this assertion pins.
 	_ok("glance strip shows the live enemies-left count with its Panic range",
 		text.contains("4 enemy left") and text.contains("Panic"), text)
+	# Bitter Struggle (p.88 + Compendium p.49): improved enemy Morale means a
+	# SMALLER Panic range. The fixture ships panic "1-2" and a -1 delta, so a
+	# correctly seeded tracker reads "Panic 1" — and "Panic 1-2" here means the
+	# delta never reached the tracker.
+	_ok("Bitter Struggle narrowed the enemy Panic range (p.88)",
+		text.contains("Panic 1-2") and not text.contains("Panic 1-3"), text)
+	# Invasion hold clock (p.92). hold_rounds was computed and displayed nowhere.
+	_ok("Invasion hold clock is on the glance strip (p.92)",
+		text.contains("Hold"), text)
 
 func _count_buttons(node: Node) -> int:
 	var n: int = 1 if node is Button else 0
@@ -376,8 +398,13 @@ func _check_morale_seeding() -> void:
 		"got %d, expected 6" % int(mt.enemies_remaining))
 	_ok("total_enemies seeded",
 		int(mt.total_enemies) == 6, "got %d" % int(mt.total_enemies))
-	_ok("panic range read from the enemy entry (1-2), not the default",
-		int(mt.panic_range_max) == 2, "got %d" % int(mt.panic_range_max))
+	# Fixture panic is "1-3" and setup_rules carries a -1 Bitter Struggle delta,
+	# so a correct seed lands on 2. That single number proves BOTH halves: the
+	# hardcoded 1-2 default would have given 1, and a dropped delta would have
+	# left 3. Neither mistake can produce 2.
+	_ok("panic range read from the enemy entry (1-3) and then narrowed by Bitter Struggle",
+		int(mt.panic_range_max) == 2,
+		"got %d, expected 2 (entry 3, minus 1 for Bitter Struggle)" % int(mt.panic_range_max))
 	_ok("enemy type name reached the panel",
 		str(mt.enemy_type_name) == "Gangers", "got '%s'" % str(mt.enemy_type_name))
 	_ok("lieutenant counted as Fearless (p.114)",

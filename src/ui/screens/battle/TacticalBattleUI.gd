@@ -1335,6 +1335,26 @@ func _refresh_glance_chips() -> void:
 		_add_glance_chip(cond_title.capitalize(), UIColors.COLOR_WARNING,
 			"Deployment condition: %s" % cond_title)
 
+	# Invasion hold clock (Core Rules p.92): "You must hold out for 6 rounds,
+	# then you can flee or fight until you Hold the Field... Any figure that
+	# leaves the table before Round 6 becomes a casualty." A 6-round obligation
+	# the player has to count is exactly what a glance chip is for — and until
+	# now BattleSetupRules computed hold_rounds and nothing displayed it.
+	var setup_rules: Dictionary = _stored_mission_data.get("setup_rules", {}) \
+		if _stored_mission_data is Dictionary else {}
+	var hold_rounds: int = int(setup_rules.get("hold_rounds", 0))
+	if hold_rounds > 0:
+		var round_now: int = maxi(current_turn, 1)
+		if round_now < hold_rounds:
+			_add_glance_chip("Hold %d/%d" % [round_now, hold_rounds],
+				UIColors.COLOR_RED,
+				"Invasion: hold out for %d rounds. Leaving before round %d makes that figure a casualty (Core Rules p.92)."
+					% [hold_rounds, hold_rounds])
+		else:
+			_add_glance_chip("Hold complete", UIColors.COLOR_EMERALD,
+				"Invasion: the %d-round hold is done — you may now flee or fight on until you Hold the Field (p.92)."
+					% hold_rounds)
+
 
 func _add_glance_chip(text: String, color: Color, a11y: String) -> void:
 	var chip := PanelContainer.new()
@@ -3167,11 +3187,36 @@ func _show_reaction_roll_ui() -> void:
 	roll_button.pressed.connect(_on_roll_reactions_pressed)
 	action_buttons.add_child(roll_button)
 
+func _round_one_condition_note() -> String:
+	## Core Rules p.88 deployment conditions whose effect lands ONLY in round 1.
+	## BattleSetupRules computes these into setup_rules.round_one; before this
+	## they were computed and read by nothing, so a Caught Off Guard crew acted
+	## normally and a Delayed crew all started on the table.
+	if current_turn > 1:
+		return ""
+	var setup_rules: Dictionary = _stored_mission_data.get("setup_rules", {}) \
+		if _stored_mission_data is Dictionary else {}
+	var r1: Dictionary = setup_rules.get("round_one", {})
+	if r1.is_empty():
+		return ""
+	var notes: Array[String] = []
+	if bool(r1.get("crew_all_slow", false)):
+		notes.append("Caught Off Guard — your ENTIRE crew acts in Slow Actions this round, whatever they rolled.")
+	if bool(r1.get("enemy_skips", false)):
+		notes.append("Surprise Encounter — the enemy does not act at all this round.")
+	var delayed: int = int(r1.get("delayed_crew", 0))
+	if delayed > 0:
+		notes.append("Delayed — %d crew start OFF the table. At the end of each round roll 1D6 per absent figure; they arrive on a roll at or under the round number." % delayed)
+	if notes.is_empty():
+		return ""
+	return "\n⚠ Round 1: " + "  ".join(notes)
+
 func _show_quick_actions_ui() -> void:
 	## QUICK ACTIONS — surface ActivationTrackerPanel for crew checklist
 	_clear_action_buttons()
 	_set_phase_instruction(1, "Quick Actions",
-		"Crew who passed their reaction roll act now. Move and act each on the table, then mark them done.")
+		"Crew who passed their reaction roll act now. Move and act each on the table, then mark them done."
+			+ _round_one_condition_note())
 	_surface_phase_component(activation_tracker)
 	_log_message(
 		"Quick Actions — crew who passed reactions act now.",
@@ -3229,8 +3274,8 @@ func _show_enemy_actions_ui() -> void:
 		snap_line = "\n⚡ Holding Snap Fire: %s — may shoot at ANY point of an enemy's move (errata v1.06), not only when it stops." \
 			% ", ".join(snap_holders)
 	_set_phase_instruction(2, "Enemy Actions",
-		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range.%s"
-			% [enemy_name, snap_line])
+		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range.%s%s"
+			% [enemy_name, snap_line, _round_one_condition_note()])
 	_log_message(
 		"Enemy Actions — resolve %s actions on the table." % enemy_name,
 		UIColors.COLOR_RED)
@@ -4674,6 +4719,25 @@ func _seed_morale_tracker() -> void:
 		morale_tracker.lieutenant_count = lieutenants
 	if "unique_individual_present" in morale_tracker:
 		morale_tracker.unique_individual_present = has_unique
+
+	# Bitter Struggle (Core Rules p.88): "Enemy Morale is +1". Compendium p.49
+	# fixes the direction — its Leadership table is headed "enemy Morale is
+	# IMPROVED according to the table below" and every row moves the Panic range
+	# DOWN, so improved Morale means a SMALLER Panic range and a harder enemy to
+	# break. BattleSetupRules computes the delta; this is the only place that can
+	# apply it, because the panic range is not known until the tracker is seeded.
+	# Floored at 1: on that same table only Captain-grade leadership reaches 0
+	# (Fearless), and a deployment condition is not that.
+	var setup_rules: Dictionary = _stored_mission_data.get("setup_rules", {}) \
+		if _stored_mission_data is Dictionary else {}
+	var panic_delta: int = int(setup_rules.get("panic_range_delta", 0))
+	if panic_delta != 0 and "panic_range_max" in morale_tracker:
+		var before: int = int(morale_tracker.panic_range_max)
+		morale_tracker.panic_range_max = maxi(1, before + panic_delta)
+		if unified_log and morale_tracker.panic_range_max != before:
+			unified_log.log_action("Morale",
+				"Bitter Struggle — enemy Panic range %d → %d (Core Rules p.88)"
+					% [before, int(morale_tracker.panic_range_max)])
 
 	_morale_seeded = true
 	if unified_log:
