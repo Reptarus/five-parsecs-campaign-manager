@@ -1,6 +1,16 @@
 extends Control
 class_name CampaignScreenBase
 
+## Path preload, not the bare `ScreenChrome` identifier.
+##
+## This file is parsed very early — before the global class_name cache is
+## necessarily warm — and a cold cache turns an unresolved global class into a
+## PARSE error that cascades: every screen extending this base fails to compile
+## and renders blank. Loading by path cannot go stale. Same reason
+## EquipmentManager, ShipManager and PatronRivalManager path-preload
+## AdaptivePanelGroup.
+const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+
 ## Lightweight base class for campaign screens (dashboard, crew management,
 ## trading, travel, etc). Provides the UIColors design system, responsive
 ## layout helpers, and UI factory methods shared across all campaign screens.
@@ -578,54 +588,43 @@ func get_responsive_touch_target() -> int:
 	return TOUCH_TARGET_COMFORT if is_mobile_layout() else TOUCH_TARGET_MIN
 
 # ── Style factories ───────────────────────────────────────────────────────────
+#
+# These all delegate to ScreenChrome now. They kept their names and signatures so
+# no subclass had to change, but they no longer each invent their own geometry:
+# between this file and BaseCampaignPanel there were about twenty near-identical
+# copies of these helpers producing 8px, 12px and 16px cards, which is most of the
+# reason the app had five corner radii at once.
+#
+# The "glass" name is historical. It described a 16px, 80%-alpha, 24px-padded card
+# that no longer exists — the card look is now the SectionCard recipe.
 
-func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, alpha)
-	s.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(16)
-	s.set_content_margin_all(SPACING_LG)
-	return s
+func _create_glass_card_style(_alpha: float = 0.8) -> StyleBoxFlat:
+	return ScreenChrome.panel_style()
 
 func _create_glass_card_elevated() -> StyleBoxFlat:
-	return _create_glass_card_style(0.9)
+	return ScreenChrome.panel_style()
 
 func _create_glass_card_subtle() -> StyleBoxFlat:
-	return _create_glass_card_style(0.6)
+	return ScreenChrome.panel_style()
 
 func _create_elevated_card_style() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
+	var s := ScreenChrome.panel_style()
 	s.bg_color = COLOR_TERTIARY
-	s.border_color = COLOR_BORDER
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(8)
-	s.set_content_margin_all(SPACING_MD)
 	return s
 
 func _create_glass_panel_style() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
-	s.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(16)
-	s.set_content_margin_all(SPACING_LG)
-	return s
+	return ScreenChrome.panel_style()
 
 func _create_glass_panel_style_compact() -> StyleBoxFlat:
-	var s := _create_glass_panel_style()
-	s.set_content_margin_all(SPACING_MD)
-	s.set_corner_radius_all(12)
-	return s
+	return ScreenChrome.panel_style()
 
+## A card that carries a semantic colour (blue/amber/red/cyan status boxes).
+##
+## The accent lands on the LEFT edge, the same place and weight the Library's nav
+## cards use, rather than as an all-round tint — so a status card and a tappable
+## card are told apart by colour, not by two unrelated shapes.
 func _create_accent_card_style(accent_color: Color) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
-	s.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(12)
-	s.set_content_margin_all(SPACING_MD)
-	return s
+	return ScreenChrome.card_style(accent_color)
 
 # ── Panel styling helpers (screen-specific) ───────────────────────────────────
 
@@ -1001,38 +1000,16 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 
+## Style a button. `is_primary` marks the one action the screen is pushing.
+##
+## Delegates to DialogStyles so screens using this helper and screens using
+## DialogStyles directly stop producing two different-looking buttons — this one
+## drew an 8px pill, DialogStyles a 4px one.
 func _style_button(button: Button, is_primary: bool = false) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_BLUE if is_primary else COLOR_TERTIARY
-	style.set_corner_radius_all(8)
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	var hover := style.duplicate()
-	hover.bg_color = COLOR_ACCENT_HOVER if is_primary \
-			else Color(COLOR_TERTIARY.r + 0.1, COLOR_TERTIARY.g + 0.1, COLOR_TERTIARY.b + 0.1)
-	button.add_theme_stylebox_override("hover", hover)
-	var pressed := style.duplicate()
-	pressed.bg_color = Color(style.bg_color.r - 0.1, style.bg_color.g - 0.1, style.bg_color.b - 0.1)
-	button.add_theme_stylebox_override("pressed", pressed)
+	if is_primary:
+		DialogStyles.style_primary_button(button)
+	else:
+		DialogStyles.style_secondary_button(button)
 
 func _style_danger_button(button: Button) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_RED
-	style.set_corner_radius_all(8)
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	var hover := style.duplicate()
-	hover.bg_color = Color(COLOR_RED.r + 0.1, COLOR_RED.g, COLOR_RED.b)
-	button.add_theme_stylebox_override("hover", hover)
+	DialogStyles.style_danger_button(button)

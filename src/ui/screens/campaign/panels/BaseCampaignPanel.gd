@@ -1,6 +1,16 @@
 extends Control
 class_name FiveParsecsCampaignPanel
 
+## Path preload, not the bare `ScreenChrome` identifier.
+##
+## This file is parsed very early — before the global class_name cache is
+## necessarily warm — and a cold cache turns an unresolved global class into a
+## PARSE error that cascades: every screen extending this base fails to compile
+## and renders blank. Loading by path cannot go stale. Same reason
+## EquipmentManager, ShipManager and PatronRivalManager path-preload
+## AdaptivePanelGroup.
+const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+
 ## Minimal Base Campaign Panel - Framework Bible Compliant
 ## Simple interface for campaign creation panels - NO Enhanced bloat
 ## Focuses on Five Parsecs functionality, not enterprise complexity
@@ -868,35 +878,28 @@ func _apply_pass_filter_recursive(node: Node) -> void:
 		_apply_pass_filter_recursive(child)
 
 
-func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
-	## Create glass morphism card style with adjustable transparency
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, alpha)
-	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)
-	style.set_content_margin_all(SPACING_LG)
-	return style
+## The app's card look. Named "glass" for history — the 16px, part-transparent,
+## 24px-padded card it used to build is gone; cards are the SectionCard recipe now.
+##
+## Kept as a delegating alias, along with its three siblings, because this file and
+## CampaignScreenBase carried near-identical copies of each and the panels call
+## them by name from about fifteen screens.
+func _create_glass_card_style(_alpha: float = 0.8) -> StyleBoxFlat:
+	return ScreenChrome.panel_style()
 
 
 func _create_glass_card_elevated() -> StyleBoxFlat:
-	## Create elevated glass card (higher opacity for prominence)
-	return _create_glass_card_style(0.9)
+	return ScreenChrome.panel_style()
 
 
 func _create_glass_card_subtle() -> StyleBoxFlat:
-	## Create subtle glass card (lower opacity for backgrounds)
-	return _create_glass_card_style(0.6)
+	return ScreenChrome.panel_style()
 
 
 func _create_elevated_card_style() -> StyleBoxFlat:
-	## Create elevated card style (solid background, for inner elements)
-	var style := StyleBoxFlat.new()
+	## A card sitting INSIDE another card — one step lighter so it separates.
+	var style := ScreenChrome.panel_style()
 	style.bg_color = COLOR_TERTIARY
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(SPACING_MD)
 	return style
 
 
@@ -1175,65 +1178,21 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	option_btn.add_theme_stylebox_override("normal", style)
 
 
+## Style a button. `is_primary` marks the one action the screen is pushing.
+##
+## Delegates to DialogStyles, which names a theme variation. This used to build
+## four styleboxes at an 8px radius while DialogStyles built three at 4px, so two
+## buttons doing the same job looked different depending on which helper the
+## screen happened to reach for.
 func _style_button(button: Button, is_primary: bool = false) -> void:
-	## Apply consistent button styling. Use is_primary=true for action buttons.
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_BLUE if is_primary else COLOR_TERTIARY
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-
-	# Hover state
-	var hover_style := style.duplicate()
-	hover_style.bg_color = COLOR_ACCENT_HOVER if is_primary else Color(COLOR_TERTIARY.r + 0.1, COLOR_TERTIARY.g + 0.1, COLOR_TERTIARY.b + 0.1)
-	button.add_theme_stylebox_override("hover", hover_style)
-
-	# Pressed state
-	var pressed_style := style.duplicate()
-	pressed_style.bg_color = Color(style.bg_color.r - 0.1, style.bg_color.g - 0.1, style.bg_color.b - 0.1)
-	button.add_theme_stylebox_override("pressed", pressed_style)
-
-	# Disabled state — clearly distinguishable from enabled
-	var disabled_style := style.duplicate()
-	disabled_style.bg_color = Color(style.bg_color.r, style.bg_color.g, style.bg_color.b, 0.2)
-	disabled_style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.25)
-	disabled_style.set_border_width_all(1)
-	button.add_theme_stylebox_override("disabled", disabled_style)
-	button.add_theme_color_override("font_disabled_color", Color("#4b5563"))
+	if is_primary:
+		DialogStyles.style_primary_button(button)
+	else:
+		DialogStyles.style_secondary_button(button)
 
 
 func _style_danger_button(button: Button) -> void:
-	## Apply danger/destructive button styling (red).
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_RED
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-
-	# Hover state (lighter red)
-	var hover_style := style.duplicate()
-	hover_style.bg_color = Color(COLOR_RED.r + 0.1, COLOR_RED.g, COLOR_RED.b)
-	button.add_theme_stylebox_override("hover", hover_style)
+	DialogStyles.style_danger_button(button)
 
 
 # ============ GLASS MORPHISM STYLING ============
@@ -1266,24 +1225,16 @@ func _create_glass_panel_style_compact() -> StyleBoxFlat:
 	return style
 
 
+## A card that carries a semantic colour (amber for the current step, cyan for
+## world actions, red for danger).
+##
+## The accent is a solid 3px LEFT edge — the same mark the Library's tappable
+## cards use — instead of the old 10%-tint background with a 20%-alpha border.
+## Two reasons: a 20%-alpha border on a dark page is under the 3:1 contrast a
+## non-text UI element needs to be seen at all, and one accent language is easier
+## to read than two.
 func _create_accent_card_style(accent_color: Color) -> StyleBoxFlat:
-	## Create accent-tinted card (e.g., amber for current step, pink for quests)
-	var style := StyleBoxFlat.new()
-
-	# Tinted background (10% opacity of accent)
-	style.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
-
-	# Accent border (20% opacity)
-	style.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
-	style.set_border_width_all(1)
-
-	# Rounded corners
-	style.set_corner_radius_all(12)
-
-	# Padding
-	style.set_content_margin_all(SPACING_MD)
-
-	return style
+	return ScreenChrome.card_style(accent_color)
 
 
 func _create_section_header(title: String, icon: String = "") -> HBoxContainer:

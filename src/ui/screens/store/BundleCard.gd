@@ -8,6 +8,7 @@ signal bundle_buy_requested()
 const DLCContentCatalogRef = preload(
 	"res://src/ui/screens/store/DLCContentCatalog.gd")
 
+const SPACING_XS := UIColors.SPACING_XS
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const FONT_SIZE_XS := UIColors.FONT_SIZE_XS

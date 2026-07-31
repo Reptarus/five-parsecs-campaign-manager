@@ -42,57 +42,19 @@ func _build_ui() -> void:
 	add_child(outer)
 	# Portrait de-clip. 32px per side is a fifth of a 360dp phone's 310 design px, and
 	# it was going straight into the category cards' width — they measured 246 wide.
-	var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
-	add_child(_pc)
-	_pc.setup_offsets(outer)
+	ScreenChrome.apply_page_chrome_offsets(self, outer)
 
-	# Header — HFlow so Back / title / item-count wrap onto a second line on a
-	# narrow (~384px) portrait header instead of clipping. FlowContainer ignores
-	# main-axis expand, so the title is NOT expand-filled here (an expanding
-	# child would force the count to wrap even on desktop).
-	var header := HFlowContainer.new()
-	header.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
-	header.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
+	# This screen is the app's visual reference, so it builds its header, search
+	# field and cards from the SHARED helpers rather than its own copies — if the
+	# Library and the shared chrome ever disagree, the shared chrome is wrong.
+	var header := ScreenChrome.build_header(
+		"Library", _on_back_pressed, "%d items" % _provider.get_total_item_count()
+	)
 	outer.add_child(header)
 
-	var back_btn := Button.new()
-	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
-	DialogStyles.style_secondary_button(back_btn)
-	back_btn.pressed.connect(_on_back_pressed)
-	header.add_child(back_btn)
-
-	var title := Label.new()
-	title.text = "Library"
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
-	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	title.size_flags_vertical = SIZE_SHRINK_CENTER
-	header.add_child(title)
-
-	var count_label := Label.new()
-	count_label.text = "%d items" % _provider.get_total_item_count()
-	count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
-	count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-	count_label.custom_minimum_size.x = 120
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	header.add_child(count_label)
-
-	# Search bar
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search weapons, enemies, species..."
-	_search_input.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
-	_search_input.clear_button_enabled = true
-	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = UIColors.COLOR_TERTIARY
-	search_style.border_color = UIColors.COLOR_BORDER
-	search_style.set_border_width_all(1)
-	search_style.set_corner_radius_all(4)
-	search_style.content_margin_left = UIColors.SPACING_MD
-	search_style.content_margin_right = UIColors.SPACING_MD
-	_search_input.add_theme_stylebox_override("normal", search_style)
-	_search_input.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	_search_input.add_theme_color_override("font_placeholder_color", UIColors.COLOR_TEXT_MUTED)
-	_search_input.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	ScreenChrome.style_search_field(_search_input)
 	_search_input.text_changed.connect(_on_search_text_changed)
 	outer.add_child(_search_input)
 
@@ -454,8 +416,8 @@ func _on_category_pressed(category_id: String) -> void:
 
 
 func _on_back_pressed() -> void:
-	var router := get_node_or_null("/root/SceneRouter")
-	if router and router.has_method("go_back"):
-		router.go_back()
-	elif router and router.has_method("navigate_to"):
-		router.navigate_to("main_menu")
+	# Returns the player where they came FROM. This used to call a
+	# SceneRouter.go_back() that did not exist, behind a has_method() guard, so it
+	# always fell through to a hardcoded "main_menu" — opening the Library from a
+	# campaign and pressing Back dumped you out to the title screen.
+	ScreenChrome.navigate_back(self)

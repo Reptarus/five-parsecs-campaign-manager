@@ -1,6 +1,16 @@
 class_name HubFeatureCard
 extends PanelContainer
 
+## Path preload, not the bare `ScreenChrome` identifier.
+##
+## This file is parsed very early — before the global class_name cache is
+## necessarily warm — and a cold cache turns an unresolved global class into a
+## PARSE error that cascades: every screen extending this base fails to compile
+## and renders blank. Loading by path cannot go stale. Same reason
+## EquipmentManager, ShipManager and PatronRivalManager path-preload
+## AdaptivePanelGroup.
+const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+
 ## Dark card with cyan left border, icon, title, description, and arrow.
 ## Used as a dashboard hub navigation element — replaces plain button lists.
 ## Inspired by Fallout Wasteland Warfare hub screen feature cards.
@@ -43,20 +53,10 @@ func _ready() -> void:
 func _build_ui() -> void:
 	custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_COMFORT)
 
-	# Card style — dark bg with cyan left border
-	var style := StyleBoxFlat.new()
-	style.bg_color = UIColors.COLOR_SECONDARY
-	style.border_color = UIColors.COLOR_CYAN
-	style.border_width_left = 3
-	style.border_width_top = 0
-	style.border_width_right = 0
-	style.border_width_bottom = 0
-	style.set_corner_radius_all(4)
-	style.content_margin_left = UIColors.SPACING_MD
-	style.content_margin_right = UIColors.SPACING_MD
-	style.content_margin_top = UIColors.SPACING_SM
-	style.content_margin_bottom = UIColors.SPACING_SM
-	add_theme_stylebox_override("panel", style)
+	# Card look — dark bg with a cyan left edge — now lives in the theme as the
+	# NavCard variation, so section cards, .tscn-built rows and this card all read
+	# from one definition instead of three copies of the same numbers.
+	ScreenChrome.apply_card(self)
 
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", UIColors.SPACING_MD)
@@ -152,10 +152,12 @@ func _on_hover_enter() -> void:
 	add_theme_stylebox_override("panel", style)
 
 func _on_hover_exit() -> void:
-	var style: StyleBoxFlat = get_theme_stylebox("panel").duplicate()
-	style.border_color = UIColors.COLOR_CYAN
-	style.bg_color = UIColors.COLOR_SECONDARY
-	add_theme_stylebox_override("panel", style)
+	# CLEAR the override rather than painting the resting look back on. An
+	# override outranks the theme permanently, so re-applying one here would mean
+	# that after a single hover the card no longer reads from the NavCard
+	# variation at all — and any later change to the card look would silently skip
+	# every card the player had happened to touch.
+	remove_theme_stylebox_override("panel")
 
 ## Configure the card with an emoji icon. Returns self for chaining.
 ## Safe to call before or after add_child() — data is deferred if UI not built yet.

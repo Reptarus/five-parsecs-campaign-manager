@@ -39,6 +39,10 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_top", SPACING_LG)
 	margin.add_theme_constant_override("margin_bottom", SPACING_LG)
 	add_child(margin)
+	# 32px per side is a fifth of a 360dp phone. PortraitChrome trims it to the
+	# 16dp page margin in portrait and restores the scene's own value in landscape;
+	# the pack cards were paying for those gutters out of their own width.
+	ScreenChrome.apply_page_chrome(self, margin)
 
 	var root_vbox := VBoxContainer.new()
 	root_vbox.add_theme_constant_override(
@@ -78,6 +82,10 @@ func _build_ui() -> void:
 	# Section: Expansions
 	var exp_header := Label.new()
 	exp_header.text = "Compendium Expansions"
+	# 234px unwrapped at FONT_SIZE_LG, which is wider than a 310dp phone's content
+	# column. Safe to wrap: it sits in a plain VBox.
+	exp_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	exp_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	exp_header.add_theme_font_size_override(
 		"font_size", FONT_SIZE_LG)
 	exp_header.add_theme_color_override(
@@ -118,8 +126,15 @@ func _build_ui() -> void:
 		_on_bug_hunt_play_pressed)
 	content.add_child(_bug_hunt_card)
 
-	# Footer
-	_build_footer(root_vbox)
+	# Footer goes INSIDE the scroll, not pinned below it.
+	#
+	# Pinned, it and the header together asked for more height than a phone in
+	# landscape has: the page needs room for the header, the footer, the page
+	# margins AND the settings-band reservation before a single pack card gets a
+	# pixel, and 338dp of screen does not cover it. Restore Purchases and Rate This
+	# App are secondary actions — scrolling to them is the right trade against
+	# clipping the storefront.
+	_build_footer(content)
 
 func _build_header(parent: VBoxContainer) -> void:
 	# HFlow so Back / title / Help wrap onto a second line on a narrow (~384px)

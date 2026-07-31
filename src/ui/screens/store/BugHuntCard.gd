@@ -9,6 +9,7 @@ signal play_requested()
 const DLCContentCatalogRef = preload(
 	"res://src/ui/screens/store/DLCContentCatalog.gd")
 
+const SPACING_XS := UIColors.SPACING_XS
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const FONT_SIZE_SM := UIColors.FONT_SIZE_SM
@@ -70,13 +71,23 @@ func _build_ui() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 
+	# The tagline goes in the COLUMN below the header, not in the flow row.
+	#
+	# A FlowContainer wraps BETWEEN its children; each child still demands its own
+	# full width as a minimum. The tagline is a whole sentence — 257px unwrapped —
+	# so sitting in the row it set the card's minimum width, and because the store's
+	# ScrollContainer has horizontal scrolling disabled that minimum propagated all
+	# the way out to the page and pushed it off a small phone. In a VBox column
+	# autowrap actually works.
 	var tagline := Label.new()
 	tagline.text = info.get("tagline", "")
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tagline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tagline.add_theme_font_size_override(
 		"font_size", FONT_SIZE_SM)
 	tagline.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
-	header.add_child(tagline)
+	vbox.add_child(tagline)
 
 	# Description
 	var desc := Label.new()
