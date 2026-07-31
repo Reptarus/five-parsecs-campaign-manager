@@ -93,32 +93,122 @@ func _mission() -> Dictionary:
 		"deployment": {"condition_id": "NO_CONDITION"},
 	}
 
+var _ui2: Node = null
+
 func _process(_delta: float) -> bool:
+	## Frame-stepped, not awaited: this is a SceneTree main loop, so an `await`
+	## here would let _process return before the assertions ran. The oracle is
+	## activated via call_deferred (the panel must finish _ready() first), which
+	## is why its assertions live two frames after its setup.
 	_frame += 1
 	if _frame < 2:
 		return false
 
-	print("\n=== verify_battle_ui ===\n")
+	match _frame:
+		2:
+			print("\n=== verify_battle_ui ===\n")
+			var packed: PackedScene = load(
+				"res://src/ui/screens/battle/TacticalBattleUI.tscn")
+			if packed == null:
+				print("  FAIL  could not load TacticalBattleUI.tscn")
+				return _finish()
+			_ui = packed.instantiate()
+			root.add_child(_ui)
 
-	var packed: PackedScene = load("res://src/ui/screens/battle/TacticalBattleUI.tscn")
-	if packed == null:
-		print("  FAIL  could not load TacticalBattleUI.tscn")
-		return _finish()
-	_ui = packed.instantiate()
-	root.add_child(_ui)
+			# Drive the REAL entry points, in the real order.
+			_ui.initialize_battle(_crew(), _enemies(), _mission())
+			_ui._on_tier_selected(TIER_ASSISTED)
+			# _battle_context (which the phase cards read) is assigned when the
+			# round tracker starts the battle — drive the real entry point rather
+			# than assigning the field, so the test exercises the production path.
+			_ui._on_tracker_battle_started()
 
-	# Drive the REAL entry points, in the real order.
-	_ui.initialize_battle(_crew(), _enemies(), _mission())
-	if _ui.has_method("_on_tier_selected"):
-		_ui._on_tier_selected(TIER_ASSISTED)
+			_check_morale_seeding()
+			_check_enemy_role_flags()
+			_check_casualty_bridge()
+			_check_hud_wiring()
+			_check_feed_strip()
+			_check_ai_reference()
 
-	_check_morale_seeding()
-	_check_enemy_role_flags()
-	_check_casualty_bridge()
-	_check_hud_wiring()
-	_check_feed_strip()
+			# FULL_ORACLE is a different UI arrangement — verify it on its own
+			# instance so the ASSISTED assertions above are not disturbed.
+			var packed2: PackedScene = load(
+				"res://src/ui/screens/battle/TacticalBattleUI.tscn")
+			_ui2 = packed2.instantiate()
+			root.add_child(_ui2)
+			_ui2.initialize_battle(_crew(), _enemies(), _mission())
+			_ui2._on_tier_selected(2)
+		5:
+			_check_oracle_tier()
+			return _finish()
+	return false
 
-	return _finish()
+func _check_ai_reference() -> void:
+	## P0.2 / U7 — the book's AI instructions (Core Rules pp.113-115) were never
+	## shown: only a one-line AI_DESCRIPTIONS summary. The base condition, the 1D6
+	## behaviour table and the activation order must all reach the player, at every
+	## tier, because a LOG_ONLY player runs the enemy entirely by hand.
+	var lines: Array = _ui._ai_reference_lines("A")
+	var blob: String = "\n".join(PackedStringArray(lines.map(func(l): return str(l))))
+	_ok("AI reference resolves the 'A' code to Aggressive data",
+		not lines.is_empty(), "no lines returned for code A")
+	_ok("base condition text reaches the player",
+		blob.to_lower().contains("base condition"), "missing base condition")
+	_ok("the 1D6 behaviour table reaches the player",
+		blob.contains("1D6") and blob.contains("6"), "missing behaviour table")
+
+	# The card the Enemy Actions phase actually renders.
+	_ui._show_enemy_actions_ui()
+	var card_text: String = _harvest_text(_ui)
+	_ok("enemy action card states the activation order (p.113)",
+		card_text.to_lower().contains("nearest your edge first"),
+		"activation order line absent from the rendered card")
+	_ok("enemy action card carries the behaviour table",
+		card_text.to_lower().contains("otherwise roll 1d6"),
+		"behaviour table absent from the rendered card")
+
+func _check_oracle_tier() -> void:
+	## The tier-2 Oracle drawer body was created and NOTHING was ever added to it,
+	## and activate_oracle() had zero callers — so the button opened a blank panel
+	## and the whole oracle subsystem was unreachable.
+	if _ui2 == null or not is_instance_valid(_ui2):
+		_ok("FULL_ORACLE instance built", false, "_ui2 is null")
+		return
+	var panel: Variant = _ui2.get("enemy_intent_panel")
+	if panel == null or not is_instance_valid(panel):
+		_ok("oracle panel instanced at FULL_ORACLE tier", false, "null panel")
+		return
+	_ok("oracle panel instanced at FULL_ORACLE tier", true)
+
+	var bodies: Dictionary = _ui2.get("_drawer_bodies")
+	# The panel is created in the stable tracking host and moved onto the enemy
+	# cards by _populate_unit_drawer. Creating it in the enemies body directly
+	# gets it queue_free()d on the next repopulate — verified the hard way.
+	_ok("oracle panel survives with a live parent",
+		panel.get_parent() != null,
+		"panel is orphaned")
+	_ok("no blank Oracle drawer is left behind",
+		not bodies.has("oracle"), "an empty 'oracle' drawer still exists")
+	_ok("oracle mode is actually activated",
+		bool(panel.get("_oracle_active")), "activate_oracle() never took effect")
+	_ok("oracle router built",
+		panel.get_oracle_router() != null, "router is null")
+	_ok("oracle seeded with the battle's real AI type",
+		str(panel.get("_ai_behavior_type")) == "Aggressive",
+		"got '%s'" % str(panel.get("_ai_behavior_type")))
+
+func _harvest_text(node: Node) -> String:
+	## Concatenate every Label/RichTextLabel string in a subtree. Used only to
+	## confirm required RULES TEXT reached a rendered control — the state
+	## assertions elsewhere are what prove behaviour.
+	var out: String = ""
+	if node is RichTextLabel:
+		out += (node as RichTextLabel).text + "\n"
+	elif node is Label:
+		out += (node as Label).text + "\n"
+	for child in node.get_children():
+		out += _harvest_text(child)
+	return out
 
 func _check_morale_seeding() -> void:
 	## P0.1 — set_enemy_count / setup_from_enemy_data had ZERO callers, so the
@@ -221,6 +311,8 @@ func _check_feed_strip() -> void:
 func _finish() -> bool:
 	if _ui and is_instance_valid(_ui):
 		_ui.queue_free()
+	if _ui2 and is_instance_valid(_ui2):
+		_ui2.queue_free()
 	print("\n=== %d passed, %d failed ===" % [_pass, _fail])
 	quit(1 if _fail > 0 else 0)
 	return true

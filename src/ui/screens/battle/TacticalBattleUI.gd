@@ -299,6 +299,23 @@ const AI_DESCRIPTIONS: Dictionary = {
 	"B": "Beast — move toward nearest figure, attack on contact",
 }
 
+## AI code -> the full type name used by data/RulesReference/EnemyAI.json.
+## Codes are Core Rules p.92 ("The AI Type column indicates the type of AI to
+## use: A Aggressive / C Cautious / D Defensive / G Guardian / R Rampage /
+## T Tactical / B Beast").
+const AI_CODE_TO_NAME: Dictionary = {
+	"A": "Aggressive",
+	"C": "Cautious",
+	"D": "Defensive",
+	"G": "Guardian",
+	"R": "Rampage",
+	"T": "Tactical",
+	"B": "Beast",
+}
+
+const EnemyAIOracleRouterClass = preload("res://src/core/battle/EnemyAIOracleRouter.gd")
+var _ai_reference_router: RefCounted = null
+
 # SceneRouter-based battle delegation (Bug Hunt, Planetfall, Tactics)
 # When loaded via SceneRouter (not embedded as child), these track the
 # return route and temp_data key for storing results.
@@ -468,7 +485,11 @@ func _build_redesign_frame() -> void:
 	_make_drawer("reference", "Battle Round Reference (Core Rules p.118)",
 		DrawerClass.Edge.RIGHT)
 	_make_drawer("tracking", "Tracking", DrawerClass.Edge.RIGHT, true)
-	_make_drawer("oracle", "Enemy AI Oracle", DrawerClass.Edge.RIGHT, true)
+	# NO separate "oracle" drawer. One existed and NOTHING was ever added to its
+	# body, so the FULL_ORACLE toolbar button opened a blank panel. The AI oracle
+	# is deliberately an intent layer sitting above the per-figure enemy cards
+	# (see _populate_unit_drawer), so it lives in the "enemies" drawer and a second
+	# empty surface competing for the same content is worse than none.
 
 	# Repoint the funnel shims at drawer bodies. setup_content stays a valid
 	# host for any legacy funnel, but the pre-battle checklist itself is a
@@ -1729,12 +1750,25 @@ func _instance_assisted_components() -> void:
 
 func _instance_oracle_components() -> void:
 	## Instance FULL_ORACLE tier components into their zones
-	# EnemyIntentPanel → Left / "Enemies" tab
+	# EnemyIntentPanel is created in the STABLE tracking host and then moved to the
+	# top of the enemy drawer by _populate_unit_drawer ("an AI-intent layer ON TOP
+	# of the per-figure enemy tracker, not a replacement"). Do NOT create it in the
+	# enemies body directly: that body is cleared and rebuilt on every repopulate,
+	# so the panel would be queue_free()d out from under this reference.
+	#
+	# THE BUG THIS FIXES: activate_oracle() had ZERO callers repo-wide, so
+	# _oracle_container.visible stayed false forever — EnemyAIOracleRouter, the
+	# book's 1D6 behaviour tables and CardOracleSystem were all unreachable at
+	# runtime, and the panel just read "No enemy intents detected / AI: Tactical"
+	# with a hardcoded type no matter who you were fighting.
 	enemy_intent_panel = _get_res("enemy_intent").new()
 	enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(enemy_intent_panel)
+	# activate_oracle() builds the router and reveals the mode selector. Deferred
+	# so it runs after the panel's own _ready() has built _oracle_container.
+	_activate_enemy_oracle.call_deferred()
 
 	# EnemyGenerationWizard → shown as modal overlay (not stacked in PhaseContent)
 	enemy_generation_wizard = _get_res("enemy_generation").instantiate()
@@ -2463,8 +2497,10 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 	var ids: Array = ["crew", "enemies", "intel", "dice", "reference"]
 	if tier >= 1:
 		ids.append("tracking")
-	if tier >= 2:
-		ids.append("oracle")
+	# No "oracle" button at tier 2: its drawer body was never populated, so it
+	# opened blank. The AI oracle is an intent layer on top of the per-figure
+	# enemy cards and lives in the "enemies" drawer (see _instance_oracle_components
+	# and the reparent in _populate_unit_drawer).
 	for id: String in ids:
 		var b := Button.new()
 		b.text = id.capitalize()
@@ -2916,31 +2952,30 @@ func _show_quick_actions_ui() -> void:
 func _show_enemy_actions_ui() -> void:
 	## ENEMY ACTIONS — tier-aware display with contextual enemy info
 	_clear_action_buttons()
-	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle.
+	# The book's AI instructions (base condition + 1D6 table + activation order)
+	# go to EVERY tier — the tier gates AUTOMATION, not INSTRUCTIONS. Previously
+	# this card was built only in the `elif` below, so a LOG_ONLY player running
+	# the enemy entirely by hand got no AI guidance at all.
+	if not _battle_context.is_empty():
+		_surface_custom_phase_content(_build_enemy_action_content())
+		if right_tabs: right_tabs.current_tab = 2
+
+	# At FULL_ORACLE tier the interactive oracle lives in its own drawer, reachable
+	# from the toolbar's Oracle button. It is NOT surfaced as phase content: the
+	# phase content is the book reference card above, which every tier needs.
 	if tier_controller and tier_controller.current_tier >= 2:
-		# F8 fix: enemy_intent_panel can be invalid by combat — it is the one
-		# phase component freed during the SETUP->COMBAT rebuild (the others
-		# survive). Passing a freed ref to the TYPED _surface_phase_component(
-		# component: Control) param fails the call-boundary type check and ABORTS
-		# this method, so the "Enemy Actions Done" button below never builds ->
-		# the Enemy Actions phase soft-locks (and the FULL_ORACLE oracle, the
-		# whole point of the tier, silently vanishes). Recreate if invalid,
-		# mirroring the line ~2009 recreate-if-null pattern.
+		# F8 fix (kept): enemy_intent_panel can be invalid by combat — it is the
+		# one phase component freed during the SETUP->COMBAT rebuild. Recreate if
+		# invalid, mirroring the recreate-if-null pattern used elsewhere.
 		if not is_instance_valid(enemy_intent_panel):
 			enemy_intent_panel = _get_res("enemy_intent").new()
 			enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			if phase_content:
 				phase_content.add_child(enemy_intent_panel)
-		if is_instance_valid(enemy_intent_panel):
-			_surface_phase_component(enemy_intent_panel)
+			_activate_enemy_oracle.call_deferred()
 		if right_tabs: right_tabs.current_tab = 2
-	elif not _battle_context.is_empty():
-		# ASSISTED tier: show structured enemy action card
-		var enemy_card: Control = _build_enemy_action_content()
-		_surface_custom_phase_content(enemy_card)
-		if right_tabs: right_tabs.current_tab = 2
-	else:
+	elif _battle_context.is_empty():
 		_surface_phase_component(null)
 		if right_tabs: right_tabs.current_tab = 1
 	var ef: Dictionary = _battle_context.get("enemy_force", {})
@@ -3340,6 +3375,18 @@ func _build_enemy_action_content() -> Control:
 				if not rule_str.is_empty():
 					lines.append(
 						"  [color=#D97706]%s[/color]" % rule_str)
+
+		# Activation ORDER — Core Rules p.113, verbatim: "enemy figures begin with
+		# those closest to the player's battlefield edge, then progress away
+		# towards the opposing battlefield edge. If two figures are equally close,
+		# start on their left side." The player has to get this right on the table
+		# and it was surfaced nowhere in the app.
+		lines.append("")
+		lines.append("[b]Order:[/b] nearest YOUR edge first, working away. "
+			+ "Ties: start on their left.")
+
+		# The book's actual AI instructions for this type (base condition + 1D6).
+		lines.append_array(_ai_reference_lines(ai_code))
 	else:
 		lines.append(
 			"Move each enemy toward closest crew, shoot if in range.")
@@ -3360,6 +3407,72 @@ func _build_enemy_action_content() -> Control:
 	rtl.text = "\n".join(lines)
 	vbox.add_child(rtl)
 	return vbox
+
+func _ai_type_name(ai_code: String) -> String:
+	## "A" -> "Aggressive". Tolerates a full name already being passed in.
+	var code: String = ai_code.strip_edges()
+	if AI_CODE_TO_NAME.has(code.to_upper()):
+		return AI_CODE_TO_NAME[code.to_upper()]
+	return code if code != "" else "Aggressive"
+
+
+func _ai_reference_lines(ai_code: String) -> Array:
+	## The BOOK's AI instructions for this enemy: base condition, then the 1D6
+	## behaviour table (Core Rules pp.113-115, data/RulesReference/EnemyAI.json).
+	##
+	## Shown at EVERY tier. The tier gates AUTOMATION, never INSTRUCTIONS — a
+	## LOG_ONLY player is running the enemy by hand off this text and needs it MORE
+	## than a FULL_ORACLE player does, not less. Before this, the only AI guidance
+	## anywhere in the battle was a one-line AI_DESCRIPTIONS summary.
+	var lines: Array = []
+	if _ai_reference_router == null:
+		_ai_reference_router = EnemyAIOracleRouterClass.new()
+	if _ai_reference_router == null:
+		return lines
+
+	var type_name: String = _ai_type_name(ai_code)
+	var data: Dictionary = {}
+	if _ai_reference_router.has_method("_find_ai_type"):
+		data = _ai_reference_router._find_ai_type(type_name)
+	if data.is_empty():
+		return lines
+
+	var base: String = str(data.get("base_condition", ""))
+	if base != "":
+		lines.append("")
+		lines.append("[b]Base condition[/b] — check this FIRST:")
+		lines.append("  [color=#4FC3F7]%s[/color]" % base)
+
+	var note: String = str(data.get("note", ""))
+	if note != "":
+		lines.append("  [color=#808080]%s[/color]" % note)
+
+	var table: Array = data.get("behavior_table", [])
+	if not table.is_empty():
+		lines.append("")
+		lines.append("[b]Otherwise roll 1D6:[/b]")
+		for entry in table:
+			if entry is Dictionary:
+				lines.append("  [b]%s[/b]  %s" % [
+					str(entry.get("roll", "?")), str(entry.get("action", ""))])
+	return lines
+
+
+func _activate_enemy_oracle() -> void:
+	## Turn the oracle on and seed it with the force we already know about, so the
+	## player is not asked to hand-enter an enemy group and its AI type that the
+	## app generated itself. Core Rules pp.91-94: one enemy type per battle.
+	if not (enemy_intent_panel and is_instance_valid(enemy_intent_panel)):
+		return
+	if enemy_intent_panel.has_method("activate_oracle"):
+		enemy_intent_panel.activate_oracle()
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var ef: Dictionary = _battle_context.get("enemy_force", md.get("enemy_force", {}))
+	var type_name: String = _ai_type_name(str(ef.get("ai", "A")))
+	if enemy_intent_panel.has_method("set_ai_behavior_type"):
+		enemy_intent_panel.set_ai_behavior_type(type_name)
+
 
 func _build_end_phase_checklist() -> Control:
 	## Build a numbered end-of-round checklist with condition-specific steps.
