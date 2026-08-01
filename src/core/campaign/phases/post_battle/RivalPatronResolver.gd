@@ -208,11 +208,20 @@ func _roll_rival_removal(ctx: PostBattleContextClass, rival_id: String) -> int:
 	var modifiers: int = 0
 	if ctx.game_state and ctx.game_state.current_campaign:
 		var campaign = ctx.game_state.current_campaign
+		# Core Rules p.119: "+1 if you Tracked them down during Assign and Resolve
+		# Crew Tasks". The Track task's outcome lives in
+		# progress_data["tracked_rivals"] (written by WorldPhaseController at the
+		# same point it persists the mission). This read looked for a top-level
+		# `tracked_rivals` PROPERTY, which FiveParsecsCampaignCore does not
+		# declare — so `"tracked_rivals" in campaign` was permanently false, the
+		# Dictionary branch never ran for a Resource campaign, and the modifier
+		# could not apply no matter how the player played the World Phase.
 		var tracked_rivals: Array = []
-		if "tracked_rivals" in campaign:
-			tracked_rivals = campaign.tracked_rivals
-		elif campaign is Dictionary:
-			tracked_rivals = campaign.get("tracked_rivals", [])
+		if campaign is Dictionary:
+			tracked_rivals = (campaign as Dictionary).get("progress_data", {}).get(
+				"tracked_rivals", [])
+		elif "progress_data" in campaign:
+			tracked_rivals = campaign.progress_data.get("tracked_rivals", [])
 		if rival_id in tracked_rivals:
 			modifiers += 1
 	# Core Rules p.119: "Add +1 if you killed a Unique Individual in the battle."

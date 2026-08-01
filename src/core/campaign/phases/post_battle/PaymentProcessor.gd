@@ -132,16 +132,28 @@ func _item_name(item: Variant) -> String:
 	return str(item)
 
 func _charge_credits(ctx: PostBattleContextClass, amount: int) -> void:
-	## Credits are owned by the campaign core; GameState has no subtract API, so
-	## this goes through the same manager chain process_payment() uses.
+	## Credits are owned by the campaign core, and `GameStateManager.set_credits()`
+	## is their ONLY sanctioned mutator (data-ownership table) — it writes the
+	## campaign through AND emits credits_changed, which the resource bar and
+	## dashboard listen to.
+	##
+	## The previous fallback wrote `ctx.campaign.credits` directly when the injected
+	## manager reference was missing. That bypassed the owner (lint_data_ownership
+	## flagged it) and, worse, moved credits without the signal — so the Rival
+	## Assault fine (Core Rules p.92) could debit the campaign while every UI
+	## showing credits kept the old number until something unrelated refreshed it.
+	## Resolve the autoload instead, exactly as _log_penalty does below.
 	if amount <= 0:
 		return
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("set_credits") \
-			and ctx.game_state_manager.has_method("get_credits"):
-		var current: int = int(ctx.game_state_manager.get_credits())
-		ctx.game_state_manager.set_credits(maxi(0, current - amount))
-	elif ctx.campaign and "credits" in ctx.campaign:
-		ctx.campaign.credits = maxi(0, int(ctx.campaign.credits) - amount)
+	var gsm: Variant = ctx.game_state_manager
+	if gsm == null and Engine.get_main_loop():
+		gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("modify_credits"):
+		gsm.modify_credits(-amount)  # clamps at 0 and routes through set_credits
+	elif gsm and gsm.has_method("set_credits") and gsm.has_method("get_credits"):
+		gsm.set_credits(maxi(0, int(gsm.get_credits()) - amount))
+	else:
+		push_warning("PaymentProcessor: no GameStateManager — %d credit charge dropped" % amount)
 
 func _damage_ship(ctx: PostBattleContextClass, amount: int) -> int:
 	## apply_ship_damage() returns the damage actually dealt after ship traits

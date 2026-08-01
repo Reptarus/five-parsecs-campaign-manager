@@ -122,13 +122,35 @@ func get_action_description(action_id: String) -> String:
 
 ## Save/Load
 func load_from_save(save_data: Dictionary) -> void:
-	if not save_data.has("qol_data") or not save_data.qol_data.has("checklist_settings"):
+	## THE KEY MISMATCH THIS FIXES: the writer
+	## (FiveParsecsCampaignCore._collect_qol_data) stores this block under
+	## "turn_checklist", and NOTHING in the repo has ever written
+	## "checklist_settings" — so this function early-returned on every load and
+	## veteran mode silently reverted to false after each quit. The READER is
+	## corrected rather than the writer, because every existing save already
+	## carries "turn_checklist"; the old name is kept as a fallback so a save
+	## written by some future/branch build still loads.
+	if not save_data.has("qol_data"):
 		return
-	
-	var checklist_data = save_data.qol_data.checklist_settings
+	var qol: Dictionary = save_data["qol_data"]
+	var checklist_data: Dictionary = qol.get("turn_checklist",
+		qol.get("checklist_settings", {}))
+	if checklist_data.is_empty():
+		return
+
 	veteran_mode = checklist_data.get("veteran_mode", false)
+	# Mid-turn progress. Neither of these was serialized at all, so a player who
+	# saved partway through a phase came back to an empty checklist and could be
+	# blocked from advancing (or re-prompted for steps they had already done).
+	var actions: Variant = checklist_data.get("completed_actions", {})
+	completed_actions = (actions as Dictionary).duplicate(true) if actions is Dictionary else {}
+	var phase_cl: Variant = checklist_data.get("current_phase_checklist", {})
+	current_phase_checklist = (phase_cl as Dictionary).duplicate(true) \
+		if phase_cl is Dictionary else {}
 
 func save_to_dict() -> Dictionary:
 	return {
-		"veteran_mode": veteran_mode
+		"veteran_mode": veteran_mode,
+		"completed_actions": completed_actions.duplicate(true),
+		"current_phase_checklist": current_phase_checklist.duplicate(true),
 	}

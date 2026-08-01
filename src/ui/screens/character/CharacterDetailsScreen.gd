@@ -12,6 +12,19 @@ const CharacterEventTimelineClass = preload(
 const EquipmentTransferServiceRef = preload(
 	"res://src/core/equipment/EquipmentTransferService.gd")
 
+## The ONLY fields this screen edits, as `Character.to_dictionary()` names them.
+## _sync_character_to_source_dict() merges exactly these back into the live crew
+## dict — see the comment there for why a whitelist and not a blanket merge.
+## Adding an editor to this screen means adding its key HERE, or the edit will
+## not persist. Equipment is deliberately absent: it is moved through
+## EquipmentTransferService against the live campaign, never through this copy.
+const EDITABLE_KEYS: PackedStringArray = [
+	"player_notes",
+	"portrait_path",
+	"experience",
+	"acquired_training",
+]
+
 # ============ DESIGN SYSTEM CONSTANTS ============
 # Unified styling from BaseCampaignPanel
 
@@ -983,15 +996,35 @@ func _sync_character_to_source_dict() -> void:
 	if source_dict.is_empty():
 		return
 
-	# Serialize current character state and merge back into the source dict.
-	# The source dict is a reference into campaign.crew_data["members"], so
-	# updating it in-place updates the campaign's live data.
+	# Merge back ONLY the fields this screen edits (see EDITABLE_KEYS).
+	#
+	# THE BUG THIS FIXES — a save-corrupting one. The merge used to copy EVERY key
+	# of to_dictionary() into the live crew dict. But `current_character` is a
+	# Character built by from_dictionary(), and that constructor NARROWS: equipment
+	# is declared `Array[String]` (Character.gd) and from_dictionary keeps only
+	# `item is String` entries. Ship-stash items are Dictionaries (the shape
+	# EquipmentTransferService produces and GameState.verify_consistency expects),
+	# so every card-shaped item a crew member owned was silently dropped on the
+	# way IN and then the blanket merge wrote that shortened list back OUT.
+	# Net effect: opening a crew member's detail screen and leaving DELETED their
+	# equipment from the campaign.
+	#
+	# A whitelist rather than an equipment-shaped blocklist on purpose: it is
+	# immune to the same trap in any OTHER field from_dictionary narrows now or
+	# later. Equipment is absent from the list because this screen never edits the
+	# local copy — add/remove both route through EquipmentTransferService against
+	# the LIVE campaign (see _on_add_equipment_pressed / _on_remove_equipment_pressed).
 	if current_character.has_method("to_dictionary"):
 		var updated: Dictionary = current_character.to_dictionary()
-		for key in updated:
-			source_dict[key] = updated[key]
+		for key in EDITABLE_KEYS:
+			if updated.has(key):
+				source_dict[key] = updated[key]
 
-	GameStateManager.clear_temp_data("source_crew_dict")
+	# NOTE: the temp handle is deliberately NOT cleared here. This runs more than
+	# once per visit (a training purchase persists immediately, and Save persists
+	# again on the way out); clearing it on the first call made every later sync
+	# early-return on the has_temp_data() guard above. The handle is released when
+	# the screen is actually left — see return_to_crew_management().
 
 func return_to_crew_management() -> void:
 	## Navigate back to crew management screen
@@ -999,9 +1032,66 @@ func return_to_crew_management() -> void:
 		GameStateManager.TEMP_KEY_SELECTED_CHARACTER):
 		GameStateManager.clear_temp_data(
 			GameStateManager.TEMP_KEY_SELECTED_CHARACTER)
+	# Release the live crew-dict handle here — the single exit point — so
+	# _sync_character_to_source_dict() can run as many times as this visit needs
+	# without disarming itself, and so the handle never leaks to the NEXT
+	# character opened.
+	if GameStateManager and GameStateManager.has_temp_data("source_crew_dict"):
+		GameStateManager.clear_temp_data("source_crew_dict")
 	GameStateManager.navigate_to_screen("crew_management")
 
 # ── Shared Helpers ──────────────────────────────────────────────
+
+func _has_live_crew_dict() -> bool:
+	## True when this screen was opened from a dict-based crew card, so the live
+	## campaign entry is reachable for in-place mutation.
+	return GameStateManager != null \
+		and GameStateManager.has_temp_data("source_crew_dict") \
+		and not (GameStateManager.get_temp_data("source_crew_dict") as Dictionary).is_empty()
+
+func _live_crew_equipment() -> Array:
+	## The equipment array ON THE LIVE crew dict (campaign.crew_data["members"]),
+	## created if absent. Mutating the returned Array mutates the campaign —
+	## unlike this screen's Character copy, whose equipment is a narrowed
+	## Array[String] excluded from the write-back whitelist.
+	if not _has_live_crew_dict():
+		return []
+	var src: Dictionary = GameStateManager.get_temp_data("source_crew_dict")
+	if not src.has("equipment") or not (src["equipment"] is Array):
+		src["equipment"] = []
+	return src["equipment"]
+
+func _remove_from_live_crew_equipment(item: Variant) -> void:
+	## Drop `item` from the LIVE crew dict's equipment, tolerating the mixed
+	## String/Dictionary shapes that array carries. Matches on id first, then on
+	## name, so a Dictionary on the live side can still be matched by the String
+	## the narrowed Character copy handed us.
+	var live_eq: Array = _live_crew_equipment()
+	if live_eq.is_empty():
+		return
+	var want_id: String = ""
+	var want_name: String = ""
+	if item is Dictionary:
+		var d: Dictionary = item
+		want_id = str(d.get("id", ""))
+		want_name = str(d.get("name", ""))
+	else:
+		want_name = str(item)
+		want_id = want_name
+	for i in range(live_eq.size() - 1, -1, -1):
+		var entry: Variant = live_eq[i]
+		var eid: String = ""
+		var ename: String = ""
+		if entry is Dictionary:
+			var ed: Dictionary = entry
+			eid = str(ed.get("id", ""))
+			ename = str(ed.get("name", ""))
+		else:
+			ename = str(entry)
+			eid = ename
+		if (want_id != "" and eid == want_id) or (want_name != "" and ename == want_name):
+			live_eq.remove_at(i)
+			return
 
 func _get_char_id() -> String:
 	## Extract character_id from current_character (dict or Resource)
@@ -1359,11 +1449,18 @@ func _on_add_equipment_pressed() -> void:
 				var svc = EquipmentTransferServiceRef.new(gs.current_campaign)
 				svc.transfer_to_character(item_id, char_id)
 			else:
-				# Fallback for items without ids (legacy data)
-				if current_character and "equipment" in current_character:
-					current_character.equipment.append(chosen) # lint:ignore
-				pool.remove_at(id)
-				gs.current_campaign.equipment_data["equipment"] = pool
+				# Fallback for items without ids (legacy data). Writes to the LIVE
+				# crew dict, not to this screen's Character copy: the copy's
+				# `equipment` is Array[String], so appending a Dictionary was a
+				# typed-array error, and since the write-back is now a whitelist
+				# that excludes equipment, the copy would not persist anyway.
+				var live_eq: Array = _live_crew_equipment()
+				if live_eq.is_empty() and not _has_live_crew_dict():
+					push_warning("CharacterDetails: no live crew dict — legacy item not moved")
+				else:
+					live_eq.append(chosen)
+					pool.remove_at(id)
+					gs.current_campaign.equipment_data["equipment"] = pool
 			_update_equipment_display()
 		popup.queue_free()
 	)
@@ -1404,8 +1501,13 @@ func _on_remove_equipment_pressed() -> void:
 				var svc = EquipmentTransferServiceRef.new(gs.current_campaign)
 				svc.transfer_to_stash(item_id, char_id)
 			else:
-				# Fallback for legacy data without ids
-				equipment.remove_at(id)
+				# Fallback for legacy data without ids. Mirror of the add-side
+				# fallback: the removal must land on the LIVE crew dict, because
+				# equipment is excluded from the write-back whitelist and so a
+				# mutation of this screen's Character copy would never persist —
+				# the item would reappear on the next load.
+				equipment.remove_at(id)  # local copy, so the display updates now
+				_remove_from_live_crew_equipment(removed)
 				if gs and gs.current_campaign and "equipment_data" in gs.current_campaign:
 					var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
 					stash.append(removed)
@@ -1710,24 +1812,45 @@ func _on_training_pressed(training_type: String) -> void:
 		return
 	var cost: int = int(training_costs[training_type])
 	var current_xp: int = current_character.experience if "experience" in current_character else 0
-	var current_training: Array = current_character.training if "training" in current_character else []
-	
+	# `acquired_training`, NOT `training`.
+	#
+	# THE BUG THIS FIXES: `Character extends Resource` directly and declares
+	# `acquired_training: Array[String]` — it has NO `training` property at all
+	# (the int `training` lives on BaseCharacterResource, a class Character does
+	# not extend). So `current_character.training = ...` below assigned to a
+	# property that does not exist, which is a runtime error that ABORTS the
+	# function — taking the XP deduction, mark_campaign_modified() and
+	# populate_ui() on the following lines down with it.
+	#
+	# Buying Advanced Training therefore charged nothing, recorded nothing, and
+	# did not even refresh the screen: the button simply did nothing, forever.
+	var current_training: Array = []
+	if "acquired_training" in current_character:
+		current_training = current_character.acquired_training
+
 	# Validate
 	if training_type in current_training:
 		return
-	
+
 	if current_xp < cost:
 		return
-	
-	# Apply training
-	current_training.append(training_type)
-	current_character.training = current_training
+
+	# Apply training through the canonical mutator (Character.add_training,
+	# Compendium p.27), which owns the duplicate check.
+	if current_character.has_method("add_training"):
+		current_character.add_training(training_type)
+	elif "acquired_training" in current_character:
+		current_character.acquired_training.append(training_type)
 	current_character.experience = current_xp - cost
-	
+
+	# Persist to the live crew dict — `acquired_training` and `experience` are
+	# both on EDITABLE_KEYS, so this is what makes the purchase survive a save.
+	_sync_character_to_source_dict()
+
 	# Mark campaign as modified
 	if GameStateManager:
 		GameStateManager.mark_campaign_modified()
-	
+
 	# Refresh all UI
 	populate_ui()
 	
@@ -1744,9 +1867,11 @@ func _character_to_dict(character: Resource) -> Dictionary:
 	dict["toughness"] = character.toughness if "toughness" in character else 3
 	dict["luck"] = character.luck if "luck" in character else 0
 	
-	# Experience and training
+	# Experience and training. The field is `acquired_training` (Array[String]);
+	# `training` does not exist on Character, so this always produced the empty
+	# fallback and the training section rendered nothing as already-owned.
 	dict["experience"] = character.experience if "experience" in character else 0
-	dict["training"] = character.training if "training" in character else []
+	dict["training"] = character.acquired_training if "acquired_training" in character else []
 	
 	# Background and species for maximums
 	dict["background"] = character.background if "background" in character else ""
@@ -1774,9 +1899,12 @@ func _update_character_from_dict(character: Resource, dict: Dictionary) -> void:
 	if "experience" in dict:
 		character.experience = dict.experience
 	
-	# Update training
-	if "training" in dict:
-		character.training = dict.training
+	# Update training — same nonexistent-property abort as _on_training_pressed
+	# had. `acquired_training` is a typed Array[String], so assign() (which
+	# element-converts) rather than `=` on a possibly-untyped source array.
+	if dict.has("training") and "acquired_training" in character:
+		var incoming: Array = dict["training"]
+		character.acquired_training.assign(incoming)
 
 # ============ BOT UPGRADE SECTION ============
 

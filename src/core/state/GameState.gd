@@ -520,10 +520,15 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 			return {"success": false, "message": error_msg}
 		path = SAVE_DIRECTORY + cid + ".save"
 
-	# Sync FactionSystem state into progress_data before saving
-	var faction_sys = get_node_or_null("/root/FactionSystem")
-	if faction_sys and faction_sys.has_method("get_data") and "progress_data" in campaign:
-		campaign.progress_data["faction_state"] = faction_sys.get_data()
+	# NO faction sync here. FactionSystem state has ONE owner on the save side:
+	# FiveParsecsCampaignCore._collect_qol_data() -> qol_data["faction_system"],
+	# restored by apply_pending_qol_data() alongside the journal, NPCTracker and
+	# economy. This function used to ALSO write progress_data["faction_state"],
+	# so every save carried the blob twice and the two restores raced: the
+	# progress_data one ran first, then the qol one unconditionally cleanup()ed
+	# and re-applied. That clear is deliberate and must stay — it is what stops a
+	# previous campaign's factions bleeding in through the shared autoload — so
+	# the duplicate is what goes.
 
 	# Delegate to campaign's own save method if available
 	if campaign.has_method("save_to_file"):
@@ -669,12 +674,11 @@ func load_campaign(path: String) -> Dictionary:
 	# BUG-035 FIX: Restore EquipmentManager state from campaign data
 	_restore_equipment_from_campaign(loaded)
 
-	# Restore FactionSystem state from campaign progress_data
-	var faction_sys = get_node_or_null("/root/FactionSystem")
-	if faction_sys and faction_sys.has_method("update_data") and "progress_data" in loaded:
-		var faction_state: Dictionary = loaded.progress_data.get("faction_state", {})
-		if not faction_state.is_empty():
-			faction_sys.update_data(faction_state)
+	# FactionSystem is restored by apply_pending_qol_data() further down (the
+	# single owner — see the note at the save site). Restoring it here as well
+	# was redundant work that the qol restore then cleanup()ed and redid.
+	# Legacy saves that still carry progress_data["faction_state"] lose nothing:
+	# the same data was written to qol_data["faction_system"] in the same pass.
 
 	# Restore the active battlefield (mid-mission table layout) so a reload
 	# renders the exact map the player physically built. Positions persist

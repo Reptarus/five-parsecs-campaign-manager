@@ -1425,6 +1425,24 @@ func _complete_world_phase() -> void:
 	# which resets to UPKEEP).
 	phase_completed.emit(world_phase_results)
 
+func _progress_data_of(campaign: Variant) -> Dictionary:
+	## The campaign's progress_data, for BOTH campaign shapes.
+	##
+	## Returned BY REFERENCE, deliberately: callers mutate it in place (consuming
+	## a deferred event, for instance) and expect that to reach the campaign.
+	## Returns an empty throwaway when there is no progress_data to speak of, so
+	## callers can `.get()` safely — check `.is_empty()` before writing.
+	if campaign == null:
+		return {}
+	if campaign is Dictionary:
+		var d: Dictionary = campaign
+		if not d.has("progress_data") or not (d["progress_data"] is Dictionary):
+			d["progress_data"] = {}
+		return d["progress_data"]
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		return campaign.progress_data
+	return {}
+
 func _refresh_upkeep() -> void:
 	## Re-pull crew on (re-)entry so an outdated crew (e.g. a recruit added in a later
 	## step) doesn't show a stale Upkeep cost. GUARDED: never re-initialize a COMPLETED
@@ -1689,22 +1707,26 @@ func check_deferred_events(trigger_type: String) -> void:
 	if not campaign:
 		return
 
-	# Get pending events array
-	var all_pending: Array = []
-	if campaign is Resource and "pending_events" in campaign:
-		all_pending = campaign.pending_events
-	elif campaign is Dictionary and campaign.has("pending_events"):
-		all_pending = campaign.get("pending_events", [])
+	# Deferred events live in progress_data["pending_events"] — that is where the
+	# producer puts them (CrewTaskComponent, when a crew task defers an effect).
+	# This read looked for a top-level `pending_events` PROPERTY, which
+	# FiveParsecsCampaignCore does not declare, so `"pending_events" in campaign`
+	# was permanently false and the Dictionary branch never applied to a Resource
+	# campaign. Deferred events therefore accumulated in the save forever and no
+	# trigger ever fired one.
+	var all_pending: Array = _progress_data_of(campaign).get("pending_events", [])
 
 	if all_pending.is_empty():
 		return
 
 	# Filter events by trigger type
 	pending_deferred_events = []
+	# `campaign_turn` is likewise not a property on the core; turns_played is the
+	# SSOT (see the data-ownership table).
+	var current_turn: int = int(_progress_data_of(campaign).get("turns_played", 0))
 	for event in all_pending:
 		if event.get("trigger_type", "") == trigger_type and not event.get("consumed", false):
 			# Check expiration
-			var current_turn = campaign.campaign_turn if campaign is Resource else campaign.get("campaign_turn", 0)
 			var expires = event.get("expires_turn", null)
 			if expires == null or current_turn <= expires:
 				pending_deferred_events.append(event)
@@ -1886,10 +1908,15 @@ func _remove_consumed_event(event: Dictionary) -> void:
 	if event_id == "":
 		return
 
-	if campaign is Resource and "pending_events" in campaign:
-		campaign.pending_events = campaign.pending_events.filter(func(e): return e.get("id", "") != event_id)
-	elif campaign is Dictionary and campaign.has("pending_events"):
-		campaign["pending_events"] = campaign.get("pending_events", []).filter(func(e): return e.get("id", "") != event_id)
+	# Same wrong location as the reader above: the list lives in
+	# progress_data["pending_events"], so consuming an event has to remove it
+	# from THERE or the event would fire again on the next matching trigger.
+	var pd: Dictionary = _progress_data_of(campaign)
+	if pd.is_empty():
+		return
+	var remaining: Array = (pd.get("pending_events", []) as Array).filter(
+		func(e): return e.get("id", "") != event_id)
+	pd["pending_events"] = remaining
 
 
 # The MissionSelectionUI integration was DELETED here. All of it was dead:

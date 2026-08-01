@@ -584,6 +584,13 @@ func from_dictionary(data: Dictionary) -> void:
 		var meta = data.meta
 		campaign_id = meta.get("campaign_id", "")
 		campaign_name = meta.get("campaign_name", "")
+		schema_version = int(meta.get("schema_version", schema_version))
+		# Serialized at the save site but never restored here — the only one of
+		# the four campaign cores missing it (BugHunt/Planetfall/Tactics all do
+		# `schema_version = meta.get("schema_version", 1)`). Harmless while the
+		# class default matches the on-disk value, but SaveFileMigration keys off
+		# this field: the moment the default is bumped, every OLD save would
+		# report the NEW version in memory and skip its migration.
 		difficulty = meta.get("difficulty", 0)
 		ironman_mode = meta.get("ironman_mode", false)
 		created_at = meta.get("created_at", "")
