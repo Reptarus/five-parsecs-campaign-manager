@@ -31,6 +31,15 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 		var pid: String = str(mission.get("patron_id", ""))
 		if pid != "":
 			results["patron_id"] = pid
+			# Their display identity travels with the id so Step 2 can record the
+			# Patron AS THEMSELVES rather than as a freshly invented contact.
+			# The mission stores the name under "patron" (WorldPhaseController's
+			# mission_dict), so it is renamed here rather than passed through.
+			if not results.has("patron_name"):
+				results["patron_name"] = str(mission.get("patron",
+					mission.get("patron_name", pid)))
+			if not results.has("patron_type"):
+				results["patron_type"] = str(mission.get("patron_type", ""))
 	# 5) context passthrough (faction_id / faction_job_id / rival_id / is_invasion,
 	#    plus setup_rules and rival_attack_type). setup_rules is the scenario
 	#    modifier bundle BattleSetupRules computed before deployment; the
@@ -38,10 +47,34 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 	#    1D3 credits and the Rival Raid 1D6+1 Hull damage (Core Rules p.92). No
 	#    producer carries either key, so without this passthrough both penalties
 	#    would stay as unreachable as the attack type itself was.
+	#
+	# The invasion / zone / place keys were added 2026-08-01 after a funnel audit:
+	# every one of them is READ by a post-battle consumer and NO producer wrote
+	# any of them, so each gate they guard was unreachable.
+	#   is_invasion               -> p.120 "you receive no payment", p.120 "cannot
+	#                                roll on this table", p.121 "you receive no
+	#                                Loot", and the p.119 Rival-status skip
+	#   enemy_is_invasion_threat  -> p.121 Step 6, the Invasion check itself
+	#   invasion_threat_modifier  -> p.101 "Invasion Threat. Test at +1."
+	#   enemy_category            -> p.101 Roving Threats "never become Rivals"
+	#   planet_id / location      -> p.119 a new Rival is noted "for this planet";
+	#                                the journal joins battle entries by location
 	for key in ["faction_id", "faction_job_id", "rival_id", "is_invasion",
-			"setup_rules", "rival_attack_type"]:
+			"setup_rules", "rival_attack_type",
+			"enemy_is_invasion_threat", "invasion_threat_modifier",
+			"enemy_category", "planet_id", "location",
+			"is_red_zone", "is_black_zone"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
+	# 5b) is_invasion is DERIVED, not merely copied. The only marker an Invasion
+	#     battle reliably carries is mission_source, and BattleSetupRules already
+	#     treats the two as equivalent at setup time (is_invasion()). Deriving it
+	#     here keeps the setup side and the post-battle side reading the same
+	#     scenario, on every path including LOG_ONLY and the map auto-resolve.
+	if not results.has("is_invasion"):
+		results["is_invasion"] = str(
+			results.get("mission_source", mission.get("mission_source", ""))
+		).to_lower() == "invasion"
 	# 6) is_rival_mission (PaymentProcessor rival-payment branch).
 	if not results.has("is_rival_mission"):
 		results["is_rival_mission"] = str(results.get("mission_source", "")) == "rival" \

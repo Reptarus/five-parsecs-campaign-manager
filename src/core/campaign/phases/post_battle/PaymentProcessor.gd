@@ -263,15 +263,28 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	return total_payment
 
 func process_battlefield_finds(ctx: PostBattleContextClass) -> Array[Dictionary]:
-	## Step 5: Battlefield Finds. Returns array of find dicts.
+	## Step 5: Battlefield Finds (Core Rules pp.120-121).
+	##
+	## Three separate book rules were missing here, all in the player's favour:
+	##
+	## 1. COUNT. p.121: "Roll D100 ONCE on the table below, and add the resulting
+	##    find to your inventory." This rolled once PER CREW PARTICIPANT, so a
+	##    six-person crew took six finds off a table meant to give one.
+	## 2. HOLD THE FIELD. p.120: "If you Held the Field after the battle, you had
+	##    an opportunity afterwards to search the battlefield." There was no gate,
+	##    so a crew that fled the table still looted it. (The book is explicit that
+	##    the objective does NOT matter — "You may do so even if you failed to
+	##    achieve or did not have an objective" — only the field does.)
+	## 3. INVASION. p.120: "You cannot roll on this table after an Invasion battle."
+	if not bool(ctx.battle_result.get("held_field", false)):
+		return [] as Array[Dictionary]
+	if bool(ctx.battle_result.get("is_invasion", false)):
+		return [] as Array[Dictionary]
+
 	var battlefield_finds: Array[Dictionary] = []
-	var search_attempts = ctx.crew_participants.size()
-
-	for i: int in range(search_attempts):
-		var find = _roll_battlefield_find(ctx)
-		if find:
-			battlefield_finds.append(find)
-
+	var find: Dictionary = _roll_battlefield_find(ctx)
+	if not find.is_empty():
+		battlefield_finds.append(find)
 	return battlefield_finds
 
 func process_invasion_check(ctx: PostBattleContextClass) -> bool:
@@ -287,6 +300,12 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 		modifiers += 1
 	if ctx.battle_result.get("held_field", ctx.mission_successful):
 		modifiers -= 1
+
+	# Per-profile modifier. Core Rules p.101, Converted Acquisition, verbatim:
+	# "Invasion Threat. Test at +1." Every other Invasion Threat profile on that
+	# page carries a bare "Invasion Threat", so this is a genuine per-enemy value
+	# and not a blanket one — it rides in from the enemy's own special rules.
+	modifiers += int(ctx.battle_result.get("invasion_threat_modifier", 0))
 
 	var difficulty: int = ctx.get_campaign_difficulty()
 	var invasion_difficulty_mod: int = DifficultyModifiers.get_invasion_roll_modifier(difficulty)
@@ -327,10 +346,31 @@ func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
 	var find: Dictionary = table_mgr.roll_battlefield_find()
 	var find_type: String = find.get("type", "NOTHING")
 
+	# Two entries on the table BRANCH on whether the enemy is an Invasion Threat
+	# (Core Rules p.121, rolls 26-35 and 76-90): "You obtain a Quest Rumor. If the
+	# enemy is an Invasion Threat, you instead find Invasion Evidence. Earn +1
+	# credit, and add +1 when checking for Invasion in the next step."
+	#
+	# The branch did not exist — both entries always granted the Quest Rumor — so
+	# `invasion_evidence_found`, which Step 6 reads on the very next line of the
+	# sequence, had no producer anywhere in the codebase. Note "INSTEAD": the
+	# Rumor and the Evidence are alternatives, never both.
+	var enemy_is_threat: bool = bool(
+		ctx.battle_result.get("enemy_is_invasion_threat", false))
+
 	# Apply special effects based on find type
 	match find_type:
 		"CURIOUS_DATA_STICK", "VITAL_INFO":
-			if ctx.has_method("add_quest_rumor"):
+			if enemy_is_threat:
+				find["invasion_evidence"] = true
+				find["amount"] = 1  # "Earn +1 credit"
+				ctx.battle_result["invasion_evidence_found"] = true
+				if ctx.game_state and ctx.game_state.has_method("add_credits"):
+					ctx.game_state.add_credits(1)
+				elif ctx.game_state_manager \
+						and ctx.game_state_manager.has_method("add_credits"):
+					ctx.game_state_manager.add_credits(1)
+			elif ctx.has_method("add_quest_rumor"):
 				ctx.add_quest_rumor()
 		"DEBRIS":
 			find["amount"] = randi_range(1, 3)

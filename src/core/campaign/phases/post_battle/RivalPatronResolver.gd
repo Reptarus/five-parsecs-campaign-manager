@@ -16,6 +16,20 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 	var new_rivals: Array[String] = []
 	var held_field: bool = ctx.battle_result.get("held_field", false)
 
+	# Core Rules p.119, closing line of Step 1: "Skip this step for Invasion
+	# battles, or after fighting opponents from the Roving Threats Subtable."
+	# p.101 states the same rule from the other side, in the Roving Threats
+	# header: "Enemies from this list never become Rivals."
+	#
+	# Neither skip existed, so an Invasion battle you survived could saddle you
+	# with a Rival the rules say cannot exist, and so could a pack of Razor
+	# Lizards — the whole point of the Roving Threats table being that they are
+	# wildlife and hazards, not people who hold a grudge.
+	if bool(ctx.battle_result.get("is_invasion", false)):
+		return {"rivals_removed": rivals_removed, "new_rivals": new_rivals}
+	if str(ctx.battle_result.get("enemy_category", "")).to_lower() == "roving_threats":
+		return {"rivals_removed": rivals_removed, "new_rivals": new_rivals}
+
 	var faction_sys = Engine.get_main_loop().root.get_node_or_null("/root/FactionSystem") if Engine.get_main_loop() else null
 	var npc_tracker_node: Variant = null
 	if Engine.get_main_loop():
@@ -78,7 +92,17 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		# context's canonical patron mutator, which writes campaign.patrons — the
 		# owner per the data-ownership table (Core Rules p.79, patron becomes a
 		# standing contact after a completed job).
-		ctx.add_patron()
+		#
+		# Pass THIS Patron. Core Rules p.119 is "add the Patron" — the one whose job
+		# you just finished. The bare call generated a random stranger instead, so
+		# the contact you earned was never the contact you got.
+		ctx.add_patron({
+			"id": str(patron_id),
+			"name": str(ctx.battle_result.get("patron_name", patron_id)),
+			"type": str(ctx.battle_result.get("patron_type", "")),
+			"source": "completed_job",
+			"planet_id": str(ctx.battle_result.get("planet_id", "")),
+		})
 		patrons_added.append(str(patron_id))
 
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null

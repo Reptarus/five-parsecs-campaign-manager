@@ -489,8 +489,17 @@ func remove_patron(patron_id: String) -> bool:
 	for i in range(patrons.size() - 1, -1, -1):
 		var p = patrons[i]
 		var pid: String = ""
+		# NAME IS A VALID IDENTITY HERE. campaign.patrons is a MIXED array — the
+		# creation tables append bare name Strings, events append dicts — so an
+		# entry may have no id at all, and a String entry matched nothing under the
+		# old id-only read. JobOfferComponent._patron_identity() falls back to the
+		# name for exactly this reason; the two must agree or the errata v1.06
+		# removal silently misses every name-only Patron.
 		if p is Dictionary:
-			pid = str(p.get("id", p.get("patron_id", "")))
+			var pd: Dictionary = p
+			pid = str(pd.get("id", pd.get("patron_id", pd.get("name", ""))))
+		elif p != null and typeof(p) == TYPE_STRING:
+			pid = str(p)
 		elif p != null and "id" in p:
 			pid = str(p.id)
 		if pid == patron_id:
@@ -499,6 +508,40 @@ func remove_patron(patron_id: String) -> bool:
 				gc["patrons"] = patrons
 			return true
 	return false
+
+func _append_patron(patron: Dictionary) -> void:
+	## Append a KNOWN patron to the canonical list, idempotently. p.119 says you
+	## "may add the Patron to your list of contacts on this planet" — running the
+	## same job twice must not create a duplicate contact.
+	var gc = _get_current_campaign()
+	if gc == null:
+		return
+	var patrons: Array = []
+	if gc is Dictionary:
+		patrons = gc.get("patrons", [])
+	elif "patrons" in gc and gc.patrons is Array:
+		patrons = gc.patrons
+	else:
+		return
+
+	var new_id: String = str(patron.get("id", patron.get("name", "")))
+	if new_id != "":
+		for existing in patrons:
+			var eid: String = ""
+			if existing is Dictionary:
+				var ed: Dictionary = existing
+				eid = str(ed.get("id", ed.get("patron_id", ed.get("name", ""))))
+			else:
+				eid = str(existing)
+			if eid == new_id:
+				return
+
+	patrons.append(patron)
+	if gc is Dictionary:
+		gc["patrons"] = patrons
+	if planet_data_manager and planet_data_manager.current_planet_id != "" and new_id != "":
+		planet_data_manager.add_contact_to_planet(
+			planet_data_manager.current_planet_id, new_id)
 
 func remove_random_patron() -> void:
 	var gc = _get_current_campaign()
@@ -512,7 +555,20 @@ func remove_random_patron() -> void:
 	elif "patrons" in gc and gc.patrons is Array and gc.patrons.size() > 0:
 		gc.patrons.remove_at(randi() % gc.patrons.size())
 
-func add_patron() -> void:
+func add_patron(patron: Dictionary = {}) -> void:
+	## With no argument this GENERATES a new contact — correct for the campaign and
+	## character events that hand you one out of nowhere (CampaignEventEffects,
+	## CharacterEventEffects).
+	##
+	## Post-battle Step 2 is NOT that case. Core Rules p.119: "If you succeeded in
+	## a Patron mission, you may add THE Patron to your list of contacts on this
+	## planet" — the one whose job you just finished. Calling this bare meant a
+	## successful job added a randomly-named stranger ("Lady Silver", "Old Sal")
+	## with a rolled persistence flag, while the Patron you actually worked for was
+	## never recorded. Pass their identity and they are added as themselves.
+	if not patron.is_empty():
+		_append_patron(patron)
+		return
 	var gc = _get_current_campaign()
 	if gc == null:
 		return

@@ -12,6 +12,9 @@ const BattleSetupRulesClass = preload("res://src/core/battle/BattleSetupRules.gd
 # Path preload: BattlefieldGrid is new (2026-07-02) and the global
 # class cache is stale until the editor reopens (project gotcha).
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
+## Core Rules p.85 "Check for Rivals". Path preload for the same stale-class-cache
+## reason as the two consts above.
+const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 ## Version of the battle-result → NarrativeScreen event_data contract produced by
 ## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
@@ -405,46 +408,66 @@ func _get_current_planet_id() -> String:
 	# Fallback to turn-based planet ID
 	return "planet_" + str(campaign_phase_manager.get_turn_number())
 
-func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void:
-	## Check for rival encounters (Core Rules pp.85-86).
-	## Roll 1D6; if <= number of Rivals, one tracks you down.
-	var rival_generator = get_node_or_null("BackendRivalGenerator")
-	if rival_generator and rival_generator.has_method("check_rival_encounter"):
-		var encounter_data = rival_generator.check_rival_encounter(planet_id, turn_number)
-		if encounter_data and encounter_data.get("has_encounter", false):
-			battle_results["rival_encounter"] = encounter_data
-			if battle_transition_ui and battle_transition_ui.has_method("set_rival_encounter_data"):
-				battle_transition_ui.set_rival_encounter_data(encounter_data)
+func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> void:
+	## Core Rules p.85, World Step 6 "Check for Rivals": tally your Rivals, roll a
+	## D6, and if the roll is equal to or lower than the count, one of them has
+	## tracked you down. "Select the exact Rival at random from those on your list."
+	##
+	## THIS NEVER RAN. The old first branch asked RivalBattleGenerator for
+	## `check_rival_encounter()`, a method that does not exist anywhere in the repo,
+	## so the guard was permanently false; and the fallback keyed off
+	## progress_data["rival_count"], which nothing writes, so it returned before
+	## rolling. Rivals could not track the crew down at all, and the Decoy crew
+	## task modified a roll that was never made.
+	##
+	## The count now comes from the CANONICAL list (FiveParsecsCampaignCore.rivals,
+	## the same array RivalPatronResolver adds to and removes from), and the chosen
+	## Rival's id rides along so post-battle Step 1 (p.119) can roll to remove them.
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		return
+	var campaign = gs.current_campaign
+	var rivals: Array = []
+	if "rivals" in campaign and campaign.rivals is Array:
+		rivals = campaign.rivals
+	elif campaign is Dictionary:
+		rivals = campaign.get("rivals", [])
+	if rivals.is_empty():
 		return
 
-	# Fallback: Core Rules 1D6 <= rival count (pp.85-86)
-	var rival_count: int = 0
 	var decoy_count: int = 0
-	var gs = get_node_or_null("/root/GameState")
-	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
-		rival_count = gs.current_campaign.progress_data.get(
-			"rival_count", 0)
-		decoy_count = gs.current_campaign.progress_data.get(
-			"decoy_crew_count", 0)
-	if rival_count <= 0:
+	if "progress_data" in campaign:
+		decoy_count = int(campaign.progress_data.get("decoy_crew_count", 0))
+
+	var check: Dictionary = RivalEncounterCheckClass.check(rivals, decoy_count)
+	if not check.get("has_encounter", false):
 		return
+
+	# p.91 attack type. A Rival you Tracked down yourself is always a Showdown;
+	# one that tracked YOU down rolls on the D10 table.
+	var tracked_ids: Array = []
+	if "progress_data" in campaign:
+		tracked_ids = campaign.progress_data.get("tracked_rivals", [])
+	var was_tracked_by_crew: bool = str(check.get("rival_id", "")) in tracked_ids
 
 	var table_mgr := MissionTableManagerClass.new()
-	var check: Dictionary = table_mgr.check_rival_tracking(
-		rival_count, decoy_count)
-	if check.get("tracked_down", false):
-		var attack: Dictionary = table_mgr.roll_rival_attack_type()
-		var encounter_data: Dictionary = {
-			"has_encounter": true,
-			"attack_type": attack.get("type", "SHOWDOWN"),
-			"attack_description": attack.get("description", ""),
-			"roll": check.get("roll", 0),
-		}
-		battle_results["rival_encounter"] = encounter_data
-		if battle_transition_ui and battle_transition_ui.has_method(
-				"set_rival_encounter_data"):
-			battle_transition_ui.set_rival_encounter_data(
-				encounter_data)
+	var attack: Dictionary = table_mgr.roll_rival_attack_type(was_tracked_by_crew)
+	var encounter_data: Dictionary = {
+		"has_encounter": true,
+		"rival_id": str(check.get("rival_id", "")),
+		"rival_name": str(check.get("rival_name", "")),
+		"attack_type": attack.get("type", "SHOWDOWN"),
+		"attack_description": attack.get("description", ""),
+		"roll": check.get("roll", 0),
+		"rival_count": check.get("rival_count", 0),
+		"decoy_bonus": check.get("decoy_bonus", 0),
+		"reason": str(check.get("reason", "")),
+	}
+	battle_results["rival_encounter"] = encounter_data
+	if battle_transition_ui and battle_transition_ui.has_method(
+			"set_rival_encounter_data"):
+		battle_transition_ui.set_rival_encounter_data(
+			encounter_data)
 
 ## Campaign Turn Orchestration
 func start_new_campaign_turn() -> void:
@@ -721,6 +744,49 @@ func _initiate_battle_sequence() -> void:
 		# Rival attack type modifies battle setup (Core Rules pp.85-86)
 		var attack_type: String = rival_enc.get("attack_type", "SHOWDOWN")
 		mission_data["rival_attack_type"] = attack_type
+		# WHICH Rival — the identity the whole post-battle Rival step turns on.
+		# p.119: "If you just fought against an existing Rival and Held the Field,
+		# roll a 1D6 [...] On a 4 or better [...] you can remove them from your
+		# Rivals list." The normalizer stamps this id onto every defeated enemy so
+		# RivalPatronResolver can recognise the fight as a Rival fight; without it
+		# `fought_existing_rival` was permanently false and the removal roll was
+		# unreachable — holding the field against a Rival could only ADD Rivals.
+		mission_data["rival_id"] = str(rival_enc.get("rival_id", ""))
+		mission_data["mission_source"] = "rival"
+
+	# Invasion battle flag (Core Rules p.92). Downstream this is read as
+	# `is_invasion` — the gate on "no payment" (p.120 Step 4), "cannot roll on
+	# Battlefield Finds" (p.120 Step 5), "you receive no Loot" (p.121 Step 7) and
+	# the p.119 Rival-status skip. Every one of those consumers was already
+	# written and every one was unreachable, because the only marker on the
+	# mission was `mission_source == "invasion"` and nothing translated it.
+	mission_data["is_invasion"] = BattleSetupRulesClass.is_invasion(mission_data)
+
+	# Is the enemy an Invasion Threat? p.121 Step 6: "If the enemy you just
+	# battled is an Invasion Threat (listed in their profile in the Battle
+	# chapter), you must roll to see if the world is Invaded." The profiles carry
+	# it in enemy_types.json as the special rule "Invasion Threat", and
+	# PaymentProcessor.process_invasion_check() reads a boolean nothing derived —
+	# so the Invasion check could never fire from a battle.
+	var threat_info: Dictionary = _enemy_force_invasion_threat(
+		mission_data.get("enemy_force", {}))
+	mission_data["enemy_is_invasion_threat"] = threat_info["is_threat"]
+	mission_data["invasion_threat_modifier"] = threat_info["modifier"]
+
+	# Where this happened. p.119 notes a new Rival "for this planet", and the
+	# journal joins battle entries by location.
+	# Which encounter table the enemy came from. p.101 Roving Threats: "Enemies
+	# from this list never become Rivals" — the p.119 Step 1 skip needs to know.
+	mission_data["enemy_category"] = str(
+		mission_data.get("enemy_force", {}).get("category", ""))
+
+	mission_data["planet_id"] = current_planet_id
+	if not mission_data.has("location") or str(mission_data.get("location", "")) == "":
+		var pdm_node = get_node_or_null("/root/PlanetDataManager")
+		if pdm_node and pdm_node.has_method("get_current_planet"):
+			var cur = pdm_node.get_current_planet()
+			if cur is Dictionary:
+				mission_data["location"] = str(cur.get("name", ""))
 
 	# NOTE: battlefield generation happens BELOW (after the deployment
 	# condition roll + objective normalization) — the condition can affect
@@ -1823,6 +1889,28 @@ func _get_phase_name(phase: int) -> String:
 		_: return "Unknown Phase"
 
 ## Infer deployment mission type from mission data
+func _enemy_force_invasion_threat(enemy_force: Dictionary) -> Dictionary:
+	## Core Rules p.121 Step 6: "If the enemy you just battled is an Invasion
+	## Threat (listed in their profile in the Battle chapter), you must roll to
+	## see if the world is Invaded."
+	##
+	## The profiles carry it as a special rule string. Verified verbatim on p.101:
+	## Converted Acquisition reads "Invasion Threat. Test at +1." while Converted
+	## Infiltrators / Abductor Raiders / Swarm Brood read a bare "Invasion Threat."
+	## So the +1 is a real per-profile modifier, not an app invention, and it is
+	## returned alongside the flag rather than folded into it.
+	var out: Dictionary = {"is_threat": false, "modifier": 0}
+	var rules: Array = enemy_force.get("special_rules", [])
+	for rule in rules:
+		var text: String = str(rule).to_lower()
+		if not text.contains("invasion threat"):
+			continue
+		out["is_threat"] = true
+		# "Test at +1" — accept the book's phrasing and the JSON's parenthetical.
+		if text.contains("+1"):
+			out["modifier"] = 1
+	return out
+
 func _infer_deployment_mission_type(
 	mission_data
 ) -> FPCM_DeploymentConditionsSystem.MissionType:

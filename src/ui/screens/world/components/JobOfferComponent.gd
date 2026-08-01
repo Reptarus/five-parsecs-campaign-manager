@@ -486,6 +486,13 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		"location": location,
 		"patron_type": patron_type,
 		"patron_name": patron_name,
+		# WHICH Patron offered this. Core Rules p.119 Step 2 resolves the accepted
+		# job against a specific Patron — added on success, and (errata v1.06)
+		# removed on failure. The job carried only a display NAME, so the whole of
+		# post-battle Step 2 was gated on a key that never arrived and did nothing
+		# in either direction. Falls back to the name because campaign.patrons is a
+		# MIXED array of Strings and Dictionaries.
+		"patron_id": _patron_identity(patron_data, patron_name),
 		"job_type": job_type,
 		"objective": job_type.capitalize(),
 		"objective_description": job_description,
@@ -510,6 +517,17 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	}
 
 	return job
+
+func _patron_identity(patron_data: Dictionary, patron_name: String) -> String:
+	## Stable identity for the Patron behind a job offer (Core Rules p.119 Step 2).
+	## campaign.patrons holds Strings AND Dictionaries depending on where the Patron
+	## came from (creation tables append names, events append dicts), so an entry may
+	## have no id at all. The NAME is then the only identity there is, and
+	## PostBattleContext.remove_patron() matches on either.
+	var pid: String = str(patron_data.get("id", patron_data.get("patron_id", "")))
+	if pid != "":
+		return pid
+	return patron_name
 
 func _roll_d10(dice_manager) -> int:
 	## Roll a D10 using DiceManager or fallback to randi
@@ -564,6 +582,7 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 		"location": location,
 		"patron_type": patron_type,
 		"patron_name": patron_name,
+		"patron_id": _patron_identity(patron_data, patron_name),
 		"objective": objective_info.name,
 		"objective_description": objective_info.description,
 		"danger_pay": danger_pay.credits,

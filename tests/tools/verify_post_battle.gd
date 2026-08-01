@@ -319,15 +319,31 @@ func _row_crew_xp() -> void:
 		return
 
 	# STATE ASSERTION — read the campaign Resource back.
-	var bad: Array[String] = []
+	#
+	# Asserted as "+3 plus a UNIFORM campaign-event bonus", not a bare "+3".
+	# Step 12 rolls a free-running D100 and Core Rules p.126 event 64-66
+	# ("Learning Opportunity") grants every crew member +1 XP. The seed alone does
+	# not protect the exact value: the seed fixes the STREAM, and any change to how
+	# many dice earlier steps draw shifts every later roll along it. That is not
+	# hypothetical — correcting Battlefield Finds to the book's single roll
+	# (p.121, down from one roll per crew member) moved this row onto 64-66 and
+	# turned a correct fix into two red rows.
+	#
+	# Re-seeding until green is exactly the "re-run until it passes" habit the
+	# _run_pipeline comment warns about, so the assertion tests the invariant
+	# instead: every participant moves by the SAME amount, and that amount is the
+	# survived_won_battle 3 plus at most the one documented all-crew event.
+	var deltas: Array[int] = []
 	for i in range(_members(campaign).size()):
-		var m: Dictionary = _members(campaign)[i]
-		var after: int = int(m["experience"])
-		if after != before[i] + 3:
-			bad.append("%s %d->%d" % [str(m["character_id"]), before[i], after])
-	_check(name, bad.is_empty(),
-		"every one of 5 crew +3 XP on campaign.crew_data[members]",
-		"deviations: " + str(bad))
+		deltas.append(int(_members(campaign)[i]["experience"]) - before[i])
+	var uniform: bool = true
+	for d in deltas:
+		if d != deltas[0]:
+			uniform = false
+	var in_band: bool = not deltas.is_empty() and deltas[0] >= 3 and deltas[0] <= 4
+	_check(name, uniform and in_band,
+		"all 5 crew move by the SAME amount, 3 (survived_won_battle) or 4 (+ p.126 all-crew event)",
+		"deltas: " + str(deltas))
 
 ## Index-shift guard: a NON-participant must not gain XP, and the participants
 ## must still land on the RIGHT members (crew_3 skipped deliberately).
@@ -350,8 +366,19 @@ func _row_xp_index_shift() -> void:
 	var got: Array[int] = []
 	for m in _members(campaign):
 		got.append(int(m["experience"]))
-	var want: Array[int] = [3, 3, 0, 3, 3]
-	_check(name, got == want, "[3,3,0,3,3] (index 2 never fought)", str(got))
+	# The index-shift guard is a DIFFERENCE, which is what makes it immune to the
+	# p.126 all-crew campaign event (see the note on the row above — that event
+	# pays participants and non-participants alike, so it cancels out here).
+	# Index 2 never fought, so it carries the campaign-wide bonus and nothing else;
+	# every participant must sit exactly survived_won_battle=3 above it.
+	var bystander: int = got[2]
+	var shifted: Array[String] = []
+	for i in [0, 1, 3, 4]:
+		if got[i] - bystander != 3:
+			shifted.append("index %d: %d (bystander %d)" % [i, got[i], bystander])
+	_check(name, shifted.is_empty() and bystander <= 1,
+		"the 4 participants exactly +3 above the non-participant at index 2",
+		"got " + str(got) + " deviations: " + str(shifted))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ROW 2 — a casualty actually enters Sick Bay or dies

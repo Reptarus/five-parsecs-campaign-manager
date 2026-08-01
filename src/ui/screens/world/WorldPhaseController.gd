@@ -13,6 +13,9 @@ signal proceed_to_battle
 
 # Event bus integration - single source of truth for events
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
+## Core Rules p.85 "Check for Rivals" — used here only for its crew-task readers
+## (decoy count / tracked Rivals). Path preload: no class_name on that script.
+const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
 var event_bus: CampaignTurnEventBus = null
 ## Event-bus subscriptions made by THIS controller, so _exit_tree() can undo them.
 ## The bus is parented to /root and outlives every scene change.
@@ -1345,6 +1348,13 @@ func _complete_world_phase() -> void:
 					"notable_sights": job_results.get("notable_sights", ""),
 					"patron": job_results.get("patron_name", job_results.get("patron", "")),
 					"patron_type": job_results.get("patron_type", ""),
+					# The Patron's IDENTITY, not just their display name. Post-battle
+					# Step 2 (Core Rules p.119) adds them as a contact on success and
+					# — per errata v1.06 — drops them from your known Patrons on a
+					# failed accepted job. Both branches are gated on this key, so
+					# without it the entire step was inert in both directions.
+					"patron_id": str(job_results.get("patron_id",
+						job_results.get("patron_name", ""))),
 					"benefits": job_results.get("benefits", []),
 					"hazards": job_results.get("hazards", []),
 					"location": job_results.get("location", ""),
@@ -1367,6 +1377,24 @@ func _complete_world_phase() -> void:
 					mission_dict["is_black_zone"] = true
 
 				campaign.progress_data["current_mission"] = mission_dict
+
+			# Crew-task outcomes that the RIVAL check reads (Core Rules p.85).
+			# Both were pure flavour text before this: the Decoy task printed
+			# "Crew unavailable for battle" and the roll it was supposed to modify
+			# never ran at all, because CampaignTurnController keyed the check off
+			# progress_data["rival_count"] — a key nothing has ever written.
+			# data/crew_tasks.json, decoy (p.78): "+1 to the roll when checking if
+			# Rivals track you down, per crew sent as Decoy".
+			campaign.progress_data["decoy_crew_count"] = \
+				RivalEncounterCheckClass.decoy_count_from_tasks(crew_task_results)
+			# p.119 removal modifier: "+1 if you Tracked them down during Assign and
+			# Resolve Crew Tasks". Populated from Track results that name a Rival;
+			# see the Track task note in docs/sop/README.md — the task resolves but
+			# does not yet let the player pick WHICH Rival ("a Rival of your
+			# choice", p.78), so this stays empty until that picker exists rather
+			# than guessing a choice the book gives to the player.
+			campaign.progress_data["tracked_rivals"] = \
+				RivalEncounterCheckClass.tracked_rival_ids_from_tasks(crew_task_results)
 
 			# Increment Red Zone turn counter (both RZ and BZ turns count)
 			var zone_sel: int = 0
