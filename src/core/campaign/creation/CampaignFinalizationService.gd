@@ -25,6 +25,43 @@ const MAX_RETRY_ATTEMPTS = 3
 var _save_manager: SecureSaveManager
 var _validator: CampaignValidator
 
+# ============================================================================
+# DUAL-SHAPE CREW ACCESS
+#
+# Finalization is the ONE place that sees crew members in their pre-canonical
+# form. A freshly created campaign hands this service Character RESOURCES; the
+# transform further down (_transform_crew_data) is what converts them to the
+# canonical Dictionary shape that every later consumer expects. Anything reading
+# or writing a member BEFORE that transform must therefore handle both shapes —
+# and must never use the 2-arg `.get(key, default)`, which is an invalid call on
+# an Object and silently aborts the whole enclosing function.
+# ============================================================================
+
+func _member_field(member: Variant, key: String, default_value: Variant) -> Variant:
+	if member == null:
+		return default_value
+	if member is Dictionary:
+		return (member as Dictionary).get(key, default_value)
+	if key in member:
+		return member.get(key)
+	return default_value
+
+func _member_set(member: Variant, key: String, value: Variant) -> void:
+	if member == null:
+		return
+	if member is Dictionary:
+		(member as Dictionary)[key] = value
+		return
+	if not (key in member):
+		return
+	# A typed Array property (e.g. Character.equipment is Array[String]) rejects a
+	# plain `=` from an untyped Array at runtime; assign() element-converts.
+	var current: Variant = member.get(key)
+	if current is Array and (current as Array).is_typed() and value is Array:
+		(current as Array).assign(value)
+		return
+	member.set(key, value)
+
 func _init() -> void:
 	_save_manager = SecureSaveManager.new()
 	_validator = CampaignValidator.new()
@@ -485,18 +522,24 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	# MOTIVATION BONUS: Apply campaign-level resource bonuses from crew motivations
 	# Core Rules: WEALTH gives +1D6 starting credits, FAME gives +1 story point
+	#
+	# THE GATE THIS REMOVES: `if member is Dictionary`. Finalization runs on a
+	# FRESHLY CREATED campaign, and at this point its members are still Character
+	# RESOURCES — this file's own transform (further down) is what converts them
+	# to the canonical Dictionary form, and it runs later. So the gate was false
+	# for every member of every new campaign, and WEALTH's +1D6 credits and
+	# FAME's +1 Story Point were never once granted.
 	var motivation_story_bonus: int = 0
 	var crew_members_for_bonus = crew_data.get("members", [])
 	for member in crew_members_for_bonus:
-		if member is Dictionary:
-			var m = member.get("motivation", 0)
-			# Handle both String and int motivation values
-			var is_wealth: bool = (m is String and m == "WEALTH") or (m is int and m == GlobalEnums.Motivation.WEALTH)
-			var is_fame: bool = (m is String and m == "FAME") or (m is int and m == GlobalEnums.Motivation.FAME)
-			if is_wealth:
-				total_credits += randi_range(1, 6)
-			elif is_fame:
-				motivation_story_bonus += 1
+		var m = _member_field(member, "motivation", 0)
+		# Handle both String and int motivation values
+		var is_wealth: bool = (m is String and m == "WEALTH") or (m is int and m == GlobalEnums.Motivation.WEALTH)
+		var is_fame: bool = (m is String and m == "FAME") or (m is int and m == GlobalEnums.Motivation.FAME)
+		if is_wealth:
+			total_credits += randi_range(1, 6)
+		elif is_fame:
+			motivation_story_bonus += 1
 
 	# DATA MAPPING FIX: Coordinator stores patrons/rivals in crew dict, not resources
 	# Fall back to crew_data if resources dict doesn't have them
@@ -513,29 +556,30 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Coordinator stores crew story points under crew_data, not resources
 	if raw_story_points == 0:
 		raw_story_points = crew_data.get("story_points", 0)
-	var base_story_points: int = raw_story_points + motivation_story_bonus
-	if profile:
-		base_story_points += profile.get_starting_story_point_bonus()
-	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(
-		base_story_points, campaign.difficulty
-	)
-
 	# Prison Planet campaign effects (Compendium p.138 "New Campaigns" boxout)
 	# Character brings old profile but stripped of equipment/implants, +3 XP,
 	# +3 Enforcer Rivals, +1 Story Point
+	#
+	# TWO BUGS FIXED HERE. (1) `member.get("origin", 0) if member is Dictionary
+	# else 0` handed back Origin.NONE for the Character RESOURCES a fresh campaign
+	# actually holds at this point, so `is_pp` was false for everybody and none of
+	# the four effects ever applied. (2) The +1 Story Point was added to
+	# `raw_story_points` AFTER final_story_points had already been computed from
+	# it — a dead store even if (1) had worked. This block now runs BEFORE the
+	# story-point total is calculated, and contributes through its own accumulator.
+	var prison_planet_story_bonus: int = 0
 	for member in crew_data.get("members", []):
-		var origin_val = member.get("origin", 0) if member is Dictionary else 0
+		var origin_val = _member_field(member, "origin", 0)
 		var is_pp: bool = false
 		if origin_val is int:
 			is_pp = (origin_val == GlobalEnums.Origin.PRISON_PLANET)
 		elif origin_val is String:
 			is_pp = origin_val.to_lower() in ["prison_planet", "prison planet"]
 		if is_pp:
-			# Strip equipment and implants
-			if member is Dictionary:
-				member["equipment"] = []
-				member["implants"] = []
-				member["experience"] = member.get("experience", 0) + 3
+			# Strip equipment and implants, +3 XP (both crew shapes)
+			_member_set(member, "equipment", [])
+			_member_set(member, "implants", [])
+			_member_set(member, "experience", int(_member_field(member, "experience", 0)) + 3)
 			# +3 Enforcer Rivals
 			for i in range(3):
 				rivals_data.append({
@@ -543,7 +587,15 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 					"name": "Enforcer (Prison Planet)",
 					"source": "prison_planet"})
 			# +1 Story Point
-			raw_story_points += 1
+			prison_planet_story_bonus += 1
+
+	var base_story_points: int = raw_story_points + motivation_story_bonus \
+		+ prison_planet_story_bonus
+	if profile:
+		base_story_points += profile.get_starting_story_point_bonus()
+	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(
+		base_story_points, campaign.difficulty
+	)
 
 	# Always initialize resources, even if empty dict - equipment credits must be included
 	campaign.initialize_resources({

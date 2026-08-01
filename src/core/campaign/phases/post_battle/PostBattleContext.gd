@@ -20,6 +20,10 @@ var planet_data_manager: Variant = null
 var campaign_journal: Variant = null
 var equipment_manager: Variant = null
 var dlc_manager: Variant = null
+## CampaignPhaseManager autoload. Owns `story_track` and `intro_campaign`, so
+## StoryTrackProcessor needs it to advance the Story Clock (Core Rules p.153)
+## and the Introductory Campaign turn (Compendium pp.104-109) after a battle.
+var campaign_phase_manager: Variant = null
 
 # Campaign and battle state (set per start_post_battle_phase() call)
 var campaign: Variant = null

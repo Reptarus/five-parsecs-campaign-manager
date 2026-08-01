@@ -481,6 +481,10 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	# Derive mission source for Compendium battle type selection (p.118)
 	var mission_source: String = _derive_mission_source(patron_data)
 
+	# Benefits/Hazards/Conditions (Core Rules p.83) — same roller the fallback
+	# builder uses, so both paths produce a complete job offer.
+	var bhc: Dictionary = _roll_bhc(dice_manager, patron_type)
+
 	var job: Dictionary = {
 		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
 		"location": location,
@@ -506,9 +510,16 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		"danger_level": danger_level,
 		"time_frame": time_frame,
 		"requirements": requirements,
-		"benefits": [],
-		"hazards": [],
-		"conditions": [],
+		# Benefits / Hazards / Conditions — Core Rules p.83, "Roll 1D10 for each
+		# category". This is the PRIMARY (table-driven) job builder and it
+		# hardcoded all three empty, so a Patron job generated through the normal
+		# path could never carry a Benefit, a Hazard or a Condition; only the
+		# fallback builder rolled them. _roll_bhc()'s per-patron thresholds are
+		# verified against the p.83 BHC table (Corporation Conditions 5+, Wealthy
+		# Individual Benefits 5+, Secretive Group Hazards 5+, all others 8+).
+		"benefits": bhc.benefits,
+		"hazards": bhc.hazards,
+		"conditions": bhc.conditions,
 		"enemy_type": _determine_enemy_type(mission_source),
 		"double_roll_bonus": danger_pay_result.double_roll_bonus,
 		"patron": patron_name,
@@ -1107,7 +1118,12 @@ func _check_introductory_mission() -> Dictionary:
 	if not campaign.progress_data.get("introductory_campaign", false):
 		return {}
 
-	var turn: int = campaign.progress_data.get("current_turn", 1)
+	# `turns_played` is the SSOT for the turn counter; nothing has ever written
+	# "current_turn", so this defaulted to 1 forever and the Introductory
+	# Campaign served its turn-1 guided mission on every single turn. Same
+	# convention as the dashboard/journal: turns_played counts COMPLETED turns,
+	# so the turn being played is +1.
+	var turn: int = int(campaign.progress_data.get("turns_played", 0)) + 1
 	var intro: Dictionary = CompendiumMissionsExpanded.get_introductory_mission(turn)
 	if intro.is_empty():
 		return {}  # Past introductory range — fall through to normal generation

@@ -2,6 +2,12 @@ extends WorldPhaseComponent
 class_name AssignEquipmentComponent
 
 const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
+## The ONLY sanctioned mover of equipment (data-ownership table). This component
+## works on deep COPIES of the crew and stash, so every transfer here has to be
+## replayed against the live campaign through this service or it is discarded
+## the moment the player leaves the step.
+const EquipmentTransferServiceRef = preload(
+	"res://src/core/equipment/EquipmentTransferService.gd")
 
 ## Assign Equipment Component - Equipment Management System
 ## Implements Core Rules p.85 - Transfer items between crew members and stash
@@ -196,6 +202,51 @@ func _resolve_item_display_name(item, id_to_name: Dictionary) -> String:
 	var s: String = str(item)
 	return str(id_to_name.get(s, s))
 
+# ============================================================================
+# LIVE-CAMPAIGN PERSISTENCE
+#
+# This component deep-COPIES the crew and stash in initialize_equipment_phase()
+# (`crew.duplicate(true)` / `stash.duplicate(true)`), so its own arrays are
+# detached from the campaign. Every transfer therefore has to be replayed
+# against the live campaign through EquipmentTransferService — the sanctioned
+# chokepoint that enforces the "one item, one home" tabletop invariant — or the
+# player's reassignments are discarded when the step ends.
+# ============================================================================
+
+func _transfer_service():
+	## A service bound to the live campaign, or null when there is no campaign
+	## (creation preview, tests). Instantiated per operation, per its contract.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return null
+	return EquipmentTransferServiceRef.new(gs.current_campaign)
+
+func _persist_to_stash(character_id: String, equipment_id: String) -> bool:
+	if character_id.is_empty() or equipment_id.is_empty():
+		return false
+	var svc = _transfer_service()
+	if svc == null:
+		return false
+	return svc.transfer_to_stash(equipment_id, character_id)
+
+func _persist_to_character(character_id: String, equipment_id: String) -> bool:
+	if character_id.is_empty() or equipment_id.is_empty():
+		return false
+	var svc = _transfer_service()
+	if svc == null:
+		return false
+	return svc.transfer_to_character(equipment_id, character_id)
+
+func _persist_between_characters(
+	source_id: String, target_id: String, equipment_id: String
+) -> bool:
+	if source_id.is_empty() or target_id.is_empty() or equipment_id.is_empty():
+		return false
+	var svc = _transfer_service()
+	if svc == null:
+		return false
+	return svc.transfer_between_characters(equipment_id, source_id, target_id)
+
 func _get_member_equipment(member) -> Array:
 	## Get equipment array from crew member
 	if not member:
@@ -259,24 +310,18 @@ func _on_transfer_to_stash_pressed() -> void:
 		var character_id: String = member.character_id if "character_id" in member else ""
 		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 		
-		# Try EquipmentManager first for proper state management
-		var equipment_manager = get_node_or_null("/root/EquipmentManager")
-		if equipment_manager and equipment_manager.has_method("transfer_to_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
-			if equipment_manager.transfer_to_ship_stash(character_id, equipment_id):
-				# Update local state to match EquipmentManager
-				equipment.remove_at(item_index)
-				_set_member_equipment(member, equipment)
-				stash_items.append(item)
-				pass # Transferred to ship stash via EquipmentManager
-			else:
-				push_warning("AssignEquipmentComponent: EquipmentManager transfer failed - stash may be full")
-				return
-		else:
-			# Fallback to local state update only
-			equipment.remove_at(item_index)
-			_set_member_equipment(member, equipment)
-			stash_items.append(item)
-			pass # Transferred to stash (local only)
+		# Persist to the LIVE campaign, then mirror into the local copies so the
+		# lists redraw. The old code asked EquipmentManager for
+		# `transfer_to_ship_stash`, a method with ZERO definitions repo-wide, so
+		# the guard was permanently false and every transfer took the "local only"
+		# fallback below — mutating deep copies that were thrown away when the
+		# player left the step. Reassigning gear in the World Phase therefore
+		# changed nothing: the crew went into battle with their old loadout.
+		if not _persist_to_stash(character_id, equipment_id):
+			push_warning("AssignEquipmentComponent: stash transfer not persisted (%s)" % equipment_id)
+		equipment.remove_at(item_index)
+		_set_member_equipment(member, equipment)
+		stash_items.append(item)
 
 		_selected_equipment_index = -1
 		_populate_crew_equipment()
@@ -313,24 +358,14 @@ func _do_transfer_to_crew(member, item, item_index: int) -> void:
 	var character_id: String = member.character_id if "character_id" in member else ""
 	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 
-	# Try EquipmentManager first for proper state management
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
-	if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
-		if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):
-			# Update local state to match EquipmentManager
-			stash_items.remove_at(item_index)
-			var equipment = _get_member_equipment(member)
-			equipment.append(item)
-			_set_member_equipment(member, equipment)
-		else:
-			push_warning("AssignEquipmentComponent: EquipmentManager transfer from stash failed")
-			return
-	else:
-		# Fallback to local state update only
-		stash_items.remove_at(item_index)
-		var equipment = _get_member_equipment(member)
-		equipment.append(item)
-		_set_member_equipment(member, equipment)
+	# Persist to the LIVE campaign first (see _on_transfer_to_stash_pressed for
+	# why the old EquipmentManager guard could never fire), then mirror locally.
+	if not _persist_to_character(character_id, equipment_id):
+		push_warning("AssignEquipmentComponent: crew transfer not persisted (%s)" % equipment_id)
+	stash_items.remove_at(item_index)
+	var equipment = _get_member_equipment(member)
+	equipment.append(item)
+	_set_member_equipment(member, equipment)
 
 	_selected_stash_index = -1
 	_populate_crew_equipment()
@@ -524,30 +559,21 @@ func _execute_crew_to_crew_transfer(target_crew_index: int) -> void:
 	var target_name: String = target_member.character_name if "character_name" in target_member else "Crew %d" % (target_crew_index + 1)
 	var item_name: String = item.get("name", "Unknown") if item is Dictionary else str(item)
 
-	# Try EquipmentManager first for proper state management
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
 	var source_id: String = source_member.character_id if "character_id" in source_member else ""
 	var target_id: String = target_member.character_id if "character_id" in target_member else ""
 	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 
-	if equipment_manager and equipment_manager.has_method("transfer_equipment") and not source_id.is_empty() and not target_id.is_empty() and not equipment_id.is_empty():
-		if equipment_manager.transfer_equipment(source_id, target_id, equipment_id):
-			# Update local state to match
-			source_equipment.remove_at(item_index)
-			_set_member_equipment(source_member, source_equipment)
-			var target_equipment = _get_member_equipment(target_member)
-			target_equipment.append(item)
-			_set_member_equipment(target_member, target_equipment)
-		else:
-			_show_notification("Transfer failed")
-			return
-	else:
-		# Fallback to local state update only
-		source_equipment.remove_at(item_index)
-		_set_member_equipment(source_member, source_equipment)
-		var target_equipment = _get_member_equipment(target_member)
-		target_equipment.append(item)
-		_set_member_equipment(target_member, target_equipment)
+	# Persist to the LIVE campaign (same dead-guard story as the other two
+	# handlers — `transfer_equipment` has zero definitions repo-wide), then
+	# mirror into the local copies so the lists redraw.
+	if not _persist_between_characters(source_id, target_id, equipment_id):
+		push_warning("AssignEquipmentComponent: crew-to-crew transfer not persisted (%s)"
+			% equipment_id)
+	source_equipment.remove_at(item_index)
+	_set_member_equipment(source_member, source_equipment)
+	var target_equipment = _get_member_equipment(target_member)
+	target_equipment.append(item)
+	_set_member_equipment(target_member, target_equipment)
 
 	# Refresh displays
 	_populate_crew_equipment()

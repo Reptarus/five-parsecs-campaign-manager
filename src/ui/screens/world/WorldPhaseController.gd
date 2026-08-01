@@ -1298,9 +1298,14 @@ func _complete_world_phase() -> void:
 	if job_offer_component and job_offer_component.has_method("get_accepted_job"):
 		job_results = job_offer_component.get_accepted_job()
 
+	# `get_step_results()` is the real method — `get_equipment_assignments()` has
+	# ZERO definitions repo-wide, so this guard was permanently false and
+	# equipment_results was always {}. (The assignments themselves now persist
+	# immediately through EquipmentTransferService inside the component; this dict
+	# is the step's summary, not the mechanism.)
 	var equipment_results = {}
-	if assign_equipment_component and assign_equipment_component.has_method("get_equipment_assignments"):
-		equipment_results = assign_equipment_component.get_equipment_assignments()
+	if assign_equipment_component and assign_equipment_component.has_method("get_step_results"):
+		equipment_results = assign_equipment_component.get_step_results()
 
 	var rumors_results = {}
 	if resolve_rumors_component and resolve_rumors_component.has_method("get_step_results"):
@@ -1344,8 +1349,20 @@ func _complete_world_phase() -> void:
 					"danger_pay": job_results.get("danger_pay", 0),
 					"danger_level": job_results.get("danger_level", 1),
 					"time_frame": job_results.get("time_frame", ""),
-					"deployment_condition": job_results.get("deployment_condition", ""),
-					"notable_sights": job_results.get("notable_sights", ""),
+					# Patron Conditions (Core Rules pp.79-80). The job rolls these
+					# and TacticalBattleUI renders a "PATRON CONDITIONS" section
+					# from them — but this hand-off copied `benefits` and `hazards`
+					# and simply omitted `conditions`, so that section was always
+					# empty and half of the Benefits/Hazards/Conditions rule never
+					# reached the table.
+					"conditions": job_results.get("conditions", []),
+					# NOTE: `deployment_condition` and `notable_sights` are NOT read
+					# from the job. Nothing writes them job-side, and both are rolled
+					# later by the battle funnel (CampaignTurnController rolls the
+					# p.88 deployment condition and the p.89 Notable Sight itself).
+					# The reads that used to sit here were permanently "" — copying a
+					# value the job never had, which would have shadowed the real
+					# roll if a job ever did start supplying one.
 					"patron": job_results.get("patron_name", job_results.get("patron", "")),
 					"patron_type": job_results.get("patron_type", ""),
 					# The Patron's IDENTITY, not just their display name. Post-battle
@@ -1403,9 +1420,13 @@ func _complete_world_phase() -> void:
 			if zone_sel >= 1 and "red_zone_turns_completed" in campaign:
 				campaign.red_zone_turns_completed += 1
 
-			# Save equipment assignments
-			if not equipment_results.is_empty():
-				campaign.progress_data["equipment_assignments"] = equipment_results
+			# NO progress_data["equipment_assignments"] mirror. Per-character gear
+			# is owned by Character.equipment and the ship stash by
+			# equipment_data["equipment"] (data-ownership table); a third copy in
+			# progress_data was a second home for the same items — the exact thing
+			# the "one item, one home" invariant forbids — and nothing ever read
+			# it back. The assignments reach the campaign through
+			# EquipmentTransferService as the player makes them.
 
 			# Store full world phase results for summary display
 			campaign.progress_data["world_phase_results"] = world_phase_results
@@ -1655,8 +1676,13 @@ func reset_world_phase() -> void:
 		upkeep_component.reset_upkeep_phase()
 	if crew_task_component and crew_task_component.has_method("reset_crew_tasks"):
 		crew_task_component.reset_crew_tasks()
-	if job_offer_component and job_offer_component.has_method("reset_job_offers"):
-		job_offer_component.reset_job_offers()
+	# `reset_job_phase` is the real name — `reset_job_offers` has zero definitions,
+	# so this guard was permanently false and the component was NEVER reset at
+	# turn rollover: `job_accepted` stayed true and last turn's offers stayed on
+	# the list. (The integration test calls reset_job_phase() directly on the
+	# component, which is why it passed while production never invoked it.)
+	if job_offer_component and job_offer_component.has_method("reset_job_phase"):
+		job_offer_component.reset_job_phase()
 	if assign_equipment_component and assign_equipment_component.has_method("reset_equipment_phase"):
 		assign_equipment_component.reset_equipment_phase()
 	if resolve_rumors_component and resolve_rumors_component.has_method("reset_rumors_phase"):
