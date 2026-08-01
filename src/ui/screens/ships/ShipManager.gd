@@ -6,6 +6,7 @@ const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 ## AdaptivePanelGroup preloaded by path (responsive 3-pane → vertical stack in
 ## portrait; browse/overview). Path preload avoids the stale class_name cache.
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+const ShipStashPanelClass = preload("res://src/ui/components/inventory/ShipStashPanel.gd")
 
 signal ship_repaired(hull_points: int)
 signal debt_paid(amount: int)
@@ -56,6 +57,17 @@ func _ready() -> void:
 		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
 	)
 
+	# Short-screen scroll. With the Stash added there are four panes, and a landscape
+	# phone is narrow enough that the group falls to a single column and stacks all
+	# four — far taller than ~291 design px. The other manager screens all wire this;
+	# ShipManager was the one that did not. Pinned=1 keeps the header fixed, and the
+	# helper no-ops above 620px so nothing changes on a tablet or desktop.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+
 ## Reparent the 3 content panels (Ship Status / Upgrades / Travel) into an
 ## AdaptivePanelGroup: side-by-side in landscape, stacked vertically in portrait
 ## (STACK / browse-overview — no master-detail selection). Header + Controls are
@@ -82,7 +94,11 @@ func _setup_adaptive_panels() -> void:
 	# TABS in portrait: Ship Status / Upgrades / Travel are 3 distinct sections,
 	# so a tab strip is more phone-friendly than one long scroll.
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
-	group.max_columns = 3
+	# Four panes now (Status / Upgrades / Travel / Stash). Left at 3 the grid wrapped
+	# the fourth onto a second ROW, which doubled the group's height and pushed the
+	# screen 40px off a landscape phone. AdaptivePanelGroup still drops columns below
+	# its own minimum column width, so this is a ceiling, not a demand.
+	group.max_columns = 4
 	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(group)
@@ -90,6 +106,18 @@ func _setup_adaptive_panels() -> void:
 	group.add_pane(ship_status, "Ship Status")
 	group.add_pane(ship_upgrades, "Upgrades")
 	group.add_pane(travel, "Travel")
+
+	# The ship's hold. Core Rules p.55 calls the ship the place the crew "store
+	# their Stash and personal equipment", so this is where it belongs.
+	#
+	# Until now there was NO way to look at the stash between turns: the only two
+	# readers were the post-battle loot step and the p.76 sell-for-upkeep dialog,
+	# both mid-flow. ShipStashPanel was built for exactly this job and then never
+	# instantiated by anything — a finished component sitting in the tree unused.
+	var stash := ShipStashPanelClass.new()
+	stash.name = "ShipStash"
+	group.add_pane(stash, "Stash")
+
 	main_content.queue_free()  # now empty; Header + Controls untouched
 	_panel_group = group
 

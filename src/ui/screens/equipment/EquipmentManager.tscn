@@ -39,8 +39,6 @@ text = "Back"
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 text = "Equipment Manager"
-clip_text = true
-text_overrun_behavior = 3
 
 [node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

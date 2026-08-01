@@ -24,8 +24,21 @@ var equipment_manager: Node = null
 var current_crew: Array = []
 var selected_item_index: int = -1
 
-# Constants
-const MAX_STASH_SIZE: int = 10
+## The stash cap, from the book rather than from a guess.
+##
+## This was `const MAX_STASH_SIZE := 10`, which appears in NEITHER rulebook, and it
+## drove both the "x / 10 items" readout and a capacity bar — so the panel would
+## have told players about a limit the game does not have. Core Rules p.56 is the
+## only stash cap there is: "While you lack a ship, you are limited to a Stash of
+## 5 items." With a ship, it is uncapped.
+##
+## ShiplessSystem.get_stash_limit() already encodes exactly that (999 with a ship,
+## 5 without) and is the single source of truth; this reads through to it.
+const ShiplessSystemRef := preload("res://src/core/ship/ShiplessSystem.gd")
+
+## Treated as "no meaningful cap" for display: hide the capacity bar rather than
+## draw a bar that is permanently 1% full.
+const UNCAPPED_THRESHOLD: int = 99
 
 func _ready() -> void:
 	_setup_ui()
@@ -50,7 +63,7 @@ func _setup_ui() -> void:
 	header.add_child(spacer)
 	
 	stash_count_label = Label.new()
-	stash_count_label.text = "0 / %d items" % MAX_STASH_SIZE
+	stash_count_label.text = "0 items"
 	stash_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	header.add_child(stash_count_label)
 	
@@ -59,7 +72,7 @@ func _setup_ui() -> void:
 	# Capacity bar
 	capacity_bar = ProgressBar.new()
 	capacity_bar.min_value = 0
-	capacity_bar.max_value = MAX_STASH_SIZE
+	capacity_bar.max_value = float(_stash_limit())
 	capacity_bar.value = 0
 	capacity_bar.custom_minimum_size.y = 8
 	capacity_bar.show_percentage = false
@@ -167,12 +180,19 @@ func _refresh_display() -> void:
 	# Update count and capacity
 	var count = stash_items.size()
 	if stash_count_label:
-		stash_count_label.text = "%d / %d items" % [count, MAX_STASH_SIZE]
+		var limit: int = _stash_limit()
+		var capped: bool = limit <= UNCAPPED_THRESHOLD
+		# Only show "x / y" when y is a real rule. With a ship there is no cap, so a
+		# denominator would be inventing one.
+		stash_count_label.text = ("%d / %d items" % [count, limit]) if capped 			else ("%d items" % count)
+		if capacity_bar:
+			capacity_bar.visible = capped
+			capacity_bar.max_value = float(maxi(1, limit))
 		
 		# Color based on capacity
-		if count >= MAX_STASH_SIZE:
+		if capped and count >= limit:
 			stash_count_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
-		elif count >= MAX_STASH_SIZE - 2:
+		elif capped and count >= limit - 2:
 			stash_count_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
 		else:
 			stash_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
@@ -354,7 +374,7 @@ func get_stash_count() -> int:
 
 func is_stash_full() -> bool:
 	## Check if stash is at capacity
-	return get_stash_count() >= MAX_STASH_SIZE
+	return get_stash_count() >= _stash_limit()
 
 func add_item_to_stash(item: Dictionary) -> bool:
 	## Add an item to ship stash
@@ -420,7 +440,7 @@ func serialize() -> Dictionary:
 	return {
 		"stash_items": stash_items.duplicate(true),
 		"selected_index": selected_item_index,
-		"max_capacity": MAX_STASH_SIZE
+		"max_capacity": _stash_limit()
 	}
 
 
@@ -438,3 +458,13 @@ func deserialize(data: Dictionary) -> void:
 
 	# Refresh display
 	call_deferred("_refresh_display")
+
+
+## Current stash cap for the loaded campaign (Core Rules p.56).
+func _stash_limit() -> int:
+	var gs := get_node_or_null("/root/GameState")
+	if gs != null and gs.has_method("get_current_campaign"):
+		var campaign = gs.get_current_campaign()
+		if campaign != null:
+			return int(ShiplessSystemRef.get_stash_limit(campaign))
+	return 999  # No campaign to ask: assume a ship, which is the uncapped case.
