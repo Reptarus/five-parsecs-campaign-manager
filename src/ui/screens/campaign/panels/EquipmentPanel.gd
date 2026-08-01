@@ -269,9 +269,7 @@ func _initialize_components() -> void:
 	## Initialize equipment panel by connecting to actual scene nodes
 	
 	# Use unique name access (marked with unique_name_in_owner = true) with fallback paths
-	equipment_list = get_node_or_null("%Container")
-	if not equipment_list:
-		equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll/Container")
+	_resolve_equipment_list()
 
 	generate_button = get_node_or_null("%GenerateButton")
 	if not generate_button:
@@ -955,10 +953,34 @@ func is_setup_complete() -> bool:
 	## Check if equipment setup is complete
 	return generated_equipment.size() > 0
 
+func _resolve_equipment_list() -> bool:
+	## Resolve the equipment list container, by unique name with a path fallback.
+	## Returns true once it is available.
+	##
+	## Split out and made LAZY because of an ordering bug: this node is resolved
+	## in _initialize_components(), which is call_deferred() from _ready(), while
+	## _on_coordinator_set() can arrive FIRST and drive
+	## _handle_campaign_state_update() -> _update_display() ->
+	## _update_equipment_display(). That found equipment_list still null, pushed
+	## an error and returned — and since _initialize_components() never re-runs
+	## the display afterwards, THAT UPDATE WAS SIMPLY LOST. The panel then sat
+	## empty until some unrelated event happened to refresh it.
+	if equipment_list and is_instance_valid(equipment_list):
+		return true
+	if not is_inside_tree():
+		return false
+	equipment_list = get_node_or_null("%Container")
+	if not equipment_list:
+		equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll/Container")
+	return equipment_list != null
+
 func _update_equipment_display() -> void:
 	## Update the equipment list display with click-to-expand assignment + stats
-	if not equipment_list:
-		push_error("EquipmentPanel: No equipment_list container found!")
+	if not _resolve_equipment_list():
+		# Genuinely not in the tree yet — the deferred _initialize_components()
+		# will resolve it and a later refresh will paint. No error: arriving
+		# early is ordinary, and push_error here buried the console (and player
+		# bug reports) in a message nobody could act on.
 		return
 
 	# Clear existing children

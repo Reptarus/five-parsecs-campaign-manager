@@ -462,6 +462,14 @@ func deserialize(data: Dictionary) -> void:
 
 ## Current stash cap for the loaded campaign (Core Rules p.56).
 func _stash_limit() -> int:
+	# Reached from _refresh_display(), which is call_deferred() from two places —
+	# so it can land a frame after this panel left the tree. An absolute-path
+	# lookup ERRORS from a detached node rather than returning null ("Can't use
+	# get_node() with absolute paths from outside the active scene tree"), which
+	# a route sweep surfaced. Falling through to the uncapped default is the
+	# correct answer for a panel nobody is looking at.
+	if not is_inside_tree():
+		return 999
 	var gs := get_node_or_null("/root/GameState")
 	if gs != null and gs.has_method("get_current_campaign"):
 		var campaign = gs.get_current_campaign()
