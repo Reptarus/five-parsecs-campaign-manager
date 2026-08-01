@@ -318,54 +318,19 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 
 	return advancements
 
-## Calculate experience from battle results — Core Rules p.123 XP table
-## Characters that flee in the first 2 rounds receive 0 XP.
-func calculate_battle_experience(character: Resource, battle_result: Dictionary) -> int:
-	var char_name: String = Godot4Utils.safe_get_property(character, "character_name", "")
-
-	# Core Rules p.123: Characters that flee in first 2 rounds get nothing
-	var fled_early: Array = battle_result.get("fled_early", [])
-	if char_name in fled_early:
-		return 0
-
-	var xp_gained: int = 0
-	var is_casualty: bool = char_name in battle_result.get("crew_casualties", [])
-	var victory: bool = battle_result.get("victory", false)
-
-	# Core Rules p.123 XP table:
-	if is_casualty:
-		xp_gained += experience_sources["casualty"]  # +1
-	elif victory:
-		xp_gained += experience_sources["survived_and_won"]  # +3
-	else:
-		xp_gained += experience_sources["survived_no_win"]  # +2
-
-	# First character to inflict a casualty: +1
-	if char_name == battle_result.get("first_to_inflict_casualty", ""):
-		xp_gained += experience_sources["first_casualty"]
-
-	# Killed Unique Individual: +1
-	if char_name in battle_result.get("killed_unique_individual", []):
-		xp_gained += experience_sources["killed_unique_individual"]
-
-	# Easy mode bonus: +1 (campaign difficulty check)
-	if battle_result.get("easy_mode", false):
-		xp_gained += experience_sources["easy_mode"]
-
-	# Completed final stage of a Quest: +1
-	if battle_result.get("final_quest_stage", false):
-		xp_gained += experience_sources["final_quest_stage"]
-
-	return xp_gained
-
-## Award post-battle experience to all crew
-func award_post_battle_experience(crew_members: Array, battle_result: Dictionary) -> void:
-	## Award experience to all crew members after battle
-	for crew_member in crew_members:
-		var xp_amount = calculate_battle_experience(crew_member, battle_result)
-		if xp_amount > 0:
-			var source: String = "victory" if battle_result.get("victory", false) else "mission"
-			award_experience(crew_member, xp_amount, source)
+# calculate_battle_experience() and award_post_battle_experience() were
+# DELETED here. They were a second, divergent implementation of the Core
+# Rules p.123 XP table with ZERO callers — award_* was called by nothing and
+# calculate_* only by award_*. The live path is
+# ExperienceTrainingProcessor._calculate_crew_xp(), reached from
+# PostBattlePhase.
+#
+# Worse than merely dead: calculate_battle_experience() read `fled_early` as
+# an ARRAY of character names and `crew_casualties` likewise, while the live
+# battle-result contract carries fled_early as a BOOL and casualties as an
+# array of crew-id dicts. Wiring this up would not have failed loudly — the
+# `in` test against a bool errors and unwinds the function, so XP would have
+# silently stopped. Removing it removes the trap.
 
 ## Get character advancement statistics
 

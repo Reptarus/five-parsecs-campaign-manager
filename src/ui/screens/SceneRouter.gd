@@ -32,7 +32,6 @@ const SCENE_PATHS = {
 	"character_creator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	# "character_progression": UNUSED - no navigate_to calls exist
-	"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
 	# "crew_creation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
 	"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
 
@@ -40,7 +39,6 @@ const SCENE_PATHS = {
 	"equipment_manager": "res://src/ui/screens/equipment/EquipmentManager.tscn",
 	"equipment_generation": "res://src/ui/screens/equipment/EquipmentGenerationScene.tscn",
 	"ship_manager": "res://src/ui/screens/ships/ShipManager.tscn",
-	"ship_inventory": "res://src/ui/screens/ships/ShipInventory.tscn",
 
 	# World and exploration
 	"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
@@ -56,7 +54,6 @@ const SCENE_PATHS = {
 	"post_battle_sequence": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 
 	# Events and story
-	"campaign_events": "res://src/ui/screens/events/CampaignEventsManager.tscn",
 	# "story_phase": REMOVED - not official Five Parsecs phase
 
 	# Campaign phases
@@ -277,15 +274,16 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"campaign":
 			scenes = ["campaign_creation", "campaign_dashboard", "campaign_setup", "campaign_turn_controller"]
 		"character":
-			scenes = ["character_creator", "character_details", "advancement_manager", "crew_management"]
+			scenes = ["character_creator", "character_details", "crew_management"]
 		"equipment":
-			scenes = ["equipment_manager", "ship_manager", "ship_inventory"]
+			scenes = ["equipment_manager", "ship_manager"]
 		"world":
 			scenes = ["world_phase", "job_selection", "mission_selection", "patron_rival_manager"]
 		"battle":
-			scenes = ["pre_battle", "tactical_battle", "post_battle", "post_battle_results", "post_battle_sequence"]
-		"events":
-			scenes = ["campaign_events"]
+			# "post_battle_results" removed: it is not a key in SCENE_PATHS, so
+			# get_scenes_by_category("battle") returned a name navigate_to()
+			# would reject with "Scene not found".
+			scenes = ["pre_battle", "tactical_battle", "post_battle", "post_battle_sequence"]
 		"phases":
 			# Official Five Parsecs phase structure (travel folded into world_phase)
 			scenes = ["world_phase", "post_battle_sequence"]
@@ -337,8 +335,10 @@ func change_scene(scene_path: String) -> void:
 	get_tree().call_deferred("change_scene_to_file", scene_path)
 
 func open_character_management() -> void:
-	# Open character management
-	navigate_to("advancement_manager")
+	# Crew roster. Character advancement lives on CharacterDetailsScreen, one tap
+	# deeper — AdvancementManager was a second, contradictory door onto it and was
+	# deleted rather than wired.
+	navigate_to("crew_management")
 
 func open_equipment_management() -> void:
 	# Open equipment management

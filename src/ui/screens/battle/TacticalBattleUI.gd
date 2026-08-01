@@ -22,6 +22,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # prompts, objective win text — Core Rules pp.88-90, 110). Path preload:
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
+const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
@@ -146,9 +147,6 @@ var _rail_intent_info: bool = false
 @onready var overlay_content: VBoxContainer = $OverlayLayer/OverlayCenter/OverlayContent
 
 # Reaction Dice UI (handled by ReactionDicePanel component in Sprint 4)
-var dice_pool_display: HBoxContainer = null
-var character_assignment_list: VBoxContainer = null
-var confirm_assignments_button: Button = null
 
 # Stars of the Story battle HUD (Core Rules p.67 — 3 mid-battle abilities)
 var _stars_battle_button: Button = null
@@ -393,8 +391,6 @@ func _connect_signals() -> void:
 	# Battlefield signals removed — terrain is text-based via BattlefieldGenerator
 
 	# Reaction Dice signals
-	if confirm_assignments_button:
-		confirm_assignments_button.pressed.connect(_on_confirm_dice_assignments)
 
 	# Stars of the Story HUD — deferred so campaign data is loaded
 	call_deferred("_setup_stars_battle_ui")
@@ -4100,20 +4096,20 @@ func _surface_phase_component(component: Control) -> void:
 		component.visible = true
 
 func _on_roll_reactions_pressed() -> void:
-	## Handle reaction roll button press
-	_log_message("Rolling reactions for crew...", UIColors.COLOR_CYAN)
-	# Roll for each crew member
-	for unit in crew_units:
-		if unit.health > 0:
-			var roll = _roll_dice("Reaction: " + unit.node_name, "D6")
-			unit.initiative_roll = roll
-			var success = roll <= unit.reactions
-			_log_message("  %s: Rolled %d vs Reactions %d - %s" % [
-				unit.node_name, roll, unit.reactions,
-				"QUICK" if success else "SLOW"
-			], UIColors.COLOR_EMERALD if success else UIColors.COLOR_TEXT_SECONDARY)
-
-	# Advance phase via round tracker
+	## The Reaction Roll (Core Rules p.113) — now the ONLY roll.
+	##
+	## THE BUG THIS FIXES: there were TWO. _assign_crew_reaction_slots() rolled a
+	## die per figure and set react_slot, which drives the Quick/Slow rails.
+	## This function — the button the player actually presses — rolled AGAIN,
+	## wrote initiative_roll, logged that second result and never touched
+	## react_slot. The numbers shown to the player were not the numbers the app
+	## acted on, and pressing the button twice produced a third answer.
+	##
+	## Also implements the pool semantics the book describes ("Roll a number of D6
+	## equal to the number of your characters. Assign each of the dice results to
+	## one of your characters") and the Feral Impetuous Actions constraint, which
+	## existed nowhere.
+	_assign_crew_reaction_slots(true)
 	if round_tracker and round_tracker.has_method("advance_phase"):
 		round_tracker.advance_phase()
 
@@ -4666,31 +4662,85 @@ func _refresh_undo_button() -> void:
 	_undo_button.text = "↶ Undo %s" % str(_undo_snapshot.get("label", "")) if has_snap else "↶ Undo"
 
 
-func _assign_crew_reaction_slots() -> void:
-	## Core Rules p.114 Reaction Roll: roll 1D6 per crew figure. Roll <= that
-	## figure's Reactions => it acts in the QUICK phase (slot 1); otherwise
-	## SLOW (slot 2). Enemies never roll (always ENEMY phase, slot 3).
-	var dm = get_node_or_null("/root/DiceManager")
-	var q: int = 0
-	var s: int = 0
+func _assign_crew_reaction_slots(verbose: bool = false) -> void:
+	## The Reaction Roll, Core Rules p.113. THE single roll for the round.
+	##
+	## The book rolls a POOL — "Roll a number of D6 equal to the number of your
+	## characters" — and then the player "assign[s] each of the dice results to
+	## one of your characters". Rolling one die per figure and pinning it there
+	## removes the round's main tactical decision, so this rolls the pool and
+	## applies FPCM_ReactionRollPool's best-fit default, which the player can
+	## then re-read off the per-figure lines below.
+	##
+	## Enemies never roll (always the Enemy Actions phase).
+	var living: Array = []
 	for unit in crew_units:
 		if unit.is_dead:
 			unit.react_slot = 0
 			continue
-		var d6: int = 0
-		if dm and dm.has_method("roll_d6"):
-			d6 = dm.roll_d6("Reaction Roll: %s" % unit.node_name)
-		else:
-			d6 = (randi() % 6) + 1
-		if d6 <= unit.reactions:
-			unit.react_slot = 1
+		living.append(unit)
+	if living.is_empty():
+		_refresh_unit_rails()
+		return
+
+	var dm = get_node_or_null("/root/DiceManager")
+	var roller: Callable = Callable()
+	if dm and dm.has_method("roll_d6"):
+		roller = func() -> int: return dm.roll_d6("Reaction Roll")
+
+	var figures: Array = []
+	for i in range(living.size()):
+		figures.append({
+			"id": str(i),
+			"name": str(living[i].node_name),
+			"reactions": int(living[i].reactions),
+			"is_feral": _unit_is_feral(living[i]),
+		})
+
+	var dice: Array[int] = ReactionRollPoolClass.roll_pool(living.size(), roller)
+	var assignment: Dictionary = ReactionRollPoolClass.auto_assign(dice, figures)
+
+	var q: int = 0
+	var s: int = 0
+	for i in range(living.size()):
+		var unit = living[i]
+		var die: int = int(assignment.get(str(i), 6))
+		unit.initiative_roll = die
+		unit.react_slot = ReactionRollPoolClass.slot_for(die, unit.reactions)
+		if unit.react_slot == ReactionRollPoolClass.SLOT_QUICK:
 			q += 1
 		else:
-			unit.react_slot = 2
 			s += 1
+		if verbose and unified_log:
+			unified_log.log_action("Reaction Roll", "  %s: %d vs Reactions %d — %s" % [
+				unit.node_name, die, unit.reactions,
+				"QUICK" if unit.react_slot == ReactionRollPoolClass.SLOT_QUICK else "SLOW"])
+
 	if unified_log:
-		unified_log.log_action("Reaction Roll", "%d Quick · %d Slow" % [q, s])
+		var pool_txt: String = ", ".join(dice.map(func(d): return str(d)))
+		unified_log.log_action("Reaction Roll",
+			"Pool [%s] → %d Quick · %d Slow" % [pool_txt, q, s])
+		# p.113 Feral Impetuous Actions. Surfaced because it CONSTRAINS the
+		# player's assignment, and a player who does not know the rule cannot
+		# tell why the app placed the 1 where it did.
+		if ReactionRollPoolClass.feral_die_required(dice, figures):
+			unified_log.log_action("Reaction Roll",
+				"Feral: exactly one 1 was rolled, so it must go to a Feral character (p.113).")
 	_refresh_unit_rails()
+
+
+func _unit_is_feral(unit) -> bool:
+	## Feral is a species, so it can arrive as species_id or the legacy origin.
+	for key in ["species_id", "origin"]:
+		if key in unit and str(unit.get(key)).to_lower() == "feral":
+			return true
+	var oc = unit.original_character if "original_character" in unit else null
+	if oc == null:
+		return false
+	for key in ["species_id", "origin"]:
+		if key in oc and str(oc.get(key)).to_lower() == "feral":
+			return true
+	return false
 
 
 func _seed_morale_tracker() -> void:
@@ -5356,97 +5406,16 @@ func _log_message(message: String, color: Color = Color.WHITE) -> void:
 
 ## Reaction Dice System
 
-var reaction_dice_pool: Array[int] = []
-var dice_assignments: Dictionary = {} # character_id -> dice_value
-
-func _on_reaction_dice_rolled(dice_values: Array) -> void:
-	## Handle reaction dice rolled at start of round
-	reaction_dice_pool = dice_values
-	dice_assignments.clear()
-	_display_dice_pool()
-	_display_character_assignments()
-	_log_message("Reaction dice rolled: %s" % str(dice_values), UIColors.COLOR_CYAN)
-
-func _on_reaction_dice_assigned(character_id: String, dice_value: int) -> void:
-	## Handle dice assignment update
-	dice_assignments[character_id] = dice_value
-	_display_character_assignments()
-
-func _on_confirm_dice_assignments() -> void:
-	## Confirm all dice assignments and proceed
-	_log_message("Reaction dice assignments confirmed", UIColors.COLOR_EMERALD)
-
-func _display_dice_pool() -> void:
-	## Display available reaction dice
-	if not dice_pool_display:
-		return
-
-	# Clear existing dice
-	for child in dice_pool_display.get_children():
-		child.queue_free()
-
-	# Create visual for each die
-	for die_value in reaction_dice_pool:
-		var die_label := Label.new()
-		die_label.text = "[%d]" % die_value
-		die_label.add_theme_font_size_override("font_size", _scaled_font(20))
-
-		# Color code by value (higher = better)
-		if die_value >= 5:
-			die_label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
-		elif die_value >= 3:
-			die_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
-		else:
-			die_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
-
-		dice_pool_display.add_child(die_label)
-
-func _display_character_assignments() -> void:
-	## Display character assignment options
-	if not character_assignment_list:
-		return
-
-	# Clear existing assignments
-	for child in character_assignment_list.get_children():
-		child.queue_free()
-
-	# Create assignment row for each crew member
-	for unit in crew_units:
-		if unit.health <= 0:
-			continue
-
-		var row := HBoxContainer.new()
-
-		var name_label := Label.new()
-		name_label.text = unit.node_name
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_label)
-
-		var assigned_value: int = dice_assignments.get(unit.node_name, 0)
-		var value_label := Label.new()
-		value_label.text = str(assigned_value) if assigned_value > 0 else "-"
-		row.add_child(value_label)
-
-		# Add assign button
-		var assign_button := Button.new()
-		assign_button.text = "Assign"
-		assign_button.pressed.connect(_on_assign_dice_to_character.bind(unit.node_name))
-		row.add_child(assign_button)
-
-		character_assignment_list.add_child(row)
-
-func _on_assign_dice_to_character(character_name: String) -> void:
-	## Assign next available die to character
-	# Find first unassigned die
-	var assigned_values = dice_assignments.values()
-	for die_value in reaction_dice_pool:
-		if die_value not in assigned_values:
-			dice_assignments[character_name] = die_value
-			_display_character_assignments()
-			_log_message("%s assigned reaction die: %d" % [character_name, die_value], UIColors.COLOR_CYAN)
-			return
-
-	_log_message("No dice available to assign!", UIColors.COLOR_RED)
+# The legacy reaction-dice assignment UI was DELETED here (~90 lines).
+# dice_pool_display, character_assignment_list and confirm_assignments_button
+# were declared `= null` and NEVER assigned — no @onready, no .new() — so every
+# function below them returned at its first `if not <node>` guard and the whole
+# feature was unreachable. Its state (reaction_dice_pool, dice_assignments) was
+# likewise written by nothing that ran.
+#
+# Superseded by FPCM_ReactionRollPool + _assign_crew_reaction_slots(), which
+# implement the Core Rules p.113 pool properly: one roll, a best-fit default
+# assignment, and the Feral Impetuous Actions constraint this version never had.
 
 ## ── Battlefield View Helpers ───────────────────────────────────────
 
