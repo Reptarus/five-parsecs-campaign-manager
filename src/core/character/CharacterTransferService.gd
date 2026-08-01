@@ -774,6 +774,28 @@ static func apply_transfer_rewards(
 	if safe_char.get("gains_psionic", false):
 		summary_parts.append("+Psionic")  # rides on the character into the roster
 
+	# Gear the character had STASHED on the source side (Compendium p.213 — a
+	# mustering-out veteran's kit does not evaporate). transfer_character() has
+	# always written this key into the envelope and NOTHING has ever read it, so
+	# every stashed item was recorded in the transfer file and dropped on
+	# arrival. Routed through EquipmentTransferService.add_loot_to_stash(), the
+	# sanctioned way items enter a ship stash — it assigns an id when the item
+	# lacks one, which matters because these have crossed a campaign boundary.
+	var stashed: Array = transfer_data.get("stashed_equipment", [])
+	if stashed is Array and not stashed.is_empty():
+		var TransferSvc = load("res://src/core/equipment/EquipmentTransferService.gd")
+		var eq_svc = TransferSvc.new(campaign)
+		var moved: int = 0
+		for item in stashed:
+			if item is Dictionary:
+				eq_svc.add_loot_to_stash(item as Dictionary)
+				moved += 1
+			elif item != null:
+				eq_svc.add_loot_to_stash({"name": str(item)})
+				moved += 1
+		if moved > 0:
+			summary_parts.append("+%d stashed item(s)" % moved)
+
 	# The transfer file is NOT deleted here. It is reported back as `consumed_file`
 	# so the caller can delete it only AFTER the receiving campaign has been
 	# successfully written to disk.

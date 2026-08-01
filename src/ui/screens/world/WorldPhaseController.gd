@@ -1441,8 +1441,12 @@ func _complete_world_phase() -> void:
 			# it back. The assignments reach the campaign through
 			# EquipmentTransferService as the player makes them.
 
-			# Store full world phase results for summary display
-			campaign.progress_data["world_phase_results"] = world_phase_results
+			# NO progress_data["world_phase_results"] copy. It was labelled "for
+			# summary display" and had zero readers repo-wide, so it only ever
+			# grew the save file. The turn's world step is now summarised into the
+			# campaign journal by CampaignTurnController._journal_world_phase(),
+			# which receives the same dict through the phase_completed signal —
+			# the journal being the campaign's actual record.
 
 	# Publish completion event
 	if event_bus:

@@ -138,6 +138,15 @@ func bind_campaign(campaign: Resource) -> void:
 	if post_battle_phase_handler and post_battle_phase_handler.has_method("set_campaign"):
 		post_battle_phase_handler.set_campaign(campaign)
 
+	# Story Track and Introductory Campaign are per-campaign too, and were built
+	# ONLY in setup() — which CampaignTurnController runs once per app session.
+	# So campaign B inherited campaign A's story_track object (or the `null` from
+	# A having the feature switched off), meaning a Story Track campaign loaded
+	# second simply never started. Same bug class this function was written to
+	# fix for turn_number; it just never covered these two.
+	_init_intro_campaign()
+	_init_story_track()
+
 	_connect_to_campaign(campaign)
 
 
@@ -170,9 +179,17 @@ func start_new_turn() -> void:
 	_current_story_event = null
 	if story_track and not (intro_campaign and intro_campaign.is_active):
 		_current_story_event = story_track.begin_campaign_turn()
+		_drain_story_completion_effects()
 
 	campaign_turn_started.emit(turn_number)
-	# Reset to first turn phase (UPKEEP)
+
+	# A Story Event turn opens on the STORY briefing, not on UPKEEP. The event
+	# "will replace or modify the normal events of the campaign" (Core Rules
+	# p.153) and its restrictions bind the whole turn, so the player has to see
+	# them before the world phase runs. Every other turn opens on UPKEEP as before.
+	if _current_story_event != null:
+		start_phase(FiveParcsecsCampaignPhase.STORY)
+		return
 	start_phase(FiveParcsecsCampaignPhase.UPKEEP)
 
 ## Process all Core Rules turn rollover mechanics before the new turn begins.
@@ -185,6 +202,9 @@ func _process_turn_rollover() -> void:
 
 	# --- Clear Upkeep Lockouts from Previous Turn (Core Rules p.76) ---
 	_clear_upkeep_lockouts(campaign)
+
+	# --- Free Hull Repair (Core Rules p.59) ---
+	_process_free_hull_repair(campaign)
 
 	# --- Victory Condition Lock-In (Core Rules p.64) ---
 	# "Cannot add or change once the campaign starts."
@@ -650,6 +670,36 @@ func _log_unity_agent_event(char_name: String, roll: int, outcome: String) -> vo
 		"tags": ["unity_agent", "species_ability"],
 	})
 
+func _process_free_hull_repair(campaign: Resource) -> void:
+	## Core Rules p.59, verbatim: "Damage is repaired at a rate of 1 Hull Point
+	## per campaign turn, but you can funnel credits into faster repairs."
+	##
+	## The free tick had exactly one implementation and it lived in
+	## src/core/campaign/phases/WorldPhase.gd — a file nothing instantiates — so
+	## a damaged ship stayed damaged forever unless the player paid for every
+	## point. Paid repair is the upkeep step's job; this is the automatic one.
+	if campaign == null or not ("ship_data" in campaign):
+		return
+	var ship: Dictionary = campaign.ship_data
+	if ship.is_empty():
+		return
+	var current: int = int(ship.get("hull_points", 0))
+	var max_hull: int = int(ship.get("max_hull", current))
+	if current >= max_hull or max_hull <= 0:
+		return
+	ship["hull_points"] = mini(max_hull, current + 1)
+
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "ship",
+			"auto_generated": true,
+			"title": "Hull repairs",
+			"description": "The crew patched 1 Hull Point over the campaign turn (%d/%d). Core Rules p.59." % [
+				int(ship["hull_points"]), max_hull],
+			"tags": ["ship", "repair"],
+		})
+
 func _clear_upkeep_lockouts(campaign: Resource) -> void:
 	## Clear upkeep lockout flags from previous turn (Core Rules p.76).
 	## Lockouts last one campaign turn only.
@@ -930,7 +980,18 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.UPKEEP:
 			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.RETIREMENT, FiveParcsecsCampaignPhase.NONE]
 		FiveParcsecsCampaignPhase.STORY:
-			return current_phase == FiveParcsecsCampaignPhase.UPKEEP
+			# Widened 2026-08-01. The declared order is UPKEEP -> STORY, but the
+			# live flow never walked it: start_new_turn() opened on UPKEEP and
+			# CampaignTurnController._on_world_phase_completed() jumped straight
+			# to MISSION, so start_phase(STORY) had zero callers and the panel was
+			# unreachable. A Story Event briefing has to land BEFORE the world
+			# phase, because it declares that turn's restrictions (p.153) — hence
+			# entry from the turn boundary as well as from UPKEEP.
+			return current_phase in [
+				FiveParcsecsCampaignPhase.UPKEEP,
+				FiveParcsecsCampaignPhase.RETIREMENT,
+				FiveParcsecsCampaignPhase.SETUP,
+				FiveParcsecsCampaignPhase.NONE]
 		FiveParcsecsCampaignPhase.TRAVEL:
 			return current_phase == FiveParcsecsCampaignPhase.STORY
 		FiveParcsecsCampaignPhase.PRE_MISSION:
@@ -1290,23 +1351,107 @@ func _init_story_track() -> void:
 		if not (intro_campaign and intro_campaign.is_active):
 			story_track.start_story_track()
 
-	# Connect Story Track signals → journal/history logging
-	story_track.story_track_started.connect(
-		_on_story_track_started)
-	story_track.story_event_triggered.connect(
-		_on_story_event_triggered)
-	story_track.story_clock_advanced.connect(
-		_on_story_clock_advanced)
-	story_track.evidence_discovered.connect(
-		_on_story_evidence_discovered)
-	story_track.story_track_completed.connect(
-		_on_story_track_completed)
+	# Connect Story Track signals → journal/history logging.
+	# Guarded: this runs again on every campaign switch now (bind_campaign), and
+	# Object.connect() returns ERR_INVALID_PARAMETER *and pushes an error* if the
+	# same Callable is already attached. The engine's documented fix is to test
+	# is_connected() first.
+	_connect_once(story_track, "story_track_started", _on_story_track_started)
+	_connect_once(story_track, "story_event_triggered", _on_story_event_triggered)
+	_connect_once(story_track, "story_clock_advanced", _on_story_clock_advanced)
+	_connect_once(story_track, "evidence_discovered", _on_story_evidence_discovered)
+	_connect_once(story_track, "story_track_completed", _on_story_track_completed)
 
 	# Persist initial state so dashboard/other systems can read it
 	save_story_track_state()
 
 
 
+
+func _connect_once(
+	source: Object, signal_name: String, target: Callable
+) -> void:
+	## Connect only if not already connected.
+	##
+	## Godot 4.6 Object.connect(): "A signal can only be connected once to the
+	## same Callable. If the signal is already connected, this method returns
+	## ERR_INVALID_PARAMETER and generates an error [...] To prevent this, use
+	## is_connected() first." Both _init_* functions below now run on every
+	## campaign switch, not just once per session, so the check is required.
+	if source == null or not source.has_signal(signal_name):
+		return
+	if source.is_connected(signal_name, target):
+		return
+	source.connect(signal_name, target)
+
+# ── Story Track battle bridge ────────────────────────────────────
+#
+# ⚠ DO NOT DELETE AS "REDUNDANT ZERO-CALLER FORWARDERS."
+#
+# These three were removed once already, in c8fd7e07c (Jul 10 2026, "Wiring
+# cleanup Tier 5: delete 23 redundant zero-caller methods"). They genuinely had
+# no callers at that moment — but only because their one consumer,
+# phases/BattlePhase.gd, had been deleted six weeks earlier in 99fad30b2. The
+# audit read the symptom as the cause and removed the seam instead of restoring
+# it, which is why curated Story Event battles stayed broken for another month.
+#
+# Live consumer: CampaignTurnController._initiate_battle_sequence(), the single
+# chokepoint where mission_data is stamped before a battle. Pinned by
+# tests/unit/test_story_track_integration.gd.
+
+func is_story_event_turn() -> bool:
+	## True when THIS campaign turn is a Story Event turn (Core Rules p.153).
+	return story_track != null and story_track.is_story_event_turn
+
+func get_story_battle_config() -> Dictionary:
+	## Curated deployment / enemies / objectives for the current Story Event.
+	## Empty on any normal turn.
+	if story_track:
+		return story_track.get_battle_config()
+	return {}
+
+func get_story_turn_mods() -> Dictionary:
+	## Per-event campaign-turn restrictions (e.g. Event 1's "you cannot Track
+	## Rivals", Event 4's "you cannot be attacked by Rivals"). Empty on a normal
+	## turn. Consumed by the world-phase and rival-encounter gates.
+	if story_track:
+		return story_track.get_turn_modifications()
+	return {}
+
+func get_intro_battle_config() -> Dictionary:
+	## Introductory Campaign battle overrides for the current guided turn
+	## (Compendium pp.104-109) — no deployment conditions, no notable sights,
+	## no unique individuals, Seize the Initiative bonus, enemy Combat Skill cap.
+	## These were authored in full and read by nothing.
+	var restrictions: Dictionary = get_intro_turn_restrictions()
+	if restrictions.is_empty():
+		return {}
+	var cfg: Dictionary = restrictions.get("battle_config", {})
+	if cfg is Dictionary and not cfg.is_empty():
+		var out: Dictionary = cfg.duplicate()
+		out["is_training_battle"] = restrictions.get("is_training_battle", false)
+		return out
+	if bool(restrictions.get("is_training_battle", false)):
+		return {"is_training_battle": true}
+	return {}
+
+func _drain_story_completion_effects() -> void:
+	## Pay out a Story Track completion that happened at TURN START rather than
+	## after a battle. Only one path produces this: letting the Event 7 delay
+	## window lapse (Core Rules p.159, "the chance is missed"), which loses the
+	## story without a fight — so the post-battle pipeline never runs and nothing
+	## else would ever award the "Losing the Story" consequences.
+	if not story_track:
+		return
+	var effects: Dictionary = story_track.pending_completion_effects
+	if effects.is_empty():
+		return
+	story_track.pending_completion_effects = {}
+	if post_battle_phase_handler \
+			and post_battle_phase_handler.has_method(
+				"apply_story_completion_effects"):
+		post_battle_phase_handler.apply_story_completion_effects(effects, false)
+	save_story_track_state()
 
 ## Persist Story Track state to campaign progress_data
 func save_story_track_state() -> void:
@@ -1353,13 +1498,10 @@ func _init_intro_campaign() -> void:
 	elif not intro_campaign.completed:
 		intro_campaign.start_introductory_campaign()
 
-	# Connect signals
-	intro_campaign.intro_turn_started.connect(
-		_on_intro_turn_started)
-	intro_campaign.intro_completed.connect(
-		_on_intro_completed)
-	intro_campaign.intro_phase_unlocked.connect(
-		_on_intro_phase_unlocked)
+	# Connect signals (guarded — see _connect_once)
+	_connect_once(intro_campaign, "intro_turn_started", _on_intro_turn_started)
+	_connect_once(intro_campaign, "intro_completed", _on_intro_completed)
+	_connect_once(intro_campaign, "intro_phase_unlocked", _on_intro_phase_unlocked)
 
 	# Persist initial state so other systems can read it from progress_data
 	save_intro_campaign_state()

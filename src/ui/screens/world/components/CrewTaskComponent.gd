@@ -466,6 +466,39 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 
 	# --- Task-specific rules (Core Rules pp.77-78) ---
 
+	# Story Event override (Core Rules Appendix V). Event 1 p.153: "One character
+	# must be sent to look for a Patron this campaign turn. Do not roll for
+	# success." Events 3 and 6: "cannot seek Patron" / "There is no point seeking
+	# out a Patron this campaign turn." All three were displayed by
+	# StoryPhasePanel and enforced nowhere, so the search resolved normally and
+	# could hand the player a Patron the book says they do not get.
+	#
+	# Track is barred the same way by Events 1, 2 and 3 ("you cannot Track
+	# Rivals"). p.78: a 6+ "located a Rival of your choice, allowing you to fight
+	# a battle against them this campaign turn" — exactly the thing those events
+	# forbid, so the roll must not happen at all.
+	if task.id == "track":
+		if bool(_story_turn_mods().get("cannot_track_rivals", false)):
+			result.roll = roll
+			result.modified_roll = 0
+			result.success = false
+			result.reward = ""
+			result.details = "Story Event: you cannot Track Rivals this " \
+				+ "campaign turn (Core Rules Appendix V)."
+			return result
+
+	if task.id == "find_patron":
+		var story_mods: Dictionary = _story_turn_mods()
+		if bool(story_mods.get("patron_auto_fail", false)) \
+				or bool(story_mods.get("cannot_seek_patron", false)):
+			result.roll = roll
+			result.modified_roll = 0
+			result.success = false
+			result.reward = ""
+			result.details = "Story Event: the search turns up nothing " \
+				+ "(Core Rules Appendix V)."
+			return result
+
 	# Find Patron: +1 per existing Patron contact, 6+ = two patrons
 	if task.id == "find_patron":
 		var gsm = get_node_or_null("/root/GameStateManager")
@@ -510,6 +543,16 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 		result.details = "Roll %d → %d vs %d. %s" % [roll, modified_roll, task.dice_target, result.details]
 
 	return result
+
+func _story_turn_mods() -> Dictionary:
+	## Campaign-turn restrictions for the current Story Event, or {} on a normal
+	## turn. Core Rules Appendix V — each event lists its own under "The Campaign
+	## Turn". They are parsed into StoryEvent.campaign_turn_mods and, until now,
+	## only ever rendered as text by StoryPhasePanel.
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not cpm.has_method("get_story_turn_mods"):
+		return {}
+	return cpm.get_story_turn_mods()
 
 func _generate_and_add_patron(count: int) -> void:
 	## Generate patron(s) using PatronJobManager and add to campaign
@@ -2276,18 +2319,49 @@ func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
 			crew_member.equipment.erase(item_name)
 
 func _apply_sick_bay(crew_member, turns: int) -> void:
-	## Place crew member in sick bay
-	if crew_member == null:
+	## Place crew member in sick bay for `turns` campaign turns.
+	##
+	## THE DURATION WAS BEING THROWN AWAY. This wrote a bespoke
+	## `sick_bay_turns_remaining` key that NOTHING reads, and added no entry to
+	## `injuries` — but the recovery countdown
+	## (CampaignPhaseManager._process_sick_bay_recovery) works by decrementing
+	## each injury's `recovery_turns` and clears sick bay the moment `injuries`
+	## is empty. With no injury entry that condition was true immediately, so a
+	## crew member sent to Sick Bay for three turns walked out after one,
+	## whatever the task rolled.
+	##
+	## The fix is to speak the countdown's language: an injuries entry carrying
+	## the recovery turns. Both crew shapes, because a fresh campaign holds
+	## Character Resources and a loaded save holds Dictionaries.
+	if crew_member == null or turns <= 0:
 		return
+
+	var injury: Dictionary = {
+		"type": "crew_task",
+		"name": "Injured during crew tasks",
+		"recovery_turns": turns,
+	}
+
 	if crew_member is Dictionary:
 		crew_member["in_sick_bay"] = true
-		crew_member["sick_bay_turns_remaining"] = turns
+		crew_member["recovery_turns"] = turns
 		crew_member["status"] = "injured"
-	elif crew_member is Object:
+		var injuries: Array = crew_member.get("injuries", [])
+		if not (injuries is Array):
+			injuries = []
+		injuries.append(injury)
+		crew_member["injuries"] = injuries
+		return
+
+	if crew_member is Object:
 		if "status" in crew_member:
 			crew_member.status = "injured"
 		if "in_sick_bay" in crew_member:
 			crew_member.in_sick_bay = true
+		if "recovery_turns" in crew_member:
+			crew_member.recovery_turns = turns
+		if "injuries" in crew_member and crew_member.injuries is Array:
+			crew_member.injuries.append(injury)
 
 func _apply_rival(event_data: Dictionary) -> void:
 	## Add a rival to the campaign via NPCTracker

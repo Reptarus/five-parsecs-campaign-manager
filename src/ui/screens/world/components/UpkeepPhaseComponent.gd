@@ -720,6 +720,10 @@ func _build_travel_section() -> void:
 	map_btn.pressed.connect(_on_view_galaxy_map_pressed)
 	vbox.add_child(map_btn)
 
+	# Hull repair (Core Rules p.59). Shown only while the ship is damaged — it is
+	# also the release valve for the travel prohibition on the same page.
+	_build_hull_repair_prompt(vbox)
+
 	# Mission-required travel prompt (Core Rules p.119 — a Quest step on another
 	# world). Encourages (never forces) travel; "Quests will wait for you".
 	_build_quest_travel_prompt(vbox)
@@ -773,7 +777,7 @@ func _build_travel_section() -> void:
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_register_responsive_box(btn_row)
 
-	# Stay button
+	# Stay button (may be disabled below — see _apply_story_forced_travel)
 	_stay_button = Button.new()
 	_stay_button.text = "Stay in Current Location"
 	_stay_button.custom_minimum_size = Vector2(0, 48)
@@ -844,6 +848,14 @@ func _build_travel_section() -> void:
 	_travel_status_label.visible = false
 	vbox.add_child(_travel_status_label)
 
+	# Story Event forced travel (Core Rules Appendix V). Event 5 p.157: "You will
+	# have to Travel immediately." Event 7 p.159: "you must Travel, following the
+	# normal rules." Both were parsed into campaign_turn_mods, printed by
+	# StoryPhasePanel, and enforced nowhere — so the player could simply Stay on
+	# a turn the book gives them no choice about. Called HERE, after
+	# _travel_status_label exists, so the explanation can actually be shown.
+	_apply_story_forced_travel()
+
 	# Travel event container (populated after travel choice)
 	_travel_event_container = VBoxContainer.new()
 	_travel_event_container.add_theme_constant_override("separation", 8)
@@ -865,6 +877,21 @@ func _update_travel_button_text(
 	## Update travel button text/state based on affordability
 	if not _travel_button:
 		return
+
+	# Core Rules p.59, verbatim: "If a ship has Hull Point damage, it cannot
+	# safely leave for another planet, prohibiting you from traveling during the
+	# campaign turn. Even trivial drive damage can be catastrophic."
+	#
+	# Not a soft-lock: the same panel offers paid repair right below (p.59
+	# "1 credit pays off 1 Hull Point"), and the free 1-point-per-turn repair
+	# runs at rollover, so a damaged crew always has a way forward.
+	if has_ship:
+		var damage: int = _hull_damage()
+		if damage > 0:
+			_travel_button.text = "Cannot Travel — Hull Damaged (%d)" % damage
+			_travel_button.disabled = true
+			return
+
 	if has_ship:
 		if credits >= SHIP_TRAVEL_COST:
 			_travel_button.text = (
@@ -884,6 +911,30 @@ func _update_travel_button_text(
 			_travel_button.text = (
 				"Passage (Need %d cr)" % cost)
 			_travel_button.disabled = true
+
+func _apply_story_forced_travel() -> void:
+	## Disable "Stay" when the current Story Event compels travel.
+	## Core Rules Appendix V — Event 5 p.157 "You will have to Travel
+	## immediately"; Event 7 p.159 "you must Travel, following the normal rules".
+	if _stay_button == null:
+		return
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not cpm.has_method("get_story_turn_mods"):
+		return
+	var mods: Dictionary = cpm.get_story_turn_mods()
+	if mods.is_empty():
+		return
+	if not (bool(mods.get("must_travel_immediately", false))
+			or bool(mods.get("must_travel", false))):
+		return
+
+	_stay_button.disabled = true
+	_stay_button.tooltip_text = (
+		"This Story Event requires you to travel (Core Rules Appendix V).")
+	if _travel_status_label:
+		_travel_status_label.visible = true
+		_travel_status_label.text = \
+			"Story Event: you must travel this campaign turn."
 
 func _on_stay_pressed() -> void:
 	## Handle stay in current location
@@ -969,6 +1020,130 @@ func _campaign_progress_data() -> Dictionary:
 	if not ("progress_data" in campaign) or not (campaign.progress_data is Dictionary):
 		return {}
 	return campaign.progress_data
+
+func _build_hull_repair_prompt(vbox: VBoxContainer) -> void:
+	## Paid hull repair (Core Rules p.59). Only rendered while damaged.
+	var damage: int = _hull_damage()
+	if damage <= 0 or not has_ship:
+		return
+
+	var pd: Dictionary = _campaign_progress_data()
+	var parts: int = int(pd.get("repair_part_credits", 0)) if not pd.is_empty() else 0
+	var credits: int = int(GameStateManager.get_credits()) if GameStateManager else 0
+	var affordable: int = mini(damage, parts + credits)
+
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.35, 0.22, 0.05, 0.75)
+	style.border_color = UIColors.COLOR_AMBER
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+
+	var lbl := Label.new()
+	lbl.text = "HULL DAMAGE: %d point(s) — the ship cannot leave orbit until repaired" % damage
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(15))
+	box.add_child(lbl)
+
+	var detail := Label.new()
+	detail.text = "1 credit repairs 1 Hull Point. Repair parts on hand: %d." % parts
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	detail.add_theme_font_size_override("font_size", _scaled_font(13))
+	box.add_child(detail)
+
+	var btn := Button.new()
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if affordable > 0:
+		btn.text = "Repair %d Hull Point(s)" % affordable
+		btn.accessibility_name = "Repair %d hull points" % affordable
+		btn.pressed.connect(_on_repair_hull_pressed.bind(affordable))
+	else:
+		btn.text = "Repair (no credits or parts)"
+		btn.disabled = true
+	box.add_child(btn)
+
+	panel.add_child(box)
+	vbox.add_child(panel)
+
+func _on_repair_hull_pressed(points: int) -> void:
+	var repaired: int = repair_hull_points(points)
+	if repaired > 0:
+		var journal = get_node_or_null("/root/CampaignJournal")
+		if journal and journal.has_method("create_entry"):
+			journal.create_entry({
+				"type": "ship",
+				"auto_generated": true,
+				"title": "Paid hull repairs",
+				"description": "Repaired %d Hull Point(s) (Core Rules p.59)." % repaired,
+				"tags": ["ship", "repair"],
+			})
+	# Rebuild so the banner, the repair button and the travel gate all re-read
+	# the new hull state together.
+	_build_travel_section()
+	current_upkeep_data = calculate_upkeep_costs()
+	_update_ui_display()
+	_update_gating_state()
+
+func _hull_damage() -> int:
+	## Outstanding Hull Point damage on the ship, 0 if undamaged/shipless.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return 0
+	var campaign = gs.current_campaign
+	if not ("ship_data" in campaign) or not (campaign.ship_data is Dictionary):
+		return 0
+	var ship: Dictionary = campaign.ship_data
+	if ship.is_empty():
+		return 0
+	var current: int = int(ship.get("hull_points", 0))
+	var max_hull: int = int(ship.get("max_hull", current))
+	return maxi(0, max_hull - current)
+
+func repair_hull_points(points: int) -> int:
+	## Paid repair (Core Rules p.59): "1 credit pays off 1 Hull Point of damage,
+	## and any amount can be repaired this way during a campaign turn."
+	##
+	## Banked repair parts are spent FIRST. Crew tasks have always written
+	## progress_data["repair_part_credits"] (p.79, "credits worth of Hull Point
+	## repair parts") and NOTHING read the key back, so those credits were
+	## unspendable — the exact mirror of the fuel-credits gap next door.
+	## Returns the number of points actually repaired.
+	if points <= 0:
+		return 0
+	var outstanding: int = _hull_damage()
+	if outstanding <= 0:
+		return 0
+	var want: int = mini(points, outstanding)
+
+	var pd: Dictionary = _campaign_progress_data()
+	var parts: int = int(pd.get("repair_part_credits", 0)) if not pd.is_empty() else 0
+	var from_parts: int = mini(parts, want)
+	if from_parts > 0 and not pd.is_empty():
+		pd["repair_part_credits"] = parts - from_parts
+
+	var from_credits: int = want - from_parts
+	if from_credits > 0:
+		var available: int = int(GameStateManager.get_credits())
+		from_credits = mini(from_credits, available)
+		if from_credits > 0:
+			GameStateManager.modify_credits(-from_credits)
+
+	var repaired: int = from_parts + from_credits
+	if repaired > 0 and GameStateManager.has_method("repair_hull"):
+		GameStateManager.repair_hull(repaired)
+	return repaired
 
 func _apply_fuel_credits(travel_cost: int) -> int:
 	## Spend banked starship fuel against this trip (Core Rules p.79).

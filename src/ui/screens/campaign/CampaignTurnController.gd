@@ -408,6 +408,35 @@ func _get_current_planet_id() -> String:
 	# Fallback to turn-based planet ID
 	return "planet_" + str(campaign_phase_manager.get_turn_number())
 
+func _story_rival_suppression_reason() -> String:
+	## Returns a non-empty reason when the current Story Event forbids the p.85
+	## Rival check this campaign turn. Empty on any normal turn.
+	##
+	## Book wording per event (Core Rules Appendix V):
+	##   Event 1 p.153 "Do not roll for existing Rivals interfering this campaign
+	##                  turn, and you cannot Track Rivals."
+	##   Event 4 p.156 "You cannot be attacked by Rivals this campaign turn."
+	##   Event 5 p.157 "you manage to slip away without any Rivals having a
+	##                  chance to attack."
+	##   Event 6 p.158 "you will manage to dodge any Rivals coming after you."
+	## Event 3 is the explicit opposite — "can_be_attacked_by_rivals" — so it must
+	## NOT suppress even though it shares the cannot_track_rivals restriction.
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not cpm.has_method("get_story_turn_mods"):
+		return ""
+	var mods: Dictionary = cpm.get_story_turn_mods()
+	if mods.is_empty():
+		return ""
+	if bool(mods.get("can_be_attacked_by_rivals", false)):
+		return ""
+	for key: String in [
+		"no_rival_interference", "rivals_cannot_attack", "rivals_dodged"
+	]:
+		if bool(mods.get(key, false)):
+			return "Story Event: Rivals cannot attack this campaign turn " \
+				+ "(Core Rules Appendix V)."
+	return ""
+
 func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> void:
 	## Core Rules p.85, World Step 6 "Check for Rivals": tally your Rivals, roll a
 	## D6, and if the roll is equal to or lower than the count, one of them has
@@ -439,7 +468,11 @@ func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> vo
 	if "progress_data" in campaign:
 		decoy_count = int(campaign.progress_data.get("decoy_crew_count", 0))
 
-	var check: Dictionary = RivalEncounterCheckClass.check(rivals, decoy_count)
+	# Story Event turn modifications can call this check off entirely. They were
+	# parsed, displayed by StoryPhasePanel, and enforced by nothing — so a turn
+	# the book says you cannot be attacked on still rolled for Rival attacks.
+	var check: Dictionary = RivalEncounterCheckClass.check(
+		rivals, decoy_count, null, _story_rival_suppression_reason())
 	if not check.get("has_encounter", false):
 		return
 
@@ -706,6 +739,17 @@ func _initiate_battle_sequence() -> void:
 		mission_data["mission_source"] = mission_data.get(
 			"source", "opportunity")
 
+	# ── Story Track / Introductory Campaign battle identity ──────────────
+	# Stamped HERE because this is the one chokepoint every battle path crosses
+	# before the fight, and because the post-battle sequence can only know what
+	# mission_data carries. Restores the injection lost when phases/BattlePhase.gd
+	# was deleted (99fad30b2); PostBattleCompletion.gd:176 has been reading
+	# `is_story_battle` off battle_result ever since, with no producer.
+	var narrative_cfg: Dictionary = _stamp_narrative_battle_config(mission_data)
+	var suppress_sight: bool = bool(narrative_cfg.get("no_notable_sights", false))
+	var suppress_condition: bool = bool(
+		narrative_cfg.get("no_deployment_conditions", false))
+
 	# Enrich with Core Rules tables (pp.88-91, 120-121)
 	var mtm := MissionTableManagerClass.new()
 	var source: String = mission_data.get(
@@ -727,7 +771,12 @@ func _initiate_battle_sequence() -> void:
 				"placement_rules"]
 
 	# Roll Notable Sight (Core Rules p.88)
-	if not mission_data.has("notable_sight") \
+	# p.153 suppresses this outright on a Story Event turn: "During Story Event
+	# battles, you never roll for Deployment Conditions or Notable Sights."
+	# The Introductory Campaign withholds it for its early guided turns too.
+	if suppress_sight:
+		mission_data["notable_sight"] = {}
+	elif not mission_data.has("notable_sight") \
 			and source != "invasion":
 		var sight_col: String = mtm.get_deployment_column_for_type(
 			source)
@@ -793,12 +842,15 @@ func _initiate_battle_sequence() -> void:
 	# the terrain output, so book order is condition first (2026-07-02).
 
 	# Roll deployment condition (Core Rules p.88)
+	# Skipped entirely on a Story Event turn (p.153) and on the Introductory
+	# Campaign turns that have not introduced the mechanic yet (Compendium p.105).
 	var deployment_condition: Dictionary = {}
 	var deploy_sys = FPCM_DeploymentConditionsSystem.new()
 	var deploy_mission_type := _infer_deployment_mission_type(
 		mission_data)
-	var condition = deploy_sys.roll_deployment_condition(
-		deploy_mission_type)
+	var condition = null
+	if not suppress_condition:
+		condition = deploy_sys.roll_deployment_condition(deploy_mission_type)
 	if condition:
 		deployment_condition = {
 			"condition_id": condition.condition_id,
@@ -1047,6 +1099,79 @@ func _initiate_battle_sequence() -> void:
 	if game_state.current_campaign and "progress_data" in game_state.current_campaign:
 		game_state.current_campaign.progress_data["current_mission"] = mission_data
 	_launch_pre_battle_directly(mission_data, crew_data)
+
+func _stamp_narrative_battle_config(mission_data: Dictionary) -> Dictionary:
+	## Stamp Story Track / Introductory Campaign identity + battle overrides onto
+	## mission_data, and report the suppression flags the caller needs.
+	##
+	## THE RULE THIS ENFORCES (Aug 1 data-funnel sprint): anything the post-battle
+	## sequence needs to know about the scenario must be stamped onto mission_data
+	## BEFORE the battle and pass through BattleResultNormalizer. A consumer read
+	## without a producer write is the bug, not the feature — and the story keys
+	## were exactly that for two months.
+	var out: Dictionary = {}
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null:
+		return out
+
+	# ── Story Track (Core Rules Appendix V) ──────────────────────────────
+	if cpm.has_method("is_story_event_turn") and cpm.is_story_event_turn():
+		var cfg: Dictionary = {}
+		if cpm.has_method("get_story_battle_config"):
+			cfg = cpm.get_story_battle_config()
+		if not cfg.is_empty():
+			mission_data["is_story_battle"] = true
+			# Key-name bridge: get_battle_config() emits event_id/event_number,
+			# but PostBattleCompletion.gd:176-180 reads story_event_id /
+			# story_event_number. Map here rather than renaming the system's API.
+			mission_data["story_event_id"] = str(cfg.get("event_id", ""))
+			mission_data["story_event_number"] = int(cfg.get("event_number", 0))
+			mission_data["mission_source"] = "story_track"
+
+			# Curated content — the whole point of a scripted Story Event battle.
+			var deploy: Dictionary = cfg.get("deployment", {})
+			if not deploy.is_empty():
+				mission_data["story_deployment"] = deploy
+			var story_enemies: Dictionary = cfg.get("enemies", {})
+			if not story_enemies.is_empty():
+				mission_data["story_enemies"] = story_enemies
+			var objectives: Dictionary = cfg.get("objectives", {})
+			if not objectives.is_empty():
+				mission_data["story_objectives"] = objectives
+
+			# p.153, verbatim: "During Story Event battles, you never roll for
+			# Deployment Conditions or Notable Sights."
+			out["no_deployment_conditions"] = true
+			out["no_notable_sights"] = true
+		return out
+
+	# ── Introductory Campaign (Compendium pp.104-109) ────────────────────
+	# battle_config was authored in full for all 6 guided turns and read by
+	# nothing. Only pre_battle_enabled ever had a consumer.
+	if cpm.has_method("get_intro_battle_config"):
+		var intro_cfg: Dictionary = cpm.get_intro_battle_config()
+		if not intro_cfg.is_empty():
+			mission_data["is_intro_battle"] = true
+			mission_data["intro_battle_config"] = intro_cfg
+			if bool(intro_cfg.get("is_training_battle", false)):
+				mission_data["is_training_battle"] = true
+			if bool(intro_cfg.get("no_deployment_conditions", false)):
+				out["no_deployment_conditions"] = true
+			if bool(intro_cfg.get("no_notable_sights", false)):
+				out["no_notable_sights"] = true
+			if bool(intro_cfg.get("no_unique_individuals", false)):
+				mission_data["no_unique_individuals"] = true
+			if bool(intro_cfg.get("no_seize_initiative", false)):
+				mission_data["no_seize_initiative"] = true
+			if intro_cfg.has("seize_initiative_bonus"):
+				mission_data["seize_initiative_modifier"] = int(
+					mission_data.get("seize_initiative_modifier", 0)
+				) + int(intro_cfg.get("seize_initiative_bonus", 0))
+			if intro_cfg.has("enemy_combat_skill_cap"):
+				mission_data["enemy_combat_skill_cap"] = int(
+					intro_cfg.get("enemy_combat_skill_cap", 99))
+
+	return out
 
 func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> void:
 	## UX streamline: Skip BattleTransitionUI, go directly to PreBattleUI.
@@ -1513,21 +1638,96 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 
 ## Late-Game Phase Completion Handlers
 
+## Each late-game panel emits a completion payload describing what the player
+## just did, and every one of these handlers used to drop it on the floor. The
+## campaign journal is the record of a campaign turn, so that is where they go —
+## one entry each, through CampaignJournal.create_entry(), which resolves turn
+## and location at its own chokepoint.
+func _journal_world_phase(results: Dictionary) -> void:
+	## One summary line for the whole World Step, assembled from the per-step
+	## results the controller already gathers.
+	if results.is_empty():
+		return
+	var parts: Array[String] = []
+
+	var upkeep: Dictionary = results.get("upkeep_results", {})
+	if upkeep is Dictionary and not upkeep.is_empty():
+		var total: int = int(upkeep.get("total", 0))
+		if total > 0:
+			parts.append("Upkeep paid: %d cr" % total)
+
+	var tasks: Array = results.get("crew_task_results", [])
+	if tasks is Array and not tasks.is_empty():
+		parts.append("%d crew task(s) resolved" % tasks.size())
+
+	var job: Dictionary = results.get("job_results", {})
+	if job is Dictionary and not job.is_empty():
+		var objective: String = str(job.get("objective", ""))
+		var patron: String = str(job.get("patron_name", job.get("patron", "")))
+		if not objective.is_empty():
+			parts.append("Accepted a %s job%s" % [
+				objective, (" for %s" % patron) if not patron.is_empty() else ""])
+
+	if parts.is_empty():
+		return
+	_journal_phase("World Step", ". ".join(parts) + ".", ["world_phase", "phase"])
+
+func _journal_phase(title: String, description: String, tags: Array) -> void:
+	if description.is_empty():
+		return
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "campaign",
+			"auto_generated": true,
+			"title": title,
+			"description": description,
+			"tags": tags,
+		})
+
 func _on_advancement_phase_completed(phase_data: Dictionary) -> void:
+	var count: int = int(phase_data.get("crew_count", 0))
+	if count > 0:
+		_journal_phase("Advancement", "Reviewed advancement for %d crew member(s)." % count,
+			["advancement", "phase"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_trade_phase_completed(phase_data: Dictionary) -> void:
+	var bought: Array = phase_data.get("purchased_items", [])
+	var sold: Array = phase_data.get("sold_items", [])
+	if not bought.is_empty() or not sold.is_empty():
+		_journal_phase("Trading",
+			"Bought %d item(s), sold %d item(s). Credits on hand: %d." % [
+				bought.size(), sold.size(), int(phase_data.get("credits", 0))],
+			["trade", "phase"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_character_phase_completed(phase_data: Dictionary) -> void:
+	var events: int = int(phase_data.get("event_count", (phase_data.get("events", []) as Array).size()))
+	if events > 0:
+		_journal_phase("Character events", "Resolved %d character event(s)." % events,
+			["character_event", "phase"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_story_phase_completed(phase_data: Dictionary) -> void:
-	campaign_phase_manager.complete_current_phase()
+	## The Story Event briefing has been acknowledged. Hand off to the world
+	## phase, which is where the turn actually gets played.
+	##
+	## complete_current_phase() would follow the declared order STORY -> TRAVEL,
+	## but TRAVEL is folded into WorldPhaseController step 1 and has no UI of its
+	## own, so the turn would stall on a phase nothing renders. UPKEEP is what
+	## opens the world phase.
+	campaign_phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
 func _on_end_phase_completed(phase_data: Dictionary) -> void:
-	if phase_data.get("victory_achieved", false):
-		pass
+	# The `victory_achieved` read that used to sit here was doubly dead:
+	# EndPhasePanel emits cycle_summary / save_completed / cycle_completed and
+	# has never emitted that key, and the branch body was `pass`. Victory is
+	# evaluated by VictoryChecker at turn rollover, which is where it belongs.
+	var summary: String = str(phase_data.get("cycle_summary", ""))
+	if not summary.is_empty():
+		_journal_phase("Turn complete", summary, ["turn_end", "phase"])
 	campaign_phase_manager.complete_current_phase()
 
 ## Sprint D: Post-battle crew status validation
@@ -1621,6 +1821,14 @@ func _on_return_to_travel() -> void:
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	## Handle world phase completion - skip directly to MISSION phase.
+
+	# The `results` parameter was never referenced. WorldPhaseController builds
+	# a full world_phase_results dict (upkeep, crew tasks, job, equipment,
+	# rumors), emits it here and ALSO persisted it into progress_data — and
+	# nothing anywhere read either copy. Journal it instead: the journal is the
+	# campaign's record, and this is the one place that sees the whole turn's
+	# world step at once. The redundant progress_data copy is gone.
+	_journal_world_phase(results)
 
 	# Skip intermediate phases (STORY, TRAVEL, PRE_MISSION) — they're covered
 	# by the world phase steps. Go directly to MISSION for battle sequence.

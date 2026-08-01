@@ -20,9 +20,12 @@ signal save_started
 signal save_completed(success: bool, message: String)
 signal load_started
 signal load_completed(success: bool, message: String)
-## Emitted after a 5PFH campaign loads when characters are waiting in
-## user://transfers/ to muster in. Observers may toast; the dashboard drives the UI.
-signal pending_character_transfers(count: int)
+# `pending_character_transfers` was declared and emitted here and had ZERO
+# listeners anywhere, tests included. Muster-in is driven by
+# CampaignScreenBase._check_pending_transfers(), which every dashboard calls
+# deferred from _setup_screen() — so a listener added here would double-surface
+# the dialog rather than fill a gap. Signal and emit both removed; see the note
+# at the old emit site in load_campaign().
 
 # Campaign state
 var current_campaign = null
@@ -664,12 +667,14 @@ func load_campaign(path: String) -> Dictionary:
 
 	set_current_campaign(loaded)
 
-	# Notify listeners of any characters transferred toward a 5PFH campaign that
-	# are waiting to muster in (the dashboard surfaces the muster-in dialog).
-	if campaign_type == "five_parsecs":
-		var pend: Array = CharacterTransferService.load_pending_transfers("five_parsecs")
-		if not pend.is_empty():
-			pending_character_transfers.emit(pend.size())
+	# NO pending-transfer emit here. `pending_character_transfers` has ZERO
+	# listeners repo-wide (tests included), and the muster-in dialog is actually
+	# driven by CampaignScreenBase._check_pending_transfers(), which every
+	# dashboard calls deferred from _setup_screen(). This block re-read every
+	# pending transfer file off disk on each load purely to emit into the void —
+	# and a listener added here would double-surface the dialog. This is the one
+	# "wire the consumer" case where the consumer already exists elsewhere, so
+	# the producer is what goes.
 
 	# BUG-035 FIX: Restore EquipmentManager state from campaign data
 	_restore_equipment_from_campaign(loaded)

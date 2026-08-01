@@ -279,7 +279,30 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var profile = PlayerProfileRef.get_instance()
 	if profile:
 		profile.register_campaign_start()
-		# Store Elite Rank bonus data in progress_data for downstream consumption
+		# Store Elite Rank bonus data in progress_data for downstream consumption.
+		#
+		# BOTH OF THESE ARE STILL UNAPPLIED, and both need player-choice UI that
+		# does not exist yet — recorded here rather than silently dropped. Read
+		# Core Rules p.65 before implementing either, because the obvious reading
+		# of the key names is WRONG:
+		#
+		#   elite_rank_xp_bonus — "Receive 2 XP per Elite Rank, which may be
+		#     assigned to ANY CHARACTERS YOU LIKE, resolving any Character
+		#     Upgrades immediately." Which character gets it is the player's
+		#     decision, so this needs an allocation prompt; spreading it evenly
+		#     would be the app making that choice.
+		#
+		#   extra_starting_characters — "For every 3 Elite Ranks, you may roll up
+		#     an ADDITIONAL STARTING CHARACTER. You are still limited to your
+		#     starting crew size, but may PICK FROM AMONG THE POOL of generated
+		#     characters." It does NOT add crew beyond campaign_crew_size — it
+		#     widens the CANDIDATE POOL the player chooses from during the crew
+		#     step. There is no candidate-pool concept in the creation wizard
+		#     today, so this is a wizard feature, not a finalization write.
+		#
+		# Neither can affect a new player (both scale off Elite Ranks, which a
+		# fresh profile has none of), so shipping them wrong would be worse than
+		# shipping them pending.
 		campaign.progress_data["elite_rank_xp_bonus"] = profile.get_starting_xp_bonus()
 		campaign.progress_data["extra_starting_characters"] = profile.get_extra_starting_characters()
 		# Story point bonus applied later in initialize_resources via DifficultyModifiers
