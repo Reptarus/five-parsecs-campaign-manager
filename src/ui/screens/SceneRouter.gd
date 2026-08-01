@@ -42,7 +42,10 @@ const SCENE_PATHS = {
 
 	# World and exploration
 	"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
-	"mission_selection": "res://src/ui/screens/world/MissionSelectionUI.tscn",
+	# "mission_selection": DELETED with MissionSelectionUI. The route had ZERO
+	# navigate_to callers, and its only integration point —
+	# WorldPhaseController._initialize_mission_selection() — was a `pass`
+	# documented as deprecated in favour of JobOfferComponent.
 	"patron_rival_manager": "res://src/ui/screens/world/PatronRivalManager.tscn",
 	# "world_phase_summary": UNUSED - no navigate_to calls exist
 	# "travel_phase": legacy screen DELETED — travel is a step in the unified World Phase
@@ -278,7 +281,10 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"equipment":
 			scenes = ["equipment_manager", "ship_manager"]
 		"world":
-			scenes = ["world_phase", "job_selection", "mission_selection", "patron_rival_manager"]
+			# "job_selection" and "mission_selection" removed: neither is a key in
+			# SCENE_PATHS (job_selection never was; mission_selection was deleted
+			# with its screen), so both were names navigate_to() would reject.
+			scenes = ["world_phase", "patron_rival_manager"]
 		"battle":
 			# "post_battle_results" removed: it is not a key in SCENE_PATHS, so
 			# get_scenes_by_category("battle") returned a name navigate_to()

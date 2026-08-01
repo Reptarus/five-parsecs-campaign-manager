@@ -9,6 +9,7 @@ const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 ## Grid geometry SSOT (table sizes p.108) — preloaded per this file's
 ## stale-class_name-cache convention.
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
+const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
 # KeywordLinker preload — bypasses the global class_name cache which can be
 # stale until editor reopens (CLAUDE.md "Preload Pattern for UI Class
 # References").
@@ -252,7 +253,27 @@ func _setup_scenario_rules(data: Dictionary) -> void:
 		return
 	var rules: Dictionary = data.get("setup_rules", {})
 	var notes: Array = rules.get("setup_notes", [])
-	if notes.is_empty():
+
+	# HOW YOU WIN, first and in its own colour (Core Rules p.90).
+	#
+	# THE GAP THIS FILLS: "victory_condition" had ZERO references in this file.
+	# CampaignTurnController rolls the p.89 objective and writes its win text into
+	# mission_data, and the pre-battle screen — the one the player reads while
+	# building the table — never showed it. The single most important fact about
+	# the battle was the one fact missing.
+	var win_text: String = _win_condition_text(data)
+
+	# Terrain guidance (p.109 Standard Terrain Set). Produced by
+	# CampaignTurnController._generate_terrain_setup_guide() and, like the win
+	# condition, read by nothing.
+	var terrain_lines: Array = []
+	var tg: Dictionary = data.get("terrain", {}).get("terrain_guide", {})
+	if tg.is_empty():
+		tg = data.get("terrain_guide", {})
+	for s in tg.get("suggestions", []):
+		terrain_lines.append(str(s))
+
+	if notes.is_empty() and win_text.is_empty() and terrain_lines.is_empty():
 		return
 
 	# Rebuilt on every preview, so clear any prior copy rather than stacking.
@@ -272,6 +293,24 @@ func _setup_scenario_rules(data: Dictionary) -> void:
 	header.add_theme_color_override("font_color", Color("#4FC3F7"))
 	mission_info_panel.add_child(header)
 
+	if win_text != "":
+		var win_lbl := Label.new()
+		win_lbl.name = "__scenario_rule_win"
+		win_lbl.text = "◆ HOW YOU WIN: %s" % win_text
+		win_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		win_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
+		win_lbl.add_theme_color_override("font_color", Color("#10B981"))
+		mission_info_panel.add_child(win_lbl)
+
+	for i in range(terrain_lines.size()):
+		var trow := Label.new()
+		trow.name = "__scenario_rule_terrain_%d" % i
+		trow.text = "▦  %s" % terrain_lines[i]
+		trow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		trow.add_theme_font_size_override("font_size", _scaled_font(14))
+		trow.add_theme_color_override("font_color", Color("#808080"))
+		mission_info_panel.add_child(trow)
+
 	for i in range(notes.size()):
 		var row := Label.new()
 		row.name = "__scenario_rule_%d" % i
@@ -281,6 +320,32 @@ func _setup_scenario_rules(data: Dictionary) -> void:
 		mission_info_panel.add_child(row)
 
 ## Setup mission information
+func _win_condition_text(data: Dictionary) -> String:
+	## The p.90 win condition for this scenario, in the book's own words.
+	##
+	## Prefers the objective's own victory_condition (rolled from the p.89 D10
+	## table and carried on objective_details), and falls back to
+	## BattleFlowGuide's condensed summary keyed by the objective id or name.
+	## Rival battles and Invasions have NO win condition at all (pp.91-92) and
+	## say so, rather than showing a blank row.
+	var rules: Dictionary = data.get("setup_rules", {})
+	if bool(rules.get("no_win_condition", false)):
+		if int(rules.get("hold_rounds", 0)) > 0:
+			return "There is no Win condition — hold out for %d rounds, then flee or fight until you Hold the Field (p.92)." \
+				% int(rules["hold_rounds"])
+		return "There is no Win condition against Rivals — Hold the Field to improve your chance of chasing them off (p.91)."
+
+	var details: Dictionary = data.get("objective_details", {})
+	var vc: String = str(data.get("victory_condition",
+		details.get("victory_condition", ""))).strip_edges()
+	if vc != "":
+		return vc
+
+	var key: String = str(details.get("id", details.get("name",
+		data.get("mission_objective", data.get("objective", "")))))
+	return BattleFlowGuideClass.objective_win_text(key)
+
+
 func _setup_mission_info(data: Dictionary) -> void:
 	if not mission_info_panel:
 		return

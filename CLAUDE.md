@@ -298,8 +298,19 @@ UpkeepPhaseComponent (Step 0, travel decision)
        → selected_zone stored: 0=normal, 1=red, 2=black
        → WorldPhaseController reads get_selected_zone()
        → Injects is_red_zone/is_black_zone into mission_dict
-       → BattlePhase.gd reads flags at lines 280-411
+       → EnemyGenerator.generate_enemies_as_dicts() APPLIES them (p.150)
 ```
+
+**Opposition is applied, not just displayed (Jul 31 2026).** Both flags were
+rolled, stored and printed by MissionPrepComponent while the generator read
+neither. Red Job Increased Opposition (p.150) REPLACES the rolled count —
+"a base of 7 figures + any modifier from the enemy type... **no other modifiers
+are applied up or down**", so the p.63 crew-size dice and the difficulty
+adjustment are both discarded — plus 3 Specialists *including* the Lieutenant,
+and +1 to the Unique Individual roll. Black Jobs always draw from Roving
+Threats. Pinned by `tests/unit/test_zone_job_opposition.gd`.
+(`BattlePhase.gd` was DELETED in 99fad30b2; the live path is
+CampaignTurnController.)
 
 - **Data files**: `data/red_zone_jobs.json`, `data/black_zone_jobs.json` — threat conditions, time constraints, opposition rules, mission types, rewards
 - **Systems**: `RedZoneSystem.gd`, `BlackZoneSystem.gd` — RefCounted, static methods, JSON-backed
@@ -356,6 +367,37 @@ StoryTrackSystem (Resource, cached on CampaignPhaseManager.story_track)
 
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
+
+**Live path**: `CampaignTurnController` → `PreBattleUI` → `TacticalBattleUI` →
+Record Result → `PostBattlePhase`. `BattlePhase.gd` was DELETED in 99fad30b2 —
+any doc or comment naming it as live is stale.
+
+#### Battle-phase audit sprint (Jul 30-31 2026) — rules now APPLIED, not just displayed
+
+The recurring defect was one shape: **a value rolled, stored, displayed, and
+consumed by nothing.** Read `docs/sop/README.md` anti-regressions before
+touching these. All are test-pinned; do not "simplify" them back.
+
+| Rule | Was | Now |
+|---|---|---|
+| Enemy weapon codes (p.104) | `"2 A"` read as *count 2, column A* — Specialist table unreachable | number = basic column, letter = Specialist column |
+| AI Blade rule (p.104 + errata) | never implemented | Rampaging always, Aggressive unless CS +0, never for animals |
+| Rival attack types (pp.91-92) | reached one label | Ambush/Brought Friends/Assault/Raid all applied |
+| Invasion (p.92) | Notable-Sight skip only | +1 enemy, 6-round hold clock, no Win condition |
+| Deployment conditions (p.88) | `apply_condition()` had ZERO callers | crew cap, round-one behaviour, Bitter Struggle panic |
+| Red/Black Zone (p.150) | display-only | count REPLACED at 7+Numbers, 3 Specialists, Roving Threats |
+| Reaction Roll (p.113) | rolled TWICE, results disagreed | one pool roll, best-fit assign, Feral rule |
+| p.119 rival removal | read `is_unique`, a key nothing writes | reads `was_unique_individual`/`was_lieutenant` |
+| p.119 patron failure | logged only | failed accepted job removes the Patron |
+| `units_downed` / `first_casualty_by` / `unique_kills` | no producer | derived / asked on the results form |
+| Soulless Bot upgrades (p.17) | book allowed at 1.5x | errata forbids entirely |
+| `AdvancementSystem._is_bot()` | checked a method that does not exist | reads the `is_bot` PROPERTY |
+
+**Two traps worth remembering.** `fled_early` means the **p.123 XP rule**
+("flees in the first 2 rounds") — NOT the p.91 Rival item-loss window ("before
+4 rounds"); they are different windows and conflating them denies XP the book
+pays. And "Enemy Morale +1" (p.88 Bitter Struggle) means the Panic range goes
+**DOWN** — Compendium p.49's Leadership table settles the direction.
 
 ### Battlefield Terrain Generator (Session 50; rules-verified sprint 2026-07-02/03)
 

@@ -180,3 +180,41 @@ func test_an_unknown_objective_still_returns_empty() -> void:
 	# The fallback must stay empty rather than inventing a condition.
 	assert_str(Guide.objective_win_text("Nonexistent Objective")).is_empty()
 	assert_str(Guide.objective_win_text("")).is_empty()
+
+
+# ── Pre-battle win condition resolution (U8) ─────────────────────────────
+#
+# THE GAP: "victory_condition" had ZERO references in PreBattleUI.
+# CampaignTurnController rolls the p.89 objective and writes its win text into
+# mission_data, and the pre-battle screen — the one the player reads while
+# building the physical table — never showed it. The single most important fact
+# about the coming battle was the one fact missing.
+#
+# PreBattleUI._win_condition_text() resolves it in three steps, and these pin
+# the two the book makes special: a Rival battle and an Invasion have NO win
+# condition at all (pp.91-92) and must SAY so rather than render a blank row.
+
+const SetupRules = preload("res://src/core/battle/BattleSetupRules.gd")
+
+func test_a_rival_battle_reports_that_there_is_no_win_condition() -> void:
+	# p.91: "There is no Win condition against Rivals, but if you Hold the Field,
+	# you have an increased chance of permanently chasing them off."
+	var b: Dictionary = SetupRules.compute(
+		{"rival_attack_type": "SHOWDOWN", "mission_source": "rival"}, 5, 6)
+	assert_bool(b["no_win_condition"]).is_true()
+	assert_int(b["hold_rounds"]).override_failure_message(
+		"A Rival battle must not carry an Invasion hold clock").is_equal(0)
+
+func test_an_invasion_reports_its_hold_clock_instead_of_a_win_condition() -> void:
+	# p.92: "You must hold out for 6 rounds, then you can flee or fight until you
+	# Hold the Field. There is no Win condition."
+	var b: Dictionary = SetupRules.compute({"mission_source": "invasion"}, 5, 6)
+	assert_bool(b["no_win_condition"]).is_true()
+	assert_int(b["hold_rounds"]).is_equal(6)
+
+func test_an_ordinary_mission_keeps_a_win_condition() -> void:
+	# The no-win-condition branch must be scenario-gated, or every battle would
+	# claim it cannot be won.
+	var b: Dictionary = SetupRules.compute({"mission_source": "opportunity"}, 5, 6)
+	assert_bool(b["no_win_condition"]).is_false()
+	assert_str(Guide.objective_win_text("Secure")).is_not_empty()

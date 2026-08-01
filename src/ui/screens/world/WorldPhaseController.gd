@@ -23,7 +23,6 @@ const UpkeepPhaseComponent = preload("res://src/ui/screens/world/components/Upke
 const CrewTaskComponent = preload("res://src/ui/screens/world/components/CrewTaskComponent.gd")
 const JobOfferComponent = preload("res://src/ui/screens/world/components/JobOfferComponent.gd")
 const MissionPrepComponent = preload("res://src/ui/screens/world/components/MissionPrepComponent.gd")
-const MissionSelectionUI = preload("res://src/ui/screens/world/MissionSelectionUI.gd")
 const CompendiumWorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const AssignEquipmentComponent = preload("res://src/ui/screens/world/components/AssignEquipmentComponent.gd")
 const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/ResolveRumorsComponent.gd")
@@ -84,7 +83,6 @@ var _blocker_label: Label = null # readout shown when "Next Step" is disabled
 @onready var resolve_rumors_component = %ResolveRumorsContainer/ResolveRumorsComponent
 @onready var mission_prep_component = %MissionPrepContainer/MissionPrepComponent
 # Note: Post-battle component refs removed - now in PostBattleSequence
-var mission_selection_ui: MissionSelectionUI = null
 var _psionic_badge: PsionicLegalityBadgeClass = null
 
 # Campaign data
@@ -387,7 +385,6 @@ func _initialize_components() -> void:
 				component._subscribe_to_events()
 
 	# Initialize mission selection UI for Job Offers/Mission Prep phases
-	_initialize_mission_selection()
 
 
 func _connect_ui_signals() -> void:
@@ -1867,49 +1864,13 @@ func _remove_consumed_event(event: Dictionary) -> void:
 		campaign["pending_events"] = campaign.get("pending_events", []).filter(func(e): return e.get("id", "") != event_id)
 
 
-## Mission Selection Integration per Five Parsecs Rules
-func _initialize_mission_selection() -> void:
-	## Mission selection handled by JobOfferComponent - no separate UI needed
-	# JobOfferComponent already provides full job selection capabilities
-	# MissionSelectionUI is deprecated to avoid duplicate UI
-	pass
-
-func _on_mission_selected(mission: Resource) -> void:
-	## Handle mission selection from MissionSelectionUI
-
-	# Sprint 28 BUG-1 Fix: Persist mission to GameStateManager for Battle Phase
-	if mission and GameStateManager:
-		var mission_dict: Dictionary = {}
-		if mission.has_method("to_dictionary"):
-			mission_dict = mission.to_dictionary()
-		else:
-			# Extract mission data from Resource metadata
-			mission_dict = {
-				"name": mission.get_meta("name", "Unknown Mission"),
-				"type": mission.get_meta("mission_type", "Standard"),
-				"difficulty": mission.get_meta("difficulty", 1),
-				"reward": mission.get_meta("reward", 0),
-				"description": mission.get_meta("description", ""),
-				"enemy_count": mission.get_meta("enemy_count", 0),
-				"patron": mission.get_meta("patron", ""),
-				"special_conditions": mission.get_meta("special_conditions", [])
-			}
-		GameStateManager.set_current_mission(mission_dict)
-
-	# Mark mission step as completed
-	step_completed[WorldPhaseStep.JOB_OFFERS] = true
-	step_completed[WorldPhaseStep.MISSION_PREP] = true
-
-	# Auto-advance to next step or complete phase
-	if current_step == WorldPhaseStep.JOB_OFFERS:
-		_advance_to_next_step()
-	elif current_step == WorldPhaseStep.MISSION_PREP:
-		_complete_world_phase()
-
-func _on_mission_selection_cancelled() -> void:
-	## Handle mission selection cancellation
-	# User can stay in current step to try again
-	pass
+# The MissionSelectionUI integration was DELETED here. All of it was dead:
+# _initialize_mission_selection() was a `pass` documented as deprecated in
+# favour of JobOfferComponent, `mission_selection_ui` was declared and NEVER
+# assigned, and _on_mission_selected() / _on_mission_selection_cancelled()
+# were therefore connected to nothing and unreachable. The screen itself and
+# its "mission_selection" SceneRouter route went with it — the route had ZERO
+# navigate_to callers.
 
 func _advance_to_next_step() -> void:
 	## Advance to the next step in the world phase workflow
