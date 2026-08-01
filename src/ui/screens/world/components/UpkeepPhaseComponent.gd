@@ -39,6 +39,12 @@ var costs_calculated: bool = false  # Gate: Pay requires Calculate first
 # Travel state (folded into Step 1 — Core Rules p.69)
 var travel_decision_made: bool = false
 var chose_to_travel: bool = false
+## Set when the Core Rules p.69 flee roll FAILS — WorldPhaseController reads it
+## via get_forced_invasion_mission() and makes it the turn's mission, overriding
+## any accepted job ("you MUST fight an Invasion Battle").
+var _forced_invasion_mission: Dictionary = {}
+## Starship fuel (p.79) spent against the most recent trip, for the status line.
+var _fuel_offset_last_trip: int = 0
 var has_ship: bool = true
 const SHIP_TRAVEL_COST := 5
 const COMMERCIAL_TRAVEL_COST_PER_CREW := 1
@@ -894,6 +900,13 @@ func _on_stay_pressed() -> void:
 func _on_travel_pressed() -> void:
 	## Handle travel to new world (normal zone) — deduct cost and generate event
 	selected_zone = 0
+	_fuel_offset_last_trip = 0
+
+	# Flee Invasion (Core Rules p.69) — resolved BEFORE anything is paid for or
+	# generated, because a failed roll means the crew does not leave at all.
+	if _invasion_pending() and not _attempt_invasion_escape():
+		return
+
 	var travel_cost: int
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST
@@ -901,13 +914,22 @@ func _on_travel_pressed() -> void:
 		travel_cost = (
 			_get_crew_size_for_travel() * COMMERCIAL_TRAVEL_COST_PER_CREW)
 
+	# Starship fuel bought by a crew task offsets the cost (Core Rules p.79:
+	# "credits worth of starship fuel, which can be used to offset travel
+	# costs"). CrewTaskComponent has always banked these into
+	# progress_data["fuel_credits"] and the only consumer lived in TravelPhase,
+	# a file nothing instantiates — so the fuel was unspendable.
+	travel_cost = _apply_fuel_credits(travel_cost)
+
 	GameStateManager.modify_credits(-travel_cost)
 
 	travel_decision_made = true
 	chose_to_travel = true
 	_update_travel_ui_after_decision()
 	_travel_status_label.text = (
-		"✓ Traveling to new world (-%d cr)" % travel_cost)
+		"✓ Traveling to new world (-%d cr)" % travel_cost
+		+ ("  [%d cr covered by fuel]" % _fuel_offset_last_trip
+			if _fuel_offset_last_trip > 0 else ""))
 	_travel_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_AMBER)
 	_travel_status_label.visible = true
@@ -924,6 +946,177 @@ func _on_travel_pressed() -> void:
 	current_upkeep_data = calculate_upkeep_costs()
 	_update_ui_display()
 	_update_gating_state()
+
+# ============================================================================
+# FLEE INVASION (Core Rules p.69) + starship fuel (p.79)
+#
+# All of this existed only in src/core/campaign/phases/TravelPhase.gd, a file
+# with ZERO instantiations anywhere in src/. Travel actually happens here, in
+# the World Phase upkeep step. The consequences of that dead file were not
+# cosmetic: record_invaded_planet() had exactly one caller (in it), so
+# `invaded_planets` was never populated, so GalacticWarProcessor returned at its
+# own is_empty() guard every turn and the Core Rules p.126 step 14 Galactic War
+# table has never once rolled in a real campaign. This screen even rendered an
+# "INVASION IMMINENT — You must flee (2D6, 8+) or fight when departing" banner
+# above a button that did neither.
+# ============================================================================
+
+func _campaign_progress_data() -> Dictionary:
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return {}
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign) or not (campaign.progress_data is Dictionary):
+		return {}
+	return campaign.progress_data
+
+func _apply_fuel_credits(travel_cost: int) -> int:
+	## Spend banked starship fuel against this trip (Core Rules p.79).
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty() or travel_cost <= 0:
+		return travel_cost
+	var fuel: int = int(pd.get("fuel_credits", 0))
+	if fuel <= 0:
+		return travel_cost
+	var offset: int = mini(fuel, travel_cost)
+	pd["fuel_credits"] = fuel - offset
+	_fuel_offset_last_trip = offset
+	return travel_cost - offset
+
+func _invasion_pending() -> bool:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("has_pending_invasion"):
+		return bool(gsm.has_pending_invasion())
+	return false
+
+func _attempt_invasion_escape() -> bool:
+	## Core Rules p.69, verbatim: "you must attempt to flee. Roll 2D6. A score of
+	## 8+ is required to get safely off-world."
+	##
+	## Modifiers come from ship components and are quoted verbatim in
+	## data/ship_components.json (both re-verified against the PDF):
+	##   shuttle      p.61 "If a planet is Invaded, you may add +2 to the roll to
+	##                      get off-world."
+	##   auto_turrets p.62 "If you have to flee from a world that is being
+	##                      Invaded, you may add +1 to the roll."
+	##
+	## Returns true when the crew gets away. On a failure the world is still
+	## recorded as Invaded and a forced Invasion Battle is armed for the mission
+	## hand-off (p.69: "you MUST fight an Invasion Battle").
+	var dice = get_node_or_null("/root/DiceManager")
+	var roll: int = 0
+	if dice and dice.has_method("roll_2d6"):
+		roll = int(dice.roll_2d6("Flee Invasion (Core Rules p.69)"))
+	elif dice and dice.has_method("roll_d6"):
+		roll = int(dice.roll_d6()) + int(dice.roll_d6())
+	else:
+		roll = randi_range(1, 6) + randi_range(1, 6)
+
+	var modifier: int = 0
+	var sources: Array[String] = []
+	if ShipComponentQuery.has_component("shuttle"):
+		modifier += 2
+		sources.append("shuttle +2")
+	if ShipComponentQuery.has_component("auto_turrets"):
+		modifier += 1
+		sources.append("auto-turrets +1")
+	var total: int = roll + modifier
+
+	# The world is Invaded either way — that is what the Galactic War table
+	# tracks (p.126 step 14), not whether you personally escaped it.
+	_record_invaded_world()
+
+	var detail: String = "2D6 %d%s = %d vs 8+" % [
+		roll,
+		(" (%s)" % ", ".join(sources)) if not sources.is_empty() else "",
+		total,
+	]
+
+	if total >= 8:
+		_clear_pending_invasion()
+		_forced_invasion_mission = {}
+		_journal_invasion("Fled the invasion", "Escaped off-world — %s (Core Rules p.69)." % detail)
+		return true
+
+	# Failed: the crew is pinned here and must fight.
+	_clear_pending_invasion()
+	_forced_invasion_mission = _build_invasion_mission()
+	_journal_invasion("Trapped by the invasion",
+		"Failed to get off-world — %s. An Invasion Battle is unavoidable (Core Rules p.69)." % detail)
+	travel_decision_made = true
+	chose_to_travel = false
+	_update_travel_ui_after_decision()
+	if _travel_status_label:
+		_travel_status_label.text = "✗ Could not escape (%s) — Invasion Battle" % detail
+		_travel_status_label.add_theme_color_override("font_color", UIColors.COLOR_RED)
+		_travel_status_label.visible = true
+	_update_gating_state()
+	return false
+
+func _record_invaded_world() -> void:
+	## The single call that un-dead-ends Core Rules p.126 step 14.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var campaign = gs.current_campaign
+	if not campaign.has_method("record_invaded_planet"):
+		return
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	var planet_id: String = ""
+	var planet_name: String = ""
+	if pdm:
+		planet_id = str(pdm.current_planet_id) if "current_planet_id" in pdm else ""
+		if pdm.has_method("get_current_planet"):
+			var cur = pdm.get_current_planet()
+			if cur is Dictionary:
+				planet_name = str((cur as Dictionary).get("name", ""))
+	if planet_id.is_empty():
+		return
+	campaign.record_invaded_planet(planet_id, planet_name)
+
+func _clear_pending_invasion() -> void:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("set_invasion_pending"):
+		gsm.set_invasion_pending(false)
+
+func _build_invasion_mission() -> Dictionary:
+	## Shaped like WorldPhaseController's mission_dict so the battle funnel needs
+	## no special case: `mission_source == "invasion"` is what
+	## BattleSetupRules.is_invasion() and the post-battle gates all key off.
+	return {
+		"objective": "survive",
+		"objective_description": "Hold out against the invasion force (Core Rules p.92).",
+		"enemy_type": "Invasion Force",
+		"pay": 0,
+		"danger_pay": 0,
+		"danger_level": 3,
+		"time_frame": "",
+		"conditions": [],
+		"benefits": [],
+		"hazards": [],
+		"location": "",
+		"source": "invasion",
+		"mission_source": "invasion",
+		"is_invasion": true,
+		"title": "Invasion Battle",
+		"description": "You failed to escape the invasion and must fight (Core Rules p.69).",
+	}
+
+func get_forced_invasion_mission() -> Dictionary:
+	## Non-empty when the p.69 flee roll failed this turn. WorldPhaseController
+	## writes this as current_mission instead of any accepted job.
+	return _forced_invasion_mission
+
+func _journal_invasion(title: String, description: String) -> void:
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "travel",
+			"title": title,
+			"description": description,
+			"tags": ["invasion", "travel"],
+			"auto_generated": true,
+		})
 
 func _update_travel_ui_after_decision() -> void:
 	## Disable travel buttons after a decision is made
@@ -1559,6 +1752,8 @@ func reset_upkeep_phase() -> void:
 	costs_calculated = false
 	travel_decision_made = false
 	chose_to_travel = false
+	_forced_invasion_mission = {}
+	_fuel_offset_last_trip = 0
 	selected_zone = 0
 	current_upkeep_data.clear()
 	ship_data.clear()

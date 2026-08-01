@@ -1395,6 +1395,19 @@ func _complete_world_phase() -> void:
 
 				campaign.progress_data["current_mission"] = mission_dict
 
+			# A FAILED Flee Invasion roll OVERRIDES whatever job was accepted.
+			# Core Rules p.69: on a failed roll "there's no time during your World
+			# step to do anything except Assign Equipment (p.85) before proceeding
+			# to the 'Battle' section of the rules, where you MUST fight an
+			# Invasion Battle (p.92)". Deliberately written after the job block so
+			# the invasion wins. The battle funnel needs no special case — it keys
+			# off mission_source, which BattleSetupRules.is_invasion() already
+			# reads and the p.120/121 payment/finds/loot gates all follow.
+			if upkeep_component and upkeep_component.has_method("get_forced_invasion_mission"):
+				var forced_invasion: Dictionary = upkeep_component.get_forced_invasion_mission()
+				if not forced_invasion.is_empty():
+					campaign.progress_data["current_mission"] = forced_invasion
+
 			# Crew-task outcomes that the RIVAL check reads (Core Rules p.85).
 			# Both were pure flavour text before this: the Decoy task printed
 			# "Crew unavailable for battle" and the roll it was supposed to modify
