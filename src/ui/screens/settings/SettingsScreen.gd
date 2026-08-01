@@ -914,6 +914,9 @@ func _create_accent_button(text: String) -> Button:
 	hover.set_corner_radius_all(4)
 	hover.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	return btn
 

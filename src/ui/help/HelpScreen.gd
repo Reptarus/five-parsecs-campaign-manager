@@ -224,6 +224,9 @@ func _populate_toc() -> void:
 		var hover_style := btn_style.duplicate()
 		hover_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.15)
 		btn.add_theme_stylebox_override("hover", hover_style)
+		# Derive pressed/disabled/focus from the box above so this button keeps
+		# its shape when it is clicked. See DialogStyles.complete_button_states.
+		DialogStyles.complete_button_states(btn)
 
 		btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)

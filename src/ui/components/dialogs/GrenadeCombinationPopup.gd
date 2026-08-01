@@ -103,6 +103,9 @@ func show_grenade_picker() -> void:
 	btn_hover.border_color = COLOR_FOCUS
 	btn_hover.set_border_width_all(2)
 	confirm_btn.add_theme_stylebox_override("hover", btn_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(confirm_btn)
 	confirm_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	confirm_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	confirm_btn.pressed.connect(_on_confirm)
@@ -160,6 +163,9 @@ func _style_counter_button(btn: Button) -> void:
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(1)
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 

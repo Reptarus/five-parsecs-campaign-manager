@@ -97,7 +97,7 @@ func _build_ui() -> void:
 	input_style.bg_color = COLOR_INPUT
 	input_style.border_color = COLOR_BORDER
 	input_style.set_border_width_all(1)
-	input_style.set_corner_radius_all(8)
+	input_style.set_corner_radius_all(4)
 	input_style.set_content_margin_all(12)
 	_name_edit.add_theme_stylebox_override("normal", input_style)
 	var focus_style := input_style.duplicate()
@@ -159,7 +159,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
 	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_LG)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)

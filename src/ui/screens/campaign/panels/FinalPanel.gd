@@ -222,6 +222,9 @@ func _create_create_campaign_button() -> Button:
 	btn.add_theme_stylebox_override("normal", style_normal)
 	btn.add_theme_stylebox_override("hover", style_hover)
 	btn.add_theme_stylebox_override("disabled", style_disabled)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	
 	btn.pressed.connect(_on_create_campaign_pressed)

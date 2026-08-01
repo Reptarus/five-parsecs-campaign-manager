@@ -234,6 +234,9 @@ func _create_action_buttons() -> HBoxContainer:
 	var confirm_hover := confirm_style.duplicate()
 	confirm_hover.bg_color = COLOR_ACCENT_HOVER
 	confirm_button.add_theme_stylebox_override("hover", confirm_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(confirm_button)
 
 	confirm_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	confirm_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))

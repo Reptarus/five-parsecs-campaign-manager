@@ -80,7 +80,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
 	style.border_color = color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 2

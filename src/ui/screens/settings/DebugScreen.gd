@@ -152,6 +152,9 @@ func _style_action_btn(btn: Button, color: Color) -> void:
 	hover.set_border_width_all(1)
 	hover.set_corner_radius_all(4)
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)

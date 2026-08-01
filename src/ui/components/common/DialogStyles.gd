@@ -56,6 +56,52 @@ static func style_back_button(btn: Button) -> void:
 	_apply(btn, &"BackButton")
 
 
+## Finish a hand-styled button's state set so it stops changing shape mid-click.
+##
+## Prefer one of the six named roles above. This is for the handful of buttons
+## whose colour is genuinely bespoke — an amber bundle offer, a CTA that swaps
+## colour on lock state, a debug button tinted from a parameter — where forcing a
+## semantic variation would be inventing a meaning the button does not have.
+##
+## THE BUG IT FIXES: a button given only `normal` (and usually `hover`) falls back
+## to the PROJECT THEME's box the moment it is pressed, disabled or focused. The
+## theme box has a different colour and, before this sprint, a different corner
+## radius — so the button visibly changed shape under the finger. 20 controls
+## across 18 files were in that state.
+##
+## Derives the missing three from the button's own `normal` box, so the bespoke
+## look is preserved exactly: pressed is darkened, disabled is desaturated and
+## dimmed, focus is normal plus the focus ring. No-ops if `normal` is absent
+## (nothing to derive from) or if the state is already set (never overwrites).
+static func complete_button_states(btn: Button) -> void:
+	if btn == null or not btn.has_theme_stylebox_override("normal"):
+		return
+	var base := btn.get_theme_stylebox("normal") as StyleBoxFlat
+	if base == null:
+		return
+
+	if not btn.has_theme_stylebox_override("pressed"):
+		var pressed := base.duplicate() as StyleBoxFlat
+		pressed.bg_color = base.bg_color.darkened(0.25)
+		btn.add_theme_stylebox_override("pressed", pressed)
+
+	if not btn.has_theme_stylebox_override("disabled"):
+		var disabled := base.duplicate() as StyleBoxFlat
+		# Desaturate as well as dim: a dimmed-but-saturated red still reads as an
+		# available danger button to anyone not comparing it side by side.
+		var c := base.bg_color
+		var grey := (c.r + c.g + c.b) / 3.0
+		disabled.bg_color = Color(grey, grey, grey, c.a * 0.6).darkened(0.35)
+		disabled.border_color = UIColors.COLOR_BORDER
+		btn.add_theme_stylebox_override("disabled", disabled)
+
+	if not btn.has_theme_stylebox_override("focus"):
+		var focus := base.duplicate() as StyleBoxFlat
+		focus.set_border_width_all(2)
+		focus.border_color = UIColors.COLOR_CYAN
+		btn.add_theme_stylebox_override("focus", focus)
+
+
 ## The touch floor is applied HERE rather than in the theme because a theme
 ## stylebox can only push a control's minimum size up via its content margins,
 ## and margins also inset the label. 48px is the Material/Android minimum target

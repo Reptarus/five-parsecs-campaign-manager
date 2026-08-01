@@ -71,6 +71,9 @@ func setup(
 		btn_hover.content_margin_left = UIColors.SPACING_MD
 		btn_hover.content_margin_right = UIColors.SPACING_MD
 		action_btn.add_theme_stylebox_override("hover", btn_hover)
+		# Derive pressed/disabled/focus from the box above so this button keeps
+		# its shape when it is clicked. See DialogStyles.complete_button_states.
+		DialogStyles.complete_button_states(action_btn)
 
 		action_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		action_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))

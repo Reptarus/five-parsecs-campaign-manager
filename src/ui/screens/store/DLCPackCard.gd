@@ -258,6 +258,9 @@ func _style_owned_button() -> void:
 	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", style)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_buy_btn)
 	_buy_btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_buy_btn.disabled = false

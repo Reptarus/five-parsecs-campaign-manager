@@ -207,6 +207,9 @@ func _apply_ui_styling() -> void:
 		var h := s.duplicate()
 		h.bg_color = COLOR_ACCENT_HOVER
 		save_button.add_theme_stylebox_override("hover", h)
+		# Derive pressed/disabled/focus from the box above so this button keeps
+		# its shape when it is clicked. See DialogStyles.complete_button_states.
+		DialogStyles.complete_button_states(save_button)
 
 	# -- Cancel button: subdued border (ConfirmationDialog cancel pattern)
 	if cancel_button:
@@ -1084,6 +1087,9 @@ func _setup_print_sheet_button() -> void:
 	var hover := style.duplicate()
 	hover.bg_color = COLOR_ACCENT
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.pressed.connect(_on_print_sheet_pressed)
 	_get_or_create_hero_overlay().add_child(btn)
 	# Mirror position of Change Portrait — bottom-right of the hero card.

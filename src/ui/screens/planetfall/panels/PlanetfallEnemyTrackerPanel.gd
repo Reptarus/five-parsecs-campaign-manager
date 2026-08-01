@@ -112,7 +112,7 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 	var defeated: bool = enemy.get("defeated", false)
 	style.border_color = COLOR_SUCCESS if defeated else COLOR_DANGER
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 	_content.add_child(card)

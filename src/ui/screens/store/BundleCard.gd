@@ -140,6 +140,9 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	var hover := btn_style.duplicate() as StyleBoxFlat
 	hover.bg_color = COLOR_AMBER
 	_buy_btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_buy_btn)
 	_buy_btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_buy_btn.pressed.connect(

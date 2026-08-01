@@ -411,6 +411,9 @@ func _style_star_button(btn: Button) -> void:
 	var disabled := normal.duplicate()
 	disabled.bg_color = COLOR_TEXT_DISABLED
 	btn.add_theme_stylebox_override("disabled", disabled)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 
 	btn.add_theme_font_size_override(
 		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))

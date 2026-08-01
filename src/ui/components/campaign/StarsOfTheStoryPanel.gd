@@ -306,6 +306,9 @@ func _style_button(button: Button) -> void:
 	style_disabled.corner_radius_bottom_left = 4
 	style_disabled.corner_radius_bottom_right = 4
 	button.add_theme_stylebox_override("disabled", style_disabled)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(button)
 	
 	# Font color
 	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)

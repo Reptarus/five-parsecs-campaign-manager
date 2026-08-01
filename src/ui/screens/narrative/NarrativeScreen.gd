@@ -326,6 +326,9 @@ func _build_ui() -> void:
 	sb_skip_hover.border_color = COLOR_FOCUS
 	sb_skip_hover.set_border_width_all(2)
 	_skip_button.add_theme_stylebox_override("hover", sb_skip_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_skip_button)
 	_skip_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_skip_button.offset_left = -120
 	_skip_button.offset_top = 12

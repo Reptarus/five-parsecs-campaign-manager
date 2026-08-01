@@ -152,6 +152,9 @@ func _style_play_button() -> void:
 	var hover := style.duplicate() as StyleBoxFlat
 	hover.bg_color = COLOR_SUCCESS
 	_action_btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_action_btn)
 	_action_btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_action_btn.disabled = false

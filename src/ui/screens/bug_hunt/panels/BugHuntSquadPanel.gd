@@ -109,7 +109,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 16
 	style.content_margin_right = 16
 	style.content_margin_top = 16
@@ -168,7 +168,7 @@ func _add_character_card(mc: Dictionary) -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 12
 	style.content_margin_right = 12
 	style.content_margin_top = 12

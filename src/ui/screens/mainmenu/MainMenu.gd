@@ -590,6 +590,9 @@ func _on_load_campaign_pressed() -> void:
 		var btn_hov := btn_sty.duplicate()
 		btn_hov.bg_color = UIColors.COLOR_BLUE
 		btn.add_theme_stylebox_override("hover", btn_hov)
+		# Derive pressed/disabled/focus from the box above so this button keeps
+		# its shape when it is clicked. See DialogStyles.complete_button_states.
+		DialogStyles.complete_button_states(btn)
 		btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		btn.pressed.connect(
 			_load_and_go_to_dashboard.bind(

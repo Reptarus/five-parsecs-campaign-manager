@@ -527,7 +527,7 @@ func _create_glass_card(parent: Control) -> VBoxContainer:
 	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
 	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(20)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)

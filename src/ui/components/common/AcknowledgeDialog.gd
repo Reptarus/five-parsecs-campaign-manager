@@ -78,6 +78,9 @@ func _build_ui() -> void:
 	btn_hover.bg_color = UIColors.COLOR_ACCENT_HOVER
 	btn_hover.set_corner_radius_all(4)
 	ok_btn.add_theme_stylebox_override("hover", btn_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(ok_btn)
 
 	ok_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY

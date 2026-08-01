@@ -74,7 +74,7 @@ func _build_ui() -> void:
 		style.bg_color = Color(UIColorsRef.COLOR_ELEVATED.r, UIColorsRef.COLOR_ELEVATED.g, UIColorsRef.COLOR_ELEVATED.b, 0.8)
 		style.border_color = UIColorsRef.COLOR_BORDER
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(8)
+		style.set_corner_radius_all(4)
 		style.content_margin_left = 16
 		style.content_margin_right = 16
 		style.content_margin_top = 12

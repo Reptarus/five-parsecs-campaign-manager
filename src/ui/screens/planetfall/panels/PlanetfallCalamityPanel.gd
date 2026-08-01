@@ -110,7 +110,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_DANGER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 	_content.add_child(card)
