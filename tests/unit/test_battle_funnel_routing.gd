@@ -30,11 +30,37 @@ func _rng(seed_value: int) -> RandomNumberGenerator:
 	r.seed = seed_value
 	return r
 
+## A crew big enough that the OLD per-participant Finds loop would produce finds.
+## An empty crew made the two gate assertions below vacuous: `for _i in range(0)`
+## returns nothing, so they passed against the very code they were meant to catch.
+const _CREW_SIZE := 6
+
 func _ctx(battle_result: Dictionary) -> ContextClass:
 	var c: ContextClass = ContextClass.new()
 	c.battle_result = battle_result
 	c.crew_participants = []
+	for i in _CREW_SIZE:
+		c.crew_participants.append({"character_id": "c%d" % i, "character_name": "Crew %d" % i})
 	c.defeated_enemies = []
+	return c
+
+## Minimal stand-ins for the campaign the Rival step writes to. WITHOUT these,
+## _create_new_rival_from_battle() returns "" at its first guard and no Rival is
+## ever recorded — so a test asserting "no new Rival" passed no matter what the
+## code did. The stub makes the un-skipped path actually able to create one,
+## which is the only way the skip can be shown to be doing the work.
+class StubCampaign:
+	var rivals: Array = []
+
+class StubGameState:
+	var current_campaign: StubCampaign = null
+
+func _ctx_with_campaign(battle_result: Dictionary) -> ContextClass:
+	var c: ContextClass = _ctx(battle_result)
+	var gs := StubGameState.new()
+	gs.current_campaign = StubCampaign.new()
+	c.game_state = gs
+	c.campaign = gs.current_campaign
 	return c
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -247,20 +273,47 @@ func test_finds_are_one_roll_per_battle_not_one_per_crew_member() -> void:
 # RIVAL STATUS SKIPS — Core Rules p.119 / p.101
 # ══════════════════════════════════════════════════════════════════════════
 
+## Both skips are asserted over MANY trials, because the un-skipped path only
+## creates a Rival on a 1D6 roll of 1 (p.119). A single trial passes ~5 times in 6
+## even with the skip deleted — it would be a coin-flip dressed as a test.
+const _SKIP_TRIALS := 60
+
+func _new_rivals_over_trials(battle_result: Dictionary) -> int:
+	var r := RivalPatronResolverClass.new()
+	var total: int = 0
+	for i in _SKIP_TRIALS:
+		var ctx: ContextClass = _ctx_with_campaign(battle_result.duplicate())
+		var out: Dictionary = r.process_rival_status(ctx)
+		total += (out["new_rivals"] as Array).size()
+		total += (ctx.campaign.rivals as Array).size()
+	return total
+
+func test_the_trial_harness_can_actually_produce_a_rival() -> void:
+	# CONTROL. Without it the two skip assertions below are unfalsifiable: if the
+	# stub could never record a Rival, "no Rival was recorded" proves nothing.
+	# A plain held-the-field win against a non-Rival MUST sometimes make one
+	# (p.119: "roll 1D6. On a 1, the type of opponents you just fought become
+	# your Rivals"), so across 60 trials this has to be non-zero.
+	assert_int(_new_rivals_over_trials({"held_field": true, "enemy_type": "Raiders"})) \
+		.override_failure_message(
+			"Control failed: the stub cannot record a Rival, so the skip tests below prove nothing"
+		).is_greater(0)
+
 func test_an_invasion_battle_cannot_create_a_rival() -> void:
 	# p.119: "Skip this step for Invasion battles."
-	var r := RivalPatronResolverClass.new()
-	var out: Dictionary = r.process_rival_status(
-		_ctx({"held_field": true, "is_invasion": true}))
-	assert_array(out["new_rivals"]).is_empty()
+	assert_int(_new_rivals_over_trials({
+		"held_field": true, "enemy_type": "Raiders", "is_invasion": true,
+	})).override_failure_message(
+		"p.119: an Invasion battle must not saddle the crew with a Rival"
+	).is_equal(0)
 
 func test_roving_threats_never_become_rivals() -> void:
 	# p.101, Roving Threats header: "Enemies from this list never become Rivals."
 	# p.119 says the same from the other side. Neither skip existed, so a pack of
 	# Razor Lizards could hold a grudge.
-	var r := RivalPatronResolverClass.new()
-	var out: Dictionary = r.process_rival_status(
-		_ctx({"held_field": true, "enemy_category": "roving_threats"}))
-	assert_array(out["new_rivals"]).override_failure_message(
+	assert_int(_new_rivals_over_trials({
+		"held_field": true, "enemy_type": "Razor Lizards",
+		"enemy_category": "roving_threats",
+	})).override_failure_message(
 		"p.101: Roving Threats are wildlife and hazards, not people who hold grudges"
-	).is_empty()
+	).is_equal(0)
