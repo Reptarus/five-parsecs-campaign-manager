@@ -193,10 +193,30 @@ func _settle(inst: Node) -> void:
 		if sig == last:
 			stable += 1
 			if stable >= 3:
-				return
+				break
 		else:
 			stable = 0
 			last = sig
+	await _settle_opacity(inst)
+
+
+## Wait out an entrance fade before reading the backbuffer.
+##
+## _settle above watches GEOMETRY, and a fade-in changes only `modulate` — so a
+## screen that animates its opacity settles instantly while still being invisible.
+## MainMenu does exactly that (add_fade_in_animation: modulate.a 0 -> 1 over 0.5s),
+## and the contact sheet showed its buttons as ghosts you could read the hero photo
+## through. That is a capture artifact, and it very nearly got "fixed" in the app.
+func _settle_opacity(inst: Node) -> void:
+	var ctl := inst as CanvasItem
+	if ctl == null:
+		return
+	# 0.5s of fade at 60fps is 30 frames; 45 leaves headroom without stalling a
+	# 24-screen sweep on screens that do not animate at all (they exit on frame 1).
+	for _i in range(45):
+		if ctl.modulate.a >= 0.999 and ctl.self_modulate.a >= 0.999:
+			return
+		await process_frame
 
 
 func _geometry_signature(inst: Node) -> String:
