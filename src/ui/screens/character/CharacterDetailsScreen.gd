@@ -71,6 +71,8 @@ const COLOR_DANGER := UIColors.COLOR_RED   # Red
 
 # State
 var current_character = null
+## The shared [< Back] [Title] row, built in _ready and pinned above the scroll.
+var _screen_header: Control = null
 var original_data: Dictionary = {}
 var _history_overlay: Control = null
 var _equipment_db_cache: Dictionary = {}
@@ -85,6 +87,39 @@ var _current_index: int = 0
 var _touch_start: Vector2 = Vector2.ZERO
 var _touch_start_time: float = 0.0
 var _page_dots_container: HBoxContainer = null
+
+## The way out.
+##
+## This screen had NO header and no back button. Its only exit was a Cancel button
+## at the very bottom of a long scrolling character sheet, and that button always
+## went to crew_management -- so arriving here from the Campaign Journal (which is
+## one of the two ways in) and then leaving put you somewhere you had never been.
+##
+## The header is a sibling of the ScrollContainer, not a child, so it stays put
+## while the sheet scrolls. Back uses history, so it returns you wherever you came
+## from.
+func _build_screen_header() -> void:
+	var column := get_node_or_null("MarginContainer/PageColumn")
+	if column == null or column.has_node(NodePath(ScreenChrome.HEADER_NAME)):
+		return
+	var header := ScreenChrome.build_header(
+		"Character", func(): ScreenChrome.navigate_back(self, "crew_management")
+	)
+	column.add_child(header)
+	column.move_child(header, 0)
+	_screen_header = header
+
+
+## Keep the header title in step with whoever is being displayed.
+func _sync_header_title() -> void:
+	if _screen_header == null or current_character == null:
+		return
+	var title := _screen_header.get_node_or_null(NodePath(ScreenChrome.TITLE_NAME))
+	if title is Label:
+		var who: String = str(current_character.character_name) \
+			if "character_name" in current_character else ""
+		(title as Label).text = who if not who.is_empty() else "Character"
+
 
 func _ready() -> void:
 	_apply_screen_background()
@@ -101,6 +136,8 @@ func _ready() -> void:
 	var _so := get_node_or_null("/root/SettingsOverlay")
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
+
+	_build_screen_header()
 
 	# Connect button signals
 	if save_button:
@@ -308,6 +345,8 @@ func populate_ui() -> void:
 	## Fill UI elements with character data
 	if not current_character:
 		return
+
+	_sync_header_title()
 
 	# Hero Card (STANDARD variant)
 	if hero_card and hero_card.has_method("set_character"):

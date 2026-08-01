@@ -94,7 +94,7 @@ func _build_ui() -> void:
 	# Back button
 	_back_button = Button.new()
 	_back_button.text = "< Back"
-	_back_button.custom_minimum_size = Vector2(80, TOUCH_TARGET_MIN)
+	_back_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(_back_button)
 	_back_button.pressed.connect(_on_back_pressed)
 	_header_bar.add_child(_back_button)
@@ -102,7 +102,7 @@ func _build_ui() -> void:
 	# Mobile TOC button (hidden on desktop)
 	_mobile_toc_button = Button.new()
 	_mobile_toc_button.text = "Chapters"
-	_mobile_toc_button.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
+	_mobile_toc_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(_mobile_toc_button)
 	_mobile_toc_button.pressed.connect(_on_mobile_toc_pressed)
 	_mobile_toc_button.visible = false
@@ -132,7 +132,7 @@ func _build_ui() -> void:
 	# Search input
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search..."
-	_search_input.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_search_input.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_line_edit(_search_input)
 	_search_input.text_submitted.connect(_on_search_submitted)
 	_header_bar.add_child(_search_input)
@@ -408,8 +408,10 @@ func _apply_sidebar_state(show_sidebar: bool, sidebar_width: int, search_width: 
 		# propagates up the VBox, and the screen's content then overflows to the right
 		# — visibly worse than the overlap it fixed.
 		_search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		# Even absorbing the remainder, a phone leaves ~40px after Back + Chapters,
-		# and that sliver renders UNDERNEATH the floating gear/bug buttons. A 40px
-		# text field is not a usable control, so drop it from the phone header; the
-		# Chapters popup is the navigation path there. Returns with the sidebar.
+		# Still hidden on a phone, and MEASURED rather than assumed. The three WIDTH
+		# floors this row used to carry (Back 80, Chapters 100, this field 200) are
+		# gone, so the original "~40px is left" reasoning no longer holds — but
+		# putting the field back failed the 310dp floor by 10.7px anyway: Back plus
+		# Chapters plus a usable field is 321px there. The Chapters popup remains the
+		# navigation path on a phone. Returns with the sidebar, where it has room.
 		_search_input.visible = show_sidebar
