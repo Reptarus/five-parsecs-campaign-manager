@@ -442,6 +442,8 @@ func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits:
 	## Check if bot can upgrade a stat (Core Rules p.123)
 	if not bot or not _is_bot(bot):
 		return false
+	if _is_soulless(bot):
+		return false
 
 	if not stat_advancement_costs.has(stat_name):
 		return false
@@ -459,6 +461,9 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 		return false
 
 	if not _is_bot(bot):
+		return false
+
+	if _is_soulless(bot):
 		return false
 
 	if not stat_advancement_costs.has(stat_name):
@@ -507,18 +512,52 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	return true
 
 
+func _is_soulless(character: Resource) -> bool:
+	## Errata v1.06 corrects Core Rules p.17. The book reads "They may also have
+	## Bot Upgrades installed, but must pay 1.5 times the normal cost (rounded
+	## up)"; the errata replaces that outright with "Soulless characters CANNOT
+	## install Bot upgrades." The errata wins.
+	##
+	## Checked EXPLICITLY rather than relying on _is_bot() returning false. Bot
+	## and Soulless are separate flags today, so a Soulless already fell through —
+	## but only by accident, and data/character_species.json was still telling the
+	## player the 1.5x rule was available (now corrected). One flag change
+	## upstream would have silently re-enabled a mechanic the errata removed.
+	if not character:
+		return false
+	if Godot4Utils.safe_get_property(character, "is_soulless", false):
+		return true
+	var sid: String = str(Godot4Utils.safe_get_property(character, "species_id", ""))
+	return sid.to_lower() == "soulless"
+
 func _is_bot(character: Resource) -> bool:
-	## Check if character is a bot
+	## Check if character is a bot.
+	##
+	## THE BUG THIS FIXES: this checked has_method("is_bot") and then fell back to
+	## comparing `origin` against "BOT"/"Bot". Character has NO is_bot() method —
+	## `is_bot` is an @export PROPERTY (Character.gd:132) — and `origin` is a
+	## validated species string defaulting to "HUMAN". So the property that
+	## actually marks a Bot was never read, and _is_bot() returned false for every
+	## real Bot. Since it gates both can_install_bot_upgrade() and
+	## install_bot_upgrade(), Bot upgrades (Core Rules p.123) were unreachable for
+	## the entire crew.
 	if not character:
 		return false
 
-	# First try is_bot() method
+	# The authoritative marker.
+	if Godot4Utils.safe_get_property(character, "is_bot", false):
+		return true
+
+	# A method form, for any shape that exposes one instead.
 	if character.has_method("is_bot"):
 		return character.is_bot()
 
-	# Fallback: Check origin property
-	var origin = Godot4Utils.safe_get_property(character, "origin", "")
-	return origin == "BOT" or origin == "Bot"
+	# Legacy fallbacks: species_id, then the origin string, case-insensitively —
+	# the old comparison missed a lowercase "bot", which is how species ids are
+	# actually spelled.
+	if str(Godot4Utils.safe_get_property(character, "species_id", "")).to_lower() == "bot":
+		return true
+	return str(Godot4Utils.safe_get_property(character, "origin", "")).to_lower() == "bot"
 
 
 func _load_psionic_powers_json() -> Dictionary:

@@ -3695,8 +3695,11 @@ func _build_enemy_action_content() -> Control:
 			"[color=#10B981][b]SURPRISE:[/b] Enemies cannot act this round![/color]")
 	elif cond_id == "BITTER_STRUGGLE":
 		lines.append("")
+		# "Enemy Morale is +1" (p.88) is ambiguous where morale IS the Panic
+		# range. Compendium p.49 settles it: improved Morale = a SMALLER Panic
+		# range. Stating the effect beats quoting the ambiguous phrase.
 		lines.append(
-			"[color=#D97706]Bitter Struggle: Enemy Morale +1[/color]")
+			"[color=#D97706]Bitter Struggle: enemy Morale improved — their Panic range is 1 narrower, so they are harder to break (p.88).[/color]")
 
 	rtl.text = "\n".join(lines)
 	vbox.add_child(rtl)
@@ -3749,7 +3752,36 @@ func _ai_reference_lines(ai_code: String) -> Array:
 			if entry is Dictionary:
 				lines.append("  [b]%s[/b]  %s" % [
 					str(entry.get("roll", "?")), str(entry.get("action", ""))])
+
+	lines.append_array(_ai_errata_lines(type_name))
 	return lines
+
+
+func _ai_errata_lines(type_name: String) -> Array:
+	## Official errata v1.06 clarifications to the AI rules. These change how the
+	## player runs the enemy turn and appear in NEITHER rulebook, so a player
+	## working off the printed page would get them wrong — which makes the oracle
+	## reference card the only place they can be surfaced.
+	var out: Array = []
+	var name_lc: String = type_name.to_lower()
+
+	# Applies to every AI type: "Unless constrained by a special rule, the AI is
+	# assumed to always be aware of your characters and should act accordingly,
+	# even if they are behind a terrain feature."
+	out.append("")
+	out.append("[color=#808080][i]Errata: the AI always knows where your crew are — even behind terrain — unless a special rule says otherwise.[/i][/color]")
+
+	if name_lc.begins_with("defensive"):
+		# "Defensive AI considers any terrain within one move to be 'Adjacent'
+		# for the purpose of its AI instructions."
+		out.append("[color=#D97706][i]Errata: for Defensive AI, any terrain within ONE MOVE counts as \"Adjacent\".[/i][/color]")
+
+	if name_lc.begins_with("guardian"):
+		# "If the figure a Guardian AI protects is slain, the Guardian will adopt
+		# the AI mode used by the main enemy force."
+		out.append("[color=#D97706][i]Errata: if the figure this Guardian protects is slain, it switches to the main force's AI for the rest of the battle.[/i][/color]")
+
+	return out
 
 
 func _apply_initiative_context() -> void:

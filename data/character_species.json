@@ -62,7 +62,7 @@
 				"Cannot use Consumables or Implants",
 				"Use Bot injury table",
 				"Earn XP normally (unlike Bots)",
-				"May have Bot Upgrades at 1.5x cost (rounded up)"
+				"CANNOT install Bot Upgrades (errata v1.06 corrects p.17)"
 			],
 			"rolls_creation_tables": true,
 			"page_reference": "p.17"
