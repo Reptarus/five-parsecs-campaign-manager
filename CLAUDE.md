@@ -81,6 +81,41 @@ MainMenu → CampaignCreationUI → CampaignDashboard
 ```
 Orchestrated by `CampaignCreationCoordinator` with `CampaignCreationStateManager`. CampaignCreationUI.gd is a thin shell (~161 lines) that wires panels to the coordinator.
 
+#### Creation invariants (audit Aug 2 2026 — read before editing the wizard)
+
+The creation tables were byte-correct against the book; the **wiring** was where it
+broke. 8 commits (`adc9711e4`..`a2984719a`). Full detail in the memory entries
+`reference_creation_wizard_invariants` / `project_session_aug02_creation_wizard_audit`;
+deferred items with reasons in `docs/WIRING_CLEANUP_BACKLOG.md`.
+
+- **One grant site per rule.** Credits (p.28) = `EquipmentPanel` total, consumed by
+  `CampaignFinalizationService.compute_starting_credits()` — never added to. Motivation
+  /background/class dice + WEALTH's 1D6 + FAME's +1SP are rolled ONCE into
+  `Character.creation_bonuses`. Story points (p.66) = `roll_starting_story_points()`
+  (`1D6+1`); difficulty modifiers stay in `DifficultyModifiers`. Per-character equipment
+  is distributed by finalization only — the coordinator must not.
+- **Shapes that destroy data.** `member["equipment"]` is `Array[String]` (from
+  `to_dictionary()`); appending an item Dictionary is rejected and the item is LOST.
+  Store names, or `.assign()`. One item, one home — stash XOR character sheet.
+  `origin`/`motivation`/`background`/`character_class` are validated STRING props:
+  convert enum ints at the caller with `GlobalEnums.to_string_value()`.
+  Species stat keys exist in two spellings — resolve via
+  `CharacterCreator._resolve_stat_property()`. `origin_bonuses` JSON keys are
+  `GlobalEnums.Origin` ordinals (append to that enum, never insert).
+- **Two navigation gates, in series.** `Coordinator.can_advance_to_next_phase()` reads
+  `phase_completion_status` (must be written in BOTH directions or completion is
+  monotonic); `StateManager.advance_to_next_phase()` reads only
+  `_validate_phase_with_warnings()` — the strict `_validate_*_phase()` functions are NOT
+  on that path, so a check added there alone blocks nothing.
+- **Do NOT wire `get_validation_summary()["has_critical_errors"]`** to
+  `_validate_final_phase()`. It is hard-coded false on purpose: the strict crew check
+  compares members against the TOTAL crew size while the panel excludes the captain, so
+  it reports legal campaigns as short by one (observed live: "Final validation failed.
+  Total errors: 2"), and both consumers append to lists that BLOCK creation.
+- **Crew size SSOT** = `campaign_config.campaign_crew_size`; `CrewPanel` consumes it via
+  `apply_campaign_crew_size()`. Victory conditions are **single-select and optional**
+  (p.64), all 17 map to real enum members, and Easy allows exactly `turns_20`/`battles_20`.
+
 ### Campaign Turn Flow (9 Phases)
 ```
 STORY -> TRAVEL -> UPKEEP -> MISSION -> POST_MISSION -> ADVANCEMENT -> TRADING -> CHARACTER -> RETIREMENT
@@ -100,6 +135,7 @@ PostBattlePhase.gd (296-line orchestrator, emits all 19 signals)
      ├─ CampaignEventEffects.gd   — Step 12 (80-case match)
      ├─ CharacterEventEffects.gd  — Step 13 (60-case match)
      ├─ GalacticWarProcessor.gd   — Step 14a
+     ├─ StoryTrackProcessor.gd    — Step 3b (reward gates) + 14c (clock/event)
      └─ PostBattleCompletion.gd   — Step 14b (stats, journal, morale)
 ```
 Subsystems are RefCounted (not Node), return data to orchestrator which emits signals. Zero `.emit()` calls in subsystems.
@@ -233,7 +269,7 @@ MainMenu → CampaignDashboard "Galaxy Log" button
 
 - **GalaxyHexLayout** (`src/core/world/GalaxyHexLayout.gd`): deterministic `(campaign_id, planet_id)` → axial coord, flat-top hex math, salt-overflow fallback via `next_free_outward()`. Pure static, no persisted positions.
 - **PlanetDetailBuilder** (`src/core/world/PlanetDetailBuilder.gd`): shared planet-detail renderer. CampaignDashboard's PLANET INFO overlay AND the WorldDetailPopup both call `PlanetDetailBuilder.build_into(vbox, planet)` so they render identically.
-- **Starting world anchor**: `min(planet.discovered_on_turn)` across `pdm.visited_planets`. Post Phase 0 fix in CampaignFinalizationService, the starting world is seeded with `discovered_on_turn=0` so this min reliably finds it.
+- **Starting world anchor**: `min(planet.discovered_on_turn)` across `pdm.visited_planets`. The starting world is seeded with `discovered_on_turn=0` so this min reliably finds it. **This was false until Aug 2 2026** — `WorldInfoPanel._get_campaign_turn_safe()` defaulted to `1` against a creation state with no `campaign_turn` key, and `PlanetDataManager.upsert_current_world()` only substitutes its own turn argument when the stamped value is `<= 0`, so the 1 beat finalization's explicit 0 and every save on disk recorded the starting world as turn 1. The anchor survived on insertion order, not correctness. The panel now stamps 0 at creation.
 - **Pan/zoom**: copied from BattlefieldMapView lines 1116-1231 (the canonical and only pan/zoom implementation in the codebase).
 - **Setter-driven `queue_redraw()`**: per Godot 4 custom-drawing docs, `_show_breadcrumb`/`_pan_offset`/`_zoom_level` invalidate via `set:` blocks. Never `_process()` → `queue_redraw()`.
 - **SceneRouter key**: `galaxy_log`
@@ -354,7 +390,12 @@ StoryTrackSystem (Resource, cached on CampaignPhaseManager.story_track)
   └─ Event 7 Delay: up to 3 turns before "Losing the Story"
 ```
 - **Signals**: `story_track_started`, `story_event_triggered(event)`, `story_clock_advanced(ticks)`, `evidence_discovered(total)`, `story_track_completed(won)` — all connected in `CampaignPhaseManager._init_story_track()` to CampaignJournal handlers
-- **Integration points**: CampaignPhaseManager (turn start check), PostBattlePhase (clock advancement + post-battle effects), BattlePhase (story battle config injection), StoryPhasePanel (3-mode UI), CampaignDashboard (intel overview)
+- **Integration points** (rewired Aug 1 2026 — the previous list named a file deleted two months earlier): CampaignPhaseManager (turn-start check + the `is_story_event_turn()` / `get_story_battle_config()` / `get_story_turn_mods()` bridge), **`post_battle/StoryTrackProcessor.gd`** (clock advancement, event completion, effects application), **`CampaignTurnController._stamp_narrative_battle_config()`** (story battle config injection — NOT BattlePhase, which was deleted in 99fad30b2), StoryPhasePanel (3-mode UI), CampaignDashboard (intel overview)
+- **⚠ The drive shaft is a single call.** `PostBattlePhase._advance_narrative_progression()` is the only caller of `advance_clock_end_of_turn()` / `apply_post_battle()` / `intro_campaign.advance_turn()`. Delete it and the Story Clock stops ticking and the Introductory Campaign freezes on turn 0 — silently, with no error, which is exactly what happened between `e4373e137` (Apr 8) and Aug 1. Pinned by `tests/tools/verify_story_track.gd` (7 rows, detection-proven: reverting that one call fails 5 of them).
+- **Story Event turns**: `start_new_turn()` routes to `FiveParsecsCampaignPhase.STORY` before UPKEEP so the briefing lands before the world phase; `_on_story_phase_completed()` then hands off to UPKEEP (not `complete_current_phase()`, which would stall on TRAVEL — a phase with no UI of its own)
+- **Turn modifications are ENFORCED, not just displayed**: p.85 Rival check (`_story_rival_suppression_reason()`), Find-a-Patron and Track crew tasks, and forced travel (`UpkeepPhaseComponent._apply_story_forced_travel()`)
+- **Event 5 Evidence** (p.157) is produced by `StoryMarkerPanel` + `core/story/StoryMarkerInvestigation.gd` and reaches the track via `mission_data["story_evidence_found"]` → BattleResultNormalizer → StoryTrackProcessor → `add_evidence()`
+- **Event 7 delay** (p.159): the clock hitting zero on the final event OPENS a 3-turn window; letting it lapse **loses** the story (`pending_completion_effects`, drained by `CampaignPhaseManager._drain_story_completion_effects()`), it does not grant the battle
 - **State persistence**: `campaign.progress_data["story_track"]` → serialize/deserialize
 - **Journal logging**: Story events → `create_entry(type="story")`, milestones → `auto_create_milestone_entry("story_track")`, per-character → `auto_create_character_event(char_id, "story_event")`
 - **Story points**: +3 on Story Track win, +1 on loss (Core Rules p.160)
@@ -992,6 +1033,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 
 ## Gotchas
 
+- **Godot's JSON parser returns every number as FLOAT — so `value is int` is ALWAYS false on loaded data (Aug 1 2026)**: `StoryEvent.load_from_json()` had `next_clock_ticks = clock_val if clock_val is int else 0`, which silently zeroed the next-clock for all seven Story Events. Nobody noticed for as long as the clock had no caller. Use `int(value)` with an explicit `== null` guard (events 5 and 7 legitimately carry `null` there), never an `is int` type test, on anything that came out of `JSON.parse`.
+- **`damage_hull()` does not exist — the real API is `apply_ship_damage()` (Aug 1 2026)**: `func damage_hull` has ZERO definitions repo-wide, yet `CampaignEventEffects.gd` and `CharacterEventEffects.gd` both guarded on `gsm.has_method("damage_hull")` and returned a result string claiming the ship took damage. Permanently-false branches; the hull was never touched. `GameStateManager.apply_ship_damage(amount) -> int` is the live one and it applies ship traits (Armored -1, Improved Shielding -1, Dodgy Drive +2) and returns the damage actually dealt.
+- **A dead-code sweep can remove the seam instead of the corpse (Aug 1 2026)**: `c8fd7e07c` deleted `is_story_event_turn()` / `get_story_turn_mods()` / `get_story_battle_config()` from CampaignPhaseManager as "redundant zero-caller methods". They were zero-caller only because their one consumer, `phases/BattlePhase.gd`, had been deleted six weeks earlier. Before deleting a zero-caller **provider**, ask what used to call it — a missing consumer and genuine dead code look identical. Dead consumers are the dangerous ones; dead providers are usually a missing wire.
 - **Galactic War = the Core Rules p.126 2D6 table, nothing else (Jul 29 2026)**: step 14 is "If you are tracking any planets that were previously Invaded, roll 2D6" (2-4 Lost to Unity / 5-7 Contested / 8-9 Making Ground +1 to future rolls / 10+ Unity Victorious, world visitable again and future Invasion Threat at -2). `GalacticWarProcessor` implements it exactly. The tracked list lives on `FiveParsecsCampaignCore.invaded_planets` and is written ONLY via `record_invaded_planet()`, called from `TravelPhase._invasion_escape_result()`; the -2 aftermath is read via `get_invasion_threat_modifier()` in `PaymentProcessor.process_invasion_check()`. **`GalacticWarManager` and its "war track" system were DELETED** — the phrase appears in NEITHER rulebook (the Compendium index has one entry, `Galactic War Progress 126`) and the whole subsystem was inert. Do NOT re-add war tracks, `data/galactic_war/`, `GalacticWarPanel` or `GalacticWarProgressPanel`.
 - **Stars of the Story has FIVE options, not four (Core Rules p.67)**: `StarsOfTheStorySystem.StarAbility` = `{ITS_TIME_TO_GO, LOOKED_WORSE, DID_YOU_EVER_MEET, LUCKY_SHOT, RAINY_DAY_FUND}`. Three are mid-battle (`StarsOfTheStorySystem.is_battle_only()` returns true). `DRAMATIC_ESCAPE` was a fabricated mechanic deleted May 2026 — do NOT re-add it. Elite Rank ×5 bonus is a campaign-setup pick via `apply_elite_rank_pick()`, NOT a runtime accrual (book p.65: "You must pick when setting up the campaign"). Persistence field on `FiveParsecsCampaignCore` is `stars_of_the_story` (NOT `stars_of_story_data` — that typo caused a silent failure). Insanity disables all stars. Bug Hunt/Planetfall correctly omit the field (Compendium p.214 forbids carry-over). All journal logging routes through static `StarsOfTheStorySystem.log_use_to_journal(ability, context, result, journal, turn, source)` with `source ∈ {"battle", "post_battle", "dashboard"}`.
 - **`.exe` directory name**: The Godot installation folder IS named `*.exe` — this is a directory, not an executable
@@ -1051,6 +1095,7 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
 - **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory, FiveParsecsStrangeCharacters.gd (6 invented types), BaseStrangeCharacters.gd — all removed. Do NOT reference or re-create these
 - **Deleted dead files (Jul 2 2026 fixit sprint)**: CampaignSerializer.gd, CampaignFactory.gd (+`src/core/workflow/` dir), CampaignStateService.gd, GameSystemManager.gd, MissionIntegrator.gd, WorldPhaseUI.gd (the replaced monolith), `src/game/story/StoryQuestData.gd` (duplicate — live copy is `src/core/story/`), legacy CampaignManager.gd, EventManager.gd, SystemErrorIntegrator.gd, UIBackendIntegrationValidator.gd, ValidationErrorBoundary.gd, `src/core/systems/world` (extension-less orphan), `src/core/victory/VictoryConditionSelection.gd` (duplicate — live copy is `src/game/victory/`), the fabricated `BattleCalculations` species region, DeploymentManager `infer_*` methods, and the dead `Skill`/`Ability` enums from BOTH enum files, plus stale tests `test_ship_stash_persistence.gd`. Do NOT re-create; `tests/unit/test_enum_ordinal_sync.gd` + `test_species_rule_gates.gd` pin the invariants. Wiring-audit sprint (Jul 10 2026, branch `wiring-audit-sprint`) DELETED the orphans `src/game/combat/CombatResolver.gd` (the "nonexistent enum" reason was STALE — its `GameEnumsScript` alias resolves to GlobalEnums which HAS `SPECIAL_ABILITY`; the file was simply zero-referenced), `src/ui/screens/rules/RulesDisplay.gd`, `src/ui/screens/rules/RulesReference.gd`. Remaining dead-code is now TRACKED BY PERMANENT LINTS (see Testing): `lint_signal_wiring.py` (67 declared-never-emitted, 5 live dead-wires), `lint_autoload_lookups.py` (35 dead `/root/Name` lookups incl. `/root/CampaignManager` ×4 — "~8" was overstated), `lint_tscn_connections.py` (6 dead `[connection]`s, all in the legacy TravelPhaseUI.tscn). `EquipmentManager.apply_gun_mod()` still zero-caller (zero-caller backlog).
+- **Deleted dead tutorial files (Aug 1 2026)**: `src/core/systems/tutorial` (an EXTENSIONLESS GDScript declaring `class_name TutorialActionTracker` — Godot never imported it, so the class did not exist), `src/ui/screens/campaign/NewCampaignTutorial.gd` (341 lines), `src/ui/screens/tutorial/TutorialSelection.tscn` + its README, the `tutorial_selection` SceneRouter route and `"tutorial"` category, the `MainMenu.tscn` `TutorialPopup` subtree with its 4 connections, and `MainMenu.gd`'s `_show_tutorial_popup` / `_connect_tutorial_signals` / `_on_tutorial_popup_button_pressed` / `_handle_tutorial_choice` / `_on_disable_tutorial_toggled`. The whole chain hung off `_show_tutorial_popup()`, which had ZERO callers, so none of it was reachable. Also deleted `src/ui/components/campaign/StoryTrackSection.{gd,tscn}` (301 lines, superseded by the inline dashboard card) and its two silently-skipping tests. Live onboarding is the coach-mark overlay (`TutorialUI` + `data/tutorials/`) plus the book's Introductory Campaign.
 - **Deleted dead UI files (Session 40)**: ConfigPanel.gd+.tscn, CampaignSetupScreen.gd, CampaignSetupDialog.gd+.tscn, DifficultyOption.gd, gameplay_options_menu.gd, QuickStartDialog.gd, CampaignLoadDialog.gd, CampaignSummaryPanel.gd, CampaignCreationManager.gd — all replaced by ExpandedConfigPanel/CampaignCreationCoordinator. Do NOT recreate
 - **Deprecated PostBattlePhase files (Session 47)**: `src/core/campaign/PostBattlePhase.gd` (old 5-step Control stub), `src/game/campaign/FiveParsecsPostBattlePhase.gd` (zero refs), `src/base/campaign/BasePostBattlePhase.gd` (only ref was dead file). CampaignPhaseManager now uses `src/core/campaign/phases/PostBattlePhase.gd` (14-step orchestrator). Safe to delete the 3 deprecated files
 - **Deprecated CoreSystems.WeaponTraitSystem (Session 47)**: Inner class in CoreSystems.gd had fabricated Focused mechanic, zero callers. Weapon traits now via `BattleCalculations.get_weapon_trait_effects()`. Do NOT use WeaponTraitSystem in new code

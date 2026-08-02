@@ -320,3 +320,74 @@ tested, version-safe migration framework that production never calls
 (`CURRENT_SCHEMA_VERSION = 1`, no migrations registered). It is the correct home
 for the legacy `origin` float→String normalization that CLAUDE.md currently
 band-aids with `str()` guards at each call site.
+
+---
+
+## Campaign creation audit — deferred items (Aug 2 2026)
+
+From the two-wave creation-wizard audit (73 findings, 47 CONFIRMED / 25
+OVERSTATED / 1 REFUTED after adversarial verification). Everything below was
+found and understood; it is listed here because it was deliberately NOT done,
+each for a stated reason, rather than silently dropped.
+
+**Needs a producer AND a consumer in one change** — landing half of these would
+recreate the exact defect the audit existed to find:
+
+- **p.72 Licensing Requirement.** `license_required` / `license_cost` appear in
+  no live file, so the Freelancer License rule has never executed on any world in
+  any campaign. Needs the world-generation roll *and* the Upkeep-side
+  enforcement together.
+- **Unique-kill and character-upgrade tallies.** `VictoryChecker` now reads
+  `progress_data["unique_individuals_killed"]` and `["characters_upgraded_10"]`,
+  and `GameStateManager` has the mutators
+  (`increment_unique_individual_kills`, `record_character_upgrade_milestone`),
+  but nothing CALLS them. The natural call sites are in
+  `core/campaign/phases/post_battle/`, which was being edited by another session
+  during this sprint. Five of the seventeen Victory Conditions sit at 0/N until
+  this is wired — visible and honest, rather than resolving to "no victory
+  condition set" as they used to.
+- **Progressive Difficulty consumer.** The option now reaches and persists on the
+  campaign, but `ProgressiveDifficultyTracker` is entirely static and nothing
+  calls its statics. Wiring `get_enemy_count_bonus()` means threading the turn
+  number and the campaign's options through `EnemyGenerator._calculate_enemy_count()`
+  — a signature change across the enemy-generation path.
+
+**Blocked on a data-model decision:**
+
+- **Crew members-vs-total convention.** `crew["size"]` is the TOTAL (4/5/6) while
+  the crew panel stores members EXCLUDING the captain, and
+  `_merge_captain_into_crew` changes which is true depending on when you look.
+  The strict `_validate_crew_phase()` compares the two directly, so it reports a
+  legal campaign as short by one — observed live as "Final validation failed.
+  Total errors: 2" on a perfectly valid campaign. This is why
+  `get_validation_summary()["has_critical_errors"]` is hard-coded false and why
+  `CampaignFinalizationService`'s business-logic layer was removed rather than
+  repointed: both feed lists that BLOCK campaign creation. Reconcile the
+  convention first, then give that key meaning.
+
+**Approved scope-outs (user decision, hybrid option):**
+
+- The 12 Compendium difficulty toggles: `_build_difficulty_toggles_section` is
+  defined and never called, and no runtime system reads individual toggle ids.
+  Each toggle is a full rule variant needing its own book verification.
+- Runtime resolvers for `ELITE_ENEMIES`, `TERRAIN_GENERATION`,
+  `GRID_BASED_MOVEMENT`, `DEPLOYMENT_VARIABLES`; their toggles should stay
+  hidden for owned packs until the resolvers exist.
+
+**Cosmetic / bloat, still open:**
+
+- The equipment condition/quality system remains in the display layer and in
+  `StartingEquipmentGenerator.apply_equipment_condition()`. Starting gear no
+  longer rolls a condition (the mechanic is absent from Core Rules pp.28-29 —
+  extracted and checked), but the badges and `quality_modifier` writes survive.
+  Nothing reads `quality_modifier` for gameplay.
+- `ShipPanel` resolves its traits container to `Traits/Container` where the scene
+  node is `TraitsContainer`, then frees the section's own header label on every
+  refresh.
+- The Ship step's fallback branch invents a debt of 0-3 credits, matching no row
+  of the p.31 Ship Table.
+- `MainMenu._on_onboard_existing_pressed()` sets `temp_data("onboarding_mode")`
+  and then calls `_start_new_campaign()`, whose first act is
+  `clear_all_temp_data()` — so the flag is wiped before the wizard opens and the
+  onboarding branch can never fire. Deferred only because `MainMenu.gd` was in
+  another session's uncommitted set.
