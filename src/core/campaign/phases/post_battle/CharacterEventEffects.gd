@@ -17,11 +17,35 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	## Core Rules p.128: Roll on random non-Bot, non-Soulless crew member.
 	## If the selected character is Precursor, roll twice and pick either.
 
-	# Filter eligible crew (exclude Bots and Soulless per Core Rules p.128)
+	# Core Rules p.126, verbatim: "Select a random non-Bot, non-Soulless
+	# character ... Any character is eligible, as long as they are part of your
+	# crew, EVEN IF THEY ARE IN SICK BAY."
+	#
+	# This drew from ctx.crew_participants — the crew who FOUGHT the battle.
+	# Injured crew are filtered out before deployment, so they were absent from
+	# that list and could never be selected. That is precisely backwards for the
+	# several table entries written for them: "You are starting to wonder if it
+	# is time to move on" (11-12), "The local food is sitting well with you"
+	# (24-26, which REDUCES recovery time) and "You've had a lot of time to burn"
+	# (98-100, which explicitly acts even in Sick Bay) were unreachable by design.
 	var eligible: Array = []
-	for crew_id in ctx.crew_participants:
+	var roster: Array = ctx.get_crew_members()
+	for member in roster:
+		var crew_id: String = ""
+		if member is Dictionary:
+			crew_id = str(member.get("character_id", member.get("id", "")))
+		elif member != null and "character_id" in member:
+			crew_id = str(member.character_id)
+		if crew_id.is_empty():
+			continue
 		if not ctx.is_character_bot_or_soulless(crew_id):
 			eligible.append(crew_id)
+	# Defensive: if the roster could not be read, fall back to the battle's
+	# participants rather than skipping the step entirely.
+	if eligible.is_empty():
+		for crew_id_fallback in ctx.crew_participants:
+			if not ctx.is_character_bot_or_soulless(crew_id_fallback):
+				eligible.append(crew_id_fallback)
 	if eligible.is_empty():
 		return {"type": "none", "name": "No Event"}
 

@@ -282,6 +282,22 @@ func _calculate_crew_xp(ctx: PostBattleContextClass, crew_id: String) -> int:
 	## Core Rules p.123 XP calculation. Values loaded from data/injury_results.json.
 	var xp: int = 0
 
+	# p.123: "Any character that flees the battlefield in the first 2 rounds of
+	# the battle receives no XP."
+	#
+	# battle_result["fled_early"] is produced as `(not held_field) and
+	# rounds_fought <= 2` (TacticalBattleUI:5534), i.e. THE WHOLE CREW withdrew in
+	# the first two rounds — so zeroing every member is right for that case, not a
+	# bug. `fled_early_crew` is the per-character form: an individual who bails on
+	# round 1 while the rest fight on.
+	#
+	# KNOWN GAP, recorded not silently skipped: nothing produces fled_early_crew
+	# yet. The app tracks bail-outs for ENEMIES only (morale), so a crew member who
+	# leaves early still collects full XP. The read side is correct the moment a
+	# producer lands; inventing one here would fabricate battle data.
+	var fled_crew: Array = ctx.battle_result.get("fled_early_crew", [])
+	if fled_crew is Array and crew_id in fled_crew:
+		return 0
 	if ctx.battle_result.get("fled_early", false):
 		return 0
 
