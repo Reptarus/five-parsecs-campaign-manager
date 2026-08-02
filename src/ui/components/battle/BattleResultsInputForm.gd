@@ -18,6 +18,7 @@ var _pending_prefill: Dictionary = {}
 var _outcome_btn: OptionButton
 var _held_field_check: CheckBox
 var _rounds_spin: SpinBox
+var _psionic_uses_spin: SpinBox
 var _enemies_defeated_spin: SpinBox
 var _enemies_total_label: Label
 var _submit_btn: Button
@@ -187,6 +188,34 @@ func _build_ui() -> void:
 	_rounds_spin.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	rounds_vbox.add_child(_rounds_spin)
 	outcome_row.add_child(rounds_vbox)
+
+	# Psionic power uses (Compendium p.21). This form used to hardcode
+	# "psionic_uses": 0, so on the LOG_ONLY / manually-recorded path the p.21
+	# detection roll could never fire no matter what happened on the table —
+	# "a Psionic does not run any risk of detection unless they actively use a
+	# power during combat", and the app was reporting that they never did.
+	# Shown only when the Psionics DLC is active, so a crew without psionics is
+	# not asked a question that cannot apply to them.
+	var _dlc_psi: Node = get_node_or_null("/root/DLCManager")
+	if _dlc_psi and _dlc_psi.is_feature_enabled(_dlc_psi.ContentFlag.PSIONICS):
+		var psi_vbox := VBoxContainer.new()
+		var psi_label := Label.new()
+		psi_label.text = "Psionic powers used"
+		psi_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		psi_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		psi_vbox.add_child(psi_label)
+
+		_psionic_uses_spin = SpinBox.new()
+		_psionic_uses_spin.min_value = 0
+		_psionic_uses_spin.max_value = 20
+		_psionic_uses_spin.value = 0
+		_psionic_uses_spin.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		_psionic_uses_spin.tooltip_text = (
+			"How many times your crew used a psionic power this battle. "
+			+ "On a world where Psionics are Outlawed this triggers the "
+			+ "detection roll (Compendium p.21).")
+		psi_vbox.add_child(_psionic_uses_spin)
+		outcome_row.add_child(psi_vbox)
 
 	outcome_card.add_child(outcome_row)
 	vbox.add_child(outcome_section[0])
@@ -527,7 +556,8 @@ func _on_submit() -> void:
 		"enemies_defeated_count": enemies_defeated,
 		"enemies_remaining": _enemy_count - enemies_defeated,
 		"crew_alive": crew_alive,
-		"psionic_uses": 0,
+		"psionic_uses": (int(_psionic_uses_spin.value)
+			if _psionic_uses_spin != null else 0),
 		# Crew data
 		"crew_casualties": casualties_data.size(),
 		"crew_injuries": injuries_data.size(),

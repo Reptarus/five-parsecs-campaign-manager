@@ -66,6 +66,19 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 			if new_rival_id != "":
 				new_rivals.append(new_rival_id)
 
+	# Psi-hunters (Compendium p.21). The book places this exactly here: "If a
+	# Psionic uses a power during combat, roll D6 during the post-game step
+	# '1. Resolve Rival Status'... If the indicated result is rolled, a band of
+	# Psi-hunters are now on your tail."
+	#
+	# The detection roll already ran (PostBattlePhase writes the outcome to
+	# progress_data["psionic_enforcement"]) and NOTHING read it — so the roll
+	# happened, the log said "DETECTED!", and no Rival was ever created. The
+	# consequence half of the rule did not exist.
+	var psi_rival_id: String = _create_psi_hunter_rival(ctx)
+	if psi_rival_id != "":
+		new_rivals.append(psi_rival_id)
+
 	if faction_sys and faction_sys.has_method("modify_faction_standing"):
 		var faction_id: String = ctx.battle_result.get("faction_id", "")
 		if faction_id != "":
@@ -258,16 +271,56 @@ func _create_new_rival_from_battle(ctx: PostBattleContextClass) -> String:
 		return ""
 	var campaign = ctx.game_state.current_campaign
 	var enemy_type: String = ctx.battle_result.get("enemy_type", "Unknown")
+	return _append_rival(campaign, ctx, enemy_type)
+
+func _create_psi_hunter_rival(ctx) -> String:
+	## Compendium p.21: on a successful detection roll, "a band of Psi-hunters are
+	## now on your tail", typed on a D6 — 1-2 Bounty Hunters, 3 Vigilantes,
+	## 4-5 Enforcers, 6 Colonial Militia. "Note on your record sheet that these
+	## Rivals are Psi-hunters IN ADDITION TO their normal type", and they carry
+	## three adjustments: Seize the Initiative against them at -2, one extra
+	## Specialist added after generating their force, and +1 to their attack roll
+	## when shooting at or Brawling with a Psionic character.
+	##
+	## PostBattlePhase performs the detection and stores the outcome in
+	## progress_data["psionic_enforcement"]; nothing consumed it, so no Rival was
+	## ever produced. The flag is CLEARED here so one detection cannot keep
+	## spawning hunters on every later battle.
+	if not ctx.game_state or not ctx.game_state.current_campaign:
+		return ""
+	var campaign = ctx.game_state.current_campaign
+	if not ("progress_data" in campaign):
+		return ""
+	var pd: Dictionary = campaign.progress_data
+	var enforcement: Variant = pd.get("psionic_enforcement", null)
+	if not (enforcement is Dictionary):
+		return ""
+	pd.erase("psionic_enforcement")
+	if not bool((enforcement as Dictionary).get("detected", false)):
+		return ""
+	var hunter_type: String = str(
+		(enforcement as Dictionary).get("enforcement", {}).get("type", "Enforcers"))
+	return _append_rival(campaign, ctx, hunter_type, true)
+
+func _append_rival(campaign, ctx, enemy_type: String, is_psi_hunter: bool = false) -> String:
 	var planet_id: String = ctx.battle_result.get("planet_id", "")
 	var new_rival: Dictionary = {
 		"id": "rival_%s_%d" % [enemy_type.to_lower().replace(" ", "_"), randi()],
-		"name": enemy_type + " Vendetta",
+		"name": (enemy_type + " Psi-hunters") if is_psi_hunter else (enemy_type + " Vendetta"),
 		"type": enemy_type,
 		"planet_id": planet_id,
 		"threat_level": 1,
 		"created_turn": ctx.battle_result.get("turn", 0),
-		"origin": "battle_grudge"
+		"origin": "psi_hunt" if is_psi_hunter else "battle_grudge"
 	}
+	if is_psi_hunter:
+		# "Note on your record sheet that these Rivals are Psi-hunters in addition
+		# to their normal type" — the tag rides along with the three adjustments
+		# so battle setup can apply them without re-deriving anything.
+		new_rival["is_psi_hunter"] = true
+		new_rival["seize_initiative_modifier"] = -2
+		new_rival["extra_specialists"] = 1
+		new_rival["attack_bonus_vs_psionic"] = 1
 	# The canonical rival list on FiveParsecsCampaignCore is `rivals`
 	# (FiveParsecsCampaignCore.gd:44, serialised at :225 and :346). `active_rivals`
 	# belongs to DIFFERENT classes — RivalManager, RivalSystem, FactionSystem and

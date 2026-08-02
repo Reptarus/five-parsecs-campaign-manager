@@ -11,6 +11,7 @@ const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
+const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -1921,6 +1922,8 @@ func _arrive_at_new_world() -> Dictionary:
 	# The single chokepoint: fires world_changed → PDM sync + world-arrival event.
 	campaign.initialize_world(new_world)
 
+	_roll_psionic_legality_for_world(campaign, new_world)
+
 	# Mission-required travel (Core Rules p.119): traveling to a NEW world
 	# satisfies a Quest's "next step is on another world" requirement — clear it.
 	var gs: Node = get_node_or_null("/root/GameState")
@@ -1938,6 +1941,59 @@ func _arrive_at_new_world() -> Dictionary:
 		_travel_status_label.text = "✓ Arrived: %s" % world_name
 
 	return new_world
+
+func _roll_psionic_legality_for_world(campaign: Resource, world: Dictionary) -> void:
+	## The Legality of Psionics (Compendium p.20), verbatim: "When using Psionic
+	## characters in a campaign, World Generation Steps gain an ADDITIONAL STEP
+	## after Travel Step 4: New World Arrival" — D100, 01-25 Outlawed, 26-55
+	## Highly unusual, 56-100 Who cares?
+	##
+	## THE ENTIRE RULE WAS ALREADY BUILT AND HAS NEVER RUN ONCE. The D100 bands
+	## (PsionicSystem.roll_psionic_legality), the p.21 detection roll on post-game
+	## step 1 (check_outlawed_detection: caught on a 1 after one use, 1-2 after
+	## several), the D6 Psi-hunter table and its Seize-the-Initiative -2 / extra
+	## Specialist / +1-to-hit adjustments, the badge on the world screen and the
+	## journal entry — all correct, all waiting on this one number.
+	##
+	## The only writer lived in src/core/campaign/phases/WorldPhase.gd, a file
+	## with zero instantiations. Travel actually happens here. So every consumer
+	## read `psionic_legality` as -1, the OUTLAWED branch could never be taken,
+	## and a Psionic could burn powers on a world that outlaws them with no
+	## possibility of consequence.
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	var dlc: Node = get_node_or_null("/root/DLCManager")
+	if dlc == null or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+
+	var legality: int = PsionicSystemRef.roll_psionic_legality()
+	campaign.progress_data["psionic_legality"] = legality
+	# Also on the world itself, so the world screen's badge and the Galaxy Log
+	# describe the world they belong to rather than "the last roll".
+	if not world.is_empty():
+		world["psionic_legality"] = legality
+		if campaign.has_method("initialize_world"):
+			pass  # already written through; do not re-fire world_changed
+
+	# A new world's status is news — the player has to know before deciding
+	# whether to use a power, since that is the only thing that risks detection.
+	var legality_name: String = PsionicSystemRef.get_legality_name(legality)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Psionic legality: %s" % legality_name,
+			"description": "%s — %s (Compendium p.20)" % [
+				str(world.get("name", "This world")),
+				PsionicSystemRef.get_legality_description(legality)],
+			"tags": ["psionics", "world"],
+		})
+	if legality == PsionicSystemRef.PsionicLegality.OUTLAWED:
+		var notif: Node = get_node_or_null("/root/NotificationManager")
+		if notif and notif.has_method("show_warning"):
+			notif.show_warning(
+				"Psionics are OUTLAWED here — using a power in battle risks Psi-hunters")
 
 func _process_travel_event_roll(roll: int) -> Dictionary:
 	## Starship Travel Events Table (Core Rules pp.70-71).
