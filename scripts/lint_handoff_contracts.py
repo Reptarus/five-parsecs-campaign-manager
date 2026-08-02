@@ -204,6 +204,52 @@ def scan_signals(text: str, path: str, declared, emitted, connected) -> None:
         connected[m.group(1)].add(path)
 
 
+RULE_VERB = re.compile(
+    r"^(roll|check|apply|resolve|determine|calculate|process|generate|award|grant|trigger|enforce)_")
+
+RULES_DIRS = (
+    "src/core/systems/", "src/core/campaign/", "src/core/battle/",
+    "src/core/mission/", "src/core/equipment/", "src/core/character/",
+    "src/core/world/", "src/core/story/", "src/core/rivals/",
+)
+
+
+def scan_uncalled_rules(all_gd: list[Path]) -> list[tuple[str, str]]:
+    """Public rule-EXECUTING functions in rules systems that nobody calls.
+
+    The key census cannot see this class. PsionicSystem.
+    check_highly_unusual_reinforcements() implemented the Compendium p.22
+    "psionics draw attention" reinforcements exactly right and had zero callers —
+    no dict key was involved, so nothing flagged it, and a rule that fires on
+    ~30% of worlds simply never happened.
+
+    Restricted to names that denote a rule being APPLIED (roll_/check_/apply_/
+    resolve_/...) because a plain data-class setter with no caller is unused API
+    surface, not a missing rule. Without that filter this reports 630 functions
+    and is useless.
+    """
+    defs: dict[str, list[str]] = {}
+    calls: dict[str, int] = defaultdict(int)
+    bodies: dict[str, str] = {}
+    for p in all_gd:
+        rel = p.relative_to(ROOT).as_posix()
+        body = strip_comments(read(p))
+        bodies[rel] = body
+        if rel.startswith(RULES_DIRS):
+            for m in re.finditer(r"^\s*(?:static\s+)?func\s+([a-z][A-Za-z_0-9]*)\s*\(", body, re.M):
+                defs.setdefault(m.group(1), []).append(rel)
+    for body in bodies.values():
+        for m in re.finditer(r"\b([a-z][A-Za-z_0-9]*)\s*\(", body):
+            calls[m.group(1)] += 1
+    out: list[tuple[str, str]] = []
+    for fn, where in defs.items():
+        if fn.startswith("_") or not RULE_VERB.match(fn):
+            continue
+        if calls[fn] - len(where) <= 0:
+            out.append((where[0], fn))
+    return sorted(out)
+
+
 def find_live_files(all_gd: list[Path]) -> set[str]:
     """Files reachable from a .tscn, an autoload, a preload/load, or `extends`.
 
@@ -318,6 +364,7 @@ def main() -> int:
             "orphan_writes": orphan_writes,
             "dead_producers": dead_producers,
             "listened_never_emitted": dead_signals,
+            "uncalled_rules_live": scan_uncalled_rules(all_gd),
         }, indent=1))
         return 0
 
@@ -341,6 +388,17 @@ def main() -> int:
     for container, name, w in orphan_writes:
         print(f"   {container}[{name}]  -> {', '.join(w[:3])}")
 
+    uncalled = scan_uncalled_rules(all_gd)
+    live_uncalled = [(f, fn) for f, fn in uncalled if f in live]
+    dead_file_uncalled = [(f, fn) for f, fn in uncalled if f not in live]
+    print(f"\n-- UNCALLED RULE ({len(live_uncalled)}) — a rule-executing function in a"
+          " LIVE file that nothing calls; the rule never fires")
+    for f, fn in live_uncalled:
+        print(f"   {fn:44s} {f}")
+    print(f"\n-- UNCALLED RULE, DEAD FILE ({len(dead_file_uncalled)}) — port or delete")
+    for f, fn in dead_file_uncalled:
+        print(f"   {fn:44s} {f}")
+
     print(f"\n-- LISTENED-NEVER-EMITTED ({len(dead_signals)}) "
           "— someone connects to a signal nothing emits")
     for sig, d, c in dead_signals[:40]:
@@ -348,9 +406,9 @@ def main() -> int:
     if len(dead_signals) > 40:
         print(f"   ... {len(dead_signals) - 40} more")
 
-    fatal = len(orphan_reads) + len(dead_producers)
+    fatal = len(orphan_reads) + len(dead_producers) + len(live_uncalled)
     print("\n" + "=" * 72)
-    print(f"rule-silencing findings (orphan-read + dead-producer): {fatal}")
+    print(f"rule-silencing findings (orphan-read + dead-producer + uncalled-rule): {fatal}")
     if args.strict and fatal:
         return 1
     return 0
