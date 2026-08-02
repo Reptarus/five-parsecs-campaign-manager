@@ -98,9 +98,34 @@ func _connect_signals() -> void:
 
 	crew_list.item_selected.connect(_on_crew_member_selected)
 
+func apply_campaign_crew_size(size: int) -> void:
+	## CONFIG owns the crew size (Core Rules p.63). It is the value the rules
+	## engine reads — enemy-count dice, the deployment cap, the recruit gate — so
+	## this panel must CONSUME it, not hold a second opinion.
+	##
+	## It used to hold its own `selected_size`, defaulting to 6 and never told
+	## what the player picked at step 1. Choose a crew of 4 there and this panel
+	## still asked for 6, so the roster and campaign_crew_size disagreed and the
+	## campaign was created with an enemy-count formula for a crew it did not have.
+	var clamped: int = clampi(size, 4, 6)
+	if clamped == selected_size:
+		return
+	selected_size = clamped
+	if crew_size_option:
+		for i in range(crew_size_option.item_count):
+			if crew_size_option.get_item_id(i) == clamped:
+				crew_size_option.select(i)
+				break
+	_update_crew_list()
+	_update_candidate_hint()
+	crew_updated.emit(crew_members)
+
 func _on_crew_size_selected(index: int) -> void:
 	selected_size = crew_size_option.get_item_id(index)
 	_update_crew_list()
+	# Keep the Elite Rank candidate hint honest when the size changes after a
+	# randomize — otherwise it keeps telling the player to remove the old number.
+	_update_candidate_hint()
 	crew_updated.emit(crew_members)
 
 func _on_add_member_pressed() -> void:

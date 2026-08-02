@@ -406,9 +406,20 @@ func update_crew_state(crew_data: Dictionary) -> void:
 			unified_campaign_state.crew.duplicate()
 		)
 
-	# Set phase completion: crew is complete when is_complete flag is set
-	if crew_data.get("is_complete", false):
-		phase_completion_status[CampaignCreationStateManager.Phase.CREW_SETUP] = true
+	# Set phase completion from the CURRENT state, in both directions.
+	#
+	# This used to be `if is_complete: status = true` with no else, and nothing
+	# anywhere ever wrote false — so completion was monotonic. A player could
+	# satisfy the crew step, advance, come back, delete a member or shrink the
+	# crew size, and still Next straight past an illegal roster, because the
+	# stale `true` was the only thing the navigation gate consults.
+	#
+	# CrewPanel.is_valid() is an exact size match, so this also re-blocks an
+	# OVER-size roster — which is how the Elite Rank extra candidates (p.65) are
+	# meant to work: roll extra, then cut down to your crew size.
+	if crew_data.has("is_complete"):
+		phase_completion_status[CampaignCreationStateManager.Phase.CREW_SETUP] = \
+			bool(crew_data.get("is_complete", false))
 		_update_navigation_state()
 
 	# Update overall completion status

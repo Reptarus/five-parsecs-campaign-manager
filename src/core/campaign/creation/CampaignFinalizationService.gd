@@ -229,16 +229,22 @@ func _validate_campaign_data(data: Dictionary, state_manager: RefCounted) -> Dic
 		if not found:
 			errors.append("Missing required data: %s" % section_name)
 	
-	# Layer 2: Business Logic Validation
-	if state_manager and state_manager.has_method("validate_complete_state"):
-		var state_validation = state_manager.validate_complete_state()
-		if not state_validation.valid:
-			if state_validation.has("errors") and state_validation.errors is Dictionary:
-				for phase in state_validation.errors:
-					var phase_errors = state_validation.errors[phase]
-					if phase_errors is Array:
-						errors.append_array(phase_errors)
-	
+	# Layer 2 (Business Logic Validation) IS DELIBERATELY ABSENT.
+	#
+	# It used to guard on `state_manager.has_method("validate_complete_state")` —
+	# a method with ZERO definitions anywhere in the repo, so the branch was
+	# permanently false and the layer never ran. A has_method() check against a
+	# name nothing implements does not fail loudly; it quietly does nothing.
+	#
+	# It is removed rather than repointed at get_validation_summary(). That
+	# summary's completability answer runs the STRICT per-phase validators, and
+	# the strict crew check compares members.size() against the TOTAL crew size
+	# while the crew panel stores members EXCLUDING the captain — permanently
+	# short by one until _merge_captain_into_crew runs. Feeding that into this
+	# list, which blocks campaign creation, would have refused legal campaigns.
+	# Reconcile the members-vs-total convention first; Layers 1, 3 and 4 below
+	# already cover the data this one was meant to.
+
 	# Layer 3: Game Rules Validation
 	var game_rules_result = _validate_game_rules(data)
 	errors.append_array(game_rules_result.errors)

@@ -1058,6 +1058,23 @@ func _xp_char_name(member) -> String:
 		return str(member.character_name)
 	return "Unknown"
 
+func _prune_elite_xp_allocation(roster: Array) -> void:
+	## Drop allocations aimed at characters who are no longer in the crew.
+	##
+	## The dictionary is keyed by character_id and was never reconciled against
+	## the roster, so XP assigned to someone the player then removed stayed in the
+	## ledger: it still counted against the pool (so the remaining crew could not
+	## be given it) AND it was silently dropped at finalization, because the apply
+	## pass only walks members that exist. The player lost the XP twice over.
+	var live_ids := {}
+	for member in roster:
+		var cid: String = _xp_char_id(member)
+		if not cid.is_empty():
+			live_ids[cid] = true
+	for cid in _elite_xp_allocation.keys():
+		if not live_ids.has(cid):
+			_elite_xp_allocation.erase(cid)
+
 func _build_elite_xp_allocator(total_xp: int) -> Control:
 	## Per-character allocation of the Elite Rank XP bonus (Core Rules p.65).
 	## Keyed by character_id so it is independent of roster ORDER — the crew
@@ -1067,6 +1084,9 @@ func _build_elite_xp_allocator(total_xp: int) -> Control:
 	box.add_theme_constant_override("separation", SPACING_XS)
 
 	var roster: Array = _roster_for_xp_allocation()
+	# The review screen is rebuilt every time it is shown, so this is where the
+	# ledger gets reconciled with a crew the player may have changed since.
+	_prune_elite_xp_allocation(roster)
 	if roster.is_empty():
 		var pending := Label.new()
 		pending.text = "  (create your crew to assign this XP)"

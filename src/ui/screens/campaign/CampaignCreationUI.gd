@@ -318,6 +318,7 @@ func _show_panel(step: int) -> void:
 		current_panel.hide()
 	if step >= 0 and step < panels.size():
 		current_panel = panels[step]
+		_push_campaign_crew_size(current_panel)
 		current_panel.modulate.a = 0.0
 		current_panel.show()
 		# ISSUE-057: Smooth panel transition
@@ -331,6 +332,23 @@ func _show_panel(step: int) -> void:
 		# overflow StepPanels and push Navigation off-screen. Anchors (0,0,1,1)
 		# constrain the panel; call_deferred lets layout resolve first.
 		call_deferred("_fit_panel_to_step_bounds")
+
+func _push_campaign_crew_size(panel: Node) -> void:
+	## Hand the crew step the size the player chose at CONFIG, every time it is
+	## shown. Core Rules p.63 crew size has ONE owner —
+	## campaign_config.campaign_crew_size — because that is the value the rules
+	## engine reads (enemy-count dice, deployment cap, recruit gate). The crew
+	## panel used to keep its own selector, defaulting to 6 with no way to learn
+	## the config value, so picking 4 at step 1 still asked for 6 here.
+	if panel == null or not panel.has_method("apply_campaign_crew_size"):
+		return
+	if coordinator == null or not coordinator.has_method("get_unified_campaign_state"):
+		return
+	var state: Dictionary = coordinator.get_unified_campaign_state()
+	var cfg: Dictionary = state.get("campaign_config", {})
+	var configured: int = int(cfg.get("campaign_crew_size", 0))
+	if configured >= 4 and configured <= 6:
+		panel.apply_campaign_crew_size(configured)
 
 func _fit_panel_to_step_bounds() -> void:
 	if current_panel:

@@ -502,6 +502,33 @@ func _validate_crew_with_warnings() -> Dictionary:
 		(result.warnings as Array).append("Crew not generated via backend system (using fallback)")
 		result.has_warnings = true
 
+	# AN OVER-SIZE ROSTER BLOCKS. Everything above is a warning because the step
+	# may simply be unfinished, but carrying more crew than the campaign's size
+	# is a rules violation, not an incomplete form — Core Rules p.65 on the Elite
+	# Rank perk: "You are still limited to your starting crew size, but may pick
+	# from among the pool of generated characters."
+	#
+	# This check also exists in the strict _validate_crew_phase(), but NOTHING on
+	# the advance path calls that — advance_to_next_phase() consults only this
+	# warnings-shaped validator, which never set blocks_progression at all. The
+	# check has to live here to have any effect on navigation.
+	#
+	# Deliberately conservative: `crew.size` is the TOTAL (4/5/6) while
+	# `members` may or may not include the captain depending on whether
+	# _merge_captain_into_crew has run yet. Comparing against the total can never
+	# false-positive under either convention, but it can miss by one when the
+	# captain is not merged. The precise gate is the coordinator's completion
+	# flag, which comes from CrewPanel.is_valid() — an exact size match made by
+	# the one object that knows its own convention. This is the backstop.
+	var members: Array = crew.get("members", []) as Array
+	var required_size: int = int(crew.get("size", 0))
+	if required_size > 0 and members.size() > required_size:
+		(result.blocking_errors as Array).append(
+			"Crew is %d over size. Remove %d — you picked a crew of %d, and Elite Rank candidates are a choice, not extra crew (Core Rules p.65)."
+			% [members.size() - required_size, members.size() - required_size, required_size])
+		result.blocks_progression = true
+		result.valid = false
+
 	return result
 
 func _validate_captain_with_warnings() -> Dictionary:
@@ -831,13 +858,28 @@ func get_completion_percentage() -> float:
 
 func get_validation_summary() -> Dictionary:
 	## Get comprehensive validation summary
+	var can_complete: bool = _validate_final_phase()
 	var summary = {
 		"current_phase": current_phase,
 		"is_current_phase_valid": _is_phase_valid(current_phase),
 		"validation_errors": validation_errors.duplicate(),
 		"completion_percentage": get_completion_percentage(),
 		"can_advance": _is_phase_valid(current_phase),
-		"can_complete": _validate_final_phase()
+		"can_complete": can_complete,
+		# Two consumers read `has_critical_errors` and NOTHING ever wrote it, so
+		# both silently took the `false` default: the coordinator's completion
+		# check and CampaignFinalizationService's business-logic layer.
+		#
+		# It is reported as false ON PURPOSE rather than derived from
+		# can_complete. _validate_final_phase() demands that EVERY phase pass the
+		# strict _is_phase_valid(), and the strict crew check compares
+		# members.size() against the TOTAL crew size (4/5/6) while the crew panel
+		# stores members EXCLUDING the captain — so it reads as permanently short
+		# by one until _merge_captain_into_crew has run. Wiring that into a
+		# consumer that appends blocking errors would have refused to create
+		# perfectly legal campaigns. Reconcile the members-vs-total convention
+		# first, then make this key mean something.
+		"has_critical_errors": false
 	}
 
 	return summary
