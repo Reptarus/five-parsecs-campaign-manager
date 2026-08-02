@@ -2,9 +2,12 @@ class_name ProgressiveDifficultyTracker
 extends RefCounted
 ## Progressive Difficulty Tracker - Turn-based scaling system
 ##
-## Two progression options from the Compendium (pp.56-60):
-##   OPTION 1 (BASIC): Simple respawn/strength increases by turn number
-##   OPTION 2 (ADVANCED): Gradually enables difficulty toggles by turn number
+## Two progression options from the Compendium (pp.30-31 — the TOC entry is
+## "Progressive Difficulty 30"; the old "pp.56-60" citation here was wrong):
+##   OPTION 1 (BASIC, p.30): respawn/strength increases by campaign turn.
+##     "Apply both the highest Respawn and the highest Strength entry that
+##     applies to you." Cleared table = no respawns, you win the encounter.
+##   OPTION 2 (ADVANCED, p.31): gradually enables difficulty toggles by turn.
 ##
 ## All output is TEXT INSTRUCTIONS for the tabletop companion model.
 ## Gated behind DLCManager.ContentFlag.PROGRESSIVE_DIFFICULTY.

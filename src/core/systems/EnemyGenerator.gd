@@ -7,6 +7,7 @@ extends Resource
 
 # DataManager accessed via autoload singleton (not preload)
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
+const ProgressiveDifficultyRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
@@ -438,6 +439,35 @@ func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dic
 # into two groups, and roll for the weapon carried by each group" — is now
 # implemented at the squad level in generate_enemies_as_dicts().
 
+func _progressive_strength_bonus(mission_data: Dictionary) -> int:
+	## Extra figures from Progressive Difficulty Option 1 "Strength" (Compendium
+	## p.30). Returns 0 unless the player enabled BASIC progression at creation.
+	##
+	## Prefers values stamped on mission_data (the project's "the mission carries
+	## its own identity" rule) and falls back to the live campaign, so the option
+	## works on the battle paths that do not stamp it.
+	var options: Array = mission_data.get("progressive_difficulty_options", [])
+	var turn_number: int = int(mission_data.get("campaign_turn", -1))
+	if options.is_empty() or turn_number < 0:
+		var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") \
+			if Engine.get_main_loop() else null
+		var campaign = gs.current_campaign if gs else null
+		if campaign == null or not ("progress_data" in campaign):
+			return 0
+		var progress: Dictionary = campaign.progress_data
+		if options.is_empty():
+			options = progress.get("progressive_difficulty_options", [])
+		if turn_number < 0:
+			turn_number = int(progress.get("turns_played", 0))
+	# Only Option 1 (BASIC) adds figures; Option 2 unlocks difficulty toggles
+	# instead, so max() rather than a sum is the correct combination here.
+	var bonus: int = 0
+	for option: Variant in options:
+		bonus = maxi(bonus, ProgressiveDifficultyRef.get_enemy_count_bonus(
+			turn_number, int(option)))
+	return bonus
+
+
 func generate_enemies_as_dicts(
 	mission_data: Dictionary, campaign_crew_size: int = 6
 ) -> Array[Dictionary]:
@@ -502,6 +532,17 @@ func generate_enemies_as_dicts(
 	# outright — this replaces base_count rather than adding to it.
 	if is_red_zone:
 		enemy_count = maxi(1, RED_ZONE_BASE_FIGURES + numbers_mod)
+	else:
+		# Progressive Difficulty, Option 1 "Strength" (Compendium p.30): +1 basic
+		# enemy from turn 5, +2 from turn 10, +2 and a Lieutenant from 15, +2 with
+		# a specialist and a Lieutenant from 20. The player ticks this at campaign
+		# creation and it was persisted and then read by NOBODY — every encounter
+		# was the same size forever.
+		#
+		# NOT applied to Red Jobs: p.150 is explicit that the base of 7 stands with
+		# "no other modifiers ... up or down", and that verbatim rule wins over the
+		# expansion's "each encounter" phrasing.
+		enemy_count += _progressive_strength_bonus(mission_data)
 
 	var cat_info: Dictionary = _category_info(category)
 

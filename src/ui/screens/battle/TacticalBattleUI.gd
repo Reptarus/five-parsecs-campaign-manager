@@ -25,6 +25,7 @@ const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
 const BattleResolverRouterClass = preload("res://src/core/battle/BattleResolverRouter.gd")
@@ -316,6 +317,14 @@ const AI_CODE_TO_NAME: Dictionary = {
 	"T": "Tactical",
 	"B": "Beast",
 }
+
+## The Escalating Battles D100 table (Compendium p.46) has exactly SIX columns.
+## Guardian is a real Core Rules AI type with no column in that table, so a
+## Guardian enemy legitimately gets no Escalation check — this list is what the
+## setup screen tests against so the omission is stated instead of silent.
+const ESCALATION_AI_TYPES: PackedStringArray = [
+	"aggressive", "cautious", "defensive", "rampage", "tactical", "beast",
+]
 
 const EnemyAIOracleRouterClass = preload("res://src/core/battle/EnemyAIOracleRouter.gd")
 var _ai_reference_router: RefCounted = null
@@ -5994,8 +6003,15 @@ func _populate_setup_tab(mission_data) -> void:
 			Color("#808080"))
 		_add_setup_separator()
 
-	# Section 5: DLC Compendium Difficulty Instructions
-	var dlc_instructions: Array = mission_dict.get("dlc_difficulty_instructions", [])
+	# Section 5: Compendium GAME OPTIONS the player switched on.
+	#
+	# These blocks used to read three mission_dict keys — "dlc_difficulty_instructions",
+	# "dlc_ai_type" and "dramatic_combat_effects" — that NO producer anywhere ever
+	# wrote (proved by the producer/consumer census, scripts/lint_handoff_contracts.py).
+	# Every value is derivable right here from the DLC flags, the campaign, and the
+	# enemy force the app already generated, so they are built locally now instead of
+	# waiting on a stamp that was never going to come.
+	var dlc_instructions: Array[String] = _build_compendium_option_instructions()
 	if not dlc_instructions.is_empty():
 		_add_setup_section_header("COMPENDIUM DIFFICULTY RULES")
 		for instruction: String in dlc_instructions:
@@ -6010,19 +6026,39 @@ func _populate_setup_tab(mission_data) -> void:
 			elif instruction.begins_with("MILESTONE:"):
 				color = Color("#10B981") # Green for milestones
 			_add_setup_text(instruction, color)
-		# Store AI type for escalation checks
-		_dlc_ai_type = mission_dict.get("dlc_ai_type", "")
 		_add_setup_separator()
 
-		# Add escalation setup text if enabled
-		if EscalatingBattlesManagerRef.is_enabled():
-			_add_setup_section_header("ESCALATING BATTLES")
+	# Escalating Battles (Compendium pp.46-48) keys its D100 column off the enemy's
+	# main AI type. This assignment used to live INSIDE the guard above, so even a
+	# correct dlc_ai_type producer would have been swallowed by a DIFFERENT missing
+	# key: _check_escalating_battles() returns early while _dlc_ai_type is empty, so
+	# the D100 was never rolled once in any battle of any campaign.
+	var esc_force: Dictionary = _battle_context.get(
+		"enemy_force", mission_dict.get("enemy_force", {}))
+	_dlc_ai_type = _ai_type_name(str(esc_force.get("ai", "A"))).to_lower()
+	if EscalatingBattlesManagerRef.is_enabled():
+		_add_setup_section_header("ESCALATING BATTLES")
+		if _dlc_ai_type in ESCALATION_AI_TYPES:
 			var esc_text: String = EscalatingBattlesManagerRef.generate_setup_text(_dlc_ai_type)
 			_add_setup_text(esc_text, Color("#D97706"))
-			_add_setup_separator()
+		else:
+			# The p.46 table has exactly six columns (Aggressive / Cautious /
+			# Defensive / Rampage / Tactical / Beast). Guardian has none, so the
+			# book grants these enemies no Escalation — say so rather than
+			# silently skipping the check and leaving the player guessing.
+			_add_setup_text(
+				"No Escalation table for %s AI — the Compendium p.46 table covers "
+				% _ai_type_name(str(esc_force.get("ai", "A")))
+				+ "Aggressive, Cautious, Defensive, Rampage, Tactical and Beast only.",
+				Color("#808080"))
+		_add_setup_separator()
 
-	# Section 5b: Dramatic Combat effects (Compendium DLC)
-	var dramatic_effects: Array = mission_dict.get("dramatic_combat_effects", [])
+	# Section 5b: Dramatic Combat (Compendium p.87). Adjusted Shooting is already
+	# applied by the resolvers (BattleResolver / NoMinis / Stealth / Salvage), but
+	# Duck Back and Lunge are executed by the player at the table, so the rule TEXT
+	# is the implementation for a companion app — and it was never being shown.
+	var dramatic_effects: Array[String] = \
+		CompendiumDifficultyTogglesRef.get_dramatic_combat_rule_instructions()
 	if not dramatic_effects.is_empty():
 		_add_setup_section_header("DRAMATIC COMBAT")
 		for effect in dramatic_effects:
@@ -6536,6 +6572,39 @@ func _create_setup_label(text: String, color: Color, font_size: int = 14) -> Lab
 	label.add_theme_color_override("font_color", color)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return label
+
+## Build the Compendium GAME OPTIONS instruction lines for the battle-setup tab.
+##
+## Progressive Difficulty (Compendium pp.30-31) is a campaign-creation choice that
+## reached campaign.progress_data and was then read by NOBODY: a player who ticked
+## Basic or Advanced got no extra enemies, no respawns, and not one line of text
+## for the entire campaign. The milestone tables in data/progressive_difficulty.json
+## are book-exact — only the call was missing.
+##
+## Milestones are cumulative: the book says "apply both the highest Respawn and the
+## highest Strength entry that applies to you" (p.30), and get_active_milestones()
+## already returns every entry at or below the current turn.
+func _build_compendium_option_instructions() -> Array[String]:
+	var out: Array[String] = []
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return out
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign):
+		return out
+	var progress: Dictionary = campaign.progress_data
+	var turn_number: int = int(progress.get("turns_played", 0))
+	var options: Array = progress.get("progressive_difficulty_options", [])
+	for option: Variant in options:
+		var milestones: Array[Dictionary] = \
+			ProgressiveDifficultyTrackerRef.get_active_milestones(
+				turn_number, int(option))
+		for milestone: Dictionary in milestones:
+			var instruction: String = str(milestone.get("instruction", "")).strip_edges()
+			if not instruction.is_empty():
+				out.append("MILESTONE: " + instruction)
+	return out
+
 
 ## ── DLC: Escalating Battles (Compendium pp.46-48) ────────────────
 
