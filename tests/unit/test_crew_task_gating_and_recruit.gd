@@ -192,6 +192,45 @@ func test_only_the_named_item_is_resolved() -> void:
 	assert_str(comp._first_damaged_item(member)).is_equal("Blade")
 
 
+# --- credits spent for a bonus (pp.77-78) -------------------------------------
+
+## data/crew_tasks.json uses credit_bonus_max = -1 as a NO-CAP sentinel (its
+## sibling credit_bonus_note reads "Each credit spent = +1 (no cap stated)").
+## spend_credits_on_task() read it as a maximum and refused every call with
+## `if max_bonus <= 0: return false`, so the book's main World Phase credit sink
+## did not exist. 0 still means "this task takes no credits".
+func test_the_no_cap_sentinel_is_not_treated_as_a_refusal() -> void:
+	assert_bool(CrewTasks.credit_spend_allowed(-1, 0, 1)).override_failure_message(
+		"-1 means no cap, not 'refuse'"
+	).is_true()
+	assert_bool(CrewTasks.credit_spend_allowed(0, 0, 1)).override_failure_message(
+		"0 means this task takes no credits at all"
+	).is_false()
+
+
+## Spending must accumulate without an artificial ceiling.
+func test_uncapped_spending_has_no_ceiling() -> void:
+	for already: int in [0, 3, 25, 200]:
+		assert_bool(CrewTasks.credit_spend_allowed(-1, already, 1)
+			).override_failure_message(
+				"the book states no cap, so %d already spent must not block" % already
+			).is_true()
+
+
+## A task WITH a real cap must still respect it.
+func test_a_real_cap_is_still_enforced() -> void:
+	assert_bool(CrewTasks.credit_spend_allowed(2, 0, 2)).is_true()
+	assert_bool(CrewTasks.credit_spend_allowed(2, 2, 1)).override_failure_message(
+		"a positive credit_bonus is a genuine maximum"
+	).is_false()
+
+
+## Nonsense amounts must be refused rather than silently reducing the bonus.
+func test_non_positive_amounts_are_refused() -> void:
+	assert_bool(CrewTasks.credit_spend_allowed(-1, 0, 0)).is_false()
+	assert_bool(CrewTasks.credit_spend_allowed(-1, 0, -3)).is_false()
+
+
 # --- p.59 ship wreck ----------------------------------------------------------
 
 ## "If this happens on the ground, you can reclaim 1D6+5 credits' worth of scrap

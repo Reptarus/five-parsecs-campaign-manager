@@ -79,6 +79,8 @@ var credits_spent_on_tasks: Dictionary = {} # task_id -> credits spent
 ## p.78 dice branch: "A score of 6 or higher allows A new recruit to be added" —
 ## one recruit for the whole attempt, not one per crew member sent.
 var _group_recruit_resolved: bool = false
+## p.77/p.78 credit-spend control, rebuilt with the task list.
+var _credit_spend_row: HBoxContainer = null
 
 
 func _ready() -> void:
@@ -265,10 +267,73 @@ func _populate_available_tasks() -> void:
 		elif assigned_count > 0:
 			task_text += " [%d/%d crew]" % [assigned_count, task.max_crew]
 
+		# Credits already committed to this task (Core Rules p.77/p.78).
+		var spent: int = int(credits_spent_on_tasks.get(task_id, 0))
+		if spent > 0:
+			task_text += " [+%d cr]" % spent
+
 		available_tasks_list.add_item(task_text)
 
 		# Tooltip with description
 		available_tasks_list.set_item_tooltip(available_tasks_list.item_count - 1, task.description)
+
+	_build_credit_spend_row()
+
+
+func _build_credit_spend_row() -> void:
+	## p.77 Find a Patron: "After rolling, you may opt to spend credits. Each
+	## credit earns a +1 bonus." p.78 says the same for Track and Repair Your Kit.
+	##
+	## THERE WAS NO WAY TO SPEND. spend_credits_on_task() had zero callers — no
+	## control existed anywhere — so the book's main World Phase credit sink did
+	## not exist and credits simply accumulated. (It would also have refused every
+	## call and, if it had not, applied a -1 penalty; both fixed alongside this.)
+	if available_tasks_list == null:
+		return
+	var parent: Node = available_tasks_list.get_parent()
+	if parent == null:
+		return
+
+	if _credit_spend_row and is_instance_valid(_credit_spend_row):
+		_credit_spend_row.queue_free()
+	_credit_spend_row = HBoxContainer.new()
+	_credit_spend_row.add_theme_constant_override("separation", 8)
+
+	var label := Label.new()
+	label.text = "Spend credits for +1 each on the selected task:"
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_credit_spend_row.add_child(label)
+
+	var btn := Button.new()
+	btn.text = "+1 cr"
+	btn.accessibility_name = "Spend 1 credit for a +1 bonus on the selected task"
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	btn.pressed.connect(_on_spend_credit_pressed)
+	_credit_spend_row.add_child(btn)
+
+	parent.add_child(_credit_spend_row)
+	parent.move_child(_credit_spend_row,
+		mini(available_tasks_list.get_index() + 1, parent.get_child_count() - 1))
+
+
+func _on_spend_credit_pressed() -> void:
+	var selected: PackedInt32Array = available_tasks_list.get_selected_items()
+	if selected.is_empty():
+		return
+	var index: int = selected[0]
+	if index >= available_crew_tasks.size():
+		return
+	var task_id: String = str(available_crew_tasks[index].get("id", ""))
+	if task_id.is_empty():
+		return
+	if spend_credits_on_task(task_id, 1):
+		_populate_available_tasks()
+	else:
+		var notif: Node = get_node_or_null("/root/NotificationManager")
+		if notif and notif.has_method("show_warning"):
+			notif.show_warning(
+				"Cannot spend credits on that task (Core Rules pp.77-78).")
 
 ## Task Assignment
 func _on_assign_task_pressed() -> void:
@@ -469,10 +534,19 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 		modified_roll += crew_on_task
 		result.details = "+%d for %d crew" % [crew_on_task, crew_on_task]
 
-	# Apply credit bonus
+	# Credits spent for a bonus (Core Rules p.77 Find a Patron: "After rolling,
+	# you may opt to spend credits. Each credit earns a +1 bonus." p.78 Track and
+	# Repair say the same before the roll.)
+	#
+	# credit_bonus_max = -1 in data/crew_tasks.json is the documented NO-CAP
+	# sentinel — its sibling credit_bonus_note reads "Each credit spent = +1 (no
+	# cap stated)". This line read it as a maximum and computed
+	# mini(credits_spent, -1) = -1, so spending credits would have applied a
+	# PENALTY. It never fired only because the spender was unreachable.
 	var credits_spent = credits_spent_on_tasks.get(task_id, 0)
 	if credits_spent > 0:
-		var bonus = mini(credits_spent, task.credit_bonus)
+		var cap: int = int(task.get("credit_bonus", 0))
+		var bonus: int = credits_spent if cap < 0 else mini(credits_spent, cap)
 		modified_roll += bonus
 		result.details += ", +%d for %d credits" % [bonus, credits_spent]
 
@@ -1611,6 +1685,28 @@ func complete_crew_task_phase() -> void:
 		})
 
 
+static func credit_spend_allowed(cap: int, already_spent: int, amount: int) -> bool:
+	## Whether `amount` more credits may be committed to a task.
+	##
+	## data/crew_tasks.json uses credit_bonus_max = -1 as a NO-CAP sentinel — its
+	## sibling credit_bonus_note reads "Each credit spent = +1 (no cap stated)",
+	## matching p.77's "Each credit earns a +1 bonus" with no ceiling given. The
+	## caller used to test `if max_bonus <= 0: return false`, which caught the
+	## sentinel and refused EVERY spend, so the book's main World Phase credit
+	## sink did not exist. 0 still means the task takes no credits at all.
+	##
+	## Static and pure so it can be tested without the component in the tree —
+	## spend_credits_on_task() resolves /root/GameStateManager, and an absolute
+	## path lookup from a detached node errors and aborts the whole function.
+	if amount <= 0:
+		return false
+	if cap == 0:
+		return false
+	if cap < 0:
+		return true
+	return already_spent + amount <= cap
+
+
 func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	## Spend credits on a task for bonus modifier
 	# Get task info
@@ -1623,14 +1719,11 @@ func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	if task.is_empty():
 		return false
 
-	var max_bonus = task.get("credit_bonus", 0)
-	if max_bonus <= 0:
-		return false
-
+	var max_bonus: int = int(task.get("credit_bonus", 0))
 	var current_spent = credits_spent_on_tasks.get(task_id, 0)
 	var total = current_spent + amount
 
-	if total > max_bonus:
+	if not credit_spend_allowed(max_bonus, current_spent, amount):
 		return false
 
 	# Check GameStateManager has enough credits and deduct
