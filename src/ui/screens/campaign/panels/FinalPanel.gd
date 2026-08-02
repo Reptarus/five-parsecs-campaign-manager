@@ -1665,19 +1665,9 @@ func _validate_campaign_data() -> Array[String]:
 	# player. (This supersedes the earlier decision to require one; that was made
 	# to avoid campaigns with "no win condition", which the book calls normal.)
 	#
-	# Kept as a non-blocking note so the intent behind that decision — make sure
-	# the player knows they have not set a goal — is still served.
-	# Handles both the dict format from ExpandedConfigPanel ({"wealth": {name:...}})
-	# and the legacy bool format ({"wealth": true}).
-	var victory_conditions: Dictionary = config_data.get("victory_conditions", {})
-	var has_victory := false
-	for vkey in victory_conditions.keys():
-		var vval = victory_conditions[vkey]
-		if (vval is Dictionary) or (vval == true):
-			has_victory = true
-			break
-	if not has_victory:
-		push_warning("FinalPanel: campaign created with no victory condition — open-ended play (Core Rules p.64).")
+	# Not logged either: this function runs on every display refresh, and an
+	# open-ended campaign is a normal outcome, not something to warn about.
+	# The review screen's own summary is where the player sees what they picked.
 
 	# BLOCKING ERROR: Must have crew members
 	var crew_data: Dictionary = campaign_data.get("crew", {})
