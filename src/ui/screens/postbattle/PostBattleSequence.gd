@@ -51,9 +51,14 @@ var _post_battle_phase: Node = null
 var _backend_resolved: Dictionary = {}
 
 ## Wizard step indices, from the _register_inline_rolls() calls.
+const STEP_RIVAL_STATUS := 0
 const STEP_BATTLEFIELD_FINDS := 4
 const STEP_INJURIES := 7
+const STEP_CAMPAIGN_EVENT := 11
 const STEP_CHARACTER_EVENT := 12
+
+## Accumulated across the per-rival loop in _on_backend_rival_status().
+var _backend_rival_lines: Array = []
 
 
 func _record_backend_step(step_index: int, lines: Array) -> void:
@@ -578,6 +583,16 @@ func _on_backend_campaign_event(event: Dictionary) -> void:
 	var event_desc = event.get("description", "")
 	_add_result_to_log("Campaign Event: %s - %s" % [event_name, event_desc])
 
+	# The wizard used to roll its OWN D100 and print one of five INVENTED
+	# results ("Minor positive event" and friends, bucketed at 90/70/30/10).
+	# No such table is in the book; the real 28-entry table (pp.126-128) is what
+	# the backend rolls and applies. The player was made to perform a
+	# meaningless gated roll while the actual event went by as a log line.
+	var line: String = str(event_name)
+	if not str(event_desc).is_empty():
+		line += " — " + str(event_desc)
+	_record_backend_step(STEP_CAMPAIGN_EVENT, [line])
+
 func _on_backend_character_event(event: Dictionary) -> void:
 	## PRESENT a backend-applied character event. The backend orchestrator applies
 	## the effect (finalize_event) BEFORE emitting character_event_occurred, so this
@@ -775,10 +790,17 @@ func _on_backend_rival_status(rivals_removed: Array) -> void:
 				_add_result_to_log("Rival %s follows you to the next world" % rival_name)
 			else:
 				_add_result_to_log("Rival %s stays behind" % rival_name)
+			_backend_rival_lines.append("%s: %s" % [
+				rival_name,
+				"still hunting you" if follows else "removed from your Rivals list"])
 			# Track rival encounter in NPCTracker
 			if npc_tracker and npc_tracker.has_method("track_rival_encounter"):
 				var result = "victory" if not follows else "ongoing"
 				npc_tracker.track_rival_encounter(str(rival_id), result, turn)
+
+	if _backend_rival_lines.is_empty():
+		_backend_rival_lines.append("No change to your Rivals list.")
+	_record_backend_step(STEP_RIVAL_STATUS, _backend_rival_lines)
 
 func _on_backend_patron_status(patrons_added: Array) -> void:
 	## Handle patron status resolution from backend
@@ -1006,48 +1028,28 @@ func _add_step_specific_content(step_index: int) -> void:
 
 func _add_rival_status_content() -> void:
 	## Add rival status check content with Five Parsecs rules
+	## Core Rules p.119, Step 1. THE ROLL THIS STEP USED TO TEACH DOES NOT EXIST:
+	## "Rival follows on 1-3, stays behind on 4-6" appears nowhere in the book.
+	## (The real "do Rivals follow you" roll is p.72's New World Arrival step 1,
+	## a different step in a different phase, and it is a 5+.) The player was made
+	## to perform one invented, gated roll per Rival that changed nothing, while
+	## the actual p.119 outcomes — a new Rival on a 1, or a Rival removed on a 4+
+	## — were decided silently by RivalPatronResolver and shown only in the log.
 	var label: Label = Label.new()
-	label.text = "Roll D6 for each rival to see if they follow you to the next world.\nRival follows on 1-3, stays behind on 4-6."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
-	
-	# Get current rivals from campaign data
-	var gsm = get_node_or_null("/root/GameStateManager")
-	var rival_count: int = 0
-	if gsm and gsm.has_method("get_rivals"):
-		var rivals = gsm.get_rivals()
-		rival_count = rivals.size()
-		for rival in rivals:
-			var rival_panel = _create_rival_status_panel(rival)
-			step_content.add_child(rival_panel)
-	_register_inline_rolls(0, rival_count)
 
-func _create_rival_status_panel(rival: Dictionary) -> Control:
-	## Create a panel for rival status checking
-	# HFlow so name + roll button + result wrap to a second line on a narrow
-	# (~384px) portrait column instead of clipping the roll-outcome text.
-	var panel = HFlowContainer.new()
-	panel.add_theme_constant_override("h_separation", SPACING_SM)
-	panel.add_theme_constant_override("v_separation", SPACING_XS)
+	if _backend_resolved.has(STEP_RIVAL_STATUS):
+		label.text = "Rival status (Core Rules p.119):"
+		_present_backend_result(STEP_RIVAL_STATUS)
+	else:
+		label.text = (
+			"Rival status is resolved automatically from the battle result"
+			+ " (Core Rules p.119): a new Rival on a 1 after holding the field,"
+			+ " and an existing Rival removed on a 4+.")
+	_register_inline_rolls(0, 0)
 
-	var name_label = _make_name_label(rival.get("name", "Unknown Rival"), 150)
-	panel.add_child(name_label)
-	
-	var roll_btn = Button.new()
-	roll_btn.text = "Roll for " + rival.get("name", "Rival")
-	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	roll_btn.pressed.connect(
-		_on_rival_status_roll.bind(rival, roll_btn))
-	panel.add_child(roll_btn)
-
-	var result_label = Label.new()
-	result_label.name = "result_" + str(rival.get("id", 0))
-	result_label.text = "Not rolled"
-	_style_pending_result(result_label)
-	panel.add_child(result_label)
-
-	return panel
 
 func _add_patron_status_content() -> void:
 	## Add patron status content
@@ -1616,57 +1618,30 @@ func _get_ship_stash() -> Array:
 
 func _add_campaign_events_content() -> void:
 	## Add campaign events content with Five Parsecs event tables
+	## Core Rules p.125 step 12: "Roll D100 on the Campaign Event Table. Apply the
+	## result immediately." The backend rolls the REAL 28-entry table (pp.126-128,
+	## data/campaign_tables/campaign_events.json) and applies it.
+	##
+	## This step used to roll its own D100 and print one of five INVENTED results
+	## — "Major positive event!", "Minor positive event", "No significant event",
+	## "Minor complication", "Major complication!" — bucketed at 90/70/30/10. No
+	## such table is in the book. So the player performed a gated, meaningless
+	## roll and saw "Rolled 73 - Minor positive event", while the actual event
+	## (say "Tax Man: Paid 5 Credits") went past as a separate log line.
 	var label: Label = Label.new()
-	label.text = "Roll D100 on campaign events table for random encounters and opportunities."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
-	
-	# HFlow so the roll button + result wrap on a narrow (~384px) portrait column
-	# instead of clipping the campaign-event text.
-	var roll_panel = HFlowContainer.new()
-	roll_panel.add_theme_constant_override("h_separation", SPACING_SM)
-	roll_panel.add_theme_constant_override("v_separation", SPACING_XS)
 
-	var roll_btn = Button.new()
-	roll_btn.text = "Roll Campaign Event"
-	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	roll_btn.pressed.connect(
-		_on_campaign_event_roll.bind(roll_btn))
-	roll_panel.add_child(roll_btn)
-
-	var result_label = Label.new()
-	result_label.name = "campaign_event_result"
-	result_label.text = "Not rolled"
-	roll_panel.add_child(result_label)
-
-	step_content.add_child(roll_panel)
-	_register_inline_rolls(11, 1)
-
-func _on_campaign_event_roll(btn: Button = null) -> void:
-	## Handle campaign event roll
-	if btn:
-		btn.disabled = true
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d100("Campaign Event")
+	if _backend_resolved.has(STEP_CAMPAIGN_EVENT):
+		label.text = "Campaign Event (Core Rules pp.126-128):"
+		_present_backend_result(STEP_CAMPAIGN_EVENT)
 	else:
-		roll = randi_range(1, 100)
+		label.text = (
+			"The Campaign Event is rolled on the D100 table (Core Rules"
+			+ " pp.126-128) and applied automatically.")
+	_register_inline_rolls(11, 0)
 
-	var event_result = _interpret_campaign_event(roll)
-	var result_text = "Rolled %d - %s" % [roll, event_result]
-
-	# Update UI
-	var result_label = step_content.find_child(
-		"campaign_event_result")
-	if result_label:
-		result_label.text = result_text
-		result_label.modulate = _get_event_color(roll)
-
-	_add_result_to_log("Campaign Event: %s" % result_text)
-	_increment_inline_roll()
 
 func _get_event_color(roll: int) -> Color:
 	## Get color for event based on roll
@@ -2108,18 +2083,6 @@ func _interpret_loot_roll(roll: int) -> String:
 	else:
 		return "No loot"
 
-func _interpret_campaign_event(roll: int) -> String:
-	## Interpret campaign event roll
-	if roll >= 90:
-		return "Major positive event!"
-	elif roll >= 70:
-		return "Minor positive event"
-	elif roll >= 30:
-		return "No significant event"
-	elif roll >= 10:
-		return "Minor complication"
-	else:
-		return "Major complication!"
 
 func _interpret_character_event(roll: int) -> Dictionary:
 	## Look up character event from JSON data (Core Rules pp.128-130).
@@ -2141,34 +2104,6 @@ func _interpret_character_event(roll: int) -> Dictionary:
 
 # Enhanced signal handlers for specific rolls
 
-func _on_rival_status_roll(rival: Dictionary, btn: Button) -> void:
-	## Handle rival status roll
-	btn.disabled = true
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d6(
-			"Rival Status: " + rival.get("name", "Unknown"))
-	else:
-		roll = randi_range(1, 6)
-
-	var follows = roll <= 3
-	var result_text = "Rolled %d - %s" % [
-		roll, "Follows" if follows else "Stays behind"]
-
-	# Update UI
-	var result_label = step_content.find_child(
-		"result_" + str(rival.get("id", 0)))
-	if result_label:
-		result_label.text = result_text
-		result_label.modulate = (
-			UIColors.COLOR_EMERALD if follows
-			else UIColors.COLOR_RED)
-
-	_add_result_to_log(
-		"%s: %s" % [rival.get("name", "Rival"), result_text])
-	_increment_inline_roll()
 
 func _on_roll_payment_pressed(btn: Button = null) -> void:
 	## Core Rules p.120: Roll 1D6 credits. Won objective: treat 1-2 as 3.
