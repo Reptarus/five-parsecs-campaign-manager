@@ -135,7 +135,14 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			if origin_lower == species_key.to_lower():
 				var exception_text: String = species_exceptions[species_key]
 				if "unaffected" in exception_text.to_lower() or "not affected" in exception_text.to_lower() or "no benefit" in exception_text.to_lower() or "cannot benefit" in exception_text.to_lower():
-					return "%s (%s): Unaffected by '%s'" % [char_name, origin, event_title]
+					# p.126, verbatim: "If an event is completely inapplicable,
+					# simply add +1 XP to the character." A species that is
+					# immune to the event IS that case — a K'Erin drawing "All
+					# this endless violence is depressing you" used to receive
+					# nothing at all instead of the book's fallback.
+					ctx.add_character_xp(character, 1)
+					return "%s (%s): Unaffected by '%s' — +1 XP instead (p.126)" % [
+						char_name, origin, event_title]
 
 	match event_title:
 		"Violence is Depressing":
@@ -408,7 +415,14 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s has time to burn: Extra action next turn (even in Sick Bay)" % char_name
 
 		_:
-			return "%s: Character event '%s' (manual resolution)" % [char_name, event_title]
+			# p.126, verbatim: "In some cases, an event may end up not making any
+			# sense. If so, tweak or ignore it, as necessary. If an event is
+			# completely inapplicable, simply add +1 XP to the character."
+			# An event title with no handler is exactly that case, and the
+			# character used to walk away with nothing.
+			ctx.add_character_xp(character, 1)
+			return "%s: '%s' did not apply — +1 XP instead (Core Rules p.126)" % [
+				char_name, event_title]
 
 
 func _get_species_id(character: Variant, ctx: PostBattleContextClass) -> String:

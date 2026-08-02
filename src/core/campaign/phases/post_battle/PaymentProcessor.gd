@@ -372,7 +372,8 @@ func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
 
 	# Apply special effects based on find type
 	match find_type:
-		"CURIOUS_DATA_STICK", "VITAL_INFO":
+		"CURIOUS_DATA_STICK":
+			# p.121, 26-35: a Quest Rumor, or Invasion Evidence vs a threat.
 			if enemy_is_threat:
 				find["invasion_evidence"] = true
 				find["amount"] = 1  # "Earn +1 credit"
@@ -384,6 +385,33 @@ func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
 					ctx.game_state_manager.add_credits(1)
 			elif ctx.has_method("add_quest_rumor"):
 				ctx.add_quest_rumor()
+		"VITAL_INFO":
+			# p.121, 76-90, verbatim: "Turn in this information to get a
+			# Corporate Patron automatically on this world. If the enemy is an
+			# Invasion Threat, you instead find Invasion Evidence."
+			#
+			# This shared the arm above, so against a NORMAL enemy it paid a
+			# Quest Rumor — which belongs only to 26-35. The player lost a
+			# standing job source on the world and got progress on a Quest they
+			# might not even be running. data/mission_tables/mission_rewards.json
+			# has carried the correct text the whole time.
+			if enemy_is_threat:
+				find["invasion_evidence"] = true
+				find["amount"] = 1
+				ctx.battle_result["invasion_evidence_found"] = true
+				if ctx.game_state and ctx.game_state.has_method("add_credits"):
+					ctx.game_state.add_credits(1)
+				elif ctx.game_state_manager \
+						and ctx.game_state_manager.has_method("add_credits"):
+					ctx.game_state_manager.add_credits(1)
+			else:
+				find["patron_opportunity"] = true
+				if ctx.has_method("add_patron"):
+					ctx.add_patron({
+						"name": "Corporate Contact",
+						"type": "Corporate",
+						"source": "vital_info",
+					})
 		"DEBRIS":
 			find["amount"] = randi_range(1, 3)
 		"PERSONAL_TRINKET":
