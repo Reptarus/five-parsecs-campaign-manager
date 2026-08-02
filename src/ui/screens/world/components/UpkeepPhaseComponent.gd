@@ -2394,6 +2394,7 @@ func _arrive_at_new_world() -> Dictionary:
 	campaign.initialize_world(new_world)
 
 	_roll_psionic_legality_for_world(campaign, new_world)
+	_check_personal_trinkets(campaign)
 
 	# Mission-required travel (Core Rules p.119): traveling to a NEW world
 	# satisfies a Quest's "next step is on another world" requirement — clear it.
@@ -2453,6 +2454,52 @@ func _report_arrival_departures(departures: Dictionary) -> void:
 			"title": "Departure",
 			"description": "\n".join(detail),
 		})
+
+func _check_personal_trinkets(campaign: Resource) -> void:
+	## Core Rules p.121, Battlefield Finds 46-60, verbatim: "Personal trinket — On
+	## each planet you visit in the future, roll 2D6. On a 9+ you find the owner
+	## and receive a Loot roll (p.131) as payment."
+	##
+	## NO PER-PLANET CHECK EXISTED ANYWHERE. The find's own branch said "Resolved
+	## per-planet later" and set amount 0, and a repo-wide search for a trinket /
+	## 9+ resolver returned nothing outside a descriptive UI string. So the one
+	## table entry whose whole value is a RECURRING payoff paid out exactly never.
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	var trinkets: int = int(campaign.progress_data.get("personal_trinkets", 0))
+	if trinkets <= 0:
+		return
+
+	var found: int = 0
+	var remaining: int = trinkets
+	for _i in range(trinkets):
+		if randi_range(1, 6) + randi_range(1, 6) >= 9:
+			found += 1
+			remaining -= 1
+	if found <= 0:
+		return
+
+	# The owner is found once per trinket; that trinket is then spent.
+	campaign.progress_data["personal_trinkets"] = remaining
+	var owed: int = int(campaign.progress_data.get("pending_loot_rolls", 0))
+	campaign.progress_data["pending_loot_rolls"] = owed + found
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success(
+			"Found the owner of a personal trinket — %d Loot roll(s) owed (p.121)."
+			% found)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Personal trinket returned",
+			"description": ("Tracked down the owner of %d battlefield trinket(s)"
+				% found) + " — %d Loot Table roll(s) as payment (Core Rules p.121)." % found,
+			"tags": ["loot"],
+		})
+
 
 func _roll_psionic_legality_for_world(campaign: Resource, world: Dictionary) -> void:
 	## The Legality of Psionics (Compendium p.20), verbatim: "When using Psionic

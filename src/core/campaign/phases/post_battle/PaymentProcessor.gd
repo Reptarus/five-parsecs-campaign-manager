@@ -10,6 +10,10 @@ const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 
+## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
+## equivalent to 2 credits only when installing a Starship Component."
+const STARSHIP_PART_VALUE := 2
+
 func process_scenario_loss_penalties(
 	ctx: PostBattleContextClass
 ) -> Array[Dictionary]:
@@ -413,11 +417,64 @@ func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
 						"source": "vital_info",
 					})
 		"DEBRIS":
-			find["amount"] = randi_range(1, 3)
+			# p.121, 61-75: "Debris: 1D3 credits' worth on the scrap market."
+			# The amount was rolled and never paid — nothing added the credits.
+			var scrap: int = randi_range(1, 3)
+			find["amount"] = scrap
+			_grant_find_credits(ctx, scrap)
+		"STARSHIP_PART":
+			# p.121, 36-45: "Redeemable as equivalent to 2 credits only when
+			# installing a Starship Component." Banked separately from cash so it
+			# cannot be spent on anything else. No branch existed at all.
+			find["amount"] = 0
+			find["starship_part_credits"] = STARSHIP_PART_VALUE
+			if ctx.game_state and ctx.game_state.current_campaign:
+				var camp = ctx.game_state.current_campaign
+				if "progress_data" in camp:
+					var banked: int = int(camp.progress_data.get(
+						"starship_part_credits", 0))
+					camp.progress_data["starship_part_credits"] = \
+						banked + STARSHIP_PART_VALUE
+		"WEAPON":
+			# p.121, 1-15: "Randomly select a slain (but not Bailed) enemy from
+			# the battle. You may keep any weapons they were carrying." The choice
+			# of weapon is the player's, so this reports the entitlement rather
+			# than picking for them — but it used to have no branch at all and
+			# said nothing.
+			find["amount"] = 0
+			find["claim_enemy_weapon"] = true
+		"USABLE_GOODS":
+			# p.121, 16-25: "Roll on the Consumables Table ... You receive 1
+			# dosage of the item indicated."
+			find["amount"] = 0
+			find["consumable_roll_owed"] = 1
 		"PERSONAL_TRINKET":
-			find["amount"] = 0  # Resolved per-planet later
+			# p.121, 46-60: "On each planet you visit in the future, roll 2D6. On
+			# a 9+ you find the owner and receive a Loot roll as payment."
+			# Recorded on the campaign so world arrival can check it; previously
+			# the comment said "Resolved per-planet later" and no per-planet check
+			# existed anywhere.
+			find["amount"] = 0
+			if ctx.game_state and ctx.game_state.current_campaign:
+				var camp_t = ctx.game_state.current_campaign
+				if "progress_data" in camp_t:
+					var trinkets: int = int(camp_t.progress_data.get(
+						"personal_trinkets", 0))
+					camp_t.progress_data["personal_trinkets"] = trinkets + 1
 
+	# The only consumer reads find["credits"]; this function has always written
+	# find["amount"], so every credit value on the table displayed as 0.
+	find["credits"] = int(find.get("amount", 0))
 	return find
+
+
+func _grant_find_credits(ctx: PostBattleContextClass, amount: int) -> void:
+	if amount <= 0:
+		return
+	if ctx.game_state and ctx.game_state.has_method("add_credits"):
+		ctx.game_state.add_credits(amount)
+	elif ctx.game_state_manager and ctx.game_state_manager.has_method("add_credits"):
+		ctx.game_state_manager.add_credits(amount)
 
 func process_black_zone_rewards(
 		ctx: PostBattleContextClass) -> Dictionary:
