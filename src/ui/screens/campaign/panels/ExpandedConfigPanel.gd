@@ -91,6 +91,7 @@ var local_campaign_config: Dictionary = {
 var campaign_name_input: LineEdit
 var _name_hint_label: Label  # Inline "name required to continue" hint (silent-gating fix)
 var campaign_type_option: OptionButton
+var house_rules_edit: TextEdit
 var difficulty_option: OptionButton  # Difficulty selector
 var victory_conditions_list: VBoxContainer
 var story_track_checkbox: CheckBox
@@ -286,7 +287,15 @@ func _initialize_components() -> void:
 
 	# Build card-based UI sections into flow container
 	_build_campaign_identity_section(flow)
-	_build_campaign_type_section(flow)
+	# CAMPAIGN STYLE is not built. "Standard / Story-Focused / Combat-Focused /
+	# Exploration-Focused" is not a Five Parsecs concept — it appears nowhere in
+	# the Core Rules or the Compendium — and nothing read it: the value passed
+	# through the coordinator into data["config"]["campaign_type"] and stopped
+	# there, with no consumer anywhere and no field on the campaign resource.
+	# (Not to be confused with the campaign_type that identifies the GAMEMODE —
+	# "five_parsecs" / "bug_hunt" / "planetfall" / "tactics" — which is load-
+	# bearing for save routing and is untouched.) Offering a choice that changes
+	# nothing is worse than not offering it.
 	_build_crew_size_section(flow)
 	_build_difficulty_section(flow)
 	_build_victory_conditions_section(flow)
@@ -294,6 +303,9 @@ func _initialize_components() -> void:
 	_build_compendium_setup_section(flow)
 	_build_expansion_features_section(flow)
 	_build_progressive_difficulty_section(flow)
+	# Core Rules p.65 Campaign Preparation step 5 — the last thing the book asks
+	# you to decide, so it is the last card.
+	_build_house_rules_section(flow)
 
 	_flow_content = flow
 	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
@@ -489,6 +501,52 @@ func _build_campaign_type_section(parent: Control) -> void:
 		""
 	)
 	parent.add_child(card)
+
+func _build_house_rules_section(parent: Control) -> void:
+	## Core Rules p.65, Campaign Preparation step 5 "Establish House Rules":
+	## "Finally, evaluate whether you want to make any house rules. If this is
+	## your first time playing, I strongly encourage you to play the rules as
+	## written... In most cases, it is best to not add, remove, or change a house
+	## rule mid-campaign."
+	##
+	## The step had no surface anywhere in the wizard, while finalization already
+	## read config["house_rules"] and called campaign.set_house_rules() — a
+	## consumer waiting on a producer that was never written. Recording them at
+	## creation is also what makes the book's "do not change them mid-campaign"
+	## advice enforceable later.
+	house_rules_edit = TextEdit.new()
+	house_rules_edit.placeholder_text = "One house rule per line (optional)"
+	house_rules_edit.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN * 2)
+	house_rules_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	house_rules_edit.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	house_rules_edit.text_changed.connect(_on_house_rules_changed)
+
+	var hint := Label.new()
+	hint.text = ("Optional. If this is your first campaign, the book recommends "
+		+ "playing the rules as written — and not changing house rules "
+		+ "mid-campaign (Core Rules p.65).")
+	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(house_rules_edit)
+	content.add_child(hint)
+
+	parent.add_child(_create_section_card("HOUSE RULES", content, ""))
+
+func _on_house_rules_changed() -> void:
+	if not house_rules_edit:
+		return
+	var rules: Array = []
+	for line in house_rules_edit.text.split("\n"):
+		var trimmed: String = str(line).strip_edges()
+		if not trimmed.is_empty():
+			rules.append(trimmed)
+	local_campaign_config["house_rules"] = rules
+	campaign_config_data_changed.emit(local_campaign_config)
 
 func _build_difficulty_section(parent: Control) -> void:
 	## Build difficulty selector with card design and description

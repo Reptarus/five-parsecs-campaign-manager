@@ -657,10 +657,24 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 	# Update campaign config data
 	if campaign_config_data.has("campaign_name"):
 		unified_campaign_state.campaign_config.campaign_name = campaign_config_data.campaign_name
-	if campaign_config_data.has("campaign_type"):
-		unified_campaign_state.campaign_config.campaign_type = campaign_config_data.campaign_type
 	if campaign_config_data.has("campaign_crew_size"):
 		unified_campaign_state.campaign_config.campaign_crew_size = campaign_config_data.campaign_crew_size
+	# THIS IS A WHITELIST, and that is deliberate — it is what makes campaign
+	# state ownership auditable. But a key the panel collects and this list does
+	# not name is silently dropped, which is how Progressive Difficulty and the
+	# per-campaign narrative override became decorative: the controls worked, the
+	# values were stored locally, and nothing ever left the panel.
+	if campaign_config_data.has("progressive_difficulty_options"):
+		unified_campaign_state.campaign_config.progressive_difficulty_options = \
+			campaign_config_data.progressive_difficulty_options
+	if campaign_config_data.has("narrative_wrap_override"):
+		unified_campaign_state.campaign_config.narrative_wrap_override = \
+			campaign_config_data.narrative_wrap_override
+	# Core Rules p.65 step 5. Finalization has always read config["house_rules"]
+	# and called campaign.set_house_rules(); nothing ever wrote it.
+	if campaign_config_data.has("house_rules"):
+		unified_campaign_state.campaign_config.house_rules = \
+			campaign_config_data.house_rules
 	if campaign_config_data.has("victory_conditions"):
 		unified_campaign_state.campaign_config.victory_conditions = campaign_config_data.victory_conditions
 	# Narrative options (bool toggles)
