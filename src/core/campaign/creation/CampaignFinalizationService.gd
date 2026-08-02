@@ -497,22 +497,36 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var ship_data = data.get("ship", {})
 	campaign.initialize_ship(ship_data)
 
-	# PHASE 2 FIX: Transfer ship debt to GameStateManager
-	if GameStateManager and ship_data.has("debt"):
-		var debt = ship_data.get("debt", 0)
-		if GameStateManager.has_method("set_ship_debt"):
-			GameStateManager.set_ship_debt(debt)
-		else:
-			pass
+	# Ship debt goes onto the CAMPAIGN, which owns it.
+	#
+	# It used to be handed to GameStateManager.set_ship_debt(), which resolves
+	# the campaign through GameState.current_campaign — and that is still null
+	# here, because the campaign is not installed until CampaignCreationUI's
+	# _on_campaign_finalized() runs AFTER finalization returns. So the write was
+	# a no-op — and this file's own readiness check was reporting it in the log
+	# the whole time ("Credits not set or zero", "Location not set"), through a
+	# channel equally unable to see the campaign. See _verify_campaign_is_ready().
+	#
+	# The visible symptom: a freshly created campaign had ship_debt 0 while its
+	# nested ship_data["debt"] held the real figure, so the crew flew debt-free
+	# until the first save/reload, where from_dictionary()'s migration recovers
+	# it. Same campaign, two different debts depending on whether you had
+	# reloaded — and the free ride was the one you got at the table.
+	if ship_data.has("debt"):
+		campaign.ship_debt = int(ship_data.get("debt", 0))
 
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})
 	campaign.initialize_world(world_data)
 
-	# Set world data as current_location in GameStateManager
-	if GameStateManager and not world_data.is_empty() and GameStateManager.has_method("set_location"):
-		var location_name: String = world_data.get("name", "Unknown World")
-		GameStateManager.set_location(location_name)
+	# Current location, written onto the campaign for the same reason as the debt
+	# above: GameStateManager.set_location() does `_get_campaign().world_data
+	# ["current_location"] = loc`, and _get_campaign() is null until the campaign
+	# is installed after finalization returns. Writing world_data directly is the
+	# identical mutation without the dependency on state that does not exist yet.
+	if not world_data.is_empty():
+		campaign.world_data["current_location"] = str(
+			world_data.get("name", "Unknown World"))
 
 	# Seed the starting world into PlanetDataManager so it joins visited_planets
 	# with discovered_on_turn=0 and current_planet_id set. Without this, the
@@ -716,11 +730,11 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"
 
-	# Verify GameStateManager integration
-	var gsm_verification = _verify_game_state_manager_integration()
-	if not gsm_verification.get("success", false):
-		push_warning("CampaignFinalizationService: GameStateManager integration incomplete")
-		for warning in gsm_verification.get("warnings", []):
+	# Verify the campaign itself carries what the turn system needs.
+	var readiness = _verify_campaign_is_ready(campaign)
+	if not readiness.get("success", false):
+		push_warning("CampaignFinalizationService: campaign is missing expected data")
+		for warning in readiness.get("warnings", []):
 			push_warning("  - " + warning)
 
 	# Validate campaign resource
@@ -730,49 +744,54 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	return campaign
 
-func _verify_game_state_manager_integration() -> Dictionary:
-	## Verify all required data was transferred to GameStateManager
+func _verify_campaign_is_ready(campaign: Resource) -> Dictionary:
+	## Verify the campaign carries what the turn system needs, BY READING THE
+	## CAMPAIGN.
+	##
+	## This used to read everything back through GameStateManager, which resolves
+	## GameState.current_campaign — and that is null throughout finalization,
+	## because the campaign is not installed until CampaignCreationUI's
+	## _on_campaign_finalized() runs after this returns. So the check could only
+	## ever report the PREVIOUS campaign's values, or nothing at all: it logged
+	## "Credits not set or zero" and "Location not set" on every successful
+	## creation, and would have gone on logging them however correct the campaign
+	## was. A verification that cannot observe its subject is worse than none —
+	## it trains you to ignore the log.
 	var result = {"success": true, "transferred": [], "warnings": []}
-
-	if not GameStateManager:
+	if campaign == null:
 		result.success = false
-		result.warnings.append("GameStateManager not available - all transfers failed")
+		result.warnings.append("No campaign resource to verify")
 		return result
 
-	# Check credits
-	if GameStateManager.has_method("get_credits"):
-		var credits = GameStateManager.get_credits()
-		if credits > 0:
-			result.transferred.append("credits: %d" % credits)
-		else:
-			result.warnings.append("Credits not set or zero")
+	var credits: int = int(campaign.credits) if "credits" in campaign else 0
+	if credits > 0:
+		result.transferred.append("credits: %d" % credits)
+	else:
+		result.warnings.append("Credits not set or zero")
 
-	# Check ship debt
-	if GameStateManager.has_method("get_ship_debt"):
-		var debt = GameStateManager.get_ship_debt()
-		result.transferred.append("ship_debt: %d" % debt)
+	if "ship_debt" in campaign:
+		result.transferred.append("ship_debt: %d" % int(campaign.ship_debt))
 
-	# Check story track
-	if GameStateManager.has_method("is_story_track_enabled"):
-		var story_enabled = GameStateManager.is_story_track_enabled()
-		result.transferred.append("story_track: %s" % ("enabled" if story_enabled else "disabled"))
+	if "story_track_enabled" in campaign:
+		result.transferred.append("story_track: %s"
+			% ("enabled" if bool(campaign.story_track_enabled) else "disabled"))
 
-	# Check location
-	if GameStateManager.has_method("get_location"):
-		var location = GameStateManager.get_location()
-		if location and not location.is_empty():
-			result.transferred.append("location: set")
-		else:
-			result.warnings.append("Location not set")
+	var location: String = ""
+	if "world_data" in campaign and campaign.world_data is Dictionary:
+		location = str(campaign.world_data.get("current_location",
+			campaign.world_data.get("name", "")))
+	if not location.is_empty():
+		result.transferred.append("location: %s" % location)
+	else:
+		result.warnings.append("Location not set")
 
-	# Check victory conditions
-	if GameStateManager.has_method("get_victory_conditions"):
-		var victory = GameStateManager.get_victory_conditions()
-		if victory and not victory.is_empty():
-			result.transferred.append("victory_conditions: %d" % victory.size())
+	if "victory_conditions" in campaign and campaign.victory_conditions is Dictionary \
+			and not campaign.victory_conditions.is_empty():
+		result.transferred.append(
+			"victory_conditions: %d" % campaign.victory_conditions.size())
 
-	# Summary log
-	pass # GSM integration check complete
+	if not (result.warnings as Array).is_empty():
+		result.success = false
 
 	if result.warnings.size() > 0:
 		result.success = false
