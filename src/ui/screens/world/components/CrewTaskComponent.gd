@@ -76,6 +76,9 @@ func _load_crew_tasks() -> void:
 # Track crew per task for multi-assignment
 var task_assignments: Dictionary = {} # task_id -> Array of crew_ids
 var credits_spent_on_tasks: Dictionary = {} # task_id -> credits spent
+## p.78 dice branch: "A score of 6 or higher allows A new recruit to be added" —
+## one recruit for the whole attempt, not one per crew member sent.
+var _group_recruit_resolved: bool = false
 
 
 func _ready() -> void:
@@ -150,18 +153,13 @@ func _populate_crew_list() -> void:
 		var crew_member = crew_data[i]
 		var crew_name = _member_get(crew_member, "character_name", "Crew Member %d" % (i + 1))
 
-		# Check if in Sick Bay (Core Rules - injured crew can't perform tasks)
-		var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) or _member_get(crew_member, "status", "") == "injured"
-
-		# Time to Burn: extra action even in Sick Bay (Core Rules p.130)
-		var has_extra_action := false
-		for eff in _member_get(crew_member, "status_effects", []):
-			if str(eff.get("type", "")) == "extra_action":
-				has_extra_action = true
-				break
-
-		if is_in_sick_bay and not has_extra_action:
-			crew_member_list.add_item("%s [SICK BAY]" % crew_name)
+		# Sick Bay, p.76 upkeep lockout, and the pp.128-130 Character Event blocks.
+		# This list previously checked Sick Bay ONLY, so crew who had refused to
+		# work for lack of upkeep — and characters who had outright left — showed
+		# up enabled and assignable.
+		var block_reason: String = _task_block_reason(crew_member)
+		if not block_reason.is_empty():
+			crew_member_list.add_item("%s [%s]" % [crew_name, block_reason])
 			crew_member_list.set_item_disabled(crew_member_list.item_count - 1, true)
 			continue
 
@@ -174,34 +172,55 @@ func _populate_crew_list() -> void:
 
 		crew_member_list.add_item(crew_name + task_status)
 
+func _task_block_reason(crew_member) -> String:
+	## Why this crew member cannot take a task this turn, or "" if they can.
+	##
+	## THIS LOGIC USED TO BE UNREACHABLE. It lived in _get_eligible_crew(), which
+	## had ZERO callers repo-wide, while the two LIVE paths — _populate_crew_list()
+	## and _on_assign_task_pressed() — checked only Sick Bay. Two book rules were
+	## therefore inert:
+	##
+	##   p.76 "For each credit you are short, one crew member will refuse to do
+	##   any jobs for you this campaign turn." The player was shown a dialog
+	##   naming the crew who refuse, and then those exact characters appeared
+	##   enabled and could be assigned with full effect.
+	##
+	##   pp.128-130 Character Events writing skip_tasks / unavailable / departed —
+	##   a character who has left the crew could still be sent to Trade.
+	##
+	## Returning a REASON rather than a bool so the list can tell the player why a
+	## name is greyed out; a silent disable reads as a bug.
+	var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) \
+		or _member_get(crew_member, "status", "") == "injured"
+	# Time to Burn (Core Rules p.130): extra_action allows tasks even in Sick Bay.
+	var has_extra_action := false
+	for eff in _member_get(crew_member, "status_effects", []):
+		if str(eff.get("type", "")) == "extra_action":
+			has_extra_action = true
+			break
+	if is_in_sick_bay and not has_extra_action:
+		return "SICK BAY"
+	# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
+	if _member_get(crew_member, "locked_out_this_turn", false):
+		return "REFUSING WORK"
+	# Character Event restrictions (Core Rules pp.128-130)
+	for eff in _member_get(crew_member, "status_effects", []):
+		match str(eff.get("type", "")):
+			"skip_tasks":
+				return "UNAVAILABLE"
+			"unavailable":
+				return "UNAVAILABLE"
+			"departed":
+				return "DEPARTED"
+	return ""
+
+
 func _get_eligible_crew() -> Array:
-	## Get crew members not in Sick Bay and not blocked by Character Events.
-	## Time to Burn (Core Rules p.130): extra_action allows tasks even in Sick Bay.
+	## Crew who may be assigned a task this turn.
 	var eligible: Array = []
 	for crew_member in crew_data:
-		var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) \
-			or _member_get(crew_member, "status", "") == "injured"
-		# Time to Burn overrides Sick Bay restriction
-		var has_extra_action := false
-		for eff in _member_get(crew_member, "status_effects", []):
-			if str(eff.get("type", "")) == "extra_action":
-				has_extra_action = true
-				break
-		if is_in_sick_bay and not has_extra_action:
-			continue
-		# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
-		if _member_get(crew_member, "locked_out_this_turn", false):
-			continue
-		# Character Event restrictions (Core Rules pp.128-130)
-		var has_task_block := false
-		for eff in _member_get(crew_member, "status_effects", []):
-			var eff_type: String = str(eff.get("type", ""))
-			if eff_type == "skip_tasks" or eff_type == "unavailable" or eff_type == "departed":
-				has_task_block = true
-				break
-		if has_task_block:
-			continue
-		eligible.append(crew_member)
+		if _task_block_reason(crew_member).is_empty():
+			eligible.append(crew_member)
 	return eligible
 
 func _member_get(member, key: String, default = null):
@@ -271,10 +290,13 @@ func _on_assign_task_pressed() -> void:
 	var crew_id = crew_member.get("character_id", "crew_%d" % crew_index)
 	var task_id = task.get("id", "task_%d" % task_index)
 
-	# Check if crew is in Sick Bay
-	var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
-	if is_in_sick_bay:
-		push_warning("CrewTaskComponent: %s is in Sick Bay and cannot be assigned" % crew_member.get("character_name", "Crew"))
+	# Sick Bay (p.76), the upkeep lockout (p.76) and the Character Event blocks
+	# (pp.128-130). Previously only Sick Bay was checked here, so a locked-out or
+	# departed character could still be assigned by selecting them directly.
+	var assign_block: String = _task_block_reason(crew_member)
+	if not assign_block.is_empty():
+		push_warning("CrewTaskComponent: %s cannot be assigned (%s)" % [
+			crew_member.get("character_name", "Crew"), assign_block])
 		return
 
 	# Mutant: cannot Recruit or Find a Patron (Core Rules p.21)
@@ -342,6 +364,10 @@ func _on_resolve_all_pressed() -> void:
 	## Resolve all assigned crew tasks using Five Parsecs rules
 	if assigned_tasks.is_empty():
 		return
+
+	# p.78's dice branch grants ONE recruit however many crew were sent, but the
+	# loop below resolves once per crew member — so the grant is guarded per pass.
+	_group_recruit_resolved = false
 	
 	pass # Resolving crew tasks
 	
@@ -508,13 +534,32 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 				modified_roll += patrons.size()
 				result.details += ", +%d patron(s)" % patrons.size()
 
-	# Recruit: auto-recruit when crew < 6 (Core Rules p.78)
+	# Recruit (Core Rules p.78), verbatim: "If your crew has fewer than 6 members
+	# currently, you can automatically recruit a new character for each crew member
+	# sent Recruiting (until you are back to 6 members). If you have 6 or more crew
+	# members, roll a D6, adding the number of crew members sent to recruit. A
+	# score of 6 or higher allows a new recruit to be added."
+	#
+	# BOTH BRANCHES USED TO ADD NOBODY. The task printed "Automatic recruit (crew
+	# below 6)" or the dice line and returned — _apply_recruit() is reached only
+	# from the event-queue RECRUIT case, which is built solely from `table_result`
+	# rewards (Trade / Exploration), and a dice result never carries one. So a crew
+	# reduced to 3 by casualties could never rebuild; the only way to gain a
+	# character was a lucky table roll.
+	#
+	# The two branches are NOT symmetrical and the resolution loop runs once per
+	# crew member: the automatic branch is "for each crew member sent", which the
+	# per-member loop gives naturally, but the dice branch is ONE roll for the
+	# group granting ONE recruit, so it is guarded to fire only once per turn.
 	if task.id == "recruit":
 		var gsm = get_node_or_null("/root/GameStateManager")
 		if gsm and gsm.get_crew_size() < 6:
 			result.roll = roll
 			result.modified_roll = 0
 			result.success = true
+			# "until you are back to 6 members" — re-checked per member, so a
+			# crew of 5 sending three recruiters still stops at 6.
+			_apply_recruit()
 			result.reward = "Automatic recruit (crew below 6)"
 			result.details = "Crew size < 6: auto-recruit"
 			return result
@@ -522,6 +567,14 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 	result.roll = roll
 	result.modified_roll = modified_roll
 	result.success = modified_roll >= task.dice_target
+
+	if task.id == "recruit" and result.success:
+		if _group_recruit_resolved:
+			result.reward = "No further recruits (one per attempt, p.78)"
+		else:
+			_group_recruit_resolved = true
+			_apply_recruit()
+			result.reward = "New recruit joins the crew"
 
 	# Find Patron: 6+ means TWO patrons (Core Rules p.77)
 	if task.id == "find_patron":
@@ -2479,7 +2532,11 @@ func _apply_rumor(event_data: Dictionary, outcome: Dictionary) -> void:
 		campaign.rumors.append(new_rumor)
 
 func _apply_recruit() -> void:
-	## Recruit a new crew member
+	## Add one recruit to the crew (Core Rules p.78), verbatim: "Each recruit rolls
+	## using the random method in the character creation process (see p.14).
+	## Recruits have the basic profile for their type, and come armed with a
+	## Handgun. They do not roll on any of the random background tables in the
+	## 'Character Creation' chapter."
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.current_campaign:
 		push_warning("CrewTaskComponent: Cannot recruit — no campaign")
@@ -2498,11 +2555,53 @@ func _apply_recruit() -> void:
 	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
 	if CharGen and CharGen.has_method("create_character"):
 		var new_char = CharGen.create_character({})
-		if new_char and campaign.has_method("add_crew_member"):
+		if new_char == null:
+			return
+		_strip_to_recruit_loadout(new_char)
+		if campaign.has_method("add_crew_member"):
 			if new_char.has_method("to_dictionary"):
 				campaign.add_crew_member(new_char.to_dictionary())
 			else:
 				campaign.add_crew_member(new_char)
+			_notify_recruit_joined(new_char)
+
+
+func _strip_to_recruit_loadout(new_char) -> void:
+	## p.78: a recruit is the BASIC profile plus a Hand Gun, with no background
+	## rolls. create_character() runs the full generator, which hands out a whole
+	## starting loadout, so the gear is replaced rather than added to.
+	##
+	## Character.equipment is Array[String]; assigning an untyped array to a typed
+	## property is rejected outright and the write is LOST, so .assign() is the
+	## only safe route. "Hand Gun" is the canonical name in
+	## data/equipment_database.json — "Handgun" resolves to nothing.
+	if not ("equipment" in new_char):
+		return
+	var loadout: Array[String] = []
+	loadout.assign(["Hand Gun"])
+	new_char.equipment = loadout
+	# Background-table rewards (credits, Patrons, Rivals, story points) belong to
+	# character creation only; a recruit must not carry them into the campaign.
+	if "creation_bonuses" in new_char and new_char.creation_bonuses is Dictionary:
+		new_char.creation_bonuses = {}
+
+
+func _notify_recruit_joined(new_char) -> void:
+	var recruit_name: String = "A new recruit"
+	if new_char != null and "character_name" in new_char:
+		recruit_name = str(new_char.character_name)
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("%s joined the crew." % recruit_name)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "New recruit",
+			"description": "%s signed on, armed with a Hand Gun (Core Rules p.78)." % recruit_name,
+			"tags": ["crew", "recruit"],
+		})
 
 func _remove_crew_member(crew_member, crew_id: String) -> void:
 	## Remove a crew member from the campaign (for pay_or_lose penalty)

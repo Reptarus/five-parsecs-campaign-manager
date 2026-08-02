@@ -685,6 +685,10 @@ func _process_free_hull_repair(campaign: Resource) -> void:
 	## point. Paid repair is the upkeep step's job; this is the automatic one.
 	if campaign == null or not ("ship_data" in campaign):
 		return
+	# A wrecked ship is "no longer usable" (p.59) — without this guard the free
+	# tick floats a destroyed hull back to 1 HP every turn.
+	if "has_ship" in campaign and not campaign.has_ship:
+		return
 	var ship: Dictionary = campaign.ship_data
 	if ship.is_empty():
 		return

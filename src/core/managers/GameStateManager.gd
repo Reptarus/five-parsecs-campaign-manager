@@ -3,6 +3,7 @@ extends Node
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const _ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+const ShiplessSystemRef = preload("res://src/core/ship/ShiplessSystem.gd")
 
 signal game_state_changed(new_state: int)
 signal credits_changed(new_amount: int)
@@ -522,9 +523,10 @@ func has_pending_invasion() -> bool:
 		return gs.has_pending_invasion()
 	return false
 
-func apply_ship_damage(amount: int) -> int:
+func apply_ship_damage(amount: int, in_space: bool = false) -> int:
 	## Apply hull damage with trait modifiers (Core Rules p.30)
-	## Returns actual damage dealt after trait effects
+	## Returns actual damage dealt after trait effects.
+	## in_space selects which p.59 wreck outcome applies if the hull reaches 0.
 	var c = _get_campaign()
 	if not c:
 		return amount
@@ -569,7 +571,61 @@ func apply_ship_damage(amount: int) -> int:
 
 	var current_hull: int = ship.get("hull_points", 0)
 	ship["hull_points"] = maxi(0, current_hull - final_amount)
+
+	# Core Rules p.59, verbatim: "Once that amount of damage has been accumulated,
+	# the ship is a wreck, and no longer usable."
+	#
+	# The clamp above was the end of the story: a ship at 0 Hull Points was merely
+	# grounded, and the free 1-point-per-turn repair floated it again next turn, so
+	# a crew could never actually lose their ship to damage and the 1D6+5 scrap was
+	# never paid. ShiplessSystem.apply_ship_destruction() had zero callers.
+	if ship["hull_points"] <= 0 and int(ship.get("max_hull", 0)) > 0:
+		_wreck_ship(c, in_space)
+
 	return final_amount
+
+
+func _wreck_ship(campaign, in_space: bool) -> void:
+	## The two outcomes on p.59 are NOT the same, and applying the wrong one is
+	## either a windfall or a robbery:
+	##
+	##   In space  -> "being without a ship": "you lose all credits and can only
+	##                retain 2 items per crew member. Everything else is lost in
+	##                deep space." (ShiplessSystem.apply_ship_destruction)
+	##   On ground -> "you can reclaim 1D6+5 credits' worth of scrap parts."
+	##                No credit loss and no item loss at all.
+	##
+	## Every current caller of apply_ship_damage() is a post-battle or campaign
+	## event, i.e. on the ground, which is why in_space defaults to false.
+	if not ("has_ship" in campaign) or not campaign.has_ship:
+		return  # already a wreck; never apply the consequences twice
+
+	var message: String = ""
+	if in_space:
+		ShiplessSystemRef.apply_ship_destruction(campaign)
+		message = ("Your ship broke up in transit. You escaped by shuttle with"
+			+ " nothing but 2 items per crew member.")
+	else:
+		campaign.has_ship = false
+		var scrap: int = randi_range(1, 6) + 5
+		add_credits(scrap)
+		message = ("Your ship is a wreck. You stripped %d credits' worth of scrap"
+			+ " parts from the hull.") % scrap
+
+	var journal: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/CampaignJournal") if Engine.get_main_loop() else null
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "ship",
+			"title": "Ship destroyed",
+			"description": message + " Core Rules p.59.",
+			"tags": ["ship"],
+			"auto_generated": true,
+		})
+	var notif: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/NotificationManager") if Engine.get_main_loop() else null
+	if notif and notif.has_method("show_error"):
+		notif.show_error(message)
 
 func repair_hull(amount: int) -> void:
 	## Repair hull points (Core Rules p.59: 1 free/turn + paid)

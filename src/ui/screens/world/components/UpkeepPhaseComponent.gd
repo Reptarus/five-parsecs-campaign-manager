@@ -1000,8 +1000,15 @@ func _on_travel_pressed() -> void:
 		"font_color", UIColors.COLOR_AMBER)
 	_travel_status_label.visible = true
 
-	# Generate D100 travel event (Core Rules pp.70-71)
-	_generate_travel_event()
+	# Generate D100 travel event (Core Rules pp.70-71).
+	#
+	# p.69 is explicit for commercial passage: "When traveling commercially, do
+	# not roll for Starship Travel Events." This branched on has_ship only to pick
+	# the COST, then rolled unconditionally — so a shipless crew riding a liner
+	# was shown "Asteroids: your ship takes Hull damage" and "Drive trouble: your
+	# ship is grounded" about a ship they do not own.
+	if has_ship:
+		_generate_travel_event()
 
 	# New World Arrival (Core Rules p.69): generate the world we travel TO and
 	# route it through the campaign's single world_data writer, which fires
