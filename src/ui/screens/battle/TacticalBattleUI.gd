@@ -49,6 +49,7 @@ const _SCENE_REGISTRY: Dictionary = {
 	"dice_dashboard": "res://src/ui/components/battle/DiceDashboard.tscn",
 	"combat_calculator": "res://src/ui/components/battle/CombatCalculator.tscn",
 	"battle_round_hud": "res://src/ui/components/battle/BattleRoundHUD.gd",
+	"story_marker_panel": "res://src/ui/components/battle/StoryMarkerPanel.gd",
 	"cheat_sheet": "res://src/ui/components/battle/CheatSheetPanel.gd",
 	"weapon_table": "res://src/ui/components/battle/WeaponTableDisplay.tscn",
 	"combat_situation": "res://src/ui/components/battle/CombatSituationPanel.tscn",
@@ -197,6 +198,9 @@ var unified_log: FPCM_UnifiedBattleLog = null  # Replaces BattleJournal + Fallba
 var dice_dashboard: Control = null
 var combat_calculator: Control = null
 var battle_round_hud: Control = null
+## Story Track Event 5 marker tracker (Core Rules p.157). Only instantiated when
+## the mission carries story_event_id == "kidnap"; null on every other battle.
+var story_marker_panel: Control = null
 var character_cards: Array = [] # Array of CharacterStatusCard instances (crew + enemy drawer cards)
 var _unit_card_by_id: Dictionary = {}   # _unit_id(unit) -> CharacterStatusCard (live drawer card)
 var _drawer_repopulate_queued: bool = false  # re-entrancy guard for deferred drawer rebuilds
@@ -284,6 +288,8 @@ var _sector_popover: Control = null
 
 # Psionics tracking (Compendium pp.19-22) — counts uses for post-battle legality detection
 var _psionic_uses: int = 0
+## Compendium p.22: "Reinforcements can arrive only once in each battle."
+var _psionic_reinforcements_arrived: bool = false
 var _psionic_powers_json: Dictionary = {}  # Cached psionic_powers.json data
 
 ## AI type descriptions for enemy action phase guidance (Core Rules pp.94-103)
@@ -2966,6 +2972,10 @@ func _on_round_started(round_number: int) -> void:
 	# Advance objective progress (auto-derives rounds_survived + turn countdown)
 	if _objective_tracker != null:
 		_objective_tracker.on_round_advanced(round_number)
+	# Story Event 5 marker decay (Core Rules p.157: "At the end of Round 3 and
+	# each round thereafter, roll 1D6 for every remaining marker").
+	if story_marker_panel != null and is_instance_valid(story_marker_panel):
+		story_marker_panel.on_round_advanced(round_number)
 		_refresh_objective_panel()
 
 func _on_round_ended(round_number: int) -> void:
@@ -3348,6 +3358,96 @@ func _find_psionic_crew_member() -> Dictionary:
 			return result
 	return {}
 
+func _add_psionic_legality_section(vbox: VBoxContainer) -> void:
+	## The world's psionic legality changes what using a power costs you
+	## (Compendium pp.20-22), and the action card never mentioned it.
+	##
+	## The "Highly unusual" band is 26-55 on the D100 — roughly a THIRD of all
+	## worlds — and its entire consequence was unreachable: p.22 says "Every time
+	## you use a psionic power, if two or more of the Projection roll dice show
+	## 6s... the enemy is going to call for reinforcements", and
+	## PsionicSystem.check_highly_unusual_reinforcements() implemented it
+	## correctly with ZERO callers. The player was never told to look at their
+	## dice, so the reinforcements never came.
+	var PsiRef = load("res://src/core/systems/PsionicSystem.gd")
+	if PsiRef == null:
+		return
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign):
+		return
+	var legality: int = int(campaign.progress_data.get("psionic_legality", -1))
+	if legality < 0:
+		return
+
+	var sep := HSeparator.new()
+	vbox.add_child(sep)
+
+	var status := Label.new()
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.text = "THIS WORLD: Psionics are %s." % PsiRef.get_legality_name(legality)
+	status.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	vbox.add_child(status)
+
+	if legality == PsiRef.PsionicLegality.OUTLAWED:
+		var outlawed := Label.new()
+		outlawed.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		outlawed.text = ("OUTLAWED: using a power risks detection. A D6 is rolled after "
+			+ "the battle — caught on a 1 if you used a power once, on a 1-2 if more "
+			+ "than once. Psi-hunters become a Rival (Compendium p.21).")
+		outlawed.add_theme_font_size_override("font_size", 12)
+		outlawed.add_theme_color_override("font_color", UIColors.COLOR_DANGER)
+		vbox.add_child(outlawed)
+		return
+
+	if legality != PsiRef.PsionicLegality.HIGHLY_UNUSUAL:
+		return
+
+	var attention := Label.new()
+	attention.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	attention.text = ("DRAWS ATTENTION: if TWO OR MORE of your Projection dice "
+		+ "showed a 6, the enemy calls for reinforcements (Compendium p.22).")
+	attention.add_theme_font_size_override("font_size", 12)
+	attention.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+	vbox.add_child(attention)
+
+	if _psionic_reinforcements_arrived:
+		var spent := Label.new()
+		spent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		spent.text = "Reinforcements have already arrived this battle — they come only once."
+		spent.add_theme_font_size_override("font_size", 12)
+		spent.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		vbox.add_child(spent)
+		return
+
+	var roll_btn := Button.new()
+	roll_btn.text = "Two or more 6s — roll reinforcements"
+	roll_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	roll_btn.pressed.connect(_on_psionic_reinforcements_pressed)
+	vbox.add_child(roll_btn)
+
+func _on_psionic_reinforcements_pressed() -> void:
+	## Compendium p.22: "Roll three D6 and check each die" — 1 none, 2-5 a basic
+	## enemy, 6 an enemy Specialist. "Reinforcements will arrive at the end of the
+	## next round unless you have cleared the table of opponents by then...
+	## Reinforcements can arrive only once in each battle, and arrive at the
+	## center of the enemy table edge."
+	if _psionic_reinforcements_arrived:
+		return
+	_psionic_reinforcements_arrived = true
+	var PsiRef = load("res://src/core/systems/PsionicSystem.gd")
+	if PsiRef == null:
+		return
+	var rolled: Array[String] = PsiRef._roll_highly_unusual_reinforcements()
+	var text: String = PsiRef.get_reinforcement_text(rolled)
+	_log_message("PSIONIC ATTENTION — %s Arriving at the END OF THE NEXT ROUND." % text,
+		UIColors.COLOR_WARNING)
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_warning"):
+		notif.show_warning(text)
+
 func _on_psionic_action_pressed(psi_char: Dictionary) -> void:
 	## Show psionic action instructions and increment usage counter.
 	_psionic_uses += 1
@@ -3445,6 +3545,8 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 	weapon_note.add_theme_font_size_override("font_size", 12)
 	weapon_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(weapon_note)
+
+	_add_psionic_legality_section(vbox)
 
 	# Dismiss button
 	var dismiss := Button.new()
@@ -4132,6 +4234,60 @@ func _on_advance_phase_pressed() -> void:
 
 ## Initialize tactical battle with crew and enemies
 
+func _setup_story_marker_panel(mission_dict: Dictionary) -> void:
+	## Story Track Event 5 "Kidnap" (Core Rules p.157): six markers, investigated
+	## by approach, yielding the Evidence that unlocks Event 6. Nothing else in
+	## the game produces Evidence, so without this panel the p.157 search could
+	## only ever crawl forward on its automatic +1 per failed roll.
+	if story_marker_panel != null:
+		return
+	if str(mission_dict.get("story_event_id", "")) != "kidnap":
+		return
+
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	var event: Variant = null
+	if cpm != null and "story_track" in cpm and cpm.story_track != null:
+		if cpm.story_track.has_method("get_current_event"):
+			event = cpm.story_track.get_current_event()
+
+	story_marker_panel = _get_res("story_marker_panel").new()
+	story_marker_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bottom_content: VBoxContainer = bottom_bar.get_child(0) \
+		if bottom_bar and bottom_bar.get_child_count() > 0 else null
+	if bottom_content and bottom_content is VBoxContainer:
+		bottom_content.add_child(story_marker_panel)
+		bottom_content.move_child(story_marker_panel, 0)
+	else:
+		# No bottom bar on this layout — drop the panel rather than leaking it.
+		story_marker_panel.queue_free()
+		story_marker_panel = null
+		push_warning("TacticalBattleUI: no bottom_content for StoryMarkerPanel")
+		return
+
+	story_marker_panel.setup(event, dice_manager)
+	story_marker_panel.evidence_changed.connect(_on_story_evidence_changed)
+	story_marker_panel.markers_resolved.connect(_on_story_markers_resolved)
+	_log_message(
+		"Story Event 5: place 6 markers, crew no closer than 8\" to any of them.",
+		UIColors.COLOR_AMBER)
+
+func _on_story_evidence_changed(total: int) -> void:
+	_log_message("Evidence uncovered — %d piece(s) so far." % total,
+		UIColors.COLOR_EMERALD)
+	# Park the tally on mission_data rather than on one result dict. There are
+	# FOUR tactical_battle_completed.emit() sites (played, evacuation, in-battle
+	# auto-resolve, map auto-resolve) and mission_data is what every one of them
+	# carries into BattleResultNormalizer — the single chokepoint. Stamping here
+	# means no emission path can silently drop the Evidence.
+	if _stored_mission_data is Dictionary:
+		_stored_mission_data["story_evidence_found"] = total
+
+func _on_story_markers_resolved() -> void:
+	## p.157: "The mission ends once all markers have been revealed or removed."
+	_log_message(
+		"All markers resolved — the mission ends. Record your result.",
+		UIColors.COLOR_AMBER)
+
 func initialize_battle(crew_members: Array, enemies: Array, mission_data = null) -> void:
 	## Initialize the tactical battle
 	_battle_initialized = true
@@ -4223,6 +4379,11 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# Detect Bug Hunt mode from mission context
 	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
+
+	# Story Track Event 5 marker tracker (Core Rules p.157). MUST be set up above
+	# the pre-selected-tier early return below — that branch is the normal
+	# campaign path, so anything wired after it never runs in a real campaign.
+	_setup_story_marker_panel(mission_dict)
 
 	# UX streamline: If tier was pre-selected in PreBattleUI, skip the
 	# TIER_SELECT overlay and go straight to COMBAT stage.
