@@ -177,13 +177,22 @@ func _calculate_danger_level(campaign_turn: int, planet_type: Dictionary) -> int
 	# Clamp between 1 and 6 (as per rulebook)
 	return clamp(danger_level, 1, 6)
 
-## Generate planetary traits based on planet type (p.81-82)
+## Generate the world's trait (Core Rules p.72)
 func _generate_planetary_traits(planet_type: Dictionary) -> Array:
+	## Core Rules p.72, verbatim: "World Traits — Roll D100 on the following
+	## table to determine what trait applies to the world."
+	##
+	## ONE trait, and a WEIGHTED roll. This used to take `1 + randi() % 2` traits
+	## and pick each one uniformly at random from the list, which is wrong twice:
+	## worlds got up to double the traits the book gives them, and the D100
+	## roll_range weights sitting in data/world_traits.json were ignored, so Haze
+	## (1-3, a 3% band) came up as often as a 12% one.
+	##
+	## Mandatory traits from the planet type are kept: those are a property of the
+	## world type rather than a result of the p.72 roll.
 	var traits = []
-	var trait_count = 1 + (randi() % 2) # 1-2 traits as per rulebook
-	
 	var available_traits = _world_traits.duplicate()
-	
+
 	# Add any mandatory traits for this planet type
 	var mandatory_traits = planet_type.get("mandatory_traits", [])
 	for trait_id in mandatory_traits:
@@ -193,17 +202,40 @@ func _generate_planetary_traits(planet_type: Dictionary) -> Array:
 			if available_traits[i].get("id") == trait_id:
 				available_traits.remove_at(i)
 				break
-	
-	# Add random traits
-	for _i in range(trait_count):
-		if available_traits.size() == 0:
-			break
-			
-		var index = randi() % available_traits.size()
-		traits.append(available_traits[index].get("id"))
-		available_traits.remove_at(index)
-	
+
+	var rolled: String = _roll_world_trait(available_traits)
+	if not rolled.is_empty():
+		traits.append(rolled)
+
 	return traits
+
+func _roll_world_trait(available_traits: Array) -> String:
+	## Single D100 against the table's roll_range bands (Core Rules p.72).
+	if available_traits.is_empty():
+		return ""
+	var roll: int = randi_range(1, 100)
+	for entry in available_traits:
+		if not entry is Dictionary:
+			continue
+		var band: Array = entry.get("roll_range", [])
+		if band.size() == 2 and roll >= int(band[0]) and roll <= int(band[1]):
+			return str(entry.get("id", ""))
+	# The roll landed in a band belonging to a mandatory trait already applied,
+	# or the table is short — take the nearest remaining band rather than
+	# returning a traitless world.
+	var best: String = ""
+	var best_distance: int = 1 << 30
+	for entry in available_traits:
+		if not entry is Dictionary:
+			continue
+		var band2: Array = entry.get("roll_range", [])
+		if band2.size() != 2:
+			continue
+		var distance: int = mini(absi(roll - int(band2[0])), absi(roll - int(band2[1])))
+		if distance < best_distance:
+			best_distance = distance
+			best = str(entry.get("id", ""))
+	return best
 
 ## Generate locations for the world (p.82-84)
 func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:

@@ -1056,14 +1056,28 @@ func _update_world_summary() -> void:
 	]
 
 func _get_campaign_turn_safe() -> int:
-	## Safely get campaign turn for world generation difficulty scaling
+	## Turn number for world generation. During CREATION this is 0: the starting
+	## world is where the crew begins, before turn 1 has been played.
+	##
+	## It defaulted to 1 — and the unified creation state has no "campaign_turn"
+	## key, so the default was always what got used. WorldGenerator stamps
+	## `discovered_on_turn: campaign_turn` into the world dict, and
+	## PlanetDataManager.upsert_current_world() only substitutes its own turn
+	## argument when the stamped value is <= 0. A 1 therefore beat the explicit 0
+	## that CampaignFinalizationService passes, and every save on disk records the
+	## STARTING world as discovered on turn 1 — including the ones whose docblocks
+	## promise 0. The Galaxy Log's starting-world anchor is min(discovered_on_turn),
+	## so it survived only by insertion order rather than by being correct.
+	##
+	## Danger level is unaffected: _calculate_danger_level uses
+	## floor(campaign_turn / 5), and floor(0/5) == floor(1/5) == 0.
 	var campaign_ui = owner if owner != null else get_parent().get_parent()
 	if campaign_ui and campaign_ui.has_method("get_coordinator"):
 		var coordinator = campaign_ui.get_coordinator()
 		if coordinator and coordinator.has_method("get_unified_campaign_state"):
 			var state = coordinator.get_unified_campaign_state()
-			return state.get("campaign_turn", 1)
-	return 1  # Default to turn 1
+			return int(state.get("campaign_turn", 0))
+	return 0  # Creation time: the campaign has not played a turn yet.
 
 ## Cached name table data from world_options.json
 static var _name_data: Dictionary = {}

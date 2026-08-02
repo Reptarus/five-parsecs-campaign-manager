@@ -520,6 +520,14 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# the autoload's perspective), and any consumer that derives state from
 	# pdm.visited_planets — including the Galaxy Log anchor logic — would miss
 	# it (Opus 4.8 audit B2 — Galaxy Log plan, 2026-06-01).
+	#
+	# The 0 below is only a REQUEST. upsert_current_world() keeps whatever
+	# `discovered_on_turn` the world dict already carries and substitutes this
+	# argument only when that value is <= 0. WorldInfoPanel used to stamp 1
+	# (its turn getter defaulted to 1 against a creation state that has no
+	# campaign_turn key), so the 1 won and every save on disk recorded the
+	# starting world as discovered on turn 1 — this comment promised 0 and was
+	# wrong for as long as it has existed. The panel now stamps 0 at creation.
 	var tree_for_pdm = Engine.get_main_loop() if Engine.get_main_loop() else null
 	var root_for_pdm = tree_for_pdm.root if tree_for_pdm else null
 
