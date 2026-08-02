@@ -1408,6 +1408,18 @@ func _complete_world_phase() -> void:
 				if not forced_invasion.is_empty():
 					campaign.progress_data["current_mission"] = forced_invasion
 
+			# Raided (Core Rules p.70): the travel-event pirate boarding, set when
+			# the intimidation roll fails. Written BEFORE the invasion block would
+			# be wrong — an invasion outranks a raid — so it goes after, but only
+			# when no invasion claimed the slot. The book calls this an "out of
+			# sequence" encounter that "does not count as the main Battle stage",
+			# which the flag on the mission carries forward.
+			if upkeep_component and upkeep_component.has_method("get_forced_travel_battle"):
+				var raid: Dictionary = upkeep_component.get_forced_travel_battle()
+				if not raid.is_empty() \
+						and campaign.progress_data.get("current_mission", {}).is_empty():
+					campaign.progress_data["current_mission"] = raid
+
 			# Crew-task outcomes that the RIVAL check reads (Core Rules p.85).
 			# Both were pure flavour text before this: the Decoy task printed
 			# "Crew unavailable for battle" and the roll it was supposed to modify

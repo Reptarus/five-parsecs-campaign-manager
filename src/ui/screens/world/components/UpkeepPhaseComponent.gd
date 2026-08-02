@@ -46,6 +46,17 @@ var chose_to_travel: bool = false
 ## via get_forced_invasion_mission() and makes it the turn's mission, overriding
 ## any accepted job ("you MUST fight an Invasion Battle").
 var _forced_invasion_mission: Dictionary = {}
+
+## Travel-event resolution state (Core Rules pp.70-72). Choices are keyed by
+## event title so a re-entry after a button press resolves with the answer.
+var _travel_choices: Dictionary = {}
+var _travel_event_depth: int = 0
+## p.70 Raided: set when the intimidation roll fails. Consumed like the invasion
+## mission, but it is an "out of sequence" encounter and does not replace the
+## turn's Battle stage.
+var _forced_travel_battle: Dictionary = {}
+## p.60 Emergency Take-off — only present while the hull is damaged.
+var _emergency_button: Button = null
 ## Starship fuel (p.79) spent against the most recent trip, for the status line.
 var _fuel_offset_last_trip: int = 0
 var has_ship: bool = true
@@ -901,12 +912,20 @@ func _update_travel_button_text(
 	# Not a soft-lock: the same panel offers paid repair right below (p.59
 	# "1 credit pays off 1 Hull Point"), and the free 1-point-per-turn repair
 	# runs at rollover, so a damaged crew always has a way forward.
+	# The book does NOT forbid it outright — p.60 Emergency Take-off: "If you
+	# insist on traveling while your ship is damaged, your ship suffers 3D6 Hull
+	# Points of damage as the drive vents super-heated plasma throughout the
+	# vessel." Disabling the button removed that choice entirely, and
+	# get_emergency_takeoff_damage() was called only from the dead TravelPhase.gd.
+	# The normal Travel button stays disabled; the risk is opt-in and separate.
 	if has_ship:
 		var damage: int = _hull_damage()
 		if damage > 0:
 			_travel_button.text = "Cannot Travel — Hull Damaged (%d)" % damage
 			_travel_button.disabled = true
+			_ensure_emergency_takeoff_button()
 			return
+		_remove_emergency_takeoff_button()
 
 	if has_ship:
 		if credits >= SHIP_TRAVEL_COST:
@@ -963,6 +982,69 @@ func _on_stay_pressed() -> void:
 		"font_color", UIColors.COLOR_EMERALD)
 	_travel_status_label.visible = true
 	_update_gating_state()
+
+func _ensure_emergency_takeoff_button() -> void:
+	## Core Rules p.60. Offered only while the hull is damaged, and destructive
+	## enough that it is styled as a danger action and never the default.
+	if _emergency_button and is_instance_valid(_emergency_button):
+		_emergency_button.visible = true
+		return
+	if _travel_button == null or _travel_button.get_parent() == null:
+		return
+	_emergency_button = Button.new()
+	_emergency_button.text = "Emergency Take-off (3D6 Hull damage)"
+	_emergency_button.accessibility_name = (
+		"Take off anyway, suffering 3D6 Hull Point damage")
+	_emergency_button.tooltip_text = (
+		"Core Rules p.60: \"If you insist on traveling while your ship is"
+		+ " damaged, your ship suffers 3D6 Hull Points of damage as the drive"
+		+ " vents super-heated plasma throughout the vessel.\"")
+	_emergency_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_emergency_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_emergency_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_emergency_button.add_theme_color_override("font_color", UIColors.COLOR_RED)
+	_emergency_button.pressed.connect(_on_emergency_takeoff_pressed)
+	_travel_button.get_parent().add_child(_emergency_button)
+
+
+func _remove_emergency_takeoff_button() -> void:
+	if _emergency_button and is_instance_valid(_emergency_button):
+		_emergency_button.queue_free()
+	_emergency_button = null
+
+
+func _on_emergency_takeoff_pressed() -> void:
+	## p.60: the damage is taken FIRST, so a hull that cannot survive the vent is
+	## wrecked in transit — which is exactly the "being without a ship" outcome
+	## (p.59) rather than the grounded scrap payout.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	var damage: int = 3 * 6
+	if gsm.has_method("get_emergency_takeoff_damage"):
+		damage = int(gsm.get_emergency_takeoff_damage())
+	var dealt: int = damage
+	if gsm.has_method("apply_ship_damage"):
+		dealt = int(gsm.apply_ship_damage(damage, true))
+
+	_journal_invasion(
+		"Emergency take-off",
+		"The drive vented plasma through the vessel on lift-off: %d Hull Points"
+		% dealt + " of damage (Core Rules p.60).")
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_warning"):
+		notif.show_warning("Emergency take-off — %d Hull Point damage." % dealt)
+
+	# The ship may not have survived the vent; if it did not, travel is over.
+	var campaign: Resource = _get_campaign_resource()
+	if campaign != null and "has_ship" in campaign and not campaign.has_ship:
+		_remove_emergency_takeoff_button()
+		_refresh_after_upkeep_payment()
+		return
+
+	_remove_emergency_takeoff_button()
+	_on_travel_pressed()
+
 
 func _on_travel_pressed() -> void:
 	## Handle travel to new world (normal zone) — deduct cost and generate event
@@ -2169,39 +2251,102 @@ func _apply_travel_event(event: Dictionary) -> void:
 	## its effect tags are "hint tags for the resolving UI (not mechanically
 	## applied here)", and no resolving UI ever existed. Travel therefore carried
 	## neither risk nor reward for the entire campaign.
-	##
-	## p.70's "then roll again on this table" is followed for Navigation Trouble,
-	## with a bounded loop so a pathological chain cannot hang the turn.
+	_travel_choices.clear()
+	_travel_event_depth = 0
+	_resolve_travel_event(event)
+
+
+func _resolve_travel_event(event: Dictionary) -> void:
+	## Events that ask the player something come back with a pending_choice; the
+	## buttons below answer it and re-enter here. p.70's "then roll again on this
+	## table" is followed for real, bounded so a chain cannot hang the turn.
 	var campaign: Resource = _get_campaign_resource()
 	if campaign == null:
 		return
-
-	var current: Dictionary = event
-	var guard: int = 0
-	while guard < 5:
-		guard += 1
-		var report: Dictionary = TravelEventResolverClass.apply(campaign, current)
-		_report_travel_event(current, report)
-		if not bool(report.get("reroll", false)):
-			return
-		var next_roll: int = randi_range(1, 100)
-		current = _process_travel_event_roll(next_roll)
-		_display_travel_event(current, next_roll)
-
-
-func _report_travel_event(event: Dictionary, report: Dictionary) -> void:
-	var applied: Array = report.get("applied", [])
-	if bool(report.get("requires_interaction", false)):
-		# Honest reporting: this event needs a choice, a battle or a sub-table
-		# the app cannot resolve yet. Saying so beats applying nothing silently,
-		# and a tabletop player can carry it out from the text already shown.
-		_add_travel_event_note(
-			"Resolve this event at the table — %s needs a decision the app does"
-			% str(event.get("title", "this event"))
-			+ " not take for you yet (Core Rules pp.70-72).")
+	_travel_event_depth += 1
+	if _travel_event_depth > 6:
+		_add_travel_event_note("Event chain stopped after 6 rolls.")
 		return
-	for line: String in applied:
+
+	var report: Dictionary = TravelEventResolverClass.apply(
+		campaign, event, _travel_choices)
+
+	var choice: Dictionary = report.get("pending_choice", {})
+	if not choice.is_empty():
+		_build_travel_choice(event, choice)
+		return
+
+	_consume_travel_report(report)
+
+	if bool(report.get("reroll", false)):
+		var next_roll: int = randi_range(1, 100)
+		var next_event: Dictionary = _process_travel_event_roll(next_roll)
+		_display_travel_event(next_event, next_roll)
+		_resolve_travel_event(next_event)
+
+
+func _build_travel_choice(event: Dictionary, choice: Dictionary) -> void:
+	## Inline buttons rather than a modal Window: this panel is already a
+	## scrolling column and a popup would fight the portrait layout.
+	_add_travel_event_note(str(choice.get("prompt", "Choose:")))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for option: Dictionary in choice.get("options", []):
+		var btn := Button.new()
+		btn.text = str(option.get("label", "Choose"))
+		btn.accessibility_name = btn.text
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.pressed.connect(_on_travel_choice_made.bind(
+			event, choice, str(option.get("id", "")), row))
+		row.add_child(btn)
+	if _travel_event_container:
+		_travel_event_container.add_child(row)
+
+
+func _on_travel_choice_made(event: Dictionary, choice: Dictionary,
+		option_id: String, row: Node) -> void:
+	var key: String = str(choice.get("id", ""))
+	# The three-world pick needs the generated worlds carried with the answer, or
+	# the resolver would roll three DIFFERENT worlds when it re-runs.
+	if choice.has("worlds"):
+		_travel_choices[key] = {"id": option_id, "worlds": choice["worlds"]}
+	else:
+		_travel_choices[key] = option_id
+	if is_instance_valid(row):
+		row.queue_free()
+	_resolve_travel_event(event)
+
+
+func _consume_travel_report(report: Dictionary) -> void:
+	for line: String in report.get("applied", []):
 		_add_travel_event_note(line)
+
+	# Hull damage goes through GameStateManager so ship traits (Armored,
+	# Improved Shielding, Dodgy Drive) and the p.59 wreck check both apply.
+	# in_space is TRUE here: these events happen in transit, which selects the
+	# "being without a ship" outcome rather than the grounded scrap payout.
+	var hull: int = int(report.get("hull_damage", 0))
+	if hull > 0:
+		var gsm: Node = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("apply_ship_damage"):
+			var dealt: int = int(gsm.apply_ship_damage(hull, true))
+			_add_travel_event_note("Ship took %d Hull Point damage" % dealt)
+
+	var battle: Dictionary = report.get("forced_battle", {})
+	if not battle.is_empty():
+		_forced_travel_battle = battle
+		_add_travel_event_note(
+			"Pirates board — an out-of-sequence battle awaits (it does not"
+			+ " consume this turn's Battle stage).")
+
+
+func get_forced_travel_battle() -> Dictionary:
+	## Non-empty when the p.70 Raided event failed its intimidation roll.
+	## Mirrors get_forced_invasion_mission() so WorldPhaseController can consume
+	## it the same way.
+	return _forced_travel_battle
 
 
 func _add_travel_event_note(text: String) -> void:

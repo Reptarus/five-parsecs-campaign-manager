@@ -172,22 +172,155 @@ func test_time_to_read_a_book_always_distributes_three_xp() -> void:
 		).is_equal(3)
 
 
-# --- honest reporting of what is not resolved yet -----------------------------
+# --- the interactive events ---------------------------------------------------
 
-## The seven events needing a choice, a battle or a sub-table must SAY so rather
-## than silently applying nothing, which is what the whole table used to do.
-func test_interactive_events_are_flagged_not_silently_skipped() -> void:
+## Events that ask the player something must return a pending_choice and change
+## NOTHING until it is answered.
+func test_choice_events_ask_before_they_act() -> void:
 	for title: String in [
-		"Asteroids", "Raided", "Drive Trouble", "Distress Call",
-		"Patrol Ship", "Escape Pod", "Locked in the Library Data",
+		"Asteroids", "Distress Call", "Escape Pod", "Locked in the Library Data",
 	]:
 		var c: Resource = _campaign([_member("Rin")], 3)
 		var report: Dictionary = Resolver.apply(c, _event(title))
-		assert_bool(bool(report.get("requires_interaction", false))
-			).override_failure_message("%s was not flagged as interactive" % title
-			).is_true()
-		# and it must not have quietly changed anything
+		var choice: Dictionary = report.get("pending_choice", {})
+		assert_bool(choice.is_empty()).override_failure_message(
+			"%s did not ask the player anything" % title).is_false()
+		assert_int((choice.get("options", []) as Array).size()
+			).override_failure_message("%s offered no options" % title).is_greater(1)
 		assert_int(int(c.story_points)).is_equal(3)
+
+
+## p.70 Asteroids: "roll 1D6, requiring a 5+ to chart a safe path. If successful,
+## roll again on this table." A safe path must never damage the hull.
+func test_asteroids_avoid_either_rerolls_or_costs_hull() -> void:
+	var saw_reroll: bool = false
+	var saw_damage: bool = false
+	for _i: int in range(40):
+		var c: Resource = _campaign([_member("Rin", {"savvy": 1})])
+		var r: Dictionary = Resolver.apply(c, _event("Asteroids"), {"Asteroids": "avoid"})
+		if bool(r.get("reroll", false)):
+			saw_reroll = true
+			assert_int(int(r.get("hull_damage", 0))).override_failure_message(
+				"a successfully charted path must not damage the hull"
+			).is_equal(0)
+		elif int(r.get("hull_damage", 0)) > 0:
+			saw_damage = true
+	assert_bool(saw_reroll).is_true()
+	assert_bool(saw_damage).is_true()
+
+
+## "roll 1D6+Savvy three times, requiring a 4+ ... Each failed roll inflicts 1D6
+## Hull Point damage" — so at most three failures, i.e. 3..18, and a very high
+## Savvy can never fail.
+func test_asteroids_through_damage_stays_within_three_failures() -> void:
+	for _i: int in range(40):
+		var c: Resource = _campaign([_member("Rin", {"savvy": 0})])
+		var r: Dictionary = Resolver.apply(c, _event("Asteroids"), {"Asteroids": "through"})
+		assert_int(int(r.get("hull_damage", 0))).is_between(0, 18)
+
+	var safe: Resource = _campaign([_member("Ace", {"savvy": 9})])
+	var sr: Dictionary = Resolver.apply(safe, _event("Asteroids"), {"Asteroids": "through"})
+	assert_int(int(sr.get("hull_damage", 0))).override_failure_message(
+		"1D6+9 can never miss a 4+, so the hull must be untouched"
+	).is_equal(0)
+
+
+## p.70 Raided: a 6+ on 1D6+Savvy avoids the fight entirely.
+func test_raided_intimidation_can_avoid_the_battle() -> void:
+	var c: Resource = _campaign([_member("Silver", {"savvy": 9})])
+	var r: Dictionary = Resolver.apply(c, _event("Raided"))
+	assert_bool((r.get("forced_battle", {}) as Dictionary).is_empty()
+		).override_failure_message(
+			"1D6+9 always beats 6+, so there must be no battle"
+		).is_true()
+
+
+## Failing intimidation sets up the out-of-sequence Criminal Elements fight.
+func test_raided_failure_sets_up_an_out_of_sequence_battle() -> void:
+	var c: Resource = _campaign([_member("Mute", {"savvy": -9})])
+	var r: Dictionary = Resolver.apply(c, _event("Raided"))
+	var battle: Dictionary = r.get("forced_battle", {})
+	assert_bool(battle.is_empty()).is_false()
+	assert_str(str(battle.get("enemy_category", ""))).is_equal("criminal_elements")
+	assert_bool(bool(battle.get("out_of_sequence", false))).override_failure_message(
+		"p.70: the raid 'does not count as the main Battle stage'"
+	).is_true()
+	# 3D6 pick highest, +1 extra figure -> 2..7 at crew size 6.
+	assert_int(int(battle.get("base_enemy_count", 0))).is_between(2, 7)
+
+
+## p.70 Drive Trouble: three 1D6+Savvy tests at 6+; each failure grounds you for
+## one campaign turn on arrival.
+func test_drive_trouble_grounds_you_for_each_failure() -> void:
+	var sure: Resource = _campaign([
+		_member("A", {"savvy": 9}), _member("B", {"savvy": 9}), _member("C", {"savvy": 9}),
+	])
+	assert_int(int(Resolver.apply(sure, _event("Drive Trouble")).get("grounded_turns", -1))
+		).is_equal(0)
+
+	var doomed: Resource = _campaign([
+		_member("A", {"savvy": -9}), _member("B", {"savvy": -9}), _member("C", {"savvy": -9}),
+	])
+	var r: Dictionary = Resolver.apply(doomed, _event("Drive Trouble"))
+	assert_int(int(r.get("grounded_turns", 0))).is_equal(3)
+	assert_int(int(doomed.progress_data.get("drive_grounded_turns", 0))).is_equal(3)
+
+
+## p.71 Patrol Ship: "Roll 1D6-3 twice ... Due to the military presence, the next
+## world you visit cannot be Invaded." The flag applies however the dice fall.
+func test_patrol_ship_always_blocks_the_next_invasion() -> void:
+	var c: Resource = _campaign([_member("Rin")])
+	c.equipment_data = {"equipment": ["Blade", "Rifle", "Scanner"]}
+	Resolver.apply(c, _event("Patrol Ship"))
+	assert_bool(bool(c.progress_data.get("next_world_cannot_be_invaded", false))
+		).is_true()
+
+
+## Confiscation is 1D6-3 twice, so it can never exceed 6 items.
+func test_patrol_ship_confiscates_within_the_dice_range() -> void:
+	for _i: int in range(30):
+		var c: Resource = _campaign([_member("Rin")])
+		c.equipment_data = {"equipment": ["a", "b", "c", "d", "e", "f", "g", "h"]}
+		Resolver.apply(c, _event("Patrol Ship"))
+		var left: int = (c.equipment_data["equipment"] as Array).size()
+		assert_int(left).is_between(2, 8)
+
+
+## Declining a rescue must cost and grant nothing.
+func test_declining_the_escape_pod_changes_nothing() -> void:
+	var c: Resource = _campaign([_member("Rin")], 2)
+	c.credits = 5
+	Resolver.apply(c, _event("Escape Pod"), {"Escape Pod": "ignore"})
+	assert_int(int(c.story_points)).is_equal(2)
+	assert_int(int(c.credits)).is_equal(5)
+
+
+## Every branch of the p.71 escape-pod subtable must report something and must
+## never reduce the crew's credits.
+func test_rescuing_the_escape_pod_never_costs_credits() -> void:
+	for _i: int in range(30):
+		var c: Resource = _campaign([_member("Rin")], 1)
+		c.credits = 4
+		var r: Dictionary = Resolver.apply(c, _event("Escape Pod"), {"Escape Pod": "rescue"})
+		assert_int((r.get("applied", []) as Array).size()).is_greater(0)
+		assert_int(int(c.credits)).is_greater_equal(4)
+
+
+## Ignoring a distress call is free; answering it resolves the p.71 subtable.
+func test_distress_call_respects_the_choice() -> void:
+	var ignored: Resource = _campaign([_member("Rin")], 2)
+	var ir: Dictionary = Resolver.apply(
+		ignored, _event("Distress Call"), {"Distress Call": "ignore"})
+	assert_int(int(ir.get("hull_damage", 0))).is_equal(0)
+
+	for _i: int in range(30):
+		var c: Resource = _campaign([_member("Rin", {"savvy": 2})], 1)
+		var r: Dictionary = Resolver.apply(
+			c, _event("Distress Call"), {"Distress Call": "aid"})
+		assert_int((r.get("applied", []) as Array).size()).is_greater(0)
+		# The worst branch is 1D6+1, and 3-4 chains into an Escape Pod that
+		# cannot damage the hull at all.
+		assert_int(int(r.get("hull_damage", 0))).is_between(0, 7)
 
 
 func test_an_empty_crew_is_safe() -> void:
