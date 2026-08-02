@@ -9,6 +9,7 @@ const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
 const NewWorldArrivalClass = preload("res://src/core/campaign/NewWorldArrival.gd")
+const TravelEventResolverClass = preload("res://src/core/world/TravelEventResolver.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
@@ -2160,6 +2161,58 @@ func _generate_travel_event() -> void:
 
 	var event := _process_travel_event_roll(roll)
 	_display_travel_event(event, roll)
+	_apply_travel_event(event)
+
+
+func _apply_travel_event(event: Dictionary) -> void:
+	## The table used to be text-only: TravelEventTable.gd states at line 10 that
+	## its effect tags are "hint tags for the resolving UI (not mechanically
+	## applied here)", and no resolving UI ever existed. Travel therefore carried
+	## neither risk nor reward for the entire campaign.
+	##
+	## p.70's "then roll again on this table" is followed for Navigation Trouble,
+	## with a bounded loop so a pathological chain cannot hang the turn.
+	var campaign: Resource = _get_campaign_resource()
+	if campaign == null:
+		return
+
+	var current: Dictionary = event
+	var guard: int = 0
+	while guard < 5:
+		guard += 1
+		var report: Dictionary = TravelEventResolverClass.apply(campaign, current)
+		_report_travel_event(current, report)
+		if not bool(report.get("reroll", false)):
+			return
+		var next_roll: int = randi_range(1, 100)
+		current = _process_travel_event_roll(next_roll)
+		_display_travel_event(current, next_roll)
+
+
+func _report_travel_event(event: Dictionary, report: Dictionary) -> void:
+	var applied: Array = report.get("applied", [])
+	if bool(report.get("requires_interaction", false)):
+		# Honest reporting: this event needs a choice, a battle or a sub-table
+		# the app cannot resolve yet. Saying so beats applying nothing silently,
+		# and a tabletop player can carry it out from the text already shown.
+		_add_travel_event_note(
+			"Resolve this event at the table — %s needs a decision the app does"
+			% str(event.get("title", "this event"))
+			+ " not take for you yet (Core Rules pp.70-72).")
+		return
+	for line: String in applied:
+		_add_travel_event_note(line)
+
+
+func _add_travel_event_note(text: String) -> void:
+	if _travel_event_container == null:
+		return
+	var label := Label.new()
+	label.text = "• " + text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+	_travel_event_container.add_child(label)
 
 func _arrive_at_new_world() -> Dictionary:
 	## New World Arrival (Core Rules p.69). Generate a fresh world and write it
