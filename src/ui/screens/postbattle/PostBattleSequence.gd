@@ -34,6 +34,35 @@ var _advancement_system: RefCounted = null
 # Cached for _exit_tree() signal cleanup
 var _post_battle_phase: Node = null
 
+## Steps the BACKEND orchestrator (PostBattlePhase) has already resolved AND
+## APPLIED, keyed by wizard step index.
+##
+## THE BUG THIS EXISTS TO FIX. For Battlefield Finds, Injuries and Character
+## Events the wizard rolled its OWN dice on top of the backend's, so the number
+## the player was shown was not the number written to the campaign — a player
+## could roll "88 - KNOCKED_OUT" for a casualty who was actually dead. Worse,
+## two of the three then applied a SECOND result: two Battlefield Finds per
+## battle, and a six-person crew resolving seven Character Events per turn
+## instead of the one the book allows.
+##
+## Recorded rather than acted on immediately because the orchestrator's signals
+## can arrive before the step's UI exists; the step builders consult this, so
+## the fix holds whichever order they happen in.
+var _backend_resolved: Dictionary = {}
+
+## Wizard step indices, from the _register_inline_rolls() calls.
+const STEP_BATTLEFIELD_FINDS := 4
+const STEP_INJURIES := 7
+const STEP_CHARACTER_EVENT := 12
+
+
+func _record_backend_step(step_index: int, lines: Array) -> void:
+	## Store what the backend applied, and refresh the step if the player is
+	## already looking at it.
+	_backend_resolved[step_index] = lines
+	if current_step == step_index:
+		_show_current_step()
+
 signal post_battle_completed(results: Dictionary)
 signal step_completed(step_index: int, results: Dictionary)
 
@@ -560,6 +589,16 @@ func _on_backend_character_event(event: Dictionary) -> void:
 	var event_name = event.get("name", "Unknown Event")
 	_add_result_to_log("%s: %s" % [char_name, event_name])
 
+	# p.126 allows exactly ONE event for ONE randomly selected character. The
+	# wizard used to build a roll button PER crew member on top of this one, so a
+	# six-person crew resolved SEVEN events a turn and XP, story points, rumors,
+	# Rivals, Patrons and Luck all accrued at roughly seven times the book rate.
+	var line: String = "%s: %s" % [char_name, event_name]
+	var description: String = str(event.get("description", ""))
+	if not description.is_empty():
+		line += " — " + description
+	_record_backend_step(STEP_CHARACTER_EVENT, [line])
+
 func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 	## Handle Galactic War update from backend
 	var planet_results = progress.get("planet_results", [])
@@ -682,7 +721,10 @@ func _on_backend_items_consumed(consumed: Array) -> void:
 				_add_result_to_log("  %s used by %s" % [name, user])
 
 func _on_backend_injury_result(injuries: Array) -> void:
-	## Handle injury results from backend
+	## The backend ROLLS AND APPLIES the p.121 Injury Table (InjuryProcessor).
+	## The wizard used to roll its own D100 per casualty and display THAT, while
+	## mutating nothing — so the injury shown was never the injury suffered.
+	var lines: Array = []
 	for injury in injuries:
 		if injury is Dictionary:
 			var crew_name = injury.get("crew_name", "Unknown")
@@ -690,21 +732,35 @@ func _on_backend_injury_result(injuries: Array) -> void:
 			var recovery = injury.get("recovery_turns", 0)
 			if injury.get("is_fatal", false):
 				_add_result_to_log("[color=#DC2626]%s: FATAL - %s[/color]" % [crew_name, severity])
+				lines.append("%s: KILLED — %s" % [crew_name, severity])
 			elif recovery > 0:
 				_add_result_to_log("%s: %s (%d turns recovery)" % [crew_name, severity, recovery])
+				lines.append("%s: %s — %d turn(s) in Sick Bay" % [crew_name, severity, recovery])
 			else:
 				_add_result_to_log("%s: %s" % [crew_name, severity])
+				lines.append("%s: %s" % [crew_name, severity])
+	if lines.is_empty():
+		lines.append("No crew were injured.")
+	_record_backend_step(STEP_INJURIES, lines)
 
 func _on_backend_battlefield_finds(finds: Array) -> void:
-	## Handle battlefield finds from backend
+	## p.121: "Roll D100 ONCE on the table below." The backend rolls it and adds
+	## the find; the wizard used to roll a SECOND, different one and that was the
+	## one persisted — roughly doubling battlefield salvage across a campaign.
+	var lines: Array = []
 	for find in finds:
 		if find is Dictionary:
 			var description = find.get("description", "Unknown find")
 			var credits = find.get("credits", 0)
 			if credits > 0:
 				_add_result_to_log("Battlefield: %s (+%d credits)" % [description, credits])
+				lines.append("%s (+%d credits)" % [description, credits])
 			else:
 				_add_result_to_log("Battlefield: %s" % description)
+				lines.append(str(description))
+	if lines.is_empty():
+		lines.append("Nothing of value was found.")
+	_record_backend_step(STEP_BATTLEFIELD_FINDS, lines)
 
 func _on_backend_rival_status(rivals_removed: Array) -> void:
 	## Handle rival status resolution from backend
@@ -1088,19 +1144,42 @@ func _add_battlefield_finds_content() -> void:
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		step_content.add_child(label)
 
-		var find_btn := Button.new()
-		find_btn.text = "Roll Battlefield Finds (D100)"
-		find_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-		find_btn.pressed.connect(_on_battlefield_finds_d100_pressed.bind(find_btn))
-		step_content.add_child(find_btn)
+		# p.121 is "Roll D100 ONCE". If the backend already rolled and applied it,
+		# show what happened instead of offering a second, contradictory roll.
+		if _backend_resolved.has(STEP_BATTLEFIELD_FINDS):
+			label.text = "Held the Field! Battlefield Finds (Core Rules p.121):"
+			_present_backend_result(STEP_BATTLEFIELD_FINDS)
+			_register_inline_rolls(4, 0)
+		else:
+			var find_btn := Button.new()
+			find_btn.text = "Roll Battlefield Finds (D100)"
+			find_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+			find_btn.pressed.connect(_on_battlefield_finds_d100_pressed.bind(find_btn))
+			step_content.add_child(find_btn)
 
-		var result_label := Label.new()
-		result_label.name = "BattlefieldFindsResult"
-		result_label.text = ""
-		result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		step_content.add_child(result_label)
-		_register_inline_rolls(4, 1)
+			var result_label := Label.new()
+			result_label.name = "BattlefieldFindsResult"
+			result_label.text = ""
+			result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			step_content.add_child(result_label)
+			_register_inline_rolls(4, 1)
+
+
+func _present_backend_result(step_index: int) -> void:
+	## Read-only presentation of a step the backend already applied. Mirrors the
+	## "already resolved" shape the loot handler has always used.
+	for line: Variant in _backend_resolved.get(step_index, []):
+		var entry := Label.new()
+		entry.text = "• " + str(line)
+		entry.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(entry)
+	var note := Label.new()
+	note.text = "Already applied to your crew."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+	step_content.add_child(note)
 
 func _create_battlefield_find_panel(enemy_num: int) -> Control:
 	## Create a panel for battlefield finds
@@ -1176,6 +1255,18 @@ func _add_injury_content() -> void:
 	var casualties = battle_results.get("crew_casualties", 0)
 	var injuries = battle_results.get("crew_injuries", 0)
 	
+	# The backend already rolled the p.121 Injury Table and APPLIED the result
+	# (death, Sick Bay turns, stat loss). Re-rolling here showed the player a
+	# different injury from the one their character actually suffered.
+	if _backend_resolved.has(STEP_INJURIES):
+		var header := Label.new()
+		header.text = "Injuries suffered (Core Rules p.121):"
+		header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		step_content.add_child(header)
+		_present_backend_result(STEP_INJURIES)
+		_register_inline_rolls(7, 0)
+		return
+
 	var total_injury_rolls: int = 0
 	if casualties > 0 or injuries > 0:
 		var injury_container = VBoxContainer.new()
@@ -1592,28 +1683,49 @@ func _get_event_color(roll: int) -> Color:
 
 func _add_character_events_content() -> void:
 	## Add character events content with individual crew rolls
+	## Core Rules p.126, verbatim: "13. Roll for a Character Event. Select a
+	## random non-Bot, non-Soulless character, and roll D100 on the Character
+	## Event Table." ONE character, ONE roll.
 	var label: Label = Label.new()
-	label.text = "Roll D100 on character events table for each crew member."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
-	
-	# Get crew from campaign
+
+	if _backend_resolved.has(STEP_CHARACTER_EVENT):
+		label.text = "Character Event (Core Rules p.126):"
+		_present_backend_result(STEP_CHARACTER_EVENT)
+		_register_inline_rolls(12, 0)
+		return
+
+	label.text = (
+		"Roll D100 on the Character Event Table for one randomly selected"
+		+ " non-Bot, non-Soulless crew member.")
+
+	# ONE eligible character, chosen at random — not a panel per crew member,
+	# which is what made a six-person crew resolve seven events every turn.
 	var gsm_char = get_node_or_null("/root/GameStateManager")
-	var char_roll_count: int = 0
+	var eligible: Array = []
 	if gsm_char and gsm_char.has_method("get_crew_members"):
-		var crew = gsm_char.get_crew_members()
-		var char_events_container = VBoxContainer.new()
+		for crew_member in gsm_char.get_crew_members():
+			if _was_crew_casualty(crew_member):
+				continue
+			# p.126 excludes Bots and Soulless from the table entirely.
+			if bool(crew_member.get("is_bot", false)) \
+					or bool(crew_member.get("is_soulless", false)):
+				continue
+			eligible.append(crew_member)
 
-		for crew_member in crew:
-			if not _was_crew_casualty(crew_member):
-				var char_panel = _create_character_event_panel(
-					crew_member)
-				char_events_container.add_child(char_panel)
-				char_roll_count += 1
+	if eligible.is_empty():
+		var none := Label.new()
+		none.text = "No eligible crew for a Character Event this turn."
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		step_content.add_child(none)
+		_register_inline_rolls(12, 0)
+		return
 
-		step_content.add_child(char_events_container)
-	_register_inline_rolls(12, char_roll_count)
+	var chosen: Dictionary = eligible[randi() % eligible.size()]
+	step_content.add_child(_create_character_event_panel(chosen))
+	_register_inline_rolls(12, 1)
 
 func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	## Create character event panel for crew member

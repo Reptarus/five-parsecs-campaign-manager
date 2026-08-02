@@ -185,6 +185,10 @@ static var INJURY_PROPERTIES: Dictionary:
 			var equip_lost: bool = false
 			var all_equip: bool = false
 			var bonus_xp: int = entry.get("xp_bonus", 0)
+			# p.122 roll 16 "Miraculous escape" carries luck_bonus: 1 in
+			# data/injury_results.json. It was never surfaced here, so the row's
+			# whole upside was unreachable.
+			var luck_bonus: int = entry.get("luck_bonus", 0)
 			# Derive equipment flags from effects text and injury type
 			match injury_type:
 				InjuryType.GRUESOME_FATE:
@@ -194,12 +198,17 @@ static var INJURY_PROPERTIES: Dictionary:
 					equip_lost = true
 				InjuryType.CRIPPLING_WOUND:
 					has_surgery = true
+				InjuryType.MIRACULOUS_ESCAPE:
+					# "...but all items carried are permanently lost" (p.122).
+					equip_lost = true
+					all_equip = true
 			result[injury_type] = {
 				"is_fatal": is_fatal,
 				"requires_surgery": has_surgery,
 				"equipment_lost": equip_lost,
 				"all_equipment": all_equip,
 				"bonus_xp": bonus_xp,
+				"luck_bonus": luck_bonus,
 			}
 		return result
 
@@ -354,6 +363,12 @@ static func causes_equipment_loss(injury_type: InjuryType) -> bool:
 static func get_bonus_xp(injury_type: InjuryType) -> int:
 	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
 	return properties.get("bonus_xp", 0)
+
+static func get_luck_bonus(injury_type: InjuryType) -> int:
+	## p.122 roll 16 "Miraculous escape ... receives +1 Luck". The value lives in
+	## data/injury_results.json and had no accessor, so nothing could read it.
+	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
+	return properties.get("luck_bonus", 0)
 
 static func get_base_recovery_turns(injury_type: InjuryType) -> int:
 	var recovery_info: Dictionary = get_recovery_time(injury_type)

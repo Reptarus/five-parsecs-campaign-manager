@@ -183,6 +183,23 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		ctx.apply_crew_death(crew_id)
 		return processed_injury
 
+	# Core Rules p.122, Injury Table 96-100 "School of hard knocks — Earn 1 XP".
+	# bonus_xp was computed here, stored in the result dict, and read by NOTHING
+	# on the 5PFH path (only Planetfall's panel consumes it), so the book's
+	# consolation prize for being downed was silently withheld every time.
+	if bonus_xp > 0:
+		ctx.add_character_xp(ctx.get_crew_member(crew_id), bonus_xp)
+
+	# Core Rules p.122, Injury Table 16 "Miraculous escape — The character
+	# survives and receives +1 Luck, but all items carried are permanently lost."
+	# data/injury_results.json carries luck_bonus: 1 for this row and nothing ever
+	# read it, so the single best non-fatal outcome in the game did literally
+	# nothing: no Luck, and every item kept.
+	var luck_bonus: int = InjuryConstants.get_luck_bonus(injury_type)
+	if luck_bonus > 0:
+		ctx.apply_luck_increase(ctx.get_crew_member(crew_id), luck_bonus)
+		processed_injury["luck_bonus"] = luck_bonus
+
 	# Apply injury to crew member
 	ctx.apply_crew_injury(crew_id, processed_injury)
 
