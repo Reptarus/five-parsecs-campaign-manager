@@ -62,6 +62,64 @@ func _member_set(member: Variant, key: String, value: Variant) -> void:
 		return
 	member.set(key, value)
 
+# ============================================================================
+# THE STARTING-RESOURCE LEDGER (Core Rules pp.28, 66)
+#
+# Both of these are static and pure so the arithmetic can be asserted without
+# running finalization — which registers a campaign start against the player's
+# on-disk profile and resets half a dozen autoloads.
+# ============================================================================
+
+static func compute_starting_credits(
+		equipment_data: Dictionary, crew_data: Dictionary,
+		resources: Dictionary = {}) -> int:
+	## THE one credits grant (Core Rules p.28: 1 credit per crew member, plus the
+	## credit dice their Background / Motivation / Class rolled).
+	##
+	## The Equipment step is the SSOT: EquipmentPanel._generate_equipment_for_
+	## actual_crew() computes `crew_size × 1cr` PLUS every member's
+	## creation_bonuses.bonus_credits and exports the sum, so that figure is
+	## already the complete book total and anything added on top is a duplicate.
+	##
+	## It used to be added on top TWICE. `crew_data["bonus_credits"]` is the SAME
+	## per-character dice the equipment panel already summed, and a WEALTH loop
+	## re-rolled a motivation bonus that character creation had ALREADY rolled
+	## into creation_bonuses (gear_database.json gives `wealth` a
+	## "credits_dice": "1d6"). A crew with one WEALTH member and one Wealthy
+	## Merchant Family background arrived with roughly double the credits the
+	## review screen had promised — and the WEALTH part was a different number
+	## than the one the player watched being rolled.
+	##
+	## The crew-level figures survive only as a RECONSTRUCTION for a payload
+	## where the equipment step never ran and its total is therefore 0.
+	var equipment_credits: int = int(equipment_data.get(
+		"starting_credits", equipment_data.get("credits", 0)))
+	if equipment_credits > 0:
+		return equipment_credits
+	var reconstruct: int = int(resources.get("credits", 0))
+	if reconstruct == 0:
+		reconstruct = int(crew_data.get("bonus_credits", 0))
+	return int(crew_data.get("members", []).size()) + reconstruct
+
+static func roll_starting_story_points() -> int:
+	## Core Rules p.66: "When creating a new campaign, begin the game with 1D6+1
+	## story points." No production site rolled this — a new crew started with
+	## nothing but whatever their creation tables happened to grant, so a crew
+	## that rolled no story-point results opened the campaign on zero and the
+	## whole p.66 economy started empty.
+	##
+	## The two OPTIONAL p.66 adjustments ("roll twice and pick the better score"
+	## for a first-time player, "+1 if you own Five Parsecs AND Five Klicks AND
+	## Five Leagues") are player declarations the wizard has no surface for, so
+	## they are deliberately not applied rather than chosen on the player's
+	## behalf.
+	##
+	## Hardcore -1 and the Insanity "start with none, can never receive them"
+	## clause are NOT applied here — they live in
+	## DifficultyModifiers.apply_starting_story_points_modifier(), driven by
+	## data/difficulty_modifiers.json.
+	return randi_range(1, 6) + 1
+
 func _init() -> void:
 	_save_manager = SecureSaveManager.new()
 	_validator = CampaignValidator.new()
@@ -533,36 +591,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		campaign.set_house_rules(house_rules)
 		pass # House rules transferred
 
-	# SPRINT 5.3: Transfer resources with unified credits source of truth
-	# Equipment credits + crew bonus credits are combined into single total
 	var resources = data.get("resources", {})
-	var equipment_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
-	var creation_credits = resources.get("credits", 0)
-	# Coordinator stores crew bonus credits under crew_data, not resources
-	if creation_credits == 0:
-		creation_credits = crew_data.get("bonus_credits", 0)
-	var total_credits = creation_credits + equipment_credits
-
-	# MOTIVATION BONUS: Apply campaign-level resource bonuses from crew motivations
-	# Core Rules: WEALTH gives +1D6 starting credits, FAME gives +1 story point
-	#
-	# THE GATE THIS REMOVES: `if member is Dictionary`. Finalization runs on a
-	# FRESHLY CREATED campaign, and at this point its members are still Character
-	# RESOURCES — this file's own transform (further down) is what converts them
-	# to the canonical Dictionary form, and it runs later. So the gate was false
-	# for every member of every new campaign, and WEALTH's +1D6 credits and
-	# FAME's +1 Story Point were never once granted.
-	var motivation_story_bonus: int = 0
-	var crew_members_for_bonus = crew_data.get("members", [])
-	for member in crew_members_for_bonus:
-		var m = _member_field(member, "motivation", 0)
-		# Handle both String and int motivation values
-		var is_wealth: bool = (m is String and m == "WEALTH") or (m is int and m == GlobalEnums.Motivation.WEALTH)
-		var is_fame: bool = (m is String and m == "FAME") or (m is int and m == GlobalEnums.Motivation.FAME)
-		if is_wealth:
-			total_credits += randi_range(1, 6)
-		elif is_fame:
-			motivation_story_bonus += 1
+	var total_credits: int = compute_starting_credits(equipment_data, crew_data, resources)
 
 	# DATA MAPPING FIX: Coordinator stores patrons/rivals in crew dict, not resources
 	# Fall back to crew_data if resources dict doesn't have them
@@ -583,15 +613,23 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Character brings old profile but stripped of equipment/implants, +3 XP,
 	# +3 Enforcer Rivals, +1 Story Point
 	#
-	# TWO BUGS FIXED HERE. (1) `member.get("origin", 0) if member is Dictionary
-	# else 0` handed back Origin.NONE for the Character RESOURCES a fresh campaign
-	# actually holds at this point, so `is_pp` was false for everybody and none of
-	# the four effects ever applied. (2) The +1 Story Point was added to
-	# `raw_story_points` AFTER final_story_points had already been computed from
-	# it — a dead store even if (1) had worked. This block now runs BEFORE the
-	# story-point total is calculated, and contributes through its own accumulator.
+	# THE MEMBER EFFECTS MUST TARGET THE CAMPAIGN'S OWN CREW, NOT `crew_data`.
+	# `crew_data` is the SOURCE payload (:331); `campaign.initialize_crew()` (:378)
+	# stored a `duplicate(true)` of the transformed copy well before this point, so
+	# every write into a source member is orphaned the instant it happens — the
+	# same trap the equipment ordering comment at :335 already warns about. The
+	# rivals and the story point survived only because they go into
+	# `rivals_data` / an accumulator that IS read afterwards; the equipment strip,
+	# the implant strip and the +3 XP silently went nowhere.
+	#
+	# Running here (after initialize_crew, after the loadout seeding) is also the
+	# correct ORDER for the rule: the strip must remove gear the crew was already
+	# given, not be overwritten by a later grant.
 	var prison_planet_story_bonus: int = 0
-	for member in crew_data.get("members", []):
+	var campaign_members: Array = []
+	if campaign.crew_data is Dictionary:
+		campaign_members = campaign.crew_data.get("members", [])
+	for member in campaign_members:
 		var origin_val = _member_field(member, "origin", 0)
 		var is_pp: bool = false
 		if origin_val is int:
@@ -612,7 +650,9 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 			# +1 Story Point
 			prison_planet_story_bonus += 1
 
-	var base_story_points: int = raw_story_points + motivation_story_bonus \
+	# The p.66 starting roll, plus what the creation tables granted, plus Prison
+	# Planet. See roll_starting_story_points() for why the roll lives there.
+	var base_story_points: int = roll_starting_story_points() + raw_story_points \
 		+ prison_planet_story_bonus
 	if profile:
 		base_story_points += profile.get_starting_story_point_bonus()

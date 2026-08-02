@@ -2466,10 +2466,15 @@ func restore_panel_data(data: Dictionary) -> void:
 	if data.has("equipment"):
 		generated_equipment = data.equipment.duplicate() if data.equipment is Array else []
 	
-	# Restore credits
+	# Restore credits. get_panel_data() exports this under "credits" (:2369) and
+	# the campaign payload uses "starting_credits" elsewhere, so accept EITHER —
+	# reading only the spelling this panel never writes meant a round-trip through
+	# get_panel_data()/set_panel_data() silently reset the crew's credits to 0.
 	if data.has("starting_credits"):
-		starting_credits = data.starting_credits
-	
+		starting_credits = int(data.starting_credits)
+	elif data.has("credits"):
+		starting_credits = int(data.credits)
+
 	# Restore crew size
 	if data.has("crew_size"):
 		crew_size = data.crew_size

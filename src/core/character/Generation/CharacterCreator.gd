@@ -24,8 +24,12 @@ const STAT_PROPERTY_MAP := {
 	"SAVVY": "savvy",
 	"LUCK": "luck",
 	"SPEED": "speed",
-	# CREDITS removed — not a character stat. WEALTH motivation credits
-	# applied at campaign level in CampaignFinalizationService
+	# CREDITS removed — not a character stat. Motivation/background/class credit
+	# dice (incl. WEALTH's 1D6) are rolled ONCE into
+	# creation_bonuses.bonus_credits by _roll_and_store_creation_bonuses(), and
+	# the Equipment step sums them into the crew's starting credits. Do NOT add a
+	# second grant at campaign level — finalization used to, and the crew arrived
+	# with roughly double the credits the review screen had promised.
 }
 
 # Rulebook-order dropdown items: [display_name, enum_value]
@@ -636,7 +640,14 @@ func _roll_and_store_creation_bonuses(character) -> void:
 				"quest_rumors", 0)
 			bonuses.story_points += res.get(
 				"story_points", 0)
+			# XP lives under stat_bonuses in gear_database.json, NOT resources —
+			# all five granting rows (Revenge/Power/Freedom p.26, Explorer/Punk
+			# p.27) store it there. Reading only `resources` made bonuses.xp
+			# permanently 0, and the stat path ignores it too because
+			# STAT_PROPERTY_MAP has no "xp" key, so the book's +2 XP reached the
+			# character by neither route. Read both spellings.
 			bonuses.xp += res.get("xp", 0)
+			bonuses.xp += entry.get("stat_bonuses", {}).get("xp", 0)
 			bonuses.starting_rolls.append_array(
 				entry.get("starting_rolls", []))
 			var dice_str: String = res.get(
@@ -734,6 +745,14 @@ func _roll_and_store_creation_bonuses(character) -> void:
 				# Compendium p.17: Ignore first Rival rolled
 				if bonuses.rivals > 0:
 					bonuses.rivals = maxi(bonuses.rivals - 1, 0)
+
+	# GRANT the rolled XP. bonuses.xp had zero consumers repo-wide, so even once
+	# it is read correctly it would sit unspent on the record — the five table
+	# results that read "+2 XP" (Core Rules pp.26-27) have to reach the
+	# character's experience or the grant is decorative.
+	if int(bonuses.xp) > 0:
+		_set_character_property(character, "experience",
+			int(_get_character_property(character, "experience", 0)) + int(bonuses.xp))
 
 	_set_character_property(character, "creation_bonuses", bonuses)
 

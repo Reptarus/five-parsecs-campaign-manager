@@ -700,12 +700,19 @@ func _create_equipment_summary_card() -> PanelContainer:
 		equipment_list = equipment_data.get("items", equipment_data.get("equipment", []))
 		credits_value = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
 
-	# Credits — show breakdown when bonus credits exist
+	# Credits — `credits_value` IS the total (Core Rules p.28).
+	#
+	# The equipment step computes `crew_size × 1cr` plus every member's rolled
+	# bonus credits and exports the sum, so adding `crew.bonus_credits` on top of
+	# it counted the bonus twice AND labelled the already-bonus-inclusive figure
+	# as "base". The number shown here disagreed with the number the campaign was
+	# actually created with, in a direction that flattered the player.
 	var crew_bonus: int = campaign_data.get("crew", {}).get("bonus_credits", 0)
+	var crew_count: int = int(campaign_data.get("crew", {}).get("members", []).size())
 	var credits_label := Label.new()
-	if crew_bonus > 0:
-		var total: int = credits_value + crew_bonus
-		credits_label.text = "Starting Credits: %d cr (%d base + %d bonus)" % [total, credits_value, crew_bonus]
+	if crew_bonus > 0 and crew_count > 0:
+		credits_label.text = "Starting Credits: %d cr (%d base + %d bonus)" % [
+			credits_value, crew_count, crew_bonus]
 	else:
 		credits_label.text = "Starting Credits: %d cr" % credits_value
 	credits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
@@ -807,10 +814,13 @@ func _create_extras_summary_card() -> PanelContainer:
 			rival_label.add_theme_color_override("font_color", COLOR_DANGER)
 			content.add_child(rival_label)
 
-	# Add numeric extras
+	# Add numeric extras. These are the crew's TABLE grants — the story points here
+	# are what the creation tables handed out, on TOP of the 1D6+1 every new
+	# campaign begins with (Core Rules p.66). Say so, or the number reads as the
+	# campaign total and the dashboard's larger figure looks like a bug.
 	var extras_text := ""
 	if story_points > 0:
-		extras_text += "Story Points: %d  " % story_points
+		extras_text += "Story Points: +%d  " % story_points
 	if quest_rumors > 0:
 		extras_text += "Quest Rumors: %d  " % quest_rumors
 	if bonus_credits > 0:
@@ -821,6 +831,13 @@ func _create_extras_summary_card() -> PanelContainer:
 		extras_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		extras_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(extras_label)
+
+	var sp_base_label = Label.new()
+	sp_base_label.text = "Story Points: 1D6+1 rolled when the campaign begins (Core Rules p.66)"
+	sp_base_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+	sp_base_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	sp_base_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(sp_base_label)
 
 	var description = "%d patron(s), %d rival(s)" % [patrons.size(), rivals.size()]
 	return _create_section_card("Crew Connections & Extras", content, description)
