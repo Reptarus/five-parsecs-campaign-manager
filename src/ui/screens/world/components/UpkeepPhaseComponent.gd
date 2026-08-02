@@ -48,6 +48,9 @@ var _fuel_offset_last_trip: int = 0
 var has_ship: bool = true
 const SHIP_TRAVEL_COST := 5
 const COMMERCIAL_TRAVEL_COST_PER_CREW := 1
+## Core Rules p.62, verbatim: "You can have up to 4 crew members Suspended at
+## any one time."
+const MAX_SUSPENDED_CREW := 4
 
 # Travel UI references (built in code)
 var _travel_panel: PanelContainer
@@ -724,6 +727,11 @@ func _build_travel_section() -> void:
 	# also the release valve for the travel prohibition on the same page.
 	_build_hull_repair_prompt(vbox)
 
+	# Crew management: Suspension Pod (p.62) and Dismiss Crew (p.76). Both are
+	# Upkeep-step actions and neither had any way in — the Suspension Pod was
+	# purchasable and inert, and show_dismiss_crew_dialog() had ZERO callers.
+	_build_crew_management_entry(vbox)
+
 	# Mission-required travel prompt (Core Rules p.119 — a Quest step on another
 	# world). Encourages (never forces) travel; "Quests will wait for you".
 	_build_quest_travel_prompt(vbox)
@@ -1021,6 +1029,178 @@ func _campaign_progress_data() -> Dictionary:
 		return {}
 	return campaign.progress_data
 
+func _build_crew_management_entry(vbox: VBoxContainer) -> void:
+	## One row of Upkeep-step crew actions. Dismiss is always available (p.76);
+	## Suspend/Revive only with the ship component installed (p.62).
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var dismiss_btn := Button.new()
+	dismiss_btn.text = "Dismiss Crew"
+	dismiss_btn.accessibility_name = "Dismiss a crew member"
+	dismiss_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	dismiss_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dismiss_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dismiss_btn.pressed.connect(show_dismiss_crew_dialog)
+	row.add_child(dismiss_btn)
+
+	if ShipComponentQuery.has_component("suspension_pod"):
+		var susp_btn := Button.new()
+		var n: int = _suspended_ids().size()
+		susp_btn.text = "Suspension Pod (%d/%d)" % [n, MAX_SUSPENDED_CREW]
+		susp_btn.accessibility_name = "Suspend or revive crew, %d of %d pods used" % [
+			n, MAX_SUSPENDED_CREW]
+		susp_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		susp_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		susp_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		susp_btn.pressed.connect(show_suspension_pod_dialog)
+		row.add_child(susp_btn)
+
+	vbox.add_child(row)
+
+func _suspended_ids() -> Array:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return []
+	var ids: Variant = pd.get("suspended_crew", [])
+	return ids if ids is Array else []
+
+func _member_id_of(member) -> String:
+	if member is Dictionary:
+		return str(member.get("character_id", member.get("id", "")))
+	if member != null and "character_id" in member:
+		return str(member.character_id)
+	return ""
+
+var _suspend_dialog: Window
+
+func show_suspension_pod_dialog() -> void:
+	## Suspension Pod (Core Rules p.62). THE PRODUCER THAT DID NOT EXIST:
+	## progress_data["suspended_crew"] had four readers — the upkeep cost
+	## exclusion, the recovery-skip at turn rollover, UpkeepSystem, and this
+	## component — and NOTHING ever wrote to it, so a purchased Suspension Pod
+	## did precisely nothing.
+	if _suspend_dialog:
+		_suspend_dialog.queue_free()
+
+	_suspend_dialog = Window.new()
+	_suspend_dialog.title = "Suspension Pod"
+	_suspend_dialog.size = Vector2i(440, 420)
+	_suspend_dialog.exclusive = true
+	_suspend_dialog.close_requested.connect(
+		func(): _suspend_dialog.queue_free(); _suspend_dialog = null)
+
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 16)
+	_suspend_dialog.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var suspended: Array = _suspended_ids()
+	var header := Label.new()
+	header.text = ("Suspended crew take no part in events, tasks or missions, do "
+		+ "not recover from Injuries, and cost no Upkeep. Up to %d at a time. "
+		+ "(Core Rules p.62)  —  %d/%d in use.") % [
+			MAX_SUSPENDED_CREW, suspended.size(), MAX_SUSPENDED_CREW]
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 250)
+	vbox.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 4)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+
+	for member in crew_data:
+		var mid: String = _member_id_of(member)
+		if mid.is_empty():
+			continue
+		var mname: String = str(member.get("character_name", member.get("name", "Unknown"))) \
+			if member is Dictionary else "Unknown"
+		# The captain runs the ship; suspending them is not a meaningful option.
+		if member is Dictionary and bool(member.get("is_captain", false)):
+			continue
+
+		var is_susp: bool = mid in suspended
+		var r := HBoxContainer.new()
+		r.add_theme_constant_override("separation", 8)
+		list.add_child(r)
+
+		var lbl := Label.new()
+		lbl.text = mname + ("  [SUSPENDED]" if is_susp else "")
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		r.add_child(lbl)
+
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(96, TOUCH_TARGET_MIN)
+		if is_susp:
+			btn.text = "Revive"
+			btn.accessibility_name = "Revive " + mname
+			btn.pressed.connect(_on_revive_crew.bind(mid))
+		else:
+			btn.text = "Suspend"
+			btn.accessibility_name = "Suspend " + mname
+			btn.disabled = suspended.size() >= MAX_SUSPENDED_CREW
+			btn.pressed.connect(_on_suspend_crew.bind(mid, mname))
+		r.add_child(btn)
+
+	add_child(_suspend_dialog)
+	_suspend_dialog.popup_centered()
+
+func _on_suspend_crew(character_id: String, character_name: String) -> void:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return
+	var ids: Array = _suspended_ids()
+	if character_id in ids or ids.size() >= MAX_SUSPENDED_CREW:
+		return
+	ids.append(character_id)
+	pd["suspended_crew"] = ids
+	_journal_crew_suspension("Crew suspended",
+		"%s entered a Suspension Pod — no Upkeep, tasks, missions or Injury recovery while suspended (Core Rules p.62)." % character_name)
+	_refresh_after_suspension_change()
+
+func _on_revive_crew(character_id: String) -> void:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return
+	var ids: Array = _suspended_ids()
+	if character_id not in ids:
+		return
+	ids.erase(character_id)
+	pd["suspended_crew"] = ids
+	# p.62: "They must be counted as part of your crew during the Upkeep step of
+	# that campaign turn" — recalculating costs below is what makes that true.
+	_journal_crew_suspension("Crew revived",
+		"Revived from suspension; counts toward Upkeep from this step onward (Core Rules p.62).")
+	_refresh_after_suspension_change()
+
+func _refresh_after_suspension_change() -> void:
+	if _suspend_dialog:
+		_suspend_dialog.queue_free()
+		_suspend_dialog = null
+	current_upkeep_data = calculate_upkeep_costs()
+	_build_travel_section()
+	_update_ui_display()
+	_update_gating_state()
+
+func _journal_crew_suspension(title: String, description: String) -> void:
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": title,
+			"description": description,
+			"tags": ["ship", "upkeep"],
+		})
+
 func _build_hull_repair_prompt(vbox: VBoxContainer) -> void:
 	## Paid hull repair (Core Rules p.59). Only rendered while damaged.
 	var damage: int = _hull_damage()
@@ -1083,11 +1263,11 @@ func _on_repair_hull_pressed(points: int) -> void:
 		var journal = get_node_or_null("/root/CampaignJournal")
 		if journal and journal.has_method("create_entry"):
 			journal.create_entry({
-				"type": "ship",
+				"type": "event",
 				"auto_generated": true,
 				"title": "Paid hull repairs",
 				"description": "Repaired %d Hull Point(s) (Core Rules p.59)." % repaired,
-				"tags": ["ship", "repair"],
+				"tags": ["ship", "upkeep"],
 			})
 	# Rebuild so the banner, the repair button and the travel gate all re-read
 	# the new hull state together.
@@ -1286,7 +1466,7 @@ func _journal_invasion(title: String, description: String) -> void:
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "travel",
+			"type": "event",
 			"title": title,
 			"description": description,
 			"tags": ["invasion", "travel"],

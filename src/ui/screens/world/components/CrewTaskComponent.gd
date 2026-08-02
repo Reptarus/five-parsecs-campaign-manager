@@ -534,6 +534,16 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 			result.reward = "Found 1 Patron"
 			_generate_and_add_patron(1)
 
+	# Track: "6+ locates a Rival of your choice, allowing you to fight a battle
+	# against them this campaign turn" (Core Rules p.78). WHICH Rival is the
+	# player's decision, so a successful roll opens a picker rather than the app
+	# choosing. Until this existed the task resolved, printed a success line and
+	# recorded nothing — so progress_data["tracked_rivals"] stayed empty and the
+	# p.119 "+1 if you Tracked them down" Rival-removal modifier could never
+	# apply, no matter how the player played the World Phase.
+	if task.id == "track" and result.success:
+		call_deferred("_prompt_track_rival_choice", result)
+
 	if result.success:
 		if result.reward == "None" or result.reward == "":
 			result.reward = task.success_reward
@@ -543,6 +553,53 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 		result.details = "Roll %d → %d vs %d. %s" % [roll, modified_roll, task.dice_target, result.details]
 
 	return result
+
+func _prompt_track_rival_choice(result: Dictionary) -> void:
+	## Core Rules p.78 Track: the player picks WHICH Rival was located.
+	## Writes straight to progress_data["tracked_rivals"] at pick time rather than
+	## relying on the task result being read later — the result is also stamped so
+	## RivalEncounterCheck.tracked_rival_ids_from_tasks() sees it either way.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var campaign = gs.current_campaign
+	var rivals: Array = []
+	if "rivals" in campaign and campaign.rivals is Array:
+		rivals = campaign.rivals
+	if rivals.is_empty():
+		return
+
+	var RivalCheck = load("res://src/core/campaign/RivalEncounterCheck.gd")
+	var popup := PopupMenu.new()
+	popup.name = "TrackRivalPopup"
+	add_child(popup)
+	for i in range(rivals.size()):
+		popup.add_item(RivalCheck.rival_name_of(rivals[i]), i)
+	popup.id_pressed.connect(func(id: int) -> void:
+		if id >= 0 and id < rivals.size():
+			var rid: String = RivalCheck.rival_id_of(rivals[id])
+			var rname: String = RivalCheck.rival_name_of(rivals[id])
+			result["rival_id"] = rid
+			result["details"] = str(result.get("details", "")) + " Located %s." % rname
+			if "progress_data" in campaign:
+				var tracked: Array = campaign.progress_data.get("tracked_rivals", [])
+				if not (tracked is Array):
+					tracked = []
+				if rid not in tracked:
+					tracked.append(rid)
+				campaign.progress_data["tracked_rivals"] = tracked
+			var journal = get_node_or_null("/root/CampaignJournal")
+			if journal and journal.has_method("create_entry"):
+				journal.create_entry({
+					"type": "event",
+					"auto_generated": true,
+					"title": "Rival located",
+					"description": "Tracked down %s. You may fight them this campaign turn, and gain +1 to chase them off after the battle (Core Rules pp.78, 119)." % rname,
+					"tags": ["rival", "upkeep"],
+				})
+		popup.queue_free()
+	)
+	popup.popup_centered()
 
 func _story_turn_mods() -> Dictionary:
 	## Campaign-turn restrictions for the current Story Event, or {} on a normal

@@ -52,7 +52,14 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 					var result_str: String = "victory" if ctx.mission_successful else "defeat"
 					npc_tracker_node.track_rival_encounter(rival_id, result_str, ctx.battle_result.get("turn", 0))
 
-	if held_field and not fought_existing_rival:
+	# Story Track: Event 1 (p.153) and Event 4 (p.156) both end with "Do not
+	# check for new Rivals after this battle." Stamped by StoryTrackProcessor.
+	# Note this suppresses only the NEW-Rival roll — the p.119 removal roll above
+	# still runs, because Event 4's hold-field reward is to REMOVE one.
+	var story_blocks_new_rivals: bool = bool(
+		ctx.battle_result.get("story_no_new_rival_check", false))
+
+	if held_field and not fought_existing_rival and not story_blocks_new_rivals:
 		var new_rival_roll: int = randi_range(1, 6)
 		if new_rival_roll == 1:
 			var new_rival_id: String = _create_new_rival_from_battle(ctx)
@@ -131,12 +138,16 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		if ctx.remove_patron(failed_patron_id):
 			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 				ctx.campaign_journal.create_entry({
-					"type": "patron",
+					# "patron" is a canonical TAG but not a canonical TYPE
+					# (JournalEntryTypes.STRING_TO_TYPE), and "failure" is neither.
+					# validate_entry() only WARNS, so this shipped as a console
+					# warning and an entry that rendered with the fallback colour.
+					"type": "event",
 					"title": "Patron contract failed",
 					"description": "Failing an accepted job removed this Patron "
 						+ "from your known contacts (Core Rules p.119, errata v1.06).",
 					"turn": int(ctx.battle_result.get("turn", 0)),
-					"tags": ["patron", "failure"],
+					"tags": ["patron", "defeat"],
 				})
 
 	return patrons_added

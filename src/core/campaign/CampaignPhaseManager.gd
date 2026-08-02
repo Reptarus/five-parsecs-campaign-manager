@@ -692,12 +692,12 @@ func _process_free_hull_repair(campaign: Resource) -> void:
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "ship",
+			"type": "event",
 			"auto_generated": true,
 			"title": "Hull repairs",
 			"description": "The crew patched 1 Hull Point over the campaign turn (%d/%d). Core Rules p.59." % [
 				int(ship["hull_points"]), max_hull],
-			"tags": ["ship", "repair"],
+			"tags": ["ship", "upkeep"],
 		})
 
 func _clear_upkeep_lockouts(campaign: Resource) -> void:

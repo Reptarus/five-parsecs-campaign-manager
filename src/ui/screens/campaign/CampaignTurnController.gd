@@ -1670,15 +1670,19 @@ func _journal_world_phase(results: Dictionary) -> void:
 
 	if parts.is_empty():
 		return
-	_journal_phase("World Step", ". ".join(parts) + ".", ["world_phase", "phase"])
+	_journal_phase("event", "World Step", ". ".join(parts) + ".", ["upkeep"])
 
-func _journal_phase(title: String, description: String, tags: Array) -> void:
+func _journal_phase(entry_type: String, title: String, description: String, tags: Array) -> void:
+	## `entry_type` and every tag MUST come from JournalEntryTypes (STRING_TO_TYPE
+	## and TAGS respectively). validate_entry() only WARNS on a non-canonical
+	## value — it never rejects — so a wrong type here would produce entries that
+	## render with a default colour/icon and filter oddly, with nothing failing.
 	if description.is_empty():
 		return
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "campaign",
+			"type": entry_type,
 			"auto_generated": true,
 			"title": title,
 			"description": description,
@@ -1688,25 +1692,25 @@ func _journal_phase(title: String, description: String, tags: Array) -> void:
 func _on_advancement_phase_completed(phase_data: Dictionary) -> void:
 	var count: int = int(phase_data.get("crew_count", 0))
 	if count > 0:
-		_journal_phase("Advancement", "Reviewed advancement for %d crew member(s)." % count,
-			["advancement", "phase"])
+		_journal_phase("experience", "Advancement",
+			"Reviewed advancement for %d crew member(s)." % count, ["advancement"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_trade_phase_completed(phase_data: Dictionary) -> void:
 	var bought: Array = phase_data.get("purchased_items", [])
 	var sold: Array = phase_data.get("sold_items", [])
 	if not bought.is_empty() or not sold.is_empty():
-		_journal_phase("Trading",
+		_journal_phase("purchase", "Trading",
 			"Bought %d item(s), sold %d item(s). Credits on hand: %d." % [
 				bought.size(), sold.size(), int(phase_data.get("credits", 0))],
-			["trade", "phase"])
+			["trading", "finance"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_character_phase_completed(phase_data: Dictionary) -> void:
 	var events: int = int(phase_data.get("event_count", (phase_data.get("events", []) as Array).size()))
 	if events > 0:
-		_journal_phase("Character events", "Resolved %d character event(s)." % events,
-			["character_event", "phase"])
+		_journal_phase("character_event", "Character events",
+			"Resolved %d character event(s)." % events, ["character_event"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_story_phase_completed(phase_data: Dictionary) -> void:
@@ -1727,7 +1731,7 @@ func _on_end_phase_completed(phase_data: Dictionary) -> void:
 	# evaluated by VictoryChecker at turn rollover, which is where it belongs.
 	var summary: String = str(phase_data.get("cycle_summary", ""))
 	if not summary.is_empty():
-		_journal_phase("Turn complete", summary, ["turn_end", "phase"])
+		_journal_phase("milestone", "Turn complete", summary, ["milestone", "completion"])
 	campaign_phase_manager.complete_current_phase()
 
 ## Sprint D: Post-battle crew status validation
