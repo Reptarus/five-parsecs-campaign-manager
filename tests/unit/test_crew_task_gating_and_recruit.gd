@@ -129,6 +129,69 @@ func test_eligible_crew_is_built_from_the_same_rule() -> void:
 	assert_str(str(eligible[0].get("character_name", ""))).is_equal("Fit")
 
 
+# --- Repair Your Kit (p.78) ---------------------------------------------------
+
+## The damaged item is recorded by Character Events as a status_effects entry
+## {type: "item_damaged", damaged_item: <name>}. Repair must read that; before
+## this it read nothing at all and reported "Item repaired" unconditionally.
+func test_a_damaged_item_is_found_from_the_status_effect() -> void:
+	var comp: Object = _tasks()
+	assert_str(comp._first_damaged_item({
+		"status_effects": [{"type": "item_damaged", "damaged_item": "Auto Rifle"}],
+	})).is_equal("Auto Rifle")
+
+
+func test_a_character_with_nothing_damaged_has_nothing_to_repair() -> void:
+	var comp: Object = _tasks()
+	assert_str(comp._first_damaged_item({"status_effects": []})).is_empty()
+	assert_str(comp._first_damaged_item({
+		"status_effects": [{"type": "no_xp"}],
+	})).is_empty()
+
+
+## "On a 6+, the item is repaired and is usable again." The marker clears and the
+## item STAYS in the character's kit.
+func test_a_successful_repair_clears_the_marker_and_keeps_the_item() -> void:
+	var comp: Object = _tasks()
+	var member: Dictionary = {
+		"status_effects": [{"type": "item_damaged", "damaged_item": "Auto Rifle"}],
+		"equipment": ["Auto Rifle", "Blade"],
+	}
+	comp._resolve_damaged_item(member, "Auto Rifle", true)
+	assert_int((member["status_effects"] as Array).size()).is_equal(0)
+	assert_array(member["equipment"]).contains(["Auto Rifle"])
+
+
+## "A natural 1 always fails and means the item is beyond fixing" — so it leaves
+## the kit entirely, not just loses its marker.
+func test_a_natural_one_destroys_the_item() -> void:
+	var comp: Object = _tasks()
+	var member: Dictionary = {
+		"status_effects": [{"type": "item_damaged", "damaged_item": "Auto Rifle"}],
+		"equipment": ["Auto Rifle", "Blade"],
+	}
+	comp._resolve_damaged_item(member, "Auto Rifle", false)
+	assert_int((member["status_effects"] as Array).size()).is_equal(0)
+	assert_array(member["equipment"]).not_contains(["Auto Rifle"])
+	assert_array(member["equipment"]).contains(["Blade"])
+
+
+## Only the named item is affected; a second damaged item survives to be
+## repaired on a later turn.
+func test_only_the_named_item_is_resolved() -> void:
+	var comp: Object = _tasks()
+	var member: Dictionary = {
+		"status_effects": [
+			{"type": "item_damaged", "damaged_item": "Auto Rifle"},
+			{"type": "item_damaged", "damaged_item": "Blade"},
+		],
+		"equipment": ["Auto Rifle", "Blade"],
+	}
+	comp._resolve_damaged_item(member, "Auto Rifle", false)
+	assert_int((member["status_effects"] as Array).size()).is_equal(1)
+	assert_str(comp._first_damaged_item(member)).is_equal("Blade")
+
+
 # --- p.59 ship wreck ----------------------------------------------------------
 
 ## "If this happens on the ground, you can reclaim 1D6+5 credits' worth of scrap

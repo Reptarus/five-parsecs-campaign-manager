@@ -734,9 +734,20 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 		modified_roll += savvy
 		detail_parts.append("+%d Savvy" % savvy)
 
-	# +1 if Engineer class (Core Rules p.78)
-	var char_class: String = str(crew_member.get("character_class", ""))
-	if char_class.to_lower() == "engineer":
+	# "Add +1 if the character is an Engineer" (Core Rules p.78).
+	#
+	# Engineer is a SPECIES (data/character_species.json primary_aliens id
+	# "engineer"), stored in species_id — not a CharacterClass. Reading
+	# character_class here meant the one crew type the book singles out for this
+	# job never got the bonus, so their repair chance was identical to a baseline
+	# human's. The sibling Empath check in _resolve_dice_task reads species_id
+	# correctly; this one did not.
+	#
+	# str() guard: legacy saves store "origin" as a numeric enum (e.g. 7.0) and
+	# carry no species_id, so the raw value can be a float and .to_lower() aborts.
+	var crew_species: String = str(crew_member.get(
+		"species_id", crew_member.get("origin", ""))).to_lower()
+	if crew_species == "engineer":
 		modified_roll += 1
 		detail_parts.append("+1 Engineer")
 
@@ -759,21 +770,87 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	if modifier_text != "":
 		roll_text += " %s" % modifier_text
 
-	# Natural 1 always fails AND item becomes unfixable (Core Rules p.78)
-	if roll == 1:
+	# THE ITEM ITSELF WAS NEVER TOUCHED. Every branch below set a reward STRING and
+	# nothing else — no damaged-item picker, no write of any condition — so a
+	# broken weapon stayed broken forever while the panel reported "Item repaired"
+	# every single time. The only application code lived in the dead
+	# src/core/campaign/phases/WorldPhase.gd.
+	var damaged: String = _first_damaged_item(crew_member)
+
+	# "If you have had items destroyed, you can attempt to Repair them" (p.78) —
+	# with nothing damaged there is nothing to fix, and claiming otherwise is the
+	# bug this replaces.
+	if damaged.is_empty():
 		result.success = false
-		result.reward = "CRITICAL FAIL - Item is beyond repair!"
+		result.reward = "Nothing damaged to repair"
+		result.details = "%s — no damaged items on this character" % roll_text
+		return result
+
+	# Natural 1 always fails AND item becomes unfixable (Core Rules p.78:
+	# "A natural 1 always fails and means the item is beyond fixing.")
+	if roll == 1:
+		_resolve_damaged_item(crew_member, damaged, false)
+		result.success = false
+		result.reward = "CRITICAL FAIL — %s is beyond repair" % damaged
 		result.details = "%s = %d vs 6. Natural 1: UNFIXABLE" % [roll_text, modified_roll]
 	elif modified_roll >= 6:
+		_resolve_damaged_item(crew_member, damaged, true)
 		result.success = true
-		result.reward = "Item repaired"
+		result.reward = "%s repaired" % damaged
 		result.details = "%s = %d vs 6. Repaired!" % [roll_text, modified_roll]
 	else:
 		result.success = false
-		result.reward = "Repair failed - try again next turn"
+		result.reward = "Repair failed — try again next turn"
 		result.details = "%s = %d vs 6. Failed" % [roll_text, modified_roll]
 
 	return result
+
+
+func _first_damaged_item(crew_member) -> String:
+	## Character Events (Core Rules pp.128-130) record a damaged item as a
+	## status_effects entry {type: "item_damaged", damaged_item: <name>} — see
+	## CharacterEventEffects "Don't Make Them Like They Used To". That is the live
+	## representation of "items destroyed" for p.78's Repair Your Kit.
+	for eff in _member_get(crew_member, "status_effects", []):
+		if str(eff.get("type", "")) != "item_damaged":
+			continue
+		var item_name: String = str(eff.get("damaged_item", "")).strip_edges()
+		if not item_name.is_empty():
+			return item_name
+	return ""
+
+
+func _resolve_damaged_item(crew_member, item_name: String, repaired: bool) -> void:
+	## Clear the item_damaged marker. On a natural 1 the item is "beyond fixing",
+	## so it also leaves the character's kit.
+	##
+	## crew_data holds the SAME Dictionary references as campaign
+	## crew_data["members"] (GameState.get_active_crew() returns the live array and
+	## initialize_crew_tasks() takes a SHALLOW duplicate), so mutating the member
+	## here writes through to the campaign.
+	var effects = _member_get(crew_member, "status_effects", [])
+	if effects is Array:
+		for i in range(effects.size() - 1, -1, -1):
+			var eff = effects[i]
+			if eff is Dictionary and str(eff.get("type", "")) == "item_damaged" \
+					and str(eff.get("damaged_item", "")) == item_name:
+				effects.remove_at(i)
+				break
+
+	if repaired:
+		return
+
+	# Beyond fixing: remove it from the character's equipment. Character.equipment
+	# is Array[String] of item names, so match on the name.
+	var equipment = _member_get(crew_member, "equipment", [])
+	if equipment is Array:
+		for i in range(equipment.size() - 1, -1, -1):
+			var entry = equipment[i]
+			var entry_name: String = str(entry.get("name", "")) \
+				if entry is Dictionary else str(entry)
+			if entry_name == item_name:
+				equipment.remove_at(i)
+				break
 
 func _get_trade_table_result(roll: int) -> Dictionary:
 	## Get result from Trade Table (Core Rules p.79) — loaded from JSON via DataManager
