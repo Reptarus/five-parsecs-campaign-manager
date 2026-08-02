@@ -63,6 +63,14 @@ static func can_roll_creation_tables(species_id: String) -> bool:
 		return true
 	return data.get("rolls_creation_tables", true)
 
+static func is_motivation_additional(species_id: String) -> bool:
+	## True when the species' declared motivation is granted ON TOP of the normal
+	## roll rather than replacing it. Hakshan (Core Rules p.20) is the only such
+	## species: "In addition to the usual rolls ... you automatically have the
+	## Truth motivation." Traveler (p.23) says "Motivation is always Truth" and is
+	## therefore a replacement, which is what every other forced_motivation means.
+	return get_species(species_id).get("motivation_is_additional", false)
+
 static func has_double_background(species_id: String) -> bool:
 	return get_species(species_id).get("double_background", false)
 

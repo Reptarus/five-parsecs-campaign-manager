@@ -157,6 +157,8 @@
 				"Automatically has Truth motivation in addition to rolled motivation"
 			],
 			"forced_motivation": "truth",
+			"motivation_is_additional": true,
+			"_comment_motivation": "Core Rules p.20: 'In addition to the usual rolls on the Background, Motivation, and Class Tables, you automatically have the Truth motivation.' ADDITIVE — unlike Traveler (p.23, 'Motivation is always Truth'), which replaces. Without this flag Hakshan was treated as a replacement and lost the motivation they are supposed to roll normally.",
 			"rolls_creation_tables": true,
 			"page_reference": "p.20"
 		},
