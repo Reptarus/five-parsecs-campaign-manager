@@ -1656,11 +1656,19 @@ func _validate_campaign_data() -> Array[String]:
 			found_name = "Campaign_%s" % Time.get_datetime_string_from_system().replace(":", "-")
 		config_data["campaign_name"] = found_name
 
-	# BLOCKING (user decision): require at least one victory condition so no campaign
-	# launches with "no win condition". Gated here at Start Campaign (not in Step-1
-	# _validate_campaign_config, which intentionally defers it to avoid breaking
-	# campaign-name propagation). Handles both the dict format from ExpandedConfigPanel
-	# ({"wealth": {name:...}}) and the legacy bool format ({"wealth": true}).
+	# A victory condition is OPTIONAL, so this no longer blocks.
+	#
+	# Core Rules p.64: "Campaigns may potentially go on indefinitely, with your
+	# crew roaming the stars... If you like to have a distinct goal in sight,
+	# select a Victory Condition now." An open-ended campaign is a supported way
+	# to play, and refusing to create one removed a choice the book gives the
+	# player. (This supersedes the earlier decision to require one; that was made
+	# to avoid campaigns with "no win condition", which the book calls normal.)
+	#
+	# Kept as a non-blocking note so the intent behind that decision — make sure
+	# the player knows they have not set a goal — is still served.
+	# Handles both the dict format from ExpandedConfigPanel ({"wealth": {name:...}})
+	# and the legacy bool format ({"wealth": true}).
 	var victory_conditions: Dictionary = config_data.get("victory_conditions", {})
 	var has_victory := false
 	for vkey in victory_conditions.keys():
@@ -1669,7 +1677,7 @@ func _validate_campaign_data() -> Array[String]:
 			has_victory = true
 			break
 	if not has_victory:
-		errors.append("Select at least one victory condition (Step 1 - Victory Conditions) so your campaign has a win condition.")
+		push_warning("FinalPanel: campaign created with no victory condition — open-ended play (Core Rules p.64).")
 
 	# BLOCKING ERROR: Must have crew members
 	var crew_data: Dictionary = campaign_data.get("crew", {})

@@ -381,7 +381,23 @@ enum FiveParsecsCampaignVictoryType {
 	WEALTH_GOAL,
 	REPUTATION_GOAL,
 	FACTION_DOMINANCE,
-	MISSION_COUNT
+	MISSION_COUNT,
+	# The last eight of the seventeen Victory Conditions on Core Rules p.64. The
+	# wizard has always OFFERED all seventeen (data/campaign_config.json matches
+	# the book exactly), but these eight had no enum member, so VictoryChecker's
+	# key->enum map fell through to NONE and the campaign could never be won.
+	# Worse, Godot Dictionaries keep insertion order and the checker read the
+	# first key, so picking one of these FIRST also nullified any achievable
+	# condition picked afterwards.
+	# APPENDED, never inserted — these ordinals are persisted in save files.
+	UNIQUE_KILLS_10,
+	UNIQUE_KILLS_25,
+	UPGRADE_1X10,
+	UPGRADE_3X10,
+	UPGRADE_5X10,
+	CHALLENGING_50,
+	HARDCORE_50,
+	INSANITY_50
 }
 
 ## Market System

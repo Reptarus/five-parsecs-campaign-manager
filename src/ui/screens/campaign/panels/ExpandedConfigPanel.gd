@@ -36,6 +36,11 @@ const CARD_MIN_META := "card_min_base"
 var _flow_content: HFlowContainer = null
 
 # GlobalEnums available as autoload singleton
+## Core Rules p.64: "Only the Play 20 campaign turns and Win 20 tabletop battles
+## Victory Conditions can be completed in the Easy difficulty mode." These are
+## the two data keys from campaign_config.json, not category labels.
+const EASY_MODE_VICTORY_KEYS: PackedStringArray = ["turns_20", "battles_20"]
+
 const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
 const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
@@ -1218,15 +1223,31 @@ func _update_victory_conditions_availability(difficulty: int) -> void:
 
 		var vc_key: String = child.get_meta("victory_key")
 		if is_restricted:
-			# Easy mode: only basic victory conditions (Core Rules p.64: "Play 20 turns" / "Win 20 battles")
-			# Map panel keys to basic conditions: "combat" (win battles) and "story" (complete missions)
-			var is_basic: bool = vc_key in ["combat", "story"]
+			# Core Rules p.64, verbatim: "Only the Play 20 campaign turns and Win
+			# 20 tabletop battles Victory Conditions can be completed in the Easy
+			# difficulty mode."
+			#
+			# This used to test `vc_key in ["combat", "story"]` — those are
+			# `category` VALUES from campaign_config.json, never keys, so the test
+			# was false for all seventeen conditions. Easy mode therefore dimmed
+			# EVERY option including the two the book allows, and silently erased
+			# whatever the player had already chosen. Combined with the review
+			# screen refusing to create a campaign without a victory condition,
+			# picking Easy could strand the player entirely.
+			var is_basic: bool = vc_key in EASY_MODE_VICTORY_KEYS
 			child.modulate.a = 1.0 if is_basic else 0.4
+			# Dimming alone was cosmetic: the cards keep MOUSE_FILTER_STOP and
+			# their gui_input, so a "disabled" condition stayed selectable.
+			child.mouse_filter = Control.MOUSE_FILTER_STOP if is_basic \
+				else Control.MOUSE_FILTER_IGNORE
 			# Deselect any restricted condition
 			if not is_basic and selected_victory_conditions.has(vc_key):
 				selected_victory_conditions.erase(vc_key)
+				_set_card_selected_state(child, false)
+				victory_conditions_changed.emit(selected_victory_conditions)
 		else:
 			child.modulate.a = 1.0
+			child.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _create_victory_condition_card(key: String, condition: Dictionary) -> PanelContainer:
@@ -1306,22 +1327,48 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	return card
 
 func _on_victory_card_clicked(event: InputEvent, key: String, card: PanelContainer) -> void:
-	## Handle click on victory condition card
+	## Handle click on victory condition card.
+	##
+	## SINGLE SELECT. Core Rules p.64: "If you select a Victory Condition, it
+	## cannot be changed, and you can only achieve that selected condition, even
+	## if you would qualify for others." The wizard used to allow any number and
+	## told the player "achieve ANY to win", which the book does not offer — and
+	## VictoryChecker only ever evaluated ONE of them anyway (the first key in an
+	## insertion-ordered Dictionary, i.e. whichever card was clicked first). A
+	## player who picked three conditions was silently playing for one of them.
+	##
+	## Clicking the selected card clears it, because selecting one at all is
+	## optional: "Campaigns may potentially go on indefinitely... If you like to
+	## have a distinct goal in sight, select a Victory Condition now."
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		# Toggle selection
-		var is_selected = selected_victory_conditions.has(key)
-		if is_selected:
-			selected_victory_conditions.erase(key)
-			_set_card_selected_state(card, false)
-		else:
+		var was_selected: bool = selected_victory_conditions.has(key)
+		# Clear every other card first — one condition, or none.
+		for other_key in selected_victory_conditions.keys():
+			var other_card := _find_victory_card(other_key)
+			if other_card:
+				_set_card_selected_state(other_card, false)
+		selected_victory_conditions.clear()
+
+		if not was_selected:
 			selected_victory_conditions[key] = victory_conditions[key].duplicate()
 			_set_card_selected_state(card, true)
-		
+		else:
+			_set_card_selected_state(card, false)
+
 		# Emit real-time update signals
 		victory_conditions_changed.emit(selected_victory_conditions)
 		_update_victory_condition_description()
 		_update_display()
 		_validate_and_complete()
+
+func _find_victory_card(key: String) -> PanelContainer:
+	if not victory_conditions_list:
+		return null
+	for child in victory_conditions_list.get_children():
+		if child is PanelContainer and child.has_meta("victory_key") \
+				and str(child.get_meta("victory_key")) == key:
+			return child
+	return null
 
 func _on_victory_card_hover(card: PanelContainer) -> void:
 	## Handle mouse hover on victory card

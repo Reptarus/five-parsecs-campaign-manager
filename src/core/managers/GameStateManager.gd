@@ -384,6 +384,35 @@ func increment_battles_lost() -> void:
 	if c and "progress_data" in c:
 		c.progress_data["battles_lost"] = c.progress_data.get("battles_lost", 0) + 1
 
+func increment_unique_individual_kills(count: int = 1) -> void:
+	## Campaign-level tally behind the "Kill 10/25 Unique Individuals" Victory
+	## Conditions (Core Rules p.64). Per-battle unique kills already travel on the
+	## battle result (BattleResultsInputForm -> ExperienceTrainingProcessor), but
+	## nothing has ever ACCUMULATED them, so the two conditions had no number to
+	## read even once they were mapped.
+	if count <= 0:
+		return
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["unique_individuals_killed"] = \
+			c.progress_data.get("unique_individuals_killed", 0) + count
+
+func record_character_upgrade_milestone(count: int = 1) -> void:
+	## Counts CHARACTERS who have reached 10 Upgrades, for the three "Upgrade N
+	## Characters 10 Times" Victory Conditions (Core Rules p.64).
+	##
+	## Deliberately a count of characters, not of upgrades: "the characters do not
+	## have to be in the crew at the same time. If one character Upgrades 10 times
+	## and dies, all 10 Character Upgrades still count" — so once a character has
+	## banked the milestone it survives their death, and the live roster is the
+	## wrong place to compute it from.
+	if count <= 0:
+		return
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["characters_upgraded_10"] = \
+			c.progress_data.get("characters_upgraded_10", 0) + count
+
 # --- Reputation arithmetic ---
 
 func add_reputation(amount: int) -> void:
