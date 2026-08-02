@@ -131,12 +131,35 @@ func _on_remove_member_pressed() -> void:
 	if index >= 0 and index < crew_members.size():
 		crew_members.remove_at(index)
 		_update_crew_list()
+		_update_candidate_hint()
 		crew_updated.emit(crew_members)
+
+func _extra_candidate_slots() -> int:
+	## Core Rules p.65: "For every 3 Elite Ranks, you may roll up an additional
+	## starting character. You are still limited to your starting crew size, but
+	## may PICK FROM AMONG THE POOL of generated characters."
+	##
+	## Note what this perk is NOT: it does not grant extra crew. It rolls up
+	## extra CANDIDATES so the player has a choice. progress_data
+	## ["extra_starting_characters"] recorded the number and nothing ever read
+	## it, so a veteran player's whole reward was a line of text on the review
+	## screen.
+	var ProfileRef = load("res://src/core/player/PlayerProfile.gd")
+	if ProfileRef == null:
+		return 0
+	var profile = ProfileRef.get_instance()
+	if profile == null or not profile.has_method("get_extra_starting_characters"):
+		return 0
+	return maxi(0, int(profile.get_extra_starting_characters()))
 
 func _on_randomize_pressed() -> void:
 	crew_members.clear()
 
-	for i in range(selected_size - 1):
+	# Roll the crew PLUS any Elite Rank candidates, so there is something to
+	# choose between. The player trims back down to the crew size with Remove;
+	# validation refuses to advance while the roster is over size.
+	var extra: int = _extra_candidate_slots()
+	for i in range(selected_size - 1 + extra):
 		character_creator.start_creation(CharacterCreator.CreatorMode.INITIAL_CREW)
 		character_creator._on_randomize_pressed()
 		if character_creator.current_character:
@@ -144,7 +167,30 @@ func _on_randomize_pressed() -> void:
 	character_creator.hide()
 
 	_update_crew_list()
+	_update_candidate_hint()
 	crew_updated.emit(crew_members)
+
+func _update_candidate_hint() -> void:
+	## Tell the player, in the panel, that they are over size on purpose and
+	## must cut down — otherwise an over-size roster just looks like a bug.
+	var hint := content.get_node_or_null("__candidate_hint")
+	var keep: int = selected_size - 1
+	var over: int = crew_members.size() - keep
+	if over <= 0:
+		if hint:
+			hint.queue_free()
+		return
+	if hint == null:
+		hint = Label.new()
+		hint.name = "__candidate_hint"
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint.add_theme_font_size_override("font_size", _scaled_font(14))
+		hint.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+		content.add_child(hint)
+		content.move_child(hint, 1)
+	hint.text = ("Elite Rank: %d extra candidate(s) rolled. Remove %d to get down "
+		+ "to your crew of %d — you pick who stays (Core Rules p.65).") % [
+			_extra_candidate_slots(), over, selected_size]
 
 func _on_character_created(character) -> void:
 	character_creator.hide()
@@ -227,7 +273,9 @@ func _update_crew_list() -> void:
 		]
 		crew_list.add_item(text)
 
-	# Update controls state
+	# Update controls state. Adding is capped at the crew size — the Elite Rank
+	# perk rolls extra CANDIDATES (p.65), it does not raise the cap, so the
+	# only way to exceed the size is by rolling and then trimming.
 	add_button.disabled = (
 		crew_members.size() >= selected_size - 1)
 	edit_button.disabled = true

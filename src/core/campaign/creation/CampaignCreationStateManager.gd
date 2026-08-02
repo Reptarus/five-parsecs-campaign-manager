@@ -262,6 +262,18 @@ func _validate_crew_phase() -> bool:
 		validation_errors.append("Crew is short %d member(s). You picked a crew of %d at config." % [required_size - members_array.size(), required_size])
 		return false
 
+	# OVER size is an error too. Core Rules p.65: the Elite Rank perk rolls extra
+	# CANDIDATES — "You are still limited to your starting crew size, but may
+	# pick from among the pool of generated characters." Only under-size was
+	# checked, so a player with extra candidates could have carried all of them
+	# into the campaign and fielded an oversized crew.
+	if members_array.size() > required_size:
+		validation_errors.append(
+			"Crew is %d over size. Remove %d — you picked a crew of %d, and Elite Rank candidates are a choice, not extra crew (Core Rules p.65)." % [
+				members_array.size() - required_size,
+				members_array.size() - required_size, required_size])
+		return false
+
 	# SPRINT 26.21 FIX: Check for captain assignment - accept either has_captain flag OR captain object
 	var has_captain: bool = bool(crew.get("has_captain", false))
 	if not has_captain:

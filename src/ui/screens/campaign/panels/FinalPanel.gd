@@ -34,6 +34,12 @@ var is_campaign_complete: bool = false
 # Stars of the Story: Elite Rank picks at campaign setup (Core Rules p.65)
 # Each int is a StarAbility enum value; picks must target distinct abilities.
 var _elite_rank_picks: Array[int] = []
+## Elite Rank bonus XP the player has assigned, keyed by character_id
+## (Core Rules p.65: "may be assigned to any characters you like").
+## Applied to the finalized campaign by _apply_elite_rank_xp_to_campaign().
+var _elite_xp_allocation: Dictionary = {}
+var _elite_xp_remaining_label: Label = null
+var _elite_xp_total: int = 0
 var _stars_picker_buttons: Dictionary = {}  # ability_int -> Button
 var _stars_picker_status_label: Label = null
 var _stars_preview_panel: Node = null
@@ -866,6 +872,13 @@ func _create_elite_bonuses_card() -> PanelContainer:
 			xp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			xp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 			bonuses_container.add_child(xp_label)
+			# ...and the allocator that makes the promise real. Core Rules p.65:
+			# "Receive 2 XP per Elite Rank, which may be assigned to any
+			# characters you like." This label advertised the bonus for months
+			# while progress_data["elite_rank_xp_bonus"] was written and read by
+			# nothing — the XP was never granted to anyone.
+			bonuses_container.add_child(
+				_build_elite_xp_allocator(int(bonus_summary.bonus_xp)))
 
 		if bonus_summary.get("extra_characters", 0) > 0:
 			var char_label := Label.new()
@@ -992,6 +1005,184 @@ func _on_elite_rank_pick_toggled(pressed: bool, ability_idx: int) -> void:
 
 	_update_elite_rank_picker_status(picks_available)
 
+
+func _roster_for_xp_allocation() -> Array:
+	## Everyone who can receive the Elite Rank XP: the captain plus the crew.
+	## Deduplicated by character_id because some creation paths put the captain
+	## in members[0] AND in campaign_data["captain"].
+	var roster: Array = []
+	var seen: Dictionary = {}
+	var crew: Dictionary = campaign_data.get("crew", {})
+	var members: Array = crew.get("members", []) if crew is Dictionary else []
+	var candidates: Array = []
+	var cap = campaign_data.get("captain", null)
+	if cap != null:
+		candidates.append(cap)
+	candidates.append_array(members)
+	for m in candidates:
+		var cid: String = _xp_char_id(m)
+		if cid.is_empty() or seen.has(cid):
+			continue
+		seen[cid] = true
+		roster.append(m)
+	return roster
+
+func _xp_char_id(member) -> String:
+	if member is Dictionary:
+		return str(member.get("character_id", member.get("id", "")))
+	if member != null and "character_id" in member:
+		return str(member.character_id)
+	return ""
+
+func _xp_char_name(member) -> String:
+	if member is Dictionary:
+		return str(member.get("character_name", member.get("name", "Unknown")))
+	if member != null and "character_name" in member:
+		return str(member.character_name)
+	return "Unknown"
+
+func _build_elite_xp_allocator(total_xp: int) -> Control:
+	## Per-character allocation of the Elite Rank XP bonus (Core Rules p.65).
+	## Keyed by character_id so it is independent of roster ORDER — the crew
+	## array is rebuilt by finalization and index-based allocation would drift.
+	_elite_xp_total = total_xp
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", SPACING_XS)
+
+	var roster: Array = _roster_for_xp_allocation()
+	if roster.is_empty():
+		var pending := Label.new()
+		pending.text = "  (create your crew to assign this XP)"
+		pending.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		pending.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		box.add_child(pending)
+		return box
+
+	_elite_xp_remaining_label = Label.new()
+	_elite_xp_remaining_label.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	box.add_child(_elite_xp_remaining_label)
+
+	for member in roster:
+		var cid: String = _xp_char_id(member)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", SPACING_SM)
+
+		var name_lbl := Label.new()
+		name_lbl.text = _xp_char_name(member)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		row.add_child(name_lbl)
+
+		var minus := Button.new()
+		minus.text = "−"
+		minus.custom_minimum_size = Vector2(TOUCH_TARGET_MIN, TOUCH_TARGET_MIN)
+		minus.accessibility_name = "Remove 1 XP from " + _xp_char_name(member)
+		minus.pressed.connect(_on_elite_xp_step.bind(cid, -1))
+		row.add_child(minus)
+
+		var amount := Label.new()
+		amount.name = "xp_amount_" + cid
+		amount.text = "0"
+		amount.custom_minimum_size.x = 32
+		amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.add_child(amount)
+
+		var plus := Button.new()
+		plus.text = "+"
+		plus.custom_minimum_size = Vector2(TOUCH_TARGET_MIN, TOUCH_TARGET_MIN)
+		plus.accessibility_name = "Assign 1 XP to " + _xp_char_name(member)
+		plus.pressed.connect(_on_elite_xp_step.bind(cid, 1))
+		row.add_child(plus)
+
+		box.add_child(row)
+
+	_refresh_elite_xp_labels(box)
+	return box
+
+func _on_elite_xp_step(character_id: String, delta: int) -> void:
+	var current: int = int(_elite_xp_allocation.get(character_id, 0))
+	var assigned: int = 0
+	for v in _elite_xp_allocation.values():
+		assigned += int(v)
+	if delta > 0 and assigned >= _elite_xp_total:
+		return  # the pool is spent
+	var next_value: int = maxi(0, current + delta)
+	_elite_xp_allocation[character_id] = next_value
+	_refresh_elite_xp_labels(self)
+
+func _refresh_elite_xp_labels(root: Node) -> void:
+	var assigned: int = 0
+	for v in _elite_xp_allocation.values():
+		assigned += int(v)
+	if _elite_xp_remaining_label and is_instance_valid(_elite_xp_remaining_label):
+		var left: int = _elite_xp_total - assigned
+		_elite_xp_remaining_label.text = "  Assign %d XP — %d left" % [_elite_xp_total, left]
+		_elite_xp_remaining_label.add_theme_color_override(
+			"font_color", COLOR_TEXT_SECONDARY if left == 0 else COLOR_SUCCESS)
+	for cid in _elite_xp_allocation.keys():
+		var lbl := root.find_child("xp_amount_" + str(cid), true, false)
+		if lbl and lbl is Label:
+			(lbl as Label).text = str(int(_elite_xp_allocation[cid]))
+
+func _apply_elite_rank_xp_to_campaign(finalized_campaign, save_path: String) -> void:
+	## Grant the allocated Elite Rank XP (Core Rules p.65). Mirrors
+	## _apply_elite_rank_picks_to_campaign: a post-finalization pass over the
+	## Campaign Resource, then a re-save.
+	##
+	## Any XP the player left unassigned goes to the captain rather than
+	## evaporating — the book grants the XP unconditionally; only its
+	## distribution is the player's choice.
+	if not finalized_campaign or _elite_xp_total <= 0:
+		return
+	if not ("crew_data" in finalized_campaign):
+		return
+	var members: Array = finalized_campaign.crew_data.get("members", [])
+	if members.is_empty():
+		return
+
+	var alloc: Dictionary = _elite_xp_allocation.duplicate()
+	var assigned: int = 0
+	for v in alloc.values():
+		assigned += int(v)
+	var leftover: int = maxi(0, _elite_xp_total - assigned)
+	if leftover > 0:
+		var captain_id: String = ""
+		for m in members:
+			if m is Dictionary and bool((m as Dictionary).get("is_captain", false)):
+				captain_id = str((m as Dictionary).get("character_id", ""))
+				break
+		if captain_id.is_empty() and members[0] is Dictionary:
+			captain_id = str((members[0] as Dictionary).get("character_id", ""))
+		if not captain_id.is_empty():
+			alloc[captain_id] = int(alloc.get(captain_id, 0)) + leftover
+
+	var granted: int = 0
+	for m in members:
+		if not (m is Dictionary):
+			continue
+		var d: Dictionary = m
+		var cid: String = str(d.get("character_id", ""))
+		var xp: int = int(alloc.get(cid, 0))
+		if xp <= 0:
+			continue
+		d["experience"] = int(d.get("experience", 0)) + xp
+		granted += xp
+
+	if granted <= 0:
+		return
+	if not save_path.is_empty() and finalized_campaign.has_method("save_to_file"):
+		finalized_campaign.save_to_file(save_path)
+
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "experience",
+			"auto_generated": true,
+			"title": "Elite Rank experience",
+			"description": "Distributed %d bonus XP across the crew (Core Rules p.65)." % granted,
+			"tags": ["elite_rank", "advancement"],
+		})
 
 func _apply_elite_rank_picks_to_campaign(finalized_campaign, save_path: String) -> void:
 	## Flush Elite Rank picks into the new Campaign Resource's stars_of_the_story
@@ -1309,6 +1500,9 @@ func _on_create_campaign_pressed() -> void:
 			# Stars of the Story: flush Elite Rank picks into the new campaign
 			# (Core Rules p.65 — picks made at setup, persisted via stars_of_the_story)
 			_apply_elite_rank_picks_to_campaign(finalized_campaign, save_path)
+
+			# Elite Rank bonus XP (p.65) — same post-finalization pattern.
+			_apply_elite_rank_xp_to_campaign(finalized_campaign, save_path)
 
 			campaign_creation_requested.emit(campaign_data)
 			# SPRINT 26.23: Emit result with Campaign resource, not just raw dictionary
