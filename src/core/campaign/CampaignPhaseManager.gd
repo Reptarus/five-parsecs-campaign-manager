@@ -15,6 +15,8 @@ const IntroCampaignClass = preload(
 	"res://src/core/campaign/IntroductoryCampaignManager.gd")
 const StoryPointSystemClass = preload(
 	"res://src/core/systems/StoryPointSystem.gd")
+const ShiplessSystemClass = preload(
+	"res://src/core/ship/ShiplessSystem.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -205,6 +207,9 @@ func _process_turn_rollover() -> void:
 
 	# --- Free Hull Repair (Core Rules p.59) ---
 	_process_free_hull_repair(campaign)
+
+	# --- Ship Debt interest and seizure (Core Rules p.76) ---
+	_process_ship_debt(campaign)
 
 	# --- Victory Condition Lock-In (Core Rules p.64) ---
 	# "Cannot add or change once the campaign starts."
@@ -699,6 +704,66 @@ func _process_free_hull_repair(campaign: Resource) -> void:
 				int(ship["hull_points"]), max_hull],
 			"tags": ["ship", "upkeep"],
 		})
+
+func _process_ship_debt(campaign: Resource) -> void:
+	## Core Rules p.76, verbatim: "Ship Debt — You can make payments on your ship,
+	## if you owe money. Having done so (or having declined to do so), if you still
+	## owe money on your ship, the amount is now increased by 1 credit (2 credits
+	## if you owe 31 credits or more). If this brings the total to 75 credits or
+	## more, roll 2D6. On a 2-6, your ship has been seized by the authorities or
+	## the shady people you owe the money to, and is lost permanently."
+	##
+	## ShiplessSystem.process_debt_interest() implements the whole ladder and the
+	## seizure roll correctly, and had ZERO callers. Real saves carry ship.debt
+	## values of 12-36 from campaign creation, and that number never moved: no
+	## interest, never crossing 75, no seizure ever possible. The debt was
+	## decoration on the ship screen.
+	##
+	## Order matches the book: the player's payment window is World Step 1 (the
+	## Upkeep component's Pay Ship Debt control), which happens DURING the turn;
+	## interest then accrues here at rollover — "having done so ... the amount is
+	## now increased".
+	if campaign == null or not ("ship_debt" in campaign):
+		return
+	if int(campaign.ship_debt) <= 0:
+		return
+	# A crew that has already lost its ship owes nothing further (p.76 zeroes the
+	# debt on seizure, but guard against a save that predates that).
+	if "has_ship" in campaign and not campaign.has_ship:
+		return
+
+	var result: Dictionary = ShiplessSystemClass.process_debt_interest(campaign)
+	if result.get("interest", 0) <= 0:
+		return
+
+	var seized: bool = bool(result.get("ship_seized", false))
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Ship seized" if seized else "Debt interest",
+			"description": str(result.get("description", "")) + " Core Rules p.76.",
+			"tags": ["ship", "debt", "upkeep"],
+		})
+
+	# Seizure is campaign-altering, so it must reach the player immediately
+	# rather than only appearing in the journal.
+	if seized:
+		phase_event_triggered.emit({
+			"type": "ship_debt",
+			"subtype": "ship_seized",
+			"message": "Your ship has been seized to settle the debt.",
+		})
+	elif bool(result.get("seizure_risk", false)):
+		phase_event_triggered.emit({
+			"type": "ship_debt",
+			"subtype": "seizure_risk",
+			"debt": int(result.get("new_debt", 0)),
+			"message": "Ship debt has reached %d credits — seizure is possible every turn now." % int(
+				result.get("new_debt", 0)),
+		})
+
 
 func _clear_upkeep_lockouts(campaign: Resource) -> void:
 	## Clear upkeep lockout flags from previous turn (Core Rules p.76).

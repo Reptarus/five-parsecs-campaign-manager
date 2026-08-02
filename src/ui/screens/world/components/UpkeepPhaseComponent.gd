@@ -8,6 +8,7 @@ class_name UpkeepPhaseComponent
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
+const NewWorldArrivalClass = preload("res://src/core/campaign/NewWorldArrival.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
@@ -733,6 +734,11 @@ func _build_travel_section() -> void:
 	# purchasable and inert, and show_dismiss_crew_dialog() had ZERO callers.
 	_build_crew_management_entry(vbox)
 
+	# World Step 1 payments the book puts here and the app never built
+	# (Core Rules p.76).
+	_build_ship_debt_entry(vbox)
+	_build_medical_care_entry(vbox)
+
 	# Mission-required travel prompt (Core Rules p.119 — a Quest step on another
 	# world). Encourages (never forces) travel; "Quests will wait for you".
 	_build_quest_travel_prompt(vbox)
@@ -1058,6 +1064,258 @@ func _build_crew_management_entry(vbox: VBoxContainer) -> void:
 		row.add_child(susp_btn)
 
 	vbox.add_child(row)
+
+const MEDICAL_CARE_COST := 4  # Core Rules p.76
+
+
+func _refresh_after_upkeep_payment() -> void:
+	## Same refresh the suspension-pod flow uses: the payment changed credits, so
+	## the upkeep affordability line and the gating both have to be recomputed.
+	current_upkeep_data = calculate_upkeep_costs()
+	_build_travel_section()
+	_update_ui_display()
+	_update_gating_state()
+
+
+func _build_ship_debt_entry(vbox: VBoxContainer) -> void:
+	## Core Rules p.76, verbatim: "Ship Debt — You can make payments on your ship,
+	## if you owe money."
+	##
+	## There was no way to pay. ShiplessSystem's interest ladder had zero callers
+	## and the Upkeep step contained no debt UI at all, so a loan financed at
+	## creation (real saves carry 12-36 credits) sat frozen for the whole campaign.
+	## Interest now accrues at rollover; this is the payment window that precedes
+	## it, which is the order the book states.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_ship_debt"):
+		return
+	var debt: int = int(gsm.get_ship_debt())
+	if debt <= 0:
+		return
+
+	var credits: int = 0
+	if gsm.has_method("get_credits"):
+		credits = int(gsm.get_credits())
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var label := Label.new()
+	# p.76 interest ladder, shown so the player can weigh paying down below 31.
+	var interest: int = 2 if debt >= 31 else 1
+	label.text = "Ship debt: %d cr (+%d/turn)" % [debt, interest]
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if debt >= 60:
+		label.add_theme_color_override("font_color", UIColors.COLOR_RED)
+	row.add_child(label)
+
+	for amount: int in [1, 5, 10]:
+		if credits < amount or debt < amount:
+			continue
+		var btn := Button.new()
+		btn.text = "Pay %d" % amount
+		btn.accessibility_name = "Pay %d credits toward the ship debt" % amount
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.pressed.connect(_on_pay_ship_debt.bind(amount))
+		row.add_child(btn)
+
+	var payoff: int = mini(debt, credits)
+	if payoff > 0 and payoff not in [1, 5, 10]:
+		var all_btn := Button.new()
+		all_btn.text = "Pay %d" % payoff
+		all_btn.accessibility_name = "Pay %d credits toward the ship debt" % payoff
+		all_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		all_btn.pressed.connect(_on_pay_ship_debt.bind(payoff))
+		row.add_child(all_btn)
+
+	vbox.add_child(row)
+
+
+func _on_pay_ship_debt(amount: int) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_ship_debt"):
+		return
+	var debt: int = int(gsm.get_ship_debt())
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+	var pay: int = mini(amount, mini(debt, credits))
+	if pay <= 0:
+		return
+
+	if gsm.has_method("modify_credits"):
+		gsm.modify_credits(-pay)
+	if gsm.has_method("set_ship_debt"):
+		gsm.set_ship_debt(debt - pay)
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("Paid %d credits — ship debt now %d." % [pay, debt - pay])
+	_refresh_after_upkeep_payment()
+
+
+func _build_medical_care_entry(vbox: VBoxContainer) -> void:
+	## Core Rules p.76, verbatim: "Pay for Medical Care — If you have crew in Sick
+	## Bay, you may now pay 4 credits to remove 1 campaign turn from a single
+	## character's recovery time. This can be done as often as you can afford it
+	## ... Repair times for Bot characters can be sped up through the same
+	## process, and at the same cost."
+	##
+	## This step did not exist anywhere in the app. UpkeepSystem defined the
+	## 4-credit cost and had zero callers, and InjurySystemService's comment
+	## pointed at "handled in UpkeepPhaseComponent" — which contained no medical
+	## code at all. An injured crew member always sat out the full recovery and
+	## the player's credits could not help.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	var campaign: Resource = _get_campaign_resource()
+	if campaign == null:
+		return
+	var injured: Array = _crew_in_sick_bay(campaign)
+	if injured.is_empty():
+		return
+
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+
+	var header := Label.new()
+	header.text = "Medical Care — %d cr removes 1 turn of recovery (p.76)" % MEDICAL_CARE_COST
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	for entry: Dictionary in injured:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+
+		var label := Label.new()
+		var turns: int = int(entry.get("turns", 0))
+		label.text = "%s — %d turn%s" % [
+			str(entry.get("name", "Crew")), turns, "" if turns == 1 else "s"]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+
+		var btn := Button.new()
+		btn.text = "Treat (%d cr)" % MEDICAL_CARE_COST
+		btn.accessibility_name = "Pay %d credits to speed %s's recovery by one turn" % [
+			MEDICAL_CARE_COST, str(entry.get("name", "this crew member"))]
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.disabled = credits < MEDICAL_CARE_COST
+		btn.pressed.connect(_on_pay_medical_care.bind(str(entry.get("id", ""))))
+		row.add_child(btn)
+
+		vbox.add_child(row)
+
+
+func _crew_in_sick_bay(campaign: Resource) -> Array:
+	## Members with recovery time left, in either shape the roster uses.
+	var out: Array = []
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	for member: Variant in crew:
+		var turns: int = _recovery_turns_of(member)
+		if turns <= 0:
+			continue
+		var name: String = "Crew"
+		var id: String = _member_id_of(member)
+		if member is Dictionary:
+			name = str(member.get("character_name", member.get("name", "Crew")))
+		elif member != null and "character_name" in member:
+			name = str(member.character_name)
+		out.append({"id": id, "name": name, "turns": turns})
+	return out
+
+
+func _recovery_turns_of(member: Variant) -> int:
+	## Recovery lives on the member OR inside its injuries list, depending on the
+	## path that wrote it (see the sick-bay countdown in CampaignPhaseManager).
+	var direct: int = 0
+	if member is Dictionary:
+		direct = int(member.get("recovery_turns", 0))
+	elif member != null and "recovery_turns" in member:
+		direct = int(member.recovery_turns)
+	if direct > 0:
+		return direct
+
+	var injuries: Array = []
+	if member is Dictionary:
+		var raw: Variant = member.get("injuries", [])
+		injuries = raw if raw is Array else []
+	elif member != null and "injuries" in member and member.injuries is Array:
+		injuries = member.injuries
+	var most: int = 0
+	for inj: Variant in injuries:
+		if inj is Dictionary:
+			most = maxi(most, int(inj.get("recovery_turns", 0)))
+	return most
+
+
+func _on_pay_medical_care(member_id: String) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	var campaign: Resource = _get_campaign_resource()
+	if gsm == null or campaign == null or member_id.is_empty():
+		return
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+	if credits < MEDICAL_CARE_COST:
+		return
+
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+
+	var treated: bool = false
+	var treated_name: String = "Crew"
+	for member: Variant in crew:
+		if _member_id_of(member) != member_id:
+			continue
+		treated_name = _entity_display_name(member, "Crew")
+		treated = _decrement_recovery(member)
+		break
+
+	if not treated:
+		return
+	if gsm.has_method("modify_credits"):
+		gsm.modify_credits(-MEDICAL_CARE_COST)
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("Paid %d cr — %s recovers one turn sooner." % [
+			MEDICAL_CARE_COST, treated_name])
+	_refresh_after_upkeep_payment()
+
+
+func _decrement_recovery(member: Variant) -> bool:
+	## Mirror of the sick-bay countdown: reduce whichever field is carrying the
+	## remaining time. Returns false when there was nothing left to reduce, so the
+	## caller never charges the player for a no-op.
+	var changed: bool = false
+	if member is Dictionary:
+		if int(member.get("recovery_turns", 0)) > 0:
+			member["recovery_turns"] = int(member["recovery_turns"]) - 1
+			changed = true
+		var raw: Variant = member.get("injuries", [])
+		if not changed and raw is Array:
+			for inj: Variant in raw:
+				if inj is Dictionary and int(inj.get("recovery_turns", 0)) > 0:
+					inj["recovery_turns"] = int(inj["recovery_turns"]) - 1
+					changed = true
+					break
+		if changed and int(member.get("recovery_turns", 0)) <= 0:
+			if _recovery_turns_of(member) <= 0:
+				member["in_sick_bay"] = false
+		return changed
+
+	if member != null and "recovery_turns" in member and int(member.recovery_turns) > 0:
+		member.recovery_turns = int(member.recovery_turns) - 1
+		changed = true
+	if changed and "in_sick_bay" in member and _recovery_turns_of(member) <= 0:
+		member.in_sick_bay = false
+	return changed
+
 
 func _suspended_ids() -> Array:
 	var pd: Dictionary = _campaign_progress_data()
@@ -1919,6 +2177,14 @@ func _arrive_at_new_world() -> Dictionary:
 	if new_world.is_empty():
 		return {}
 
+	# New World Arrival steps 1-2 (Core Rules p.72) — who comes with you, not
+	# where you land. Deliberately AFTER generation (so a failed generation
+	# cannot strip Rivals for a journey that never happened) and BEFORE
+	# initialize_world, so the departure is journalled against the world being
+	# LEFT rather than the one being arrived at.
+	var departures: Dictionary = NewWorldArrivalClass.apply(campaign)
+	_report_arrival_departures(departures)
+
 	# The single chokepoint: fires world_changed → PDM sync + world-arrival event.
 	campaign.initialize_world(new_world)
 
@@ -1941,6 +2207,47 @@ func _arrive_at_new_world() -> Dictionary:
 		_travel_status_label.text = "✓ Arrived: %s" % world_name
 
 	return new_world
+
+
+func _entity_display_name(entity: Variant, fallback: String) -> String:
+	return NewWorldArrivalClass.display_name(entity, fallback)
+
+
+func _report_arrival_departures(departures: Dictionary) -> void:
+	## Tell the player who stayed behind. Without this the p.72 steps would be
+	## invisible bookkeeping and would read as a bug ("where did my Patron go?").
+	var rivals_left: Array = departures.get("rivals_left", [])
+	var patrons_left: Array = departures.get("patrons_left", [])
+	if rivals_left.is_empty() and patrons_left.is_empty():
+		return
+
+	var parts: Array[String] = []
+	if not rivals_left.is_empty():
+		parts.append("%d Rival%s stayed behind" % [
+			rivals_left.size(), "" if rivals_left.size() == 1 else "s"])
+	if not patrons_left.is_empty():
+		parts.append("%d Patron%s did not follow" % [
+			patrons_left.size(), "" if patrons_left.size() == 1 else "s"])
+	var summary: String = " · ".join(parts)
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_info"):
+		notif.show_info(summary)
+
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		var detail: Array[String] = []
+		if not rivals_left.is_empty():
+			detail.append("Remained behind (Rivals): %s"
+				% ", ".join(rivals_left))
+		if not patrons_left.is_empty():
+			detail.append("Patrons dismissed on departure: %s"
+				% ", ".join(patrons_left))
+		journal.create_entry({
+			"type": "travel",
+			"title": "Departure",
+			"description": "\n".join(detail),
+		})
 
 func _roll_psionic_legality_for_world(campaign: Resource, world: Dictionary) -> void:
 	## The Legality of Psionics (Compendium p.20), verbatim: "When using Psionic

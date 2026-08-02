@@ -17,18 +17,18 @@ extends GdUnitTestSuite
 ## Measured across all 15 real 5PFH saves on disk: ship_debt = 0 in every one while
 ## ship.debt ranged 12-36.
 ##
-## SCOPE, honestly stated. An earlier audit refuted this on the grounds that
-## ShiplessSystem (the interest ladder and seizure roll) has ZERO callers — and that
-## is correct, those mechanics cannot run today, so "the ship can never be seized"
-## is NOT a live consequence. What IS live is the Black Zone victory: it decrements
-## a field that is always 0 and then writes a journal milestone reading "Ship loan
-## reduced by 5" (PaymentProcessor.gd:222-225). The player is told it happened and
-## the displayed debt never moves. The rest is a latent trap: whoever wires up
-## interest or seizure would read a field that is permanently 0.
+## SCOPE UPDATE (Aug 2 2026). This file used to say the interest ladder and the
+## seizure roll "cannot run today", so a permanently-zero owner was only a latent
+## trap. That is no longer true: CampaignPhaseManager._process_ship_debt() now
+## calls ShiplessSystem.process_debt_interest() at every turn rollover, so the
+## owner field is read by the live p.76 mechanics and the ownership fix above is
+## what keeps the loan from silently reading 0. The interest ladder itself is
+## pinned by the tests at the bottom of this file.
 ##
 ## gdUnit4 v6.0.3 compatible.
 
 const CampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+const Shipless = preload("res://src/core/ship/ShiplessSystem.gd")
 
 
 func _gsm() -> Node:
@@ -151,3 +151,46 @@ func test_the_black_zone_payoff_now_reduces_a_real_debt() -> void:
 	assert_int(int(campaign.ship_debt)).override_failure_message(
 		"the Black Zone payoff still decremented nothing while claiming it did"
 	).is_equal(19)
+
+
+# --- the p.76 interest ladder, now that it actually runs ----------------------
+
+## Core Rules p.76: "the amount is now increased by 1 credit (2 credits if you
+## owe 31 credits or more)". The boundary is what matters: 30 pays 1, 31 pays 2.
+func test_interest_ladder_matches_the_book_at_the_boundary() -> void:
+	for pair: Array in [[1, 1], [30, 1], [31, 2], [50, 2]]:
+		var campaign = CampaignCore.new()
+		campaign.ship_debt = pair[0]
+		campaign.has_ship = true
+		var result: Dictionary = Shipless.process_debt_interest(campaign)
+		assert_int(int(result.get("interest", 0))).override_failure_message(
+			"a debt of %d should accrue %d credits of interest" % [pair[0], pair[1]]
+		).is_equal(pair[1])
+		assert_int(int(campaign.ship_debt)).is_equal(pair[0] + pair[1])
+
+
+## p.76: "If this brings the total to 75 credits or more, roll 2D6." The check is
+## made AFTER the interest is added, so a debt of 74 crosses on the same turn.
+func test_seizure_risk_arms_only_at_75_after_interest() -> void:
+	var below = CampaignCore.new()
+	below.ship_debt = 60
+	below.has_ship = true
+	assert_bool(bool(Shipless.process_debt_interest(below).get("seizure_risk", true))
+		).override_failure_message("60 credits must not arm seizure").is_false()
+
+	var crossing = CampaignCore.new()
+	crossing.ship_debt = 73   # +2 at 31+, so 75 exactly
+	crossing.has_ship = true
+	assert_bool(bool(Shipless.process_debt_interest(crossing).get("seizure_risk", false))
+		).override_failure_message(
+			"the threshold is checked AFTER interest, so 73 must arm it"
+		).is_true()
+
+
+## A debt-free crew must never be charged.
+func test_no_debt_accrues_no_interest() -> void:
+	var campaign = CampaignCore.new()
+	campaign.ship_debt = 0
+	campaign.has_ship = true
+	assert_int(int(Shipless.process_debt_interest(campaign).get("interest", -1))).is_equal(0)
+	assert_int(int(campaign.ship_debt)).is_equal(0)
