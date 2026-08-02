@@ -101,6 +101,46 @@ static func compute_starting_credits(
 		reconstruct = int(crew_data.get("bonus_credits", 0))
 	return int(crew_data.get("members", []).size()) + reconstruct
 
+static func _is_unassigned(item: Variant) -> bool:
+	if not (item is Dictionary):
+		return true
+	var owner_name: String = str((item as Dictionary).get("owner", ""))
+	return owner_name.is_empty() or owner_name == "Unassigned"
+
+static func split_equipment_by_owner(equipment_list: Array) -> Dictionary:
+	## owner_name -> Array[String] of item NAMES, for the items the Equipment step
+	## assigned to a specific crew member. Names, not item Dictionaries: a crew
+	## member's `equipment` is an Array[String] (Character.gd), and pushing a
+	## Dictionary into it is a hard typed-array rejection that loses the item.
+	var owner_items: Dictionary = {}
+	for item in equipment_list:
+		if _is_unassigned(item):
+			continue
+		var owner_name: String = str((item as Dictionary).get("owner", ""))
+		var item_name: String = str((item as Dictionary).get("name", ""))
+		if item_name.is_empty():
+			continue
+		if not owner_items.has(owner_name):
+			owner_items[owner_name] = []
+		if item_name not in owner_items[owner_name]:
+			owner_items[owner_name].append(item_name)
+	return owner_items
+
+static func unassigned_equipment(equipment_list: Array) -> Array:
+	## The ship stash: everything NOT handed to a named crew member.
+	##
+	## ONE ITEM, ONE HOME — an item is a physical card, on a character's sheet OR
+	## in the stash, never both (the tabletop invariant in CLAUDE.md, checked at
+	## runtime by GameState.verify_consistency CHECK 4). The stash used to be
+	## handed the FULL generated list, so every item the crew had just been given
+	## also sat in the stash: a starting loadout showed up twice, and selling the
+	## stash copy would have minted credits out of nothing.
+	var stash: Array = []
+	for item in equipment_list:
+		if _is_unassigned(item):
+			stash.append(item)
+	return stash
+
 static func roll_starting_story_points() -> int:
 	## Core Rules p.66: "When creating a new campaign, begin the game with 1D6+1
 	## story points." No production site rolled this — a new crew started with
@@ -403,20 +443,7 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Build a name→Array[String] lookup, then set each member's equipment
 	# in one shot (avoids per-item .append() flagged by lint).
 	var equipment_list: Array = transformed_equipment.get("equipment", [])
-	var owner_items: Dictionary = {}  # owner_name -> Array[item_name]
-	for item in equipment_list:
-		if not item is Dictionary:
-			continue
-		var owner_name: String = item.get("owner", "")
-		if owner_name.is_empty() or owner_name == "Unassigned":
-			continue
-		var item_name: String = item.get("name", "")
-		if item_name.is_empty():
-			continue
-		if not owner_items.has(owner_name):
-			owner_items[owner_name] = []
-		if item_name not in owner_items[owner_name]:
-			owner_items[owner_name].append(item_name)
+	var owner_items: Dictionary = split_equipment_by_owner(equipment_list)
 	for member in transformed_crew.get("members", []):
 		var member_name: String = ""
 		if "character_name" in member:
@@ -431,6 +458,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 			member["equipment"] = owner_items[member_name]
 		elif "equipment" in member:
 			member.equipment = owner_items[member_name]
+
+	transformed_equipment["equipment"] = unassigned_equipment(equipment_list)
 
 	# NOW persist crew (with equipment already attached) and ship-stash equipment list
 	campaign.initialize_crew(transformed_crew)

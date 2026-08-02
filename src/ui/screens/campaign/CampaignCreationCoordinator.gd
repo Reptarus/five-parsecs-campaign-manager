@@ -1349,10 +1349,17 @@ func _validate_campaign_completion() -> Dictionary:
 		if not phase_completion_status.get(phase, false):
 			errors.append("Required phase not complete: %s" % get_phase_name(phase))
 	
-	# Check overall completion percentage
+	# Check overall completion. get_overall_completion_percentage() returns a
+	# FRACTION (0.0-1.0), not a percentage — despite the name — so comparing it
+	# against 75.0 was true for every campaign that has ever existed. This
+	# function therefore always failed, finalize_campaign() always returned
+	# success:false, and FinalPanel always silently fell back to its own copy of
+	# the state. Everything downstream of the early return (the equipment
+	# distribution, the legacy story-point bonus) was unreachable code.
 	var completion_pct = get_overall_completion_percentage()
-	if completion_pct < 75.0: # Require at least 75% completion
-		errors.append("Campaign is only %.1f%% complete. Need at least 75%% for finalization." % completion_pct)
+	if completion_pct < 0.75: # Require at least 75% completion
+		errors.append("Campaign is only %.0f%% complete. Need at least 75%% for finalization."
+			% (completion_pct * 100.0))
 	
 	# Validate state manager has data
 	if not state_manager:
@@ -1395,41 +1402,27 @@ func _aggregate_all_phase_data() -> Dictionary:
 		campaign_data["victory_conditions"] = victory_conditions
 		campaign_data["story_track_enabled"] = config_data.get("story_track_enabled", false)
 
-	# BUG-035 FIX: Distribute equipment to crew members based on "owner" field.
-	# EquipmentPanel stores a flat array with owner assignments; translate that
-	# into per-crew-member equipment lists so Mission Prep and gameplay see them.
-	var equip_items: Array = campaign_data.get("equipment", {}).get("equipment", [])
-	if equip_items.is_empty():
-		equip_items = campaign_data.get("equipment", {}).get("items", [])
-	var crew_dict: Dictionary = campaign_data.get("crew", {})
-	var members: Array = crew_dict.get("members", [])
-	if not equip_items.is_empty() and not members.is_empty():
-		# Initialize equipment arrays on crew members
-		for member in members:
-			if not member.has("equipment"):
-				member["equipment"] = []
-		# Ship stash: items that are unassigned
-		var ship_stash: Array = []
-		for item in equip_items:
-			var owner_name: String = item.get("owner", "Unassigned")
-			if owner_name == "Unassigned" or owner_name.is_empty():
-				ship_stash.append(item)
-				continue
-			# Find matching crew member by name
-			var assigned = false
-			for member in members:
-				var member_name: String = member.get("name", member.get("character_name", ""))
-				if member_name == owner_name:
-					member["equipment"].append(item)
-					assigned = true
-					break
-			if not assigned:
-				ship_stash.append(item)
-		# Update equipment_data with ship stash only (assigned items are on crew)
-		# Preserve credits key — destructive overwrite would lose it (Bug fix)
-		var preserved_credits: int = campaign_data.get("equipment", {}).get("credits", 0)
-		campaign_data["equipment"] = {"equipment": ship_stash, "credits": preserved_credits}
-		campaign_data["crew"]["members"] = members
+	# EQUIPMENT DISTRIBUTION DELIBERATELY DOES NOT HAPPEN HERE.
+	#
+	# There used to be a second owner->crew distribution at this point, and it
+	# destroyed the items it touched. `member["equipment"]` comes from
+	# Character.to_dictionary(), so it is an Array[STRING]; the block appended the
+	# full item DICTIONARY to it. Godot rejects that ("Attempted to push_back a
+	# variable of type 'Dictionary' into a TypedArray of type 'String'"), the
+	# array stays empty — and because the loop still set `assigned = true` and
+	# broke, the item was not returned to the ship stash either. Every
+	# owner-assigned item was annihilated between the review screen and the save.
+	#
+	# It only ever failed silently because it was UNREACHABLE: the completion
+	# check above compared a 0.0-1.0 fraction against 75.0, so finalize_campaign()
+	# always returned early. Fixing that comparison is what made this dangerous,
+	# which is why the two changes belong in the same commit.
+	#
+	# CampaignFinalizationService already does this correctly and is the single
+	# site: it builds owner -> Array[String] of item NAMES and assigns each
+	# member's equipment in one shot, before initialize_crew() deep-copies the
+	# crew. Adding a second distribution here would also violate the
+	# data-ownership rule that Character.equipment has exactly one writer.
 
 	return campaign_data
 

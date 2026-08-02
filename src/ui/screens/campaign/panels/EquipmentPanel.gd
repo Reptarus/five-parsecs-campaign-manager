@@ -542,19 +542,21 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	var base_pool: Array = StartingEquipmentGenerator.generate_crew_base_pool(
 		dice_manager)
 	for item in base_pool:
+		# `source_table` must carry the TABLE the item was rolled on
+		# (military_weapon / low_tech_weapon / gear / gadget), which
+		# StartingEquipmentGenerator already supplies alongside `source`. Copying
+		# `source` instead stamped every item "crew_base", and the p.28 Savvy
+		# substitution gate tests `source_table == "military_weapon"` — so the
+		# swap the book offers ("For each crew member who rolled at least one
+		# Savvy increase, you may take one of these rolls on the High-tech Weapon
+		# Table instead, if desired") could never be taken by anybody.
 		var equip_item: Dictionary = {
 			"name": item.get("name", "Unknown"),
 			"type": item.get("type", "Gear"),
 			"source": "shared_pool",
-			"source_table": item.get("source", ""),
-			"owner": "Unassigned",
-			"condition": "standard",
-			"quality_modifier": 0
+			"source_table": item.get("source_table", item.get("source", "")),
+			"owner": "Unassigned"
 		}
-		if dice_manager:
-			var cond_roll: int = dice_manager.roll_d6("Condition")
-			equip_item.condition = _determine_condition_from_roll(cond_roll)
-			equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
 		generated_equipment.append(equip_item)
 
 	# ── PART 2: Per-character bonus rolls ─────────────────────────────
@@ -587,19 +589,15 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 		var bonus_items: Array = StartingEquipmentGenerator.generate_bonus_equipment(
 			member_starting_rolls, dice_manager)
 		for item in bonus_items:
+			# No condition roll — see the note on the crew base pool above.
 			var equip_item: Dictionary = {
 				"name": item.get("name", "Unknown"),
 				"type": item.get("type", "Gear"),
 				"source": "bonus",
 				"source_character": char_name,
-				"owner": char_name,
-				"condition": "standard",
-				"quality_modifier": 0
+				"source_table": item.get("source_table", item.get("source", "")),
+				"owner": char_name
 			}
-			if dice_manager:
-				var cond_roll: int = dice_manager.roll_d6("Condition")
-				equip_item.condition = _determine_condition_from_roll(cond_roll)
-				equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
 			generated_equipment.append(equip_item)
 
 	# ── SAVVY SUBSTITUTION: Count eligible crew ──────────────────
@@ -1399,15 +1397,15 @@ func _get_condition_color(condition: String) -> Color:
 		_:
 			return Color(0.8, 0.8, 0.8)
 
-func _determine_condition_from_roll(roll: int) -> String:
-	## Core Rules p.28: d6 condition roll
-	match roll:
-		1:
-			return "damaged"
-		6:
-			return "superior"
-		_:
-			return "standard"
+func _determine_condition_from_roll(_roll: int) -> String:
+	## NOT A BOOK RULE. There is no equipment condition/quality mechanic on Core
+	## Rules pp.28-29 — the words "damaged", "superior", "condition" and "quality"
+	## do not appear on either page; the citation this used to carry was false.
+	## Starting gear is now generated without a condition roll, so every item is
+	## "standard"; this is kept only so saves written before that still render.
+	## Do not reintroduce the roll (see the fabricated-mechanics rule in
+	## CLAUDE.md: if the book does not have it, the code should not either).
+	return "standard"
 
 func _get_quality_mod(condition: String) -> int:
 	match condition:
@@ -1688,19 +1686,21 @@ func _on_reroll_shared_pool() -> void:
 	# Regenerate shared pool
 	var base_pool: Array = StartingEquipmentGenerator.generate_crew_base_pool(dice_manager)
 	for item in base_pool:
+		# `source_table` must carry the TABLE the item was rolled on
+		# (military_weapon / low_tech_weapon / gear / gadget), which
+		# StartingEquipmentGenerator already supplies alongside `source`. Copying
+		# `source` instead stamped every item "crew_base", and the p.28 Savvy
+		# substitution gate tests `source_table == "military_weapon"` — so the
+		# swap the book offers ("For each crew member who rolled at least one
+		# Savvy increase, you may take one of these rolls on the High-tech Weapon
+		# Table instead, if desired") could never be taken by anybody.
 		var equip_item: Dictionary = {
 			"name": item.get("name", "Unknown"),
 			"type": item.get("type", "Gear"),
 			"source": "shared_pool",
-			"source_table": item.get("source", ""),
-			"owner": "Unassigned",
-			"condition": "standard",
-			"quality_modifier": 0
+			"source_table": item.get("source_table", item.get("source", "")),
+			"owner": "Unassigned"
 		}
-		if dice_manager:
-			var cond_roll: int = dice_manager.roll_d6("Condition")
-			equip_item.condition = _determine_condition_from_roll(cond_roll)
-			equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
 		generated_equipment.append(equip_item)
 
 	# Re-add bonus items
