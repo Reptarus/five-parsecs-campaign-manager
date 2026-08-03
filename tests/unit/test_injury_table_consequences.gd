@@ -261,6 +261,15 @@ func test_the_live_injury_path_produces_damaged_gear() -> void:
 	#
 	# p(equipment consequence) = 20/100 per roll, so over 200 fresh characters a
 	# zero result is ~4e-20 and means the wiring is dead, not unlucky.
+	# ONLY the damage rows are asserted statistically. Roll 16 (Miraculous escape,
+	# the permanent-loss row) is a SINGLE point on a D100 — p(never seen in 200
+	# draws) is 0.99^200 ~= 13%, so asserting it here failed roughly one run in
+	# eight. A flaky rules test is worse than no test: the next person to see it
+	# red learns to re-run rather than to look.
+	#
+	# Roll 16 is pinned deterministically by
+	# test_miraculous_escape_removes_the_items_entirely, which is the right
+	# instrument for a one-in-a-hundred row.
 	var proc = InjuryProcessorClass.new()
 	var saw_damage: bool = false
 	var saw_loss: bool = false
@@ -282,9 +291,9 @@ func test_the_live_injury_path_produces_damaged_gear() -> void:
 	assert_bool(saw_damage).override_failure_message(
 		"200 injuries and not one damaged an item — p.122's equipment rows are dead"
 	).is_true()
-	assert_bool(saw_loss).override_failure_message(
-		"200 injuries and roll 16 never took anyone's kit"
-	).is_true()
+	# saw_loss is observed opportunistically and NOT asserted — see the note above.
+	if saw_loss:
+		pass
 
 
 func test_the_live_injury_path_applies_the_crippling_wound() -> void:
