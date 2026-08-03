@@ -10,6 +10,7 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const ProgressiveDifficultyRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
+const EnemyTraitRulesClass = preload("res://src/core/systems/EnemyTraitRules.gd")
 
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
@@ -606,8 +607,17 @@ func generate_enemies_as_dicts(
 	# 7 "any modifier from the enemy type encountered" and NO other.
 	var patron_enemy_mod: int = PatronJobEffectsClass.enemy_count_modifier(mission_data)
 
+	# "Grudge: If encountered as Rivals, they bring one additional figure"
+	# (Core Rules p.99, Renegade Soldiers). Gated on the battle actually being a
+	# Rival fight — a Renegade Soldier opportunity job is an ordinary encounter.
+	# The trait was printed in the pre-battle briefing and added nobody.
+	var is_rival_battle: bool = str(mission_data.get("mission_source", "")) == "rival" \
+		or str(mission_data.get("rival_id", "")) != ""
+	var grudge_mod: int = EnemyTraitRulesClass.rival_extra_figures(
+		str(template.get("name", "")), is_rival_battle)
+
 	var enemy_count: int = maxi(
-		1, base_count + numbers_mod + trait_enemy_mod + patron_enemy_mod)
+		1, base_count + numbers_mod + trait_enemy_mod + patron_enemy_mod + grudge_mod)
 
 	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
 	# numbers. Instead, you will encounter a base of 7 figures + any modifier

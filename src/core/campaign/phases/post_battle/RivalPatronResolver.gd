@@ -12,6 +12,7 @@ const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.
 const WorldTraitEffects = preload("res://src/core/world/WorldTraitEffects.gd")
 const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
 const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
+const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 const EquipmentTransferService = preload("res://src/core/equipment/EquipmentTransferService.gd")
 
 ## Remember that a Patron job was completed here, for the p.84 "Reputation
@@ -30,6 +31,36 @@ func _record_patron_job_completed(ctx: PostBattleContextClass) -> void:
 	var log: Dictionary = campaign.progress_data.get("patron_jobs_completed_by_world", {})
 	log[key] = int(log.get(key, 0)) + 1
 	campaign.progress_data["patron_jobs_completed_by_world"] = log
+
+## Bounty Hunters' Intrigue trait (Core Rules p.99). The book states no
+## precondition beyond having fought them — no Hold the Field, no win — so the
+## check runs on any battle against them.
+func _roll_intrigue(ctx: PostBattleContextClass) -> void:
+	if not EnemyTraitRules.has_intrigue(str(ctx.battle_result.get("enemy_type", ""))):
+		return
+
+	var killed_notable: bool = false
+	for enemy in ctx.defeated_enemies:
+		if bool(enemy.get("was_unique_individual", enemy.get("is_unique", false))) \
+				or bool(enemy.get("was_lieutenant", false)):
+			killed_notable = true
+			break
+
+	var roll: int = ctx.roll_2d6("Bounty Hunter Intrigue")
+	if not EnemyTraitRules.intrigue_succeeds(roll, killed_notable):
+		return
+
+	ctx.add_quest_rumor()
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "event",
+			"title": "Something the bounty hunters knew",
+			"description": "Intrigue: rolled %d%s — a Quest Rumor (Core Rules p.99)."
+				% [roll, " +1 for a Lieutenant or Unique" if killed_notable else ""],
+			"turn": int(ctx.battle_result.get("turn", 0)),
+			"tags": ["rumor", "quest"],
+		})
+
 
 ## Pay out the p.83-84 Benefits earned by finishing the job. "Benefits are paid
 ## out ONLY if the mission is a success" (p.83), so this is only reached from the
@@ -186,6 +217,13 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 			var new_rival_id: String = _create_new_rival_from_battle(ctx)
 			if new_rival_id != "":
 				new_rivals.append(new_rival_id)
+
+	# "Intrigue: Roll 2D6 and add +1 if you killed a Lieutenant and/or Unique
+	# Individual. On a 9+, you obtain a Quest Rumor" (Core Rules p.99, Bounty
+	# Hunters). Quest Rumors are one of only two ways a Quest ever begins (p.85),
+	# so leaving this unwired quietly closed a door into the whole Quest arc —
+	# which mattered more once Quests became playable end to end.
+	_roll_intrigue(ctx)
 
 	# Psi-hunters (Compendium p.21). The book places this exactly here: "If a
 	# Psionic uses a power during combat, roll D6 during the post-game step
@@ -471,6 +509,12 @@ func _roll_rival_removal(ctx: PostBattleContextClass, rival_id: String) -> int:
 				or bool(enemy.get("was_lieutenant", false)):
 			modifiers += 1
 			break
+	# "Persistent: If encountered as Rivals, all rolls to remove them from Rival
+	# status are at -1" (Core Rules p.99, Vigilantes). The removal roll succeeds
+	# on a 4+, so this is the difference between 50% and 33% — the one enemy the
+	# book designs to be a long-term nuisance was as easy to shake as any other.
+	modifiers += EnemyTraitRules.rival_removal_modifier(
+		str(ctx.battle_result.get("enemy_type", "")))
 	return base_roll + modifiers
 
 func _create_new_rival_from_battle(ctx: PostBattleContextClass) -> String:
