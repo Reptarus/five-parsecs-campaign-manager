@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 96 open / 49 fixed.**
+**Status Aug 2 evening: 91 open / 45 fixed / 5 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -29,7 +29,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | factions-world-compendium | Check for Instability step placement — Compendium p.10 Updated Campaign Turn Sequence | small | Even after the two preceding findings are fixed, Instability would be checked at the wrong point in the turn — before the battle rather than after it — so 'completed a Patron job this cam... | OPEN |
 | factions-world-compendium | The 12 Difficulty Toggles — Compendium pp.32-34 | large | Ticking any of the 12 toggles in Settings changes nothing in play, and they do not appear in the campaign-creation wizard at all. Money is Tight does not change upkeep or the D6 credit ro... | OPEN |
 | factions-world-compendium | Progressive Difficulty Options 1 and 2 — Compendium pp.30-31 | large | With Progressive Difficulty Option 1 enabled and the campaign at Turn 20, the player still faces the base rolled enemy count with zero respawns instead of +2 basic +1 specialist +1 Lieute... | PARTIAL 0eead4056 (Option 1 Strength + instructions live; Option 2 toggle unlocks pending) |
-| economy-trade-equipment | Trade Table entries that send you to another table (Core Rules p.79-80) | small | 24 of 100 Trade Table results (rolls 1-3, 7-9, 45-48, 79-81, 82-86, 87-91) show a description dialog and award nothing at all. Every crew member sent to Trade has a ~1-in-4 chance of comi... | OPEN |
+| economy-trade-equipment | Trade Table entries that send you to another table (Core Rules p.79-80) | small | 24 of 100 Trade Table results (rolls 1-3, 7-9, 45-48, 79-81, 82-86, 87-91) show a description dialog and award nothing at all. Every crew member sent to Trade has a ~1-in-4 chance of comi... | FIXED e2e56b985 |
 | economy-trade-equipment | On-board Items (Core Rules pp.57-58) — 19 items with campaign-turn effects | large | Every on-board item in the Stash is inert. A Purifier never produces its 1 credit per campaign turn; Lucky Dice / Loaded Dice never gamble; Repair Bot and Spare Parts add no +1 to the Rep... | OPEN |
 | economy-trade-equipment | Gun Mods and Gun Sights (Core Rules p.53) | large | Looting or buying a Unity Battle Sight, Cyber-configurable Nano-Sludge, Upgrade Kit, Shock Attachment, Stabilizer, Hot Shot Pack, Assault Blade, Bipod, Beam Light, Laser Sight, Quality Si... | OPEN |
 | economy-trade-equipment | Damaged loot requires Repair before use (Core Rules p.131 + Repair Your Kit p.78) | medium | Loot rolls 26-45 (20% of every loot result) hand the player two supposedly-broken items that carry no [DAMAGED] tag in the Assign Equipment screen and can be issued and used immediately a... | OPEN |
@@ -71,7 +71,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | missions-elites-zones | Salvage — the Scrapper trade (post-battle Step 4) and salvage-as-currency | large | Salvage units collected in a mission evaporate at the end of the battle — they are never tallied at Get Paid, never buy anything from a Scrapper, and never offset ship-repair/module/bot-u... | OPEN |
 | missions-elites-zones | Compendium DLC battle-setup instructions (AI Variations, Difficulty Toggles, Escalating Battles, Dramatic Combat, Grid-based Movement) reaching the battle screen | medium | With the Freelancer's Handbook enabled, the battle screen's COMPENDIUM DIFFICULTY RULES, ESCALATING BATTLES, DRAMATIC COMBAT and GRID-BASED MOVEMENT setup sections never render, and the p... | FIXED 0eead4056 |
 | missions-elites-zones | Bestiary / Elite enemy reference data is loaded but never consulted | one-line | No direct gameplay effect today (Bestiary.json duplicates the Core Rules encounter tables that enemy_types.json already supplies), but ~25KB of JSON is parsed on every EnemyGenerator cons... | OPEN |
-| post-battle | Step 10 — Advanced Training: application fee, 2D6 4+ approval, course cost, and course record (p.124) | medium | In the post-battle wizard the player picks Pilot Training, presses Roll, sees "2D6 Roll: 9 - Training APPROVED!" and the log line "Kaya completed pilot training" — and nothing happens. No... | OPEN |
+| post-battle | Step 10 — Advanced Training: application fee, 2D6 4+ approval, course cost, and course record (p.124) | medium | In the post-battle wizard the player picks Pilot Training, presses Roll, sees "2D6 Roll: 9 - Training APPROVED!" and the log line "Kaya completed pilot training" — and nothing happens. No... | FIXED c942fec91 |
 | post-battle | Step 13 — Character Event: Precursor "roll twice and pick either score" (p.126) | small | Any crew with a Precursor: whenever the randomly-selected character for step 13 is that Precursor, the Character Event is silently dropped — no XP, no story point, no rumor, no status eff... | OPEN |
 | post-battle | Step 8 — Injury Table roll 16, Miraculous escape (p.122) | small | Rolling exactly 16 on the Injury Table — the single best non-XP outcome in the game — does literally nothing: the character gains no Luck point and keeps every item they were carrying. Th... | FIXED ca68e01b6 |
 | post-battle | Step 8 — Injury Table roll 96-100, School of hard knocks: "Earn 1 XP" (p.122) | one-line | A crew member who rolls 96-100 after being downed gets nothing. The book's consolation prize for a bad battle is silently withheld every time. | FIXED ca68e01b6 |
@@ -94,16 +94,14 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | turn-upkeep-travel | Ship wreck — accumulated Hull damage destroys the ship | small | A ship reduced to 0 Hull Points is not a wreck — it is merely grounded, and the free 1-point-per-turn repair at rollover (CampaignPhaseManager.gd:673) floats it again next turn. The crew ... | FIXED 95c35bdd0 |
 | turn-upkeep-travel | Emergency Take-off (p.60) — 3D6 hull damage for insisting on travel while damaged | small | The live Travel button is simply DISABLED while the hull is damaged, so the player never gets the book's choice; get_emergency_takeoff_damage() is called only from the dead TravelPhase.gd. Also the only in-space producer for the p.59 wreck branch. | FIXED |
 | turn-upkeep-travel | progress_data["crew_retired"] — campaign archival on crew retirement | one-line | A campaign that ends because the crew retired (rather than by victory or by reaching 20 turns) is never archived to LegacySystem — the crew, story points and turn count are silently dropp... | OPEN |
-| battle-resolution | Brawling — Multiple Opponents (+1 outnumbering) and Stunned Opponents (+1 per Stun marker) | small | A player who enters "opponent has 2 Stun markers" and "outnumbering +1" sees the panel print "Attacker Total: 9" and "Defender Total: 8" — and then, on the very next line, "OPPONENT WINS ... | FIXED b776e8726 + 4b7102dd0 — brawl_outnumbering_modifier() (p.45) and brawl_bonus_from_stun() (p.40/45) |
-| battle-resolution | Stunned — 3 or more Stun markers means knocked out and removed from play (p.40) | small | A crew member or enemy can pile up 3, 5, 10 Stun markers and stay standing and fully usable. The status card next to them says "[KNOCKED OUT - 3+ Stuns]" while the figure keeps activating... | FIXED 4b7102dd0 — is_knocked_out_by_stun(); BattleResolver now tracks stun_markers, not a boolean cleared at end of round |
-| battle-resolution | Stim-pack (p.54) — prevents one casualty per battle | small | A crew that bought Stim-packs and carries them in the Stash gets nothing from them in any auto-resolved battle. The crew member who should have survived on 1 Stun marker is removed as a c... | CORRECTED — finding is STALE. BattleResolver already consumes has_stim_pack on the casualty path (p.54 'remain on the table with a single Stun marker') and records the consumed item; NoMinisResolver does the same. Verified at BattleResolver.gd casualty branch |
-| battle-resolution | Area trait (p.51) — hits every figure within 2" of the target | large | Frakk grenades, Dazzle grenades, Hand Flamers and Shell Guns behave as ordinary single-target weapons in every auto-resolved battle — a grenade lobbed into a cluster of six enemies hits o... | FIXED b776e8726 — CORE RULES version (all shots at the initial target, cannot be spread, then ONE bonus shot per figure within 2"). NOT the Compendium Game Options version (target point, 4+ per figure), which is an opt-in alternative |
-| battle-resolution | Consumables in battle (p.54) — Booster Pills, Combat Serum, Rage Out, Still, Kiranin Crystals; Bots and Soulless cannot use them | medium | No consumable has any mechanical effect in auto-resolve — Booster Pills never clear a Stun, Combat Serum never grants +2 Reactions, Still never grants +1 to Hit. In manual play the player... | FIXED 41f479eec — values were mostly right; the DURATIONS and EXCLUSIONS were missing (Rage Out was permanent and had no K'Erin extension, Still locked movement 1 round not 2, Kiranin had none of its three exclusions) |
-| battle-resolution | Aiming (p.46) — reroll 1s on the To Hit dice | small | Ticking "Aim" on a crew member's status card has no effect on the dice the app then rolls for them. The player who correctly stood still to Aim never gets the reroll of their 1s — roughly... | FIXED 4b7102dd0 — apply_aim_reroll() rerolls 1s once; the old flat +1 was fabricated AND double-counted against the panel's already-correct reroll. enemy_will_aim() adds the p.46 AI behaviour |
-| battle-resolution | Terrifying trait (p.51) — target hit must retreat 1D6" | small | The Cling Fire Pistol's headline ability does nothing. In auto-resolve, targets hit by it never retreat; in manual play the app never tells the player to move the target 1D6" back. Worse,... | FIXED 4b7102dd0 — forced 1D6" retreat; it was mapped to a morale check |
-| battle-resolution | Panic Fire (p.46-47) — expend all ammunition for 2 extra shots at half range | medium | One of the two player-elected combat options in the book (the other being Aim) is completely absent from the companion. A player in an emergency has no way to declare Panic Fire, no promp... | FIXED b776e8726 — panic_fire_profile(): half BASE range, +2 shots, closest target each shot, ammo spent. Blocked for enemies and for Single use weapons |
-| battle-resolution | Battle visor (p.56) and Motion tracker (p.57) — utility device effects in battle | small | A crew member carrying a Battle Visor never rerolls their 1s — neither in auto-resolve nor in the Quick Roll helper — so the device is pure wasted credits. The Motion Tracker's actual ben... | FIXED 7edee08cd — Motion tracker was 'detect hidden enemies within 12"', a mechanic in neither book; p.57 is '+1 to all rolls to Seize the Initiative'. Also completed the limiting clauses on Communicator (discard a die), Auto sensor (Pistol only, natural 6 only, fires in contact) and Grapple launcher |
-| battle-resolution | Dead duplicate calculators — battle XP, battle credits, stun check, area detection (pp.36-58 support helpers) | medium | No direct rules failure — these are duplicates of logic that lives elsewhere — but they are the reason a reader (or a future contributor, or an automated audit) believes Stun, area weapon... | OPEN |
+| battle-resolution | **1** | only "dead duplicate calculators" — cleanup, no rules impact |
+| turn-upkeep-travel | 7 | World Traits (40 effects) is the big one |
+| battle-setup | 8 | deployment conditions, seize initiative |
+| post-battle | 11 | Crippling Wound, injury equipment loss |
+| patrons-rivals-quests | 12 | Time Frame never expires; the 30 p.83 BHC subtable entries |
+| economy-trade-equipment | 13 | gun mods, on-board items, Merchant reroll |
+| factions-world-compendium | 20 | DLC-gated; a tester without the DLC never sees any of it |
+| missions-elites-zones | 20 | Black Jobs, Red Zone conditions, Elite enemies |
 
 ## WRONG-VALUE (21)
 
@@ -114,7 +112,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | factions-world-compendium | Compendium page citations shown to the player | one-line | A player who ticks 'Expanded Factions' in the campaign wizard and turns to Compendium pp.148-153 to read the rules lands in the Fringe World Strife and Loans chapters and finds nothing ab... | OPEN |
 | economy-trade-equipment | Post-Battle Step 7 "Gather the Loot" — one roll per battle | medium | Every battle yields TWO independent Loot Table results instead of one — one silently added by the backend, one the player rolls in the wizard. A Quest finale yields six items instead of t... | OPEN |
 | economy-trade-equipment | Loot Table three-roll procedure — category, subtable, then the exact item by D100 (Core Rules pp.131-133) | medium | Loot item frequencies are wrong across the board. Grenade loot is 50/50 Frakk/Dazzle instead of the printed 60/40. Within melee loot a Blade drops to 12.5% from 20% while a Suppression Ma... | OPEN |
-| economy-trade-equipment | The p.28-29 tables referenced by the Trade Table (Low-Tech Weapon Table, Gear Table, Gadget Table) | medium | Trade Table 1-3 "A personal weapon", which should be a Handgun/Scrap Pistol/Colony Rifle/Shotgun/Blade etc., instead returns a Power Claw, Suppression Maul, Glare Sword, Ripper Sword or B... | OPEN |
+| economy-trade-equipment | The p.28-29 tables referenced by the Trade Table (Low-Tech Weapon Table, Gear Table, Gadget Table) | medium | Trade Table 1-3 "A personal weapon", which should be a Handgun/Scrap Pistol/Colony Rifle/Shotgun/Blade etc., instead returns a Power Claw, Suppression Maul, Glare Sword, Ripper Sword or B... | FIXED e2e56b985 |
 | battle-setup | Number of Opponents — Insanity adds +1 to the final number faced | one-line | On Insanity — the hardest mode in the book — every battle fields one fewer enemy than the rules require. Combined with the danger_level defect above the +1 could not fire regardless, so f... | FIXED 24c657af4 |
 | battle-setup | Determine Deployment Conditions — consult the column matching the mission type; the table is ignored during an Invasion battle | small | Two concrete wrong outcomes. (1) Every Rival battle rolls deployment conditions on the Opportunity/Patron column instead of the Rival column, so the odds are badly skewed — 'No Condition'... | OPEN |
 | battle-setup | Determine the Enemy — roll the Enemy Encounter Category on the column matching the mission (Opportunity / Patron / Quest / Unknown Rival) | medium | A Rival that tracks you down is generated off the Opportunity or Patron column, so 20-25% of Rival battles are against Roving Threats — a category the book excludes from Rival fights outr... | OPEN |
@@ -171,7 +169,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 8 — Injury Table roll 31-45, Crippling wound: surgery OR permanent stat loss (p.122) | medium | A Crippling Wound costs the player nothing but time — no 1D6-credit surgery bill and no -1 to Speed or Toughness. The worst survivable injury in the game is mechanically identical to a Se... | OPEN |
 | post-battle | Step 12 — Campaign Events 79-81 (Renegotiate Debts), 98-100 (Great Story), 57-59 (New Captain), 82-84 (Rumors of War) (pp.127-128) | medium | Rolling 79-81 while carrying ship debt earns 2 credits instead of wiping 1D6+1 off the loan. Rolling 98-100 after a casualty gives a story point instead of the +1 Luck that character earn... | OPEN |
 | post-battle | Step 13 — Character Events 52-55 (Scars), 24-26 (Good Food), 42-45 (Heart to Heart), 67-68 (True Love) (pp.129) | small | Scars Tell the Story is +2 free XP for an uninjured character who should get nothing. Good Food is +1 free XP for a character in Sick Bay who should instead get a turn back. Heart to Hear... | OPEN |
-| post-battle | Step 10 — Advanced Training payment: "The cost can be paid using unspent XP, credits or any combination thereof" (p.124) | medium | The book's own worked example is impossible in the app: a character with 8 XP and 12 credits cannot buy Pilot Training (cost 20). Training is XP-only, so it is unaffordable until very lat... | OPEN |
+| post-battle | Step 10 — Advanced Training payment: "The cost can be paid using unspent XP, credits or any combination thereof" (p.124) | medium | The book's own worked example is impossible in the app: a character with 8 XP and 12 credits cannot buy Pilot Training (cost 20). Training is XP-only, so it is unaffordable until very lat... | FIXED c942fec91 |
 | turn-upkeep-travel | Repair Your Kit crew task — the item is actually repaired, and Engineer +1 | medium | The task always reports 'Item repaired' and the damaged item stays damaged forever, so a broken weapon is permanently broken. And an Engineer-species character — the one crew type the boo... | FIXED (this commit) |
 | turn-upkeep-travel | World Traits Table — the 40 traits' mechanical effects | large | The world you land on is a paragraph of text. Fuel refinery does not make travel cost 3, Fuel shortage does not raise it, Lacks starship facilities does not cap repairs, Bureaucratic mess... | OPEN |
 | turn-upkeep-travel | Resolve Rumors — remove all Rumors from your roster when a Quest is received | small | Rumors are never spent. Once the player banks 5-6 Rumors the D6 succeeds essentially every campaign turn, and because the quest-active gate is also dead, the game hands out a brand-new Qu... | FIXED 2c44839f0 |
@@ -282,18 +280,27 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
 
 **Next up, in order:**
 
-3. **economy — the Trade Table's 24 no-award rolls.** Rolls 1-3, 7-9, 45-48,
-   79-81, 82-86, 87-91 show a dialog and give nothing, so roughly 1 in 4 Trade
-   actions is a visible no-op.
+~~3. economy — the Trade Table's 24 no-award rolls.~~ **DONE `e2e56b985`** —
+   the six "roll on another table" entries now award; the p.28 Low-Tech Weapon
+   and p.29 Gear tables were also being resolved off the LOOT table.
+
+~~5. post-battle — Advanced Training.~~ **DONE `c942fec91`** — nothing was
+   spent and nothing was learned; plus XP-only payment, the unenforced
+   one-course and one-attempt rules, Bot credits-only, Broker +1, the Feral and
+   Engineer cost modifiers, and a fabricated eighth course. It was ALSO
+   unreachable on a loaded save (`Array[Resource]` filter vs Dictionary crew).
+
+**Next up:**
+
 4. **turn-upkeep-travel — World Traits.** 40 traits are flavour text. 11 already
    have TERRAIN effects wired via the battlefield generator (overgrown, warzone,
    crystals, barren, flat, haze/gloom/fog, frozen/reflective_dust/null_zone) —
-   do not duplicate those; the gap is the CAMPAIGN-side effects.
-5. **post-battle — Advanced Training.** Paying for a course buys nothing.
-   ⚠ Trap: it used to assign `Character.training`, a property Character does NOT
-   have (the int lives on `BaseCharacterResource`, which Character does not
-   extend). A nonexistent-property write ABORTS the handler silently. The real
-   API is `acquired_training` / `add_training()`.
+   do not duplicate those; the gap is the CAMPAIGN-side effects. This is the
+   largest single remaining item a tester will notice.
+
+6. **patrons-rivals-quests — Patron Time Frame never expires** and the p.83
+   Benefits/Hazards/Conditions subtables (30 entries) make every Patron job play
+   identically. Now the biggest cluster in that domain with Quests closed.
 
 Deliberately deprioritised for a tablet test: **factions** (DLC-gated, invisible
 without the expansion) and **Elite enemies** (endgame).
