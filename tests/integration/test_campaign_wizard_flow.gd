@@ -71,6 +71,13 @@ func test_wizard_panel_navigation() -> void:
 	# Start at ConfigPanel (panel index 0)
 	assert_int(coordinator.current_panel_index).is_equal(0)
 
+	# CONFIG will not release Next without a campaign name — see
+	# CampaignCreationCoordinator.can_advance_to_next_phase(), which special-cases
+	# the CONFIG phase on exactly that. This test never set one and so never left
+	# panel 0; it went unnoticed because the suite's own setup was broken and no
+	# case in it had ever executed.
+	coordinator.update_config_state({"campaign_name": "Navigation Test"})
+
 	# Navigate forward through all panels
 	coordinator.next_panel()
 	await get_tree().process_frame
@@ -302,7 +309,19 @@ func test_final_panel_receives_all_data() -> void:
 	var crew = unified_state.get("crew", {})
 	assert_str(config.get("campaign_name", "")).is_equal("Complete Test Campaign")
 	assert_str(captain.get("name", "")).is_equal("Final Panel Captain")
-	assert_int(crew.get("members", []).size()).is_equal(1)
+
+	# 2, not 1: the captain IS a crew member. The data-ownership rule is that
+	# campaign.crew_data["members"] owns every crew member INCLUDING the captain
+	# (flagged is_captain), and the coordinator inserts them at index 0. This
+	# assertion expected 1 because it predates that rule and had never run.
+	var members: Array = crew.get("members", [])
+	assert_int(members.size()).override_failure_message(
+		"expected the captain plus one crew member. Members: %s" % str(members)
+	).is_equal(2)
+	assert_bool(bool(members[0].get("is_captain", false))).override_failure_message(
+		"the captain must be members[0] and flagged is_captain"
+	).is_true()
+	assert_str(str(members[0].get("character_name", members[0].get("name", "")))) 		.is_equal("Final Panel Captain")
 
 
 func test_final_panel_displays_without_errors() -> void:
@@ -403,7 +422,12 @@ func test_complete_wizard_creates_campaign() -> void:
 	var members = crew.get("members", [])
 	assert_str(config.get("campaign_name", "")).is_equal("E2E Test Campaign")
 	assert_str(captain.get("name", "")).is_equal("E2E Captain")
-	assert_int(members.size()).is_equal(2)
+	# 3 = the captain plus the two crew. campaign.crew_data["members"] owns every
+	# crew member INCLUDING the captain (flagged is_captain, inserted at index 0),
+	# so a wizard that set a captain and two crew must report three.
+	assert_int(members.size()).override_failure_message(
+		"expected captain + 2 crew. Members: %s" % str(members)).is_equal(3)
+	assert_bool(bool(members[0].get("is_captain", false))).is_true()
 
 	# Validate data types (critical for save/load)
 	assert_bool(config is Dictionary).is_true()
