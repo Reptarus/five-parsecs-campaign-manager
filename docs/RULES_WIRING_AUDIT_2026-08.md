@@ -144,8 +144,8 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 9 — Character Upgrades: the Ability Increase Table is spent, not rolled (p.123) | medium | Step 9 of the wizard tells the player to "Roll for advancement" and prints results like "Rolled 5 - …" that change nothing. The actual, correct XP-spend UI is buried on the character shee... | OPEN |
 | post-battle | Step 1 — Resolve Rival Status: the two D6 checks (p.119) | small | The wizard's first step teaches the player a rule that does not exist and makes them roll it once per Rival, with no effect on anything. The real outcome (a new Rival on a 1, or a Rival r... | FIXED 34520cb51 |
 | battle-resolution | In-battle rules reference (CheatSheetPanel) vs pp.44/46/40/51 — to-hit, Aim, damage resolution, armor saves, Stun, Suppression | medium | A player using the app's Reference tab at the table plays a different game. They roll 4+ flat instead of 3+/5+/6+; they add +1 for Aiming instead of rerolling 1s; they compare the weapon'... | OPEN |
-| battle-resolution | To Hit modifiers (p.44) — the table has exactly three rows and no elevation or over-range modifier | small | A player who ticks "Elevated" on the shooting helper is handed a +1 that the rules never grant — a covered target at range drops from 6+ to 5+ purely for standing on a rooftop. Setting th... | OPEN |
-| battle-resolution | Suppression — no such mechanic exists in the Core Rules | small | The in-battle rules reference teaches the player a status effect that does not exist in Five Parsecs, complete with a movement restriction and a -1 firing penalty. A player following the ... | OPEN |
+| battle-resolution | To Hit modifiers (p.44) — the table has exactly three rows and no elevation or over-range modifier | small | A player who ticks "Elevated" on the shooting helper is handed a +1 that the rules never grant — a covered target at range drops from 6+ to 5+ purely for standing on a rooftop. Setting th... | OPEN — VERDICT CONFIRMED against the book. p.44 is EXACTLY three rows: within 6" and in the open 3+; within weapon range and in the open OR within 6" and in Cover 5+; within weapon range and in Cover 6+. Reprinted identically on the reference card and in Appendix XI. No elevation row, no generic over-range row. The ONLY legitimate to-hit modifiers are the *Heavy* trait (-1 if the firer moved), *Snap shot* (+1 within 6") and the **Bipod** gun mod (+1 at ranges over 8" when Aiming or firing from Cover, non-*Pistol* only) — an over-range bonus that is a MOD, not a table row. |
+| battle-resolution | Suppression — no such mechanic exists in the Core Rules | small | The in-battle rules reference teaches the player a status effect that does not exist in Five Parsecs, complete with a movement restriction and a -1 firing penalty. A player following the ... | PARTIAL 951cf1969 + 859b28429 — VERDICT CONFIRMED, dead sites purged. Every "suppress*" hit in the Core Rules is the Suppression maul weapon, "Pain suppressor" or the "Emo-suppressed" background; the Compendium adds only "Suppressing fire" (Renegade Soldier +1 shot). Deleted: BaseBattleRules.SUPPRESSION_MODIFIER, FiveParsecsCombatData.SUPPRESSED_PENALTY, EnemyTacticalAI.SUPPRESSION_PATTERN. STILL OPEN (live sites): BattleCalculations.gd:137/160/207, BattleResolver.gd:190/212/688-689, CharacterQuickRollPanel.gd:583, BaseCharacterResource.is_suppressed()/can_suppress(), the CheatSheetPanel text, and the SUPPRESSED enum members in BOTH enum files (deprecate in place — deleting shifts ordinals and breaks save compat, per the DifficultyLevel precedent). NOTE: "Emo-suppressed" is a REAL background (Character.gd:665-671, p.15 no-Luck rule) — do not remove it. |
 
 ## PARTIAL (30)
 
@@ -182,3 +182,62 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | battle-resolution | Impact trait (p.51) — a second Stun marker on an already-Stunned target | small | The Suppression maul — the game's dedicated Impact weapon — is mechanically identical to any other Damage +1 melee weapon. Its ability to stack a Stunned enemy toward the 3-marker knockou... | OPEN |
 | battle-resolution | Stunned — Move OR Combat Action, not both (p.40); marker removed after acting | small | In auto-resolved battles a Stunned figure — crew or enemy — suffers no penalty whatsoever: it moves and fires exactly like an unstunned one, and its Stun evaporates at the end of the roun... | OPEN |
 
+
+---
+
+## ⛔ Sourcing trap found Aug 2: the Compendium contains a SECOND, CONFLICTING weapon table
+
+**Before "correcting" any weapon value, check which SECTION of the Compendium you found it in.**
+
+`docs/compendium.md` (~lines 5655-5714) prints a complete weapon table whose values contradict
+the Core Rules table (`docs/core_rules.md` ~4020-4066):
+
+| Weapon | **Core Rules (governs)** | Compendium *Game Options* |
+|---|---|---|
+| Suppression maul | Brawl, **1** dmg, *Melee, Impact* | Brawl, **2** dmg, *Melee, **Stun*** |
+| Ripper sword | Brawl, **1**, *Melee* | Brawl, **2**, *Melee* |
+| Shotgun | **12"**, **2** shots, 1, *Focused* | **8"**, **1** shot, 1, ***Critical*** |
+| Shell gun | **30"**, **2**, 0, *Heavy, Area* | **18"**, **—**, 0, *Area* |
+| Needle rifle | 18", **2**, 0, *Critical* | 18", **1**, 0, *Critical, **Piercing*** |
+| Shatter axe | Brawl, **2**, *Melee* | Brawl, **3**, *Melee, Clumsy, **Shockwave*** |
+| Marksman's rifle | 36", 1, 0, ***Heavy*** | 36", 1, 0, ***Critical*** |
+| Scrap pistol | **9"**, 1, 0, *Pistol* | **7"**, 1, 0, *Pistol* |
+
+That table sits under a `## Game Options` heading, followed by `## Designer notes`:
+
+> "While many weapons have seen **minor tweaks**, of particular note are pistols... and melee
+> weapons, which have received small boosts across the board. Area weapons no longer have
+> inherent Shots on their profile, instead dealing damage only through the Area rule..."
+
+**"Have seen tweaks" + placement under Game Options = an opt-in alternative weapon set, NOT
+errata.** The Core Rules table governs standard 5PFH; `data/equipment_database.json` must match
+it. Traits that exist only in the option set (**Overheat, Shockwave, Shrapnel, Burn**) must not
+be attached to Core Rules weapons. If the alternative set is ever implemented it belongs behind
+a toggle alongside the other Compendium Game Options, never as the default.
+
+**A grep proving a value "is in the Compendium" is NOT sufficient sourcing.**
+
+### This also means the audit quoted the wrong Area trait
+
+- **Core Rules p.51 (implement this):** "Resolve all shots against the initial target. **They
+  cannot be spread.** Then resolve **one bonus shot against every figure within 2"**."
+- **Compendium *Game Options* (do NOT implement as default):** "Select a target point within
+  range. Every figure within 2" of the target point are hit on an unmodified D6 roll of **4+**
+  (**5+** if partially obscured from the blast)."
+
+The Area finding in this document describes the Compendium version.
+
+### Related discrepancy, unresolved
+
+`data/elite_enemy_types.json:374` and `data/RulesReference/EliteEnemies.json:247` both state
+**"Cop killer: Enforcers always become Rivals after a battle"**, while the Core Rules
+(and `data/enemy_types.json:39`) state **"Cop killer: As Rivals, +2 to their numbers"**. These
+are different rules. Likely the Elite-Enemies chapter legitimately restates it, but it has not
+been verified against the Compendium page — check before touching either file.
+
+## Verbatim book evidence for the battle-resolution domain
+
+Extracted Aug 2 to save re-extraction; see the To Hit and Suppression rows above for the
+headline results. Full brief (Stunned p.40, Brawling p.45, Aiming/Panic Fire p.46, all weapon
+traits p.51, all six consumables p.54) was written during the session and its conclusions are
+folded into the rows in this table.
