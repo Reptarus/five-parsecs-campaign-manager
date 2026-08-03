@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 79 open / 55 fixed / 7 partial-or-blocked.**
+**Status Aug 2 evening: 77 open / 57 fixed / 7 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -113,8 +113,8 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | economy-trade-equipment | Loot Table three-roll procedure — category, subtable, then the exact item by D100 (Core Rules pp.131-133) | medium | Loot item frequencies are wrong across the board. Grenade loot is 50/50 Frakk/Dazzle instead of the printed 60/40. Within melee loot a Blade drops to 12.5% from 20% while a Suppression Ma... | OPEN |
 | economy-trade-equipment | The p.28-29 tables referenced by the Trade Table (Low-Tech Weapon Table, Gear Table, Gadget Table) | medium | Trade Table 1-3 "A personal weapon", which should be a Handgun/Scrap Pistol/Colony Rifle/Shotgun/Blade etc., instead returns a Power Claw, Suppression Maul, Glare Sword, Ripper Sword or B... | FIXED e2e56b985 |
 | battle-setup | Number of Opponents — Insanity adds +1 to the final number faced | one-line | On Insanity — the hardest mode in the book — every battle fields one fewer enemy than the rules require. Combined with the danger_level defect above the +1 could not fire regardless, so f... | FIXED 24c657af4 |
-| battle-setup | Determine Deployment Conditions — consult the column matching the mission type; the table is ignored during an Invasion battle | small | Two concrete wrong outcomes. (1) Every Rival battle rolls deployment conditions on the Opportunity/Patron column instead of the Rival column, so the odds are badly skewed — 'No Condition'... | OPEN |
-| battle-setup | Determine the Enemy — roll the Enemy Encounter Category on the column matching the mission (Opportunity / Patron / Quest / Unknown Rival) | medium | A Rival that tracks you down is generated off the Opportunity or Patron column, so 20-25% of Rival battles are against Roving Threats — a category the book excludes from Rival fights outr... | OPEN |
+| battle-setup | Determine Deployment Conditions — consult the column matching the mission type; the table is ignored during an Invasion battle | small | Two concrete wrong outcomes. (1) Every Rival battle rolls deployment conditions on the Opportunity/Patron column instead of the Rival column, so the odds are badly skewed — 'No Condition'... | FIXED 565ddc4b5 (read mission_source not source; Invasion skip added) |
+| battle-setup | Determine the Enemy — roll the Enemy Encounter Category on the column matching the mission (Opportunity / Patron / Quest / Unknown Rival) | medium | A Rival that tracks you down is generated off the Opportunity or Patron column, so 20-25% of Rival battles are against Roving Threats — a category the book excludes from Rival fights outr... | FIXED 565ddc4b5 (the silent tables.get("patron") fallback sent a quarter of Rival battles against wildlife) |
 | patrons-rivals-quests | Danger Pay is a PATRON-job payment only — "If you did a Patron job, add the Pay bonus to the Danger Pay" (Core Rules p.120 Step 4) | one-line | Opportunity missions — the default 'nothing else presented itself' battle — pay an extra 1 to 3 credits of Danger Pay they are not entitled to. On a single-digit credit economy where Upke... | FIXED 878057d6a (gated at the offer builder AND the payment step) |
 | missions-elites-zones | Red Job Improved Rewards — Quest credit payout | small | Finishing a Quest in a Red Zone pays slightly more than the book allows — best-of-4 averages ~5.24 vs the book's best-of-3 ~4.96, i.e. roughly +0.3 credits per Red Zone quest conclusion, ... | OPEN |
 | post-battle | Step 13 — Character Event: exactly ONE roll, for ONE randomly selected character (p.126) | medium | A six-person crew resolves SEVEN character events per campaign turn instead of one — six applied by the player plus one applied silently by the backend. XP, story points, quest rumors, Ri... | FIXED ca68e01b6 |
@@ -245,7 +245,7 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**79 open / 62 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
+**77 open / 64 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
 
 ### Domain standings
 
@@ -365,6 +365,18 @@ without the expansion) and **Elite enemies** (endgame).
   Same split applies to the **Area** trait.
 - **gdUnit4 reports a parse error as "No test cases found" and EXITS 0.** A green
   exit code proves nothing. Check the executed-case count, every time.
+- **A `.get(key, fallback)` whose fallback is a plausible NEIGHBOUR is worse than
+  a crash.** Two p.88/p.94 tables picked the wrong column for years because
+  `tables.get(mission_source, tables.get("patron", {}))` quietly turned every
+  Rival battle into a Patron one — a quarter of them fought wildlife the book
+  excludes outright. The output looked entirely reasonable at every step. When a
+  key is a COLUMN SELECTOR, map the vocabulary explicitly and `push_warning` on
+  anything unrecognised; never let an unknown source impersonate a known one.
+- **When a rule says "consult the appropriate column", pin the columns with a
+  TILING test.** Every column must cover 1-100 (or 1-10) with no gap and no
+  overlap: a gap means a legal roll silently yields nothing, which is
+  indistinguishable from the table's own "No Condition"/"no effect" row and
+  therefore hides forever.
 - **`verify_scripts_parse.gd` prints `=== N checked, 0 definite failures ===`
   with real parse errors in the same output.** Grep the run for `Parse Error`
   separately — the summary line is not the verdict. It caught a genuine one this
