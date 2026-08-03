@@ -489,17 +489,50 @@ status effect is Stunned. "Suppressing fire" is a
 Renegade Soldier rule (+1 shot), not a state.[/i]"""
 
 func _common_weapons_text() -> String:
-	return """[b]Weapon        Range  Shots  Dmg  Traits[/b]
-Handgun         12"    1     0   Pistol
-Colony Rifle    24"    1     0   -
-Military Rifle  24"    1     1   -
-Auto Rifle      24"    2     0   Auto
-Shotgun         12"    2     1   -
-Hunting Rifle   36"    1     2   Heavy
-Machine Pistol  12"    2     0   Pistol
-Blast Pistol    8"     1     1   Pistol
-Infantry Laser  30"    1     0   Snap
-Plasma Rifle    20"    1     2   -"""
+	# Core Rules p.50 Weapon Ratings, verbatim.
+	#
+	# ⚠ Do NOT "correct" these against the Compendium. The Compendium prints a
+	# SECOND weapon table under its Game Options heading with different values
+	# (Shotgun 8"/1 shot, Ripper sword 2 damage, Marksman's rifle Critical, and
+	# so on). Its designer notes call them "minor tweaks" — it is an opt-in
+	# alternative set, not errata. See docs/RULES_WIRING_AUDIT_2026-08.md.
+	return """[b]Weapon             Rng  Shots  Dmg  Traits[/b]
+Auto rifle         24"    2     0   -
+Beam pistol        10"    1     1   Pistol, Critical
+Blade             Brawl   -     0   Melee
+Blast pistol        8"    1     1   Pistol
+Blast rifle        16"    1     1   -
+Boarding saber    Brawl   -     1   Melee, Elegant
+Brutal melee wpn  Brawl   -     1   Melee, Clumsy
+Cling fire pistol  12"    2     1   Focused, Terrifying
+Colony rifle       18"    1     0   -
+Dazzle grenade      6"    1    NA   Area, Stun, Single use
+Duelling pistol     8"    1     0   Pistol, Critical
+Flak gun            8"    2     1   Focused, Critical
+Frakk grenade       6"    2     0   Heavy, Area, Single use
+Fury rifle         24"    1     2   Heavy, Piercing
+Glare sword       Brawl   -     0   Melee, Elegant, Piercing
+Hand cannon         8"    1     2   Pistol
+Hand flamer        12"    2     1   Focused, Area
+Hand gun           12"    1     0   Pistol
+Hand laser         12"    1     0   Snap Shot, Pistol
+Hold out pistol     4"    1     0   Pistol, Melee
+Hunting rifle      30"    1     1   Heavy
+Hyper blaster      24"    3     1   -
+Infantry laser     30"    1     0   Snap Shot
+Machine pistol      8"    2     0   Pistol, Focused
+Marksman's rifle   36"    1     0   Heavy
+Military rifle     24"    1     0   -
+Needle rifle       18"    2     0   Critical
+Plasma rifle       20"    2     1   Focused, Piercing
+Power claw        Brawl   -     3   Melee, Clumsy
+Rattle gun         24"    3     0   Heavy
+Ripper sword      Brawl   -     1   Melee
+Scrap pistol        9"    1     0   Pistol
+Shatter axe       Brawl   -     2   Melee
+Shell gun          30"    2     0   Heavy, Area
+Shotgun            12"    2     1   Focused
+Suppression maul  Brawl   -     1   Melee, Impact"""
 
 
 # =====================================================

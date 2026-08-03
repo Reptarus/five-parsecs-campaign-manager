@@ -40,8 +40,14 @@ var _enemy_tables_loaded: bool = false
 func _init() -> void:
 	_load_weapons_from_json()
 	if weapon_registry.is_empty():
-		push_warning("WeaponTableSystem: JSON load failed, using hardcoded fallback")
-		_initialize_weapon_registry()
+		# Deliberately loud, and deliberately empty. There is no hardcoded
+		# fallback any more — see the note at the bottom of this file. Showing
+		# the player a fabricated weapon profile is worse than showing none.
+		push_error(
+			"WeaponTableSystem: could not load res://data/equipment_database.json. "
+			+ "Weapon reference and enemy weapon rolls will be EMPTY. This is a "
+			+ "packaging/data bug, not a condition to paper over."
+		)
 
 ## Load weapon data from equipment_database.json (canonical source)
 func _load_weapons_from_json() -> void:
@@ -159,104 +165,25 @@ func _get_enemy_weapon_table(enemy_type: String) -> Array:
 		table = _enemy_weapon_distributions.get("default", [])
 	return table
 
-func _initialize_weapon_registry() -> void:
-	weapon_registry.clear()
-
-	# PISTOLS
-	_add_weapon("handgun", "Handgun", 8, 1, 0, [], "pistol",
-		"Standard sidearm. Reliable and common.")
-	_add_weapon("auto_pistol", "Auto Pistol", 8, 2, 0, [], "pistol",
-		"Rapid-fire pistol with increased shot capacity.")
-	_add_weapon("machine_pistol", "Machine Pistol", 8, 3, 0, [], "pistol",
-		"Compact automatic weapon with high rate of fire.")
-	_add_weapon("hand_laser", "Hand Laser", 10, 1, 0, ["Critical"], "pistol",
-		"Energy weapon with increased critical chance.")
-	_add_weapon("blast_pistol", "Blast Pistol", 6, 1, 1, ["Piercing"], "pistol",
-		"High-powered pistol with armor penetration.")
-	_add_weapon("hand_flamer", "Hand Flamer", 6, 2, 0, ["Area", "Burn"], "pistol",
-		"Short-range incendiary weapon.")
-
-	# RIFLES
-	_add_weapon("colony_rifle", "Colony Rifle", 18, 1, 0, [], "rifle",
-		"Standard frontier rifle. Reliable and accurate.")
-	_add_weapon("military_rifle", "Military Rifle", 24, 1, 0, [], "rifle",
-		"Military-grade rifle with excellent range.")
-	_add_weapon("auto_rifle", "Auto Rifle", 18, 2, 0, [], "rifle",
-		"Automatic rifle with burst fire capability.")
-	_add_weapon("infantry_laser", "Infantry Laser", 24, 1, 0, ["Critical"], "rifle",
-		"Standard military energy rifle.")
-	_add_weapon("needle_rifle", "Needle Rifle", 18, 2, 0, ["Piercing", "Silent"], "rifle",
-		"Silent weapon firing armor-piercing flechettes.")
-	_add_weapon("hunting_rifle", "Hunting Rifle", 30, 1, 1, ["Heavy"], "rifle",
-		"Long-range rifle favored by hunters.")
-	_add_weapon("shotgun", "Shotgun", 12, 2, 1, ["Focused"], "rifle",
-		"Devastating at close range.")
-	_add_weapon("rattle_gun", "Rattle Gun", 18, 3, 0, [], "rifle",
-		"High-capacity automatic weapon.")
-	_add_weapon("plasma_rifle", "Plasma Rifle", 18, 1, 2, ["Overheat"], "rifle",
-		"Powerful plasma weapon with risk of overheat.")
-
-	# HEAVY WEAPONS
-	_add_weapon("machine_gun", "Machine Gun", 30, 3, 0, ["Heavy", "Stabilize"], "heavy",
-		"Squad support weapon requiring setup.")
-	_add_weapon("flak_gun", "Flak Gun", 24, 2, 1, ["Heavy", "Area"], "heavy",
-		"Anti-personnel explosive weapon.")
-	_add_weapon("plasma_cannon", "Plasma Cannon", 24, 1, 3, ["Heavy", "Overheat"], "heavy",
-		"Devastating energy weapon.")
-	_add_weapon("rattle_cannon", "Rattle Cannon", 24, 4, 0, ["Heavy", "Stabilize"], "heavy",
-		"High-volume suppression weapon.")
-	_add_weapon("fury_rifle", "Fury Rifle", 36, 1, 2, ["Heavy"], "heavy",
-		"Long-range heavy rifle.")
-	_add_weapon("hyper_blaster", "Hyper Blaster", 18, 4, 1, ["Heavy", "Overheat"], "heavy",
-		"Rapid-fire energy weapon.")
-
-	# MELEE WEAPONS
-	_add_weapon("blade", "Blade", 0, 1, 0, ["Melee"], "melee",
-		"Basic combat knife or sword.")
-	_add_weapon("brutal_melee", "Brutal Melee Weapon", 0, 1, 1, ["Melee", "Clumsy"], "melee",
-		"Heavy melee weapon with increased damage.")
-	_add_weapon("power_claw", "Power Claw", 0, 1, 2, ["Melee", "Piercing"], "melee",
-		"Powered melee weapon with armor penetration.")
-	_add_weapon("ripper_sword", "Ripper Sword", 0, 2, 1, ["Melee"], "melee",
-		"Chain-edged sword with rapid strikes.")
-	_add_weapon("suppression_maul", "Suppression Maul", 0, 1, 2, ["Melee", "Stun"], "melee",
-		"Non-lethal weapon that can stun targets.")
-	_add_weapon("glare_sword", "Glare Sword", 0, 1, 1, ["Melee", "Elegant", "Critical"], "melee",
-		"Elegant energy blade favored by elites.")
-
-	# NATURAL WEAPONS
-	_add_weapon("claws", "Claws", 0, 2, 0, ["Melee", "Natural"], "melee",
-		"Natural creature weapon.")
-	_add_weapon("fangs", "Fangs", 0, 1, 1, ["Melee", "Natural"], "melee",
-		"Natural biting attack.")
-
-	# SPECIAL WEAPONS
-	_add_weapon("cling_fire_pistol", "Cling Fire Pistol", 8, 1, 0, ["Burn", "Area"], "special",
-		"Fires adhesive incendiary gel.")
-	_add_weapon("beam_light", "Beam Light", 12, 1, 0, ["Blind"], "special",
-		"Blinds and disorients targets.")
-	_add_weapon("shell_gun", "Shell Gun", 12, 1, 0, ["Stun", "Area"], "special",
-		"Fires concussive shells.")
-	_add_weapon("sonic_blaster", "Sonic Blaster", 8, 2, 0, ["Stun", "Area"], "special",
-		"Area denial weapon using sonic waves.")
-
-	# GRENADES
-	_add_weapon("frag_grenade", "Frag Grenade", 6, 0, 1, ["Grenade", "Area"], "grenade",
-		"Standard fragmentation grenade.")
-	_add_weapon("stun_grenade", "Stun Grenade", 6, 0, 0, ["Grenade", "Stun", "Area"], "grenade",
-		"Non-lethal concussion grenade.")
-	_add_weapon("smoke_grenade", "Smoke Grenade", 6, 0, 0, ["Grenade", "Smoke"], "grenade",
-		"Creates concealing smoke cloud.")
-
-func _add_weapon(id: String, name: String, range_in: int, shots: int, damage: int,
-		traits: Array, category: String, description: String) -> void:
-	var weapon := WeaponData.new()
-	weapon.weapon_id = id
-	weapon.name = name
-	weapon.range_inches = range_in
-	weapon.shots = shots
-	weapon.damage_bonus = damage
-	weapon.traits.assign(traits)
-	weapon.category = category
-	weapon.description = description
-	weapon_registry[id] = weapon
+## The hardcoded weapon table that used to live here was DELETED 2026-08-02.
+##
+## It was a wholesale fabricated parallel table, wrong in roughly thirty
+## profiles against Core Rules p.50 — Plasma Rifle 18"/1 shot/2 damage/Overheat
+## where the book prints 20"/2/1/Focused+Piercing; Flak Gun 24"/Heavy+Area
+## where the book prints 8"/Focused+Critical; Hand Flamer 6"/0 damage/Burn
+## where the book prints 12"/1/Focused+Area. It also carried invented traits
+## (Burn, Overheat, Stabilize, Silent, Natural, Blind, Smoke) and invented
+## weapons (Auto Pistol, Machine Gun, Plasma Cannon, Rattle Cannon, Sonic
+## Blaster). Its Suppression Maul entry — Brawl, 2 damage, Melee+Stun — matched
+## the COMPENDIUM Game Options alternative table rather than the Core Rules
+## (Brawl, 1 damage, Melee+Impact), which is exactly the sourcing trap
+## documented in docs/RULES_WIRING_AUDIT_2026-08.md.
+##
+## data/equipment_database.json is the single source of truth and is verified
+## byte-correct against p.50 for all 32 book weapons. A silent fallback to a
+## fabricated table is worse than a hard failure: WeaponTableDisplay shows this
+## data to the player as a rules reference, and EnemyGenerationWizard arms
+## enemies from it, so wrong data here is wrong data at the table.
+##
+## Do not reintroduce a hardcoded fallback. If the JSON cannot be read, that is
+## a packaging bug and must be loud.
