@@ -371,3 +371,101 @@ func process_consumed_items(ctx: PostBattleContextClass) -> Array:
 			push_warning("PostBattleCompletion: Could not remove consumed item '%s' from character '%s'" % [weapon_name, char_id])
 
 	return results
+
+
+func apply_notable_sight_reward(ctx: PostBattleContextClass) -> Dictionary:
+	## ⚠ NOT YET CALLED — one line away, and deliberately recorded rather than
+	## hidden. The orchestrator (PostBattlePhase.gd) is the only site that calls
+	## into this class, and it is held by a parallel Story Track branch; staging
+	## it would sweep up that branch's uncommitted work. The producer (the results
+	## form's "Reached the Notable Sight" check) and this reward logic are landed
+	## so the unblock is a single insertion next to the other _completion calls:
+	##
+	##     _completion.apply_notable_sight_reward(_ctx)
+	##
+	## An uncalled rule is exactly the defect this audit exists to remove, so if
+	## you are reading this and PostBattlePhase.gd is free, wire it now.
+	##
+	## Core Rules p.89 Notable Sights: the item "can be acquired by moving into
+	## contact with it, and foregoing any other actions that round" — and its
+	## listed reward is then gained.
+	##
+	## THE BUG THIS FIXES: the app rolled the sight, told the player it was
+	## 2D6+2" from the centre and what it was worth, rendered its marker on the
+	## battlefield map, and then had NO consumer for it. A crew member could spend
+	## their whole round walking to a Person of Interest and the promised +1 story
+	## point never arrived. The producer is the results form's "Reached the
+	## Notable Sight" check (BattleResultsInputForm), asked rather than derived
+	## because the fight happens on the player's table.
+	##
+	## Returns {applied: bool, type: String, description: String}.
+	var result := {"applied": false, "type": "", "description": ""}
+	if not bool(ctx.battle_result.get("notable_sight_claimed", false)):
+		return result
+
+	var sight: Dictionary = ctx.battle_result.get("notable_sight", {})
+	if sight.is_empty():
+		sight = ctx.battle_result.get("mission_data", {}).get("notable_sight", {})
+	var sight_type: String = str(sight.get("type", "NOTHING"))
+	result["type"] = sight_type
+	if sight_type == "NOTHING" or sight_type.is_empty():
+		return result
+
+	match sight_type:
+		"DOCUMENTATION":
+			ctx.add_quest_rumor()
+			result["description"] = "Documentation: gained a Quest Rumor"
+		"SHINY_BITS":
+			_grant_credits(ctx, 1)
+			result["description"] = "Shiny bits: +1 credit"
+		"REALLY_SHINY_BITS":
+			_grant_credits(ctx, 2)
+			result["description"] = "Really shiny bits: +2 credits"
+		"PERSON_OF_INTEREST":
+			ctx.add_story_points(1)
+			result["description"] = "Person of interest: +1 story point"
+		"PECULIAR_ITEM":
+			ctx.award_xp_to_random_crew(2)
+			result["description"] = "Peculiar item: +2 XP"
+		"PRIORITY_TARGET":
+			# "Add +1 to their Toughness. If they are SLAIN, gain 1D3 credits."
+			# The +1 Toughness is a battlefield instruction the player applies on
+			# the table; only the payout is a campaign mutation, and it is owed
+			# only if that figure died.
+			if bool(ctx.battle_result.get("priority_target_slain", false)):
+				var credits: int = ctx.roll_d6()
+				credits = int(ceil(credits / 2.0))  # 1D3
+				_grant_credits(ctx, credits)
+				result["description"] = "Priority target slain: +%d credits" % credits
+			else:
+				result["description"] = "Priority target survived: no reward"
+		"LOOT_CACHE", "CURIOUS_ITEM":
+			# Both resolve to a Loot Table roll, which Step 7 owns. Flag it so the
+			# loot step grants the extra roll rather than duplicating that logic
+			# here — one roller, one source of truth.
+			ctx.battle_result["extra_loot_rolls"] = int(
+				ctx.battle_result.get("extra_loot_rolls", 0)) + 1
+			result["description"] = "%s: +1 Loot Table roll" % sight_type.capitalize()
+		_:
+			push_warning(
+				"PostBattleCompletion: unknown Notable Sight type '%s'" % sight_type)
+			return result
+
+	result["applied"] = true
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "battle",
+			"auto_generated": true,
+			"title": "Notable Sight recovered",
+			"description": str(result["description"]),
+			"tags": ["notable_sight", "post_battle"],
+		})
+	return result
+
+
+func _grant_credits(ctx: PostBattleContextClass, amount: int) -> void:
+	if amount <= 0:
+		return
+	if ctx.game_state_manager and ctx.game_state_manager.has_method("get_credits") \
+			and ctx.game_state_manager.has_method("set_credits"):
+		ctx.game_state_manager.set_credits(ctx.game_state_manager.get_credits() + amount)

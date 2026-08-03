@@ -31,6 +31,7 @@ var _objective_id: String = ""
 var _objective_name: String = ""
 var _objective_condition: String = ""
 var _objective_met_check: CheckBox
+var _notable_sight_check: CheckBox
 
 # Core Rules p.123 per-character XP bonuses. Both are things only the player
 # witnessed, so they are asked rather than derived; both were previously read
@@ -142,6 +143,30 @@ func _build_ui() -> void:
 		_objective_met_check.text = "Objective achieved"
 		_objective_met_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 		obj_card.add_child(_objective_met_check)
+
+		# Core Rules p.89 Notable Sights: the item "can be acquired by moving into
+		# contact with it, and foregoing any other actions that round."
+		#
+		# THE BUG THIS FIXES: the app told the player a Person of Interest was
+		# 2D6+2" from the centre and worth +1 story point, they spent a crew
+		# member's whole round walking there, and reaching it awarded NOTHING —
+		# there was no way to record that it had been reached and no consumer for
+		# it if there had been. Asked here for the same reason the objective is:
+		# the fight happens on the player's table, so only they know.
+		var sight: Dictionary = _mission_data.get("notable_sight", {})
+		var sight_reward: String = str(sight.get("effect", ""))
+		if not sight_reward.is_empty() and str(sight.get("type", "NOTHING")) != "NOTHING":
+			var sight_lbl := Label.new()
+			sight_lbl.text = "Notable Sight — %s" % sight_reward
+			sight_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			sight_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+			sight_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			obj_card.add_child(sight_lbl)
+			_notable_sight_check = CheckBox.new()
+			_notable_sight_check.text = "Reached the Notable Sight"
+			_notable_sight_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+			obj_card.add_child(_notable_sight_check)
+
 		vbox.add_child(obj_section[0])
 
 	# === OUTCOME SECTION ===
@@ -579,6 +604,11 @@ func _on_submit() -> void:
 		# ExperienceTrainingProcessor reads first_casualty_by as a crew_id and
 		# unique_kills as a LIST of crew_ids — matching those shapes exactly, so
 		# no consumer change is needed.
+		# Core Rules p.89: the Notable Sight's "listed reward is gained" only if
+		# the crew reached it. Consumed post-battle by PostBattleCompletion.
+		"notable_sight_claimed": (_notable_sight_check != null
+			and is_instance_valid(_notable_sight_check)
+			and _notable_sight_check.button_pressed),
 		"first_casualty_by": _picked_crew_id(_first_casualty_btn),
 		"unique_kills": ([] if _picked_crew_id(_unique_kill_btn) == ""
 			else [_picked_crew_id(_unique_kill_btn)]),

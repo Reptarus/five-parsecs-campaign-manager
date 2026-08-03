@@ -4418,6 +4418,21 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())
 
+	# Core Rules p.88 Deployment Conditions — show the condition that was ROLLED.
+	#
+	# THE BUG THIS FIXES: DeploymentConditionsPanel has roll_condition() and
+	# display_condition() and NOTHING called either, so the panel rendered blank
+	# for every battle while its Acknowledge/Details buttons sat wired to an
+	# empty panel. The condition itself was never missing — CampaignTurnController
+	# rolls it and stamps mission_data["deployment_condition"] — it simply never
+	# reached the one screen built to present it.
+	#
+	# The panel takes a DeploymentCondition OBJECT and the mission carries the
+	# flattened Dictionary, so it is rehydrated by id rather than re-rolled: a
+	# second roll here would show the player a different condition from the one
+	# the battle is actually being fought under.
+	_populate_deployment_conditions(mission_dict)
+
 	# DLC: Wire mission-type-specific panels (Fixer's Guidebook).
 	#
 	# The panels need the GENERATOR's shape, where `objective` is a Dictionary
@@ -4435,6 +4450,34 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 		_setup_street_fight_panel(compendium_payload)
 	elif mission_type == "salvage":
 		_setup_salvage_panel(compendium_payload)
+
+func _populate_deployment_conditions(mission_dict: Dictionary) -> void:
+	## Show the p.88 condition the battle funnel already rolled for THIS battle.
+	if deployment_conditions == null or not is_instance_valid(deployment_conditions):
+		return
+
+	var stamped: Dictionary = mission_dict.get("deployment_condition", {})
+	var condition_id: String = str(stamped.get("condition_id", ""))
+	if condition_id.is_empty():
+		# p.88's table is ignored during an Invasion, and a Rival ambush can
+		# suppress it too, so "no condition stamped" is a legitimate state — hide
+		# the panel rather than show an empty one.
+		deployment_conditions.hide()
+		return
+
+	var DeploySysClass = load("res://src/core/battle/DeploymentConditionsSystem.gd")
+	var deploy_sys = DeploySysClass.new()
+	var condition = deploy_sys.get_condition_by_id(condition_id)
+	if condition == null:
+		push_warning(
+			"TacticalBattleUI: unknown deployment condition id '%s'" % condition_id)
+		deployment_conditions.hide()
+		return
+
+	deployment_conditions.display_condition(condition, int(stamped.get("roll", 0)))
+	if unified_log:
+		unified_log.log_action("Deployment", str(stamped.get("title", condition_id)))
+
 
 func _create_character_cards(_crew_members: Array) -> void:
 	## Phase 2: the Crew and Enemy SlideOverDrawers ARE the per-figure battle
