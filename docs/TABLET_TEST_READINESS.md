@@ -1,5 +1,9 @@
 # Tablet Test Readiness — verified Aug 3 2026
 
+> **UPDATE, same day — §4 has been worked. See §8 at the bottom for what shipped,
+> what is blocked and why, and the two items that got WORSE-looking because a
+> dark test suite started reporting.**
+
 Everything here was measured on this branch today, not estimated. Commands to
 re-run each check are in §6. Where a number contradicts an older doc, this file
 is right and the older doc is stale.
@@ -185,3 +189,58 @@ py -c "import zipfile,re; z=zipfile.ZipFile('build/fpfh-0.9.7-sideload.apk'); pr
 **Then ship a tester build.** Everything else on the 73-row backlog is either
 unreachable in one sitting or invisible without an expansion, and is better
 driven by what the tester actually reports.
+
+
+---
+
+## 8. Post-work state (Aug 3, after the §7 pass)
+
+### Shipped
+
+| Item | Commit |
+|---|---|
+| **Stealth / Street Fight / Salvage reach the table.** Complete feature severed at one dead-file call site; also needed `type` added to the campaign hand-off, which drops ~20 keys and had never carried it | `6c8e7b513` |
+| **Step 9 stopped selling a mechanic that does not exist.** The D6 "advancement roll" awarding "skill points" is deleted; the real p.123 XP spend replaces it | `56714e6c2` |
+| **Expanded Missions briefing** no longer prints `OVERVIEW: ` with nothing after it — the rows have no `name` key and never did | `56714e6c2` |
+| **Deployment Conditions panel** shows the condition the funnel already rolled, instead of rendering blank every battle | `bf3f797c3` |
+| **Notable Sights** reward logic + the "Reached the Notable Sight" producer on the results form | `bf3f797c3` (⚠ call site blocked, below) |
+| **Two verified-dead DLC switches hidden** behind `DLCContentCatalog.UNIMPLEMENTED_FLAGS` | `c73c0c90e` |
+| **Integration suite un-darkened** — all 33 suites now execute; worst orphan count 1236 → 100 | `c73c0c90e` |
+| Two p.84 acceptance gates that enforced themselves off a failed lookup | `2025226f7` |
+
+### Blocked, and precisely why
+
+Three items are one line each and are blocked for the SAME reason: their only
+call site is in a file held by the parallel Story Track branch, and `git add`
+takes whole files — staging would sweep up that branch's uncommitted work.
+Interactive staging is not available in this environment.
+
+| Item | File held | The one line |
+|---|---|---|
+| Notable Sight reward | `PostBattlePhase.gd` | `_completion.apply_notable_sight_reward(_ctx)` |
+| L176 Sick Bay exit (p.76 — recovered crew cannot take a task that turn) | `CampaignPhaseManager.gd` | a `recovered_this_turn` flag at the release block, read by `CrewTaskComponent` |
+| L83 / L169 / L170 Character + Campaign Events | `CharacterEventEffects.gd`, `CampaignEventEffects.gd` | three rows, two files, one pass |
+
+`apply_notable_sight_reward` says all of this in its own docstring rather than
+sitting quietly uncalled, because an uncalled rule is the exact defect this audit
+exists to remove.
+
+### Newly VISIBLE, not newly broken
+
+Fixing the wizard fixture had the effect good fixtures have: it started
+reporting.
+
+- **5 assertion failures in `test_campaign_wizard_flow`.** That suite failed its
+  own setup on every case (`has_method("get_coordinator")` — a method that exists
+  on `BaseCampaignPanel`, which `CampaignCreationUI` is not), so it had never
+  tested anything. These are pre-existing defects the suite could not previously
+  see.
+- **The full run still crashes at exit** on remaining orphans, though it now gets
+  through all 33 integration suites first. Keep running tests in two batches
+  (`-a tests/unit`, then `-a tests/integration`) until the rest are `auto_free`'d.
+
+### Next
+
+1. The 5 wizard-flow failures — real defects in campaign creation, now visible.
+2. Remaining orphan sources, to get one green full-suite run.
+3. The three blocked one-liners, the moment the Story Track branch lands.
