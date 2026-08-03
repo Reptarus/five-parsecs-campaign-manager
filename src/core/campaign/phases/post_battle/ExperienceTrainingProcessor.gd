@@ -8,6 +8,7 @@ extends RefCounted
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
+const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 ## Path-preloaded (BattleResultNormalizer declares no class_name — see its header).
 ## Reused for _to_crew_entry(), the character-object -> crew_id resolver.
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
@@ -154,6 +155,26 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 			# bought a stat, or reached an Advanced Training threshold. Campaign
 			# progression was completely flat.
 			ctx.add_character_xp(ctx.get_crew_member(crew_id), xp_earned)
+
+	# "Tough fight: A random survivor gains +1 XP" (Core Rules p.97 Roid-gangers,
+	# p.102 Haywire Robots). Zero consumers anywhere — the trait was printed in
+	# the pre-battle briefing and paid nobody. Drawn from the crew who actually
+	# earned XP above, which is exactly the set of surviving non-Bot participants
+	# the rule means by "a random survivor".
+	if EnemyTraitRules.bonus_survivor_xp(
+			str(ctx.battle_result.get("enemy_type", ""))) > 0 \
+			and not xp_awards.is_empty():
+		var lucky: Dictionary = xp_awards[randi() % xp_awards.size()]
+		lucky["xp"] = int(lucky.get("xp", 0)) + 1
+		ctx.add_character_xp(ctx.get_crew_member(str(lucky.get("crew_id", ""))), 1)
+		if ctx.campaign_journal and ctx.campaign_journal.has_method(
+				"auto_create_character_event"):
+			ctx.campaign_journal.auto_create_character_event(
+				str(lucky.get("crew_id", "")), "bonus_xp", {
+					"turn": ctx.battle_result.get("turn", 0),
+					"description": "Tough fight: +1 XP for coming through it "
+						+ "(Core Rules p.97)",
+				})
 
 	# Journal: log XP awards
 	if xp_awards.size() > 0 and ctx.campaign_journal \

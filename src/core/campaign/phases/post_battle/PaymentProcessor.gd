@@ -11,6 +11,7 @@ const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
+const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -334,8 +335,17 @@ func process_battlefield_finds(ctx: PostBattleContextClass) -> Array[Dictionary]
 	if bool(ctx.battle_result.get("is_invasion", false)):
 		return [] as Array[Dictionary]
 
+	# 5. SCAVENGERS. "Roll twice on the Battlefield Finds Table" (Core Rules p.97
+	#    Salvage Team, p.100 Black Ops Team). Zero consumers anywhere: the trait
+	#    was printed in the briefing and paid a single find like everyone else.
+	#    Taken as the LARGER of the two sources rather than multiplied — the book
+	#    gives no rule for stacking a Story Track double-roll with this one, and
+	#    inventing four rolls would be our arithmetic, not the book's.
 	var roll_count: int = maxi(
-		1, int(ctx.battle_result.get("story_battlefield_finds_rolls", 1)))
+		int(ctx.battle_result.get("story_battlefield_finds_rolls", 1)),
+		EnemyTraitRules.battlefield_finds_rolls(
+			str(ctx.battle_result.get("enemy_type", ""))))
+	roll_count = maxi(1, roll_count)
 
 	var battlefield_finds: Array[Dictionary] = []
 	for _i in range(roll_count):

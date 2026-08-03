@@ -607,13 +607,17 @@ func generate_enemies_as_dicts(
 	# 7 "any modifier from the enemy type encountered" and NO other.
 	var patron_enemy_mod: int = PatronJobEffectsClass.enemy_count_modifier(mission_data)
 
-	# "Grudge: If encountered as Rivals, they bring one additional figure"
-	# (Core Rules p.99, Renegade Soldiers). Gated on the battle actually being a
-	# Rival fight — a Renegade Soldier opportunity job is an ordinary encounter.
-	# The trait was printed in the pre-battle briefing and added nobody.
+	# Enemy traits that swell a force fought AS RIVALS:
+	#   "Grudge: If encountered as Rivals, they bring one additional figure"
+	#   (p.99, Renegade Soldiers)
+	#   "Cop killer: If you ever fight Enforcers as Rivals, add +2 to their
+	#   numbers" (p.96) — the book's own punishment for making an enemy of the law
+	# Both were printed in the pre-battle briefing and added nobody. Gated on the
+	# battle actually being a Rival fight: an Enforcer opportunity job is an
+	# ordinary encounter.
 	var is_rival_battle: bool = str(mission_data.get("mission_source", "")) == "rival" \
 		or str(mission_data.get("rival_id", "")) != ""
-	var grudge_mod: int = EnemyTraitRulesClass.rival_extra_figures(
+	var grudge_mod: int = EnemyTraitRulesClass.rival_number_bonus(
 		str(template.get("name", "")), is_rival_battle)
 
 	var enemy_count: int = maxi(
@@ -772,7 +776,22 @@ func generate_enemies_as_dicts(
 			# whole "Category rules" block was dead UI.
 			"category_name": cat_info.get("name", ""),
 			"category_rules": cat_info.get("rules", ""),
-			"seize_initiative_modifier": int(cat_info.get("seize", 0)),
+			# The category modifier (p.112 Hired Muscle -1) PLUS this enemy's own
+			# named trait: "Careless: You are +1 to Seize the Initiative",
+			# "Alert: You are -1" (pp.95-101). The per-enemy half had no consumer,
+			# so an Alert opponent was as easy to get the drop on as a Careless one.
+			#
+			# The parenthetical totals some entries print ("for a final modifier of
+			# 0", "for a total of -2") are the category modifier ALREADY folded in,
+			# which is why the trait contributes only its own value here — reading
+			# the parenthetical as the trait's value would cancel the category rule.
+			"seize_initiative_modifier": int(cat_info.get("seize", 0))
+				+ EnemyTraitRulesClass.seize_modifier(enemy_name),
+			# "Prediction: You cannot Seize the Initiative" (p.100) and
+			# "Unpredictable: Seize the Initiative roll is always unmodified"
+			# (p.100) are absolutes that no modifier can express.
+			"seize_blocked": EnemyTraitRulesClass.blocks_seize(enemy_name),
+			"seize_unmodified": EnemyTraitRulesClass.seize_is_unmodified(enemy_name),
 		})
 
 	# "VIP — A random enemy will have +1 Toughness and a final Combat Skill of +2

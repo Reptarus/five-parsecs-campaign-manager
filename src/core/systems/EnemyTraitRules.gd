@@ -114,3 +114,59 @@ const INTRIGUE_TARGET := 9
 static func intrigue_succeeds(roll_2d6: int, killed_lieutenant_or_unique: bool) -> bool:
 	var total: int = roll_2d6 + (1 if killed_lieutenant_or_unique else 0)
 	return total >= INTRIGUE_TARGET
+
+
+## "Cop killer: If you ever fight Enforcers as Rivals, add +2 to their numbers"
+## (Core Rules p.96). Same shape as Grudge but twice the size, and it is the
+## book's own punishment for making an enemy of the law.
+static func rival_number_bonus(enemy_name: String, is_rival_battle: bool) -> int:
+	if not is_rival_battle:
+		return 0
+	var bonus: int = 0
+	if enemy_has_trait(enemy_name, "Grudge"):
+		bonus += 1
+	if enemy_has_trait(enemy_name, "Cop killer"):
+		bonus += 2
+	return bonus
+
+
+## "Scavengers: Roll twice on the Battlefield Finds Table" (pp.97, 100). Returns
+## the number of rolls this enemy grants, so a caller can take the larger of this
+## and any other source rather than stacking them into a fourth reading.
+static func battlefield_finds_rolls(enemy_name: String) -> int:
+	return 2 if enemy_has_trait(enemy_name, "Scavengers") else 1
+
+
+## "Tough fight: A random survivor gains +1 XP" (pp.97, 102).
+static func bonus_survivor_xp(enemy_name: String) -> int:
+	return 1 if enemy_has_trait(enemy_name, "Tough fight") else 0
+
+
+## The enemy's own Seize the Initiative modifier, from the CREW's point of view
+## (Core Rules pp.95-101). "Careless: You are +1 to Seize the Initiative";
+## "Alert: You are -1". Both are stated as modifiers to the player's roll.
+##
+## The parenthetical totals the book prints for some entries ("for a final
+## modifier of 0", "for a total of -2") are the CATEGORY modifier already folded
+## in — Hired Muscle is -1 across the board (p.112) — so this returns the trait's
+## own contribution only, and the caller adds the category modifier as before.
+## Double-counting the parenthetical would silently cancel the category rule.
+static func seize_modifier(enemy_name: String) -> int:
+	var mod: int = 0
+	if enemy_has_trait(enemy_name, "Careless"):
+		mod += 1
+	if enemy_has_trait(enemy_name, "Alert"):
+		mod -= 1
+	return mod
+
+
+## "Prediction: You cannot Seize the Initiative" (p.100, Precursor Exiles) — the
+## roll is not made at all, which no modifier can overcome.
+static func blocks_seize(enemy_name: String) -> bool:
+	return enemy_has_trait(enemy_name, "Prediction")
+
+
+## "Unpredictable: Seize the Initiative roll is always unmodified" (p.100, Swift
+## War Swarm). Every modifier is discarded, favourable ones included.
+static func seize_is_unmodified(enemy_name: String) -> bool:
+	return enemy_has_trait(enemy_name, "Unpredictable")
