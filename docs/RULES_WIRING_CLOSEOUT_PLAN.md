@@ -44,91 +44,107 @@ sprints describe a codebase that no longer exists.
 
 ---
 
-## 1. The Compendium readiness map
+## 1. The Compendium readiness map — verified by hand, solo
 
-Measured, not estimated — consumer counts are `ContentFlag.X` references in
-`src/` excluding `DLCManager` itself and the five store/settings UI files that
-merely list flags:
+> **Two retractions.** (a) The Aug 2 audit used eight parallel auditors and gave a
+> 236-page book to one of them; it missed fifteen Compendium chapters outright.
+> (b) My own follow-up measurement — "19 of 33 ContentFlags gate nothing" — was
+> **also wrong**, and wrong the same way: I grepped `ContentFlag.X` and never saw
+> the string form. `compendium_equipment.gd` gates through
+> `dlc_mgr.ContentFlag.get("NEW_TRAINING")`, so four flags I called dead are
+> gated fine. Counting one spelling of a thing is not measuring it.
+>
+> **Counting flag references is not a readiness signal and has been dropped.**
+> A reference proves a gate exists, not that the rule reaches play — which is
+> precisely what the 143-row audit was for. The only check that works is the
+> per-chapter trace in §1b, done by hand.
 
-```powershell
-# regenerate: counts real gameplay consumers per flag
-grep -rn "ContentFlag\.<FLAG>" src/ --include=*.gd | grep -v DLCManager.gd |
-  grep -vE "DLCContentCatalog|ExpansionFeatureSection|DLCFeatureToggleRow|StoreScreen|DLCPackCard"
-```
+### 1a. What the reference count does establish
 
-**19 of 33 content flags gate no gameplay code at all.**
+Counting BOTH `ContentFlag.X` and `"X"` string forms, excluding the store and
+settings UI that merely lists flags: **exactly two flags have no reference
+anywhere in `src/`.**
 
-| Pack (= a purchasable unlock) | Flags | Gate nothing | Core Rules audit rows still open |
-|---|---|---|---|
-| **Trailblazer's Toolkit** | 7 | **4** | ~0 |
-| **Freelancer's Handbook** | 17 | **12** | ~7 |
-| **Fixer's Guidebook** | 9 | **3** | ~25 |
-
-Per-flag detail:
-
-| Pack | Live (consumers) | Gates nothing |
+| Flag | Pack | Evidence |
 |---|---|---|
-| Trailblazer's | Krag 6, Skulkers 5, Psionics 13 | **New Training, Bot Upgrades, New Ship Parts, Psionic Equipment** — the whole "NEW KIT" chapter (Compendium pp.25-27) |
-| Freelancer's | No-minis 7, Progressive Difficulty 3, Escalating 3, Grid 1, Casualty tables 1 | **Difficulty Toggles, PvP, Co-op, AI Variations, Deployment Variables, Elite Enemies, Expanded Missions, Expanded Quests, Expanded Connections, Dramatic Combat, Terrain Generation, Detailed Injuries** |
-| Fixer's | Factions 9, Salvage 6, Stealth 5, Street Fights 5, Intro Campaign 2, Prison Planet 1 | **Fringe World Strife, Expanded Loans, Name Generation** |
+| `DEPLOYMENT_VARIABLES` | Freelancer's | `data/compendium/deployment_variables.json` has **zero loaders** |
+| `ELITE_ENEMIES` | Freelancer's | `data/elite_enemy_types.json` loads via DataManager and nothing consults it |
 
-**"Gates nothing" has three meanings and they need different fixes.** Do not
-conflate them:
+That is the whole reliable output of that method. Everything else needs tracing.
 
-1. **Missing** — no implementation (New Ship Parts, Psionic Equipment: no data
-   file, no code).
-2. **Transcribed but unwired** — the tables exist and nothing applies them.
-   Confirmed for Expanded Missions (`src/data/compendium_missions_expanded.gd`,
-   `data/RulesReference/ExpandedMissions.json`) and the Difficulty Toggles
-   (`src/data/compendium_difficulty_toggles.gd`,
-   `data/compendium/difficulty_toggles.json`). Same defect family as the whole
-   Core Rules audit: data correct, no consumer.
-3. **Shipping ungated** — implemented and reachable without owning the pack.
-   That is **revenue leakage**, not a gap, and it is the one category that gets
-   *worse* the more we build.
+### 1b. The trace that works — producer → key → consumer
 
-Classifying all 19 is the first task in §3 Phase 0.
+Follow the data, not the flag. Worked example, and the biggest find of this pass:
+
+**Stealth / Street Fight / Salvage is COMPLETE and severed at one point.**
+
+| Layer | State |
+|---|---|
+| Data | `data/compendium/{stealth_missions,street_fights,salvage_jobs}.json` ✓ |
+| Loaders | `src/data/compendium_{stealth_missions,street_fights,salvage_jobs}.gd` ✓ |
+| Generators | `StealthMissionGenerator` / `StreetFightGenerator` / `SalvageJobGenerator` — each stamps `"type": "stealth" / "street_fight" / "salvage"` ✓ |
+| Resolvers | `StealthResolver`, `SalvageResolver`, routed via `BattleResolverRouter` ✓ |
+| Panels | `StealthMissionPanel`, `StreetFightPanel`, `SalvageMissionPanel` — instantiated and signal-wired in `TacticalBattleUI._setup_*_panel` ✓ |
+| Dispatch | `TacticalBattleUI:4422-4428` branches on `mission_dict.get("type")` against exactly those three strings ✓ |
+| **Producer call site** | **`src/core/campaign/phases/WorldPhase.gd:927/932/938` — the ONLY caller of all three generators, in a file with zero instantiations** ✗ |
+
+`WorldPhaseController.gd:35` preloads `WorldPhase.gd` and never instantiates it.
+This is the same file CLAUDE.md already records as holding the only callers of
+`record_invaded_planet()`, `repair_hull()` and the fuel consumer — **"dead files
+hold live rules hostage", third occurrence, same file.**
+
+So audit row **L61** ("Mission Selection … and therefore the whole Stealth,
+Street Fight and Salvage chapters", sized *medium*) is **not a chapter of work.
+It is one producer wire in the live World Phase**, and landing it makes L69,
+L70, L71 and L141 testable at once — five rows behind one call site.
+
+**Trailblazer's "NEW KIT" is also further along than I said.**
+`data/compendium/compendium_equipment.json` already carries all four sections —
+`advanced_training` (5), `compendium_bot_upgrades` (6), `new_ship_parts` (3),
+`psionic_equipment` (3) — DLC-gated in `compendium_equipment.gd` and consumed by
+`AdvancementPhasePanel` (with the Compendium p.28 one-upgrade-per-turn cap),
+`TradePhasePanel` and `PreBattleChecklist`. It needs verification per item, not
+implementation.
 
 ---
 
-## 2. The Compendium backlog is unmeasured, and the 40 audit rows undercount it
+## 2. What is actually unknown
 
-The Aug 2 audit used **eight parallel auditors, one per subsystem**. Exactly one
-of them — `factions-world-compendium` — covered the Compendium, which is a
-**236-page book**. That auditor found 20 open rows, essentially all in the
-faction and Fringe World Strife chapters.
+Chapters with no audit row and no verified trace yet. These need the §1b
+treatment one at a time, by hand:
 
-Chapters with **no audit rows at all**, cross-checked against the Compendium's
-own contents page: New Training, New Bot Upgrades, New Ship Parts, Psionic
-Equipment, PvP, Co-op, AI Variations, Escalating Battles, Dramatic Combat,
-Detailed Injuries, Casualty Tables, Expanded Quests, Expanded Connections,
-Expanded Loans, Name Generation.
+PvP · Co-op · AI Variations · Escalating Battles (`escalating_battles.json` has
+**zero loaders** despite `EscalatingBattlesManager.gd` existing) · Dramatic
+Combat · Detailed Injuries · Casualty Tables · Expanded Quests · Expanded
+Connections · Expanded Loans · Name Generation (`NameGenerationTables.json` is
+read by `Character.gd` and `CharacterGeneration.gd` — check whether it is gated
+or shipping free) · Fringe World Strife · Terrain Generation (the battlefield
+generator is live and always on — check whether that is a leak).
 
-**So "make the Compendium work" is not 40 rows, and I do not know what it is.**
-Guessing a number here would be exactly the plan-built-on-assumption this project
-forbids. The Core Rules number (143 findings) came from actually running the
-audit; the Compendium deserves the same instrument before it gets a schedule.
+**I am not going to put a number on this.** Every number produced so far — the
+auditors' 40, my 19 — has been wrong. The chapters get traced one at a time and
+the count is whatever it turns out to be.
 
 ---
 
 ## 3. Phases
 
-### Phase 0 — Compendium audit + flag triage · **DO THIS FIRST** · 1-2 sessions
+### Phase 0 — Trace the Compendium by hand, chapter by chapter · solo
 
-Two deliverables, both cheap relative to what they de-risk:
+No fan-out. The method is §1b: find the data file, find the loader, find the
+producer, find the consumer, and name the break. It took about ten minutes per
+chapter for Stealth/Salvage/Street and produced a one-wire fix where the audit
+had claimed a medium chapter of work.
 
-**0a. Classify the 19 dead flags** into missing / transcribed-but-unwired /
-shipping-ungated. Mechanical: for each flag, grep for the feature (not the flag),
-check for a data file, check whether the code path is reachable without the flag.
-Output is a table. **The "shipping ungated" set is a paid-content leak and should
-be gated in the same session** — it is the only category that is pure loss today.
+Order: start with the chapters that already have data files and loaders, because
+those are the ones most likely to be one wire from working —
+`escalating_battles.json` and `deployment_variables.json` (both zero loaders),
+then Terrain Generation and Name Generation (check for leakage), then the
+chapters with no data file at all.
 
-**0b. Run the audit method on the Compendium, per pack.** Same rules as Aug 2:
-quote the book, cite `file:line`, state the player-visible consequence. Scope it
-per pack so the output maps onto what is actually sold. Expect the row count to
-land somewhere well above 40; the point of Phase 0 is that we stop guessing.
-
-Only after 0b can Phases 3-5 below be scheduled honestly.
+**First actionable item is already found: wire the three mission generators into
+the live World Phase.** That is Phase 2f below and it should probably go first
+of everything.
 
 ---
 
@@ -188,7 +204,7 @@ product, but it is a 15-minute display fix, so take it here.)
 
 ---
 
-### Phase 3 — Fixer's Guidebook · largest pack backlog · sized by Phase 0
+### Phase 3 — Fixer's Guidebook · after the one-wire fix (§1b) lands
 
 25 known open rows plus whatever 0b adds. **Order is forced by dependency:**
 
@@ -205,7 +221,7 @@ product, but it is a 15-minute display fix, so take it here.)
 
 ---
 
-### Phase 4 — Freelancer's Handbook · worst flag ratio (12 of 17 dead) · sized by Phase 0
+### Phase 4 — Freelancer's Handbook · sized by the Phase 0 traces
 
 Known rows: **L30** (the 12 difficulty toggles — transcribed, unwired),
 **L62** (Elite enemies), **L140/L165** (Expanded Missions), **L155** (Terrain
@@ -221,7 +237,7 @@ the flags rather than sell them. That is a decision, not a task.
 
 ---
 
-### Phase 5 — Trailblazer's Toolkit · smallest backlog · likely 1 session
+### Phase 5 — Trailblazer's Toolkit · verify NEW KIT per item, do not rebuild it
 
 Krag, Skulkers and Psionics are live and were verified in the creation-wizard
 audit. The gap is the **entire "NEW KIT" chapter (pp.25-27)**: New Training, New
@@ -293,17 +309,19 @@ clears.
 
 | # | Phase | Effort | Why here |
 |---|---|---|---|
-| 1 | **0a** flag triage + gate the leaks | ½ session | Stops paid content shipping free; mechanical |
-| 2 | **0b** Compendium audit per pack | 1 session | Everything below is unschedulable without it |
+| 1 | **Wire the 3 mission generators** into the live World Phase | ~1 session | Verified one-wire fix; unblocks 5 audit rows and a third of Fixer's |
+| 2 | **0** trace the Compendium chapter by chapter, solo | ongoing | Everything below is unschedulable without it; ~10 min/chapter |
 | 3 | **1** ledger hygiene | ½ session | −5 to −8 rows, no code |
-| 4 | **5** Trailblazer's "NEW KIT" | 1 session | First unlock that can be called *done* |
+| 4 | **5** verify Trailblazer's NEW KIT per item | ½ session | Already built and gated; confirm each of the 17 items applies |
 | 5 | **2a-2e** Core Rules loop | ~3 sessions | The free floor under the paid content |
-| 6 | **3** Fixer's Guidebook | sized by 0b | Largest backlog; faction generation gates the rest |
-| 7 | **4** Freelancer's Handbook | sized by 0b | Worst flag ratio; needs the PvP/Co-op call first |
-| 8 | **6** Red & Black Zone | 1-2 sessions | Core Rules, no unlock, endgame |
-| 9 | **4 (blocked half)** post-battle events | 1 session | When the Story Track tree clears |
+| 6 | **3 / 4** Fixer's, Freelancer's | sized by the traces | No estimate until traced |
+| 7 | **6** Red & Black Zone | 1-2 sessions | Core Rules, no unlock, endgame |
+| 8 | **blocked half** post-battle events | 1 session | When the Story Track tree clears |
 
-**Definition of done, revised:** not "73 → 0". It is **every flag a player can
-pay for does something, and every flag that does nothing is either finished or
-removed.** A dead toggle inside a purchased unlock is the single worst thing this
-app can show a tester or a publisher.
+**Definition of done:** every rule a player paid for reaches play, traced
+producer → key → consumer, not inferred from a grep count.
+
+**Method note, permanent:** no auditor fan-out on this codebase. Two passes now
+have produced confident wrong numbers — the auditors missed fifteen chapters of
+the Compendium, and a flag-reference count missed the string-keyed gate form.
+Trace by hand and cite `file:line`.
