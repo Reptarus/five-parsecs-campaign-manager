@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 77 open / 57 fixed / 7 partial-or-blocked.**
+**Status Aug 3: 74 open / 60 fixed / 7 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -75,11 +75,11 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 13 — Character Event: Precursor "roll twice and pick either score" (p.126) | small | Any crew with a Precursor: whenever the randomly-selected character for step 13 is that Precursor, the Character Event is silently dropped — no XP, no story point, no rumor, no status eff... | OPEN |
 | post-battle | Step 8 — Injury Table roll 16, Miraculous escape (p.122) | small | Rolling exactly 16 on the Injury Table — the single best non-XP outcome in the game — does literally nothing: the character gains no Luck point and keeps every item they were carrying. Th... | FIXED ca68e01b6 |
 | post-battle | Step 8 — Injury Table roll 96-100, School of hard knocks: "Earn 1 XP" (p.122) | one-line | A crew member who rolls 96-100 after being downed gets nothing. The book's consolation prize for a bad battle is silently withheld every time. | FIXED ca68e01b6 |
-| post-battle | Step 8 — Injury Table equipment consequences (rolls 1-5 and 17-30; Bot 1-5 and 16-30) (p.122) | medium | Equipment never degrades from injuries. A Gruesome Fate kills the character but leaves their gear pristine in the stash; a 17-30 Equipment Loss result damages nothing, so the Repair crew ... | OPEN |
+| post-battle | Step 8 — Injury Table equipment consequences (rolls 1-5 and 17-30; Bot 1-5 and 16-30) (p.122) | medium | Equipment never degrades from injuries. A Gruesome Fate kills the character but leaves their gear pristine in the stash; a 17-30 Equipment Loss result damages nothing, so the Repair crew ... | FIXED bffe2c8d1 — the equipment flags were computed and stored on every injury and read by NOTHING. 20 of 100 on each table. Gruesome fate (damaged, repairable) and Miraculous escape (permanently lost) shared one flag and are different outcomes; split. Damage writes the {type: item_damaged, damaged_item} marker Repair Your Kit reads, so p.78 finally has something to repair. |
 | post-battle | Step 5 — Battlefield Finds table entries 1-15, 16-25, 36-45, 46-60, 61-75 (p.121) | large | On the backend path five of the eight table entries (60% of the D100 range) award nothing — no weapon from the slain enemy, no consumable dosage, no starship part credit, no 1D3 debris cr... | FIXED (this commit) |
 | post-battle | Step 9 — XP: "First character to inflict a casualty +1" and "Killed Unique Individual +1" (p.123) | medium | Playing the battle out in the app costs you XP relative to the book: the crew member who drew first blood and the one who killed the enemy Unique Individual each receive 2 or 3 XP instead... | OPEN |
 | post-battle | Step 2 — Patron Status: One-time Contract exception, and Patrons lapse on travel unless Persistent (p.119) | medium | Patrons accumulate forever. Every completed job — including one-shot contracts that should evaporate — adds a permanent contact, and flying to a new world does not shed the old world's Pa... | FIXED fab705684+592a67212 |
-| post-battle | Step 12 — Campaign Event 1-3 (Friendly Doc) and 45-48 (Equipment Malfunction) (pp.126-127) | small | The Friendly Doc event never shortens anyone's Sick Bay stay; the crew member is released on exactly the same turn as before. The Equipment Malfunction event never damages anything in the... | OPEN |
+| post-battle | Step 12 — Campaign Event 1-3 (Friendly Doc) and 45-48 (Equipment Malfunction) (pp.126-127) | small | The Friendly Doc event never shortens anyone's Sick Bay stay; the crew member is released on exactly the same turn as before. The Equipment Malfunction event never damages anything in the... | FIXED d945a3ecb + b14974c37 — Equipment Malfunction targets the STASH per p.127 (`damaged: true`, a flag Assign Equipment and Purchase Items already read with no producer) and Repair Your Kit now searches the stash as well as carried gear, since p.78 draws no line. Friendly Doc wrote `injury_recovery_turns`, which the countdown ignores — it decrements injuries[] and clears the bay when that is empty — so the stay never shortened. |
 | post-battle | Step 13 — Character Events 11-12 (Time to Move On), 20-23 (Scrap with Crewmate), 63-66 (Hurt on Ship), 72-75 (Gift) (pp.128-130) | medium | Four Character Events (roughly 15 points of the D100 range) are pure flavour text. Nobody leaves the crew, nobody brawls, nobody goes to Sick Bay from ship maintenance, and the gift never... | OPEN |
 | post-battle | Step 10 course benefits — Medical school and Bot technician injury rerolls (p.125) | large | Paying 20 XP for Medical school buys nothing — casualties still roll once on the Injury Table. Paying 10 XP for Bot technician buys nothing — Bots still roll once, and Bot upgrades cost f... | OPEN |
 | post-battle | Step 13 — "If an event is completely inapplicable, simply add +1 XP to the character" (p.126) | one-line | When a Character Event cannot apply — a K'Erin drawing "All this endless violence is depressing you", an Engineer drawing "They don't make them like they used to", or any event whose titl... | FIXED (this commit) |
@@ -165,7 +165,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | missions-elites-zones | Expanded Missions — Objective overview (two-objective results) | medium | 40% of Expanded Missions rolls (61-100) tell the player "Two objectives, BOTH required" or "Two objectives, complete ONE" and then list a single objective with a single time constraint. T... | OPEN |
 | missions-elites-zones | Black Job — 'Your Day in Hell' mission type is rolled once and recorded | small | The Black Zone briefing can show 'Destroy strong point' one moment and 'Penetrate the lines' the next if the panel refreshes, and the campaign journal never records which Black Job was at... | OPEN |
 | missions-elites-zones | Expanded Missions — briefing headings for the rolled results | one-line | The job-details panel renders "OVERVIEW: ", "SPECIFIC OBJECTIVE: ", "TIME CONSTRAINT: ", "PATRON CONDITION: " and "EXTRACTION: " with nothing after the colon, immediately followed by an i... | OPEN |
-| post-battle | Step 8 — Injury Table roll 31-45, Crippling wound: surgery OR permanent stat loss (p.122) | medium | A Crippling Wound costs the player nothing but time — no 1D6-credit surgery bill and no -1 to Speed or Toughness. The worst survivable injury in the game is mechanically identical to a Se... | OPEN |
+| post-battle | Step 8 — Injury Table roll 31-45, Crippling wound: surgery OR permanent stat loss (p.122) | medium | A Crippling Wound costs the player nothing but time — no 1D6-credit surgery bill and no -1 to Speed or Toughness. The worst survivable injury in the game is mechanically identical to a Se... | FIXED bffe2c8d1 — data/injury_results.json has carried surgery_cost_roll AND the stat_reduction block since it was written and neither had an ACCESSOR. The -1 to the higher of Speed/Toughness now applies and the 1D6 surgery is a pay-to-undo offer in the wizard: the backend resolves injuries before any UI exists to ask, so a choice that waits for a prompt is a choice that never happens. |
 | post-battle | Step 12 — Campaign Events 79-81 (Renegotiate Debts), 98-100 (Great Story), 57-59 (New Captain), 82-84 (Rumors of War) (pp.127-128) | medium | Rolling 79-81 while carrying ship debt earns 2 credits instead of wiping 1D6+1 off the loan. Rolling 98-100 after a casualty gives a story point instead of the +1 Luck that character earn... | OPEN |
 | post-battle | Step 13 — Character Events 52-55 (Scars), 24-26 (Good Food), 42-45 (Heart to Heart), 67-68 (True Love) (pp.129) | small | Scars Tell the Story is +2 free XP for an uninjured character who should get nothing. Good Food is +1 free XP for a character in Sick Bay who should instead get a turn back. Heart to Hear... | OPEN |
 | post-battle | Step 10 — Advanced Training payment: "The cost can be paid using unspent XP, credits or any combination thereof" (p.124) | medium | The book's own worked example is impossible in the app: a character with 8 XP and 12 credits cannot buy Pilot Training (cost 20). Training is XP-only, so it is unaffordable until very lat... | FIXED c942fec91 |
@@ -245,7 +245,7 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**77 open / 64 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
+**74 open / 67 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
 
 ### Domain standings
 
@@ -352,6 +352,33 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
 8. **patrons-rivals-quests — the two BHC rows left over** (Private Transport,
    Busy) — see the detail under item 6.
 
+~~9. post-battle — the Injury Table's consequences beyond Sick Bay turns.~~
+   **DONE `bffe2c8d1` + `d945a3ecb` + `b14974c37`.** 35% of every roll on the
+   table produced nothing but time. Equipment: the flags were computed, stored
+   on the injury dict and read by NOTHING, so p.78 Repair Your Kit had nothing
+   to repair in any campaign. Crippling wound: the JSON had both halves of
+   "1D6 credits of surgery OR -1 permanent" and neither had an accessor.
+
+   **The knock-on chain is the lesson.** Fixing the producer surfaced two more
+   layers that were also only half-built, and each was invisible until the one
+   above it worked:
+   - Campaign Event 45-48 damages the **STASH** (p.127), not carried gear —
+     which needs `damaged: true` on the item dict, a flag Assign Equipment
+     ("[DAMAGED]" suffix) and Purchase Items (sell-list exclusion) have always
+     read and nothing had ever written. So p.122's "cannot be used until
+     Repaired" was ALREADY enforced for stash items, with nothing to enforce on.
+   - …which meant Repair Your Kit could not reach them, because it scanned only
+     the acting character's status_effects. p.78 draws no such line.
+   - Sick Bay reductions (Friendly Doc p.126, Health Insurance p.84) wrote
+     `injury_recovery_turns`, a legacy mirror the turn rollover ignores.
+
+   **Next in this area:** Step 8's other unimplemented row is nothing — the
+   table is now complete. The nearest neighbours still open are Step 9's
+   "Ability Increase Table is spent, not rolled" (the wizard says "Roll for
+   advancement" and prints results that change nothing) and Step 10's Medical
+   school / Bot technician injury rerolls, which now have a real Injury Table
+   to reroll against.
+
 Deliberately deprioritised for a tablet test: **factions** (DLC-gated, invisible
 without the expansion) and **Elite enemies** (endgame).
 
@@ -404,6 +431,18 @@ without the expansion) and **Elite enemies** (endgame).
   zero-caller because their consumer had been removed weeks earlier. Before
   deleting a zero-caller provider, ask what used to call it — but if the content
   also contradicts the book, the question is moot.
+- **Fixing a producer is how you find the next missing producer.** Wiring the
+  p.122 equipment rows exposed, in order: the wrong container (p.127 says Stash,
+  not carried gear), a stash-damage flag with TWO readers and no writer, a repair
+  task that could not see the container the book puts items in, and a Sick Bay
+  reducer writing a field the countdown ignores. None of those were visible while
+  the first producer was dead, because a pipeline with a broken source looks
+  identical to one with no consumers. Expect a chain, and re-verify the CONTAINER
+  the book names before assuming the target.
+- **Your own test catching your own wrong target is the system working.** The
+  first Equipment Malfunction test asserted crew gear and failed once the book
+  was read properly. Write the assertion against the book's words, not against
+  the implementation you just wrote, and it will tell you when you are wrong.
 - **A fabricated CITATION is worse than an uncited invention.** `// Ferals ignore
   suppression (Five Parsecs p.20)` attached a real page number to a rule that
   page does not contain, and survived review by looking sourced.
