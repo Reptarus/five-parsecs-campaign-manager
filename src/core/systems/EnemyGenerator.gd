@@ -11,6 +11,7 @@ const ProgressiveDifficultyRef = preload("res://src/core/systems/ProgressiveDiff
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
 const EnemyTraitRulesClass = preload("res://src/core/systems/EnemyTraitRules.gd")
+const CompendiumEliteEnemiesRef = preload("res://src/data/compendium_elite_enemies.gd")
 
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
@@ -1122,6 +1123,16 @@ func _roll_encounter_category(mission_source: String) -> String:
 func _roll_enemy_in_category(category_id: String) -> Dictionary:
 	## Roll D100 within a category to pick specific enemy type.
 	## Uses per-enemy roll_range fields for book-accurate selection.
+	##
+	## Compendium p.48: the Elite-level tables "TAKE THE PLACE OF the regular
+	## encounter tables in the core rulebook", so when that option is on the
+	## substitution happens here, at the one point every category roll passes
+	## through. Returns {} when the option is off or the category has no elite
+	## table, which falls straight through to the core tables below.
+	var elite: Dictionary = CompendiumEliteEnemiesRef.roll_enemy_in_category(category_id)
+	if not elite.is_empty():
+		return elite
+
 	for category_data in enemy_data.get("enemy_categories", []):
 		if category_data.get("id", "") == category_id:
 			var enemies: Array = category_data.get("enemies", [])

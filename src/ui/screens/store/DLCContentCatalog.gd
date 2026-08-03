@@ -36,10 +36,11 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# from TacticalBattleUI._on_initiative_calculated, which is the exact moment
 	# p.44 keys it to.
 	#
-	# data/elite_enemy_types.json is never even LOADED: DataManager declares the
-	# path and the dict, clears it twice, and its only getter is commented out.
-	# Enemy forces are always built from the Core Rules p.93 thresholds.
-	"ELITE_ENEMIES",
+	# ELITE_ENEMIES was removed from this list on Aug 3 2026. The loader is
+	# src/data/compendium_elite_enemies.gd and the p.48 substitution ("these
+	# tables take the place of the regular encounter tables") happens in
+	# EnemyGenerator._roll_enemy_in_category. The data file was two of five
+	# tables, both truncated, and was completed from the PDF first.
 	# compendium_missions_expanded.get_pvp_setup / get_pvp_rules /
 	# roll_pvp_battle_reason / roll_pvp_third_party — zero callers repo-wide.
 	"PVP_BATTLES",
