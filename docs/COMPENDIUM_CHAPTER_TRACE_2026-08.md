@@ -13,9 +13,9 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 20 |
+| **LIVE** — a live path reaches the player | 22 |
 | **PARTIAL** — some of the chapter lands, a named part does not | 0 |
-| **DEAD** — data + gated API exist, nothing reaches the player | 10 |
+| **DEAD** — data + gated API exist, nothing reaches the player | 8 |
 
 Casualty Tables, Detailed Injuries, Dramatic Combat and Loans all moved to LIVE
 on Aug 3. Each fix is described in its section below — and every one of them was
@@ -80,9 +80,9 @@ getter.
 | **Player vs Player pp.35-38** | **DEAD** | `get_pvp_setup` / `get_pvp_rules` / `roll_pvp_battle_reason` / `roll_pvp_third_party` (`compendium_missions_expanded.gd:319/326/333/346`) — **zero callers repo-wide, tests included.** No PvP surface exists |
 | **Expanded Co-op pp.39-41** | **DEAD** | `get_coop_setup` / `get_coop_rules` (`:359/:366`) — zero callers |
 | **AI Variations p.42** | **DEAD** | `roll_ai_behavior` / `get_ai_behavior` (`compendium_difficulty_toggles.gd:150/161`) and the `AI_VARIATION_TABLES` getter (`:91`) — zero callers |
-| **Enemy Deployment Variables p.44** | **DEAD** | `data/compendium/deployment_variables.json` — zero loaders anywhere |
+| Enemy Deployment Variables pp.44-45 | **LIVE (fixed Aug 3)** | the missing loader is `src/data/compendium_deployment_variables.gd`; the roll fires from `TacticalBattleUI._on_initiative_calculated`, the exact moment p.44 keys it to |
 | Escalating Battles p.46 | LIVE | `EscalatingBattlesManager` → `TacticalBattleUI:6091`, `BattleRoundHUD` |
-| **Elite-level Enemies pp.48-65** | **DEAD** | `data/elite_enemy_types.json` is never even **loaded**: `DataManager.gd:37` declares the path, `:60/:111/:255` declare and clear the dict, and the only getter is commented out at `:745-747` |
+| Elite-level Enemies pp.48-65 | **LIVE (fixed Aug 3)** | was never loaded AND only 40% present. Data completed from the PDF (82 profiles, five tables, each spanning 1-100); `src/data/compendium_elite_enemies.gd` loads it and `EnemyGenerator._roll_enemy_in_category` performs the p.48 substitution. See "the incomplete table is worse than the dead one" below |
 | No-minis Combat pp.66-73 | LIVE | `NoMinisResolver`, `BattleResolverRouter:38`, `NoMinisCombatPanel`, `TacticalBattleUI:6741` |
 | Expanded Missions p.74 | LIVE | five roll functions consumed by `JobOfferComponent.gd:1649-1669` |
 | **Expanded Quest Progression p.78** | **DEAD** | `roll_quest_progression` / `get_quest_conclusion` (`:258/:271`) — zero callers |
@@ -238,6 +238,42 @@ the chapter has its consumer. Pinned by `tests/unit/test_battle_weapon_profiles.
 (10 cases).
 
 ---
+
+## The incomplete table is worse than the dead one (Elite Enemies, Aug 3)
+
+`elite_enemy_types.json` was never loaded — but it was also only ~40% of the
+chapter, and that second fact is the one that mattered. It held **three** of the
+book's five tables, and two of those stopped halfway: Elite Hired Muscle ended at
+roll 50, Elite Unique Individuals at 41, with Elite Interested Parties and Elite
+Roving Threats absent entirely.
+
+Wiring it in that state would have produced a generator that returned nothing for
+most rolls — a silent default that reads as "implemented" in every inventory.
+That is the same defect family the rest of this document is about, manufactured
+fresh. **So the data was completed from the PDF before anything was wired.**
+
+Two checks back the extraction, and both are asserted in the test suite rather
+than only at extraction time, because a later hand-edit reopens a hole just as
+easily:
+
+1. **Coverage** — every table must span D100 1-100 with no gap and no overlap. A
+   dropped row shows up immediately as a gap. This is what caught the four rows
+   the first parse missed.
+2. **Row-count parity** — p.48 says the elite tables "contain the same types of
+   enemies" as the core ones, so each elite table must have exactly as many rows
+   as its counterpart in `enemy_types.json`. All four match (15/16/16/13). This
+   is independent of the extraction itself, so it catches an *invented* row as
+   well as a dropped one.
+
+Extraction traps worth remembering: rows were being dropped because names carry a
+curly apostrophe (K'Erin) and the NUM/PANIC columns print an en-dash for "none"
+(War Bots `+1 –`); the Roving Threats and Unique Individuals tables share a page,
+so page ranges alone cannot split them (their row shapes can — Unique
+Individuals prints LUCK where the others print NUM/PANIC); and 11 weapon cells
+wrap onto the next line, leaving `"Hand Cannon,"` with `"Shatter Axe"` at the head
+of the description. The wrap is repaired by consuming description words only
+while they spell a weapon the game already knows, so the cell is completed *from
+data* rather than guessed at.
 
 ## Latent traps found during the trace (not player-visible yet)
 
