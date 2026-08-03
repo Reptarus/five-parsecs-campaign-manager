@@ -192,8 +192,19 @@ func _select_from_categories(preferred_categories: Array) -> String:
 	# Ultimate fallback
 	return "criminal_elements"
 
+## Is this force from the Interested Parties subtable (Core Rules p.99)? Their
+## two special rules — +1 to the Unique Individual roll, and the Quest-mission
+## reroll of 1s — are the only ones keyed on the CATEGORY rather than the
+## individual enemy, so the check lives here rather than on a per-enemy flag.
+func _is_interested_parties(category: String, template: Dictionary) -> bool:
+	if category.to_lower().replace(" ", "_") == "interested_parties":
+		return true
+	return str(template.get("category", "")).to_lower().replace(
+		" ", "_") == "interested_parties"
+
 func _calculate_enemy_count(
-	difficulty: int, crew_size: int, is_quest: bool = false
+	difficulty: int, crew_size: int, is_quest: bool = false,
+	crew_in_field: int = 0
 ) -> int:
 	## Calculate enemy count based on crew size and difficulty (Core Rules p.63)
 	##
@@ -261,10 +272,25 @@ func _calculate_enemy_count(
 
 	var pre_modifier_count: int = base_count
 
+	# p.93, immediately after the Numbers modifier: "Modify this, based on the
+	# size of your crew in the field. If you are fielding a crew of 2 or more
+	# figures below the standard size for your campaign (typically 6), subtract 1
+	# from the enemy numbers." Unimplemented. A crew that walked in two figures
+	# short — after casualties, Sick Bay, a Small Encounter sit-out, or simply
+	# choosing to leave people on the ship — still faced the full force, so the
+	# book's one concession to a depleted crew never applied. crew_in_field of 0
+	# means the caller did not report it; the clause is then skipped rather than
+	# assumed, because assuming would penalise every path that omits it.
+	var short_crew: int = 0
+	if crew_in_field > 0 and crew_size - crew_in_field >= 2:
+		short_crew = 1
+		base_count -= 1
+
 	# Step 2: Apply difficulty-based modifiers using DifficultyModifiers (Core Rules pp.64-65)
-	# Hardcore: +1 basic enemy per battle
+	# Hardcore OR INSANITY: +1 to the final number faced (p.93)
 	var modifier: int = DifficultyModifiers.get_enemy_count_modifier(difficulty)
 	base_count += modifier
+	modifier -= short_crew
 
 	# Easy: Remove 1 Basic enemy if total would be 5+ (Core Rules Easy mode)
 	var easy_reduction: int = DifficultyModifiers.get_easy_enemy_reduction(base_count, difficulty)
@@ -517,8 +543,29 @@ func generate_enemies_as_dicts(
 		template = _roll_enemy_in_category(category)
 
 	# Step 2: Roll base enemy count using campaign crew size (Core Rules p.63)
+	#
+	# This passed `danger_level` — the p.83 Patron job Danger Pay rating — into a
+	# parameter named `difficulty`, which indexes the DIFFICULTY MODE table
+	# (EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8). So the campaign
+	# difficulty never reached the enemy count at all: Hardcore never got its +1,
+	# Challenging never rerolled its 1s and 2s, Easy never dropped its enemy at
+	# 5+. Worse than inert — a job that happened to roll danger_level 1 silently
+	# applied EASY's reduction, and danger_level 4 applied CHALLENGING's rerolls,
+	# so the Patron's danger rating was scrambling the enemy count using a table
+	# it has nothing to do with. `difficulty_mode` was read 30 lines above and
+	# used for the Unique Individual roll; it simply was not passed here.
+	#
+	# p.99 Interested Parties is an ENEMY rule, not a Quest rule: "During Quest
+	# missions, when rolling for the number of opponents, reroll any die scoring
+	# 1 once" appears in that subtable's entry. It applied to every Quest battle
+	# regardless of who was on the other side.
+	var quest_mission: bool = is_quest or mission_source == "quest" \
+		or mission_source == "quest_finale"
+	var interested_parties: bool = quest_mission and _is_interested_parties(
+		category, template)
 	var base_count: int = _calculate_enemy_count(
-		danger_level, campaign_crew_size, is_quest)
+		difficulty_mode, campaign_crew_size, interested_parties,
+		int(mission_data.get("crew_in_field", 0)))
 
 	# Step 3: Add Numbers modifier from enemy type (Core Rules p.92)
 	var numbers_mod: int = _parse_numbers_modifier(

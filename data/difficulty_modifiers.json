@@ -95,7 +95,7 @@
     "INSANITY": {
       "_source": "Core Rules p.65",
       "xp_bonus": 0,
-      "enemy_count_modifier": 0,
+      "enemy_count_modifier": 1,
       "specialist_enemy_modifier": 1,
       "reroll_low_enemy_dice": false,
       "starting_story_points_modifier": -999,

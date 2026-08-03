@@ -712,6 +712,12 @@ func _initiate_battle_sequence() -> void:
 			and "progress_data" in game_state.current_campaign:
 		mission_data["difficulty_mode"] = game_state.current_campaign.progress_data.get(
 			"difficulty_mode", 0)
+	# p.93: "Modify this, based on the size of your crew in the field. If you are
+	# fielding a crew of 2 or more figures below the standard size for your
+	# campaign (typically 6), subtract 1 from the enemy numbers." The generator
+	# had no way to know how many crew actually deployed — it only ever received
+	# the campaign SETTING (4/5/6) — so the clause could not be implemented.
+	mission_data["crew_in_field"] = active_crew.size()
 	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
 		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)
