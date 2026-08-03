@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 90 open / 45 fixed / 6 partial-or-blocked.**
+**Status Aug 2 evening: 85 open / 49 fixed / 7 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -47,10 +47,10 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | battle-setup | Determine Deployment Conditions — present the rolled condition in the battle UI | small | The dedicated Deployment Conditions panel in the tactical battle screen renders blank/placeholder for every battle, and its Acknowledge/Details buttons act on nothing. The player who goes... | OPEN |
 | patrons-rivals-quests | Quest finale: "Next time you pursue a Quest mission, it will be the finale… add +1 to the number of opponents… roll the die twice, pick the better score, and add +1… Crew completed the final stage of a Quest +1 XP" (Core Rules pp.120, 123) | medium | A Quest can never end. Reaching 7+ on the p.120 progress roll writes a flag the app never reads again: the finale battle never gets its extra enemy, never pays the double-roll +1 (so a fi... | FIXED 2c44839f0 |
 | patrons-rivals-quests | Quest missions exist as a battle type — "Continue a Quest / If you have an active Quest" (Core Rules p.85 Select Your Job) | medium | After the Resolve Rumors step hands the player a Quest, nothing in the app ever lets them go on it. The Quest objective table (p.89: Move Through/Search/Defend/Acquire/Fight Off), the Que... | FIXED 2c44839f0 |
-| patrons-rivals-quests | Benefits, Hazards and Conditions subtables — all 30 entries (Core Rules pp.83-84) | large | Every Patron job plays identically. A 'Dangerous Job' hazard fields the same number of enemies as a 'Security Team' benefit; a 'Small Squad' job still lets you deploy 6; a 'Vengeful' patr... | OPEN |
-| patrons-rivals-quests | Danger Pay 10+: "+3 credits and roll twice, picking the higher die when rolling for mission pay after the battle" (Core Rules p.83) | small | A Corporation job that rolls 10+ on Danger Pay advertises "roll twice for mission pay" in the job details, then pays a single 1D6. Average mission pay on those jobs is ~3.5 instead of ~4.... | OPEN |
-| patrons-rivals-quests | "When you travel to a new planet, all Patrons become unavailable, unless they are Persistent" (Core Rules p.119 Step 2) | small | Patrons accumulate forever and follow you across the galaxy. Each one adds +1 to the p.77 Find a Patron roll (CrewTaskComponent.gd:506-508) and generates 1-3 more job offers every single ... | OPEN |
-| patrons-rivals-quests | Time Frame Table — "the number of campaign turns within which you must finish the job. If the job isn't done when the time runs out, it counts as a failure" (Core Rules p.83); "a Patron job will fail if the time to complete it has expired" (p.85) | large | 'This campaign turn' means nothing — the player can decline every job and the same Patron re-offers fresh work next turn with no penalty. The Secretive Group's +1 Time Frame bonus (its on... | OPEN |
+| patrons-rivals-quests | Benefits, Hazards and Conditions subtables — all 30 entries (Core Rules pp.83-84) | large | Every Patron job plays identically. A 'Dangerous Job' hazard fields the same number of enemies as a 'Security Team' benefit; a 'Small Squad' job still lets you deploy 6; a 'Vengeful' patr... | PARTIAL fab705684+cfbd4f91f (19 of 21 rows applied; Private Transport needs RivalEncounterCheck — another session's file — and Busy has an accessor with no caller) |
+| patrons-rivals-quests | Danger Pay 10+: "+3 credits and roll twice, picking the higher die when rolling for mission pay after the battle" (Core Rules p.83) | small | A Corporation job that rolls 10+ on Danger Pay advertises "roll twice for mission pay" in the job details, then pays a single 1D6. Average mission pay on those jobs is ~3.5 instead of ~4.... | FIXED fab705684 |
+| patrons-rivals-quests | "When you travel to a new planet, all Patrons become unavailable, unless they are Persistent" (Core Rules p.119 Step 2) | small | Patrons accumulate forever and follow you across the galaxy. Each one adds +1 to the p.77 Find a Patron roll (CrewTaskComponent.gd:506-508) and generates 1-3 more job offers every single ... | FIXED 592a67212 (the travel purge existed; nothing ever SET is_persistent, so the Benefit could spare nobody) |
+| patrons-rivals-quests | Time Frame Table — "the number of campaign turns within which you must finish the job. If the job isn't done when the time runs out, it counts as a failure" (Core Rules p.83); "a Patron job will fail if the time to complete it has expired" (p.85) | large | 'This campaign turn' means nothing — the player can decline every job and the same Patron re-offers fresh work next turn with no penalty. The Secretive Group's +1 Time Frame bonus (its on... | FIXED fab705684 (offers persist on the campaign and lapse; Vengeful fires on a lapse) |
 | patrons-rivals-quests | Spending credits for +1 on crew tasks — Find a Patron (p.77), Track (p.78), Repair Your Kit (p.78), extra Trade rolls (p.78) | medium | Credits cannot buy anything in the World step. A player sitting on 20 credits cannot pay to find a Patron, cannot pay to track down the Rival hunting them, and cannot buy spare parts to s... | PARTIAL 8210675ca (+1-per-credit done; 3-credit extra Trade roll open) |
 | patrons-rivals-quests | Interested Parties: "During Quest missions, when rolling for the number of opponents, reroll any die scoring 1 once" (Core Rules p.99) | small | Quest battles against Interested Parties are easier than the book intends — a die showing 1 stands, so the enemy force can be as small as 1-2 figures where the book guarantees a reroll. M... | FIXED 24c657af4 |
 | patrons-rivals-quests | Vigilantes — "Persistent: If encountered as Rivals, all rolls to remove them from Rival status are at -1" (Core Rules p.99) | small | Vigilante Rivals are exactly as easy to shake off as any other (50% on a 4+ instead of the intended 33% on an effective 5+). The one enemy in the book designed to be a long-term nuisance ... | OPEN |
@@ -78,7 +78,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 8 — Injury Table equipment consequences (rolls 1-5 and 17-30; Bot 1-5 and 16-30) (p.122) | medium | Equipment never degrades from injuries. A Gruesome Fate kills the character but leaves their gear pristine in the stash; a 17-30 Equipment Loss result damages nothing, so the Repair crew ... | OPEN |
 | post-battle | Step 5 — Battlefield Finds table entries 1-15, 16-25, 36-45, 46-60, 61-75 (p.121) | large | On the backend path five of the eight table entries (60% of the D100 range) award nothing — no weapon from the slain enemy, no consumable dosage, no starship part credit, no 1D3 debris cr... | FIXED (this commit) |
 | post-battle | Step 9 — XP: "First character to inflict a casualty +1" and "Killed Unique Individual +1" (p.123) | medium | Playing the battle out in the app costs you XP relative to the book: the crew member who drew first blood and the one who killed the enemy Unique Individual each receive 2 or 3 XP instead... | OPEN |
-| post-battle | Step 2 — Patron Status: One-time Contract exception, and Patrons lapse on travel unless Persistent (p.119) | medium | Patrons accumulate forever. Every completed job — including one-shot contracts that should evaporate — adds a permanent contact, and flying to a new world does not shed the old world's Pa... | OPEN |
+| post-battle | Step 2 — Patron Status: One-time Contract exception, and Patrons lapse on travel unless Persistent (p.119) | medium | Patrons accumulate forever. Every completed job — including one-shot contracts that should evaporate — adds a permanent contact, and flying to a new world does not shed the old world's Pa... | FIXED fab705684+592a67212 |
 | post-battle | Step 12 — Campaign Event 1-3 (Friendly Doc) and 45-48 (Equipment Malfunction) (pp.126-127) | small | The Friendly Doc event never shortens anyone's Sick Bay stay; the crew member is released on exactly the same turn as before. The Equipment Malfunction event never damages anything in the... | OPEN |
 | post-battle | Step 13 — Character Events 11-12 (Time to Move On), 20-23 (Scrap with Crewmate), 63-66 (Hurt on Ship), 72-75 (Gift) (pp.128-130) | medium | Four Character Events (roughly 15 points of the D100 range) are pure flavour text. Nobody leaves the crew, nobody brawls, nobody goes to Sick Bay from ship maintenance, and the gift never... | OPEN |
 | post-battle | Step 10 course benefits — Medical school and Bot technician injury rerolls (p.125) | large | Paying 20 XP for Medical school buys nothing — casualties still roll once on the Injury Table. Paying 10 XP for Bot technician buys nothing — Bots still roll once, and Bot upgrades cost f... | OPEN |
@@ -245,7 +245,7 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**108 open / 44 resolved of 152.** Branch `campaign-editor-and-fixits`.
+**85 open / 56 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
 
 ### Domain standings
 
@@ -301,9 +301,31 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
    `test_world_trait_effects.gd` fails if a new trait ships without an effects
    block, so the data side cannot regress.
 
-6. **patrons-rivals-quests — Patron Time Frame never expires** and the p.83
-   Benefits/Hazards/Conditions subtables (30 entries) make every Patron job play
-   identically. Now the biggest cluster in that domain with Quests closed.
+~~6. patrons-rivals-quests — Patron Time Frame + the BHC subtables.~~
+   **DONE `fab705684` + `592a67212` + `cfbd4f91f`.** `PatronJobEffects.gd` is the
+   SSOT; `data/patron_generation.json` gained a stable `id` and an `effects` block
+   per row, and JobOfferComponent's SECOND hardcoded copy of all 21 rows is gone.
+   Offers now persist on the campaign with a real `deadline_turn`, lapse when it
+   passes (Vengeful fires on a lapse), and leave with a Patron who does not follow
+   you. 19 of 21 rows are applied.
+
+   **Two rows still only reported, not applied** — pick these up here:
+   - **Private Transport** (p.84, "If you have Rivals, they cannot track you this
+     campaign turn") needs the p.85 Check for Rivals roll in
+     `RivalEncounterCheck.gd`, which held another session's uncommitted work.
+     `PatronJobEffects.blocks_rival_tracking(mission)` is ready; it needs one
+     early-return.
+   - **Busy** (p.84, "If the mission is a success, the Patron offers a new job
+     next campaign turn"). `offers_new_job_on_success()` exists with no caller.
+     The natural home is the post-battle success branch banking a flag that
+     `JobOfferComponent.initialize_job_offers` reads to bypass its
+     "a Patron with a live offer does not hand you a second one" guard.
+
+7. **patrons-rivals-quests — the three p.99 enemy-trait rules.** Vigilantes
+   (Persistent, -1 to remove from Rival status), Renegade Soldiers (Grudge, one
+   additional figure as Rivals) and Bounty Hunters (Intrigue, 2D6 9+ for a Quest
+   Rumor). All three are single-site and now that Quests are playable end to end,
+   the Bounty Hunter one actually feeds something.
 
 Deliberately deprioritised for a tablet test: **factions** (DLC-gated, invisible
 without the expansion) and **Elite enemies** (endgame).
@@ -318,6 +340,23 @@ without the expansion) and **Elite enemies** (endgame).
   Same split applies to the **Area** trait.
 - **gdUnit4 reports a parse error as "No test cases found" and EXITS 0.** A green
   exit code proves nothing. Check the executed-case count, every time.
+- **`verify_scripts_parse.gd` prints `=== N checked, 0 definite failures ===`
+  with real parse errors in the same output.** Grep the run for `Parse Error`
+  separately — the summary line is not the verdict. It caught a genuine one this
+  session (`EquipmentTransferService.new()` takes a campaign) that the tally
+  reported as clean. The tool ALSO emits `Compile Error: Identifier not found:
+  TweenFX / GameStateManager / DataManager` for anything touching an autoload,
+  because `--script` mode has no autoloads. Those are noise; `Parse Error` is not.
+- **A correct JSON table is not a live one.** `patron_generation.json` held all 21
+  BHC rows byte-correct against pp.83-84 — and `JobOfferComponent` carried a
+  SECOND hardcoded copy in GDScript, so the JSON was decorative and a correction
+  to it would have changed nothing in play. Before "fixing" a data file, grep for
+  a second implementation of the same table.
+- **A live consumer with no producer looks exactly like a working feature.**
+  `NewWorldArrival.is_persistent_patron()` read `is_persistent` off a Patron and
+  nothing anywhere ever wrote it, so the p.84 Persistent Benefit could not spare
+  a single Patron from the travel purge. The travel step LOOKED implemented, and
+  was, in one direction only. When wiring a rule, check both halves meet.
 - **Godot's JSON parser returns EVERY number as a FLOAT.** `value is int` is
   always false on loaded data; `[1.0, 15.0] != [1, 15]`. `int()` both sides.
 - **A test suite can pin fabricated rules as firmly as correct ones.** Four tests
