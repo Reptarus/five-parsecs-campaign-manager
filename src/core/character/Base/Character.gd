@@ -602,45 +602,30 @@ func add_combat_modifier(modifier) -> void:
 func is_mechanical() -> bool:
 	return is_bot
 
-## Returns true if a "suppress" effect is active.
-func is_suppressed() -> bool:
-	for effect in active_effects:
-		if effect is Dictionary and effect.get("effect") == "suppress":
-			return true
-		elif effect is String and effect == "suppress":
-			return true
-	return false
-
-## Returns true if a "pinned" effect is active.
-func is_pinned() -> bool:
-	for effect in active_effects:
-		if effect is Dictionary and effect.get("effect") == "pinned":
-			return true
-		elif effect is String and effect == "pinned":
-			return true
-	return false
-
-## Returns true if character has overwatch readied.
-func has_overwatch() -> bool:
-	for effect in active_effects:
-		if effect is Dictionary and effect.get("effect") == "overwatch":
-			return true
-		elif effect is String and effect == "overwatch":
-			return true
-	return false
-
-## Returns true if character can counter-attack (not stunned/suppressed/dead).
-func can_counter_attack() -> bool:
-	return not is_dead and not is_suppressed() and not is_pinned()
-
-## Returns true if character can dodge (has speed > 0, not pinned).
-func can_dodge() -> bool:
-	return speed > 0 and not is_pinned() and not is_dead
-
-## Returns true if character can lay suppressing fire (has ranged weapon, not stunned).
-func can_suppress() -> bool:
-	var w := get_equipped_weapon()
-	return not w.is_empty() and w.has("range") and not is_dead
+# is_suppressed() / is_pinned() / has_overwatch() / can_counter_attack() /
+# can_dodge() / can_suppress() were REMOVED 2026-08-02. Every one of them named a
+# mechanic that does not exist in Five Parsecs, and all six had zero callers.
+#
+# Word counts across the Core Rules AND the Compendium:
+#   Suppression   only the Suppression maul weapon, "Pain suppressor" and the
+#                 "Emo-suppressed" background; the Compendium adds "Suppressing
+#                 fire", a Renegade Soldier +1-shot rule. No status effect.
+#   Pinned        0 / 0
+#   Overwatch     0 / 0
+#   counter-attack 0 in the Core Rules; the single Compendium hit is a table row
+#                 ("1-10 Enemy counter-attacks - adjust future rolls by -5")
+#   dodge         prose only; the ship trait "Dodgy Drive" is unrelated
+#
+# The book's status effect is Stunned (p.40): Move OR Combat Action but not both,
+# a Free Action is still allowed, 3+ Stun markers means knocked out and removed,
+# and one marker comes off after the figure acts. Hits are mitigated by Armor
+# Saving Throws (p.46), not by dodging, and Brawls are simultaneous (both roll,
+# the lower total takes a Hit) rather than attack-then-counter.
+#
+# These were part of the CombatResolver interface contract, whose enforcer
+# src/game/combat/CombatResolver.gd was itself deleted as zero-referenced during
+# the Jul 10 wiring audit - so nothing had required them to exist for some time.
+# Do not re-add them. See docs/RULES_WIRING_AUDIT_2026-08.md, battle-resolution.
 
 ## Resets transient battle state for a new battle round.
 func reset_battle_state() -> void:
