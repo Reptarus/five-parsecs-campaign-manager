@@ -72,16 +72,24 @@ func test_cover_at_range_is_still_6() -> void:
 	)
 	assert_int(threshold).is_equal(6)
 
-func test_elevation_bonus_helps_attacker() -> void:
-	# Elevated attacker shooting down gets -1 to threshold
-	var threshold := BattleCalculations.calculate_hit_threshold(
-		0,
-		false,
-		true,  # attacker_elevated
-		false,  # target_not_elevated
-		12.0, 24
+func test_elevation_does_not_change_the_threshold() -> void:
+	# REPLACES test_elevation_bonus_helps_attacker (2026-08-02), which pinned a
+	# fabricated rule. The p.44 To Hit table has EXACTLY three rows and none of
+	# them mentions height:
+	#   within 6" and in the open                          3+
+	#   within range in the open, OR within 6" and in Cover 5+
+	#   within range and in Cover                          6+
+	# So an elevated attacker shoots on the same number as anyone else.
+	var elevated := BattleCalculations.calculate_hit_threshold(
+		0, false, true, false, 12.0, 24
 	)
-	assert_int(threshold).is_equal(4)  # open-range 5+ (p.44), elevation -1 -> 4+
+	var level := BattleCalculations.calculate_hit_threshold(
+		0, false, false, false, 12.0, 24
+	)
+	assert_int(elevated).override_failure_message(
+		"elevation must not modify the p.44 threshold"
+	).is_equal(level)
+	assert_int(elevated).is_equal(5)  # open target within range = 5+
 
 func test_point_blank_bonus() -> void:
 	# Within 2" gets point blank bonus
@@ -92,14 +100,20 @@ func test_point_blank_bonus() -> void:
 	)
 	assert_int(threshold).is_equal(3)  # 4 - 1 = 3
 
-func test_long_range_penalty() -> void:
-	# Beyond weapon range gets penalty
-	var threshold := BattleCalculations.calculate_hit_threshold(
-		0, false, false, false,
-		30.0,  # beyond 24" range
-		24
+func test_no_long_range_penalty() -> void:
+	# REPLACES test_long_range_penalty (2026-08-02), which pinned a fabricated
+	# rule. There is no over-range to-hit penalty in either book. Every p.44 row
+	# reads "within weapon range" — beyond it you simply cannot take the shot,
+	# so there is nothing for a penalty to modify.
+	var beyond := BattleCalculations.calculate_hit_threshold(
+		0, false, false, false, 30.0, 24
 	)
-	assert_int(threshold).is_equal(6)  # open-range 5+ (p.44), beyond-range +1 -> 6+
+	var inside := BattleCalculations.calculate_hit_threshold(
+		0, false, false, false, 12.0, 24
+	)
+	assert_int(beyond).override_failure_message(
+		"there is no over-range to-hit penalty in the Core Rules"
+	).is_equal(inside)
 
 func test_threshold_clamped_to_valid_range() -> void:
 	# Very high skill shouldn't go below 1
@@ -110,17 +124,18 @@ func test_threshold_clamped_to_valid_range() -> void:
 	)
 	assert_int(threshold).is_equal(1)  # Minimum is 1
 
-func test_impossible_hit_threshold() -> void:
-	# Many penalties can make hit impossible (7)
+func test_worst_case_threshold_is_six_not_impossible() -> void:
+	# REPLACES test_impossible_hit_threshold (2026-08-02). The old test stacked
+	# three fabricated penalties (elevation, over-range, and a cover modifier)
+	# to reach an "impossible" 7+. The book's worst case is a covered target at
+	# range, which is 6+ — always rollable. Nothing in the p.44 table can push a
+	# shot past 6+.
 	var threshold := BattleCalculations.calculate_hit_threshold(
-		0,  # no skill
-		true,  # in cover
-		false,
-		true,  # target elevated
-		30.0,  # long range
-		24
+		0, true, false, true, 30.0, 24
 	)
-	assert_int(threshold).is_equal(7)  # 4 + 1 + 1 + 1 = 7 (impossible)
+	assert_int(threshold).override_failure_message(
+		"covered target at range is 6+ (p.44); no stack of modifiers makes a shot impossible"
+	).is_equal(6)
 
 func test_check_hit_success() -> void:
 	assert_bool(BattleCalculations.check_hit(4, 4)).is_true()
@@ -206,9 +221,108 @@ func test_combat_armor_save_threshold() -> void:
 	var threshold := BattleCalculations.get_armor_save_threshold("combat")
 	assert_int(threshold).is_equal(5)
 
-func test_battle_suit_save_threshold() -> void:
-	var threshold := BattleCalculations.get_armor_save_threshold("battle_suit")
-	assert_int(threshold).is_equal(4)
+func test_no_battle_suit_or_powered_armor_tier() -> void:
+	# REPLACES test_battle_suit_save_threshold (2026-08-02). "battle suit" and
+	# "powered armor" occur ZERO times in the Core Rules and ZERO times in the
+	# Compendium, so the old 4+ and 3+ tiers were fabricated. Unknown armor
+	# grants no save.
+	assert_int(BattleCalculations.get_armor_save_threshold("battle_suit")).is_equal(
+		BattleCalculations.ARMOR_SAVE_NONE)
+	assert_int(BattleCalculations.get_armor_save_threshold("powered")).is_equal(
+		BattleCalculations.ARMOR_SAVE_NONE)
+
+
+func test_book_armor_saves() -> void:
+	# Core Rules p.54 Protective Devices — every armor is 5+ or 6+.
+	assert_int(BattleCalculations.get_armor_save_threshold("combat armor")).is_equal(5)
+	assert_int(BattleCalculations.get_armor_save_threshold("battle dress")).is_equal(5)
+	assert_int(BattleCalculations.get_armor_save_threshold("frag vest")).is_equal(6)
+	# "improved to 5+ against any Area attack"
+	assert_int(BattleCalculations.get_armor_save_vs_area("frag vest")).is_equal(5)
+
+
+func test_innate_plating_values() -> void:
+	# p.46: "Bot, Soulless, De-converted, and Assault Bot characters have
+	# built-in armor plating, which grants them a 6+ Armor Saving Throw (5+ for
+	# Assault Bots)."
+	assert_int(BattleCalculations.get_innate_armor_save("bot")).is_equal(6)
+	assert_int(BattleCalculations.get_innate_armor_save("soulless")).is_equal(6)
+	assert_int(BattleCalculations.get_innate_armor_save("de_converted")).is_equal(6)
+	assert_int(BattleCalculations.get_innate_armor_save("assault_bot")).is_equal(5)
+	assert_int(BattleCalculations.get_innate_armor_save("human")).is_equal(
+		BattleCalculations.ARMOR_SAVE_NONE)
+
+
+func test_multiple_saving_throws_use_the_books_examples() -> void:
+	# p.46: "If a character has two or more Saving Throws, only roll for the
+	# best Saving Throw, but lower the target number by 1."
+	#
+	# The book prints both of these examples verbatim. Before 2026-08-02 the
+	# code used min(), which silently dropped the -1 that stacking grants.
+	assert_int(BattleCalculations.combine_saving_throws([6, 5])).override_failure_message(
+		"Bot 6+ with a 5+ screen combines to 4+ (p.46 example)"
+	).is_equal(4)
+	assert_int(BattleCalculations.combine_saving_throws([5, 5])).override_failure_message(
+		"two 5+ armor sources combine to 4+ (p.46 example)"
+	).is_equal(4)
+	# A single save is not improved.
+	assert_int(BattleCalculations.combine_saving_throws([5])).is_equal(5)
+
+
+func test_screen_generator_is_the_only_screen_save_and_not_vs_area_or_melee() -> void:
+	# p.54: "Screen generator ... Receives a 5+ Saving Throw against gunfire.
+	# No effect against Area or Melee attacks."
+	assert_int(BattleCalculations.get_screen_save_threshold("screen generator")).is_equal(5)
+	assert_bool(BattleCalculations.screen_applies("screen generator", false, false)).is_true()
+	assert_bool(BattleCalculations.screen_applies("screen generator", true, false)).is_false()
+	assert_bool(BattleCalculations.screen_applies("screen generator", false, true)).is_false()
+
+
+func test_stun_is_a_marker_count_not_a_duration() -> void:
+	# p.40: "If a character ever has 3 or more Stun markers at the same time,
+	# they are knocked out and removed from play."
+	assert_bool(BattleCalculations.is_knocked_out_by_stun(2)).is_false()
+	assert_bool(BattleCalculations.is_knocked_out_by_stun(3)).is_true()
+	# p.40/p.45: brawling a Stunned figure removes all its markers, but the
+	# attacker gets +1 per marker removed.
+	assert_int(BattleCalculations.brawl_bonus_from_stun(2)).is_equal(2)
+	assert_int(BattleCalculations.brawl_bonus_from_stun(0)).is_equal(0)
+
+
+func test_impact_only_applies_to_an_already_stunned_target() -> void:
+	# p.51 verbatim: "Impact - If target is Stunned, place a second Stun marker."
+	assert_bool(BattleCalculations.check_impact_stun(true, ["Impact"])).is_true()
+	assert_bool(BattleCalculations.check_impact_stun(false, ["Impact"])).is_false()
+	assert_bool(BattleCalculations.check_impact_stun(true, ["Melee"])).is_false()
+
+
+func test_aiming_rerolls_ones_rather_than_granting_a_bonus() -> void:
+	# p.46: "When using an Aimed shot, pick up any 1s on the To Hit dice and
+	# roll them again once." It is a reroll, never a flat +1.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 12345
+	var result: Array = BattleCalculations.apply_aim_reroll([1, 4, 1, 6], rng)
+	assert_int(result.size()).is_equal(4)
+	# Non-1 dice are untouched, in place.
+	assert_int(result[1]).is_equal(4)
+	assert_int(result[3]).is_equal(6)
+	# Rerolled dice are still legal d6 results.
+	for i in [0, 2]:
+		assert_int(result[i]).is_greater_equal(1)
+		assert_int(result[i]).is_less_equal(6)
+
+
+func test_enemy_aim_behaviour_by_ai_type() -> void:
+	# p.46: "Tactical, Cautious, and Defensive enemies will try to Aim when
+	# shooting from Cover. Aggressive and Rampaging enemies will not Aim."
+	for ai in ["Tactical", "Cautious", "Defensive"]:
+		assert_bool(BattleCalculations.enemy_will_aim(ai)).override_failure_message(
+			"%s enemies Aim from Cover (p.46)" % ai
+		).is_true()
+	for ai in ["Aggressive", "Rampaging"]:
+		assert_bool(BattleCalculations.enemy_will_aim(ai)).override_failure_message(
+			"%s enemies never Aim (p.46)" % ai
+		).is_false()
 
 func test_armor_save_success() -> void:
 	assert_bool(BattleCalculations.check_armor_save(6, "light")).is_true()

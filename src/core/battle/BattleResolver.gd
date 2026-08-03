@@ -187,7 +187,7 @@ static func initialize_battle(
 			unit = {"character_name": crew.character_name if "character_name" in crew else "", "toughness": crew.toughness if "toughness" in crew else DEFAULT_TOUGHNESS, "combat_skill": crew.combat if "combat" in crew else 0}
 		unit["hp_current"] = 1  # Binary alive/casualty — Core Rules p.46 has no HP pool
 		unit["is_stunned"] = false
-		unit["is_suppressed"] = false
+		unit["stun_markers"] = 0  # p.40: markers accumulate; 3+ = knocked out
 		unit["is_alive"] = true
 		unit["kills"] = 0
 		# Phase 1: Extract armor/screen from equipment (Core Rules pp.54-55)
@@ -209,7 +209,7 @@ static func initialize_battle(
 		var unit: Dictionary = enemy.duplicate(true) if enemy is Dictionary else {}
 		unit["hp_current"] = 1  # Binary alive/casualty — Core Rules p.46 has no HP pool
 		unit["is_stunned"] = false
-		unit["is_suppressed"] = false
+		unit["stun_markers"] = 0  # p.40: markers accumulate; 3+ = knocked out
 		unit["is_alive"] = true
 		unit["kills"] = 0
 		# Phase 1: Extract armor from enemy special_rules (e.g., "6+ Saving Throw")
@@ -684,9 +684,6 @@ static func _clear_round_status(units: Array) -> void:
 		# Stun lasts 1 round
 		if unit.get("is_stunned", false):
 			unit["is_stunned"] = false
-		# Suppression clears at end of round if not renewed
-		if unit.get("is_suppressed", false):
-			unit["is_suppressed"] = false
 		# Phase 4: Rotate hot weapon tracking for overheat
 		unit["fired_hot_weapon_last_round"] = unit.get(
 			"fired_hot_weapon_this_round", false)

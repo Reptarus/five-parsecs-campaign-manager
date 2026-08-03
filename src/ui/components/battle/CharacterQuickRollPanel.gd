@@ -577,15 +577,20 @@ func _execute_hit_roll() -> void:
 	var weapon_range: int = _selected_character.get("weapon_range",
 		BattleCalculations.RIFLE_RANGE)
 
-	# Calculate hit threshold via BattleCalculations
-	var modifiers := {
-		"is_stunned": stuns > 0,
-		"is_suppressed": false,
-		"has_aim_bonus": is_aiming,
-	}
+	# Core Rules p.44 is "roll 1D6, adding the Combat Skill of the firer" against
+	# a target number. Pass combat_skill as 0 here so the threshold stays the
+	# PURE book target number (3+/5+/6+), and add Combat Skill to the roll below
+	# — which is what the book actually describes.
+	#
+	# Before 2026-08-02 this passed combat_skill into the threshold (which
+	# subtracts it) AND added it to the roll on the comparison line, so Combat
+	# Skill was applied TWICE: a character with Combat Skill +2 was shooting at
+	# an effective +4. Likewise "has_aim_bonus" granted a fabricated flat +1 on
+	# top of the correct p.46 reroll-1s already implemented below.
+	var modifiers := {}
 
 	var threshold: int = BattleCalculations.calculate_hit_threshold(
-		combat_skill, target_in_cover, attacker_elevated, false,
+		0, target_in_cover, attacker_elevated, false,
 		range_inches, weapon_range, modifiers
 	)
 
