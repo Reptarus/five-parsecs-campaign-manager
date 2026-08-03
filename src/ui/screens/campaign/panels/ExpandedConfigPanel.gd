@@ -47,6 +47,7 @@ const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_mission
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpansionFeatureSectionScript = preload("res://src/ui/components/dlc/ExpansionFeatureSection.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
+const DLCContentCatalogRef = preload("res://src/ui/screens/store/DLCContentCatalog.gd")
 
 # Compendium Setup Sequence flags (pp.11-12) — promoted to dedicated card
 # Labels/descriptions sourced from DLCContentCatalog.gd + Compendium page refs
@@ -840,10 +841,17 @@ func _build_compendium_setup_section(parent: Control) -> void:
 	if not dlc or not dlc.has_method("is_feature_available"):
 		return
 
-	# Filter to only flags whose DLC pack is owned
+	# Filter to flags whose DLC pack is owned AND whose rules are actually wired.
+	# This card is hand-built rather than an ExpansionFeatureSection, so it did
+	# NOT inherit that component's unimplemented-flag filter and would offer a
+	# switch that changes nothing (Fringe World Strife, from Aug 3 2026 — its
+	# p.148 Instability accumulator has no implementation at all).
 	var available_flags: Array[Dictionary] = []
 	for opt: Dictionary in COMPENDIUM_SETUP_FLAGS:
-		var flag_val: int = dlc.ContentFlag.get(opt["flag"], -1)
+		var flag_name: String = str(opt["flag"])
+		if DLCContentCatalogRef.is_flag_unimplemented(flag_name):
+			continue
+		var flag_val: int = dlc.ContentFlag.get(flag_name, -1)
 		if flag_val >= 0 and dlc.is_feature_available(flag_val):
 			available_flags.append(opt)
 

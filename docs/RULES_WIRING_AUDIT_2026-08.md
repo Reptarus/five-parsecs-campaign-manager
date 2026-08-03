@@ -194,8 +194,9 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 Full walk in **`docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md`** — all 30 chapters of the
 Compendium TOC (pp.4-5), producer → key → consumer, verified by hand.
 
-**20 LIVE / 2 PARTIAL / 8 DEAD.** The eight dead chapters have book-exact data and a
-correctly flag-gated API; what they lack is a caller.
+**18 LIVE / 2 PARTIAL / 10 DEAD.** The ten dead chapters have book-exact data and a
+correctly flag-gated API; what they lack is a caller — or, twice, a caller whose
+argument is permanently false.
 
 | Chapter | Dead because | Flag |
 |---|---|---|
@@ -207,6 +208,15 @@ correctly flag-gated API; what they lack is a caller.
 | Expanded Quests p.78 | `roll_quest_progression` / `get_quest_conclusion`, zero callers | EXPANDED_QUESTS |
 | Expanded Connections p.80 | 3 gated funcs zero callers; `CharacterConnections.gd` referenced by nothing | EXPANDED_CONNECTIONS |
 | Grid-based Movement pp.90-93 | `TacticalBattleUI:6123` reads `grid_movement_instructions`, zero producers | GRID_BASED_MOVEMENT |
+| **Difficulty Toggles pp.32-34** | none of the 12 toggle ids is read anywhere in `src/` — confirms the pre-existing ledger row | DIFFICULTY_TOGGLES |
+| **Fringe World Strife pp.148-151** | gated on `is_fringe_world`, which no producer writes; and p.148 is a 1D6-on-arrival plus a per-world Instability accumulator, not a boolean — the implemented mechanism is the wrong one | FRINGE_WORLD_STRIFE |
+
+**The last two rows were published LIVE in the first version of the trace and were
+wrong.** The ledger already had both as OPEN; trace and ledger disagreed and the
+ledger won. The error was stopping at the caller: `should_check_strife()` really is
+called, with an argument nobody writes; and four resolvers really do preload
+`compendium_difficulty_toggles.gd`, to call the Dramatic Combat and Casualty
+functions that share that file. **Trace to the value, not to the call site.**
 
 Two PARTIAL:
 

@@ -13,12 +13,37 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 20 |
+| **LIVE** — a live path reaches the player | 18 |
 | **PARTIAL** — some of the chapter lands, a named part does not | 2 |
-| **DEAD** — data + gated API exist, zero consumers | 8 |
+| **DEAD** — data + gated API exist, nothing reaches the player | 10 |
 
-The 8 dead chapters are all in **Freelancer's Handbook** except none — 6 of the 8
-are Freelancer's, which is 6 of that pack's 17 advertised features.
+7 of the 10 dead are **Freelancer's Handbook** — 7 of that pack's 17 advertised
+features.
+
+> ### ⛔ Two rows in the first version of this table were WRONG, in the same way
+>
+> Fringe World Strife and the 12 Difficulty Toggles were both published here as
+> LIVE. Both are dead, and the existing audit ledger already said so; the trace
+> and the ledger disagreed and the ledger was right.
+>
+> The error is one step short of the finish line: **I found a caller and stopped.**
+>
+> - Strife: `WorldPhaseController.gd:648` really does call `should_check_strife`
+>   — with `world_phase_data.get("is_fringe_world", false)`, and
+>   **`is_fringe_world` is written nowhere in the repository.** The argument is
+>   permanently false, so the call returns at its own guard, every turn, forever.
+>   A caller is not a consumer if its argument is a key nobody writes.
+> - Toggles: four resolvers preload `compendium_difficulty_toggles.gd`, which
+>   looked conclusive. They call `get_adjusted_shooting_thresholds()`,
+>   `roll_casualty()` and `roll_detailed_injury()` — Dramatic Combat and the
+>   Casualty tables, which live in the same file. **Not one of the twelve toggle
+>   ids** (`strength_adjusted`, `slaves_to_stargrind_money`, `veteran`,
+>   `actually_specialized`, `armored_leaders`, `better_leadership`,
+>   `paying_by_hour`, `movement_all_over`, `fickle_scans`, `starting_gutter`,
+>   `reduced_lethality`) **appears anywhere in `src/`.** A shared data file makes
+>   one chapter's consumers look like another's.
+>
+> Trace to the value, not to the call site.
 
 ---
 
@@ -46,7 +71,7 @@ getter.
 | Chapter | Verdict | Evidence |
 |---|---|---|
 | Progressive Difficulty p.30 | LIVE | `ProgressiveDifficultyTracker` → `EnemyGenerator`, `TacticalBattleUI:6652` |
-| Difficulty Toggles pp.32-34 | LIVE | `DifficultyTogglesPanel.gd:62`, `ExpandedConfigPanel.gd:578/598`, and `get_adjusted_shooting_thresholds()` in all four resolvers |
+| **Difficulty Toggles pp.32-34** | **DEAD** | Listed in `DifficultyTogglesPanel`, listed in `ExpandedConfigPanel`, rendered as cheat-sheet text — and **none of the 12 toggle ids is read anywhere in `src/`.** Ticking one changes nothing in play |
 | **Player vs Player pp.35-38** | **DEAD** | `get_pvp_setup` / `get_pvp_rules` / `roll_pvp_battle_reason` / `roll_pvp_third_party` (`compendium_missions_expanded.gd:319/326/333/346`) — **zero callers repo-wide, tests included.** No PvP surface exists |
 | **Expanded Co-op pp.39-41** | **DEAD** | `get_coop_setup` / `get_coop_rules` (`:359/:366`) — zero callers |
 | **AI Variations p.42** | **DEAD** | `roll_ai_behavior` / `get_ai_behavior` (`compendium_difficulty_toggles.gd:150/161`) and the `AI_VARIATION_TABLES` getter (`:91`) — zero callers |
@@ -73,7 +98,7 @@ getter.
 | Stealth Missions pp.117-122 | LIVE | `StealthMissionGenerator` + `StealthResolver` + `StealthMissionPanel` |
 | Street Fights pp.123-136 | LIVE | `StreetFightGenerator` + `StreetFightResolver` + `StreetFightPanel` |
 | Salvage Jobs pp.137-147 | LIVE | `SalvageJobGenerator` + `SalvageResolver` + `SalvageMissionPanel` |
-| Fringe World Strife pp.148-151 | LIVE | `WorldPhaseController.gd:647-649`, `WorldPhase.gd:355` |
+| **Fringe World Strife pp.148-151** | **DEAD** | `WorldPhaseController.gd:648` calls `should_check_strife(world_phase_data.get("is_fringe_world", false))` and **`is_fringe_world` is written nowhere in the repo** — permanently false. But the missing producer is not the real problem: **the implemented mechanism is not the book's.** See below |
 | **Loans pp.152-156** | **PARTIAL** | Steps 1/3/4 live via `TradePhasePanel.gd:828-832`. **Step 2 is a hardcoded constant** — see below |
 | Name Generation pp.157-160 | LIVE | `compendium_world_options` name tables + `CharacterGeneration.gd:456`, `ContactManager.gd:311` |
 | Bug Hunt pp.161-223 | LIVE | full gamemode, separate architecture |
@@ -96,6 +121,34 @@ correctly and feed a loan whose principal is a constant, so the two
 origin-conditional modifiers — the only place the chapter's five origins differ in
 *cost* rather than flavor — have no implementation. A Unity loan and a Suspicious
 Character loan are financially identical.
+
+### Fringe World Strife — the wrong mechanism, not a missing key (p.148)
+
+Adding an `is_fringe_world` producer would NOT fix this chapter. The book never
+asks whether a world "is a fringe world":
+
+> "If using this system, when arriving on a new world, **roll 1D6. A roll of 4+
+> indicates the world is Unstable.** You may opt to use a 5+ roll if you prefer a
+> less chaotic environment."
+>
+> "An Unstable world always maintains an **Instability score** […] When you arrive
+> on the world, it begins at **+1**. During the **Invasion step of every campaign
+> turn, add 1D6** to the total. Adjust by an additional **+1 for every active Rival
+> on this world**. Subtract **-1 if you completed a Patron job** this campaign
+> turn. Subtract **-1 if you Held the Field against a Roving Threat** this campaign
+> turn. If this causes Instability to reach or **exceed 10**, make a D100 roll on
+> the table below, **reduce the Instability score by the amount listed**, and apply
+> the listed effect."
+
+What exists is a boolean gate plus an immediate D100 on arrival. What the chapter
+actually is: an arrival 1D6 (4+, player-selectable 5+), a **per-world persisted
+Instability score**, a per-turn accumulator with four modifiers running in the
+Invasion step, and a ≥10 threshold that fires the D100 *and decrements the score by
+the row's listed amount*. The accumulator is the engine of the whole chapter and has
+no implementation at all — which is why `Instability tracking — Compendium p.148`
+is a separate OPEN row in the audit ledger.
+
+This is the reason the chapter is on the hide list rather than the quick-fix list.
 
 ### Dramatic Combat — the weapons table (pp.88-89)
 

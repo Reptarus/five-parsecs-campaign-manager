@@ -56,6 +56,20 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# producer anywhere writes it. BattlefieldGrid.gd is p.108 table geometry,
 	# a different thing entirely.
 	"GRID_BASED_MOVEMENT",
+	# All 12 toggle ids (strength_adjusted, slaves_to_stargrind_money, veteran,
+	# actually_specialized, armored_leaders, better_leadership, paying_by_hour,
+	# movement_all_over, fickle_scans, starting_gutter, reduced_lethality) are
+	# read NOWHERE in src/. The four resolvers that preload
+	# compendium_difficulty_toggles.gd call get_adjusted_shooting_thresholds() and
+	# roll_casualty()/roll_detailed_injury() — Dramatic Combat and the Casualty
+	# tables, which happen to share the file. Ticking a toggle changes nothing.
+	"DIFFICULTY_TOGGLES",
+	# WorldPhaseController gates on world_phase_data["is_fringe_world"], which no
+	# producer writes — but adding one would not fix it. p.148 has no "is this a
+	# fringe world" property: it is a 1D6 on arrival (4+ Unstable), then a
+	# per-world Instability score that accumulates 1D6 each Invasion step with
+	# four modifiers and fires the D100 at >= 10. That accumulator does not exist.
+	"FRINGE_WORLD_STRIFE",
 ]
 
 
