@@ -96,6 +96,16 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	# Generate jobs from ALL patrons, not just the first one
 	var all_jobs: Array[Dictionary] = []
 
+	# "Continue a Quest — If you have an active Quest" (Core Rules p.85, Select
+	# Your Job). This option did not exist. Resolve Rumors would hand the player
+	# a Quest and there was then no way to go on it: the p.89 Quest objective
+	# column was unreachable because nothing ever produced a mission with
+	# mission_source "quest", the p.120 finale flag had no producer, and the
+	# whole Quest arc dead-ended at the moment it began.
+	var quest_job: Dictionary = _build_quest_job(location)
+	if not quest_job.is_empty():
+		all_jobs.append(quest_job)
+
 	for patron in patrons:
 		var p_data: Dictionary = patron if patron is Dictionary else {"patron_name": str(patron)}
 		var patron_jobs: Array[Dictionary] = _generate_job_offers(p_data, location)
@@ -853,6 +863,77 @@ func _determine_enemy_type(mission_source: String = "patron") -> String:
 		return fallback_types[index % fallback_types.size()]
 	return fallback_types[randi() % fallback_types.size()]
 
+## Build the "Continue a Quest" job option (Core Rules p.85).
+##
+## Returns {} when there is no active Quest, or when the Quest's next step is on
+## another world and the crew has not travelled yet — p.120: "the next step is
+## on another world, and you must travel before you are able to progress the
+## Quest. You do not have to do so immediately, however. Quests will wait for
+## you." Withholding the option IS that rule; the Quest is not lost, it simply
+## cannot be pursued from here.
+##
+## A Quest job is NOT a Patron job, so it carries no Danger Pay and no
+## Benefits/Hazards/Conditions (those are p.83 Patron mechanics). Pay is the
+## plain 1D6 of p.120 Step 4, doubled-and-+1 on the finale — which the post-
+## battle PaymentProcessor already implements off `is_quest_finale`.
+func _build_quest_job(location: String) -> Dictionary:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("has_active_quest") or not gs.has_active_quest():
+		return {}
+
+	if gs.has_method("get_quest_requires_travel"):
+		var travel: Dictionary = gs.get_quest_requires_travel()
+		if bool(travel.get("required", false)):
+			return {}
+
+	var quest: Dictionary = gs.get_active_quest() if gs.has_method("get_active_quest") else {}
+	var is_finale: bool = gs.is_quest_finale_available() if gs.has_method(
+		"is_quest_finale_available") else false
+	var quest_name: String = str(quest.get("name", "Active Quest"))
+
+	# p.89: "If this is the final battle of a Quest, it is always a Fight Off
+	# objective." Stamped here so PreBattleUI shows the player the right
+	# objective before deployment; CampaignTurnController honours the same flag
+	# when it would otherwise roll the D10 table.
+	var objective: String = "Fight Off" if is_finale else "Quest Objective (rolled at deployment)"
+	var description: String = str(quest.get("description", ""))
+	if is_finale:
+		description = ("The trail ends here. This is the final battle of the Quest: "
+			+ "a straight-up fight against a reinforced enemy that will not break "
+			+ "(Core Rules pp.89, 120).")
+
+	return {
+		"id": "quest_%s" % str(quest.get("id", "active")),
+		"location": location,
+		"patron_type": "Quest",
+		"patron_name": quest_name,
+		"patron_id": "",
+		"job_type": "quest",
+		"objective": objective,
+		"objective_description": description,
+		# Not a Patron job: p.120 Step 4 adds the Danger Pay bonus only "If you
+		# did a Patron job". Leaving these at 0 keeps Get Paid honest.
+		"danger_pay": 0,
+		"pay": 0,
+		"danger_level": 0,
+		"time_frame": "No time limit",
+		"requirements": [],
+		"benefits": [],
+		"hazards": [],
+		"conditions": [],
+		"enemy_type": _determine_enemy_type("quest"),
+		"double_roll_bonus": false,
+		"patron": quest_name,
+		"source": "quest",
+		"mission_source": "quest",
+		# The producer the entire finale chain was missing. Read by
+		# CampaignTurnController (+1 enemy, forced Fight Off, fight-to-the-death),
+		# PaymentProcessor (roll twice pick better, +1), LootProcessor (three
+		# rolls, p.121) and ExperienceTrainingProcessor (+1 XP, p.123).
+		"is_quest_finale": is_finale,
+		"quest_id": str(quest.get("id", "")),
+	}
+
 ## Derive mission source category for Compendium battle type selection (p.118)
 ## Maps patron_type to source: "patron", "opportunity", "rival", "faction", "quest"
 func _derive_mission_source(patron_data: Dictionary) -> String:
@@ -1134,17 +1215,26 @@ func _check_introductory_mission() -> Dictionary:
 		"location": "Introductory Mission",
 		"patron_type": "Tutorial",
 		"patron_name": "Campaign Guide",
-		"objective": intro.get("name", "Introductory Mission"),
+		# The Compendium intro entries carry exactly three fields — turn, title,
+		# instruction. Reads for "name", "pay", "danger" and "enemy_type" matched
+		# nothing, so the title never displayed and the defaults behind them
+		# (pay 2, danger 1) were fabricated values standing in for book data that
+		# does not exist. Per the data-integrity rule those are gone rather than
+		# invented: the intro missions do not rate danger or promise a fee, and
+		# payment is rolled normally after the battle (Core Rules p.120) on every
+		# guided turn that runs the post-battle sequence.
+		"objective": intro.get("title", "Introductory Mission"),
 		"objective_description": intro.get("instruction", ""),
-		"danger_pay": intro.get("pay", 2),
-		"pay": intro.get("pay", 2),
+		"pay": 0,
 		"double_roll_bonus": false,
 		"time_frame": "This Turn",
-		"danger_level": intro.get("danger", 1),
+		"danger_level": 0,
 		"benefits": [],
 		"hazards": [],
 		"conditions": [],
-		"enemy_type": intro.get("enemy_type", "Determined by scenario"),
+		# The opposition is scripted in the instruction text above and set up by
+		# the player on the table — this is a companion app, not a simulator.
+		"enemy_type": "See mission instructions",
 		"source": "introductory",
 		"mission_source": "introductory",
 		"_introductory": true,

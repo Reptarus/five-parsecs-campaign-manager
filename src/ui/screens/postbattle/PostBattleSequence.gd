@@ -548,14 +548,22 @@ func _on_backend_payment_received(amount: int) -> void:
 	_add_result_to_log("Payment received: %d credits" % amount)
 
 func _on_backend_quest_progress(progress: int) -> void:
-	## Handle quest progress update from backend
+	## Handle quest progress update from backend (Core Rules p.120 Step 3).
+	## -1 means the step did not apply — no Quest, or this battle was not part of
+	## one. Saying nothing is correct there; the old `<= 0` branch reported a
+	## "Quest Dead End" after every battle in every campaign, Quest or not.
+	if progress < 0:
+		return
 	var outcome_text: String
-	if progress <= 0:
-		outcome_text = "Quest Dead End - No progress this mission"
-	elif progress == 1:
-		outcome_text = "Quest Progress - +1 Rumor gained!"
-	else:
-		outcome_text = "Quest Finale Available! Prepare for final confrontation."
+	match progress:
+		0:
+			outcome_text = "Quest Dead End - this place was a dead end, the Quest continues"
+		1:
+			outcome_text = "Quest Progress - a step closer! +1 Quest Rumor"
+		2:
+			outcome_text = "Quest Finale Available! Prepare for final confrontation."
+		_:
+			outcome_text = "Quest Complete - the crew fought the final battle of their Quest."
 	_add_result_to_log(outcome_text)
 
 func _on_backend_invasion_checked(invasion_pending: bool) -> void:

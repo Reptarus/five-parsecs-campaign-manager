@@ -146,6 +146,12 @@ func _connect_core_signals() -> void:
 			post_battle_handler.patron_status_resolved.connect(_on_post_battle_patron_resolved)
 		if post_battle_handler.has_signal("experience_awarded"):
 			post_battle_handler.experience_awarded.connect(_on_post_battle_experience_awarded)
+		# Story Track outcome prose. Every event authors completion_win /
+		# completion_lose and nothing rendered either, so a Story Event battle
+		# ended with no word on what it meant.
+		if post_battle_handler.has_signal("story_track_advanced"):
+			post_battle_handler.story_track_advanced.connect(
+				_on_story_track_advanced)
 	else:
 		push_warning("CampaignTurnController: post_battle_phase_handler is null - post-battle events (rival/patron resolution, XP) may not update correctly")
 		# Note: Post-battle will still function via UI signals from PostBattleSequence
@@ -755,6 +761,17 @@ func _initiate_battle_sequence() -> void:
 	var source: String = mission_data.get(
 		"mission_source", "opportunity")
 
+	# The Quest finale never rolls (Core Rules p.89): "If this is the final
+	# battle of a Quest, it is always a Fight Off objective". p.120 says the same
+	# battle "will always be a Straight-up Fight". Nothing enforced this because
+	# `is_quest_finale` had no producer anywhere — the finale, when it finally
+	# arrived, was generated as an ordinary Quest mission and could roll Move
+	# Through or Defend, which the book does not allow.
+	var _finale: bool = mission_data.get("is_quest_finale", false) \
+		or mission_data.get("mission_source", "") == "quest_finale"
+	if _finale and not mission_data.has("objective_details"):
+		mission_data["objective_details"] = _quest_finale_objective(mtm)
+
 	# Roll mission objective from D10 table if not already set
 	if not mission_data.has("objective_details"):
 		var obj_table: String = mtm.get_objective_table_for_type(
@@ -879,7 +896,7 @@ func _initiate_battle_sequence() -> void:
 	mission_data["setup_rules"] = setup_bundle
 	battle_results["setup_rules"] = setup_bundle
 
-	# Quest finale +1 enemy (Core Rules p.89)
+	# Quest finale +1 enemy (Core Rules p.89) and fight-to-the-death (p.120).
 	var is_quest_finale: bool = mission_data.get("is_quest_finale", false) \
 		or mission_data.get("mission_source", "") == "quest_finale"
 	if is_quest_finale and not enemies.is_empty():
@@ -887,9 +904,24 @@ func _initiate_battle_sequence() -> void:
 		var extra: Dictionary = enemies[-1].duplicate()
 		extra["name"] = extra.get("name", "Enemy") + " (Reinforcement)"
 		enemies.append(extra)
+		# p.120: "the opponents will always fight to the death." Both battle
+		# resolvers and MoralePanicTracker already honour Fearless — enemies with
+		# it never Bail on a Morale die — so the rule is expressed in the term the
+		# rest of the battle layer speaks. Without this the finale's enemy could
+		# rout on the first Panic roll and hand the player the climax for free.
+		for enemy in enemies:
+			enemy["fearless"] = true
+			enemy["is_fearless"] = true
+			var rules: Array = enemy.get("special_rules", [])
+			if not rules.any(func(r): return "fearless" in str(r).to_lower()):
+				rules = rules.duplicate()
+				rules.append("Fearless (Quest finale, Core Rules p.120)")
+				enemy["special_rules"] = rules
 		game_state.set_current_enemies(enemies)
 		mission_data["enemy_force"]["count"] = enemies.size()
 		mission_data["enemy_force"]["units"] = enemies
+		mission_data["enemy_force"]["special_rules"] = enemies[0].get(
+			"special_rules", [])
 
 	# Build initiative context for InitiativeCalculator auto-configuration
 	# (Core Rules p.112: 2D6 + highest Savvy + modifiers >= 10)
@@ -1099,6 +1131,34 @@ func _initiate_battle_sequence() -> void:
 	if game_state.current_campaign and "progress_data" in game_state.current_campaign:
 		game_state.current_campaign.progress_data["current_mission"] = mission_data
 	_launch_pre_battle_directly(mission_data, crew_data)
+
+func _on_story_track_advanced(result: Dictionary) -> void:
+	## Show the Story Event's closing narration once its battle has resolved.
+	## Core Rules Appendix V gives every event a "completion_win"/"completion_lose"
+	## paragraph; StoryEvent has always parsed them and no surface ever displayed
+	## one, so the Story Track's actual storytelling never reached the player.
+	var prose: String = str(result.get("outcome_text", ""))
+	if prose.is_empty():
+		return  # normal turn (clock tick only) — nothing to narrate
+
+	var title: String = "Event %d: %s" % [
+		int(result.get("event_number", 0)),
+		str(result.get("event_title", "Story Event"))]
+	var applied: Array = result.get("applied", [])
+	var body: String = prose
+	if applied is Array and not applied.is_empty():
+		# The mechanical consequences the applier just carried out, so the player
+		# can reconcile the prose against their sheet.
+		body += "\n\n" + ", ".join(PackedStringArray(applied)).capitalize() + "."
+
+	var dialog_script := load(
+		"res://src/ui/components/common/AcknowledgeDialog.gd")
+	if dialog_script and dialog_script.has_method("show_message"):
+		dialog_script.show_message(self, "%s\n\n%s" % [title, body])
+		return
+	# Fallback: never lose the beat — it is also in the journal.
+	push_warning("CampaignTurnController: no AcknowledgeDialog; story outcome "
+		+ "only recorded to the journal.")
 
 func _stamp_narrative_battle_config(mission_data: Dictionary) -> Dictionary:
 	## Stamp Story Track / Introductory Campaign identity + battle overrides onto
@@ -2099,6 +2159,25 @@ func _get_phase_name(phase: int) -> String:
 		GlobalEnums.FiveParsecsCampaignPhase.CHARACTER: return "Character"
 		GlobalEnums.FiveParsecsCampaignPhase.RETIREMENT: return "Retirement"
 		_: return "Unknown Phase"
+
+## The forced objective for a Quest finale (Core Rules p.89: "If this is the
+## final battle of a Quest, it is always a Fight Off objective"). Pulls the
+## definition out of the same mission_objectives.json every other objective
+## comes from, so the win text, placement rules and tracker id all match a
+## rolled Fight Off exactly — `roll: 0` marks it as forced rather than rolled.
+func _quest_finale_objective(mtm) -> Dictionary:
+	var definition: Dictionary = mtm.get_objective_definition("FIGHT_OFF")
+	return {
+		"type": "FIGHT_OFF",
+		"name": definition.get("name", "Fight Off"),
+		"description": definition.get("description",
+			"There is no objective other than driving off the enemy."),
+		"placement_rules": definition.get("placement_rules", ""),
+		"victory_condition": definition.get("victory_condition",
+			"Hold the Field."),
+		"roll": 0,
+		"forced_by": "quest_finale",
+	}
 
 ## Infer deployment mission type from mission data
 func _enemy_force_invasion_threat(enemy_force: Dictionary) -> Dictionary:

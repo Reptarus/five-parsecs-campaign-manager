@@ -59,11 +59,43 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 	#   enemy_category            -> p.101 Roving Threats "never become Rivals"
 	#   planet_id / location      -> p.119 a new Rival is noted "for this planet";
 	#                                the journal joins battle entries by location
+	# The story / intro keys were added 2026-08-01 for the same reason, one layer
+	# out. PostBattleCompletion.gd:176-180 has read `is_story_battle` and
+	# `story_event_id` off battle_result since the PostBattlePhase decomposition,
+	# and no producer ever wrote them — the branch was permanently false. Now
+	# CampaignTurnController._stamp_narrative_battle_config() writes them onto
+	# mission_data, so they must cross this chokepoint or they die here instead.
+	#   is_story_battle / story_event_id / story_event_number
+	#                             -> p.153 Story Event battle identity + journal
+	#   mercenary_captured        -> p.154 Event 2, sets up Event 3's Seize bonus
+	#   captive_survived          -> p.159 Event 6, gates Event 7's companion roll
+	#   is_intro_battle / is_training_battle
+	#                             -> Compendium p.105, the no-consequences turn 0
+	# `enemy_type` added 2026-08-01, same shape as the rest of this list: THREE
+	# consumers read it off battle_result and no producer ever wrote it there.
+	# The worst was RivalPatronResolver._create_new_rival_from_battle(), which
+	# builds the new Rival's id, name and type from it — so every Rival a crew
+	# ever gained was named "Unknown Vendetta". WorldPhaseController has always
+	# put the real enemy on mission_dict; it simply never crossed this chokepoint.
 	for key in ["faction_id", "faction_job_id", "rival_id", "is_invasion",
-			"setup_rules", "rival_attack_type",
+			"setup_rules", "rival_attack_type", "enemy_type",
 			"enemy_is_invasion_threat", "invasion_threat_modifier",
 			"enemy_category", "planet_id", "location",
-			"is_red_zone", "is_black_zone"]:
+			"is_red_zone", "is_black_zone",
+			"is_story_battle", "story_event_id", "story_event_number",
+			"mercenary_captured", "captive_survived", "story_evidence_found",
+			"is_intro_battle", "is_training_battle",
+			# is_quest_finale / quest_id added 2026-08-02. FOUR consumers read
+			# is_quest_finale off battle_result — PaymentProcessor (p.120 "roll
+			# the die twice, pick the better score, and add +1"), LootProcessor
+			# (p.121 "roll three times and claim all the items"),
+			# ExperienceTrainingProcessor (p.123 "+1 XP") and the +1-enemy rule at
+			# setup — and it had no producer anywhere in the repo. The three
+			# TacticalBattleUI hoists read it off mission_data, so the played path
+			# now carries it; this passthrough covers LOG_ONLY and both
+			# auto-resolves. quest_id lets the post-battle step close out THAT
+			# Quest rather than whatever is active when the dust settles.
+			"is_quest_finale", "quest_id"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
 	# 5b) is_invasion is DERIVED, not merely copied. The only marker an Invasion

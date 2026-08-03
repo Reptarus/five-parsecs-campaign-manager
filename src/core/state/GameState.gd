@@ -1679,6 +1679,29 @@ func get_quest_requires_travel() -> Dictionary:
 			return q
 	return {"required": false, "requires_new_world": false}
 
+## Finish the current Quest and tally it (Core Rules p.64 "Complete 3/5/10
+## Quests" victory conditions). Called after the FINALE battle resolves, which
+## is the only point the book treats a Quest as over: p.120's 7+ result says
+## "you're at the conclusion of the Quest. Next time you pursue a Quest mission,
+## it will be the finale", so the finale battle itself ends it.
+##
+## The counter lives in progress_data because FiveParsecsCampaignCore is a
+## Resource — see the header note above. This is its ONLY writer; VictoryChecker
+## is its only reader.
+func complete_active_quest() -> int:
+	if not current_campaign or not "progress_data" in current_campaign:
+		return 0
+	var completed: int = int(current_campaign.progress_data.get("quests_completed", 0)) + 1
+	current_campaign.progress_data["quests_completed"] = completed
+	clear_active_quest()
+	return completed
+
+## How many Quests this crew has finished (Core Rules p.64 victory conditions).
+func get_quests_completed() -> int:
+	if current_campaign and "progress_data" in current_campaign:
+		return int(current_campaign.progress_data.get("quests_completed", 0))
+	return 0
+
 ## Gets the current reputation
 ## @return int: The current reputation
 func get_reputation() -> int:

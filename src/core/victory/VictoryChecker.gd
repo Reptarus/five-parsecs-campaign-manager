@@ -53,6 +53,12 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 	# "no victory condition set", which is what these used to do.
 	var _unique_kills: int = int(pd.get("unique_individuals_killed", 0))
 	var _characters_upgraded_10: int = int(pd.get("characters_upgraded_10", 0))
+	# Core Rules p.64 counts QUESTS, not missions. The three QUESTS_* rows below
+	# used to read _missions_completed, so "Complete 3 Quests" resolved after any
+	# three battles — a crew that had never seen a Quest could win on it. The
+	# tally is written only by GameState.complete_active_quest(), which fires
+	# once per Quest finale (p.120).
+	var _quests_completed: int = int(pd.get("quests_completed", 0))
 
 	match vc:
 		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20:
@@ -93,15 +99,15 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 			required = 20
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3:
 			vc_name = "Quest Starter (3 Quests)"
-			progress = _missions_completed
+			progress = _quests_completed
 			required = 3
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5:
 			vc_name = "Quest Seeker (5 Quests)"
-			progress = _missions_completed
+			progress = _quests_completed
 			required = 5
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
 			vc_name = "Quest Master (10 Quests)"
-			progress = _missions_completed
+			progress = _quests_completed
 			required = 10
 		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20:
 			vc_name = "Seasoned Crew (20 Battles)"

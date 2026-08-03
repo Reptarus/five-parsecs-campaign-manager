@@ -566,6 +566,14 @@ func _fetch_campaign_data() -> void:
 	else:
 		pass
 
+	# The active Quest (Core Rules p.85 step 5). This key was declared above and
+	# never written, so ResolveRumorsComponent always believed no Quest was
+	# running — and the book's "If you are not currently on a Quest" gate could
+	# not hold. A crew already on a Quest could roll again and silently replace
+	# it. Quest state is Resource-unsafe on the campaign, so GameState owns it.
+	if game_state_node.has_method("get_active_quest"):
+		world_phase_data["quest"] = game_state_node.get_active_quest()
+
 	# Track location visit in NPCTracker
 	var npc_tracker = get_node_or_null("/root/NPCTracker")
 	if npc_tracker and npc_tracker.has_method("visit_location"):

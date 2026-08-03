@@ -166,15 +166,49 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 	return patrons_added
 
 func process_quest_progress(ctx: PostBattleContextClass) -> int:
-	## Step 3: Determine Quest Progress (Core Rules p.86). Returns 0/1/2.
+	## Step 3: Determine Quest Progress (Core Rules p.120).
+	## Returns -1 step does not apply / 0 dead end / 1 step closer (+1 Rumor) /
+	## 2 finale unlocked / 3 Quest concluded. -1 exists so the UI can stay silent
+	## instead of reporting "Quest Dead End" after every battle in a campaign that
+	## has no Quest at all.
 	var quest_progress: int = 0
 
-	# Guard has_active_quest with has_method (matching the get_quest_rumors guards
-	# below). GameState exposes no quest API today, so Step 3 safely no-ops instead
-	# of crashing post-battle. Pre-existing unguarded call since f4346c39.
 	if not ctx.game_state or not ctx.game_state.has_method("has_active_quest") \
 			or not ctx.game_state.has_active_quest():
-		return 0
+		return -1
+
+	# p.120 opens with a condition this step never checked: "If you just fought a
+	# battle THAT WAS PART OF A QUEST, roll a D6." It rolled after every battle a
+	# Quest happened to be open for — an Opportunity mission, a Patron job, a
+	# forced Rival showdown — so a crew could finish a Quest without ever going
+	# on one, collecting Quest Rumors from fights that had nothing to do with it.
+	var source: String = str(ctx.battle_result.get("mission_source", ""))
+	if source != "quest" and source != "quest_finale":
+		return -1
+
+	# The finale IS the last stage: p.120's 7+ result says the next Quest mission
+	# "will be the finale", and p.123 pays "+1 XP: Crew completed the final stage
+	# of a Quest" for fighting it. So a finale battle ends the Quest instead of
+	# rolling for further progress — there is no book branch that continues a
+	# Quest past its finale, and no roll here could produce one.
+	if bool(ctx.battle_result.get("is_quest_finale", false)):
+		var completed: int = 0
+		if ctx.game_state.has_method("complete_active_quest"):
+			completed = ctx.game_state.complete_active_quest()
+		var journal: Variant = Engine.get_main_loop().root.get_node_or_null(
+			"/root/CampaignJournal") if Engine.get_main_loop() else null
+		if journal and journal.has_method("create_entry"):
+			journal.create_entry({
+				"type": "story",
+				"title": "Quest Concluded",
+				"description": "The crew fought the final battle of their Quest."
+					+ (" Quests completed: %d." % completed if completed > 0 else ""),
+				"turn": int(ctx.battle_result.get("turn", 0)),
+				"tags": ["quest", "milestone"],
+				"auto_generated": true,
+				"mood": "triumphant",
+			})
+		return 3
 
 	var base_roll: int = ctx.roll_d6("Quest progress roll")
 	var quest_rumors: int = 0

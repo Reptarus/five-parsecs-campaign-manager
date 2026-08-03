@@ -153,16 +153,26 @@ func _generate_quest_from_rumors() -> void:
 	var old_rumors = rumors.duplicate()
 	rumors.clear()
 
-	# Generate quest (simplified - expand with full quest generation)
+	# A Quest carries no content in the book. Core Rules p.85 says only that you
+	# "received a Quest which you may pursue immediately"; every mechanical
+	# detail is rolled per battle (the p.89 D10 Quest objective table) or per
+	# post-battle step (the p.120 progress roll). The old record also carried a
+	# `type` off an invented list, three invented `objectives`, and a `rewards`
+	# block promising 2D6 credits and +1 reputation that NOTHING ever paid —
+	# fabricated mechanics displayed to the player as if they were rules. What
+	# survives is bookkeeping the book does define, plus flavour text that has
+	# no mechanical effect.
+	var gs_node = get_node_or_null("/root/GameState")
+	var turn_received: int = 0
+	if gs_node and gs_node.current_campaign and "progress_data" in gs_node.current_campaign:
+		turn_received = int(gs_node.current_campaign.progress_data.get("turns_played", 0))
 	current_quest = {
 		"id": "quest_%d" % randi(),
 		"name": _generate_quest_name(),
 		"description": _generate_quest_description(old_rumors),
-		"type": _get_random_quest_type(),
-		"objectives": _generate_quest_objectives(),
-		"rewards": _generate_quest_rewards(),
-		"turns_remaining": -1,  # -1 = no time limit until abandoned
-		"quest_rumors": []  # Rumors collected during quest
+		"turn_received": turn_received,
+		"rumors_spent": old_rumors.size(),
+		"stages_completed": 0,
 	}
 
 	has_active_quest = true
@@ -189,6 +199,23 @@ func _generate_quest_from_rumors() -> void:
 		elif game_state.has_method("set_active_quest"):
 			game_state.set_active_quest(current_quest)
 
+	# p.85: "remove all Rumors from your roster." The local `rumors` array was
+	# cleared above, but that array is rebuilt from campaign.quest_rumors every
+	# time the World step opens — so the Rumors were never actually spent. A
+	# crew that banked 5 Rumors kept all 5 and re-rolled the Quest trigger every
+	# single campaign turn (and, with the "already on a Quest" gate also dead,
+	# overwrote its own Quest each time). Zeroing the canonical counter here is
+	# what makes the Quest cost something.
+	#
+	# The same counter then accumulates again during the Quest: p.85 says "any
+	# time you would receive a Rumor, you receive a Quest Rumor instead", and
+	# p.120 adds "+1 for each Rumor you have accumulated while on this Quest" to
+	# the progress roll. One counter serves both roles, which is exactly how the
+	# book uses the term (p.36: "Quest Rumors (also referred to as Rumors)").
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("set_quest_rumors"):
+		gsm.set_quest_rumors(0)
+
 func _generate_quest_name() -> String:
 	## Generate random quest name
 	var prefixes = ["The Lost", "Hidden", "Ancient", "Stolen", "Mysterious", "Dangerous"]
@@ -205,26 +232,13 @@ func _generate_quest_description(source_rumors: Array) -> String:
 	]
 	return descriptions[randi() % descriptions.size()]
 
-func _get_random_quest_type() -> String:
-	## Get random quest type
-	var types = ["retrieve", "eliminate", "escort", "investigate", "defend"]
-	return types[randi() % types.size()]
-
-func _generate_quest_objectives() -> Array:
-	## Generate quest objectives
-	return [
-		{"description": "Reach the target location", "completed": false},
-		{"description": "Complete the primary objective", "completed": false},
-		{"description": "Extract safely", "completed": false}
-	]
-
-func _generate_quest_rewards() -> Dictionary:
-	## Generate quest rewards
-	return {
-		"credits": (randi() % 6 + 1) + (randi() % 6 + 1),  # 2d6 credits
-		"reputation": 1,
-		"special_item_chance": 0.3
-	}
+## _get_random_quest_type / _generate_quest_objectives / _generate_quest_rewards
+## were DELETED 2026-08-02. None of the three had any grounding in the rulebook
+## and none of them was read by any consumer: the "rewards" block in particular
+## showed the player a 2D6-credit and +1-reputation payout that no code path
+## ever granted. A Quest's objective is rolled per battle on the p.89 D10 table
+## and its payout is the p.120 Step 4 double-roll — both already implemented.
+## Do not reintroduce quest content tables; the book has none.
 
 ## UI Updates
 func _update_ui_display() -> void:
