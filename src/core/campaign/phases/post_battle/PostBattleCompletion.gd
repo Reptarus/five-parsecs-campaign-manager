@@ -374,17 +374,8 @@ func process_consumed_items(ctx: PostBattleContextClass) -> Array:
 
 
 func apply_notable_sight_reward(ctx: PostBattleContextClass) -> Dictionary:
-	## ⚠ NOT YET CALLED — one line away, and deliberately recorded rather than
-	## hidden. The orchestrator (PostBattlePhase.gd) is the only site that calls
-	## into this class, and it is held by a parallel Story Track branch; staging
-	## it would sweep up that branch's uncommitted work. The producer (the results
-	## form's "Reached the Notable Sight" check) and this reward logic are landed
-	## so the unblock is a single insertion next to the other _completion calls:
-	##
-	##     _completion.apply_notable_sight_reward(_ctx)
-	##
-	## An uncalled rule is exactly the defect this audit exists to remove, so if
-	## you are reading this and PostBattlePhase.gd is free, wire it now.
+	## Called from PostBattlePhase._process_completion_step, immediately before
+	## the battle journal entry so a recovered sight lands in the same record.
 	##
 	## Core Rules p.89 Notable Sights: the item "can be acquired by moving into
 	## contact with it, and foregoing any other actions that round" — and its

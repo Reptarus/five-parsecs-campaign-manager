@@ -342,6 +342,10 @@ func _complete_post_battle_phase() -> void:
 	_ensure_subsystems()
 	_sync_context()
 	_completion.update_character_lifetime_statistics(_ctx)
+	# Core Rules p.89 Notable Sights — the reward for having reached the item.
+	# Runs BEFORE the journal entry so the recovered sight appears in the same
+	# battle record rather than a turn later.
+	_completion.apply_notable_sight_reward(_ctx)
 	_completion.create_battle_journal_entry(_ctx)
 	_completion.record_planet_mission(_ctx)
 
