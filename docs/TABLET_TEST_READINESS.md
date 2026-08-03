@@ -208,12 +208,24 @@ driven by what the tester actually reports.
 | **Integration suite un-darkened** — all 33 suites now execute; worst orphan count 1236 → 100 | `c73c0c90e` |
 | Two p.84 acceptance gates that enforced themselves off a failed lookup | `2025226f7` |
 
-### Blocked, and precisely why
+### Blocked — RESOLVED
 
-Three items are one line each and are blocked for the SAME reason: their only
-call site is in a file held by the parallel Story Track branch, and `git add`
-takes whole files — staging would sweep up that branch's uncommitted work.
-Interactive staging is not available in this environment.
+Two of the three were structural, not technical: their call sites sat in files
+held by the parallel Story Track branch, and `git add` takes whole files.
+
+**`git stash push -- <path>` is the way through.** It stashes one file's changes,
+leaves the branch's work fully recoverable, and its pop does a proper 3-way merge
+— both popped clean, with their hunks intact and merely renumbered. Verified by
+diffing the file after each pop. So the constraint was never "cannot", only
+"cannot with `git add`".
+
+| Item | Status |
+|---|---|
+| Notable Sight reward call site | **DONE** `7de930a2d` |
+| L176 Sick Bay exit (p.76) | **DONE** `5927ecbe3` |
+| L83 / L169 / L170 Character + Campaign Events | Still open — but this was never a blocked one-liner. It is 12 event effects across two files, each needing its own book verification. Sized as real work, not a wiring gap. |
+
+The original note, for the record:
 
 | Item | File held | The one line |
 |---|---|---|
