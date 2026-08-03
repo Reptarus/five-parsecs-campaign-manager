@@ -893,6 +893,21 @@ func _initiate_battle_sequence() -> void:
 		game_state.set_current_enemies(enemies)
 		mission_data["enemy_force"]["count"] = enemies.size()
 		mission_data["enemy_force"]["units"] = enemies
+	# p.90 Defend: "If the opposing AI is normally Cautious, Defensive, or
+	# Tactical, change it to Aggressive." Applied here because this is where the
+	# enemy list becomes final; the AI code is what TacticalBattleUI, the AI
+	# prompt card and both auto-resolvers read to decide how the enemy behaves.
+	var _ai_override: Dictionary = setup_bundle.get("force_enemy_ai", {})
+	if not _ai_override.is_empty() and not enemies.is_empty():
+		var _from: Array = _ai_override.get("from", [])
+		var _to: String = str(_ai_override.get("to", "A"))
+		for enemy in enemies:
+			if str(enemy.get("ai", "")).to_upper() in _from:
+				enemy["ai"] = _to
+		game_state.set_current_enemies(enemies)
+		mission_data["enemy_force"]["units"] = enemies
+		mission_data["enemy_force"]["ai"] = enemies[0].get("ai", "A")
+
 	mission_data["setup_rules"] = setup_bundle
 	battle_results["setup_rules"] = setup_bundle
 

@@ -32,6 +32,41 @@ const RivalPatronResolverClass = preload(
 	"res://src/core/campaign/phases/post_battle/RivalPatronResolver.gd")
 const ContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const GlobalEnumsScript = preload("res://src/core/systems/GlobalEnums.gd")
+const BattleSetupRulesClass = preload("res://src/core/battle/BattleSetupRules.gd")
+
+
+# ── p.90: the Defend objective modifies the setup ───────────────────────────
+
+## "Defend — If the opposing AI is normally Cautious, Defensive, or Tactical,
+## change it to Aggressive. Add +1 when determining the enemy numbers." (p.90)
+## Defend is D10 5-6 on the Quest table, so a fifth of Quest missions; neither
+## clause was implemented.
+func test_defend_objective_adds_an_enemy_and_forces_aggressive_ai() -> void:
+	var bundle: Dictionary = BattleSetupRulesClass.compute(
+		{"objective_details": {"type": "DEFEND"}}, 5, 5)
+	assert_int(bundle["enemy_delta"]).is_equal(1)
+	var override: Dictionary = bundle["force_enemy_ai"]
+	assert_array(override["from"]).contains(["C", "D", "T"])
+	assert_str(str(override["to"])).is_equal("A")
+
+## The rule raises reluctant AI; it never lowers anything. Rampaging and Beast
+## are not on the book's list and must be left alone.
+func test_defend_does_not_touch_ai_outside_the_books_list() -> void:
+	var bundle: Dictionary = BattleSetupRulesClass.compute(
+		{"objective_details": {"type": "DEFEND"}}, 5, 5)
+	var from_list: Array = bundle["force_enemy_ai"]["from"]
+	assert_bool(from_list.has("R")).is_false()
+	assert_bool(from_list.has("B")).is_false()
+	assert_bool(from_list.has("A")).is_false()
+
+## Any other objective leaves the setup alone — otherwise the two cases above
+## would pass against a function that modified every battle.
+func test_other_objectives_do_not_modify_the_setup() -> void:
+	for obj in ["FIGHT_OFF", "MOVE_THROUGH", "ACQUIRE", "SEARCH"]:
+		var bundle: Dictionary = BattleSetupRulesClass.compute(
+			{"objective_details": {"type": obj}}, 5, 5)
+		assert_int(bundle["enemy_delta"]).is_equal(0)
+		assert_bool((bundle["force_enemy_ai"] as Dictionary).is_empty()).is_true()
 
 
 # ── p.89: the Quest objective column ────────────────────────────────────────

@@ -50,6 +50,9 @@ static func _empty_bundle() -> Dictionary:
 		"no_win_condition": false,
 		"early_leave_is_casualty": false,
 		"flee_before_round": 0,
+		# {"from": [ai codes], "to": code} when an objective overrides enemy AI
+		# (Core Rules p.90 Defend). Empty when nothing overrides it.
+		"force_enemy_ai": {},
 		"setup_notes": [],
 		"loss_penalties": [],
 		"round_one": {},
@@ -69,8 +72,36 @@ static func compute(
 	var b: Dictionary = _empty_bundle()
 	_apply_rival_attack(b, mission_data)
 	_apply_invasion(b, mission_data)
+	_apply_objective(b, mission_data)
 	_apply_deployment_condition(b, mission_data, enemy_count, crew_count)
 	return b
+
+
+## Objectives that modify the SETUP rather than the win condition.
+##
+## Only one of the eleven does: Defend (Core Rules p.90). It is a Quest
+## objective (p.89, D10 5-6, so a fifth of Quest missions) and its two setup
+## clauses were unimplemented — the crew fought one fewer enemy than the rules
+## require, against a force that kept its cautious AI. That is the difference
+## between "drive off an assault" and "wait out a stand-off", which is the whole
+## character of the objective.
+static func _apply_objective(b: Dictionary, mission_data: Dictionary) -> void:
+	var details: Dictionary = mission_data.get("objective_details", {})
+	var obj_type: String = str(details.get("type",
+		mission_data.get("objective_type", ""))).strip_edges().to_upper()
+	if obj_type != "DEFEND":
+		return
+
+	# "Add +1 when determining the enemy numbers."
+	b["enemy_delta"] += 1
+	# "If the opposing AI is normally Cautious, Defensive, or Tactical, change
+	# it to Aggressive." Rampaging, Beast and Guardian are NOT on the book's
+	# list and are left alone — the rule raises reluctant AI to Aggressive, it
+	# does not lower anything.
+	b["force_enemy_ai"] = {"from": ["C", "D", "T"], "to": "A"}
+	b["sources"].append("Objective: Defend (Core Rules p.90)")
+	b["setup_notes"].append(
+		"Defend: add 1 enemy, and any Cautious/Defensive/Tactical AI becomes Aggressive (p.90).")
 
 
 static func is_invasion(mission_data: Dictionary) -> bool:
