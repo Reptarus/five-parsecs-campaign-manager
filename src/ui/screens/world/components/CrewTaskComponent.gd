@@ -14,6 +14,10 @@ const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.g
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const DiceManager = preload("res://src/core/managers/DiceManager.gd")
+## The pp.28-29 creation tables (Low-Tech Weapon / Gear / Gadget), which several
+## Trade Table entries cite by page. One roller, shared with campaign creation.
+const StartingEquipmentGeneratorClass = preload(
+	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 
 # Design system constants
 
@@ -990,6 +994,41 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 	## These entries have requires_roll=true and need actual dice resolution
 	var entry_name: String = result.get("name", "")
 
+	# ── Entries that send you to ANOTHER table (Core Rules pp.79-80) ──────────
+	#
+	# Six entries — rolls 1-3, 7-9, 45-48, 79-81, 82-86 and 87-91, so 23 results
+	# in 100 — awarded literally nothing. Their JSON rows carry `requires_roll`
+	# and no `items`, and none of them had a case in this match, so the dialog
+	# printed "Roll once on the Loot Table (p.131)" as flavour text and the crew
+	# came home empty-handed. Roughly one Trade action in four was a visible
+	# no-op, which is the single most common thing a crew does in the World step.
+	#
+	# The "(random...)" strings are the established convention consumed by
+	# _resolve_random_loot() -> _add_item_to_stash(); "damaged" in the string is
+	# what flags an item as needing Repair. Nothing new is invented here — the
+	# resolution machinery already existed, these entries just never reached it.
+	match entry_name:
+		"A personal weapon":
+			# p.79 roll 1-3: "Roll once on the Low Tech Weapon Table (p.28)."
+			result.items = ["Low Tech Weapon (random)"]
+		"Find something useful":
+			# p.79 roll 7-9: "Roll once on the Gear Table (p.29)."
+			result.items = ["Gear Table (random)"]
+		"Something interesting":
+			# p.79 roll 45-48: "Roll once on the Loot Table (p.131)."
+			result.items = ["Loot (random)"]
+		"A lot of blinking lights":
+			# p.80 roll 79-81: "Roll once on the Gear subsection of the Loot
+			# Table (p.132)." A DIFFERENT table from the p.29 Gear Table above.
+			result.items = ["Gear Loot (random)"]
+		"Gently used":
+			# p.80 roll 82-86: same Gear subsection, "The item is damaged and
+			# needs Repair."
+			result.items = ["Gear Loot (random, damaged)"]
+		"Pre-owned":
+			# p.80 roll 87-91: Loot Table, "The item is damaged and needs Repair."
+			result.items = ["Loot (random, damaged)"]
+
 	match entry_name:
 		"Worthless trinket", "Useless trinket":
 			var d6: int = randi() % 6 + 1
@@ -1523,17 +1562,36 @@ func _resolve_random_loot(item_string: String) -> Array:
 			return [gadget_items[randi() % gadget_items.size()]]
 		return [item_string]
 	elif item_string.begins_with("Low Tech Weapon"):
-		# Low Tech weapons are melee from weapon subtable
-		var wpn_sub: Array = all_tables.get("weapon_subtable", [])
-		for entry in wpn_sub:
-			if entry is Dictionary and entry.get("category") == "melee_weapons":
-				var items: Array = entry.get("items", [])
-				if items.size() > 0:
-					return [items[randi() % items.size()]]
-		return [item_string]
+		# Core Rules p.28 has its OWN Low-Tech Weapon Table, and the Trade Table
+		# (p.79, roll 1-3) points at that one by page number. This used to pull a
+		# melee weapon out of the LOOT table's melee_weapons subtable instead, so
+		# "A personal weapon" handed over a Power Claw, Suppression Maul, Glare
+		# Sword or Ripper Sword — the wrong table entirely, and a far better item
+		# than the book's Handgun / Scrap Pistol / Colony Rifle / Shotgun / Blade.
+		return _roll_creation_table("low_tech_weapon", item_string)
+	elif item_string.begins_with("Gear Table"):
+		# p.29 Gear Table — also its own table, distinct from the p.132 Gear
+		# subsection of the Loot Table that "Gear Loot" above resolves.
+		return _roll_creation_table("gear", item_string)
 	else:
 		# Full loot table: roll D100 on main, then roll on subtable
 		return _roll_main_loot_table(all_tables)
+
+## Roll once on one of the CHARACTER-CREATION D100 tables in gear_database.json
+## (Core Rules pp.28-29: Low-Tech Weapon, Military Weapon, High-Tech Weapon,
+## Gear, Gadget). These are a different set of tables from the post-battle Loot
+## Table in loot_tables.json, and several Trade Table entries cite them by page.
+## Reuses StartingEquipmentGenerator so there is one roller per table, not two.
+func _roll_creation_table(table_name: String, fallback: String) -> Array:
+	var dice_manager: Node = get_node_or_null("/root/DiceManager")
+	var rolled: Array = StartingEquipmentGeneratorClass.generate_bonus_equipment(
+		[table_name], dice_manager)
+	var names: Array = []
+	for item in rolled:
+		var item_name: String = str(item.get("name", "")) if item is Dictionary else str(item)
+		if not item_name.is_empty():
+			names.append(item_name)
+	return names if not names.is_empty() else [fallback]
 
 func _roll_main_loot_table(all_tables: Dictionary) -> Array:
 	## Roll on the main loot table and resolve to actual items
