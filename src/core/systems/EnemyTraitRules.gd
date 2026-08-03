@@ -166,6 +166,19 @@ static func blocks_seize(enemy_name: String) -> bool:
 	return enemy_has_trait(enemy_name, "Prediction")
 
 
+## "Going medieval: Instead of normal weapons, each carries a Blade. Specialists
+## carry a Brutal Melee Weapon" (Core Rules p.99, Primitives). Returns
+## [rank_and_file_weapon, specialist_weapon], or [] when the trait is absent.
+##
+## Both names are entries in equipment_database.json, so the battle math picks up
+## their real traits (Blade: Melee; Brutal Melee Weapon: Melee + Clumsy) rather
+## than treating them as bare strings.
+static func going_medieval_loadout(enemy_name: String) -> Array:
+	if not enemy_has_trait(enemy_name, "Going medieval"):
+		return []
+	return ["Blade", "Brutal Melee Weapon"]
+
+
 ## "Unpredictable: Seize the Initiative roll is always unmodified" (p.100, Swift
 ## War Swarm). Every modifier is discarded, favourable ones included.
 static func seize_is_unmodified(enemy_name: String) -> bool:

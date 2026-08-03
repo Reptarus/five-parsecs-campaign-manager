@@ -653,6 +653,23 @@ func generate_enemies_as_dicts(
 	var weapon_code: Variant = template.get("weapons", "1 A")
 	var base_weapons: Array = resolve_basic_weapon(weapon_code)
 	var specialist_weapons: Array = resolve_specialist_weapon(weapon_code)
+
+	# "Going medieval: Instead of normal weapons, each carries a Blade.
+	# Specialists carry a Brutal Melee Weapon" (Core Rules p.99, Primitives).
+	# REPLACES the loadout — "instead of" — so it runs before anything else reads
+	# these arrays. The entry's weapon code is a literal "-", which
+	# resolve_basic_weapon falls back to a Hand Gun for; a Primitive with a
+	# handgun is the opposite of the whole entry.
+	#
+	# Applied here rather than after the animal check on purpose: a Blade IS a
+	# manufactured weapon, so Primitives correctly keep their Specialist (whom
+	# the rule explicitly arms) instead of being classed as unarmed animals.
+	var going_medieval: Array = EnemyTraitRulesClass.going_medieval_loadout(
+		str(template.get("name", "")))
+	if not going_medieval.is_empty():
+		base_weapons = [str(going_medieval[0])]
+		specialist_weapons = [str(going_medieval[1])]
+
 	var ai_code: String = str(template.get("ai", "A"))
 
 	# Core Rules p.93 draws a hard line at animals "that do not use weapons".
@@ -671,7 +688,12 @@ func generate_enemies_as_dicts(
 	var varied_armaments: bool = uses_weapons \
 		and HouseRulesHelper.is_enabled("varied_armaments")
 	if varied_armaments:
-		second_group_weapons = resolve_basic_weapon(weapon_code)
+		# Going medieval REPLACES the loadout, so the second group is the same
+		# Blade rather than a fresh roll that would hand out a Hand Gun.
+		if going_medieval.is_empty():
+			second_group_weapons = resolve_basic_weapon(weapon_code)
+		else:
+			second_group_weapons = [str(going_medieval[0])]
 
 	# Specialist/Lieutenant per Core Rules p.93:
 	#   1-2 opponents -> no Specialist; 3-6 -> one; 7+ -> two.
@@ -713,7 +735,17 @@ func generate_enemies_as_dicts(
 				# Lieutenants "will both roll separately for their weapons", so
 				# the Lieutenant gets its own basic-column roll rather than
 				# sharing the rank-and-file result.
-				weapons = resolve_basic_weapon(weapon_code)
+				#
+				# A Going medieval entry has no column to roll on — the trait
+				# replaced the loadout outright — so the fresh call would fall
+				# back to a Hand Gun and put a pistol in the Primitive war
+				# leader's hands. Caught by the generator-level test, not the
+				# resolver one: the replacement at the top of this function is
+				# correct and this second site quietly undid it.
+				if going_medieval.is_empty():
+					weapons = resolve_basic_weapon(weapon_code)
+				else:
+					weapons = [str(going_medieval[0])]
 				extra_weapons = ["Blade"]
 			# Otherwise p.93: "If the opponents encountered are animals that do
 			# not use weapons, the Lieutenant will be a pack leader; increase

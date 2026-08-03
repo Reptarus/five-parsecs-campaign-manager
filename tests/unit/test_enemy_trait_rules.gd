@@ -209,3 +209,48 @@ func test_every_trait_bearer_in_the_data_is_recognised() -> void:
 	).is_true()
 	assert_array(missed).override_failure_message(
 		"traits present in the data but not resolved: %s" % [missed]).is_empty()
+
+
+# ── Going medieval (Primitives, p.99) ───────────────────────────────────────
+
+## "Instead of normal weapons, each carries a Blade. Specialists carry a Brutal
+## Melee Weapon." It REPLACES the loadout, and the entry's weapon code is a
+## literal "-" that the resolver otherwise falls back to a Hand Gun for — a
+## Primitive with a handgun being the opposite of the whole entry.
+func test_going_medieval_replaces_the_loadout() -> void:
+	assert_array(ETR.going_medieval_loadout("Primitives")).is_equal(
+		["Blade", "Brutal Melee Weapon"])
+	assert_array(ETR.going_medieval_loadout("Gangers")).is_empty()
+
+
+## Through the live generator. Also pins that Primitives keep a SPECIALIST: a
+## Blade is a manufactured weapon, so they must not be classed as p.93 "animals
+## that do not use weapons" — the rule explicitly arms their Specialist.
+func test_going_medieval_reaches_the_generated_roster() -> void:
+	var generator := EnemyGenerator.new()
+	var saw_specialist := false
+	for _i in range(25):
+		var enemies: Array = generator.generate_enemies_as_dicts({
+			"mission_source": "opportunity",
+			"enemy_type": "Primitives",
+		}, 6)
+		for e in enemies:
+			if not (e is Dictionary) or e.get("type", "") != "Primitives":
+				continue
+			var weapons: Array = e.get("weapons", [])
+			var joined: String = " ".join(PackedStringArray(weapons))
+			assert_bool(joined.contains("Blade") or joined.contains("Brutal")
+				).override_failure_message(
+				"a Primitive must carry a Blade or a Brutal Melee Weapon, got %s"
+				% [weapons]).is_true()
+			assert_bool(joined.contains("Hand Gun")).override_failure_message(
+				"the '-' weapon code must not fall back to a Hand Gun here"
+			).is_false()
+			if e.get("role", "") == "specialist":
+				saw_specialist = true
+				assert_bool(joined.contains("Brutal")).override_failure_message(
+					"Primitive Specialists carry a Brutal Melee Weapon (p.99)"
+				).is_true()
+	assert_bool(saw_specialist).override_failure_message(
+		"Primitives must still field a Specialist — a Blade is a manufactured "
+		+ "weapon, so they are not p.93 animals").is_true()
