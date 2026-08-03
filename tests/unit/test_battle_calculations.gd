@@ -671,3 +671,78 @@ func test_single_use_weapons_and_enemies_cannot_panic_fire() -> void:
 	assert_bool(BattleCalculations.can_panic_fire(["Melee"], true)).is_false()
 	assert_bool(BattleCalculations.can_panic_fire(["Melee"], false)).is_true()
 	assert_dict(BattleCalculations.panic_fire_profile(24.0, 1, ["Single use"])).is_empty()
+
+
+# ── Core Rules p.54 consumables ──────────────────────────────────────────────
+
+func test_rage_out_lasts_two_rounds_but_all_battle_for_a_kerin() -> void:
+	# p.54: "+2\" Speed and +1 to all Brawling rolls for the rest of this and the
+	# following round. A K'Erin user gets the benefits for the rest of the battle."
+	var human := {"species_id": "human", "speed": 4, "brawl_bonus": 0}
+	var r1: Dictionary = BattleCalculations.apply_consumable_effect("rage_out", human)
+	assert_bool(r1["applied"]).is_true()
+	assert_int(human["rage_out_rounds_remaining"]).is_equal(2)
+	assert_str(r1["expires"]).is_equal("after_next_round")
+
+	var kerin := {"species_id": "k_erin", "speed": 4, "brawl_bonus": 0}
+	var r2: Dictionary = BattleCalculations.apply_consumable_effect("rage_out", kerin)
+	assert_int(kerin["rage_out_rounds_remaining"]).override_failure_message(
+		"a K'Erin keeps Rage Out for the whole battle (-1 = no expiry)"
+	).is_equal(-1)
+	assert_str(r2["expires"]).is_equal("end_of_battle")
+
+
+func test_still_locks_movement_for_two_rounds() -> void:
+	# p.54: "cannot Move during this and the next round" — not just this one.
+	var u := {"species_id": "human"}
+	BattleCalculations.apply_consumable_effect("still", u)
+	assert_bool(u["cannot_move"]).is_true()
+	assert_int(u["still_rounds_remaining"]).is_equal(2)
+
+
+func test_booster_pills_clear_every_stun_marker() -> void:
+	# p.54: "the character removes all Stun markers."
+	var u := {"species_id": "human", "speed": 4, "stun_markers": 2, "is_stunned": true}
+	BattleCalculations.apply_consumable_effect("booster_pills", u)
+	assert_int(u["stun_markers"]).is_equal(0)
+	assert_bool(u["is_stunned"]).is_false()
+	assert_int(u["speed_multiplier_this_round"]).is_equal(2)
+
+
+func test_kiranin_crystals_carry_all_three_book_exclusions() -> void:
+	# p.54: no effect on characters that already acted, does not affect the user,
+	# and a dazed character still defends normally in a Brawl. All three were
+	# missing, which made the crystals far stronger than the book allows.
+	var r: Dictionary = BattleCalculations.apply_consumable_effect(
+		"kiranin_crystals", {"species_id": "human"})
+	assert_float(r["area_daze_range"]).is_equal(4.0)
+	assert_bool(r["excludes_user"]).is_true()
+	assert_bool(r["excludes_already_acted"]).is_true()
+	assert_bool(r["still_defends_in_brawl"]).is_true()
+
+
+func test_stim_pack_is_reflexive_and_free() -> void:
+	# p.54: "This item can be used reflexively upon becoming a casualty. It does
+	# not require an action."
+	var u := {"species_id": "human"}
+	var r: Dictionary = BattleCalculations.apply_consumable_effect("stim_pack", u)
+	assert_bool(u["has_stim_pack"]).is_true()
+	assert_bool(r["reflexive"]).is_true()
+	assert_bool(r["costs_action"]).is_false()
+
+
+func test_skulker_resists_drugs_but_not_stim_packs_or_crystals() -> void:
+	# Compendium p.17 biological resistance. Stim-packs and Kiranin Crystals are
+	# explicitly NOT affected.
+	for drug in ["booster_pills", "combat_serum", "rage_out", "still"]:
+		var r: Dictionary = BattleCalculations.apply_consumable_effect(
+			drug, {"species_id": "skulker", "speed": 4})
+		assert_bool(r["applied"]).override_failure_message(
+			"a Skulker should resist %s" % drug
+		).is_false()
+	for allowed in ["stim_pack", "kiranin_crystals"]:
+		var r2: Dictionary = BattleCalculations.apply_consumable_effect(
+			allowed, {"species_id": "skulker", "speed": 4})
+		assert_bool(r2["applied"]).override_failure_message(
+			"Skulker resistance must NOT block %s" % allowed
+		).is_true()

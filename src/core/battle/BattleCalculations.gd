@@ -2134,39 +2134,70 @@ static func apply_consumable_effect(
 		return result
 	match consumable_id.to_lower():
 		"booster_pills":
-			# Core Rules p.54: Remove all Stun markers, double Speed this round
+			# p.54 verbatim: "the character removes all Stun markers. They may
+			# move at double normal Speed this round."
+			user["stun_markers"] = 0
 			user["is_stunned"] = false
-			user["speed"] = user.get("speed", 4) * 2
+			user["speed_multiplier_this_round"] = 2
 			result["applied"] = true
-			result["description"] = "Stun cleared, Speed doubled this round"
+			result["expires"] = "end_of_round"
+			result["description"] = "All Stun markers removed, double Speed this round"
 		"combat_serum":
-			# Core Rules p.54: +2" Speed, +2 Reactions for rest of battle
+			# p.54 verbatim: "+2\" Speed and +2 Reactions for the rest of the battle."
 			user["speed"] = user.get("speed", 4) + 2
 			user["reactions"] = user.get("reactions", 1) + 2
 			result["applied"] = true
-			result["description"] = "+2 Speed, +2 Reactions (rest of battle)"
+			result["expires"] = "end_of_battle"
+			result["description"] = "+2\" Speed, +2 Reactions (rest of battle)"
 		"rage_out":
-			# Core Rules p.54: +2" Speed, +1 Brawling roll
+			# p.54 verbatim: "The user gains +2\" Speed and +1 to all Brawling
+			# rolls for the rest of this and the following round. A K'Erin user
+			# gets the benefits for the rest of the battle."
 			user["speed"] = user.get("speed", 4) + 2
 			user["brawl_bonus"] = user.get("brawl_bonus", 0) + 1
+			var is_kerin: bool = user_species in ["k_erin", "kerin", "k'erin"]
+			user["rage_out_rounds_remaining"] = -1 if is_kerin else 2
 			result["applied"] = true
-			result["description"] = "+2 Speed, +1 Brawling"
+			result["expires"] = "end_of_battle" if is_kerin else "after_next_round"
+			result["description"] = ("+2\" Speed, +1 Brawling (rest of battle — K'Erin)"
+				if is_kerin else "+2\" Speed, +1 Brawling (this and next round)")
 		"still":
-			# Core Rules p.54: +1 to Hit, cannot Move this round
+			# p.54 verbatim: "The user gains +1 to Hit, but cannot Move during
+			# this and the next round." The movement lock is NOT one round.
 			user["hit_bonus"] = user.get("hit_bonus", 0) + 1
 			user["cannot_move"] = true
+			user["still_rounds_remaining"] = 2
 			result["applied"] = true
-			result["description"] = "+1 to Hit, cannot Move"
+			result["expires"] = "after_next_round"
+			result["description"] = "+1 to Hit, cannot Move this round or the next"
 		"stim_pack":
-			# Core Rules p.54: If downed, remain in play with 1 Stun marker
+			# p.54 verbatim: "If a character would become a casualty, they remain
+			# on the table with a single Stun marker. This item can be used
+			# reflexively upon becoming a casualty. It does not require an action."
 			user["has_stim_pack"] = true
 			result["applied"] = true
-			result["description"] = "If downed, survive with Stun instead"
+			result["reflexive"] = true
+			result["costs_action"] = false
+			result["description"] = "If downed, remain on the table with 1 Stun marker"
 		"kiranin_crystals":
-			# Core Rules p.54: Daze all characters within 4"
+			# p.54 verbatim: "A bright, dazzling display of hypnotic lights will
+			# daze any character within 4\" of the user, making them unable to
+			# act this round. The crystals have no effect on characters that
+			# already acted earlier in the round, and do not affect the user. A
+			# character that is attacked in Brawling combat will defend
+			# themselves normally."
+			#
+			# All three exclusions were missing — without them the crystals froze
+			# the whole area including the thrower and figures that had already
+			# gone, which is far stronger than the book allows.
 			result["applied"] = true
 			result["area_daze_range"] = 4.0
-			result["description"] = "Daze all within 4\""
+			result["excludes_user"] = true
+			result["excludes_already_acted"] = true
+			result["still_defends_in_brawl"] = true
+			result["expires"] = "end_of_round"
+			result["description"] = ("Daze every character within 4\" that has not "
+				+ "yet acted this round (not the user); they still defend in Brawls")
 	if result["applied"]:
 		result["effects"].append("consumable_used")
 	return result
