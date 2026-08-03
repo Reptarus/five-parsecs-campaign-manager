@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 91 open / 45 fixed / 5 partial-or-blocked.**
+**Status Aug 2 evening: 90 open / 45 fixed / 6 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -94,8 +94,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | turn-upkeep-travel | Ship wreck — accumulated Hull damage destroys the ship | small | A ship reduced to 0 Hull Points is not a wreck — it is merely grounded, and the free 1-point-per-turn repair at rollover (CampaignPhaseManager.gd:673) floats it again next turn. The crew ... | FIXED 95c35bdd0 |
 | turn-upkeep-travel | Emergency Take-off (p.60) — 3D6 hull damage for insisting on travel while damaged | small | The live Travel button is simply DISABLED while the hull is damaged, so the player never gets the book's choice; get_emergency_takeoff_damage() is called only from the dead TravelPhase.gd. Also the only in-space producer for the p.59 wreck branch. | FIXED |
 | turn-upkeep-travel | progress_data["crew_retired"] — campaign archival on crew retirement | one-line | A campaign that ends because the crew retired (rather than by victory or by reaching 20 turns) is never archived to LegacySystem — the crew, story points and turn count are silently dropp... | OPEN |
-| battle-resolution | **1** | only "dead duplicate calculators" — cleanup, no rules impact |
-| turn-upkeep-travel | 7 | World Traits (40 effects) is the big one |
+| turn-upkeep-travel | 6 | World Traits now PARTIAL — 12 traits need a call site |
 | battle-setup | 8 | deployment conditions, seize initiative |
 | post-battle | 11 | Crippling Wound, injury equipment loss |
 | patrons-rivals-quests | 12 | Time Frame never expires; the 30 p.83 BHC subtable entries |
@@ -171,7 +170,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 13 — Character Events 52-55 (Scars), 24-26 (Good Food), 42-45 (Heart to Heart), 67-68 (True Love) (pp.129) | small | Scars Tell the Story is +2 free XP for an uninjured character who should get nothing. Good Food is +1 free XP for a character in Sick Bay who should instead get a turn back. Heart to Hear... | OPEN |
 | post-battle | Step 10 — Advanced Training payment: "The cost can be paid using unspent XP, credits or any combination thereof" (p.124) | medium | The book's own worked example is impossible in the app: a character with 8 XP and 12 credits cannot buy Pilot Training (cost 20). Training is XP-only, so it is unaffordable until very lat... | FIXED c942fec91 |
 | turn-upkeep-travel | Repair Your Kit crew task — the item is actually repaired, and Engineer +1 | medium | The task always reports 'Item repaired' and the damaged item stays damaged forever, so a broken weapon is permanently broken. And an Engineer-species character — the one crew type the boo... | FIXED (this commit) |
-| turn-upkeep-travel | World Traits Table — the 40 traits' mechanical effects | large | The world you land on is a paragraph of text. Fuel refinery does not make travel cost 3, Fuel shortage does not raise it, Lacks starship facilities does not cap repairs, Bureaucratic mess... | OPEN |
+| turn-upkeep-travel | World Traits Table — the 40 traits' mechanical effects | large | The world you land on is a paragraph of text. Fuel refinery does not make travel cost 3, Fuel shortage does not raise it, Lacks starship facilities does not cap repairs, Bureaucratic mess... | PARTIAL 4fe221f50 + a7449cea6 — WorldTraitEffects.gd is now the SSOT and data/world_traits.json carries a structured `effects` block for all 31 campaign-side traits (the 11 battlefield ones stay with FPCM_BattlefieldGenerator, pinned by a test in both directions). 19 traits have a LIVE consumer: fuel_refinery, fuel_shortage, bureaucratic_mess, travel_restricted, high_cost, technical_knowledge, easy_recruiting, opportunities, corporate_state (patron bonus only), restricted_education, expensive_education, heavily_enforced, rampant_crime, dangerous, vendetta_system, invasion_risk, imminent_invasion + military_outpost (invasion roll only), unity_safe_sector. STILL UNWIRED — the resolver exposes each of these, they need a call site: lacks_starship_facilities (repair credit cap), medical_science, bot_manufacturing, shipyards, adventurous_population, booming_economy, busy_markets, weapon_licensing, import_restrictions, free_trade_zone, interdiction, alien_species_restricted, war_progress_modifier (2 traits), corporate_state forced-type + blacklist |
 | turn-upkeep-travel | Resolve Rumors — remove all Rumors from your roster when a Quest is received | small | Rumors are never spent. Once the player banks 5-6 Rumors the D6 succeeds essentially every campaign turn, and because the quest-active gate is also dead, the game hands out a brand-new Qu... | FIXED 2c44839f0 |
 | turn-upkeep-travel | Fleeing an Invasion — you lose everyone you knew on that world, and the shipless/no-credits escape routes | medium | Escaping an invaded world is consequence-free: you keep every Rival and every Patron you built up there, so fleeing is strictly better than staying. And a crew stuck on an invaded world w... | OPEN |
 | turn-upkeep-travel | Sick Bay exit — recovered characters cannot perform a task that campaign turn | small | A character whose last Sick Bay turn ticks off at rollover walks straight into the Crew Tasks screen and takes a full task the same turn — an extra Explore/Trade/Patron roll per recovery ... | OPEN |
@@ -292,11 +291,15 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
 
 **Next up:**
 
-4. **turn-upkeep-travel — World Traits.** 40 traits are flavour text. 11 already
-   have TERRAIN effects wired via the battlefield generator (overgrown, warzone,
-   crystals, barren, flat, haze/gloom/fog, frozen/reflective_dust/null_zone) —
-   do not duplicate those; the gap is the CAMPAIGN-side effects. This is the
-   largest single remaining item a tester will notice.
+~~4. turn-upkeep-travel — World Traits.~~ **MOSTLY DONE `4fe221f50` +
+   `a7449cea6`** — `WorldTraitEffects.gd` is the SSOT, all 31 campaign-side
+   traits carry structured `effects` in JSON, and 19 have a live consumer
+   (travel cost, departure, upkeep, repair, recruiting, patron search, Advanced
+   Training, enemy numbers, Rival conversion, Invasion). The remaining 12 need a
+   CALL SITE only — the resolver already exposes each one, and the tracker row
+   lists them by name. Pick them off wherever you next touch the owning screen;
+   `test_world_trait_effects.gd` fails if a new trait ships without an effects
+   block, so the data side cannot regress.
 
 6. **patrons-rivals-quests — Patron Time Frame never expires** and the p.83
    Benefits/Hazards/Conditions subtables (30 entries) make every Patron job play
