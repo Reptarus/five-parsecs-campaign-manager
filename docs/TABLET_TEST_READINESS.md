@@ -223,7 +223,7 @@ diffing the file after each pop. So the constraint was never "cannot", only
 |---|---|
 | Notable Sight reward call site | **DONE** `7de930a2d` |
 | L176 Sick Bay exit (p.76) | **DONE** `5927ecbe3` |
-| L83 / L169 / L170 Character + Campaign Events | Still open — but this was never a blocked one-liner. It is 12 event effects across two files, each needing its own book verification. Sized as real work, not a wiring gap. |
+| L83 / L169 / L170 Character + Campaign Events | **DONE** — 11 of the 12 implemented (Hurt on Ship was already fixed). Writing them exposed two deeper faults: `ctx.injure_specific_crew` wrote NOTHING (a permanently-false has_method guard over an `is_wounded` set that aborts on a Dictionary), and story points / debt / credits all preferred the GameStateManager autoload, which answers for its OWN campaign — so a phase operating on any other campaign object had its writes absorbed silently. |
 
 The original note, for the record:
 
