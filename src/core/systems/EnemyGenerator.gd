@@ -9,6 +9,7 @@ extends Resource
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const ProgressiveDifficultyRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
 
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
@@ -593,7 +594,20 @@ func generate_enemies_as_dicts(
 	var trait_enemy_mod: int = WorldTraitEffectsClass.enemy_count_modifier(
 		world_traits, effective_category)
 
-	var enemy_count: int = maxi(1, base_count + numbers_mod + trait_enemy_mod)
+	# Patron job Benefits and Hazards that change the size of the opposition
+	# (Core Rules pp.83-84): "Security Team — -1 enemy this turn", "Dangerous Job
+	# — Increase enemy force numbers by +1", "Low Priority — Reduce enemy force
+	# numbers by 1". All three were rolled, attached to the job, and printed in
+	# the battle screen's PATRON CONDITIONS block; none reached the generator, so
+	# a Dangerous Job fielded exactly as many enemies as a Security Team.
+	#
+	# Held separate from numbers_mod for the same reason as the world traits: the
+	# Red Job branch below reuses numbers_mod alone, and p.150 allows the base of
+	# 7 "any modifier from the enemy type encountered" and NO other.
+	var patron_enemy_mod: int = PatronJobEffectsClass.enemy_count_modifier(mission_data)
+
+	var enemy_count: int = maxi(
+		1, base_count + numbers_mod + trait_enemy_mod + patron_enemy_mod)
 
 	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
 	# numbers. Instead, you will encounter a base of 7 figures + any modifier

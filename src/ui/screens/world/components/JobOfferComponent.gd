@@ -9,6 +9,7 @@ class_name JobOfferComponent
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
 const CompendiumMissionsExpanded = preload("res://src/data/compendium_missions_expanded.gd")
+const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
 
 # UI Components
 @onready var job_offer_container: VBoxContainer = %JobOfferContainer
@@ -93,7 +94,48 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 			})
 		return
 
-	# Generate jobs from ALL patrons, not just the first one
+	# Patron offers PERSIST on the campaign; the Quest option is derived fresh
+	# from campaign state every turn and must never be written into that store,
+	# or it would be duplicated on the next visit to this step.
+	var patron_offers: Array[Dictionary] = []
+
+	# Offers the crew is still sitting on from earlier turns, minus any whose
+	# Time Frame has now run out (Core Rules p.83). Before this, offers lived
+	# only on this component and were rebuilt from scratch every turn, so the
+	# rolled Time Frame had nothing to count against: a player could decline
+	# every job forever and the same Patron re-offered fresh work next turn at no
+	# cost, and "This campaign turn" meant precisely nothing.
+	var current_turn: int = _current_campaign_turn()
+	var sifted: Dictionary = _expire_stale_offers(_stored_offers(), current_turn)
+	for expired in sifted.expired:
+		_fail_expired_job(expired, current_turn)
+	for held in sifted.live:
+		if held is Dictionary:
+			patron_offers.append(held)
+
+	# A Patron with a job still on the table does not hand you a second one. The
+	# book's "Busy" Condition — "If the mission is a success, the Patron offers a
+	# new job next campaign turn" (p.84) — is only worth a table slot because a
+	# Patron does NOT automatically produce work every turn.
+	var patrons_with_live_offers: Array[String] = []
+	for held in patron_offers:
+		patrons_with_live_offers.append(str(held.get("patron_id", "")))
+
+	for patron in patrons:
+		var p_data: Dictionary = patron if patron is Dictionary else {"patron_name": str(patron)}
+		var pid: String = _patron_identity(p_data, str(p_data.get("patron_name", "")))
+		if pid in patrons_with_live_offers:
+			continue
+		var patron_jobs: Array[Dictionary] = _generate_job_offers(p_data, location)
+		patron_offers.append_array(patron_jobs)
+
+	# Always generate at least 1 open market opportunity
+	if patron_offers.is_empty():
+		var market_jobs: Array[Dictionary] = _generate_job_offers({}, location)
+		patron_offers.append_array(market_jobs)
+
+	_store_offers(patron_offers)
+
 	var all_jobs: Array[Dictionary] = []
 
 	# "Continue a Quest — If you have an active Quest" (Core Rules p.85, Select
@@ -105,16 +147,7 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	var quest_job: Dictionary = _build_quest_job(location)
 	if not quest_job.is_empty():
 		all_jobs.append(quest_job)
-
-	for patron in patrons:
-		var p_data: Dictionary = patron if patron is Dictionary else {"patron_name": str(patron)}
-		var patron_jobs: Array[Dictionary] = _generate_job_offers(p_data, location)
-		all_jobs.append_array(patron_jobs)
-
-	# Always generate at least 1 open market opportunity
-	if all_jobs.is_empty():
-		var market_jobs: Array[Dictionary] = _generate_job_offers({}, location)
-		all_jobs.append_array(market_jobs)
+	all_jobs.append_array(patron_offers)
 
 	# Store and display
 	job_accepted = false
@@ -484,9 +517,11 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	var final_pay: int = int(base_pay * tier_multiplier) + danger_bonus + danger_pay_credits
 
 	# Roll time frame with patron bonus (Core Rules p.83)
-	var time_frame: String = _roll_time_frame(
+	var time_frame_result: Dictionary = _roll_time_frame(
 		dice_manager, time_frame_bonus
 	)
+	var time_frame: String = time_frame_result.label
+	var offered_turn: int = _current_campaign_turn()
 
 	# Derive mission source for Compendium battle type selection (p.118)
 	var mission_source: String = _derive_mission_source(patron_data)
@@ -519,6 +554,16 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		"pay": final_pay,
 		"danger_level": danger_level,
 		"time_frame": time_frame,
+		# The deadline as a NUMBER, so it can actually run out. Core Rules p.83:
+		# "the number of campaign turns within which you must finish the job. If
+		# the job isn't done when the time runs out, it counts as a failure";
+		# p.85 repeats it for the Rival ambush case. Offers now persist between
+		# turns (progress_data["patron_job_offers"]) and are expired against
+		# this. -1 = the 10+ "Any time" result, which never expires.
+		"offered_on_turn": offered_turn,
+		"time_frame_turns": time_frame_result.turns,
+		"deadline_turn": PatronJobEffectsClass.deadline_turn(
+			offered_turn, time_frame_result.turns),
 		"requirements": requirements,
 		# Benefits / Hazards / Conditions — Core Rules p.83, "Roll 1D10 for each
 		# category". This is the PRIMARY (table-driven) job builder and it
@@ -538,6 +583,186 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	}
 
 	return job
+
+func _campaign() -> Variant:
+	## The live campaign, or null. FiveParsecsCampaignCore is a Resource, so all
+	## turn state lives under `progress_data` rather than as bracket keys.
+	var gs = get_node_or_null("/root/GameState")
+	if not gs:
+		return null
+	var campaign = gs.campaign if "campaign" in gs else null
+	if campaign and "progress_data" in campaign:
+		return campaign
+	return null
+
+
+func _current_campaign_turn() -> int:
+	## The turn BEING PLAYED. `turns_played` counts COMPLETED turns, so the turn
+	## in progress is +1 — the same convention the dashboard, the journal and the
+	## Introductory Campaign check use. Getting this off by one would make every
+	## "This campaign turn" job expire before the player could take it.
+	var campaign = _campaign()
+	if not campaign:
+		return 1
+	return int(campaign.progress_data.get("turns_played", 0)) + 1
+
+
+## Job offers the crew is still sitting on, oldest first (Core Rules p.83). They
+## live on the campaign, not on this component, because the whole point of the
+## Time Frame is that an offer outlives the turn it was made on.
+func _stored_offers() -> Array:
+	var campaign = _campaign()
+	if not campaign:
+		return []
+	var stored: Variant = campaign.progress_data.get("patron_job_offers", [])
+	return stored if stored is Array else []
+
+
+func _store_offers(offers: Array) -> void:
+	var campaign = _campaign()
+	if not campaign:
+		return
+	campaign.progress_data["patron_job_offers"] = offers
+
+
+## Drop every held offer whose Time Frame has run out and report them, so the
+## caller can apply the consequences of the failure the book declares.
+##
+## Core Rules p.83: "If the job isn't done when the time runs out, it counts as
+## a failure." p.85 says the same for the case where Rivals hijack your turn:
+## "Quests and Rumors remain, but a Patron job will fail if the time to complete
+## it has expired."
+func _expire_stale_offers(offers: Array, current_turn: int) -> Dictionary:
+	var live: Array = []
+	var expired: Array = []
+	for offer in offers:
+		if offer is Dictionary and PatronJobEffectsClass.is_expired(offer, current_turn):
+			expired.append(offer)
+		else:
+			live.append(offer)
+	return {"live": live, "expired": expired}
+
+
+## The three Conditions that are REQUIREMENTS rather than effects (Core Rules
+## p.84). Returns {} when the job can be taken, else {reason} for the UI.
+##
+## All three were rolled and printed and gated nothing: a "Small Squad" job still
+## let you deploy six, a "Full Squad" job could be taken by two survivors, and
+## "Reputation Required" could never even be satisfied because nothing recorded a
+## completed Patron job per world.
+func _acceptance_block_reason(job: Dictionary) -> Dictionary:
+	var required: int = PatronJobEffectsClass.required_available_crew(job)
+	if required > 0:
+		var available: int = _available_crew_count()
+		if available < required:
+			return {"reason": "Full Squad: needs %d available crew, you have %d."
+				% [required, available]}
+
+	if PatronJobEffectsClass.forbids_law_enforcement_rivals(job):
+		var campaign = _campaign()
+		var rivals: Array = campaign.rivals if campaign and "rivals" in campaign else []
+		if PatronJobEffectsClass.has_law_enforcement_rival(rivals):
+			return {"reason": "Clean: you have law enforcement Rivals."}
+
+	if PatronJobEffectsClass.requires_prior_patron_job_here(job):
+		if _patron_jobs_completed_here() < 1:
+			return {"reason": "Reputation Required: no prior Patron job completed on this world."}
+
+	return {}
+
+
+## Crew who could actually take the field — the p.84 "Full Squad" Condition asks
+## for "6 available crew", and someone in Sick Bay is not available.
+func _available_crew_count() -> int:
+	var crew: Array = GameStateManager.get_crew_members()
+	var count: int = 0
+	for member in crew:
+		var in_sick_bay: bool = false
+		var status: String = ""
+		if member is Dictionary:
+			in_sick_bay = bool(member.get("in_sick_bay", false)) \
+				or int(member.get("recovery_turns", 0)) > 0
+			status = str(member.get("status", ""))
+		elif member != null:
+			in_sick_bay = bool(member.get("in_sick_bay")) if "in_sick_bay" in member else false
+			if not in_sick_bay and "recovery_turns" in member:
+				in_sick_bay = int(member.recovery_turns) > 0
+			status = str(member.status) if "status" in member else ""
+		if in_sick_bay:
+			continue
+		if status.to_lower() in ["dead", "retired", "departed", "missing"]:
+			continue
+		count += 1
+	return count
+
+
+func _patron_jobs_completed_here() -> int:
+	var campaign = _campaign()
+	if not campaign:
+		return 0
+	var log: Dictionary = campaign.progress_data.get("patron_jobs_completed_by_world", {})
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	if pdm and "current_planet_id" in pdm:
+		var pid: String = str(pdm.current_planet_id)
+		if pid != "" and log.has(pid):
+			return int(log[pid])
+	var planet = pdm.get_current_planet() if pdm and pdm.has_method("get_current_planet") else null
+	if planet:
+		var pname: String = str(planet.get("name", "")) if planet is Dictionary else str(planet.name)
+		if log.has(pname):
+			return int(log[pname])
+	return 0
+
+
+## An offer whose Time Frame ran out. Core Rules p.83: "If the job isn't done
+## when the time runs out, it counts as a failure."
+##
+## The one consequence the book attaches EXPLICITLY to a failed mission is the
+## Vengeful Condition (p.84): "If the mission fails, the Patron becomes a Rival."
+## The errata v1.06 rule that a failed job also drops the Patron from your
+## contacts is deliberately NOT applied here — it lives in post-battle Step 2
+## (p.119), which is gated on a battle having been fought, and an offer that was
+## never accepted never reached it. Extending it to a lapsed offer would be our
+## extrapolation, not the book's rule.
+func _fail_expired_job(job: Dictionary, current_turn: int) -> void:
+	var patron_name: String = str(job.get("patron_name", job.get("patron", "A patron")))
+	var became_rival: bool = false
+
+	if PatronJobEffectsClass.patron_becomes_rival_on_failure(job):
+		var campaign = _campaign()
+		if campaign and "rivals" in campaign:
+			campaign.rivals.append({
+				"id": "rival_expired_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
+				"name": patron_name,
+				"type": "Personal",
+				"hostility": 4,
+				"resources": 2,
+				"source": "vengeful_patron",
+			})
+			became_rival = true
+
+	var summary: String = "%s's job expired unfinished (%s)." % [
+		patron_name, str(job.get("objective", "job"))]
+	if became_rival:
+		summary += " Vengeful: they are now a Rival."
+
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "campaign",
+			"title": "Patron job expired",
+			"content": summary,
+			"turn": current_turn,
+			"location": str(job.get("location", "")),
+		})
+
+	if event_bus:
+		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.JOB_OFFERS_GENERATED, {
+			"expired_job": job,
+			"patron_name": patron_name,
+			"became_rival": became_rival,
+		})
+
 
 func _patron_identity(patron_data: Dictionary, patron_name: String) -> String:
 	## Stable identity for the Patron behind a job offer (Core Rules p.119 Step 2).
@@ -586,7 +811,9 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 
 	# 3. Roll Time Frame with patron bonus
 	var time_frame_bonus = patron_info.time_frame_bonus if patron_type == "Secretive Group" else 0
-	var time_frame = _roll_time_frame(dice_manager, time_frame_bonus)
+	var time_frame_result: Dictionary = _roll_time_frame(dice_manager, time_frame_bonus)
+	var time_frame: String = time_frame_result.label
+	var offered_turn: int = _current_campaign_turn()
 
 	# 4. Roll Objective
 	var objective_info = _roll_objective(dice_manager)
@@ -609,6 +836,10 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 		"danger_pay": danger_pay.credits,
 		"double_roll_bonus": danger_pay.double_roll_bonus,
 		"time_frame": time_frame,
+		"offered_on_turn": offered_turn,
+		"time_frame_turns": time_frame_result.turns,
+		"deadline_turn": PatronJobEffectsClass.deadline_turn(
+			offered_turn, time_frame_result.turns),
 		"benefits": bhc.benefits,
 		"hazards": bhc.hazards,
 		"conditions": bhc.conditions,
@@ -685,22 +916,31 @@ func _roll_danger_pay(dice_manager, bonus: int = 0) -> Dictionary:
 		"double_roll_bonus": double_roll_bonus
 	}
 
-func _roll_time_frame(dice_manager, bonus: int = 0) -> String:
-	## Roll on Time Frame Table (D10) - Core Rules p.78
-	var roll = 5
+func _roll_time_frame(dice_manager, bonus: int = 0) -> Dictionary:
+	## Roll on the Time Frame Table (D10, Core Rules p.83): "the number of
+	## campaign turns within which you must finish the job. If the job isn't done
+	## when the time runs out, it counts as a failure."
+	##
+	## This used to return the display String ALONE, and that String had zero
+	## readers anywhere in src/ — so the deadline existed only as a sentence in
+	## the offer summary. Returning the turn count as well is what lets the job
+	## carry a real `deadline_turn` that the World Phase can expire it against.
+	var roll: int = 5
 	if dice_manager and dice_manager.has_method("roll_d10"):
 		roll = dice_manager.roll_d10() + bonus
 	elif dice_manager:
 		roll = (dice_manager.roll_d6() + dice_manager.roll_d6()) % 10 + 1 + bonus
 
-	if roll <= 5:
-		return "This campaign turn"
-	elif roll <= 7:
-		return "This or next turn"
-	elif roll <= 9:
-		return "Within 2 turns"
-	else:
-		return "Any time"
+	var turns: int = PatronJobEffectsClass.time_frame_turns(roll)
+	var label: String = "Any time"
+	if turns == 1:
+		label = "This campaign turn"
+	elif turns == 2:
+		label = "This or the next campaign turn"
+	elif turns == 3:
+		label = "This or the following 2 campaign turns"
+
+	return {"roll": roll, "turns": turns, "label": label}
 
 func _roll_objective(dice_manager) -> Dictionary:
 	## Roll on Patron Mission Objectives (D10) - Core Rules p.100
@@ -739,36 +979,28 @@ func _roll_objective(dice_manager) -> Dictionary:
 	}
 
 func _roll_bhc(dice_manager, patron_type: String) -> Dictionary:
-	## Roll for Benefits, Hazards, Conditions based on patron type
-	var result = {
-		"benefits": [],
-		"hazards": [],
-		"conditions": []
-	}
+	## Roll Benefits, Hazards and Conditions for this patron type (Core Rules
+	## p.83: "Roll 1D10 for each category").
+	##
+	## The thresholds and all 21 subtable rows used to be hardcoded HERE, a second
+	## copy of data that patron_generation.json already held — so the JSON was
+	## decorative and a correction to it would have changed nothing in play.
+	## PatronJobEffects is now the single reader AND roller, which is also what
+	## gives each attached entry a stable `id` for the consumers to gate on.
+	var result: Dictionary = {"benefits": [], "hazards": [], "conditions": []}
 
-	# Thresholds by patron type (roll must be >= threshold)
-	var thresholds = {
-		"Corporation": {"benefits": 8, "hazards": 8, "conditions": 5},
-		"Local Government": {"benefits": 8, "hazards": 8, "conditions": 8},
-		"Sector Government": {"benefits": 8, "hazards": 8, "conditions": 8},
-		"Wealthy Individual": {"benefits": 5, "hazards": 8, "conditions": 8},
-		"Private Organization": {"benefits": 8, "hazards": 8, "conditions": 8},
-		"Secretive Group": {"benefits": 8, "hazards": 5, "conditions": 8}
-	}
-
-	var patron_thresholds = thresholds.get(patron_type, {"benefits": 8, "hazards": 8, "conditions": 8})
-
-	# Roll for each category
-	var benefit_roll = _roll_d10_simulated(dice_manager)
-	var hazard_roll = _roll_d10_simulated(dice_manager)
-	var condition_roll = _roll_d10_simulated(dice_manager)
-
-	if benefit_roll >= patron_thresholds.benefits:
-		result.benefits.append(_roll_benefit_subtable(dice_manager))
-	if hazard_roll >= patron_thresholds.hazards:
-		result.hazards.append(_roll_hazard_subtable(dice_manager))
-	if condition_roll >= patron_thresholds.conditions:
-		result.conditions.append(_roll_condition_subtable(dice_manager))
+	for category in PatronJobEffectsClass.CATEGORIES:
+		var roll: int = _roll_d10_simulated(dice_manager)
+		if roll < PatronJobEffectsClass.threshold(patron_type, category):
+			continue
+		var entry: Dictionary = PatronJobEffectsClass.entry_for_roll(
+			category, _roll_d10_simulated(dice_manager))
+		if not entry.is_empty():
+			result[category].append({
+				"id": entry.get("id", ""),
+				"name": entry.get("name", ""),
+				"effect": entry.get("effect", ""),
+			})
 
 	return result
 
@@ -779,66 +1011,6 @@ func _roll_d10_simulated(dice_manager) -> int:
 	elif dice_manager:
 		return (dice_manager.roll_d6() + dice_manager.roll_d6()) % 10 + 1
 	return 5
-
-func _roll_benefit_subtable(dice_manager) -> Dictionary:
-	## Roll on Benefits Subtable (D10)
-	var roll = _roll_d10_simulated(dice_manager)
-
-	match roll:
-		1, 2:
-			return {"name": "Fringe Benefit", "effect": "Roll on the Loot Table"}
-		3, 4:
-			return {"name": "Connections", "effect": "Gain a Rumor"}
-		5:
-			return {"name": "Company Store", "effect": "Roll on the Trade Table"}
-		6:
-			return {"name": "Health Insurance", "effect": "2 turns of injury recovery"}
-		7:
-			return {"name": "Security Team", "effect": "Reduce enemy numbers by 1"}
-		8, 9:
-			return {"name": "Persistent", "effect": "Patron remains if you travel"}
-		10, _:
-			return {"name": "Negotiable", "effect": "Reroll Danger Pay, keep better"}
-
-func _roll_hazard_subtable(dice_manager) -> Dictionary:
-	## Roll on Hazards Subtable (D10)
-	var roll = _roll_d10_simulated(dice_manager)
-
-	match roll:
-		1, 2:
-			return {"name": "Dangerous Job", "effect": "+1 enemy numbers"}
-		3, 4:
-			return {"name": "Hot Job", "effect": "Earn enemy on 1-2 instead of 1"}
-		5:
-			return {"name": "VIP", "effect": "Random enemy has +1 Toughness, +2 Combat"}
-		6:
-			return {"name": "Veteran Opposition", "effect": "Enemy -1 panic range"}
-		7:
-			return {"name": "Low Priority", "effect": "Reduce enemy numbers by 1"}
-		8, 9, 10, _:
-			return {"name": "Private Transport", "effect": "Rivals can't track you this turn"}
-
-func _roll_condition_subtable(dice_manager) -> Dictionary:
-	## Roll on Conditions Subtable (D10)
-	var roll = _roll_d10_simulated(dice_manager)
-
-	match roll:
-		1:
-			return {"name": "Vengeful", "effect": "Failure makes Patron a Rival"}
-		2, 3:
-			return {"name": "Demanding", "effect": "Danger Pay only on success"}
-		4:
-			return {"name": "Small Squad", "effect": "Max 4 crew deployment"}
-		5:
-			return {"name": "Full Squad", "effect": "Must have 6 available crew"}
-		6:
-			return {"name": "Clean", "effect": "Cannot have law enforcement Rivals"}
-		7, 8:
-			return {"name": "Busy", "effect": "Success = new job next turn"}
-		9:
-			return {"name": "One-time Contract", "effect": "Patron can't be retained"}
-		10, _:
-			return {"name": "Reputation Required", "effect": "Need prior job on this world"}
 
 func _determine_enemy_type(mission_source: String = "patron") -> String:
 	## Determine enemy type using D100 encounter tables from enemy_types.json.
@@ -957,7 +1129,31 @@ func accept_selected_job() -> bool:
 		return false
 
 	var job = available_jobs[selected_job_index]
+
+	# Core Rules p.84 Conditions that are REQUIREMENTS: Full Squad, Clean and
+	# Reputation Required. Refusing here is the whole content of those three
+	# table rows; before this they were printed in the offer and enforced nowhere.
+	var gate: Dictionary = _acceptance_block_reason(job)
+	if not gate.is_empty():
+		push_warning("JobOfferComponent: job blocked — %s" % gate.reason)
+		if job_details_label:
+			job_details_label.text = "CANNOT ACCEPT\n\n%s" % gate.reason
+		return false
+
 	job_accepted = true
+
+	# Taking the job consumes the offer. Declining deliberately does NOT: Core
+	# Rules p.83 gives the offer a Time Frame of up to three campaign turns, so
+	# passing on it today leaves it on the table until that runs out. Matched by
+	# id rather than index because the Quest option is prepended to the visible
+	# list and is not part of the persisted store.
+	var accepted_id: String = str(job.get("id", ""))
+	if accepted_id != "":
+		var remaining: Array = []
+		for offer in _stored_offers():
+			if offer is Dictionary and str(offer.get("id", "")) != accepted_id:
+				remaining.append(offer)
+		_store_offers(remaining)
 
 	# Publish job accepted event
 	if event_bus:
@@ -1007,13 +1203,18 @@ func _update_ui_display() -> void:
 	## Update UI display with current job offers
 	if job_list:
 		job_list.clear()
+		var current_turn: int = _current_campaign_turn()
 		for i in range(available_jobs.size()):
 			var job = available_jobs[i]
+			# The deadline is recomputed against the CURRENT turn: a job held over
+			# from last turn must read "Expires this campaign turn", not repeat the
+			# wording it was born with. Held offers made the stale label actively
+			# misleading, which is the moment a rolled Time Frame started to matter.
 			var job_text = "%s (%s) - +%d cr - %s" % [
 				job.get("objective", "Unknown"),
 				job.get("patron_type", "Unknown"),
 				job.get("pay", job.get("danger_pay", 0)),  # total estimate, not the pure danger-pay component
-				job.get("time_frame", "Unknown")
+				PatronJobEffectsClass.deadline_label(job, current_turn)
 			]
 			job_list.add_item(job_text)
 	else:
@@ -1071,7 +1272,14 @@ func _update_job_details() -> void:
 	details += "DANGER PAY: +%d credits\n" % job.get("danger_pay", 0)
 	if job.get("double_roll_bonus", false):
 		details += "(Bonus: Roll twice for mission pay, keep higher)\n"
-	details += "TIME FRAME: %s\n\n" % job.get("time_frame", "Unknown")
+	details += "TIME FRAME: %s\n" % PatronJobEffectsClass.deadline_label(
+		job, _current_campaign_turn())
+	# Requirements the player must satisfy BEFORE the Accept button will take
+	# (Core Rules p.84 Conditions). Stated up front rather than only refusing.
+	var gate: Dictionary = _acceptance_block_reason(job)
+	if not gate.is_empty():
+		details += "REQUIREMENT: %s\n" % gate.reason
+	details += "\n"
 
 	# Enemy
 	details += "ENEMY: %s\n" % job.get("enemy_type", "Unknown")

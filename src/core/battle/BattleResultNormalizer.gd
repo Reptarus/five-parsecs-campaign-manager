@@ -102,7 +102,23 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# system on the p.119 Rival roll). Carried from the mission rather
 			# than re-read at post-battle time so the world the fight happened on
 			# is the world that scores it — the crew may have travelled since.
-			"world_traits"]:
+			"world_traits",
+			# benefits / hazards / conditions added 2026-08-02: the p.83-84 BHC
+			# subtables. Every one of the 30 entries was rolled, forwarded into
+			# mission_data, rendered by TacticalBattleUI as a "PATRON CONDITIONS"
+			# block of coloured text — and read by no consumer at all, so every
+			# Patron job played identically. The post-battle half needs all three
+			# lists to reach battle_result: "Vengeful" (p.84, patron becomes a
+			# Rival on failure), "Hot Job" (p.84, the p.119 Rival roll widens to
+			# 1-2), "One-time Contract" (p.119 Step 2's named exception to adding
+			# the Patron) and "Demanding" (p.84, Danger Pay only on success) all
+			# gate on them.
+			"benefits", "hazards", "conditions",
+			# double_roll_bonus: the p.83 Danger Pay 10+ result, "roll twice,
+			# picking the higher die when rolling for mission pay after the
+			# battle". Rolled and advertised in the offer since forever, read by
+			# nobody — those jobs paid a single 1D6 like any other.
+			"double_roll_bonus"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
 	# 5b) is_invasion is DERIVED, not merely copied. The only marker an Invasion

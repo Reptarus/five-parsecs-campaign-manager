@@ -1355,6 +1355,11 @@ func _complete_world_phase() -> void:
 					# Get Paid, where it is added on top of the 1D6 base for a Patron
 					# job (p.120). Merged into battle_results by _on_battle_completed.
 					"danger_pay": job_results.get("danger_pay", 0),
+					# Danger Pay 10+ (Core Rules p.83): "roll twice, picking the
+					# higher die when rolling for mission pay after the battle".
+					# The job has always carried this flag and the offer summary
+					# advertised it; it stopped here, so the promise was never kept.
+					"double_roll_bonus": job_results.get("double_roll_bonus", false),
 					"danger_level": job_results.get("danger_level", 1),
 					"time_frame": job_results.get("time_frame", ""),
 					# Patron Conditions (Core Rules pp.79-80). The job rolls these

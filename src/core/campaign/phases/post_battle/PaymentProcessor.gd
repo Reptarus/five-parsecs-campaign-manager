@@ -10,6 +10,7 @@ const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd"
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
+const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -230,6 +231,16 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 			credit_roll = maxi(credit_roll, third_roll)
 		credit_roll += 1
 
+	# Danger Pay 10+ (Core Rules p.83): "+3 credits and roll twice, picking the
+	# higher die when rolling for mission pay after the battle." JobOfferComponent
+	# has always rolled this and stamped `double_roll_bonus` on the offer, and the
+	# offer summary advertised "Roll twice for mission pay, keep higher" — but the
+	# flag never crossed into the post-battle step, so those jobs paid a single
+	# 1D6 like every other. Average mission pay on them was ~3.5 instead of ~4.5.
+	if ctx.battle_result.get("double_roll_bonus", false):
+		var danger_second_roll: int = ctx.roll_d6("Danger Pay 10+ second roll")
+		credit_roll = maxi(credit_roll, danger_second_roll)
+
 	# Easy mode: +1 credit (Core Rules p.64)
 	var difficulty: int = ctx.get_campaign_difficulty()
 	if difficulty == GlobalEnums.DifficultyLevel.EASY:
@@ -245,6 +256,13 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	# Invasion-only denial handled at line 31). Compendium p.151 confirms Black Zone
 	# failures still receive normal post-battle rewards.
 	var danger_pay: int = ctx.battle_result.get("danger_pay", 0)
+	# "Demanding — Danger Pay is only upon success" (Core Rules p.84 Conditions
+	# Subtable), the named exception to p.83's default that Danger Pay "is paid
+	# even if the mission fails, but only if the mission is attempted". The
+	# Condition was rolled and displayed and never withheld a credit.
+	if danger_pay > 0 and not ctx.mission_successful \
+			and PatronJobEffects.danger_pay_on_success_only(ctx.battle_result):
+		danger_pay = 0
 	var total_payment: int = credit_roll + danger_pay
 
 	# GameState has NO add_credits (credits are owned by GameStateManager) — so

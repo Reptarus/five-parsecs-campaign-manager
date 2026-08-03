@@ -10,6 +10,24 @@ const PostBattleContextClass = preload("res://src/core/campaign/phases/post_batt
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 const WorldTraitEffects = preload("res://src/core/world/WorldTraitEffects.gd")
+const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
+
+## Remember that a Patron job was completed here, for the p.84 "Reputation
+## Required" Condition ("You must have completed a prior Patron job on this
+## world"). Keyed by planet id, falling back to the location name for campaigns
+## whose battle results predate a planet id.
+func _record_patron_job_completed(ctx: PostBattleContextClass) -> void:
+	var campaign = ctx.campaign
+	if campaign == null or not "progress_data" in campaign:
+		return
+	var key: String = str(ctx.battle_result.get("planet_id", ""))
+	if key.is_empty():
+		key = str(ctx.battle_result.get("location", ""))
+	if key.is_empty():
+		return
+	var log: Dictionary = campaign.progress_data.get("patron_jobs_completed_by_world", {})
+	log[key] = int(log.get(key, 0)) + 1
+	campaign.progress_data["patron_jobs_completed_by_world"] = log
 
 func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 	## Step 1: Resolve Rival Status. Returns {rivals_removed, new_rivals}.
@@ -67,6 +85,13 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 		# was rolled, stored and displayed and doubled nothing.
 		var rival_threshold: int = WorldTraitEffects.rival_conversion_threshold(
 			1, ctx.battle_result.get("world_traits", []))
+		# "Hot Job — After the job, you will earn an enemy on 1-2 instead of the
+		# normal roll of a 1" (Core Rules p.84 Hazards Subtable). Composes onto the
+		# world trait rather than replacing it: both widen the same p.119 roll, and
+		# taking the wider of the two is the only reading that does not silently
+		# cancel one of them.
+		rival_threshold = PatronJobEffects.rival_conversion_threshold(
+			rival_threshold, ctx.battle_result)
 		if new_rival_roll <= rival_threshold:
 			var new_rival_id: String = _create_new_rival_from_battle(ctx)
 			if new_rival_id != "":
@@ -122,14 +147,36 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		# Pass THIS Patron. Core Rules p.119 is "add the Patron" — the one whose job
 		# you just finished. The bare call generated a random stranger instead, so
 		# the contact you earned was never the contact you got.
-		ctx.add_patron({
-			"id": str(patron_id),
-			"name": str(ctx.battle_result.get("patron_name", patron_id)),
-			"type": str(ctx.battle_result.get("patron_type", "")),
-			"source": "completed_job",
-			"planet_id": str(ctx.battle_result.get("planet_id", "")),
-		})
-		patrons_added.append(str(patron_id))
+		# "If you succeeded in a Patron mission, you may add the Patron to your list
+		# of contacts on this planet, UNLESS THE JOB WAS A ONE-TIME CONTRACT"
+		# (Core Rules p.119 Step 2, naming the p.84 Condition as its exception).
+		# The exception was unimplemented: a One-time Contract patron was retained
+		# like any other, which is the entire content of that table row.
+		var retainable: bool = PatronJobEffects.patron_is_retainable(ctx.battle_result)
+		if retainable:
+			ctx.add_patron({
+				"id": str(patron_id),
+				"name": str(ctx.battle_result.get("patron_name", patron_id)),
+				"type": str(ctx.battle_result.get("patron_type", "")),
+				"source": "completed_job",
+				"planet_id": str(ctx.battle_result.get("planet_id", "")),
+			})
+			patrons_added.append(str(patron_id))
+		elif ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+			ctx.campaign_journal.create_entry({
+				"type": "event",
+				"title": "One-time contract closed",
+				"description": "The job is done and the contact ends with it — a "
+					+ "One-time Contract patron cannot be retained (Core Rules p.119).",
+				"turn": int(ctx.battle_result.get("turn", 0)),
+				"tags": ["patron"],
+			})
+
+		# "Reputation Required — You must have completed a prior Patron job on this
+		# world" (p.84) needs somebody to REMEMBER that you did. Nothing recorded
+		# it, so that Condition could never be satisfied by any play — it was a
+		# permanent refusal rather than a requirement.
+		_record_patron_job_completed(ctx)
 
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
@@ -153,6 +200,24 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		# that turning a job down carries no consequence: "You can turn down a
 		# job from a known Patron without any consequence. They remain a known
 		# Patron."
+		# "Vengeful — If the mission fails, the Patron becomes a Rival" (Core Rules
+		# p.84 Conditions Subtable). Rolled, displayed in the offer summary and in
+		# the battle screen's PATRON CONDITIONS block, and applied nowhere: a
+		# Vengeful patron shrugged off a failed mission exactly like any other.
+		if PatronJobEffects.patron_becomes_rival_on_failure(ctx.battle_result):
+			var vengeful_name: String = str(ctx.battle_result.get(
+				"patron_name", ctx.battle_result.get("patron", "Vengeful Patron")))
+			ctx.add_rival(vengeful_name)
+			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+				ctx.campaign_journal.create_entry({
+					"type": "event",
+					"title": "A patron turns on you",
+					"description": "%s took the failure personally. Vengeful: they are now a Rival (Core Rules p.84)."
+						% vengeful_name,
+					"turn": int(ctx.battle_result.get("turn", 0)),
+					"tags": ["patron", "rival", "defeat"],
+				})
+
 		var failed_patron_id: String = str(ctx.battle_result.get("patron_id", ""))
 		if ctx.remove_patron(failed_patron_id):
 			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):

@@ -23,6 +23,8 @@ extends RefCounted
 ## The single setup-time caller is CampaignTurnController._initiate_battle_
 ## sequence; the loss penalties are consumed post-battle from the same bundle.
 
+const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
+
 ## Rival attack types, Core Rules p.91 D10 table:
 ##   1 Ambush / 2-3 Brought friends / 4-7 Showdown / 8 Assault / 9-10 Raid
 const RIVAL_AMBUSH := "AMBUSH"
@@ -44,6 +46,11 @@ static func _empty_bundle() -> Dictionary:
 	return {
 		"enemy_delta": 0,
 		"crew_cap_delta": 0,
+		# An ABSOLUTE ceiling on the deployment, not a modifier: "Small Squad —
+		# You cannot deploy more than 4 crew" (Core Rules p.84) caps at 4 whether
+		# the campaign crew size is 4, 5 or 6. 0 = no ceiling. Kept distinct from
+		# crew_cap_delta so the two compose instead of one overwriting the other.
+		"crew_cap_max": 0,
 		"can_seize_initiative": true,
 		"panic_range_delta": 0,
 		"hold_rounds": 0,
@@ -74,7 +81,43 @@ static func compute(
 	_apply_invasion(b, mission_data)
 	_apply_objective(b, mission_data)
 	_apply_deployment_condition(b, mission_data, enemy_count, crew_count)
+	_apply_patron_conditions(b, mission_data)
 	return b
+
+
+## Patron job Hazards and Conditions that change the SETUP (Core Rules pp.83-84).
+##
+## Both were rolled, attached to the job and rendered in the battle screen's
+## PATRON CONDITIONS block, and neither reached the setup: a "Small Squad" job
+## still let a crew of six deploy six, and "Veteran Opposition" enemies bailed on
+## exactly the same roll as anyone else.
+##
+## Direction note on Bail: p.84 says "Enemy is -1 to Bail Range", and a LOWER
+## Bail Range means they hold on longer. That is the opposite sign convention to
+## p.88's "Enemy Morale +1", which the Compendium p.49 Leadership table settles
+## as ALSO meaning the panic range goes down. Both are enemy buffs; only the
+## wording differs, so both are negative deltas here.
+static func _apply_patron_conditions(b: Dictionary, mission_data: Dictionary) -> void:
+	var cap: int = PatronJobEffects.max_deploy_crew(mission_data)
+	if cap > 0:
+		b["crew_cap_max"] = cap
+		b["setup_notes"].append(
+			"Small Squad: deploy no more than %d crew (p.84)." % cap)
+		b["sources"].append("patron_condition:small_squad")
+
+	var bail: int = PatronJobEffects.enemy_bail_modifier(mission_data)
+	if bail != 0:
+		b["panic_range_delta"] += bail
+		b["setup_notes"].append(
+			"Veteran Opposition: enemy Bail Range %d (p.84)." % bail)
+		b["sources"].append("patron_hazard:veteran_opposition")
+
+	if PatronJobEffects.has_vip_enemy(mission_data):
+		b["setup_notes"].append(
+			"VIP: one random enemy has +%d Toughness and Combat Skill %+d (p.84)."
+			% [PatronJobEffects.vip_toughness_bonus(mission_data),
+				PatronJobEffects.vip_combat_skill_final(mission_data)])
+		b["sources"].append("patron_hazard:vip")
 
 
 ## Objectives that modify the SETUP rather than the win condition.

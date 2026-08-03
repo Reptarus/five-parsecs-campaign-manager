@@ -1292,6 +1292,12 @@ func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> 
 				var setup_rules: Dictionary = mission_data.get("setup_rules", {})
 				deploy_limit = maxi(1,
 					deploy_limit + int(setup_rules.get("crew_cap_delta", 0)))
+				# "Small Squad — You cannot deploy more than 4 crew" (p.84) is an
+				# absolute ceiling, applied AFTER the deltas so a scenario that
+				# already shrank the squad cannot push back above it.
+				var hard_cap: int = int(setup_rules.get("crew_cap_max", 0))
+				if hard_cap > 0:
+					deploy_limit = mini(deploy_limit, hard_cap)
 				pre_battle_ui.setup_crew_selection(
 					_deployable(crew_data), deploy_limit)
 
