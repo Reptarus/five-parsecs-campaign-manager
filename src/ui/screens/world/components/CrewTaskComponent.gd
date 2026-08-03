@@ -465,6 +465,18 @@ func _on_resolve_all_pressed() -> void:
 		task_data.resolved = true
 		task_data.result = result
 	
+	# Trade Table rolls the crew did not have to spend a task on. Two rules grant
+	# them, and both routed nowhere before this:
+	#   "Company Store — Roll on the Trade Table (p.79)" (Core Rules p.84, the
+	#   Benefits Subtable, paid out on a successful Patron job)
+	#   "Free trade zone — You receive one free Trade roll each campaign turn"
+	#   (p.74 World Trait)
+	# They resolve through THIS pipeline rather than a second copy of it, so the
+	# 100-row table, its runtime sub-rolls and the event-queue payout stay in one
+	# place — the awards were rewritten once already and must not fork.
+	for free_result in _resolve_free_trade_rolls():
+		resolution_results.append(free_result)
+
 	# Update completion state
 	all_tasks_resolved = _check_all_tasks_resolved()
 	completed_tasks = resolution_results
@@ -792,6 +804,49 @@ func _generate_and_add_patron(count: int) -> void:
 			if campaign and "patrons" in campaign:
 				campaign.patrons.append(fallback)
 	pjm.free()
+
+## Free Trade Table rolls owed to the crew this turn, resolved as ordinary Trade
+## results so the event queue pays them out exactly like a crew-assigned Trade.
+##
+## Sources: the p.84 "Company Store" Benefit banks one per successful Patron job
+## into progress_data["pending_free_trade_rolls"]; the p.74 "Free trade zone"
+## World Trait grants one every turn on that world. The banked count is consumed
+## here — the trait's is not, because it recurs.
+func _resolve_free_trade_rolls() -> Array:
+	var out: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.current_campaign if gs else null
+	if campaign == null or not "progress_data" in campaign:
+		return out
+
+	var banked: int = int(campaign.progress_data.get("pending_free_trade_rolls", 0))
+	var from_trait: int = WorldTraitEffectsClass.free_trade_rolls_per_turn(
+		_current_world_traits())
+	var total: int = banked + from_trait
+	if total <= 0:
+		return out
+
+	for i in range(total):
+		var source: String = "Company Store (p.84)" if i < banked else "Free trade zone (p.74)"
+		var result: Dictionary = {
+			"crew_id": "",
+			"crew_name": source,
+			"task_name": "Free Trade Roll",
+			"task_id": "trade",
+			"roll": 0,
+			"modified_roll": 0,
+			"success": true,
+			"details": "",
+			"reward": "",
+		}
+		_resolve_table_task(result, {"id": "trade", "name": "Trade"}, {})
+		out.append(result)
+
+	# Only the BANKED rolls are spent. Leaving them would pay the same Company
+	# Store benefit again every turn for the rest of the campaign.
+	campaign.progress_data["pending_free_trade_rolls"] = 0
+	return out
+
 
 func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
 	## Resolve table roll tasks (Trade, Explore)

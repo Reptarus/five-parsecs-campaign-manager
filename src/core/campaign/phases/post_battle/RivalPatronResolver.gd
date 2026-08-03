@@ -11,6 +11,8 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 const WorldTraitEffects = preload("res://src/core/world/WorldTraitEffects.gd")
 const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
+const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
+const EquipmentTransferService = preload("res://src/core/equipment/EquipmentTransferService.gd")
 
 ## Remember that a Patron job was completed here, for the p.84 "Reputation
 ## Required" Condition ("You must have completed a prior Patron job on this
@@ -28,6 +30,94 @@ func _record_patron_job_completed(ctx: PostBattleContextClass) -> void:
 	var log: Dictionary = campaign.progress_data.get("patron_jobs_completed_by_world", {})
 	log[key] = int(log.get(key, 0)) + 1
 	campaign.progress_data["patron_jobs_completed_by_world"] = log
+
+## Pay out the p.83-84 Benefits earned by finishing the job. "Benefits are paid
+## out ONLY if the mission is a success" (p.83), so this is only reached from the
+## success branch of Step 2.
+##
+## The four payout rows: Fringe Benefit (a Loot Table roll, p.131), Connections
+## (a Rumor), Company Store (a Trade Table roll, p.79) and Health Insurance (two
+## campaign turns of injury recovery). The other three Benefits are structural —
+## Security Team shapes the battle, Persistent and Negotiable shape the Patron
+## relationship — and are applied at their own moments, not here.
+func _pay_out_benefits(ctx: PostBattleContextClass) -> void:
+	var rewards: Array = PatronJobEffects.success_rewards(ctx.battle_result)
+	if rewards.is_empty():
+		return
+
+	var paid: Array[String] = []
+	for reward in rewards:
+		match str(reward.get("reward", "")):
+			"loot_roll":
+				# Routed through the sanctioned stash mutator rather than a second
+				# copy of LootProcessor's private helper — one item, one home.
+				if ctx.campaign != null:
+					var transfer := EquipmentTransferService.new(ctx.campaign)
+					for item in LootTableResolver.roll_loot():
+						if item is Dictionary:
+							transfer.add_loot_to_stash(item)
+					paid.append("Fringe Benefit: a roll on the Loot Table")
+			"rumor":
+				ctx.add_quest_rumor()
+				paid.append("Connections: a Rumor")
+			"trade_roll":
+				# Banked rather than resolved here: the Trade Table's 100 rows,
+				# their runtime sub-rolls and the event-queue payout all live in
+				# the World Phase pipeline, and that logic must not fork.
+				# CrewTaskComponent._resolve_free_trade_rolls() spends it.
+				if ctx.campaign and "progress_data" in ctx.campaign:
+					var banked: int = int(ctx.campaign.progress_data.get(
+						"pending_free_trade_rolls", 0))
+					ctx.campaign.progress_data["pending_free_trade_rolls"] = banked + 1
+				paid.append("Company Store: a free Trade Table roll next World Phase")
+			"injury_recovery":
+				var turns: int = int(reward.get("recovery_turns", 2))
+				paid.append("Health Insurance: %d turns of injury recovery" % turns)
+				_apply_recovery_credit(ctx, turns)
+
+	if paid.is_empty():
+		return
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "event",
+			"title": "Patron benefits paid",
+			"description": "The job came with more than the fee — %s (Core Rules p.83)."
+				% ", ".join(paid),
+			"turn": int(ctx.battle_result.get("turn", 0)),
+			"tags": ["patron", "reward"],
+		})
+
+
+## "Health Insurance — Mark down 2 campaign turns of injury recovery, assigned as
+## you see fit" (p.84). The book leaves the assignment to the player; spending
+## the whole credit on the LONGEST current recovery is the choice that can never
+## waste it, so it is applied there rather than inventing a picker the post-battle
+## sequence has no concept of. Reported in the journal so the choice is visible.
+func _apply_recovery_credit(ctx: PostBattleContextClass, turns: int) -> void:
+	var worst: Variant = null
+	var worst_turns: int = 0
+	for member in ctx.get_crew_members():
+		var remaining: int = 0
+		if member is Dictionary:
+			remaining = int(member.get("recovery_turns",
+				member.get("injury_recovery_turns", 0)))
+		elif member != null and "injury_recovery_turns" in member:
+			remaining = int(member.injury_recovery_turns)
+		if remaining > worst_turns:
+			worst_turns = remaining
+			worst = member
+	if worst == null:
+		# Nobody is hurt. The book gives no banking rule, so the benefit simply
+		# has nothing to buy — recorded by the caller's journal line either way.
+		return
+	if worst is Dictionary:
+		worst["recovery_turns"] = maxi(0, worst_turns - turns)
+		if worst.has("injury_recovery_turns"):
+			worst["injury_recovery_turns"] = maxi(0, worst_turns - turns)
+	elif "injury_recovery_turns" in worst:
+		worst.injury_recovery_turns = maxi(0, worst_turns - turns)
+	ctx.reduce_character_recovery(worst, turns)
+
 
 func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 	## Step 1: Resolve Rival Status. Returns {rivals_removed, new_rivals}.
@@ -160,6 +250,14 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 				"type": str(ctx.battle_result.get("patron_type", "")),
 				"source": "completed_job",
 				"planet_id": str(ctx.battle_result.get("planet_id", "")),
+				# "Persistent — Patron remains available if you travel" (p.84
+				# Benefits Subtable), the named exception to p.119 Step 2's "all
+				# Patrons become unavailable". NewWorldArrival.is_persistent_patron
+				# has read this flag since the arrival steps landed and NOTHING set
+				# it — the consumer was live, the producer did not exist, so the
+				# Benefit could never spare anyone from the travel purge.
+				"is_persistent": PatronJobEffects.patron_persists_on_travel(
+					ctx.battle_result),
 			})
 			patrons_added.append(str(patron_id))
 		elif ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
@@ -177,6 +275,10 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		# it, so that Condition could never be satisfied by any play — it was a
 		# permanent refusal rather than a requirement.
 		_record_patron_job_completed(ctx)
+
+		# "Benefits are paid out ONLY if the mission is a success" (p.83) — so
+		# this is the moment, and it never happened.
+		_pay_out_benefits(ctx)
 
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):

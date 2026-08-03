@@ -139,3 +139,53 @@ func test_empty_lists_are_safe() -> void:
 	assert_int(campaign.rivals.size()).is_equal(0)
 	assert_int(campaign.patrons.size()).is_equal(0)
 	assert_int((report.get("rivals_left", []) as Array).size()).is_equal(0)
+
+
+# --- Held job offers leave with the Patron who did not follow -----------------
+
+## Job offers persist across campaign turns now (Core Rules p.83 Time Frame), so
+## the travel purge has to reach them too. Without this the offer list would keep
+## serving jobs from Patrons the crew left a world behind — and a 10+ "Any time"
+## offer would outlive its Patron for the rest of the campaign.
+func test_offers_from_dismissed_patrons_are_dropped() -> void:
+	var campaign: Resource = _campaign([], [
+		{"id": "p_stay", "name": "Ordinary Patron"},
+		{"id": "p_follow", "name": "Loyal Patron", "is_persistent": true},
+	])
+	campaign.progress_data["patron_job_offers"] = [
+		{"id": "job_a", "patron_id": "p_stay", "deadline_turn": -1},
+		{"id": "job_b", "patron_id": "p_follow", "deadline_turn": -1},
+	]
+
+	var report: Dictionary = Arrival.apply(campaign, _seeded(7))
+
+	var surviving: Array = campaign.progress_data["patron_job_offers"]
+	assert_int(surviving.size()).override_failure_message(
+		"only the Persistent Patron's offer should survive travel").is_equal(1)
+	assert_str(str(surviving[0]["patron_id"])).is_equal("p_follow")
+	assert_int(int(report.get("offers_dropped", 0))).is_equal(1)
+
+
+## A Patron entry may carry no id at all — campaign.patrons is a MIXED array of
+## Strings and Dictionaries — so the offer's patron_id falls back to the name.
+## Matching on the wrong key would silently bin every offer on every journey.
+func test_offers_match_patrons_that_have_no_id() -> void:
+	var campaign: Resource = _campaign([], [
+		{"name": "Nameless Benefactor", "persistent": true},
+	])
+	campaign.progress_data["patron_job_offers"] = [
+		{"id": "job_c", "patron_id": "Nameless Benefactor", "deadline_turn": -1},
+	]
+
+	Arrival.apply(campaign, _seeded(3))
+
+	assert_int((campaign.progress_data["patron_job_offers"] as Array).size()
+		).override_failure_message(
+		"an offer keyed by NAME must survive when its Patron does").is_equal(1)
+
+
+## A campaign that has never generated an offer must not gain a key or error.
+func test_no_offers_is_safe() -> void:
+	var campaign: Resource = _campaign([], [{"id": "p1", "name": "Someone"}])
+	var report: Dictionary = Arrival.apply(campaign, _seeded(2))
+	assert_int(int(report.get("offers_dropped", 0))).is_equal(0)

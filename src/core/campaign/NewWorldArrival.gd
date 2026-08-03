@@ -80,13 +80,48 @@ static func apply(campaign: Resource, rng: RandomNumberGenerator = null) -> Dict
 		campaign.rivals = following
 
 	# Step 2 — no roll: Patrons remain behind unless Persistent.
+	var kept_patron_ids: Array[String] = []
 	if "patrons" in campaign and campaign.patrons is Array:
 		var kept: Array = []
 		for patron: Variant in campaign.patrons:
 			if is_persistent_patron(patron):
 				kept.append(patron)
+				kept_patron_ids.append(_patron_key(patron))
 			else:
 				out["patrons_left"].append(display_name(patron, "A Patron"))
 		campaign.patrons = kept
 
+	# A Patron who did not follow cannot still be holding work open for you. Job
+	# offers persist across turns now (Core Rules p.83 Time Frame), so without
+	# this the offer list would keep serving jobs from Patrons the crew left a
+	# world behind — and an "Any time" offer would outlive them forever.
+	out["offers_dropped"] = _drop_orphaned_offers(campaign, kept_patron_ids)
+
 	return out
+
+
+## Identity as JobOfferComponent stamps it on an offer: the Patron's id when
+## there is one, else their display name (campaign.patrons is a MIXED array of
+## Strings and Dictionaries, so some entries have no id at all).
+static func _patron_key(patron: Variant) -> String:
+	if patron is Dictionary:
+		var pid: String = str(patron.get("id", patron.get("patron_id", "")))
+		if pid != "":
+			return pid
+		return str(patron.get("name", patron.get("patron_name", "")))
+	return str(patron)
+
+
+static func _drop_orphaned_offers(campaign: Resource, kept_ids: Array[String]) -> int:
+	if not "progress_data" in campaign:
+		return 0
+	var offers: Variant = campaign.progress_data.get("patron_job_offers", [])
+	if not offers is Array or (offers as Array).is_empty():
+		return 0
+	var surviving: Array = []
+	for offer in offers:
+		if offer is Dictionary and str(offer.get("patron_id", "")) in kept_ids:
+			surviving.append(offer)
+	var dropped: int = (offers as Array).size() - surviving.size()
+	campaign.progress_data["patron_job_offers"] = surviving
+	return dropped
