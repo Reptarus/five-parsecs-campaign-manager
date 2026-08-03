@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 82 open / 52 fixed / 7 partial-or-blocked.**
+**Status Aug 2 evening: 81 open / 53 fixed / 7 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -39,7 +39,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | battle-setup | Number of Opponents — campaign difficulty modifiers (Easy -1 at 5+, Challenging reroll 1-2, Hardcore/Insanity +1) | small | A Hardcore campaign fights the same number of enemies as a Normal one — the +1 enemy the player chose Hardcore for never appears. A Challenging campaign never rerolls the 1s and 2s, so it... | FIXED 24c657af4 |
 | battle-setup | Number of Opponents — crew in the field below standard size | medium | A crew that goes into battle two or more figures short — after casualties, Sick Bay, a Small Encounter sit-out, or the player deliberately leaving people on the ship — still faces the ful... | FIXED 24c657af4 |
 | battle-setup | Determine the Objective — the final battle of a Quest is always Fight Off and adds +1 enemy | small | The climactic final battle of a Quest is generated as an ordinary fight: the objective is rolled at random off the D10 Quest table instead of being forced to Fight Off, and the enemy forc... | FIXED 2c44839f0 |
-| battle-setup | Seizing the Initiative — opponent-type modifiers | medium | Fighting Punks, Brat Gang, Roid-gangers, Security Bots, Abandoned, Converted Acquisition or Haywire Robots, the player silently loses the +1 they are owed and needs 10+ instead of 9+ on 2... | OPEN |
+| battle-setup | Seizing the Initiative — opponent-type modifiers | medium | Fighting Punks, Brat Gang, Roid-gangers, Security Bots, Abandoned, Converted Acquisition or Haywire Robots, the player silently loses the +1 they are owed and needs 10+ instead of 9+ on 2... | FIXED 2d052d2de (Careless/Alert as modifiers; Prediction/Unpredictable as absolutes on the enemy record) |
 | battle-setup | Choose Your Battle — Continue a Quest is a selectable job option | large | A player who resolves Rumors into a Quest (ResolveRumorsComponent.gd:168-190 does store one) has no way to fight it. There is no 'Continue a Quest' battle option, and every quest-flavoure... | FIXED 2c44839f0 |
 | battle-setup | Unique Individuals — a Guardian-AI Unique must be attached to a figure in the enemy force | small | Roughly a third of the Unique Individual table has Guardian AI (Enemy Bruiser 1-6, Mutant Bruiser 57-61, Gene Dog 86-91, Sand Runner 92-96, Mk II Security Bot 97-100 — 27 of 100 results).... | OPEN |
 | battle-setup | Defend objective — force the enemy AI to Aggressive and add +1 enemy | small | On a Quest Defend objective (D10 5-6, so 20% of Quest missions) the player fights one fewer enemy than the rules require, and a Cautious/Defensive/Tactical force keeps its cautious AI — s... | FIXED 3aa8d0b88 |
@@ -245,7 +245,7 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**82 open / 59 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
+**81 open / 60 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
 
 ### Domain standings
 
