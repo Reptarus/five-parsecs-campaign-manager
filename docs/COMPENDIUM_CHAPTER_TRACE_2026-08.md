@@ -13,12 +13,14 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 19 |
-| **PARTIAL** — some of the chapter lands, a named part does not | 1 |
+| **LIVE** — a live path reaches the player | 20 |
+| **PARTIAL** — some of the chapter lands, a named part does not | 0 |
 | **DEAD** — data + gated API exist, nothing reaches the player | 10 |
 
-Casualty Tables and Detailed Injuries moved PARTIAL → LIVE on Aug 3; see
-"The reader that disagreed with its own data" below.
+Casualty Tables, Detailed Injuries, Dramatic Combat and Loans all moved to LIVE
+on Aug 3. Each fix is described in its section below — and every one of them was
+a defect that **call-site tracing cannot see**, which is what the original pass
+did. Trace to the value.
 
 7 of the 10 dead are **Freelancer's Handbook** — 7 of that pack's 17 advertised
 features.
@@ -206,11 +208,34 @@ is a separate OPEN row in the audit ledger.
 
 This is the reason the chapter is on the hide list rather than the quick-fix list.
 
-### Dramatic Combat — the weapons table (pp.88-89)
+### FIXED Aug 3 — Dramatic Combat's weapons table, and why it had no consumer
 
-`get_dramatic_weapon_stats(weapon_id)` reads `dramatic_weapons_stats` and returns
-the per-weapon override the chapter exists to provide. Zero callers, so a
-Dramatic-Combat battle uses baseline `equipment_database` profiles throughout.
+`get_dramatic_weapon_stats(weapon_id)` had zero callers. Chasing that turned up a
+much larger defect underneath it: **no combatant had a weapon at all.**
+
+`BattleResolver` reads `attacker["weapon"]` at exactly two sites and nothing
+anywhere wrote it. `initialize_battle` pulled armor and screens out of
+`equipment` and never a weapon; `Character.to_dictionary()` emits `equipment` (an
+Array of item *names*) with no `weapon` key; enemies carry `weapons` — plural, an
+Array of names — while the attack loop reads `weapon`, singular. So
+`attacker.get("weapon", {})` was `{}` in every auto-resolved battle ever played,
+and every attack used the defaults:
+
+```text
+range 12"    shots 1    damage 1    traits []    logged "Unknown Weapon"
+```
+
+A Hand Cannon (damage 2, 8") and a Hand Gun (damage 0, 12") were mechanically
+identical, a Machine Pistol fired one shot instead of two, and every weapon trait
+in the game — Focused, Piercing, Critical, Snap Shot, Heavy, Burn, Hot — was
+inert, because the trait list was always empty. The Overheat and Focused handling
+in `BattleResolver` is written correctly and simply had no data to act on.
+`"Unknown Weapon"` in the battle log was the visible symptom.
+
+`initialize_battle` now resolves each figure's profile from
+`equipment_database.json` and the pp.88-89 table overlays at that same point, so
+the chapter has its consumer. Pinned by `tests/unit/test_battle_weapon_profiles.gd`
+(10 cases).
 
 ---
 
