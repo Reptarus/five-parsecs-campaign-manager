@@ -2863,14 +2863,19 @@ func _advance_to_next_step() -> void:
 
 func _get_current_crew() -> Array[Resource]:
 	## Get current crew members as Resource array for training dialog
-	var crew_array: Array[Resource] = []
+	## UNTYPED, and unfiltered. crew_data["members"] holds Character RESOURCES on
+	## a fresh campaign and DICTIONARIES on every loaded save. The old
+	## `Array[Resource]` plus `if crew_member is Resource` dropped every member of
+	## a loaded campaign, so the Advanced Training step opened with an EMPTY
+	## character list for anyone who had saved and come back — which is precisely
+	## the crew that has accumulated enough XP to want it. The dialog reads both
+	## shapes through its own accessors.
+	var crew_array: Array = []
 	var gsm_get_crew = get_node_or_null("/root/GameStateManager")
 
 	if gsm_get_crew and gsm_get_crew.has_method("get_crew_members"):
-		var crew = gsm_get_crew.get_crew_members()
-		# Convert to Resource array if needed
-		for crew_member in crew:
-			if crew_member is Resource:
+		for crew_member in gsm_get_crew.get_crew_members():
+			if crew_member != null:
 				crew_array.append(crew_member)
 
 	return crew_array
@@ -2882,21 +2887,37 @@ func _get_current_credits() -> int:
 		return game_state.get_credits()
 	return 0
 
-func _on_training_completed(character: Resource, training_type: String) -> void:
-	## Handle training completion from TrainingSelectionDialog
-	# Store training result
+func _on_training_completed(
+	character: Variant, training_type: String, payment: Dictionary = {}
+) -> void:
+	## Handle training completion from TrainingSelectionDialog. The dialog has
+	## already charged the fee, spent the XP/credits and recorded the course
+	## (Core Rules p.124) — this is the log and the step record.
 	if current_step >= 0 and current_step < step_results.size():
 		if not step_results[current_step].has("training_completed"):
 			step_results[current_step]["training_completed"] = []
 		step_results[current_step]["training_completed"].append({
 			"character": character,
 			"training_type": training_type,
+			"payment": payment,
 			"timestamp": Time.get_unix_time_from_system()
 		})
 
-	# Add to results log
-	var char_name = character.get("character_name") if character else "Unknown"
-	_add_result_to_log("%s completed %s training" % [char_name, training_type])
+	# `character.get("character_name")` is the 1-arg Object.get() on a Resource
+	# and a Dictionary lookup on a dict — both work, but a Character Resource
+	# returns null for a missing property, so str() the result rather than
+	# printing "<null>" into the log.
+	var char_name: String = "Unknown"
+	if character is Dictionary:
+		char_name = str(character.get("character_name", character.get("name", "Unknown")))
+	elif character and "character_name" in character:
+		char_name = str(character.character_name)
+
+	var paid: String = ""
+	if not payment.is_empty():
+		paid = " (%d XP + %d credits)" % [
+			int(payment.get("xp_spent", 0)), int(payment.get("credits_spent", 0))]
+	_add_result_to_log("%s completed %s training%s" % [char_name, training_type, paid])
 
 func _on_training_closed() -> void:
 	## Handle training dialog closed signal
