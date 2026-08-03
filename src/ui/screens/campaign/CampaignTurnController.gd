@@ -15,6 +15,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 ## Core Rules p.85 "Check for Rivals". Path preload for the same stale-class-cache
 ## reason as the two consts above.
 const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 ## Version of the battle-result → NarrativeScreen event_data contract produced by
 ## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
@@ -718,6 +719,12 @@ func _initiate_battle_sequence() -> void:
 	# had no way to know how many crew actually deployed — it only ever received
 	# the campaign SETTING (4/5/6) — so the clause could not be implemented.
 	mission_data["crew_in_field"] = active_crew.size()
+	# The world's traits (Core Rules pp.73-75). Stamped here because the generator
+	# is a detached Resource and cannot resolve autoloads — and because the
+	# post-battle side needs the same list the battle was built from, not
+	# whatever world the crew has travelled to by the time it runs.
+	mission_data["world_traits"] = WorldTraitEffectsClass.traits_for_current_world(
+		game_state.current_campaign)
 	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
 		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)

@@ -95,10 +95,16 @@ const TRAINING_TYPES := {
 	}
 }
 
-## Sprint 20.2: Fixed constants to match backend (Core Rules p.123)
+## Core Rules p.124 defaults. Two World Traits change them (pp.73-74):
+## "Restricted education — You must roll 6+ to be approved for Advanced Training
+## on this world" and "Expensive education — The fee to enroll in Advanced
+## Training is 3 credits". Read through _fee() / _threshold() below, never the
+## constants directly.
 const ENROLLMENT_FEE := 1    # 1 credit application fee per Core Rules
 const APPROVAL_THRESHOLD := 4  # 2D6 roll, 4+ required for approval
 const APPROVAL_DICE := "2D6"   # Dice type for approval roll display
+
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 
 # State
 #
@@ -117,6 +123,18 @@ var can_afford_enrollment: bool = false
 ## the 2D6 rolled once, pass or fail; a denied application does not refund and
 ## does not get a retry until next turn.
 var attempted_this_turn: bool = false
+## Trait ids for the world the crew is standing on (Core Rules pp.73-75).
+var world_traits: Array = []
+
+## "Expensive education — The fee to enroll in Advanced Training is 3 credits."
+func _enrollment_fee() -> int:
+	return WorldTraitEffectsClass.training_enrollment_fee(ENROLLMENT_FEE, world_traits)
+
+## "Restricted education — You must roll 6+ to be approved for Advanced Training
+## on this world."
+func _approval_threshold() -> int:
+	return WorldTraitEffectsClass.training_approval_threshold(
+		APPROVAL_THRESHOLD, world_traits)
 
 # Node references
 @onready var title_label: Label = %TitleLabel
@@ -193,7 +211,12 @@ func setup(crew: Array, credits: int) -> void:
 	## Initialize dialog with crew data and credit availability
 	available_crew = crew
 	current_credits = credits
-	can_afford_enrollment = current_credits >= ENROLLMENT_FEE
+	# Core Rules pp.73-74 World Traits change both the fee and the threshold on
+	# some worlds. Cached once here so every read below sees the same world.
+	var gs = get_node_or_null("/root/GameState")
+	world_traits = WorldTraitEffectsClass.traits_for_current_world(
+		gs.current_campaign) if gs else []
+	can_afford_enrollment = current_credits >= _enrollment_fee()
 
 	_populate_character_list()
 	_populate_training_list()
@@ -369,7 +392,7 @@ func _payment_plan(c: Variant, training_key: String) -> Dictionary:
 		"affordable": false, "reason": "",
 	}
 	# Credits available for the COURSE, after reserving the application fee.
-	var spendable_credits: int = maxi(0, current_credits - ENROLLMENT_FEE)
+	var spendable_credits: int = maxi(0, current_credits - _enrollment_fee())
 
 	if _char_is_bot(c):
 		# p.124: "Bots can have a training module installed, but the cost must be
@@ -403,7 +426,7 @@ func _update_cost_display() -> void:
 	var plan: Dictionary = _payment_plan(selected_character, selected_training_type)
 	xp_cost_label.text = "Course %d: %d XP + %d credits" % [
 		plan["cost"], plan["xp_spent"], plan["credits_spent"]]
-	credits_cost_label.text = "Application fee: %d credit" % ENROLLMENT_FEE
+	credits_cost_label.text = "Application fee: %d credit" % _enrollment_fee()
 
 	xp_cost_label.add_theme_color_override(
 		"font_color", COLOR_SUCCESS if plan["affordable"] else COLOR_DANGER)
@@ -434,7 +457,7 @@ func _update_ui_state() -> void:
 		var plan: Dictionary = _payment_plan(selected_character, selected_training_type)
 		roll_button.disabled = not (plan["affordable"] and can_afford_enrollment)
 		if not can_afford_enrollment:
-			result_display.text = "Insufficient credits for the 1-credit application fee"
+			result_display.text = "Insufficient credits for the %d-credit application fee" % _enrollment_fee()
 			result_display.add_theme_color_override("font_color", COLOR_DANGER)
 		elif not plan["affordable"]:
 			result_display.text = str(plan["reason"])
@@ -461,8 +484,8 @@ func _on_roll_pressed() -> void:
 	# The application fee is paid to APPLY, so it is spent whether or not the
 	# roll is approved. It was displayed and gated on, and never deducted.
 	if gsm and gsm.has_method("remove_credits"):
-		gsm.remove_credits(ENROLLMENT_FEE)
-	current_credits = maxi(0, current_credits - ENROLLMENT_FEE)
+		gsm.remove_credits(_enrollment_fee())
+	current_credits = maxi(0, current_credits - _enrollment_fee())
 	attempted_this_turn = true
 
 	var dice_manager = get_node_or_null("/root/DiceManager")
@@ -479,7 +502,7 @@ func _on_roll_pressed() -> void:
 	var broker_bonus: int = 1 if _crew_has_broker_training() else 0
 	roll_result += broker_bonus
 
-	var approved := roll_result >= APPROVAL_THRESHOLD
+	var approved := roll_result >= _approval_threshold()
 	var roll_text: String = "%s Roll: %d" % [APPROVAL_DICE, roll_result]
 	if broker_bonus > 0:
 		roll_text += " (incl. +1 Broker)"
@@ -487,12 +510,12 @@ func _on_roll_pressed() -> void:
 	if approved:
 		_apply_training(plan)
 		result_display.text = "%s - APPROVED. Paid %d XP + %d credits (+%d fee)." % [
-			roll_text, plan["xp_spent"], plan["credits_spent"], ENROLLMENT_FEE]
+			roll_text, plan["xp_spent"], plan["credits_spent"], _enrollment_fee()]
 		result_display.add_theme_color_override("font_color", COLOR_SUCCESS)
 		training_completed.emit(selected_character, selected_training_type, plan)
 	else:
 		result_display.text = "%s - DENIED (need %d+). The %d-credit fee is spent; try again next turn." % [
-			roll_text, APPROVAL_THRESHOLD, ENROLLMENT_FEE]
+			roll_text, _approval_threshold(), _enrollment_fee()]
 		result_display.add_theme_color_override("font_color", COLOR_DANGER)
 
 	roll_button.disabled = true

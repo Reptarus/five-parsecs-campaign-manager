@@ -9,6 +9,7 @@ const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
+const WorldTraitEffects = preload("res://src/core/world/WorldTraitEffects.gd")
 
 func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 	## Step 1: Resolve Rival Status. Returns {rivals_removed, new_rivals}.
@@ -61,7 +62,12 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 
 	if held_field and not fought_existing_rival and not story_blocks_new_rivals:
 		var new_rival_roll: int = randi_range(1, 6)
-		if new_rival_roll == 1:
+		# "Vendetta system — Opponents become your Rivals on a roll of 1 or 2."
+		# (Core Rules p.74 World Trait; the default on p.119 is a 1.) The trait
+		# was rolled, stored and displayed and doubled nothing.
+		var rival_threshold: int = WorldTraitEffects.rival_conversion_threshold(
+			1, ctx.battle_result.get("world_traits", []))
+		if new_rival_roll <= rival_threshold:
 			var new_rival_id: String = _create_new_rival_from_battle(ctx)
 			if new_rival_id != "":
 				new_rivals.append(new_rival_id)

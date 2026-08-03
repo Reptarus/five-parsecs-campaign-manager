@@ -8,6 +8,7 @@ extends Resource
 # DataManager accessed via autoload singleton (not preload)
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const ProgressiveDifficultyRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
@@ -570,7 +571,29 @@ func generate_enemies_as_dicts(
 	# Step 3: Add Numbers modifier from enemy type (Core Rules p.92)
 	var numbers_mod: int = _parse_numbers_modifier(
 		template.get("numbers", "+0"))
-	var enemy_count: int = maxi(1, base_count + numbers_mod)
+
+	# World Traits that change the OPPOSITION (Core Rules pp.73-74). All three
+	# are keyed on the encounter category, so a Dangerous world does not swell a
+	# gang fight and a Rampant Crime world does not swell a pack of Razor Lizards:
+	#   "Heavily enforced — When fighting opponents from the Criminal Elements
+	#    Encounter Table, the number encountered is reduced by 1."
+	#   "Rampant crime — ... add 1 to the number encountered."
+	#   "Dangerous — When rolling on the Roving Threats Encounter Table, increase
+	#    the number of opponents by +1."
+	# The traits were rolled, stored on the planet and printed in the briefing,
+	# and changed nothing.
+	#
+	# Kept SEPARATE from numbers_mod on purpose: the Red Job branch below reuses
+	# numbers_mod, and p.150 says the base of 7 takes "any modifier from the enemy
+	# type encountered" and "no other modifiers are applied up or down". Folding
+	# the trait into numbers_mod would smuggle it past that rule.
+	var world_traits: Array = mission_data.get("world_traits", [])
+	var effective_category: String = category if not category.is_empty() \
+		else str(template.get("category", ""))
+	var trait_enemy_mod: int = WorldTraitEffectsClass.enemy_count_modifier(
+		world_traits, effective_category)
+
+	var enemy_count: int = maxi(1, base_count + numbers_mod + trait_enemy_mod)
 
 	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
 	# numbers. Instead, you will encounter a base of 7 figures + any modifier

@@ -6,6 +6,7 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
@@ -204,6 +205,11 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	if ctx.battle_result.get("is_invasion", false):
 		return 0
 
+	# Story Track Event 5 (Core Rules p.157): "You do not get paid after this
+	# mission, and obtain no Loot". Stamped by StoryTrackProcessor before step 4.
+	if ctx.battle_result.get("story_no_payment", false):
+		return 0
+
 	# Roll 1D6 for base payment (Core Rules p.120)
 	var credit_roll: int = ctx.roll_d6("Payment credit roll")
 
@@ -257,7 +263,11 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 		var pay_desc: String = (
 			"Earned %d credits (base %d + danger pay %d)"
 			% [total_payment, credit_roll, danger_pay])
-		var pay_tags: Array = ["payment", "credits"]
+		# "finance", not "credits" — the canonical tag set is JournalEntryTypes
+		# .TAGS and it has no "credits" entry. validate_entry() only warns, so
+		# this shipped as a push_warning on every paying battle plus a chip
+		# rendered in DEFAULT_TAG_COLOR that no finance filter would match.
+		var pay_tags: Array = ["payment", "finance"]
 		# Enrich with zone context
 		if ctx.battle_result.get("is_red_zone", false):
 			pay_desc += " [Red Zone: double roll]"
@@ -292,15 +302,28 @@ func process_battlefield_finds(ctx: PostBattleContextClass) -> Array[Dictionary]
 	##    the objective does NOT matter — "You may do so even if you failed to
 	##    achieve or did not have an objective" — only the field does.)
 	## 3. INVASION. p.120: "You cannot roll on this table after an Invasion battle."
-	if not bool(ctx.battle_result.get("held_field", false)):
+	## 4. STORY TRACK. Event 5 (p.157) denies pay and Loot but explicitly re-grants
+	##    this roll — "You may make a Battlefield Finds roll as normal (p.121)" —
+	##    so `story_force_battlefield_finds` satisfies the Hold the Field
+	##    precondition (the crew resolved every marker; the field is theirs) and
+	##    the rest of p.121 still applies. Event 4 hold-field (p.156) and Event 7
+	##    win (p.160) instead say "roll twice on the Battlefield Finds Table",
+	##    which arrives as `story_battlefield_finds_rolls`.
+	var story_forced: bool = bool(
+		ctx.battle_result.get("story_force_battlefield_finds", false))
+	if not story_forced and not bool(ctx.battle_result.get("held_field", false)):
 		return [] as Array[Dictionary]
 	if bool(ctx.battle_result.get("is_invasion", false)):
 		return [] as Array[Dictionary]
 
+	var roll_count: int = maxi(
+		1, int(ctx.battle_result.get("story_battlefield_finds_rolls", 1)))
+
 	var battlefield_finds: Array[Dictionary] = []
-	var find: Dictionary = _roll_battlefield_find(ctx)
-	if not find.is_empty():
-		battlefield_finds.append(find)
+	for _i in range(roll_count):
+		var find: Dictionary = _roll_battlefield_find(ctx)
+		if not find.is_empty():
+			battlefield_finds.append(find)
 	return battlefield_finds
 
 func process_invasion_check(ctx: PostBattleContextClass) -> bool:
@@ -309,8 +332,19 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 	if not enemy_is_threat:
 		return false
 
+	# World Traits, Core Rules pp.73-74. All four were flavour text:
+	#   "Unity safe sector — The world cannot be Invaded."
+	#   "Invasion risk — Add +1 to all Invasion rolls."
+	#   "Imminent invasion — Add +2 to all Invasion rolls..."
+	#   "Military outpost — Add +2 to Invasion rolls..."
+	# The safe sector is checked FIRST because it is absolute: no roll is made
+	# at all, so no other modifier can drag the world into an Invasion.
+	var world_traits: Array = ctx.battle_result.get("world_traits", [])
+	if WorldTraitEffectsRef.invasion_immune(world_traits):
+		return false
+
 	var invasion_roll: int = ctx.roll_2d6("Invasion check")
-	var modifiers: int = 0
+	var modifiers: int = WorldTraitEffectsRef.invasion_roll_modifier(world_traits)
 
 	if ctx.battle_result.get("invasion_evidence_found", false):
 		modifiers += 1

@@ -18,6 +18,7 @@ const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 ## Trade Table entries cite by page. One roller, shared with campaign creation.
 const StartingEquipmentGeneratorClass = preload(
 	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 
 # Design system constants
 
@@ -643,6 +644,21 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 			return result
 
 	result.roll = roll
+	# World Trait roll bonuses (Core Rules pp.73-74). Applied here, after every
+	# other modifier and before the success comparison, so they show up in the
+	# same detail string the player reads.
+	var _wt: Array = _current_world_traits()
+	if task.id == "recruit":
+		var recruit_bonus: int = WorldTraitEffectsClass.recruit_roll_bonus(_wt)
+		if recruit_bonus != 0:
+			modified_roll += recruit_bonus
+			result.details += ", +%d world (Easy recruiting)" % recruit_bonus
+	elif task.id == "find_patron":
+		var patron_bonus: int = WorldTraitEffectsClass.patron_search_bonus(_wt)
+		if patron_bonus != 0:
+			modified_roll += patron_bonus
+			result.details += ", +%d world trait" % patron_bonus
+
 	result.modified_roll = modified_roll
 	result.success = modified_roll >= task.dice_target
 
@@ -799,6 +815,17 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 
 	return result
 
+## Trait ids for the world the crew is working on (Core Rules pp.73-75). Three
+## traits modify crew-task rolls and were flavour text: "Easy recruiting — Add
+## +1 to the roll when Recruiting", "Opportunities — Add +1 to the roll when
+## searching for Patrons" (and "Corporate state — +2 when rolling to find a
+## Patron"), and "Technical knowledge — Add +1 to all Repair attempts".
+func _current_world_traits() -> Array:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs:
+		return []
+	return WorldTraitEffectsClass.traits_for_current_world(gs.current_campaign)
+
 func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
 	## Resolve repair tasks (Core Rules p.78)
 	## Roll 1D6 + Savvy. Engineer +1. Spare parts (credits) +1 each. 6+ = repaired. Natural 1 = unfixable.
@@ -811,6 +838,13 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	if savvy != 0:
 		modified_roll += savvy
 		detail_parts.append("+%d Savvy" % savvy)
+
+	# "Technical knowledge — Add +1 to all Repair attempts" (Core Rules p.73).
+	var tech_bonus: int = WorldTraitEffectsClass.repair_roll_bonus(
+		_current_world_traits())
+	if tech_bonus != 0:
+		modified_roll += tech_bonus
+		detail_parts.append("+%d world (Technical knowledge)" % tech_bonus)
 
 	# "Add +1 if the character is an Engineer" (Core Rules p.78).
 	#

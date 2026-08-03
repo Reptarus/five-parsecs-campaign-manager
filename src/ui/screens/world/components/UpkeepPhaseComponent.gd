@@ -6,6 +6,7 @@ class_name UpkeepPhaseComponent
 ## Implements Core Rules p.76 - Ship maintenance and crew upkeep calculations
 
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
 const NewWorldArrivalClass = preload("res://src/core/campaign/NewWorldArrival.gd")
@@ -213,11 +214,14 @@ func calculate_upkeep_costs() -> Dictionary:
 				effective_crew_size, before_lq],
 		})
 
-	# Apply "high_cost" world trait modifier (Core Rules p.87-89)
-	# "Your crew size counts as being 2 higher for the purpose of Upkeep costs"
+	# "High cost — Your crew size counts as being 2 higher for the purpose of
+	# Upkeep costs" (Core Rules p.75 World Trait; the old citation "p.87-89" here
+	# was wrong). Routed through WorldTraitEffects so the +2 lives in
+	# data/world_traits.json with the other 30 campaign-side trait values rather
+	# than as a second hardcoded copy.
 	var world_traits: Array = _get_current_world_traits()
-	if "high_cost" in world_traits:
-		effective_crew_size += 2
+	effective_crew_size = WorldTraitEffectsClass.upkeep_crew_size(
+		effective_crew_size, world_traits)
 
 	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6
 	if effective_crew_size >= CREW_UPKEEP_THRESHOLD:
@@ -1068,6 +1072,27 @@ func _on_travel_pressed() -> void:
 	# costs"). CrewTaskComponent has always banked these into
 	# progress_data["fuel_credits"] and the only consumer lived in TravelPhase,
 	# a file nothing instantiates — so the fuel was unspendable.
+	# World Traits that change what leaving costs (Core Rules pp.74-75):
+	#   "Fuel refinery — Traveling from this world costs only 3 credits."
+	#   "Fuel shortage — The cost to travel from this world is raised by 1D3
+	#    credits."
+	# Both were flavour text: the world you picked to launch from made no
+	# difference to the bill. The refinery OVERRIDES the base cost ("costs only
+	# 3"); the shortage ADDS to whatever it then is. The 1D3 is rolled here so
+	# the die can be shown to the player rather than buried in a helper.
+	var _traits: Array = _get_current_world_traits()
+	var _surcharge: int = 0
+	if WorldTraitEffectsClass.travel_surcharge_dice(_traits) != "":
+		_surcharge = randi_range(1, 3)
+	var _base_travel_cost: int = travel_cost
+	travel_cost = WorldTraitEffectsClass.travel_cost(
+		travel_cost, _traits, _surcharge)
+	var _trait_note: String = ""
+	if travel_cost != _base_travel_cost:
+		_trait_note = "  [world trait: %d cr → %d cr%s]" % [
+			_base_travel_cost, travel_cost,
+			(", 1D3 surcharge %d" % _surcharge) if _surcharge > 0 else ""]
+
 	travel_cost = _apply_fuel_credits(travel_cost)
 
 	GameStateManager.modify_credits(-travel_cost)
@@ -1077,6 +1102,7 @@ func _on_travel_pressed() -> void:
 	_update_travel_ui_after_decision()
 	_travel_status_label.text = (
 		"✓ Traveling to new world (-%d cr)" % travel_cost
+		+ _trait_note
 		+ ("  [%d cr covered by fuel]" % _fuel_offset_last_trip
 			if _fuel_offset_last_trip > 0 else ""))
 	_travel_status_label.add_theme_color_override(

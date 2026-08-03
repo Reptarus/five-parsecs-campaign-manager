@@ -217,22 +217,26 @@ func _roll_random_trait() -> String:
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:
 		return ""
-	var trait_list: Array = json.data if json.data is Array else []
-	if trait_list.is_empty():
+	# world_traits.json is a DICTIONARY with a "world_traits" key. The old line
+	# here was `json.data if json.data is Array else []`, which is therefore
+	# ALWAYS the empty array — so this function returned "" every single time it
+	# was called and no planet ever gained a trait through this path.
+	if not json.data is Dictionary:
 		return ""
-	# Flatten: world_traits.json may have nested structure
-	var all_ids: Array[String] = []
+	var trait_list: Array = json.data.get("world_traits", [])
+
+	# Core Rules p.73 is a D100 table with weighted ranges (Fog is 97-100, Haze
+	# is 1-3), not a uniform pick. The old flatten-then-pick_random gave Fog and
+	# Warzone the same 1-in-42 chance where the book gives Fog four times the
+	# odds of Warzone.
+	var roll: int = randi_range(1, 100)
 	for entry in trait_list:
-		if entry is Dictionary:
-			if entry.has("id"):
-				all_ids.append(entry["id"])
-			elif entry.has("traits"):
-				for t in entry["traits"]:
-					if t is Dictionary and t.has("id"):
-						all_ids.append(t["id"])
-	if all_ids.is_empty():
-		return ""
-	return all_ids[randi() % all_ids.size()]
+		if not entry is Dictionary:
+			continue
+		var r: Array = entry.get("roll_range", [])
+		if r.size() == 2 and roll >= int(r[0]) and roll <= int(r[1]):
+			return str(entry.get("id", ""))
+	return ""
 
 ## Initialize planet economic data
 func _initialize_planet_economy(planet: PlanetData) -> void:
@@ -256,7 +260,19 @@ func _calculate_demand(planet: PlanetData, good_type: String) -> int:
 	# was removed here. Those keys never matched the biome ids world-gen produced, so the branch
 	# never fired. Demand is trait-driven (below). The biome "planet type" concept was removed.
 	
-	# Modify based on planet characteristics
+	# DEAD AND FABRICATED, flagged 2026-08-02 — deliberately left rather than
+	# half-repaired. planet.traits holds lowercase ids from world_traits.json
+	# ("dangerous", "haze", ...), so these UPPER-CASE keys match nothing and this
+	# loop has never modified a single demand value. Worse, only "DANGEROUS" has
+	# a real counterpart: WEALTHY, POOR, MINING and AGRICULTURAL are not World
+	# Traits in either book. Merely lowercasing them would ACTIVATE a fabricated
+	# mechanic, which is the opposite of a fix.
+	#
+	# The whole market_conditions / trade_opportunities block this feeds is
+	# already flagged for deletion in docs/RULES_WIRING_AUDIT_2026-08.md as "a
+	# large, convincing, wrong second source of truth for prices sitting next to
+	# the correct 1cr/3cr constants" (Core Rules p.125 sells items for 1 credit
+	# each, flat). Removing it is that finding's job, not this one's.
 	for characteristic in planet.traits:
 		match characteristic:
 			"DANGEROUS":
@@ -266,7 +282,7 @@ func _calculate_demand(planet: PlanetData, good_type: String) -> int:
 				base_demand += 1
 			"POOR":
 				base_demand -= 1
-	
+
 	return clamp(base_demand, 1, 6)
 
 ## Calculate supply for specific goods  

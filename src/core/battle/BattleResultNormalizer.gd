@@ -95,7 +95,14 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# now carries it; this passthrough covers LOG_ONLY and both
 			# auto-resolves. quest_id lets the post-battle step close out THAT
 			# Quest rather than whatever is active when the dust settles.
-			"is_quest_finale", "quest_id"]:
+			"is_quest_finale", "quest_id",
+			# world_traits added 2026-08-02: the p.73-74 traits that modify
+			# POST-battle steps (Unity safe sector / Invasion risk / Imminent
+			# invasion / Military outpost on the p.121 Invasion check, Vendetta
+			# system on the p.119 Rival roll). Carried from the mission rather
+			# than re-read at post-battle time so the world the fight happened on
+			# is the world that scores it — the crew may have travelled since.
+			"world_traits"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
 	# 5b) is_invasion is DERIVED, not merely copied. The only marker an Invasion
