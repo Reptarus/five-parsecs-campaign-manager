@@ -415,87 +415,120 @@ static func _execute_unit_attacks(
 			attacker["adjusted_shooting_thresholds"] = battlefield_data.get(
 				"adjusted_shooting_thresholds", {})
 
-		# Resolve attack using BattleCalculations
-		var attack_result := BattleCalculations.resolve_ranged_attack(
-			attacker,
-			target,
-			weapon,
-			dice_roller
-		)
+		# Core Rules p.49 Shots: "the number of attack dice you roll". Auto-resolve
+		# fired exactly ONE shot per attacker regardless of the weapon profile, so
+		# an Auto rifle (2), Rattle gun (3), Hyper blaster (3), Shotgun (2), Plasma
+		# rifle (2) and eight others all did a fraction of their printed output.
+		#
+		# All shots are resolved against the same target here. That is mandatory for
+		# Focused weapons ("All shots must be against a single target", p.51) and is
+		# the honest simplification for the others, since auto-resolve tracks no
+		# positions to spread fire across. Stop early once the target is down - you
+		# cannot keep shooting a figure that has been removed from play.
+		var weapon_shots: int = maxi(1, int(weapon.get("shots", 1)))
+		for _shot_index in range(weapon_shots):
+			if not target.get("is_alive", true):
+				break
+			# Resolve attack using BattleCalculations
+			var attack_result := BattleCalculations.resolve_ranged_attack(
+				attacker,
+				target,
+				weapon,
+				dice_roller
+			)
 
-		# 6d continued: Deflector field — negate first hit
-		if attack_result["hit"] and target.get("deflector_uses", 0) > 0:
-			target["deflector_uses"] -= 1
-			attack_result["hit"] = false
-			attack_result["effects"].append("deflector_field_used")
-			result["events"].append({
-				"type": "deflector_field",
-				"target": target.get("name", target.get("character_name", "Unknown"))
-			})
-
-		# 6a cleanup: Restore toughness if flex-armor was temporarily applied
-		if target.get("_flex_armor_active", false):
-			target["toughness"] = target.get("toughness", 3) - 1
-			target.erase("_flex_armor_active")
-
-		# Phase 3: Track consumed single-use items
-		if "one_use_consumed" in attack_result.get("effects", []):
-			result["consumed_items"].append({
-				"character_name": attacker.get(
-					"character_name", attacker.get("name", "Unknown")),
-				"character_id": str(attacker.get(
-					"character_id", attacker.get("id", ""))),
-				"weapon_name": weapon.get("name", "Unknown Weapon"),
-				"weapon_id": str(weapon.get("id", ""))
-			})
-
-		# Resolving Hits (Core Rules p.46): resolve_ranged_attack already rolled the
-		# 1D6+Damage-vs-Toughness casualty/Stun outcome (a deflected/saved Hit still
-		# Stuns). No HP pool — a casualty Hit removes the figure (Stim-pack p.54 saves
-		# once). becomes_casualty already folds in the critical second hit + saves.
-		if attack_result["hit"]:
-			if attack_result.get("becomes_casualty", false):
-				if int(target.get("luck", 0)) > 0:
-					# Luck (Core Rules p.46): lose 1 Luck instead of becoming a
-					# casualty; otherwise unharmed (displacement is position-less here).
-					target["luck"] = int(target["luck"]) - 1
-					result["events"].append({
-						"type": "luck_used",
-						"target": target.get("name", target.get("character_name", "Unknown"))
-					})
-				elif target.get("has_stim_pack", false):
-					target["has_stim_pack"] = false
-					target["is_stunned"] = true
-					result["events"].append({
-						"type": "stim_pack_used",
-						"target": target.get("name", target.get("character_name", "Unknown"))
-					})
-					result["consumed_items"].append({
-						"character_name": target.get("character_name", target.get("name", "")),
-						"character_id": str(target.get("character_id", target.get("id", ""))),
-						"weapon_name": "Stim-pack",
-						"weapon_id": "stim_pack"
-					})
-				else:
-					target["hp_current"] = 0
-					target["is_alive"] = false
-					result["casualties"] += 1
-					attacker["kills"] = attacker.get("kills", 0) + 1
-					result["events"].append({
-						"type": "elimination",
-						"attacker": attacker.get("name", "Unknown"),
-						"target": target.get("name", "Enemy")
-					})
-			elif attack_result.get("stunned", false):
-				target["is_stunned"] = true
+			# 6d continued: Deflector field — negate first hit
+			if attack_result["hit"] and target.get("deflector_uses", 0) > 0:
+				target["deflector_uses"] -= 1
+				attack_result["hit"] = false
+				attack_result["effects"].append("deflector_field_used")
 				result["events"].append({
-					"type": "stunned",
-					"target": target.get("name", "Unknown")
+					"type": "deflector_field",
+					"target": target.get("name", target.get("character_name", "Unknown"))
 				})
 
-		# Phase 4: Track hot weapon firing for overheat next round
-		if BattleCalculations._has_trait(weapon_traits, "hot") or BattleCalculations._has_trait(weapon_traits, "overheat"):
-			attacker["fired_hot_weapon_this_round"] = true
+			# 6a cleanup: Restore toughness if flex-armor was temporarily applied
+			if target.get("_flex_armor_active", false):
+				target["toughness"] = target.get("toughness", 3) - 1
+				target.erase("_flex_armor_active")
+
+			# Phase 3: Track consumed single-use items
+			if "one_use_consumed" in attack_result.get("effects", []):
+				result["consumed_items"].append({
+					"character_name": attacker.get(
+						"character_name", attacker.get("name", "Unknown")),
+					"character_id": str(attacker.get(
+						"character_id", attacker.get("id", ""))),
+					"weapon_name": weapon.get("name", "Unknown Weapon"),
+					"weapon_id": str(weapon.get("id", ""))
+				})
+
+			# Resolving Hits (Core Rules p.46): resolve_ranged_attack already rolled the
+			# 1D6+Damage-vs-Toughness casualty/Stun outcome (a deflected/saved Hit still
+			# Stuns). No HP pool — a casualty Hit removes the figure (Stim-pack p.54 saves
+			# once). becomes_casualty already folds in the critical second hit + saves.
+			if attack_result["hit"]:
+				if attack_result.get("becomes_casualty", false):
+					if int(target.get("luck", 0)) > 0:
+						# Luck (Core Rules p.46): lose 1 Luck instead of becoming a
+						# casualty; otherwise unharmed (displacement is position-less here).
+						target["luck"] = int(target["luck"]) - 1
+						result["events"].append({
+							"type": "luck_used",
+							"target": target.get("name", target.get("character_name", "Unknown"))
+						})
+					elif target.get("has_stim_pack", false):
+						target["has_stim_pack"] = false
+						target["is_stunned"] = true
+						result["events"].append({
+							"type": "stim_pack_used",
+							"target": target.get("name", target.get("character_name", "Unknown"))
+						})
+						result["consumed_items"].append({
+							"character_name": target.get("character_name", target.get("name", "")),
+							"character_id": str(target.get("character_id", target.get("id", ""))),
+							"weapon_name": "Stim-pack",
+							"weapon_id": "stim_pack"
+						})
+					else:
+						target["hp_current"] = 0
+						target["is_alive"] = false
+						result["casualties"] += 1
+						attacker["kills"] = attacker.get("kills", 0) + 1
+						result["events"].append({
+							"type": "elimination",
+							"attacker": attacker.get("name", "Unknown"),
+							"target": target.get("name", "Enemy")
+						})
+				elif attack_result.get("stunned", false):
+					# Core Rules p.40: Stun markers ACCUMULATE. "If a character
+					# ever has 3 or more Stun markers at the same time, they are
+					# knocked out and removed from play."
+					#
+					# is_stunned alone is a boolean, so a figure could be stunned
+					# any number of times and never reach the knockout threshold.
+					target["is_stunned"] = true
+					target["stun_markers"] = int(target.get("stun_markers", 0)) + 1
+					result["events"].append({
+						"type": "stunned",
+						"target": target.get("name", "Unknown"),
+						"stun_markers": target["stun_markers"]
+					})
+					if BattleCalculations.is_knocked_out_by_stun(int(target["stun_markers"])):
+						target["hp_current"] = 0
+						target["is_alive"] = false
+						result["casualties"] += 1
+						attacker["kills"] = attacker.get("kills", 0) + 1
+						result["events"].append({
+							"type": "knocked_out_by_stun",
+							"attacker": attacker.get("name", "Unknown"),
+							"target": target.get("name", "Enemy"),
+							"stun_markers": target["stun_markers"]
+						})
+
+			# Phase 4: Track hot weapon firing for overheat next round
+			if BattleCalculations._has_trait(weapon_traits, "hot") or BattleCalculations._has_trait(weapon_traits, "overheat"):
+				attacker["fired_hot_weapon_this_round"] = true
 
 	return result
 
