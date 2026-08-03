@@ -358,73 +358,135 @@ func _turn_sequence_text() -> String:
    Check for Battle Events on rounds 2 and 4"""
 
 func _hit_rules_text() -> String:
-	return """[b]To Hit (roll 1d6):[/b]
-Base target: [color=#10B981]4+[/color] to hit
+	return """[b]To Hit (p.44) - roll 1d6 + Combat Skill:[/b]
+Cover does not modify the roll. It changes which
+target number applies:
+  Within [color=#4FC3F7]6\"[/color] and in the open      [color=#10B981]3+[/color]
+  Within range in the open,
+  OR within [color=#4FC3F7]6\"[/color] and in Cover   [color=#10B981]5+[/color]
+  Within range and in Cover     [color=#10B981]6+[/color]
+Equal to or above the target = Hit. Misses do nothing.
 
-[b]Modifiers:[/b]
-  Aim (no move):  [color=#10B981]+1[/color]
-  Cover:          [color=#DC2626]-1[/color]
-  Snap Fire:      [color=#DC2626]-1[/color]
-  Focused Fire:   [color=#10B981]+1[/color] (2nd+ shot at same target)
-  Long Range:     [color=#DC2626]-1[/color] (beyond half max range)
+[b]The only To Hit modifiers:[/b]
+  [i]Heavy[/i] trait:  [color=#DC2626]-1[/color] if the firer moved this round
+  [i]Snap shot[/i]:   [color=#10B981]+1[/color] within [color=#4FC3F7]6\"[/color]
+  Bipod (mod): [color=#10B981]+1[/color] over [color=#4FC3F7]8\"[/color] when Aiming or in Cover
+There is no elevation or long-range modifier.
 
-[b]Brawling (melee):[/b]
-Both roll 1d6 + Combat Skill
-  [color=#10B981]+2[/color] if carrying Melee weapon
-  [color=#10B981]+1[/color] if carrying Pistol
-Highest wins (ties = both take a hit)
-Loser takes a hit at Damage +1
-Natural [color=#4FC3F7]6[/color]: inflict hit regardless of total
-Natural [color=#DC2626]1[/color]: opponent inflicts hit regardless"""
+[b]Aiming (p.46):[/b]
+If not Stunned and you did not Move, pick up any
+[color=#4FC3F7]1[/color]s on the To Hit dice and roll them again once.
+Tactical/Cautious/Defensive enemies Aim from Cover.
+Aggressive/Rampaging enemies never Aim.
+
+[b]Line of fire (p.44):[/b]
+If the shot crosses another figure, it cannot be taken
+(both sides). To risk an ally with an [i]Area[/i] weapon,
+roll 1d6 and score [color=#10B981]5+[/color] or pick another target.
+
+[b]Brawling (p.45):[/b]
+Both roll 1d6 + Combat Skill. K'Erin roll twice, better.
+  [color=#10B981]+2[/color] if carrying a [i]Melee[/i] weapon
+  [color=#10B981]+1[/color] if carrying a [i]Pistol[/i] weapon
+  [color=#10B981]+1[/color] to the outnumbering side
+  [color=#10B981]+1[/color] per Stun marker on your opponent
+      (all their Stun markers are then removed)
+Lower total takes a Hit. Draw = both take a Hit.
+Natural [color=#4FC3F7]6[/color]: inflict an extra Hit on the opponent.
+Natural [color=#DC2626]1[/color]: opponent inflicts an extra Hit on you.
+Damage = the highest [i]Melee[/i] or [i]Pistol[/i] Damage carried,
+or [color=#D97706]+0[/color] with no suitable weapon.
+[color=#10B981]Eliminate[/color] your opponent and you may move 2\" in any
+direction, but may not enter a new Brawl."""
 
 func _damage_rules_text() -> String:
-	return """[b]Damage Resolution:[/b]
-Roll weapon [color=#4FC3F7]Damage[/color] vs target [color=#D97706]Toughness[/color]
+	return """[b]Resolving Hits (p.46):[/b]
+Roll [color=#4FC3F7]1d6 and ADD the Damage rating[/color] of the attack.
 
-If Damage >= Toughness: [color=#DC2626]Casualty[/color]
-If Damage < Toughness:  [color=#D97706]Stun[/color]
+Result >= target's [color=#D97706]Toughness[/color], or a natural [color=#4FC3F7]6[/color]:
+  [color=#DC2626]Casualty[/color] - removed from play.
+Result < Toughness:
+  Target is pushed [color=#D97706]1\"[/color] directly away from the attacker
+  (unless blocked) and gains a [color=#D97706]Stun marker[/color].
 
-[b]Armor Save:[/b]
-Roll 1d6. Result >= armor save value = hit negated.
-Screen Armor: 5+  |  Combat Armor: 4+  |  Powered: 3+
+[b]Saving Throws (p.46):[/b]
+Roll 1d6 when becoming a casualty. Equal to or above
+the save number negates the Hit - but the figure is
+still [color=#D97706]Stunned[/color].
+  Combat armor      [color=#10B981]5+[/color]
+  Battle dress      [color=#10B981]5+[/color]  (also +1 Reactions, max 4)
+  Frag vest         [color=#10B981]6+[/color]  ([color=#10B981]5+[/color] vs [i]Area[/i])
+  Screen generator  [color=#10B981]5+[/color]  vs gunfire only
+  Bot / Soulless / De-converted  [color=#10B981]6+[/color] built-in plating
+  Assault Bot                    [color=#10B981]5+[/color] built-in plating
+Max one armor and one screen per character.
 
-[b]Stun Effects:[/b]
-Stunned figure cannot act next activation.
-If Stunned while already Stunned = [color=#DC2626]Casualty[/color]"""
+[i]Piercing[/i] negates ARMOR saves, but not screens.
+
+[b]Multiple Saving Throws (p.46):[/b]
+Roll only the [color=#10B981]best[/color] save, with the target number
+lowered by 1. Bot 6+ with a 5+ screen = [color=#10B981]4+[/color], counts as
+a screen. Two 5+ armors = [color=#10B981]4+[/color]. Against a [i]Piercing[/i]
+weapon, only Screen saves count at all.
+
+[b]Stun markers (p.40):[/b]
+A Stunned figure may Move [color=#4FC3F7]OR[/color] take a Combat Action next
+time it acts, but not both. A Free Action is still
+allowed. Remove one marker after it has acted.
+[color=#DC2626]3 or more[/color] Stun markers at once = knocked out and
+removed from play."""
 
 func _morale_rules_text() -> String:
-	return """[b]When to Check:[/b]
-First casualty each round triggers enemy morale check.
+	return """[b]Running Away (p.47) - end of each round:[/b]
+The enemy tests Morale only if they [color=#4FC3F7]lost figures[/color]
+during the round just played.
 
 [b]How to Check:[/b]
-Roll [color=#4FC3F7]2d6[/color] vs enemy Morale value.
-If roll > Morale: [color=#DC2626]Panic![/color]
+Roll [color=#4FC3F7]one d6 per enemy figure removed by combat[/color] this
+round. Casualties from hazards or terrain do not count.
+Every die falling inside that enemy type's
+[color=#D97706]Panic range[/color] means one of them will [color=#DC2626]Bail[/color].
 
-[b]Panic Result:[/b]
-1d3 enemy figures flee the battlefield.
-Remove from play immediately.
+[b]Applying the results:[/b]
+Assign each die to an enemy figure, starting with
+those [color=#4FC3F7]closest to the enemy battlefield edge[/color].
+Those figures Bail and are removed from play.
+They do [color=#10B981]not[/color] count as killed for any purpose, and do
+[color=#10B981]not[/color] trigger further Morale dice.
 
-[b]Morale Modifiers:[/b]
-  Outnumbered 2:1:    -1 to Morale
-  Leader eliminated:  -2 to Morale
-  Half casualties:    -1 to Morale"""
+[b]Panic range 0:[/b]
+That enemy fights to the death, unless something
+raises their Panic range to 1 or more.
+
+[b]Note:[/b] "Enemy Morale +1" (Bitter Struggle, p.88) makes
+them [color=#10B981]steadier[/color] - the Panic range moves DOWN."""
 
 func _status_effects_text() -> String:
-	return """[b]Stunned[/b]
-Cannot activate this round. Remove stun at end of round.
-If hit while Stunned = Casualty.
+	return """[b]Stunned (p.40)[/b]
+Next time the figure acts it may Move [color=#4FC3F7]OR[/color] take a
+Combat Action, but not both. A Free Action is still
+allowed. Remove one Stun marker after it acts.
+Markers accumulate: [color=#DC2626]3 or more at once[/color] = knocked out
+and removed from play.
+Attacked in a Brawl: all its Stun markers are removed,
+but the attacker gets [color=#10B981]+1[/color] per marker removed.
 
-[b]Suppressed[/b]
-Cannot advance toward enemy.
-Can only fire at -1 or take cover action.
+[b]Stunned enemies (p.40)[/b]
+Always fire at the nearest visible target. With no
+target, they retreat toward better Cover. They will
+[color=#DC2626]not[/color] enter Brawling combat.
 
 [b]Wounded (crew only)[/b]
-After battle, roll on Injury Table.
-Recovery time: 1-4 campaign turns.
+After battle, roll on the Injury Table (p.122).
 
-[b]Bail[/b]
-Free 1" move when enemy enters brawl range.
-Cannot Bail if Stunned or already Bailed this round."""
+[b]Bail (p.47)[/b]
+An enemy that fails Morale flees the field and is
+removed. Bailed figures do [color=#10B981]not[/color] count as killed and do
+[color=#10B981]not[/color] trigger further Morale dice.
+
+[i]There is no Suppression in Five Parsecs. The only
+status effect is Stunned. "Suppressing fire" is a
+Renegade Soldier rule (+1 shot), not a state.[/i]"""
 
 func _common_weapons_text() -> String:
 	return """[b]Weapon        Range  Shots  Dmg  Traits[/b]
@@ -511,7 +573,11 @@ func _no_minis_text() -> String:
 
 [b]Locations:[/b] 3-5 zones: Open / Light Cover / Heavy Cover / Elevated / Objective / Hazard
 [b]Movement:[/b] 1 Location per activation. Sprint = 2 Locations.
-[b]Cover:[/b] Light = -1 to hit. Heavy = -2 to hit. Elevated = cover + [color=#10B981]+1[/color] ranged.
+[b]Taking Cover:[/b] 2D6 Battlefield Test, [color=#10B981]6+[/color] ([color=#DC2626]-1[/color] at a Location).
+  While in Cover, all shots [color=#4FC3F7]by and against[/color] you hit only on a
+  natural [color=#4FC3F7]6[/color]. Brawling enemies still engage you.
+  The status is lost when you Move Up or Brawl.
+  (No light/heavy cover tiers - Cover is binary here too.)
 
 [b]Initiative Actions (choose 1 per figure):[/b]
   Fire | Engage (Brawl) | Take Cover | Sprint | Search | First Aid
@@ -539,7 +605,13 @@ func _grid_movement_text() -> String:
 [b]Movement Rules:[/b]
   1 square per activation (+1 if Speed > 4")
   Enter occupied square = automatic Brawl
-  Flanking: Attack from adjacent square = [color=#10B981]+1 to hit[/color]
+
+[b]Flanking (p.91) - deployment, not a combat bonus:[/b]
+  With the Half Flank or Bolstered Flank deployment
+  variables (p.45), the flanking force sets up in the
+  [color=#4FC3F7]second square[/color] counting from the enemy table edge.
+  Any figure required to arrive from the flank is
+  placed the same way. There is no flanking to-hit bonus.
 
 [b]Large Features:[/b] Span multiple squares. Enter any adjacent square."""
 
