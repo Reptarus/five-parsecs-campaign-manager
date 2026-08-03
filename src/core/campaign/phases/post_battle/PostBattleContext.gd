@@ -976,11 +976,20 @@ func mark_item_damaged(member: Variant, item_name: String, source: String) -> bo
 		return false
 	if _is_item_already_damaged(member, item_name):
 		return false
+	# NO `duration` KEY, deliberately. Both turn-rollover loops
+	# (Character.process_status_effect_turn and the Dictionary branch of
+	# CampaignPhaseManager._process_character_event_effects) are written as
+	# `if "duration" in effect: effect["duration"] -= 1; if <= 0: expire`, so a
+	# literal `"duration": 0` — which this used to carry — went to -1 and was
+	# REMOVED at the very next rollover. Damaged gear repaired itself overnight
+	# and Repair Your Kit (p.78) still had nothing to fix, which was the whole
+	# point of writing the marker. Omitting the key is the built-in escape hatch
+	# for indefinite effects; the dashboard already reads `duration` with a
+	# default and only renders a turn count when it is > 0.
 	apply_character_status_effect(member, {
 		"type": "item_damaged",
 		"name": "Damaged Equipment",
 		"description": "%s is damaged and cannot be used until Repaired (Core Rules p.78)." % item_name,
-		"duration": 0,
 		"damaged_item": item_name,
 		"source_event": source,
 	})
@@ -1006,6 +1015,77 @@ func damage_random_equipment_for(crew_id: String, source: String = "Injury Table
 	## Core Rules p.122, Injury Table 17-30 and Bot Injury Table 16-30:
 	## "Random carried item is damaged." Returns the item name, "" if none.
 	return _damage_random_item_on(get_crew_member(crew_id), source)
+
+
+## Names of every item with the book's ARMOR trait (data/armor.json
+## category == "armor"). Screens are deliberately excluded: armor.json separates
+## "Physical protective gear that provides Saving Throws" from "Energy-based or
+## stealth protective devices", and Compendium p.101 Critical Strike asks
+## specifically whether the character is "wearing Armor".
+static var _armor_names_cache: PackedStringArray = PackedStringArray()
+static var _armor_names_loaded: bool = false
+
+static func _armor_item_names() -> PackedStringArray:
+	if _armor_names_loaded:
+		return _armor_names_cache
+	_armor_names_loaded = true
+	var file := FileAccess.open("res://data/armor.json", FileAccess.READ)
+	if file == null:
+		return _armor_names_cache
+	var json := JSON.new()
+	var ok: bool = json.parse(file.get_as_text()) == OK
+	file.close()
+	if not ok or not (json.data is Dictionary):
+		return _armor_names_cache
+	for entry in json.data.get("armor", []):
+		if entry is Dictionary and str(entry.get("category", "")) == "armor":
+			_armor_names_cache.append(str(entry.get("name", "")).to_lower())
+	return _armor_names_cache
+
+
+func get_worn_armor_name(member: Variant) -> String:
+	## The first ARMOR-trait item the member carries, or "" if they wear none.
+	if member == null:
+		return ""
+	var armor_names: PackedStringArray = _armor_item_names()
+	for entry in _member_equipment(member):
+		var item_name: String = _entry_item_name(entry)
+		if item_name.to_lower() in armor_names:
+			return item_name
+	return ""
+
+
+func damage_worn_armor_for(crew_id: String, source: String) -> String:
+	## Compendium p.101 Critical Strike: "they survive, but the armor is damaged."
+	var member: Variant = get_crew_member(crew_id)
+	var armor_name: String = get_worn_armor_name(member)
+	if armor_name.is_empty():
+		return ""
+	mark_item_damaged(member, armor_name, source)
+	return armor_name
+
+
+func destroy_random_equipment_for(crew_id: String) -> String:
+	## Compendium p.101 Item Hit on a 5-6: the item is DESTROYED, not damaged, so
+	## it leaves the sheet entirely rather than becoming a Repair Your Kit job.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null:
+		return ""
+	var equipment: Array = _member_equipment(member)
+	if equipment.is_empty():
+		return ""
+	var index: int = randi() % equipment.size()
+	var item_name: String = _entry_item_name(equipment[index])
+	equipment.remove_at(index)
+	# A destroyed item must not keep a damaged-marker behind it, or Repair Your
+	# Kit would offer to fix something the character no longer owns.
+	var effects: Array = _member_status_effects(member)
+	for i in range(effects.size() - 1, -1, -1):
+		var eff: Variant = effects[i]
+		if eff is Dictionary and str(eff.get("type", "")) == "item_damaged" \
+				and str(eff.get("damaged_item", "")) == item_name:
+			effects.remove_at(i)
+	return item_name
 
 func damage_all_equipment_for(crew_id: String, source: String = "Injury Table") -> Array:
 	## Core Rules p.122, Injury Table 1-5 Gruesome fate and Bot 1-5 Obliterated:

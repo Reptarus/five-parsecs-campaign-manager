@@ -5484,24 +5484,46 @@ func _on_auto_resolve_battle() -> void:
 		var is_alive: bool = fates.get(unit, true)
 
 		if not is_alive and unit.original_character:
-			# Use Compendium casualty table if available, else core rules
-			var casualty_check: Dictionary = _roll_compendium_casualty()
+			var oc = unit.original_character
+			# Compendium pp.99-100 Casualty Tables, when the option is on.
+			#
+			# These rows are IN-BATTLE outcomes, not a death check. Only "Goner"
+			# removes the figure from play; Dazed / Wounded / Knock down /
+			# Temporary shutdown / Damaged / Bleeding all leave it standing, and
+			# p.100 states those conditions are "removed at the end of the battle
+			# and [have] no long-term effects" — so those crew take NO post-battle
+			# roll at all. That is the whole point of the option: it "tends to keep
+			# combatants in the fight longer than normal" (p.99).
+			#
+			# The old code read casualty_check["id"] and compared it to
+			# "instant_kill"/"dead". These rows carry `outcome`, never `id`, and
+			# no row has ever been named either of those — so even once the reader
+			# was fixed, every result would have fallen to the injuries branch.
+			var is_mech: bool = bool(_oc_field(oc, "is_bot", false)) \
+				or bool(_oc_field(oc, "is_soulless", false))
+			var casualty_check: Dictionary = _roll_compendium_casualty(
+				CompendiumDifficultyTogglesRef.casualty_category_for(is_mech, false),
+				bool(_oc_field(oc, "is_captain", false)))
 			if not casualty_check.is_empty():
-				var cas_id: String = casualty_check.get("id", "")
-				_log_message(casualty_check.get("instruction", ""), Color("#DC2626"))
-				if cas_id == "instant_kill" or cas_id == "dead":
-					result.crew_casualties.append(unit.original_character)
-				else:
-					result.crew_injuries.append(unit.original_character)
-					var injury_check: Dictionary = _roll_compendium_injury()
-					if not injury_check.is_empty():
-						_log_message(injury_check.get("instruction", ""), Color("#D97706"))
+				var outcome: String = str(casualty_check.get("outcome", ""))
+				_log_message("%s — %s (D6 %d, %s column): %s" % [
+					str(_oc_field(oc, "character_name", _oc_field(oc, "name", "Crew"))),
+					outcome, int(casualty_check.get("roll", 0)),
+					str(casualty_check.get("column", "regular")),
+					str(casualty_check.get("effect", "")),
+				], Color("#DC2626") if outcome == "Goner" else Color("#D97706"))
+				if outcome != "Goner":
+					# Still on their feet. Not a casualty, no post-battle roll.
+					continue
+				# Removed from play. The post-battle Injury Table decides whether
+				# that is death — the casualty table never kills outright.
+				result.crew_injuries.append(oc)
 			else:
 				var death_roll: int = _roll_dice("Death Check", "D6")
 				if death_roll <= 2:
-					result.crew_casualties.append(unit.original_character)
+					result.crew_casualties.append(oc)
 				else:
-					result.crew_injuries.append(unit.original_character)
+					result.crew_injuries.append(oc)
 
 	if crew_casualties_count > 0:
 		_log_message("Crew casualties: %d" % crew_casualties_count, UIColors.COLOR_RED)
@@ -6715,15 +6737,29 @@ func _check_escalating_battles(round_number: int) -> void:
 			unified_log.add_entry("event", instruction)
 
 
-## ── DLC: Compendium Casualty/Injury Tables (Compendium pp.99, 101) ────
+## ── DLC: Compendium Casualty Tables (Compendium pp.99-100) ────────
 
-func _roll_compendium_casualty() -> Dictionary:
-	## Roll on compendium casualty table if CASUALTY_TABLES enabled, else empty
-	return CompendiumDifficultyTogglesRef.roll_casualty()
+## Read a field off a crew member that may be a Character Resource OR a minimal
+## Dictionary (TacticalUnit accepts both — Battle Simulator builds dicts).
+## `in` works for both; 2-arg .get() would ABORT on a Resource.
+func _oc_field(oc: Variant, key: String, fallback: Variant = null) -> Variant:
+	if oc is Dictionary:
+		return oc.get(key, fallback)
+	if oc is Object and key in oc:
+		return oc.get(key)
+	return fallback
 
-func _roll_compendium_injury() -> Dictionary:
-	## Roll on compendium detailed injury table if DETAILED_INJURIES enabled, else empty
-	return CompendiumDifficultyTogglesRef.roll_detailed_injury()
+
+func _roll_compendium_casualty(category: String = "humanoid",
+		is_boss: bool = false) -> Dictionary:
+	## Roll on the Compendium casualty table if CASUALTY_TABLES is on, else {}.
+	return CompendiumDifficultyTogglesRef.roll_casualty(category, is_boss)
+
+# _roll_compendium_injury() was DELETED here. The Detailed Post-Battle Injury
+# table is a POST-BATTLE table — p.101: "can be used in place of the one in the
+# core rules" — so rolling it mid-battle-resolution was the wrong stage, and it
+# would have double-rolled against the post-battle step once that step was
+# wired. It now lives at its proper site, InjuryProcessor.process_single_injury.
 
 
 ## ── DLC: No-Minis Combat Panel (Compendium pp.66-73) ────────────

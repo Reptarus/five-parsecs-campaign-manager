@@ -13,9 +13,12 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 17 |
-| **PARTIAL** — some of the chapter lands, a named part does not | 3 |
+| **LIVE** — a live path reaches the player | 19 |
+| **PARTIAL** — some of the chapter lands, a named part does not | 1 |
 | **DEAD** — data + gated API exist, nothing reaches the player | 10 |
+
+Casualty Tables and Detailed Injuries moved PARTIAL → LIVE on Aug 3; see
+"The reader that disagreed with its own data" below.
 
 7 of the 10 dead are **Freelancer's Handbook** — 7 of that pack's 17 advertised
 features.
@@ -85,8 +88,8 @@ getter.
 | **Dramatic Combat pp.87-89** | **PARTIAL** | Adjusted Shooting is applied by all four resolvers and the rule text renders (`TacticalBattleUI:6113`). The **Dramatic Weapons stat table pp.88-89** does not: `get_dramatic_weapon_stats()` and `get_dramatic_effect()` have zero callers |
 | **Grid-based Movement pp.90-93** | **DEAD** | `TacticalBattleUI.gd:6123` reads `mission_dict["grid_movement_instructions"]` — **zero producers.** `BattlefieldGrid.gd` is table geometry (p.108 sizes), not this chapter |
 | Terrain Generation pp.94-98 | LIVE | `FPCM_BattlefieldGenerator` + `data/battlefield/themes/compendium_terrain.json` |
-| **Casualty Tables p.99** | **PARTIAL** | `TacticalBattleUI:5488`, but that call site is inside the **auto-resolve** branch (`resolver_result` / `crew_units_final`). `InjuryProcessor` — the played post-battle path — has no reference to it. A player who fights on the table never sees this table |
-| **Detailed Post-Battle Injuries p.101** | **PARTIAL** | same: `:5496`, auto-resolve only |
+| Casualty Tables pp.99-100 | **LIVE (fixed Aug 3)** | `roll_casualty(category, is_boss)` now reads the real `casualty_tables` data. Auto-resolve applies it at `TacticalBattleUI:5488`; the played path gets the rules text from `CheatSheetPanel`, which is the correct delivery for a table the player rolls themselves |
+| Detailed Post-Battle Injuries pp.101-102 | **LIVE (fixed Aug 3)** | `roll_detailed_injury()` now rolls D100 against `roll_min`/`roll_max`, and `InjuryProcessor.process_single_injury` uses it **in place of** the Core Rules table for organic characters (bots stay on the p.122 Bot table, per p.101) |
 
 ## Scenarios & Settings (pp.103-160) — Fixer's Guidebook
 
@@ -107,7 +110,46 @@ getter.
 
 ## The three PARTIAL rows, in detail
 
-### Casualty Tables p.99 + Detailed Injuries p.101 — auto-resolve only
+### FIXED Aug 3 — the reader that disagreed with its own data
+
+Both of these were listed here as PARTIAL, on the evidence that their call sites
+sat in the auto-resolve branch. That was true and it was not the real problem.
+**Neither table had ever produced a single result in any battle**, because each
+reader was looking at something its own data file does not contain:
+
+- `roll_casualty()` read `casualty_table` — whose value in
+  `difficulty_toggles.json` is the empty array `[]`. The real pp.99-100 data has
+  always been in **`casualty_tables`**: three tables (humanoid / cybernetic /
+  beast) with `regular` and `boss` COLUMNS, not a flat `roll` field. Iterating
+  the empty array returned `{}` every time, so `casualty_check.is_empty()` at the
+  call site was permanently true and the code always fell through to the Core
+  Rules D6.
+- `roll_detailed_injury()` rolled **2D6 — a 2..12 range — against a D100 table**,
+  then matched `entry.roll`, a key those rows do not have (they carry `roll_min`
+  / `roll_max`). Either fault alone guaranteed `{}`.
+
+Neither is findable by tracing call sites, which is exactly how both survived the
+chapter-level pass that checked call sites. **Trace to the value.**
+
+Both are now wired: `roll_casualty(category, is_boss)` reads the real tables and
+honours the boss column; `roll_detailed_injury()` rolls D100 against the spans;
+and `InjuryProcessor.process_single_injury` uses the p.102 table *in place of*
+the Core Rules one for organic characters, with bots still routed to the p.122
+Bot table per p.101. Pinned by `tests/unit/test_compendium_casualty_and_injury.gd`
+(18 cases, revert-proven: restoring the 2D6 reader fails it 1802 times).
+
+Three parts of p.102 are recorded but NOT auto-applied, and the code says so at
+the site rather than pretending: **Injured arm** (CS -1 only "when firing a
+non-Pistol weapon or when Brawling"), **Injured torso** ("knocked out after two
+Stun markers, instead of the customary three") and the **Lingering injury**
+pre-mission 1D6. All three are conditional rules the unconditional modifier
+channel cannot express, and applying them as flat numbers would be HARSHER than
+the book. They surface as character-sheet text with the rule quoted — the correct
+delivery for a tabletop companion — and need a per-attack / stun-threshold /
+pre-deployment hook before they can fire automatically. **Injured leg** (Speed -1)
+IS applied, because that one maps exactly onto the existing live gate.
+
+### Superseded note — what the PARTIAL verdict said
 
 Both fire from exactly one place, `TacticalBattleUI:5488` / `:5496`, and that block
 sits inside the **auto-resolve** branch — it reads `resolver_result` and walks

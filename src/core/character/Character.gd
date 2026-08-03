@@ -729,6 +729,39 @@ func _apply_injury_penalties(modifiers: Dictionary) -> void:
 					"stat": "reactions/savvy",
 					"value": -severity
 				})
+			"injured_leg":
+				# Compendium p.102: "Reduce the character's Speed by 1"."
+				# Exact value, exact channel — 3 Credits of medical treatment
+				# removes the injury entry and with it this penalty.
+				modifiers["speed"] -= 1
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": "Injured Leg (Compendium p.102)",
+					"stat": "speed",
+					"value": -1
+				})
+			"injured_arm", "injured_torso":
+				# DELIBERATELY NOT APPLIED AS A FLAT NUMBER. Both are conditional
+				# rules this unconditional modifier channel cannot express, and
+				# applying them here would be HARSHER than the book:
+				#   Injured arm  — CS 1 lower "when firing a non-Pistol weapon or
+				#                  when Brawling", so a pistol shot is exempt.
+				#   Injured torso — not a stat at all: "knocked out after two Stun
+				#                  markers, instead of the customary three".
+				# They are surfaced to the player as sources so the character
+				# sheet states the rule (this is a tabletop companion — the text
+				# IS the delivery), and both need a per-attack / stun-threshold
+				# hook before they can be applied automatically.
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": ("Injured Arm (Compendium p.102)" if injury_type.to_lower() == "injured_arm"
+						else "Injured Torso (Compendium p.102)"),
+					"stat": "combat_skill" if injury_type.to_lower() == "injured_arm" else "stun_threshold",
+					"value": 0,
+					"manual_rule": ("-1 Combat Skill when firing a non-Pistol weapon or Brawling"
+						if injury_type.to_lower() == "injured_arm"
+						else "Knocked out after 2 Stun markers instead of 3")
+				})
 
 ## Get effective combat skill including all modifiers
 func get_effective_combat_skill() -> int:

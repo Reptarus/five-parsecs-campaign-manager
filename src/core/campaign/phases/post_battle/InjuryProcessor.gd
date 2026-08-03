@@ -7,6 +7,7 @@ extends RefCounted
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	## Process all injuries from battle. Returns array of processed injury dicts.
@@ -115,6 +116,17 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 
 	if is_bot_character:
 		return _process_bot_injury(ctx, injury_data, crew_id)
+
+	# Compendium p.101 Detailed Post-Battle Injuries: this table "can be used in
+	# place of the one in the core rules". Synthetic characters "continue using
+	# the core rules Bot Injury table (core rules, p.122)" — already routed above,
+	# so reaching here means the character is organic and eligible.
+	#
+	# roll_detailed_injury() returns {} unless the DETAILED_INJURIES flag is on,
+	# so this is the whole opt-in check; no second gate needed.
+	var detailed_row: Dictionary = CompendiumTogglesRef.roll_detailed_injury()
+	if not detailed_row.is_empty():
+		return _process_detailed_injury(ctx, detailed_row, crew_id)
 
 	var injury_roll := randi_range(1, 100)
 	var injury_type := InjuryConstants.get_injury_type_from_roll(injury_roll)
@@ -239,6 +251,152 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 	ctx.apply_crew_injury(crew_id, processed_injury)
 
 	return processed_injury
+
+
+## Roll the "Campaign turns in Sick Bay" column of the Compendium p.102 table.
+## Rows carry either a flat `sick_bay` int or a `sick_bay_roll` string in NdM+K
+## form ("1D6+3", "1D3", "1D3+1", "1D6+1"). The two negative `sick_bay` values are
+## sentinels from the data file: -1 = "NA" (the Death row), -2 = "Identical to
+## medical cost" (Extensive injury), both handled by their own branches below.
+func _roll_sick_bay(row: Dictionary) -> int:
+	var spec: String = str(row.get("sick_bay_roll", "")).strip_edges().to_upper()
+	if spec.is_empty():
+		return maxi(int(row.get("sick_bay", 0)), 0)
+	var bonus: int = 0
+	var plus: int = spec.find("+")
+	if plus != -1:
+		bonus = int(spec.substr(plus + 1))
+		spec = spec.substr(0, plus)
+	var parts: PackedStringArray = spec.split("D")
+	if parts.size() != 2:
+		return bonus
+	var count: int = maxi(int(parts[0]), 1)
+	var sides: int = maxi(int(parts[1]), 1)
+	var total: int = bonus
+	for _i in range(count):
+		total += randi_range(1, sides)
+	return maxi(total, 0)
+
+
+## Compendium p.102 Detailed Post-Battle Injuries — the D100 table used "in place
+## of the one in the core rules" when the DETAILED_INJURIES option is on.
+##
+## Returns the same processed-injury contract as the Core Rules path so every
+## downstream consumer (the post-battle wizard, the journal, Sick Bay) is
+## unchanged. Bots never reach here; p.101 keeps them on the core Bot Injury
+## table and process_single_injury routes them out first.
+func _process_detailed_injury(ctx: PostBattleContextClass, row: Dictionary,
+		crew_id: String) -> Dictionary:
+	var row_id: String = str(row.get("id", ""))
+	var recovery: int = _roll_sick_bay(row)
+
+	var processed: Dictionary = {
+		"crew_id": crew_id,
+		"crew_name": _crew_name(ctx, crew_id),
+		"type": row_id.to_upper(),
+		"severity": 1,
+		"recovery_turns": recovery,
+		"turn_sustained": int(ctx.battle_result.get("turn", 0)),
+		"description": str(row.get("effect", "")),
+		"is_fatal": false,
+		"equipment_lost": false,
+		"bonus_xp": 0,
+		"injury_source": "compendium_detailed",
+		"injury_roll": int(row.get("roll", 0)),
+		"table_name": str(row.get("name", row_id)),
+	}
+
+	match row_id:
+		"death":
+			# "The character is slain. A random item they carried is damaged."
+			# The gear clause lands whether or not the Luck save rescues them,
+			# exactly as the Core Rules Gruesome-fate row is handled above.
+			var damaged: String = ctx.damage_random_equipment_for(
+				crew_id, "Detailed Injury: Death")
+			if not damaged.is_empty():
+				processed["damaged_item"] = damaged
+			processed["is_fatal"] = true
+			return _resolve_fatal(ctx, processed, crew_id, "Death")
+
+		"critical_strike":
+			# "Is the character wearing Armor? If so, they survive, but the armor
+			# is damaged. Otherwise, they are slain."
+			var armor: String = ctx.damage_worn_armor_for(
+				crew_id, "Detailed Injury: Critical Strike")
+			if armor.is_empty():
+				processed["is_fatal"] = true
+				processed["description"] = "No armor worn — slain by a critical strike."
+				return _resolve_fatal(ctx, processed, crew_id, "Critical Strike")
+			processed["damaged_item"] = armor
+			processed["description"] = (
+				"Survived a critical strike — %s absorbed it and is damaged." % armor)
+
+		"extensive_injury":
+			# "Roll 1D6+1 to determine the cost in Credits. Until the cost has
+			# been paid, the character cannot take crew tasks or fight. The Sick
+			# Bay recovery time begins once they have received treatment."
+			var cost: int = randi_range(1, 6) + 1
+			processed["treatment_cost"] = cost
+			# Sick Bay is "identical to medical cost" (the table's own wording) and
+			# does not start ticking yet, so the recovery turns are STORED but the
+			# character is held out by the two blocks below until treatment is paid.
+			processed["recovery_turns"] = cost
+			processed["treatment_pending"] = true
+			for effect_type in ["skip_tasks", "skip_next_battle"]:
+				ctx.apply_character_status_effect(ctx.get_crew_member(crew_id), {
+					"type": effect_type,
+					"name": "Untreated Injury (%dcr)" % cost,
+					"description": ("Requires %d credits of specialized treatment."
+						+ " Until paid they cannot take crew tasks or fight"
+						+ " (Compendium p.102).") % cost,
+					"treatment_cost": cost,
+					"source_event": "Detailed Injury: Extensive injury",
+				})
+
+		"item_hit":
+			# "Randomly select a carried item and roll 1D6. On a 1-4 it is
+			# damaged. On a 5-6 it is destroyed."
+			var item_roll: int = randi_range(1, 6)
+			if item_roll <= 4:
+				var hit: String = ctx.damage_random_equipment_for(
+					crew_id, "Detailed Injury: Item hit")
+				processed["damaged_item"] = hit
+				processed["description"] = "Item hit (D6 %d): %s damaged." % [
+					item_roll, hit if not hit.is_empty() else "nothing carried"]
+			else:
+				var gone: String = ctx.destroy_random_equipment_for(crew_id)
+				processed["destroyed_item"] = gone
+				processed["equipment_lost"] = not gone.is_empty()
+				processed["description"] = "Item hit (D6 %d): %s destroyed." % [
+					item_roll, gone if not gone.is_empty() else "nothing carried"]
+
+		"school_of_hard_knocks":
+			processed["bonus_xp"] = 1
+			ctx.add_character_xp(ctx.get_crew_member(crew_id), 1)
+
+	# Non-fatal outcomes all land in Sick Bay through the canonical writer, which
+	# owns injuries[] / in_sick_bay / recovery_turns / status.
+	ctx.apply_crew_injury(crew_id, processed)
+	return processed
+
+
+## Shared tail for the two rows that can slay the character (Death, and Critical
+## Strike with no armor). Core Rules p.121's Luck clause is written about "a roll
+## on this table" in the prose introducing the ORGANIC injury table, and the
+## Compendium table explicitly replaces that table rather than adding to it — so
+## the clause travels with it. Same reading already applied on the core path.
+func _resolve_fatal(ctx: PostBattleContextClass, processed: Dictionary,
+		crew_id: String, cause: String) -> Dictionary:
+	if ctx.apply_luck_death_save(crew_id):
+		processed["is_fatal"] = false
+		processed["luck_death_save"] = true
+		processed["recovery_turns"] = 0
+		processed["description"] = (
+			"Miraculously survived %s — lost ALL Luck (Core Rules p.121)"
+			% cause.to_lower())
+		return processed
+	ctx.apply_crew_death(crew_id)
+	return processed
 
 
 func _crew_name(ctx: PostBattleContextClass, crew_id: String) -> String:

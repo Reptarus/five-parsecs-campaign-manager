@@ -103,10 +103,12 @@ static var CASUALTY_TABLES: Dictionary:
 		_ensure_loaded()
 		return _data.get("casualty_tables", {})
 
-static var CASUALTY_TABLE: Array:
-	get:
-		_ensure_loaded()
-		return _data.get("casualty_table", [])
+## CASUALTY_TABLE was DELETED (Aug 3 2026). It read `casualty_table`, a key whose
+## value in difficulty_toggles.json is the empty array `[]` — the real p.99-100
+## data has always been in `casualty_tables` (three tables keyed
+## humanoid/cybernetic/beast, each with regular/boss COLUMNS, not a flat `roll`).
+## roll_casualty() iterated the empty one looking for `entry.roll`, so it returned
+## {} on every call and the Compendium casualty rules never once fired.
 
 static var DETAILED_INJURY_TABLE: Array:
 	get:
@@ -167,25 +169,66 @@ static func get_ai_behavior(roll: int) -> Dictionary:
 	return {}
 
 
-## Roll D6 for casualty result. Returns casualty dict or empty if disabled.
-static func roll_casualty() -> Dictionary:
+## Roll D6 on a Casualty Table (Compendium pp.99-100). Returns the row plus the
+## roll and the column used, or {} when the option is off or the category is
+## unknown.
+##
+## p.99: "roll D6 on the appropriate table below. Use the most suitable category
+## for the type of creature. The Regular column is used for your crew figures and
+## normal enemies (including specialists). The Boss column is used for your crew
+## captain, any enemy leader and unique personalities."
+##
+## `bonus` carries the +1 the Damaged (cybernetic) and Bleeding (beast) rows add
+## to FUTURE casualty rolls, and the Critical Hit option's extra roll is made by
+## the caller rolling twice and keeping the highest (p.100).
+static func roll_casualty(category: String = "humanoid", is_boss: bool = false,
+		bonus: int = 0) -> Dictionary:
 	if not _is_flag_enabled("CASUALTY_TABLES"):
 		return {}
-	var roll := randi_range(1, 6)
-	for entry in CASUALTY_TABLE:
-		if entry.roll == roll:
-			return entry
+	var table: Dictionary = CASUALTY_TABLES.get(category, {})
+	var entries: Array = table.get("entries", []) if table is Dictionary else []
+	if entries.is_empty():
+		return {}
+	var roll: int = clampi(randi_range(1, 6) + bonus, 1, 6)
+	var column := "boss" if is_boss else "regular"
+	for entry in entries:
+		var span: Array = entry.get(column, [])
+		if span.size() == 2 and roll >= int(span[0]) and roll <= int(span[1]):
+			var out: Dictionary = entry.duplicate(true)
+			out["roll"] = roll
+			out["column"] = column
+			out["table"] = category
+			return out
 	return {}
 
 
-## Roll 2D6 for detailed injury. Returns injury dict or empty if disabled.
+## Which Casualty Table a figure uses (p.99 "the most suitable category").
+static func casualty_category_for(is_mechanical: bool, is_beast: bool) -> String:
+	if is_mechanical:
+		return "cybernetic"
+	if is_beast:
+		return "beast"
+	return "humanoid"
+
+
+## Roll D100 on the Detailed Post-Battle Injury table (Compendium p.102).
+## Returns the row, with the roll attached, or {} when the option is off.
+##
+## Was `randi_range(1, 6) + randi_range(1, 6)` — 2D6 against a D100 table — and
+## then matched `entry.roll`, a key these rows do not have (they carry `roll_min`
+## / `roll_max`). Both faults independently guaranteed {}, so the table never
+## resolved once. Note roll_min 0 on the Death row is the book's tens-digit
+## notation for "01-10"; matching an inclusive 1-100 roll against the span is
+## correct for it and for the 96-00 row alike.
 static func roll_detailed_injury() -> Dictionary:
 	if not _is_flag_enabled("DETAILED_INJURIES"):
 		return {}
-	var roll := randi_range(1, 6) + randi_range(1, 6)
+	var roll := randi_range(1, 100)
 	for entry in DETAILED_INJURY_TABLE:
-		if entry.roll == roll:
-			return entry
+		if roll >= int(entry.get("roll_min", -1)) and roll <= int(entry.get("roll_max", -1)):
+			var out: Dictionary = entry.duplicate(true)
+			out["roll"] = roll
+			return out
 	return {}
 
 
