@@ -13,8 +13,8 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 18 |
-| **PARTIAL** — some of the chapter lands, a named part does not | 2 |
+| **LIVE** — a live path reaches the player | 17 |
+| **PARTIAL** — some of the chapter lands, a named part does not | 3 |
 | **DEAD** — data + gated API exist, nothing reaches the player | 10 |
 
 7 of the 10 dead are **Freelancer's Handbook** — 7 of that pack's 17 advertised
@@ -85,8 +85,8 @@ getter.
 | **Dramatic Combat pp.87-89** | **PARTIAL** | Adjusted Shooting is applied by all four resolvers and the rule text renders (`TacticalBattleUI:6113`). The **Dramatic Weapons stat table pp.88-89** does not: `get_dramatic_weapon_stats()` and `get_dramatic_effect()` have zero callers |
 | **Grid-based Movement pp.90-93** | **DEAD** | `TacticalBattleUI.gd:6123` reads `mission_dict["grid_movement_instructions"]` — **zero producers.** `BattlefieldGrid.gd` is table geometry (p.108 sizes), not this chapter |
 | Terrain Generation pp.94-98 | LIVE | `FPCM_BattlefieldGenerator` + `data/battlefield/themes/compendium_terrain.json` |
-| Casualty Tables p.99 | LIVE | `roll_casualty()` → `TacticalBattleUI:6722` → called at `:5488` |
-| Detailed Post-Battle Injuries p.101 | LIVE | `roll_detailed_injury()` → `:6726` → called at `:5496` |
+| **Casualty Tables p.99** | **PARTIAL** | `TacticalBattleUI:5488`, but that call site is inside the **auto-resolve** branch (`resolver_result` / `crew_units_final`). `InjuryProcessor` — the played post-battle path — has no reference to it. A player who fights on the table never sees this table |
+| **Detailed Post-Battle Injuries p.101** | **PARTIAL** | same: `:5496`, auto-resolve only |
 
 ## Scenarios & Settings (pp.103-160) — Fixer's Guidebook
 
@@ -105,7 +105,21 @@ getter.
 
 ---
 
-## The two PARTIAL rows, in detail
+## The three PARTIAL rows, in detail
+
+### Casualty Tables p.99 + Detailed Injuries p.101 — auto-resolve only
+
+Both fire from exactly one place, `TacticalBattleUI:5488` / `:5496`, and that block
+sits inside the **auto-resolve** branch — it reads `resolver_result` and walks
+`crew_units_final`. `InjuryProcessor`, which owns the post-battle injury step on the
+**played** path, contains no reference to the Compendium tables at all.
+
+For a tabletop companion this is the wrong way round: playing the battle on the
+table and recording the result is the primary path, and it is the one that silently
+falls back to the Core Rules D6 death check. The player who bought the pack sees the
+new tables only when they let the app resolve the fight for them.
+
+
 
 ### Loans Step 2 — the amount is invented (p.152)
 

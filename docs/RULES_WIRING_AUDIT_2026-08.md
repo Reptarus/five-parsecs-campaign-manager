@@ -194,9 +194,13 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 Full walk in **`docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md`** — all 30 chapters of the
 Compendium TOC (pp.4-5), producer → key → consumer, verified by hand.
 
-**18 LIVE / 2 PARTIAL / 10 DEAD.** The ten dead chapters have book-exact data and a
+**17 LIVE / 3 PARTIAL / 10 DEAD.** The ten dead chapters have book-exact data and a
 correctly flag-gated API; what they lack is a caller — or, twice, a caller whose
 argument is permanently false.
+
+⚠ **Three of the twenty original LIVE verdicts were wrong**, all found by checking
+the trace against this ledger rather than trusting it. Treat the remaining LIVE rows
+as ~90% confidence, not fact.
 
 | Chapter | Dead because | Flag |
 |---|---|---|
@@ -223,6 +227,7 @@ Two PARTIAL:
 | Chapter | What lands | What does not |
 |---|---|---|
 | Dramatic Combat pp.87-89 | Adjusted Shooting in all 4 resolvers + rule text | Dramatic Weapons stat table pp.88-89 — `get_dramatic_weapon_stats()` zero callers |
+| Casualty Tables p.99 + Detailed Injuries p.101 | both roll, from `TacticalBattleUI:5488/:5496` | that block is the **auto-resolve** branch. `InjuryProcessor` — the PLAYED post-battle path — never references them, so the primary path for a tabletop companion falls back to the Core Rules D6 death check |
 | Loans pp.152-156 | Steps 1/3/4 roll correctly | **Step 2 is `var loan_amount: int = 20`** (`TradePhasePanel.gd:835`). Book: base = ship cost p.31, **+5cr Unity**, **+1D6cr Free Trader / Suspicious**. A Unity loan and a Suspicious Character loan cost the same |
 
 **Gating is not wiring, and the two are measured differently.** All 33 `ContentFlag`s
