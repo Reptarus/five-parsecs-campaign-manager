@@ -734,7 +734,14 @@ func _acceptance_block_reason(job: Dictionary) -> Dictionary:
 	var required: int = PatronJobEffectsClass.required_available_crew(job)
 	if required > 0:
 		var available: int = _available_crew_count()
-		if available < required:
+		# available < 0 means the ROSTER COULD NOT BE READ, which is not the same
+		# as a short crew. Blocking on it fails CLOSED: any context where the
+		# lookup misses (no GameStateManager, a campaign shape it does not
+		# understand, a detached component) would make every Full Squad job
+		# permanently unacceptable and silently remove a fifth of the p.84
+		# Conditions table from play. The gate exists to enforce the crew's
+		# state, not our ability to query it.
+		if available >= 0 and available < required:
 			return {"reason": "Full Squad: needs %d available crew, you have %d."
 				% [required, available]}
 
@@ -745,7 +752,11 @@ func _acceptance_block_reason(job: Dictionary) -> Dictionary:
 			return {"reason": "Clean: you have law enforcement Rivals."}
 
 	if PatronJobEffectsClass.requires_prior_patron_job_here(job):
-		if _patron_jobs_completed_here() < 1:
+		# Same unknown-is-not-zero rule as Full Squad above. On a real campaign a
+		# genuine 0 SHOULD block — that is the whole Condition — but a campaign we
+		# cannot read is not a campaign with no history.
+		var completed_here: int = _patron_jobs_completed_here()
+		if completed_here == 0:
 			return {"reason": "Reputation Required: no prior Patron job completed on this world."}
 
 	return {}
@@ -753,8 +764,18 @@ func _acceptance_block_reason(job: Dictionary) -> Dictionary:
 
 ## Crew who could actually take the field — the p.84 "Full Squad" Condition asks
 ## for "6 available crew", and someone in Sick Bay is not available.
+##
+## Returns **-1 when the roster cannot be read**, which callers must treat as
+## "unknown", not as "zero". A campaign with genuinely zero crew members is over,
+## so an empty roster here always means the lookup failed rather than that the
+## crew died — and a failed lookup must not be allowed to enforce a rule.
 func _available_crew_count() -> int:
-	var crew: Array = GameStateManager.get_crew_members()
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_crew_members"):
+		return -1
+	var crew: Array = gsm.get_crew_members()
+	if crew.is_empty():
+		return -1
 	var count: int = 0
 	for member in crew:
 		var in_sick_bay: bool = false
@@ -776,10 +797,14 @@ func _available_crew_count() -> int:
 	return count
 
 
+## Returns -1 when the campaign cannot be read — "unknown", not "none". A real
+## campaign with zero prior jobs here SHOULD fail the p.84 Reputation Required
+## check; an unreadable one must not, or the Condition enforces itself off a
+## lookup failure instead of off the crew's actual history.
 func _patron_jobs_completed_here() -> int:
 	var campaign = _campaign()
 	if not campaign:
-		return 0
+		return -1
 	var log: Dictionary = campaign.progress_data.get("patron_jobs_completed_by_world", {})
 	var pdm = get_node_or_null("/root/PlanetDataManager")
 	if pdm and "current_planet_id" in pdm:

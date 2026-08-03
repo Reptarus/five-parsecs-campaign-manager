@@ -94,8 +94,9 @@
     },
     "INSANITY": {
       "_source": "Core Rules p.65",
+      "_enemy_count_note": "0, not 1. p.65 Insanity reads 'Add an additional SPECIALIST enemy to every battle' — the Basic-enemy bullet belongs to Hardcore ('Add an additional Basic enemy'). Carrying both gave Insanity a fabricated extra basic enemy in every fight on top of the specialist the book grants.",
       "xp_bonus": 0,
-      "enemy_count_modifier": 1,
+      "enemy_count_modifier": 0,
       "specialist_enemy_modifier": 1,
       "reroll_low_enemy_dice": false,
       "starting_story_points_modifier": -999,
