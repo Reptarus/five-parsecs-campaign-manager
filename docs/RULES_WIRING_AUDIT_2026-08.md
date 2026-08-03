@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 85 open / 49 fixed / 7 partial-or-blocked.**
+**Status Aug 2 evening: 82 open / 52 fixed / 7 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -53,9 +53,9 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | patrons-rivals-quests | Time Frame Table — "the number of campaign turns within which you must finish the job. If the job isn't done when the time runs out, it counts as a failure" (Core Rules p.83); "a Patron job will fail if the time to complete it has expired" (p.85) | large | 'This campaign turn' means nothing — the player can decline every job and the same Patron re-offers fresh work next turn with no penalty. The Secretive Group's +1 Time Frame bonus (its on... | FIXED fab705684 (offers persist on the campaign and lapse; Vengeful fires on a lapse) |
 | patrons-rivals-quests | Spending credits for +1 on crew tasks — Find a Patron (p.77), Track (p.78), Repair Your Kit (p.78), extra Trade rolls (p.78) | medium | Credits cannot buy anything in the World step. A player sitting on 20 credits cannot pay to find a Patron, cannot pay to track down the Rival hunting them, and cannot buy spare parts to s... | PARTIAL 8210675ca (+1-per-credit done; 3-credit extra Trade roll open) |
 | patrons-rivals-quests | Interested Parties: "During Quest missions, when rolling for the number of opponents, reroll any die scoring 1 once" (Core Rules p.99) | small | Quest battles against Interested Parties are easier than the book intends — a die showing 1 stands, so the enemy force can be as small as 1-2 figures where the book guarantees a reroll. M... | FIXED 24c657af4 |
-| patrons-rivals-quests | Vigilantes — "Persistent: If encountered as Rivals, all rolls to remove them from Rival status are at -1" (Core Rules p.99) | small | Vigilante Rivals are exactly as easy to shake off as any other (50% on a 4+ instead of the intended 33% on an effective 5+). The one enemy in the book designed to be a long-term nuisance ... | OPEN |
-| patrons-rivals-quests | Renegade Soldiers — "Grudge: If encountered as Rivals, they bring one additional figure" (Core Rules p.99) | small | A Renegade Soldier Rival brings the same force as any other Rival — one fewer enemy than the book specifies on every Rival battle against them, for the whole campaign. | OPEN |
-| patrons-rivals-quests | Bounty Hunters — "Intrigue: Roll 2D6 and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor" (Core Rules p.99) | small | Beating Bounty Hunters — including killing their Lieutenant — never yields the Quest Rumor the book promises. Since Quest Rumors are the only way to start a Quest (p.85), one of the game'... | OPEN |
+| patrons-rivals-quests | Vigilantes — "Persistent: If encountered as Rivals, all rolls to remove them from Rival status are at -1" (Core Rules p.99) | small | Vigilante Rivals are exactly as easy to shake off as any other (50% on a 4+ instead of the intended 33% on an effective 5+). The one enemy in the book designed to be a long-term nuisance ... | FIXED 5eeee2c39 |
+| patrons-rivals-quests | Renegade Soldiers — "Grudge: If encountered as Rivals, they bring one additional figure" (Core Rules p.99) | small | A Renegade Soldier Rival brings the same force as any other Rival — one fewer enemy than the book specifies on every Rival battle against them, for the whole campaign. | FIXED 5eeee2c39 |
+| patrons-rivals-quests | Bounty Hunters — "Intrigue: Roll 2D6 and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor" (Core Rules p.99) | small | Beating Bounty Hunters — including killing their Lieutenant — never yields the Quest Rumor the book promises. Since Quest Rumors are the only way to start a Quest (p.85), one of the game'... | FIXED 5eeee2c39 |
 | patrons-rivals-quests | Affiliated patron jobs — `battle_result["is_affiliated_patron_job"]` (Compendium p.114 faction loyalty on a patron job) | small | Faction loyalty from patron jobs always uses the non-affiliated (lower) branch, so factions never build loyalty faster from jobs that should count double. Low impact for a standard non-DL... | OPEN |
 | missions-elites-zones | Black Jobs — the mission itself (access, D10 'Your Day in Hell' objective, Roving Threats opposition, all rewards) | medium | Player meets the 10-Red-Zone-turn requirement, clicks "Accept Black Zone Mission", pays the travel cost — and then fights an ordinary randomly-generated battle. No Roving Threats opponent... | OPEN |
 | missions-elites-zones | Mission Selection — Stealth / Street Fight / Salvage battle types (and therefore the whole Stealth, Street Fight and Salvage chapters) | medium | Buying the Fixer's Guidebook DLC and enabling Stealth Missions / Street Fights / Salvage Jobs changes nothing. Every battle in every campaign is a Conventional battle. The player never se... | OPEN |
@@ -245,7 +245,7 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**85 open / 56 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
+**82 open / 59 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
 
 ### Domain standings
 
@@ -321,11 +321,18 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
      `JobOfferComponent.initialize_job_offers` reads to bypass its
      "a Patron with a live offer does not hand you a second one" guard.
 
-7. **patrons-rivals-quests — the three p.99 enemy-trait rules.** Vigilantes
-   (Persistent, -1 to remove from Rival status), Renegade Soldiers (Grudge, one
-   additional figure as Rivals) and Bounty Hunters (Intrigue, 2D6 9+ for a Quest
-   Rumor). All three are single-site and now that Quests are playable end to end,
-   the Bounty Hunter one actually feeds something.
+~~7. patrons-rivals-quests — the three p.99 enemy-trait rules.~~
+   **DONE `5eeee2c39`.** `EnemyTraitRules.gd` matches on the trait NAME before
+   the colon, so the rest of the encounter tables' `special_rules` strings are
+   now cheap to wire the same way. The obvious next candidates, all on pp.96-101
+   and all currently print-only: Careless (Abandoned, +1 Seize the Initiative),
+   Cowardly (Abandoned/Mutants, "Lieutenants are affected by Morale dice"),
+   Dogged (Isolationists, Fearless at 1-2 figures), Ferocious (Zealots, +1
+   Brawling when initiating), Going medieval (Primitives, Blades instead of
+   normal weapons) and Cop killer (Enforcers, +2 to their numbers as Rivals).
+
+8. **patrons-rivals-quests — the two BHC rows left over** (Private Transport,
+   Busy) — see the detail under item 6.
 
 Deliberately deprioritised for a tablet test: **factions** (DLC-gated, invisible
 without the expansion) and **Elite enemies** (endgame).
