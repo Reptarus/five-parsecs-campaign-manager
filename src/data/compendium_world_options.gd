@@ -220,6 +220,29 @@ static func roll_loan_origin() -> Dictionary:
 	return LOAN_ORIGINS[0]
 
 
+## Compendium p.152 Step 2, the origin surcharge on the loan principal:
+##
+##   "Unity Program loans must add +5 Credits due to fees and paperwork.
+##    Free Trader or Suspicious Character loans must add +1D6 Credits due to
+##    personal whims."
+##
+## The other two origins (Sector Government, Corporate) add nothing. Returns the
+## credits to add on top of the ship's p.31 cost.
+##
+## world_options.json has carried a `fee_adjustment` string on every origin row
+## since it was written, describing exactly this, and nothing ever read it — the
+## principal was a flat `20` constant at the one call site, so all five lenders
+## charged the same and the step was decorative.
+static func loan_origin_surcharge(origin_id: String) -> int:
+	match origin_id:
+		"unity_program":
+			return 5
+		"free_trader", "suspicious_character":
+			return randi_range(1, 6)
+		_:
+			return 0
+
+
 ## Roll interest rate (D100). Returns empty if DLC disabled.
 static func roll_interest_rate() -> Dictionary:
 	if not _is_flag_enabled("EXPANDED_LOANS"):
