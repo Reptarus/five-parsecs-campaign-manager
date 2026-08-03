@@ -398,6 +398,12 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 	# and not a blanket one — it rides in from the enemy's own special rules.
 	modifiers += int(ctx.battle_result.get("invasion_threat_modifier", 0))
 
+	# Campaign Event 82-84, Rumors of War (Core Rules p.127): "While you remain
+	# on this planet, any roll for Invasion is at +2." Scoped to the planet the
+	# event fired on, because the clause ends the moment the crew travels — a
+	# global flag would follow them across the sector forever.
+	modifiers += _rumors_of_war_modifier(ctx)
+
 	var difficulty: int = ctx.get_campaign_difficulty()
 	var invasion_difficulty_mod: int = DifficultyModifiers.get_invasion_roll_modifier(difficulty)
 	if invasion_difficulty_mod != 0:
@@ -661,3 +667,35 @@ func process_black_zone_rewards(
 			})
 
 	return bz_rewards
+
+
+func _rumors_of_war_modifier(ctx: PostBattleContextClass) -> int:
+	## +2 while the crew remains on the planet where Rumors of War fired
+	## (Core Rules p.127, Campaign Event 82-84). Written by
+	## CampaignEventEffects as progress_data["rumors_of_war_planet"].
+	var campaign: Variant = ctx.campaign
+	if campaign == null or not ("progress_data" in campaign):
+		return 0
+	var flagged: String = str(campaign.progress_data.get("rumors_of_war_planet", ""))
+	if flagged.is_empty():
+		return 0
+
+	var pdm: Node = ctx.planet_data_manager
+	if pdm == null:
+		return 0
+	var here: String = ""
+	if "current_planet_id" in pdm and str(pdm.current_planet_id) != "":
+		here = str(pdm.current_planet_id)
+	elif pdm.has_method("get_current_planet"):
+		var planet: Variant = pdm.get_current_planet()
+		if planet is Dictionary:
+			here = str(planet.get("name", ""))
+		elif planet != null and "name" in planet:
+			here = str(planet.name)
+
+	if here.is_empty() or here != flagged:
+		# Travelled on. The clause is spent, so clear it rather than leave a
+		# stale planet id to be compared forever.
+		campaign.progress_data.erase("rumors_of_war_planet")
+		return 0
+	return 2

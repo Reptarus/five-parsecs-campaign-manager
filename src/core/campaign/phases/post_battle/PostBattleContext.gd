@@ -396,10 +396,32 @@ func has_crew_with_class(character_class: String) -> bool:
 # --- Campaign Mutation Helpers ---
 
 func add_story_points(amount: int) -> void:
-	## Add story points to campaign via GameStateManager
-	if game_state_manager \
-			and game_state_manager.has_method("add_story_points"):
-		game_state_manager.add_story_points(amount)
+	## Add story points to the campaign this phase is operating on.
+	##
+	## This used to be gated SOLELY on the injected GameStateManager reference, so
+	## any context where that was not set dropped the award with no error. Story
+	## points are owned by FiveParsecsCampaignCore.story_points (the
+	## data-ownership table) and several Campaign and Character Events grant them,
+	## so a missing manager must not be able to swallow a rule.
+	if amount == 0:
+		return
+	# The CAMPAIGN wins, not the manager. The autoload resolves in any running
+	# engine but answers for its own current_campaign, so a phase operating on a
+	# different campaign object had its award absorbed silently.
+	var gc: Variant = campaign if campaign != null else _get_current_campaign()
+	if gc == null:
+		var gsm: Variant = game_state_manager
+		if gsm == null and Engine.get_main_loop():
+			gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("add_story_points"):
+			gsm.add_story_points(amount)
+			return
+		push_warning("PostBattleContext: no campaign — %d story points dropped" % amount)
+		return
+	if gc is Dictionary:
+		gc["story_points"] = maxi(0, int(gc.get("story_points", 0)) + amount)
+	elif "story_points" in gc:
+		gc.story_points = maxi(0, int(gc.story_points) + amount)
 
 func add_quest_rumor() -> void:
 	var gc = _get_current_campaign()
