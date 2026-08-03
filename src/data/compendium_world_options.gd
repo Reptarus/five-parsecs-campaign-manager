@@ -167,25 +167,32 @@ static var CORP_PART2: Array:
 ## QUERY METHODS
 ## ============================================================================
 
-## Check if world is unstable on arrival. D6 4+ (or 5+ if less chaotic).
-static func check_world_unstable(use_calmer_setting: bool = false) -> bool:
-	var threshold := 5 if use_calmer_setting else 4
-	return randi_range(1, 6) >= threshold
-
-
-## Roll instability change for this campaign turn.
-## Returns the new instability delta (always positive before modifiers).
-static func roll_instability_delta(active_rivals: int, patron_job: bool, held_field_roving: bool) -> int:
-	var delta := randi_range(1, 6)
-	delta += active_rivals
-	if patron_job:
-		delta -= 1
-	if held_field_roving:
-		delta -= 1
-	return maxi(delta, 0)
+## ============================================================================
+## FRINGE WORLD STRIFE — the mechanism moved out of this file (Aug 3 2026)
+## ============================================================================
+##
+## `check_world_unstable()` and `roll_instability_delta()` used to live here as
+## two stateless dice helpers, and that was the whole problem: pp.148-151 is a
+## per-world SCORE that persists across campaign turns, and neither helper had
+## anywhere to put it. `roll_instability_delta` had exactly one caller, in
+## phases/WorldPhase.gd — a file with zero instantiations — and
+## `check_world_unstable` was reached only through `should_check_strife()`,
+## which re-rolled the ARRIVAL die every turn and then fired the D100
+## immediately instead of at the book's threshold of 10.
+##
+## The stateful engine is now `src/core/world/FringeWorldStrife.gd`:
+##   arrival roll   -> FringeWorldStrife.roll_arrival()   (idempotent per world)
+##   accumulation   -> FringeWorldStrife.accumulate()     (Invasion step)
+##   the D100 table -> still rolled here, by roll_strife_event() below.
+##
+## This file keeps ownership of the TABLE. Do not re-add a mechanism here.
 
 
 ## Roll a Fringe World Strife event (D100). Returns empty if DLC disabled.
+##
+## Callers should not invoke this directly to "check for strife" — the book only
+## rolls it when a world's Instability reaches or exceeds 10.
+## FringeWorldStrife.accumulate() owns that decision.
 static func roll_strife_event() -> Dictionary:
 	if not _is_flag_enabled("FRINGE_WORLD_STRIFE"):
 		return {}
@@ -198,13 +205,18 @@ static func roll_strife_event() -> Dictionary:
 	return STRIFE_EVENTS[0]
 
 
-## Check if strife should be checked (legacy compat — prefer check_world_unstable).
-static func should_check_strife(is_fringe_world: bool) -> bool:
-	if not _is_flag_enabled("FRINGE_WORLD_STRIFE"):
-		return false
-	if not is_fringe_world:
-		return false
-	return check_world_unstable()
+## DELETED (Aug 3 2026): `should_check_strife(is_fringe_world)`.
+##
+## It was the entire live entry point to this chapter and it could not work. It
+## took a boolean `is_fringe_world` that NO producer in the repository ever
+## wrote, so the guard was permanently false; if it had been reachable it would
+## then have re-rolled the p.148 ARRIVAL die on every campaign turn and fired the
+## D100 straight away, skipping the Instability score the whole chapter runs on.
+##
+## Use FringeWorldStrife.roll_arrival() at arrival and
+## FringeWorldStrife.accumulate() in the Invasion step. Do not reinstate a
+## boolean "is this a fringe world" gate — the book's gate is the arrival 1D6,
+## and its result is per-world state, not a property of the world's type.
 
 
 ## Roll loan origin (D100). Returns empty if DLC disabled.

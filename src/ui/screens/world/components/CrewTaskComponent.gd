@@ -19,6 +19,7 @@ const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 const StartingEquipmentGeneratorClass = preload(
 	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 
 # Design system constants
 
@@ -259,11 +260,26 @@ func _member_get(member, key: String, default = null):
 		return default
 	return default
 
+func _strife_blocked_tasks() -> Array:
+	## Crew-task ids closed by an active Fringe World Strife effect on this world
+	## (Compendium pp.149-150). Returns [] when the option is off, the world is
+	## stable, or nothing is currently in force.
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	var gs = get_node_or_null("/root/GameState")
+	if pdm == null or gs == null:
+		return []
+	var campaign = gs.get_current_campaign() if gs.has_method("get_current_campaign") else null
+	if campaign == null:
+		return []
+	return FringeWorldStrifeRef.blocked_crew_tasks(campaign, str(pdm.current_planet_id))
+
+
 func _populate_available_tasks() -> void:
 	## Populate available tasks list UI with Core Rules info
 	if not available_tasks_list:
 		return
 
+	var strife_blocked: Array = _strife_blocked_tasks()
 	available_tasks_list.clear()
 	for task in available_crew_tasks:
 		var task_text = task.name
@@ -292,10 +308,15 @@ func _populate_available_tasks() -> void:
 		if spent > 0:
 			task_text += " [+%d cr]" % spent
 
+		if task_id in strife_blocked:
+			task_text += "  [CLOSED — Strife]"
+
 		available_tasks_list.add_item(task_text)
 
 		# Tooltip with description
 		available_tasks_list.set_item_tooltip(available_tasks_list.item_count - 1, task.description)
+		if task_id in strife_blocked:
+			available_tasks_list.set_item_disabled(available_tasks_list.item_count - 1, true)
 
 	_build_credit_spend_row()
 
@@ -382,6 +403,17 @@ func _on_assign_task_pressed() -> void:
 	if not assign_block.is_empty():
 		push_warning("CrewTaskComponent: %s cannot be assigned (%s)" % [
 			crew_member.get("character_name", "Crew"), assign_block])
+		return
+
+	# Compendium pp.149-150 Fringe World Strife, the two rows that close crew
+	# actions on this world:
+	#   Hooligans: "You cannot perform any Explore or Trade crew actions during
+	#               the next campaign turn."
+	#   Economic Collapse: "For now, you cannot take Trade actions."
+	if task_id in _strife_blocked_tasks():
+		push_warning(
+			"CrewTaskComponent: %s is unavailable — Fringe World Strife"
+			% task.get("name", task_id))
 		return
 
 	# Mutant: cannot Recruit or Find a Patron (Core Rules p.21)

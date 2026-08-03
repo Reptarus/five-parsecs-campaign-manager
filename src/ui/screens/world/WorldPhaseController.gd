@@ -27,6 +27,7 @@ const CrewTaskComponent = preload("res://src/ui/screens/world/components/CrewTas
 const JobOfferComponent = preload("res://src/ui/screens/world/components/JobOfferComponent.gd")
 const MissionPrepComponent = preload("res://src/ui/screens/world/components/MissionPrepComponent.gd")
 const CompendiumWorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const AssignEquipmentComponent = preload("res://src/ui/screens/world/components/AssignEquipmentComponent.gd")
 const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/ResolveRumorsComponent.gd")
 # Note: PurchaseItems, CampaignEvent, CharacterEvent components moved to PostBattleSequence
@@ -642,23 +643,54 @@ func _generate_turn_world_event() -> void:
 		pass
 
 func _check_compendium_world_strife() -> void:
-	## DLC: Check Fringe World Strife at world arrival (Compendium pp.148-151).
-	## pp.110-114 is EXPANDED FACTIONS, a different chapter — the old cite here
-	## pointed at it in both places.
-	var is_fringe: bool = world_phase_data.get("is_fringe_world", false)
-	if not CompendiumWorldOptionsRef.should_check_strife(is_fringe):
+	## Compendium p.148 arrival roll: "when arriving on a new world, roll 1D6.
+	## A roll of 4+ indicates the world is Unstable."
+	##
+	## WHAT THIS REPLACED, because all four faults were independent and each one
+	## alone was fatal:
+	##   1. it gated on `world_phase_data["is_fringe_world"]` — a key NO producer
+	##      anywhere in the repo writes, so the guard was permanently false;
+	##   2. `should_check_strife()` re-rolled the ARRIVAL die every campaign turn,
+	##      and the book rolls it once, on arrival;
+	##   3. it fired the D100 immediately, and the book fires it only when
+	##      Instability reaches or exceeds 10 — the score did not exist;
+	##   4. it read `strife_event["instability_mod"]`; the rows carry
+	##      `instability_reduction`, and the local was never used regardless.
+	##   ...and then logged through `journal.add_entry()`, which has zero
+	##   definitions on CampaignJournal — another permanently-false has_method
+	##   guard.
+	##
+	## The accumulator itself runs in the Invasion step (Compendium p.148,
+	## "During the Invasion step of every campaign turn"), which lives in
+	## PostBattlePhase step 6 — NOT here.
+	if not FringeWorldStrifeRef.is_enabled():
 		return
-	var strife_event: Dictionary = CompendiumWorldOptionsRef.roll_strife_event()
-	if strife_event.is_empty():
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	var gs = get_node_or_null("/root/GameState")
+	if pdm == null or gs == null:
 		return
-	var instruction: String = strife_event.get("instruction", "")
-	var instability_mod: int = strife_event.get("instability_mod", 0)
-	# Store strife event in world phase data for UI display
-	world_phase_data["strife_event"] = strife_event
-	# Log to campaign journal
-	var journal = get_node_or_null("/root/CampaignJournal")
-	if journal and journal.has_method("add_entry"):
-		journal.add_entry(instruction)
+	var planet_id: String = str(pdm.current_planet_id)
+	var campaign = gs.get_current_campaign() if gs.has_method("get_current_campaign") else null
+	if planet_id.is_empty() or campaign == null:
+		return
+
+	# "You may opt to use a 5+ roll if you prefer a less chaotic environment."
+	# Stored in progress_data, which is where this codebase keeps per-campaign
+	# option state (progressive_difficulty_options sets the precedent) — there is
+	# no `campaign_config` dictionary on FiveParsecsCampaignCore.
+	var calmer: bool = false
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		calmer = bool(campaign.progress_data.get("fringe_strife_calmer", false))
+
+	# Idempotent per world: a world already rolled for keeps its verdict, so
+	# re-entering the World Phase or reloading a save cannot re-roll a quiet
+	# world into an unstable one.
+	var state: Dictionary = FringeWorldStrifeRef.roll_arrival(campaign, planet_id, calmer)
+	if state.is_empty():
+		return
+	world_phase_data["fringe_strife"] = state
+	world_phase_data["world_unstable"] = bool(state.get("unstable", false))
+	world_phase_data["world_instability"] = int(state.get("instability", 0))
 
 func _initialize_components_with_data() -> void:
 	## Initialize all components with campaign data

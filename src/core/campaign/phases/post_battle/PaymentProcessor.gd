@@ -12,6 +12,7 @@ const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
 const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -279,6 +280,18 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 		danger_pay = 0
 	var total_payment: int = credit_roll + danger_pay
 
+	# Compendium pp.149-150 Fringe World Strife, the two rows that impose a
+	# standing charge on this world:
+	#   Criminal Gang: "all post-battle payouts on this world are reduced by
+	#                   1 Credit" until you clear them out.
+	#   Economic Collapse: "all mission payouts are -1 Credit" until recovered.
+	# Not floored below 0 by the modifier alone — a payment cannot go negative,
+	# so the clamp is on the total, not on the modifier.
+	var strife_payout_mod: int = FringeWorldStrifeRef.payout_modifier(
+		ctx.campaign, _current_planet_id())
+	if strife_payout_mod != 0:
+		total_payment = maxi(total_payment + strife_payout_mod, 0)
+
 	# GameState has NO add_credits (credits are owned by GameStateManager) — so
 	# `ctx.game_state.add_credits()` silently no-ops on the backend orchestrator path,
 	# which was DROPPING the entire mission payment (the interactive Get Paid UI uses
@@ -435,6 +448,146 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 			ctx.game_state.set_invasion_pending(true)
 
 	return invasion_pending
+
+func process_fringe_world_strife(ctx: PostBattleContextClass) -> Dictionary:
+	## Compendium p.148, verbatim: "During the Invasion step of every campaign
+	## turn, add 1D6 to the total."
+	##
+	## Runs alongside process_invasion_check rather than inside it, because the
+	## Invasion CHECK is conditional (it returns immediately unless the enemy was
+	## an Invasion Threat) while the Invasion STEP happens every turn. Nesting
+	## this inside would have made the accumulator advance only on the rare turns
+	## the crew happened to fight an Invasion Threat.
+	##
+	## Returns the accumulate() report, or {} when the world is stable, no longer
+	## tracked, or the option is off.
+	var planet_id: String = _current_planet_id()
+	if planet_id.is_empty():
+		return {}
+	if not FringeWorldStrifeRef.is_tracking(ctx.campaign, planet_id):
+		return {}
+
+	# "+1 for every active Rival on this world". Rivals in this codebase are held
+	# as one campaign-level list that travels with the crew (there is no
+	# per-world rival tag anywhere), so the crew's active Rivals ARE the Rivals
+	# present wherever they currently are. Counting the canonical list is the
+	# only reading available that does not invent a data field.
+	var active_rivals: int = _active_rival_count(ctx)
+
+	# "Subtract -1 if you completed a Patron job this campaign turn." The battle
+	# funnel stamps patron_id onto mission_data before the battle (the p.119
+	# Step 2 producer added Aug 1); a completed job is that id plus a win.
+	var patron_job: bool = not str(ctx.battle_result.get("patron_id", "")).is_empty() \
+		and ctx.mission_successful
+
+	# "Subtract -1 if you Held the Field against a Roving Threat this campaign
+	# turn." `held_field` is the canonical key — `held_the_field` is the alias
+	# CampaignTurnController normalises away.
+	var held_field: bool = bool(ctx.battle_result.get("held_field", false))
+	var roving: bool = str(ctx.battle_result.get("enemy_category", "")) == "roving_threats"
+
+	var report: Dictionary = FringeWorldStrifeRef.accumulate(
+		ctx.campaign, planet_id, active_rivals, patron_job, held_field and roving)
+	if report.get("fired", false):
+		_apply_strife_event(ctx, planet_id, report.get("event", {}))
+	return report
+
+
+func _current_planet_id() -> String:
+	if not Engine.get_main_loop():
+		return ""
+	var pdm: Node = Engine.get_main_loop().root.get_node_or_null("/root/PlanetDataManager")
+	if pdm == null:
+		return ""
+	return str(pdm.current_planet_id)
+
+
+func _active_rival_count(ctx: PostBattleContextClass) -> int:
+	var campaign: Variant = ctx.campaign
+	if campaign == null:
+		return 0
+	var rivals: Variant = null
+	if campaign is Dictionary:
+		rivals = campaign.get("rivals", [])
+	elif "rivals" in campaign:
+		rivals = campaign.rivals
+	if not (rivals is Array):
+		return 0
+	return (rivals as Array).size()
+
+
+func _apply_strife_event(ctx: PostBattleContextClass, planet_id: String,
+		event: Dictionary) -> void:
+	## Apply one fired strife row (Compendium pp.149-151).
+	##
+	## Rows split three ways:
+	##   IMMEDIATE  — resolved here and now (Heating Up, Sabotage, Invasion
+	##                Imminent).
+	##   PERSISTENT — recorded as an active effect that later steps read
+	##                (Criminal Gang / Economic Collapse payouts, Hooligans /
+	##                Economic Collapse crew-task blocks).
+	##   PLAYER-SET — the book's effect IS a mission the player sets up on the
+	##                tabletop (Criminal Gang's Fight Off, Enemy Infiltration's
+	##                Track, Raiders' Raid, Crackdown's fines, Civil War's
+	##                faction war). The row's book text reaches the player and
+	##                the state is recorded; resolving them automatically would
+	##                replace decisions the book hands to the player.
+	var event_id: String = str(event.get("id", ""))
+	var turn: int = _current_turn(ctx)
+
+	match event_id:
+		"heating_up":
+			# "Add a Rival randomly selected from the Criminal Elements subtable."
+			var rival_name: String = FringeWorldStrifeRef.roll_criminal_elements_name()
+			if not rival_name.is_empty():
+				ctx.add_rival(rival_name)
+		"sabotage":
+			# "Your ship takes 1D6+1 points of hull damage."
+			var damage: int = ctx.roll_d6("Strife: Sabotage hull damage") + 1
+			if ctx.game_state_manager and ctx.game_state_manager.has_method("apply_ship_damage"):
+				ctx.game_state_manager.apply_ship_damage(damage)
+		"invasion_imminent":
+			# "After the next campaign turn, the world is automatically invaded."
+			if ctx.game_state and ctx.game_state.has_method("set_invasion_pending"):
+				ctx.game_state.set_invasion_pending(true)
+			FringeWorldStrifeRef.add_active_effect(ctx.campaign, planet_id, event_id, {
+				"auto_invade_after_turn": turn + 1,
+			})
+		"hooligans":
+			# "during the NEXT campaign turn" — a single turn, so it carries the
+			# turn it expires on rather than standing forever.
+			FringeWorldStrifeRef.add_active_effect(ctx.campaign, planet_id, event_id, {
+				"expires_after_turn": turn + 1,
+			})
+		"criminal_gang", "economic_collapse", "enemy_infiltration", "raiders", \
+		"crackdown", "civil_war":
+			FringeWorldStrifeRef.add_active_effect(ctx.campaign, planet_id, event_id, {
+				"started_on_turn": turn,
+				"instruction": str(event.get("instruction", "")),
+			})
+
+	# turn_number and location are derived at the create_entry chokepoint — do
+	# not pass them here (23 of 45 callers used to omit turn_number and stamped
+	# turn 0, which is exactly why the derivation moved into the autoload).
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "world",
+			"title": "Fringe World Strife: %s" % str(event.get("name", "")),
+			"content": str(event.get("instruction", "")),
+		})
+
+
+func _current_turn(ctx: PostBattleContextClass) -> int:
+	var campaign: Variant = ctx.campaign
+	if campaign == null:
+		return 0
+	if campaign is Dictionary:
+		var pd = campaign.get("progress_data", {})
+		return int(pd.get("turns_played", 0)) if pd is Dictionary else 0
+	if "progress_data" in campaign:
+		return int(campaign.progress_data.get("turns_played", 0))
+	return 0
+
 
 func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
 	## Roll for battlefield finds using D100 table

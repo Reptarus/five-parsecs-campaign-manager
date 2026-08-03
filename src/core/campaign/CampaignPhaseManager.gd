@@ -4,6 +4,7 @@ extends Node
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
 	"res://src/core/campaign/phases/PostBattlePhase.gd")
@@ -216,6 +217,12 @@ func _process_turn_rollover() -> void:
 
 	# --- Ship Debt interest and seizure (Core Rules p.76) ---
 	_process_ship_debt(campaign)
+
+	# --- Expire single-turn Fringe World Strife effects (Compendium p.149) ---
+	# Hooligans is the only row with an explicit duration: "You cannot perform
+	# any Explore or Trade crew actions during the NEXT campaign turn." Everything
+	# else on pp.149-151 persists until the player clears it.
+	_expire_fringe_strife_effects(campaign)
 
 	# --- Victory Condition Lock-In (Core Rules p.64) ---
 	# "Cannot add or change once the campaign starts."
@@ -693,6 +700,21 @@ func _log_unity_agent_event(char_name: String, roll: int, outcome: String) -> vo
 		"description": desc,
 		"tags": ["unity_agent", "species_ability"],
 	})
+
+func _expire_fringe_strife_effects(campaign: Resource) -> void:
+	## Compendium p.149 Hooligans, the one strife row with a stated duration:
+	## "You cannot perform any Explore or Trade crew actions during the NEXT
+	## campaign turn." Expiry lives here, at rollover, so the readers
+	## (blocked_crew_tasks, payout_modifier) stay pure lookups — a reader that
+	## also computed expiry would need the turn threaded through every call site.
+	if campaign == null or not FringeWorldStrifeRef.is_enabled():
+		return
+	var turn: int = 0
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		turn = int(campaign.progress_data.get("turns_played", 0))
+	for planet_id in FringeWorldStrifeRef.all_states(campaign).keys():
+		FringeWorldStrifeRef.expire_effects(campaign, str(planet_id), turn)
+
 
 func _process_free_hull_repair(campaign: Resource) -> void:
 	## Core Rules p.59, verbatim: "Damage is repaired at a rate of 1 Hull Point
