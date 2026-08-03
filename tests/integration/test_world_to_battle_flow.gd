@@ -19,8 +19,11 @@ func before():
 	"""Suite-level setup"""
 	PhaseManagerClass = load("res://src/core/campaign/CampaignPhaseManager.gd")
 	HelperClass = load("res://tests/helpers/CampaignTurnTestHelper.gd")
-	helper = HelperClass.new()
+	helper = auto_free(HelperClass.new())
 
+# auto_free() releases at end of scope; queue_free() defers a frame and
+# gdUnit4 counts orphans before that frame arrives, which is what made the
+# full-suite run segfault on accumulated leaks.
 func before_test():
 	"""Test-level setup"""
 	phase_manager = auto_free(PhaseManagerClass.new())

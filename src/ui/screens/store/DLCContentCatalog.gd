@@ -5,6 +5,37 @@ extends RefCounted
 ## Publisher-reviewable: all player-facing text lives here.
 ## Used by StoreScreen, DLCPackCard, DLCUpsellBanner, and ExpansionFeatureSection.
 
+# ── Unimplemented features ────────────────────────────────────────
+#
+# Flags whose RULES are not wired yet. They are hidden from every feature list
+# so a player never flips a switch that changes nothing — a dead toggle inside a
+# purchased unlock reads as "this app is broken" rather than "that isn't in yet",
+# and a tester spends the session cataloguing our known gaps instead of finding
+# unknown ones.
+#
+# MEASURED, not assumed. A flag earns a place here only when a search for BOTH
+# `ContentFlag.X` and the string form `"X"` across src/ (excluding this catalog
+# and the store/settings UI that merely lists flags) finds no gameplay consumer.
+# An earlier pass counted only the enum form and wrongly concluded that 19 of 33
+# flags were dead; several of those are gated through
+# `dlc_mgr.ContentFlag.get("NAME")` and work fine. Re-measure before adding.
+#
+# Delete an entry the moment its rules land — this list shrinking is the
+# progress bar for Compendium completeness.
+const UNIMPLEMENTED_FLAGS: Array[String] = [
+	# data/compendium/deployment_variables.json has zero loaders.
+	"DEPLOYMENT_VARIABLES",
+	# data/elite_enemy_types.json loads via DataManager and nothing consults it;
+	# enemy forces are always built from the Core Rules p.93 thresholds.
+	"ELITE_ENEMIES",
+]
+
+
+## True if the flag is listed above — i.e. owning the pack would not change play.
+static func is_flag_unimplemented(flag_name: String) -> bool:
+	return flag_name in UNIMPLEMENTED_FLAGS
+
+
 # ── Pack Catalog ──────────────────────────────────────────────────
 
 const PACK_CATALOG: Dictionary = {

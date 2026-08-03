@@ -163,6 +163,11 @@ func _build_pack_section(
 		var flag_name: String = feat.get("flag", "")
 		if flag_name in _excluded_flags:
 			continue
+		# Never show a switch whose rules are not wired. See
+		# DLCContentCatalog.UNIMPLEMENTED_FLAGS for the list and the measurement
+		# rule that governs it.
+		if DLCContentCatalogRef.is_flag_unimplemented(flag_name):
+			continue
 		var flag_val: int = -1
 		if _dlc_mgr:
 			flag_val = _dlc_mgr.ContentFlag.get(flag_name, -1)

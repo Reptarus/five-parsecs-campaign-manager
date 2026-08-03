@@ -1,4 +1,6 @@
 extends AcceptDialog
+
+const DLCContentCatalogRef = preload("res://src/ui/screens/store/DLCContentCatalog.gd")
 ## DLC Management Dialog - Manage expansion pack ownership and feature toggles
 ##
 ## Accessible from Settings menu. Shows three DLC packs with owned/unowned status.
@@ -203,6 +205,11 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 
 	var flags: Array = pack_info.flags
 	for flag_info in flags:
+		# Same rule as the campaign-creation feature list: never show a switch
+		# whose rules are not wired. DLCContentCatalog.UNIMPLEMENTED_FLAGS is the
+		# single list, so a feature landing un-hides it in both places at once.
+		if DLCContentCatalogRef.is_flag_unimplemented(str(flag_info.flag)):
+			continue
 		var cb := CheckBox.new()
 		cb.text = flag_info.label
 		cb.custom_minimum_size = Vector2(0, 32)

@@ -17,6 +17,9 @@ const CampaignCreationUIScene = preload("res://src/ui/screens/campaign/CampaignC
 var campaign_ui: CampaignCreationUI
 var coordinator: CampaignCreationCoordinator
 
+# auto_free() releases at end of scope; queue_free() defers a frame and
+# gdUnit4 counts orphans before that frame arrives, which is what made the
+# full-suite run segfault on accumulated leaks.
 func before_test() -> void:
 	"""Setup test environment with campaign UI and coordinator"""
 	# Load from scene to include all child nodes (ResponsiveMargin, MainContainer, etc.)
@@ -29,17 +32,31 @@ func before_test() -> void:
 		push_warning("campaign_ui freed during setup")
 		return
 
-	# Get coordinator reference
-	coordinator = campaign_ui.get_coordinator() if campaign_ui.has_method("get_coordinator") else null
-	if not coordinator:
-		push_error("Test Setup Failed: No coordinator available")
+	# Get coordinator reference.
+	#
+	# THE BUG THIS FIXES: this read campaign_ui.get_coordinator() behind a
+	# has_method("get_coordinator") guard. That method exists on
+	# BaseCampaignPanel — but CampaignCreationUI is not one of those, and exposes
+	# a public `coordinator` PROPERTY instead (CampaignCreationUI.gd:20, assigned
+	# in _ready). So the guard was permanently false, coordinator was always
+	# null, and EVERY case in this suite failed its own setup with "No
+	# coordinator available". The campaign creation wizard had an integration
+	# suite that exercised nothing.
+	#
+	# A has_method() guard is only as good as the TYPE you call it on: the method
+	# being defined somewhere in the codebase is not the same as it being defined
+	# on this object.
+	coordinator = campaign_ui.coordinator if "coordinator" in campaign_ui else null
+	assert_object(coordinator).override_failure_message(
+		"CampaignCreationUI did not build its coordinator — the whole wizard is "
+		+ "unusable, not just this test"
+	).is_not_null()
 
 
 func after_test() -> void:
 	"""Cleanup test environment"""
-	if campaign_ui:
-		campaign_ui.queue_free()
-		campaign_ui = null
+	# auto_free() owns campaign_ui's teardown.
+	campaign_ui = null
 	coordinator = null
 
 
@@ -320,7 +337,7 @@ func test_final_panel_displays_without_errors() -> void:
 	}
 
 	# Create FinalPanel instance
-	var final_panel = FinalPanel.new()
+	var final_panel = auto_free(FinalPanel.new())
 	add_child(final_panel)
 	await get_tree().process_frame
 
@@ -340,7 +357,7 @@ func test_final_panel_displays_without_errors() -> void:
 	assert_bool(true).is_true()
 
 	# Cleanup
-	final_panel.queue_free()
+	# auto_free() owns teardown.
 
 
 ## TEST SUITE 6: End-to-End Campaign Creation
