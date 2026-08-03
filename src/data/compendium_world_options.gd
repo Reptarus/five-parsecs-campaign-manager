@@ -6,9 +6,9 @@ extends RefCounted
 ## All output is TEXT INSTRUCTIONS for the tabletop companion model.
 ##
 ## Features:
-##   FRINGE_WORLD_STRIFE - Instability tracking + D100 strife events (pp.148-153)
-##   EXPANDED_LOANS      - Multi-step loan system: origin, interest, enforcement (pp.152-158)
-##   NAME_GENERATION     - D100 tables for worlds, colonies, ships, corporate patrons (pp.157-162)
+##   FRINGE_WORLD_STRIFE - Instability tracking + D100 strife events (pp.148-151)
+##   EXPANDED_LOANS      - Multi-step loan system: origin, interest, enforcement (pp.152-156)
+##   NAME_GENERATION     - D100 tables for worlds, colonies, ships, corporate patrons (pp.157-160)
 ##   EXPANDED_FACTIONS   - DLC gate for existing FactionSystem
 ##   TERRAIN_GENERATION  - DLC gate for compendium terrain themes
 
@@ -24,8 +24,17 @@ static func _ensure_ref_loaded() -> void:
 	if _ref_loaded:
 		return
 	_ref_loaded = true
-	# Load terrain tables and fringe world strife data
-	for path in ["res://data/RulesReference/TerrainTables.json", "res://data/RulesReference/FringeWorldStrife"]:
+	# Terrain tables only. This loop used to carry a second entry,
+	# "res://data/RulesReference/FringeWorldStrife" — no file extension, and no
+	# such file exists under any name in data/RulesReference/. FileAccess.open
+	# returned null every time and the loop skipped it in silence, so the entry
+	# read as "strife data is loaded here" while loading nothing at all.
+	#
+	# The strife table is real and does reach play; it just arrives by the OTHER
+	# loader in this file (_ensure_loaded, world_options.json -> strife_events,
+	# 10 rows). Do not re-add a RulesReference strife path unless you have first
+	# confirmed the file is on disk.
+	for path in ["res://data/RulesReference/TerrainTables.json"]:
 		var file := FileAccess.open(path, FileAccess.READ)
 		if file:
 			var json := JSON.new()

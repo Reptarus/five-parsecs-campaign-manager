@@ -13,21 +13,49 @@ extends RefCounted
 # and a tester spends the session cataloguing our known gaps instead of finding
 # unknown ones.
 #
-# MEASURED, not assumed. A flag earns a place here only when a search for BOTH
-# `ContentFlag.X` and the string form `"X"` across src/ (excluding this catalog
-# and the store/settings UI that merely lists flags) finds no gameplay consumer.
-# An earlier pass counted only the enum form and wrongly concluded that 19 of 33
-# flags were dead; several of those are gated through
-# `dlc_mgr.ContentFlag.get("NAME")` and work fine. Re-measure before adding.
+# MEASURED, not assumed — and the measurement is a CONSUMER trace, not a flag
+# search. Whether the flag is read tells you nothing: six of the entries below
+# read their flag correctly, inside a gated getter that nobody calls. Gating is
+# not wiring. A flag earns a place here only when the chapter's API has no live
+# caller; the full walk is `docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md`.
+#
+# Both spellings must be searched or the count comes out wrong in one direction
+# or the other. One pass searched only `ContentFlag.X` and concluded 19 of 33
+# flags were dead; the next searched `ContentFlag.get("` as a literal and found
+# 2 sites, missing the string form entirely — the lookup is
+# `ContentFlag.get(flag_name, -1)`, by variable:
+#
+#     dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS)   # enum form
+#     _is_flag_enabled("NEW_TRAINING")                    # string form
 #
 # Delete an entry the moment its rules land — this list shrinking is the
 # progress bar for Compendium completeness.
 const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# data/compendium/deployment_variables.json has zero loaders.
 	"DEPLOYMENT_VARIABLES",
-	# data/elite_enemy_types.json loads via DataManager and nothing consults it;
-	# enemy forces are always built from the Core Rules p.93 thresholds.
+	# data/elite_enemy_types.json is never even LOADED: DataManager declares the
+	# path and the dict, clears it twice, and its only getter is commented out.
+	# Enemy forces are always built from the Core Rules p.93 thresholds.
 	"ELITE_ENEMIES",
+	# compendium_missions_expanded.get_pvp_setup / get_pvp_rules /
+	# roll_pvp_battle_reason / roll_pvp_third_party — zero callers repo-wide.
+	"PVP_BATTLES",
+	# compendium_missions_expanded.get_coop_setup / get_coop_rules — zero callers.
+	"COOP_BATTLES",
+	# compendium_difficulty_toggles.roll_ai_behavior / get_ai_behavior and the
+	# AI_VARIATION_TABLES getter — zero callers.
+	"AI_VARIATIONS",
+	# compendium_missions_expanded.roll_quest_progression / get_quest_conclusion
+	# — zero callers.
+	"EXPANDED_QUESTS",
+	# compendium_missions_expanded.check_for_connection / roll_connection_type /
+	# roll_connection_subtable — zero callers; CharacterConnections.gd is itself
+	# referenced by nothing in src/.
+	"EXPANDED_CONNECTIONS",
+	# TacticalBattleUI reads mission_dict["grid_movement_instructions"] and no
+	# producer anywhere writes it. BattlefieldGrid.gd is p.108 table geometry,
+	# a different thing entirely.
+	"GRID_BASED_MOVEMENT",
 ]
 
 

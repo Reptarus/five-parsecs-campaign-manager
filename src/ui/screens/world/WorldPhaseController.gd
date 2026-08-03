@@ -601,7 +601,7 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	# Generate world event for current planet
 	_generate_turn_world_event()
 
-	# DLC: Check Fringe World Strife (Compendium pp.110-114)
+	# DLC: Check Fringe World Strife (Compendium pp.148-151)
 	_check_compendium_world_strife()
 
 	# Publish phase started event
@@ -642,7 +642,9 @@ func _generate_turn_world_event() -> void:
 		pass
 
 func _check_compendium_world_strife() -> void:
-	## DLC: Check Fringe World Strife at world arrival (Compendium pp.110-114)
+	## DLC: Check Fringe World Strife at world arrival (Compendium pp.148-151).
+	## pp.110-114 is EXPANDED FACTIONS, a different chapter — the old cite here
+	## pointed at it in both places.
 	var is_fringe: bool = world_phase_data.get("is_fringe_world", false)
 	if not CompendiumWorldOptionsRef.should_check_strife(is_fringe):
 		return

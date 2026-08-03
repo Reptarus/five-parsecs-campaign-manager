@@ -189,6 +189,44 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 
 ---
 
+## Compendium chapter trace — Aug 3 2026 (NEW findings, not part of the 143)
+
+Full walk in **`docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md`** — all 30 chapters of the
+Compendium TOC (pp.4-5), producer → key → consumer, verified by hand.
+
+**20 LIVE / 2 PARTIAL / 8 DEAD.** The eight dead chapters have book-exact data and a
+correctly flag-gated API; what they lack is a caller.
+
+| Chapter | Dead because | Flag |
+|---|---|---|
+| Player vs Player pp.35-38 | 4 gated funcs, zero callers repo-wide | PVP_BATTLES |
+| Expanded Co-op pp.39-41 | 2 gated funcs, zero callers | COOP_BATTLES |
+| AI Variations p.42 | `roll_ai_behavior` / `get_ai_behavior`, zero callers | AI_VARIATIONS |
+| Enemy Deployment Variables p.44 | `deployment_variables.json`, zero loaders | DEPLOYMENT_VARIABLES |
+| Elite-level Enemies pp.48-65 | `elite_enemy_types.json` never even LOADED; getter commented out at `DataManager.gd:745` | ELITE_ENEMIES |
+| Expanded Quests p.78 | `roll_quest_progression` / `get_quest_conclusion`, zero callers | EXPANDED_QUESTS |
+| Expanded Connections p.80 | 3 gated funcs zero callers; `CharacterConnections.gd` referenced by nothing | EXPANDED_CONNECTIONS |
+| Grid-based Movement pp.90-93 | `TacticalBattleUI:6123` reads `grid_movement_instructions`, zero producers | GRID_BASED_MOVEMENT |
+
+Two PARTIAL:
+
+| Chapter | What lands | What does not |
+|---|---|---|
+| Dramatic Combat pp.87-89 | Adjusted Shooting in all 4 resolvers + rule text | Dramatic Weapons stat table pp.88-89 — `get_dramatic_weapon_stats()` zero callers |
+| Loans pp.152-156 | Steps 1/3/4 roll correctly | **Step 2 is `var loan_amount: int = 20`** (`TradePhasePanel.gd:835`). Book: base = ship cost p.31, **+5cr Unity**, **+1D6cr Free Trader / Suspicious**. A Unity loan and a Suspicious Character loan cost the same |
+
+**Gating is not wiring, and the two are measured differently.** All 33 `ContentFlag`s
+except `DEPLOYMENT_VARIABLES` and `ELITE_ENEMIES` are read somewhere — yet six more
+chapters are dead, because the flag is read *inside the getter nobody calls*. A flag
+census will never find those six. Trace the consumer.
+
+Fixed in the same pass (`DLCContentCatalog.UNIMPLEMENTED_FLAGS` 2 → 8) so a player who
+buys Freelancer's Handbook no longer sees six switches that change nothing. Also
+corrected six wrong page citations, one of them player-visible in the creation wizard
+(Expanded Factions was cited as pp.148-153, which is Fringe World Strife's range).
+
+---
+
 ## ⛔ Sourcing trap found Aug 2: the Compendium contains a SECOND, CONFLICTING weapon table
 
 **Before "correcting" any weapon value, check which SECTION of the Compendium you found it in.**

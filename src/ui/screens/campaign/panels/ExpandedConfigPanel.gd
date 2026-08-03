@@ -52,17 +52,17 @@ const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/Progress
 # Labels/descriptions sourced from DLCContentCatalog.gd + Compendium page refs
 const COMPENDIUM_SETUP_FLAGS: Array[Dictionary] = [
 	{"flag": "EXPANDED_LOANS", "label": "Loans: Who Do You Owe?",
-		"description": "Borrow credits with consequences — loan origin, interest, and enforcement (Compendium pp.152-158)"},
+		"description": "Borrow credits with consequences — loan origin, interest, and enforcement (Compendium pp.152-156)"},
 	{"flag": "EXPANDED_FACTIONS", "label": "Expanded Factions",
-		"description": "More factions with unique traits and relationships (Compendium pp.148-153)"},
+		"description": "More factions with unique traits and relationships (Compendium pp.110-115)"},
 	{"flag": "FRINGE_WORLD_STRIFE", "label": "Fringe World Strife",
-		"description": "Planetary instability tracking and strife events (Compendium pp.148-153)"},
+		"description": "Planetary instability tracking and strife events (Compendium pp.148-151)"},
 	{"flag": "DRAMATIC_COMBAT", "label": "Dramatic Combat",
-		"description": "Cinematic combat with narrative beats and dramatic moments (Compendium pp.89-95)"},
+		"description": "Adjusted Shooting, Duck Back and Lunge (Compendium pp.87-89)"},
 	{"flag": "CASUALTY_TABLES", "label": "Casualty Tables",
-		"description": "Detailed casualty outcomes after battle (Compendium pp.96-100)"},
+		"description": "Detailed casualty outcomes after battle (Compendium p.99)"},
 	{"flag": "DETAILED_INJURIES", "label": "Detailed Post-battle Injuries",
-		"description": "Expanded injury and recovery system (Compendium pp.101-104)"},
+		"description": "Expanded injury and recovery system (Compendium p.101)"},
 ]
 
 # GDScript 2.0: Typed signals

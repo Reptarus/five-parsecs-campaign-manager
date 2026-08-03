@@ -6715,7 +6715,7 @@ func _check_escalating_battles(round_number: int) -> void:
 			unified_log.add_entry("event", instruction)
 
 
-## ── DLC: Compendium Casualty/Injury Tables (Compendium p.86) ────
+## ── DLC: Compendium Casualty/Injury Tables (Compendium pp.99, 101) ────
 
 func _roll_compendium_casualty() -> Dictionary:
 	## Roll on compendium casualty table if CASUALTY_TABLES enabled, else empty
