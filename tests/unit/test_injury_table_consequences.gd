@@ -20,12 +20,14 @@ extends GdUnitTestSuite
 ## accessor, so the worst survivable result on the table was mechanically
 ## identical to the Serious injury one row below it.
 ##
-## THE MARKER SHAPE IS THE CONTRACT. Damaged gear is recorded as a status_effects
-## entry {type: "item_damaged", damaged_item: <name>} on the OWNER, because that
-## is what CrewTaskComponent._first_damaged_item() reads (p.78 Repair Your Kit).
-## An item-side flag such as `damaged: true` is invisible to the repair task, so
-## the shape is asserted here directly — a "working" damage system that writes
-## the wrong shape produces gear that can never be fixed.
+## THE MARKER SHAPE IS THE CONTRACT, and there are two of them because the two
+## containers are different shapes:
+##   carried gear — a status_effects entry {type: "item_damaged", damaged_item:
+##                  <name>} on the OWNER
+##   stash items  — `damaged: true` on the item dict
+## Both are read by CrewTaskComponent._first_damaged_target() (p.78 Repair Your
+## Kit). Writing the wrong one produces gear that is unusable per p.122 and that
+## no task can ever restore, so the shapes are asserted here directly.
 ##
 ## gdUnit4 v6.0.3 compatible.
 
@@ -69,7 +71,7 @@ func _damage_markers(member: Variant) -> Array:
 # --- The marker shape Repair Your Kit reads -----------------------------------
 
 func test_damage_writes_the_shape_the_repair_task_reads() -> void:
-	# CrewTaskComponent._first_damaged_item() scans status_effects for
+	# CrewTaskComponent._first_damaged_target() scans status_effects for
 	# type == "item_damaged" and pulls damaged_item. Any other shape is unfixable
 	# gear: the item stops working (p.122) and no task can ever restore it.
 	var ctx = _ctx([_armed("c1", ["Colony Rifle"])])
@@ -249,35 +251,6 @@ func test_the_reduction_never_goes_below_zero() -> void:
 	assert_int(int(ctx.campaign.get_crew_member_by_id("c1").get("speed", 0))).is_equal(0)
 
 
-# --- The Campaign Event stub that computed an index and threw it away ---------
-
-func test_equipment_malfunction_actually_damages_something() -> void:
-	# Campaign Event 45-48 (p.127) calls the no-arg damage_random_equipment().
-	# Its body ended at `var _random_index := randi() % all_equipment.size()`,
-	# and it gathered from `weapons`/`items` — keys the canonical crew shape does
-	# not carry — so it was doubly inert.
-	var ctx = _ctx([_armed("c1", ["Colony Rifle", "Frag Vest"])])
-	ctx.damage_random_equipment()
-
-	var member: Dictionary = ctx.campaign.get_crew_member_by_id("c1")
-	assert_int(_damage_markers(member).size()).override_failure_message(
-		"Equipment Malfunction damaged nothing. status_effects: %s"
-		% str(member.get("status_effects", []))
-	).is_equal(1)
-
-
-func test_equipment_malfunction_skips_the_dead() -> void:
-	var alive: Dictionary = _armed("c1", ["Colony Rifle"])
-	var dead: Dictionary = _armed("c2", ["Blade"])
-	dead["is_dead"] = true
-	dead["status"] = "DEAD"
-	var ctx = _ctx([dead, alive])
-	for _i in range(20):
-		ctx.damage_random_equipment()
-	assert_int(_damage_markers(ctx.campaign.get_crew_member_by_id("c2")).size()) \
-		.override_failure_message("a dead crew member's gear was 'malfunctioning'").is_equal(0)
-
-
 # --- The live processor path reaches all of it --------------------------------
 
 func test_the_live_injury_path_produces_damaged_gear() -> void:
@@ -353,3 +326,114 @@ func test_every_injury_reports_the_crew_member_by_name() -> void:
 		"injury result carries no crew_name; the post-battle wizard falls back to "
 		+ "'Unknown' for every line"
 	).is_equal("Kaya")
+
+
+# --- Campaign Event 45-48 targets the STASH, and Repair can reach it ----------
+
+const CrewTasks = preload("res://src/ui/screens/world/components/CrewTaskComponent.gd")
+
+
+func _campaign_with_stash(items: Array) -> Variant:
+	var c = CampaignCore.new()
+	c.from_dictionary({
+		"campaign_id": "stash_t",
+		"crew": {"members": [_armed("c1", [])]},
+		"equipment": {"equipment": items},
+	})
+	return c
+
+
+func test_equipment_malfunction_damages_a_stash_item_not_carried_gear() -> void:
+	# p.127 45-48, verbatim: "If there are any items in your Stash, a random item
+	# is damaged and must be Repaired." The Stash — the event's own result string
+	# already said so while the code reached for crew `weapons`/`items`.
+	var ctx = PostBattleContextClass.new()
+	ctx.campaign = _campaign_with_stash([
+		{"id": "i1", "name": "Colony Rifle"},
+		{"id": "i2", "name": "Frag Vest"},
+	])
+	var hit: String = ctx.damage_random_equipment()
+	assert_str(hit).is_not_empty()
+
+	var stash: Array = ctx.get_stash_items()
+	var damaged_count: int = 0
+	for item in stash:
+		if bool(item.get("damaged", false)):
+			damaged_count += 1
+	assert_int(damaged_count).override_failure_message(
+		"Equipment Malfunction damaged no stash item. Stash: %s" % str(stash)
+	).is_equal(1)
+
+	# The carried-gear path must NOT be touched by this event.
+	var member: Dictionary = ctx.campaign.get_crew_member_by_id("c1")
+	assert_int(_damage_markers(member).size()).is_equal(0)
+
+
+func test_equipment_malfunction_on_an_empty_stash_is_a_no_op() -> void:
+	# "IF there are any items in your Stash" — no items, no effect, no crash.
+	var ctx = PostBattleContextClass.new()
+	ctx.campaign = _campaign_with_stash([])
+	assert_str(ctx.damage_random_equipment()).is_empty()
+
+
+func test_equipment_malfunction_never_re_damages_the_same_item() -> void:
+	var ctx = PostBattleContextClass.new()
+	ctx.campaign = _campaign_with_stash([{"id": "i1", "name": "Colony Rifle"}])
+	assert_str(ctx.damage_random_equipment()).is_equal("Colony Rifle")
+	assert_str(ctx.damage_random_equipment()).override_failure_message(
+		"the only stash item was already damaged and was 'damaged' again"
+	).is_empty()
+
+
+func test_repair_your_kit_finds_a_damaged_stash_item() -> void:
+	# p.78 draws no line between carried gear and the Stash: "If you have had
+	# items destroyed, you can attempt to Repair them." Before this the task
+	# scanned only the acting character's status_effects, so a stash item damaged
+	# by p.127 was permanently unusable — Assign Equipment shows it "[DAMAGED]"
+	# and Purchase Items refuses to sell it, with no way back.
+	var stash: Array = [
+		{"id": "i1", "name": "Colony Rifle"},
+		{"id": "i2", "name": "Frag Vest", "damaged": true},
+	]
+	var found: Dictionary = CrewTasks._first_damaged_in_stash(stash)
+	assert_str(str(found.get("name", ""))).is_equal("Frag Vest")
+	assert_str(str(found.get("source", ""))).is_equal("stash")
+	assert_int(int(found.get("index", -1))).is_equal(1)
+
+
+func test_a_successful_stash_repair_clears_the_flag_and_keeps_the_item() -> void:
+	var stash: Array = [{"id": "i2", "name": "Frag Vest", "damaged": true,
+		"damage_source": "Campaign Event"}]
+	CrewTasks._resolve_damaged_stash_item(
+		stash, {"name": "Frag Vest", "source": "stash", "index": 0}, true)
+	assert_int(stash.size()).is_equal(1)
+	assert_bool(bool(stash[0].get("damaged", true))).is_false()
+	assert_bool(stash[0].has("damage_source")).is_false()
+
+
+func test_a_natural_one_removes_the_stash_item_entirely() -> void:
+	# p.78: "A natural 1 always fails this roll. A failed roll means the item is
+	# beyond fixing."
+	var stash: Array = [
+		{"id": "i1", "name": "Colony Rifle"},
+		{"id": "i2", "name": "Frag Vest", "damaged": true},
+	]
+	CrewTasks._resolve_damaged_stash_item(
+		stash, {"name": "Frag Vest", "source": "stash", "index": 1}, false)
+	assert_int(stash.size()).is_equal(1)
+	assert_str(str(stash[0].get("name", ""))).is_equal("Colony Rifle")
+
+
+func test_a_stale_index_still_resolves_the_right_item() -> void:
+	# The index is captured before the D6 is rolled. If anything mutated the
+	# stash in between, trusting it would repair or DELETE an unrelated item.
+	var stash: Array = [
+		{"id": "i2", "name": "Frag Vest", "damaged": true},
+		{"id": "i1", "name": "Colony Rifle"},
+	]
+	CrewTasks._resolve_damaged_stash_item(
+		stash, {"name": "Frag Vest", "source": "stash", "index": 1}, false)
+	assert_int(stash.size()).is_equal(1)
+	assert_str(str(stash[0].get("name", ""))).override_failure_message(
+		"a stale index deleted the wrong item"
+	).is_equal("Colony Rifle")

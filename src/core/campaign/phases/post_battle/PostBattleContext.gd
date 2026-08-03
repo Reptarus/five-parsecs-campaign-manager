@@ -922,29 +922,55 @@ func lose_all_equipment_for(crew_id: String) -> Array:
 			effects.remove_at(i)
 	return lost
 
-func damage_random_equipment() -> void:
-	## Campaign Event 45-48 "Equipment Malfunction" (Core Rules p.127): one random
-	## item somewhere in the crew is damaged. Called by CampaignEventEffects.
+func get_stash_items() -> Array:
+	## The ship stash, per the data-ownership table:
+	## campaign.equipment_data["equipment"]. Returns the LIVE array so callers can
+	## mutate through; never the "pool" key, which was a systemic bug in Phase 22.
+	var gc: Variant = _get_current_campaign()
+	if gc == null:
+		return []
+	var data: Variant = null
+	if gc is Dictionary:
+		data = gc.get("equipment_data", null)
+	elif "equipment_data" in gc:
+		data = gc.equipment_data
+	if not (data is Dictionary):
+		return []
+	var items: Variant = data.get("equipment", null)
+	return items if items is Array else []
+
+func damage_random_equipment() -> String:
+	## Campaign Event 45-48 "Equipment Malfunction" (Core Rules p.127), verbatim:
+	## "If there are any items in your Stash, a random item is damaged and must
+	## be Repaired." The STASH, not a crew member's carried kit — the event's own
+	## result string already said "Random stash item damaged".
 	##
 	## THE BUG THIS FIXES: the body ended at `var _random_index: int = randi() %
 	## all_equipment.size()` under the comment "Damage is informational —
 	## condition tracking handled by EquipmentManager". EquipmentManager does no
 	## such thing; the index was computed and discarded, so the event damaged
-	## nothing, ever. It also gathered from `weapons`/`items`, which the canonical
-	## crew-member shape does not carry — owner gear lives in `equipment` — so on
-	## the live shape the candidate list was empty before the discard even
-	## mattered.
-	var owners: Array = []
-	for member in get_crew_members():
-		if _member_is_dead(member):
-			continue
-		if not _member_equipment(member).is_empty():
-			owners.append(member)
-	if owners.is_empty():
-		return
-	_damage_random_item_on(
-		owners[randi() % owners.size()],
-		"Campaign Event: Equipment Malfunction")
+	## nothing, ever. It also gathered from crew `weapons`/`items` — neither the
+	## right container nor keys the canonical crew shape carries — so the
+	## candidate list was empty before the discard even mattered.
+	##
+	## Stash damage is a flag on the item dict, NOT the owner-side status-effect
+	## marker: `damaged: true` already drives the "[DAMAGED]" suffix in Assign
+	## Equipment (AssignEquipmentComponent.gd:156) and the sell-list exclusion in
+	## Purchase Items (PurchaseItemsComponent.gd:155). Both readers were built and
+	## neither had ever had a producer.
+	var items: Array = get_stash_items()
+	var candidates: Array = []
+	for i in range(items.size()):
+		var entry: Variant = items[i]
+		if entry is Dictionary and not bool(entry.get("damaged", false)):
+			candidates.append(i)
+	if candidates.is_empty():
+		return ""
+	var idx: int = candidates[randi() % candidates.size()]
+	var item: Dictionary = items[idx]
+	item["damaged"] = true
+	item["damage_source"] = "Campaign Event: Equipment Malfunction (Core Rules p.127)"
+	return str(item.get("name", "an item"))
 
 func apply_permanent_stat_reduction(crew_id: String, stats: Array, amount: int) -> Dictionary:
 	## Core Rules p.122, Injury Table 31-45 Crippling wound: "-1 permanent

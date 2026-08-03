@@ -136,17 +136,17 @@ func test_eligible_crew_is_built_from_the_same_rule() -> void:
 ## this it read nothing at all and reported "Item repaired" unconditionally.
 func test_a_damaged_item_is_found_from_the_status_effect() -> void:
 	var comp: Object = _tasks()
-	assert_str(comp._first_damaged_item({
+	assert_str(str(comp._first_damaged_target({
 		"status_effects": [{"type": "item_damaged", "damaged_item": "Auto Rifle"}],
-	})).is_equal("Auto Rifle")
+	}).get("name", ""))).is_equal("Auto Rifle")
 
 
 func test_a_character_with_nothing_damaged_has_nothing_to_repair() -> void:
 	var comp: Object = _tasks()
-	assert_str(comp._first_damaged_item({"status_effects": []})).is_empty()
-	assert_str(comp._first_damaged_item({
+	assert_bool(comp._first_damaged_target({"status_effects": []}).is_empty()).is_true()
+	assert_bool(comp._first_damaged_target({
 		"status_effects": [{"type": "no_xp"}],
-	})).is_empty()
+	}).is_empty()).is_true()
 
 
 ## "On a 6+, the item is repaired and is usable again." The marker clears and the
@@ -157,7 +157,7 @@ func test_a_successful_repair_clears_the_marker_and_keeps_the_item() -> void:
 		"status_effects": [{"type": "item_damaged", "damaged_item": "Auto Rifle"}],
 		"equipment": ["Auto Rifle", "Blade"],
 	}
-	comp._resolve_damaged_item(member, "Auto Rifle", true)
+	comp._resolve_damaged_target(member, {"name": "Auto Rifle", "source": "character"}, true)
 	assert_int((member["status_effects"] as Array).size()).is_equal(0)
 	assert_array(member["equipment"]).contains(["Auto Rifle"])
 
@@ -170,7 +170,7 @@ func test_a_natural_one_destroys_the_item() -> void:
 		"status_effects": [{"type": "item_damaged", "damaged_item": "Auto Rifle"}],
 		"equipment": ["Auto Rifle", "Blade"],
 	}
-	comp._resolve_damaged_item(member, "Auto Rifle", false)
+	comp._resolve_damaged_target(member, {"name": "Auto Rifle", "source": "character"}, false)
 	assert_int((member["status_effects"] as Array).size()).is_equal(0)
 	assert_array(member["equipment"]).not_contains(["Auto Rifle"])
 	assert_array(member["equipment"]).contains(["Blade"])
@@ -187,9 +187,9 @@ func test_only_the_named_item_is_resolved() -> void:
 		],
 		"equipment": ["Auto Rifle", "Blade"],
 	}
-	comp._resolve_damaged_item(member, "Auto Rifle", false)
+	comp._resolve_damaged_target(member, {"name": "Auto Rifle", "source": "character"}, false)
 	assert_int((member["status_effects"] as Array).size()).is_equal(1)
-	assert_str(comp._first_damaged_item(member)).is_equal("Blade")
+	assert_str(str(comp._first_damaged_target(member).get("name", ""))).is_equal("Blade")
 
 
 # --- credits spent for a bonus (pp.77-78) -------------------------------------

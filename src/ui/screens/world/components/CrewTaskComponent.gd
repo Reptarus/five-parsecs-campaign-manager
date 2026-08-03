@@ -952,7 +952,8 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	# broken weapon stayed broken forever while the panel reported "Item repaired"
 	# every single time. The only application code lived in the dead
 	# src/core/campaign/phases/WorldPhase.gd.
-	var damaged: String = _first_damaged_item(crew_member)
+	var target: Dictionary = _first_damaged_target(crew_member)
+	var damaged: String = str(target.get("name", ""))
 
 	# "If you have had items destroyed, you can attempt to Repair them" (p.78) —
 	# with nothing damaged there is nothing to fix, and claiming otherwise is the
@@ -960,18 +961,18 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	if damaged.is_empty():
 		result.success = false
 		result.reward = "Nothing damaged to repair"
-		result.details = "%s — no damaged items on this character" % roll_text
+		result.details = "%s — no damaged items on this character or in the stash" % roll_text
 		return result
 
 	# Natural 1 always fails AND item becomes unfixable (Core Rules p.78:
 	# "A natural 1 always fails and means the item is beyond fixing.")
 	if roll == 1:
-		_resolve_damaged_item(crew_member, damaged, false)
+		_resolve_damaged_target(crew_member, target, false)
 		result.success = false
 		result.reward = "CRITICAL FAIL — %s is beyond repair" % damaged
 		result.details = "%s = %d vs 6. Natural 1: UNFIXABLE" % [roll_text, modified_roll]
 	elif modified_roll >= 6:
-		_resolve_damaged_item(crew_member, damaged, true)
+		_resolve_damaged_target(crew_member, target, true)
 		result.success = true
 		result.reward = "%s repaired" % damaged
 		result.details = "%s = %d vs 6. Repaired!" % [roll_text, modified_roll]
@@ -983,18 +984,99 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	return result
 
 
-func _first_damaged_item(crew_member) -> String:
-	## Character Events (Core Rules pp.128-130) record a damaged item as a
-	## status_effects entry {type: "item_damaged", damaged_item: <name>} — see
-	## CharacterEventEffects "Don't Make Them Like They Used To". That is the live
-	## representation of "items destroyed" for p.78's Repair Your Kit.
+func _stash_items() -> Array:
+	## The ship stash: campaign.equipment_data["equipment"] per the data-ownership
+	## table. Returns the LIVE array so a repair writes through to the campaign.
+	##
+	## is_inside_tree() guard: an absolute get_node() from a detached node ERRORS
+	## and unwinds the CALLER, so without this a `.new()`-constructed component
+	## (tests, probes) would abort inside _first_damaged_target and silently
+	## report "nothing damaged" for gear the character is visibly carrying.
+	if not is_inside_tree():
+		return []
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or gs.current_campaign == null:
+		return []
+	var campaign = gs.current_campaign
+	var data: Variant = null
+	if campaign is Dictionary:
+		data = campaign.get("equipment_data", null)
+	elif "equipment_data" in campaign:
+		data = campaign.equipment_data
+	if not (data is Dictionary):
+		return []
+	var items: Variant = data.get("equipment", null)
+	return items if items is Array else []
+
+
+func _first_damaged_target(crew_member) -> Dictionary:
+	## p.78 Repair Your Kit: "If you have had items destroyed, you can attempt to
+	## Repair them." The book draws no line between gear a character carries and
+	## gear in the Stash, and BOTH can now be damaged, so both are searched.
+	##
+	## Damage has two representations because the two containers are different
+	## shapes, and each was chosen to match readers that already existed:
+	##   carried — a status_effects entry {type: "item_damaged", damaged_item:
+	##             <name>} on the owner. Written by Character Events (p.129
+	##             "Don't Make Them Like They Used To"), travel events (p.71
+	##             Accident) and, since the p.122 fix, the Injury Table.
+	##   stash   — `damaged: true` on the item dict. Written by Campaign Event
+	##             45-48 (p.127) and already read by the "[DAMAGED]" suffix in
+	##             Assign Equipment and the sell-list exclusion in Purchase Items.
+	##
+	## Carried gear is checked first: the acting character's own broken weapon is
+	## the more urgent fix, and it is what the p.78 wording most directly evokes.
 	for eff in _member_get(crew_member, "status_effects", []):
 		if str(eff.get("type", "")) != "item_damaged":
 			continue
 		var item_name: String = str(eff.get("damaged_item", "")).strip_edges()
 		if not item_name.is_empty():
-			return item_name
-	return ""
+			return {"name": item_name, "source": "character"}
+
+	return _first_damaged_in_stash(_stash_items())
+
+
+static func _first_damaged_in_stash(stash: Array) -> Dictionary:
+	for i in range(stash.size()):
+		var entry: Variant = stash[i]
+		if entry is Dictionary and bool(entry.get("damaged", false)):
+			var stash_name: String = str(entry.get("name", "")).strip_edges()
+			if not stash_name.is_empty():
+				return {"name": stash_name, "source": "stash", "index": i}
+	return {}
+
+
+func _resolve_damaged_target(crew_member, target: Dictionary, repaired: bool) -> void:
+	## Clear the damage. On a natural 1 the item is "beyond fixing" (p.78), so it
+	## leaves the game entirely rather than sitting in the list forever.
+	if str(target.get("source", "")) == "stash":
+		_resolve_damaged_stash_item(_stash_items(), target, repaired)
+		return
+	_resolve_damaged_item(crew_member, str(target.get("name", "")), repaired)
+
+
+static func _resolve_damaged_stash_item(
+		stash: Array, target: Dictionary, repaired: bool) -> void:
+	var idx: int = int(target.get("index", -1))
+	var item_name: String = str(target.get("name", ""))
+	# The index was captured before the roll; re-verify rather than trust it, since
+	# a stash mutation in between would repair or delete the wrong item.
+	if idx < 0 or idx >= stash.size() \
+			or not (stash[idx] is Dictionary) \
+			or str(stash[idx].get("name", "")) != item_name:
+		idx = -1
+		for i in range(stash.size()):
+			if stash[i] is Dictionary and str(stash[i].get("name", "")) == item_name \
+					and bool(stash[i].get("damaged", false)):
+				idx = i
+				break
+	if idx < 0:
+		return
+	if repaired:
+		stash[idx]["damaged"] = false
+		stash[idx].erase("damage_source")
+	else:
+		stash.remove_at(idx)
 
 
 func _resolve_damaged_item(crew_member, item_name: String, repaired: bool) -> void:
