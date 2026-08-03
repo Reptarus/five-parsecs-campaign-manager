@@ -1397,6 +1397,29 @@ func _complete_world_phase() -> void:
 					"battle_type": _get_battle_type_for_objective(job_results.get("objective", "patrol")),
 				}
 
+				# Fixer's Guidebook mission types (Stealth / Street Fight /
+				# Salvage). TWO keys, and both are load-bearing:
+				#
+				# `type` is the exact string TacticalBattleUI branches on to open
+				# the matching battle panel. The literal above copies ~20 named
+				# keys off the job and `type` was not one of them, so even once
+				# JobOfferComponent started offering these missions the dispatch
+				# would never have matched — the same omission this hand-off
+				# already made for `conditions`.
+				#
+				# `compendium_mission` carries the generator's payload verbatim.
+				# It cannot be merged into mission_dict: the panels read
+				# `objective` as a DICTIONARY (roll range, instruction text,
+				# has_individual) while the flattened literal sets it to a plain
+				# String, so a merge would either break the panels or break
+				# everything downstream that expects the String. Keeping both
+				# shapes side by side is the only lossless option.
+				var compendium_type: String = str(job_results.get("type", ""))
+				if compendium_type in ["stealth", "street_fight", "salvage"]:
+					mission_dict["type"] = compendium_type
+					mission_dict["compendium_mission"] = job_results.duplicate(true)
+					mission_dict["title"] = str(job_results.get("name", "Mission"))
+
 				# Inject Red/Black Zone flags (Core Rules Appendix III)
 				var selected_zone: int = 0
 				if upkeep_component and upkeep_component.has_method("get_selected_zone"):

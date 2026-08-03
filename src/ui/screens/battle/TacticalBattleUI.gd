@@ -4418,14 +4418,23 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())
 
-	# DLC: Wire mission-type-specific panels
+	# DLC: Wire mission-type-specific panels (Fixer's Guidebook).
+	#
+	# The panels need the GENERATOR's shape, where `objective` is a Dictionary
+	# carrying the roll range, instruction text and has_individual flag. The
+	# campaign hand-off (WorldPhaseController) flattens a job to a Patron-shaped
+	# literal in which `objective` is a plain String, so it carries the generator
+	# payload alongside under `compendium_mission` rather than merging the two
+	# incompatible shapes. Fall back to mission_dict for the standalone/battle-
+	# simulator paths, which build the generator shape directly.
 	var mission_type: String = mission_dict.get("type", "")
+	var compendium_payload: Dictionary = mission_dict.get("compendium_mission", mission_dict)
 	if mission_type == "stealth":
-		_setup_stealth_panel(mission_dict)
+		_setup_stealth_panel(compendium_payload)
 	elif mission_type == "street_fight":
-		_setup_street_fight_panel(mission_dict)
+		_setup_street_fight_panel(compendium_payload)
 	elif mission_type == "salvage":
-		_setup_salvage_panel(mission_dict)
+		_setup_salvage_panel(compendium_payload)
 
 func _create_character_cards(_crew_members: Array) -> void:
 	## Phase 2: the Crew and Enemy SlideOverDrawers ARE the per-figure battle

@@ -10,6 +10,12 @@ const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResour
 const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
 const CompendiumMissionsExpanded = preload("res://src/data/compendium_missions_expanded.gd")
 const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
+## Fixer's Guidebook mission types. Each generator self-gates on its own DLC
+## ContentFlag and returns {} when the pack is not owned, so calling them
+## unconditionally is correct — see _generate_compendium_missions().
+const StealthMissionGenerator = preload("res://src/core/mission/StealthMissionGenerator.gd")
+const StreetFightGenerator = preload("res://src/core/mission/StreetFightGenerator.gd")
+const SalvageJobGenerator = preload("res://src/core/mission/SalvageJobGenerator.gd")
 
 # UI Components
 @onready var job_offer_container: VBoxContainer = %JobOfferContainer
@@ -148,6 +154,7 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	if not quest_job.is_empty():
 		all_jobs.append(quest_job)
 	all_jobs.append_array(patron_offers)
+	all_jobs.append_array(_generate_compendium_missions())
 
 	# Store and display
 	job_accepted = false
@@ -166,6 +173,71 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	if automation_enabled and available_jobs.size() > 0:
 		selected_job_index = 0
 		accept_selected_job()
+
+func _generate_compendium_missions() -> Array[Dictionary]:
+	## Fixer's Guidebook mission types — Stealth Missions, Street Fights and
+	## Salvage Jobs — offered alongside the Patron and Opportunity jobs.
+	##
+	## THE BUG THIS FIXES. Every layer of these three features already existed and
+	## already agreed with every other layer: the data files, the loaders in
+	## src/data/compendium_*.gd, these three generators, StealthResolver and
+	## SalvageResolver behind BattleResolverRouter, and the three battle panels
+	## that TacticalBattleUI instantiates and signal-wires. The generators stamp
+	## `type` as "stealth" / "street_fight" / "salvage" and TacticalBattleUI
+	## branches on exactly those strings.
+	##
+	## The chain was severed at ONE point: the only caller of all three
+	## generators was src/core/campaign/phases/WorldPhase.gd, a file with zero
+	## instantiations (WorldPhaseController preloads it and never uses it). So
+	## nothing ever produced a mission of those types, the dispatch never matched,
+	## the panels never opened, and three purchasable features were unreachable in
+	## every campaign.
+	##
+	## That is the THIRD rule this same dead file has held hostage — CLAUDE.md
+	## already records it holding the only callers of record_invaded_planet(),
+	## repair_hull() and the fuel-credits consumer. When a file is described as
+	## dead, check what its callers were before shelving it.
+	##
+	## Derived FRESH each turn and never written into the persisted patron store:
+	## these are not Patron jobs, they carry no p.83 Time Frame, and persisting
+	## them would duplicate the option every time the player revisits this step.
+	## Same treatment as the Quest option above.
+	var missions: Array[Dictionary] = []
+
+	# Crew SIZE SETTING (4/5/6), not the fluctuating roster count — Compendium
+	# p.124 stealth sentries and p.141 salvage tension both key off the setting.
+	var campaign_crew_size: int = 6
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("get_campaign_crew_size"):
+		campaign_crew_size = gsm.get_campaign_crew_size()
+
+	# Each generator returns {} when its own ContentFlag is off, so ownership is
+	# enforced inside the generator and needs no check here.
+	var stealth: Dictionary = StealthMissionGenerator.generate_stealth_mission(
+		campaign_crew_size)
+	if not stealth.is_empty():
+		stealth["type"] = "stealth"
+		stealth["name"] = stealth.get("objective", {}).get("name", "Stealth Mission")
+		stealth["mission_source"] = "opportunity"
+		missions.append(stealth)
+
+	var street: Dictionary = StreetFightGenerator.generate_street_fight()
+	if not street.is_empty():
+		street["type"] = "street_fight"
+		street["name"] = street.get("objective", {}).get("name", "Street Fight")
+		street["mission_source"] = "opportunity"
+		missions.append(street)
+
+	var salvage: Dictionary = SalvageJobGenerator.generate_salvage_job(
+		campaign_crew_size)
+	if not salvage.is_empty():
+		salvage["type"] = "salvage"
+		salvage["name"] = "Salvage Job"
+		salvage["mission_source"] = "opportunity"
+		missions.append(salvage)
+
+	return missions
+
 
 ## Public API: Initialize job offer phase with campaign data
 func initialize_job_phase(patron_data: Dictionary, current_location: String) -> void:
