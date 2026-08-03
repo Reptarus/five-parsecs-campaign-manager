@@ -1060,6 +1060,32 @@ func _on_travel_pressed() -> void:
 	if _invasion_pending() and not _attempt_invasion_escape():
 		return
 
+	# "Bureaucratic mess — When attempting to leave, you must roll 2D6. On a 2-4,
+	# you are delayed and cannot leave this campaign turn without a bribe equal
+	# to the roll in credits. You may try again next campaign turn."
+	# (Core Rules p.73 World Trait.) The trait was flavour text: departure was
+	# never checked. The bribe is offered rather than forced — the book makes it
+	# the player's choice to pay or to wait.
+	var _departure_traits: Array = _get_current_world_traits()
+	if WorldTraitEffectsClass.departure_check_required(_departure_traits):
+		var bureaucracy_roll: int = randi_range(1, 6) + randi_range(1, 6)
+		if WorldTraitEffectsClass.departure_is_blocked(
+				bureaucracy_roll, _departure_traits):
+			var bribe: int = bureaucracy_roll
+			if GameStateManager.get_credits() >= bribe:
+				GameStateManager.modify_credits(-bribe)
+				_travel_status_label.text = (
+					"Bureaucratic mess: rolled %d — delayed. Paid a %d-credit bribe "
+					% [bureaucracy_roll, bribe] + "to leave anyway (p.73).")
+			else:
+				_travel_status_label.text = (
+					"Bureaucratic mess: rolled %d — delayed and cannot afford the "
+					% bureaucracy_roll
+					+ "%d-credit bribe. Try again next campaign turn (p.73)." % bribe)
+				_travel_status_label.add_theme_color_override(
+					"font_color", UIColors.COLOR_AMBER)
+				return
+
 	var travel_cost: int
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST

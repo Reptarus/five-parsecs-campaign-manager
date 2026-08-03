@@ -393,9 +393,19 @@ func _on_assign_task_pressed() -> void:
 	if not task_id in task_assignments:
 		task_assignments[task_id] = []
 
-	if task_assignments[task_id].size() >= task.max_crew:
+	# "Travel restricted — No more than one crew member may take the Explore
+	# option each campaign turn" (Core Rules p.74 World Trait). A per-world cap
+	# that overrides the task's own max_crew, and was flavour text.
+	var effective_max: int = int(task.max_crew)
+	if task_id == "explore":
+		var explore_cap: int = WorldTraitEffectsClass.explore_task_cap(
+			_current_world_traits())
+		if explore_cap >= 0:
+			effective_max = mini(effective_max, explore_cap)
+
+	if task_assignments[task_id].size() >= effective_max:
 		var task_name: String = task.get("name", task_id)
-		push_warning("CrewTaskComponent: %s is full (%d/%d crew)" % [task_name, task_assignments[task_id].size(), task.max_crew])
+		push_warning("CrewTaskComponent: %s is full (%d/%d crew)" % [task_name, task_assignments[task_id].size(), effective_max])
 		# Refresh task list to show updated capacity indicators
 		_populate_available_tasks()
 		return
