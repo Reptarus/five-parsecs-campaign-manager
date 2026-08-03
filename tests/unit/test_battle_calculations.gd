@@ -746,3 +746,71 @@ func test_skulker_resists_drugs_but_not_stim_packs_or_crystals() -> void:
 		assert_bool(r2["applied"]).override_failure_message(
 			"Skulker resistance must NOT block %s" % allowed
 		).is_true()
+
+
+# ── Utility devices (Core Rules pp.56-57) and the post-Brawl move (p.45) ─────
+
+func test_motion_tracker_is_a_seize_initiative_bonus_not_a_detector() -> void:
+	# p.57 verbatim: "Motion tracker  Add +1 to all rolls to Seize the
+	# Initiative." The old implementation described it as "detect hidden enemies
+	# within 12\"", which appears nowhere in either book.
+	var r: Dictionary = BattleCalculations.check_utility_devices({"utility_devices": ["motion_tracker"]})
+	assert_int(r.get("seize_initiative_bonus", 0)).override_failure_message(
+		"Motion tracker grants +1 to Seize the Initiative (p.57)"
+	).is_equal(1)
+	assert_int(r.get("detection_range", -1)).override_failure_message(
+		"there is no detection mechanic on the Motion tracker in either book"
+	).is_equal(0)
+
+
+func test_battle_visor_rerolls_ones_on_the_firing_dice() -> void:
+	# p.56: "When shooting, the character may reroll any 1s on the firing dice."
+	var r: Dictionary = BattleCalculations.check_utility_devices({"utility_devices": ["battle_visor"]})
+	assert_bool(r.get("reroll_ones", false)).is_true()
+
+
+func test_communicator_adds_a_die_then_discards_one() -> void:
+	# p.56: "you may roll one additional die, then choose a die to discard."
+	# Without the discard the extra die is a pure gain rather than a swap.
+	var r: Dictionary = BattleCalculations.check_utility_devices({"utility_devices": ["communicator"]})
+	assert_int(r.get("reaction_dice_bonus", 0)).is_equal(1)
+	assert_bool(r.get("reaction_discard_one", false)).override_failure_message(
+		"the Communicator's discard clause is part of the rule"
+	).is_true()
+
+
+func test_auto_sensor_hits_only_on_a_natural_six() -> void:
+	# p.56: one shot from any Pistol carried at an enemy beginning or ending a
+	# move within 4" and LoS; "resolved even if the enemy is in contact with a
+	# character and Hits only on a natural 6."
+	var r: Dictionary = BattleCalculations.check_utility_devices({"utility_devices": ["auto_sensor"]})
+	assert_float(r.get("auto_sensor_range_inches", 0.0)).is_equal(4.0)
+	assert_bool(r.get("auto_sensor_requires_pistol", false)).is_true()
+	assert_bool(r.get("auto_sensor_hits_on_natural_six_only", false)).is_true()
+	assert_bool(r.get("auto_sensor_fires_even_if_in_contact", false)).is_true()
+
+
+func test_post_brawl_move_requires_elimination_not_merely_winning() -> void:
+	# p.45: "A character that eliminates their opponent (the figure is removed
+	# from the battlefield) can move 2\" in any direction, but cannot enter a new
+	# Brawl." Winning a Brawl the loser survives earns nothing — p.45 says so for
+	# the lone fighter in a Multiple Opponents brawl: "If the lone fighter wins,
+	# they do not get a 2\"..."
+	#
+	# Attacker Combat Skill 3 with a Melee weapon vs an unarmed Toughness-3
+	# defender, always rolling 5: the attacker wins and the damage roll kills.
+	var attacker := {"character_name": "A", "combat": 3, "toughness": 4,
+		"weapons": [{"name": "Blade", "damage": 0, "traits": ["Melee"]}]}
+	var defender := {"character_name": "D", "combat": 0, "toughness": 3, "weapons": []}
+	var res: Dictionary = BattleCalculations.resolve_brawl(
+		attacker, defender, func(): return 5)
+	assert_bool(res.has("attacker_may_move_2in")).override_failure_message(
+		"resolve_brawl must report the p.45 post-Brawl move"
+	).is_true()
+	assert_int(res.get("bonus_move_inches", 0)).is_equal(2)
+	assert_bool(res.get("bonus_move_may_enter_new_brawl", true)).override_failure_message(
+		"the 2\" move explicitly cannot enter a new Brawl"
+	).is_false()
+	# The flag must track ELIMINATION (a casualty), never the winner field.
+	assert_bool(res["attacker_may_move_2in"]).is_equal(
+		int(res.get("damage_to_defender", 0)) > 0)

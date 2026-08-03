@@ -922,6 +922,22 @@ static func resolve_brawl(
 	if atk_out["saved"] > 0:
 		result["effects"].append("attacker_brawl_save")
 
+	# Core Rules p.45, post-Brawl move: "A character that ELIMINATES their
+	# opponent (the figure is removed from the battlefield) can move 2\" in any
+	# direction, but cannot enter a new Brawl. This move is taken immediately
+	# after the Brawl has been resolved."
+	#
+	# The gate is ELIMINATION, not winning. Winning a Brawl that the loser
+	# survives (a Stun, or a deflected Hit) earns nothing, and p.45 says so
+	# explicitly for the lone fighter in a Multiple Opponents brawl: "If the lone
+	# fighter wins, they do not get a 2\"..."
+	result["attacker_may_move_2in"] = int(result["damage_to_defender"]) > 0
+	result["defender_may_move_2in"] = int(result["damage_to_attacker"]) > 0
+	result["bonus_move_inches"] = 2
+	result["bonus_move_may_enter_new_brawl"] = false
+	if result["attacker_may_move_2in"] or result["defender_may_move_2in"]:
+		result["effects"].append("post_brawl_2in_move_on_elimination")
+
 	# Sprint 26.5: Debug log brawl resolution
 	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
 	var defender_name: String = defender.get("character_name", defender.get("name", "Unknown"))
@@ -1558,9 +1574,14 @@ static func check_utility_devices(character: Dictionary, context: Dictionary = {
 	var result := {
 		"jump_distance": 0,
 		"climb_distance": 0,
+		# Kept at 0 always. No utility device in either book grants a detection
+		# range — the Motion tracker's real effect (p.57) is +1 to Seize the
+		# Initiative, which is the key below.
 		"detection_range": 0,
+		"seize_initiative_bonus": 0,
 		"reroll_ones": false,
 		"reaction_dice_bonus": 0,
+		"reaction_discard_one": false,
 		"can_glide": false,
 		"effects": []
 	}
@@ -1586,29 +1607,51 @@ static func _apply_utility_device_effect(
 			result["effects"].append("jump_belt_9_inches")
 
 		"grapple_launcher":
-			# Can climb up to 12" vertically
+			# p.56 verbatim: "As a Combat Action, the character may use the
+			# launcher to scale a terrain feature within 1\". The character can
+			# ascend up to 12\" but must reach a surface they can stand on."
 			result["climb_distance"] = 12
+			result["climb_requires_feature_within_inches"] = 1.0
+			result["climb_costs_combat_action"] = true
+			result["climb_needs_standable_surface"] = true
 			result["effects"].append("grapple_launcher_12_climb")
 
 		"motion_tracker":
-			# Detect hidden enemies within 12"
-			result["detection_range"] = 12
-			result["effects"].append("motion_tracker_12_detect")
+			# p.57 verbatim: "Add +1 to all rolls to Seize the Initiative."
+			#
+			# Was "detect hidden enemies within 12\"" — fabricated. There is no
+			# detection mechanic attached to this device anywhere in the book.
+			# SeizeInitiativeSystem.set_motion_tracker() already applied the real
+			# +1; this site was a second, wrong description of the same item.
+			result["seize_initiative_bonus"] = 1
+			result["effects"].append("motion_tracker_+1_seize_initiative")
 
 		"battle_visor":
-			# Reroll 1s on attack rolls
+			# p.56 verbatim: "When shooting, the character may reroll any 1s on
+			# the firing dice."
 			result["reroll_ones"] = true
 			result["effects"].append("battle_visor_reroll_ones")
 
 		"communicator":
-			# +1 Reaction die for the crew
+			# p.56 verbatim: "When making the Reaction roll each round, you may
+			# roll one additional die, then choose a die to discard."
+			# The discard half was missing — without it the extra die is a pure
+			# gain rather than a swap.
 			result["reaction_dice_bonus"] += 1
-			result["effects"].append("communicator_+1_reaction")
+			result["reaction_discard_one"] = true
+			result["effects"].append("communicator_+1_reaction_then_discard")
 
 		# Phase 9: Additional battle-time utility devices (Core Rules pp.56-57)
 		"auto_sensor":
-			# Fire 1 Pistol shot at enemy entering 4" LoS (natural 6 only)
+			# p.56 verbatim: "If an enemy begins or ends a move within 4\" and
+			# Line of Sight of the character, you may immediately fire one shot
+			# from any Pistol carried. The shot is resolved even if the enemy is
+			# in contact with a character and Hits only on a natural 6."
 			result["auto_sensor"] = true
+			result["auto_sensor_range_inches"] = 4.0
+			result["auto_sensor_requires_pistol"] = true
+			result["auto_sensor_hits_on_natural_six_only"] = true
+			result["auto_sensor_fires_even_if_in_contact"] = true
 			result["effects"].append("auto_sensor_4in_overwatch")
 
 		"concealed_blade":
