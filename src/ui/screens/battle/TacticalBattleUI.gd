@@ -25,6 +25,8 @@ const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const CompendiumDeploymentVariablesRef = preload(
+	"res://src/data/compendium_deployment_variables.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
@@ -3944,6 +3946,43 @@ func _on_initiative_calculated(result) -> void:
 	else:
 		_log_message("Initiative not seized (%d) — begin Round 1 normally."
 			% total, UIColors.COLOR_TEXT_SECONDARY)
+
+	_apply_enemy_deployment_variable(seized)
+
+
+## Compendium pp.44-45 Enemy Deployment Variables. p.44 keys the whole rule off
+## this exact moment: "Set up both sides normally and roll to Seize the
+## Initiative. If you fail, roll D100 on the table below, using the AI type to
+## calculate which deployment type the enemy will use. If you successfully Seize
+## the Initiative, the enemy will always use the Line (i.e. standard) deployment
+## option."
+##
+## deployment_variables.json held all six AI columns, byte-correct, with ZERO
+## loaders — so a player who owned the Freelancer's Handbook and switched this on
+## got standard deployment in every battle of every campaign.
+func _apply_enemy_deployment_variable(seized: bool) -> void:
+	var force: Dictionary = _battle_context.get("enemy_force", {})
+	if force.is_empty() and _stored_mission_data is Dictionary:
+		force = _stored_mission_data.get("enemy_force", {})
+	var deployment: Dictionary = CompendiumDeploymentVariablesRef.roll_deployment(
+		str(force.get("ai", "")), seized)
+	if deployment.is_empty():
+		return
+
+	_battle_context["enemy_deployment_variable"] = deployment
+	_log_message("ENEMY DEPLOYMENT — %s. %s" % [
+		str(deployment.get("name", "Line")), str(deployment.get("reason", ""))],
+		Color("#D97706"))
+	_log_message(str(deployment.get("instruction", "")), Color("#4FC3F7"))
+	# Infiltration and Concealed put figures on the table mid-battle, so the
+	# placement clarification only matters for those two.
+	if str(deployment.get("id", "")) in ["infiltration", "concealed"]:
+		_log_message(
+			CompendiumDeploymentVariablesRef.get_arrival_placement_note(),
+			UIColors.COLOR_TEXT_SECONDARY)
+	if unified_log:
+		unified_log.add_entry("event", "Enemy deployment: %s"
+			% str(deployment.get("name", "Line")))
 
 
 func _activate_enemy_oracle() -> void:

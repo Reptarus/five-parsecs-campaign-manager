@@ -31,8 +31,11 @@ extends RefCounted
 # Delete an entry the moment its rules land — this list shrinking is the
 # progress bar for Compendium completeness.
 const UNIMPLEMENTED_FLAGS: Array[String] = [
-	# data/compendium/deployment_variables.json has zero loaders.
-	"DEPLOYMENT_VARIABLES",
+	# DEPLOYMENT_VARIABLES was removed from this list on Aug 3 2026 — the missing
+	# loader is now src/data/compendium_deployment_variables.gd and the rule fires
+	# from TacticalBattleUI._on_initiative_calculated, which is the exact moment
+	# p.44 keys it to.
+	#
 	# data/elite_enemy_types.json is never even LOADED: DataManager declares the
 	# path and the dict, clears it twice, and its only getter is commented out.
 	# Enemy forces are always built from the Core Rules p.93 thresholds.
