@@ -269,6 +269,32 @@ static func get_dramatic_weapon_stats(weapon_id: String) -> Dictionary:
 	return stats if stats is Dictionary else {}
 
 
+## Overlay the Compendium pp.88-89 Dramatic Weapons profile onto a resolved
+## weapon dict. Returns the input untouched when Dramatic Combat is off or the
+## weapon has no override row.
+##
+## p.88: "If using this weapons table, you should also use the 'Adjusted
+## Shooting' hit numbers from the Dramatic Combat section" — the two halves of
+## the option travel together, so they share the one DRAMATIC_COMBAT flag.
+static func apply_dramatic_weapon_profile(weapon: Dictionary) -> Dictionary:
+	if weapon.is_empty():
+		return weapon
+	var key: String = str(weapon.get("id", ""))
+	var stats: Dictionary = get_dramatic_weapon_stats(key)
+	if stats.is_empty():
+		stats = get_dramatic_weapon_stats(str(weapon.get("name", "")))
+	if stats.is_empty():
+		return weapon
+	var out: Dictionary = weapon.duplicate(true)
+	# Only the four columns the book's table actually prints. Cost, rarity and
+	# description stay on the baseline profile.
+	for stat_key in ["range", "shots", "damage", "traits"]:
+		if stats.has(stat_key):
+			out[stat_key] = stats[stat_key]
+	out["dramatic_profile"] = true
+	return out
+
+
 ## Aggregated rule-text instructions for the BattlePhase setup screen.
 ## Returns the Adjusted Shooting / Duck Back / Lunge bullet strings so the
 ## tabletop player has the actual rules in front of them, not just per-weapon

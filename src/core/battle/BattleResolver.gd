@@ -42,6 +42,79 @@ const HEADLONG_ASSAULT_HIT_BONUS := 1
 const MIN_ENGAGEMENT_RANGE := 6.0  # Minimum estimated range in inches
 const DEFAULT_COVER_CHANCE := 0.5  # 50% chance of cover when no battlefield data
 
+## ── Weapon profiles ──────────────────────────────────────────────
+##
+## THE BUG THIS EXISTS TO FIX. `attacker["weapon"]` is read at exactly two sites
+## in this file (the attack loop and _estimate_range) and, before Aug 3 2026,
+## NOTHING anywhere wrote it. initialize_battle extracted armor and screens out
+## of equipment and never a weapon; Character.to_dictionary() emits `equipment`
+## (an Array of item NAMES) and has no `weapon` key; enemies carry `weapons`,
+## plural, an Array of names. So `attacker.get("weapon", {})` was `{}` in every
+## auto-resolved battle ever played, and every attack fell to the defaults:
+##
+##   range  12"   shots 1   damage 1   traits []   name "Unknown Weapon"
+##
+## A Hand Cannon (damage 2, 8") and a Hand Gun (damage 0, 12") were identical, a
+## Machine Pistol fired one shot instead of two, and EVERY weapon trait in the
+## game — Focused, Area, Piercing, Critical, Snap Shot, Heavy, Burn, Elegant,
+## Clumsy, Hot — was inert, because the trait list was always empty. The Overheat
+## and Focused handling further down this file is written correctly and had no
+## data to act on. "Unknown Weapon" in the battle log was the visible symptom.
+##
+## This also explains why the Compendium pp.88-89 Dramatic Weapons table had no
+## consumer: there was no weapon profile in the unit to override.
+static var _weapon_db: Dictionary = {}
+static var _weapon_db_loaded: bool = false
+
+static func _ensure_weapon_db() -> void:
+	if _weapon_db_loaded:
+		return
+	_weapon_db_loaded = true
+	var file := FileAccess.open("res://data/equipment_database.json", FileAccess.READ)
+	if file == null:
+		push_warning("BattleResolver: equipment_database.json missing; weapons will be generic")
+		return
+	var json := JSON.new()
+	var ok: bool = json.parse(file.get_as_text()) == OK
+	file.close()
+	if not ok or not (json.data is Dictionary):
+		return
+	for entry in json.data.get("weapons", []):
+		if not (entry is Dictionary):
+			continue
+		for key in [str(entry.get("id", "")), str(entry.get("name", ""))]:
+			var k: String = key.strip_edges().to_lower()
+			if not k.is_empty():
+				_weapon_db[k] = entry
+
+
+## Resolve the profile a figure fights with from its carried item names.
+##
+## Takes the FIRST entry that resolves to a real weapon. That is not an invented
+## selection rule — it mirrors BaseCharacterResource.get_equipped_weapon(), which
+## returns weapons[0], and enemy `weapons` arrays are already written in the
+## order the profile lists them. Returns {} when the figure carries nothing that
+## matches, which restores the previous default-profile behaviour for that unit
+## rather than inventing a gun for it.
+static func resolve_weapon_profile(candidates: Variant) -> Dictionary:
+	_ensure_weapon_db()
+	var list: Array = []
+	if candidates is Array:
+		list = candidates
+	elif candidates is String and not str(candidates).is_empty():
+		list = [candidates]
+	for entry in list:
+		var key: String = (str(entry.get("name", "")) if entry is Dictionary
+			else str(entry)).strip_edges().to_lower()
+		if key.is_empty() or not _weapon_db.has(key):
+			continue
+		# Dramatic Combat (Compendium pp.88-89) replaces the printed profile of
+		# any weapon it lists; a no-op when the option is off.
+		return CompendiumDifficultyTogglesRef.apply_dramatic_weapon_profile(
+			_weapon_db[key].duplicate(true))
+	return {}
+
+
 ## Main entry point - runs full battle and returns results
 ## 
 ## Args:
@@ -202,6 +275,11 @@ static func initialize_battle(
 		# Phase 6: Deflector field — 1 auto-deflect per battle
 		if protection["protective_effects"].get("deflector_field", false):
 			unit["deflector_uses"] = 1
+		# Resolve the weapon the figure actually fights with. Without this the
+		# attack loop reads {} and every crew member fights with the generic
+		# default profile (see _weapon_db above).
+		if not (unit.get("weapon", null) is Dictionary) or unit["weapon"].is_empty():
+			unit["weapon"] = resolve_weapon_profile(crew_equipment)
 		battle_state["crew_units"].append(unit)
 
 	# Copy enemy units and apply deployment effects
@@ -218,6 +296,11 @@ static func initialize_battle(
 			unit["armor"] = _extract_enemy_saving_throw(special_rules)
 		if not unit.has("screen"):
 			unit["screen"] = "none"
+		# Enemies carry `weapons` (plural, an Array of names, occasionally a
+		# comma-joined String); the attack loop reads `weapon`, singular. Nothing
+		# bridged the two, so enemy weapon profiles were as inert as the crew's.
+		if not (unit.get("weapon", null) is Dictionary) or unit["weapon"].is_empty():
+			unit["weapon"] = resolve_weapon_profile(unit.get("weapons", []))
 		battle_state["enemy_units"].append(unit)
 	
 	# Apply deployment condition effects (e.g., "ambush" gives crew first strike)
