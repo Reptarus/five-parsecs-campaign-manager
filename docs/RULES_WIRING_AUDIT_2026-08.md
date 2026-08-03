@@ -4,7 +4,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 2 evening: 81 open / 53 fixed / 7 partial-or-blocked.**
+**Status Aug 2 evening: 79 open / 55 fixed / 7 partial-or-blocked.**
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -115,7 +115,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | battle-setup | Number of Opponents — Insanity adds +1 to the final number faced | one-line | On Insanity — the hardest mode in the book — every battle fields one fewer enemy than the rules require. Combined with the danger_level defect above the +1 could not fire regardless, so f... | FIXED 24c657af4 |
 | battle-setup | Determine Deployment Conditions — consult the column matching the mission type; the table is ignored during an Invasion battle | small | Two concrete wrong outcomes. (1) Every Rival battle rolls deployment conditions on the Opportunity/Patron column instead of the Rival column, so the odds are badly skewed — 'No Condition'... | OPEN |
 | battle-setup | Determine the Enemy — roll the Enemy Encounter Category on the column matching the mission (Opportunity / Patron / Quest / Unknown Rival) | medium | A Rival that tracks you down is generated off the Opportunity or Patron column, so 20-25% of Rival battles are against Roving Threats — a category the book excludes from Rival fights outr... | OPEN |
-| patrons-rivals-quests | Danger Pay is a PATRON-job payment only — "If you did a Patron job, add the Pay bonus to the Danger Pay" (Core Rules p.120 Step 4) | one-line | Opportunity missions — the default 'nothing else presented itself' battle — pay an extra 1 to 3 credits of Danger Pay they are not entitled to. On a single-digit credit economy where Upke... | OPEN |
+| patrons-rivals-quests | Danger Pay is a PATRON-job payment only — "If you did a Patron job, add the Pay bonus to the Danger Pay" (Core Rules p.120 Step 4) | one-line | Opportunity missions — the default 'nothing else presented itself' battle — pay an extra 1 to 3 credits of Danger Pay they are not entitled to. On a single-digit credit economy where Upke... | FIXED 878057d6a (gated at the offer builder AND the payment step) |
 | missions-elites-zones | Red Job Improved Rewards — Quest credit payout | small | Finishing a Quest in a Red Zone pays slightly more than the book allows — best-of-4 averages ~5.24 vs the book's best-of-3 ~4.96, i.e. roughly +0.3 credits per Red Zone quest conclusion, ... | OPEN |
 | post-battle | Step 13 — Character Event: exactly ONE roll, for ONE randomly selected character (p.126) | medium | A six-person crew resolves SEVEN character events per campaign turn instead of one — six applied by the player plus one applied silently by the backend. XP, story points, quest rumors, Ri... | FIXED ca68e01b6 |
 | post-battle | Step 5 — Battlefield Finds: "Roll D100 ONCE on the table below, and add the resulting find to your inventory" (p.121) | small | Two Battlefield Finds are resolved per battle. The player sees the backend's find in the log (which may hand out a Quest Rumor or +1 credit) and then rolls a second, different find that i... | FIXED ca68e01b6 |
@@ -175,7 +175,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | turn-upkeep-travel | Fleeing an Invasion — you lose everyone you knew on that world, and the shipless/no-credits escape routes | medium | Escaping an invaded world is consequence-free: you keep every Rival and every Patron you built up there, so fleeing is strictly better than staying. And a crew stuck on an invaded world w... | OPEN |
 | turn-upkeep-travel | Sick Bay exit — recovered characters cannot perform a task that campaign turn | small | A character whose last Sick Bay turn ticks off at rollover walks straight into the Crew Tasks screen and takes a full task the same turn — an extra Explore/Trade/Patron roll per recovery ... | OPEN |
 | turn-upkeep-travel | Train task resolves a Character Upgrade immediately; Find a Patron offers an EXISTING Patron | medium | Training banks XP that sits unspent until the player happens to open the post-battle advancement screen, and the p.77 'resolve that immediately' beat never happens. And the Patron pool in... | OPEN |
-| turn-upkeep-travel | Repeat Patron keeps the same Benefit; up to two characters on any one task | small | A loyal Patron you have worked for five times rolls a different Benefit (or none) every single job, so building a relationship with one employer has no payoff. And only one crew member ca... | OPEN |
+| turn-upkeep-travel | Repeat Patron keeps the same Benefit; up to two characters on any one task | small | A loyal Patron you have worked for five times rolls a different Benefit (or none) every single job, so building a relationship with one employer has no payoff. And only one crew member ca... | FIXED 878057d6a (Benefit remembered per Patron; the two-per-task half was already right except a fabricated max_crew 1 on repair_kit) |
 | battle-resolution | Saving Throws — Multiple Saving Throws (p.46) and innate Bot/Soulless armor plating | small | A Bot or Soulless crew member with no purchased armor gets NO saving throw in any auto-resolved battle, instead of the 6+ the book guarantees (5+ for Assault Bots) — they die roughly 17% ... | FIXED 4b7102dd0 — was min() ('best wins'), losing the -1 the book grants for stacking. Both printed examples now pass. Innate plating now covers all four species, not just Soulless |
 | battle-resolution | Weapon Ratings — Shots (p.49): the number of attack dice you roll | small | On the standard (no-DLC) campaign, an Auto Rifle (2 shots), a Rattle Gun (3 shots) and a Hyper Blaster (3 shots) all fire exactly once per round in auto-resolve — identical to a 1-shot Co... | FIXED f6e85b238 — auto-resolve called resolve_ranged_attack() ONCE per attacker and never read Shots, so Rattle gun (3), Hyper blaster (3), Auto rifle/Shotgun/Plasma rifle/Needle rifle/Machine pistol/Shell gun/Hand flamer/Flak gun/Cling fire pistol (2 each) all fired a single shot. Now loops over Shots, same target (required by Focused, p.51), breaking early once the target is down |
 | battle-resolution | Impact trait (p.51) — a second Stun marker on an already-Stunned target | small | The Suppression maul — the game's dedicated Impact weapon — is mechanically identical to any other Damage +1 melee weapon. Its ability to stack a Stunned enemy toward the 3-marker knockou... | FIXED b776e8726 — was unconditional causes_stun, so Impact stunned healthy targets; it only adds a SECOND marker to an already-Stunned figure |
@@ -245,7 +245,7 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**81 open / 60 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
+**79 open / 62 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
 
 ### Domain standings
 
@@ -316,10 +316,15 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
      `PatronJobEffects.blocks_rival_tracking(mission)` is ready; it needs one
      early-return.
    - **Busy** (p.84, "If the mission is a success, the Patron offers a new job
-     next campaign turn"). `offers_new_job_on_success()` exists with no caller.
-     The natural home is the post-battle success branch banking a flag that
-     `JobOfferComponent.initialize_job_offers` reads to bypass its
-     "a Patron with a live offer does not hand you a second one" guard.
+     next campaign turn"). `offers_new_job_on_success()` exists with no caller —
+     and wiring it as written would be a **no-op**, which is the interesting
+     part. Completing a job removes that offer from the store, so next turn the
+     Patron has no live offer and generates one anyway: every Patron already
+     offers work every single turn. Busy is only worth a table slot in a game
+     where they do NOT, so the real divergence is our offer CADENCE, not the
+     missing flag. Do not wire a distinction that does not exist; decide the
+     cadence question first (the book never states a per-turn offer rate, which
+     is why this needs a judgement call rather than a page citation).
 
 ~~7. patrons-rivals-quests — the three p.99 enemy-trait rules.~~
    **DONE `5eeee2c39`.** `EnemyTraitRules.gd` matches on the trait NAME before
