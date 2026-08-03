@@ -1497,28 +1497,30 @@ func _update_job_details() -> void:
 	# Location
 	details += "LOCATION: %s\n" % job.get("location", "Unknown")
 
-	# Compendium DLC enhancements (if available)
-	if job.has("dlc_objective_overview"):
+	# Compendium Expanded Missions (pp.118-125).
+	#
+	# THE BUG THIS FIXES: this block rendered "OVERVIEW: ", "SPECIFIC OBJECTIVE: ",
+	# "TIME CONSTRAINT: ", "PATRON CONDITION: " and "EXTRACTION: " with NOTHING
+	# after the colon, on every Expanded Missions job. The rows in
+	# data/compendium/missions_expanded.json carry `id` and `instruction` and have
+	# no `name` key at all, so every .get("name", "") was "" — a heading printed
+	# for a value that has never existed.
+	#
+	# The `instruction` is the book's own line and is already self-labelled
+	# ("OVERVIEW: Single objective. Generate 1 objective...", "TIME: No time
+	# limit."), so the fix is to print it and drop the duplicate heading rather
+	# than invent display names the table does not have.
+	var dlc_lines: Array[String] = []
+	for key in ["dlc_objective_instruction", "dlc_specific_instruction",
+			"dlc_time_instruction", "dlc_patron_instruction",
+			"dlc_extraction_instruction"]:
+		var line: String = str(job.get(key, "")).strip_edges()
+		if not line.is_empty():
+			dlc_lines.append(line)
+	if not dlc_lines.is_empty():
 		details += "\n--- COMPENDIUM MISSION DETAILS ---\n"
-		details += "OVERVIEW: %s\n" % job.get("dlc_objective_overview", "")
-		if not job.get("dlc_objective_instruction", "").is_empty():
-			details += "  %s\n" % job.get("dlc_objective_instruction", "")
-	if job.has("dlc_specific_objective"):
-		details += "SPECIFIC OBJECTIVE: %s\n" % job.get("dlc_specific_objective", "")
-		if not job.get("dlc_specific_instruction", "").is_empty():
-			details += "  %s\n" % job.get("dlc_specific_instruction", "")
-	if job.has("dlc_time_constraint"):
-		details += "TIME CONSTRAINT: %s\n" % job.get("dlc_time_constraint", "")
-		if not job.get("dlc_time_instruction", "").is_empty():
-			details += "  %s\n" % job.get("dlc_time_instruction", "")
-	if job.has("dlc_patron_condition"):
-		details += "PATRON CONDITION: %s\n" % job.get("dlc_patron_condition", "")
-		if not job.get("dlc_patron_instruction", "").is_empty():
-			details += "  %s\n" % job.get("dlc_patron_instruction", "")
-	if job.has("dlc_extraction"):
-		details += "EXTRACTION: %s\n" % job.get("dlc_extraction", "")
-		if not job.get("dlc_extraction_instruction", "").is_empty():
-			details += "  %s\n" % job.get("dlc_extraction_instruction", "")
+		for line in dlc_lines:
+			details += "%s\n" % line
 
 	job_details_label.text = details
 
@@ -1636,29 +1638,35 @@ func _check_introductory_mission() -> Dictionary:
 ## ── Compendium Expanded Missions (DLC, pp.118-125) ──
 
 func _enhance_job_with_compendium(job: Dictionary) -> void:
-	## Enhance a job offer with Compendium expanded mission data.
+	## Enhance a job offer with Compendium expanded mission data (pp.118-125).
 	## Self-gated: methods return {} if EXPANDED_MISSIONS DLC disabled.
+	##
+	## Stores `id` (a stable key for logic) and `instruction` (the book's own
+	## self-labelled line, which is what the briefing renders). It used to store
+	## .get("name", "") for the display half — a key the rows in
+	## missions_expanded.json have NEVER had — so the briefing printed
+	## "OVERVIEW: " with nothing after the colon on every Expanded Missions job.
 	var objective_overview: Dictionary = CompendiumMissionsExpanded.roll_objective_overview()
 	if not objective_overview.is_empty():
-		job["dlc_objective_overview"] = objective_overview.get("name", "")
+		job["dlc_objective_overview"] = objective_overview.get("id", "")
 		job["dlc_objective_instruction"] = objective_overview.get("instruction", "")
 
 	var specific_obj: Dictionary = CompendiumMissionsExpanded.roll_specific_objective()
 	if not specific_obj.is_empty():
-		job["dlc_specific_objective"] = specific_obj.get("name", "")
+		job["dlc_specific_objective"] = specific_obj.get("id", "")
 		job["dlc_specific_instruction"] = specific_obj.get("instruction", "")
 
 	var time_constraint: Dictionary = CompendiumMissionsExpanded.roll_time_constraint()
 	if not time_constraint.is_empty():
-		job["dlc_time_constraint"] = time_constraint.get("name", "")
+		job["dlc_time_constraint"] = time_constraint.get("id", "")
 		job["dlc_time_instruction"] = time_constraint.get("instruction", "")
 
 	var patron_cond: Dictionary = CompendiumMissionsExpanded.roll_patron_condition()
 	if not patron_cond.is_empty():
-		job["dlc_patron_condition"] = patron_cond.get("name", "")
+		job["dlc_patron_condition"] = patron_cond.get("id", "")
 		job["dlc_patron_instruction"] = patron_cond.get("instruction", "")
 
 	var extraction: Dictionary = CompendiumMissionsExpanded.roll_extraction()
 	if not extraction.is_empty():
-		job["dlc_extraction"] = extraction.get("name", "")
+		job["dlc_extraction"] = extraction.get("id", "")
 		job["dlc_extraction_instruction"] = extraction.get("instruction", "")

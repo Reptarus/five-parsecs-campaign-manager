@@ -9,6 +9,9 @@ const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.
 const DataLoader = preload("res://src/utils/GameDataLoader.gd")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
+## Core Rules p.123 Ability Increase Table — the XP SPEND, which is what the
+## book actually has. Replaces the fabricated D6 "advancement roll".
+const AdvancementServiceClass = preload("res://src/core/services/CharacterAdvancementService.gd")
 const NarrativeInjuryDialog = preload(
 	"res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
 const PurchaseItemsComponent = preload(
@@ -1478,7 +1481,11 @@ func _add_experience_content() -> void:
 	##
 	## Per Core Rules p.98: Bots don't gain XP - they purchase upgrades with credits instead.
 	var label: Label = Label.new()
-	label.text = "Crew members gain experience from battle. Roll for advancement!"
+	# Core Rules p.123: "If a character has enough Experience Points, you may
+	# SPEND XP at this point to acquire a Character Upgrade." No roll is involved,
+	# and the old copy ("Roll for advancement!") promised one the book does not
+	# have and the button did not deliver.
+	label.text = "Crew earned XP. Spend it on the Ability Increase Table (Core Rules p.123)."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
@@ -1534,35 +1541,110 @@ func _add_experience_content() -> void:
 	step_content.add_child(story_label)
 
 func _create_experience_panel(crew_member: Dictionary) -> Control:
-	## Create experience gain panel for crew member
-	# HFlow so name + roll button + result wrap on a narrow (~384px) portrait
-	# column instead of clipping the advancement text.
-	var panel = HFlowContainer.new()
-	panel.add_theme_constant_override("h_separation", SPACING_SM)
-	panel.add_theme_constant_override("v_separation", SPACING_XS)
+	## Core Rules p.123 Character Upgrades: XP is SPENT on the Ability Increase
+	## Table. It is not rolled for.
+	##
+	## THE FABRICATION THIS REPLACES: this panel offered a "Roll Advancement"
+	## button that rolled a D6 and printed "Major advancement - gain 2 skill
+	## points!" on a 6, "gain 1 skill point" on 4-5, "No advancement this time"
+	## otherwise — then mutated NOTHING. There is no advancement roll anywhere in
+	## Five Parsecs and no such currency as a "skill point"; p.123 gives fixed XP
+	## costs per ability (Reactions 7, Combat Skill 7, Speed 5, Savvy 5,
+	## Toughness 6, Luck 10) with per-ability maxima. So the step told the player
+	## they had advanced, every battle, in a currency that does not exist, while
+	## the character sheet never moved.
+	##
+	## Project policy on a mechanic that is not in either book is removal, not
+	## repair. The real spend already existed on the character sheet via
+	## CharacterAdvancementService; this surfaces it where the wizard promised it.
+	var panel = VBoxContainer.new()
+	panel.add_theme_constant_override("separation", SPACING_XS)
 
-	var name_label = _make_name_label(crew_member.get("name", "Unknown"), 120)
-	panel.add_child(name_label)
+	var row = HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", SPACING_SM)
+	row.add_theme_constant_override("v_separation", SPACING_XS)
+	row.add_child(_make_name_label(crew_member.get("name", "Unknown"), 120))
 
-	var roll_button = Button.new()
-	roll_button.text = "Roll Advancement"
-	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
-	panel.add_child(roll_button)
+	var picker := OptionButton.new()
+	picker.custom_minimum_size.y = TOUCH_TARGET_MIN
+	row.add_child(picker)
 
-	var result_label = Label.new()
-	result_label.name = "exp_result_" + str(crew_member.get("id", 0))
-	result_label.text = "Not rolled"
-	_style_pending_result(result_label)
-	panel.add_child(result_label)
-	# Bind the button + label so the handler can LOCK the button (one advancement
-	# roll per crew per battle — the button used to stay enabled, letting a crew
-	# stack advancements) and update the inline result directly. The old
-	# find_child("exp_result_...") lookup never matched the dynamically-added
-	# label (owner unset -> find_child's owned=true default skips it), so the
-	# inline status stayed "Not rolled" while only the log updated.
-	roll_button.pressed.connect(_on_experience_roll.bind(crew_member, roll_button, result_label))
-	
+	var buy_button := Button.new()
+	buy_button.text = "Spend XP"
+	buy_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	row.add_child(buy_button)
+	panel.add_child(row)
+
+	var status := Label.new()
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(status)
+
+	_refresh_advancement_row(crew_member, picker, buy_button, status)
+	buy_button.pressed.connect(
+		_on_advancement_purchase.bind(crew_member, picker, buy_button, status))
 	return panel
+
+
+func _refresh_advancement_row(
+	crew_member: Dictionary, picker: OptionButton,
+	buy_button: Button, status: Label
+) -> void:
+	## Rebuild the affordable-advancement list from the character's CURRENT XP.
+	picker.clear()
+	var xp: int = int(crew_member.get("experience", crew_member.get("xp", 0)))
+	var options: Array[Dictionary] = AdvancementServiceClass.get_available_advancements(
+		crew_member)
+
+	if options.is_empty():
+		picker.disabled = true
+		buy_button.disabled = true
+		status.text = "%d XP — nothing affordable yet (p.123 costs: Speed/Savvy 5, Toughness 6, Reactions/Combat 7, Luck 10)" % xp
+		_style_pending_result(status)
+		return
+
+	for opt in options:
+		var stat_name: String = str(opt.get("stat", ""))
+		picker.add_item("%s %d→%d (%d XP)" % [
+			stat_name.capitalize().replace("_", " "),
+			int(opt.get("current", 0)), int(opt.get("current", 0)) + 1,
+			int(opt.get("cost", 0))])
+		picker.set_item_metadata(picker.item_count - 1, stat_name)
+	picker.disabled = false
+	buy_button.disabled = false
+	picker.select(0)
+	status.text = "%d XP available" % xp
+	status.modulate = UIColors.COLOR_TEXT_PRIMARY
+
+
+func _on_advancement_purchase(
+	crew_member: Dictionary, picker: OptionButton,
+	buy_button: Button, status: Label
+) -> void:
+	if picker.selected < 0:
+		return
+	var stat_name: String = str(picker.get_item_metadata(picker.selected))
+	if stat_name.is_empty():
+		return
+
+	var result: Dictionary = AdvancementServiceClass.advance_stat(crew_member, stat_name)
+	if not result.get("success", false):
+		status.text = str(result.get("message", "Cannot advance that ability."))
+		status.modulate = UIColors.COLOR_AMBER
+		return
+
+	# advance_stat mutates the dictionary in place; crew_member is the LIVE crew
+	# entry from GameStateManager.get_crew_members(), so the sheet moves with it.
+	status.text = "%s %d → %d — %d XP left" % [
+		stat_name.capitalize().replace("_", " "),
+		int(result.get("old_value", 0)), int(result.get("new_value", 0)),
+		int(result.get("xp_remaining", 0))]
+	status.modulate = UIColors.COLOR_EMERALD
+	_add_result_to_log("%s: %s raised to %d, %d XP remaining (Core Rules p.123)" % [
+		crew_member.get("name", "Crew"), stat_name.capitalize().replace("_", " "),
+		int(result.get("new_value", 0)), int(result.get("xp_remaining", 0))])
+
+	_refresh_advancement_row(crew_member, picker, buy_button, status)
 
 
 func _is_crew_member_bot(crew_member: Dictionary) -> bool:
@@ -2898,33 +2980,6 @@ func _add_loot_to_inventory(loot_items: Array) -> void:
 	if not parts.is_empty():
 		_add_result_to_log("Added to campaign: %s" % ", ".join(parts))
 
-func _on_experience_roll(crew_member: Dictionary, roll_button: Button = null, result_label: Label = null) -> void:
-	## Handle experience advancement roll
-	# Lock the button first so a crew can't stack multiple advancement rolls in
-	# one post-battle (Core Rules: one advancement roll per crew per battle).
-	if roll_button:
-		roll_button.disabled = true
-		roll_button.text = "Rolled"
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d6("Advancement: " + crew_member.get("name", "Unknown"))
-	else:
-		roll = randi_range(1, 6)
-
-	var advancement = _interpret_advancement_roll(roll)
-	var result_text = "Rolled %d - %s" % [roll, advancement]
-
-	# Update UI — prefer the bound label; fall back to find_child for safety.
-	if result_label == null:
-		result_label = step_content.find_child("exp_result_" + str(crew_member.get("id", 0)))
-	if result_label:
-		result_label.text = result_text
-		result_label.modulate = UIColors.COLOR_EMERALD if roll >= 4 else UIColors.COLOR_TEXT_SECONDARY
-
-	_add_result_to_log("%s: %s" % [crew_member.get("name", "Crew"), result_text])
-
 func _interpret_injury_roll(roll: int, is_casualty: bool) -> String:
 	## Interpret injury roll using Five Parsecs injury table
 	if is_casualty:
@@ -2943,15 +2998,6 @@ func _interpret_injury_roll(roll: int, is_casualty: bool) -> String:
 			return "Light injury - 1 turn recovery"
 		else:
 			return "Serious injury - 2 turns recovery"
-
-func _interpret_advancement_roll(roll: int) -> String:
-	## Interpret advancement roll
-	if roll == 6:
-		return "Major advancement - gain 2 skill points!"
-	elif roll >= 4:
-		return "Advancement - gain 1 skill point"
-	else:
-		return "No advancement this time"
 
 func _get_injury_color(severity: String) -> Color:
 	## Get color for injury severity
