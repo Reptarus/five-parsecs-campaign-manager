@@ -381,3 +381,33 @@ func test_deadline_label_counts_down() -> void:
 	assert_str(PJE.deadline_label({"deadline_turn": -1}, 7)).is_equal("Any time")
 	# Pre-deadline saves fall back to whatever text they carry.
 	assert_str(PJE.deadline_label({"time_frame": "Any time"}, 7)).is_equal("Any time")
+
+
+## VIP reaches the roster, not just a setup note. "A random enemy will have +1
+## Toughness and a final Combat Skill of +2 (regardless of current value)"
+## (p.84) — the Combat Skill is SET, so a Lieutenant's +1 must not stack to +3.
+func test_vip_hazard_reaches_the_generated_roster() -> void:
+	var generator := EnemyGenerator.new()
+	var mission: Dictionary = {
+		"mission_source": "patron",
+		"enemy_type": "Converted Infiltrators",
+	}
+	mission.merge(_job_with("hazards", "vip"))
+
+	var found_vip := false
+	for _i in range(30):
+		for enemy in generator.generate_enemies_as_dicts(mission, 5):
+			if enemy is Dictionary and bool(enemy.get("is_vip", false)):
+				found_vip = true
+				assert_int(int(enemy["combat_skill"])).override_failure_message(
+					"VIP Combat Skill is a SET value of +2, never an addition"
+				).is_equal(2)
+	assert_bool(found_vip).override_failure_message(
+		"a VIP Hazard must mark exactly one figure in the generated force"
+	).is_true()
+
+	# A job without the Hazard must produce no VIP at all.
+	for enemy in generator.generate_enemies_as_dicts({
+			"mission_source": "patron",
+			"enemy_type": "Converted Infiltrators"}, 5):
+		assert_bool(bool(enemy.get("is_vip", false))).is_false()

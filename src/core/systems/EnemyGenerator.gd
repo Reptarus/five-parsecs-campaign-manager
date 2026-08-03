@@ -765,6 +765,24 @@ func generate_enemies_as_dicts(
 			"seize_initiative_modifier": int(cat_info.get("seize", 0)),
 		})
 
+	# "VIP — A random enemy will have +1 Toughness and a final Combat Skill of +2
+	# (regardless of current value)" (Core Rules p.84 Hazards Subtable). Applied
+	# to the rank and file only: the book says "a random enemy", and picking
+	# BEFORE the Unique Individual is appended keeps the VIP one of the figures
+	# actually rolled for this force rather than a Unique that is "always in
+	# addition to those normally encountered" (p.94).
+	#
+	# Combat Skill is SET, not added — "regardless of current value" is explicit,
+	# so a Lieutenant's +1 does not stack to +3.
+	if PatronJobEffectsClass.has_vip_enemy(mission_data) and not enemies.is_empty():
+		var vip_index: int = randi() % enemies.size()
+		var vip: Dictionary = enemies[vip_index]
+		vip["toughness"] = int(vip.get("toughness", 3)) \
+			+ PatronJobEffectsClass.vip_toughness_bonus(mission_data)
+		vip["combat_skill"] = PatronJobEffectsClass.vip_combat_skill_final(mission_data)
+		vip["name"] = "%s (VIP)" % str(vip.get("name", enemy_name))
+		vip["is_vip"] = true
+
 	# Unique Individuals are added AFTER the roster above, because the book is
 	# explicit that the figure "is always in addition to those normally
 	# encountered" (Core Rules p.94) — it must not consume a Specialist or

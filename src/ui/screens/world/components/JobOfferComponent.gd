@@ -584,6 +584,43 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 
 	return job
 
+## "Negotiable — If you accept this job, you may reroll the Danger Pay roll and
+## pick the better of the two rolls" (Core Rules p.84). Mutates the job in place
+## so the accepted mission carries the improved figure through to Get Paid.
+func _apply_negotiable_reroll(job: Dictionary) -> void:
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var bonus: int = 1 if str(job.get("patron_type", "")) == "Corporation" else 0
+	var reroll: Dictionary = _roll_danger_pay(dice_manager, bonus)
+
+	var old_credits: int = int(job.get("danger_pay", 0))
+	var new_credits: int = int(reroll.credits)
+	# "the better of the two" — the 10+ result's extra mission-pay die is part of
+	# what makes a roll better, so a tie on credits still upgrades if the reroll
+	# carries the double-roll bonus and the original did not.
+	var upgrades: bool = new_credits > old_credits \
+		or (new_credits == old_credits and bool(reroll.double_roll_bonus) \
+			and not bool(job.get("double_roll_bonus", false)))
+	if not upgrades:
+		return
+
+	var gained: int = new_credits - old_credits
+	job["danger_pay"] = new_credits
+	job["pay"] = int(job.get("pay", 0)) + gained
+	job["double_roll_bonus"] = bool(reroll.double_roll_bonus) \
+		or bool(job.get("double_roll_bonus", false))
+
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "campaign",
+			"title": "Negotiated a better rate",
+			"content": "Danger Pay rerolled: %d credits instead of %d (Core Rules p.84)."
+				% [new_credits, old_credits],
+			"turn": _current_campaign_turn(),
+			"location": str(job.get("location", "")),
+		})
+
+
 func _campaign() -> Variant:
 	## The live campaign, or null. FiveParsecsCampaignCore is a Resource, so all
 	## turn state lives under `progress_data` rather than as bracket keys.
@@ -1139,6 +1176,14 @@ func accept_selected_job() -> bool:
 		if job_details_label:
 			job_details_label.text = "CANNOT ACCEPT\n\n%s" % gate.reason
 		return false
+
+	# "Negotiable — If you accept this job, you may reroll the Danger Pay roll and
+	# pick the better of the two rolls" (Core Rules p.84). Fired HERE because the
+	# book conditions it on acceptance, and "pick the better" is not a decision —
+	# a worse result is never chosen — so it resolves without a prompt. The
+	# Benefit was rolled and displayed and never rerolled anything.
+	if PatronJobEffectsClass.danger_pay_rerollable(job):
+		_apply_negotiable_reroll(job)
 
 	job_accepted = true
 
