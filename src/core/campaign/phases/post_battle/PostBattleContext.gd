@@ -666,33 +666,50 @@ func award_xp_to_captain(xp_amount: int) -> void:
 			return
 	add_character_xp(crew[0], xp_amount)
 
+func _crew_id_of(member: Variant) -> String:
+	if member is Dictionary:
+		return str(member.get("character_id", member.get("id", "")))
+	if member != null and "character_id" in member:
+		return str(member.character_id)
+	return ""
+
 func injure_random_crew(recovery_turns: int) -> void:
+	## Route through apply_crew_injury so the Sick Bay this imposes is the one
+	## every gate reads. It used to set ONLY `injury_recovery_turns`, a legacy
+	## mirror the turn-rollover countdown ignores (see the Sick Bay block above),
+	## so the stay never actually counted down or blocked anything.
 	var crew := get_crew_members()
-	if crew.size() > 0:
-		var member = crew[randi() % crew.size()]
-		if "injury_recovery_turns" in member:
-			member.injury_recovery_turns = recovery_turns
+	if crew.is_empty():
+		return
+	var member: Variant = crew[randi() % crew.size()]
+	apply_crew_injury(_crew_id_of(member), {
+		"type": "injury", "severity": 1, "recovery_turns": recovery_turns,
+		"description": "Injury sustained", "is_fatal": false,
+	})
 
 func injure_specific_crew(character: Variant, recovery_turns: int) -> void:
+	## TWO faults, both silent, and the Character Events that send someone to
+	## Sick Bay (p.129 Scrap with Crewmate, p.129 Hurt Working on Ship) went
+	## through here:
+	##
+	## 1. The guard read game_state_manager.has_method("apply_crew_injury").
+	##    GameStateManager has NO such method — the same permanently-false guard
+	##    already documented at InjuryProcessor — so this ALWAYS fell to the else.
+	## 2. The else opened with `character.is_wounded = true`. Crew members are
+	##    canonically DICTIONARIES, and a Dictionary has no such property, so that
+	##    assignment is an invalid set that ABORTS the whole function — the
+	##    status_effects append on the next line never ran either.
+	##
+	## Net effect: nothing was written at all, and even had it been, a
+	## status_effects `duration` is not the shape the Sick Bay gates read.
+	## apply_crew_injury writes injuries[] + in_sick_bay + recovery_turns +
+	## status, which is what the countdown and the task/upkeep gates consult.
 	if not character:
 		return
-	var injury_data := {
-		"type": "injury",
-		"severity": 1,
-		"recovery_turns": recovery_turns,
-		"description": "Injury sustained",
-		"is_fatal": false
-	}
-	if game_state_manager and game_state_manager.has_method("apply_crew_injury"):
-		var crew_id: Variant = character.character_name if "character_name" in character else 0
-		game_state_manager.apply_crew_injury(crew_id, injury_data)
-	else:
-		character.is_wounded = true
-		if character.get("status_effects") != null:
-			character.status_effects.append({
-				"type": "injury", "severity": 1,
-				"duration": recovery_turns, "description": "Injury sustained"
-			})
+	apply_crew_injury(_crew_id_of(character), {
+		"type": "injury", "severity": 1, "recovery_turns": recovery_turns,
+		"description": "Injury sustained", "is_fatal": false,
+	})
 
 func apply_character_status_effect(character: Variant, effect: Dictionary) -> void:
 	## Apply a persistent status effect from a Character Event (Core Rules pp.128-130).
