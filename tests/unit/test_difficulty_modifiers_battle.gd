@@ -34,10 +34,23 @@ func test_enemy_count_hardcore_is_plus_one():
 	assert_that(DifficultyModifiers.get_enemy_count_modifier(
 		GlobalEnumsRef.DifficultyLevel.HARDCORE)).is_equal(1)
 
-func test_enemy_count_insanity_is_zero():
-	"""INSANITY uses specialist modifier, not base enemy count"""
+func test_enemy_count_insanity_is_one_like_hardcore():
+	"""p.93, verbatim: "If the campaign's difficulty mode is Hardcore OR INSANITY,
+	add +1 to the final number faced." Both modes, same +1.
+
+	This test previously asserted 0 on the reasoning "INSANITY uses specialist
+	modifier, not base enemy count". That conflates two different pages. p.65
+	does give Insanity "an additional Specialist enemy", but p.93 defines a
+	Specialist as a re-arming rather than a body — "Specialists are not
+	additional figures. They are part of the number of opponents already
+	generated above, but are armed differently." So Insanity gets BOTH: +1 figure
+	from p.93 and one more of them armed as a Specialist from p.65.
+
+	Difficulty modes do not stack (p.64: "you may choose to play on AN
+	alternative difficulty mode"), so Insanity's +1 comes from p.93 naming it
+	directly, not from inheriting Hardcore's bullet."""
 	assert_that(DifficultyModifiers.get_enemy_count_modifier(
-		GlobalEnumsRef.DifficultyLevel.INSANITY)).is_equal(0)
+		GlobalEnumsRef.DifficultyLevel.INSANITY)).is_equal(1)
 
 func test_specialist_enemy_insanity_is_plus_one():
 	assert_that(DifficultyModifiers.get_specialist_enemy_modifier(
