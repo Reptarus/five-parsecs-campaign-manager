@@ -4,7 +4,12 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
-**Status Aug 3: 74 open / 60 fixed / 7 partial-or-blocked.**
+**Status Aug 3: 73 open / 62 fixed / 7 partial-or-blocked (+1 CORRECTED) of 143.**
+Counts are MEASURED, not maintained by hand — the header has drifted twice, in both
+directions. Re-count before trusting it; the command is in
+`docs/RULES_WIRING_CLOSEOUT_PLAN.md` §0, which is also the route through what is left.
+Note a status cell can read `OPEN — VERDICT CONFIRMED …`, so matching the literal
+`| OPEN |` undercounts.
 
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
@@ -77,7 +82,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 8 — Injury Table roll 96-100, School of hard knocks: "Earn 1 XP" (p.122) | one-line | A crew member who rolls 96-100 after being downed gets nothing. The book's consolation prize for a bad battle is silently withheld every time. | FIXED ca68e01b6 |
 | post-battle | Step 8 — Injury Table equipment consequences (rolls 1-5 and 17-30; Bot 1-5 and 16-30) (p.122) | medium | Equipment never degrades from injuries. A Gruesome Fate kills the character but leaves their gear pristine in the stash; a 17-30 Equipment Loss result damages nothing, so the Repair crew ... | FIXED bffe2c8d1 — the equipment flags were computed and stored on every injury and read by NOTHING. 20 of 100 on each table. Gruesome fate (damaged, repairable) and Miraculous escape (permanently lost) shared one flag and are different outcomes; split. Damage writes the {type: item_damaged, damaged_item} marker Repair Your Kit reads, so p.78 finally has something to repair. |
 | post-battle | Step 5 — Battlefield Finds table entries 1-15, 16-25, 36-45, 46-60, 61-75 (p.121) | large | On the backend path five of the eight table entries (60% of the D100 range) award nothing — no weapon from the slain enemy, no consumable dosage, no starship part credit, no 1D3 debris cr... | FIXED (this commit) |
-| post-battle | Step 9 — XP: "First character to inflict a casualty +1" and "Killed Unique Individual +1" (p.123) | medium | Playing the battle out in the app costs you XP relative to the book: the crew member who drew first blood and the one who killed the enemy Unique Individual each receive 2 or 3 XP instead... | OPEN |
+| post-battle | Step 9 — XP: "First character to inflict a casualty +1" and "Killed Unique Individual +1" (p.123) | medium | Playing the battle out in the app costs you XP relative to the book: the crew member who drew first blood and the one who killed the enemy Unique Individual each receive 2 or 3 XP instead... | FIXED (row was stale) — BattleResultsInputForm asks for both, as crew_id and as a LIST of crew_ids, matching the consumer shapes exactly; TacticalBattleUI builds that form as "the reachable record-what-happened path for a PLAYED battle at ANY tier". RESIDUAL, narrow: the AUTO-RESOLVE path cannot produce either (nothing derives first blood from a simulated fight), so an auto-resolved battle still under-pays by up to 2 XP. Tracked in the closeout plan, not as a live rules gap. |
 | post-battle | Step 2 — Patron Status: One-time Contract exception, and Patrons lapse on travel unless Persistent (p.119) | medium | Patrons accumulate forever. Every completed job — including one-shot contracts that should evaporate — adds a permanent contact, and flying to a new world does not shed the old world's Pa... | FIXED fab705684+592a67212 |
 | post-battle | Step 12 — Campaign Event 1-3 (Friendly Doc) and 45-48 (Equipment Malfunction) (pp.126-127) | small | The Friendly Doc event never shortens anyone's Sick Bay stay; the crew member is released on exactly the same turn as before. The Equipment Malfunction event never damages anything in the... | FIXED d945a3ecb + b14974c37 — Equipment Malfunction targets the STASH per p.127 (`damaged: true`, a flag Assign Equipment and Purchase Items already read with no producer) and Repair Your Kit now searches the stash as well as carried gear, since p.78 draws no line. Friendly Doc wrote `injury_recovery_turns`, which the countdown ignores — it decrements injuries[] and clears the bay when that is empty — so the stay never shortened. |
 | post-battle | Step 13 — Character Events 11-12 (Time to Move On), 20-23 (Scrap with Crewmate), 63-66 (Hurt on Ship), 72-75 (Gift) (pp.128-130) | medium | Four Character Events (roughly 15 points of the D100 range) are pure flavour text. Nobody leaves the crew, nobody brawls, nobody goes to Sick Bay from ship maintenance, and the gift never... | OPEN |
@@ -90,7 +95,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | turn-upkeep-travel | Upkeep shortfall — one crew member refuses jobs per credit short | small | Failing to pay Upkeep costs nothing. The player is shown a dialog naming the crew who 'refuse to work this turn', then those exact characters appear enabled in the Crew Tasks list and can... | FIXED 95c35bdd0 |
 | turn-upkeep-travel | Recruit crew task — a new character actually joins | one-line | Sending one or two crew to Recruit prints 'Automatic recruit (crew below 6)' or 'Roll 4 -> 6 vs 6' in the results panel and the crew roster is unchanged. A crew reduced to 3 members by ca... | FIXED 95c35bdd0 |
 | turn-upkeep-travel | Spending credits for +1 on crew tasks (Find a Patron, Track, Repair) and the 3-credit extra Trade roll | medium | There is no way to spend a single credit to improve a Patron search, a Rival hunt, or a Repair, and no way to buy the extra 3-credit Trade Table roll. The book's main credit sink during t... | PARTIAL 8210675ca (+1-per-credit done; the 3-credit extra Trade roll still open) |
-| turn-upkeep-travel | Patron job Time Frame — job fails if not completed in time | medium | A Patron job stamped 'This campaign turn' can be shelved for twenty turns and then completed for full pay. Patron jobs never expire, never count as failures, and never trigger the p.84 'V... | OPEN |
+| turn-upkeep-travel | Patron job Time Frame — job fails if not completed in time | medium | A Patron job stamped 'This campaign turn' can be shelved for twenty turns and then completed for full pay. Patron jobs never expire, never count as failures, and never trigger the p.84 'V... | FIXED fab705684 + cfbd4f91f (row was stale) — Time Frame was wired with the rest of the p.83 job data: offers persist on the campaign with a real deadline_turn, JobOfferComponent expires them at turn start, and Vengeful (p.84) fires on the lapse. Duplicate of the BHC row at L50. |
 | turn-upkeep-travel | Ship wreck — accumulated Hull damage destroys the ship | small | A ship reduced to 0 Hull Points is not a wreck — it is merely grounded, and the free 1-point-per-turn repair at rollover (CampaignPhaseManager.gd:673) floats it again next turn. The crew ... | FIXED 95c35bdd0 |
 | turn-upkeep-travel | Emergency Take-off (p.60) — 3D6 hull damage for insisting on travel while damaged | small | The live Travel button is simply DISABLED while the hull is damaged, so the player never gets the book's choice; get_emergency_takeoff_damage() is called only from the dead TravelPhase.gd. Also the only in-space producer for the p.59 wreck branch. | FIXED |
 | turn-upkeep-travel | progress_data["crew_retired"] — campaign archival on crew retirement | one-line | A campaign that ends because the crew retired (rather than by victory or by reaching 20 turns) is never archived to LegacySystem — the crew, story points and turn count are silently dropp... | OPEN |
@@ -245,7 +250,10 @@ folded into the rows in this table.
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
 
-**74 open / 67 resolved-or-partial of 152.** Branch `campaign-editor-and-fixits`.
+**73 open / 70 resolved-or-partial of 143.** Branch `campaign-editor-and-fixits`.
+Route and phasing: `docs/RULES_WIRING_CLOSEOUT_PLAN.md`. The short version — 40 of the
+73 are DLC or endgame content no tablet tester can reach, so the near-term target is the
+~33-row core loop, of which 6 are blocked on the Story Track session's files.
 
 ### Domain standings
 
