@@ -437,3 +437,98 @@ func test_a_stale_index_still_resolves_the_right_item() -> void:
 	assert_str(str(stash[0].get("name", ""))).override_failure_message(
 		"a stale index deleted the wrong item"
 	).is_equal("Colony Rifle")
+
+
+# --- Sick Bay recovery reductions reach the countdown -------------------------
+#
+# The three reducers all wrote ONLY `injury_recovery_turns`, which the turn
+# rollover does not read: it decrements `injuries[]` and ends the stay when that
+# array is empty. So Friendly Doc (p.126), the p.84 Health Insurance benefit and
+# the Character Event that gives a turn back all reported success and left the
+# crew member in Sick Bay for the full original duration.
+
+func _hurt(id: String, turns: int) -> Dictionary:
+	return {
+		"character_id": id, "character_name": "Kaya",
+		"speed": 4, "toughness": 4, "equipment": [],
+		"status_effects": [{"type": "injury", "duration": turns}],
+		"injuries": [{"type": "MINOR_INJURY", "recovery_turns": turns}],
+		"in_sick_bay": true, "recovery_turns": turns,
+		"injury_recovery_turns": turns, "status": "injured",
+	}
+
+
+func test_friendly_doc_shortens_the_stay_the_countdown_actually_reads() -> void:
+	# p.126 1-3: "Select up to two crew members in Sick Bay and reduce their
+	# Recovery time by one campaign turn each."
+	var ctx = _ctx([_hurt("c1", 3), _hurt("c2", 2), _hurt("c3", 4)])
+	ctx.reduce_recovery_time(2)
+
+	var m1: Dictionary = ctx.campaign.get_crew_member_by_id("c1")
+	var injuries: Array = m1.get("injuries", [])
+	assert_int(int(injuries[0].get("recovery_turns", 0))).override_failure_message(
+		"the injuries[] entry is what the turn rollover decrements; leaving it "
+		+ "untouched means the Sick Bay stay is unchanged"
+	).is_equal(2)
+	assert_int(int(m1.get("recovery_turns", 0))).is_equal(2)
+
+	# "up to two" — the third is untouched.
+	assert_int(int(ctx.campaign.get_crew_member_by_id("c3").get("recovery_turns", 0))) \
+		.override_failure_message("Friendly Doc treated more than two crew").is_equal(4)
+
+
+func test_recovering_fully_clears_the_sick_bay_gates() -> void:
+	# p.126: "If they recover, they can act normally next campaign turn." The
+	# gates are in_sick_bay and status, not the counter.
+	var ctx = _ctx([_hurt("c1", 1)])
+	ctx.reduce_recovery_time(1)
+
+	var m: Dictionary = ctx.campaign.get_crew_member_by_id("c1")
+	assert_int((m.get("injuries", []) as Array).size()).is_equal(0)
+	assert_bool(bool(m.get("in_sick_bay", true))).override_failure_message(
+		"still flagged in Sick Bay after recovering — CrewTaskComponent and "
+		+ "UpkeepPhaseComponent both gate on this"
+	).is_false()
+	assert_str(str(m.get("status", ""))).is_equal("ACTIVE")
+	assert_int(int(m.get("recovery_turns", -1))).is_equal(0)
+
+
+func test_a_healthy_crew_member_is_not_counted_as_treated() -> void:
+	var healthy: Dictionary = _armed("c1", [])
+	var ctx = _ctx([healthy, _hurt("c2", 2)])
+	ctx.reduce_recovery_time(1)
+	# The one treatment must land on the crew member who needed it.
+	assert_int(int(ctx.campaign.get_crew_member_by_id("c2").get("recovery_turns", 0))) \
+		.override_failure_message("the treatment was spent on a healthy crew member") \
+		.is_equal(1)
+
+
+func test_the_longest_outstanding_injury_is_what_gates_the_stay() -> void:
+	# The countdown decrements EVERY entry each turn, so time-to-clear is the max.
+	var m: Dictionary = _hurt("c1", 2)
+	m["injuries"].append({"type": "SERIOUS_INJURY", "recovery_turns": 4})
+	var ctx = _ctx([m])
+	assert_int(ctx.get_member_recovery_turns(
+		ctx.campaign.get_crew_member_by_id("c1"))).is_equal(4)
+
+	ctx.reduce_member_recovery(ctx.campaign.get_crew_member_by_id("c1"), 2)
+	var after: Dictionary = ctx.campaign.get_crew_member_by_id("c1")
+	assert_int((after.get("injuries", []) as Array).size()).override_failure_message(
+		"the 2-turn injury should have cleared and the 4-turn one survived"
+	).is_equal(1)
+	assert_int(ctx.get_member_recovery_turns(after)).is_equal(2)
+	assert_bool(bool(after.get("in_sick_bay", false))).override_failure_message(
+		"released from Sick Bay while an injury is still outstanding"
+	).is_true()
+
+
+func test_heal_crew_in_sickbay_clears_one_member_completely() -> void:
+	var ctx = _ctx([_hurt("c1", 3), _hurt("c2", 3)])
+	ctx.heal_crew_in_sickbay()
+	var m1: Dictionary = ctx.campaign.get_crew_member_by_id("c1")
+	var m2: Dictionary = ctx.campaign.get_crew_member_by_id("c2")
+	assert_int(ctx.get_member_recovery_turns(m1)).is_equal(0)
+	assert_bool(bool(m1.get("in_sick_bay", true))).is_false()
+	assert_int(ctx.get_member_recovery_turns(m2)).override_failure_message(
+		"only ONE crew member is healed"
+	).is_equal(3)

@@ -125,15 +125,17 @@ func _pay_out_benefits(ctx: PostBattleContextClass) -> void:
 ## waste it, so it is applied there rather than inventing a picker the post-battle
 ## sequence has no concept of. Reported in the journal so the choice is visible.
 func _apply_recovery_credit(ctx: PostBattleContextClass, turns: int) -> void:
+	# Both the scan and the write go through the context, which owns the canonical
+	# Sick Bay shape (injuries[] drives the countdown; recovery_turns /
+	# in_sick_bay / status are what the task and upkeep gates read).
+	#
+	# This used to hand-roll the summary-field write and THEN delegate. Once the
+	# context method was fixed to do the whole job, that manual write became a
+	# double-subtract on any member whose Sick Bay time had no injuries[] entry.
 	var worst: Variant = null
 	var worst_turns: int = 0
 	for member in ctx.get_crew_members():
-		var remaining: int = 0
-		if member is Dictionary:
-			remaining = int(member.get("recovery_turns",
-				member.get("injury_recovery_turns", 0)))
-		elif member != null and "injury_recovery_turns" in member:
-			remaining = int(member.injury_recovery_turns)
+		var remaining: int = ctx.get_member_recovery_turns(member)
 		if remaining > worst_turns:
 			worst_turns = remaining
 			worst = member
@@ -141,13 +143,7 @@ func _apply_recovery_credit(ctx: PostBattleContextClass, turns: int) -> void:
 		# Nobody is hurt. The book gives no banking rule, so the benefit simply
 		# has nothing to buy — recorded by the caller's journal line either way.
 		return
-	if worst is Dictionary:
-		worst["recovery_turns"] = maxi(0, worst_turns - turns)
-		if worst.has("injury_recovery_turns"):
-			worst["injury_recovery_turns"] = maxi(0, worst_turns - turns)
-	elif "injury_recovery_turns" in worst:
-		worst.injury_recovery_turns = maxi(0, worst_turns - turns)
-	ctx.reduce_character_recovery(worst, turns)
+	ctx.reduce_member_recovery(worst, turns)
 
 
 func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:

@@ -762,34 +762,122 @@ func apply_random_ability_increase(character: Variant) -> String:
 	_set_character_stat(character, chosen, _get_character_stat(character, chosen) + 1)
 	return chosen
 
+# --- Sick Bay recovery ---
+#
+# THE SHARED BUG IN THE THREE FUNCTIONS BELOW: every one of them wrote ONLY
+# `injury_recovery_turns`, which the turn-rollover countdown does not read. That
+# countdown (CampaignPhaseManager._process_turn_rollover) decrements each entry
+# in `injuries[]` and ends the Sick Bay stay when that array is EMPTY —
+# `injury_recovery_turns` is a legacy mirror it merely zeroes on the way out, as
+# apply_crew_injury() documents at :252-270.
+#
+# So the whole family shortened a number nobody consults and the crew member
+# stayed in Sick Bay for the full original duration: Campaign Event 1-3 Friendly
+# Doc (p.126, "reduce their Recovery time by one campaign turn each"), the p.84
+# Patron medical-care benefit, and the Character Event that gives a turn back.
+# Each reported success and changed nothing a gate could see.
+
+func _member_injuries(member: Variant) -> Array:
+	if member is Dictionary:
+		var inj: Variant = member.get("injuries", null)
+		return inj if inj is Array else []
+	if member and "injuries" in member and member.injuries is Array:
+		return member.injuries
+	return []
+
+func _set_member_field(member: Variant, field: String, value: Variant) -> void:
+	if member is Dictionary:
+		member[field] = value
+	elif member and field in member:
+		member.set(field, value)
+
+func get_member_recovery_turns(member: Variant) -> int:
+	## Turns until the member leaves Sick Bay = the LONGEST outstanding injury,
+	## because the countdown decrements every entry each turn and clears the bay
+	## only once they are all gone.
+	var longest: int = 0
+	for inj in _member_injuries(member):
+		if inj is Dictionary:
+			longest = maxi(longest, int(inj.get("recovery_turns", 0)))
+	if longest > 0:
+		return longest
+	# Legacy/partial shape: in Sick Bay with a summary counter but no entries.
+	if member is Dictionary:
+		return int(member.get("recovery_turns", member.get("injury_recovery_turns", 0)))
+	if member and "recovery_turns" in member:
+		return int(member.recovery_turns)
+	return 0
+
+func reduce_member_recovery(member: Variant, turns: int) -> int:
+	## Shorten a Sick Bay stay by `turns`, writing the shape every gate reads.
+	## Returns the turns actually removed (0 if they were not recovering).
+	if member == null or turns <= 0:
+		return 0
+	var before: int = get_member_recovery_turns(member)
+	if before <= 0:
+		return 0
+
+	var injuries: Array = _member_injuries(member)
+	for i in range(injuries.size() - 1, -1, -1):
+		var inj: Variant = injuries[i]
+		if not (inj is Dictionary):
+			continue
+		var left: int = maxi(0, int(inj.get("recovery_turns", 0)) - turns)
+		if left <= 0:
+			injuries.remove_at(i)
+		else:
+			inj["recovery_turns"] = left
+
+	# Injury status effects carry their own duration; keep them in step or the
+	# character sheet contradicts the Sick Bay gate.
+	for effect in _member_status_effects(member):
+		if effect is Dictionary \
+				and str(effect.get("type", "")) in [
+					"injury", "MINOR_INJURY", "SERIOUS_INJURY", "CRIPPLING_WOUND"] \
+				and effect.has("duration"):
+			effect["duration"] = maxi(0, int(effect["duration"]) - turns)
+
+	var after: int = 0
+	for inj in injuries:
+		if inj is Dictionary:
+			after = maxi(after, int(inj.get("recovery_turns", 0)))
+	if injuries.is_empty():
+		after = maxi(0, before - turns)
+
+	_set_member_field(member, "recovery_turns", after)
+	_set_member_field(member, "injury_recovery_turns", after)
+	if after <= 0:
+		# p.126: "If they recover, they can act normally next campaign turn."
+		_set_member_field(member, "in_sick_bay", false)
+		var st: String = ""
+		if member is Dictionary:
+			st = str(member.get("status", ""))
+		elif member and "status" in member:
+			st = str(member.status)
+		if st == "injured" or st == "RECOVERING":
+			_set_member_field(member, "status", "ACTIVE")
+	return before - after
+
 func reduce_character_recovery(character: Variant, turns: int) -> void:
-	if not character:
-		return
-	if character.get("status_effects") != null:
-		for effect in character.status_effects:
-			if effect is Dictionary and effect.get("type", "") in ["injury", "MINOR_INJURY", "SERIOUS_INJURY", "CRIPPLING_WOUND"]:
-				if "duration" in effect:
-					effect.duration = maxi(0, effect.duration - turns)
+	reduce_member_recovery(character, turns)
 
 func reduce_recovery_time(max_crew: int) -> void:
-	var crew := get_crew_members()
+	## Campaign Event 1-3, Friendly Doc (Core Rules p.126): "Select up to two crew
+	## members in Sick Bay and reduce their Recovery time by one campaign turn
+	## each."
 	var healed_count: int = 0
-	for member in crew:
+	for member in get_crew_members():
 		if healed_count >= max_crew:
 			break
-		var recovery_turns: int = member.injury_recovery_turns if "injury_recovery_turns" in member else 0
-		if recovery_turns > 0:
-			if "injury_recovery_turns" in member:
-				member.injury_recovery_turns = max(0, recovery_turns - 1)
+		if reduce_member_recovery(member, 1) > 0:
 			healed_count += 1
 
 func heal_crew_in_sickbay() -> void:
-	var crew := get_crew_members()
-	for member in crew:
-		var recovery_turns: int = member.injury_recovery_turns if "injury_recovery_turns" in member else 0
-		if recovery_turns > 0:
-			if "injury_recovery_turns" in member:
-				member.injury_recovery_turns = 0
+	## Clear ONE crew member's remaining Sick Bay time entirely.
+	for member in get_crew_members():
+		var remaining: int = get_member_recovery_turns(member)
+		if remaining > 0:
+			reduce_member_recovery(member, remaining)
 			return
 
 # --- Equipment Helpers ---
