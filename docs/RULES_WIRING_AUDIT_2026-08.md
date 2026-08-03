@@ -4,6 +4,8 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
+**Status Aug 2 evening: 96 open / 49 fixed.**
+
 `NEVER-FIRES` = implemented, often with book-exact data, but no code path reaches it.
 `FABRICATED` = not in either book; project policy is removal.
 
@@ -34,23 +36,23 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | economy-trade-equipment | Merchant school — reroll one Trade roll per campaign turn (Core Rules p.125) | medium | Paying 10 XP/credits for Merchant school buys nothing: the crew member gets no reroll on the Trade Table when they Trade. The one button that does exist (in the Trading phase) rerolls a m... | OPEN |
 | economy-trade-equipment | Rewards Subtable — Ship Parts / Military Ship Part discount (Core Rules p.134) | medium | Rolling 71-90 on the Rewards Subtable (20% of Rewards results, i.e. 4% of all Loot Table rolls) produces a line of text and no benefit — the promised 1D6 or 1D6+2 credit discount is never... | OPEN |
 | economy-trade-equipment | Loot Table resolution — single source of truth | small | None directly — dead code. It matters only as a maintenance hazard: a future fix applied here (or to the JSON it reads) would appear to work while the live path (LootTableResolver) stayed... | OPEN |
-| battle-setup | Number of Opponents — campaign difficulty modifiers (Easy -1 at 5+, Challenging reroll 1-2, Hardcore/Insanity +1) | small | A Hardcore campaign fights the same number of enemies as a Normal one — the +1 enemy the player chose Hardcore for never appears. A Challenging campaign never rerolls the 1s and 2s, so it... | OPEN |
-| battle-setup | Number of Opponents — crew in the field below standard size | medium | A crew that goes into battle two or more figures short — after casualties, Sick Bay, a Small Encounter sit-out, or the player deliberately leaving people on the ship — still faces the ful... | OPEN |
-| battle-setup | Determine the Objective — the final battle of a Quest is always Fight Off and adds +1 enemy | small | The climactic final battle of a Quest is generated as an ordinary fight: the objective is rolled at random off the D10 Quest table instead of being forced to Fight Off, and the enemy forc... | OPEN |
+| battle-setup | Number of Opponents — campaign difficulty modifiers (Easy -1 at 5+, Challenging reroll 1-2, Hardcore/Insanity +1) | small | A Hardcore campaign fights the same number of enemies as a Normal one — the +1 enemy the player chose Hardcore for never appears. A Challenging campaign never rerolls the 1s and 2s, so it... | FIXED 24c657af4 |
+| battle-setup | Number of Opponents — crew in the field below standard size | medium | A crew that goes into battle two or more figures short — after casualties, Sick Bay, a Small Encounter sit-out, or the player deliberately leaving people on the ship — still faces the ful... | FIXED 24c657af4 |
+| battle-setup | Determine the Objective — the final battle of a Quest is always Fight Off and adds +1 enemy | small | The climactic final battle of a Quest is generated as an ordinary fight: the objective is rolled at random off the D10 Quest table instead of being forced to Fight Off, and the enemy forc... | FIXED 2c44839f0 |
 | battle-setup | Seizing the Initiative — opponent-type modifiers | medium | Fighting Punks, Brat Gang, Roid-gangers, Security Bots, Abandoned, Converted Acquisition or Haywire Robots, the player silently loses the +1 they are owed and needs 10+ instead of 9+ on 2... | OPEN |
-| battle-setup | Choose Your Battle — Continue a Quest is a selectable job option | large | A player who resolves Rumors into a Quest (ResolveRumorsComponent.gd:168-190 does store one) has no way to fight it. There is no 'Continue a Quest' battle option, and every quest-flavoure... | OPEN |
+| battle-setup | Choose Your Battle — Continue a Quest is a selectable job option | large | A player who resolves Rumors into a Quest (ResolveRumorsComponent.gd:168-190 does store one) has no way to fight it. There is no 'Continue a Quest' battle option, and every quest-flavoure... | FIXED 2c44839f0 |
 | battle-setup | Unique Individuals — a Guardian-AI Unique must be attached to a figure in the enemy force | small | Roughly a third of the Unique Individual table has Guardian AI (Enemy Bruiser 1-6, Mutant Bruiser 57-61, Gene Dog 86-91, Sand Runner 92-96, Mk II Security Bot 97-100 — 27 of 100 results).... | OPEN |
-| battle-setup | Defend objective — force the enemy AI to Aggressive and add +1 enemy | small | On a Quest Defend objective (D10 5-6, so 20% of Quest missions) the player fights one fewer enemy than the rules require, and a Cautious/Defensive/Tactical force keeps its cautious AI — s... | OPEN |
+| battle-setup | Defend objective — force the enemy AI to Aggressive and add +1 enemy | small | On a Quest Defend objective (D10 5-6, so 20% of Quest missions) the player fights one fewer enemy than the rules require, and a Cautious/Defensive/Tactical force keeps its cautious AI — s... | FIXED 3aa8d0b88 |
 | battle-setup | Battle Events (optional) — Environmental hazard | small | Low severity for a companion app — the event's text does reach the player, who resolves the rolls on the table. The concrete loss is that the app offers a dice-rolling assist for every ot... | OPEN |
 | battle-setup | Determine Deployment Conditions — present the rolled condition in the battle UI | small | The dedicated Deployment Conditions panel in the tactical battle screen renders blank/placeholder for every battle, and its Acknowledge/Details buttons act on nothing. The player who goes... | OPEN |
-| patrons-rivals-quests | Quest finale: "Next time you pursue a Quest mission, it will be the finale… add +1 to the number of opponents… roll the die twice, pick the better score, and add +1… Crew completed the final stage of a Quest +1 XP" (Core Rules pp.120, 123) | medium | A Quest can never end. Reaching 7+ on the p.120 progress roll writes a flag the app never reads again: the finale battle never gets its extra enemy, never pays the double-roll +1 (so a fi... | OPEN |
-| patrons-rivals-quests | Quest missions exist as a battle type — "Continue a Quest / If you have an active Quest" (Core Rules p.85 Select Your Job) | medium | After the Resolve Rumors step hands the player a Quest, nothing in the app ever lets them go on it. The Quest objective table (p.89: Move Through/Search/Defend/Acquire/Fight Off), the Que... | OPEN |
+| patrons-rivals-quests | Quest finale: "Next time you pursue a Quest mission, it will be the finale… add +1 to the number of opponents… roll the die twice, pick the better score, and add +1… Crew completed the final stage of a Quest +1 XP" (Core Rules pp.120, 123) | medium | A Quest can never end. Reaching 7+ on the p.120 progress roll writes a flag the app never reads again: the finale battle never gets its extra enemy, never pays the double-roll +1 (so a fi... | FIXED 2c44839f0 |
+| patrons-rivals-quests | Quest missions exist as a battle type — "Continue a Quest / If you have an active Quest" (Core Rules p.85 Select Your Job) | medium | After the Resolve Rumors step hands the player a Quest, nothing in the app ever lets them go on it. The Quest objective table (p.89: Move Through/Search/Defend/Acquire/Fight Off), the Que... | FIXED 2c44839f0 |
 | patrons-rivals-quests | Benefits, Hazards and Conditions subtables — all 30 entries (Core Rules pp.83-84) | large | Every Patron job plays identically. A 'Dangerous Job' hazard fields the same number of enemies as a 'Security Team' benefit; a 'Small Squad' job still lets you deploy 6; a 'Vengeful' patr... | OPEN |
 | patrons-rivals-quests | Danger Pay 10+: "+3 credits and roll twice, picking the higher die when rolling for mission pay after the battle" (Core Rules p.83) | small | A Corporation job that rolls 10+ on Danger Pay advertises "roll twice for mission pay" in the job details, then pays a single 1D6. Average mission pay on those jobs is ~3.5 instead of ~4.... | OPEN |
 | patrons-rivals-quests | "When you travel to a new planet, all Patrons become unavailable, unless they are Persistent" (Core Rules p.119 Step 2) | small | Patrons accumulate forever and follow you across the galaxy. Each one adds +1 to the p.77 Find a Patron roll (CrewTaskComponent.gd:506-508) and generates 1-3 more job offers every single ... | OPEN |
 | patrons-rivals-quests | Time Frame Table — "the number of campaign turns within which you must finish the job. If the job isn't done when the time runs out, it counts as a failure" (Core Rules p.83); "a Patron job will fail if the time to complete it has expired" (p.85) | large | 'This campaign turn' means nothing — the player can decline every job and the same Patron re-offers fresh work next turn with no penalty. The Secretive Group's +1 Time Frame bonus (its on... | OPEN |
 | patrons-rivals-quests | Spending credits for +1 on crew tasks — Find a Patron (p.77), Track (p.78), Repair Your Kit (p.78), extra Trade rolls (p.78) | medium | Credits cannot buy anything in the World step. A player sitting on 20 credits cannot pay to find a Patron, cannot pay to track down the Rival hunting them, and cannot buy spare parts to s... | PARTIAL 8210675ca (+1-per-credit done; 3-credit extra Trade roll open) |
-| patrons-rivals-quests | Interested Parties: "During Quest missions, when rolling for the number of opponents, reroll any die scoring 1 once" (Core Rules p.99) | small | Quest battles against Interested Parties are easier than the book intends — a die showing 1 stands, so the enemy force can be as small as 1-2 figures where the book guarantees a reroll. M... | OPEN |
+| patrons-rivals-quests | Interested Parties: "During Quest missions, when rolling for the number of opponents, reroll any die scoring 1 once" (Core Rules p.99) | small | Quest battles against Interested Parties are easier than the book intends — a die showing 1 stands, so the enemy force can be as small as 1-2 figures where the book guarantees a reroll. M... | FIXED 24c657af4 |
 | patrons-rivals-quests | Vigilantes — "Persistent: If encountered as Rivals, all rolls to remove them from Rival status are at -1" (Core Rules p.99) | small | Vigilante Rivals are exactly as easy to shake off as any other (50% on a 4+ instead of the intended 33% on an effective 5+). The one enemy in the book designed to be a long-term nuisance ... | OPEN |
 | patrons-rivals-quests | Renegade Soldiers — "Grudge: If encountered as Rivals, they bring one additional figure" (Core Rules p.99) | small | A Renegade Soldier Rival brings the same force as any other Rival — one fewer enemy than the book specifies on every Rival battle against them, for the whole campaign. | OPEN |
 | patrons-rivals-quests | Bounty Hunters — "Intrigue: Roll 2D6 and add +1 if you killed a Lieutenant and/or Unique Individual. On a 9+, you obtain a Quest Rumor" (Core Rules p.99) | small | Beating Bounty Hunters — including killing their Lieutenant — never yields the Quest Rumor the book promises. Since Quest Rumors are the only way to start a Quest (p.85), one of the game'... | OPEN |
@@ -113,7 +115,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | economy-trade-equipment | Post-Battle Step 7 "Gather the Loot" — one roll per battle | medium | Every battle yields TWO independent Loot Table results instead of one — one silently added by the backend, one the player rolls in the wizard. A Quest finale yields six items instead of t... | OPEN |
 | economy-trade-equipment | Loot Table three-roll procedure — category, subtable, then the exact item by D100 (Core Rules pp.131-133) | medium | Loot item frequencies are wrong across the board. Grenade loot is 50/50 Frakk/Dazzle instead of the printed 60/40. Within melee loot a Blade drops to 12.5% from 20% while a Suppression Ma... | OPEN |
 | economy-trade-equipment | The p.28-29 tables referenced by the Trade Table (Low-Tech Weapon Table, Gear Table, Gadget Table) | medium | Trade Table 1-3 "A personal weapon", which should be a Handgun/Scrap Pistol/Colony Rifle/Shotgun/Blade etc., instead returns a Power Claw, Suppression Maul, Glare Sword, Ripper Sword or B... | OPEN |
-| battle-setup | Number of Opponents — Insanity adds +1 to the final number faced | one-line | On Insanity — the hardest mode in the book — every battle fields one fewer enemy than the rules require. Combined with the danger_level defect above the +1 could not fire regardless, so f... | OPEN |
+| battle-setup | Number of Opponents — Insanity adds +1 to the final number faced | one-line | On Insanity — the hardest mode in the book — every battle fields one fewer enemy than the rules require. Combined with the danger_level defect above the +1 could not fire regardless, so f... | FIXED 24c657af4 |
 | battle-setup | Determine Deployment Conditions — consult the column matching the mission type; the table is ignored during an Invasion battle | small | Two concrete wrong outcomes. (1) Every Rival battle rolls deployment conditions on the Opportunity/Patron column instead of the Rival column, so the odds are badly skewed — 'No Condition'... | OPEN |
 | battle-setup | Determine the Enemy — roll the Enemy Encounter Category on the column matching the mission (Opportunity / Patron / Quest / Unknown Rival) | medium | A Rival that tracks you down is generated off the Opportunity or Patron column, so 20-25% of Rival battles are against Roving Threats — a category the book excludes from Rival fights outr... | OPEN |
 | patrons-rivals-quests | Danger Pay is a PATRON-job payment only — "If you did a Patron job, add the Pay bonus to the Danger Pay" (Core Rules p.120 Step 4) | one-line | Opportunity missions — the default 'nothing else presented itself' battle — pay an extra 1 to 3 credits of Danger Pay they are not entitled to. On a single-digit credit economy where Upke... | OPEN |
@@ -158,8 +160,8 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | economy-trade-equipment | 11. Purchase Items — pay 3 credits for a roll on the Military Weapon, Gear or Gadget Table (Core Rules p.125) | medium | During Trading, 3 credits can return a 1-credit Hand Gun, a Scrap Pistol or a Frag Vest, and the player never gets to pick which of the three tables to roll on. The printed weights are ig... | OPEN |
 | battle-setup | Notable Sights — the item can be acquired by moving into contact with it, and its listed reward is gained | medium | The app tells the player a Person of Interest is 11" from the table centre and that reaching them is worth +1 story point, the player spends a crew member's whole round walking there — an... | OPEN |
 | battle-setup | Deployment Conditions — Slippery ground | one-line | On a Slippery Ground battle (5% of Opportunity/Patron rolls, 10% of Rival) the player reads the condition once on the pre-battle screen and then gets no reminder anywhere in the round loo... | OPEN |
-| patrons-rivals-quests | "If you just fought a battle that was part of a Quest, roll a D6" — quest progress is gated on the BATTLE being a Quest mission (Core Rules p.120 Step 3) | one-line | Once a Quest exists, EVERY battle advances it — an Opportunity mission, a Patron job, even a forced Rival showdown each roll for quest progress and hand out Quest Rumors on a 4-6. Combine... | OPEN |
-| patrons-rivals-quests | "If you are not currently on a Quest, roll a D6… If the roll is equal or below the number of Rumors, remove all Rumors from your roster" (Core Rules p.85 Step 5) | small | Rumors are never spent. A crew with 4 Rumors keeps 4 Rumors forever and re-rolls the Quest trigger every single campaign turn (66% chance each turn), each success silently overwriting `pr... | OPEN |
+| patrons-rivals-quests | "If you just fought a battle that was part of a Quest, roll a D6" — quest progress is gated on the BATTLE being a Quest mission (Core Rules p.120 Step 3) | one-line | Once a Quest exists, EVERY battle advances it — an Opportunity mission, a Patron job, even a forced Rival showdown each roll for quest progress and hand out Quest Rumors on a 4-6. Combine... | FIXED 2c44839f0 |
+| patrons-rivals-quests | "If you are not currently on a Quest, roll a D6… If the roll is equal or below the number of Rumors, remove all Rumors from your roster" (Core Rules p.85 Step 5) | small | Rumors are never spent. A crew with 4 Rumors keeps 4 Rumors forever and re-rolls the Quest trigger every single campaign turn (66% chance each turn), each success silently overwriting `pr... | FIXED 2c44839f0 |
 | patrons-rivals-quests | "First, you must check that your Rivals give the opportunity to choose your battle!… This will prevent you from doing whatever you had wanted to do this campaign turn" (Core Rules p.85 Step 6) + "Once a Rival has been established, they will always be the same type" (p.92) | medium | When a Rival ambushes you, you fight the Patron job's enemy type on the Patron objective table with the Opportunity/Patron Notable-Sights column — and still collect that job's Danger Pay ... | OPEN |
 | patrons-rivals-quests | "If you just fought against an existing Rival and Held the Field, roll a 1D6… On a 4 or better, they've had enough, and you can remove them from your Rivals list" (Core Rules p.119 Step 1) | small | Hold the Field against a Rival whose figures all Bail on Morale (a common outcome — p.118 morale can rout a force with zero kills) and the removal roll never happens: you cannot shake the... | OPEN |
 | missions-elites-zones | Black Job victory reward — +1 XP for EVERY crew member, participants or not | small | A crew member in Sick Bay, on a crew task, or otherwise held back during a Black Zone victory gets 0 XP where the book gives them 1. With a 7+ member roster and typically 6 deployed, the ... | OPEN |
@@ -172,7 +174,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | post-battle | Step 10 — Advanced Training payment: "The cost can be paid using unspent XP, credits or any combination thereof" (p.124) | medium | The book's own worked example is impossible in the app: a character with 8 XP and 12 credits cannot buy Pilot Training (cost 20). Training is XP-only, so it is unaffordable until very lat... | OPEN |
 | turn-upkeep-travel | Repair Your Kit crew task — the item is actually repaired, and Engineer +1 | medium | The task always reports 'Item repaired' and the damaged item stays damaged forever, so a broken weapon is permanently broken. And an Engineer-species character — the one crew type the boo... | FIXED (this commit) |
 | turn-upkeep-travel | World Traits Table — the 40 traits' mechanical effects | large | The world you land on is a paragraph of text. Fuel refinery does not make travel cost 3, Fuel shortage does not raise it, Lacks starship facilities does not cap repairs, Bureaucratic mess... | OPEN |
-| turn-upkeep-travel | Resolve Rumors — remove all Rumors from your roster when a Quest is received | small | Rumors are never spent. Once the player banks 5-6 Rumors the D6 succeeds essentially every campaign turn, and because the quest-active gate is also dead, the game hands out a brand-new Qu... | OPEN |
+| turn-upkeep-travel | Resolve Rumors — remove all Rumors from your roster when a Quest is received | small | Rumors are never spent. Once the player banks 5-6 Rumors the D6 succeeds essentially every campaign turn, and because the quest-active gate is also dead, the game hands out a brand-new Qu... | FIXED 2c44839f0 |
 | turn-upkeep-travel | Fleeing an Invasion — you lose everyone you knew on that world, and the shipless/no-credits escape routes | medium | Escaping an invaded world is consequence-free: you keep every Rival and every Patron you built up there, so fleeing is strictly better than staying. And a crew stuck on an invaded world w... | OPEN |
 | turn-upkeep-travel | Sick Bay exit — recovered characters cannot perform a task that campaign turn | small | A character whose last Sick Bay turn ticks off at rollover walks straight into the Crew Tasks screen and takes a full task the same turn — an extra Explore/Trade/Patron roll per recovery ... | OPEN |
 | turn-upkeep-travel | Train task resolves a Character Upgrade immediately; Find a Patron offers an EXISTING Patron | medium | Training banks XP that sits unspent until the player happens to open the post-battle advancement screen, and the p.77 'resolve that immediately' beat never happens. And the Patron pool in... | OPEN |
@@ -253,29 +255,33 @@ folded into the rows in this table.
 | Domain | Open | Note |
 |---|---|---|
 | battle-resolution | **1** | only "dead duplicate calculators" — cleanup, no rules impact |
-| turn-upkeep-travel | 12 | World Traits (40 effects) is the big one |
-| post-battle | 14 | Advanced Training, Crippling Wound, injury equipment loss |
-| battle-setup | 14 | opponent counts, deployment conditions, seize initiative |
+| turn-upkeep-travel | 7 | World Traits (40 effects) is the big one |
+| battle-setup | 8 | deployment conditions, seize initiative |
+| patrons-rivals-quests | 12 | Time Frame never expires; BHC subtables; Patron travel expiry |
+| post-battle | 13 | Advanced Training, Crippling Wound, injury equipment loss |
 | economy-trade-equipment | 15 | Trade Table 24 no-award rolls, gun mods, on-board items |
-| patrons-rivals-quests | 18 | Quest is unplayable end-to-end; Time Frame never expires |
+| factions-world-compendium | 20 | DLC-gated; a tester without the DLC never sees any of it |
 | missions-elites-zones | 20 | Black Jobs, Red Zone conditions, Elite enemies |
-| factions-world-compendium | 14 | DLC-gated; a tester without the DLC never sees any of it |
 
 ### If the goal is a TABLET TEST SESSION, do these first
 
 Ranked by "will a tester actually hit this in one sitting", not by finding count.
 
-1. **patrons-rivals-quests — Quest is unplayable.** Resolve Rumors hands the
-   player a Quest and nothing lets them go on it: no "Continue a Quest" job
-   option, the p.89 Quest objective table is unreachable, and the p.120 finale
-   flag is written but never read. A tester who follows the rumor trail hits a
-   dead end. NOTE `src/ui/screens/world/components/JobOfferComponent.gd` was held
-   by a parallel session — re-check `git status` before editing it.
-2. **battle-setup — Number of Opponents difficulty modifiers.** A Hardcore
-   campaign currently fights the same number of enemies as a Normal one, so the
-   difficulty the tester chose does nothing visible. ⚠ Whatever you add MUST be
-   excluded for Red Jobs (p.150 "no other modifiers are applied up or down");
-   `tests/unit/test_zone_job_opposition.gd` pins that and must stay green.
+~~1. patrons-rivals-quests — Quest is unplayable.~~ **DONE `2c44839f0`** —
+   "Continue a Quest" job option, p.89 objective column reachable, finale forced
+   to Fight Off with +1 fight-to-the-death enemy, `is_quest_finale` produced so
+   its four consumers fire, Rumors actually spent, progress gated on Quest
+   battles, p.64 victory counts Quests. `tests/unit/test_quest_chain.gd`.
+   The p.90 Defend objective landed alongside it in `3aa8d0b88`.
+
+~~2. battle-setup — Number of Opponents difficulty modifiers.~~ **DONE
+   `24c657af4`** — the count was reading `danger_level` (the p.83 Patron Danger
+   Pay rating) as if it were the difficulty mode. Also fixed: Insanity's missing
+   +1, the p.93 short-crew -1, and the p.99 Interested Parties reroll being
+   applied to every Quest battle. Red Jobs untouched; zone tests still 7/7.
+
+**Next up, in order:**
+
 3. **economy — the Trade Table's 24 no-award rolls.** Rolls 1-3, 7-9, 45-48,
    79-81, 82-86, 87-91 show a dialog and give nothing, so roughly 1 in 4 Trade
    actions is a visible no-op.
