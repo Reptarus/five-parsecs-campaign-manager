@@ -256,7 +256,20 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	# Note: failed non-Invasion missions still pay (Core Rules p.120 unconditional;
 	# Invasion-only denial handled at line 31). Compendium p.151 confirms Black Zone
 	# failures still receive normal post-battle rewards.
+	# Danger Pay is a PATRON-job payment and nothing else. Core Rules p.120
+	# Step 4: "If you did a Patron job, add the Pay bonus to the Danger Pay",
+	# and the p.83 Danger Pay Table itself sits under "3. Determine Job Offers —
+	# If you received a job offer from a Patron".
+	#
+	# JobOfferComponent rolls the p.83 tables for every offer including the Open
+	# Market ones, so an Opportunity mission — the default "nothing else
+	# presented itself" battle — arrived carrying 1 to 3 credits of Danger Pay it
+	# is not entitled to. On a single-digit credit economy where Upkeep is 1, that
+	# is a real distortion, and it applied to the most common battle in the game.
 	var danger_pay: int = ctx.battle_result.get("danger_pay", 0)
+	var pay_source: String = str(ctx.battle_result.get("mission_source", ""))
+	if danger_pay > 0 and pay_source != "patron" and pay_source != "faction":
+		danger_pay = 0
 	# "Demanding — Danger Pay is only upon success" (Core Rules p.84 Conditions
 	# Subtable), the named exception to p.83's default that Danger Pay "is paid
 	# even if the mission fails, but only if the mission is attempted". The

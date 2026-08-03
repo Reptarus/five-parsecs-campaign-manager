@@ -62,9 +62,16 @@ func test_grudge_applies_only_to_rival_battles() -> void:
 ## Through the live generator, which is what the campaign actually calls.
 ## Asserting a MINIMUM gap over many draws rather than an exact count keeps this
 ## an invariant test that survives an unrelated change to the base dice.
+##
+## 600 iterations, not 150. The rule adds exactly 1 figure, and Renegade Soldiers
+## are Interested Parties, so the p.93 Unique Individual roll adds its own noise
+## to BOTH sides. At 150 draws the 0.5 margin sat about three standard errors
+## from the mean and the suite failed roughly one run in several hundred — a
+## flaky rules test is worse than no test, because the next person to see it red
+## learns to re-run rather than to look.
 func test_grudge_reaches_the_live_generator() -> void:
 	var generator := EnemyGenerator.new()
-	var iterations := 150
+	var iterations := 600
 	var sum_rival := 0
 	var sum_plain := 0
 	for _i in range(iterations):

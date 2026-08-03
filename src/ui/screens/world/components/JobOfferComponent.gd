@@ -526,9 +526,22 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	# Derive mission source for Compendium battle type selection (p.118)
 	var mission_source: String = _derive_mission_source(patron_data)
 
+	# Danger Pay is a PATRON payment. The p.83 table sits under "3. Determine Job
+	# Offers — If you received a job offer from a Patron", and p.120 Step 4 pays
+	# it only "If you did a Patron job". These tables are rolled for the Open
+	# Market offers too, so an Opportunity mission advertised — and Get Paid
+	# handed over — 1 to 3 credits it was never entitled to. Zeroed HERE as well
+	# as at the payment gate so the offer summary tells the truth rather than
+	# promising money the post-battle step then withholds.
+	if mission_source != "patron" and mission_source != "faction":
+		final_pay -= danger_pay_credits
+		danger_pay_credits = 0
+		danger_pay_result.double_roll_bonus = false
+
 	# Benefits/Hazards/Conditions (Core Rules p.83) — same roller the fallback
 	# builder uses, so both paths produce a complete job offer.
 	var bhc: Dictionary = _roll_bhc(dice_manager, patron_type)
+	_apply_remembered_benefit(bhc, _patron_identity(patron_data, patron_name))
 
 	var job: Dictionary = {
 		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
@@ -678,6 +691,36 @@ func _expire_stale_offers(offers: Array, current_turn: int) -> Dictionary:
 		else:
 			live.append(offer)
 	return {"live": live, "expired": expired}
+
+
+## "If you have worked for this Patron before, the Benefit (if any) always
+## remains the same" (Core Rules p.83, immediately under the BHC table).
+##
+## A loyal Patron the crew had worked for five times rolled a fresh Benefit — or
+## none — on every single job, so building a relationship with one employer paid
+## nothing and the sentence above described no behaviour in the app. Hazards and
+## Conditions are deliberately left to re-roll: the book fixes only the Benefit.
+##
+## The remembered value is keyed by Patron identity and lives in progress_data,
+## so it survives a save and a reload like the rest of the offer state.
+func _apply_remembered_benefit(bhc: Dictionary, patron_id: String) -> void:
+	if patron_id.is_empty():
+		return
+	var campaign = _campaign()
+	if not campaign:
+		return
+	var memory: Dictionary = campaign.progress_data.get("patron_benefit_memory", {})
+
+	if memory.has(patron_id):
+		# Worked for them before: whatever they offered then, they offer now —
+		# including "nothing", which is why an empty Array is stored rather than
+		# the key simply being absent.
+		var remembered: Variant = memory[patron_id]
+		bhc["benefits"] = (remembered as Array).duplicate(true) if remembered is Array else []
+		return
+
+	memory[patron_id] = (bhc.get("benefits", []) as Array).duplicate(true)
+	campaign.progress_data["patron_benefit_memory"] = memory
 
 
 ## The three Conditions that are REQUIREMENTS rather than effects (Core Rules

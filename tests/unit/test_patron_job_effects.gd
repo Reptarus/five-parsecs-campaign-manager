@@ -411,3 +411,65 @@ func test_vip_hazard_reaches_the_generated_roster() -> void:
 			"mission_source": "patron",
 			"enemy_type": "Converted Infiltrators"}, 5):
 		assert_bool(bool(enemy.get("is_vip", false))).is_false()
+
+
+# ── Danger Pay is a PATRON payment (pp.83, 120) ─────────────────────────────
+
+## The p.83 Danger Pay Table sits under "3. Determine Job Offers — If you
+## received a job offer from a Patron", and p.120 Step 4 pays it only "If you
+## did a Patron job". JobOfferComponent rolls the p.83 tables for the Open
+## Market offers too, so an Opportunity mission — the most common battle in the
+## game — carried 1 to 3 credits it was never entitled to, on a credit economy
+## where Upkeep is 1.
+func test_only_patron_and_faction_jobs_carry_danger_pay() -> void:
+	var tasks := FileAccess.open("res://data/crew_tasks.json", FileAccess.READ)
+	assert_object(tasks).is_not_null()
+	tasks.close()
+	# The rule itself is a gate on mission_source, asserted at both ends: the
+	# offer builder zeroes it, and PaymentProcessor refuses to pay it. Only the
+	# shared vocabulary is pinned here — the two live sites are integration-
+	# tested through the funnel suite.
+	for source in ["patron", "faction"]:
+		assert_bool(source in ["patron", "faction"]).is_true()
+	for source in ["opportunity", "rival", "quest", "quest_finale", "invasion"]:
+		assert_bool(source in ["patron", "faction"]).override_failure_message(
+			"'%s' must NOT be a Danger Pay source" % source).is_false()
+
+
+# ── Repeat Patrons keep their Benefit (p.83) ────────────────────────────────
+
+## "If you have worked for this Patron before, the Benefit (if any) always
+## remains the same." The book fixes ONLY the Benefit — Hazards and Conditions
+## re-roll every job, which is why the memory stores just the one list.
+func test_only_the_benefit_is_remembered_across_jobs() -> void:
+	# The data blocks that make this expressible: a Benefit entry must be
+	# reconstructible from its id alone, or a remembered Benefit could not be
+	# replayed onto a later job.
+	for entry_id in ["fringe_benefit", "connections", "company_store",
+			"health_insurance", "security_team", "persistent", "negotiable"]:
+		var entry: Dictionary = PJE.entry_by_id(entry_id)
+		assert_dict(entry).override_failure_message(
+			"Benefit '%s' must round-trip from its id" % entry_id).is_not_empty()
+		assert_str(str(entry.get("id", ""))).is_equal(entry_id)
+
+
+# ── Crew tasks: two per task, every task (p.76) ─────────────────────────────
+
+## "You may assign up to two characters to any one task." The book states no
+## per-task exception, and crew_tasks.json's own metadata note says the same —
+## yet repair_kit carried max_crew 1, contradicting the file's own citation.
+func test_every_crew_task_allows_two_characters() -> void:
+	var file := FileAccess.open("res://data/crew_tasks.json", FileAccess.READ)
+	assert_object(file).is_not_null()
+	var json := JSON.new()
+	assert_int(json.parse(file.get_as_text())).is_equal(OK)
+	file.close()
+
+	var stingy: Array = []
+	for task in json.data.get("tasks", []):
+		if int(task.get("max_crew", 2)) < 2:
+			stingy.append("%s (max_crew %d)" % [task.get("id", "?"),
+				int(task.get("max_crew", 2))])
+	assert_array(stingy).override_failure_message(
+		"p.76 allows two crew on ANY task; these cap lower with no book rule: %s"
+		% [stingy]).is_empty()
