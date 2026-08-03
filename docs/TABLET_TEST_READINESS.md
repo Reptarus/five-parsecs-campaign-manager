@@ -239,8 +239,40 @@ reporting.
   through all 33 integration suites first. Keep running tests in two batches
   (`-a tests/unit`, then `-a tests/integration`) until the rest are `auto_free`'d.
 
+### Final measured state
+
+| Check | Result |
+|---|---|
+| Parse sweep | **608 scripts, 0 parse errors** |
+| Unit batch | 114 suites, **1,389 cases, 0 errors, 0 failures** |
+| Integration batch | 33 suites, **346 cases, 0 errors, 0 failures** |
+| Layout, tablet sizes | **all pass** (162/168; the 6 are phone-only, §5) |
+
+**1,735 cases green.**
+
+The 5 wizard failures are fixed — all five were stale expectations in a suite
+that had never run, not product defects. Two were worth the trip: CONFIG
+correctly refuses Next without a campaign name (the test never set one), and
+crew.members correctly INCLUDES the captain at index 0 per the data-ownership
+rule (three tests predated it).
+
+### The exit crash is a harness limit, not a product fault
+
+Still present, and now understood. It is NOT orphan nodes — the unit batch leaks
+only 17 across 114 suites and still stops. It is leaked *rendering* RIDs
+(CanvasItem / Texture / ShapedText) accumulating across UI-instantiating suites
+until gdUnit4's GC stage segfaults at exit. `test_patron_system_core.gd`, where
+the unit batch stops, passes alone with exit 0 and zero orphans.
+
+The orphan work still mattered — integration went 1578 → 532 and all 33 suites
+now execute where the run previously died partway — but it does not remove the
+ceiling.
+
+**Keep running tests in the two batches in §6.** Everything passes that way.
+
 ### Next
 
-1. The 5 wizard-flow failures — real defects in campaign creation, now visible.
-2. Remaining orphan sources, to get one green full-suite run.
-3. The three blocked one-liners, the moment the Story Track branch lands.
+1. Remaining rendering-RID sources, if a single-process green run is wanted.
+2. The three blocked one-liners, the moment the Story Track branch lands (§8
+   "Blocked").
+3. The phone-only layout fix — one autowrapping Label in an `HBoxContainer`.
