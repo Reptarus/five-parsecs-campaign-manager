@@ -570,3 +570,104 @@ func test_calculate_grid_distance() -> void:
 	assert_int(dist).is_equal(7)  # Manhattan distance
 
 #endregion
+
+
+# ── Core Rules p.51 weapon traits ────────────────────────────────────────────
+# The p.51 list is CLOSED: Area, Clumsy, Critical, Elegant, Focused, Heavy,
+# Impact, Melee, Piercing, Pistol, Single use, Snap shot, Stun, Terrifying.
+
+func _fx(traits: Array, ctx: Dictionary = {}) -> Dictionary:
+	return BattleCalculations.get_weapon_trait_effects(traits, ctx)
+
+
+func test_fabricated_traits_do_nothing() -> void:
+	# Each of these had a live effect before 2026-08-02 and occurs ZERO times in
+	# the Core Rules AND the Compendium. They must now be inert, not silently
+	# reinstated under a new name.
+	for fake in ["accurate", "slow", "devastating", "powered", "high_penetration",
+			"knockback", "burst_fire", "single_shot", "long_range", "suppressive"]:
+		var e: Dictionary = _fx([fake])
+		assert_int(e["hit_modifier"]).override_failure_message(
+			"'%s' is not a Five Parsecs trait but still modifies to-hit" % fake
+		).is_equal(0)
+		assert_int(e["damage_modifier"]).override_failure_message(
+			"'%s' is not a Five Parsecs trait but still modifies damage" % fake
+		).is_equal(0)
+		assert_array(e["traits_applied"]).override_failure_message(
+			"'%s' is not a Five Parsecs trait but still applied an effect" % fake
+		).is_empty()
+
+
+func test_melee_and_pistol_brawl_bonuses() -> void:
+	# p.51: Melee "+2 to Brawling rolls", Pistol "+1 to Brawling rolls".
+	assert_int(_fx(["Melee"])["brawl_modifier"]).is_equal(2)
+	assert_int(_fx(["Pistol"])["brawl_modifier"]).is_equal(1)
+
+
+func test_clumsy_only_bites_against_a_faster_opponent() -> void:
+	# p.51: "-1 to Brawling rolls, if opponent has higher Speed."
+	assert_bool(_fx(["Clumsy"])["clumsy_if_opponent_faster"]).is_true()
+	assert_int(BattleCalculations.brawl_clumsy_modifier(true, 4.0, 5.0)).is_equal(-1)
+	assert_int(BattleCalculations.brawl_clumsy_modifier(true, 5.0, 4.0)).is_equal(0)
+	assert_int(BattleCalculations.brawl_clumsy_modifier(true, 4.0, 4.0)).is_equal(0)
+	assert_int(BattleCalculations.brawl_clumsy_modifier(false, 4.0, 6.0)).is_equal(0)
+
+
+func test_elegant_grants_a_brawl_reroll() -> void:
+	# p.51: "When Brawling, the fighter may reroll the die."
+	assert_bool(_fx(["Elegant"])["allows_brawl_reroll"]).is_true()
+
+
+func test_critical_is_two_hits_on_a_natural_six_not_a_damage_bonus() -> void:
+	# p.51: "A natural 6 on the to Hit roll will inflict 2 Hits on the target."
+	var e: Dictionary = _fx(["Critical"])
+	assert_bool(e["natural_six_inflicts_two_hits"]).is_true()
+	assert_int(e["damage_modifier"]).override_failure_message(
+		"Critical is a second HIT, not extra damage"
+	).is_equal(0)
+
+
+func test_area_uses_the_core_rules_version_not_the_compendium_option() -> void:
+	# Core Rules p.51: "Resolve all shots against the initial target. They cannot
+	# be spread. Then resolve one bonus shot against every figure within 2\"."
+	# The Compendium Game Options version (target point, 4+ per figure) is an
+	# opt-in alternative and must NOT be the default.
+	var e: Dictionary = _fx(["Area"])
+	assert_bool(e["is_area_effect"]).is_true()
+	assert_bool(e["force_single_target"]).override_failure_message(
+		"Area shots 'cannot be spread' — they all hit the initial target first"
+	).is_true()
+	assert_float(e["area_bonus_shot_radius_inches"]).is_equal(2.0)
+
+
+func test_impact_is_conditional_on_the_target_already_being_stunned() -> void:
+	# p.51: "If target is Stunned, place a second Stun marker."
+	var e: Dictionary = _fx(["Impact"])
+	assert_bool(e["second_stun_if_already_stunned"]).is_true()
+	assert_bool(e["causes_stun"]).override_failure_message(
+		"Impact must not stun an unstunned target — that is the Stun trait"
+	).is_false()
+
+
+func test_outnumbering_side_gets_plus_one_in_a_brawl() -> void:
+	# p.45 Multiple Opponents: "the outnumbering side getting a +1 bonus".
+	assert_int(BattleCalculations.brawl_outnumbering_modifier(2, 1)).is_equal(1)
+	assert_int(BattleCalculations.brawl_outnumbering_modifier(1, 2)).is_equal(0)
+	assert_int(BattleCalculations.brawl_outnumbering_modifier(1, 1)).is_equal(0)
+
+
+func test_panic_fire_halves_range_and_adds_two_shots() -> void:
+	# p.46-47: half the weapon's BASE Range, +2 additional shots.
+	var p: Dictionary = BattleCalculations.panic_fire_profile(24.0, 1, [])
+	assert_float(p["range_inches"]).is_equal(12.0)
+	assert_int(p["shots"]).is_equal(3)
+	assert_bool(p["ammo_spent"]).is_true()
+
+
+func test_single_use_weapons_and_enemies_cannot_panic_fire() -> void:
+	# p.51: "The Panic Fire rule (p.46) cannot be used with Single use weapons."
+	# p.47: "The Panic Fire option is never used by enemies."
+	assert_bool(BattleCalculations.can_panic_fire(["Single use"])).is_false()
+	assert_bool(BattleCalculations.can_panic_fire(["Melee"], true)).is_false()
+	assert_bool(BattleCalculations.can_panic_fire(["Melee"], false)).is_true()
+	assert_dict(BattleCalculations.panic_fire_profile(24.0, 1, ["Single use"])).is_empty()

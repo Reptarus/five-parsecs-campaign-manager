@@ -1153,6 +1153,60 @@ static func is_knocked_out_by_stun(stun_markers: int) -> bool:
 static func brawl_bonus_from_stun(opponent_stun_markers: int) -> int:
 	return maxi(opponent_stun_markers, 0)
 
+
+## Clumsy (Core Rules p.51): "-1 to Brawling rolls, if opponent has higher
+## Speed." Conditional on the opponent, which is why it cannot be baked into the
+## flat trait effects.
+static func brawl_clumsy_modifier(has_clumsy: bool, own_speed: float, opponent_speed: float) -> int:
+	if has_clumsy and opponent_speed > own_speed:
+		return -1
+	return 0
+
+
+## Multiple Opponents in a Brawl (Core Rules p.45): "Resolve the combat
+## normally, with the outnumbering side getting a +1 bonus to the Brawl roll."
+static func brawl_outnumbering_modifier(own_side_count: int, opposing_count: int) -> int:
+	return 1 if own_side_count > opposing_count else 0
+
+
+## Panic Fire (Core Rules p.46-47).
+##
+## "A character may opt to expend all their available ammunition as quickly as
+## possible... limited to firing at half the weapon's base Range (ignoring all
+## range enhancements). Conduct attacks as normal, but roll 2 additional shots.
+## Attacks are resolved one at a time, with each being directed at the closest
+## available target at that moment. After the volley is completed, the weapon
+## (and all identical weapons carried) is out of ammunition for the rest of the
+## battle... The Panic Fire option is never used by enemies."
+##
+## Single use weapons cannot Panic Fire (p.51).
+const PANIC_FIRE_EXTRA_SHOTS := 2
+
+static func can_panic_fire(weapon_traits: Array, is_enemy: bool = false) -> bool:
+	if is_enemy:
+		return false  # "never used by enemies"
+	for trait_name in weapon_traits:
+		var t := str(trait_name).to_lower()
+		if t == "single use" or t == "single_use":
+			return false
+	return true
+
+
+## Returns {range_inches, shots} for a Panic Fire volley, or an empty Dictionary
+## if this weapon may not Panic Fire. base_range is the weapon's BASE Range —
+## range enhancements are deliberately ignored per the rule.
+static func panic_fire_profile(
+	base_range: float, base_shots: int, weapon_traits: Array, is_enemy: bool = false
+) -> Dictionary:
+	if not can_panic_fire(weapon_traits, is_enemy):
+		return {}
+	return {
+		"range_inches": base_range / 2.0,
+		"shots": base_shots + PANIC_FIRE_EXTRA_SHOTS,
+		"targets": "closest available at the moment each shot resolves",
+		"ammo_spent": true,
+	}
+
 #endregion
 
 #region Experience Calculations
@@ -1713,6 +1767,14 @@ static func get_weapon_trait_effects(
 		# firer." A forced move, not a morale check.
 		"forces_retreat": false,
 		"retreat_dice": "",
+		# Core Rules p.51 traits that were previously unrepresented.
+		"brawl_modifier": 0,                    # Melee +2, Pistol +1
+		"clumsy_if_opponent_faster": false,     # Clumsy: -1 vs a faster opponent
+		"allows_brawl_reroll": false,           # Elegant
+		"natural_six_inflicts_two_hits": false, # Critical
+		"second_stun_if_already_stunned": false,# Impact
+		"area_bonus_shot_radius_inches": 0.0,   # Area
+		"forbids_panic_fire": false,            # Single use
 		"is_area_effect": false,
 		"is_melee": false,
 		"is_pistol": false,
@@ -1768,13 +1830,23 @@ static func _apply_weapon_trait(
 	moved_this_turn: bool,
 	is_aimed_shot: bool
 ) -> void:
+	# The Core Rules p.51 trait list is CLOSED. In full it is: Area, Clumsy,
+	# Critical, Elegant, Focused, Heavy, Impact, Melee, Piercing, Pistol,
+	# Single use, Snap shot, Stun, Terrifying.
+	#
+	# Deleted 2026-08-02, each with ZERO occurrences in the Core Rules AND the
+	# Compendium: "accurate" (+1 hit), "slow" (-1 hit close), "devastating"
+	# (+1 damage), "powered" (+1 damage), "high_penetration" (+2 armor pen),
+	# "knockback", "burst_fire" (+2 shots), "single_shot", "long_range" (+6").
+	# Note the book DOES push every figure back 1" per Hit (p.46) — that is
+	# universal, not a trait, so "knockback" had nothing to gate.
+	#
+	# "rapid_fire", "overheat", "shockwave", "shrapnel" and "burn" appear ONLY
+	# in the Compendium's Game Options alternative weapon set, not in the Core
+	# Rules. They must not attach to Core Rules weapons by default — see the
+	# weapon-table warning in docs/RULES_WIRING_AUDIT_2026-08.md.
 	match trait_name:
-		# Accuracy Traits
-		"accurate":
-			effects["hit_modifier"] += 1
-			effects["traits_applied"].append("accurate_+1_hit")
-
-		"snap_shot":
+		"snap_shot", "snap shot":
 			# +1 hit at close range (within 6")
 			if range_band == "short":
 				effects["hit_modifier"] += 1
@@ -1785,12 +1857,6 @@ static func _apply_weapon_trait(
 			effects["force_single_target"] = true
 			effects["traits_applied"].append("focused_single_target")
 
-		"slow":
-			# -1 hit at close range
-			if range_band == "short":
-				effects["hit_modifier"] -= 1
-				effects["traits_applied"].append("slow_-1_close")
-
 		"heavy":
 			# Core Rules p.51: -1 to Hit if firer moved this round (NO damage bonus)
 			if moved_this_turn:
@@ -1798,21 +1864,70 @@ static func _apply_weapon_trait(
 				effects["traits_applied"].append("heavy_-1_moved")
 
 		# Damage Traits
-		"devastating":
-			effects["damage_modifier"] += 1
-			effects["traits_applied"].append("devastating_+1_damage")
-
-		"powered":
-			effects["damage_modifier"] += 1
-			effects["traits_applied"].append("powered_+1_damage")
-
 		"piercing", "armor_piercing":
+			# p.51: "Ignore Armor Saving Throws." Screens are NOT affected (p.46).
 			effects["is_piercing"] = true
 			effects["traits_applied"].append("piercing_ignores_armor")
 
-		"high_penetration":
-			effects["armor_penetration"] += 2
-			effects["traits_applied"].append("high_pen_+2")
+		"critical":
+			# p.51: "A natural 6 on the to Hit roll will inflict 2 Hits on the
+			# target." Not a damage bonus — a second Hit, resolved (and saved
+			# against) separately.
+			#
+			# ⚠ DESCRIPTIVE FLAG ONLY. Critical is already APPLIED at the
+			# to-hit-resolution site in resolve_ranged_attack(), which appends
+			# the "critical_extra_hit" effect (see ~line 629). Do not act on this
+			# flag as well, or the second Hit lands twice. It exists so the p.51
+			# trait table is complete and machine-checkable.
+			effects["natural_six_inflicts_two_hits"] = true
+			effects["traits_applied"].append("critical_natural_6_two_hits")
+
+		"area":
+			# p.51 verbatim: "Resolve all shots against the initial target. They
+			# cannot be spread. Then resolve one bonus shot against every figure
+			# within 2\"."
+			#
+			# NOT the Compendium Game Options version (select a target point,
+			# every figure within 2" hit on a 4+). That belongs to the
+			# alternative weapon set and must not be the default.
+			effects["is_area_effect"] = true
+			effects["force_single_target"] = true  # "They cannot be spread"
+			effects["area_bonus_shot_radius_inches"] = 2.0
+			effects["traits_applied"].append("area_bonus_shot_within_2in")
+
+		# Brawling Traits
+		"melee":
+			# p.51: "+2 to Brawling rolls."
+			effects["is_melee"] = true
+			effects["brawl_modifier"] += 2
+			effects["traits_applied"].append("melee_+2_brawl")
+
+		"pistol":
+			# p.51: "+1 to Brawling rolls."
+			effects["is_pistol"] = true
+			effects["brawl_modifier"] += 1
+			effects["traits_applied"].append("pistol_+1_brawl")
+
+		"clumsy":
+			# p.51: "-1 to Brawling rolls, if opponent has higher Speed."
+			# Conditional on the opponent, so the caller applies it — see
+			# brawl_clumsy_modifier().
+			effects["clumsy_if_opponent_faster"] = true
+			effects["traits_applied"].append("clumsy_-1_vs_faster")
+
+		"elegant":
+			# p.51: "When Brawling, the fighter may reroll the die. Enemies will
+			# always reroll if they have a lower total than their opponent, and
+			# can improve the result."
+			effects["allows_brawl_reroll"] = true
+			effects["traits_applied"].append("elegant_brawl_reroll")
+
+		"single use", "single_use":
+			# p.51: used once and deducted from supply; Panic Fire (p.46) cannot
+			# be used with Single use weapons.
+			effects["is_one_use"] = true
+			effects["forbids_panic_fire"] = true
+			effects["traits_applied"].append("single_use")
 
 		# Status Effect Traits
 		"stun", "stunning":
@@ -1822,12 +1937,12 @@ static func _apply_weapon_trait(
 			effects["traits_applied"].append("stun_ignore_toughness")
 
 		"impact":
-			effects["causes_stun"] = true  # Double stun
-			effects["traits_applied"].append("impact_double_stun")
-
-		"knockback":
-			effects["causes_knockback"] = true
-			effects["traits_applied"].append("causes_knockback")
+			# p.51 verbatim: "If target is Stunned, place a second Stun marker."
+			# Impact does NOTHING to an unstunned target — it is conditional, so
+			# it cannot set causes_stun unconditionally the way it used to.
+			# The caller resolves it via check_impact_stun().
+			effects["second_stun_if_already_stunned"] = true
+			effects["traits_applied"].append("impact_second_marker_if_stunned")
 
 		# "suppressive" removed 2026-08-02 — there is no such weapon trait. The
 		# p.51 trait list is Area, Clumsy, Critical, Elegant, Focused, Heavy,
@@ -1843,22 +1958,12 @@ static func _apply_weapon_trait(
 			effects["traits_applied"].append("terrifying_retreat_1d6")
 
 		# Range/Shots Traits
-		"rapid_fire":
-			effects["rapid_fire"] = true
-			effects["rapid_fire_shots"] = 3  # Default rapid fire shots
-			effects["traits_applied"].append("rapid_fire_3_shots")
-
-		"burst_fire":
-			effects["shots_modifier"] += 2
-			effects["traits_applied"].append("burst_+2_shots")
-
-		"single_shot":
-			effects["shots_modifier"] = 0  # Force single shot
-			effects["traits_applied"].append("single_shot_only")
-
-		"long_range":
-			effects["range_modifier"] += 6
-			effects["traits_applied"].append("long_range_+6")
+		# "rapid_fire", "burst_fire", "single_shot" and "long_range" removed
+		# 2026-08-02 — none is a Core Rules trait. Shots are a column on the
+		# weapon profile (p.49-50), not something a trait adds. The book's only
+		# way to gain extra shots is Panic Fire (p.46): half the weapon's base
+		# Range, +2 additional shots, and the weapon (plus all identical weapons
+		# carried) is out of ammunition for the rest of the battle.
 
 		"short_range":
 			effects["range_modifier"] -= 6
