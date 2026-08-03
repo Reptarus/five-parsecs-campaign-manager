@@ -261,3 +261,42 @@ func test_going_medieval_reaches_the_generated_roster() -> void:
 	assert_bool(saw_specialist).override_failure_message(
 		"Primitives must still field a Specialist — a Blade is a manufactured "
 		+ "weapon, so they are not p.93 animals").is_true()
+
+
+# ── p.94 Enemy Encounter Category columns ───────────────────────────────────
+
+## The p.94 table has four columns and the live mission vocabulary does not
+## match its key names, so the lookup used to fall through to a silent
+## `tables.get("patron")`. A "rival" battle therefore rolled the PATRON column,
+## whose Roving Threats band is 76-100 — so a quarter of Rival fights were
+## against wildlife, while the Unknown Rival column has no Roving Threats entry
+## at all ("-" in the book) and p.101 says "Enemies from this list never become
+## Rivals."
+func test_rival_battles_never_draw_roving_threats() -> void:
+	var generator := EnemyGenerator.new()
+	for _i in range(300):
+		var enemies: Array = generator.generate_enemies_as_dicts({
+			"mission_source": "rival",
+			"rival_id": "r1",
+		}, 5)
+		for e in enemies:
+			if not (e is Dictionary):
+				continue
+			assert_str(str(e.get("category", ""))).override_failure_message(
+				"the Unknown Rival column has NO Roving Threats entry (p.94), and "
+				+ "p.101 says they never become Rivals — got %s" % [e.get("name", "?")]
+			).is_not_equal("roving_threats")
+
+
+## An Opportunity battle must still be able to draw them (81-100 on its column),
+## or the fix above would have closed the category off everywhere.
+func test_opportunity_battles_can_still_draw_roving_threats() -> void:
+	var generator := EnemyGenerator.new()
+	var saw_roving := false
+	for _i in range(300):
+		for e in generator.generate_enemies_as_dicts({
+				"mission_source": "opportunity"}, 5):
+			if e is Dictionary and str(e.get("category", "")) == "roving_threats":
+				saw_roving = true
+	assert_bool(saw_roving).override_failure_message(
+		"Opportunity missions draw Roving Threats on 81-100 (p.94)").is_true()

@@ -1071,9 +1071,40 @@ func _roll_encounter_category(mission_source: String) -> String:
 	var tables: Dictionary = enemy_data.get(
 		"enemy_encounter_categories", {}
 	)
-	var source_table: Dictionary = tables.get(
-		mission_source, tables.get("patron", {})
-	)
+
+	# The p.94 table has four columns — Opportunity / Patron / Quest / Unknown
+	# Rival — and the live mission vocabulary does not match its key names, so
+	# the lookup fell through to a silent `tables.get("patron")` fallback:
+	#
+	#   "rival"        -> the PATRON column, whose Roving Threats band is 76-100.
+	#                     So a quarter of Rival battles were fought against
+	#                     wildlife, and the Unknown Rival column has NO Roving
+	#                     Threats entry at all ("-" in the book). p.101 says the
+	#                     same thing from the other side: "Enemies from this list
+	#                     never become Rivals." Its distribution is also far
+	#                     harsher — Criminal Elements 1-50 against the Patron
+	#                     column's 1-25.
+	#   "quest_finale" -> likewise the Patron column instead of Quest.
+	#
+	# A missing key must never resolve to a plausible-looking neighbour. Unknown
+	# sources now warn and take Opportunity, the book's default column.
+	var column: String = mission_source
+	match mission_source:
+		"rival", "unknown_rival":
+			column = "unknown_rival"
+		"quest", "quest_finale":
+			column = "quest"
+		"patron", "faction":
+			column = "patron"
+		"opportunity", "invasion", "":
+			column = "opportunity"
+		_:
+			push_warning(
+				"EnemyGenerator: no p.94 encounter column for mission_source '%s'; using Opportunity"
+				% mission_source)
+			column = "opportunity"
+
+	var source_table: Dictionary = tables.get(column, {})
 
 	if source_table.is_empty():
 		return "criminal_elements"

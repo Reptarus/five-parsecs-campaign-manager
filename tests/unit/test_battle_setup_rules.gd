@@ -207,3 +207,56 @@ func test_apply_enemy_delta_does_not_mutate_the_input_array() -> void:
 	var original: Array = _roster()
 	RULES.apply_enemy_delta(original, 2)
 	assert_int(original.size()).is_equal(3)
+
+
+# ── p.88 Deployment Conditions: the columns ─────────────────────────────────
+
+## "For Quest, Patron, Rival, and Opportunity missions, roll D100 and consult
+## THE APPROPRIATE COLUMN." Every column must tile 1-100 exactly — a gap means a
+## legal roll silently yields no condition, which is indistinguishable from
+## rolling No Condition and hides the bug forever.
+func test_every_deployment_column_tiles_the_d100() -> void:
+	var file := FileAccess.open("res://data/deployment_conditions.json", FileAccess.READ)
+	assert_object(file).is_not_null()
+	var json := JSON.new()
+	assert_int(json.parse(file.get_as_text())).is_equal(OK)
+	file.close()
+
+	for column in ["opportunity", "patron", "rival", "quest"]:
+		var covered: Dictionary = {}
+		for cond in json.data["conditions"]:
+			var r: Variant = (cond.get("roll_ranges", {}) as Dictionary).get(column, null)
+			if not (r is Array) or (r as Array).size() < 2:
+				continue
+			for roll in range(int(r[0]), int(r[1]) + 1):
+				assert_bool(covered.has(roll)).override_failure_message(
+					"%s roll %d is claimed by both %s and %s"
+					% [column, roll, covered.get(roll, "?"), cond["id"]]).is_false()
+				covered[roll] = cond["id"]
+		for roll in range(1, 101):
+			assert_bool(covered.has(roll)).override_failure_message(
+				"%s roll %d resolves to NOTHING" % [column, roll]).is_true()
+
+
+## The Rival column is far harsher than Opportunity/Patron, which is the entire
+## reason consulting the right one matters: No Condition is 1-40 on
+## Opportunity/Patron and only 1-10 on Rival, and 1-5 on Quest. A Rival battle
+## routed to the wrong column arrived with no complication 40% of the time where
+## the book allows 10%.
+func test_no_condition_bands_match_the_book() -> void:
+	var file := FileAccess.open("res://data/deployment_conditions.json", FileAccess.READ)
+	var json := JSON.new()
+	assert_int(json.parse(file.get_as_text())).is_equal(OK)
+	file.close()
+
+	for cond in json.data["conditions"]:
+		if str(cond.get("id", "")) != "NO_CONDITION":
+			continue
+		var ranges: Dictionary = cond["roll_ranges"]
+		assert_int(int((ranges["opportunity"] as Array)[1])).is_equal(40)
+		assert_int(int((ranges["patron"] as Array)[1])).is_equal(40)
+		assert_int(int((ranges["rival"] as Array)[1])).is_equal(10)
+		assert_int(int((ranges["quest"] as Array)[1])).is_equal(5)
+		return
+	assert_bool(false).override_failure_message(
+		"NO_CONDITION row is missing from deployment_conditions.json").is_true()

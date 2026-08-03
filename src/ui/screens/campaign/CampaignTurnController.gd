@@ -878,8 +878,13 @@ func _initiate_battle_sequence() -> void:
 	var deploy_sys = FPCM_DeploymentConditionsSystem.new()
 	var deploy_mission_type := _infer_deployment_mission_type(
 		mission_data)
+	# p.88, closing line of the table: "This table is ignored during an Invasion
+	# battle." Unimplemented — an Invasion could arrive Delayed or Caught off
+	# guard on top of its own p.92 structure (extra enemy, 6-round hold, no Win
+	# condition), which is the hardest scenario in the base game made harder by a
+	# rule the book explicitly switches off for it.
 	var condition = null
-	if not suppress_condition:
+	if not suppress_condition and not bool(mission_data.get("is_invasion", false)):
 		condition = deploy_sys.roll_deployment_condition(deploy_mission_type)
 	if condition:
 		deployment_condition = {
@@ -2241,11 +2246,22 @@ func _infer_deployment_mission_type(
 ) -> FPCM_DeploymentConditionsSystem.MissionType:
 	if not mission_data:
 		return FPCM_DeploymentConditionsSystem.MissionType.OPPORTUNITY
+	# `mission_source` FIRST, `source` only as a fallback. A Rival ambush is
+	# stamped onto mission_source alone (the p.85 check overwrites it when a
+	# Rival tracks the crew down), while `source` still holds the ORIGINAL job's
+	# type — so every Rival battle consulted the Opportunity/Patron column of the
+	# p.88 table instead of the Rival one. The columns are not close: No Condition
+	# is 1-40 on Opportunity/Patron and only 1-10 on Rival, so a Rival fight
+	# arrived with no complication 40% of the time where the book allows 10%.
 	var source: String = ""
 	if mission_data is Dictionary:
-		source = mission_data.get("source", "").to_lower()
-	elif mission_data is Object and "source" in mission_data:
-		source = str(mission_data.source).to_lower()
+		source = str(mission_data.get("mission_source",
+			mission_data.get("source", ""))).to_lower()
+	elif mission_data is Object:
+		if "mission_source" in mission_data:
+			source = str(mission_data.mission_source).to_lower()
+		elif "source" in mission_data:
+			source = str(mission_data.source).to_lower()
 	if "patron" in source:
 		return FPCM_DeploymentConditionsSystem.MissionType.PATRON
 	if "rival" in source:
