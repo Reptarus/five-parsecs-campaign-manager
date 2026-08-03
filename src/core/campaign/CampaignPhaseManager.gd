@@ -205,6 +205,12 @@ func _process_turn_rollover() -> void:
 	# --- Clear Upkeep Lockouts from Previous Turn (Core Rules p.76) ---
 	_clear_upkeep_lockouts(campaign)
 
+	# --- Clear last turn's Sick Bay releases (Core Rules p.76) ---
+	# Must run BEFORE the recovery countdown below, or a member released this
+	# turn would have their flag wiped in the same pass that set it and the
+	# "cannot perform a task this campaign turn" restriction would never apply.
+	_clear_recovered_flags(campaign)
+
 	# --- Free Hull Repair (Core Rules p.59) ---
 	_process_free_hull_repair(campaign)
 
@@ -387,6 +393,19 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 				var st: String = str(member.get("status", ""))
 				if st == "RECOVERING" or st == "injured":
 					member["status"] = "ACTIVE"
+					# Core Rules p.76: "If this was their last campaign turn in
+					# Sick Bay, they can rejoin the crew for battle, but cannot
+					# perform a task this campaign turn."
+					#
+					# Leaving Sick Bay is a TWO-step release and only the first
+					# step existed: the flags below cleared and the character
+					# walked straight into Crew Tasks the same turn, worth an
+					# extra Explore/Trade/Patron roll on every recovery. Set only
+					# when they were ACTUALLY recovering (the status check above),
+					# so an already-healthy member is never flagged. Read by
+					# CrewTaskComponent._task_block_reason, cleared at the top of
+					# the NEXT rollover so it lasts exactly one turn.
+					member["recovered_this_turn"] = true
 				member["in_sick_bay"] = false
 				member["recovery_turns"] = 0
 				member["injury_recovery_turns"] = 0
@@ -782,6 +801,22 @@ func _clear_upkeep_lockouts(campaign: Resource) -> void:
 			member.remove_meta("locked_out_this_turn")
 		elif member is Dictionary and member.get("locked_out_this_turn", false):
 			member.erase("locked_out_this_turn")
+
+func _clear_recovered_flags(campaign: Resource) -> void:
+	## Clear the p.76 "left Sick Bay last turn" marker. Like the upkeep lockout
+	## above, the restriction lasts exactly one campaign turn — the character can
+	## take a task again from the turn after their release.
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	for member in crew:
+		if member is Resource and member.has_meta("recovered_this_turn"):
+			member.remove_meta("recovered_this_turn")
+		elif member is Dictionary and member.get("recovered_this_turn", false):
+			member.erase("recovered_this_turn")
+
 
 func start_new_campaign_turn() -> void:
 	start_new_turn()

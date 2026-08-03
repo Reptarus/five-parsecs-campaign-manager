@@ -207,6 +207,21 @@ func _task_block_reason(crew_member) -> String:
 			break
 	if is_in_sick_bay and not has_extra_action:
 		return "SICK BAY"
+	# Core Rules p.76, verbatim: "If this was their last campaign turn in Sick
+	# Bay, they can rejoin the crew for battle, but CANNOT PERFORM A TASK this
+	# campaign turn."
+	#
+	# So leaving Sick Bay is a two-step release, and only the first step had ever
+	# been implemented: the countdown cleared in_sick_bay and the character walked
+	# straight into Crew Tasks the same turn, worth one extra Explore/Trade/Patron
+	# roll on every single recovery. `recovered_this_turn` is stamped by the turn
+	# rollover when the last injury clears, and cleared at the START of the next
+	# rollover so it lasts exactly one turn.
+	#
+	# Deliberately checked AFTER extra_action: p.130 "Time to Burn" lets a
+	# character act even in Sick Bay, so it certainly covers one who has just left.
+	if _member_get(crew_member, "recovered_this_turn", false) and not has_extra_action:
+		return "JUST RECOVERED"
 	# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
 	if _member_get(crew_member, "locked_out_this_turn", false):
 		return "REFUSING WORK"
