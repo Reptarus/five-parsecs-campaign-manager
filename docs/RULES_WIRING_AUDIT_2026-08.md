@@ -94,7 +94,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | turn-upkeep-travel | progress_data["crew_retired"] — campaign archival on crew retirement | one-line | A campaign that ends because the crew retired (rather than by victory or by reaching 20 turns) is never archived to LegacySystem — the crew, story points and turn count are silently dropp... | OPEN |
 | battle-resolution | Brawling — Multiple Opponents (+1 outnumbering) and Stunned Opponents (+1 per Stun marker) | small | A player who enters "opponent has 2 Stun markers" and "outnumbering +1" sees the panel print "Attacker Total: 9" and "Defender Total: 8" — and then, on the very next line, "OPPONENT WINS ... | FIXED b776e8726 + 4b7102dd0 — brawl_outnumbering_modifier() (p.45) and brawl_bonus_from_stun() (p.40/45) |
 | battle-resolution | Stunned — 3 or more Stun markers means knocked out and removed from play (p.40) | small | A crew member or enemy can pile up 3, 5, 10 Stun markers and stay standing and fully usable. The status card next to them says "[KNOCKED OUT - 3+ Stuns]" while the figure keeps activating... | FIXED 4b7102dd0 — is_knocked_out_by_stun(); BattleResolver now tracks stun_markers, not a boolean cleared at end of round |
-| battle-resolution | Stim-pack (p.54) — prevents one casualty per battle | small | A crew that bought Stim-packs and carries them in the Stash gets nothing from them in any auto-resolved battle. The crew member who should have survived on 1 Stun marker is removed as a c... | OPEN |
+| battle-resolution | Stim-pack (p.54) — prevents one casualty per battle | small | A crew that bought Stim-packs and carries them in the Stash gets nothing from them in any auto-resolved battle. The crew member who should have survived on 1 Stun marker is removed as a c... | CORRECTED — finding is STALE. BattleResolver already consumes has_stim_pack on the casualty path (p.54 'remain on the table with a single Stun marker') and records the consumed item; NoMinisResolver does the same. Verified at BattleResolver.gd casualty branch |
 | battle-resolution | Area trait (p.51) — hits every figure within 2" of the target | large | Frakk grenades, Dazzle grenades, Hand Flamers and Shell Guns behave as ordinary single-target weapons in every auto-resolved battle — a grenade lobbed into a cluster of six enemies hits o... | FIXED b776e8726 — CORE RULES version (all shots at the initial target, cannot be spread, then ONE bonus shot per figure within 2"). NOT the Compendium Game Options version (target point, 4+ per figure), which is an opt-in alternative |
 | battle-resolution | Consumables in battle (p.54) — Booster Pills, Combat Serum, Rage Out, Still, Kiranin Crystals; Bots and Soulless cannot use them | medium | No consumable has any mechanical effect in auto-resolve — Booster Pills never clear a Stun, Combat Serum never grants +2 Reactions, Still never grants +1 to Hit. In manual play the player... | FIXED 41f479eec — values were mostly right; the DURATIONS and EXCLUSIONS were missing (Rage Out was permanent and had no K'Erin extension, Still locked movement 1 round not 2, Kiranin had none of its three exclusions) |
 | battle-resolution | Aiming (p.46) — reroll 1s on the To Hit dice | small | Ticking "Aim" on a crew member's status card has no effect on the dice the app then rolls for them. The player who correctly stood still to Aim never gets the reroll of their 1s — roughly... | FIXED 4b7102dd0 — apply_aim_reroll() rerolls 1s once; the old flat +1 was fabricated AND double-counted against the panel's already-correct reroll. enemy_will_aim() adds the p.46 AI behaviour |
@@ -178,9 +178,9 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | turn-upkeep-travel | Train task resolves a Character Upgrade immediately; Find a Patron offers an EXISTING Patron | medium | Training banks XP that sits unspent until the player happens to open the post-battle advancement screen, and the p.77 'resolve that immediately' beat never happens. And the Patron pool in... | OPEN |
 | turn-upkeep-travel | Repeat Patron keeps the same Benefit; up to two characters on any one task | small | A loyal Patron you have worked for five times rolls a different Benefit (or none) every single job, so building a relationship with one employer has no payoff. And only one crew member ca... | OPEN |
 | battle-resolution | Saving Throws — Multiple Saving Throws (p.46) and innate Bot/Soulless armor plating | small | A Bot or Soulless crew member with no purchased armor gets NO saving throw in any auto-resolved battle, instead of the 6+ the book guarantees (5+ for Assault Bots) — they die roughly 17% ... | FIXED 4b7102dd0 — was min() ('best wins'), losing the -1 the book grants for stacking. Both printed examples now pass. Innate plating now covers all four species, not just Soulless |
-| battle-resolution | Weapon Ratings — Shots (p.49): the number of attack dice you roll | small | On the standard (no-DLC) campaign, an Auto Rifle (2 shots), a Rattle Gun (3 shots) and a Hyper Blaster (3 shots) all fire exactly once per round in auto-resolve — identical to a 1-shot Co... | OPEN |
+| battle-resolution | Weapon Ratings — Shots (p.49): the number of attack dice you roll | small | On the standard (no-DLC) campaign, an Auto Rifle (2 shots), a Rattle Gun (3 shots) and a Hyper Blaster (3 shots) all fire exactly once per round in auto-resolve — identical to a 1-shot Co... | FIXED f6e85b238 — auto-resolve called resolve_ranged_attack() ONCE per attacker and never read Shots, so Rattle gun (3), Hyper blaster (3), Auto rifle/Shotgun/Plasma rifle/Needle rifle/Machine pistol/Shell gun/Hand flamer/Flak gun/Cling fire pistol (2 each) all fired a single shot. Now loops over Shots, same target (required by Focused, p.51), breaking early once the target is down |
 | battle-resolution | Impact trait (p.51) — a second Stun marker on an already-Stunned target | small | The Suppression maul — the game's dedicated Impact weapon — is mechanically identical to any other Damage +1 melee weapon. Its ability to stack a Stunned enemy toward the 3-marker knockou... | FIXED b776e8726 — was unconditional causes_stun, so Impact stunned healthy targets; it only adds a SECOND marker to an already-Stunned figure |
-| battle-resolution | Stunned — Move OR Combat Action, not both (p.40); marker removed after acting | small | In auto-resolved battles a Stunned figure — crew or enemy — suffers no penalty whatsoever: it moves and fires exactly like an unstunned one, and its Stun evaporates at the end of the roun... | OPEN |
+| battle-resolution | Stunned — Move OR Combat Action, not both (p.40); marker removed after acting | small | In auto-resolved battles a Stunned figure — crew or enemy — suffers no penalty whatsoever: it moves and fires exactly like an unstunned one, and its Stun evaporates at the end of the roun... | FIXED f6e85b238 — stun was a BOOLEAN in auto-resolve, so markers could never accumulate and the p.40 '3 or more = knocked out and removed from play' could not fire at all. Markers now accumulate per hit and trigger removal, credited as a kill |
 
 
 ---
@@ -241,3 +241,94 @@ Extracted Aug 2 to save re-extraction; see the To Hit and Suppression rows above
 headline results. Full brief (Stunned p.40, Brawling p.45, Aiming/Panic Fire p.46, all weapon
 traits p.51, all six consumables p.54) was written during the session and its conclusions are
 folded into the rows in this table.
+
+---
+
+## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
+
+**108 open / 44 resolved of 152.** Branch `campaign-editor-and-fixits`.
+
+### Domain standings
+
+| Domain | Open | Note |
+|---|---|---|
+| battle-resolution | **1** | only "dead duplicate calculators" — cleanup, no rules impact |
+| turn-upkeep-travel | 12 | World Traits (40 effects) is the big one |
+| post-battle | 14 | Advanced Training, Crippling Wound, injury equipment loss |
+| battle-setup | 14 | opponent counts, deployment conditions, seize initiative |
+| economy-trade-equipment | 15 | Trade Table 24 no-award rolls, gun mods, on-board items |
+| patrons-rivals-quests | 18 | Quest is unplayable end-to-end; Time Frame never expires |
+| missions-elites-zones | 20 | Black Jobs, Red Zone conditions, Elite enemies |
+| factions-world-compendium | 14 | DLC-gated; a tester without the DLC never sees any of it |
+
+### If the goal is a TABLET TEST SESSION, do these first
+
+Ranked by "will a tester actually hit this in one sitting", not by finding count.
+
+1. **patrons-rivals-quests — Quest is unplayable.** Resolve Rumors hands the
+   player a Quest and nothing lets them go on it: no "Continue a Quest" job
+   option, the p.89 Quest objective table is unreachable, and the p.120 finale
+   flag is written but never read. A tester who follows the rumor trail hits a
+   dead end. NOTE `src/ui/screens/world/components/JobOfferComponent.gd` was held
+   by a parallel session — re-check `git status` before editing it.
+2. **battle-setup — Number of Opponents difficulty modifiers.** A Hardcore
+   campaign currently fights the same number of enemies as a Normal one, so the
+   difficulty the tester chose does nothing visible. ⚠ Whatever you add MUST be
+   excluded for Red Jobs (p.150 "no other modifiers are applied up or down");
+   `tests/unit/test_zone_job_opposition.gd` pins that and must stay green.
+3. **economy — the Trade Table's 24 no-award rolls.** Rolls 1-3, 7-9, 45-48,
+   79-81, 82-86, 87-91 show a dialog and give nothing, so roughly 1 in 4 Trade
+   actions is a visible no-op.
+4. **turn-upkeep-travel — World Traits.** 40 traits are flavour text. 11 already
+   have TERRAIN effects wired via the battlefield generator (overgrown, warzone,
+   crystals, barren, flat, haze/gloom/fog, frozen/reflective_dust/null_zone) —
+   do not duplicate those; the gap is the CAMPAIGN-side effects.
+5. **post-battle — Advanced Training.** Paying for a course buys nothing.
+   ⚠ Trap: it used to assign `Character.training`, a property Character does NOT
+   have (the int lives on `BaseCharacterResource`, which Character does not
+   extend). A nonexistent-property write ABORTS the handler silently. The real
+   API is `acquired_training` / `add_training()`.
+
+Deliberately deprioritised for a tablet test: **factions** (DLC-gated, invisible
+without the expansion) and **Elite enemies** (endgame).
+
+### Hard-won rules that cost time to learn — read before editing
+
+- **The Compendium prints a SECOND weapon table** under `## Game Options` whose
+  values contradict the Core Rules (Shotgun 8"/1 shot vs 12"/2; Suppression maul
+  2 damage Melee+Stun vs 1 damage Melee+Impact). Its designer notes call them
+  "minor tweaks". It is an OPT-IN VARIANT, NOT ERRATA. A grep proving a value
+  "is in the Compendium" is NOT sufficient sourcing — check the section.
+  Same split applies to the **Area** trait.
+- **gdUnit4 reports a parse error as "No test cases found" and EXITS 0.** A green
+  exit code proves nothing. Check the executed-case count, every time.
+- **Godot's JSON parser returns EVERY number as a FLOAT.** `value is int` is
+  always false on loaded data; `[1.0, 15.0] != [1, 15]`. `int()` both sides.
+- **A test suite can pin fabricated rules as firmly as correct ones.** Four tests
+  failed when the to-hit math was corrected, and all four were asserting invented
+  behaviour. Convert them, do not delete them.
+- **Dead + wrong is a much stronger deletion warrant than dead alone.** CLAUDE.md
+  records a sweep that deleted three methods as "zero-caller" when they were only
+  zero-caller because their consumer had been removed weeks earlier. Before
+  deleting a zero-caller provider, ask what used to call it — but if the content
+  also contradicts the book, the question is moot.
+- **A fabricated CITATION is worse than an uncited invention.** `// Ferals ignore
+  suppression (Five Parsecs p.20)` attached a real page number to a rule that
+  page does not contain, and survived review by looking sourced.
+
+### Verification commands that work
+
+```powershell
+# Parse sweep — the fastest global check. "0 definite failures" is the verdict;
+# the '?' markers are its indeterminate bucket (it flags even itself).
+& "$GODOT" --headless --path "$ROOT" --script tests/tools/verify_scripts_parse.gd
+
+# gdUnit4 — note -c, and NEVER --headless. Always read the case COUNT.
+& "$GODOT" --path "$ROOT" --script addons/gdUnit4/bin/GdUnitCmdTool.gd -c `
+  -a tests/unit/test_battle_calculations.gd --quit-after 300
+```
+
+Battle regression set, all green at handoff (130/130): `test_battle_calculations`,
+`test_battle_resolver_router`, `test_battle_funnel_routing`,
+`test_zone_job_opposition`, `test_enemy_deploy_markers`,
+`test_weapon_table_source_of_truth`.
