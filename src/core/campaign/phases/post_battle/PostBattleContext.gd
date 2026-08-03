@@ -793,24 +793,184 @@ func heal_crew_in_sickbay() -> void:
 			return
 
 # --- Equipment Helpers ---
+#
+# DAMAGED GEAR IS A STATUS-EFFECT MARKER ON THE OWNER, not a field on the item.
+# The live representation everywhere in this codebase is
+#   {type: "item_damaged", damaged_item: <item name>}
+# appended to the owning crew member's status_effects. Character Events write it
+# (CharacterEventEffects, "Don't Make Them Like They Used To"), travel events
+# write it (TravelEventResolver._damage_random_item), and Repair Your Kit READS
+# it (CrewTaskComponent._first_damaged_item / _resolve_damaged_item, p.78).
+#
+# Anything that damages equipment must write THIS shape. An item flag such as
+# `damaged: true` or `condition: "damaged"` is invisible to the repair task, so
+# gear marked that way can never be fixed.
+
+static func _entry_item_name(entry: Variant) -> String:
+	return str(entry.get("name", "")) if entry is Dictionary else str(entry)
+
+func _member_equipment(member: Variant) -> Array:
+	## Returns the LIVE array so callers can mutate through to the campaign.
+	if member is Dictionary:
+		var eq: Variant = member.get("equipment", null)
+		return eq if eq is Array else []
+	if member and "equipment" in member and member.equipment is Array:
+		return member.equipment
+	return []
+
+func _member_status_effects(member: Variant) -> Array:
+	if member is Dictionary:
+		if not (member.get("status_effects", null) is Array):
+			member["status_effects"] = []
+		return member["status_effects"]
+	if member and "status_effects" in member and member.status_effects is Array:
+		return member.status_effects
+	return []
+
+func _member_is_dead(member: Variant) -> bool:
+	if member is Dictionary:
+		return bool(member.get("is_dead", false)) \
+			or str(member.get("status", "")) == "DEAD"
+	if member and "is_dead" in member:
+		return bool(member.is_dead)
+	return false
+
+func _is_item_already_damaged(member: Variant, item_name: String) -> bool:
+	for eff in _member_status_effects(member):
+		if eff is Dictionary and str(eff.get("type", "")) == "item_damaged" \
+				and str(eff.get("damaged_item", "")) == item_name:
+			return true
+	return false
+
+func mark_item_damaged(member: Variant, item_name: String, source: String) -> bool:
+	## Returns false when there was nothing to do (no name, or already damaged) so
+	## callers can report an honest count instead of claiming a hit every time.
+	if member == null or item_name.is_empty():
+		return false
+	if _is_item_already_damaged(member, item_name):
+		return false
+	apply_character_status_effect(member, {
+		"type": "item_damaged",
+		"name": "Damaged Equipment",
+		"description": "%s is damaged and cannot be used until Repaired (Core Rules p.78)." % item_name,
+		"duration": 0,
+		"damaged_item": item_name,
+		"source_event": source,
+	})
+	return true
+
+func _damage_random_item_on(member: Variant, source: String) -> String:
+	if member == null:
+		return ""
+	# Already-damaged items are excluded: otherwise a second Equipment Loss result
+	# can "damage" the same broken rifle and cost the player nothing.
+	var candidates: Array = []
+	for entry in _member_equipment(member):
+		var item_name: String = _entry_item_name(entry)
+		if not item_name.is_empty() and not _is_item_already_damaged(member, item_name):
+			candidates.append(item_name)
+	if candidates.is_empty():
+		return ""
+	var chosen: String = candidates[randi() % candidates.size()]
+	mark_item_damaged(member, chosen, source)
+	return chosen
+
+func damage_random_equipment_for(crew_id: String, source: String = "Injury Table") -> String:
+	## Core Rules p.122, Injury Table 17-30 and Bot Injury Table 16-30:
+	## "Random carried item is damaged." Returns the item name, "" if none.
+	return _damage_random_item_on(get_crew_member(crew_id), source)
+
+func damage_all_equipment_for(crew_id: String, source: String = "Injury Table") -> Array:
+	## Core Rules p.122, Injury Table 1-5 Gruesome fate and Bot 1-5 Obliterated:
+	## "...and all carried equipment is damaged." DAMAGED, not lost — the gear
+	## survives the character and is repairable under p.78.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null:
+		return []
+	var damaged: Array = []
+	for entry in _member_equipment(member):
+		var item_name: String = _entry_item_name(entry)
+		if mark_item_damaged(member, item_name, source):
+			damaged.append(item_name)
+	return damaged
+
+func lose_all_equipment_for(crew_id: String) -> Array:
+	## Core Rules p.122, Injury Table 16 Miraculous escape: "The character
+	## survives and receives +1 Luck, but all items carried are PERMANENTLY
+	## LOST." Distinct from Gruesome fate — these items leave the game entirely,
+	## so no repair marker is written and the entries are removed outright.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null:
+		return []
+	var equipment: Array = _member_equipment(member)
+	var lost: Array = []
+	for entry in equipment:
+		var item_name: String = _entry_item_name(entry)
+		if not item_name.is_empty():
+			lost.append(item_name)
+	if lost.is_empty():
+		return []
+	# Mutating the live array writes through to the campaign; reassigning a new
+	# array would not (and on a Character it would hit the Array[String] setter).
+	equipment.clear()
+	# Outstanding damage markers now point at items that no longer exist, which
+	# would leave Repair Your Kit offering to fix thin air forever.
+	var effects: Array = _member_status_effects(member)
+	for i in range(effects.size() - 1, -1, -1):
+		var eff: Variant = effects[i]
+		if eff is Dictionary and str(eff.get("type", "")) == "item_damaged":
+			effects.remove_at(i)
+	return lost
 
 func damage_random_equipment() -> void:
-	var all_equipment: Array = []
-	if game_state_manager and game_state_manager.has_method("get_crew_members"):
-		for member in game_state_manager.get_crew_members():
-			if member.get("is_dead") == true:
-				continue
-			var member_name: String = member.character_name if "character_name" in member else "Unknown"
-			if "weapons" in member:
-				for w in member.weapons:
-					all_equipment.append({"source": "crew", "owner": member_name, "item_name": str(w)})
-			if "items" in member:
-				for it in member.items:
-					all_equipment.append({"source": "crew", "owner": member_name, "item_name": str(it)})
-	if all_equipment.is_empty():
+	## Campaign Event 45-48 "Equipment Malfunction" (Core Rules p.127): one random
+	## item somewhere in the crew is damaged. Called by CampaignEventEffects.
+	##
+	## THE BUG THIS FIXES: the body ended at `var _random_index: int = randi() %
+	## all_equipment.size()` under the comment "Damage is informational —
+	## condition tracking handled by EquipmentManager". EquipmentManager does no
+	## such thing; the index was computed and discarded, so the event damaged
+	## nothing, ever. It also gathered from `weapons`/`items`, which the canonical
+	## crew-member shape does not carry — owner gear lives in `equipment` — so on
+	## the live shape the candidate list was empty before the discard even
+	## mattered.
+	var owners: Array = []
+	for member in get_crew_members():
+		if _member_is_dead(member):
+			continue
+		if not _member_equipment(member).is_empty():
+			owners.append(member)
+	if owners.is_empty():
 		return
-	var _random_index: int = randi() % all_equipment.size()
-	# Damage is informational — condition tracking handled by EquipmentManager
+	_damage_random_item_on(
+		owners[randi() % owners.size()],
+		"Campaign Event: Equipment Malfunction")
+
+func apply_permanent_stat_reduction(crew_id: String, stats: Array, amount: int) -> Dictionary:
+	## Core Rules p.122, Injury Table 31-45 Crippling wound: "-1 permanent
+	## reduction to highest of Speed or Toughness."
+	##
+	## Picks the highest of the listed stats (ties resolve to the first listed —
+	## the book does not break them, and either is legal), floors the result at 0,
+	## and returns {stat, from, to}. Empty when nothing could be reduced.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null or stats.is_empty() or amount == 0:
+		return {}
+	var chosen: String = ""
+	var best: int = -1
+	for s in stats:
+		var stat_name: String = str(s)
+		var value: int = _get_character_stat(member, stat_name)
+		if value > best:
+			best = value
+			chosen = stat_name
+	if chosen.is_empty() or best <= 0:
+		return {}
+	var reduced: int = maxi(0, best + amount)
+	if reduced == best:
+		return {}
+	_set_character_stat(member, chosen, reduced)
+	return {"stat": chosen, "from": best, "to": reduced}
 
 func add_random_equipment_to_stash() -> void:
 	var gc = _get_current_campaign()

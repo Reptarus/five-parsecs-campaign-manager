@@ -60,6 +60,10 @@ const STEP_CHARACTER_EVENT := 12
 ## Accumulated across the per-rival loop in _on_backend_rival_status().
 var _backend_rival_lines: Array = []
 
+## The raw injury dicts the backend applied, kept so the injury step can offer
+## the p.122 Crippling wound surgery buy-out against the right crew member.
+var _backend_injuries: Array = []
+
 
 func _record_backend_step(step_index: int, lines: Array) -> void:
 	## Store what the backend applied, and refresh the step if the player is
@@ -747,24 +751,63 @@ func _on_backend_injury_result(injuries: Array) -> void:
 	## The backend ROLLS AND APPLIES the p.121 Injury Table (InjuryProcessor).
 	## The wizard used to roll its own D100 per casualty and display THAT, while
 	## mutating nothing — so the injury shown was never the injury suffered.
+	_backend_injuries = injuries
 	var lines: Array = []
 	for injury in injuries:
 		if injury is Dictionary:
 			var crew_name = injury.get("crew_name", "Unknown")
-			var severity = injury.get("severity", "Unknown")
+			# "severity" is the raw enum ORDINAL; "type" is the readable name the
+			# processor already puts on the same dict ("CRIPPLING_WOUND"). Every
+			# line printed a bare integer next to the crew name.
+			var severity = injury.get("type", injury.get("severity", "Unknown"))
 			var recovery = injury.get("recovery_turns", 0)
+			var extra: String = _injury_consequence_suffix(injury)
 			if injury.get("is_fatal", false):
 				_add_result_to_log("[color=#DC2626]%s: FATAL - %s[/color]" % [crew_name, severity])
-				lines.append("%s: KILLED — %s" % [crew_name, severity])
+				lines.append("%s: KILLED — %s%s" % [crew_name, severity, extra])
 			elif recovery > 0:
 				_add_result_to_log("%s: %s (%d turns recovery)" % [crew_name, severity, recovery])
-				lines.append("%s: %s — %d turn(s) in Sick Bay" % [crew_name, severity, recovery])
+				lines.append("%s: %s — %d turn(s) in Sick Bay%s" % [
+					crew_name, severity, recovery, extra])
 			else:
 				_add_result_to_log("%s: %s" % [crew_name, severity])
-				lines.append("%s: %s" % [crew_name, severity])
+				lines.append("%s: %s%s" % [crew_name, severity, extra])
 	if lines.is_empty():
 		lines.append("No crew were injured.")
 	_record_backend_step(STEP_INJURIES, lines)
+
+
+func _injury_consequence_suffix(injury: Dictionary) -> String:
+	## Core Rules p.122 consequences the backend now actually applies. Without
+	## this the player is never told a weapon broke or a stat dropped — the gear
+	## simply stops working (p.122: damaged equipment "cannot be used until it
+	## has been Repaired") with no explanation anywhere in the app.
+	var parts: Array = []
+
+	var lost: Array = injury.get("items_lost", [])
+	if not lost.is_empty():
+		parts.append("all items permanently lost (%s)" % ", ".join(lost))
+
+	var damaged: Array = injury.get("items_damaged", [])
+	if not damaged.is_empty():
+		parts.append("%s damaged — Repair before use (p.78)" % ", ".join(damaged))
+
+	var stat: String = str(injury.get("stat_reduced", ""))
+	if not stat.is_empty():
+		parts.append("%s permanently %d → %d" % [
+			stat.capitalize(),
+			int(injury.get("stat_reduced_from", 0)),
+			int(injury.get("stat_reduced_to", 0))])
+
+	if injury.get("luck_bonus", 0) > 0:
+		parts.append("+%d Luck" % int(injury.get("luck_bonus", 0)))
+
+	if injury.get("luck_death_save", false):
+		parts.append("survived on Luck — ALL Luck spent (p.121)")
+
+	if parts.is_empty():
+		return ""
+	return "; " + "; ".join(parts)
 
 func _on_backend_battlefield_finds(finds: Array) -> void:
 	## p.121: "Roll D100 ONCE on the table below." The backend rolls it and adds
@@ -1274,6 +1317,7 @@ func _add_injury_content() -> void:
 		header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		step_content.add_child(header)
 		_present_backend_result(STEP_INJURIES)
+		_add_surgery_offers()
 		_register_inline_rolls(7, 0)
 		return
 
@@ -1302,6 +1346,101 @@ func _add_injury_content() -> void:
 		no_injuries_label.modulate = UIColors.COLOR_EMERALD
 		step_content.add_child(no_injuries_label)
 	_register_inline_rolls(7, total_injury_rolls)
+
+func _add_surgery_offers() -> void:
+	## Core Rules p.122, Injury Table 31-45 Crippling wound: "Require 1D6 credits
+	## of surgery immediately, OR suffer -1 permanent reduction to highest of
+	## Speed or Toughness."
+	##
+	## The backend already applied the reduction — see
+	## InjuryProcessor._apply_crippling_wound for why that ordering is the only
+	## one that cannot silently no-op. This is the pay-to-undo half, and it uses
+	## the same inline-nudge shape as the "Looked worse than it was!" star so the
+	## injury step keeps one interaction vocabulary.
+	for injury: Variant in _backend_injuries:
+		if not (injury is Dictionary):
+			continue
+		if not injury.get("surgery_offer_available", false):
+			continue
+		var cost: int = int(injury.get("surgery_cost", 0))
+		var stat: String = str(injury.get("stat_reduced", ""))
+		if cost <= 0 or stat.is_empty():
+			continue
+
+		var credits: int = _get_current_credits()
+		var crew_name: String = str(injury.get("crew_name", "Crew member"))
+		var btn := Button.new()
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if credits >= cost:
+			btn.text = "Pay %d credits of surgery — restore %s's %s to %d" % [
+				cost, crew_name, stat.capitalize(),
+				int(injury.get("stat_reduced_from", 0))]
+			btn.pressed.connect(_on_surgery_pressed.bind(injury, btn))
+		else:
+			btn.disabled = true
+			btn.text = "Surgery costs %d credits — you have %d (%s keeps the -1 %s)" % [
+				cost, credits, crew_name, stat.capitalize()]
+		step_content.add_child(btn)
+
+
+func _on_surgery_pressed(injury: Dictionary, btn: Button) -> void:
+	var cost: int = int(injury.get("surgery_cost", 0))
+	var stat: String = str(injury.get("stat_reduced", ""))
+	var restore_to: int = int(injury.get("stat_reduced_from", 0))
+	var crew_id: String = str(injury.get("crew_id", ""))
+	var crew_name: String = str(injury.get("crew_name", "Crew member"))
+	btn.disabled = true
+
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_credits") \
+			or not gsm.has_method("set_credits"):
+		btn.text = "Surgery unavailable — no campaign state"
+		return
+	var credits: int = gsm.get_credits()
+	if credits < cost:
+		btn.text = "Surgery costs %d credits — you have %d" % [cost, credits]
+		return
+
+	var member: Variant = _find_crew_member_by_id(crew_id)
+	if member == null:
+		btn.text = "Surgery failed — %s is no longer with the crew" % crew_name
+		return
+
+	gsm.set_credits(credits - cost)
+	if member is Dictionary:
+		member[stat] = restore_to
+	else:
+		member.set(stat, restore_to)
+
+	# The surgery undoes the wound's permanent half; the offer must not survive a
+	# step revisit or the player could buy the same restoration twice.
+	injury.erase("surgery_offer_available")
+	injury.erase("stat_reduced")
+
+	btn.text = "Surgery paid: %d credits — %s's %s restored to %d" % [
+		cost, crew_name, stat.capitalize(), restore_to]
+	_add_result_to_log(
+		"%s: paid %d credits of surgery, %s restored to %d (Core Rules p.122)" % [
+			crew_name, cost, stat.capitalize(), restore_to])
+
+
+func _find_crew_member_by_id(crew_id: String) -> Variant:
+	if crew_id.is_empty():
+		return null
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_crew_members"):
+		return null
+	for member: Variant in gsm.get_crew_members():
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str(member.get("character_id", member.get("id", "")))
+		elif "character_id" in member:
+			mid = str(member.character_id)
+		if mid == crew_id:
+			return member
+	return null
+
 
 func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	## Create a panel for injury resolution

@@ -136,6 +136,11 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 
 	var processed_injury := {
 		"crew_id": crew_id,
+		# The wizard prints injury.get("crew_name", "Unknown") and NOTHING has
+		# ever written the key, so every post-battle injury line in every
+		# campaign read "Unknown: MINOR_INJURY". The backend is the only layer
+		# that already holds the member, so it is the right place to resolve it.
+		"crew_name": _crew_name(ctx, crew_id),
 		"type": injury_type_name,
 		"severity": injury_type,
 		"recovery_turns": recovery_time,
@@ -145,6 +150,24 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		"equipment_lost": equipment_lost,
 		"bonus_xp": bonus_xp
 	}
+
+	# Core Rules p.122 equipment consequences. `equipment_lost` and
+	# `all_equipment` have been COMPUTED here and stored in this dict since the
+	# file was written, and no consumer anywhere ever acted on either — so three
+	# rows of the organic Injury Table (1-5 Gruesome fate, 16 Miraculous escape,
+	# 17-30 Equipment loss = 20 of 100 results) left every item pristine.
+	#
+	# The knock-on is bigger than the rows: p.122's opening line is "If a result
+	# on these tables indicates damaged equipment, such equipment cannot be used
+	# until it has been Repaired (see p.78)", and Repair Your Kit is one of only
+	# six crew tasks. With no producer, the single most common source of damaged
+	# gear in the book never fired, so the repair task had nothing to repair in
+	# any campaign outside the rare Character-Event item damage.
+	#
+	# Applied BEFORE the fatal branch: 1-5 is "Dead, AND all carried equipment is
+	# damaged", so the gear clause must land whether or not the Luck death-save
+	# below rescues the character.
+	_apply_equipment_consequences(ctx, processed_injury, injury_type, crew_id)
 
 	# Fatal injuries: return early. The "Dramatic Escape" mechanic previously
 	# wired here was fabricated (NOT in Core Rules p.67) and has been removed.
@@ -200,10 +223,88 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		ctx.apply_luck_increase(ctx.get_crew_member(crew_id), luck_bonus)
 		processed_injury["luck_bonus"] = luck_bonus
 
+	# Core Rules p.122, Injury Table 31-45 Crippling wound: "Require 1D6 credits
+	# of surgery immediately, or suffer -1 permanent reduction to highest of
+	# Speed or Toughness."
+	#
+	# data/injury_results.json has carried surgery_cost_roll AND the full
+	# stat_reduction block ({stats: [speed, toughness], pick: highest, amount:
+	# -1}) since it was written, and NOTHING read either — so the worst
+	# survivable result on the table was mechanically identical to a Serious
+	# injury one row below it (both "no long-term effect", both a few turns in
+	# Sick Bay). 15% of every injury roll.
+	_apply_crippling_wound(ctx, processed_injury, injury_type, crew_id)
+
 	# Apply injury to crew member
 	ctx.apply_crew_injury(crew_id, processed_injury)
 
 	return processed_injury
+
+
+func _crew_name(ctx: PostBattleContextClass, crew_id: String) -> String:
+	var member: Variant = ctx.get_crew_member(crew_id)
+	if member == null:
+		return "Unknown"
+	return ctx.get_char_name(member)
+
+
+func _apply_equipment_consequences(ctx: PostBattleContextClass,
+		processed_injury: Dictionary, injury_type: int, crew_id: String) -> void:
+	## Core Rules p.122 organic Injury Table. Three mutually exclusive outcomes,
+	## checked most-specific first because roll 16 and roll 1-5 both set the
+	## "all equipment" flag but mean DIFFERENT things.
+	var source: String = "Injury Table: %s" % str(processed_injury.get("type", ""))
+
+	# 16 Miraculous escape: "all items carried are PERMANENTLY LOST."
+	if InjuryConstants.equipment_is_permanently_lost(injury_type):
+		var lost: Array = ctx.lose_all_equipment_for(crew_id)
+		if not lost.is_empty():
+			processed_injury["items_lost"] = lost
+		return
+
+	# 1-5 Gruesome fate: "all carried equipment is damaged" — repairable, p.78.
+	if InjuryConstants.causes_all_equipment_damage(injury_type):
+		var damaged: Array = ctx.damage_all_equipment_for(crew_id, source)
+		if not damaged.is_empty():
+			processed_injury["items_damaged"] = damaged
+		return
+
+	# 17-30 Equipment loss: "Random carried item is damaged."
+	if InjuryConstants.causes_equipment_loss(injury_type):
+		var one: String = ctx.damage_random_equipment_for(crew_id, source)
+		if not one.is_empty():
+			processed_injury["items_damaged"] = [one]
+
+
+func _apply_crippling_wound(ctx: PostBattleContextClass,
+		processed_injury: Dictionary, injury_type: int, crew_id: String) -> void:
+	## The penalty is applied NOW and the surgery is offered as a BUY-OUT.
+	##
+	## That ordering is deliberate. The book presents this as a choice made
+	## "immediately", but the backend resolves injuries before any UI exists to
+	## ask — and a choice that waits for a prompt is a choice that silently never
+	## happens, which is the exact defect this fix closes. Applying the default
+	## outcome and letting the player pay to undo it means the rule ALWAYS fires,
+	## the player keeps the decision, and ignoring the prompt leaves the book's
+	## other branch standing. Same backend-flags / UI-offers split already used
+	## for the "Looked worse than it was!" star in process_injuries().
+	var spec: Dictionary = InjuryConstants.get_stat_reduction(injury_type)
+	if spec.is_empty():
+		return
+
+	var reduced: Dictionary = ctx.apply_permanent_stat_reduction(
+		crew_id, spec.get("stats", []), int(spec.get("amount", -1)))
+	if not reduced.is_empty():
+		processed_injury["stat_reduced"] = str(reduced.get("stat", ""))
+		processed_injury["stat_reduced_from"] = int(reduced.get("from", 0))
+		processed_injury["stat_reduced_to"] = int(reduced.get("to", 0))
+
+	var cost: int = InjuryConstants.roll_surgery_cost_for(injury_type)
+	if cost > 0:
+		processed_injury["surgery_cost"] = cost
+		# Only a real offer if there is something to undo; with every listed stat
+		# already at 0 the surgery buys nothing and must not be sold.
+		processed_injury["surgery_offer_available"] = not reduced.is_empty()
 
 func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, crew_id: String) -> Dictionary:
 	## Process injury for Bot/Soulless character (Core Rules p.94-95)
@@ -225,6 +326,7 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 
 	var processed_injury := {
 		"crew_id": crew_id,
+		"crew_name": _crew_name(ctx, crew_id),
 		"type": injury_type_name,
 		"severity": bot_injury_type,
 		"recovery_turns": recovery_time,
@@ -239,6 +341,22 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 	var bot_props: Dictionary = InjuryConstants.BOT_INJURY_PROPERTIES.get(bot_injury_type, {})
 	if bot_props.get("all_equipment", false):
 		processed_injury["all_equipment_damaged"] = true
+
+	# Core Rules p.122 Bot Injury Table, same dead-flag family as the organic
+	# table above: 1-5 Obliterated is "Destroyed, and all carried equipment is
+	# damaged" and 16-30 is "Random carried item is damaged" — 20 of 100 results
+	# that set `equipment_lost`/`all_equipment_damaged` on this dict and touched
+	# nothing. The Bot table has no permanent-loss row, so both outcomes are
+	# damage and both stay repairable under p.78.
+	var bot_source: String = "Bot Injury Table: %s" % injury_type_name
+	if InjuryConstants.bot_causes_all_equipment_damage(bot_injury_type):
+		var bot_damaged: Array = ctx.damage_all_equipment_for(crew_id, bot_source)
+		if not bot_damaged.is_empty():
+			processed_injury["items_damaged"] = bot_damaged
+	elif InjuryConstants.bot_causes_equipment_loss(bot_injury_type):
+		var bot_one: String = ctx.damage_random_equipment_for(crew_id, bot_source)
+		if not bot_one.is_empty():
+			processed_injury["items_damaged"] = [bot_one]
 
 	# A DESTROYED bot is dead, not injured (Core Rules p.95 Bot Injury Table).
 	# is_fatal was computed at :175 and recorded in the result dict, then ignored:
