@@ -324,12 +324,25 @@ Ranked by "will a tester actually hit this in one sitting", not by finding count
 ~~7. patrons-rivals-quests — the three p.99 enemy-trait rules.~~
    **DONE `5eeee2c39`.** `EnemyTraitRules.gd` matches on the trait NAME before
    the colon, so the rest of the encounter tables' `special_rules` strings are
-   now cheap to wire the same way. The obvious next candidates, all on pp.96-101
-   and all currently print-only: Careless (Abandoned, +1 Seize the Initiative),
-   Cowardly (Abandoned/Mutants, "Lieutenants are affected by Morale dice"),
-   Dogged (Isolationists, Fearless at 1-2 figures), Ferocious (Zealots, +1
-   Brawling when initiating), Going medieval (Primitives, Blades instead of
-   normal weapons) and Cop killer (Enforcers, +2 to their numbers as Rivals).
+   now cheap to wire the same way — and `2d052d2de` + `1ac3697ab` did seven
+   more: Cop killer, Scavengers, Tough fight, Careless, Alert,
+   Prediction/Unpredictable and Going medieval.
+
+   **What is left is print-only ON PURPOSE, probably.** Every remaining trait is
+   an IN-BATTLE rule — Cowardly ("Lieutenants are affected by Morale dice"),
+   Dogged (Fearless at 1-2 figures), Ferocious (+1 Brawling when initiating),
+   Stubborn, Bad shots, Trick shot, Aggro, Easy targets, Needle fangs, Quick
+   feet, Leap, Shimmer, Pack hunters, Up close. This is a tabletop COMPANION:
+   the player resolves combat on the table, so surfacing these in the briefing
+   may be the whole job. Decide that deliberately rather than by omission.
+
+   **The sharpest lesson of the group** came from Going medieval: replacing a
+   loadout ONCE is not enough. The Lieutenant branch re-rolls the basic column
+   (p.93, "Lieutenants will both roll separately for their weapons") and so does
+   Varied Armaments, so the resolver was correct and two later lines quietly
+   undid it — the war leader kept a handgun while his mooks held blades. Test at
+   the GENERATOR, not just the resolver, whenever a rule REPLACES rather than
+   adjusts.
 
 8. **patrons-rivals-quests — the two BHC rows left over** (Private Transport,
    Busy) — see the detail under item 6.
