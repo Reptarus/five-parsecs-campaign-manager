@@ -49,10 +49,6 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# compendium_difficulty_toggles.roll_ai_behavior / get_ai_behavior and the
 	# AI_VARIATION_TABLES getter — zero callers.
 	"AI_VARIATIONS",
-	# compendium_missions_expanded.check_for_connection / roll_connection_type /
-	# roll_connection_subtable — zero callers; CharacterConnections.gd is itself
-	# referenced by nothing in src/.
-	"EXPANDED_CONNECTIONS",
 	# TacticalBattleUI reads mission_dict["grid_movement_instructions"] and no
 	# producer anywhere writes it. BattlefieldGrid.gd is p.108 table geometry,
 	# a different thing entirely.
@@ -82,6 +78,15 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 ## as a standing obligation on campaign.progress_data["expanded_quest"], and
 ## feeds its modifiers to EnemyGenerator and BattleSetupRules through the
 ## mission stamp. Pinned by tests/unit/test_expanded_quest_progression.gd.
+##
+## EXPANDED_CONNECTIONS was REMOVED the same day. pp.80-86 run on
+## src/core/campaign/ExpandedConnections.gd: the p.80 1D6 check in the Mission
+## Prep step ("while establishing the objectives and parameters"), the D6 main
+## table into one of five subtables, the automatic first-game Connection, the
+## no-roll and variety-swap variations as real settings, the * decline, and the
+## one-turn expiry. Pinned by tests/unit/test_expanded_connections.gd.
+## (src/core/character/connections/CharacterConnections.gd is a DIFFERENT
+## system — creation-time starting contacts — and remains unreferenced.)
 
 
 ## True if the flag is listed above — i.e. owning the pack would not change play.

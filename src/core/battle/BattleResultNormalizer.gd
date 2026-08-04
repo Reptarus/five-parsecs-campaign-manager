@@ -102,6 +102,10 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# result, any battle fought while the obligation stood would clear it —
 			# including a Patron job that had nothing to do with the Quest.
 			"quest_step_id", "quest_survival_target",
+			# connection_id added 2026-08-03 for Expanded Connections (Compendium
+			# pp.80-86), so the post-battle side and the journal can name the
+			# Connection the battle was fought under.
+			"connection_id", "connection_instruction",
 			# world_traits added 2026-08-02: the p.73-74 traits that modify
 			# POST-battle steps (Unity safe sector / Invasion risk / Imminent
 			# invasion / Military outpost on the p.121 Invasion check, Vendetta

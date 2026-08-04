@@ -49,6 +49,18 @@ const DEFAULTS := {
 		# campaigns behave exactly as before; the switch exists because the book
 		# says the table is the player's choice.
 		"use_battle_events": true,
+		# Compendium p.80 Expanded Connections, the two variations the chapter
+		# explicitly leaves to the player. Both default OFF, which is the book's
+		# main line: roll 1D6 on every Opportunity mission, and let a result
+		# repeat if the dice say so.
+		#   "No-roll option — If you prefer to reduce dice-rolling, a Connection
+		#    occurs any time you play an Opportunity mission AND the prior
+		#    Opportunity mission did not have a Connection."
+		"connections_no_roll": false,
+		#   "Designer note — If you prefer to maintain variety, swap a result you
+		#    have already had this campaign for the first new result in the same
+		#    subtable."
+		"connections_variety": false,
 		"table_size_ft": 3.0,  # physical table: 2.0 / 2.5 / 3.0 (Core Rules p.108)
 	},
 	"mobile": {
@@ -385,6 +397,18 @@ func are_battle_events_enabled() -> bool:
 	## Defaults TRUE, preserving the existing behaviour for anyone who does not
 	## go looking for the switch.
 	return get_setting("gameplay", "use_battle_events")
+
+func use_connections_no_roll() -> bool:
+	## Compendium p.80: "If you prefer to reduce dice-rolling, a Connection occurs
+	## any time you play an Opportunity mission AND the prior Opportunity mission
+	## did not have a Connection (in other words, every other time)."
+	return get_setting("gameplay", "connections_no_roll")
+
+func use_connections_variety() -> bool:
+	## Compendium p.80 designer note: "If you prefer to maintain variety, swap a
+	## result you have already had this campaign for the first new result in the
+	## same subtable."
+	return get_setting("gameplay", "connections_variety")
 
 func get_table_size_ft() -> float:
 	## Player's physical table size: 2.0 / 2.5 / 3.0 ft (Core Rules p.108)

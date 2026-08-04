@@ -17,6 +17,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 ## Version of the battle-result → NarrativeScreen event_data contract produced by
 ## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
@@ -777,6 +778,14 @@ func _initiate_battle_sequence() -> void:
 		# where the campaign roster is in hand.
 		if int(mission_data.get("quest_survival_target", 0)) > 0:
 			mission_data["quest_engineer_bonus"] = 1 if _crew_has_engineer(active_crew) else 0
+
+	# Expanded Connections (Compendium pp.80-86). The Connection is ROLLED in the
+	# Mission Prep step, which is the book's own moment ("while establishing the
+	# objectives and parameters"); this only re-stamps whatever is pending, so a
+	# battle reached by a path that skips that step still carries it. Merged
+	# without overwrite for the same reason.
+	mission_data.merge(ExpandedConnectionsRef.mission_stamp(
+		game_state.current_campaign), false)
 	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
 		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)

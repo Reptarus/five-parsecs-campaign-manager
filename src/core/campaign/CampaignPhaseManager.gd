@@ -7,6 +7,7 @@ const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
 	"res://src/core/campaign/phases/PostBattlePhase.gd")
@@ -225,6 +226,11 @@ func _process_turn_rollover() -> void:
 	# any Explore or Trade crew actions during the NEXT campaign turn." Everything
 	# else on pp.149-151 persists until the player clears it.
 	_expire_fringe_strife_effects(campaign)
+
+	# --- Expire a Connection nobody seized (Compendium p.81) ---
+	# "Seize any opportunity immediately next campaign turn, or the option
+	# disappears." An offer made on turn N is playable on N and N+1.
+	_expire_stale_connection(campaign)
 
 	# --- Expanded Quest research (Compendium p.79, row 11-20) ---
 	# "You may continue accumulating research points every campaign turn until
@@ -721,6 +727,29 @@ func _expire_fringe_strife_effects(campaign: Resource) -> void:
 		turn = int(campaign.progress_data.get("turns_played", 0))
 	for planet_id in FringeWorldStrifeRef.all_states(campaign).keys():
 		FringeWorldStrifeRef.expire_effects(campaign, str(planet_id), turn)
+
+
+func _expire_stale_connection(campaign: Resource) -> void:
+	## Compendium p.81: "Seize any opportunity immediately next campaign turn, or
+	## the option disappears."
+	if campaign == null or not ExpandedConnectionsRef.is_enabled():
+		return
+	var turn: int = 0
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		turn = int(campaign.progress_data.get("turns_played", 0))
+	var lapsed: Dictionary = ExpandedConnectionsRef.expire_stale(campaign, turn)
+	if lapsed.is_empty():
+		return
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "A Connection lapsed",
+			"description": "The crew did not act on the opportunity in time, "
+				+ "and it is gone (Compendium p.81).",
+			"tags": ["connection", "compendium", "expanded_connections"],
+		})
 
 
 func _process_expanded_quest_research(campaign: Resource) -> void:

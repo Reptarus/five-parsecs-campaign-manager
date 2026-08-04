@@ -13,17 +13,19 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 24 |
+| **LIVE** — a live path reaches the player | 26 |
 | **PARTIAL** — some of the chapter lands, a named part does not | 0 |
-| **DEAD** — data + gated API exist, nothing reaches the player | 6 |
+| **DEAD** — data + gated API exist, nothing reaches the player | 4 |
 
 Casualty Tables, Detailed Injuries, Dramatic Combat and Loans all moved to LIVE
 on Aug 3. Each fix is described in its section below — and every one of them was
 a defect that **call-site tracing cannot see**, which is what the original pass
 did. Trace to the value.
 
-7 of the 10 dead are **Freelancer's Handbook** — 7 of that pack's 17 advertised
-features.
+All 4 remaining dead chapters are **Freelancer's Handbook** — PvP (pp.35-38),
+Expanded Co-op (pp.39-41), AI Variations (p.42) and Grid-based Movement
+(pp.90-93). Three of those four need a second player or a movement layer this
+app does not have; only Grid-based Movement is a pure wiring gap.
 
 > ### ⛔ Two rows in the first version of this table were WRONG, in the same way
 >
@@ -85,8 +87,8 @@ getter.
 | Elite-level Enemies pp.48-65 | **LIVE (fixed Aug 3)** | was never loaded AND only 40% present. Data completed from the PDF (82 profiles, five tables, each spanning 1-100); `src/data/compendium_elite_enemies.gd` loads it and `EnemyGenerator._roll_enemy_in_category` performs the p.48 substitution. See "the incomplete table is worse than the dead one" below |
 | No-minis Combat pp.66-73 | LIVE | `NoMinisResolver`, `BattleResolverRouter:38`, `NoMinisCombatPanel`, `TacticalBattleUI:6741` |
 | Expanded Missions p.74 | LIVE | five roll functions consumed by `JobOfferComponent.gd:1649-1669` |
-| **Expanded Quest Progression p.78** | **DEAD** | `roll_quest_progression` / `get_quest_conclusion` (`:258/:271`) — zero callers |
-| **Expanded Connections p.80** | **DEAD** | `check_for_connection` / `roll_connection_type` / `roll_connection_subtable` (`:278/:285/:298`) zero callers, **and** `src/core/character/connections/CharacterConnections.gd` is referenced by nothing in `src/` |
+| Expanded Quest Progression pp.78-80 | **LIVE (fixed Aug 3)** | data complete, readers correct, zero callers — the missing piece was STATE. A Quest step is a standing obligation ("until this has been done, you cannot progress the Quest"), which a stateless roller cannot express. New `src/core/campaign/ExpandedQuestProgression.gd` holds the p.78 gate (replacing the core p.120 mapping AND its p.119 travel roll at `RivalPatronResolver`), the pending step at `progress_data["expanded_quest"]`, a producer for each of the seven blocking rows, and the two permanent modifiers into `EnemyGenerator` / `BattleSetupRules`. See below |
+| Expanded Connections pp.80-86 | **LIVE (fixed Aug 3)** | same shape: 30 complete subtable scenarios, three correct readers, zero callers. New `src/core/campaign/ExpandedConnections.gd` runs the p.80 1D6 check in the Mission Prep step (the book's own "while establishing the objectives and parameters"), the D6 main table into one of five subtables, the automatic first-game Connection, the `*` decline, the one-turn expiry, and the no-roll / variety-swap variations as real settings. **`src/core/character/connections/CharacterConnections.gd` is a DIFFERENT system** — creation-time starting contacts — and is still referenced by nothing |
 | **Dramatic Combat pp.87-89** | **PARTIAL** | Adjusted Shooting is applied by all four resolvers and the rule text renders (`TacticalBattleUI:6113`). The **Dramatic Weapons stat table pp.88-89** does not: `get_dramatic_weapon_stats()` and `get_dramatic_effect()` have zero callers |
 | **Grid-based Movement pp.90-93** | **DEAD** | `TacticalBattleUI.gd:6123` reads `mission_dict["grid_movement_instructions"]` — **zero producers.** `BattlefieldGrid.gd` is table geometry (p.108 sizes), not this chapter |
 | Terrain Generation pp.94-98 | LIVE | `FPCM_BattlefieldGenerator` + `data/battlefield/themes/compendium_terrain.json` |
@@ -285,6 +287,45 @@ where the Core Rules print **"1 (3 Human)"**. Read as a flat 3, Slower
 Progression would have *raised* every non-Human species' Luck cap from 1 to 3 —
 in a chapter whose entire purpose is to make the game harder. The maximum is
 therefore applied as a clamp that can only ever lower the existing cap.
+
+## Two chapters where nothing was broken at all (Aug 3)
+
+**Expanded Quests (pp.78-80) and Expanded Connections (pp.80-86).** Neither had a
+broken guard, a truncated table, a wrong key or a dead file. The data was
+complete — nine quest rows spanning 01-100 contiguously, 30 Connection scenarios
+across five subtables with every `*` decline marker recorded. The readers on
+`compendium_missions_expanded.gd` were correct and correctly DLC-gated. The
+chapters were dead purely because **nothing called them**.
+
+That is a third failure mode, and it needs naming separately, because the
+question "what is wrong with this code" has no answer here. The right question is
+"what would a caller have needed, and did it exist?"
+
+For Quests, it did not. A Quest step is not an event, it is a **standing
+obligation** — seven of the nine rows end "until this has been paid / done /
+completed, you cannot progress the Quest" — and a roll with nowhere to persist
+its result cannot express that. `roll_quest_progression()` could only ever have
+returned a row and thrown it away. The missing piece was STATE, and no amount of
+staring at the reader would have revealed it.
+
+Same for Connections at a smaller scale: the p.81 variety swap is scoped to "this
+campaign", the no-roll option is a question about the PRIOR Opportunity mission,
+and the offer expires one campaign turn after it is made. Three separate reasons
+the chapter needs memory, none of them visible from `check_for_connection()`.
+
+Two decisions worth recording:
+
+- **"In place of" means in place of.** p.78 says the expanded system is used "in
+  place of the core rulebook system" at Post-Battle Step 3, so the core 1-3/4-6/7+
+  mapping goes, and so does the p.119 travel roll that follows it — the travel
+  roll is part of the step being replaced, not a separate rule. The Compendium
+  p.28 Expanded Database +1 is KEPT: a ship component that modifies a Quest
+  progress roll does not care which table the roll consults.
+- **The branch is taken before the die.** A standing obligation suppresses the
+  roll entirely, so `process_quest_progress` must decide which system it is
+  running BEFORE `ctx.roll_d6()`. A die rolled and discarded still reaches the
+  dice feed and the journal, and for a player following along on paper that is
+  worse than no die at all.
 
 ## The incomplete table is worse than the dead one (Elite Enemies, Aug 3)
 

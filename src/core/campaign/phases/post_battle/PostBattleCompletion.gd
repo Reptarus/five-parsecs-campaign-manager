@@ -11,6 +11,7 @@ const PostBattleContextClass = preload("res://src/core/campaign/phases/post_batt
 ## as a global identifier. Reused here for _to_crew_entry(), which is the exact
 ## character-object -> crew_id resolution the journal harvest below needs.
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 
 func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 	## Update character lifetime statistics from battle results (kills, damage, participation)
@@ -204,6 +205,20 @@ func record_planet_mission(ctx: PostBattleContextClass) -> void:
 			world_id = String(current_for_mission.id)
 	if not world_id.is_empty():
 		pdm.complete_mission(world_id, ctx.battle_result)
+
+
+func resolve_connection(ctx: PostBattleContextClass) -> Dictionary:
+	## Expanded Connections (Compendium p.81). The offer is spent once the
+	## mission is played — it is an opportunity, not a standing obligation like a
+	## Quest step, so nothing outlives the battle it was attached to.
+	##
+	## Returns the record that was resolved, or {}. The narrative payoffs the 30
+	## rows describe (Rumors, XP, Story Points, new Rivals) are table instructions
+	## the player applies at their own board; this closes the app's side of it so
+	## the same Connection cannot be offered twice.
+	if ctx.campaign == null:
+		return {}
+	return ExpandedConnectionsRef.resolve_pending(ctx.campaign, false)
 
 ## Morale system removed — Core Rules has no campaign-level morale mechanic.
 ## Combat morale (Panic checks) is a separate in-battle mechanic handled by

@@ -68,6 +68,8 @@ var _show_tooltips_check: CheckButton
 var _show_fps_check: CheckButton
 var _screen_shake_check: CheckButton
 var _narrative_events_check: CheckButton
+var _connections_no_roll_check: CheckButton
+var _connections_variety_check: CheckButton
 # Mobile-only
 var _haptic_check: CheckButton
 var _touch_sensitivity_slider: HSlider
@@ -423,6 +425,21 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		"Toggle full-screen narrative event windows",
 		"Show full-screen story moments with art and advisor reactions. When off, events use the classic card layout.")
 	_bind_toggle(_narrative_events_check, "gameplay", "use_narrative_events")
+
+	# Compendium p.81 Expanded Connections, the two variations the chapter leaves
+	# to the player by name. Both default OFF — the book's main line is the 1D6
+	# roll on every Opportunity mission, with repeats allowed.
+	_connections_no_roll_check = _add_toggle_row(card, "Connections: No-Roll Option",
+		_sm.use_connections_no_roll() if _sm else false,
+		"Toggle the Compendium no-roll Connections option",
+		"Compendium p.81: skip the 1D6 and give every other Opportunity mission a Connection.")
+	_bind_toggle(_connections_no_roll_check, "gameplay", "connections_no_roll")
+
+	_connections_variety_check = _add_toggle_row(card, "Connections: Prefer Variety",
+		_sm.use_connections_variety() if _sm else false,
+		"Toggle the Compendium Connections variety swap",
+		"Compendium p.81: swap a Connection you have already had this campaign for the first new result in the same subtable.")
+	_bind_toggle(_connections_variety_check, "gameplay", "connections_variety")
 
 	# My Table Size — the player's physical battle table (Core Rules p.108).
 	# Drives the battlefield map grid + Standard Terrain Set guidance (p.109).

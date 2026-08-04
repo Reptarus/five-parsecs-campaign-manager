@@ -486,6 +486,9 @@ func _complete_post_battle_phase() -> void:
 	_completion.apply_notable_sight_reward(_ctx)
 	_completion.create_battle_journal_entry(_ctx)
 	_completion.record_planet_mission(_ctx)
+	# Compendium p.81: the Connection was an opportunity attached to THIS mission.
+	# Playing it spends it, so the same one is never offered twice.
+	_completion.resolve_connection(_ctx)
 
 	# Phase 3: Remove single-use items consumed during battle (Core Rules p.51)
 	var consumed_results: Array = _completion.process_consumed_items(_ctx)
