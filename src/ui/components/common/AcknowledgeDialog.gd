@@ -1,19 +1,28 @@
 class_name AcknowledgeDialog
 extends Window
 
-## Titleless acknowledgement modal for simple blockers.
+## Titleless acknowledgement modal.
 ## The message IS the body — no title bar text, single "OK" button.
-## Use for "Not enough credits", "Cannot do that", etc.
+## Sized for short blockers ("Not enough credits", "Cannot do that") but it now
+## GROWS to fit longer copy: the fixed 200px height silently clipped anything
+## past ~4 lines and pushed the OK button off the window, leaving the X as the
+## only way out. Found when the Story Track's outcome prose landed here.
 ## Inspired by Fallout Wasteland Warfare companion app error modals.
 
 signal acknowledged
 
+## Baseline for a one-or-two-line blocker.
+const MIN_HEIGHT := 200
+## Never grow past this share of the screen; beyond it the body scrolls.
+const MAX_HEIGHT_RATIO := 0.7
+
 var _message_label: Label
+var _scroll: ScrollContainer
 var _pending_text: String = ""
 
 func _init() -> void:
 	title = ""
-	size = Vector2i(380, 200)
+	size = Vector2i(380, MIN_HEIGHT)
 	transient = true
 	exclusive = true
 	unresizable = true
@@ -23,6 +32,29 @@ func _ready() -> void:
 	_build_ui()
 	if not _pending_text.is_empty():
 		_message_label.text = _pending_text
+	# Deferred: the label reports no useful minimum size until it has been laid
+	# out once at the window's width, which autowrap depends on.
+	_fit_to_content.call_deferred()
+
+func _fit_to_content() -> void:
+	if _message_label == null or not is_instance_valid(_message_label):
+		return
+	await get_tree().process_frame
+	if not is_instance_valid(self) or not is_instance_valid(_message_label):
+		return
+
+	var text_h: int = int(ceil(_message_label.get_minimum_size().y))
+	# Body + OK button + separation + top/bottom margins.
+	var chrome_h: int = UIColors.TOUCH_TARGET_COMFORT + UIColors.SPACING_MD \
+		+ UIColors.SPACING_LG + UIColors.SPACING_MD
+	var desired: int = text_h + chrome_h
+
+	var screen_h: int = DisplayServer.screen_get_size().y
+	var max_h: int = int(screen_h * MAX_HEIGHT_RATIO)
+	var final_h: int = clampi(desired, MIN_HEIGHT, max_h)
+	if final_h != size.y:
+		size = Vector2i(size.x, final_h)
+		move_to_center()
 
 func _build_ui() -> void:
 	# Background
@@ -50,18 +82,26 @@ func _build_ui() -> void:
 	vbox.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	margin.add_child(vbox)
 
-	# Message label — this IS the content, no title
+	# Message label — this IS the content, no title.
+	# Inside a ScrollContainer so copy longer than MAX_HEIGHT_RATIO of the screen
+	# stays reachable instead of being clipped away with no way to read it.
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(_scroll)
+
 	_message_label = Label.new()
 	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_message_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_message_label.add_theme_font_size_override(
 		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_message_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
-	vbox.add_child(_message_label)
+	_scroll.add_child(_message_label)
 
 	# OK button
 	var ok_btn := Button.new()

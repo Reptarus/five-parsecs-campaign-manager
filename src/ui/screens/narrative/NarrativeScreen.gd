@@ -25,6 +25,24 @@ extends CanvasLayer
 
 const OVERLAY_LAYER := 95
 
+## Scene illustrations are OFF for the alpha (2026-08-01).
+##
+## Exactly one scene is finished — story_event_01 (4 layers: bg + 3 actor
+## plates), built as a proof of concept. Every other manifest in data/scenes/
+## still says `"_tier1_status": "STUB - bg_00.png pending fill"`, so shipping
+## the art as-is means one illustrated Story Event and six gradients. A tester
+## who sees the good one reasonably concludes the rest are coming, and sets
+## expectations against a feature that is not in scope.
+##
+## Both the baked scene AND the composited crew figures are gated together —
+## crew figures over a bare gradient look like a half-finished illustration
+## rather than a deliberate text presentation.
+##
+## NOTHING IS DELETED. The manifests, the layer art and the whole SceneStage
+## pipeline are intact and proven to work end to end; flip this to `true` to
+## bring it all back once the remaining six scenes exist.
+const SCENE_ART_ENABLED := false
+
 const NarrativeTextGenerator = preload(
 	"res://src/ui/screens/narrative/NarrativeTextGenerator.gd")
 const AdvisorSystem = preload(
@@ -399,6 +417,10 @@ func _populate_illustration() -> void:
 	_apply_atmosphere(art_tag)
 	if scene_id.is_empty():
 		return
+	# Alpha: no baked scene art — see SCENE_ART_ENABLED. The gradient fallback
+	# and the atmosphere layer above still run, so the screen keeps its mood.
+	if not SCENE_ART_ENABLED:
+		return
 	# Try SceneStage with the scene_id. If it doesn't resolve to a
 	# manifest, SceneStage logs a push_warning and renders nothing —
 	# the gradient_fallback ColorRect underneath remains visible.
@@ -420,6 +442,10 @@ func _apply_atmosphere(art_tag: String) -> void:
 ## crew via AdvisorSystem's role logic, deduped, with roster-order fallback.
 ## No-op when the scene declares no slots or there is no crew in context.
 func _populate_character_slots() -> void:
+	# Gated with the baked art (SCENE_ART_ENABLED). Crew figures standing on an
+	# empty gradient read as a broken illustration, not a text presentation.
+	if not SCENE_ART_ENABLED:
+		return
 	if not _scene_stage or not _scene_stage.has_method("get_character_slots"):
 		return
 	var slots: Array = _scene_stage.get_character_slots()

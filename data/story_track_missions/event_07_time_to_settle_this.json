@@ -48,27 +48,47 @@
       {
         "type": "surface_sentry",
         "count": 4,
-        "stats": {"panic": "1", "speed_inches": 4, "combat_skill": 0, "toughness": 3},
+        "stats": {
+          "panic": "1",
+          "speed_inches": 4,
+          "combat_skill": 0,
+          "toughness": 3
+        },
         "ai": "tactical",
-        "weapons": ["Military Rifle"],
+        "weapons": [
+          "Military Rifle"
+        ],
         "armor_save": "6+",
         "notes": "In space suits"
       },
       {
         "type": "interior_guard",
         "count": 4,
-        "stats": {"panic": "1", "speed_inches": 4, "combat_skill": 0, "toughness": 3},
+        "stats": {
+          "panic": "1",
+          "speed_inches": 4,
+          "combat_skill": 0,
+          "toughness": 3
+        },
         "ai": "tactical",
-        "weapons": ["Military Rifle"],
+        "weapons": [
+          "Military Rifle"
+        ],
         "armor_save": "none",
         "notes": "No armor, appear when first crew enters compound"
       },
       {
         "type": "qnarr_nemesis",
         "count": 1,
-        "stats": {"speed_inches": 4, "combat_skill": 0, "toughness": 4},
+        "stats": {
+          "speed_inches": 4,
+          "combat_skill": 0,
+          "toughness": 4
+        },
         "ai": "defensive",
-        "weapons": ["Hand Cannon"],
+        "weapons": [
+          "Hand Cannon"
+        ],
         "panic": "never",
         "is_nemesis": true
       }
@@ -112,5 +132,12 @@
   },
   "next_clock_ticks": null,
   "story_track_completion": true,
-  "page_reference": "pp.159-160"
+  "page_reference": "pp.159-160",
+  "presentation": {
+    "_note": "Presentation metadata for NarrativeScreen. NOT game data — no stat, cost, range or table boundary here. Role/mood are read off this event's own narrative text.",
+    "_rationale": "'You are never going to get a better chance than this.'",
+    "advisor_role": "fighter",
+    "advisor_mood": "positive",
+    "choice_label": "Finish it"
+  }
 }

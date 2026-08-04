@@ -78,7 +78,8 @@ static func tracked_rival_ids_from_tasks(task_results: Array) -> Array:
 ## for deterministic tests. Returns a dict shaped for battle_results/mission_data:
 ##   has_encounter, rival_id, rival_name, roll, rival_count, decoy_bonus, reason
 static func check(
-	rivals: Array, decoy_count: int = 0, rng: RandomNumberGenerator = null
+	rivals: Array, decoy_count: int = 0, rng: RandomNumberGenerator = null,
+	suppressed_reason: String = ""
 ) -> Dictionary:
 	var result: Dictionary = {
 		"has_encounter": false,
@@ -89,6 +90,16 @@ static func check(
 		"decoy_bonus": maxi(0, decoy_count),
 		"reason": "",
 	}
+	# Several Story Events call the check off for their turn outright — Event 1
+	# "Do not roll for existing Rivals interfering this campaign turn", Event 4
+	# "You cannot be attacked by Rivals this campaign turn", Event 5 "you manage
+	# to slip away without any Rivals having a chance to attack", Event 6 "you
+	# will manage to dodge any Rivals coming after you". Passing the reason keeps
+	# the suppression visible in battle_results instead of looking like an evade.
+	if not suppressed_reason.is_empty():
+		result["suppressed"] = true
+		result["reason"] = suppressed_reason
+		return result
 	if rivals.is_empty():
 		result["reason"] = "No Rivals to check (Core Rules p.85)."
 		return result

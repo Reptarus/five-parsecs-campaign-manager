@@ -19,6 +19,7 @@ const ExperienceTrainingClass = preload("res://src/core/campaign/phases/post_bat
 const CampaignEventEffectsClass = preload("res://src/core/campaign/phases/post_battle/CampaignEventEffects.gd")
 const CharacterEventEffectsClass = preload("res://src/core/campaign/phases/post_battle/CharacterEventEffects.gd")
 const GalacticWarProcessorClass = preload("res://src/core/campaign/phases/post_battle/GalacticWarProcessor.gd")
+const StoryTrackProcessorClass = preload("res://src/core/campaign/phases/post_battle/StoryTrackProcessor.gd")
 const PostBattleCompletionClass = preload("res://src/core/campaign/phases/post_battle/PostBattleCompletion.gd")
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 
@@ -37,6 +38,10 @@ signal quest_progress_updated(progress: int)
 signal payment_received(amount: int)
 signal battlefield_finds_completed(finds: Array)
 signal invasion_checked(invasion_pending: bool)
+## Compendium pp.148-151 Fringe World Strife. Carries the accumulate() report:
+## {ran, delta, instability, fired, event, reduction, tracking, modifiers}.
+## Emitted only on worlds that are Unstable and still tracked.
+signal fringe_strife_advanced(report: Dictionary)
 ## Rival Assault credit fine / Rival Raid Hull damage, charged on a failure to
 ## Hold the Field (Core Rules p.92). Each entry is {type, amount, reason}.
 signal scenario_penalties_applied(penalties: Array)
@@ -48,6 +53,12 @@ signal purchases_made(purchases: Array)
 signal campaign_event_occurred(event: Dictionary)
 signal character_event_occurred(event: Dictionary)
 signal galactic_war_updated(progress: Dictionary)
+## Story Track advanced (Core Rules Appendix V pp.153-160). Payload is
+## {active, won, clock?, effects?, applied?} — `clock` on a normal turn,
+## `effects`/`applied` on a Story Event turn.
+signal story_track_advanced(result: Dictionary)
+## Introductory Campaign moved to its next guided turn (Compendium pp.104-109).
+signal intro_campaign_advanced(completed: bool)
 signal precursor_event_choice_available(event1: Dictionary, event2: Dictionary)
 signal precursor_event_chosen(chosen_event: Dictionary)
 signal traveler_event_occurred(results: Array)
@@ -84,6 +95,7 @@ var _experience: ExperienceTrainingClass = null
 var _campaign_events: CampaignEventEffectsClass = null
 var _character_events: CharacterEventEffectsClass = null
 var _galactic_war: GalacticWarProcessorClass = null
+var _story_track: StoryTrackProcessorClass = null
 var _completion: PostBattleCompletionClass = null
 
 func set_campaign(campaign: Variant) -> void:
@@ -107,6 +119,7 @@ func _ensure_subsystems() -> void:
 	_ctx.campaign_journal = get_node_or_null("/root/CampaignJournal")
 	_ctx.equipment_manager = get_node_or_null("/root/EquipmentManager")
 	_ctx.dlc_manager = get_node_or_null("/root/DLCManager")
+	_ctx.campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
 	_rival_patron = RivalPatronResolverClass.new()
 	_payment = PaymentProcessorClass.new()
 	_loot = LootProcessorClass.new()
@@ -115,7 +128,45 @@ func _ensure_subsystems() -> void:
 	_campaign_events = CampaignEventEffectsClass.new()
 	_character_events = CharacterEventEffectsClass.new()
 	_galactic_war = GalacticWarProcessorClass.new()
+	_story_track = StoryTrackProcessorClass.new()
 	_completion = PostBattleCompletionClass.new()
+
+# ── Introductory Campaign post-battle gating (Compendium pp.104-109) ──────────
+#
+# The guided turns run only SOME post-battle steps, and the book is explicit
+# about which. Turn 0 (Training Battle, p.104): "No experience points or other
+# post-battle functions are carried out." Turn 1 (p.105): steps 4, 5, 7, 8, 9 —
+# note 6 (Check for Invasion) is deliberately absent. Turn 2 (p.106) adds 11, 12
+# and 13. Turn 5 is "ALL standard rules".
+#
+# IntroductoryCampaignManager authored all of this in full and NOTHING read it —
+# only `pre_battle_enabled` ever had a consumer, so a tutorial crew got the whole
+# post-battle sequence on turn 0, consequences included, on a battle the book
+# says has none.
+var _intro_allowed_steps: Array = []
+var _intro_gating_active: bool = false
+
+func _refresh_intro_gating() -> void:
+	_intro_gating_active = false
+	_intro_allowed_steps = []
+	var pm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if pm == null or not pm.has_method("get_intro_turn_restrictions"):
+		return
+	var restrictions: Dictionary = pm.get_intro_turn_restrictions()
+	if restrictions.is_empty():
+		return  # not an intro campaign, or the intro is finished
+	_intro_allowed_steps = restrictions.get("post_battle_enabled", [])
+	if _intro_allowed_steps.has("all"):
+		return  # turn 5 — full rules, no gating
+	_intro_gating_active = true
+
+func _intro_allows(step_key: String) -> bool:
+	## Steps 1-3 (Rival / Patron / Quest) intentionally have no key in the book's
+	## per-turn lists, so they are skipped for every gated turn — the lists start
+	## at step 4 and enumerate exactly what to carry out.
+	if not _intro_gating_active:
+		return true
+	return _intro_allowed_steps.has(step_key)
 
 func _sync_context() -> void:
 	## Sync orchestrator state to context before each pipeline run.
@@ -155,30 +206,46 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	injuries_sustained = battle_data.get("injuries_sustained", [])
 
 	_sync_context()
+	_refresh_intro_gating()
 	post_battle_phase_started.emit()
 
-	# Step 1: Resolve Rival Status
-	_emit_substep(GlobalEnums.PostBattleSubPhase.RIVAL_STATUS)
-	var rival_result: Dictionary = _rival_patron.process_rival_status(_ctx)
-	rival_status_resolved.emit(rival_result.get("rivals_removed", []))
+	# Steps 1-3 (Rival / Patron / Quest). The Introductory Campaign's per-turn
+	# lists start at step 4 and enumerate exactly what to carry out, so these are
+	# skipped on every guided turn before turn 5 — including turn 0, where the
+	# book says "No experience points or other post-battle functions are carried
+	# out" (Compendium p.104).
+	if not _intro_gating_active:
+		# Step 1: Resolve Rival Status
+		_emit_substep(GlobalEnums.PostBattleSubPhase.RIVAL_STATUS)
+		var rival_result: Dictionary = _rival_patron.process_rival_status(_ctx)
+		rival_status_resolved.emit(rival_result.get("rivals_removed", []))
 
-	# Step 2: Resolve Patron Status
-	_emit_substep(GlobalEnums.PostBattleSubPhase.PATRON_STATUS)
-	var patrons_added: Array = _rival_patron.process_patron_status(_ctx)
-	patron_status_resolved.emit(patrons_added)
+		# Step 2: Resolve Patron Status
+		_emit_substep(GlobalEnums.PostBattleSubPhase.PATRON_STATUS)
+		var patrons_added: Array = _rival_patron.process_patron_status(_ctx)
+		patron_status_resolved.emit(patrons_added)
 
-	# Step 3: Determine Quest Progress
-	_emit_substep(GlobalEnums.PostBattleSubPhase.QUEST_PROGRESS)
-	var quest_progress: int = _rival_patron.process_quest_progress(_ctx)
-	quest_progress_updated.emit(quest_progress)
+		# Step 3: Determine Quest Progress
+		_emit_substep(GlobalEnums.PostBattleSubPhase.QUEST_PROGRESS)
+		var quest_progress: int = _rival_patron.process_quest_progress(_ctx)
+		quest_progress_updated.emit(quest_progress)
+
+	# Step 3b: Story Track reward gates (Core Rules Appendix V).
+	# MUST run before steps 4-7. A Story Event can suppress pay/Loot (p.157
+	# Event 5) or grant extra Battlefield Finds / Loot rolls (p.156 Event 4,
+	# p.160 Event 7), and those are inputs to the reward steps, not outputs of
+	# them. Stamped onto battle_result in the same shape as the is_invasion
+	# gates so the existing processors read them without special-casing.
+	_story_track.apply_pre_reward_gates(_ctx)
 
 	# Step 4: Get Paid
-	_emit_substep(GlobalEnums.PostBattleSubPhase.GET_PAID)
-	var total_payment: int = _payment.process_payment(_ctx)
-	payment_received.emit(total_payment)
+	if _intro_allows("get_paid"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.GET_PAID)
+		var total_payment: int = _payment.process_payment(_ctx)
+		payment_received.emit(total_payment)
 
-	# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
-	_payment.process_black_zone_rewards(_ctx)
+		# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
+		_payment.process_black_zone_rewards(_ctx)
 
 	# Step 4c: Scenario loss penalties (Core Rules p.92) — the Rival Assault
 	# 1D3-credit fine and the Rival Raid 1D6+1 Hull damage, charged only when you
@@ -190,42 +257,60 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 		scenario_penalties_applied.emit(loss_penalties)
 
 	# Step 5: Battlefield Finds
-	_emit_substep(GlobalEnums.PostBattleSubPhase.BATTLEFIELD_FINDS)
-	var finds: Array = _payment.process_battlefield_finds(_ctx)
-	battlefield_finds_completed.emit(finds)
+	if _intro_allows("battlefield_finds"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.BATTLEFIELD_FINDS)
+		var finds: Array = _payment.process_battlefield_finds(_ctx)
+		battlefield_finds_completed.emit(finds)
 
-	# Step 6: Check for Invasion
-	_emit_substep(GlobalEnums.PostBattleSubPhase.CHECK_INVASION)
-	var invasion_pending: bool = _payment.process_invasion_check(_ctx)
-	invasion_checked.emit(invasion_pending)
+	# Step 6: Check for Invasion. The Compendium turn-1 list jumps 5 -> 7; the
+	# Invasion check is not introduced until turn 4.
+	if _intro_allows("check_invasion"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.CHECK_INVASION)
+		var invasion_pending: bool = _payment.process_invasion_check(_ctx)
+		invasion_checked.emit(invasion_pending)
+		# Compendium p.148: "During the Invasion step of every campaign turn, add
+		# 1D6 to the total." Separate call, not nested inside the check above,
+		# because the check returns early unless the enemy was an Invasion Threat
+		# while the STEP runs every turn.
+		var strife: Dictionary = _payment.process_fringe_world_strife(_ctx)
+		if strife.get("ran", false):
+			fringe_strife_advanced.emit(strife)
 
 	# Step 7: Gather the Loot
-	_emit_substep(GlobalEnums.PostBattleSubPhase.GATHER_LOOT)
-	var gathered_loot: Array = _loot.process_loot_gathering(_ctx)
-	loot_gathered.emit(gathered_loot)
+	if _intro_allows("gather_loot"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.GATHER_LOOT)
+		var gathered_loot: Array = _loot.process_loot_gathering(_ctx)
+		loot_gathered.emit(gathered_loot)
 
 	# Step 8: Determine Injuries
-	_emit_substep(GlobalEnums.PostBattleSubPhase.INJURIES)
-	var processed_injuries: Array = _injury.process_injuries(_ctx)
-	_processed_injuries = processed_injuries
-	injuries_resolved.emit(processed_injuries)
+	if _intro_allows("injuries"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.INJURIES)
+		var processed_injuries: Array = _injury.process_injuries(_ctx)
+		_processed_injuries = processed_injuries
+		injuries_resolved.emit(processed_injuries)
 
-	# Step 9: Experience & Upgrades
-	_emit_substep(GlobalEnums.PostBattleSubPhase.EXPERIENCE)
-	var xp_awards: Array = _experience.process_experience(_ctx)
-	experience_awarded.emit(xp_awards)
+	# Steps 9-10: Experience & Upgrades, then Advanced Training. The book lists
+	# "9. Experience and Character Upgrades" as one item, so Training rides with it.
+	if _intro_allows("experience"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.EXPERIENCE)
+		var xp_awards: Array = _experience.process_experience(_ctx)
+		experience_awarded.emit(xp_awards)
 
-	# Step 10: Advanced Training
-	_emit_substep(GlobalEnums.PostBattleSubPhase.TRAINING)
-	var training_results: Array = _experience.process_training(_ctx)
-	training_completed.emit(training_results)
+		_emit_substep(GlobalEnums.PostBattleSubPhase.TRAINING)
+		var training_results: Array = _experience.process_training(_ctx)
+		training_completed.emit(training_results)
 
 	# Step 11: Purchase Items
-	_emit_substep(GlobalEnums.PostBattleSubPhase.PURCHASES)
-	var purchase_results: Array = _experience.process_purchases(_ctx)
-	purchases_made.emit(purchase_results)
+	if _intro_allows("purchase"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.PURCHASES)
+		var purchase_results: Array = _experience.process_purchases(_ctx)
+		purchases_made.emit(purchase_results)
 
-	# Step 12: Campaign Events
+	# Step 12: Campaign Events (intro turns 0-1 do not roll for one)
+	if not _intro_allows("campaign_event"):
+		_process_character_event_step()
+		return
+
 	_emit_substep(GlobalEnums.PostBattleSubPhase.CAMPAIGN_EVENT)
 	var campaign_event: Dictionary = _campaign_events.process_campaign_event(_ctx)
 	if campaign_event.get("precursor_choice", false):
@@ -276,6 +361,20 @@ func get_completion_data() -> Dictionary:
 		"defeated_enemies": defeated_enemies.duplicate(),
 	}
 
+func apply_story_completion_effects(
+	effects: Dictionary, won: bool
+) -> Array[String]:
+	## PUBLIC API: pay out a Story Track completion that happened OUTSIDE a battle.
+	##
+	## Only one path reaches this: letting the Event 7 delay window lapse (Core
+	## Rules p.159, "the chance is missed"), which loses the story at turn start
+	## with no battle fought. Routing it through the same applier keeps "Losing
+	## the Story" identical whether you lost the fight or forfeited it.
+	## Called by CampaignPhaseManager.start_new_turn().
+	_ensure_subsystems()
+	_sync_context()
+	return _story_track.apply_event_effects(effects, _ctx, won)
+
 func apply_campaign_event_effect(event_title: String) -> String:
 	## PUBLIC API: Apply campaign event effects (called by CampaignEventComponent).
 	_ensure_subsystems()
@@ -294,11 +393,13 @@ func apply_character_event_effect(event_title: String, character: Variant) -> St
 
 func _process_character_event_step() -> void:
 	## Steps 13-14: Character Event → Galactic War → Complete
-	_emit_substep(GlobalEnums.PostBattleSubPhase.CHARACTER_EVENT)
-	var character_event: Dictionary = _character_events.process_character_event(_ctx)
-	if character_event.has("type") and character_event.type != "none":
-		_character_events.finalize_event(character_event, _ctx)
-	character_event_occurred.emit(character_event)
+	# Step 13: Character Event (intro turns 0-1 do not roll for one)
+	if _intro_allows("character_event"):
+		_emit_substep(GlobalEnums.PostBattleSubPhase.CHARACTER_EVENT)
+		var character_event: Dictionary = _character_events.process_character_event(_ctx)
+		if character_event.has("type") and character_event.type != "none":
+			_character_events.finalize_event(character_event, _ctx)
+		character_event_occurred.emit(character_event)
 
 	# Step 13b: Faction Event (Compendium pp.115-117, after character events)
 	var faction_sys = Engine.get_main_loop().root.get_node_or_null(
@@ -333,8 +434,38 @@ func _process_character_event_step() -> void:
 	# Step 14b: Psionic detection check (DLC-gated, Core Rules p.97)
 	_check_psionic_detection()
 
+	# Step 14c: Story Track + Introductory Campaign progression.
+	# Restores the drive shaft deleted in e4373e137 — see StoryTrackProcessor.
+	_advance_narrative_progression()
+
 	# Complete
 	_complete_post_battle_phase()
+
+func _advance_narrative_progression() -> void:
+	## Step 14c: advance the Story Clock (Core Rules p.153) and the Introductory
+	## Campaign turn counter (Compendium pp.104-109).
+	##
+	## Both systems had zero callers for their advance methods, so both were
+	## frozen: the Story Clock never ticked and the intro campaign never left
+	## turn 0 (which, with `pre_battle_enabled: []`, skipped every World Phase
+	## step but MISSION_PREP for the life of the campaign).
+	var story_result: Dictionary = _story_track.process_story_track(_ctx)
+	if story_result.get("active", false):
+		story_track_advanced.emit(story_result)
+
+	var pm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if pm == null:
+		return
+	var intro: Variant = pm.get("intro_campaign") if "intro_campaign" in pm else null
+	if intro == null or not intro.is_active:
+		return
+	# The Training Battle (turn 0) and each guided turn end here. advance_turn()
+	# emits intro_completed on the last one, which is what hands off to the
+	# Story Track and awards the +2 Story Points (Compendium p.109).
+	var completed: bool = bool(intro.advance_turn())
+	if pm.has_method("save_intro_campaign_state"):
+		pm.save_intro_campaign_state()
+	intro_campaign_advanced.emit(completed)
 
 func _complete_post_battle_phase() -> void:
 	if GlobalEnums:

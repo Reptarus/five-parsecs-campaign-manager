@@ -8,7 +8,10 @@ extends GdUnitTestSuite
 # Systems under test
 var mission_card: Node
 var world_card: Node
-var story_track: Node
+# StoryTrackSection was deleted 2026-08-01: an orphan component (301 lines)
+# superseded by the inline Story Track card in CampaignDashboard. Its two
+# tests here were guarded on `if story_track == null: return`, so they had
+# been skipping silently rather than testing anything.
 var quick_actions: Node
 
 # Test fixtures
@@ -60,7 +63,6 @@ func before_test():
 	# Load components (forward compatible with graceful skips)
 	_load_mission_card()
 	_load_world_card()
-	_load_story_track()
 	_load_quick_actions()
 
 	# Wait for _ready() to complete
@@ -74,7 +76,6 @@ func after_test():
 	# auto_free() handles cleanup
 	mission_card = null
 	world_card = null
-	story_track = null
 	quick_actions = null
 	test_container = null
 	test_mission_data = {}
@@ -99,14 +100,6 @@ func _load_world_card():
 	if CardScene != null:
 		world_card = auto_free(CardScene.instantiate())
 		test_container.add_child(world_card)
-
-func _load_story_track():
-	"""Load StoryTrackSection component with null check"""
-	# Load .tscn scene for proper child node initialization (@onready variables)
-	var TrackScene = load("res://src/ui/components/campaign/StoryTrackSection.tscn")
-	if TrackScene != null:
-		story_track = auto_free(TrackScene.instantiate())
-		test_container.add_child(story_track)
 
 func _load_quick_actions():
 	"""Load QuickActionsFooter component with null check"""
@@ -272,75 +265,6 @@ func test_world_status_card_shows_threat():
 
 # ============================================================================
 # StoryTrackSection Tests (2 tests)
-# ============================================================================
-
-func test_story_track_shows_progress():
-	"""StoryTrackSection displays story progress bar with purple accent"""
-	if story_track == null:
-		skip_test("StoryTrackSection not yet implemented")
-		return
-
-	# Set story progress to 40%
-	if story_track.has_method("set_story_progress"):
-		story_track.set_story_progress(0.40)
-	else:
-		skip_test("set_story_progress() method not yet implemented")
-		return
-
-	# Wait for UI update
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	# Verify progress bar value
-	var progress = 0.0
-	if "progress_bar" in story_track and story_track.progress_bar != null:
-		progress = story_track.progress_bar.value
-	elif story_track.has_method("get_progress"):
-		progress = story_track.get_progress()
-
-	assert_that(progress).is_between(0.39, 0.41)
-
-	# Verify purple accent color on progress bar
-	if "progress_bar" in story_track and story_track.progress_bar != null:
-		# Get tint color (assuming modulate or custom theme)
-		var bar_color = Color.WHITE
-		if "modulate" in story_track.progress_bar:
-			bar_color = story_track.progress_bar.modulate
-		# Purple has high red and blue, low green
-		# Note: May be styled via theme, so this test may need adjustment
-		# Skipping color test if not accessible
-		if bar_color != Color.WHITE:
-			assert_that(bar_color.b).is_greater(0.5)  # High blue component
-
-func test_story_track_displays_milestones():
-	"""StoryTrackSection displays milestone markers at correct positions"""
-	if story_track == null:
-		skip_test("StoryTrackSection not yet implemented")
-		return
-
-	# Set milestones at 25%, 50%, 75%, 100%
-	var milestones = [0.25, 0.50, 0.75, 1.0]
-	if story_track.has_method("set_milestones"):
-		story_track.set_milestones(milestones)
-	else:
-		skip_test("set_milestones() method not yet implemented")
-		return
-
-	# Wait for UI update
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	# Verify milestone count
-	var milestone_count = 0
-	if story_track.has_method("get_milestone_count"):
-		milestone_count = story_track.get_milestone_count()
-	elif "milestone_markers" in story_track and story_track.milestone_markers != null:
-		milestone_count = story_track.milestone_markers.size()
-
-	assert_that(milestone_count).is_equal(4)
-
-# ============================================================================
-# QuickActionsFooter Tests (4 tests)
 # ============================================================================
 
 func test_quick_actions_has_6_buttons():

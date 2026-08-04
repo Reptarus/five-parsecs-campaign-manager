@@ -1,192 +1,251 @@
 extends GdUnitTestSuite
 
-## Integration Tests for Story Track Phase Integration
-## Tests WorldPhase and PostBattlePhase story track integration
-## (BattlePhase story-battle tests removed when the deprecated phases/BattlePhase.gd
-##  was retired — Session 50 / Wave 1.6; story-battle config now lives in the live path)
-## Tests signal flows, data passing, and state updates
-## Max 13 tests per file (runner stability constraint)
+## Story Track wiring tests — Core Rules Appendix V (pp.153-160).
+##
+## REPLACES a suite that tested nothing. Every one of the previous 8 behavioural
+## tests sat behind `has_method()` guards on four methods with ZERO definitions
+## repo-wide (_check_for_story_mission, _load_story_mission_offer,
+## inject_story_mission, _process_story_mission_outcome), so each body was
+## skipped and the file reported green while the Story Clock had not ticked in
+## any campaign since commit e4373e137 (Apr 8 2026). It also asserted against
+## event ids from an abandoned design ("hunt_begins", "first_contact") that
+## exist in no JSON.
+##
+## These tests drive the REAL system with an injected deterministic die, so a
+## regression fails instead of skipping.
+##
+## Max 13 tests per file (runner stability constraint).
 
-var world_phase: Variant
-var post_battle_phase: Variant
-var mock_story_track_system: RefCounted
+const StoryTrackClass = preload("res://src/core/story/StoryTrackSystem.gd")
+const MarkerClass = preload("res://src/core/story/StoryMarkerInvestigation.gd")
+const NormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
+
+var _track: Resource = null
+var _dice: Node = null
+
+
+## Scripted die: returns queued values in order, then falls back to `default`.
+class ScriptedDice extends Node:
+	# Untyped on purpose: `Array[int]` rejects a plain `[1, 2]` literal assignment
+	# from the test bodies ("Invalid assignment ... of type 'Array'").
+	var queue: Array = []
+	var default_value: int = 3
+	func roll_dice(_context: String = "", _type: String = "D6") -> int:
+		if queue.is_empty():
+			return default_value
+		return queue.pop_front()
+	func roll_d6(_context: String = "") -> int:
+		return roll_dice(_context, "D6")
+
 
 func before_test() -> void:
-	# Set deterministic seed for reproducible random numbers
-	seed(12345)
+	_dice = ScriptedDice.new()
+	add_child(_dice)
+	_track = StoryTrackClass.new()
+	_track.set_dice_manager(_dice)
 
-	# Create phase instances
-	world_phase = preload("res://src/core/campaign/phases/WorldPhase.gd").new()
-	post_battle_phase = preload("res://src/core/campaign/phases/PostBattlePhase.gd").new()
-
-	# Create mock story track system
-	mock_story_track_system = _create_mock_story_track_system()
 
 func after_test() -> void:
-	# RefCounted objects are auto-managed, don't call free()
-	if world_phase:
-		world_phase = null
-	if post_battle_phase:
-		post_battle_phase = null
-	if mock_story_track_system:
-		mock_story_track_system = null
+	if _dice and is_instance_valid(_dice):
+		_dice.queue_free()
+	_dice = null
+	_track = null
 
-## Test 1: WorldPhase detects active story mission
-func test_world_phase_checks_for_story_mission() -> void:
-	# WorldPhase should check for story mission during job offer generation
-	# This test validates the _check_for_story_mission() method exists and returns Dictionary
-	var result = world_phase.call("_check_for_story_mission") if world_phase.has_method("_check_for_story_mission") else {}
 
-	# Should return Dictionary (empty if no story track active)
-	assert_bool(result is Dictionary).is_true()
+func _start() -> void:
+	_track.start_story_track()
 
-## Test 2: WorldPhase loads story mission offer correctly
-func test_world_phase_loads_story_mission_offer() -> void:
-	# Test _load_story_mission_offer() method
-	if not world_phase.has_method("_load_story_mission_offer"):
-		return # Skip if method doesn't exist
 
-	var offer = world_phase.call("_load_story_mission_offer", "discovery_signal")
+# ── Story Clock (p.153) ─────────────────────────────────────────────
 
-	# Should return job offer with story mission data
-	assert_dict(offer).is_not_empty()
-	assert_str(offer.get("type", "")).is_equal("story_track")
-	assert_str(offer.get("story_event_id", "")).is_equal("discovery_signal")
-	assert_bool(offer.get("is_story_mission", false)).is_true()
-	assert_int(offer.get("mission_number", 0)).is_equal(1)
+## p.153: "if you Won the mission that campaign turn, the Clock counts down 1 Tick."
+func test_clock_counts_down_one_on_a_win() -> void:
+	_start()
+	assert_int(_track.story_clock_ticks).is_equal(5)
+	var res: Dictionary = _track.advance_clock_end_of_turn(true)
+	assert_int(res["ticks_reduced"]).is_equal(1)
+	assert_int(_track.story_clock_ticks).is_equal(4)
 
-## Test 3: WorldPhase story mission has priority flag
-func test_world_phase_story_mission_marked_as_priority() -> void:
-	if not world_phase.has_method("_load_story_mission_offer"):
-		return
 
-	var offer = world_phase.call("_load_story_mission_offer", "first_contact")
+## p.153 loss table: 1 = no countdown, 2-5 = 1 Tick, 6 = 2 Ticks.
+func test_clock_loss_table_matches_the_book() -> void:
+	_start()
+	_dice.queue = [1]
+	assert_int(_track.advance_clock_end_of_turn(false)["ticks_reduced"]).is_equal(0)
+	_dice.queue = [4]
+	assert_int(_track.advance_clock_end_of_turn(false)["ticks_reduced"]).is_equal(1)
+	_dice.queue = [6]
+	assert_int(_track.advance_clock_end_of_turn(false)["ticks_reduced"]).is_equal(2)
 
-	# Story missions should have required metadata for priority handling
-	assert_dict(offer).contains_keys(["story_event_id", "mission_number", "is_story_mission"])
 
-## Test 4: WorldPhase inject story mission adds to offers array
-func test_world_phase_inject_story_mission() -> void:
-	if not world_phase.has_method("inject_story_mission"):
-		return
+## p.153: "The Clock does NOT count down during a campaign turn where a Story
+## Event takes place." Regression guard for the if/else in StoryTrackProcessor —
+## calling both advance paths in sequence would violate this.
+func test_clock_does_not_tick_on_a_story_event_turn() -> void:
+	_start()
+	_track.is_story_event_turn = true
+	var before: int = _track.story_clock_ticks
+	var res: Dictionary = _track.advance_clock_end_of_turn(true)
+	assert_bool(res.get("advanced", true)).is_false()
+	assert_str(str(res.get("reason", ""))).is_equal("story_event_turn")
+	assert_int(_track.story_clock_ticks).is_equal(before)
 
-	# Create mock story event
-	var mock_event = _create_mock_story_event("conspiracy_revealed")
 
-	# Inject the mission
-	world_phase.call("inject_story_mission", mock_event)
+## Clock hitting zero flags the next turn as a Story Event turn.
+func test_clock_reaching_zero_queues_the_event() -> void:
+	_start()
+	_track.story_clock_ticks = 1
+	var res: Dictionary = _track.advance_clock_end_of_turn(true)
+	assert_bool(res["event_triggered"]).is_true()
+	assert_bool(_track.pending_story_event).is_true()
 
-	# Check if available_job_offers was populated
-	if "available_job_offers" in world_phase:
-		var offers: Array = world_phase.available_job_offers
-		if offers.size() > 0:
-			var first_offer = offers[0]
-			assert_str(first_offer.get("story_event_id", "")).is_equal("conspiracy_revealed")
-			assert_bool(first_offer.get("is_priority", false)).is_true()
 
-## Test 8: PostBattlePhase calculates evidence correctly for victory
-func test_post_battle_victory_awards_two_evidence() -> void:
-	# Setup battle result with story mission victory
-	post_battle_phase.battle_result = {
-		"is_story_mission": true,
-		"story_event_id": "personal_connection",
-		"mission_number": 4,
-		"is_final_mission": false,
-		"held_field": false
+# ── Event progression ───────────────────────────────────────────────
+
+## apply_post_battle() completes the event, banks its id and sets the next clock.
+func test_apply_post_battle_advances_the_event() -> void:
+	_start()
+	_track.is_story_event_turn = true
+	var first_id: String = _track.get_current_event().event_id
+	var effects: Dictionary = _track.apply_post_battle(true)
+	assert_str(str(effects.get("event_id", ""))).is_equal(first_id)
+	assert_int(_track.current_event_index).is_equal(1)
+	assert_bool(first_id in _track.completed_event_ids).is_true()
+	assert_bool(_track.is_story_event_turn).is_false()
+	# event_01_foiled.json -> next_clock_ticks: 3
+	assert_int(_track.story_clock_ticks).is_equal(3)
+
+
+## Event 2 (p.154): capturing the mercenary is persistent state Event 3 reads
+## back for its Seize the Initiative bonus. Nothing wrote it before.
+func test_event_2_capture_is_recorded() -> void:
+	_start()
+	_track.current_event_index = 1
+	_track.is_story_event_turn = true
+	assert_bool(_track.mercenary_captured).is_false()
+	_track.apply_post_battle(true, {"mercenary_captured": true})
+	assert_bool(_track.mercenary_captured).is_true()
+
+
+## Event 6 (p.159): "your old comrade will offer to join for the final battle,
+## if they survived" — gates Event 7's companion roll. Also never written before.
+func test_event_6_win_records_the_rescue() -> void:
+	_start()
+	_track.current_event_index = 5
+	_track.is_story_event_turn = true
+	assert_bool(_track.companion_rescued).is_false()
+	_track.apply_post_battle(true, {"captive_survived": true})
+	assert_bool(_track.companion_rescued).is_true()
+
+
+# ── Event 7 delay (p.159) ───────────────────────────────────────────
+
+## The clock reaching zero on the final event OPENS the delay window; it does not
+## force the fight. "You may delay this battle for up to 3 campaign turns."
+func test_event_7_opens_a_delay_window_instead_of_firing() -> void:
+	_start()
+	_track.current_event_index = 6
+	_track.pending_story_event = true
+	var event = _track.begin_campaign_turn()
+	assert_object(event).is_null()
+	assert_bool(_track.event_7_available).is_true()
+	assert_int(_track.delay_turns_remaining).is_equal(3)
+	assert_bool(_track.is_story_event_turn).is_false()
+
+
+## p.159: "If you wait longer than that, the chance is missed, and you must
+## consult the 'Losing the Story' section." Letting the window lapse LOSES the
+## story — the old code handed the player the battle anyway.
+func test_letting_the_window_lapse_loses_the_story() -> void:
+	_start()
+	_track.current_event_index = 6
+	_track.pending_story_event = true
+	_track.begin_campaign_turn()          # opens window, 3 turns
+	for _i in range(3):
+		_track.begin_campaign_turn()      # burns the delay
+	var final_call = _track.begin_campaign_turn()
+	assert_object(final_call).is_null()
+	assert_bool(_track.is_story_track_active).is_false()
+	assert_str(_track.story_outcome).is_equal("lost")
+	assert_bool(_track.pending_completion_effects.get(
+		"missed_the_chance", false)).is_true()
+
+
+## The player may still jump in during the window.
+func test_player_can_trigger_event_7_during_the_window() -> void:
+	_start()
+	_track.current_event_index = 6
+	_track.pending_story_event = true
+	_track.begin_campaign_turn()
+	var event = _track.trigger_event_7_now()
+	assert_object(event).is_not_null()
+	assert_bool(_track.is_story_event_turn).is_true()
+
+
+# ── Event 5 markers (p.157) ─────────────────────────────────────────
+
+## The p.157 marker table: 1 Evidence / 2-3 Nothing / 4 Body / 5-6 War Bot.
+func test_marker_table_matches_the_book() -> void:
+	var m: Resource = MarkerClass.new()
+	m.set_dice_manager(_dice)
+	m.init_from_event(null)
+	_dice.queue = [1, 2, 4, 5]
+	assert_str(m.investigate(0)["outcome"]).is_equal(MarkerClass.STATE_EVIDENCE)
+	assert_str(m.investigate(1)["outcome"]).is_equal(MarkerClass.STATE_NOTHING)
+	assert_str(m.investigate(2)["outcome"]).is_equal(MarkerClass.STATE_BODY)
+	assert_str(m.investigate(3)["outcome"]).is_equal(MarkerClass.STATE_WAR_BOT)
+	assert_int(m.evidence_found).is_equal(1)
+
+
+## All three Evidence sources (p.157): the marker roll of 1, the body search on
+## 5-6, and the removed-marker location on a 6.
+func test_all_three_evidence_sources_count() -> void:
+	var m: Resource = MarkerClass.new()
+	m.set_dice_manager(_dice)
+	m.init_from_event(null)
+	_dice.queue = [1]                 # marker 0 -> Evidence
+	m.investigate(0)
+	_dice.queue = [4, 5]              # marker 1 -> Body, search -> 5 = Evidence
+	m.investigate(1)
+	m.search_body(1)
+	_dice.queue = [1]                 # round-3 decay removes marker 2
+	m.markers[2]["state"] = MarkerClass.STATE_HIDDEN
+	for i in range(3, m.markers.size()):
+		m.markers[i]["state"] = MarkerClass.STATE_NOTHING
+	m.end_of_round(3)
+	_dice.queue = [6]                 # search the spot -> 6 = Evidence
+	m.search_removed_location(2)
+	assert_int(m.evidence_found).is_equal(3)
+
+
+## p.157: decay starts at the END of Round 3, not before. And the mission ends
+## only once no marker is still hidden.
+func test_marker_decay_starts_at_round_three_and_resolution() -> void:
+	var m: Resource = MarkerClass.new()
+	m.set_dice_manager(_dice)
+	m.init_from_event(null)
+	_dice.default_value = 1                      # every decay roll would remove
+	assert_int(m.end_of_round(2).size()).is_equal(0)   # too early
+	assert_bool(m.all_resolved()).is_false()
+	assert_int(m.end_of_round(3).size()).is_equal(6)   # all six decay
+	assert_bool(m.all_resolved()).is_true()
+
+
+## The normalizer is the one chokepoint every battle path crosses. If the story
+## keys are not in its passthrough they are dropped before post-battle, which is
+## exactly how PostBattleCompletion's is_story_battle branch stayed dead.
+func test_normalizer_carries_the_story_keys() -> void:
+	var mission: Dictionary = {
+		"is_story_battle": true,
+		"story_event_id": "kidnap",
+		"story_event_number": 5,
+		"story_evidence_found": 2,
+		"mercenary_captured": true,
 	}
-	post_battle_phase.mission_successful = true
-
-	# Call story mission outcome processing
-	if post_battle_phase.has_method("_process_story_mission_outcome"):
-		# Note: This will emit signals but we can't easily capture them in unit test
-		# We validate the logic would execute without errors
-		post_battle_phase.call("_process_story_mission_outcome")
-
-	# Test passes if no errors thrown
-
-## Test 9: PostBattlePhase calculates evidence correctly for defeat
-func test_post_battle_defeat_awards_one_evidence() -> void:
-	# Setup battle result with story mission defeat
-	post_battle_phase.battle_result = {
-		"is_story_mission": true,
-		"story_event_id": "hunt_begins",
-		"mission_number": 5,
-		"is_final_mission": false,
-		"held_field": false
-	}
-	post_battle_phase.mission_successful = false
-
-	# Expected: 1 evidence for defeat
-	# Call story mission outcome processing
-	if post_battle_phase.has_method("_process_story_mission_outcome"):
-		post_battle_phase.call("_process_story_mission_outcome")
-
-	# Test passes if no errors thrown
-
-## Test 10: PostBattlePhase adds bonus evidence for held field
-func test_post_battle_held_field_bonus_evidence() -> void:
-	# Setup battle result with held field
-	post_battle_phase.battle_result = {
-		"is_story_mission": true,
-		"story_event_id": "first_contact",
-		"mission_number": 2,
-		"is_final_mission": false,
-		"held_field": true # Bonus evidence
-	}
-	post_battle_phase.mission_successful = true
-
-	# Expected: 2 (victory) + 1 (held field) = 3 evidence
-	if post_battle_phase.has_method("_process_story_mission_outcome"):
-		post_battle_phase.call("_process_story_mission_outcome")
-
-	# Test passes if no errors thrown
-
-## Test 11: PostBattlePhase skips processing for non-story missions
-func test_post_battle_skips_non_story_missions() -> void:
-	# Setup regular mission (not story track)
-	post_battle_phase.battle_result = {
-		"is_story_mission": false,
-		"mission_type": "patrol"
-	}
-	post_battle_phase.mission_successful = true
-
-	# Should exit early without processing story track logic
-	if post_battle_phase.has_method("_process_story_mission_outcome"):
-		post_battle_phase.call("_process_story_mission_outcome")
-
-	# Test passes if no errors thrown (early return)
-
-## Test 12: PostBattlePhase triggers completion on final mission victory
-func test_post_battle_final_mission_triggers_completion() -> void:
-	# Setup final mission victory
-	post_battle_phase.battle_result = {
-		"is_story_mission": true,
-		"story_event_id": "final_confrontation",
-		"mission_number": 6,
-		"is_final_mission": true,
-		"held_field": true
-	}
-	post_battle_phase.mission_successful = true
-
-	# Should trigger _complete_story_track()
-	if post_battle_phase.has_method("_process_story_mission_outcome"):
-		post_battle_phase.call("_process_story_mission_outcome")
-
-	# Test passes if no errors thrown (completion logic executes)
-
-## Helper: Create mock story track system
-func _create_mock_story_track_system() -> RefCounted:
-	# Create a simple mock that extends Resource (like the real FPCM_StoryTrackSystem)
-	var MockStoryTrack = GDScript.new()
-	MockStoryTrack.source_code = "extends Resource\n\nvar is_story_track_active: bool = false\nvar story_clock_ticks: int = 6\nvar evidence_pieces: int = 0\n"
-	@warning_ignore("return_value_discarded")
-	MockStoryTrack.reload()
-	return MockStoryTrack.new()
-
-## Helper: Create mock story event
-func _create_mock_story_event(event_id: String) -> Dictionary:
-	return {
-		"event_id": event_id,
-		"title": "Mock Story Event",
-		"description": "Test event for integration testing"
-	}
+	var results: Dictionary = NormalizerClass.normalize(
+		{"success": true}, mission, 4)
+	assert_bool(results.get("is_story_battle", false)).is_true()
+	assert_str(str(results.get("story_event_id", ""))).is_equal("kidnap")
+	assert_int(int(results.get("story_event_number", 0))).is_equal(5)
+	assert_int(int(results.get("story_evidence_found", 0))).is_equal(2)
+	assert_bool(results.get("mercenary_captured", false)).is_true()

@@ -239,8 +239,13 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 
 		"Gravitational Adjuster":
 			var hull_dmg: int = randi_range(1, 6)
-			if gsm and gsm.has_method("damage_hull"):
-				gsm.damage_hull(hull_dmg)
+			# `damage_hull` has ZERO definitions repo-wide, so this guard was
+			# permanently false and the event reported damage it never dealt.
+			# The real API is apply_ship_damage() (GameStateManager:496), which
+			# also applies ship traits (Armored -1, Improved Shielding -1,
+			# Dodgy Drive +2) and returns the damage actually taken.
+			if gsm and gsm.has_method("apply_ship_damage"):
+				hull_dmg = int(gsm.apply_ship_damage(hull_dmg))
 			return "Gravitational adjuster misaligned: Ship takes %d Hull damage" % hull_dmg
 
 		"Crew Bonding":

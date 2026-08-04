@@ -72,13 +72,15 @@ const SCENE_PATHS = {
 	"campaign_journal": "res://src/ui/screens/campaign/CampaignJournalScreen.tscn",
 	"settings": "res://src/ui/screens/settings/SettingsScreen.tscn",
 
-	# Tutorial
-	"tutorial_selection": "res://src/ui/screens/tutorial/TutorialSelection.tscn",
-	# "new_campaign_tutorial" removed with its scene: nothing navigated to it, and
-	# the scene was non-functional anyway — its node names (Label/StoryTrackButton/
-	# CompendiumButton) did not match the shared NewCampaignTutorial.gd @onready
-	# paths (TitleLabel/ContentLabel/ButtonContainer/*), so every reference resolved
-	# null and none of its three buttons had a handler.
+	# Tutorial routes: BOTH removed 2026-08-01.
+	# "new_campaign_tutorial" went first — nothing navigated to it and its node
+	# names did not match the shared script's @onready paths.
+	# "tutorial_selection" followed for the same reason one level up: its only
+	# entry point was MainMenu._show_tutorial_popup(), which had ZERO callers
+	# repo-wide, so the popup never appeared, the route was never taken, and
+	# TutorialSelection.tscn + NewCampaignTutorial.gd (341 lines) were unreachable.
+	# The live onboarding is the coach-mark overlay (TutorialUI + data/tutorials/)
+	# and the book's Introductory Campaign (Compendium pp.104-109).
 
 	# Help / Library
 	"help": "res://src/ui/help/HelpScreen.tscn",
@@ -295,8 +297,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 			scenes = ["world_phase", "post_battle_sequence"]
 		"utility":
 			scenes = ["game_over", "campaign_journal", "settings"]
-		"tutorial":
-			scenes = ["tutorial_selection"]
+		# "tutorial" category dropped with the tutorial_selection route.
 	return scenes
 
 ## Campaign phase navigation helpers

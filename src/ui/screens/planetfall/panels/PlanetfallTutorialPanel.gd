@@ -1,9 +1,21 @@
 extends Control
 
-## Planetfall Creation Step 5: Tutorial Missions
-## 3 introductory missions (Beacons/Analysis/Perimeter) that teach core rules.
-## Player can play each on the tabletop and report results, or skip.
-## TODO: Full mission companion UI — currently play/skip buttons.
+## Planetfall Creation Step 5: Tutorial Missions (Planetfall pp.44-45)
+##
+## 3 introductory missions (Beacons / Analysis / Perimeter) that teach core rules.
+## The player runs each on the tabletop and reports the result here.
+##
+## Now DATA-DRIVEN from data/planetfall/tutorial_missions.json. That file was
+## fully authored from the book — table size, forces, setup instructions,
+## objectives, rewards — and had ZERO loaders repo-wide; this panel hardcoded a
+## one-line summary of each mission instead, so none of the setup or objective
+## text ever reached the player.
+##
+## It also fixes an unreachable reward: Analysis pays "2 Research Points (3 if
+## all 6 Contacts revealed)", the coordinator reads `analysis_all_six`, and
+## nothing could ever set it — the 3 RP bonus was impossible to earn.
+
+const TUTORIAL_DATA_PATH := "res://data/planetfall/tutorial_missions.json"
 
 signal tutorials_updated(data: Dictionary)
 
@@ -55,18 +67,8 @@ func _build_ui() -> void:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
 
-	# Mission cards
-	var missions := [
-		{"id": "beacons", "title": "Beacons (Scout Mission)",
-		 "desc": "Scouts deploy 3 beacons in a storm. Reward: 2 Raw Materials.",
-		 "success_key": "beacons_success"},
-		{"id": "analysis", "title": "Analysis (Scientist Mission)",
-		 "desc": "Scientists reveal 4+ of 6 contacts. Reward: 2-3 Research Points.",
-		 "success_key": "analysis_success"},
-		{"id": "perimeter", "title": "Perimeter (Trooper Mission)",
-		 "desc": "Troopers kill 6 lifeforms. Reward: +3 Colony Morale.",
-		 "success_key": "perimeter_success"},
-	]
+	# Mission cards, built from the book data rather than hardcoded blurbs.
+	var missions: Array = _load_missions()
 
 	for m in missions:
 		var card := PanelContainer.new()
@@ -85,18 +87,47 @@ func _build_ui() -> void:
 		vbox.add_theme_constant_override("separation", 8)
 		card.add_child(vbox)
 
+		var mid: String = str(m.get("id", ""))
+		var skey: String = "%s_success" % mid
+
 		var title_lbl := Label.new()
-		title_lbl.text = m.title
+		var subtitle: String = str(m.get("subtitle", ""))
+		title_lbl.text = ("%s — %s" % [str(m.get("name", "Mission")), subtitle]) \
+			if not subtitle.is_empty() else str(m.get("name", "Mission"))
 		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 		title_lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 		vbox.add_child(title_lbl)
 
-		var desc_lbl := Label.new()
-		desc_lbl.text = m.desc
-		desc_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
-		desc_lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
-		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		vbox.add_child(desc_lbl)
+		# What the mission teaches + the table it wants. Both are in the book and
+		# were previously invisible.
+		var meta_bits: Array[String] = []
+		if not str(m.get("teaches", "")).is_empty():
+			meta_bits.append("Teaches: %s" % str(m.get("teaches")))
+		if not str(m.get("table_size", "")).is_empty():
+			meta_bits.append("Table: %s" % str(m.get("table_size")))
+		if not meta_bits.is_empty():
+			vbox.add_child(_body_label(" · ".join(meta_bits), 12))
+
+		if not str(m.get("setup", "")).is_empty():
+			vbox.add_child(_body_label("Setup: %s" % str(m.get("setup")), 13))
+		if not str(m.get("objective", "")).is_empty():
+			vbox.add_child(_body_label(
+				"Objective: %s" % str(m.get("objective")), 13))
+
+		var reward: Dictionary = m.get("reward_success", {})
+		if not str(reward.get("description", "")).is_empty():
+			vbox.add_child(_body_label(
+				"Reward: %s" % str(reward.get("description")), 13))
+
+		# Planetfall p.45, Analysis: "2 Research Points (3 if all 6 Contacts
+		# revealed)". The coordinator reads `analysis_all_six`; without this box
+		# nothing could set it, so the 3 RP tier was unreachable.
+		if reward.has("bonus_all_six"):
+			var all_six := CheckBox.new()
+			all_six.text = "All 6 Contacts revealed (bonus)"
+			all_six.custom_minimum_size = Vector2(0, 40)
+			all_six.toggled.connect(_on_all_six_toggled)
+			vbox.add_child(all_six)
 
 		var btn_row := HBoxContainer.new()
 		btn_row.add_theme_constant_override("separation", 8)
@@ -105,8 +136,6 @@ func _build_ui() -> void:
 		var success_btn := Button.new()
 		success_btn.text = "Mission Success"
 		success_btn.custom_minimum_size = Vector2(0, 40)
-		var mid: String = m.id
-		var skey: String = m.success_key
 		success_btn.pressed.connect(func(): _on_mission_result(mid, skey, true))
 		btn_row.add_child(success_btn)
 
@@ -124,6 +153,49 @@ func _build_ui() -> void:
 	skip_btn.custom_minimum_size = Vector2(0, 48)
 	skip_btn.pressed.connect(_on_skip_all)
 	content.add_child(skip_btn)
+
+
+func _body_label(text: String, size: int) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(size))
+	lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return lbl
+
+
+func _load_missions() -> Array:
+	## Read the book data. Falls back to the three ids in play order so the step
+	## still functions if the file is missing from an export.
+	var file := FileAccess.open(TUTORIAL_DATA_PATH, FileAccess.READ)
+	if file == null:
+		push_warning("PlanetfallTutorialPanel: %s not found" % TUTORIAL_DATA_PATH)
+		return _fallback_missions()
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("PlanetfallTutorialPanel: %s failed to parse: %s"
+			% [TUTORIAL_DATA_PATH, json.get_error_message()])
+		return _fallback_missions()
+	var data: Variant = json.get_data()
+	if not (data is Dictionary):
+		return _fallback_missions()
+	var missions: Variant = data.get("missions", [])
+	if not (missions is Array) or missions.is_empty():
+		return _fallback_missions()
+	return missions
+
+
+func _fallback_missions() -> Array:
+	return [
+		{"id": "beacons", "name": "Beacons", "subtitle": "Scout Mission"},
+		{"id": "analysis", "name": "Analysis", "subtitle": "Scientist Mission"},
+		{"id": "perimeter", "name": "Perimeter", "subtitle": "Trooper Mission"},
+	]
+
+
+func _on_all_six_toggled(pressed: bool) -> void:
+	_results["analysis_all_six"] = pressed
+	tutorials_updated.emit(_results)
 
 
 func _on_mission_result(mission_id: String, success_key: String, success: bool) -> void:

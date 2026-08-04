@@ -264,7 +264,10 @@ func _on_help_pressed() -> void:
 		return
 	var tui: Control = TutorialUIScript.new()
 	add_child(tui)
-	tui.start_tutorial("campaign_dashboard")
+	# force=true: the "?" button exists to REPLAY the tour. Without it,
+	# start_tutorial() early-returned on the completed flag and the button did
+	# nothing at all from the second campaign turn onward.
+	tui.start_tutorial("campaign_dashboard", true)
 
 func _check_dashboard_tutorial() -> void:
 	var TutorialUIScript: GDScript = load(
@@ -1442,8 +1445,10 @@ func _build_narrative_status(campaign) -> void:
 				_create_info_row(
 					"Status", "Complete!", COLOR_EMERALD))
 		elif intro_active:
-			var turn: int = intro_state.get(
-				"current_intro_turn", 0)
+			# get_status() returns "current_turn"; this read "current_intro_turn"
+			# (the internal field name), matched nothing, and rendered
+			# "Turn 0 / 5" with an empty bar for the whole tutorial.
+			var turn: int = intro_state.get("current_turn", 0)
 			right_vbox.add_child(
 				_create_info_row(
 					"Progress", "Turn %d / 5" % turn,

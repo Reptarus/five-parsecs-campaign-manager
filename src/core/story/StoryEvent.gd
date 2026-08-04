@@ -12,6 +12,24 @@ extends Resource
 @export var event_number: int = 0
 @export var title: String = ""
 @export var page_reference: String = ""
+## Scene-manifest key for the narrative illustration (data/scenes/<art_tag>.json).
+## Authored in all 7 event JSONs but never parsed — StoryPhasePanel recomputed the
+## same string from event_number instead, so editing the JSON field changed
+## nothing and the two would have diverged silently.
+@export var art_tag: String = ""
+
+# ── Presentation (NarrativeScreen) ──────────────────────────────────
+## Which crew advisor speaks over this event, and in what register.
+## PRESENTATION ONLY — no stat, cost, range or table boundary lives here, so
+## these are not book values. Each is read off the event's own narrative text;
+## the `_rationale` in the JSON records which line it came from.
+## Roles: broker / medic / fighter / tech / scout / social (advisor_quotes.json).
+## Moods: positive / warning / neutral.
+@export var advisor_role: String = ""
+@export var advisor_mood: String = ""
+## Label on the single continue button, so all seven events do not read
+## "Continue to Battle".
+@export var choice_label: String = ""
 
 # ── Narrative ───────────────────────────────────────────────────────
 @export var narrative_intro: String = ""
@@ -66,6 +84,12 @@ func load_from_json(data: Dictionary) -> void:
 	event_number = data.get("event_number", 0)
 	title = data.get("title", "")
 	page_reference = data.get("page_reference", "")
+	art_tag = data.get("art_tag", "")
+
+	var presentation: Dictionary = data.get("presentation", {})
+	advisor_role = str(presentation.get("advisor_role", ""))
+	advisor_mood = str(presentation.get("advisor_mood", ""))
+	choice_label = str(presentation.get("choice_label", ""))
 
 	# Narrative
 	var narr: Dictionary = data.get("narrative", {})
@@ -86,8 +110,17 @@ func load_from_json(data: Dictionary) -> void:
 	post_battle_effects = data.get("post_battle_effects", {})
 
 	# Clock
+	#
+	# Godot 4's JSON parser returns every number as a FLOAT, so the old
+	# `clock_val is int` test was ALWAYS false and next_clock_ticks silently
+	# became 0 for all seven events. With apply_post_battle() finally wired, that
+	# would have meant the Clock never resets after an event — it would sit at
+	# whatever the previous event left it on and the track would stall.
+	#
+	# Events 5 and 7 legitimately carry `null` here (evidence-gated and final
+	# respectively), and those must stay 0.
 	var clock_val: Variant = data.get("next_clock_ticks", 0)
-	next_clock_ticks = clock_val if clock_val is int else 0
+	next_clock_ticks = 0 if clock_val == null else int(clock_val)
 	next_event_requires_travel = data.get("next_event_requires_travel", false)
 
 	# Evidence

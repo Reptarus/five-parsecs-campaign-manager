@@ -136,7 +136,20 @@ func show_current_step() -> void:
 		_animate_highlight(target_rect)
 		_position_tooltip(target_rect, step.get("tooltip_position", "bottom"))
 	else:
-		# No target — center the tooltip
+		# No target — center the tooltip.
+		#
+		# This fallback is legitimate for the deliberately target-less welcome
+		# step, but it also silently absorbed six BROKEN paths: the coach marks
+		# kept pointing at pre-scroll-container node paths long after MainMenu
+		# gained MenuScroll and CampaignDashboard gained MainScroll, so 6 of 10
+		# steps highlighted nothing and nobody noticed. Warn on a path that was
+		# specified but did not resolve, so the next scene refactor is loud.
+		if not target_path.is_empty():
+			push_warning(
+				"TutorialOverlay: step %d target '%s' did not resolve in scene '%s' — "
+				% [current_step + 1, target_path,
+					get_tree().current_scene.name if get_tree().current_scene else "?"]
+				+ "highlighting nothing. Scene paths probably drifted.")
 		_highlight_border.visible = false
 		_center_tooltip()
 

@@ -34,29 +34,62 @@
       {
         "type": "goon",
         "count": 5,
-        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 0, "toughness": 3},
+        "stats": {
+          "panic": "1-2",
+          "speed_inches": 4,
+          "combat_skill": 0,
+          "toughness": 3
+        },
         "ai": "defensive_conditional",
         "ai_rules": "Within 12\" of crew: Defensive AI. Not within 12\": move to center, then Defensive AI.",
-        "weapons": ["Machine Pistol"]
+        "weapons": [
+          "Machine Pistol"
+        ]
       },
       {
         "type": "bruiser",
         "count": 2,
-        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "stats": {
+          "panic": "1-2",
+          "speed_inches": 4,
+          "combat_skill": 1,
+          "toughness": 4
+        },
         "ai": "defensive_conditional",
-        "weapons": ["Shotgun", "Brutal melee"]
+        "weapons": [
+          "Shotgun",
+          "Brutal melee"
+        ]
       },
       {
         "type": "leader",
         "count": 1,
-        "stats": {"panic": "1-2", "speed_inches": 4, "combat_skill": 1, "toughness": 4},
+        "stats": {
+          "panic": "1-2",
+          "speed_inches": 4,
+          "combat_skill": 1,
+          "toughness": 4
+        },
         "ai": "defensive_conditional",
-        "weapons": ["Blast Pistol", "Blade"]
+        "weapons": [
+          "Blast Pistol",
+          "Blade"
+        ]
       }
     ],
     "reinforcements": [
-      {"round": 8, "type": "goon", "count": 2, "placement": "center of random battlefield edge"},
-      {"round": 12, "type": "goon", "count": 2, "placement": "center of random battlefield edge"}
+      {
+        "round": 8,
+        "type": "goon",
+        "count": 2,
+        "placement": "center of random battlefield edge"
+      },
+      {
+        "round": 12,
+        "type": "goon",
+        "count": 2,
+        "placement": "center of random battlefield edge"
+      }
     ]
   },
   "objectives": {
@@ -86,5 +119,12 @@
     }
   },
   "next_clock_ticks": 5,
-  "page_reference": "pp.155-156"
+  "page_reference": "pp.155-156",
+  "presentation": {
+    "_note": "Presentation metadata for NarrativeScreen. NOT game data — no stat, cost, range or table boundary here. Role/mood are read off this event's own narrative text.",
+    "_rationale": "Sabotage device planted on a Savvy roll at a factory compound; a planned technical op.",
+    "advisor_role": "tech",
+    "advisor_mood": "neutral",
+    "choice_label": "Move on the compound"
+  }
 }

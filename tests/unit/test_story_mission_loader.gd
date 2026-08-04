@@ -81,3 +81,24 @@ func test_clear_cache_reloads_fresh_instance() -> void:
 	var reloaded = loader.load_event(first.event_id)
 	assert_object(reloaded).is_not_null()
 	assert_bool(reloaded == first).is_false()
+
+
+## Presentation metadata (Aug 1 2026). All 7 events used to present with the
+## same hardcoded social/warning advisor and the same "Continue to Battle"
+## button; these are now per-event and parsed from the JSON.
+func test_every_event_carries_distinct_presentation_metadata() -> void:
+	var loader = preload("res://src/core/story/StoryMissionLoader.gd").new()
+	var events: Array = loader.load_all_events()
+	assert_int(events.size()).is_equal(7)
+
+	var valid_roles := ["broker", "medic", "fighter", "tech", "scout", "social"]
+	var valid_moods := ["positive", "warning", "neutral"]
+	var labels := {}
+	for e in events:
+		assert_bool(str(e.art_tag).is_empty()).is_false()
+		assert_bool(valid_roles.has(str(e.advisor_role))).is_true()
+		assert_bool(valid_moods.has(str(e.advisor_mood))).is_true()
+		assert_bool(str(e.choice_label).is_empty()).is_false()
+		labels[str(e.choice_label)] = true
+	# Every event gets its own button text — the whole point of the change.
+	assert_int(labels.size()).is_equal(7)

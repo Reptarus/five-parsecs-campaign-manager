@@ -21,8 +21,21 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	var roll_count: int = 1
 	if ctx.battle_result.get("is_invasion", false):
 		roll_count = 0  # Core Rules p.120: "If you just played an Invasion Battle, you receive no Loot."
+	elif ctx.battle_result.get("story_no_loot", false):
+		# Story Track Event 5 (p.157) "obtain no Loot"; Event 1 (p.153) grants a
+		# Loot roll only "provided you killed at least one opponent". Both are
+		# resolved into this one flag by StoryTrackProcessor before step 4.
+		roll_count = 0
 	elif ctx.battle_result.get("is_quest_finale", ctx.battle_result.get("quest_final_stage", ctx.battle_result.get("is_quest_final", false))):
 		roll_count = 3  # Core Rules p.120: final stage of a Quest -> roll three times, claim all.
+	elif int(ctx.battle_result.get("story_loot_rolls", 0)) > 0:
+		# Story Track Event 7 win (p.160): "3 rolls on the Loot Table".
+		roll_count = int(ctx.battle_result.get("story_loot_rolls", 0))
+
+	# Story Track Event 3 win (p.155): "you may claim an additional Loot roll
+	# from snooping around the site" — additive, unlike the absolute counts above.
+	if roll_count > 0:
+		roll_count += int(ctx.battle_result.get("story_bonus_loot_rolls", 0))
 
 	for _i in range(roll_count):
 		gathered_loot.append_array(_roll_loot_table())

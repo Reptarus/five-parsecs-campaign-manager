@@ -213,10 +213,20 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 		description += " | Objective: %s (%s)" % [
 			obj_label, "achieved" if obj_done else "failed"]
 
-	# Build tags with zone tag
-	var tags: Array = [
-		"battle",
-		battle_result.get("enemy_type", "").to_lower()]
+	# Build tags with zone tag.
+	#
+	# The enemy type USED to be tagged here. That is a category error: TAGS is a
+	# controlled vocabulary of journal categories (battle / loot / rival / …),
+	# so an enemy name could never be canonical — "gangers" warns exactly as
+	# loudly as the "Unknown" fallback did, on every single battle. Worse, the
+	# filter chip row is built from get_tag_frequency() (the tags actually
+	# present), so enemy names became selectable chips rendered in the fallback
+	# colour, crowding real categories out of the top-N row.
+	#
+	# The enemy is DATA, so it moves to `stats` below alongside outcome,
+	# casualties, loot and XP — still recorded, still queryable, no longer
+	# masquerading as a category.
+	var tags: Array = ["battle"]
 	var zone_tag: String = battle_result.get("zone_tag", "")
 	if not zone_tag.is_empty():
 		tags.append(zone_tag)
@@ -228,6 +238,12 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 		"loot_earned": battle_result.get("loot", 0),
 		"xp_gained": battle_result.get("xp", 0),
 	}
+	# Relocated out of `tags` — see the note above. Only recorded when the battle
+	# actually knows the enemy; the "Unknown" fallback several producers use is
+	# not worth persisting.
+	var enemy_type: String = str(battle_result.get("enemy_type", ""))
+	if not enemy_type.is_empty() and enemy_type.to_lower() != "unknown":
+		stats["enemy_type"] = enemy_type
 	if not zone_type.is_empty():
 		stats["zone_type"] = zone_type
 

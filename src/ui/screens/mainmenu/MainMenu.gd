@@ -24,7 +24,11 @@ var tactics_button: Button
 var planetfall_button: Button
 @onready var options_button = %Options as Button
 @onready var library_button = %Library as Button
-@onready var tutorial_popup = %TutorialPopup as Panel
+# TutorialPopup removed 2026-08-01 along with its whole flow: the only thing
+# that could show it was _show_tutorial_popup(), which had ZERO callers, so the
+# panel, its 3 buttons, its checkbox and the tutorial_selection screen behind it
+# were all unreachable. Live onboarding is the coach-mark overlay (TutorialUI)
+# plus the book's Introductory Campaign.
 
 var game_state_manager: Node
 var _active_dialogs: Array[Node] = []
@@ -100,9 +104,6 @@ func _ready() -> void:
 
 	setup_ui()
 	_build_social_footer()
-	if tutorial_popup:
-		tutorial_popup.hide()
-		_connect_tutorial_signals()
 	update_continue_button_visibility()
 
 	# Responsive layout
@@ -140,34 +141,13 @@ func _validate_required_nodes() -> bool:
 		battle_simulator_button,
 		bug_hunt_button,
 		options_button,
-		library_button,
-		tutorial_popup
+		library_button
 	]
 	
 	for node in required_nodes:
 		if not node:
 			return false
 	return true
-
-func _connect_tutorial_signals() -> void:
-	var tutorial_container := tutorial_popup.get_node_or_null("VBoxContainer")
-	if not tutorial_container:
-		push_error("MainMenu: Tutorial container not found")
-		return
-	
-	var buttons := {
-		"StoryTrackButton": "story_track",
-		"CompendiumButton": "compendium",
-		"SkipButton": "skip"
-	}
-	
-	for button_name in buttons:
-		var button := tutorial_container.get_node_or_null(button_name) as Button
-		if button:
-			# Safely disconnect if connected
-			if button.is_connected("pressed", _on_tutorial_popup_button_pressed):
-				button.pressed.disconnect(_on_tutorial_popup_button_pressed)
-			button.pressed.connect(_on_tutorial_popup_button_pressed.bind(buttons[button_name]))
 
 func setup_ui() -> void:
 	_inject_tactics_button()
@@ -398,17 +378,6 @@ func _on_new_campaign_pressed() -> void:
 		return
 	_start_new_campaign()
 
-func _show_tutorial_popup() -> void:
-	if not tutorial_popup:
-		push_error("MainMenu: Tutorial popup not found")
-		return
-	
-	var checkbox := tutorial_popup.get_node_or_null("VBoxContainer/DisableTutorialCheckbox") as CheckBox
-	if checkbox and is_instance_valid(game_state_manager):
-		checkbox.button_pressed = game_state_manager.settings.get("disable_tutorial_popup", false)
-	
-	tutorial_popup.visible = true
-
 func _start_new_campaign() -> void:
 	if not is_instance_valid(game_state_manager):
 		push_error("MainMenu: Game state manager is invalid")
@@ -447,36 +416,6 @@ func _on_onboard_existing_pressed() -> void:
 	if game_state_manager.has_method("set_temp_data"):
 		game_state_manager.set_temp_data("onboarding_mode", true)
 	_start_new_campaign()
-
-func _on_tutorial_popup_button_pressed(choice: String) -> void:
-	if tutorial_popup:
-		tutorial_popup.visible = false
-	_handle_tutorial_choice(choice)
-
-func _handle_tutorial_choice(choice: String) -> void:
-	if not is_instance_valid(game_state_manager):
-		push_error("MainMenu: Game state manager is invalid")
-		return
-	
-	if not game_state_manager.has_method("set_tutorial_state"):
-		push_error("MainMenu: Game state manager missing set_tutorial_state method")
-		return
-	
-	match choice:
-		"story_track", "compendium":
-			game_state_manager.set_tutorial_state(true)
-			request_scene_change("tutorial_setup")
-		"skip":
-			game_state_manager.set_tutorial_state(false)
-			_start_new_campaign()
-
-func _on_disable_tutorial_toggled(button_pressed: bool) -> void:
-	if not is_instance_valid(game_state_manager):
-		return
-	
-	game_state_manager.settings["disable_tutorial_popup"] = button_pressed
-	if game_state_manager.has_method("save_settings"):
-		game_state_manager.save_settings()
 
 func _check_first_run_tutorial() -> void:
 	# Show guided tutorial overlay on first launch
@@ -1655,7 +1594,6 @@ func request_scene_change(scene_name: String) -> void:
 	var scene_map := {
 		"crew_management": "crew_management",
 		"campaign_setup": "campaign_creation",
-		"tutorial_setup": "tutorial_selection",
 		"options": "settings",
 		"campaign_dashboard": "campaign_dashboard",
 		"campaign_turn_controller": "campaign_turn_controller",

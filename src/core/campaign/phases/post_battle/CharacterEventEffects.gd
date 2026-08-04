@@ -414,8 +414,11 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 
 		"Hurt Working on Ship":
 			ctx.injure_specific_crew(character, 1)
-			if gsm and gsm.has_method("damage_hull"):
-				gsm.damage_hull(1)
+			# `damage_hull` does not exist anywhere in the repo — permanently
+			# false guard, so the ship never actually took the point of damage
+			# this event's own result string claims. Real API: apply_ship_damage().
+			if gsm and gsm.has_method("apply_ship_damage"):
+				gsm.apply_ship_damage(1)
 			return "%s hurt working on ship: 1 turn Sick Bay, ship -1 Hull" % char_name
 
 		"Found True Love":

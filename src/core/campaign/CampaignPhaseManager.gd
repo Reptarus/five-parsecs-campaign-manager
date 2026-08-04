@@ -1782,11 +1782,13 @@ func _journal_story_event(event: StoryEvent) -> void:
 		"title": "Event %d: %s" % [
 			event.event_number, event.title],
 		"description": event.narrative_intro,
-		"mood": "dramatic",
-		"tags": [
-			"story_track",
-			"event_%d" % event.event_number,
-			event.event_id],
+		# Mood and tags MUST come from the canonical sets in JournalEntryTypes
+		# (MOOD_STRING_TO_ENUM / TAGS). "dramatic" is not a mood and neither
+		# "event_1" nor the raw event_id is a tag, so every Story Event logged
+		# three push_warning()s and rendered in the fallback colour. The event
+		# number and id are already in the title and description.
+		"mood": "exciting",
+		"tags": ["story_track", "milestone"],
 		"auto_generated": true,
 	})
 
