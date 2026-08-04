@@ -14,6 +14,13 @@ const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
 const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
 const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 const EquipmentTransferService = preload("res://src/core/equipment/EquipmentTransferService.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+
+## The Compendium p.79 step this battle produced or discharged, for the
+## orchestrator to emit. Subsystems return data and never emit, and the int
+## contract of process_quest_progress() cannot carry a printed instruction —
+## which for a tabletop companion IS the deliverable of the chapter.
+var last_quest_step: Dictionary = {}
 
 ## Remember that a Patron job was completed here, for the p.84 "Reputation
 ## Required" Condition ("You must have completed a prior Patron job on this
@@ -375,10 +382,13 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 func process_quest_progress(ctx: PostBattleContextClass) -> int:
 	## Step 3: Determine Quest Progress (Core Rules p.120).
 	## Returns -1 step does not apply / 0 dead end / 1 step closer (+1 Rumor) /
-	## 2 finale unlocked / 3 Quest concluded. -1 exists so the UI can stay silent
-	## instead of reporting "Quest Dead End" after every battle in a campaign that
-	## has no Quest at all.
+	## 2 finale unlocked / 3 Quest concluded / 4 a Compendium p.79 step is now the
+	## crew's standing obligation. -1 exists so the UI can stay silent instead of
+	## reporting "Quest Dead End" after every battle in a campaign that has no
+	## Quest at all; 4 exists because the expanded system's normal outcome is
+	## neither progress nor a dead end but a task.
 	var quest_progress: int = 0
+	last_quest_step = {}
 
 	if not ctx.game_state or not ctx.game_state.has_method("has_active_quest") \
 			or not ctx.game_state.has_active_quest():
@@ -402,6 +412,11 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 		var completed: int = 0
 		if ctx.game_state.has_method("complete_active_quest"):
 			completed = ctx.game_state.complete_active_quest()
+		# The Compendium's permanent modifiers are scoped to "all future battles
+		# that are part of the Quest" (p.79) — this Quest. A new one must start
+		# clean, and a discharged obligation must not outlive the Quest it
+		# belonged to.
+		ExpandedQuestRef.clear(ctx.campaign)
 		var journal: Variant = Engine.get_main_loop().root.get_node_or_null(
 			"/root/CampaignJournal") if Engine.get_main_loop() else null
 		if journal and journal.has_method("create_entry"):
@@ -417,13 +432,21 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 			})
 		return 3
 
-	var base_roll: int = ctx.roll_d6("Quest progress roll")
 	var quest_rumors: int = 0
 	if ctx.game_state.has_method("get_quest_rumors"):
 		quest_rumors = ctx.game_state.get_quest_rumors()
 	elif ctx.game_state.has_method("get_quest_rumor_count"):
 		quest_rumors = ctx.game_state.get_quest_rumor_count()
 
+	# Compendium p.78: "the system below is used IN PLACE OF the core rulebook
+	# system." Branching before the D6 is rolled, not after, because the expanded
+	# system does not always roll — a standing obligation suppresses the roll
+	# entirely, and a die rolled and discarded would still reach the dice feed
+	# and the journal.
+	if ExpandedQuestRef.is_enabled():
+		return _process_expanded_quest_progress(ctx, quest_rumors)
+
+	var base_roll: int = ctx.roll_d6("Quest progress roll")
 	var total_roll: int = base_roll + quest_rumors
 
 	# Expanded Database: +1 to quest progress (Compendium p.28)
@@ -467,6 +490,124 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 			ctx.game_state.set_quest_requires_travel(true, true)
 
 	return quest_progress
+
+
+## Expanded Quest Progression (Compendium pp.78-80) — Post-Battle Step 3.
+##
+## Differences from the core system above, all of them the book's:
+##   * the formula is 1D6 + Quest Rumors, full stop. No -2 for a lost battle —
+##     that modifier belongs to the system this replaces.
+##   * there is no p.119 travel roll. Same reason: it is part of the core Step 3,
+##     and p.78 replaces Step 3 wholesale.
+##   * the Expanded Database +1 (Compendium p.28) IS kept. It is a ship component
+##     that modifies a Quest progress roll; which table the roll consults is not
+##     its business.
+##   * the ordinary outcome is neither progress nor a dead end. It is a task,
+##     which stands until discharged and suppresses the next roll while it does.
+func _process_expanded_quest_progress(ctx: PostBattleContextClass, quest_rumors: int) -> int:
+	# A battle fought FOR the pending step discharges it first — by the time
+	# Step 3 asks, the obligation the battle was taken on is settled.
+	var discharge: Dictionary = ExpandedQuestRef.record_battle(ctx.campaign, ctx.battle_result)
+	if not str(discharge.get("message", "")).is_empty():
+		last_quest_step = discharge
+	if bool(discharge.get("rumor_awarded", false)):
+		ctx.add_quest_rumor()
+		quest_rumors += 1
+		_journal_quest_step("Quest step complete", str(discharge.get("message", "")), ctx)
+
+	# Still owing something: no roll, and the UI says what is still owed rather
+	# than reporting a dead end the book never rolled for.
+	if ExpandedQuestRef.blocks_progress(ctx.campaign):
+		var pending: Dictionary = ExpandedQuestRef.get_pending_step(ctx.campaign)
+		last_quest_step = {
+			"step_id": str(pending.get("id", "")),
+			"message": str(pending.get("instruction", "")),
+			"pending": true,
+		}
+		return 4
+
+	var db_bonus: int = 0
+	if ShipComponentQuery.has_component("expanded_database"):
+		db_bonus = 1
+
+	var d6: int = ctx.roll_d6("Quest progress (Compendium p.78)")
+	# Only roll the progression table when the gate did not clear the Conclusion.
+	# Reads the engine's threshold rather than repeating the 7.
+	var d100: int = -1
+	if d6 + maxi(0, quest_rumors) + db_bonus < ExpandedQuestRef.CONCLUSION_THRESHOLD:
+		d100 = ctx.roll_d100("Quest Progression table (Compendium p.79)")
+
+	# Two rows need one more D6 the moment they land — the 1D6 price of the
+	# information (01-10) and the +1D6 on the first research tranche (11-20).
+	# Rolled through ctx so it reaches the dice feed with its own label, and only
+	# when the row that needs it actually came up: a die in the feed that changed
+	# nothing is worse than no die at all for a player following along on paper.
+	var aux_d6: int = -1
+	if d100 > 0:
+		match str(ExpandedQuestRef.step_for_roll(d100).get("completion", "")):
+			"pay_credits":
+				aux_d6 = ctx.roll_d6("Cost of the information (Compendium p.79)")
+			"research_points":
+				aux_d6 = ctx.roll_d6("Research points (Compendium p.79)")
+
+	var outcome: Dictionary = ExpandedQuestRef.roll_progress(
+		ctx.campaign, quest_rumors, _crew_savvy_total(ctx),
+		int(ctx.battle_result.get("turn", 0)), db_bonus, d6, d100, aux_d6, aux_d6)
+
+	if bool(outcome.get("conclusion", false)):
+		if ctx.game_state.has_method("set_quest_finale_available"):
+			ctx.game_state.set_quest_finale_available(true)
+		last_quest_step = {"step_id": "conclusion",
+			"message": str(outcome.get("message", "")), "pending": false}
+		_journal_quest_step("Quest Conclusion unlocked", str(outcome.get("message", "")), ctx)
+		return 2
+
+	var step: Dictionary = outcome.get("step", {})
+	if step.is_empty():
+		return 0
+
+	last_quest_step = {
+		"step_id": str(step.get("id", "")),
+		"message": str(step.get("instruction", "")),
+		"pending": bool(step.get("blocks_progress", false)),
+	}
+	_journal_quest_step("Quest: next step", str(step.get("instruction", "")), ctx)
+
+	if bool(outcome.get("rumor_awarded", false)):
+		ctx.add_quest_rumor()
+		return 1
+	return 4
+
+
+## Combined Savvy of the crew, for the p.79 Analyze Data row ("research points
+## equal to the combined Savvy scores of your crew members, +1D6"). Handles both
+## live shapes — a loaded campaign holds crew Dictionaries, a freshly created one
+## can still hold Character Resources.
+func _crew_savvy_total(ctx: PostBattleContextClass) -> int:
+	var total: int = 0
+	for member: Variant in ctx.get_crew_members():
+		if member is Dictionary:
+			total += int(member.get("savvy", 0))
+		elif member != null and "savvy" in member:
+			total += int(member.savvy)
+	return total
+
+
+func _journal_quest_step(title: String, body: String, ctx: PostBattleContextClass) -> void:
+	if body.is_empty():
+		return
+	var journal: Variant = Engine.get_main_loop().root.get_node_or_null(
+		"/root/CampaignJournal") if Engine.get_main_loop() else null
+	if not journal or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"type": "story",
+		"title": title,
+		"description": body,
+		"tags": ["quest", "compendium", "expanded_quests"],
+		"auto_generated": true,
+		"mood": "neutral",
+	})
 
 func _roll_rival_removal(ctx: PostBattleContextClass, rival_id: String) -> int:
 	var base_roll: int = randi_range(1, 6)

@@ -35,6 +35,11 @@ signal post_battle_substep_changed(substep: int)
 signal rival_status_resolved(rivals_removed: Array)
 signal patron_status_resolved(patrons_added: Array)
 signal quest_progress_updated(progress: int)
+## The Compendium p.79 step this battle produced or discharged, when Expanded
+## Quest Progression is on. {} on every other path. The int above cannot carry a
+## printed instruction, and for a tabletop companion the instruction IS the
+## chapter's deliverable.
+signal quest_step_assigned(step: Dictionary)
 signal payment_received(amount: int)
 signal battlefield_finds_completed(finds: Array)
 signal invasion_checked(invasion_pending: bool)
@@ -229,6 +234,8 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 		_emit_substep(GlobalEnums.PostBattleSubPhase.QUEST_PROGRESS)
 		var quest_progress: int = _rival_patron.process_quest_progress(_ctx)
 		quest_progress_updated.emit(quest_progress)
+		if not _rival_patron.last_quest_step.is_empty():
+			quest_step_assigned.emit(_rival_patron.last_quest_step)
 
 	# Step 3b: Story Track reward gates (Core Rules Appendix V).
 	# MUST run before steps 4-7. A Story Event can suppress pay/Loot (p.157

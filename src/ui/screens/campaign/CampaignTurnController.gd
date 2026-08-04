@@ -16,6 +16,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 ## reason as the two consts above.
 const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 ## Version of the battle-result → NarrativeScreen event_data contract produced by
 ## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
@@ -690,6 +691,37 @@ func _hide_all_phase_uis() -> void:
 		story_phase_panel.hide()
 
 ## Battle Integration
+## Whether this battle is part of a Quest. Both spellings are live: the job offer
+## screen sets mission_source "quest" and stamps `is_quest_finale`, while some
+## older paths set the source to "quest_finale" directly.
+func _is_quest_mission(mission_data: Dictionary) -> bool:
+	var source: String = str(mission_data.get("mission_source",
+		mission_data.get("source", "")))
+	return source == "quest" or source == "quest_finale" \
+		or bool(mission_data.get("is_quest", false)) \
+		or bool(mission_data.get("is_quest_finale", false))
+
+
+## Both crew shapes are live here — a loaded campaign holds Dictionaries, a
+## freshly created one can still hold Character Resources — and `character_class`
+## is a validated String on both, so one str() cast covers them.
+func _crew_has_engineer(crew: Array) -> bool:
+	for member: Variant in crew:
+		var value: Variant = null
+		if member is Dictionary:
+			value = member.get("character_class", member.get("class", ""))
+		elif member != null and "character_class" in member:
+			value = member.character_class
+		if "engineer" in str(value).to_lower():
+			return true
+	return false
+
+
+func _is_quest_finale_mission(mission_data: Dictionary) -> bool:
+	return bool(mission_data.get("is_quest_finale", false)) \
+		or str(mission_data.get("mission_source", "")) == "quest_finale"
+
+
 func _initiate_battle_sequence() -> void:
 	## Start battle with current mission data and check for rival encounters
 	var mission_data = game_state.get_current_mission()
@@ -725,6 +757,26 @@ func _initiate_battle_sequence() -> void:
 	# whatever world the crew has travelled to by the time it runs.
 	mission_data["world_traits"] = WorldTraitEffectsClass.traits_for_current_world(
 		game_state.current_campaign)
+	# Expanded Quest Progression (Compendium pp.78-80). Stamped for the same
+	# reason as the world traits: the generator cannot reach the campaign, and the
+	# post-battle side must discharge the obligation the battle was FOUGHT for —
+	# `quest_step_id` is what tells it which. Merged (not overwritten) so a mission
+	# that already named its step keeps that identity, and returns {} whenever the
+	# player has the chapter switched off.
+	if _is_quest_mission(mission_data):
+		mission_data.merge(ExpandedQuestRef.mission_stamp(
+			game_state.current_campaign), false)
+		# p.80 Quest Conclusion: "the enemy is always accompanied by a Unique
+		# Individual." Stated flatly, so it replaces the pp.93-94 2D6 roll for
+		# this one battle instead of modifying it. Core-rules finales are
+		# unaffected — the core p.120 finale has no such clause.
+		if ExpandedQuestRef.is_enabled() and _is_quest_finale_mission(mission_data):
+			mission_data["force_unique_individual"] = true
+		# p.79 row 54-65: "If you have an Engineer among your crew, add +1 to the
+		# score." Resolved here rather than in the battle screen because this is
+		# where the campaign roster is in hand.
+		if int(mission_data.get("quest_survival_target", 0)) > 0:
+			mission_data["quest_engineer_bonus"] = 1 if _crew_has_engineer(active_crew) else 0
 	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
 		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)
@@ -780,8 +832,7 @@ func _initiate_battle_sequence() -> void:
 	# `is_quest_finale` had no producer anywhere — the finale, when it finally
 	# arrived, was generated as an ordinary Quest mission and could roll Move
 	# Through or Defend, which the book does not allow.
-	var _finale: bool = mission_data.get("is_quest_finale", false) \
-		or mission_data.get("mission_source", "") == "quest_finale"
+	var _finale: bool = _is_quest_finale_mission(mission_data)
 	if _finale and not mission_data.has("objective_details"):
 		mission_data["objective_details"] = _quest_finale_objective(mtm)
 
@@ -930,8 +981,7 @@ func _initiate_battle_sequence() -> void:
 	battle_results["setup_rules"] = setup_bundle
 
 	# Quest finale +1 enemy (Core Rules p.89) and fight-to-the-death (p.120).
-	var is_quest_finale: bool = mission_data.get("is_quest_finale", false) \
-		or mission_data.get("mission_source", "") == "quest_finale"
+	var is_quest_finale: bool = _is_quest_finale_mission(mission_data)
 	if is_quest_finale and not enemies.is_empty():
 		# Duplicate last enemy for +1
 		var extra: Dictionary = enemies[-1].duplicate()

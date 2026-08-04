@@ -96,6 +96,12 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# auto-resolves. quest_id lets the post-battle step close out THAT
 			# Quest rather than whatever is active when the dust settles.
 			"is_quest_finale", "quest_id",
+			# quest_step_id added 2026-08-03 for Expanded Quest Progression
+			# (Compendium p.79). The pending step is a standing obligation the
+			# crew discharges by fighting a SPECIFIC battle; without the id on the
+			# result, any battle fought while the obligation stood would clear it —
+			# including a Patron job that had nothing to do with the Quest.
+			"quest_step_id", "quest_survival_target",
 			# world_traits added 2026-08-02: the p.73-74 traits that modify
 			# POST-battle steps (Unity safe sector / Invasion risk / Imminent
 			# invasion / Military outpost on the p.121 Invasion check, Vendetta

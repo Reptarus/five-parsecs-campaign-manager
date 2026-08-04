@@ -21,6 +21,25 @@ const StartingEquipmentGeneratorClass = preload(
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+
+## Compendium p.79 row 29-38: "A special Work on the Quest crew task becomes
+## available. This has no effect other than to help complete this step." It is
+## NOT a standing option and so is deliberately absent from crew_tasks.json —
+## it exists only while that row is the Quest's pending step, and disappears the
+## moment the sixth task is performed.
+const QUEST_WORK_TASK := {
+	"id": "work_on_the_quest",
+	"name": "Work on the Quest",
+	"description": "Compendium p.79: grind away at the current Quest step. "
+		+ "No other effect. Six of these complete the step and earn 1 Quest Rumor.",
+	"dice_target": 0,
+	"max_crew": 6,
+	"credit_bonus": 0,
+	"success_reward": "Progress toward the current Quest step",
+	"failure_penalty": "None",
+	"resolution_type": "automatic",
+}
 
 # Design system constants
 
@@ -275,11 +294,33 @@ func _strife_blocked_tasks() -> Array:
 	return FringeWorldStrifeRef.blocked_crew_tasks(campaign, str(pdm.current_planet_id))
 
 
+## Add or remove the Compendium p.79 "Work on the Quest" task to match the
+## Quest's current state. Re-evaluated on every repopulate rather than loaded
+## once, because the row that creates it is rolled mid-campaign and the task must
+## vanish the turn the sixth one is performed.
+func _sync_quest_work_task() -> void:
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	var wanted: bool = ExpandedQuestRef.quest_task_available(campaign)
+	var index: int = -1
+	for i in range(available_crew_tasks.size()):
+		if str(available_crew_tasks[i].get("id", "")) == QUEST_WORK_TASK["id"]:
+			index = i
+			break
+	if wanted and index < 0:
+		available_crew_tasks.append(QUEST_WORK_TASK.duplicate(true))
+	elif not wanted and index >= 0:
+		available_crew_tasks.remove_at(index)
+		task_assignments.erase(QUEST_WORK_TASK["id"])
+
+
 func _populate_available_tasks() -> void:
 	## Populate available tasks list UI with Core Rules info
 	if not available_tasks_list:
 		return
 
+	_sync_quest_work_task()
 	var strife_blocked: Array = _strife_blocked_tasks()
 	available_tasks_list.clear()
 	for task in available_crew_tasks:
@@ -610,8 +651,27 @@ func _resolve_automatic_task(result: Dictionary, task: Dictionary, crew_member: 
 			_apply_xp_to_character(crew_member, 1, "train_task")
 		"decoy":
 			result.details = "Crew unavailable for battle, -1 enemy deployment"
+		"work_on_the_quest":
+			# Compendium p.79: "This has no effect other than to help complete
+			# this step. Once a total of 6 such tasks have been performed by your
+			# crew, receive 1 Quest Rumor." No roll, no reward but the counter.
+			result.details = _record_quest_work()
 
 	return result
+
+
+## Tick the p.79 "Work on the Quest" counter and pay the Rumor on the sixth.
+## Returns the line shown in the task result.
+func _record_quest_work() -> String:
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	if campaign == null:
+		return "No active campaign."
+	var outcome: Dictionary = ExpandedQuestRef.record_quest_task(campaign)
+	if bool(outcome.get("rumor_awarded", false)) and gs.has_method("add_quest_rumor"):
+		gs.add_quest_rumor()
+	return str(outcome.get("message", "Work on the Quest."))
 
 func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, crew_member: Dictionary) -> Dictionary:
 	## Resolve dice roll tasks (Find Patron, Recruit, Track)

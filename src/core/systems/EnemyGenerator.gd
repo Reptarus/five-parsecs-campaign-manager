@@ -655,8 +655,16 @@ func generate_enemies_as_dicts(
 	var grudge_mod: int = EnemyTraitRulesClass.rival_number_bonus(
 		str(template.get("name", "")), is_rival_battle)
 
-	var enemy_count: int = maxi(
-		1, base_count + numbers_mod + trait_enemy_mod + patron_enemy_mod + grudge_mod)
+	# Expanded Quest Progression (Compendium p.79): the +2 of the 21-28 "tough
+	# fight ahead" step while that step is the pending one, and the permanent +1
+	# of the 81-92 "enemy is massing" step for the rest of the Quest. Stamped by
+	# ExpandedQuestProgression.mission_stamp() at the same place every other
+	# mission identity is stamped, and already carries the book's one carve-out
+	# ("entry 54-65 above is unaffected"), so this site just reads the number.
+	var quest_enemy_mod: int = int(mission_data.get("quest_enemy_bonus", 0))
+
+	var enemy_count: int = maxi(1, base_count + numbers_mod + trait_enemy_mod
+		+ patron_enemy_mod + grudge_mod + quest_enemy_mod)
 
 	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
 	# numbers. Instead, you will encounter a base of 7 figures + any modifier
@@ -1007,6 +1015,11 @@ func roll_unique_individuals(
 		# Always present, unmodified roll, 11-12 = two. Applies even to Roving
 		# Threats; the book calls that exception out by name.
 		count = 2 if (randi_range(1, 6) + randi_range(1, 6)) >= 11 else 1
+	elif bool(mission_data.get("force_unique_individual", false)):
+		# Expanded Quest Conclusion (Compendium p.80): "the enemy is always
+		# accompanied by a Unique Individual." Stated without qualification, so it
+		# stands in place of the 2D6 roll rather than modifying it.
+		count = 1
 	else:
 		var cannot_have_unique: bool = is_invasion or category == "roving_threats"
 		if cannot_have_unique and not better_leadership:

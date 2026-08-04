@@ -428,6 +428,10 @@ func _connect_backend_signals() -> void:
 		if not post_battle_phase.quest_progress_updated.is_connected(_on_backend_quest_progress):
 			post_battle_phase.quest_progress_updated.connect(_on_backend_quest_progress)
 
+	if post_battle_phase.has_signal("quest_step_assigned"):
+		if not post_battle_phase.quest_step_assigned.is_connected(_on_backend_quest_step):
+			post_battle_phase.quest_step_assigned.connect(_on_backend_quest_step)
+
 	if post_battle_phase.has_signal("invasion_checked"):
 		if not post_battle_phase.invasion_checked.is_connected(_on_backend_invasion_checked):
 			post_battle_phase.invasion_checked.connect(_on_backend_invasion_checked)
@@ -509,6 +513,8 @@ func _exit_tree() -> void:
 			_pbp.payment_received.disconnect(_on_backend_payment_received)
 		if _pbp.has_signal("quest_progress_updated") and _pbp.quest_progress_updated.is_connected(_on_backend_quest_progress):
 			_pbp.quest_progress_updated.disconnect(_on_backend_quest_progress)
+		if _pbp.has_signal("quest_step_assigned") and _pbp.quest_step_assigned.is_connected(_on_backend_quest_step):
+			_pbp.quest_step_assigned.disconnect(_on_backend_quest_step)
 		if _pbp.has_signal("invasion_checked") and _pbp.invasion_checked.is_connected(_on_backend_invasion_checked):
 			_pbp.invasion_checked.disconnect(_on_backend_invasion_checked)
 		if _pbp.has_signal("experience_awarded") and _pbp.experience_awarded.is_connected(_on_backend_experience_awarded):
@@ -569,9 +575,23 @@ func _on_backend_quest_progress(progress: int) -> void:
 			outcome_text = "Quest Progress - a step closer! +1 Quest Rumor"
 		2:
 			outcome_text = "Quest Finale Available! Prepare for final confrontation."
-		_:
+		3:
 			outcome_text = "Quest Complete - the crew fought the final battle of their Quest."
+		_:
+			# 4: Expanded Quest Progression (Compendium p.79). The instruction
+			# itself arrives on quest_step_assigned; this line only frames it.
+			outcome_text = "Quest: the trail leads somewhere specific."
 	_add_result_to_log(outcome_text)
+
+## The Compendium p.79 step text (Expanded Quest Progression). This is the whole
+## point of the chapter for a companion app — the player needs the instruction,
+## not a verdict — so it goes in the log verbatim rather than being summarised.
+func _on_backend_quest_step(step: Dictionary) -> void:
+	var message: String = str(step.get("message", ""))
+	if message.is_empty():
+		return
+	var colour: String = "#D97706" if bool(step.get("pending", false)) else "#10B981"
+	_add_result_to_log("[color=%s]%s[/color]" % [colour, message])
 
 func _on_backend_invasion_checked(invasion_pending: bool) -> void:
 	## Handle invasion check result from backend

@@ -6,6 +6,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
 	"res://src/core/campaign/phases/PostBattlePhase.gd")
@@ -224,6 +225,11 @@ func _process_turn_rollover() -> void:
 	# any Explore or Trade crew actions during the NEXT campaign turn." Everything
 	# else on pp.149-151 persists until the player clears it.
 	_expire_fringe_strife_effects(campaign)
+
+	# --- Expanded Quest research (Compendium p.79, row 11-20) ---
+	# "You may continue accumulating research points every campaign turn until
+	# you reach the total." The only step on the table that advances by itself.
+	_process_expanded_quest_research(campaign)
 
 	# --- Victory Condition Lock-In (Core Rules p.64) ---
 	# "Cannot add or change once the campaign starts."
@@ -715,6 +721,53 @@ func _expire_fringe_strife_effects(campaign: Resource) -> void:
 		turn = int(campaign.progress_data.get("turns_played", 0))
 	for planet_id in FringeWorldStrifeRef.all_states(campaign).keys():
 		FringeWorldStrifeRef.expire_effects(campaign, str(planet_id), turn)
+
+
+func _process_expanded_quest_research(campaign: Resource) -> void:
+	## Compendium p.79 row 11-20, verbatim: "You generate research points equal to
+	## the combined Savvy scores of your crew members, +1D6. If the total research
+	## points equals or exceeds 20, you have solved this step and receive 1 Quest
+	## Rumor. If not, you may continue accumulating research points every campaign
+	## turn until you reach the total."
+	##
+	## The first tranche is generated when the step is assigned (post-battle); this
+	## is every tranche after it. Returns immediately unless that specific row is
+	## the pending step, so it costs a dictionary lookup on every other turn.
+	if campaign == null or not ExpandedQuestRef.is_enabled():
+		return
+	var outcome: Dictionary = ExpandedQuestRef.add_research_points(
+		campaign, _crew_savvy_total(campaign))
+	var message: String = str(outcome.get("message", ""))
+	if message.is_empty():
+		return
+	if bool(outcome.get("rumor_awarded", false)) and game_state \
+			and game_state.has_method("add_quest_rumor"):
+		game_state.add_quest_rumor()
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"title": "Quest research",
+			"description": message,
+			"tags": ["quest", "compendium", "expanded_quests"],
+			"auto_generated": true,
+			"mood": "neutral",
+		})
+
+
+func _crew_savvy_total(campaign: Resource) -> int:
+	## Both crew shapes are live: a loaded campaign holds Dictionaries, a freshly
+	## created one can still hold Character Resources.
+	if campaign == null or not ("crew_data" in campaign):
+		return 0
+	var members: Array = campaign.crew_data.get("members", [])
+	var total: int = 0
+	for member: Variant in members:
+		if member is Dictionary:
+			total += int(member.get("savvy", 0))
+		elif member != null and "savvy" in member:
+			total += int(member.savvy)
+	return total
 
 
 func _process_free_hull_repair(campaign: Resource) -> void:

@@ -647,6 +647,12 @@ func _on_submit() -> void:
 		"is_red_zone": _mission_data.get("is_red_zone", false),
 		"is_black_zone": _mission_data.get("is_black_zone", false),
 		"is_quest_finale": _mission_data.get("is_quest_finale", false),
+		# Expanded Quest Progression (Compendium p.79). The step id says WHICH
+		# obligation this battle was taken on; quest_survival_reached is the
+		# 54-65 row's own in-battle clock ("Once the score reaches 28, you can end
+		# the mission"), set by TacticalBattleUI while the fight is running.
+		"quest_step_id": _mission_data.get("quest_step_id", ""),
+		"quest_survival_reached": _mission_data.get("quest_survival_reached", false),
 		"mission_source": _mission_data.get("mission_source", "opportunity"),
 		"mission_type": _mission_data.get("type", _mission_data.get("mission_type", "")),
 		"enemy_type": _mission_data.get("enemy_type", "Unknown"),

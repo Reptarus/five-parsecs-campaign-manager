@@ -82,7 +82,39 @@ static func compute(
 	_apply_objective(b, mission_data)
 	_apply_deployment_condition(b, mission_data, enemy_count, crew_count)
 	_apply_patron_conditions(b, mission_data)
+	_apply_expanded_quest_step(b, mission_data)
 	return b
+
+
+## Expanded Quest Progression (Compendium p.79) setup effects.
+##
+## Two rows change the battle rather than the campaign turn:
+##   21-28 "reduce their Panic range by -1" for this one fight;
+##   93-100 "All future battles that are part of the Quest reduce the enemy Panic
+##          range by -1" for the rest of the Quest.
+## ExpandedQuestProgression.mission_stamp() has already summed both into
+## `quest_panic_reduction` as a positive magnitude, so the sign convention of
+## this bundle (negative = enemies hold on longer, same as p.84 Veteran
+## Opposition above) is applied here and nowhere else.
+##
+## Row 66-80 also changes the opposition's behaviour: "Set up a Protect mission.
+## The enemy AI is changed to Aggressive." Unlike p.90 Defend, which only raises
+## reluctant AI, this row says "changed to" without qualification, so every AI
+## code is on the from-list.
+static func _apply_expanded_quest_step(b: Dictionary, mission_data: Dictionary) -> void:
+	var reduction: int = int(mission_data.get("quest_panic_reduction", 0))
+	if reduction > 0:
+		b["panic_range_delta"] -= reduction
+		b["setup_notes"].append(
+			"Quest step: enemy Panic range -%d (Compendium p.79)." % reduction)
+		b["sources"].append("expanded_quest:panic")
+
+	var forced_ai: String = str(mission_data.get("quest_force_enemy_ai", "")).strip_edges()
+	if forced_ai.to_lower() == "aggressive":
+		b["force_enemy_ai"] = {"from": ["C", "D", "T", "R", "B", "G"], "to": "A"}
+		b["setup_notes"].append(
+			"Quest step: the enemy AI is changed to Aggressive (Compendium p.79).")
+		b["sources"].append("expanded_quest:aggressive_ai")
 
 
 ## Patron job Hazards and Conditions that change the SETUP (Core Rules pp.83-84).

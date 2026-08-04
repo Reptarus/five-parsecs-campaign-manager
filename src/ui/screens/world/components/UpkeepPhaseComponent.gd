@@ -16,6 +16,7 @@ const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -755,6 +756,13 @@ func _build_travel_section() -> void:
 	# Hull repair (Core Rules p.59). Shown only while the ship is damaged — it is
 	# also the release valve for the travel prohibition on the same page.
 	_build_hull_repair_prompt(vbox)
+
+	# Expanded Quest Progression (Compendium p.79). The pending step is a standing
+	# obligation with no other home in the UI: six of the nine rows are discharged
+	# outside a battle, and one of those is a purchase. Rendered in the first World
+	# Phase step so the player is told what the Quest wants before deciding whether
+	# to travel, spend, or assign crew.
+	_build_quest_step_prompt(vbox)
 
 	# Crew management: Suspension Pod (p.62) and Dismiss Crew (p.76). Both are
 	# Upkeep-step actions and neither had any way in — the Suspension Pod was
@@ -1668,6 +1676,113 @@ func _build_hull_repair_prompt(vbox: VBoxContainer) -> void:
 
 	panel.add_child(box)
 	vbox.add_child(panel)
+
+func _build_quest_step_prompt(vbox: VBoxContainer) -> void:
+	## Render the Quest's standing obligation (Compendium p.79), and the one
+	## control it needs: "It costs 1D6 Credits. Until this has been paid, you
+	## cannot progress the Quest." Nothing is rendered when no step is pending.
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	var step: Dictionary = ExpandedQuestRef.get_pending_step(campaign)
+	if step.is_empty():
+		return
+
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.18, 0.12, 0.28, 0.75)
+	style.border_color = UIColors.COLOR_PURPLE
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+
+	var title := Label.new()
+	title.text = "QUEST STEP — the Quest cannot progress until this is done"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
+	title.add_theme_font_size_override("font_size", _scaled_font(15))
+	box.add_child(title)
+
+	var detail := Label.new()
+	detail.text = str(step.get("instruction", ""))
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	detail.add_theme_font_size_override("font_size", _scaled_font(13))
+	box.add_child(detail)
+
+	var progress: String = _quest_step_progress_line(step)
+	if not progress.is_empty():
+		var prog_label := Label.new()
+		prog_label.text = progress
+		prog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		prog_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+		prog_label.add_theme_font_size_override("font_size", _scaled_font(13))
+		box.add_child(prog_label)
+
+	if str(step.get("completion", "")) == "pay_credits":
+		var cost: int = int(step.get("cost", 0))
+		var credits: int = int(GameStateManager.get_credits()) if GameStateManager else 0
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if credits >= cost:
+			btn.text = "Pay %d credits for the information" % cost
+			btn.accessibility_name = "Pay %d credits for the Quest information" % cost
+			btn.pressed.connect(_on_pay_quest_step_pressed)
+		else:
+			btn.text = "Pay %d credits (you have %d)" % [cost, credits]
+			btn.disabled = true
+		box.add_child(btn)
+
+	panel.add_child(box)
+	vbox.add_child(panel)
+
+
+func _quest_step_progress_line(step: Dictionary) -> String:
+	match str(step.get("completion", "")):
+		"research_points":
+			return "Research points: %d / %d" % [
+				int(step.get("progress", 0)), int(step.get("research_target", 20))]
+		"crew_tasks":
+			return "Work on the Quest: %d / %d tasks" % [
+				int(step.get("progress", 0)), int(step.get("task_target", 6))]
+		_:
+			return ""
+
+
+func _on_pay_quest_step_pressed() -> void:
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	var credits: int = int(GameStateManager.get_credits()) if GameStateManager else 0
+	var outcome: Dictionary = ExpandedQuestRef.pay_step_cost(campaign, credits)
+	if not bool(outcome.get("completed", false)):
+		return
+	# Credits have one canonical owner; the engine reports the price and this site
+	# does the spending (see the Data Ownership table in CLAUDE.md).
+	if GameStateManager:
+		GameStateManager.set_credits(credits - int(outcome.get("paid", 0)))
+	if gs and gs.has_method("add_quest_rumor"):
+		gs.add_quest_rumor()
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "Bought Quest information",
+			"description": str(outcome.get("message", "")),
+			"tags": ["quest", "compendium", "expanded_quests"],
+		})
+	_build_travel_section()
+
 
 func _on_repair_hull_pressed(points: int) -> void:
 	var repaired: int = repair_hull_points(points)

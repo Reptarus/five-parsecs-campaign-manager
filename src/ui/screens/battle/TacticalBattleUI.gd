@@ -2252,6 +2252,13 @@ var _paying_by_hour_expired: bool = false
 var _movement_all_over_arrivals: int = 0
 var _fickle_scans_resolved: bool = false
 
+## Expanded Quest Progression row 54-65 (Compendium p.79): "At the end of each
+## round, roll 1D6 and track the scores. If you have an Engineer among your crew,
+## add +1 to the score. Once the score reaches 28, you can end the mission."
+## 0 target = the row is not this battle's step.
+var _quest_survival_score: int = 0
+var _quest_survival_announced: bool = false
+
 func _check_pending_battle_event() -> void:
 	## Check if a battle event should trigger this round (Core Rules pp.116-117:
 	## end of Round 2 and end of Round 4, and no more after that).
@@ -3011,6 +3018,43 @@ func _on_round_ended(round_number: int) -> void:
 	_check_movement_all_over(round_number)
 	_check_fickle_scans(round_number)
 	_check_paying_by_the_hour(round_number)
+
+	# Expanded Quest Progression row 54-65 (Compendium p.79).
+	_check_quest_survival_clock(round_number)
+
+
+func _check_quest_survival_clock(round_number: int) -> void:
+	## Compendium p.79, verbatim: "At the end of each round, roll 1D6 and track
+	## the scores. If you have an Engineer among your crew, add +1 to the score.
+	## Once the score reaches 28, you can end the mission. Claim 1 Quest Rumor."
+	##
+	## "You CAN end the mission" — the book gives the player the option, it does
+	## not end the battle for them. So this announces the threshold and records it
+	## on the mission so the results form can report it; leaving the table is
+	## still the player's call.
+	if not (_stored_mission_data is Dictionary):
+		return
+	var mission: Dictionary = _stored_mission_data
+	var target: int = int(mission.get("quest_survival_target", 0))
+	if target <= 0 or _quest_survival_announced:
+		return
+	var die: int = randi_range(1, 6)
+	var engineer: int = int(mission.get("quest_engineer_bonus", 0))
+	_quest_survival_score += die + engineer
+	if _quest_survival_score < target:
+		_log_message(
+			"Quest step: 1D6 = %d%s — score %d/%d (Compendium p.79)."
+			% [die, (" +%d Engineer" % engineer) if engineer > 0 else "",
+				_quest_survival_score, target],
+			UIColors.COLOR_AMBER)
+		return
+	_quest_survival_announced = true
+	mission["quest_survival_reached"] = true
+	_log_message(
+		"Quest step: score %d/%d at the end of Round %d — you may end the mission now"
+		% [_quest_survival_score, target, round_number]
+		+ " and claim 1 Quest Rumor (Compendium p.79).",
+		UIColors.COLOR_EMERALD)
 
 
 func _check_movement_all_over(round_number: int) -> void:
@@ -4456,6 +4500,8 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# add 4." Rolled here, once, so the limit is fixed for the whole battle.
 	_movement_all_over_arrivals = 0
 	_fickle_scans_resolved = false
+	_quest_survival_score = 0
+	_quest_survival_announced = false
 	_roll_paying_by_the_hour_limit()
 
 	# Update title header with mission name. The objective fallback tolerates

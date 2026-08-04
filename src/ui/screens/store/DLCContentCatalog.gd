@@ -49,9 +49,6 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# compendium_difficulty_toggles.roll_ai_behavior / get_ai_behavior and the
 	# AI_VARIATION_TABLES getter — zero callers.
 	"AI_VARIATIONS",
-	# compendium_missions_expanded.roll_quest_progression / get_quest_conclusion
-	# — zero callers.
-	"EXPANDED_QUESTS",
 	# compendium_missions_expanded.check_for_connection / roll_connection_type /
 	# roll_connection_subtable — zero callers; CharacterConnections.gd is itself
 	# referenced by nothing in src/.
@@ -78,6 +75,13 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 ## src/core/world/FringeWorldStrife.gd: the arrival 1D6, the per-world
 ## Instability score, the Invasion-step accumulator with its four modifiers, the
 ## D100 at >= 10 and the "NA" stop-tracking rows.
+##
+## EXPANDED_QUESTS was REMOVED the same day. pp.78-80 run on
+## src/core/campaign/ExpandedQuestProgression.gd, which replaces the core p.120
+## mapping at Post-Battle Step 3 (RivalPatronResolver), persists the rolled step
+## as a standing obligation on campaign.progress_data["expanded_quest"], and
+## feeds its modifiers to EnemyGenerator and BattleSetupRules through the
+## mission stamp. Pinned by tests/unit/test_expanded_quest_progression.gd.
 
 
 ## True if the flag is listed above — i.e. owning the pack would not change play.

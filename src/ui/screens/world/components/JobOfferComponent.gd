@@ -10,6 +10,7 @@ const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResour
 const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
 const CompendiumMissionsExpanded = preload("res://src/data/compendium_missions_expanded.gd")
 const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 ## Fixer's Guidebook mission types. Each generator self-gates on its own DLC
 ## ContentFlag and returns {} when the pack is not owned, so calling them
 ## unconditionally is correct — see _generate_compendium_missions().
@@ -1235,6 +1236,16 @@ func _build_quest_job(location: String) -> Dictionary:
 		if bool(travel.get("required", false)):
 			return {}
 
+	# Expanded Quest Progression (Compendium p.79). A pending step that is NOT
+	# discharged by fighting — a purchase, a research effort, a run of crew tasks —
+	# means there is no Quest battle to offer this turn: "until this has been done,
+	# you cannot progress the Quest." The obligation itself is rendered in the
+	# Upkeep step, so withholding the offer here is a statement, not a dead end.
+	var campaign = gs.get_current_campaign() if gs.has_method("get_current_campaign") else null
+	var quest_step: Dictionary = ExpandedQuestRef.get_pending_step(campaign)
+	if not quest_step.is_empty() and not ExpandedQuestRef.pending_step_is_battle(campaign):
+		return {}
+
 	var quest: Dictionary = gs.get_active_quest() if gs.has_method("get_active_quest") else {}
 	var is_finale: bool = gs.is_quest_finale_available() if gs.has_method(
 		"is_quest_finale_available") else false
@@ -1246,6 +1257,14 @@ func _build_quest_job(location: String) -> Dictionary:
 	# when it would otherwise roll the D10 table.
 	var objective: String = "Fight Off" if is_finale else "Quest Objective (rolled at deployment)"
 	var description: String = str(quest.get("description", ""))
+	# A p.79 step that IS a battle names its own objective — Access (39-53),
+	# Protect (66-80), none at all (54-65) — so the briefing stops guessing.
+	if not is_finale and not quest_step.is_empty():
+		description = str(quest_step.get("instruction", description))
+		match str(quest_step.get("mission_objective", "")):
+			"access": objective = "Access"
+			"protect": objective = "Protect"
+			"none": objective = "Survive (no objective — Compendium p.79)"
 	if is_finale:
 		description = ("The trail ends here. This is the final battle of the Quest: "
 			+ "a straight-up fight against a reinforced enemy that will not break "
