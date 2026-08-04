@@ -12,6 +12,7 @@ const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.g
 const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
 const EnemyTraitRulesClass = preload("res://src/core/systems/EnemyTraitRules.gd")
 const CompendiumEliteEnemiesRef = preload("res://src/data/compendium_elite_enemies.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
@@ -22,6 +23,14 @@ const RED_ZONE_UNIQUE_BONUS := 1     # "+1 to the roll to determine whether a Un
 
 signal enemies_generated(enemies: Array[Resource])
 signal enemy_data_loaded(categories_count: int)
+
+# JSON data loaded from files
+## Compendium p.33 Better Leadership, second bullet. Set by
+## roll_unique_individuals() when an enemy type that CANNOT be accompanied by a
+## Unique Individual nonetheless passes the roll, and consumed immediately after
+## by generate_enemies_as_dicts(), which promotes one existing figure. Reset at
+## the top of every roll so it can never leak into the next generation.
+var _pending_leadership_promotion: bool = false
 
 # JSON data loaded from files
 var enemy_data: Dictionary = {}
@@ -225,8 +234,16 @@ func _calculate_enemy_count(
 	##
 	## Quest Mission Reroll (Core Rules p.99 — Interested Parties):
 	## - During Quest missions, reroll any die scoring 1 once
+	## Compendium p.32 Strength-adjusted Enemies, verbatim: "Instead of rolling
+	## for the number encountered, always assume the enemy rolled equal to the
+	## number of crew you brought to the fight. Any bonuses (from enemy numbers,
+	## difficulty adjustments, etc.) are added to that number."
+	##
+	## Example given: "+2 Numbers modifier [...] and you brought 5 crew, you will
+	## face 7 enemies."
 	var base_count: int = 0
 	var is_challenging := DifficultyModifiers.should_reroll_low_enemy_dice(difficulty)
+	var strength_adjusted: bool = CompendiumTogglesRef.is_toggle_active("strength_adjusted")
 
 	# Helper: roll a die with difficulty and quest reroll modifiers
 	var _roll_die := func() -> int:
@@ -244,35 +261,44 @@ func _calculate_enemy_count(
 	var rolls: Array = []
 	var roll_method: String = ""
 
-	# Step 1: Calculate base enemy count using crew-size-based dice rolling
-	match crew_size:
-		6:
-			# Roll 2D6, pick higher
-			var roll1: int = _roll_die.call()
-			var roll2: int = _roll_die.call()
-			rolls = [roll1, roll2]
-			roll_method = "2D6 pick HIGHER"
-			base_count = max(roll1, roll2)
-		5:
-			# Roll 1D6
-			var roll1: int = _roll_die.call()
-			rolls = [roll1]
-			roll_method = "1D6"
-			base_count = roll1
-		4:
-			# Roll 2D6, pick lower
-			var roll1: int = _roll_die.call()
-			var roll2: int = _roll_die.call()
-			rolls = [roll1, roll2]
-			roll_method = "2D6 pick LOWER"
-			base_count = min(roll1, roll2)
-		_:
-			# Default to crew size 6 behavior for other sizes
-			var roll1: int = _roll_die.call()
-			var roll2: int = _roll_die.call()
-			rolls = [roll1, roll2]
-			roll_method = "2D6 pick HIGHER (default)"
-			base_count = max(roll1, roll2)
+	# Step 1: Calculate base enemy count using crew-size-based dice rolling.
+	# Compendium p.32 Strength-adjusted Enemies REPLACES the roll: "always assume
+	# the enemy rolled equal to the number of crew you brought to the fight."
+	# The crew BROUGHT is crew_in_field where the caller reported it; callers that
+	# do not report it fall back to the campaign crew size rather than 0.
+	if strength_adjusted:
+		base_count = crew_in_field if crew_in_field > 0 else crew_size
+		rolls = []
+		roll_method = "Strength-adjusted (Compendium p.32): crew brought = %d" % base_count
+	else:
+		match crew_size:
+			6:
+				# Roll 2D6, pick higher
+				var roll1: int = _roll_die.call()
+				var roll2: int = _roll_die.call()
+				rolls = [roll1, roll2]
+				roll_method = "2D6 pick HIGHER"
+				base_count = max(roll1, roll2)
+			5:
+				# Roll 1D6
+				var roll1: int = _roll_die.call()
+				rolls = [roll1]
+				roll_method = "1D6"
+				base_count = roll1
+			4:
+				# Roll 2D6, pick lower
+				var roll1: int = _roll_die.call()
+				var roll2: int = _roll_die.call()
+				rolls = [roll1, roll2]
+				roll_method = "2D6 pick LOWER"
+				base_count = min(roll1, roll2)
+			_:
+				# Default to crew size 6 behavior for other sizes
+				var roll1: int = _roll_die.call()
+				var roll2: int = _roll_die.call()
+				rolls = [roll1, roll2]
+				roll_method = "2D6 pick HIGHER (default)"
+				base_count = max(roll1, roll2)
 
 	var pre_modifier_count: int = base_count
 
@@ -285,8 +311,16 @@ func _calculate_enemy_count(
 	# book's one concession to a depleted crew never applied. crew_in_field of 0
 	# means the caller did not report it; the clause is then skipped rather than
 	# assumed, because assuming would penalise every path that omits it.
+	#
+	# SKIPPED under Compendium p.32 Strength-adjusted Enemies, and that is a
+	# stated reading rather than an omission: this p.93 clause exists ONLY to
+	# scale the force down for a short crew, and Strength-adjusted already sets
+	# the base equal to the crew brought. Applying both would subtract for a
+	# short crew twice. The option says "any BONUSES [...] are added to that
+	# number" and lists enemy numbers and difficulty adjustments — both of which
+	# still apply below.
 	var short_crew: int = 0
-	if crew_in_field > 0 and crew_size - crew_in_field >= 2:
+	if not strength_adjusted and crew_in_field > 0 and crew_size - crew_in_field >= 2:
 		short_crew = 1
 		base_count -= 1
 
@@ -720,6 +754,27 @@ func generate_enemies_as_dicts(
 	# A Red Job always fields its Lieutenant, even below the p.93 count of 4.
 	var has_lieutenant: bool = (enemy_count >= 4) or is_red_zone
 
+	## Compendium p.33 "Hit Me Harder" — three of the four options act on
+	## individual figures as they are built. "The following options increase the
+	## quality of enemies faced, without increasing the total number of troops."
+	##
+	## Veteran: "Select one basic enemy. They are a veteran fighter and will
+	## increase their Combat Skill by +1." One figure, chosen at random from the
+	## BASIC ranks only (a Lieutenant or Specialist is not a basic enemy).
+	var toggle_veteran: bool = CompendiumTogglesRef.is_toggle_active("veteran")
+	var toggle_specialized: bool = CompendiumTogglesRef.is_toggle_active("actually_specialized")
+	var toggle_armored_leaders: bool = CompendiumTogglesRef.is_toggle_active("armored_leaders")
+	var veteran_index: int = -1
+	if toggle_veteran:
+		var basic_indices: Array[int] = []
+		for i in range(enemy_count):
+			var is_lt: bool = has_lieutenant and i == 0
+			var is_spec: bool = specialist_count > 0 and i >= (enemy_count - specialist_count)
+			if not is_lt and not is_spec:
+				basic_indices.append(i)
+		if not basic_indices.is_empty():
+			veteran_index = basic_indices[randi() % basic_indices.size()]
+
 	var enemies: Array[Dictionary] = []
 	for i in range(enemy_count):
 		var role: String = "standard"
@@ -768,12 +823,46 @@ func generate_enemies_as_dicts(
 			display_name = "%s Specialist" % enemy_name
 
 		var figure_combat: int = base_combat + combat_mod
+		var figure_tough: int = base_tough
+
+		# Compendium p.33 "Hit Me Harder".
+		if toggle_veteran and i == veteran_index:
+			# "They are a veteran fighter and will increase their Combat Skill
+			# by +1."
+			figure_combat += 1
+		if toggle_specialized and role == "specialist":
+			# "Enemy specialist figures have a minimum Combat Skill of +1 and
+			# Toughness 4. RAISE their scores to match if the scores are
+			# currently lower." A floor, never a reduction.
+			figure_combat = maxi(figure_combat, 1)
+			figure_tough = maxi(figure_tough, 4)
+
+		# Armored Leaders: "Lieutenants receive a 5+ Armor Saving Throw. Normal
+		# rules apply if they would already receive a Saving Throw." So it is
+		# granted only when the profile has none — a Lieutenant that already has
+		# one keeps it rather than being upgraded or stacked.
+		#
+		# Written as a special_rules STRING because that is where enemy saves
+		# live: BattleResolver._extract_enemy_saving_throw() parses "5+ Saving
+		# Throw" out of this array. duplicate() first — special_rules comes
+		# straight off the shared template and every figure in the squad would
+		# otherwise be appending to the same array.
+		var figure_rules: Array = (template.get("special_rules", []) as Array).duplicate()
+		if toggle_armored_leaders and role == "lieutenant":
+			var already_saves: bool = false
+			for rule in figure_rules:
+				if "saving throw" in str(rule).to_lower():
+					already_saves = true
+					break
+			if not already_saves:
+				figure_rules.append("5+ Saving Throw (Armored Leaders, Compendium p.33)")
+
 		enemies.append({
 			"type": enemy_name,
 			"name": display_name,
 			"role": role,
 			"combat_skill": figure_combat,
-			"toughness": base_tough,
+			"toughness": figure_tough,
 			"reactions": 2 if role == "lieutenant" else 1,
 			"speed": base_speed,
 			# p.104 + errata v1.06: Rampaging AI always carry a Blade; Aggressive
@@ -794,7 +883,7 @@ func generate_enemies_as_dicts(
 			"weapon_traits": ([] if uses_weapons else ["melee"]),
 			"ai": template.get("ai", "A"),
 			"panic": template.get("panic", "1-2"),
-			"special_rules": template.get("special_rules", []),
+			"special_rules": figure_rules,
 			"is_leader": (role == "lieutenant"),
 			"category": category,
 			# The type's Numbers entry (Core Rules p.92). PreBattleUI has a NUMBERS
@@ -853,6 +942,19 @@ func generate_enemies_as_dicts(
 			mission_data, category, difficulty_mode, template):
 		enemies.append(unique)
 
+	# Compendium p.33 Better Leadership, second bullet: an enemy type that
+	# cannot be accompanied by a Unique Individual still makes the roll, and on a
+	# success "a randomly selected enemy figure has their Combat Skill and
+	# Toughness both raised by +2 (to a maximum of Combat Skill +4, Toughness 6)."
+	# No figure is added — one of the existing ones is promoted.
+	if _pending_leadership_promotion and not enemies.is_empty():
+		_pending_leadership_promotion = false
+		var promoted: Dictionary = enemies[randi() % enemies.size()]
+		promoted["combat_skill"] = mini(int(promoted.get("combat_skill", 0)) + 2, 4)
+		promoted["toughness"] = mini(int(promoted.get("toughness", 3)) + 2, 6)
+		promoted["name"] = "%s (Battle-hardened)" % str(promoted.get("name", enemy_name))
+		promoted["better_leadership_promoted"] = true
+
 	return enemies
 
 
@@ -877,6 +979,7 @@ func roll_unique_individuals(
 	## Unique Individual is present, even if fighting a Roving Threat. Roll 2D6
 	## without any modifiers. A result of 11-12 means you have to fight 2 Unique
 	## Individuals."
+	_pending_leadership_promotion = false
 	var out: Array[Dictionary] = []
 	var table: Array = enemy_data.get("unique_individuals", [])
 	if table.is_empty():
@@ -888,13 +991,25 @@ func roll_unique_individuals(
 	var is_invasion: bool = bool(mission_data.get("is_invasion", false)) \
 		or str(mission_data.get("mission_source", "")) == "invasion"
 
+	## Compendium p.33 Better Leadership, both bullets:
+	##   "The base roll to face a Unique Individual is 7+, not 9+."
+	##   "For enemy types that cannot be accompanied by a Unique Individual, the
+	##    roll is still made. If it succeeds, a randomly selected enemy figure has
+	##    their Combat Skill and Toughness both raised by +2 (to a maximum of
+	##    Combat Skill +4, Toughness 6)."
+	## The second bullet is why this function now reports a promotion instead of
+	## just returning [] for Roving Threats and Invasions.
+	var better_leadership: bool = CompendiumTogglesRef.is_toggle_active("better_leadership")
+	var threshold: int = 7 if better_leadership else 9
+
 	var count: int = 0
 	if is_insanity:
 		# Always present, unmodified roll, 11-12 = two. Applies even to Roving
 		# Threats; the book calls that exception out by name.
 		count = 2 if (randi_range(1, 6) + randi_range(1, 6)) >= 11 else 1
 	else:
-		if is_invasion or category == "roving_threats":
+		var cannot_have_unique: bool = is_invasion or category == "roving_threats"
+		if cannot_have_unique and not better_leadership:
 			return out
 		var roll: int = randi_range(1, 6) + randi_range(1, 6)
 		if category == "interested_parties":
@@ -905,7 +1020,14 @@ func roll_unique_individuals(
 		# Unique Individual is present."
 		if bool(mission_data.get("is_red_zone", false)):
 			roll += RED_ZONE_UNIQUE_BONUS
-		count = 1 if roll >= 9 else 0
+		if cannot_have_unique:
+			# "the roll is still made. If it succeeds, a randomly selected enemy
+			# figure has their Combat Skill and Toughness both raised by +2."
+			# No Unique Individual joins the force — the caller promotes one of
+			# the figures it already generated.
+			_pending_leadership_promotion = roll >= threshold
+			return out
+		count = 1 if roll >= threshold else 0
 
 	# Base profile of the enemy type being fought. Required by the designer's
 	# official FAQ (modiphius.net/pages/five-parsecs-faq), verbatim: "The first

@@ -13,6 +13,7 @@ const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.
 const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
 const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -213,23 +214,27 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	if ctx.battle_result.get("story_no_payment", false):
 		return 0
 
-	# Roll 1D6 for base payment (Core Rules p.120)
-	var credit_roll: int = ctx.roll_d6("Payment credit roll")
+	# Roll 1D6 for base payment (Core Rules p.120).
+	#
+	# Routed through CompendiumTogglesRef.roll_credit_die() because Compendium
+	# p.32 "Money is Tight" says "Whenever you would roll 1D6 for credits, roll
+	# 1D6-1 instead (minimum score 1)". Every credit die in the game goes through
+	# that helper so the option cannot end up half-applied; with the toggle off it
+	# is a plain 1D6.
+	var credit_roll: int = CompendiumTogglesRef.roll_credit_die()
 
 	# Red Zone: roll twice, pick better (Compendium)
 	if ctx.battle_result.get("is_red_zone", false):
-		var red_second_roll: int = ctx.roll_d6("Red Zone second credit roll")
+		var red_second_roll: int = CompendiumTogglesRef.roll_credit_die()
 		credit_roll = maxi(credit_roll, red_second_roll)
 
 	# Quest finale: roll twice, pick better, +1 (Core Rules p.120)
 	# Red Zone quest: roll THREE dice, pick best, +1 (Appendix III)
 	if ctx.battle_result.get("is_quest_finale", false):
-		var second_roll: int = ctx.roll_d6(
-			"Quest finale second roll")
+		var second_roll: int = CompendiumTogglesRef.roll_credit_die()
 		credit_roll = maxi(credit_roll, second_roll)
 		if ctx.battle_result.get("is_red_zone", false):
-			var third_roll: int = ctx.roll_d6(
-				"Red Zone quest third roll")
+			var third_roll: int = CompendiumTogglesRef.roll_credit_die()
 			credit_roll = maxi(credit_roll, third_roll)
 		credit_roll += 1
 
@@ -240,7 +245,7 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	# flag never crossed into the post-battle step, so those jobs paid a single
 	# 1D6 like every other. Average mission pay on them was ~3.5 instead of ~4.5.
 	if ctx.battle_result.get("double_roll_bonus", false):
-		var danger_second_roll: int = ctx.roll_d6("Danger Pay 10+ second roll")
+		var danger_second_roll: int = CompendiumTogglesRef.roll_credit_die()
 		credit_roll = maxi(credit_roll, danger_second_roll)
 
 	# Easy mode: +1 credit (Core Rules p.64)

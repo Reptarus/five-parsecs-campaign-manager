@@ -8,6 +8,7 @@ const STEP_NUMBER := 4  # Step 4 of 7 in campaign wizard (Core Rules: Equipment 
 
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const CharacterClass = preload("res://src/core/character/Character.gd")
+const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # GlobalEnums available as autoload singleton
 
@@ -526,8 +527,16 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	_ensure_gear_db()
 
 	# ── CREDITS: Core Rules p.28 ──────────────────────────────────────
-	# Base: 1 credit per crew member
-	starting_credits = crew_members.size()
+	# Base: 1 credit per crew member.
+	#
+	# Compendium p.34 "Starting in the Gutter" denies exactly that base and
+	# nothing else: "do not receive the normal 1 credit per crew member." The
+	# creation-table bonuses below still arrive — the same bullet says "You
+	# receive any items gained from the character creation tables as normal."
+	if CompendiumDifficultyTogglesRef.is_toggle_active("starting_gutter"):
+		starting_credits = 0
+	else:
+		starting_credits = crew_members.size()
 	# Add bonus credits from creation_bonuses (rolled at character creation)
 	for cm in crew_members:
 		var bonuses: Dictionary = {}

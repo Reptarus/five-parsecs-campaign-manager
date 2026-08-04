@@ -2242,6 +2242,16 @@ func show_enemy_generation_overlay() -> void:
 
 var _battle_event_fired_this_round: int = 0  # Track which round we already fired event for
 
+## Compendium p.34 "Time is Running Out" runtime state.
+## _paying_by_hour_limit is the 2D6-pick-highest+4 round count rolled once at
+## setup (0 = the option is off); _movement_all_over_arrivals counts arrivals so
+## the SECOND one is the specialist the book calls for; _fickle_scans_resolved
+## keeps the end-of-Round-3 removal from firing twice.
+var _paying_by_hour_limit: int = 0
+var _paying_by_hour_expired: bool = false
+var _movement_all_over_arrivals: int = 0
+var _fickle_scans_resolved: bool = false
+
 func _check_pending_battle_event() -> void:
 	## Check if a battle event should trigger this round (Core Rules pp.116-117:
 	## end of Round 2 and end of Round 4, and no more after that).
@@ -2995,6 +3005,100 @@ func _on_round_ended(round_number: int) -> void:
 
 	# DLC: Escalating Battles check (Compendium pp.46-48)
 	_check_escalating_battles(round_number)
+
+	# Compendium p.34 "Time is Running Out" — the three options that resolve at
+	# the end of a round.
+	_check_movement_all_over(round_number)
+	_check_fickle_scans(round_number)
+	_check_paying_by_the_hour(round_number)
+
+
+func _check_movement_all_over(round_number: int) -> void:
+	## Compendium p.34, verbatim: "At the end of each round, including the first,
+	## roll 1D6. If the roll is equal to or below the round number that just
+	## elapsed, one additional enemy figure shows up. This means that from Round 6
+	## onwards a new enemy will arrive every round.
+	##
+	## Place the arriving enemy at the center of a random battlefield edge (roll
+	## 1D6: 1-2 left edge, 3-4 enemy edge, 5-6 right edge). The first enemy that
+	## arrives is a basic enemy, the second is a specialist, with all remaining
+	## reinforcements being basic enemies."
+	if not CompendiumDifficultyTogglesRef.is_toggle_active("movement_all_over"):
+		return
+	var roll: int = randi_range(1, 6)
+	if roll > round_number:
+		_log_message(
+			"Movement all over the Place: 1D6 = %d vs round %d — no arrival."
+			% [roll, round_number], UIColors.COLOR_TEXT_SECONDARY)
+		return
+
+	_movement_all_over_arrivals += 1
+	# "The first enemy that arrives is a basic enemy, the second is a specialist,
+	# with all remaining reinforcements being basic enemies." Second only.
+	var arrival_role: String = "specialist" if _movement_all_over_arrivals == 2 else "basic"
+	var edge_roll: int = randi_range(1, 6)
+	var edge: String = "left edge"
+	if edge_roll >= 5:
+		edge = "right edge"
+	elif edge_roll >= 3:
+		edge = "enemy edge"
+	_log_message(
+		"Movement all over the Place: 1D6 = %d vs round %d — a %s enemy arrives at the centre of the %s (1D6 = %d)."
+		% [roll, round_number, arrival_role, edge, edge_roll], UIColors.COLOR_AMBER)
+
+
+func _check_fickle_scans(round_number: int) -> void:
+	## Compendium p.34: "Any Notable Sight that has not been investigated by the
+	## end of Round 3 is removed from play."
+	if round_number != 3 or _fickle_scans_resolved:
+		return
+	if not CompendiumDifficultyTogglesRef.is_toggle_active("fickle_scans"):
+		return
+	_fickle_scans_resolved = true
+	var sight: Dictionary = mission_data.get("notable_sight", {})
+	if sight.is_empty():
+		return
+	mission_data["notable_sight_removed"] = true
+	_log_message(
+		"Fickle Scans: the Notable Sight (%s) was not investigated by the end of Round 3 and is removed from play."
+		% str(sight.get("name", "unknown")), UIColors.COLOR_AMBER)
+	_refresh_objective_panel()
+
+
+func _check_paying_by_the_hour(round_number: int) -> void:
+	## Compendium p.34: "When setting up, roll two D6, pick the highest die and
+	## add 4 (for a final total of 5-10). After the conclusion of this round, the
+	## only objectives that can still be achieved are Defend and Fight Off."
+	##
+	## The limit itself is rolled once at setup (_roll_paying_by_the_hour_limit);
+	## this only announces the moment it expires. The book does NOT end the
+	## battle here — play continues, but every other objective is off the table.
+	if _paying_by_hour_limit <= 0 or _paying_by_hour_expired:
+		return
+	if round_number < _paying_by_hour_limit:
+		return
+	_paying_by_hour_expired = true
+	mission_data["time_limit_expired"] = true
+	_log_message(
+		"They are Paying us by the Hour: the clock ran out at the end of Round %d."
+		% round_number + " Only Defend and Fight Off objectives can still be achieved.",
+		UIColors.COLOR_AMBER)
+	_refresh_objective_panel()
+
+
+func _roll_paying_by_the_hour_limit() -> void:
+	## Compendium p.34: "When setting up, roll two D6, pick the highest die and
+	## add 4 (for a final total of 5-10)."
+	if not CompendiumDifficultyTogglesRef.is_toggle_active("paying_by_hour"):
+		return
+	var a: int = randi_range(1, 6)
+	var b: int = randi_range(1, 6)
+	_paying_by_hour_limit = maxi(a, b) + 4
+	_paying_by_hour_expired = false
+	mission_data["round_limit"] = _paying_by_hour_limit
+	_log_message(
+		"They are Paying us by the Hour: 2D6 = %d/%d, highest + 4 — the job runs for %d rounds."
+		% [a, b, _paying_by_hour_limit], UIColors.COLOR_AMBER)
 
 func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 	## Handle battle event trigger (end of Rounds 2 and 4, Core Rules pp.116-117)
@@ -4340,6 +4444,12 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	## Initialize the tactical battle
 	_battle_initialized = true
 	_log_message("Initializing tactical battle...", UIColors.COLOR_CYAN)
+
+	# Compendium p.34: "When setting up, roll two D6, pick the highest die and
+	# add 4." Rolled here, once, so the limit is fixed for the whole battle.
+	_movement_all_over_arrivals = 0
+	_fickle_scans_resolved = false
+	_roll_paying_by_the_hour_limit()
 
 	# Update title header with mission name. The objective fallback tolerates
 	# both a String id and a Dict {name,...} (Bug Hunt stores a Dict, and

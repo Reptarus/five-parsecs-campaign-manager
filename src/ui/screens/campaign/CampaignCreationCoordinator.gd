@@ -11,6 +11,7 @@ extends Node
 const CampaignCreationStateManager := preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const AutoloadManager := preload("res://src/core/systems/AutoloadManager.gd")
 const CharacterGeneration := preload("res://src/core/character/CharacterGeneration.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # GDScript 2.0: Typed signals
 signal navigation_updated(can_go_back: bool, can_go_forward: bool, can_finish: bool)
@@ -670,6 +671,20 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 	if campaign_config_data.has("narrative_wrap_override"):
 		unified_campaign_state.campaign_config.narrative_wrap_override = \
 			campaign_config_data.narrative_wrap_override
+	# Difficulty Toggles (Compendium pp.32-34). Exactly the same story as
+	# Progressive Difficulty above: ExpandedConfigPanel has collected the 12
+	# toggle ids since it was written, this whitelist did not name the key, and
+	# so the selection was dropped here and nothing downstream ever saw a toggle.
+	if campaign_config_data.has("difficulty_toggles"):
+		unified_campaign_state.campaign_config.difficulty_toggles = \
+			campaign_config_data.difficulty_toggles
+		# "Starting in the Gutter" (Compendium p.34) applies DURING creation,
+		# before the campaign exists — and GameState may still be holding the
+		# PREVIOUS campaign, so a plain campaign read at that point would apply
+		# the last campaign's options to this one. Publish the live selection for
+		# the wizard to read; finalization clears it.
+		CompendiumTogglesRef.set_creation_toggles(
+			campaign_config_data.difficulty_toggles)
 	# Core Rules p.65 step 5. Finalization has always read config["house_rules"]
 	# and called campaign.set_house_rules(); nothing ever wrote it.
 	if campaign_config_data.has("house_rules"):

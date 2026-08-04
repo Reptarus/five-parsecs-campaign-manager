@@ -7,6 +7,7 @@ class_name UpkeepPhaseComponent
 
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
 const NewWorldArrivalClass = preload("res://src/core/campaign/NewWorldArrival.gd")
@@ -223,8 +224,18 @@ func calculate_upkeep_costs() -> Dictionary:
 	effective_crew_size = WorldTraitEffectsClass.upkeep_crew_size(
 		effective_crew_size, world_traits)
 
-	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6
-	if effective_crew_size >= CREW_UPKEEP_THRESHOLD:
+	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6.
+	#
+	# Compendium p.32 "Money is Tight" REPLACES that scale outright: "Upkeep
+	# costs change to 0 credits for a single crew, 1 credit for a crew of 2-4
+	# figures, and +1 credit for each crew member past 4."
+	if CompendiumTogglesRef.is_toggle_active("slaves_to_stargrind_money"):
+		if effective_crew_size <= 1:
+			results.crew_upkeep = 0
+		else:
+			results.crew_upkeep = 1 + max(0, effective_crew_size - 4)
+		results["money_is_tight"] = true
+	elif effective_crew_size >= CREW_UPKEEP_THRESHOLD:
 		results.crew_upkeep = 1 + max(0, effective_crew_size - CREW_UPKEEP_CAP)
 	else:
 		results.crew_upkeep = 0

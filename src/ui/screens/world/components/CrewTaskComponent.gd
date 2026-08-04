@@ -20,6 +20,7 @@ const StartingEquipmentGeneratorClass = preload(
 	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # Design system constants
 
@@ -500,11 +501,26 @@ func _on_resolve_all_pressed() -> void:
 	
 	var resolution_results: Array = []
 	
+	# Compendium p.32 "Money is Tight": "Taking Find a Patron or Repair Your Kit
+	# actions costs 1 credit." Charged once per crew member sent, at resolution,
+	# so a task the player assigns and then unassigns costs nothing.
+	var task_surcharge: int = 0
+	for crew_id in assigned_tasks:
+		var task_data = assigned_tasks[crew_id]
+		if task_data.resolved:
+			continue
+		task_surcharge += CompendiumTogglesRef.crew_task_surcharge(
+			str(task_data.get("task_id", "")))
+	if task_surcharge > 0:
+		var gsm_surcharge: Node = get_node_or_null("/root/GameStateManager")
+		if gsm_surcharge and gsm_surcharge.has_method("modify_credits"):
+			gsm_surcharge.modify_credits(-task_surcharge)
+
 	for crew_id in assigned_tasks:
 		var task_data = assigned_tasks[crew_id]
 		if task_data.resolved:
 			continue # Skip already resolved tasks
-		
+
 		var result = _resolve_single_task(crew_id, task_data)
 		resolution_results.append(result)
 		

@@ -5,6 +5,7 @@ const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
 	"res://src/core/campaign/phases/PostBattlePhase.gd")
@@ -724,7 +725,13 @@ func _process_free_hull_repair(campaign: Resource) -> void:
 	## src/core/campaign/phases/WorldPhase.gd — a file nothing instantiates — so
 	## a damaged ship stayed damaged forever unless the player paid for every
 	## point. Paid repair is the upkeep step's job; this is the automatic one.
+	##
+	## Compendium p.32 "Money is Tight" cancels it: "You do not receive 1 point
+	## of free Hull Point repair each turn. All repairs must be paid for unless
+	## granted by a random event or similar."
 	if campaign == null or not ("ship_data" in campaign):
+		return
+	if CompendiumTogglesRef.free_hull_repair_denied():
 		return
 	# A wrecked ship is "no longer usable" (p.59) — without this guard the free
 	# tick floats a destroyed hull back to 1 HP every turn.

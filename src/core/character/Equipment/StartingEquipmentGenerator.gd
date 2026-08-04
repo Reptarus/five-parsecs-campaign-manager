@@ -10,6 +10,7 @@ extends RefCounted
 ## 2. PER-CHARACTER BONUS: Each character's starting_rolls from background/motivation/class tables
 
 const UniversalResourceLoader := preload("res://src/core/systems/UniversalResourceLoader.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # Cached data from gear_database.json
 static var _weapon_tables: Dictionary = {}
@@ -27,6 +28,26 @@ static func generate_crew_base_pool(dice_manager: Node) -> Array:
 	var low_tech_rolls: int = _crew_starting_config.get("low_tech_weapon_rolls", 3)
 	var gear_rolls: int = _crew_starting_config.get("gear_rolls", 1)
 	var gadget_rolls: int = _crew_starting_config.get("gadget_rolls", 1)
+
+	# Compendium p.34 "Starting in the Gutter", first bullet, verbatim: "When
+	# creating your crew, begin with only three Low-Tech Weapons rolls and your
+	# choice of a Gear or Gadget roll. [...] You do not receive any free
+	# Military/Hi-Tech rolls".
+	#
+	# "your CHOICE of a Gear or Gadget roll" is one roll, not one of each. The
+	# creation wizard has no picker for it, so the coin-flip below is stated
+	# rather than silent — a fabricated preference for either table would be a
+	# worse answer than an honest random one, and the book leaves the choice
+	# entirely to the player.
+	if CompendiumTogglesRef.is_toggle_active("starting_gutter"):
+		military_rolls = 0
+		low_tech_rolls = 3
+		if randi() % 2 == 0:
+			gear_rolls = 1
+			gadget_rolls = 0
+		else:
+			gear_rolls = 0
+			gadget_rolls = 1
 
 	for i in military_rolls:
 		var item_name: String = _roll_on_subtable("military_weapon", dice_manager)

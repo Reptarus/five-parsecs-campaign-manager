@@ -13,7 +13,41 @@ func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	## Process all injuries from battle. Returns array of processed injury dicts.
 	var processed_injuries: Array[Dictionary] = []
 
+	## Compendium p.34 Reduced Lethality, verbatim: "Before rolling for
+	## post-battle injuries, If you have two or more injured characters you may
+	## select one to be exempt from rolling. They simply have a complete recovery
+	## with no Sick Bay time required. This option can be used for either a
+	## biological character or a Soulless or Bot at your discretion. If only one
+	## character is injured, you must suffer the result as normal."
+	##
+	## The choice is the PLAYER'S and it is made BEFORE the rolls, so this reads
+	## an id the UI wrote beforehand rather than picking one itself. Offering the
+	## exemption after the rolls were visible would make the option strictly
+	## stronger than the book's — you would be voiding a known-bad result instead
+	## of guessing. With no id supplied nothing is exempted; no default is
+	## invented.
+	var exempt_id: String = ""
+	if CompendiumTogglesRef.is_toggle_active("reduced_lethality") \
+			and ctx.injuries_sustained.size() >= 2:
+		exempt_id = str(ctx.battle_result.get("reduced_lethality_exempt_crew_id", ""))
+
 	for injury_data in ctx.injuries_sustained:
+		var this_crew_id: String = str(injury_data.get("crew_id", ""))
+		if not exempt_id.is_empty() and this_crew_id == exempt_id:
+			# "They simply have a complete recovery with no Sick Bay time
+			# required" — no roll is made at all, so there is no injury type.
+			processed_injuries.append({
+				"crew_id": this_crew_id,
+				"type": "none",
+				"name": "Complete Recovery",
+				"description": "Exempted from the injury roll (Reduced Lethality,"
+					+ " Compendium p.34). Full recovery, no Sick Bay time.",
+				"recovery_turns": 0,
+				"is_fatal": false,
+				"reduced_lethality_exempt": true,
+			})
+			exempt_id = ""  # "select ONE to be exempt" — one figure, once.
+			continue
 		var processed_injury = process_single_injury(ctx, injury_data)
 		processed_injuries.append(processed_injury)
 

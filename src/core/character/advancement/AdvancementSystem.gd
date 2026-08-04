@@ -13,6 +13,7 @@ extends RefCounted
 # Dependencies
 # GlobalEnums available as autoload singleton
 const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # Signals
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)
@@ -42,6 +43,32 @@ var stat_max_values: Dictionary = {
 	"speed": 8,
 	"luck": 1 # Base humans, some species can go higher
 }
+
+
+## The XP cost to raise `stat_name` by +1.
+##
+## Compendium p.32 "Slower Progression" reprints the whole Core Rules p.123
+## Ability Increase Table with harsher numbers (Reactions 7->8, Combat 7->8,
+## Toughness 6->8). Read through here, never straight off the dictionary, so the
+## option cannot end up applied at some advancement sites and not others.
+##
+## Bot upgrades read this too, and that is correct: p.123 says a Bot pays
+## "credits equal to the XP cost", so a raised XP cost raises the credit price
+## by the book's own rule rather than by a second decision made here.
+func get_stat_cost(stat_name: String) -> int:
+	return CompendiumTogglesRef.progression_cost(
+		stat_name, int(stat_advancement_costs.get(stat_name, 0)))
+
+
+## The maximum value `stat_name` may reach.
+##
+## Slower Progression also lowers three maximums (Reactions 6->4, Combat +5->+3,
+## Toughness 6->5). Applied through progression_maximum(), which can only LOWER
+## the base — see the note there on why the Luck row must not raise a non-Human
+## cap from 1 to 3.
+func get_stat_max(stat_name: String, fallback: int = 5) -> int:
+	return CompendiumTogglesRef.progression_maximum(
+		stat_name, int(stat_max_values.get(stat_name, fallback)))
 
 var training_costs: Dictionary = {
 	# Core Rules p.125 — 7 Advanced Training courses
@@ -120,7 +147,7 @@ func _get_advancement_cost(advancement_type: String, target: String = "") -> int
 	## Get the XP cost for a specific advancement (Core Rules p.123-125)
 	match advancement_type:
 		"stat":
-			return stat_advancement_costs.get(target, 0)
+			return get_stat_cost(target)
 		"training":
 			return training_costs.get(target, 0)
 		_:
@@ -132,10 +159,10 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	if not character:
 		return false
 
-	var cost = stat_advancement_costs.get(stat_name, 0)
+	var cost = get_stat_cost(stat_name)
 	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 	var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
-	var max_stat = stat_max_values.get(stat_name, 5)
+	var max_stat = get_stat_max(stat_name)
 
 	# Engineer restriction: Cannot raise Toughness above 4 (Core Rules p.124)
 	var char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
@@ -280,8 +307,8 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 	# Stat advancements
 	for stat_name in stat_advancement_costs.keys():
 		var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
-		var max_stat = stat_max_values.get(stat_name, 5)
-		var cost = stat_advancement_costs[stat_name]
+		var max_stat = get_stat_max(stat_name)
+		var cost = get_stat_cost(stat_name)
 
 		# Engineer restriction: Cannot raise Toughness above 4 (Core Rules p.124)
 		var adv_char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
@@ -386,9 +413,9 @@ func get_available_bot_upgrades(bot: Resource) -> Array[Dictionary]:
 		if stat_name in upgraded_stats:
 			continue  # Each stat can only be upgraded once
 
-		var cost: int = stat_advancement_costs[stat_name]
+		var cost: int = get_stat_cost(stat_name)
 		var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
-		var max_val: int = stat_max_values.get(stat_name, 6)
+		var max_val: int = get_stat_max(stat_name, 6)
 
 		if current_val >= max_val:
 			continue
@@ -417,7 +444,7 @@ func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits:
 	if stat_name in upgraded_stats:
 		return false
 
-	var cost: int = stat_advancement_costs[stat_name]
+	var cost: int = get_stat_cost(stat_name)
 	return campaign_credits >= cost
 
 func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resource) -> bool:
@@ -438,7 +465,7 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	if stat_name in upgraded_stats:
 		return false
 
-	var cost: int = stat_advancement_costs[stat_name]
+	var cost: int = get_stat_cost(stat_name)
 
 	# Core Rules p.125 Bot Tech training: "All Bot upgrades cost 1 credit less."
 	# Check if any crew member has bot_tech training (caller should pass this)
@@ -462,7 +489,7 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 
 	# Apply +1 to the stat
 	var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
-	var max_val: int = stat_max_values.get(stat_name, 6)
+	var max_val: int = get_stat_max(stat_name, 6)
 	var new_val: int = mini(current_val + 1, max_val)
 
 	if bot.has_method("set"):

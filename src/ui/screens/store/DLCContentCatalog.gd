@@ -60,21 +60,24 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# producer anywhere writes it. BattlefieldGrid.gd is p.108 table geometry,
 	# a different thing entirely.
 	"GRID_BASED_MOVEMENT",
-	# All 12 toggle ids (strength_adjusted, slaves_to_stargrind_money, veteran,
-	# actually_specialized, armored_leaders, better_leadership, paying_by_hour,
-	# movement_all_over, fickle_scans, starting_gutter, reduced_lethality) are
-	# read NOWHERE in src/. The four resolvers that preload
-	# compendium_difficulty_toggles.gd call get_adjusted_shooting_thresholds() and
-	# roll_casualty()/roll_detailed_injury() — Dramatic Combat and the Casualty
-	# tables, which happen to share the file. Ticking a toggle changes nothing.
-	"DIFFICULTY_TOGGLES",
-	# WorldPhaseController gates on world_phase_data["is_fringe_world"], which no
-	# producer writes — but adding one would not fix it. p.148 has no "is this a
-	# fringe world" property: it is a 1D6 on arrival (4+ Unstable), then a
-	# per-world Instability score that accumulates 1D6 each Invasion step with
-	# four modifiers and fires the D100 at >= 10. That accumulator does not exist.
-	"FRINGE_WORLD_STRIFE",
 ]
+
+## DIFFICULTY_TOGGLES was REMOVED from this list on Aug 3 2026. All 12 pp.32-34
+## option ids now reach a rule: the selection survives the coordinator whitelist
+## into campaign.progress_data["difficulty_toggles"], and
+## CompendiumDifficultyToggles.is_toggle_active() is the one call every rule site
+## reads. Pinned by tests/unit/test_compendium_difficulty_toggles.gd.
+## KNOWN PARTIAL: "Starting in the Gutter" applies three of its four clauses
+## (no free Military/Hi-Tech rolls, no 1cr per crew member, no starting ship).
+## "In a campaign with a standard crew size of 6, begin with only 3 crew" is NOT
+## applied — it needs the wizard to separate the campaign's STANDARD size (which
+## feeds the enemy-count dice and must stay 6) from the STARTING ROSTER, and
+## CrewPanel deliberately holds no second opinion on crew size.
+##
+## FRINGE_WORLD_STRIFE was REMOVED the same day. pp.148-151 now run on
+## src/core/world/FringeWorldStrife.gd: the arrival 1D6, the per-world
+## Instability score, the Invasion-step accumulator with its four modifiers, the
+## D100 at >= 10 and the "NA" stop-tracking rows.
 
 
 ## True if the flag is listed above — i.e. owning the pack would not change play.

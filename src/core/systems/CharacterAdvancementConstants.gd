@@ -6,6 +6,7 @@ class_name CharacterAdvancementConstants
 ## Architecture: Lazy-loads JSON data, keeps static helper API
 
 const _DATA_PATH := "res://data/character_advancement.json"
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 static var _data: Dictionary = {}
 static var _loaded: bool = false
@@ -61,14 +62,33 @@ static var ABSOLUTE_STAT_MAX: int:
 
 ## Helper functions (unchanged public API)
 
+## Compendium p.32 "Slower Progression" reprints the whole Core Rules p.123
+## Ability Increase Table with harsher costs and three lower maximums. Applied
+## at BOTH accessors below, because this file is one of THREE parallel copies of
+## the advancement numbers in the codebase (the others are
+## AdvancementSystem.stat_advancement_costs and
+## AdvancementPhasePanel.advancement_costs) and a toggle wired into some of them
+## reads as "implemented" while quietly not applying on whichever screen the
+## player happens to use.
 static func get_advancement_cost(stat: String) -> int:
-	return ADVANCEMENT_COSTS.get(stat.to_lower(), 999)
+	var stat_lower: String = stat.to_lower()
+	return CompendiumTogglesRef.progression_cost(
+		stat_lower, int(ADVANCEMENT_COSTS.get(stat_lower, 999)))
 
 static func get_stat_maximum(
 	stat: String, character_data: Dictionary
 ) -> int:
 	var stat_lower: String = stat.to_lower()
+	return CompendiumTogglesRef.progression_maximum(
+		stat_lower, _base_stat_maximum(stat_lower, character_data))
 
+## The Core Rules maximum, before any Compendium option. Split out so
+## progression_maximum() has a base to clamp DOWN from and can never raise one —
+## which matters for Luck, where the species restriction below (Human 3,
+## everyone else 1, Core Rules p.12) must survive the Compendium's flat "3".
+static func _base_stat_maximum(
+	stat_lower: String, character_data: Dictionary
+) -> int:
 	if stat_lower == "toughness":
 		var background: String = character_data.get("background", "")
 		var bg_restrictions: Dictionary = BACKGROUND_RESTRICTIONS

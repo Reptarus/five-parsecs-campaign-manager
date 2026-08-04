@@ -13,9 +13,9 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 22 |
+| **LIVE** — a live path reaches the player | 24 |
 | **PARTIAL** — some of the chapter lands, a named part does not | 0 |
-| **DEAD** — data + gated API exist, nothing reaches the player | 8 |
+| **DEAD** — data + gated API exist, nothing reaches the player | 6 |
 
 Casualty Tables, Detailed Injuries, Dramatic Combat and Loans all moved to LIVE
 on Aug 3. Each fix is described in its section below — and every one of them was
@@ -76,7 +76,7 @@ getter.
 | Chapter | Verdict | Evidence |
 |---|---|---|
 | Progressive Difficulty p.30 | LIVE | `ProgressiveDifficultyTracker` → `EnemyGenerator`, `TacticalBattleUI:6652` |
-| **Difficulty Toggles pp.32-34** | **DEAD** | Listed in `DifficultyTogglesPanel`, listed in `ExpandedConfigPanel`, rendered as cheat-sheet text — and **none of the 12 toggle ids is read anywhere in `src/`.** Ticking one changes nothing in play |
+| Difficulty Toggles pp.32-34 | **LIVE (fixed Aug 3)** | all 12 ids were read NOWHERE, and the creation selection never even left the panel — `CampaignCreationCoordinator.update_campaign_config_state` is a whitelist that did not name the key. Now: whitelist → `campaign.progress_data["difficulty_toggles"]` → `CompendiumDifficultyToggles.is_toggle_active()`, the one call every rule site reads. **Known partial:** Starting in the Gutter applies 3 of its 4 clauses — see below |
 | **Player vs Player pp.35-38** | **DEAD** | `get_pvp_setup` / `get_pvp_rules` / `roll_pvp_battle_reason` / `roll_pvp_third_party` (`compendium_missions_expanded.gd:319/326/333/346`) — **zero callers repo-wide, tests included.** No PvP surface exists |
 | **Expanded Co-op pp.39-41** | **DEAD** | `get_coop_setup` / `get_coop_rules` (`:359/:366`) — zero callers |
 | **AI Variations p.42** | **DEAD** | `roll_ai_behavior` / `get_ai_behavior` (`compendium_difficulty_toggles.gd:150/161`) and the `AI_VARIATION_TABLES` getter (`:91`) — zero callers |
@@ -103,7 +103,7 @@ getter.
 | Stealth Missions pp.117-122 | LIVE | `StealthMissionGenerator` + `StealthResolver` + `StealthMissionPanel` |
 | Street Fights pp.123-136 | LIVE | `StreetFightGenerator` + `StreetFightResolver` + `StreetFightPanel` |
 | Salvage Jobs pp.137-147 | LIVE | `SalvageJobGenerator` + `SalvageResolver` + `SalvageMissionPanel` |
-| **Fringe World Strife pp.148-151** | **DEAD** | `WorldPhaseController.gd:648` calls `should_check_strife(world_phase_data.get("is_fringe_world", false))` and **`is_fringe_world` is written nowhere in the repo** — permanently false. But the missing producer is not the real problem: **the implemented mechanism is not the book's.** See below |
+| Fringe World Strife pp.148-151 | **LIVE (fixed Aug 3)** | four independent faults at the one call site, and fixing all four would still not have produced the chapter — its engine, a per-world Instability score, did not exist. New `src/core/world/FringeWorldStrife.gd` holds the arrival 1D6, the accumulator, the ≥10 D100 and the "NA" stop-tracking rows. See below |
 | **Loans pp.152-156** | **PARTIAL** | Steps 1/3/4 live via `TradePhasePanel.gd:828-832`. **Step 2 is a hardcoded constant** — see below |
 | Name Generation pp.157-160 | LIVE | `compendium_world_options` name tables + `CharacterGeneration.gd:456`, `ContactManager.gd:311` |
 | Bug Hunt pp.161-223 | LIVE | full gamemode, separate architecture |
@@ -238,6 +238,53 @@ the chapter has its consumer. Pinned by `tests/unit/test_battle_weapon_profiles.
 (10 cases).
 
 ---
+
+## Two chapters where the gate was not the problem (Aug 3)
+
+**Fringe World Strife (pp.148-151).** The 10-row D100 table has been complete
+and byte-correct in `world_options.json` since it was written, and the chapter
+never ran once, for four independent reasons at the one live call site — each
+fatal on its own:
+
+1. it gated on `world_phase_data["is_fringe_world"]`, a key no producer anywhere
+   writes, so the guard was permanently false;
+2. `should_check_strife()` re-rolled the p.148 ARRIVAL die every campaign turn;
+   the book rolls it once, on arrival;
+3. it then fired the D100 immediately; the book fires it only at 10 or above;
+4. it read `instability_mod`, and every row carries `instability_reduction` —
+   into a local that was never used anyway.
+
+Then it logged through `journal.add_entry()`, which has zero definitions on
+CampaignJournal: a fifth permanently-false guard.
+
+**Repairing all five would still have produced nothing**, because the engine of
+the chapter — a per-world Instability score that accumulates across turns — did
+not exist in any form. The function that looked like it (`roll_instability_delta`)
+had one caller, in the zero-instantiation `phases/WorldPhase.gd`, and that copy
+did `clampi(instability, 0, 10)`: pinning the score AT the threshold it was
+supposed to cross. **Counting broken guards is not the same as asking whether
+the mechanism is present.**
+
+**Difficulty Toggles (pp.32-34).** Two separate UIs collected toggle selections
+and nothing read a toggle id. The creation panel's selection did not even leave
+the panel: the coordinator's config whitelist did not name the key, so the array
+was dropped at the panel boundary — the *identical* defect, in the *identical*
+function, that had already made Progressive Difficulty decorative. A whitelist
+is good design and this is its failure mode: a key it does not name vanishes in
+silence.
+
+Worth recording separately: the advancement numbers exist in **three** parallel
+copies (`AdvancementSystem.stat_advancement_costs`,
+`CharacterAdvancementConstants` over `character_advancement.json`, and
+`AdvancementPhasePanel.advancement_costs`). Slower Progression is applied at all
+three, because an option wired into two of them reads as implemented and simply
+does not apply on whichever screen the player happens to open.
+
+And one rules trap: the Compendium prints a bare **"3"** for Luck's maximum
+where the Core Rules print **"1 (3 Human)"**. Read as a flat 3, Slower
+Progression would have *raised* every non-Human species' Luck cap from 1 to 3 —
+in a chapter whose entire purpose is to make the game harder. The maximum is
+therefore applied as a clamp that can only ever lower the existing cap.
 
 ## The incomplete table is worse than the dead one (Elite Enemies, Aug 3)
 

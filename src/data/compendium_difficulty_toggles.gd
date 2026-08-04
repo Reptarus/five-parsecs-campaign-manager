@@ -126,6 +126,191 @@ static var DRAMATIC_EFFECTS: Array:
 		return _data.get("dramatic_effects", [])
 
 ## ============================================================================
+## WHICH TOGGLES ARE ON — the chokepoint every pp.32-34 rule reads
+## ============================================================================
+##
+## THE GAP THIS FILLS. Two UIs have collected toggle selections since they were
+## written — ExpandedConfigPanel into `local_campaign_config["difficulty_toggles"]`
+## and the Settings DifficultyTogglesPanel into `user://difficulty_toggles.cfg` —
+## and NOTHING in the game ever read a toggle id. The creation panel's selection
+## did not even leave the panel: `CampaignCreationCoordinator
+## .update_campaign_config_state` is a whitelist and it did not name the key, so
+## the array was dropped at the panel boundary. All 12 options were switches
+## wired to nothing.
+##
+## SSOT is the CAMPAIGN: `campaign.progress_data["difficulty_toggles"]`, an
+## Array[String] of ids, written by CampaignFinalizationService — the same shape
+## and the same write site as `progressive_difficulty_options`.
+##
+## The `user://difficulty_toggles.cfg` file is a FALLBACK, not a second owner. It
+## is consulted only when there is no campaign at all, which is the Battle
+## Simulator (a standalone battle with no campaign to carry settings). A loaded
+## campaign always wins, so the two can never disagree about a live game.
+
+const TOGGLE_STATE_KEY := "difficulty_toggles"
+const TOGGLE_CFG_PATH := "user://difficulty_toggles.cfg"
+
+
+static func _current_campaign() -> Variant:
+	if not Engine.get_main_loop():
+		return null
+	var gs: Node = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	if gs.has_method("get_current_campaign"):
+		return gs.get_current_campaign()
+	if "current_campaign" in gs:
+		return gs.current_campaign
+	return null
+
+
+## Creation-time override.
+##
+## "Starting in the Gutter" (p.34) is a CHARACTER CREATION rule, and during the
+## wizard there is no campaign yet to read the selection from — worse, GameState
+## may still be holding the PREVIOUS campaign, so a plain campaign read would
+## silently apply the last campaign's options to the new one. The coordinator
+## sets this while the wizard is open and finalization clears it, so creation
+## reads the choices the player is making right now.
+static var _creation_override: Variant = null
+
+
+static func set_creation_toggles(toggle_ids: Variant) -> void:
+	_creation_override = toggle_ids if toggle_ids is Array else null
+
+
+static func clear_creation_toggles() -> void:
+	_creation_override = null
+
+
+## The toggle ids active right now. Empty when the option pack is off.
+static func get_active_toggles() -> Array:
+	if not _is_flag_enabled("DIFFICULTY_TOGGLES"):
+		return []
+	if _creation_override is Array:
+		return _creation_override
+	var campaign: Variant = _current_campaign()
+	if campaign != null:
+		var pd: Variant = null
+		if campaign is Dictionary:
+			pd = campaign.get("progress_data", {})
+		elif "progress_data" in campaign:
+			pd = campaign.progress_data
+		if pd is Dictionary:
+			var ids = pd.get(TOGGLE_STATE_KEY, [])
+			if ids is Array:
+				return ids
+		# A campaign with no toggle array selected none. Do NOT fall through to
+		# the cfg here: that would let a Settings screen silently re-arm options
+		# the player did not pick for THIS campaign.
+		return []
+
+	# No campaign — Battle Simulator and other standalone paths.
+	var config := ConfigFile.new()
+	if config.load(TOGGLE_CFG_PATH) != OK:
+		return []
+	var out: Array = []
+	for key in config.get_section_keys("toggles"):
+		if bool(config.get_value("toggles", key, false)):
+			out.append(str(key))
+	return out
+
+
+## Is one pp.32-34 option in force? This is the single call every rule site uses.
+static func is_toggle_active(toggle_id: String) -> bool:
+	return toggle_id in get_active_toggles()
+
+
+## ============================================================================
+## p.32 "MONEY IS TIGHT" HELPERS
+## ============================================================================
+
+## p.32: "Whenever you would roll 1D6 for credits, roll 1D6-1 instead (minimum
+## score 1). This applies both during character creation and during game play.
+## Any modifiers to the roll are applied normally."
+##
+## Every 1D6-for-credits site calls this instead of rolling directly, so the
+## option cannot be half-applied. The minimum is on the DIE, before the caller's
+## modifiers — the book applies those "normally", i.e. afterwards.
+static func roll_credit_die() -> int:
+	if is_toggle_active("slaves_to_stargrind_money"):
+		return maxi(randi_range(1, 6) - 1, 1)
+	return randi_range(1, 6)
+
+
+## p.32: "Taking Find a Patron or Repair Your Kit actions costs 1 credit."
+## Returns the surcharge in credits for a crew task id, 0 when not applicable.
+static func crew_task_surcharge(task_id: String) -> int:
+	if not is_toggle_active("slaves_to_stargrind_money"):
+		return 0
+	return 1 if task_id in ["find_patron", "repair_kit", "repair_your_kit"] else 0
+
+
+## p.32: "You do not receive 1 point of free Hull Point repair each turn. All
+## repairs must be paid for unless granted by a random event or similar."
+static func free_hull_repair_denied() -> bool:
+	return is_toggle_active("slaves_to_stargrind_money")
+
+
+## ============================================================================
+## p.32 "SLOWER PROGRESSION"
+## ============================================================================
+##
+## The Compendium reprints the whole Ability Increase Table with new numbers.
+## Core Rules p.123 vs Compendium p.32:
+##
+##   ABILITY        CORE cost/max      SLOWER cost/max
+##   Reactions      7 / 6              8 / 4
+##   Combat Skill   7 / +5             8 / +3
+##   Speed          5 / 8"             5 / 8"     (unchanged)
+##   Savvy          5 / +5             5 / +5     (unchanged)
+##   Toughness      6 / 6              8 / 5
+##   Luck           10 / 1 (3 Human)   10 / 3
+##
+## Costs are REPLACED. Maximums are applied as a CAP that can only LOWER the
+## existing maximum, never raise it — which is what keeps the Luck row honest:
+## the Compendium prints a bare "3" where the Core Rules print "1 (3 Human)",
+## and reading that as a flat 3 would hand every non-Human species a Luck cap of
+## 3 in a chapter whose entire purpose is to make the game harder. The
+## Humans-only-above-1 rule is a SPECIES rule (Core Rules p.12), not part of
+## either upgrade table.
+const SLOWER_PROGRESSION_COSTS := {
+	"reactions": 8,
+	"combat_skill": 8,
+	"speed": 5,
+	"savvy": 5,
+	"toughness": 8,
+	"luck": 10,
+}
+
+const SLOWER_PROGRESSION_MAXIMUMS := {
+	"reactions": 4,
+	"combat_skill": 3,
+	"speed": 8,
+	"savvy": 5,
+	"toughness": 5,
+	"luck": 3,
+}
+
+
+## The XP cost to raise `stat_name` by +1, or `base_cost` when the option is off.
+static func progression_cost(stat_name: String, base_cost: int) -> int:
+	if not is_toggle_active("slaves_to_stargrind_progression"):
+		return base_cost
+	return int(SLOWER_PROGRESSION_COSTS.get(stat_name, base_cost))
+
+
+## The maximum value for `stat_name`. Only ever lowers `base_max` — see the note
+## on the Luck row above.
+static func progression_maximum(stat_name: String, base_max: int) -> int:
+	if not is_toggle_active("slaves_to_stargrind_progression"):
+		return base_max
+	if not SLOWER_PROGRESSION_MAXIMUMS.has(stat_name):
+		return base_max
+	return mini(base_max, int(SLOWER_PROGRESSION_MAXIMUMS[stat_name]))
+
+
+## ============================================================================
 ## QUERY METHODS (DLC-gated)
 ## ============================================================================
 

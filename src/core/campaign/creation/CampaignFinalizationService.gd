@@ -10,6 +10,7 @@ const SecureSaveManager = preload("res://src/core/validation/SecureSaveManager.g
 const CampaignValidator = preload("res://src/core/validation/CampaignValidator.gd")
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 signal finalization_started()
 signal validation_completed(result: Dictionary)
@@ -422,6 +423,20 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if not prog_opts.is_empty():
 		campaign.progress_data["progressive_difficulty_options"] = prog_opts
 
+	# Difficulty Toggles (Compendium pp.32-34) — the 12 selected option ids.
+	# ExpandedConfigPanel has collected these into local_campaign_config since it
+	# was written and they got no further: the coordinator whitelist did not name
+	# the key, so it was dropped at the panel boundary and NOTHING in the game
+	# ever read a toggle id. Same shape as Progressive Difficulty above, and the
+	# same fix.
+	var toggle_ids: Array = campaign_cfg.get("difficulty_toggles", [])
+	if not toggle_ids.is_empty():
+		campaign.progress_data["difficulty_toggles"] = toggle_ids
+	# The wizard's creation-time override has done its job now that the ids live
+	# on the campaign. Left set, it would keep answering for EVERY later read in
+	# the session, including a different campaign loaded from disk.
+	CompendiumTogglesRef.clear_creation_toggles()
+
 	# Per-campaign narrative wrap override (May 29 2026). null = use global,
 	# true/false = override. Only persisted when explicitly set in the config
 	# (otherwise the key stays absent and GameStateManager falls through to
@@ -493,8 +508,17 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		var transformed_captain = _transform_captain_data_for_turn_system(captain_data)
 		campaign.set_captain(transformed_captain)
 
-	# Initialize ship (format is compatible)
+	# Initialize ship (format is compatible).
+	#
+	# Compendium p.34 "Starting in the Gutter", third bullet: "Begin the game
+	# without a ship. You'll have to scrape together the cash to purchase one.
+	# See the 'Getting a New Ship' section in the core rulebook (p.60)."
+	# The debt block below is skipped with it — there is no hull to owe on.
 	var ship_data = data.get("ship", {})
+	if CompendiumTogglesRef.is_toggle_active("starting_gutter"):
+		ship_data = {}
+		if "has_ship" in campaign:
+			campaign.has_ship = false
 	campaign.initialize_ship(ship_data)
 
 	# Ship debt goes onto the CAMPAIGN, which owns it.

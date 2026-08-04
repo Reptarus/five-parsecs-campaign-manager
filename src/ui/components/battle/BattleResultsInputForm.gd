@@ -1,4 +1,5 @@
 extends PanelContainer
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 ## Battle Results Input Form — LOG_ONLY Tier
 ##
@@ -38,6 +39,7 @@ var _notable_sight_check: CheckBox
 # from battle_result keys that no producer wrote.
 var _first_casualty_btn: OptionButton
 var _unique_kill_btn: OptionButton
+var _reduced_lethality_btn: OptionButton
 
 ## prefill: optional {victory, enemies_defeated, rounds, held_field} from
 ## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
@@ -336,6 +338,30 @@ func _build_ui() -> void:
 	# offered here at all.
 	_unique_kill_btn = _build_crew_picker(
 		xp_card, "Killed a Unique Individual (+1 XP)")
+
+	# Compendium p.34 Reduced Lethality: "Before rolling for post-battle
+	# injuries, If you have two or more injured characters you may select one to
+	# be exempt from rolling."
+	#
+	# Asked HERE, on the results form, for the same reason the objective and the
+	# first-casualty credit are: the app cannot make this call, and this is the
+	# one moment the player is already telling it what happened. It also keeps
+	# the choice BEFORE the rolls, as the book requires — the post-battle screen
+	# would be too late, because the orchestrator has already rolled the Injury
+	# Table by the time that screen renders, and choosing with the results
+	# visible would make the option strictly stronger than the book's.
+	if CompendiumTogglesRef.is_toggle_active("reduced_lethality"):
+		var rl_hint := Label.new()
+		rl_hint.text = ("Reduced Lethality (Compendium p.34): with two or more"
+			+ " injured, one may skip the injury roll entirely — full recovery,"
+			+ " no Sick Bay. Choose before the rolls are made.")
+		rl_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rl_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		rl_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		xp_card.add_child(rl_hint)
+		_reduced_lethality_btn = _build_crew_picker(
+			xp_card, "Exempt from the injury roll")
+
 	vbox.add_child(xp_section[0])
 
 	# === SUBMIT BUTTON ===
@@ -612,6 +638,10 @@ func _on_submit() -> void:
 		"first_casualty_by": _picked_crew_id(_first_casualty_btn),
 		"unique_kills": ([] if _picked_crew_id(_unique_kill_btn) == ""
 			else [_picked_crew_id(_unique_kill_btn)]),
+		# Compendium p.34 Reduced Lethality. Read by InjuryProcessor.
+		# process_injuries(), which skips this crew member's roll entirely and
+		# records a complete recovery. "" means no exemption was chosen.
+		"reduced_lethality_exempt_crew_id": _picked_crew_id(_reduced_lethality_btn),
 		# Mission context passthrough
 		"success": mission_success,
 		"is_red_zone": _mission_data.get("is_red_zone", false),
