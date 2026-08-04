@@ -3055,10 +3055,15 @@ func _check_fickle_scans(round_number: int) -> void:
 	if not CompendiumDifficultyTogglesRef.is_toggle_active("fickle_scans"):
 		return
 	_fickle_scans_resolved = true
-	var sight: Dictionary = mission_data.get("notable_sight", {})
+	# The mission dict on this screen is _stored_mission_data — a Variant, so it
+	# is shape-checked before use like every other read of it in this file.
+	if not (_stored_mission_data is Dictionary):
+		return
+	var md: Dictionary = _stored_mission_data
+	var sight: Dictionary = md.get("notable_sight", {})
 	if sight.is_empty():
 		return
-	mission_data["notable_sight_removed"] = true
+	md["notable_sight_removed"] = true
 	_log_message(
 		"Fickle Scans: the Notable Sight (%s) was not investigated by the end of Round 3 and is removed from play."
 		% str(sight.get("name", "unknown")), UIColors.COLOR_AMBER)
@@ -3078,7 +3083,8 @@ func _check_paying_by_the_hour(round_number: int) -> void:
 	if round_number < _paying_by_hour_limit:
 		return
 	_paying_by_hour_expired = true
-	mission_data["time_limit_expired"] = true
+	if _stored_mission_data is Dictionary:
+		(_stored_mission_data as Dictionary)["time_limit_expired"] = true
 	_log_message(
 		"They are Paying us by the Hour: the clock ran out at the end of Round %d."
 		% round_number + " Only Defend and Fight Off objectives can still be achieved.",
@@ -3095,7 +3101,8 @@ func _roll_paying_by_the_hour_limit() -> void:
 	var b: int = randi_range(1, 6)
 	_paying_by_hour_limit = maxi(a, b) + 4
 	_paying_by_hour_expired = false
-	mission_data["round_limit"] = _paying_by_hour_limit
+	if _stored_mission_data is Dictionary:
+		(_stored_mission_data as Dictionary)["round_limit"] = _paying_by_hour_limit
 	_log_message(
 		"They are Paying us by the Hour: 2D6 = %d/%d, highest + 4 — the job runs for %d rounds."
 		% [a, b, _paying_by_hour_limit], UIColors.COLOR_AMBER)
