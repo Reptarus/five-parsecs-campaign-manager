@@ -68,8 +68,13 @@ You have a detailed reference skill at `.claude/skills/qa-specialist/` with test
 - **Engine**: Godot 4.6-stable, pure GDScript (~900 files)
 - **Test framework**: gdUnit4 v6.0.3
 - **Test dirs**: `tests/unit/` (~178), `tests/integration/` (~54), `tests/battle/`, `tests/performance/`, `tests/mobile/`, `tests/fixtures/`
-- **Headless check**: `& "C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe" --headless --quit --path "c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager" 2>&1`
-- **Run tests**: `& "..." --script addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/unit/test_file.gd --quit-after 60`
+- **Parse sweep — USE `--import`, NOT `--quit`**: `& "C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe" --headless --import --path "c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager" 2>&1 | Select-String "Parse Error|Failed to load script"`
+  - `--quit` validates STARTUP scripts only. `--import` loads **every** script in the project. On Aug 6 2026 `--quit` reported clean while `PostBattleSequence.gd` failed to parse — taking the ENTIRE post-battle wizard down — and so did **2254 passing unit cases** and a **46/46 backend harness**, because neither loads that UI script. `--import` caught it in one run. This is the cheapest high-value check you own; run it before reporting any sweep green.
+  - It also generates missing `.gd.uid` files, which this project commits.
+- **Run tests**: `& "..." --script addons/gdUnit4/bin/GdUnitCmdTool.gd -c -a tests/unit/test_file.gd`
+  - **`-c`, never `--headless`** for gdUnit4. Always read the **case COUNT** — a parse error reports "No test cases found" and **exits 0**.
+- **Lints (all four should be exit 0)**: `lint_signal_wiring` · `lint_tscn_connections` · `lint_autoload_lookups` · `lint_data_ownership`. A finding now means a NEW regression, not legacy backlog. `lint_orphan_assets` exits 1 on `orphans` OR `test_only`; orphans is 0, the 41 test-only files are a tracked product decision.
+  - **Never truncate a lint's output** (`Select-Object -Last N`, `head`). On Aug 6 that under-reported 3 data-ownership violations as 1, and two of the three were live rules bugs.
 
 ## Core Principles
 
@@ -111,10 +116,44 @@ The canonical-hub character transfer framework (`src/core/character/CharacterTra
 - **Test save/load round-trips** — serialize → deserialize → compare
 - **Check equipment_data["equipment"]** — NOT `"pool"`
 
+## A failing check is a LEAD, not a verdict (Aug 6 2026)
+
+Three long-standing `verify_post_battle` failures were reported as live defects.
+**All three were the TEST. The code was right every time.** Before writing up a red
+row as a product bug:
+
+1. **Does the test assert the PRE-FIX behaviour?** One built its mission as
+   `mission_source: "opportunity"` and asserted Danger Pay reached credits — but
+   p.120 Step 4 and the p.83 heading make Danger Pay **Patron-only**, so the row had
+   been failing *on the fix*.
+2. **Is the observation too narrow to express a legal outcome?** "1 in 40 injuries
+   costs nothing" was a real p.129 Character Event *"reduce your recovery time by
+   one turn"* healing a 1-turn Minor injury to zero. The row watched four fields;
+   the book moved a fifth.
+
+**Widen the observation; never relax the assertion.** Then prove the widened version
+can still fail — force the mutation to no-op and confirm it is caught. A "this is
+fine" bucket that absorbs real defects is worse than the original false alarm.
+
+**Assertion shapes that lie:**
+- A **containment** assert (`in` / `contains`) is blind to **duplication**. 79
+  live-state checks missed a toolbar rendering 14 buttons instead of 7. Assert the
+  COUNT or the exact list whenever a rebuild is involved.
+- `String != null` is **always true**. Assert on the value.
+- A DLC-gated suite passes **vacuously** against empty dicts if the flag is off. The
+  gate is two-level (owned AND toggled; `_enabled_flags` defaults false), so enable
+  BOTH in `before_test` and restore after.
+- A **negative** result from the wrong probe looks identical to a real failure.
+  **Always run a control** that should succeed — if the control also fails, your
+  instrument is broken, not the subject. This caught two false alarms in one day
+  (a zero-caller wrapper over a live function; a zstd-compressed `.gdc` grep).
+
 ## What You Should Never Do
 
-- Never skip the headless compile check
-- Never assume `--headless --quit` validates everything (only startup scripts)
+- Never skip the parse sweep — and run it with `--import`, not `--quit`
+- Never assume `--headless --quit` validates everything (only startup scripts). Its
+  old remedy here was "reboot the editor"; `--headless --import` is faster, scriptable
+  and catches the same class
 - Never assert a test expectation you haven't traced to source-of-truth (hallucinated expected values are the #1 cause of false passes)
 - Never test with `"pool"` key for equipment data
 - **Never defer tasks to "later sprints" or "future work"** — complete every listed item or explain immediately why it's blocked. "Deferred" is not a valid status

@@ -311,7 +311,13 @@ These are the most common sources of false failures and real bugs. Internalize t
 
 7. **Both enum systems must sync**: GlobalEnums (autoload), GameEnums (class_name). Check alignment when enum values are tested. (FiveParsecsGameEnums.gd deleted Sprint A Bug 3, 2026-05-24.)
 
-8. **`--headless --quit` not comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check.
+8. **`--headless --quit` not comprehensive — use `--headless --import`**: `--quit` validates STARTUP scripts only. `--import` loads EVERY script and is scriptable, so it replaces the old "reboot the editor" remedy. Aug 6 2026: `--quit` reported clean while `PostBattleSequence.gd` failed to parse and took the whole post-battle wizard down — as did 2254 passing unit cases and a 46/46 backend harness, because neither loads that UI script. `--import` also generates missing `.gd.uid` files, which this project commits.
+
+8b. **A red harness row is a LEAD, not a verdict**: three long-standing `verify_post_battle` failures were all TEST defects, not code. Check whether the test asserts PRE-FIX behaviour, or watches a projection too narrow to express a legal book outcome. **Widen the observation, never relax the assertion** — then prove the widened version can still fail.
+
+8c. **Assertion shapes that lie**: a containment (`in`/`contains`) assert is blind to DUPLICATION — assert the COUNT when a rebuild is involved. `String != null` is always true. A DLC-gated suite passes vacuously when the flag is off (gate is two-level: owned AND toggled). And **always run a CONTROL probe** that should succeed — if the control fails too, the instrument is broken, not the subject.
+
+8d. **Never truncate a lint's own output**: `Select-Object -Last N` / `head` under-reported 3 data-ownership violations as 1 on Aug 6, and two of the three were live rules bugs (Insanity earning story points; a p.126 credit grant never reaching GameStateManager). Read the count line the lint prints.
 
 9. **Bug Hunt data model differs**: `main_characters[]` + `grunts[]` (flat) vs `crew_data["members"]` (nested). Detect via `"main_characters" in campaign`.
 
