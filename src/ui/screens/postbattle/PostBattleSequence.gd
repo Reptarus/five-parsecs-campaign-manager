@@ -742,10 +742,19 @@ func _show_illegal_salvage_choice(check: Dictionary) -> void:
 
 
 func _apply_illegal_salvage_choice(option_id: String) -> void:
-	if post_battle_phase == null \
-			or not post_battle_phase.has_method("resolve_illegal_salvage_choice"):
+	# `_post_battle_phase` (member, underscore) NOT `post_battle_phase` — the
+	# latter is a LOCAL inside _connect_backend_signals() and referencing it here
+	# is a parse error that takes the WHOLE script down, i.e. the entire
+	# post-battle wizard fails to load. `--headless --quit` does not catch this;
+	# it only validates startup scripts. `--headless --import` does.
+	var pbp: Node = _post_battle_phase
+	if pbp == null or not is_instance_valid(pbp):
+		var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+		if phase_manager and phase_manager.has_method("get_phase_handler"):
+			pbp = phase_manager.get_phase_handler("post_battle")
+	if pbp == null or not pbp.has_method("resolve_illegal_salvage_choice"):
 		return
-	var result: Dictionary = post_battle_phase.resolve_illegal_salvage_choice(option_id)
+	var result: Dictionary = pbp.resolve_illegal_salvage_choice(option_id)
 	var detail: String = str(result.get("detail", ""))
 	if detail.is_empty():
 		return
