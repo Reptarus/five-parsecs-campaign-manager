@@ -18,6 +18,13 @@ const PurchaseItemsComponent = preload(
 	"res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
 const StarsSystemClass = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
+## Compendium p.137 illegal salvage — the authorities check. The popup is the
+## same proven Deep Space chooser the crew-task rewards use, re-headed for a
+## penalty (see ItemChoicePopup.show_choices).
+const ItemChoicePopupScript = preload(
+	"res://src/ui/components/dialogs/ItemChoicePopup.gd")
+const SalvageJobGeneratorRef = preload(
+	"res://src/core/mission/SalvageJobGenerator.gd")
 
 # Design system (UIColors canonical source)
 const SPACING_XS := UIColors.SPACING_XS
@@ -460,6 +467,10 @@ func _connect_backend_signals() -> void:
 		if not post_battle_phase.precursor_event_choice_available.is_connected(_on_backend_precursor_event_choice):
 			post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
 
+	if post_battle_phase.has_signal("illegal_salvage_checked"):
+		if not post_battle_phase.illegal_salvage_checked.is_connected(_on_backend_illegal_salvage):
+			post_battle_phase.illegal_salvage_checked.connect(_on_backend_illegal_salvage)
+
 	if post_battle_phase.has_signal("traveler_event_occurred"):
 		if not post_battle_phase.traveler_event_occurred.is_connected(_on_backend_traveler_event):
 			post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
@@ -677,6 +688,81 @@ func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) 
 	## Handle Precursor event choice available - auto-select first event for now
 	# NOTE: Deferred — show PrecursorEventChoiceDialog for player selection instead of auto-selecting
 	_handle_precursor_choice(1, event1, event2)
+
+func _on_backend_illegal_salvage(check: Dictionary) -> void:
+	## Compendium p.137 illegal salvage — the authorities check.
+	##
+	## The backend has already rolled the D6 (a roll is not a decision). This
+	## reports the outcome and, when caught, presents the MANDATORY choice the
+	## book gives: pay the roll value in credits, hand over all salvage, or take
+	## an Enforcer Rival. Before the Aug 6 audit this whole rule existed only as
+	## a line of instruction text on the salvage panel — and `is_illegal` had no
+	## producer, so even that text never appeared.
+	_add_result_to_log(SalvageJobGeneratorRef.describe_authorities_result(check))
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	var roll: int = int(check.get("roll", 0))
+
+	if not bool(check.get("caught", false)):
+		if nm and nm.has_method("show_success"):
+			nm.show_success("Illegal job: rolled %d — you got away with it." % roll)
+		return
+
+	if nm and nm.has_method("show_warning"):
+		nm.show_warning("Authorities on your trail — you must answer for the job.")
+	_show_illegal_salvage_choice(check)
+
+
+func _show_illegal_salvage_choice(check: Dictionary) -> void:
+	## Reuses ItemChoicePopup: exclusive, and its _on_close_requested deliberately
+	## refuses to close without a selection — exactly right for a consequence the
+	## player does not get to walk away from.
+	var labels: Array = []
+	var id_by_label: Dictionary = {}
+	for opt_v in check.get("options", []):
+		var opt: Dictionary = opt_v
+		var label: String = str(opt.get("label", ""))
+		if label.is_empty():
+			continue
+		labels.append(label)
+		id_by_label[label] = str(opt.get("id", ""))
+	if labels.is_empty():
+		return
+
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = "Authorities On Your Trail"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen_label: String) -> void:
+			_apply_illegal_salvage_choice(str(id_by_label.get(chosen_label, ""))))
+	popup.show_choices(
+		"Rolled %d — the authorities are on your trail (Compendium p.137)."
+			% int(check.get("roll", 0)),
+		labels,
+		"Answer For The Job")
+
+
+func _apply_illegal_salvage_choice(option_id: String) -> void:
+	if post_battle_phase == null \
+			or not post_battle_phase.has_method("resolve_illegal_salvage_choice"):
+		return
+	var result: Dictionary = post_battle_phase.resolve_illegal_salvage_choice(option_id)
+	var detail: String = str(result.get("detail", ""))
+	if detail.is_empty():
+		return
+	_add_result_to_log(detail)
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_info"):
+		nm.show_info(detail)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "campaign_event",
+			"title": "Illegal Salvage — Authorities",
+			"description": detail,
+			"tags": ["post_battle", "salvage", "illegal"],
+			"mood": "somber",
+		})
+
 
 func _on_backend_traveler_event(results: Array) -> void:
 	## Strange Character: Traveler post-battle disappearance check (Core Rules p.20)

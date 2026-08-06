@@ -66,6 +66,14 @@ signal story_track_advanced(result: Dictionary)
 signal intro_campaign_advanced(completed: bool)
 signal precursor_event_choice_available(event1: Dictionary, event2: Dictionary)
 signal precursor_event_chosen(chosen_event: Dictionary)
+## Compendium p.137 illegal salvage job: the D6 has been rolled. `check` carries
+## roll / caught / credits_owed / salvage_units / options. When `caught` is true
+## the player must choose ONE option and the UI calls
+## resolve_illegal_salvage_choice(). Emitted even when NOT caught, so the app can
+## tell the player they got away with it rather than staying silent.
+signal illegal_salvage_checked(check: Dictionary)
+## The chosen consequence has been applied.
+signal illegal_salvage_resolved(result: Dictionary)
 signal traveler_event_occurred(results: Array)
 signal manipulator_bonus_earned(bonus: int)
 signal bitter_day_sp_earned()  ## "A Bitter Day" (Core Rules p.67): +1 SP for holding field after character death
@@ -237,6 +245,14 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 		if not _rival_patron.last_quest_step.is_empty():
 			quest_step_assigned.emit(_rival_patron.last_quest_step)
 
+	# Step 3c: Illegal salvage — the authorities check (Compendium p.137).
+	# "After post-game Rivals roll, roll D6: 1-4 you got away with it; 5-6
+	# authorities on trail." Placed here, immediately after the Rival/Patron/Quest
+	# block, so it follows the Rivals roll exactly as the book orders it — and
+	# outside the intro gate, because an illegal job's consequence is not one of
+	# the steps the Introductory Campaign defers.
+	_process_illegal_salvage_check()
+
 	# Step 3b: Story Track reward gates (Core Rules Appendix V).
 	# MUST run before steps 4-7. A Story Event can suppress pay/Loot (p.157
 	# Event 5) or grant extra Battlefield Finds / Loot rolls (p.156 Event 4,
@@ -349,6 +365,86 @@ func select_precursor_event(choice: int) -> void:
 	campaign_event_occurred.emit(chosen)
 	# Continue pipeline
 	_process_character_event_step()
+
+## ── Illegal salvage: the authorities check (Compendium p.137) ───────────────
+##
+## THE BUG THIS COMPLETES (Aug 6 battle-phase audit): `is_illegal` had no
+## producer anywhere in src/ (fixed in SalvageJobGenerator), and even once
+## produced its only surface was a line of instruction text on the salvage panel
+## telling the player to roll a D6 themselves, after the Rivals step, and
+## remember to apply one of three consequences. Now the app rolls it at the
+## book's position in the sequence and asks for the choice.
+
+const SalvageJobGeneratorRef = preload("res://src/core/mission/SalvageJobGenerator.gd")
+
+## Set when the D6 came up 5-6 and the player still owes a choice. Cleared by
+## resolve_illegal_salvage_choice(). Public so a UI can re-present the prompt if
+## it was dismissed — an unresolved consequence must not evaporate.
+var pending_illegal_salvage: Dictionary = {}
+
+
+func _process_illegal_salvage_check() -> void:
+	if not bool(battle_result.get("is_illegal", false)):
+		return
+	var units: int = int(battle_result.get("salvage_units", 0))
+	var check: Dictionary = SalvageJobGeneratorRef.roll_authorities_check(units)
+	illegal_salvage_checked.emit(check)
+	if not bool(check.get("caught", false)):
+		return  # 1-4: got away with it. Nothing owed.
+	pending_illegal_salvage = check
+	# NOTE: the pipeline deliberately does NOT pause here. All three consequences
+	# are end-state mutations (credits, salvage, rivals) that no later step reads,
+	# so stalling steps 4-14 behind a modal would buy nothing and risks a
+	# soft-lock if the prompt is dismissed. The choice stays pending instead.
+
+
+func resolve_illegal_salvage_choice(option_id: String) -> Dictionary:
+	## PUBLIC API: apply the ONE consequence the player picked. Returns a result
+	## dict describing what actually happened, so the caller can report it rather
+	## than assume.
+	var result: Dictionary = {"option": option_id, "applied": false, "detail": ""}
+	if pending_illegal_salvage.is_empty():
+		result["detail"] = "No illegal-salvage consequence is pending."
+		return result
+	_ensure_subsystems()
+	var check: Dictionary = pending_illegal_salvage
+
+	match option_id:
+		SalvageJobGeneratorRef.AUTHORITIES_OPTION_PAY:
+			var owed: int = int(check.get("credits_owed", 0))
+			var gsm: Node = get_node_or_null("/root/GameStateManager")
+			if gsm and gsm.has_method("get_credits") and gsm.has_method("set_credits"):
+				# Clamp at zero: the book offers the other two options precisely
+				# because a crew may not be able to pay, and a negative balance is
+				# not a state this campaign model has.
+				var have: int = int(gsm.get_credits())
+				var paid: int = mini(owed, have)
+				gsm.set_credits(have - paid)
+				result["applied"] = true
+				result["detail"] = "Paid %d credits to the authorities." % paid
+		SalvageJobGeneratorRef.AUTHORITIES_OPTION_SALVAGE:
+			# "hand over all Salvage units" — zeroed on the battle result so the
+			# salvage-to-credits conversion downstream yields nothing.
+			var handed: int = int(battle_result.get("salvage_units", 0))
+			battle_result["salvage_units"] = 0
+			if _ctx:
+				_ctx.battle_result = battle_result
+			result["applied"] = true
+			result["detail"] = "Handed over all %d salvage units." % handed
+		SalvageJobGeneratorRef.AUTHORITIES_OPTION_RIVAL:
+			if _ctx:
+				_ctx.add_rival("Enforcers")
+				result["applied"] = true
+				result["detail"] = "The Enforcers are now a Rival."
+		_:
+			result["detail"] = "Unknown option '%s'." % option_id
+			return result
+
+	if result["applied"]:
+		pending_illegal_salvage = {}
+		illegal_salvage_resolved.emit(result)
+	return result
+
 
 func attempt_training_enrollment(crew_id: String, course: String, available_credits: int) -> Dictionary:
 	## PUBLIC API: Enroll crew in training course.

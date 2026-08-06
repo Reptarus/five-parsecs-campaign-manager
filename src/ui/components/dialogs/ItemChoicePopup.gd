@@ -26,7 +26,14 @@ func _init() -> void:
 	unresizable = true
 	close_requested.connect(_on_close_requested)
 
-func show_choices(result_name: String, options: Array) -> void:
+func show_choices(result_name: String, options: Array,
+		heading: String = "Choose Your Reward") -> void:
+	## `heading` defaults to the original reward wording so the six existing
+	## callers are unaffected. It exists because this popup is also the right
+	## component for a mandatory PENALTY choice (Compendium p.137 illegal salvage:
+	## pay credits / hand over salvage / gain an Enforcer Rival), where calling it
+	## a reward would be actively misleading. Set `.title` on the Window before
+	## calling if the titlebar should change too.
 	## Build the popup UI and display it
 	# Calculate height: header(~60) + description(~30) + separator(~10) + buttons(56 each) + padding(32)
 	var estimated_height: int = 130 + (options.size() * 64)
@@ -57,7 +64,7 @@ func show_choices(result_name: String, options: Array) -> void:
 
 	# Title
 	var title_label := Label.new()
-	title_label.text = "Choose Your Reward"
+	title_label.text = heading
 	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

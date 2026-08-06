@@ -1344,6 +1344,25 @@ func accept_selected_job() -> bool:
 	if PatronJobEffectsClass.danger_pay_rerollable(job):
 		_apply_negotiable_reroll(job)
 
+	# Compendium p.137 salvage availability roll 2-3: "Job available, but requires
+	# 2 Credit non-refundable fee to accept." Charged HERE because the book
+	# conditions it on acceptance, and NON-REFUNDABLE means it is spent whether or
+	# not the job goes well — so it must not be refunded on a later failure.
+	# The whole availability table was unrolled before the Aug 6 audit, so this
+	# fee had never been charged in any campaign.
+	var acceptance_fee: int = int(job.get("acceptance_fee", 0))
+	if acceptance_fee > 0:
+		if GameStateManager.get_credits() < acceptance_fee:
+			var short_msg: String = "CANNOT ACCEPT\n\nThis salvage job needs a %d " \
+				% acceptance_fee \
+				+ "credit non-refundable fee (Compendium p.137).\nYou have %d." \
+				% GameStateManager.get_credits()
+			push_warning("JobOfferComponent: salvage fee unaffordable")
+			if job_details_label:
+				job_details_label.text = short_msg
+			return false
+		GameStateManager.remove_credits(acceptance_fee)
+
 	job_accepted = true
 
 	# Taking the job consumes the offer. Declining deliberately does NOT: Core
